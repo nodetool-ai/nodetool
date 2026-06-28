@@ -126,7 +126,8 @@ export type MenuEventType =
   | "zoomOut"
   | "prevTab"
   | "nextTab"
-  | "switchToTab";
+  | "switchToTab"
+  | "openSettings";
 
 export interface MenuEventData {
   type: MenuEventType;
@@ -143,6 +144,19 @@ interface ClipboardContentInfo {
   hasRtf: boolean;
   hasText: boolean;
   platform: "darwin" | "win32" | "linux";
+}
+
+interface Vault {
+  id: string;
+  name: string;
+  dbPath: string | null;
+  assetPath: string | null;
+  vectorPath: string | null;
+}
+
+interface VaultListResult {
+  vaults: Vault[];
+  activeVaultId: string;
 }
 
 declare global {
@@ -285,6 +299,22 @@ declare global {
         setAutoUpdates?: (enabled: boolean) => Promise<void>;
         getUpdateChannel?: () => Promise<"latest" | "nightly">;
         setUpdateChannel?: (channel: "latest" | "nightly") => Promise<"latest" | "nightly">;
+        getModelServicesStartup?: () => Promise<{
+          startLlamaCppOnStartup: boolean;
+        }>;
+        setModelServicesStartup?: (update: {
+          startLlamaCppOnStartup?: boolean;
+        }) => Promise<{ startLlamaCppOnStartup: boolean }>;
+      };
+
+      // Vaults module - switchable, isolated data stores (each its own SQLite
+      // database). Electron-only.
+      vaults?: {
+        list: () => Promise<VaultListResult>;
+        create: (name: string) => Promise<VaultListResult>;
+        rename: (id: string, name: string) => Promise<VaultListResult>;
+        delete: (id: string) => Promise<VaultListResult>;
+        switch: (id: string) => Promise<VaultListResult>;
       };
 
       // Debug module - Debug bundle export
@@ -299,6 +329,12 @@ declare global {
           filename: string;
           message: string;
         }>;
+      };
+
+      // Local file helpers (available in Electron only)
+      files?: {
+        /** Resolve the absolute disk path of a dropped/selected File. */
+        getPathForFile: (file: File) => string;
       };
 
       // Dialog module - Native file/folder dialogs

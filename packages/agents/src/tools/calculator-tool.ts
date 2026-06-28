@@ -5,6 +5,7 @@
  */
 
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { z } from "zod";
 import { Tool } from "./base-tool.js";
 
 const MATH_SCOPE: Record<string, unknown> = {
@@ -28,19 +29,19 @@ const MATH_SCOPE: Record<string, unknown> = {
   e: Math.E
 };
 
+const CALCULATOR_SCHEMA = z
+  .object({
+    expression: z.string().describe("The mathematical expression to evaluate")
+  })
+  .loose();
+
 export class CalculatorTool extends Tool {
   readonly name = "calculate";
   readonly description = "Evaluate a mathematical expression safely.";
-  readonly inputSchema = {
-    type: "object" as const,
-    properties: {
-      expression: {
-        type: "string" as const,
-        description: "The mathematical expression to evaluate"
-      }
-    },
-    required: ["expression"]
-  };
+
+  override get schema() {
+    return CALCULATOR_SCHEMA;
+  }
 
   async process(
     _context: ProcessingContext,

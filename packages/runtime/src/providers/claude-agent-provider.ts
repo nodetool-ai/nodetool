@@ -30,7 +30,7 @@
  * below is only a within-process cache (the DB column is authoritative).
  */
 
-import { createLogger } from "@nodetool-ai/config";
+import { createLogger, importOptionalModule } from "@nodetool-ai/config";
 import { PROVIDER_IDS, type Chunk } from "@nodetool-ai/protocol";
 import type {
   McpSdkServerConfigWithInstance,
@@ -49,6 +49,7 @@ import {
   isProviderSessionUpdate,
   type LanguageModel,
   type Message,
+  type MessageContent,
   type MessageTextContent,
   type ProviderSession,
   type ProviderStreamItem,
@@ -121,21 +122,25 @@ interface ClaudeAgentProviderOptions {
 
 /**
  * Lazily import the optional `@anthropic-ai/claude-agent-sdk`. The SDK is a soft
- * (peer) dependency — it is not installed by default and must be added with the
- * package manager (e.g. `npm install @anthropic-ai/claude-agent-sdk`) before the
- * Claude Agent provider can be used. The specifier is held in a variable so
- * bundlers (and tsc's emit) don't try to resolve the Node-only package at build
- * time, and a missing package surfaces as a clear, actionable error at call time.
+ * (peer) dependency — it is not bundled with the app and must be installed at
+ * runtime from the Package Manager (Software → Claude Agent SDK), which drops it
+ * into the user-managed optional-node `node_modules`. {@link importOptionalModule}
+ * hides the specifier from bundlers (so the browser/worker bundle never pulls in
+ * the Node-only SDK) and falls back to resolving it from that optional root via
+ * `NODETOOL_OPTIONAL_NODE_MODULES`, so a plain ESM `import` (which ignores
+ * NODE_PATH) still finds a Package-Manager install. A missing package surfaces
+ * as a clear, actionable error at call time.
  */
 async function loadSdk(): Promise<typeof import("@anthropic-ai/claude-agent-sdk")> {
-  const spec = "@anthropic-ai/claude-agent-sdk";
   try {
-    return (await import(/* @vite-ignore */ spec)) as typeof import("@anthropic-ai/claude-agent-sdk");
+    return await importOptionalModule<
+      typeof import("@anthropic-ai/claude-agent-sdk")
+    >("@anthropic-ai/claude-agent-sdk");
   } catch (err) {
     throw new Error(
       "The Claude Agent provider requires the optional " +
         "'@anthropic-ai/claude-agent-sdk' package, which is not installed. " +
-        "Install it with `npm install @anthropic-ai/claude-agent-sdk`.",
+        "Install it from the Package Manager (Software → Claude Agent SDK).",
       { cause: err as Error }
     );
   }
@@ -218,20 +223,50 @@ export class ClaudeAgentProvider extends BaseProvider {
    */
   override async *generateLoop(
     args: Parameters<ClaudeAgentProvider["generateMessages"]>[0] & {
-      executeTool?: (toolCall: ToolCall) => Promise<string>;
+      executeTool?: (toolCall: ToolCall) => Promise<string | MessageContent[]>;
       maxIterations?: number;
     }
   ): AsyncGenerator<ProviderStreamItem> {
     const tools = args.tools ?? [];
+    const executeTool = args.executeTool;
+    // A tool dispatches either through its own `execute` or the harness
+    // `executeTool`; build the MCP server when at least one route exists.
+    const hasToolExecute = tools.some((t) => t.execute);
+
+    // The SDK loop is stopped by aborting this controller — a terminal tool
+    // fires it after running. Bridge the caller's signal into it too, and pass
+    // its signal (overriding args.signal) down so runTurn cancels on either.
+    const abortController = new AbortController();
+    const onExternalAbort = () => abortController.abort();
+    if (args.signal) {
+      if (args.signal.aborted) abortController.abort();
+      else
+        args.signal.addEventListener("abort", onExternalAbort, { once: true });
+    }
+
     let mcp: { mcpServers: Options["mcpServers"]; allowedTools: string[] } | null =
       null;
-    if (tools.length > 0 && args.executeTool) {
+    if (tools.length > 0 && (executeTool || hasToolExecute)) {
       const createServer = await this.loadCreateMcpServer();
-      const executeTool = args.executeTool;
+      // MCP tool results carry typed content blocks, so image-bearing results
+      // (view_image) are returned as real image blocks the SDK hands to Claude —
+      // no flattening to text on the agent-SDK path.
       const defs = tools.map((t) =>
-        toolDefinition(t, async (name, toolArgs) =>
-          executeTool({ id: `call_${name}_${Date.now()}`, name, args: toolArgs })
-        )
+        toolDefinition(t, async (name, toolArgs) => {
+          const toolCallId = `call_${name}_${Date.now()}`;
+          const result = t.execute
+            ? await t.execute(toolArgs, toolCallId)
+            : executeTool
+              ? await executeTool({
+                  id: toolCallId,
+                  name,
+                  args: toolArgs
+                })
+              : `Tool "${name}" is not available`;
+          // A terminal tool ends the SDK loop after its result is delivered.
+          if (t.terminal) abortController.abort();
+          return result;
+        })
       );
       const server = createServer({
         name: TOOL_SERVER_NAME,
@@ -243,11 +278,18 @@ export class ClaudeAgentProvider extends BaseProvider {
         allowedTools: tools.map((t) => `${TOOL_PREFIX}${t.name}`)
       };
     }
-    yield* this.runWithSession(args, {
-      emitMessages: true,
-      maxTurns: mcp ? args.maxIterations ?? DEFAULT_TOOL_TURNS : 1,
-      mcp
-    });
+    try {
+      yield* this.runWithSession(
+        { ...args, signal: abortController.signal },
+        {
+          emitMessages: true,
+          maxTurns: mcp ? args.maxIterations ?? DEFAULT_TOOL_TURNS : 1,
+          mcp
+        }
+      );
+    } finally {
+      if (args.signal) args.signal.removeEventListener("abort", onExternalAbort);
+    }
   }
 
   override async *generateMessages(args: {
@@ -408,12 +450,17 @@ export class ClaudeAgentProvider extends BaseProvider {
       model: args.model || undefined,
       // 1 for a single turn; higher when tools may drive multiple rounds.
       maxTurns: plan.config.maxTurns,
-      // Only NodeTool's MCP tools are allowed; empty (pure LLM) when tool-free.
+      // Auto-approve NodeTool's MCP tools (this is the no-prompt allowlist, not
+      // an availability restriction). Empty (pure LLM) when tool-free.
       allowedTools: plan.config.mcp?.allowedTools ?? [],
       // Do NOT load repo .claude / CLAUDE.md / skills.
       settingSources: [],
-      // Never block on an interactive permission prompt.
-      permissionMode: "dontAsk",
+      // Run without asking for permissions: never prompt AND never deny. This
+      // lets the SDK agent use its built-in tools (WebSearch/WebFetch/Bash/…)
+      // alongside NodeTool's MCP tools. bypassPermissions requires the explicit
+      // safety flag below.
+      permissionMode: "bypassPermissions",
+      allowDangerouslySkipPermissions: true,
       includePartialMessages: true,
       // Setting env REPLACES the child env, so spread process.env minus the
       // nested-session leakage. Preserves PATH/HOME/ANTHROPIC_BASE_URL/proxies.
@@ -773,17 +820,88 @@ function toolResultText(content: unknown): string {
  */
 function toolDefinition(
   tool: ProviderTool,
-  run: (name: string, args: Record<string, unknown>) => Promise<string>
+  run: (
+    name: string,
+    args: Record<string, unknown>
+  ) => Promise<string | MessageContent[]>
 ): SdkMcpToolDefinition<never> {
   return {
     name: tool.name,
     description: tool.description ?? "",
     inputSchema: jsonSchemaToZodShape(tool.inputSchema) as never,
     handler: async (toolArgs: Record<string, unknown>) => {
-      const text = await run(tool.name, toolArgs ?? {});
-      return { content: [{ type: "text" as const, text }] };
+      const result = await run(tool.name, toolArgs ?? {});
+      return { content: toolResultToMcpContent(result) };
     }
   } as unknown as SdkMcpToolDefinition<never>;
+}
+
+type McpContentBlock =
+  | { type: "text"; text: string }
+  | { type: "image"; data: string; mimeType: string };
+
+/**
+ * Decode a NodeTool image content part into an MCP image block (raw base64 +
+ * mimeType). Returns null for a remote URL we cannot inline — MCP image content
+ * is base64-only, so the caller degrades it to a text reference.
+ */
+function toMcpImageBlock(image: {
+  uri?: string;
+  data?: Uint8Array | string;
+  mimeType?: string;
+}): { type: "image"; data: string; mimeType: string } | null {
+  let base64: string | undefined;
+  let mimeType = image.mimeType;
+
+  const fromDataUri = (uri: string): void => {
+    const match = /^data:([^;,]+)?(;base64)?,([\s\S]*)$/.exec(uri);
+    if (!match) return;
+    mimeType = mimeType ?? match[1] ?? "image/png";
+    base64 = match[2]
+      ? (match[3] ?? "")
+      : Buffer.from(decodeURIComponent(match[3] ?? "")).toString("base64");
+  };
+
+  if (typeof image.data === "string") {
+    if (image.data.startsWith("data:")) fromDataUri(image.data);
+    else base64 = image.data;
+  } else if (image.data instanceof Uint8Array) {
+    base64 = Buffer.from(image.data).toString("base64");
+  }
+  if (!base64 && typeof image.uri === "string" && image.uri.startsWith("data:")) {
+    fromDataUri(image.uri);
+  }
+  if (!base64) return null;
+  return { type: "image", data: base64, mimeType: mimeType ?? "image/png" };
+}
+
+/**
+ * Convert a tool result into MCP content blocks. Text passes through; image
+ * parts become MCP image blocks (the SDK forwards them to Claude as real
+ * images). A remote-URL image that can't be inlined degrades to a text note.
+ */
+export function toolResultToMcpContent(
+  result: string | MessageContent[]
+): McpContentBlock[] {
+  if (typeof result === "string") {
+    return [{ type: "text", text: result }];
+  }
+  const blocks: McpContentBlock[] = [];
+  for (const part of result) {
+    if (part.type === "text") {
+      blocks.push({ type: "text", text: part.text });
+    } else if (part.type === "image_url") {
+      const img = toMcpImageBlock(part.image);
+      if (img) blocks.push(img);
+      else if (typeof part.image.uri === "string") {
+        blocks.push({ type: "text", text: `[image at ${part.image.uri}]` });
+      }
+    }
+  }
+  if (blocks.length === 0) {
+    blocks.push({ type: "text", text: "[no content]" });
+  }
+  return blocks;
 }
 
 /** Convert a JSON-Schema object's properties to a Zod raw shape. */

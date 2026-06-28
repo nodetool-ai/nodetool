@@ -62,6 +62,7 @@ const ModelProperty = (props: PropertyProps) => {
   const id = `folder-${props.property.name}-${props.propertyIndex}`;
   const modelType = props.property.type.type;
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
 
   const isConnectedSelector = useIsConnectedSelector(props.nodeId, props.property.name);
   const isConnected = useNodes(isConnectedSelector);
@@ -229,7 +230,7 @@ const ModelProperty = (props: PropertyProps) => {
 
   if (isConnected) {
     return (
-      <div className={`model-property ${modelClass} connected`} css={styles(theme)}>
+      <div className={`model-property ${modelClass} connected`} css={cssStyles}>
         <PropertyLabel
           name={props.property.name}
           description={props.property.description}
@@ -241,7 +242,7 @@ const ModelProperty = (props: PropertyProps) => {
   }
 
   return (
-    <div className={`model-property ${modelClass}`} css={styles(theme)}>
+    <div className={`model-property ${modelClass}`} css={cssStyles}>
       <PropertyLabel
         name={props.property.name}
         description={props.property.description}

@@ -24,7 +24,7 @@ export class DownloadFileTool extends Tool {
     "UI-fetchable URL (`asset_url`). When narrating the result to the user, " +
     "include `display_markdown` verbatim — never construct your own markdown " +
     "from `output_file`, which is a workspace storage key, not a URL.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       url: {
@@ -130,7 +130,7 @@ export class HttpRequestTool extends Tool {
   readonly name = "http_request";
   readonly description =
     "Make an HTTP request and return the response body as text";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       url: {

@@ -10,7 +10,7 @@ import {
   BottomPanelView,
   useBottomPanelStore
 } from "../../stores/BottomPanelStore";
-import { memo, useCallback, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import isEqual from "fast-deep-equal";
 import TracePanel from "./TracePanel";
@@ -493,6 +493,7 @@ const PanelBodyContent = memo(function PanelBodyContent({
 
 const PanelBottom: React.FC = () => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   const path = useLocation().pathname;
   const {
     ref: panelRef,
@@ -553,7 +554,7 @@ const PanelBottom: React.FC = () => {
 
   return (
     <div
-      css={styles(theme)}
+      css={cssStyles}
       className="panel-container"
       style={{
         height: `${openHeight}px`
@@ -586,7 +587,7 @@ const PanelBottom: React.FC = () => {
           <div
             className="panel-resize-button"
             onMouseDown={handleMouseDown}
-            style={{ cursor: isDragging ? "ns-resize" : "ns-resize" }}
+            style={{ cursor: "ns-resize" }}
             role="slider"
             aria-label="Resize panel"
             aria-valuenow={panelSize}

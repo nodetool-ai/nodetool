@@ -19,6 +19,8 @@ type SummaryResult = { summary_text: string };
 
 export class SummarizationNode extends BaseNode {
   static readonly nodeType = "transformers.Summarization";
+  static readonly inlineFields = ["text"];
+  static readonly inputFields: string[] = [];
   static readonly title = "Summarization";
   static readonly description =
     "Summarize long text using a Transformers.js summarization pipeline.\n" +

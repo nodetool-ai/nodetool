@@ -5,7 +5,7 @@ import {
   clipMatrixToCanvasAffine,
   containBaseScale
 } from "./transform";
-import { isSourceReady, sourceDimensions } from "./source";
+import { isSourceReady, shouldPresentFrame, sourceDimensions } from "./source";
 import type {
   CompositeLayer,
   CompositorInitResult,
@@ -69,6 +69,16 @@ export class Canvas2DCompositor implements TimelineCompositor {
     const ctx = this.ctx;
     if (!ctx) return;
 
+    // Decide drawable layers before clearing. A scene with layers but none
+    // decoded yet (the incoming clip at a cut is still seeking) must hold the
+    // last frame — clearing + drawing nothing would flash opaque black.
+    const drawable = this.layers.filter((layer) => {
+      if (!isSourceReady(layer.source)) return false;
+      const { width, height } = sourceDimensions(layer.source);
+      return width > 0 && height > 0;
+    });
+    if (!shouldPresentFrame(this.layers.length, drawable.length)) return;
+
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = "source-over";
@@ -77,10 +87,8 @@ export class Canvas2DCompositor implements TimelineCompositor {
     ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
 
-    for (const layer of this.layers) {
-      if (!isSourceReady(layer.source)) continue;
+    for (const layer of drawable) {
       const { width, height } = sourceDimensions(layer.source);
-      if (width === 0 || height === 0) continue;
 
       const transform = layer.transform ?? IDENTITY_TRANSFORM;
       const base = containBaseScale(

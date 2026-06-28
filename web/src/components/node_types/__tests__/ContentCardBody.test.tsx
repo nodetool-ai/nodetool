@@ -90,6 +90,39 @@ jest.mock("../../../stores/WorkflowRunner", () => ({
     selector({ state: mockRunnerState })
 }));
 
+// VideoPreview drives a real <video> off a resolved src; stub the resolver so a
+// video value yields a stable src without signed-URL/blob plumbing.
+jest.mock("../../../hooks/nodes/useMediaSrc", () => ({
+  __esModule: true,
+  useMediaSrc: () => "blob:video-src",
+  default: () => "blob:video-src"
+}));
+
+// VideoPreview's "save to assets" / "download" actions delegate to these.
+const mockCreateAsset = jest.fn().mockResolvedValue({});
+jest.mock("../../../stores/AssetStore", () => ({
+  useAssetStore: (selector: (s: { createAsset: unknown }) => unknown) =>
+    selector({ createAsset: mockCreateAsset })
+}));
+
+const mockAddNotification = jest.fn();
+jest.mock("../../../stores/NotificationStore", () => ({
+  useNotificationStore: (
+    selector: (s: { addNotification: unknown }) => unknown
+  ) => selector({ addNotification: mockAddNotification })
+}));
+
+const mockCreateAssetFile = jest.fn();
+jest.mock("../../../utils/createAssetFile", () => ({
+  createAssetFile: (...args: unknown[]) => mockCreateAssetFile(...args)
+}));
+
+const mockDownloadPreviewAssets = jest.fn().mockResolvedValue(undefined);
+jest.mock("../../../utils/downloadPreviewAssets", () => ({
+  downloadPreviewAssets: (...args: unknown[]) =>
+    mockDownloadPreviewAssets(...args)
+}));
+
 // NodeInputs renders ReactFlow Handles, which need a ReactFlow context not
 // present in these unit tests. Mock it to a probe that surfaces the props
 // that decide whether dynamic inputs (and thus handles) get rendered.
@@ -138,6 +171,15 @@ const transformMetadata = (): NodeMetadata =>
     ...metadataForOutput("image"),
     node_type: "lib.image.color_grading.Curves",
     namespace: "lib.image.color_grading",
+    auto_save_asset: false
+  }) as unknown as NodeMetadata;
+
+/** A video transform (e.g. Concat): outputs video, doesn't auto-save. */
+const videoTransformMetadata = (): NodeMetadata =>
+  ({
+    ...metadataForOutput("video"),
+    node_type: "nodetool.video.Concat",
+    namespace: "nodetool.video",
     auto_save_asset: false
   }) as unknown as NodeMetadata;
 
@@ -350,56 +392,92 @@ describe("ContentCardBody results", () => {
   });
 });
 
-describe("ContentCardBody dynamic inputs", () => {
-  const dynamicMetadata = (): NodeMetadata =>
-    ({
-      ...metadataForOutput("str"),
-      node_type: "nodetool.text.Concat",
-      title: "Concatenate Text",
-      inline_fields: [],
-      input_fields: [],
-      supports_dynamic_inputs: true
-    }) as unknown as NodeMetadata;
-
-  const renderDynamicCard = (dynamicProperties: Record<string, unknown>) =>
-    render(
-      <ThemeProvider theme={mockTheme}>
-        <ContentCardBody
-          id={nodeId}
-          nodeType="nodetool.text.Concat"
-          nodeMetadata={dynamicMetadata()}
-          data={
-            {
-              ...nodeData,
-              dynamic_properties: dynamicProperties
-            } as NodeData
-          }
-          workflowId={workflowId}
-          isOutputNode={true}
-        />
-      </ThemeProvider>
-    );
-
-  it("renders a handle-bearing input row for each user-added dynamic input", () => {
-    const { container } = renderDynamicCard({ input_1: "" });
-
-    const dynamicBlock = container.querySelector(".dynamic-inputs");
-    expect(dynamicBlock).not.toBeNull();
-    const nodeInputs = dynamicBlock!.querySelector(
-      '[data-testid="node-inputs"]'
-    );
-    // Dynamic inputs render (so each gets a handle) and are editable so the
-    // user can rename/delete them.
-    expect(nodeInputs).toHaveAttribute("data-show-dynamic", "true");
-    expect(nodeInputs).toHaveAttribute("data-editable-dynamic", "true");
-    // Unconnected inputs fall back to the node's primary-output type (str
-    // here) so they get a real editor instead of the uneditable `any`.
-    expect(nodeInputs).toHaveAttribute("data-default-type", "str");
+describe("ContentCardBody video actions", () => {
+  beforeEach(() => {
+    mockAssetHistory = [];
+    mockLastJobAssets = [];
+    mockRunnerState = "idle";
+    mockCreateAsset.mockClear();
+    mockAddNotification.mockClear();
+    mockCreateAssetFile.mockClear();
+    mockDownloadPreviewAssets.mockClear();
+    useResultsStore.setState({ liveGenerations: {} } as never);
+    useWorkflowAssetStore.setState({ assetsByWorkflow: {} } as never);
   });
 
-  it("omits the dynamic input block when nothing has been added", () => {
-    const { container } = renderDynamicCard({});
-    expect(container.querySelector(".dynamic-inputs")).toBeNull();
+  it("shows download and save-to-assets buttons over the video player", () => {
+    seedLiveGeneration("j1", {
+      output: { type: "video", uri: "trailer.mp4" }
+    });
+
+    renderContentCard(videoTransformMetadata());
+
+    expect(screen.getByLabelText("Download video")).toBeInTheDocument();
+    expect(screen.getByLabelText("Save video to assets")).toBeInTheDocument();
+  });
+
+  it("downloads the video via the preview-asset helper", async () => {
+    seedLiveGeneration("j1", {
+      output: { type: "video", uri: "trailer.mp4" }
+    });
+
+    renderContentCard(videoTransformMetadata());
+
+    await userEvent.click(screen.getByLabelText("Download video"));
+
+    expect(mockDownloadPreviewAssets).toHaveBeenCalledWith(
+      expect.objectContaining({
+        nodeId,
+        previewValue: { type: "video", uri: "trailer.mp4" }
+      })
+    );
+  });
+
+  it("saves the video to assets and notifies on success", async () => {
+    mockCreateAssetFile.mockResolvedValue([
+      { file: new File([], "trailer.mp4"), filename: "trailer.mp4", type: "video/mp4" }
+    ]);
+    seedLiveGeneration("j1", {
+      output: { type: "video", uri: "trailer.mp4" }
+    });
+
+    renderContentCard(videoTransformMetadata());
+
+    await userEvent.click(screen.getByLabelText("Save video to assets"));
+
+    expect(mockCreateAssetFile).toHaveBeenCalledWith(
+      { type: "video", uri: "trailer.mp4" },
+      nodeId
+    );
+    expect(mockCreateAsset).toHaveBeenCalledTimes(1);
+    expect(mockAddNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "success" })
+    );
+  });
+});
+
+describe("ContentCardBody dynamic outputs", () => {
+  const outputMetadata = (supportsDynamicOutputs: boolean): NodeMetadata =>
+    ({
+      ...metadataForOutput("str"),
+      node_type: "nodetool.agents.Agent",
+      title: "Agent",
+      supports_dynamic_inputs: false,
+      supports_dynamic_outputs: supportsDynamicOutputs
+    }) as unknown as NodeMetadata;
+
+  it("shows the Add output button when the node supports dynamic outputs", () => {
+    renderContentCard(outputMetadata(true));
+    expect(
+      screen.getByRole("button", { name: "Add output" })
+    ).toBeInTheDocument();
+  });
+
+  it("hides the Add output button when the node has no dynamic outputs", () => {
+    renderContentCard(outputMetadata(false));
+    expect(
+      screen.queryByRole("button", { name: "Add output" })
+    ).not.toBeInTheDocument();
   });
 });
 

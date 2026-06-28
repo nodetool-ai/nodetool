@@ -11,11 +11,20 @@ type Side = "in" | "out";
 
 // A single port dot. Absolutely positioned; lives inside a relative row and
 // centers on it vertically, overhanging the node edge by 6px like the real one.
-function Handle({ side, color }: { side: Side; color: string }) {
+function Handle({
+  side,
+  color,
+  anchorId,
+}: {
+  side: Side;
+  color: string;
+  anchorId?: string;
+}) {
   const c = typeColor(color);
   return (
     <span
       aria-hidden
+      data-anchor={anchorId}
       style={{
         position: "absolute",
         top: "50%",
@@ -236,10 +245,13 @@ export function HandleRow({
   side = "in",
   color = "any",
   label,
+  anchorId,
 }: {
   side?: Side;
   color?: string;
   label?: ReactNode;
+  /** Stable id so a graph can measure this handle's real position. */
+  anchorId?: string;
 }) {
   return (
     <div
@@ -254,7 +266,7 @@ export function HandleRow({
         justifyContent: side === "out" ? "flex-end" : "flex-start",
       }}
     >
-      <Handle side={side} color={color} />
+      <Handle side={side} color={color} anchorId={anchorId} />
       <span
         style={{
           fontSize: 13,

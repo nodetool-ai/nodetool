@@ -4,7 +4,7 @@
   "engines": {
     "node": ">=22.0.0 <23.0.0"
   },
-  "version": "0.7.0-rc.23",
+  "version": "0.7.0-rc.26",
   "description": "Compatibility shell re-exporting the 11 domain-specific node packages (core, text, llm, data, document, image, audio, video, integration, code, automation)",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -65,5 +65,8 @@
   "publishConfig": {
     "access": "public"
   },
-  "files": ["dist", "README.md"]
+  "files": [
+    "dist",
+    "README.md"
+  ]
 }

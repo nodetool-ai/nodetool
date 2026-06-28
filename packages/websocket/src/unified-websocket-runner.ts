@@ -85,6 +85,7 @@ import {
   ListCollectionsTool,
   QueryCollectionTool,
   gateTools,
+  extractInjectableImages,
   type PermissionMode,
   type ApprovalDecision,
   type ApprovalRequest
@@ -307,6 +308,30 @@ const ASSET_MEDIA_TYPES = new Set(["image", "audio", "video"]);
 /** Byte cap for inline-preview text stored in a text generation's asset metadata. */
 const TEXT_GENERATION_PREVIEW_CAP = 200_000;
 
+/** Char cap for the prompt stored in a media asset's metadata. */
+const PROMPT_METADATA_CAP = 8_000;
+
+/**
+ * Lift the prompt out of a generation's scalar input properties into asset
+ * metadata. Returns `{ prompt }` when a non-empty `prompt` string is present
+ * (capped), else an empty object. Other generation params are intentionally
+ * left out — the prompt is the field the asset viewer surfaces.
+ */
+function promptMetadata(
+  properties: Record<string, unknown> | undefined
+): Record<string, unknown> {
+  const prompt = properties?.prompt;
+  if (typeof prompt !== "string") return {};
+  const trimmed = prompt.trim();
+  if (trimmed.length === 0) return {};
+  return {
+    prompt:
+      trimmed.length > PROMPT_METADATA_CAP
+        ? trimmed.slice(0, PROMPT_METADATA_CAP)
+        : trimmed
+  };
+}
+
 /**
  * Resolve a node's primary output name when it is a text/str type, so its value
  * can be persisted as a text generation. Mirrors the frontend's
@@ -428,6 +453,68 @@ function decodeAssetBytes(data: unknown): Uint8Array | null {
   return null;
 }
 
+const IMAGE_MIME_TO_EXT: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/jpg": "jpg",
+  "image/png": "png",
+  "image/gif": "gif",
+  "image/webp": "webp",
+  "image/bmp": "bmp"
+};
+
+/** Parse a `data:` URI into its mime type and decoded bytes. */
+function parseImageDataUri(
+  uri: string
+): { bytes: Uint8Array; mimeType: string } | null {
+  const match = /^data:([^;,]+)?(;base64)?,([\s\S]*)$/.exec(uri);
+  if (!match) return null;
+  const mimeType = match[1] || "image/png";
+  const payload = match[3] ?? "";
+  const bytes = match[2]
+    ? Uint8Array.from(Buffer.from(payload, "base64"))
+    : new TextEncoder().encode(decodeURIComponent(payload));
+  return { bytes, mimeType };
+}
+
+/**
+ * Pull image bytes (+mime) out of an embedded image payload — `{ data, mimeType }`
+ * or `{ uri }` — so it can be materialized into a temp asset. A non-data
+ * remote/storage URI is surfaced as a passthrough handle (view_image fetches it).
+ */
+function extractEmbeddedImage(source: {
+  data?: unknown;
+  uri?: unknown;
+  mimeType?: unknown;
+}): { bytes: Uint8Array; mimeType: string } | { uri: string } | null {
+  const declaredMime =
+    typeof source.mimeType === "string" ? source.mimeType : undefined;
+  const data = typeof source.data === "string" ? source.data : undefined;
+  const uri = typeof source.uri === "string" ? source.uri : undefined;
+
+  if (data) {
+    if (data.startsWith("data:")) {
+      const parsed = parseImageDataUri(data);
+      if (parsed) {
+        return { bytes: parsed.bytes, mimeType: declaredMime ?? parsed.mimeType };
+      }
+    } else {
+      const bytes = decodeAssetBytes(data);
+      if (bytes) return { bytes, mimeType: declaredMime ?? "image/png" };
+    }
+  }
+  if (uri) {
+    if (uri.startsWith("data:")) {
+      const parsed = parseImageDataUri(uri);
+      if (parsed) {
+        return { bytes: parsed.bytes, mimeType: declaredMime ?? parsed.mimeType };
+      }
+    } else {
+      return { uri };
+    }
+  }
+  return null;
+}
+
 async function readBytesFromUri(uri: string): Promise<Uint8Array | null> {
   if (!uri) return null;
   try {
@@ -483,8 +570,18 @@ async function autoSaveAssets(
      * several rows for ONE arrival index).
      */
     generationIndex?: number;
+    /**
+     * Scalar input properties from the `generation_complete` event (the actor's
+     * resolved declared/dynamic/edge inputs, filtered to scalars). The `prompt`
+     * is persisted into each saved media asset's `metadata.prompt` so the asset
+     * viewer can show what produced the image/audio/video.
+     */
+    properties?: Record<string, unknown>;
   }
 ): Promise<void> {
+  // Generation params lifted into each media asset's metadata. Just the prompt
+  // today — the field the asset viewer surfaces as "what produced this".
+  const promptMeta = promptMetadata(opts.properties);
   const queue: Record<string, unknown>[] = [];
 
   // Collect all asset-like values from the result (may be nested)
@@ -557,8 +654,12 @@ async function autoSaveAssets(
       content_type: contentType,
       parent_id: null
     });
+    const mediaMeta: Record<string, unknown> = { ...promptMeta };
     if (typeof opts.generationIndex === "number") {
-      asset.metadata = { generation_index: opts.generationIndex };
+      mediaMeta.generation_index = opts.generationIndex;
+    }
+    if (Object.keys(mediaMeta).length > 0) {
+      asset.metadata = mediaMeta;
     }
 
     const fileName = `${asset.id}.${ext}`;
@@ -2108,7 +2209,12 @@ export class UnifiedWebSocketRunner {
                       jobId: active.jobId,
                       nodeId,
                       textOutputName: primaryTextOutputName(meta),
-                      generationIndex: arrivalIndex
+                      generationIndex: arrivalIndex,
+                      properties:
+                        (outbound.properties as Record<
+                          string,
+                          unknown
+                        > | null) ?? undefined
                     }
                   );
                 } catch (err) {
@@ -2505,9 +2611,125 @@ export class UnifiedWebSocketRunner {
   }
 
   /**
-   * Add context as a system message before the last user message.
-   * Mirrors Python's RegularChatProcessor._add_collection_context().
+   * Persist image bytes to temp storage and return a handle `view_image` can
+   * resolve — a bare `<uuid>.<ext>` storage key. No DB asset row is created, so
+   * these captures never clutter the user's asset library; the bytes live only
+   * in the request's temp storage. Returns null if there is no storage adapter
+   * or the write fails.
    */
+  private async storeTempImageAsset(
+    ctx: ProcessingContext,
+    bytes: Uint8Array,
+    mimeType: string
+  ): Promise<string | null> {
+    if (!ctx.storage) return null;
+    const ext = IMAGE_MIME_TO_EXT[mimeType] ?? "png";
+    const key = `${randomUUID()}.${ext}`;
+    try {
+      await ctx.storage.store(key, bytes, mimeType);
+      return key;
+    } catch (err) {
+      log.error("Failed to store temp image asset", {
+        error: err instanceof Error ? err.message : String(err)
+      });
+      return null;
+    }
+  }
+
+  /**
+   * Replace embedded image pixels in a tool result — timeline `frames[]` or an
+   * `image_content` blob (e.g. `ui_3d_capture_view`) — with temp-asset handles.
+   * The model receives a handle and an instruction to call `view_image`, which
+   * is the single mechanism that pulls pixels into context. Keeps image bytes
+   * out of the standing chat history. Non-image results pass through untouched.
+   */
+  private async materializeToolResultImages(
+    toolResult: unknown,
+    ctx: ProcessingContext
+  ): Promise<unknown> {
+    if (
+      !toolResult ||
+      typeof toolResult !== "object" ||
+      Array.isArray(toolResult)
+    ) {
+      return toolResult;
+    }
+    const record = toolResult as Record<string, unknown>;
+
+    const handleFor = async (
+      payload: { bytes: Uint8Array; mimeType: string } | { uri: string } | null
+    ): Promise<string | null> => {
+      if (!payload) return null;
+      if ("uri" in payload) return payload.uri;
+      return this.storeTempImageAsset(ctx, payload.bytes, payload.mimeType);
+    };
+
+    // Timeline frames → one image handle per frame.
+    if (Array.isArray(record.frames)) {
+      const handles: unknown[] = [];
+      let stored = 0;
+      for (const frame of record.frames) {
+        if (!frame || typeof frame !== "object") {
+          handles.push(frame);
+          continue;
+        }
+        const f = { ...(frame as Record<string, unknown>) };
+        const payload = extractEmbeddedImage({
+          uri: f.dataUrl,
+          mimeType: "image/jpeg"
+        });
+        delete f.dataUrl;
+        const id = await handleFor(payload);
+        if (id) {
+          f.image_id = id;
+          stored++;
+        }
+        handles.push(f);
+      }
+      const out: Record<string, unknown> = { ...record, frames: handles };
+      if (stored > 0) {
+        out.note = `Captured ${stored} timeline frame(s) as image assets. Call view_image({ image_id }) to inspect a frame.`;
+      }
+      return out;
+    }
+
+    // Single image_content blob → one image handle.
+    if (record.image_content && typeof record.image_content === "object") {
+      const payload = extractEmbeddedImage(
+        record.image_content as Record<string, unknown>
+      );
+      const id = await handleFor(payload);
+      const out: Record<string, unknown> = { ...record };
+      delete out.image_content;
+      if (id) {
+        out.image_id = id;
+        const base =
+          typeof record.note === "string" ? record.note : "Captured an image.";
+        out.note = `${base} Saved as image asset "${id}". Call view_image({ image_id: "${id}" }) to inspect it.`;
+      }
+      return out;
+    }
+
+    return toolResult;
+  }
+
+  /**
+   * The displayable text for a tool result that may be image content. Used for
+   * the persisted/echoed tool message so chat history stays a light note
+   * instead of a base64 blob (the image only rides the in-flight provider
+   * message for the turn that captured it).
+   */
+  private toolResultDisplayText(content: MessageContent[]): string {
+    const text = content
+      .filter((c): c is MessageContent & { type: "text"; text: string } =>
+        c.type === "text"
+      )
+      .map((c) => c.text)
+      .join("\n");
+    return text || "[image result]";
+  }
+
+
   private addCollectionContext(
     messages: ProviderMessage[],
     collectionContext: string
@@ -2985,16 +3207,22 @@ export class UnifiedWebSocketRunner {
       : [];
     if (workflowId) {
       for (const [name, manifest] of Object.entries(this.clientToolsManifest)) {
+        // The frontend manifest carries the JSON schema under `parameters`
+        // (FrontendToolRegistry.getManifest); accept `inputSchema` too for any
+        // client that uses the provider-tool field name.
+        const schema =
+          typeof manifest.parameters === "object"
+            ? (manifest.parameters as Record<string, unknown>)
+            : typeof manifest.inputSchema === "object"
+              ? (manifest.inputSchema as Record<string, unknown>)
+              : undefined;
         providerToolSchemas.push({
           name,
           description:
             typeof manifest.description === "string"
               ? manifest.description
               : undefined,
-          inputSchema:
-            typeof manifest.inputSchema === "object"
-              ? (manifest.inputSchema as Record<string, unknown>)
-              : undefined
+          inputSchema: schema
         });
       }
     }
@@ -3099,10 +3327,14 @@ export class UnifiedWebSocketRunner {
       memoryContext = "";
     }
 
-    // Run one tool call and return the result text to feed back to the model.
-    // Owns server/client tool routing, side effects (client round-trips via the
+    // Run one tool call and return the result to feed back to the model. Owns
+    // server/client tool routing, side effects (client round-trips via the
     // ToolBridge), and asset materialization; the provider's loop orchestrates.
-    const executeTool = async (toolCall: ProviderToolCall): Promise<string> => {
+    // Image results (e.g. ui_3d_capture_view) return MessageContent blocks so
+    // vision providers can see them; everything else returns result text.
+    const executeTool = async (
+      toolCall: ProviderToolCall
+    ): Promise<string | MessageContent[]> => {
       let toolResult: unknown;
       const serverTool = serverToolMap.get(toolCall.name);
       if (serverTool) {
@@ -3134,6 +3366,26 @@ export class UnifiedWebSocketRunner {
       } else {
         toolResult = { error: `Tool "${toolCall.name}" not available` };
       }
+
+      // view_image is the ONE mechanism that puts pixels into the model's
+      // context: its image_content rides the tool message so the model sees the
+      // image this turn. (The chat loop builds tool messages inside
+      // provider.generateLoop, so the tool return value is the only hook.)
+      if (toolCall.name === "view_image") {
+        const injected = extractInjectableImages(toolResult);
+        if (injected) {
+          return [
+            { type: "text", text: injected.text },
+            ...injected.images
+          ];
+        }
+      }
+
+      // Every other tool that produced pixels (timeline frames, 3D capture, …)
+      // gets them persisted as temp image assets; the model receives only a
+      // handle and calls view_image when it wants to look.
+      toolResult = await this.materializeToolResultImages(toolResult, ctx);
+
       const processed = await this.processToolResult(toolResult, ctx);
       return typeof processed === "string"
         ? processed
@@ -3190,12 +3442,20 @@ export class UnifiedWebSocketRunner {
             await this.saveMessageToDb(assistantMsgData);
             await this.sendMessage(assistantMsgData);
           } else if (m.role === "tool") {
+            // Image tool results carry MessageContent blocks; persist/echo only
+            // their note text so chat history stays light (the base64 rode the
+            // in-flight provider message, never the DB).
+            const toolContent = Array.isArray(m.content)
+              ? this.toolResultDisplayText(m.content)
+              : typeof m.content === "string"
+                ? m.content
+                : "";
             const toolMsgData: Record<string, unknown> = {
               type: "message",
               role: "tool",
               tool_call_id: m.toolCallId ?? null,
               name: m.toolCallId ? toolNames.get(m.toolCallId) ?? null : null,
-              content: typeof m.content === "string" ? m.content : "",
+              content: toolContent,
               thread_id: threadId,
               workflow_id: workflowId,
               provider: providerId,

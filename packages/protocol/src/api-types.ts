@@ -743,6 +743,12 @@ export interface NodeMetadata {
   input_mode?: InputMode;
   output_correlation?: Record<string, OutputCorrelation>;
   supports_dynamic_outputs: boolean;
+  /**
+   * Per-type cache lifetime for partial runs (seconds, or the `"forever"`
+   * sentinel — never `Infinity`, which JSON-serializes to `null`). Only
+   * consulted for Computed nodes; unset / `0` means never reuse.
+   */
+  cache_ttl?: number | "forever";
   model_packs?: ModelPack[];
   fal_unit_pricing?: FalUnitPricing | null;
   /** When true, the node remains runnable but is hidden from default discovery. */

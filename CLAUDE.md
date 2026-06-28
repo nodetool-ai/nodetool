@@ -130,6 +130,7 @@ npm run typecheck   # Must pass before committing
 - Frontend tools prefixed `ui_` (e.g., `ui_add_node`).
 - All inter-package imports use `@nodetool-ai/<package>`. Never import from `dist/`.
 - Throw `Error` objects, not strings. Comment intentionally empty catch blocks.
+- Prose (docs, READMEs, AGENTS.md, comments) follows [docs/WRITING_STYLE.md](docs/WRITING_STYLE.md): concise, concrete, no AI slop (`leverage`, `seamless`, `robust`, `comprehensive`, `it's worth noting`, rule-of-three padding…). Fix slop you pass when editing Markdown.
 
 ## Common Pitfalls
 
@@ -419,3 +420,4 @@ Area-specific overlays:
 - [Agent system](docs/AGENTS.md) — Planning, execution, tools, skills, workflow nodes
 - [UI Primitives Strategy](web/src/components/ui_primitives/STRATEGY.md) — Primitives-first policy, decision tree, migration rules
 - [Design System](docs/DESIGN.md) — Token reference: SPACING, TYPOGRAPHY, BORDER_RADIUS, MOTION, Z_INDEX; migration checklist
+- [Writing Style](docs/WRITING_STYLE.md) — Anti-slop prose rules and the forbidden-expressions list for all docs and Markdown

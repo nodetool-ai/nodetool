@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { ProcessingContext } from "@nodetool-ai/runtime";
+import { ProcessingContext, BaseProvider } from "@nodetool-ai/runtime";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import { RunSearchTool } from "../src/tools/run-search-tool.js";
 import {
@@ -38,6 +38,11 @@ function createMockProvider(
     },
     async *generateMessagesTraced(...args: any[]) {
       yield* (this as any).generateMessages(...args);
+    },
+    generateLoop(args: unknown) {
+      return (
+        BaseProvider.prototype as { generateLoop: (a: unknown) => unknown }
+      ).generateLoop.call(this, args);
     },
     async generateMessageTraced(...args: any[]) {
       return (this as any).generateMessage(...args);

@@ -21,6 +21,8 @@ type CaptionResult = { generated_text: string };
 
 export class ImageToTextNode extends BaseNode {
   static readonly nodeType = "transformers.ImageToText";
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields = ["image"];
   static readonly title = "Image to Text (Captioning)";
   static readonly description =
     "Generate a textual description for an image using a Transformers.js image-to-text pipeline.\n" +

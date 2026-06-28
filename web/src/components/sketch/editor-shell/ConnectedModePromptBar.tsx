@@ -12,25 +12,31 @@
  * sketch modal has no session, same gate as SelectionActionBar).
  */
 
-import React, { memo, useCallback, useMemo, useState } from "react";
+import React, {
+  memo,
+  useCallback,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import { useTheme } from "@mui/material/styles";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import AspectRatioIcon from "@mui/icons-material/CropOriginal";
 import ResolutionIcon from "@mui/icons-material/Tv";
+import ImageIcon from "@mui/icons-material/Image";
 
 import {
   EditorButton,
   FlexRow,
   LoadingSpinner,
-  SPACING,
   TextInput,
   Toast
 } from "../../ui_primitives";
-import ImageModelSelect from "../../properties/ImageModelSelect";
 import MediaControlChip from "../../chat/composer/MediaControlChip";
 import MediaAspectRatioMenu from "../../chat/composer/MediaAspectRatioMenu";
 import MediaOptionMenu from "../../chat/composer/MediaOptionMenu";
-import type { ImageModelValue } from "../../../stores/ApiTypes";
+import ImageModelMenuDialog from "../../model_menu/ImageModelMenuDialog";
+import type { ImageModel } from "../../../stores/ApiTypes";
 import {
   IMAGE_ASPECT_RATIOS,
   IMAGE_RESOLUTIONS,
@@ -108,6 +114,11 @@ const ConnectedModePromptBarInner: React.FC<ConnectedModePromptBarProps> = ({
   const [seed] = useState(seedModelFromBindings);
   const [model, setModel] = useState(seed.model);
   const [provider, setProvider] = useState(seed.provider);
+  // The remembered seed carries only ids, so the chip shows the id until a
+  // model is picked through the dialog (which provides a display name).
+  const [modelName, setModelName] = useState(seed.model);
+  const imageModelAnchorRef = useRef<HTMLButtonElement>(null);
+  const [imageModelOpen, setImageModelOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -146,9 +157,11 @@ const ConnectedModePromptBarInner: React.FC<ConnectedModePromptBarProps> = ({
     [resolution, resizeCanvas]
   );
 
-  const handleModelChange = useCallback((v: ImageModelValue) => {
-    setModel(v.id);
-    setProvider(v.provider);
+  const handlePickImageModel = useCallback((m: ImageModel) => {
+    setModel(m.id);
+    setProvider(m.provider);
+    setModelName(m.name || m.id);
+    setImageModelOpen(false);
   }, []);
 
   const handleGenerate = useCallback(async () => {
@@ -194,7 +207,7 @@ const ConnectedModePromptBarInner: React.FC<ConnectedModePromptBarProps> = ({
         className="sketch-mode-prompt-bar"
         data-testid="sketch-mode-prompt-bar"
         align="center"
-        gap={SPACING.xl}
+        gap={1}
         sx={{
           flexShrink: 0,
           width: "100%",
@@ -207,6 +220,61 @@ const ConnectedModePromptBarInner: React.FC<ConnectedModePromptBarProps> = ({
           borderBottom: `1px solid ${theme.vars.palette.grey[800]}`
         }}
       >
+        {/* Prompt — grows to fill */}
+        <TextInput
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          placeholder="Describe the image…"
+          compact
+          fullWidth
+          inputProps={{
+            "aria-label": "Generation prompt",
+            "data-testid": "sketch-gen-prompt"
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey && !actionDisabled) {
+              e.preventDefault();
+              void handleGenerate();
+            }
+          }}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <AutoAwesomeIcon
+                  fontSize="small"
+                  sx={{ mr: 0.5, color: theme.vars.palette.primary.main }}
+                />
+              )
+            }
+          }}
+          sx={{
+            flex: 1,
+            minWidth: 160,
+            // Match the control/button height so the row aligns.
+            "& .MuiOutlinedInput-root": { height: 34 }
+          }}
+        />
+
+        {/* Model selector — same chip + dialog as the media composer */}
+        <MediaControlChip
+          ref={imageModelAnchorRef}
+          icon={<ImageIcon fontSize="small" />}
+          label={modelName || "Select Model"}
+          active={imageModelOpen}
+          onClick={() => setImageModelOpen(true)}
+          truncate
+          showChevron={false}
+        />
+        {imageModelOpen && (
+          <ImageModelMenuDialog
+            open
+            anchorEl={imageModelAnchorRef.current}
+            onClose={() => setImageModelOpen(false)}
+            onModelChange={handlePickImageModel}
+            task="text_to_image"
+          />
+        )}
+
         {/* Resolution */}
         <MediaControlChip
           icon={<ResolutionIcon fontSize="small" />}
@@ -241,48 +309,6 @@ const ConnectedModePromptBarInner: React.FC<ConnectedModePromptBarProps> = ({
           options={IMAGE_ASPECT_RATIOS}
           onChange={handleAspectChange}
         />
-
-        {/* Prompt */}
-        <TextInput
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Describe the image…"
-          compact
-          fullWidth
-          aria-label="Generation prompt"
-          data-testid="sketch-gen-prompt"
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey && !actionDisabled) {
-              e.preventDefault();
-              void handleGenerate();
-            }
-          }}
-          slotProps={{
-            input: {
-              startAdornment: (
-                <AutoAwesomeIcon
-                  fontSize="small"
-                  sx={{ mr: 0.5, color: theme.vars.palette.primary.main }}
-                />
-              )
-            }
-          }}
-          sx={{
-            flex: 1,
-            minWidth: 120,
-            // Match the control/button height so the row aligns.
-            "& .MuiOutlinedInput-root": { height: 34 }
-          }}
-        />
-
-        {/* Model selector */}
-        <FlexRow sx={{ flexShrink: 0 }}>
-          <ImageModelSelect
-            value={model}
-            task="text_to_image"
-            onChange={handleModelChange}
-          />
-        </FlexRow>
 
         {/* Primary action — full-frame text-to-image */}
         <EditorButton

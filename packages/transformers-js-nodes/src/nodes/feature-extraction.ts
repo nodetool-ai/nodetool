@@ -76,6 +76,8 @@ function tensorToVector(tensor: unknown): number[] {
 
 export class FeatureExtractionNode extends BaseNode {
   static readonly nodeType = "transformers.FeatureExtraction";
+  static readonly inlineFields = ["text"];
+  static readonly inputFields: string[] = [];
   static readonly title = "Feature Extraction (Embeddings)";
   static readonly description =
     "Compute text embeddings using a Transformers.js feature-extraction pipeline.\n" +

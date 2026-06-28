@@ -31,6 +31,8 @@ function parseLabels(value: unknown): string[] {
 
 export class ZeroShotClassificationNode extends BaseNode {
   static readonly nodeType = "transformers.ZeroShotClassification";
+  static readonly inlineFields = ["text", "candidate_labels"];
+  static readonly inputFields: string[] = [];
   static readonly title = "Zero-Shot Classification";
   static readonly description =
     "Classify text into arbitrary user-supplied labels using a Transformers.js zero-shot pipeline.\n" +

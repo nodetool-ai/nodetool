@@ -30,7 +30,6 @@ export interface AgentWorkflowRunnerOptions {
   tools: Tool[];
   context: ProcessingContext;
   systemPrompt?: string;
-  maxTokenLimit?: number;
   maxStepIterations?: number;
   inputs?: Record<string, unknown>;
 }
@@ -59,7 +58,6 @@ export class AgentWorkflowRunner {
             model,
             tools,
             systemPrompt: this.opts.systemPrompt,
-            maxTokenLimit: this.opts.maxTokenLimit,
             maxIterations: this.opts.maxStepIterations
           });
         }

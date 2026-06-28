@@ -4,8 +4,15 @@
  * Port of src/nodetool/agents/tools/base.py
  */
 
-import type { ProcessingContext } from "@nodetool-ai/runtime";
-import type { ProviderTool } from "@nodetool-ai/runtime";
+import {
+  parseWithTypeCoercion,
+  zodToJsonSchema,
+  type JsonSchema,
+  type ProcessingContext,
+  type ProviderTool
+} from "@nodetool-ai/runtime";
+import { z, type ZodType } from "zod";
+import { TOOL_CALL_ID_FIELD } from "./subtask-fields.js";
 
 /**
  * Reserved input-schema field the LLM populates with a short, user-facing
@@ -24,7 +31,7 @@ const USER_MESSAGE_SCHEMA_DESCRIPTION =
 export abstract class Tool {
   abstract readonly name: string;
   abstract readonly description: string;
-  abstract readonly inputSchema: Record<string, unknown>;
+  protected readonly jsonSchema?: JsonSchema;
 
   /**
    * Opt-in: when `true`, {@link StepExecutor} injects the LLM-assigned
@@ -34,6 +41,17 @@ export abstract class Tool {
    */
   readonly needsToolCallId: boolean = false;
 
+  get schema(): ZodType | undefined {
+    return undefined;
+  }
+
+  get inputSchema(): JsonSchema {
+    if (this.schema) {
+      return zodToJsonSchema(this.schema);
+    }
+    return this.jsonSchema ?? { type: "object", properties: {} };
+  }
+
   /**
    * Execute the tool with the given parameters.
    */
@@ -41,6 +59,55 @@ export abstract class Tool {
     context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown>;
+
+  async execute(
+    context: ProcessingContext,
+    params: Record<string, unknown> | null | undefined,
+    options: { toolCallId?: string } = {}
+  ): Promise<unknown> {
+    const cleanArgs = Tool.stripMessage(params);
+    if (this.needsToolCallId && options.toolCallId) {
+      cleanArgs[TOOL_CALL_ID_FIELD] = options.toolCallId;
+    }
+    if (!this.schema) {
+      return this.process(context, cleanArgs);
+    }
+
+    const parsed = this.parseParams(cleanArgs);
+    if (!parsed.success) {
+      return {
+        error: "invalid_tool_arguments",
+        message: `Invalid arguments for ${this.name}: ${parsed.message}`,
+        issues: parsed.issues
+      };
+    }
+
+    return this.process(context, parsed.data);
+  }
+
+  static async executeTool(
+    tool: Tool,
+    context: ProcessingContext,
+    params: Record<string, unknown> | null | undefined,
+    options: { toolCallId?: string } = {}
+  ): Promise<unknown> {
+    const candidate = tool as Tool & {
+      execute?: (
+        context: ProcessingContext,
+        params: Record<string, unknown> | null | undefined,
+        options?: { toolCallId?: string }
+      ) => Promise<unknown>;
+    };
+    if (typeof candidate.execute === "function") {
+      return candidate.execute(context, params, options);
+    }
+
+    const cleanArgs = Tool.stripMessage(params);
+    if (tool.needsToolCallId && options.toolCallId) {
+      cleanArgs[TOOL_CALL_ID_FIELD] = options.toolCallId;
+    }
+    return tool.process(context, cleanArgs);
+  }
 
   /**
    * Convert this tool to the provider tool format expected by BaseProvider.
@@ -110,6 +177,45 @@ export abstract class Tool {
     const llm = Tool.extractMessage(params ?? {});
     if (llm) return llm;
     return tool.userMessage(Tool.stripMessage(params ?? {}));
+  }
+
+  private parseParams(
+    params: Record<string, unknown>
+  ):
+    | { success: true; data: Record<string, unknown> }
+    | { success: false; message: string; issues: string[] } {
+    if (!this.schema) {
+      return { success: true, data: params };
+    }
+
+    try {
+      const parsed = parseWithTypeCoercion(this.schema, params);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return { success: true, data: parsed as Record<string, unknown> };
+      }
+      return {
+        success: false,
+        message: "expected an object",
+        issues: ["expected an object"]
+      };
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const issues = error.issues.map((issue) => {
+          const path = issue.path.join(".");
+          return path ? `${path}: ${issue.message}` : issue.message;
+        });
+        return {
+          success: false,
+          message: issues.join("; "),
+          issues
+        };
+      }
+      return {
+        success: false,
+        message: String(error),
+        issues: [String(error)]
+      };
+    }
   }
 }
 

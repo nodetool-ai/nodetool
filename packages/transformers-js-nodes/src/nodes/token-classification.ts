@@ -25,6 +25,8 @@ type TokenEntity = {
 
 export class TokenClassificationNode extends BaseNode {
   static readonly nodeType = "transformers.TokenClassification";
+  static readonly inlineFields = ["text"];
+  static readonly inputFields: string[] = [];
   static readonly title = "Token Classification (NER)";
   static readonly description =
     "Run named-entity recognition or token-tagging via a Transformers.js token-classification pipeline.\n" +

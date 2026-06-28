@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/runtime",
-  "version": "0.7.0-rc.23",
+  "version": "0.7.0-rc.26",
   "description": "Processing context, message queue, and output normalization",
   "type": "module",
   "engines": {
@@ -85,6 +85,12 @@
       "types": "./dist/tracing-helpers.d.ts",
       "import": "./dist/tracing-helpers.js",
       "default": "./dist/tracing-helpers.js"
+    },
+    "./zod-schema": {
+      "nodetool-dev": "./src/zod-schema.ts",
+      "types": "./dist/zod-schema.d.ts",
+      "import": "./dist/zod-schema.js",
+      "default": "./dist/zod-schema.js"
     }
   },
   "license": "MIT",

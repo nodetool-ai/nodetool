@@ -8,7 +8,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-const isLiteralSourceNode = (nodeType?: string): boolean => {
+export const isLiteralSourceNode = (nodeType?: string): boolean => {
   if (!nodeType) {
     return false;
   }

@@ -1,14 +1,24 @@
 import { describe, it, expect, vi } from "vitest";
-import {
-  runAgentLoop,
-  registerBuiltinAgentToolClasses
-} from "@nodetool-ai/llm-nodes";
+// Import from source (not the package's stale dist) so the test exercises the
+// current runAgentLoop. registerBuiltinAgentToolClasses must come from the same
+// source module so it shares the builtin-tool registry runAgentLoop hydrates from.
+import { runAgentLoop } from "../src/nodes/agents.js";
+import { registerBuiltinAgentToolClasses } from "../src/nodes/agent-tool-hydration.js";
+import { BaseProvider } from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 function createMockContext(providerFactory: () => any): ProcessingContext {
   return {
     getProvider: vi.fn().mockImplementation(async () => providerFactory())
   } as unknown as ProcessingContext;
+}
+
+// Delegate to the real base loop so these completion-style mocks (which only
+// implement generateMessagesTraced) drive runAgentLoop through generateLoop.
+function delegateGenerateLoop(this: any, args: unknown) {
+  return (
+    BaseProvider.prototype as { generateLoop: (a: unknown) => unknown }
+  ).generateLoop.call(this, args);
 }
 
 function makeMockProvider(callSequences: Array<Array<any>>) {
@@ -21,7 +31,8 @@ function makeMockProvider(callSequences: Array<Array<any>>) {
     },
     async *generateMessagesTraced(...args: any[]) {
       yield* (this as any).generateMessages(...args);
-    }
+    },
+    generateLoop: delegateGenerateLoop
   });
 }
 
@@ -181,7 +192,8 @@ describe("runAgentLoop", () => {
       },
       async *generateMessagesTraced(...args: any[]) {
         yield* (this as any).generateMessages(...args);
-      }
+      },
+      generateLoop: delegateGenerateLoop
     });
 
     const context = createMockContext(provider);
@@ -327,5 +339,76 @@ describe("runAgentLoop", () => {
     expect(result.text).toBe("The result is ready.");
     expect(result.text).not.toContain("browser_navigate");
     expect(deltas).toEqual(["The result is ", "ready."]);
+  });
+
+  it("drives tools when the provider runs its OWN loop (agent SDK style)", async () => {
+    // The agent SDK provider's generateMessages is tool-free (mcp: null) — tools
+    // only reach the model through the provider's own generateLoop. This mock
+    // mirrors that: the single-turn primitives yield no tool calls, but the
+    // generateLoop override drives the scripted call by dispatching to the
+    // provider tool's own `execute` (the new mechanism, matching how the real
+    // Claude Agent SDK provider runs tools) and translates the result into
+    // ToolCall + tool-result message events.
+    const toolFn = vi.fn().mockResolvedValue({ ok: true, value: 7 });
+    const tools: any[] = [
+      { name: "sdk_tool", process: toolFn, inputSchema: {} }
+    ];
+    const scriptedCall = { id: "tc_sdk", name: "sdk_tool", args: { q: "x" } };
+
+    const provider = () => ({
+      provider: "sdk_loop",
+      // Tool-free single-turn primitives — never surface the tool call.
+      async *generateMessages() {
+        yield { type: "chunk", content: "", done: true };
+      },
+      async *generateMessagesTraced() {
+        yield { type: "chunk", content: "", done: true };
+      },
+      async *generateLoop(args: any) {
+        yield scriptedCall;
+        const tool = (args.tools ?? []).find(
+          (t: any) => t.name === scriptedCall.name
+        );
+        const content = tool?.execute
+          ? await tool.execute(scriptedCall.args)
+          : args.executeTool
+            ? await args.executeTool(scriptedCall)
+            : "";
+        yield {
+          type: "message",
+          message: {
+            role: "tool",
+            toolCallId: scriptedCall.id,
+            content
+          }
+        };
+        yield { type: "chunk", content: "Tool says 7", done: true };
+        yield {
+          type: "message",
+          message: { role: "assistant", content: "Tool says 7" }
+        };
+      }
+    });
+
+    const toolCallChunks: any[] = [];
+    const result = await runAgentLoop({
+      context: createMockContext(provider),
+      providerId: "sdk_loop",
+      modelId: "test-model",
+      systemPrompt: "sys",
+      prompt: "use sdk tool",
+      tools,
+      onToolCall: (c) => toolCallChunks.push(c)
+    });
+
+    // The tool ran via the provider's own loop, even though the single-turn
+    // primitive never emitted a tool call.
+    expect(toolFn).toHaveBeenCalledOnce();
+    expect(toolFn).toHaveBeenCalledWith(expect.anything(), { q: "x" });
+    expect(toolCallChunks).toHaveLength(1);
+    expect(toolCallChunks[0].content_metadata.tool_name).toBe("sdk_tool");
+    expect(result.text).toBe("Tool says 7");
+    // The streamed tool-result message landed in the returned conversation.
+    expect(result.messages.some((m: any) => m.role === "tool")).toBe(true);
   });
 });

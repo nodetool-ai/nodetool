@@ -571,11 +571,19 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
               <FlexColumn css={sectionContentStyles(theme)}>
                 {(() => {
                   const t = clip.transitionIn;
-                  const type: "none" | "crossfade" = t?.type ?? "none";
-                  const duration = t?.durationMs ?? 500;
-                  const setType = (next: "none" | "crossfade") => {
-                    if (next === "none") {
+                  // Auto (default): cross-fade across any same-track overlap.
+                  // Crossfade: explicit duration. None: a zero-length cross-fade
+                  // — an opt-out that stays a hard cut even when clips overlap.
+                  const mode: "auto" | "crossfade" | "none" =
+                    t == null ? "auto" : t.durationMs <= 0 ? "none" : "crossfade";
+                  const duration = t && t.durationMs > 0 ? t.durationMs : 500;
+                  const setMode = (next: "auto" | "crossfade" | "none") => {
+                    if (next === "auto") {
                       patchClip(clip.id, { transitionIn: undefined });
+                    } else if (next === "none") {
+                      patchClip(clip.id, {
+                        transitionIn: { type: "crossfade", durationMs: 0 }
+                      });
                     } else {
                       const transition: ClipTransition = {
                         type: "crossfade",
@@ -588,45 +596,49 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
                     <>
                       <InspectorRow label="Type">
                         <NodeSelect
-                          value={type}
+                          value={mode}
                           onChange={(e) =>
-                            setType(e.target.value as "none" | "crossfade")
+                            setMode(
+                              e.target.value as "auto" | "crossfade" | "none"
+                            )
                           }
                         >
-                          <NodeMenuItem value="none">None</NodeMenuItem>
+                          <NodeMenuItem value="auto">Auto</NodeMenuItem>
                           <NodeMenuItem value="crossfade">
                             Crossfade
                           </NodeMenuItem>
+                          <NodeMenuItem value="none">None</NodeMenuItem>
                         </NodeSelect>
                       </InspectorRow>
-                      {type === "crossfade" && (
-                        <>
-                          <InspectorRow label="Duration">
-                            <InspectorPillInput
-                              value={(duration / 1000).toFixed(2)}
-                              unit="s"
-                              onCommit={(raw) => {
-                                const ms = parseSeconds(raw);
-                                if (ms == null) return;
-                                patchClip(clip.id, {
-                                  transitionIn: {
-                                    type: "crossfade",
-                                    durationMs: Math.max(0, ms)
-                                  }
-                                });
-                              }}
-                              ariaLabel="Transition duration"
-                            />
-                          </InspectorRow>
-                          <Text
-                            size="small"
-                            sx={{ px: 0.5, color: "text.secondary" }}
-                          >
-                            Overlap with the previous clip on the same track to
-                            see the cross-fade.
-                          </Text>
-                        </>
+                      {mode === "crossfade" && (
+                        <InspectorRow label="Duration">
+                          <InspectorPillInput
+                            value={(duration / 1000).toFixed(2)}
+                            unit="s"
+                            onCommit={(raw) => {
+                              const ms = parseSeconds(raw);
+                              if (ms == null) return;
+                              patchClip(clip.id, {
+                                transitionIn: {
+                                  type: "crossfade",
+                                  durationMs: Math.max(0, ms)
+                                }
+                              });
+                            }}
+                            ariaLabel="Transition duration"
+                          />
+                        </InspectorRow>
                       )}
+                      <Text
+                        size="small"
+                        sx={{ px: 0.5, color: "text.secondary" }}
+                      >
+                        {mode === "auto"
+                          ? "Overlap this clip with the previous one on the same track to cross-fade."
+                          : mode === "crossfade"
+                            ? "Fixed cross-fade length, measured from this clip's start."
+                            : "Always a hard cut, even when clips overlap."}
+                      </Text>
                     </>
                   );
                 })()}

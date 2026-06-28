@@ -1,7 +1,7 @@
 {
   "name": "@nodetool-ai/audio-nodes",
-  "version": "0.7.0-rc.23",
-  "description": "NodeTool audio nodes \u2014 audio I/O, DSP, effects",
+  "version": "0.7.0-rc.26",
+  "description": "NodeTool audio nodes — audio I/O, DSP, effects",
   "type": "module",
   "engines": {
     "node": ">=22.0.0 <23.0.0"

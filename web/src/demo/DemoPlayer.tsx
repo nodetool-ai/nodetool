@@ -97,15 +97,20 @@ interface DemoCanvasProps {
   engine: DemoEngine;
   cast: DemoCast;
   timeMs: number;
+  /** Controlled camera; when set, overrides cast.viewport / fitView so a host
+   *  (e.g. a Remotion composition) can animate zoom/pan per frame. */
+  viewport?: { x: number; y: number; zoom: number };
 }
 
-function DemoCanvas({ engine, cast, timeMs }: DemoCanvasProps): React.JSX.Element {
+function DemoCanvas({ engine, cast, timeMs, viewport }: DemoCanvasProps): React.JSX.Element {
   const nodeTypes = useDemoNodeTypes();
   const nodes = useStore(engine.nodeStore, (s) => s.nodes);
   const edges = useStore(engine.nodeStore, (s) => s.edges);
   const { fitView } = useReactFlow();
   const nodesInitialized = useNodesInitialized();
   const didFit = useRef(false);
+  const controlled = viewport != null;
+  const fixedViewport = viewport ?? cast.viewport;
 
   // Drive the replay synchronously before paint so each frame's DOM reflects
   // exactly the cast state at `timeMs`.
@@ -113,9 +118,9 @@ function DemoCanvas({ engine, cast, timeMs }: DemoCanvasProps): React.JSX.Elemen
     engine.seekToTime(timeMs);
   }, [engine, timeMs]);
 
-  // Fit the graph once when no fixed viewport was recorded.
+  // Fit the graph once when neither a controlled nor a recorded viewport is set.
   useEffect(() => {
-    if (cast.viewport || didFit.current || nodes.length === 0) return;
+    if (fixedViewport || didFit.current || nodes.length === 0) return;
     const timer = setTimeout(
       () => {
         fitView({ padding: 0.15 });
@@ -124,7 +129,7 @@ function DemoCanvas({ engine, cast, timeMs }: DemoCanvasProps): React.JSX.Elemen
       nodesInitialized ? 50 : 600
     );
     return () => clearTimeout(timer);
-  }, [cast.viewport, fitView, nodes.length, nodesInitialized]);
+  }, [fixedViewport, fitView, nodes.length, nodesInitialized]);
 
   return (
     <ReactFlow
@@ -132,8 +137,11 @@ function DemoCanvas({ engine, cast, timeMs }: DemoCanvasProps): React.JSX.Elemen
       edges={edges}
       nodeTypes={nodeTypes}
       edgeTypes={EDGE_TYPES}
-      defaultViewport={cast.viewport ?? undefined}
-      fitView={!cast.viewport}
+      // Controlled viewport (animated) takes precedence; otherwise fall back to
+      // the cast's recorded camera, or fit the graph when neither is present.
+      {...(controlled
+        ? { viewport: fixedViewport }
+        : { defaultViewport: cast.viewport ?? undefined, fitView: !cast.viewport })}
       fitViewOptions={{ padding: 0.15 }}
       nodesDraggable={false}
       nodesConnectable={false}
@@ -168,6 +176,9 @@ export interface DemoPlayerProps {
   resolveAssetUrl: (file: string) => string;
   /** Canvas size; defaults to filling the parent. */
   style?: React.CSSProperties;
+  /** Controlled camera; when set, overrides the cast's recorded viewport so a
+   *  host can animate zoom/pan (e.g. a Remotion composition driving the clock). */
+  viewport?: { x: number; y: number; zoom: number };
 }
 
 /**
@@ -179,6 +190,7 @@ export function DemoPlayer({
   timeMs,
   resolveAssetUrl,
   style,
+  viewport,
 }: DemoPlayerProps): React.JSX.Element {
   const resolveRef = useRef(resolveAssetUrl);
   resolveRef.current = resolveAssetUrl;
@@ -208,7 +220,12 @@ export function DemoPlayer({
                       data-demo-player
                       style={{ width: "100%", height: "100%", ...style }}
                     >
-                      <DemoCanvas engine={engine} cast={cast} timeMs={timeMs} />
+                      <DemoCanvas
+                        engine={engine}
+                        cast={cast}
+                        timeMs={timeMs}
+                        viewport={viewport}
+                      />
                     </div>
                   </ReactFlowProvider>
                 </NodeContext.Provider>

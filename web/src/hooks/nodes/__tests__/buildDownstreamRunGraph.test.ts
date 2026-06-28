@@ -141,6 +141,47 @@ describe("collectCachedValuesForSubgraph", () => {
     );
     expect(result.size).toBe(0);
   });
+
+  it("denies the cache for a CONSTANT source — inlines the LIVE property value, not a stale generation", () => {
+    const edges = [
+      mkEdge("const1", "node1", { sourceHandle: "output", targetHandle: "value" })
+    ];
+    // The constant has a STALE cached generation, but its live property was edited.
+    const getResult = (_wf: string, nodeId: string): unknown =>
+      nodeId === "const1" ? { output: "stale_cached" } : undefined;
+    const constNode = mkNode("const1", "nodetool.constant.String");
+    constNode.data.properties = { value: "live_edited" };
+    const findNode = (id: string) => (id === "const1" ? constNode : mkNode(id));
+    const result = collectCachedValuesForSubgraph(edges, "wf1", getResult, findNode);
+    expect(result.get("node1")).toEqual({ value: "live_edited" });
+  });
+
+  it("denies the cache for an INPUT source too (nodetool.input.*)", () => {
+    const edges = [
+      mkEdge("in1", "node1", { sourceHandle: "output", targetHandle: "value" })
+    ];
+    const getResult = (_wf: string, nodeId: string): unknown =>
+      nodeId === "in1" ? { output: "stale_cached" } : undefined;
+    const inNode = mkNode("in1", "nodetool.input.IntegerInput");
+    inNode.data.properties = { value: 7 };
+    const findNode = (id: string) => (id === "in1" ? inNode : mkNode(id));
+    const result = collectCachedValuesForSubgraph(edges, "wf1", getResult, findNode);
+    expect(result.get("node1")).toEqual({ value: 7 });
+  });
+
+  it("keeps the cache-first value for a computed/generative source (preview liveness preserved)", () => {
+    const edges = [
+      mkEdge("gen1", "node1", { sourceHandle: "output", targetHandle: "image" })
+    ];
+    // The generative source's last output is reused even though it may be "stale".
+    const getResult = (_wf: string, nodeId: string): unknown =>
+      nodeId === "gen1" ? { output: "last_cached_output" } : undefined;
+    const genNode = mkNode("gen1", "gen.Image");
+    genNode.data.properties = { value: "ignored_live_value" };
+    const findNode = (id: string) => (id === "gen1" ? genNode : mkNode(id));
+    const result = collectCachedValuesForSubgraph(edges, "wf1", getResult, findNode);
+    expect(result.get("node1")).toEqual({ image: "last_cached_output" });
+  });
 });
 
 describe("browserRunnablePrefix", () => {

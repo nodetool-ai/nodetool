@@ -107,7 +107,7 @@ export class LtmRecallTool extends Tool {
     "across sessions. Returns up to `k` items, ranked by a hybrid of " +
     "semantic similarity, recency and importance.";
 
-  readonly inputSchema: Record<string, unknown> = {
+  readonly jsonSchema: Record<string, unknown> = {
     type: "object",
     properties: {
       query: {
@@ -175,7 +175,7 @@ export class LtmRememberTool extends Tool {
     "Each memory should be one self-contained sentence. Near-duplicates of " +
     "existing memories are skipped automatically.";
 
-  readonly inputSchema: Record<string, unknown> = {
+  readonly jsonSchema: Record<string, unknown> = {
     type: "object",
     properties: {
       text: {

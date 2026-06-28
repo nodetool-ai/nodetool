@@ -194,6 +194,7 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
   onCollapse
 }) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   const overlayRef = useRef<HTMLDivElement>(null);
   const startResize = useCanvasDockResize(overlayRef);
 
@@ -352,7 +353,7 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
   return (
     <div
       ref={overlayRef}
-      css={styles(theme)}
+      css={cssStyles}
       className="conversation-overlay"
       style={{ height: `clamp(160px, ${overlayHeight}px, 78vh)` }}
     >

@@ -334,7 +334,7 @@ export class TaskPlanner {
 
   private async *_planMultiTaskImpl(
     objective: string,
-    _context: ProcessingContext
+    context: ProcessingContext
   ): AsyncGenerator<ProcessingMessage, TaskPlan | null> {
     const toolsInfo = this.formatToolsInfo();
 
@@ -369,186 +369,199 @@ export class TaskPlanner {
       [removeTaskTool.name, removeTaskTool],
       [finishPlanTool.name, finishPlanTool]
     ]);
-    const providerTools = [
-      addTaskTool.toProviderTool(),
-      removeTaskTool.toProviderTool(),
-      finishPlanTool.toProviderTool()
-    ];
-
     const perTaskFailures = new Map<string, number>();
     const MAX_CALLS = 100;
 
-    for (let call = 0; call < MAX_CALLS; call++) {
-      const pendingToolCalls: ToolCall[] = [];
-      let assistantText = "";
+    // Delegate the tool loop to the provider so backends that run their own
+    // agent loop (e.g. the Claude Agent SDK) work. Each plan tool carries its
+    // own `execute` closure that mutates the shared builder and buffers the UI
+    // events its result implies; the stream consumer below drains that buffer
+    // in order. `finish_plan` is `terminal`, so the loop ends after it runs.
+    // The AbortController only short-circuits the loop when a single task fails
+    // validation too many times (an early-stop that is not a terminal tool).
+    const abort = new AbortController();
+    const uiEvents: ProcessingMessage[] = [];
+    let finished = false;
+    let abortedReason: string | null = null;
 
-      const stream = this.provider.generateMessagesTraced({
-        messages: [...messages],
-        model: this.model,
-        tools: providerTools,
-        toolChoice: "any",
-        threadId: this.threadId
-      });
-
-      for await (const item of stream) {
-        if ("type" in item && (item as { type: string }).type === "chunk") {
-          const chunk = item as { content?: string };
-          if (typeof chunk.content === "string" && chunk.content.length > 0) {
-            assistantText += chunk.content;
-            yield {
-              type: "chunk",
-              content: chunk.content,
-              done: false
-            } satisfies Chunk;
-          }
-        }
-        if ("id" in item && "name" in item && "args" in item) {
-          pendingToolCalls.push(item as ToolCall);
+    const addTaskExecute = async (
+      args: Record<string, unknown>
+    ): Promise<string> => {
+      const result = (await Tool.executeTool(
+        addTaskTool,
+        context,
+        args
+      )) as Record<string, unknown>;
+      const status = result["status"];
+      const taskId = typeof args["id"] === "string" ? args["id"] : undefined;
+      if (status === "task_added") {
+        const added = builder.currentTasks[builder.currentTasks.length - 1];
+        if (added) uiEvents.push(this.taskPlannedEvent(added));
+        uiEvents.push({
+          type: "planning_update",
+          phase: "generation",
+          status: "running",
+          content: `Added task ${builder.taskCount}: ${added?.title ?? taskId ?? ""}`
+        } satisfies PlanningUpdate);
+      } else if (status === "validation_failed") {
+        const errors = (result["errors"] as string[]) ?? [];
+        const count = (perTaskFailures.get(taskId ?? "_") ?? 0) + 1;
+        perTaskFailures.set(taskId ?? "_", count);
+        uiEvents.push({
+          type: "planning_update",
+          phase: "validation",
+          status: "failed",
+          content: `Task '${taskId ?? "?"}' validation failed (${count}/${MAX_PER_TASK_RETRIES}): ${errors.join("; ")}`
+        } satisfies PlanningUpdate);
+        if (count >= MAX_PER_TASK_RETRIES) {
+          abortedReason = `Task '${taskId ?? "?"}' failed validation ${count} times. Aborting plan.`;
+          abort.abort();
         }
       }
+      return JSON.stringify(result);
+    };
 
-      // Record assistant turn with any tool calls.
-      messages.push({
-        role: "assistant",
-        content: assistantText,
-        toolCalls: pendingToolCalls.length > 0 ? pendingToolCalls : undefined
-      });
+    const removeTaskExecute = async (
+      args: Record<string, unknown>
+    ): Promise<string> => {
+      const result = (await Tool.executeTool(
+        removeTaskTool,
+        context,
+        args
+      )) as Record<string, unknown>;
+      const status = result["status"];
+      const removedId =
+        typeof args["id"] === "string" ? (args["id"] as string) : "";
+      if (status === "task_removed") {
+        uiEvents.push({
+          type: "task_update",
+          event: TaskUpdateEvent.TaskRemoved,
+          task: { id: removedId }
+        } satisfies TaskUpdate);
+        perTaskFailures.delete(removedId);
+        uiEvents.push({
+          type: "planning_update",
+          phase: "generation",
+          status: "running",
+          content: `Removed task: ${removedId}`
+        } satisfies PlanningUpdate);
+      }
+      return JSON.stringify(result);
+    };
 
-      if (pendingToolCalls.length === 0) {
-        messages.push({
-          role: "user",
-          content:
-            "No tool call in your response. Call add_task, remove_task, or finish_plan to continue."
+    const finishPlanExecute = async (
+      args: Record<string, unknown>
+    ): Promise<string> => {
+      const result = (await Tool.executeTool(
+        finishPlanTool,
+        context,
+        args
+      )) as Record<string, unknown>;
+      const status = result["status"];
+      if (status === "plan_finished" && builder.plan) {
+        const plan = builder.plan;
+        const totalSteps = plan.tasks.reduce((s, t) => s + t.steps.length, 0);
+        const independent = plan.tasks.filter(
+          (t) => !t.dependsOn || t.dependsOn.length === 0
+        ).length;
+        log.info("Multi-task plan created", {
+          title: plan.title,
+          tasks: plan.tasks.length
         });
-        continue;
-      }
-
-      let aborted: string | null = null;
-      let finished = false;
-
-      for (const tc of pendingToolCalls) {
-        const tool = toolsByName.get(tc.name);
-        if (!tool) {
-          messages.push({
-            role: "tool",
-            toolCallId: tc.id,
-            content: JSON.stringify({
-              status: "error",
-              error: `Unknown tool: ${tc.name}. Use add_task, remove_task, or finish_plan.`
-            })
-          });
-          continue;
-        }
-
-        const args = (tc.args ?? {}) as Record<string, unknown>;
-        yield {
-          type: "tool_call_update",
-          node_id: "",
-          name: tc.name,
-          args,
-          message: Tool.resolveMessage(tool, args)
-        } satisfies ToolCallUpdate;
-
-        const result = (await tool.process(
-          {} as ProcessingContext,
-          Tool.stripMessage(args)
-        )) as Record<string, unknown>;
-        messages.push({
-          role: "tool",
-          toolCallId: tc.id,
-          content: JSON.stringify(result)
-        });
-
-        const status = result["status"];
-
-        if (tc.name === addTaskTool.name) {
-          const taskId = typeof args["id"] === "string" ? args["id"] : undefined;
-          if (status === "task_added") {
-            const added = builder.currentTasks[builder.currentTasks.length - 1];
-            if (added) yield this.taskPlannedEvent(added);
-            yield {
-              type: "planning_update",
-              phase: "generation",
-              status: "running",
-              content: `Added task ${builder.taskCount}: ${added?.title ?? taskId ?? ""}`
-            } satisfies PlanningUpdate;
-          } else if (status === "validation_failed") {
-            const errors = (result["errors"] as string[]) ?? [];
-            const count = (perTaskFailures.get(taskId ?? "_") ?? 0) + 1;
-            perTaskFailures.set(taskId ?? "_", count);
-            yield {
-              type: "planning_update",
-              phase: "validation",
-              status: "failed",
-              content: `Task '${taskId ?? "?"}' validation failed (${count}/${MAX_PER_TASK_RETRIES}): ${errors.join("; ")}`
-            } satisfies PlanningUpdate;
-            if (count >= MAX_PER_TASK_RETRIES) {
-              aborted = `Task '${taskId ?? "?"}' failed validation ${count} times. Aborting plan.`;
-              break;
-            }
-          }
-        } else if (tc.name === removeTaskTool.name) {
-          const removedId =
-            typeof args["id"] === "string" ? (args["id"] as string) : "";
-          if (status === "task_removed") {
-            yield {
-              type: "task_update",
-              event: TaskUpdateEvent.TaskRemoved,
-              task: { id: removedId }
-            } satisfies TaskUpdate;
-            perTaskFailures.delete(removedId);
-            yield {
-              type: "planning_update",
-              phase: "generation",
-              status: "running",
-              content: `Removed task: ${removedId}`
-            } satisfies PlanningUpdate;
-          }
-        } else if (tc.name === finishPlanTool.name) {
-          if (status === "plan_finished" && builder.plan) {
-            const plan = builder.plan;
-            const totalSteps = plan.tasks.reduce(
-              (s, t) => s + t.steps.length,
-              0
-            );
-            const independent = plan.tasks.filter(
-              (t) => !t.dependsOn || t.dependsOn.length === 0
-            ).length;
-            log.info("Multi-task plan created", {
-              title: plan.title,
-              tasks: plan.tasks.length
-            });
-            yield {
-              type: "planning_update",
-              phase: "complete",
-              status: "success",
-              content: `Plan created: ${plan.title} (${plan.tasks.length} tasks, ${totalSteps} steps, ${independent} parallelizable)`
-            } satisfies PlanningUpdate;
-            finished = true;
-            break;
-          }
-          if (status === "validation_failed") {
-            const errors = (result["errors"] as string[]) ?? [];
-            yield {
-              type: "planning_update",
-              phase: "validation",
-              status: "failed",
-              content: `finish_plan failed: ${errors.join("; ")}`
-            } satisfies PlanningUpdate;
-          }
-        }
-      }
-
-      if (finished) return builder.plan;
-      if (aborted) {
-        yield {
+        uiEvents.push({
           type: "planning_update",
           phase: "complete",
+          status: "success",
+          content: `Plan created: ${plan.title} (${plan.tasks.length} tasks, ${totalSteps} steps, ${independent} parallelizable)`
+        } satisfies PlanningUpdate);
+        finished = true;
+      } else if (status === "validation_failed") {
+        const errors = (result["errors"] as string[]) ?? [];
+        uiEvents.push({
+          type: "planning_update",
+          phase: "validation",
           status: "failed",
-          content: aborted
-        } satisfies PlanningUpdate;
-        return null;
+          content: `finish_plan failed: ${errors.join("; ")}`
+        } satisfies PlanningUpdate);
       }
+      return JSON.stringify(result);
+    };
+
+    const providerTools = [
+      { ...addTaskTool.toProviderTool(), execute: addTaskExecute },
+      { ...removeTaskTool.toProviderTool(), execute: removeTaskExecute },
+      {
+        ...finishPlanTool.toProviderTool(),
+        execute: finishPlanExecute,
+        terminal: true
+      }
+    ];
+
+    const drainUi = function* (): Generator<ProcessingMessage> {
+      while (uiEvents.length > 0) yield uiEvents.shift() as ProcessingMessage;
+    };
+
+    const stream = this.provider.generateLoop({
+      messages,
+      model: this.model,
+      tools: providerTools,
+      toolChoice: "any",
+      threadId: this.threadId,
+      maxIterations: MAX_CALLS,
+      sequentialTools: true,
+      signal: abort.signal
+    });
+
+    for await (const item of stream) {
+      // A tool call is announced before it runs — surface it for live display.
+      if ("id" in item && "name" in item && "args" in item) {
+        const tc = item as ToolCall;
+        const tool = toolsByName.get(tc.name);
+        if (tool) {
+          const args = (tc.args ?? {}) as Record<string, unknown>;
+          yield {
+            type: "tool_call_update",
+            node_id: "",
+            name: tc.name,
+            args,
+            message: Tool.resolveMessage(tool, args)
+          } satisfies ToolCallUpdate;
+        }
+        yield* drainUi();
+        continue;
+      }
+      if ("type" in item && (item as { type?: string }).type === "chunk") {
+        const chunk = item as { content?: string; done?: boolean };
+        if (
+          typeof chunk.content === "string" &&
+          chunk.content.length > 0 &&
+          !chunk.done
+        ) {
+          yield {
+            type: "chunk",
+            content: chunk.content,
+            done: false
+          } satisfies Chunk;
+        }
+        yield* drainUi();
+        continue;
+      }
+      // Assistant/tool message events: a tool result just landed — flush its UI.
+      yield* drainUi();
+    }
+
+    yield* drainUi();
+
+    if (finished) return builder.plan;
+
+    if (abortedReason) {
+      yield {
+        type: "planning_update",
+        phase: "complete",
+        status: "failed",
+        content: abortedReason
+      } satisfies PlanningUpdate;
+      return null;
     }
 
     log.error("Multi-task plan exhausted call budget", {
@@ -626,9 +639,10 @@ export class TaskPlanner {
       };
     }
 
-    const result = await planningTool.process(
+    const result = await Tool.executeTool(
+      planningTool,
       {} as ProcessingContext,
-      Tool.stripMessage(toolCallArgs)
+      toolCallArgs
     );
 
     if (

@@ -8,8 +8,10 @@ import type {} from "./window";
 // Early polyfills / globals must come before other imports.
 import "./prismGlobal";
 
-import React, { Suspense, useEffect, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useMenuHandler } from "./hooks/useIpcRenderer";
+import type { MenuEventData } from "./window";
 import ReactDOM from "react-dom/client";
 
 import {
@@ -59,6 +61,9 @@ const DownloadManagerDialog = React.lazy(
 const RunWarningDialog = React.lazy(
   () => import("./components/dialogs/RunWarningDialog")
 );
+const SearchProviderSetupDialog = React.lazy(
+  () => import("./components/dialogs/SearchProviderSetupDialog")
+);
 
 import { installIpcLogBridge } from "./logging/ipcLogBridge";
 import MobileClassProvider from "./components/MobileClassProvider";
@@ -93,6 +98,9 @@ const CollectionsExplorer = React.lazy(
 );
 const ExamplesPage = React.lazy(
   () => import("./components/portal/ExamplesPage")
+);
+const TutorialsPage = React.lazy(
+  () => import("./components/tutorials/TutorialsPage")
 );
 const ChainEditorPage = React.lazy(
   () => import("./components/chain_editor/ChainEditorPage")
@@ -141,7 +149,9 @@ const registerFrontendTools = () => {
     import("./lib/tools/builtin/searchNodes"),
     import("./lib/tools/builtin/searchModels"),
     import("./lib/tools/builtin/deleteNode"),
-    import("./lib/tools/builtin/deleteEdge")
+    import("./lib/tools/builtin/deleteEdge"),
+    import("./lib/tools/builtin/model3d"),
+    import("./lib/tools/builtin/timeline")
   ]).catch((error) => {
     console.error("Failed to register frontend tools:", error);
   });
@@ -320,6 +330,25 @@ function getRoutes() {
       )
     },
     {
+      path: "tutorials",
+      element: (
+        <ProtectedRoute>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              width: "100%",
+              height: "100%"
+            }}
+          >
+            <React.Suspense fallback={<LoadingSpinner />}>
+              <TutorialsPage />
+            </React.Suspense>
+          </div>
+        </ProtectedRoute>
+      )
+    },
+    {
       path: "editor/:workflow",
       element: (
         <ProtectedRoute>
@@ -489,6 +518,21 @@ const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
 );
 
+/**
+ * Routes Electron menu/tray "Settings" actions to the in-app settings page.
+ * The desktop shell sends an `openSettings` menu event (instead of opening a
+ * separate window); navigating via the router singleton works from any route.
+ */
+const MenuNavigationBridge = () => {
+  const handleMenuEvent = useCallback((data: MenuEventData) => {
+    if (data.type === "openSettings") {
+      void router.navigate("/settings");
+    }
+  }, []);
+  useMenuHandler(handleMenuEvent);
+  return null;
+};
+
 const AppWrapper = () => {
   const [status, setStatus] = useState<string>("pending");
   const authState = useAuth((s) => s.state);
@@ -536,6 +580,7 @@ const AppWrapper = () => {
           <CssBaseline />
           <MobileClassProvider>
             <MenuProvider>
+              <MenuNavigationBridge />
               <WorkflowManagerProvider queryClient={queryClient}>
                 <KeyboardProvider active={true}>
                   {status === "pending" && !isDevTestRoute && (
@@ -633,6 +678,7 @@ const AppWrapper = () => {
                       </Suspense>
                       <DownloadManagerDialog />
                       <RunWarningDialog />
+                      <SearchProviderSetupDialog />
                     </>
                   )}
                 </KeyboardProvider>

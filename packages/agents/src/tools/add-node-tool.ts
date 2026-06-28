@@ -48,7 +48,7 @@ export class AddNodeTool extends Tool {
     "Add a node to the workflow graph. Set node configuration either via node_properties object " +
     "or as direct parameters (e.g. value: \"Hello World\" for a String constant). " +
     'Use a registry node type for deterministic work, or "nodetool.agents.AgentStep" for LLM reasoning.';
-  readonly inputSchema: Record<string, unknown> = ADD_NODE_INPUT_SCHEMA;
+  readonly jsonSchema: Record<string, unknown> = ADD_NODE_INPUT_SCHEMA;
 
   constructor(
     private readonly builder: GraphBuilder,

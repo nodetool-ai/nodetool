@@ -4,11 +4,11 @@ import type { TimelineClip, TimelineTrack } from "@nodetool-ai/timeline";
 import {
   clipSourceTimeSec,
   computeActiveLayers,
+  crossfadeOpacity,
   effectiveAssetId,
   isClipActive,
   resolveCaptionAtTime,
   trackZ,
-  transitionOpacity,
   LAYER_Z_BASE
 } from "../sceneModel";
 
@@ -34,19 +34,55 @@ describe("isClipActive", () => {
   });
 });
 
-describe("transitionOpacity", () => {
-  it("returns 1 with no transition", () => {
-    expect(transitionOpacity(clip({ startMs: 0 }), 50)).toBe(1);
+describe("crossfadeOpacity", () => {
+  it("is 1 for a lone clip with no transition and no overlap", () => {
+    const c = clip({ startMs: 0 });
+    expect(crossfadeOpacity(c, [c], 50)).toBe(1);
   });
-  it("ramps 0→1 across the crossfade window", () => {
+
+  it("ramps 0→1 over an explicit crossfade window (no overlap needed)", () => {
     const c = clip({
       startMs: 0,
       transitionIn: { type: "crossfade", durationMs: 200 }
     });
-    expect(transitionOpacity(c, 0)).toBe(0);
-    expect(transitionOpacity(c, 100)).toBeCloseTo(0.5);
-    expect(transitionOpacity(c, 200)).toBe(1);
-    expect(transitionOpacity(c, 500)).toBe(1);
+    expect(crossfadeOpacity(c, [c], 0)).toBe(0);
+    expect(crossfadeOpacity(c, [c], 100)).toBeCloseTo(0.5);
+    expect(crossfadeOpacity(c, [c], 200)).toBe(1);
+    expect(crossfadeOpacity(c, [c], 500)).toBe(1);
+  });
+
+  it("auto-crossfades the incoming clip across an overlap with a preceding clip", () => {
+    // A [0,1000) and B [800,1800) overlap by 200ms; B has no explicit
+    // transition, so the overlap length is the crossfade duration.
+    const a = clip({ id: "a", startMs: 0, durationMs: 1000 });
+    const b = clip({ id: "b", startMs: 800, durationMs: 1000 });
+    const same = [a, b];
+    expect(crossfadeOpacity(b, same, 800)).toBe(0);
+    expect(crossfadeOpacity(b, same, 900)).toBeCloseTo(0.5);
+    expect(crossfadeOpacity(b, same, 1000)).toBe(1);
+    expect(crossfadeOpacity(b, same, 1500)).toBe(1);
+    // The outgoing (bottom) clip stays fully opaque — the dissolve is the
+    // incoming clip fading in on top.
+    expect(crossfadeOpacity(a, same, 900)).toBe(1);
+  });
+
+  it("does not auto-crossfade when clips do not overlap", () => {
+    const a = clip({ id: "a", startMs: 0, durationMs: 1000 });
+    const b = clip({ id: "b", startMs: 2000, durationMs: 1000 });
+    expect(crossfadeOpacity(b, [a, b], 2000)).toBe(1);
+  });
+
+  it("treats a zero-duration crossfade as an opt-out (hard cut) even when overlapping", () => {
+    const a = clip({ id: "a", startMs: 0, durationMs: 1000 });
+    const b = clip({
+      id: "b",
+      startMs: 800,
+      durationMs: 1000,
+      transitionIn: { type: "crossfade", durationMs: 0 }
+    });
+    const same = [a, b];
+    expect(crossfadeOpacity(b, same, 800)).toBe(1);
+    expect(crossfadeOpacity(b, same, 900)).toBe(1);
   });
 });
 

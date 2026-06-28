@@ -1,7 +1,7 @@
 {
   "name": "@nodetool-ai/automation-nodes",
-  "version": "0.7.0-rc.23",
-  "description": "NodeTool automation/system nodes \u2014 browser control, OS, workspace FS, triggers, SQLite, OCR, Excel, TensorFlow",
+  "version": "0.7.0-rc.26",
+  "description": "NodeTool automation/system nodes — browser control, OS, workspace FS, triggers, SQLite, OCR, Excel, TensorFlow",
   "type": "module",
   "engines": {
     "node": ">=22.0.0 <23.0.0"

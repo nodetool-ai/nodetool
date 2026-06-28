@@ -55,20 +55,60 @@ export function isClipActive(
 }
 
 /**
- * Opacity multiplier for a clip given the playhead position. Implements the
- * incoming `transitionIn` ramp (0→1 over `durationMs`). Returns 1 when no
- * transition applies. Crossfade is the only type currently supported.
+ * How long clip's head overlaps a preceding same-track clip, in ms (0 if none).
+ * `sameTrackClips` must already be filtered to clip's track. Picks the largest
+ * overlap when several earlier clips cover the head, and never reports more than
+ * clip's own duration.
  */
-export function transitionOpacity(
+function headOverlapMs(
   clip: TimelineClip,
+  sameTrackClips: TimelineClip[]
+): number {
+  let overlap = 0;
+  for (const prev of sameTrackClips) {
+    if (prev === clip || prev.startMs >= clip.startMs) continue;
+    const prevEnd = prev.startMs + prev.durationMs;
+    if (prevEnd <= clip.startMs) continue; // no overlap
+    overlap = Math.max(overlap, prevEnd - clip.startMs);
+  }
+  return Math.min(overlap, clip.durationMs);
+}
+
+/**
+ * Opacity multiplier for a clip's incoming cross-fade given the playhead.
+ *
+ * On the same track the later-starting clip composites on top, so a dissolve is
+ * just the incoming clip fading in over the one beneath it — the outgoing clip
+ * stays fully opaque (fading it too would bleed the black seed through).
+ *
+ * - `transitionIn` unset → **auto**: fade in across the overlap with a preceding
+ *   same-track clip (the overlap length is the duration). No overlap → 1.
+ * - `transitionIn` is a crossfade with `durationMs > 0` → explicit ramp over that
+ *   window from the clip's start (independent of overlap; also gives fade-from-
+ *   black for a clip with nothing beneath it).
+ * - `durationMs <= 0` → opt-out: a zero-length crossfade is a hard cut, so 1
+ *   even when the clips overlap.
+ *
+ * `sameTrackClips` must already be filtered to clip's track.
+ */
+export function crossfadeOpacity(
+  clip: TimelineClip,
+  sameTrackClips: TimelineClip[],
   currentTimeMs: number
 ): number {
   const t = clip.transitionIn;
-  if (!t || t.durationMs <= 0) return 1;
+  let durationMs: number;
+  if (t) {
+    if (t.durationMs <= 0) return 1; // explicit hard cut
+    durationMs = t.durationMs;
+  } else {
+    durationMs = headOverlapMs(clip, sameTrackClips);
+    if (durationMs <= 0) return 1; // auto, but nothing to cross-fade with
+  }
   const intoClip = currentTimeMs - clip.startMs;
-  if (intoClip >= t.durationMs) return 1;
   if (intoClip <= 0) return 0;
-  return intoClip / t.durationMs;
+  if (intoClip >= durationMs) return 1;
+  return intoClip / durationMs;
 }
 
 /** The asset id that should be drawn for a clip in its current status. */
@@ -213,7 +253,10 @@ export function computeActiveLayers(
 
     for (const clip of activeClips) {
       const baseOpacity = clip.opacity ?? 1;
-      const opacity = baseOpacity * transitionOpacity(clip, currentTimeMs);
+      // During an overlap both clips are active, so `activeClips` already holds
+      // the preceding clip the auto-crossfade ramps against.
+      const opacity =
+        baseOpacity * crossfadeOpacity(clip, activeClips, currentTimeMs);
 
       // Captions ride on their media clip and always render on top.
       const caption = resolveCaptionAtTime(clip, currentTimeMs);

@@ -232,6 +232,11 @@
       "package_name": "nodetool-base",
       "name": "Chat with Docs.jpg",
       "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Movie Trailer Generator.jpg",
+      "path": ""
     }
   ],
   "examples": [
@@ -642,6 +647,20 @@
         "business",
         "data",
         "research",
+        "example"
+      ]
+    },
+    {
+      "id": "movie_trailer_generator",
+      "name": "Movie Trailer Generator",
+      "description": "Type a single logline and get back a cinematic teaser. Prompt nodes template the inputs into a treatment and turn each shot into full cinematic key art; the shots are animated and cut together into the final trailer.",
+      "tags": [
+        "video",
+        "generation",
+        "ai",
+        "storytelling",
+        "creative",
+        "trailer",
         "example"
       ]
     }

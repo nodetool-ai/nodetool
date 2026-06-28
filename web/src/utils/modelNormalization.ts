@@ -36,7 +36,7 @@ const bucketSizeByB = (b?: number) => {
 
 // removed context and quant/modality normalization for now per request
 
-export function normalizeModelMeta(m: LanguageModel): NormalizedModelMeta {
+export function normalizeModelMeta(m: ModelSelectorModel): NormalizedModelMeta {
   const text = `${m.name ?? ""} ${m.id ?? ""}`.toLowerCase();
 
   const typeTags = [
@@ -98,7 +98,7 @@ export function applyAdvancedModelFilters<TModel extends ModelSelectorModel>(
   }
 
   return models.filter((model) => {
-    const meta = normalizeModelMeta(model as LanguageModel);
+    const meta = normalizeModelMeta(model);
 
     // Check type tags
     if (selectedTypes.length > 0) {

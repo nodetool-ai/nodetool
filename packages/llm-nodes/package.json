@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/llm-nodes",
-  "version": "0.7.0-rc.23",
+  "version": "0.7.0-rc.26",
   "description": "NodeTool LLM provider + agent nodes (OpenAI, Anthropic via agents SDK, Gemini, Mistral)",
   "type": "module",
   "engines": {

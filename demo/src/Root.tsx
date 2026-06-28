@@ -2,6 +2,8 @@ import React from "react";
 import { Composition } from "remotion";
 
 import { WorkflowDemo, type WorkflowDemoProps } from "./WorkflowDemo";
+import { Tutorial } from "./Tutorial";
+import { TUTORIALS, tutorialFrames } from "./tutorials";
 import { DEFAULT_CAST, listCasts } from "./casts/registry";
 import type { DemoCast } from "@web-demo";
 
@@ -38,6 +40,19 @@ export const Root: React.FC = () => {
 
   return (
     <>
+      {TUTORIALS.map((tut) => (
+        <Composition
+          key={tut.compositionId}
+          id={tut.compositionId}
+          component={Tutorial}
+          defaultProps={tut.props}
+          fps={tut.fps}
+          width={WIDTH}
+          height={HEIGHT}
+          durationInFrames={tutorialFrames(tut)}
+        />
+      ))}
+
       <Composition
         id="WorkflowDemo"
         component={WorkflowDemo}

@@ -223,7 +223,7 @@ planning_agent:
 To add new example configurations:
 
 1. Create a descriptive YAML file (e.g., `data-analyst.yaml`)
-2. Include a comprehensive system_prompt with clear instructions
+2. Include a detailed system_prompt with clear instructions
 3. Choose an appropriate model and tools
 4. Validate with `nodetool agent test`, then run with sample objectives
 5. Update this README with the new example

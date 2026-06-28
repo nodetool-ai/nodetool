@@ -74,6 +74,14 @@ export const designTokenIgnores = [
 const muiPrimitiveMessage =
   "Use the equivalent primitive from components/ui_primitives instead of raw MUI. See ui_primitives/STRATEGY.md.";
 
+// Barrel-only guardrail for ui_primitives. Tests mock the barrel via
+// jest.mock(".../ui_primitives"), so deep imports (.../ui_primitives/Button)
+// bypass the mock — the failure behind the revert in commit 16a68253f. Import
+// through the barrel (`from ".../ui_primitives"`) instead. Files inside the
+// primitive layer are exempt via designTokenIgnores.
+const uiPrimitivesBarrelMessage =
+  "Import from the ui_primitives barrel (.../ui_primitives), not a deep path (.../ui_primitives/Foo). Deep imports bypass jest.mock of the barrel. See ui_primitives/STRATEGY.md and the revert in commit 16a68253f.";
+
 const restrictedMuiNames = [
   "Typography",
   "Button",
@@ -111,6 +119,12 @@ export const noRestrictedImports = [
       {
         group: restrictedMuiNames.map((n) => `@mui/material/${n}`),
         message: muiPrimitiveMessage,
+      },
+      {
+        // Deep imports into the primitive layer. The barrel itself
+        // (.../ui_primitives, .../ui_primitives/index) is allowed.
+        group: ["**/ui_primitives/*", "!**/ui_primitives/index"],
+        message: uiPrimitivesBarrelMessage,
       },
     ],
   },

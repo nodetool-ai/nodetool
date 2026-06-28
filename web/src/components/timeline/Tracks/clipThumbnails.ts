@@ -15,6 +15,13 @@ export interface ClipThumbnail {
   dataUrl: string;
 }
 
+export interface ClipFrame extends ClipThumbnail {
+  /** Requested frame timestamp in seconds within the source video. */
+  requestedTime: number;
+  width: number;
+  height: number;
+}
+
 interface CacheEntry {
   state: "pending" | "ready" | "failed";
   thumbnails?: ClipThumbnail[];
@@ -42,11 +49,12 @@ function notify(url: string): void {
   for (const cb of set) cb();
 }
 
-function extract(
+function extractFrames(
   url: string,
-  count: number,
-  width: number
-): Promise<ClipThumbnail[]> {
+  timestampsForDuration: (duration: number) => number[],
+  width: number,
+  quality: number
+): Promise<ClipFrame[]> {
   return new Promise((resolve, reject) => {
     const start = (): void => {
       const video = document.createElement("video");
@@ -57,7 +65,7 @@ function extract(
       video.src = url;
 
       const canvas = document.createElement("canvas");
-      const out: ClipThumbnail[] = [];
+      const out: ClipFrame[] = [];
 
       const cleanup = (): void => {
         video.removeAttribute("src");
@@ -88,12 +96,7 @@ function extract(
           }
 
           const duration = video.duration;
-          const timestamps =
-            count <= 1
-              ? [0]
-              : Array.from({ length: count }, (_, i) =>
-                  (i / (count - 1)) * duration
-                );
+          const timestamps = timestampsForDuration(duration);
 
           let i = 0;
           const seekNext = (): void => {
@@ -108,7 +111,10 @@ function extract(
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
                 out.push({
                   time: video.currentTime,
-                  dataUrl: canvas.toDataURL("image/jpeg", 0.7)
+                  requestedTime: timestamps[i],
+                  dataUrl: canvas.toDataURL("image/jpeg", quality),
+                  width: canvas.width,
+                  height: canvas.height
                 });
                 i++;
                 seekNext();
@@ -117,7 +123,10 @@ function extract(
               }
             };
             video.addEventListener("seeked", onSeeked);
-            video.currentTime = Math.min(duration, timestamps[i]);
+            video.currentTime = Math.max(
+              0,
+              Math.min(Math.max(0, duration - 0.001), timestamps[i])
+            );
           };
 
           seekNext();
@@ -133,6 +142,39 @@ function extract(
     queue.push(start);
     runNext();
   });
+}
+
+function extract(
+  url: string,
+  count: number,
+  width: number
+): Promise<ClipThumbnail[]> {
+  return extractFrames(
+    url,
+    (duration) =>
+      count <= 1
+        ? [0]
+        : Array.from({ length: count }, (_, i) => (i / (count - 1)) * duration),
+    width,
+    0.7
+  );
+}
+
+export function extractVideoFrames(
+  url: string,
+  timesSeconds: number[],
+  width = 512,
+  quality = 0.75
+): Promise<ClipFrame[]> {
+  return extractFrames(
+    url,
+    (duration) =>
+      timesSeconds.map((time) =>
+        Math.max(0, Math.min(Math.max(0, duration - 0.001), time))
+      ),
+    width,
+    quality
+  );
 }
 
 /** Get cached thumbnails synchronously (or null if not ready). */

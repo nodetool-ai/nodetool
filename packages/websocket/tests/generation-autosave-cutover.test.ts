@@ -536,4 +536,37 @@ describe("autosave cutover (generation_complete → N assets)", () => {
 
     await runner.disconnect();
   });
+
+  it("saves the prompt that produced each image into asset metadata", async () => {
+    // ForEach feeds each item into gen.prompt (edge fe.output → gen.prompt), so
+    // the actor's resolved inputs carry the prompt. The autosave lifts it into
+    // each image asset's metadata.prompt — what the asset viewer surfaces as the
+    // text that generated the image.
+    const runner = makeRunner();
+    await runner.connect(ws);
+    await runner.runJob({
+      job_id: "JOBP",
+      workflow_id: "WFP",
+      graph: foreachGraph(["a sunset over the sea", "a snowy mountain"])
+    });
+    const gens = await waitForMessages(ws, isGen("gen"), 2);
+    expect(gens).toHaveLength(2);
+
+    const [assets] = await Asset.paginate("1", {
+      jobId: "JOBP",
+      nodeId: "gen",
+      limit: 1000
+    });
+    expect(assets).toHaveLength(2);
+    const promptsByIndex = new Map(
+      assets.map((a) => {
+        const md = a.metadata as Record<string, unknown> | null;
+        return [md?.generation_index as number, md?.prompt as string];
+      })
+    );
+    expect(promptsByIndex.get(0)).toBe("a sunset over the sea");
+    expect(promptsByIndex.get(1)).toBe("a snowy mountain");
+
+    await runner.disconnect();
+  });
 });

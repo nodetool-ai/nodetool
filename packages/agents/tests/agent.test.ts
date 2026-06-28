@@ -7,7 +7,7 @@ import { parseFrontmatter } from "../src/agent.js";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import { createMockContext } from "./_helpers/mock-context.js";
 import { LongTermMemory } from "../src/long-term-memory.js";
-import type { BaseProvider } from "@nodetool-ai/runtime";
+import { BaseProvider } from "@nodetool-ai/runtime";
 import {
   SqliteVecProvider,
   type EmbeddingFunction,
@@ -39,6 +39,11 @@ function createMockProvider(
     },
     async *generateMessagesTraced(...args: any[]) {
       yield* (this as any).generateMessages(...args);
+    },
+    // The planner delegates its tool loop to the provider; reuse the real base
+    // loop (it only needs generateMessagesTraced, which this mock has).
+    generateLoop(args: any) {
+      return (BaseProvider.prototype as any).generateLoop.call(this, args);
     },
     async generateMessageTraced(...args: any[]) {
       return (this as any).generateMessage(...args);

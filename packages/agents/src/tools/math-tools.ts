@@ -12,7 +12,7 @@ export class StatisticsTool extends Tool {
   readonly description =
     "Performs statistical calculations on numerical data. " +
     "Calculates mean, median, mode, standard deviation, variance, min, max, sum, and count.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       data: {
@@ -136,7 +136,7 @@ export class GeometryTool extends Tool {
   readonly description =
     "Performs geometric calculations for various shapes. " +
     "Supports area and perimeter for 2D shapes, volume and surface area for 3D shapes, and distance calculations.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       shape: {
@@ -252,7 +252,7 @@ export class TrigonometryTool extends Tool {
   readonly description =
     "Performs trigonometric calculations. " +
     "Supports sin, cos, tan, asin, acos, atan, and angle conversions between degrees and radians.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       function: {
@@ -380,7 +380,7 @@ export class ConversionTool extends Tool {
   readonly description =
     "Converts between different units of measurement. " +
     "Supports length, weight, temperature, area, and volume conversions.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       value: { type: "number" as const, description: "Value to convert" },

@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import ChatMarkdown from "../ChatMarkdown";
 import { ReasoningToggle } from "../../../common/ReasoningToggle";
 import { useTheme } from "@mui/material/styles";
@@ -16,11 +16,16 @@ interface ThoughtSectionProps {
 
 export const ThoughtSection: React.FC<ThoughtSectionProps> = React.memo(({
   thoughtContent,
-  isExpanded,
-  onToggle,
+  isExpanded: initialExpanded,
+  onToggle: externalToggle,
   textBefore,
   textAfter
 }) => {
+  const [isExpanded, setExpanded] = useState(initialExpanded);
+  const onToggle = useCallback(() => {
+    setExpanded((v) => !v);
+    externalToggle();
+  }, [externalToggle]);
   const theme = useTheme();
   const thoughtContentStyles = useMemo(() => css({
     margin: "0 0 1em 00",

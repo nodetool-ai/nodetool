@@ -92,7 +92,7 @@ export class GoogleSearchTool extends Tool {
     "Each result includes the title, URL, and snippet. Use this rather than " +
     "fetching google.com directly — search engine result pages are blocked " +
     "in the browser tool.";
-  readonly inputSchema: Record<string, unknown> = {
+  readonly jsonSchema: Record<string, unknown> = {
     type: "object",
     properties: {
       query: {
@@ -178,7 +178,7 @@ export class GoogleNewsTool extends Tool {
   readonly name = "google_news";
   readonly description =
     "Search Google News to retrieve live news articles via SerpAPI.";
-  readonly inputSchema: Record<string, unknown> = {
+  readonly jsonSchema: Record<string, unknown> = {
     type: "object",
     properties: {
       keyword: {
@@ -248,7 +248,7 @@ export class GoogleImagesTool extends Tool {
   readonly name = "google_images";
   readonly description =
     "Search Google Images to retrieve image results via SerpAPI.";
-  readonly inputSchema: Record<string, unknown> = {
+  readonly jsonSchema: Record<string, unknown> = {
     type: "object",
     properties: {
       keyword: {

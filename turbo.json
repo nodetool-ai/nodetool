@@ -2,6 +2,9 @@
   "$schema": "https://turbo.build/schema.json",
   "ui": "stream",
   "envMode": "loose",
+  // Pin the local cache to a fixed path (turbo's default) so CI can persist it
+  // with actions/cache; see .github/actions/setup-build/action.yml.
+  "cacheDir": ".turbo/cache",
   "globalDependencies": [
     "tsconfig.base.json",
     "tsconfig.build.json",

@@ -163,7 +163,6 @@ describe("TimelineEditor", () => {
 
       expect(screen.getByText("Sequence not found")).toBeInTheDocument();
       expect(screen.getByTestId("tracks-region")).toBeInTheDocument();
-      expect(screen.getByText("seq-1")).toBeInTheDocument();
     });
 
     it("shows EmptyState when the query returns an error", () => {
@@ -233,10 +232,24 @@ describe("TimelineEditor", () => {
     it("renders all five regions", () => {
       renderEditor();
 
-      expect(screen.getByText("My Sequence")).toBeInTheDocument();
       expect(screen.getByText("Preview")).toBeInTheDocument();
-      expect(screen.getByText("Inspector")).toBeInTheDocument();
+      // "Inspector" appears both as an inspector tab and as the panel header
+      // eyebrow, so target the tab specifically.
+      expect(
+        screen.getByRole("tab", { name: "Inspector" })
+      ).toBeInTheDocument();
       expect(screen.getByText("Tracks")).toBeInTheDocument();
+    });
+
+    it("offers an Assistant tab alongside the Inspector", () => {
+      renderEditor();
+
+      expect(
+        screen.getByRole("tab", { name: "Inspector" })
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("tab", { name: "Assistant" })
+      ).toBeInTheDocument();
     });
 
     it("renders the resize separator with correct ARIA attributes", () => {

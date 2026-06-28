@@ -36,9 +36,6 @@ import useMediaGenerationStore, {
   IMAGE_ASPECT_RATIOS,
   IMAGE_RESOLUTIONS,
   IMAGE_VARIATIONS,
-  VIDEO_ASPECT_RATIOS,
-  VIDEO_DURATIONS,
-  VIDEO_RESOLUTIONS,
   AUDIO_FORMATS,
   AUDIO_SPEEDS,
   DEFAULT_TTS_VOICES,
@@ -49,9 +46,7 @@ import useMediaGenerationStore, {
 import type {
   MediaMode,
   ImageResolution,
-  VideoResolution,
-  AudioFormat,
-  AspectRatioOption
+  AudioFormat
 } from "../../../stores/MediaGenerationStore";
 import MediaControlChip from "./MediaControlChip";
 import MediaModeMenu from "./MediaModeMenu";
@@ -59,6 +54,11 @@ import PiComposerControls, { piModeAvailable } from "./PiComposerControls";
 import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
 import MediaOptionMenu, { MediaOption } from "./MediaOptionMenu";
 import MediaAspectRatioMenu from "./MediaAspectRatioMenu";
+import {
+  buildVideoModelOptions,
+  clampToAllowed,
+  videoModelConstraints
+} from "./videoModelOptions";
 import ImageModelMenuDialog from "../../model_menu/ImageModelMenuDialog";
 import VideoModelMenuDialog from "../../model_menu/VideoModelMenuDialog";
 import LanguageModelMenuDialog from "../../model_menu/LanguageModelMenuDialog";
@@ -90,48 +90,6 @@ function formatElapsed(seconds: number): string {
   return `${m}m ${s}s`;
 }
 
-/** Extract per-model video option constraints (manifest enums) from a model. */
-function videoModelConstraints(model: VideoModel): {
-  durations?: number[];
-  resolutions?: string[];
-  aspectRatios?: string[];
-} {
-  const durations = model.durations?.filter((d) => Number.isFinite(d));
-  const resolutions = model.resolutions ?? undefined;
-  const aspectRatios = model.aspect_ratios ?? undefined;
-  return {
-    durations: durations && durations.length > 0 ? durations : undefined,
-    resolutions:
-      resolutions && resolutions.length > 0 ? resolutions : undefined,
-    aspectRatios:
-      aspectRatios && aspectRatios.length > 0 ? aspectRatios : undefined
-  };
-}
-
-/** Keep `value` if the model allows it; otherwise snap to the first allowed. */
-function clampToAllowed<T>(value: T, allowed?: Array<T | string>): T {
-  if (!allowed || allowed.length === 0) return value;
-  if ((allowed as unknown[]).includes(value)) return value;
-  return allowed[0] as T;
-}
-
-/** Build aspect-ratio menu options from a model's allowed list. */
-function buildAspectOptions(
-  allowed: string[],
-  fallback: AspectRatioOption[]
-): AspectRatioOption[] {
-  const options = allowed
-    .map((id) => {
-      const known = fallback.find((a) => a.id === id);
-      if (known) return known;
-      const m = id.match(/^(\d+):(\d+)$/);
-      return m
-        ? { id, label: id, width: Number(m[1]), height: Number(m[2]) }
-        : null;
-    })
-    .filter((x): x is AspectRatioOption => x != null);
-  return options.length > 0 ? options : fallback;
-}
 
 export interface MediaChatComposerProps {
   isLoading: boolean;
@@ -702,38 +660,13 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
         ? imageToVideoParams.model
         : null;
 
-  // Option lists
-  const durationOptions = useMemo<MediaOption<number>[]>(() => {
-    const values =
-      activeVideoModel?.durations && activeVideoModel.durations.length > 0
-        ? activeVideoModel.durations
-        : VIDEO_DURATIONS;
-    return values.map((d) => ({
-      id: d,
-      label: `${d} Sec`,
-      icon: <AccessTimeIcon fontSize="small" />
-    }));
-  }, [activeVideoModel?.durations]);
-
-  const videoResolutionOptions = useMemo<MediaOption<VideoResolution>[]>(() => {
-    const values =
-      activeVideoModel?.resolutions && activeVideoModel.resolutions.length > 0
-        ? (activeVideoModel.resolutions as VideoResolution[])
-        : VIDEO_RESOLUTIONS;
-    return values.map((r) => ({
-      id: r,
-      label: r,
-      icon: <DisplaySettingsIcon fontSize="small" />
-    }));
-  }, [activeVideoModel?.resolutions]);
-
-  const videoAspectOptions = useMemo<AspectRatioOption[]>(
-    () =>
-      activeVideoModel?.aspectRatios && activeVideoModel.aspectRatios.length > 0
-        ? buildAspectOptions(activeVideoModel.aspectRatios, VIDEO_ASPECT_RATIOS)
-        : VIDEO_ASPECT_RATIOS,
-    [activeVideoModel?.aspectRatios]
-  );
+  // Option lists — derived from the active model's manifest (shared with the
+  // timeline quick-gen header via buildVideoModelOptions).
+  const {
+    durationOptions,
+    resolutionOptions: videoResolutionOptions,
+    aspectOptions: videoAspectOptions
+  } = useMemo(() => buildVideoModelOptions(activeVideoModel), [activeVideoModel]);
 
   const imageResolutionOptions = useMemo<MediaOption<ImageResolution>[]>(
     () =>

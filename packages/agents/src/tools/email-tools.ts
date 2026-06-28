@@ -61,7 +61,7 @@ export class SearchEmailTool extends Tool {
   readonly name = "search_email";
   readonly description =
     "Search Gmail by subject, text, and date. Returns a list of emails with message_id, subject, sender, and body.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object",
     properties: {
       subject: {
@@ -181,7 +181,7 @@ export class SearchEmailTool extends Tool {
 export class ArchiveEmailTool extends Tool {
   readonly name = "archive_email";
   readonly description = "Move specified emails to Gmail archive";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object",
     properties: {
       message_ids: {
@@ -247,7 +247,7 @@ export class ArchiveEmailTool extends Tool {
 export class AddLabelToEmailTool extends Tool {
   readonly name = "add_label_to_email";
   readonly description = "Add a label to a Gmail message";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object",
     properties: {
       message_id: {

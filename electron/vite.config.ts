@@ -138,7 +138,6 @@ export default defineConfig({
       input: {
         index: resolve(__dirname, "index.html"),
         logs: resolve(__dirname, "pages/logs.html"),
-        settings: resolve(__dirname, "pages/settings.html"),
       },
       output: {
         format: "es",

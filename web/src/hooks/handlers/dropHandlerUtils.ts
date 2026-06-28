@@ -17,6 +17,7 @@ import { useNavigate } from "react-router-dom";
 import { createErrorMessage, AppError } from "../../utils/errorHandling";
 import { Graph, Workflow } from "../../stores/ApiTypes";
 import { shallow } from "zustand/shallow";
+import { getLocalFilePath, pathToFileUri } from "../../utils/localFile";
 
 export type FileHandlerResult = {
   success: boolean;
@@ -53,8 +54,56 @@ export const useFileHandlers = () => {
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const navigate = useNavigate();
 
+  // Build a constant node whose value points at the file via a `file://` URI
+  // instead of an uploaded asset. Used in local (desktop) mode where the file
+  // already lives on disk and the backend can read it in place.
+  const addLocalFileNode = useCallback(
+    (file: File, localPath: string, position: XYPosition): FileHandlerResult => {
+      const assetType = contentTypeToNodeType(file.type, file.name);
+      const nodeType = constantForType(assetType || "");
+      if (nodeType === null) {
+        addNotification({
+          type: "warning",
+          alert: true,
+          content: "Unsupported file type: " + (file.type || file.name)
+        });
+        return { success: false, error: "Unsupported file type" };
+      }
+
+      const nodeMetadata = getMetadata(nodeType);
+      if (!nodeMetadata) {
+        throw new Error("No metadata for node type: " + nodeType);
+      }
+      const newNode = createNode(nodeMetadata, position);
+      newNode.data.properties.value = {
+        type: assetType,
+        uri: pathToFileUri(localPath),
+        asset_id: null,
+        temp_id: null
+      };
+      addNode(newNode);
+      return { success: true };
+    },
+    [addNotification, getMetadata, createNode, addNode]
+  );
+
   const handleGenericFile = useCallback(
     async (file: File, position: XYPosition): Promise<FileHandlerResult> => {
+      // Local mode: reference the file on disk instead of uploading it. Only
+      // possible in Electron, where the dropped file exposes a real path.
+      const localPath = getLocalFilePath(file);
+      if (localPath) {
+        try {
+          return addLocalFileNode(file, localPath, position);
+        } catch (error) {
+          const err = createErrorMessage(error, "Failed to add file as node");
+          return {
+            success: false,
+            error: err instanceof AppError ? err.detail : err.message
+          };
+        }
+      }
+
       try {
         await uploadAsset({
           file,
@@ -101,6 +150,7 @@ export const useFileHandlers = () => {
       }
     },
     [
+      addLocalFileNode,
       uploadAsset,
       workflow.id,
       currentFolderId,

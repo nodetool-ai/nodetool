@@ -22,7 +22,7 @@ export class RunNodeTool extends Tool {
     "output. Use list_nodes / search_nodes / get_node_info to discover node " +
     "types and their inputs first. For multi-node pipelines, prefer " +
     "run_workflow.";
-  readonly inputSchema = {
+  protected readonly jsonSchema = {
     type: "object" as const,
     properties: {
       node_type: {

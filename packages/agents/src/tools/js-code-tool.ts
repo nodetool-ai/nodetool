@@ -68,7 +68,7 @@ Pause execution (max 5s per call).
 - Prefer this tool over multiple sequential tool calls when doing data transformation, \
 API pagination, conditional logic, or batch operations`;
 
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       code: {

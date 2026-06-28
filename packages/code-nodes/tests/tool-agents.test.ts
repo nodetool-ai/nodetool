@@ -6,7 +6,7 @@ import {
 import { mkdtemp, writeFile, rm, realpath } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { BaseProvider, type ProcessingContext } from "@nodetool-ai/runtime";
 import { buildBrowserAgentToolClasses } from "@nodetool-ai/automation-nodes";
 import {
   ShellAgentNode,
@@ -344,6 +344,11 @@ describe("ToolAgentNode agent loop integration", () => {
         },
         async *generateMessagesTraced(...args: any[]) {
           yield* (this as any).generateMessages(...args);
+        },
+        generateLoop(loopArgs: unknown) {
+          return (
+            BaseProvider.prototype as { generateLoop: (a: unknown) => unknown }
+          ).generateLoop.call(this, loopArgs);
         }
       }),
       workspaceDir
@@ -392,6 +397,11 @@ describe("ToolAgentNode agent loop integration", () => {
         },
         async *generateMessagesTraced(...args: any[]) {
           yield* (this as any).generateMessages(...args);
+        },
+        generateLoop(loopArgs: unknown) {
+          return (
+            BaseProvider.prototype as { generateLoop: (a: unknown) => unknown }
+          ).generateLoop.call(this, loopArgs);
         }
       }),
       workspaceDir
@@ -463,6 +473,11 @@ describe("LiveBrowserAgentNode", () => {
         },
         async *generateMessagesTraced(...args: any[]) {
           yield* (this as any).generateMessages(...args);
+        },
+        generateLoop(loopArgs: unknown) {
+          return (
+            BaseProvider.prototype as { generateLoop: (a: unknown) => unknown }
+          ).generateLoop.call(this, loopArgs);
         }
       }),
       workspaceDir
@@ -499,6 +514,11 @@ describe("LiveBrowserAgentNode", () => {
         },
         async *generateMessagesTraced(...args: any[]) {
           yield* (this as any).generateMessages(...args);
+        },
+        generateLoop(loopArgs: unknown) {
+          return (
+            BaseProvider.prototype as { generateLoop: (a: unknown) => unknown }
+          ).generateLoop.call(this, loopArgs);
         }
       }),
       workspaceDir

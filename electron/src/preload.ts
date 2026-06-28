@@ -11,7 +11,7 @@
  * - Input validation at the trust boundary
  */
 
-import { contextBridge, ipcRenderer } from "electron";
+import { contextBridge, ipcRenderer, webUtils } from "electron";
 
 import {
   IpcChannels,
@@ -132,6 +132,21 @@ function validateNpmSpec(spec: string): string {
     throw new Error("Invalid npm pack spec");
   }
   return spec;
+}
+
+/** Validate a vault display name — non-empty after trimming, bounded length. */
+function validateVaultName(name: string): string {
+  if (typeof name !== "string") {
+    throw new Error("Vault name must be a string");
+  }
+  const trimmed = name.trim();
+  if (!trimmed) {
+    throw new Error("Vault name cannot be empty");
+  }
+  if (trimmed.length > 100) {
+    throw new Error("Vault name exceeds maximum length");
+  }
+  return trimmed;
 }
 
 /** Validate a bare npm package name (no version). */
@@ -713,6 +728,50 @@ const api = {
     /** Open a native folder selection dialog */
     openFolder: (options?: DialogOpenFolderRequest) =>
       ipcRenderer.invoke(IpcChannels.DIALOG_OPEN_FOLDER, options || {}),
+  },
+
+  // ============================================================================
+  // vaults: switchable, isolated data stores (each its own SQLite database)
+  // ============================================================================
+  vaults: {
+    /** List all vaults and which one is active. */
+    list: () => ipcRenderer.invoke(IpcChannels.VAULT_LIST),
+
+    /** Create a new vault (does not switch to it). */
+    create: (name: string) =>
+      ipcRenderer.invoke(IpcChannels.VAULT_CREATE, validateVaultName(name)),
+
+    /** Rename an existing vault. */
+    rename: (id: string, name: string) =>
+      ipcRenderer.invoke(IpcChannels.VAULT_RENAME, {
+        id,
+        name: validateVaultName(name),
+      }),
+
+    /** Remove a vault from the list (files are left on disk). */
+    delete: (id: string) => ipcRenderer.invoke(IpcChannels.VAULT_DELETE, id),
+
+    /** Switch the active vault — restarts the backend and reloads the UI. */
+    switch: (id: string) => ipcRenderer.invoke(IpcChannels.VAULT_SWITCH, id),
+  },
+
+  // ============================================================================
+  // files: Local file helpers
+  // ============================================================================
+  files: {
+    /**
+     * Resolve the absolute disk path of a dropped or selected `File`. Electron
+     * strips `File.path` for security, so the renderer must round-trip the
+     * `File` object through `webUtils.getPathForFile` here in the preload.
+     * Returns "" when no path is available (e.g. an in-memory `File`).
+     */
+    getPathForFile: (file: File): string => {
+      try {
+        return webUtils.getPathForFile(file) || "";
+      } catch {
+        return "";
+      }
+    },
   },
 
   // The agent runtime moved out of the Electron main process and now lives

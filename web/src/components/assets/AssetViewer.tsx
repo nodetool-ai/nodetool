@@ -25,7 +25,9 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CheckIcon from "@mui/icons-material/Check";
 import CompareIcon from "@mui/icons-material/Compare";
 import EditIcon from "@mui/icons-material/Edit";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import AssetItem from "./AssetItem";
+import AssetInfoPanel from "../context_menus/AssetInfoPanel";
 import { ImageComparer } from "../widgets";
 //
 //components
@@ -268,6 +270,16 @@ const styles = (theme: Theme) =>
     ".prev-next-items .item.compare-selected": {
       outline: "3px solid",
       outlineColor: theme.vars.palette.primary.main
+    },
+    ".info-panel-overlay": {
+      position: "absolute",
+      top: 0,
+      right: 0,
+      height: "calc(100% - 120px)",
+      overflowY: "auto",
+      zIndex: 10001,
+      backgroundColor: theme.vars.palette.grey[900],
+      boxShadow: "-8px 0 24px rgb(0 0 0 / 0.5)"
     }
   });
 
@@ -296,6 +308,10 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   const [currentIndex, setCurrentIndex] = useState<number | null>(null);
   const prevNextAmount = 5;
 
+  // Info panel (asset metadata, incl. the prompt that produced the asset)
+  const [showInfo, setShowInfo] = useState(false);
+  const toggleInfo = useCallback(() => setShowInfo((v) => !v), []);
+
   // Compare mode state
   const [compareMode, setCompareMode] = useState(false);
   const [compareAssetA, setCompareAssetA] = useState<Asset | null>(null);
@@ -313,6 +329,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
       setCompareMode(false);
       setCompareAssetA(null);
       setCompareAssetB(null);
+      setShowInfo(false);
     }
   }, [open]);
 
@@ -786,6 +803,12 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         )}
         {navigation}
 
+        {showInfo && currentAsset && !compareMode && (
+          <div className="info-panel-overlay">
+            <AssetInfoPanel asset={currentAsset} />
+          </div>
+        )}
+
         {/*
           Render the toolbar after the main viewer in DOM order so it paints (and
           receives hit targets) on top; ImageViewer is a full-area interactive layer
@@ -873,6 +896,16 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               tooltip="Compare with another image"
               onClick={startCompareMode}
               className="button compare"
+              nodrag={false}
+              sx={viewerActionButtonSx}
+            />
+          )}
+          {currentAsset && !compareMode && (
+            <ToolbarIconButton
+              icon={<InfoOutlinedIcon />}
+              tooltip={showInfo ? "Hide info" : "Show info"}
+              onClick={toggleInfo}
+              className="button info"
               nodrag={false}
               sx={viewerActionButtonSx}
             />

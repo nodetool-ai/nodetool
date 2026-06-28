@@ -7,6 +7,7 @@ import * as path from "path";
 const afterPack = require("../../scripts/after-pack.cjs") as {
   promoteBackendNodeModules: (context: Record<string, unknown>) => Promise<void>;
   findNativeModuleNames: (nodeModulesPath: string) => string[];
+  ensureAppUpdateConfig: (context: Record<string, unknown>) => Promise<void>;
 };
 
 describe("promoteBackendNodeModules", () => {
@@ -54,6 +55,88 @@ describe("promoteBackendNodeModules", () => {
       "utf8"
     );
     expect(packageJson).toContain('"name":"openai"');
+  });
+});
+
+describe("ensureAppUpdateConfig", () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await fs.promises.mkdtemp(
+      path.join(os.tmpdir(), "nodetool-app-update-")
+    );
+  });
+
+  afterEach(async () => {
+    await fs.promises.rm(tempDir, { recursive: true, force: true });
+  });
+
+  it("writes app-update.yml into Windows packaged resources", async () => {
+    const appOutDir = path.join(tempDir, "win-unpacked");
+
+    await afterPack.ensureAppUpdateConfig({
+      electronPlatformName: "win32",
+      appOutDir,
+      packager: {
+        config: {
+          publish: [
+            {
+              provider: "github",
+              owner: "nodetool-ai",
+              repo: "nodetool",
+            },
+          ],
+        },
+        // electron-builder derives this from the package name (nodetool-electron)
+        // → "nodetool-electron-updater". The written value must ignore it and
+        // pin the canonical "nodetool-updater" used by the runtime updater.
+        appInfo: {
+          updaterCacheDirName: "nodetool-electron-updater",
+        },
+      },
+    });
+
+    const config = fs.readFileSync(
+      path.join(appOutDir, "resources", "app-update.yml"),
+      "utf8"
+    );
+    expect(config).toContain("provider: github");
+    expect(config).toContain("owner: nodetool-ai");
+    expect(config).toContain("repo: nodetool");
+    expect(config).toContain("updaterCacheDirName: nodetool-updater");
+    expect(config).not.toContain("nodetool-electron-updater");
+  });
+
+  it("preserves nightly channel fields in app-update.yml", async () => {
+    const appOutDir = path.join(tempDir, "win-unpacked");
+
+    await afterPack.ensureAppUpdateConfig({
+      electronPlatformName: "win32",
+      appOutDir,
+      packager: {
+        config: {
+          publish: [
+            {
+              provider: "github",
+              owner: "nodetool-ai",
+              repo: "nodetool",
+              channel: "nightly",
+              releaseType: "prerelease",
+            },
+          ],
+        },
+        appInfo: {
+          updaterCacheDirName: "nodetool-updater",
+        },
+      },
+    });
+
+    const config = fs.readFileSync(
+      path.join(appOutDir, "resources", "app-update.yml"),
+      "utf8"
+    );
+    expect(config).toContain("channel: nightly");
+    expect(config).toContain("releaseType: prerelease");
   });
 });
 

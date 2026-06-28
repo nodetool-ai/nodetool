@@ -3,9 +3,14 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { BaseProvider } from "../../src/providers/base-provider.js";
+import {
+  BaseProvider,
+  toolResultToText
+} from "../../src/providers/base-provider.js";
+import { isProviderMessageEvent } from "../../src/providers/types.js";
 import type {
   Message,
+  MessageContent,
   ProviderStreamItem,
   ProviderTool,
   ToolCall
@@ -336,5 +341,175 @@ describe("BaseProvider – close lifecycle", () => {
     const provider = new TestProvider();
     await expect(provider.close()).resolves.toBeUndefined();
     await expect(provider.close()).resolves.toBeUndefined();
+  });
+});
+
+describe("toolResultToText", () => {
+  it("passes strings through", () => {
+    expect(toolResultToText("hi")).toBe("hi");
+  });
+
+  it("joins text blocks and drops images", () => {
+    const content: MessageContent[] = [
+      { type: "text", text: "a shot" },
+      { type: "image_url", image: { data: "QUJD", mimeType: "image/png" } }
+    ];
+    expect(toolResultToText(content)).toBe("a shot");
+  });
+
+  it("falls back to a placeholder when only images are present", () => {
+    expect(
+      toolResultToText([
+        { type: "image_url", image: { data: "QUJD", mimeType: "image/png" } }
+      ])
+    ).toBe("[image result]");
+  });
+});
+
+describe("BaseProvider.generateLoop – image tool results", () => {
+  // Yields one tool call on the first turn, then finishes — the "real provider"
+  // path that emits ToolCall items (vs. the inline onToolCall callback).
+  class ToolOnceProvider extends BaseProvider {
+    public secondTurnMessages: Message[] | null = null;
+    private called = false;
+    constructor() {
+      super("test");
+    }
+    async *generateMessages(args: {
+      messages: Message[];
+    }): AsyncGenerator<ProviderStreamItem> {
+      if (!this.called) {
+        this.called = true;
+        yield { id: "call_1", name: "snap", args: {} } as ToolCall;
+        return;
+      }
+      this.secondTurnMessages = args.messages;
+      yield { type: "chunk", content: "done", done: true };
+    }
+  }
+
+  it("delivers image tool results via a user message, not the tool message", async () => {
+    const provider = new ToolOnceProvider();
+    const image: MessageContent[] = [
+      { type: "text", text: "viewport" },
+      { type: "image_url", image: { data: "QUJD", mimeType: "image/png" } }
+    ];
+    const events: ProviderStreamItem[] = [];
+    for await (const item of provider.generateLoop({
+      messages: [{ role: "user", content: "look" }],
+      model: "m",
+      executeTool: async () => image
+    })) {
+      events.push(item);
+    }
+
+    // The tool message carries only the text note — putting an image here would
+    // make OpenAI stringify it into a giant base64 text blob.
+    const toolEvent = events.find(
+      (e) => isProviderMessageEvent(e) && e.message.role === "tool"
+    );
+    expect(
+      isProviderMessageEvent(toolEvent!) && toolEvent!.message.content
+    ).toBe("viewport");
+
+    // The pixels are never yielded (so never persisted or echoed)...
+    const yieldedUser = events.find(
+      (e) => isProviderMessageEvent(e) && e.message.role === "user"
+    );
+    expect(yieldedUser).toBeUndefined();
+
+    // ...but they DO ride the in-flight messages into the next model turn.
+    const userImg = provider.secondTurnMessages?.find(
+      (m) =>
+        m.role === "user" &&
+        Array.isArray(m.content) &&
+        (m.content as MessageContent[]).some((c) => c.type === "image_url")
+    );
+    expect(userImg).toBeTruthy();
+    const imgPart = (userImg!.content as MessageContent[]).find(
+      (c) => c.type === "image_url"
+    );
+    expect(imgPart).toMatchObject({
+      type: "image_url",
+      image: { data: "QUJD" }
+    });
+  });
+
+  it("dispatches a ProviderTool.execute and ends on terminal:true (no executeTool)", async () => {
+    // Provider yields a tool call on the first turn, then a final chunk.
+    class ToolThenDoneProvider extends BaseProvider {
+      public turns = 0;
+      constructor() {
+        super("test");
+      }
+      async generateMessage(): Promise<Message> {
+        return { role: "assistant", content: "ok" };
+      }
+      async *generateMessages(): AsyncGenerator<ProviderStreamItem> {
+        this.turns++;
+        if (this.turns === 1) {
+          yield { id: "call_1", name: "finish", args: { value: 42 } } as ToolCall;
+          return;
+        }
+        // Should never run — the terminal tool ends the loop after turn 1.
+        yield { type: "chunk", content: "second turn", done: true };
+      }
+    }
+
+    const provider = new ToolThenDoneProvider();
+    let executed: Record<string, unknown> | null = null;
+    const tool: ProviderTool = {
+      name: "finish",
+      terminal: true,
+      execute: async (a) => {
+        executed = a;
+        return "finished";
+      }
+    };
+
+    const events: ProviderStreamItem[] = [];
+    for await (const item of provider.generateLoop({
+      messages: [{ role: "user", content: "go" }],
+      model: "m",
+      tools: [tool]
+      // NOTE: no executeTool callback — the tool's own execute drives it.
+    })) {
+      events.push(item);
+    }
+
+    // The provider-supplied execute ran with the tool-call args.
+    expect(executed).toEqual({ value: 42 });
+    // The loop stopped after the terminal tool — generateMessages ran once.
+    expect(provider.turns).toBe(1);
+    // Its result landed in a tool message.
+    const toolEvent = events.find(
+      (e) => isProviderMessageEvent(e) && e.message.role === "tool"
+    );
+    expect(
+      isProviderMessageEvent(toolEvent!) && toolEvent!.message.content
+    ).toBe("finished");
+  });
+
+  it("leaves plain string tool results in the tool message", async () => {
+    const provider = new ToolOnceProvider();
+    const events: ProviderStreamItem[] = [];
+    for await (const item of provider.generateLoop({
+      messages: [{ role: "user", content: "x" }],
+      model: "m",
+      executeTool: async () => "plain text"
+    })) {
+      events.push(item);
+    }
+    const toolEvent = events.find(
+      (e) => isProviderMessageEvent(e) && e.message.role === "tool"
+    );
+    expect(
+      isProviderMessageEvent(toolEvent!) && toolEvent!.message.content
+    ).toBe("plain text");
+    expect(
+      provider.secondTurnMessages?.some(
+        (m) => m.role === "user" && Array.isArray(m.content)
+      )
+    ).toBeFalsy();
   });
 });

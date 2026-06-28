@@ -130,6 +130,7 @@ type ListItem =
 
 const ModelListIndex: React.FC = () => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   const [modelToDelete, setModelToDelete] = useState<string | null>(null);
   const selectedModelType = useModelManagerStore((state) => state.selectedModelType);
   const setSelectedModelType = useModelManagerStore(
@@ -395,7 +396,7 @@ const ModelListIndex: React.FC = () => {
   }
 
   return (
-    <Box className="model-list-container" css={styles(theme)}>
+    <Box className="model-list-container" css={cssStyles}>
       <Box className="model-list-header">
         <ModelListHeader
           totalCount={allModels?.length || 0}

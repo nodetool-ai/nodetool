@@ -74,6 +74,7 @@ export type NodeClass = {
   isJoinNode: boolean;
   supportsDynamicOutputs?: boolean;
   autoSaveAsset: boolean;
+  cacheTtl?: number | "forever";
   primaryOutput?: string;
   modelPacks?: unknown[];
   /**
@@ -205,6 +206,17 @@ export abstract class BaseNode {
   static readonly isJoinNode: boolean = false;
   static readonly supportsDynamicOutputs: boolean | undefined = undefined;
   static readonly autoSaveAsset: boolean = false;
+  /**
+   * Per-type cache lifetime for partial runs ("Run Node", "Run from here", "Run
+   * selected"). Only consulted for Computed nodes (Constants are always live;
+   * Generatives reuse generation history). `"forever"` = pure deterministic
+   * (reuse while inputs match); a finite number = seconds the cached result
+   * stays fresh before re-running (time-sensitive, e.g. a web fetch);
+   * unset / `0` = never reuse. `"forever"` is a string sentinel — never
+   * `Infinity`, which JSON-serializes to `null` and would silently flip a pure
+   * node to never-cache. See docs/superpowers/specs/2026-06-27-run-subgraph-caching.md §4.
+   */
+  static readonly cacheTtl: number | "forever" | undefined = undefined;
   /**
    * Names the output slot that carries this node's "primary" generation — the
    * value persisted as its saved generation and previewed by the content card.

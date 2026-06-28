@@ -9,6 +9,8 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { useMiniMapStore } from "../../stores/MiniMapStore";
 import { useRunWarningStore } from "../../stores/RunWarningStore";
+import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
+import { useSearchProviderCalloutStore } from "../../stores/SearchProviderCalloutStore";
 
 jest.mock("react-router-dom", () => ({
   useNavigate: jest.fn(() => jest.fn()),
@@ -239,6 +241,74 @@ describe("useFloatingToolbarActions", () => {
         useRunWarningStore.getState().confirm(false);
       });
       expect(mockRun).toHaveBeenCalled();
+    });
+
+    const searchNode = {
+      id: "agent-1",
+      type: "nodetool.agents.Agent",
+      data: {
+        properties: { tools: [{ type: "tool_name", name: "google_search" }] }
+      }
+    };
+
+    const mockNodeStoreWith = (nodes: unknown[]) => {
+      mockUseNodeStoreRef.mockReturnValue({
+        getState: jest.fn(() => ({
+          nodes,
+          edges: [],
+          setSelectedNodes: jest.fn(),
+          setShouldFitToScreen: jest.fn(),
+          getWorkflow: jest.fn(() => mockWorkflow)
+        }))
+      } as any);
+    };
+
+    const setting = (env_var: string, value: string | null) => ({
+      package_name: "",
+      env_var,
+      group: "Search",
+      description: "",
+      enum: null,
+      value,
+      is_secret: env_var !== "SERP_PROVIDER"
+    });
+
+    it("blocks the run and opens the search-provider dialog when a search tool has no provider", async () => {
+      mockNodeStoreWith([searchNode]);
+      useRemoteSettingsStore.setState({
+        settings: [setting("SERP_PROVIDER", null)] as any
+      });
+      useSearchProviderCalloutStore.getState().dismiss();
+
+      const { result } = renderHook(() => useFloatingToolbarActions());
+      await act(async () => {
+        await result.current.handleRun();
+      });
+
+      expect(mockRun).not.toHaveBeenCalled();
+      expect(useSearchProviderCalloutStore.getState().open).toBe(true);
+      expect(useSearchProviderCalloutStore.getState().nodes).toEqual([
+        { nodeId: "agent-1", nodeTitle: "Agent" }
+      ]);
+    });
+
+    it("runs normally when the search provider is configured", async () => {
+      mockNodeStoreWith([searchNode]);
+      useRemoteSettingsStore.setState({
+        settings: [
+          setting("SERP_PROVIDER", "brave"),
+          setting("BRAVE_API_KEY", "****")
+        ] as any
+      });
+      useSearchProviderCalloutStore.getState().dismiss();
+
+      const { result } = renderHook(() => useFloatingToolbarActions());
+      await act(async () => {
+        await result.current.handleRun();
+      });
+
+      expect(mockRun).toHaveBeenCalled();
+      expect(useSearchProviderCalloutStore.getState().open).toBe(false);
     });
 
     it("triggers autosave before running if enabled", async () => {

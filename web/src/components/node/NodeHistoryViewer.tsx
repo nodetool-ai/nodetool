@@ -547,6 +547,10 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
   // Every mode advances the range anchor + the roving-focus active tile.
   const handleGridClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
+      // Picking a generation must not toggle the enclosing node's selection.
+      // ReactFlow selects a node on click (separate from the pointer-down drag
+      // we already swallow), so stop the click from bubbling to the node.
+      e.stopPropagation();
       const thumb = (e.target as HTMLElement).closest<HTMLElement>(".thumb");
       if (!thumb) return;
       const genId = thumb.dataset.genId;

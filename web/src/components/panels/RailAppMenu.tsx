@@ -10,6 +10,7 @@ import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import DownloadIcon from "@mui/icons-material/Download";
 import SpaceDashboardOutlinedIcon from "@mui/icons-material/SpaceDashboardOutlined";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
+import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import PaidOutlinedIcon from "@mui/icons-material/PaidOutlined";
 import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
@@ -96,6 +97,11 @@ const RailAppMenu: React.FC = () => {
 
   const goExamples = useCallback(() => {
     navigate("/examples");
+    close();
+  }, [navigate, close]);
+
+  const goTutorials = useCallback(() => {
+    navigate("/tutorials");
     close();
   }, [navigate, close]);
 
@@ -191,6 +197,11 @@ const RailAppMenu: React.FC = () => {
             label="Dashboard"
             icon={<SpaceDashboardOutlinedIcon />}
             onClick={goDashboard}
+          />
+          <MenuItemPrimitive
+            label="Tutorials"
+            icon={<SchoolOutlinedIcon />}
+            onClick={goTutorials}
           />
           <MenuItemPrimitive
             label="Examples"
