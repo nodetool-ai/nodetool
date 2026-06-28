@@ -9,6 +9,10 @@ export default defineConfig({
     // rewritten to `../agents/src/index.ts/memory` and fails to resolve.
     alias: [
       {
+        find: "@nodetool-ai/agents/js-sandbox",
+        replacement: resolve(__dirname, "../agents/src/js-sandbox.ts")
+      },
+      {
         find: "@nodetool-ai/agents/memory",
         replacement: resolve(__dirname, "../agents/src/long-term-memory.ts")
       },
