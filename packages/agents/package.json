@@ -57,6 +57,12 @@
       "types": "./dist/long-term-memory.d.ts",
       "import": "./dist/long-term-memory.js",
       "default": "./dist/long-term-memory.js"
+    },
+    "./js-sandbox": {
+      "nodetool-dev": "./src/js-sandbox.ts",
+      "types": "./dist/js-sandbox.d.ts",
+      "import": "./dist/js-sandbox.js",
+      "default": "./dist/js-sandbox.js"
     }
   },
   "license": "MIT",
