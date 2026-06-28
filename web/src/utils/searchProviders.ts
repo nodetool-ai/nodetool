@@ -86,11 +86,13 @@ type SettingGetter = (envVar: string) => string | undefined;
  * default. Credential values arrive as `"****"` from the settings API when a
  * secret is configured, so any non-empty string counts.
  */
+const isSerpProviderId = (value: string): value is SerpProviderId =>
+  value in SEARCH_PROVIDER_CONFIGS;
+
 export const isSearchProviderConfigured = (getValue: SettingGetter): boolean => {
-  const selected = (getValue("SERP_PROVIDER") || DEFAULT_SERP_PROVIDER) as SerpProviderId;
-  const config =
-    SEARCH_PROVIDER_CONFIGS[selected] ??
-    SEARCH_PROVIDER_CONFIGS[DEFAULT_SERP_PROVIDER];
+  const raw = getValue("SERP_PROVIDER") || DEFAULT_SERP_PROVIDER;
+  const selected = isSerpProviderId(raw) ? raw : DEFAULT_SERP_PROVIDER;
+  const config = SEARCH_PROVIDER_CONFIGS[selected];
   return config.credentialFields.every((field) => {
     const value = getValue(field);
     return typeof value === "string" && value.trim().length > 0;
