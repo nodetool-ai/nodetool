@@ -69,17 +69,6 @@ That's what vendor neutrality buys you:
 | **Deploy & scale** | Self-host with Docker; rent GPU workers (RunPod, Vast) |
 | **Cross-platform** | macOS, Windows, and Linux |
 
-## What people build with it
-
-The workspace is a canvas, not a wizard. A few of the patterns we see most often:
-
-- **Image generation and editing** — FLUX.2, Nano Banana Pro, GPT-Image 3, plus mask, inpaint, outpaint, relight, and upscale as first-class nodes.
-- **Video** — Seedance, Sora 2 Pro, Veo 3.1, Wan 2.6, Hailuo 2.3, Kling 2.6. Text-to-video, image-to-video, and video-to-video pipelines, cut together on a multi-track timeline.
-- **Voice and audio** — Whisper for transcription, ElevenLabs and OpenAI TTS for speech, audio analysis and editing as nodes.
-- **Document search** — point a workflow at a folder, embed it, query it. RAG without writing the plumbing.
-- **Multi-step agents** — agents are a capability inside the workspace, not a separate product. Wire one into a graph when a step needs to plan, decide, or call tools.
-- **Mini-apps** — share a workflow as an interactive web app others can run.
-
 ## Node editor
 
 The canvas is the core of NodeTool. You build a workflow by dropping nodes and wiring their outputs to inputs — each node is one step (load an image, call a model, mask, composite, write a file), and the connections are the data flowing between them.
@@ -105,19 +94,6 @@ See the [Video Editor guide](https://docs.nodetool.ai/video-editor) for the full
 A layered paint canvas built into the node graph. Draw and paint with real brushes, build up a composition in layers with blend modes and masks, then bind a layer to a model or one of your own workflows and generate image content right where you're painting. Change a prompt or an upstream input and the layer flags itself stale; regenerate in place and keep working on top. When you're done, the node hands the rest of your workflow a flattened image, a mask, and per-layer outputs — no export/import round-trip. It pairs naturally with the editing nodes (mask, inpaint, outpaint, compositing) for sketch-then-generate pipelines.
 
 See the [Sketch Editor guide](https://docs.nodetool.ai/sketch-editor) for tools, layers, AI generation, and keyboard shortcuts.
-
-## Models
-
-Pick a provider per node. Switch by changing one field.
-
-| Type | Models |
-| :--- | :--- |
-| **Video** | Seedance, OpenAI Sora 2 Pro, Google Veo 3.1, xAI Grok Imagine, Alibaba Wan 2.6, MiniMax Hailuo 2.3, Kling 2.6 |
-| **Image** | Flux, Black Forest Labs FLUX.2, Google Nano Banana Pro, GPT-Image 3 |
-| **Audio** | OpenAI Whisper, OpenAI TTS, ElevenLabs |
-| **Text** | GPT-4, Claude, Gemini, Llama, Mistral — local on your machine, or BYOK to the cloud |
-
-Use `TextToVideo`, `ImageToVideo`, or `TextToImage` nodes and select your provider and model. Some models route through [kie.ai](https://kie.ai/), which combines providers and is often the cheapest path.
 
 ## How NodeTool compares
 
