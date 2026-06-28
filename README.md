@@ -25,6 +25,7 @@ Bring your own keys to FAL, KIE, Atlas, OpenAI, Anthropic, Gemini, Replicate, El
 - [Why NodeTool](#why-nodetool)
 - [What's in the box](#whats-in-the-box)
 - [What people build with it](#what-people-build-with-it)
+- [Node editor](#node-editor)
 - [Video editor](#video-editor)
 - [Sketch editor](#sketch-editor)
 - [Models](#models)
@@ -78,6 +79,18 @@ The workspace is a canvas, not a wizard. A few of the patterns we see most often
 - **Document search** — point a workflow at a folder, embed it, query it. RAG without writing the plumbing.
 - **Multi-step agents** — agents are a capability inside the workspace, not a separate product. Wire one into a graph when a step needs to plan, decide, or call tools.
 - **Mini-apps** — share a workflow as an interactive web app others can run.
+
+## Node editor
+
+The canvas is the core of NodeTool. You build a workflow by dropping nodes and wiring their outputs to inputs — each node is one step (load an image, call a model, mask, composite, write a file), and the connections are the data flowing between them.
+
+- **Add nodes fast.** Open the node menu to browse the library by namespace or search by name, double-click the canvas to drop a node, or drag a connection into empty space to get a filtered list of nodes that accept that output's type.
+- **Type-safe connections.** Handles are colored by type. The editor only lets you connect compatible inputs and outputs, so a workflow won't wire an image into a text field by accident.
+- **Live previews.** Every node shows its output as the workflow runs — images, video, audio, text, and tables render in place, so you see results at each step instead of only at the end.
+- **Edit in context.** Node properties are editable on the node itself or in the inspector. Group nodes to organize a graph, drop comment nodes for notes, and bypass nodes to test variations without deleting them.
+- **Navigate large graphs.** Pan, zoom, and a minimap keep big workflows manageable; find-in-workflow jumps to any node by name.
+
+Right-click anywhere — canvas, node, edge, or selection — for the relevant actions. When a workflow is ready, run it from the canvas and watch execution flow through the graph.
 
 ## Video editor
 
