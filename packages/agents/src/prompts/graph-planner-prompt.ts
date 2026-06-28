@@ -249,6 +249,16 @@ node auto-saves its result as an asset. Example: \`nodetool.image.TextToImage\`
 \`nodetool.agents.AgentStep\` nodes for multi-stage reasoning. Each step
 inherits the workflow's configured model — do NOT set a \`model\` property.
 
+## Branch / Conditional
+\`Input → comparison → If → (both branches) → Output\`. Produce a **boolean**
+with a comparison node (e.g. \`nodetool.text.Equals\`, which outputs \`bool\` —
+NOT \`nodetool.text.Compare\`, which outputs the string "equal"/"greater"/"less"
+and is never a valid \`condition\`). Wire it into \`nodetool.control.If.condition\`
+and the value to switch on into \`If.value\`. \`If\` has TWO outputs —
+\`if_true\` and \`if_false\` — wire BOTH to their destinations so each case is
+handled. Do not fake the else-branch with \`TryCatch\`; \`If\` already gives you
+both paths.
+
 ## Multi-Modal Chain
 \`Audio → Speech-to-Text → AgentStep → Text-to-Image → Output\`, or any
 permutation. Connect generic AI nodes of different modalities, optionally
