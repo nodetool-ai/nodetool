@@ -133,13 +133,18 @@ export function scoreNodeMetadata(
   }
 
   let raw = 0;
+  // Each search term may itself be a multi-word phrase (agents often pass
+  // ["text input string"] rather than ["text","input","string"]). Match on
+  // individual words so a phrase doesn't collapse to a single substring probe
+  // that almost never hits — this is the difference between 0 and many results.
   for (const rawTerm of terms) {
-    const term = rawTerm.toLowerCase();
-    if (!term) continue;
-    raw += fieldScore(meta.title, term, FIELD_WEIGHTS.title);
-    raw += fieldScore(meta.node_type, term, FIELD_WEIGHTS.nodeType);
-    raw += fieldScore(meta.namespace, term, FIELD_WEIGHTS.namespace);
-    raw += fieldScore(meta.description, term, FIELD_WEIGHTS.description);
+    for (const term of rawTerm.toLowerCase().split(/\s+/)) {
+      if (!term) continue;
+      raw += fieldScore(meta.title, term, FIELD_WEIGHTS.title);
+      raw += fieldScore(meta.node_type, term, FIELD_WEIGHTS.nodeType);
+      raw += fieldScore(meta.namespace, term, FIELD_WEIGHTS.namespace);
+      raw += fieldScore(meta.description, term, FIELD_WEIGHTS.description);
+    }
   }
 
   // Stryker disable next-line ConditionalExpression: when raw is 0 the core branch returns 0 * 1.5 === 0, so the guard cannot change the result (equivalent).
