@@ -197,6 +197,7 @@ function toWorkflowResponse(workflow: WorkflowModel): WorkflowResponse {
     required_providers: null,
     required_models: null,
     html_app: workflow.html_app ?? null,
+    app_doc: workflow.app_doc ?? null,
     etag: workflow.getEtag() ?? null
   };
 }
@@ -292,6 +293,7 @@ function buildExamplesFromDir(
         required_providers: null,
         required_models: null,
         html_app: null,
+        app_doc: null,
         etag: null
       });
     } catch {
@@ -347,6 +349,7 @@ function buildExampleWorkflows(
         required_providers: null,
         required_models: null,
         html_app: null,
+        app_doc: null,
         etag: null
       });
     }
@@ -439,6 +442,7 @@ export const workflowsRouter = router({
         throwApiError(ApiErrorCode.INVALID_INPUT, "graph is required and must have nodes and edges arrays");
       }
       let graph = input.graph;
+      let appDoc = input.app_doc ?? null;
 
       // Optionally seed from example
       if (input.from_example_name && (!graph || graph.nodes?.length === 0)) {
@@ -453,6 +457,10 @@ export const workflowsRouter = router({
         );
         if (example?.graph) {
           graph = example.graph as typeof graph;
+        }
+        // Carry the example's app UI unless the caller supplied one.
+        if (appDoc == null && example?.app_doc) {
+          appDoc = example.app_doc as Record<string, unknown>;
         }
       }
 
@@ -471,7 +479,8 @@ export const workflowsRouter = router({
         settings: input.settings ?? null,
         run_mode: input.run_mode ?? "workflow",
         workspace_id: input.workspace_id ?? null,
-        html_app: input.html_app ?? null
+        html_app: input.html_app ?? null,
+        app_doc: appDoc
       })) as WorkflowModel;
 
       return toWorkflowResponse(workflow);
@@ -506,6 +515,8 @@ export const workflowsRouter = router({
           existing.run_mode = input.run_mode;
         existing.workspace_id = input.workspace_id ?? null;
         existing.html_app = input.html_app ?? null;
+        // Only touch app_doc when sent, so partial saves don't wipe the app.
+        if (input.app_doc !== undefined) existing.app_doc = input.app_doc;
         await existing.save();
         return toWorkflowResponse(existing);
       }
@@ -527,7 +538,8 @@ export const workflowsRouter = router({
         settings: input.settings ?? null,
         run_mode: input.run_mode ?? "workflow",
         workspace_id: input.workspace_id ?? null,
-        html_app: input.html_app ?? null
+        html_app: input.html_app ?? null,
+        app_doc: input.app_doc ?? null
       })) as WorkflowModel;
 
       return toWorkflowResponse(workflow);

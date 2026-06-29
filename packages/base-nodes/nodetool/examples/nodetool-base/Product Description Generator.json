@@ -99,6 +99,17 @@
         "sourceHandle": "output",
         "target": "2",
         "targetHandle": "audience"
+      },
+      {
+        "id": "e_description_output",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "description_output",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
       }
     ],
     "nodes": [
@@ -326,6 +337,26 @@
           "features": "40-hour battery life, active noise cancellation, premium audio quality, comfortable design, fast charging"
         },
         "dynamic_outputs": {}
+      },
+      {
+        "id": "description_output",
+        "type": "nodetool.output.StringOutput",
+        "data": {
+          "name": "Description"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1760,
+            "y": 12
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "Description",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
       }
     ]
   },
@@ -371,5 +402,109 @@
   "path": null,
   "run_mode": null,
   "required_providers": null,
-  "required_models": null
+  "required_models": null,
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Product Description Generator"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-25",
+            "text": "🛍️ Product Description Generator",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-26",
+            "text": "Turn product details into polished marketing copy."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "c-31",
+            "title": "Product",
+            "content": [
+              {
+                "type": "TextInput",
+                "props": {
+                  "id": "in-27",
+                  "binding": "product",
+                  "label": "Product Name",
+                  "placeholder": "e.g. Wireless Earbuds",
+                  "multiline": false,
+                  "events": []
+                }
+              },
+              {
+                "type": "TextInput",
+                "props": {
+                  "id": "in-28",
+                  "binding": "features",
+                  "label": "Key Features",
+                  "placeholder": "e.g. noise cancelling, 30h battery",
+                  "multiline": true,
+                  "events": []
+                }
+              },
+              {
+                "type": "TextInput",
+                "props": {
+                  "id": "in-29",
+                  "binding": "audience",
+                  "label": "Target Audience",
+                  "placeholder": "e.g. commuters",
+                  "multiline": false,
+                  "events": []
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "id": "b-30",
+                  "label": "Generate Description",
+                  "variant": "contained",
+                  "color": "primary",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "key": "",
+                      "value": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "c-33",
+            "title": "Description",
+            "content": [
+              {
+                "type": "Markdown",
+                "props": {
+                  "id": "md-32",
+                  "binding": "Description",
+                  "text": ""
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
 }

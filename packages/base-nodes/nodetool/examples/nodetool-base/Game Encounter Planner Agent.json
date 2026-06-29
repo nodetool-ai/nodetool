@@ -148,6 +148,17 @@
         "sourceHandle": "output",
         "target": "15",
         "targetHandle": "prompt"
+      },
+      {
+        "id": "e_encounter_output",
+        "source": "15",
+        "sourceHandle": "text",
+        "target": "encounter_output",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
       }
     ],
     "nodes": [
@@ -565,6 +576,26 @@
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
+      },
+      {
+        "id": "encounter_output",
+        "type": "nodetool.output.StringOutput",
+        "data": {
+          "name": "Encounter"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3840,
+            "y": 3444
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "Encounter",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
       }
     ]
   },
@@ -623,5 +654,109 @@
   "path": null,
   "run_mode": null,
   "required_providers": null,
-  "required_models": null
+  "required_models": null,
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Game Encounter Planner"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-53",
+            "text": "🐉 Game Encounter Planner",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-54",
+            "text": "Design a tabletop encounter from biome, difficulty, and focus."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "c-59",
+            "title": "Parameters",
+            "content": [
+              {
+                "type": "TextInput",
+                "props": {
+                  "id": "in-55",
+                  "binding": "target_biome",
+                  "label": "Target Biome",
+                  "placeholder": "e.g. frozen tundra",
+                  "multiline": false,
+                  "events": []
+                }
+              },
+              {
+                "type": "TextInput",
+                "props": {
+                  "id": "in-56",
+                  "binding": "difficulty_profile",
+                  "label": "Difficulty Profile",
+                  "placeholder": "e.g. deadly, level 5 party",
+                  "multiline": false,
+                  "events": []
+                }
+              },
+              {
+                "type": "TextInput",
+                "props": {
+                  "id": "in-57",
+                  "binding": "design_focus",
+                  "label": "Design Focus",
+                  "placeholder": "e.g. stealth and traps",
+                  "multiline": false,
+                  "events": []
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "id": "b-58",
+                  "label": "Plan Encounter",
+                  "variant": "contained",
+                  "color": "primary",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "key": "",
+                      "value": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "c-61",
+            "title": "Encounter",
+            "content": [
+              {
+                "type": "Markdown",
+                "props": {
+                  "id": "md-60",
+                  "binding": "Encounter",
+                  "text": ""
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
 }

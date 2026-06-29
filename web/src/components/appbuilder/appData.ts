@@ -6,7 +6,6 @@
 import type { Data } from "@puckeditor/core";
 
 export const APP_DATA_VERSION = 2 as const;
-export const APP_DATA_SETTINGS_KEY = "__appbuilder__" as const;
 
 export interface AppDocument {
   version: typeof APP_DATA_VERSION;

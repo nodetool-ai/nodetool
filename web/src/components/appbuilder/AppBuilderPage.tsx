@@ -10,7 +10,7 @@ import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import FrontendToolRuntimeSync from "../panels/FrontendToolRuntimeSync";
 import { APP_DATA_VERSION, createEmptyData } from "./appData";
-import { loadAppData, withAppDocument } from "./persistence";
+import { loadAppData, toAppDocField } from "./persistence";
 import PuckAppEditor from "./puck/PuckAppEditor";
 import AppBuilderAgentPanel from "./AppBuilderAgentPanel";
 
@@ -64,7 +64,7 @@ const AppBuilderPage: React.FC = () => {
       try {
         const next: Workflow = {
           ...workflow,
-          settings: withAppDocument(workflow.settings, {
+          app_doc: toAppDocField({
             version: APP_DATA_VERSION,
             data: nextData
           })

@@ -159,6 +159,17 @@
         "sourceHandle": "output",
         "target": "2",
         "targetHandle": "processing"
+      },
+      {
+        "id": "e_result_output",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "result_output",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
       }
     ],
     "nodes": [
@@ -440,6 +451,26 @@
           "value": "75"
         },
         "dynamic_outputs": {}
+      },
+      {
+        "id": "result_output",
+        "type": "nodetool.output.StringOutput",
+        "data": {
+          "name": "Result"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2110,
+            "y": 401
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "Result",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
       }
     ]
   },
@@ -475,5 +506,88 @@
   "path": null,
   "run_mode": null,
   "required_providers": null,
-  "required_models": null
+  "required_models": null,
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Conditional Logic Engine"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-30",
+            "text": "🔀 Conditional Logic Engine",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-31",
+            "text": "Enter a value and see how the workflow routes it."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "c-34",
+            "title": "Input",
+            "content": [
+              {
+                "type": "NumberInput",
+                "props": {
+                  "id": "nin-32",
+                  "binding": "value",
+                  "label": "Value",
+                  "min": 0,
+                  "max": 100,
+                  "step": 1,
+                  "events": []
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "id": "b-33",
+                  "label": "Run",
+                  "variant": "contained",
+                  "color": "primary",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "key": "",
+                      "value": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "c-36",
+            "title": "Result",
+            "content": [
+              {
+                "type": "Markdown",
+                "props": {
+                  "id": "md-35",
+                  "binding": "Result",
+                  "text": ""
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
 }

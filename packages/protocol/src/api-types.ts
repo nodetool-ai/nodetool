@@ -414,6 +414,8 @@ export interface Workflow {
   required_providers?: string[] | null;
   required_models?: string[] | null;
   html_app?: string | null;
+  /** App-builder document (Puck layout + bindings): `{ version, data }`. */
+  app_doc?: Record<string, unknown> | null;
   receive_clipboard?: boolean | null;
   access: string;
   created_at: string;
@@ -439,6 +441,7 @@ export interface WorkflowRequest {
   run_mode?: string | null;
   workspace_id?: string | null;
   html_app?: string | null;
+  app_doc?: Record<string, unknown> | null;
   thumbnail?: string | null;
   thumbnail_url?: string | null;
   receive_clipboard?: boolean | null;
@@ -852,6 +855,8 @@ export interface ResourceLimits {
 export const PROVIDER_IDS = {
   // Hosted LLM / multimodal APIs
   OPENAI: "openai",
+  // OpenAI Responses API path with hosted tools such as native web search.
+  OPENAI_RESPONSES: "openai_responses",
   // OpenAI via ChatGPT/Codex OAuth login (no API key — uses the stored
   // Codex OAuth token and the chatgpt.com Codex backend).
   CODEX: "codex",

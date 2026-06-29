@@ -326,6 +326,7 @@ export interface WorkflowRequestBody {
   run_mode?: string | null;
   workspace_id?: string | null;
   html_app?: string | null;
+  app_doc?: Record<string, unknown> | null;
 }
 
 // Rate-limit tracking for autosave: maps workflow_id -> last autosave timestamp (ms)
@@ -394,6 +395,7 @@ export function toWorkflowResponse(workflow: Workflow): JsonObject {
     required_providers: null,
     required_models: null,
     html_app: workflow.html_app,
+    app_doc: workflow.app_doc ?? null,
     etag: workflow.getEtag()
   };
 }
@@ -515,7 +517,8 @@ async function createWorkflow(
     settings: body.settings ?? null,
     run_mode: body.run_mode ?? "workflow",
     workspace_id: body.workspace_id ?? null,
-    html_app: body.html_app ?? null
+    html_app: body.html_app ?? null,
+    app_doc: body.app_doc ?? null
   })) as Workflow;
 }
 
@@ -556,6 +559,9 @@ async function updateWorkflow(
       existing.run_mode = body.run_mode;
     existing.workspace_id = body.workspace_id ?? null;
     existing.html_app = body.html_app ?? null;
+    // Only touch app_doc when the caller sends it, so partial saves (graph
+    // autosave) don't wipe the app-builder document.
+    if (body.app_doc !== undefined) existing.app_doc = body.app_doc;
     await existing.save();
     return existing;
   }
@@ -577,7 +583,8 @@ async function updateWorkflow(
     settings: body.settings ?? null,
     run_mode: body.run_mode ?? "workflow",
     workspace_id: body.workspace_id ?? null,
-    html_app: body.html_app ?? null
+    html_app: body.html_app ?? null,
+    app_doc: body.app_doc ?? null
   })) as Workflow;
 }
 
@@ -920,6 +927,10 @@ function buildExamplesFromDir(
         required_providers: null,
         required_models: null,
         html_app: null,
+        app_doc:
+          parsed.app_doc && typeof parsed.app_doc === "object"
+            ? (parsed.app_doc as Record<string, unknown>)
+            : null,
         etag: null
       });
     } catch (err) {
@@ -969,6 +980,7 @@ function buildExampleWorkflows(options: HttpApiOptions): unknown[] {
         required_providers: null,
         required_models: null,
         html_app: null,
+        app_doc: null,
         etag: null
       });
     }

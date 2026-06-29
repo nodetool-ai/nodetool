@@ -19,7 +19,8 @@ import {
   SectionHeader,
   BORDER_RADIUS,
   SPACING,
-  SPACING_PX
+  SPACING_PX,
+  TYPOGRAPHY
 } from "../../ui_primitives";
 import { AppEvent } from "../types";
 import { useWidgetRuntime, WidgetBindingMode } from "./useWidgetRuntime";
@@ -28,7 +29,7 @@ import { useWidgetRuntime, WidgetBindingMode } from "./useWidgetRuntime";
 const slotStack: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  gap: `${SPACING_PX.lg}px`,
+  gap: `${SPACING_PX.xxl}px`,
   width: "100%"
 };
 
@@ -332,9 +333,17 @@ export const ButtonWidget: React.FC<WidgetCommon & {
     <EditorButton
       variant={(props.variant as "contained" | "outlined" | "text") ?? "contained"}
       color={(props.color as "primary" | "secondary" | "warning") ?? "primary"}
+      density="normal"
+      size="medium"
       fullWidth
       disabled={isRunning && !designMode}
       onClick={() => emit("click")}
+      sx={{
+        fontSize: TYPOGRAPHY.sans.body.fontSize,
+        fontWeight: 600,
+        height: "auto",
+        py: SPACING.sm
+      }}
     >
       {isRunning && !designMode ? "Running…" : props.label ?? "Button"}
     </EditorButton>

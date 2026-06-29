@@ -64,8 +64,7 @@ export const appConfig: Config = {
       children?: React.ReactNode;
       title?: string;
     }) => (
-      <FlexColumn
-        gap={SPACING.lg}
+      <Box
         sx={{
           p: SPACING.xl,
           width: "100%",
@@ -74,22 +73,15 @@ export const appConfig: Config = {
           color: "text.primary"
         }}
       >
-        {title ? (
-          <Text size="bigger" weight={600}>
-            {title}
-          </Text>
-        ) : null}
-        <Box
-          sx={{
-            width: "100%",
-            display: "flex",
-            flexDirection: "column",
-            gap: SPACING.lg
-          }}
-        >
+        <FlexColumn gap={SPACING.xxl} sx={{ width: "100%" }}>
+          {title ? (
+            <Text size="bigger" weight={600}>
+              {title}
+            </Text>
+          ) : null}
           {children}
-        </Box>
-      </FlexColumn>
+        </FlexColumn>
+      </Box>
     )
   },
   categories: {

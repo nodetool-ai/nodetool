@@ -12,7 +12,6 @@ export { appConfig } from "./puck/config";
 export {
   type AppDocument,
   APP_DATA_VERSION,
-  APP_DATA_SETTINGS_KEY,
   createEmptyData,
   createEmptyDocument,
   parseAppDocument,
@@ -22,7 +21,7 @@ export {
   loadAppDocument,
   loadAppData,
   hasAppSpec,
-  withAppDocument
+  toAppDocField
 } from "./persistence";
 export { extractWorkflowState } from "./workflowState";
 export type { AppAction, AppEvent } from "./types";

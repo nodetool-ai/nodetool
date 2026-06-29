@@ -291,6 +291,26 @@
           "competitors": "Asana, Monday.com, and Jira — established project management platforms with broad feature sets and large user bases."
         },
         "dynamic_outputs": {}
+      },
+      {
+        "id": "analysis_output",
+        "type": "nodetool.output.StringOutput",
+        "data": {
+          "name": "Analysis"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1900,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "Analysis",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
       }
     ],
     "edges": [
@@ -389,6 +409,17 @@
         "target": "2",
         "targetHandle": "positioning",
         "ui_properties": null
+      },
+      {
+        "id": "e_analysis_output",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "analysis_output",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
       }
     ]
   },
@@ -399,5 +430,87 @@
   "path": null,
   "run_mode": null,
   "required_providers": null,
-  "required_models": null
+  "required_models": null,
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Competitive Analysis"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-1",
+            "text": "📊 Competitive Analysis",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-2",
+            "text": "Enter a company to get a structured competitive breakdown."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "c-5",
+            "title": "Company",
+            "content": [
+              {
+                "type": "TextInput",
+                "props": {
+                  "id": "in-3",
+                  "binding": "company",
+                  "label": "Company",
+                  "placeholder": "e.g. Notion",
+                  "multiline": false,
+                  "events": []
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "id": "b-4",
+                  "label": "Analyze",
+                  "variant": "contained",
+                  "color": "primary",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "key": "",
+                      "value": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "c-7",
+            "title": "Analysis",
+            "content": [
+              {
+                "type": "Markdown",
+                "props": {
+                  "id": "md-6",
+                  "binding": "Analysis",
+                  "text": ""
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
 }

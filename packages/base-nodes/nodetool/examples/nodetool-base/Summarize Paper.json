@@ -123,6 +123,26 @@
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
+      },
+      {
+        "id": "summary_output",
+        "type": "nodetool.output.StringOutput",
+        "data": {
+          "name": "Summary"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1340,
+            "y": 77
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "Summary",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
       }
     ],
     "edges": [
@@ -155,6 +175,17 @@
         "ui_properties": {
           "className": "str"
         }
+      },
+      {
+        "id": "e_summary_output",
+        "source": "6",
+        "sourceHandle": "text",
+        "target": "summary_output",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
       }
     ]
   },
@@ -165,5 +196,87 @@
   "path": null,
   "run_mode": null,
   "required_providers": null,
-  "required_models": null
+  "required_models": null,
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Summarize Paper"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-37",
+            "text": "📄 Summarize Paper",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-38",
+            "text": "Paste a paper URL to get a concise summary."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "c-41",
+            "title": "Source",
+            "content": [
+              {
+                "type": "TextInput",
+                "props": {
+                  "id": "in-39",
+                  "binding": "url",
+                  "label": "Paper URL",
+                  "placeholder": "https://arxiv.org/abs/…",
+                  "multiline": false,
+                  "events": []
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "id": "b-40",
+                  "label": "Summarize",
+                  "variant": "contained",
+                  "color": "primary",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "key": "",
+                      "value": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "c-43",
+            "title": "Summary",
+            "content": [
+              {
+                "type": "Markdown",
+                "props": {
+                  "id": "md-42",
+                  "binding": "Summary",
+                  "text": ""
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
 }
