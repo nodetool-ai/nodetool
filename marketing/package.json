@@ -56,6 +56,6 @@
     "tailwindcss": "^3.3.0",
     "typescript": "^5",
     "@opennextjs/cloudflare": "^1.19.4",
-    "wrangler": "^4.85.0"
+    "wrangler": "^4.105.0"
   }
 }
