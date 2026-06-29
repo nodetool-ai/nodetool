@@ -47,6 +47,7 @@ import { BaseProvider } from "./base-provider.js";
 import {
   isProviderMessageEvent,
   isProviderSessionUpdate,
+  WEB_SEARCH_TOOL_NAME,
   type LanguageModel,
   type Message,
   type MessageContent,
@@ -147,6 +148,16 @@ async function loadSdk(): Promise<typeof import("@anthropic-ai/claude-agent-sdk"
 }
 
 export class ClaudeAgentProvider extends BaseProvider {
+  /** The SDK defers tool schemas and exposes its own built-in `ToolSearch`. */
+  override get usesNativeToolSearch(): boolean {
+    return true;
+  }
+
+  /** The SDK runs with bypassPermissions, so its built-in `WebSearch` is live. */
+  override get supportsNativeWebSearch(): boolean {
+    return true;
+  }
+
   static requiredSecrets(): string[] {
     // Auth lives in the SDK's own credential store (~/.claude), not in an env
     // secret — there is nothing for the registry to resolve.
@@ -227,7 +238,12 @@ export class ClaudeAgentProvider extends BaseProvider {
       maxIterations?: number;
     }
   ): AsyncGenerator<ProviderStreamItem> {
-    const tools = args.tools ?? [];
+    // Drop the SerpAPI-backed `web_search` tool: the SDK's built-in `WebSearch`
+    // (live under bypassPermissions) handles web search natively, so we don't
+    // expose a redundant MCP one.
+    const tools = (args.tools ?? []).filter(
+      (t) => t.name !== WEB_SEARCH_TOOL_NAME
+    );
     const executeTool = args.executeTool;
     // A tool dispatches either through its own `execute` or the harness
     // `executeTool`; build the MCP server when at least one route exists.

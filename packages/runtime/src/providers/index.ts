@@ -187,7 +187,8 @@ export type {
 } from "./types.js";
 export {
   isProviderSessionUpdate,
-  isProviderMessageEvent
+  isProviderMessageEvent,
+  WEB_SEARCH_TOOL_NAME
 } from "./types.js";
 
 // Register hosted providers with the secret key NAME each one needs but no

@@ -1200,8 +1200,7 @@ export class MessageInputNode extends BaseNode {
       created_at: null,
       provider: null,
       model: null,
-      agent_mode: null,
-      help_mode: null,
+
       agent_execution_id: null,
       execution_event_type: null,
       workflow_target: null,
@@ -1508,8 +1507,7 @@ export class MessageDeconstructorNode extends BaseNode {
       created_at: null,
       provider: null,
       model: null,
-      agent_mode: null,
-      help_mode: null,
+
       agent_execution_id: null,
       execution_event_type: null,
       workflow_target: null,
