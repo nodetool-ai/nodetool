@@ -51,6 +51,21 @@ graph LR
 4. **Render the video.** A text-to-video model animates the product photo from
    the agent's prompt into a finished, ready-to-post clip.
 
+## One photo in, a clip out
+
+The whole pipeline runs from a single product render. Same graph, any product.
+
+<div class="usecase-gallery two">
+  <figure>
+    <img src="{{ '/assets/use-cases/smartwatch.png' | relative_url }}" alt="Input product photo of the smart watch">
+    <figcaption>Input · product photo</figcaption>
+  </figure>
+  <figure>
+    <video src="{{ '/assets/use-cases/product_video_example.mp4' | relative_url }}" poster="{{ '/assets/use-cases/smartwatch.png' | relative_url }}" autoplay loop muted playsinline></video>
+    <figcaption>Output · cinematic clip</figcaption>
+  </figure>
+</div>
+
 ## Make it yours
 
 - **Swap the video model.** Veo, Seedance, Kling, Runway. Change one node, the

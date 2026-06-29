@@ -55,7 +55,7 @@ graph LR
 
 ## Concepts from one run
 
-<div class="usecase-gallery two">
+<div class="usecase-gallery">
   <figure>
     <img src="{{ '/assets/use-cases/poster-singularity-1.png' | relative_url }}" alt="Poster concept: 'The end of time isn't the end.'">
     <figcaption>"The end of time isn't the end."</figcaption>
@@ -63,6 +63,18 @@ graph LR
   <figure>
     <img src="{{ '/assets/use-cases/poster-singularity-2.png' | relative_url }}" alt="Poster concept: 'The end of limits. The beginning of everything.'">
     <figcaption>"The end of limits. The beginning of everything."</figcaption>
+  </figure>
+  <figure>
+    <img src="{{ '/assets/use-cases/poster-singularity-3.png' | relative_url }}" alt="Poster concept: 'The future is not ours to control.'">
+    <figcaption>"The future is not ours to control."</figcaption>
+  </figure>
+  <figure>
+    <img src="{{ '/assets/use-cases/poster-singularity-4.png' | relative_url }}" alt="Poster concept: 'The end of man is only the beginning.'">
+    <figcaption>"The end of man is only the beginning."</figcaption>
+  </figure>
+  <figure>
+    <img src="{{ '/assets/use-cases/poster-singularity-5.png' | relative_url }}" alt="Poster concept: 'The future doesn't evolve. It accelerates.'">
+    <figcaption>"The future doesn't evolve. It accelerates."</figcaption>
   </figure>
 </div>
 
