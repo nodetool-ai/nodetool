@@ -331,7 +331,14 @@ const NodeLibrary = memo<NodeLibraryProps>(
     const counts = useMemo(() => {
       const map = {} as Record<NodeCategoryId, number>;
       for (const sub of NODE_SUBCATEGORIES) {
-        map[sub.id] = allNodes.filter(sub.filter).length;
+        map[sub.id] = 0;
+      }
+      for (const node of allNodes) {
+        for (const sub of NODE_SUBCATEGORIES) {
+          if (sub.filter(node)) {
+            map[sub.id]++;
+          }
+        }
       }
       return map;
     }, [allNodes]);
