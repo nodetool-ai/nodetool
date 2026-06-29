@@ -13,8 +13,8 @@ import type { TutorialStep } from "./components/StepIndicator";
 const FRAME_W = 1920;
 const FRAME_H = 1080;
 /** Where the focused node's top sits vertically (fraction of frame height). */
-const TOP_ANCHOR = 0.26;
-const DEFAULT_ZOOM = 1.8;
+const TOP_ANCHOR = 0.22;
+const DEFAULT_ZOOM = 2.3;
 /** Hold the wide shot this long at the start of the replay before zooming in. */
 const ESTABLISH_MS = 1100;
 /** Glide time between two focuses. */

@@ -21,22 +21,26 @@ export const Caption: React.FC<CaptionProps> = ({ text }) => {
       style={{
         position: "absolute",
         left: 64,
-        bottom: 72,
-        maxWidth: "60%",
-        padding: "14px 22px",
-        borderRadius: 12,
-        background: "rgba(15,15,23,0.72)",
-        backdropFilter: "blur(8px)",
-        border: "1px solid rgba(124,58,237,0.4)",
+        right: 64,
+        bottom: 80,
+        maxWidth: "78%",
+        padding: "22px 34px",
+        borderRadius: 16,
+        background: "rgba(15,15,23,0.82)",
+        backdropFilter: "blur(10px)",
+        border: "1px solid rgba(124,58,237,0.45)",
+        boxShadow: "0 10px 40px rgba(0,0,0,0.45)",
         opacity,
       }}
     >
       <span
         style={{
           fontFamily: "Inter, system-ui, sans-serif",
-          fontWeight: 500,
-          fontSize: 30,
-          color: "#e2e8f0",
+          fontWeight: 600,
+          fontSize: 46,
+          lineHeight: 1.25,
+          color: "#f1f5f9",
+          textShadow: "0 2px 8px rgba(0,0,0,0.5)",
         }}
       >
         {text}

@@ -39,9 +39,9 @@ export const TUTORIALS: TutorialEntry[] = [
     subtitle: "NodeTool · visual AI, no code",
     replayWindowMs: 18000,
     steps: [
-      { atMs: 1300, label: "Text input", focus: "input", zoom: 1.9 },
-      { atMs: 3400, label: "Enhance with an LLM", focus: "enhance", zoom: 1.7 },
-      { atMs: 10600, label: "Text to Image", focus: "generate", zoom: 1.45 },
+      { atMs: 1300, label: "Text input", focus: "input", zoom: 2.5 },
+      { atMs: 3400, label: "Enhance with an LLM", focus: "enhance", zoom: 2.2 },
+      { atMs: 10600, label: "Text to Image", focus: "generate", zoom: 1.85 },
     ],
     captions: [
       { fromMs: 1500, toMs: 3300, text: "Start with a Text Input — type the prompt your workflow will run on." },
@@ -62,9 +62,9 @@ export const TUTORIALS: TutorialEntry[] = [
     subtitle: "The core loop, one step at a time",
     replayWindowMs: 8800,
     steps: [
-      { atMs: 1300, label: "Add a node", focus: "text", zoom: 1.9 },
-      { atMs: 3000, label: "Connect & run", focus: "upper", zoom: 1.9 },
-      { atMs: 5600, label: "Read the output", focus: "preview", zoom: 1.6 },
+      { atMs: 1300, label: "Add a node", focus: "text", zoom: 2.6 },
+      { atMs: 3000, label: "Connect & run", focus: "upper", zoom: 2.5 },
+      { atMs: 5600, label: "Read the output", focus: "preview", zoom: 2.1 },
     ],
     captions: [
       { fromMs: 1500, toMs: 2900, text: "Every node does one job — this Text node just holds some text." },
@@ -85,9 +85,9 @@ export const TUTORIALS: TutorialEntry[] = [
     subtitle: "One prompt, many results",
     replayWindowMs: 14500,
     steps: [
-      { atMs: 1400, label: "Set a topic", focus: "topic", zoom: 1.9 },
-      { atMs: 3200, label: "Generate a list", focus: "list", zoom: 1.6 },
-      { atMs: 11600, label: "Preview the items", focus: "preview", zoom: 1.5 },
+      { atMs: 1400, label: "Set a topic", focus: "topic", zoom: 2.5 },
+      { atMs: 3200, label: "Generate a list", focus: "list", zoom: 1.95 },
+      { atMs: 11600, label: "Preview the items", focus: "preview", zoom: 1.85 },
     ],
     captions: [
       { fromMs: 1600, toMs: 3000, text: "Give the model a topic to work from — here, 'weekend trip ideas'." },
@@ -99,6 +99,52 @@ export const TUTORIALS: TutorialEntry[] = [
       "Swap the topic for any idea",
       "Loop over each item to act on it",
       "Connect outputs to save or share",
+    ],
+  }),
+
+  entry("ask-ai", 30, {
+    castId: "ask-ai",
+    title: "Ask the AI",
+    subtitle: "A question in, a streamed answer out",
+    replayWindowMs: 13000,
+    steps: [
+      { atMs: 1400, label: "Type a question", focus: "question", zoom: 2.5 },
+      { atMs: 2900, label: "Send it to an LLM", focus: "chat", zoom: 1.95 },
+      { atMs: 10500, label: "Read the answer", focus: "preview", zoom: 1.85 },
+    ],
+    captions: [
+      { fromMs: 1600, toMs: 2800, text: "Start with a question — anything you'd ask a chatbot." },
+      { fromMs: 3000, toMs: 9400, text: "An LLM node answers, streaming each phrase as it thinks." },
+      { fromMs: 10700, toMs: 12800, text: "The finished answer lands in a Preview, ready to reuse." },
+    ],
+    outroTitle: "Ask anything",
+    outroPoints: [
+      "Swap in your own question",
+      "Add a system prompt to set the tone",
+      "Chain the answer into the next node",
+    ],
+  }),
+
+  entry("combine-inputs", 30, {
+    castId: "combine-inputs",
+    title: "Combine two inputs",
+    subtitle: "Merge values with a template",
+    replayWindowMs: 9000,
+    steps: [
+      { atMs: 1300, label: "Two text inputs", focus: "name", zoom: 2.1 },
+      { atMs: 3000, label: "Fill a template", focus: "format", zoom: 2.0 },
+      { atMs: 6000, label: "Read the result", focus: "preview", zoom: 1.95 },
+    ],
+    captions: [
+      { fromMs: 1500, toMs: 2800, text: "Two inputs this time — a name and a topic." },
+      { fromMs: 3100, toMs: 5700, text: "Both wire into one Format Text node that fills a {{ template }}." },
+      { fromMs: 6100, toMs: 8800, text: "The merged sentence appears in the Preview." },
+    ],
+    outroTitle: "Branch and merge",
+    outroPoints: [
+      "Feed many inputs into one node",
+      "Use {{ placeholders }} to compose text",
+      "Build prompts from reusable parts",
     ],
   }),
 ];

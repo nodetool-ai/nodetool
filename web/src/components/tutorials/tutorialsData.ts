@@ -78,6 +78,40 @@ export const TUTORIALS: Tutorial[] = [
       "Passing a list into the rest of a workflow",
     ],
   },
+  {
+    id: "ask-ai",
+    title: "Ask the AI",
+    tagline: "A question in, a streamed answer out",
+    description:
+      "The simplest chat-style graph: type a question, send it to an LLM node, and watch the answer stream in phrase by phrase before it lands in a Preview.",
+    level: "Beginner",
+    durationLabel: "0:16",
+    video: "/tutorials/ask-ai.mp4",
+    poster: "/tutorials/ask-ai.jpg",
+    accent: "#06b6d4",
+    learn: [
+      "Feeding a question into an LLM node",
+      "Watching an answer stream as it generates",
+      "Reusing the answer downstream",
+    ],
+  },
+  {
+    id: "combine-inputs",
+    title: "Combine two inputs",
+    tagline: "Merge values with a template",
+    description:
+      "The first graph that branches in: two text inputs flow into one Format Text node that fills a template, composing a single result from reusable parts.",
+    level: "Beginner",
+    durationLabel: "0:12",
+    video: "/tutorials/combine-inputs.mp4",
+    poster: "/tutorials/combine-inputs.jpg",
+    accent: "#ec4899",
+    learn: [
+      "Wiring several inputs into one node",
+      "Composing text with {{ placeholders }}",
+      "Building prompts from reusable parts",
+    ],
+  },
 ];
 
 export const getTutorial = (id: string | null | undefined): Tutorial =>

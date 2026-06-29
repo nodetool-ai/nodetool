@@ -1,7 +1,7 @@
 ---
 layout: page
 title: "Tutorials"
-description: "Short, beginner-friendly video walkthroughs of NodeTool — build your first workflow, connect and run nodes, and generate a list."
+description: "Short, beginner-friendly video walkthroughs of NodeTool — build your first workflow, connect and run nodes, generate a list, ask the AI, and combine inputs."
 ---
 
 Short, beginner-friendly walkthroughs. Each plays a real workflow on the canvas
@@ -44,6 +44,30 @@ list, streaming each item as it arrives — the pattern behind batching and loop
 
 You'll learn how to drive an LLM node from an input, watch multi-item output
 stream in, and pass a list into the rest of a workflow.
+
+## Ask the AI
+
+The simplest chat-style graph. Type a question, send it to an LLM node, and
+watch the answer stream in phrase by phrase before it lands in a Preview.
+
+<video controls preload="metadata" poster="{{ '/assets/tutorials/ask-ai.jpg' | relative_url }}">
+  <source src="{{ '/assets/tutorials/ask-ai.mp4' | relative_url }}" type="video/mp4">
+</video>
+
+You'll learn how to feed a question into an LLM node, watch the answer stream as
+it generates, and reuse it downstream.
+
+## Combine two inputs
+
+The first graph that branches in. Two text inputs flow into one Format Text node
+that fills a template, composing a single result from reusable parts.
+
+<video controls preload="metadata" poster="{{ '/assets/tutorials/combine-inputs.jpg' | relative_url }}">
+  <source src="{{ '/assets/tutorials/combine-inputs.mp4' | relative_url }}" type="video/mp4">
+</video>
+
+You'll learn how to wire several inputs into one node, compose text with
+`{{ placeholders }}`, and build prompts from reusable parts.
 
 ---
 
