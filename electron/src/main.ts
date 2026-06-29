@@ -53,6 +53,7 @@ import { createTray, cleanupTrayEvents } from "./tray";
 import { initializeIpcHandlers } from "./ipc";
 import { buildMenu } from "./menu";
 import assert from "assert";
+import { errorMessage } from "./utils";
 import {
   checkForPackageUpdates,
   installExpectedPackages,
@@ -470,7 +471,7 @@ async function checkMediaPermissions(): Promise<void> {
       }
     } catch (error) {
       logMessage(
-        `Error handling microphone permissions: ${(error as Error).message}`,
+        `Error handling microphone permissions: ${errorMessage(error)}`,
         "error",
       );
     }
