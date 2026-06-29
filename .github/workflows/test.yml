@@ -47,9 +47,15 @@ jobs:
       fail-fast: false
       skip-tests: false
 
+  # Heavy jobs run concurrently with the quality gate rather than after it, so
+  # the critical path is max(quality, integration, e2e) instead of
+  # quality + max(integration, e2e). Trade-off: a PR that fails a static check
+  # still spends these runner minutes. They build packages themselves (they are
+  # in this workflow, not the reusable quality-checks one, so they can't consume
+  # its build artifact without depending on the whole gate — which would undo
+  # the decoupling).
   integration:
     name: Workflow Integration Tests
-    needs: quality
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -65,7 +71,6 @@ jobs:
 
   workflow-runner-e2e:
     name: Workflow Runner Browser E2E
-    needs: quality
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
