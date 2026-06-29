@@ -57,6 +57,7 @@ import {
   type ProviderTool,
   type ToolCall
 } from "./types.js";
+import { hashSystemPrompt } from "./provider-session.js";
 
 const log = createLogger("nodetool.runtime.providers.claude-agent");
 
@@ -698,16 +699,6 @@ function buildChildEnv(): Record<string, string> {
     env[key] = value;
   }
   return env;
-}
-
-/** Stable, dependency-free 32-bit hash (FNV-1a) of the system prompt. */
-function hashSystemPrompt(prompt: string): string {
-  let h = 0x811c9dc5;
-  for (let i = 0; i < prompt.length; i++) {
-    h ^= prompt.charCodeAt(i);
-    h = Math.imul(h, 0x01000193);
-  }
-  return (h >>> 0).toString(16);
 }
 
 /** Pull a text/thinking delta out of a partial `stream_event`, if any. */

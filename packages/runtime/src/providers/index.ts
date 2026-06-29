@@ -15,6 +15,7 @@ import { ClaudeAgentProvider } from "./claude-agent-provider.js";
 import { GeminiProvider } from "./gemini-provider.js";
 import { LlamaProvider } from "./llama-provider.js";
 import { OpenAIProvider } from "./openai-provider.js";
+import { OpenAIResponsesProvider } from "./openai-responses-provider.js";
 import { CodexProvider } from "./codex-provider.js";
 import { OllamaProvider } from "./ollama-provider.js";
 import { GroqProvider } from "./groq-provider.js";
@@ -53,6 +54,7 @@ export { ClaudeAgentProvider };
 export { GeminiProvider };
 export { LlamaProvider };
 export { OpenAIProvider };
+export { OpenAIResponsesProvider };
 export { CodexProvider };
 export { OllamaProvider };
 export { GroqProvider };
@@ -198,6 +200,7 @@ export {
 // kwarg is empty/null). Empty-string declarations force every getProvider()
 // call to ask the supplied `getSecret` (DB-then-env) at instantiation time.
 registerBuiltinProvider(PROVIDER_IDS.OPENAI, OpenAIProvider, { OPENAI_API_KEY: "" });
+registerBuiltinProvider(PROVIDER_IDS.OPENAI_RESPONSES, OpenAIResponsesProvider, { OPENAI_API_KEY: "" });
 // Codex: OpenAI via ChatGPT OAuth login. The token (resolved + refreshed from
 // the stored OAuth credential by the host's getSecret) stands in for an API key.
 registerBuiltinProvider(PROVIDER_IDS.CODEX, CodexProvider, { CODEX_ACCESS_TOKEN: "" });
