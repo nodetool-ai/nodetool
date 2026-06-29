@@ -234,17 +234,27 @@ const ModelListIndex: React.FC = () => {
       );
     }
 
-    const items: ListItem[] = [];
-    modelTypes.slice(1).forEach((modelType) => {
-      const models = filteredModels.filter((m) => m.type === modelType);
-      // Only add header if there are models in this section
-      if (models.length > 0) {
-        items.push({ type: "header", modelType });
-        models.forEach((model) => {
-          items.push({ type: "model", model });
-        });
+    const grouped = new Map<string, UnifiedModel[]>();
+    for (const model of filteredModels) {
+      const key = model.type ?? "";
+      const list = grouped.get(key);
+      if (list) {
+        list.push(model);
+      } else {
+        grouped.set(key, [model]);
       }
-    });
+    }
+
+    const items: ListItem[] = [];
+    for (const modelType of modelTypes.slice(1)) {
+      const models = grouped.get(modelType);
+      if (models && models.length > 0) {
+        items.push({ type: "header", modelType });
+        for (const model of models) {
+          items.push({ type: "model", model });
+        }
+      }
+    }
     return items;
   }, [selectedModelType, modelTypes, filteredModels]);
 

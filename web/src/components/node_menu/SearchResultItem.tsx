@@ -17,6 +17,16 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import FavoriteButton from "../ui_primitives/FavoriteButton";
 import { NOTIFICATION_TIMEOUT_SHORT } from "../../config/constants";
 
+const COMPACT_SVG_PROPS = { width: "14px", height: "14px" } as const;
+const EXPANDED_SVG_PROPS = { width: "16px", height: "16px" } as const;
+const COMPACT_TITLE_SX = {
+  flex: 1,
+  minWidth: 0,
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis"
+} as const;
+
 interface SearchResultItemProps {
   node: NodeMetadata;
   onDragStart: (
@@ -272,10 +282,31 @@ const SearchResultItem = memo(
         onClick(node);
       }, [onClick, node]);
 
+      const handleKeyDown = useCallback(
+        (e: React.KeyboardEvent) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onClick(node);
+          }
+        },
+        [onClick, node]
+      );
+
       const handleToggleExpand = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
         setIsExpanded((prev) => !prev);
       }, []);
+
+      const handleExpandKeyDown = useCallback(
+        (e: React.KeyboardEvent) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsExpanded((prev) => !prev);
+          }
+        },
+        []
+      );
 
       const handleMouseEnter = useCallback(() => {
         // No longer auto-expand on hover
@@ -292,47 +323,77 @@ const SearchResultItem = memo(
         [onDragStart, node]
       );
 
+      const compactBgStyle = useMemo(
+        () => ({
+          backgroundColor: theme.vars.palette.grey[900],
+          width: "18px",
+          height: "18px",
+          margin: 0,
+          padding: getSpacingPx(SPACING.micro),
+          borderRadius: BORDER_RADIUS.sm
+        }),
+        [theme.vars.palette.grey[900]]
+      );
+
+      const expandedContainerStyle = useMemo(
+        () => ({
+          marginLeft: "0",
+          marginTop: "0"
+        }),
+        []
+      );
+
+      const expandedBgStyle = useMemo(
+        () => ({
+          backgroundColor: theme.vars.palette.action.hover,
+          border: `1px solid ${theme.vars.palette.divider}`,
+          margin: "0",
+          padding: getSpacingPx(SPACING.xs),
+          borderRadius: BORDER_RADIUS.md,
+          width: "28px",
+          height: "28px"
+        }),
+        [theme.vars.palette.action.hover, theme.vars.palette.divider]
+      );
+
+      const cssStyles = useMemo(
+        () => searchResultStyles(theme, compact),
+        [theme, compact]
+      );
+
+      const providerTagStyle = useMemo(
+        () => ({
+          color:
+            providerKind === "api"
+              ? theme.vars.palette.c_provider_api
+              : theme.vars.palette.c_provider_local
+        }),
+        [providerKind, theme.vars.palette.c_provider_api, theme.vars.palette.c_provider_local]
+      );
+
       if (compact) {
         return (
           <div
             ref={ref}
             className={`search-result-item ${isKeyboardSelected ? "keyboard-selected" : ""}`}
-            css={searchResultStyles(theme, true)}
+            css={cssStyles}
             role="button"
             tabIndex={0}
             draggable
             onClick={handleClick}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                handleClick();
-              }
-            }}
+            onKeyDown={handleKeyDown}
             onDragStart={handleDragStart}
             onDragEnd={onDragEnd}
           >
             <IconForType
               iconName={outputType}
-              bgStyle={{
-                backgroundColor: theme.vars.palette.grey[900],
-                width: "18px",
-                height: "18px",
-                margin: 0,
-                padding: getSpacingPx(SPACING.micro), // was 1px
-                borderRadius: BORDER_RADIUS.sm
-              }}
-              svgProps={{ width: "14px", height: "14px" }}
+              bgStyle={compactBgStyle}
+              svgProps={COMPACT_SVG_PROPS}
             />
             <Text
               className="result-title"
               component="div"
-              sx={{
-                flex: 1,
-                minWidth: 0,
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis"
-              }}
+              sx={COMPACT_TITLE_SX}
             >
               <HighlightText
                 text={node.title}
@@ -342,12 +403,7 @@ const SearchResultItem = memo(
             </Text>
             <span
               className="provider-tag"
-              style={{
-                color:
-                  providerKind === "api"
-                    ? theme.vars.palette.c_provider_api
-                    : theme.vars.palette.c_provider_local
-              }}
+              style={providerTagStyle}
             >
               {providerKind === "api" ? "API" : "Local"}
             </span>
@@ -364,17 +420,12 @@ const SearchResultItem = memo(
         <div
           ref={ref}
           className={`search-result-item ${isExpanded ? "expanded" : ""} ${isKeyboardSelected ? "keyboard-selected" : ""}`}
-          css={searchResultStyles(theme, compact)}
+          css={cssStyles}
           role="button"
           tabIndex={0}
           draggable
           onClick={handleClick}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              handleClick();
-            }
-          }}
+          onKeyDown={handleKeyDown}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
           onDragStart={handleDragStart}
@@ -385,23 +436,9 @@ const SearchResultItem = memo(
               <div className="result-title-row">
                 <IconForType
                   iconName={outputType}
-                  containerStyle={{
-                    marginLeft: "0",
-                    marginTop: "0"
-                  }}
-                  bgStyle={{
-                    backgroundColor: theme.vars.palette.action.hover,
-                    border: `1px solid ${theme.vars.palette.divider}`,
-                    margin: "0",
-                    padding: getSpacingPx(SPACING.xs),
-                    borderRadius: BORDER_RADIUS.md,
-                    width: "28px",
-                    height: "28px"
-                  }}
-                  svgProps={{
-                    width: "16px",
-                    height: "16px"
-                  }}
+                  containerStyle={expandedContainerStyle}
+                  bgStyle={expandedBgStyle}
+                  svgProps={EXPANDED_SVG_PROPS}
                 />
                 <Text className="result-title" component="div">
                   <HighlightText
@@ -421,12 +458,7 @@ const SearchResultItem = memo(
                 )}
                 <span
                   className="provider-tag"
-                  style={{
-                    color:
-                      providerKind === "api"
-                        ? theme.vars.palette.c_provider_api
-                        : theme.vars.palette.c_provider_local
-                  }}
+                  style={providerTagStyle}
                 >
                   {providerKind === "api" ? "API" : "Local"}
                 </span>
@@ -450,13 +482,7 @@ const SearchResultItem = memo(
                 role="button"
                 tabIndex={0}
                 onClick={handleToggleExpand}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setIsExpanded((prev) => !prev);
-                  }
-                }}
+                onKeyDown={handleExpandKeyDown}
                 title={isExpanded ? "Collapse details" : "Show details"}
               >
                 <ExpandMoreIcon />
