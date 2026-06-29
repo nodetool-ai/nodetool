@@ -12,11 +12,8 @@ list, key art for every beat, then animated and cut into a finished trailer. No
 editor, no studio, one canvas you can re-run for any story.
 
 <div class="usecase-hero">
-  <img src="{{ '/assets/use-cases/trailer-shot-1.png' | relative_url }}" alt="Cinematic key-art frame: blown supercharger spitting fire down the straight">
+  <video src="{{ '/assets/use-cases/movie_trailer_example.mp4' | relative_url }}" poster="{{ '/assets/use-cases/trailer-shot-1.png' | relative_url }}" autoplay loop muted playsinline controls></video>
 </div>
-
-> The full looping example trailer lives on the
-> [nodetool.ai use-case page](https://nodetool.ai/use-cases/movie-trailer).
 
 ## How it works
 
@@ -26,7 +23,7 @@ becomes shots, the shots become a trailer.
 {% mermaid %}
 graph LR
   logline["Logline (String)"]
-  style["Visual style (String)"]
+  vstyle["Visual style (String)"]
   treatment["Treatment (Prompt)"]
   showrunner["Showrunner (Agent)"]
   shotlist["Shot list (ListGenerator)"]
@@ -34,7 +31,7 @@ graph LR
   i2v["Animate (ImageToVideo)"]
   concat["Concat → Trailer"]
   logline --> treatment
-  style --> treatment
+  vstyle --> treatment
   treatment --> showrunner
   showrunner --> shotlist
   shotlist --> keyart

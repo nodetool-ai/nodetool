@@ -508,7 +508,8 @@ blockquote {
   background: var(--color-bg-secondary);
 }
 
-.usecase-gallery img {
+.usecase-gallery img,
+.usecase-gallery video {
   display: block;
   width: 100%;
   height: auto;
