@@ -6,6 +6,7 @@ import {
   getProcessEnv,
   getPythonPath,
   getCondaEnvPath,
+  getUVPath,
 } from "./config";
 import * as path from "path";
 
@@ -90,13 +91,6 @@ async function ensureTorchPlatformDetectedForPackage(
   saveTorchPlatform(result);
 }
 
-// TODO: Package manager needs to be rewritten for npm packages.
-// This is a temporary stub — uv/pip is no longer installed in the conda env.
-function getUVPath(): string {
-  return process.platform === "win32"
-    ? path.join(getCondaEnvPath(), "Library", "bin", "uv.exe")
-    : path.join(getCondaEnvPath(), "bin", "uv");
-}
 import { emitServerLog, emitBootMessage } from "./events";
 import {
   PackageInfo,

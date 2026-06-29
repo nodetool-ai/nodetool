@@ -46,7 +46,6 @@ const StandaloneMiniApp: React.FC = () => {
     useMiniAppInputs(workflow);
 
   const {
-    runWorkflow,
     runnerState,
     statusMessage,
     results,

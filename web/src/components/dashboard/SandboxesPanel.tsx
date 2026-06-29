@@ -31,13 +31,6 @@ interface SandboxStatus {
   vnc_ws_url: string | null;
 }
 
-interface SandboxToolCall {
-  id: string;
-  timestamp: string | null;
-  tool_name: string | null;
-  message: string;
-}
-
 const panelStyles = css({
   "&": {
     height: "100%"

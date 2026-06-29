@@ -28,6 +28,7 @@ jest.mock("../config", () => ({
   }),
   getPythonPath: jest.fn().mockReturnValue("/mock/conda/bin/python"),
   getCondaEnvPath: jest.fn().mockReturnValue("/mock/conda"),
+  getUVPath: jest.fn().mockReturnValue("/mock/conda/bin/uv"),
 }));
 jest.mock("../logger", () => ({ logMessage: jest.fn() }));
 jest.mock("../events", () => ({
