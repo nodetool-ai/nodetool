@@ -30,7 +30,7 @@ Your saved workflows. Search, filter, and double-click to open in a new tab.
 
 ### Sketches Tab
 
-Quick image sketches you can drop into the workflow, edited with the built-in layered sketch editor. See [Image Editor]({{ '/image-editor' | relative_url }}).
+Quick image sketches you can drop into the workflow, edited with the built-in layered sketch editor. See [Sketch Editor]({{ '/sketch-editor' | relative_url }}).
 
 ![Left Panel — Sketches](assets/screenshots/screenshot-placeholder.svg)
 

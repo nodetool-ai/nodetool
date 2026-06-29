@@ -178,7 +178,7 @@ Clips and tracks carry an effects chain that runs in the same compositor as the 
 
 - **[Workflow Editor](workflow-editor.md)** — build the workflows you bind to generated clips
 - **[Asset Management](asset-management.md)** — organize the media you import as clips
-- **[Image Editor](image-editor.md)** — edit stills before or after they land on the timeline
+- **[Sketch Editor](sketch-editor.md)** — edit stills before or after they land on the timeline
 - **[User Interface](user-interface.md)** — tour of the main NodeTool views
 
 ---
