@@ -25,7 +25,6 @@ import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode"
 import { graphEdgeToReactFlowEdge } from "../../stores/graphEdgeToReactFlowEdge";
 import MiniAppResults from "./components/MiniAppResults";
 import MiniAppInputsForm from "./components/MiniAppInputsForm";
-import MiniAppSidePanel from "./components/MiniAppSidePanel";
 import VibeCodingPreview from "../vibecoding/VibeCodingPreview";
 import AppRuntimeView from "../appbuilder/AppRuntimeView";
 import { loadAppData } from "../appbuilder/persistence";
@@ -242,13 +241,6 @@ const MiniAppPage: React.FC<MiniAppPageProps> = ({
           transition: `margin-left ${MOTION.normal}`
         }}
       >
-        {workflow && (
-          <MiniAppSidePanel
-            workflow={workflow}
-            isRunning={runnerState === "running"}
-          />
-        )}
-
         {/* WYSIWYG App - reactive, event-driven UI built in the App Builder */}
         {hasAppSpec && appData && workflow && (
           <Box sx={{ height: "100%", width: "100%", flex: 1 }}>

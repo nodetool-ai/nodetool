@@ -124,6 +124,9 @@ export interface MediaChatComposerProps {
   leadingActions?: React.ReactNode;
   /** Override the auto-generated, mode-aware textarea placeholder. */
   placeholder?: string;
+  /** Pure chat panel: hide the mode picker and force "chat" mode. Used by the
+   *  app builder / video / 3d editor agent panels which are hardcoded to chat. */
+  hideModePicker?: boolean;
 }
 
 /**
@@ -159,7 +162,8 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   trailingActions,
   leadingActions,
   placeholder: placeholderOverride,
-  collapsible = false
+  collapsible = false,
+  hideModePicker = false
 }) => {
   const theme = useTheme();
   const styles = useMemo(() => createMediaComposerStyles(theme), [theme]);
@@ -169,7 +173,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   const blurTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // Mode + media params from persistent store
-  const mode = useMediaGenerationStore((s) => s.mode);
+  const storeMode = useMediaGenerationStore((s) => s.mode);
   const setMode = useMediaGenerationStore((s) => s.setMode);
   const imageParams = useMediaGenerationStore((s) => s.image);
   const setImageParams = useMediaGenerationStore((s) => s.setImageParams);
@@ -194,7 +198,10 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   // workspace-aware Pi agent and routes sends through the agent socket.
   const globalMode = useGlobalChatStore((s) => s.mode);
   const setGlobalMode = useGlobalChatStore((s) => s.setMode);
-  const isPi = globalMode === "pi";
+
+  // Pure-chat panels force chat mode and ignore the global media/pi mode.
+  const mode = hideModePicker ? "chat" : storeMode;
+  const isPi = hideModePicker ? false : globalMode === "pi";
 
   const addRecentModel = useModelPreferencesStore((s) => s.addRecent);
 
@@ -871,29 +878,33 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
               run actions below stay visible so the workflow can still run. */}
           <div className="media-chip-main">
           {/* Mode selector chip */}
-          <MediaControlChip
-            icon={modeIcon}
-            label={modeLabel}
-            active={!!modeAnchor}
-            onClick={(e) => setModeAnchor(e.currentTarget)}
-            showChevron
-          />
-          <MediaModeMenu
-            anchorEl={modeAnchor}
-            open={!!modeAnchor}
-            onClose={() => setModeAnchor(null)}
-            value={mode}
-            onChange={(m: MediaMode) => {
-              setMode(m);
-              setGlobalMode("chat");
-            }}
-            showPi={piModeAvailable}
-            piSelected={isPi}
-            onSelectPi={() => {
-              setMode("chat");
-              setGlobalMode("pi");
-            }}
-          />
+          {!hideModePicker && (
+            <>
+              <MediaControlChip
+                icon={modeIcon}
+                label={modeLabel}
+                active={!!modeAnchor}
+                onClick={(e) => setModeAnchor(e.currentTarget)}
+                showChevron
+              />
+              <MediaModeMenu
+                anchorEl={modeAnchor}
+                open={!!modeAnchor}
+                onClose={() => setModeAnchor(null)}
+                value={mode}
+                onChange={(m: MediaMode) => {
+                  setMode(m);
+                  setGlobalMode("chat");
+                }}
+                showPi={piModeAvailable}
+                piSelected={isPi}
+                onSelectPi={() => {
+                  setMode("chat");
+                  setGlobalMode("pi");
+                }}
+              />
+            </>
+          )}
 
           {/* Pi mode: workspace + model pickers instead of the chat model. */}
           {isPi && <PiComposerControls disabled={isBusy} />}
@@ -909,6 +920,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 onClick={() => setLanguageModelOpen(true)}
                 showChevron={false}
                 truncate
+                maxWidth={140}
               />
               <PermissionSelector />
               {onMemoryToggle && (
