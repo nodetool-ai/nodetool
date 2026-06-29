@@ -7,7 +7,7 @@ description: "Install NodeTool, run a template, ship a Mini-App."
 Install, open a template, run it, edit it, ship it.
 
 Prefer to watch first? Here's a full workflow running on the canvas — see the
-[Tutorials](tutorials.md) page for all three.
+[Tutorials](tutorials.md) page for all of them.
 
 <video controls preload="metadata" poster="{{ '/assets/tutorials/first-workflow.jpg' | relative_url }}">
   <source src="{{ '/assets/tutorials/first-workflow.mp4' | relative_url }}" type="video/mp4">

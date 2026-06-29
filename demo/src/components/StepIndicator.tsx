@@ -80,10 +80,10 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({ steps, timeMs }) =
           {active + 1}
         </span>
         <div>
-          <div style={{ fontSize: 15, color: "#a78bfa", fontWeight: 600, letterSpacing: "0.04em" }}>
+          <div style={{ fontSize: 18, color: "#a78bfa", fontWeight: 600, letterSpacing: "0.04em" }}>
             STEP {active + 1} OF {steps.length}
           </div>
-          <div style={{ fontSize: 26, color: "#f8fafc", fontWeight: 600 }}>
+          <div style={{ fontSize: 32, color: "#f8fafc", fontWeight: 700 }}>
             {steps[active].label}
           </div>
         </div>
