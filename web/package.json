@@ -146,7 +146,7 @@
     "@types/tabulator-tables": "^6.3.4",
     "@types/three": "^0.184.1",
     "@typescript-eslint/eslint-plugin": "^8.60.1",
-    "@typescript-eslint/parser": "^8.60.1",
+    "@typescript-eslint/parser": "^8.62.0",
     "@vitejs/plugin-react": "^6.0.2",
     "@webgpu/types": "^0.1.70",
     "browserslist-to-esbuild": "^2.1.1",
