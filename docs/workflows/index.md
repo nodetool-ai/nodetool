@@ -5,7 +5,9 @@ title: "Workflow Gallery"
 
 Ready-to-use workflow examples. Each includes explanations and visual diagrams.
 
-See [Workflow Patterns]({{ '/cookbook/patterns' | relative_url }}) for reusable techniques.
+For the flagship, end-to-end showcases — trailer, product video, poster — see
+[Use Cases]({{ '/use-cases' | relative_url }}). See
+[Workflow Patterns]({{ '/cookbook/patterns' | relative_url }}) for reusable techniques.
 
 ## 🎨 Start Here: Beginner-Friendly Workflows
 
