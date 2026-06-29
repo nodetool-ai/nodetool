@@ -150,7 +150,11 @@ export default defineConfig(async ({ mode }) => {
     "/ws": {
       target: apiTarget,
       ws: true,
-      changeOrigin: true
+      changeOrigin: true,
+      // Match the other proxy entries: tolerate a self-signed backend cert
+      // (the dev server enables TLS whenever a cert.pem is found). Without this
+      // the WebSocket upgrade fails with "unable to verify the first certificate".
+      secure: false
     },
     "/trpc": {
       target: apiTarget,
@@ -165,9 +169,14 @@ export default defineConfig(async ({ mode }) => {
     }
   };
 
+  const extraAllowedHosts = (env.VITE_ALLOWED_HOSTS || "")
+    .split(",")
+    .map((h) => h.trim())
+    .filter(Boolean);
+
   return {
     server: {
-      allowedHosts: [".nodetool.ai", "localhost"],
+      allowedHosts: [".nodetool.ai", "localhost", ...extraAllowedHosts],
       port: 3000,
       proxy: proxyConfig
     },
