@@ -931,6 +931,12 @@ await app.register(fastifyTRPCPlugin, {
   trpcOptions: {
     router: appRouter,
     createContext,
+    // The web client forces all batches to POST (httpBatchLink
+    // `methodOverride: "POST"`) so long batched inputs ride in the body instead
+    // of the URL, which reverse proxies reject once the query string grows too
+    // large (see web/src/trpc/client.ts and issues #3979/#3981). Without this
+    // flag the server rejects POST-to-query with 405, leaving panels empty.
+    allowMethodOverride: true,
     onError({ path, error }) {
       log.error(
         `tRPC error on ${path}`,
