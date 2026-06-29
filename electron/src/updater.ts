@@ -7,6 +7,7 @@ import { logMessage } from "./logger";
 import { getMainWindow } from "./state";
 import { IpcChannels } from "./types.d";
 import { getUpdateChannel, readSettingsAsync } from "./settings";
+import { errorMessage } from "./utils";
 
 /**
  * Auto-updater Module
@@ -63,7 +64,7 @@ function isAppUpdateConfigPresent(): boolean {
     return exists;
   } catch (err) {
     logMessage(
-      `Error checking for app-update.yml: ${(err as Error).message}`,
+      `Error checking for app-update.yml: ${errorMessage(err)}`,
       "warn"
     );
     return false;
@@ -91,7 +92,7 @@ async function isAutoUpdatesEnabledAsync(): Promise<boolean> {
     return settings.autoUpdatesEnabled === true;
   } catch (err) {
     logMessage(
-      `Error reading auto-updates setting: ${(err as Error).message}`,
+      `Error reading auto-updates setting: ${errorMessage(err)}`,
       "warn"
     );
     return false;
@@ -166,7 +167,7 @@ async function setupAutoUpdater(): Promise<void> {
   } catch (err) {
     // Catch any synchronous errors during setup
     logMessage(
-      `Failed to initialize auto-updater: ${(err as Error).message}`,
+      `Failed to initialize auto-updater: ${errorMessage(err)}`,
       "warn"
     );
   }
@@ -216,7 +217,7 @@ function setupAutoUpdaterEvents(): void {
       }
     } catch (err) {
       logMessage(
-        `Error handling update-available event: ${(err as Error).message}`,
+        `Error handling update-available event: ${errorMessage(err)}`,
         "error"
       );
     }
@@ -234,7 +235,7 @@ function setupAutoUpdaterEvents(): void {
       }
     } catch (err) {
       logMessage(
-        `Error handling download progress: ${(err as Error).message}`,
+        `Error handling download progress: ${errorMessage(err)}`,
         "error"
       );
     }
@@ -268,7 +269,7 @@ function setupAutoUpdaterEvents(): void {
       }
     } catch (err) {
       logMessage(
-        `Error handling update-downloaded event: ${(err as Error).message}`,
+        `Error handling update-downloaded event: ${errorMessage(err)}`,
         "error"
       );
     }
@@ -298,7 +299,7 @@ function setupAutoUpdaterEvents(): void {
       }
     } catch (sendErr) {
       logMessage(
-        `Error sending update error to window: ${(sendErr as Error).message}`,
+        `Error sending update error to window: ${errorMessage(sendErr)}`,
         "error"
       );
     }

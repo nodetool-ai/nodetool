@@ -10,6 +10,7 @@ import {
 import { getCondaEnvPath } from "./config";
 
 import { logMessage } from "./logger";
+import { isErrnoException, errorMessage } from "./utils";
 import path from "path";
 import {
   readSettings,
@@ -91,7 +92,7 @@ function persistInstallationPreferences(
   } catch (error) {
     logMessage(
       `Failed to persist installer preferences: ${
-        error instanceof Error ? error.message : String(error)
+        errorMessage(error)
       }`,
       "error"
     );
@@ -207,13 +208,11 @@ async function removeStaleMicromambaLock(
   try {
     stats = await fs.stat(lockPath);
   } catch (error: unknown) {
-    if (error instanceof Error && "code" in error && (error as NodeJS.ErrnoException).code === "ENOENT") {
+    if (isErrnoException(error) && error.code === "ENOENT") {
       return;
     }
     logMessage(
-      `Failed to inspect micromamba lock at ${lockPath}: ${
-        error instanceof Error ? error.message : String(error)
-      }`,
+      `Failed to inspect micromamba lock at ${lockPath}: ${errorMessage(error)}`,
       "warn"
     );
     if (!options?.force) {
@@ -249,7 +248,7 @@ async function removeStaleMicromambaLock(
   } catch (error) {
     logMessage(
       `Failed to remove micromamba lock at ${lockPath}: ${
-        error instanceof Error ? error.message : String(error)
+        errorMessage(error)
       }`,
       "warn"
     );
