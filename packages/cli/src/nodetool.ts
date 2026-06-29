@@ -88,7 +88,10 @@ function createApiClient(apiUrl: string) {
   return createTRPCClient<AppRouter>({
     links: [
       httpBatchLink({
-        url: `${apiUrl}/trpc`
+        url: `${apiUrl}/trpc`,
+        // POST keeps the batched input in the request body instead of the URL,
+        // so large batches stay under reverse-proxy URL-length limits. See #3979.
+        methodOverride: "POST"
       })
     ]
   });

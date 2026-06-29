@@ -58,6 +58,9 @@ export function createTrpcLinks(): TRPCLink<AppRouter>[] {
   return [
     httpBatchLink({
       url: `${getApiHost()}/trpc`,
+      // POST keeps the batched input in the request body instead of the URL,
+      // so large batches stay under reverse-proxy URL-length limits. See #3979.
+      methodOverride: 'POST',
       headers: authHeaders,
       fetch: hostRewriteFetch,
     }),
