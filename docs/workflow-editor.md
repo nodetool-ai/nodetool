@@ -299,17 +299,17 @@ Right-click for options anywhere:
 
 NodeTool includes professional editing tools for creative work.
 
-### Image Editor
+### Sketch Editor
 
-Click the edit icon on image outputs or properties to open the full-featured editor:
+Open a blank canvas from **+ New → New image** in the workspace tab bar, or edit an existing image asset, to use the full layered editor:
 
-- **Crop & Resize**: Adjust image dimensions and composition
-- **Rotate & Flip**: Transform orientation
-- **Draw Tools**: Brush, shapes, and text overlays
-- **Adjustments**: Brightness, contrast, saturation controls
-- **History**: Undo/redo all changes
+- **Layers**: Blend modes, per-layer opacity, lock, and visibility
+- **Painting**: Brush, pencil, eraser, fill, gradient, blur, clone stamp
+- **Shapes & transform**: Rectangle, ellipse, line, arrow, crop, free transform
+- **AI generation**: Generate a layer from a prompt or bind it to a workflow
+- **History**: Unlimited undo/redo
 
-> **📖 Full Guide:** See [Image Editor](image-editor.md) for complete documentation with tool reference, shortcuts, and workflows.
+> **📖 Full Guide:** See [Sketch Editor](sketch-editor.md) for complete documentation with tool reference, shortcuts, and workflows.
 
 ### Color Picker
 

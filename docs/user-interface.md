@@ -56,11 +56,11 @@ Docs: [Mini-Apps](mobile-app.md#mini-apps) · [Electron Mini-App Window](electro
 
 ### Asset Explorer — `/assets`
 
-Browse, search, organize, and tag every file used in your workflows. Opens the full-featured Image Editor for image assets.
+Browse, search, organize, and tag every file used in your workflows. Opens the full-featured Sketch Editor for image assets.
 
 ![Asset Explorer](assets/screenshots/asset-explorer.png)
 
-Docs: [Asset Management](asset-management.md) · [Image Editor](image-editor.md)
+Docs: [Asset Management](asset-management.md) · [Sketch Editor](sketch-editor.md)
 
 ### Video Editor — `/timeline/:sequenceId`
 
