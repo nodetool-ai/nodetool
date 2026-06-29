@@ -26,6 +26,12 @@ export function TRPCProvider({ children }: { children: ReactNode }) {
         }),
         httpBatchLink({
           url: `${BASE_URL}/trpc`,
+          // Force batches to POST so the (potentially long) batched input rides
+          // in the request body instead of the URL. GET batches encode every
+          // procedure's input into the query string, which reverse proxies
+          // (e.g. Tailscale Serve) reject once the URL grows too long,
+          // returning 502 and leaving panels empty. See issue #3979.
+          methodOverride: "POST",
           async headers() {
             return authHeaders();
           }

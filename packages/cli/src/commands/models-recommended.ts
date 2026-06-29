@@ -158,7 +158,11 @@ export function registerRecommendedCommand(models: Command): void {
             const client = createTRPCClient<AppRouter>({
               links: [
                 httpBatchLink({
-                  url: `${opts.apiUrl}/trpc`
+                  url: `${opts.apiUrl}/trpc`,
+                  // POST keeps the batched input in the request body instead of
+                  // the URL, so large batches stay under reverse-proxy
+                  // URL-length limits. See #3979.
+                  methodOverride: "POST"
                 })
               ]
             });
