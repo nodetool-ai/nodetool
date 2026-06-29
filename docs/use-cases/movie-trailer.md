@@ -53,7 +53,7 @@ graph LR
 ## Six shots, one trailer
 
 Every beat is rendered as its own cinematic frame, then animated and cut
-together. Here are three frames from a single run, straight off the canvas.
+together. Here are all six frames from a single run, straight off the canvas.
 
 <div class="usecase-gallery">
   <figure>
@@ -61,8 +61,20 @@ together. Here are three frames from a single run, straight off the canvas.
     <figcaption>Blown supercharger spits fire down the straight</figcaption>
   </figure>
   <figure>
+    <img src="{{ '/assets/use-cases/trailer-shot-2.png' | relative_url }}" alt="A raider hauls the war-rig in by the chain">
+    <figcaption>A raider hauls the war-rig in by the chain</figcaption>
+  </figure>
+  <figure>
     <img src="{{ '/assets/use-cases/trailer-shot-3.png' | relative_url }}" alt="Tires tear through the canyon floor">
     <figcaption>Tires tear through the canyon floor</figcaption>
+  </figure>
+  <figure>
+    <img src="{{ '/assets/use-cases/trailer-shot-4.png' | relative_url }}" alt="A lone rider guns it through the ruins">
+    <figcaption>A lone rider guns it through the ruins</figcaption>
+  </figure>
+  <figure>
+    <img src="{{ '/assets/use-cases/trailer-shot-5.png' | relative_url }}" alt="Last repairs before the run">
+    <figcaption>Last repairs before the run</figcaption>
   </figure>
   <figure>
     <img src="{{ '/assets/use-cases/trailer-shot-6.png' | relative_url }}" alt="The getaway car breaks loose across the flats">
