@@ -7,42 +7,27 @@ import {
   hasExternalFiles,
   extractFiles
 } from "../../../lib/dragdrop";
+import { assetToUri } from "../../node_types/editing/promptComposer/promptTokens";
 
 // Generate a unique ID for each file
 const generateFileId = () => `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
 /**
- * Fetch an asset URL and return a data: URI.
- * Handles relative paths (proxied via Vite in dev) and absolute URLs.
- * Falls back to the original URL string if fetch fails.
+ * Build a {@link DroppedFile} that references the asset by its
+ * `asset://<id>.<ext>` URI rather than its bytes. The server dereferences the
+ * URI before the provider call, so the browser doesn't have to download the
+ * asset just to re-upload it inline (often megabytes for an image, hundreds for
+ * a video). The asset's `get_url` rides along as `dataUri` purely so the file
+ * preview tile can render a thumbnail.
  */
-async function assetUrlToDataUri(url: string, mimeType: string): Promise<string> {
-  try {
-    const resp = await fetch(url);
-    if (!resp.ok) return url;
-    const buf = new Uint8Array(await resp.arrayBuffer());
-    // Use FileReader to safely encode arbitrary-size buffers (btoa + spread fails for large files)
-    return await new Promise<string>((resolve) => {
-      const blob = new Blob([buf], { type: mimeType });
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = () => resolve(url);
-      reader.readAsDataURL(blob);
-    });
-  } catch {
-    return url;
-  }
-}
-
-async function assetToDroppedFile(asset: Asset): Promise<DroppedFile> {
-  const url = asset.get_url ?? "";
+function assetToDroppedFile(asset: Asset): DroppedFile {
   const mimeType = asset.content_type || "application/octet-stream";
-  const dataUri = url ? await assetUrlToDataUri(url, mimeType) : url;
   return {
     id: generateFileId(),
-    dataUri,
+    dataUri: asset.thumb_url || asset.get_url || "",
     type: mimeType,
-    name: asset.name
+    name: asset.name,
+    assetUri: assetToUri(asset)
   };
 }
 
@@ -81,16 +66,15 @@ export const useDragAndDrop = (
             const potentialAssets = [...filteredAssets, ...globalSearchResults, ...(useAssetGridStore.getState().selectedAssets || [])];
             const foundAssets = potentialAssets.filter(a => selectedIdsSet.has(a.id));
             const uniqueAssets = Array.from(new Map(foundAssets.map(item => [item.id, item])).values());
-            const resolved = await Promise.all(uniqueAssets.filter(a => a.get_url).map(assetToDroppedFile));
-            droppedFiles.push(...resolved);
+            for (const asset of uniqueAssets) {
+              droppedFiles.push(assetToDroppedFile(asset));
+            }
           }
 
           // Handle single asset
           if (droppedFiles.length === 0 && dragData.type === "asset") {
             const asset = dragData.payload as Asset;
-            if (asset.get_url) {
-              droppedFiles.push(await assetToDroppedFile(asset));
-            }
+            droppedFiles.push(assetToDroppedFile(asset));
           }
 
           // Fallback: legacy "asset" key when assets-multiple store lookup fails
@@ -105,10 +89,7 @@ export const useDragAndDrop = (
                   "id" in parsed &&
                   typeof (parsed as { id: unknown }).id === "string"
                 ) {
-                  const asset = parsed as Asset;
-                  if (asset.get_url) {
-                    droppedFiles.push(await assetToDroppedFile(asset));
-                  }
+                  droppedFiles.push(assetToDroppedFile(parsed as Asset));
                 }
               } catch {
                 // Ignore parse errors
