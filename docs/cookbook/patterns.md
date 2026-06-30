@@ -19,6 +19,10 @@ To build any example:
 
 **Example**: Image Enhancement
 
+<video controls preload="metadata" poster="{{ '/assets/cookbook/image-enhancement.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/image-enhancement.mp4' | relative_url }}" type="video/mp4">
+</video>
+
 {% mermaid %}
 graph TD
   output["Output"]
@@ -45,6 +49,10 @@ ______________________________________________________________________
 **Use Case**: LLM generates content based on input
 
 **Example**: Image to Story
+
+<video controls preload="metadata" poster="{{ '/assets/cookbook/image-to-story.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/image-to-story.mp4' | relative_url }}" type="video/mp4">
+</video>
 
 {% mermaid %}
 graph TD
@@ -78,6 +86,10 @@ ______________________________________________________________________
 **Use Case**: Show intermediate results during generation
 
 **Example**: Movie Poster Generator
+
+<video controls preload="metadata" poster="{{ '/assets/cookbook/movie-poster.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/movie-poster.mp4' | relative_url }}" type="video/mp4">
+</video>
 
 {% mermaid %}
 graph TD
@@ -128,6 +140,10 @@ ______________________________________________________________________
 **Use Case**: Answer questions using documents as context
 
 **Example**: Chat with Docs
+
+<video controls preload="metadata" poster="{{ '/assets/cookbook/chat-with-docs.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/chat-with-docs.mp4' | relative_url }}" type="video/mp4">
+</video>
 
 {% mermaid %}
 graph TD
@@ -185,6 +201,10 @@ ______________________________________________________________________
 
 **Example**: AI Flashcard Generator with SQLite
 
+<video controls preload="metadata" poster="{{ '/assets/cookbook/flashcards-sqlite.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/flashcards-sqlite.mp4' | relative_url }}" type="video/mp4">
+</video>
+
 {% mermaid %}
 graph TD
   topic_input["StringInput (Topic)"]
@@ -233,6 +253,10 @@ ______________________________________________________________________
 
 **Example**: Summarize Newsletters
 
+<video controls preload="metadata" poster="{{ '/assets/cookbook/summarize-newsletters.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/summarize-newsletters.mp4' | relative_url }}" type="video/mp4">
+</video>
+
 {% mermaid %}
 graph TD
   gmail_search["GmailSearch"]
@@ -269,6 +293,10 @@ ______________________________________________________________________
 
 **Example**: Realtime Agent
 
+<video controls preload="metadata" poster="{{ '/assets/cookbook/realtime-agent.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/realtime-agent.mp4' | relative_url }}" type="video/mp4">
+</video>
+
 {% mermaid %}
 graph TD
   audio_input["RealtimeAudioInput"]
@@ -299,6 +327,10 @@ ______________________________________________________________________
 **Use Case**: Convert between different media types
 
 **Example**: Audio to Image
+
+<video controls preload="metadata" poster="{{ '/assets/cookbook/audio-to-image.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/audio-to-image.mp4' | relative_url }}" type="video/mp4">
+</video>
 
 {% mermaid %}
 graph TD
@@ -332,6 +364,10 @@ ______________________________________________________________________
 **Use Case**: AI-powered image transformations
 
 **Example**: Style Transfer
+
+<video controls preload="metadata" poster="{{ '/assets/cookbook/style-transfer.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/style-transfer.mp4' | relative_url }}" type="video/mp4">
+</video>
 
 {% mermaid %}
 graph TD
@@ -373,6 +409,10 @@ ______________________________________________________________________
 
 **Example**: Data Visualization Pipeline
 
+<video controls preload="metadata" poster="{{ '/assets/cookbook/data-visualization.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/data-visualization.mp4' | relative_url }}" type="video/mp4">
+</video>
+
 {% mermaid %}
 graph TD
   preview_1["Preview"]
@@ -410,6 +450,10 @@ ______________________________________________________________________
 **Use Case**: Generate videos from text descriptions
 
 **Example**: Cinematic Video from Prompt
+
+<video controls preload="metadata" poster="{{ '/assets/cookbook/text-to-video.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/text-to-video.mp4' | relative_url }}" type="video/mp4">
+</video>
 
 {% mermaid %}
 graph TD
@@ -449,6 +493,10 @@ ______________________________________________________________________
 **Use Case**: Animate images into videos
 
 **Example**: Bring Images to Life
+
+<video controls preload="metadata" poster="{{ '/assets/cookbook/image-to-video.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/image-to-video.mp4' | relative_url }}" type="video/mp4">
+</video>
 
 {% mermaid %}
 graph TD
@@ -502,6 +550,10 @@ ______________________________________________________________________
 
 **Example**: Virtual Presenter
 
+<video controls preload="metadata" poster="{{ '/assets/cookbook/talking-avatar.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/talking-avatar.mp4' | relative_url }}" type="video/mp4">
+</video>
+
 {% mermaid %}
 graph TD
   image_input["ImageInput (Face Photo)"]
@@ -543,6 +595,10 @@ ______________________________________________________________________
 
 **Example**: HD Image Upscaling
 
+<video controls preload="metadata" poster="{{ '/assets/cookbook/image-upscaling.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/image-upscaling.mp4' | relative_url }}" type="video/mp4">
+</video>
+
 {% mermaid %}
 graph TD
   image_input["ImageInput (Low Res)"]
@@ -579,6 +635,10 @@ ______________________________________________________________________
 **Use Case**: Convert image sequences to coherent videos
 
 **Example**: Visual Story Generation
+
+<video controls preload="metadata" poster="{{ '/assets/cookbook/storyboard-to-video.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/storyboard-to-video.mp4' | relative_url }}" type="video/mp4">
+</video>
 
 {% mermaid %}
 graph TD

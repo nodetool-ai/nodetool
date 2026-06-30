@@ -6,9 +6,10 @@
  *   npm run render:cookbook -- --only text-to-video
  *
  * Bundles the Remotion project once and renders every `Cookbook-<slug>`
- * composition, writing web/public/cookbook/<slug>.mp4 and <slug>.jpg. Bundling
- * once (rather than per `remotion render` CLI call) makes 15 renders far
- * cheaper. Set CHROMIUM_PATH to override the browser binary.
+ * composition, writing docs/assets/cookbook/<slug>.mp4 and <slug>.jpg (where the
+ * cookbook pages embed them). Bundling once (rather than per `remotion render`
+ * CLI call) makes 15 renders far cheaper. Set CHROMIUM_PATH to override the
+ * browser binary.
  */
 import path from "node:path";
 import { mkdir } from "node:fs/promises";
@@ -25,7 +26,7 @@ import { webpackOverride } from "../src/webpackOverride";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const demoRoot = path.resolve(here, "..");
-const outDir = path.resolve(demoRoot, "../web/public/cookbook");
+const outDir = path.resolve(demoRoot, "../docs/assets/cookbook");
 
 const args = process.argv.slice(2);
 const stillsOnly = args.includes("--stills-only");

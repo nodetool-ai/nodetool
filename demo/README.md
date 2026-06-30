@@ -72,7 +72,7 @@ indicator + captions → call-to-action).
 
 ```bash
 cd demo
-npm run render:cookbook                          # all 15 → web/public/cookbook/<slug>.mp4 + .jpg
+npm run render:cookbook                          # all 15 → docs/assets/cookbook/<slug>.mp4 + .jpg
 npm run render:cookbook -- --only text-to-video  # one recipe
 npm run still:cookbook                            # JPG thumbnails only (fast)
 ```
