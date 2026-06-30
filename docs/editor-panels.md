@@ -12,63 +12,57 @@ The NodeTool [Workflow Editor]({{ '/workflow-editor' | relative_url }}) is surro
 
 ## Left Panel
 
-Opens from the icons down the left edge. It's a tabbed drawer — click an icon to expand, click the same icon to collapse. The top-level views are: **Nodes**, **Workflows**, **Sketches**, **Timelines**, **Settings**, **History**, **Favorites**, **Assets**, and **Agent**.
+Opens from the icons down the left edge. It's a tabbed drawer — click an icon to expand, click the same icon to collapse. The top-level views are: **Nodes**, **Workflows**, **Sketches**, **Timelines**, **Settings**, **History**, **Favorites**, and **Assets**.
 
-![Left Panel](assets/screenshots/screenshot-placeholder.svg)
+![Left Panel](assets/screenshots/editor-left-panel.png)
 
 ### Nodes Tab
 
 The node browser. Search and browse all available nodes, organized into sub-tabs (All, I/O, Image, Image AI, Video, Video AI, Audio, Audio AI, 3D, Agents, Control). Drag a node onto the canvas to add it.
 
-![Left Panel — Nodes](assets/screenshots/screenshot-placeholder.svg)
+![Left Panel — Nodes](assets/screenshots/editor-left-panel-nodes.png)
 
 ### Workflows Tab
 
 Your saved workflows. Search, filter, and double-click to open in a new tab.
 
-![Left Panel — Workflows](assets/screenshots/screenshot-placeholder.svg)
+![Left Panel — Workflows](assets/screenshots/editor-left-panel.png)
 
 ### Sketches Tab
 
 Quick image sketches you can drop into the workflow, edited with the built-in layered sketch editor. See [Sketch Editor]({{ '/sketch-editor' | relative_url }}).
 
-![Left Panel — Sketches](assets/screenshots/screenshot-placeholder.svg)
+![Left Panel — Sketches](assets/screenshots/editor-left-panel-sketches.png)
 
 ### Timelines Tab
 
 Timeline-based media arrangements used by the workflow.
 
-![Left Panel — Timelines](assets/screenshots/screenshot-placeholder.svg)
+![Left Panel — Timelines](assets/screenshots/editor-left-panel-timelines.png)
 
 ### Settings Tab
 
 Workflow-level settings.
 
-![Left Panel — Settings](assets/screenshots/screenshot-placeholder.svg)
+![Left Panel — Settings](assets/screenshots/editor-left-panel-settings.png)
 
 ### History Tab
 
 Recent edits and activity for the current workflow.
 
-![Left Panel — History](assets/screenshots/screenshot-placeholder.svg)
+![Left Panel — History](assets/screenshots/editor-left-panel-history.png)
 
 ### Favorites Tab
 
 Your starred nodes for quick access.
 
-![Left Panel — Favorites](assets/screenshots/screenshot-placeholder.svg)
+![Left Panel — Favorites](assets/screenshots/editor-left-panel-favorites.png)
 
 ### Assets Tab
 
 Folder tree plus file grid. Drag a file onto the canvas to instantly create the matching input node.
 
-![Left Panel — Assets](assets/screenshots/screenshot-placeholder.svg)
-
-### Agent Tab
-
-When Agent Mode is active, the agent plan, steps, and tool calls surface here.
-
-![Left Panel — Agent](assets/screenshots/screenshot-placeholder.svg)
+![Left Panel — Assets](assets/screenshots/editor-left-panel-assets.png)
 
 ---
 
@@ -76,19 +70,19 @@ When Agent Mode is active, the agent plan, steps, and tool calls surface here.
 
 Press `i` or click the icon in the top right to toggle. The right panel hosts only the **Inspector** — its contents switch based on what's selected on the canvas. (Logs, Queue, Trace, Version History, and Workspace are not here — they live in the [Bottom Panel](#bottom-panel).)
 
-![Right Panel](assets/screenshots/screenshot-placeholder.svg)
+![Right Panel](assets/screenshots/editor-right-panel.png)
 
 ### Inspector — Node Properties
 
 When a node is selected, the Inspector renders every property with the right input type (number, slider, model picker, asset selector, dropdown, color picker, and so on).
 
-![Node Properties](assets/screenshots/screenshot-placeholder.svg)
+![Node Properties](assets/screenshots/editor-right-panel.png)
 
 ### Inspector — Workflow Properties
 
 When no node is selected, the Inspector shows workflow-level metadata: title, description, tags, thumbnail.
 
-![Workflow Properties](assets/screenshots/screenshot-placeholder.svg)
+![Workflow Properties](assets/screenshots/workflow-form.png)
 
 ---
 
@@ -100,43 +94,43 @@ The bottom panel docks runtime diagnostics and secondary workflow tools. Drag it
 - **Workflow** — Versions, Workspace
 - **Debug** — Trace
 
-![Bottom Panel](assets/screenshots/screenshot-placeholder.svg)
+![Bottom Panel](assets/screenshots/editor-bottom-panel.png)
 
 ### Logs
 
 Raw logs from the current run. Filter by level (`debug`, `info`, `warn`, `error`) and search.
 
-![Log Panel](assets/screenshots/screenshot-placeholder.svg)
+![Log Panel](assets/screenshots/editor-bottom-panel-logs.png)
 
 ### Queue
 
 Background jobs queued by your workflows — long-running fine-tunes, downloads, and batch runs.
 
-![Jobs Panel](assets/screenshots/screenshot-placeholder.svg)
+![Jobs Panel](assets/screenshots/editor-bottom-panel-queue.png)
 
 ### Sandboxes & Workers
 
 The code-runner sandboxes and worker processes backing the current run.
 
-![Sandboxes Panel](assets/screenshots/screenshot-placeholder.svg)
+![Sandboxes Panel](assets/screenshots/editor-bottom-panel-sandboxes.png)
 
 ### Versions
 
 Every save is versioned. Review past versions and roll back.
 
-![Version History](assets/screenshots/screenshot-placeholder.svg)
+![Version History](assets/screenshots/editor-bottom-panel-versions.png)
 
 ### Workspace
 
 File hierarchy of the backing workspace (on local installs) or the assigned workspace (on server installs).
 
-![Workspace Tree](assets/screenshots/screenshot-placeholder.svg)
+![Workspace Tree](assets/screenshots/editor-bottom-panel-workspace.png)
 
 ### Trace
 
 The full execution trace of the most recent run — per-node timing and the call tree.
 
-![Execution Tree](assets/screenshots/screenshot-placeholder.svg)
+![Execution Tree](assets/screenshots/editor-bottom-panel-trace.png)
 
 ---
 
@@ -144,7 +138,7 @@ The full execution trace of the most recent run — per-node timing and the call
 
 An overlay on the canvas with the most-used runtime controls.
 
-![Floating Toolbar](assets/screenshots/screenshot-placeholder.svg)
+![Floating Toolbar](assets/screenshots/editor-floating-toolbar.png)
 
 | Button | When shown | Action |
 |--------|------------|--------|
