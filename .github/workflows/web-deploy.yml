@@ -1,0 +1,85 @@
+name: Web Deploy (Cloudflare Pages)
+
+# Deploys the web app (web/, a Vite SPA) to Cloudflare Pages from GitHub Actions
+# instead of Cloudflare's git integration, which built on every push with no
+# control over the toolchain or build state. This builds on the pinned Node
+# version and ships only after the build succeeds.
+#
+# The web bundle inlines @nodetool-ai/* package SOURCE (the `nodetool-dev` Vite
+# resolve condition) and reads generated pricing JSONs produced by
+# `build:packages`, so package changes affect the bundle — hence this runs on
+# every push to main except changes that can't reach the bundle.
+#
+# Required GitHub config (Settings → Secrets and variables → Actions):
+#   Secrets:
+#     CLOUDFLARE_API_TOKEN          — token with "Cloudflare Pages: Edit" on the account
+#     CLOUDFLARE_ACCOUNT_ID         — account that owns the Pages project
+#     VITE_SUPABASE_ANON_KEY        — Supabase anon key baked into the build
+#   Variables:
+#     CLOUDFLARE_WEB_PAGES_PROJECT  — the Cloudflare Pages project name to deploy to
+#     VITE_API_URL                  — API base URL (e.g. https://api.nodetool.ai)
+#     VITE_SUPABASE_URL             — Supabase project URL
+#     VITE_AUTH_REDIRECT_URL        — optional OAuth redirect URL
+#
+# Disconnect the repo from the Cloudflare Pages git integration so the site is
+# only deployed from here.
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "marketing/**"
+      - "docs/**"
+      - "mobile/**"
+      - "electron/**"
+      - "**/*.md"
+  workflow_dispatch:
+
+# Least-privilege token: the build only reads the repo; the Pages deploy
+# authenticates with its own Cloudflare API token, not GITHUB_TOKEN.
+permissions:
+  contents: read
+
+# One deploy at a time; let an in-flight upload finish rather than cancelling it.
+concurrency:
+  group: web-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build & deploy to Cloudflare Pages
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: web-production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      # Installs the workspace and builds the backend packages, which generates
+      # the fal/kie pricing JSONs the Vite build aliases resolve.
+      - name: Set up Node, install deps, build packages
+        uses: ./.github/actions/setup-build
+        with:
+          build-packages: "true"
+
+      - name: Build (Vite)
+        working-directory: web
+        run: npx vite build
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_AUTH_REDIRECT_URL: ${{ vars.VITE_AUTH_REDIRECT_URL }}
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.85.0"
+          workingDirectory: web
+          command: pages deploy dist --project-name=${{ vars.CLOUDFLARE_WEB_PAGES_PROJECT }} --branch=main
