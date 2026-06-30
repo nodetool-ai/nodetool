@@ -2,15 +2,6 @@
 import React, { useState, memo } from "react";
 import { css } from "@emotion/react";
 import { useColorScheme, useTheme } from "@mui/material/styles";
-import {
-  Tabs,
-  Tab,
-  Switch,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  FormControlLabel
-} from "@mui/material";
 import type { Theme } from "@mui/material/styles";
 
 // Icons for demos
@@ -72,7 +63,14 @@ import {
   Chip,
   MOTION,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  Tabs,
+  Tab,
+  Switch,
+  DialogTitle,
+  DialogContent,
+  FormControlLabel,
+  MuiDialog as Dialog
 } from "./ui_primitives";
 
 // Additional icons

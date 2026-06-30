@@ -1,10 +1,13 @@
 /** @jsxImportSource @emotion/react */
 import { useTheme } from "@mui/material/styles";
+
 import {
+  EditorButton,
+  TextInput,
+  Popover,
   DialogTitle,
   DialogContent
-} from "@mui/material";
-import { EditorButton, TextInput, Popover } from "../ui_primitives";
+} from "../ui_primitives";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import { AssetList } from "../../stores/ApiTypes";
 import { useAssetStore } from "../../stores/AssetStore";

@@ -5,11 +5,12 @@ import { useCallback, memo, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import SelectAllIcon from "@mui/icons-material/SelectAll";
 import DeselectIcon from "@mui/icons-material/Deselect";
+
 import {
+  ButtonGroup,
   Select,
   MenuItem
-} from "@mui/material";
-import { ButtonGroup } from "../ui_primitives";
+} from "../ui_primitives";
 import { EditorButton } from "../editor_ui";
 
 import useAssets from "../../serverState/useAssets";
@@ -315,7 +316,6 @@ const AssetActions = ({
           </Box>
         )}
       </ButtonGroup>
-
 
       <Tooltip
         delay={TOOLTIP_ENTER_DELAY}

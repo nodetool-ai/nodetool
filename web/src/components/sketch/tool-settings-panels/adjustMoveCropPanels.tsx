@@ -1,10 +1,18 @@
 import React, { memo } from "react";
+
 import {
+  FlexRow,
+  Box,
+  Text,
+  Tooltip,
+  EditorButton,
+  ToolbarIconButton,
+  SPACING,
+  getSpacingPx,
   Checkbox,
   FormControlLabel,
   Slider
-} from "@mui/material";
-import { FlexRow, Box, Text, Tooltip, EditorButton, ToolbarIconButton, SPACING, getSpacingPx } from "../../ui_primitives";
+} from "../../ui_primitives";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";

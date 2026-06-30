@@ -3,8 +3,13 @@ import React, { memo, useMemo } from "react";
 import { css, keyframes } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { LinearProgress } from "@mui/material";
-import { Collapse, MOTION, BORDER_RADIUS } from "../ui_primitives";
+
+import {
+  Collapse,
+  MOTION,
+  BORDER_RADIUS,
+  LinearProgress
+} from "../ui_primitives";
 import { PREVIEW_NODE_TYPE } from "../../constants/nodeTypes";
 import { getOutputFromResult } from "../node/outputResult";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";

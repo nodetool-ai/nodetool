@@ -24,8 +24,16 @@ import {
 import AudioPlayer from "../audio/AudioPlayer";
 import ThreadMessageList from "./ThreadMessageList";
 import CalendarEventView from "./CalendarEventView";
-import { List, ListItem, ListItemText } from "@mui/material";
-import { Container, EmptyState, LoadingSpinner, BORDER_RADIUS } from "../ui_primitives";
+
+import {
+  Container,
+  EmptyState,
+  LoadingSpinner,
+  BORDER_RADIUS,
+  List,
+  ListItem,
+  ListItemText
+} from "../ui_primitives";
 import ListTable from "./DataTable/ListTable";
 import ImageView from "./ImageView";
 import AssetViewer from "../assets/AssetViewer";
@@ -214,7 +222,6 @@ const stableKeyForOutputValue = (v: unknown): string => {
   }
   return `other:${String(v)}`;
 };
-
 
 const concatTextChunksSafely = (
   chunks: Chunk[]

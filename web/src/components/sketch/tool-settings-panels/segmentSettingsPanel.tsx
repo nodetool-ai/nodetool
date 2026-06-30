@@ -1,9 +1,5 @@
 import React, { memo, useEffect } from "react";
-import {
-  FormControlLabel,
-  Slider,
-  Switch
-} from "@mui/material";
+
 import { SketchModeToggle, SketchModeOption } from "./SketchModeToggle";
 import {
   SegmentationStatus,
@@ -18,7 +14,17 @@ import {
   LOCAL_SAM3_CAPABILITIES,
   LOCAL_SAM3_MODEL_ID
 } from "../sam";
-import { FlexRow, TextInput, Box, Text, SPACING, getSpacingPx } from "../../ui_primitives";
+import {
+  FlexRow,
+  TextInput,
+  Box,
+  Text,
+  SPACING,
+  getSpacingPx,
+  FormControlLabel,
+  Slider,
+  Switch
+} from "../../ui_primitives";
 import { EditorButton } from "../../editor_ui";
 import {
   sketchButtonSmallSx,

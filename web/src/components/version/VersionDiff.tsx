@@ -5,7 +5,16 @@
  */
 
 import React, { memo } from "react";
+
 import {
+  Caption,
+  Chip,
+  Divider,
+  FlexRow,
+  Surface,
+  Text,
+  Box,
+  BORDER_RADIUS,
   List,
   ListItem,
   ListItemIcon,
@@ -13,8 +22,7 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails
-} from "@mui/material";
-import { Caption, Chip, Divider, FlexRow, Surface, Text, Box, BORDER_RADIUS } from "../ui_primitives";
+} from "../ui_primitives";
 import {
   Add as AddIcon,
   Remove as RemoveIcon,

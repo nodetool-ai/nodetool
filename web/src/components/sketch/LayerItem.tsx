@@ -8,7 +8,7 @@
  */
 
 import React, { memo } from "react";
-import { IconButton } from "@mui/material";
+
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
@@ -36,7 +36,8 @@ import {
   Box,
   BORDER_RADIUS,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  IconButton
 } from "../ui_primitives";
 import type { LayerStatus } from "@nodetool-ai/image-editor";
 import { LAYER_STATUS_MAP } from "./Inspector/layerStatusMapping";

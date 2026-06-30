@@ -9,14 +9,21 @@ import {
   NodeTypeCategory,
   getNodeCategoryColor
 } from "../../utils/ColorUtils";
+
 import {
+  Text,
+  ToolbarIconButton,
+  FlexRow,
+  Popover,
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx,
   List,
   ListItem,
   ListItemButton,
   ListItemText,
   ListItemIcon
-} from "@mui/material";
-import { Text, ToolbarIconButton, FlexRow, Popover, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+} from "../ui_primitives";
 import PaletteIcon from "@mui/icons-material/Palette";
 import LegendToggleIcon from "@mui/icons-material/LegendToggle";
 import CheckIcon from "@mui/icons-material/Check";

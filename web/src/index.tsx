@@ -26,7 +26,7 @@ import ErrorBoundary from "./ErrorBoundary";
 // Lazy-load panel components to reduce initial bundle size
 const PanelLeft = React.lazy(() => import("./components/panels/PanelLeft"));
 const PanelBottom = React.lazy(() => import("./components/panels/PanelBottom"));
-import { LoadingSpinner } from "./components/ui_primitives/LoadingSpinner";
+import { LoadingSpinner } from "./components/ui_primitives";
 import { ThemeProvider } from "@mui/material/styles";
 import InitColorSchemeScript from "@mui/system/InitColorSchemeScript";
 import ThemeNodetool from "./components/themes/ThemeNodetool";
@@ -67,7 +67,7 @@ const SearchProviderSetupDialog = React.lazy(
 
 import { installIpcLogBridge } from "./logging/ipcLogBridge";
 import MobileClassProvider from "./components/MobileClassProvider";
-import { SkipLinks } from "./components/ui_primitives/SkipLinks";
+import { SkipLinks } from "./components/ui_primitives";
 
 import ChatComposerLayout from "./components/chat/containers/ChatComposerLayout";
 

@@ -4,8 +4,12 @@ import { useTheme } from "@mui/material/styles";
 import Actions from "./Actions";
 import { MaybeMarkdown } from "./markdown";
 import { outputStyles } from "./styles";
-import { Collapse } from "@mui/material";
-import { Box, BORDER_RADIUS } from "../../ui_primitives";
+
+import {
+  Box,
+  BORDER_RADIUS,
+  Collapse
+} from "../../ui_primitives";
 import { ReasoningToggle } from "../../common/ReasoningToggle";
 
 type Props = {

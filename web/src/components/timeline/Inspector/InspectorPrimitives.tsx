@@ -20,9 +20,7 @@ import React, {
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import Switch from "@mui/material/Switch";
-
-import { NodeSlider, Tooltip, MOTION, BORDER_RADIUS, FONT_SIZE_SANS, FONT_SIZE_MONO, FONT_WEIGHT, SPACING, getSpacingPx, reducedMotion } from "../../ui_primitives";
+import { NodeSlider, Tooltip, MOTION, BORDER_RADIUS, FONT_SIZE_SANS, FONT_SIZE_MONO, FONT_WEIGHT, SPACING, getSpacingPx, reducedMotion, Switch } from "../../ui_primitives";
 
 // ── Header ─────────────────────────────────────────────────────────────────
 
