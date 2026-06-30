@@ -35,8 +35,6 @@ Switch between views using the toggle in the toolbar.
 
 ### Working with Assets in Workflows
 
-![Drag Asset to Canvas](assets/screenshots/screenshot-placeholder.svg)
-
 Drag any asset from the Asset Explorer directly into the workflow canvas. NodeTool automatically creates the appropriate input node based on the file type (image input, audio input, etc.).
 
 ---

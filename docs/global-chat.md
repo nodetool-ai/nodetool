@@ -32,7 +32,7 @@ Persistent WebSocket connection — reconnects after reloads.
 
 ### Choosing a Model
 
-![Chat Model Selector](assets/screenshots/screenshot-placeholder.svg)
+![Chat Model Selector](assets/screenshots/chat-model-selector.png)
 
 Select your preferred AI model from the model picker at the top of the chat. Available models depend on your configured providers:
 

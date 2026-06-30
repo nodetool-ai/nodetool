@@ -17,6 +17,7 @@ import { Text, Caption, LoadingSpinner, Surface, Box, MOTION, BORDER_RADIUS } fr
 import {
   DataframeRef,
   NodeMetadata,
+  Property,
   UnifiedModel,
   Workflow
 } from "../../stores/ApiTypes";
@@ -58,6 +59,21 @@ const WorkflowFormModal = React.lazy(
 );
 const WorkflowDeleteDialog = React.lazy(
   () => import("../workflows/WorkflowDeleteDialog")
+);
+const LanguageModelMenuDialog = React.lazy(
+  () => import("../model_menu/LanguageModelMenuDialog")
+);
+const WorkflowCard = React.lazy(() => import("../workflows/WorkflowCard"));
+const DashboardTemplates = React.lazy(
+  () => import("../portal/DashboardTemplates")
+);
+const CollectionForm = React.lazy(
+  () => import("../collections/CollectionForm")
+);
+const ChainNodeProperties = React.lazy(() =>
+  import("../chain_editor/ChainNodeProperties").then((m) => ({
+    default: m.ChainNodeProperties
+  }))
 );
 
 interface PreviewEntry {
@@ -157,6 +173,32 @@ const PREVIEWS: PreviewEntry[] = [
     id: "vibecoding-modal",
     label: "VibeCoding Modal",
     description: "AI-assisted custom UI generator"
+  },
+  {
+    id: "chat-model-selector",
+    label: "Chat Model Selector",
+    description: "Language-model picker opened from the chat composer"
+  },
+  {
+    id: "template-card",
+    label: "Template Card",
+    description: "A single template tile from the gallery"
+  },
+  {
+    id: "template-gallery",
+    label: "Template Gallery",
+    description: "Examples gallery with category filters and search",
+    viewport: { width: 1500, height: 1080 }
+  },
+  {
+    id: "collection-form",
+    label: "New Collection Form",
+    description: "Create-collection form: name and embedding model"
+  },
+  {
+    id: "chain-card-properties",
+    label: "Chain Card Properties",
+    description: "Property editor for a single chain-editor card"
   }
 ];
 
@@ -330,6 +372,109 @@ const SAMPLE_IMAGE_A =
   "https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d?w=900&q=80&auto=format&fit=crop";
 const SAMPLE_IMAGE_B =
   "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=900&q=80&auto=format&fit=crop";
+
+// Language models shown in the chat model-selector preview. Passed as the
+// "recommended" list so the picker always has visible content even when the
+// screenshot backend reports no provider models.
+const SAMPLE_LANGUAGE_MODELS: UnifiedModel[] = [
+  {
+    id: "gpt-4o",
+    name: "GPT-4o",
+    type: "language_model",
+    repo_id: "openai/gpt-4o",
+    description: "OpenAI's flagship multimodal model — fast, strong at tools."
+  },
+  {
+    id: "claude-3-5-sonnet",
+    name: "Claude 3.5 Sonnet",
+    type: "language_model",
+    repo_id: "anthropic/claude-3-5-sonnet",
+    description: "Anthropic's balanced model for coding and analysis."
+  },
+  {
+    id: "gemini-1.5-pro",
+    name: "Gemini 1.5 Pro",
+    type: "language_model",
+    repo_id: "google/gemini-1.5-pro",
+    description: "Google's long-context multimodal model (up to 2M tokens)."
+  },
+  {
+    id: "llama3.1:8b",
+    name: "Llama 3.1 8B",
+    type: "language_model",
+    repo_id: "ollama/llama3.1",
+    description: "Runs locally via Ollama — no API key required."
+  }
+];
+
+// A single template tile for the template-card preview. A real http thumbnail
+// keeps the card image from rendering as a broken placeholder.
+const TEMPLATE_WORKFLOW: Workflow = {
+  ...SAMPLE_WORKFLOW,
+  id: "tmpl-image-to-story",
+  name: "Image to Story",
+  description:
+    "Upload any image and let the AI write a creative story inspired by it.",
+  tags: ["image", "creative", "beginner"],
+  thumbnail_url: SAMPLE_IMAGE_A
+};
+
+// Properties for the chain-card-properties preview. Mirrors the inspector
+// fields a chain card renders: a connected input plus a few editable values.
+const SAMPLE_CHAIN_PROPERTIES: Property[] = [
+  {
+    name: "input",
+    type: { type: "str", optional: false, type_args: [] },
+    title: "Input",
+    description: "Text coming from the previous card.",
+    required: true
+  },
+  {
+    name: "system_prompt",
+    type: { type: "text", optional: false, type_args: [] },
+    default:
+      "You are a concise assistant. Summarize the input in three bullet points.",
+    title: "System prompt",
+    description: "Instruction sent to the model.",
+    required: false
+  },
+  {
+    name: "temperature",
+    type: { type: "float", optional: false, type_args: [] },
+    default: 0.7,
+    title: "Temperature",
+    description: "Higher values make output more random.",
+    min: 0,
+    max: 2,
+    required: false
+  },
+  {
+    name: "max_tokens",
+    type: { type: "int", optional: false, type_args: [] },
+    default: 512,
+    title: "Max tokens",
+    description: "Upper bound on the response length.",
+    min: 1,
+    max: 4096,
+    required: false
+  },
+  {
+    name: "stream",
+    type: { type: "bool", optional: false, type_args: [] },
+    default: true,
+    title: "Stream",
+    description: "Emit tokens as they are generated.",
+    required: false
+  }
+];
+
+const SAMPLE_CHAIN_VALUES: Record<string, unknown> = {
+  system_prompt:
+    "You are a concise assistant. Summarize the input in three bullet points.",
+  temperature: 0.7,
+  max_tokens: 512,
+  stream: true
+};
 
 // ─── Individual preview renderers ─────────────────────────────────────────────
 
@@ -579,6 +724,141 @@ const PreviewVibeCodingModal: React.FC = () => {
   );
 };
 
+const PreviewChatModelSelector: React.FC = () => {
+  // The model menu renders as a Popover, so it needs an anchor. Mount a hidden
+  // anchor near the top-centre of the viewport, then open the dialog against it.
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  return (
+    <Box
+      data-preview="chat-model-selector"
+      sx={{ width: "100%", height: "100vh", position: "relative" }}
+    >
+      <Box
+        ref={setAnchor}
+        sx={{ position: "absolute", top: 72, left: "50%", width: 1, height: 1 }}
+      />
+      <Suspense fallback={null}>
+        {anchor && (
+          <LanguageModelMenuDialog
+            open
+            anchorEl={anchor}
+            onClose={() => undefined}
+            recommendedModels={SAMPLE_LANGUAGE_MODELS}
+          />
+        )}
+      </Suspense>
+    </Box>
+  );
+};
+
+const PreviewTemplateCard: React.FC = () => {
+  const theme = useTheme();
+  return (
+    <Box
+      data-preview="template-card"
+      sx={{
+        width: "100%",
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        p: 6,
+        bgcolor: theme.palette.background.default
+      }}
+    >
+      <Box sx={{ width: 360, height: 300 }}>
+        <Suspense fallback={<LoadingSpinner />}>
+          <WorkflowCard
+            workflow={TEMPLATE_WORKFLOW}
+            matchedNodes={[]}
+            nodesOnlySearch={false}
+            isLoading={false}
+            onClick={() => undefined}
+            categoryLabel="Image"
+            tint="#5cc8ff"
+          />
+        </Suspense>
+      </Box>
+    </Box>
+  );
+};
+
+const PreviewTemplateGallery: React.FC = () => (
+  <FullscreenBox preview="template-gallery">
+    <DashboardTemplates fullPage />
+  </FullscreenBox>
+);
+
+const PreviewCollectionForm: React.FC = () => {
+  const theme = useTheme();
+  return (
+    <Box
+      data-preview="collection-form"
+      sx={{
+        width: "100%",
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "flex-start",
+        justifyContent: "center",
+        p: 6,
+        bgcolor: theme.palette.background.default
+      }}
+    >
+      <Surface
+        elevation={0}
+        sx={{
+          width: 620,
+          borderRadius: BORDER_RADIUS.lg,
+          border: `1px solid ${theme.palette.divider}`,
+          overflow: "hidden"
+        }}
+      >
+        <Suspense fallback={<LoadingSpinner />}>
+          <CollectionForm onClose={() => undefined} />
+        </Suspense>
+      </Surface>
+    </Box>
+  );
+};
+
+const PreviewChainCardProperties: React.FC = () => {
+  const theme = useTheme();
+  return (
+    <Box
+      data-preview="chain-card-properties"
+      sx={{
+        width: "100%",
+        minHeight: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        p: 6,
+        bgcolor: theme.palette.background.default
+      }}
+    >
+      <Surface
+        elevation={0}
+        sx={{
+          width: 440,
+          p: 3,
+          borderRadius: BORDER_RADIUS.lg,
+          border: `1px solid ${theme.palette.divider}`
+        }}
+      >
+        <Suspense fallback={<LoadingSpinner />}>
+          <ChainNodeProperties
+            nodeId="chain-card-1"
+            nodeType="nodetool.text.LLM"
+            properties={SAMPLE_CHAIN_PROPERTIES}
+            values={SAMPLE_CHAIN_VALUES}
+            connectedInputs={["input"]}
+            onUpdate={() => undefined}
+          />
+        </Suspense>
+      </Surface>
+    </Box>
+  );
+};
+
 // ─── Preview index page ────────────────────────────────────────────────────────
 
 const PreviewIndex: React.FC = () => {
@@ -672,7 +952,12 @@ const COMPONENT_MAP: Record<string, React.FC> = {
   "node-readme": PreviewNodeReadme,
   "workflow-form": PreviewWorkflowForm,
   "workflow-delete": PreviewWorkflowDelete,
-  "vibecoding-modal": PreviewVibeCodingModal
+  "vibecoding-modal": PreviewVibeCodingModal,
+  "chat-model-selector": PreviewChatModelSelector,
+  "template-card": PreviewTemplateCard,
+  "template-gallery": PreviewTemplateGallery,
+  "collection-form": PreviewCollectionForm,
+  "chain-card-properties": PreviewChainCardProperties
 };
 
 const ComponentPreview: React.FC = () => {

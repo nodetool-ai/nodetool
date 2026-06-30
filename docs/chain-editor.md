@@ -55,7 +55,7 @@ Pick a node and it's inserted at the end. The editor automatically wires a singl
 
 Click any card to expand its properties. You get the same inspector fields as the graph editor — string inputs, model pickers, sliders, asset selectors, and so on.
 
-![Chain Card Properties](assets/screenshots/screenshot-placeholder.svg)
+![Chain Card Properties](assets/screenshots/chain-card-properties.png)
 
 Changes are saved the moment you commit a value (blur or press Enter).
 

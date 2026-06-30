@@ -32,7 +32,7 @@ Browse the full list on the [Workflow Examples]({{ '/workflows/' | relative_url 
 2. Hit **Open** (or double-click) to load it into the editor as a new workflow.
 3. Save a copy with `Ctrl/⌘ + S` — edits never modify the original template.
 
-![Template Preview](assets/screenshots/screenshot-placeholder.svg)
+![Template Preview](assets/screenshots/template-preview.png)
 
 ---
 
@@ -44,7 +44,7 @@ The gallery supports:
 - **Search bar** — match by title, tags, or node names used inside the workflow.
 - **Sort** — recently added, most popular, shortest.
 
-![Template Filters](assets/screenshots/screenshot-placeholder.svg)
+![Template Filters](assets/screenshots/template-filters.png)
 
 ---
 

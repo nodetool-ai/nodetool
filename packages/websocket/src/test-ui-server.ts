@@ -1271,6 +1271,11 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
   });
   const trpcHandler = createHTTPHandler({
     router: appRouter,
+    // The frontend tRPC client batches queries as POST (methodOverride: "POST"),
+    // matching the production Fastify server (server.ts). The standalone handler
+    // rejects POST for query procedures unless this is set, which otherwise makes
+    // every panel render a "Unsupported POST-request to query procedure" error.
+    allowMethodOverride: true,
     createContext: ({ req }) => {
       (req as IncomingMessage & { userId?: string }).userId = "1";
       return trpcContextFactory({

@@ -23,7 +23,7 @@ Navigate to **Collections** from the left sidebar, or go directly to `/collectio
 3. (Optional) Associate a default embedding model.
 4. Drag documents into the collection — or import a folder from the Asset Explorer.
 
-![New Collection](assets/screenshots/screenshot-placeholder.svg)
+![New Collection](assets/screenshots/collection-form.png)
 
 Collections accept any file type, but only text-extractable formats are indexed:
 

@@ -1113,6 +1113,67 @@ if (process.env.JEST_WORKER_ID) {
             .catch(() => {});
           await waitForAnimation(p, 600);
         }
+      },
+      {
+        preview: "chat-model-selector",
+        filename: "chat-model-selector.png",
+        ready: async (p) => {
+          await p
+            .getByText(/GPT-4o|Claude|Gemini|Select Language Model/i)
+            .first()
+            .waitFor({ state: "visible", timeout: 8000 })
+            .catch(() => {});
+          await waitForAnimation(p, 400);
+        }
+      },
+      {
+        preview: "template-card",
+        filename: "template-preview.png",
+        ready: async (p) => {
+          await p
+            .getByText(/Image to Story/i)
+            .first()
+            .waitFor({ state: "visible", timeout: 8000 })
+            .catch(() => {});
+          await waitForAnimation(p, 600);
+        }
+      },
+      {
+        preview: "template-gallery",
+        filename: "template-filters.png",
+        viewport: { width: 1500, height: 1080 },
+        ready: async (p) => {
+          await p
+            .getByText(/Chat with a PDF|Autonomous Research Agent|Hello AI/i)
+            .first()
+            .waitFor({ state: "visible", timeout: 12000 })
+            .catch(() => {});
+          await waitForAnimation(p, 600);
+        }
+      },
+      {
+        preview: "collection-form",
+        filename: "collection-form.png",
+        ready: async (p) => {
+          await p
+            .getByPlaceholder(/my-collection/i)
+            .first()
+            .waitFor({ state: "visible", timeout: 8000 })
+            .catch(() => {});
+          await waitForAnimation(p, 400);
+        }
+      },
+      {
+        preview: "chain-card-properties",
+        filename: "chain-card-properties.png",
+        ready: async (p) => {
+          await p
+            .getByText(/System prompt|Temperature|connected/i)
+            .first()
+            .waitFor({ state: "visible", timeout: 8000 })
+            .catch(() => {});
+          await waitForAnimation(p, 400);
+        }
       }
     ];
 
