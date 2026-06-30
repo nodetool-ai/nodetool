@@ -17,7 +17,7 @@
       {
         "id": "4",
         "parent_id": null,
-        "type": "lib.pymupdf.ExtractText",
+        "type": "lib.pdf.ExtractText",
         "data": {
           "start_page": 0,
           "end_page": 4
@@ -38,11 +38,8 @@
       {
         "id": "5",
         "parent_id": null,
-        "type": "lib.http.GetRequestDocument",
-        "data": {
-          "headers": null,
-          "auth": null
-        },
+        "type": "lib.http.GetBytes",
+        "data": {},
         "ui_properties": {
           "position": {
             "x": 351,
