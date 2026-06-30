@@ -21,6 +21,15 @@ name: Web Deploy (Cloudflare Pages)
 #     VITE_SUPABASE_URL             — Supabase project URL
 #     VITE_AUTH_REDIRECT_URL        — optional OAuth redirect URL
 #
+# This job runs in the `web-production` environment, so the secrets/variables
+# above must be visible to it: set them either at the repository level or on the
+# `web-production` environment itself (Settings → Environments → web-production).
+# An env-scoped secret defined only on a DIFFERENT environment (e.g. the
+# marketing deploy's `marketing-production`) is NOT available here — it expands to
+# an empty string, and wrangler then fails with Cloudflare error 9106
+# ("Authentication error" / missing Authorization header). The preflight step
+# below catches that before the deploy runs.
+#
 # Disconnect the repo from the Cloudflare Pages git integration so the site is
 # only deployed from here.
 
@@ -58,6 +67,30 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 1
+
+      # Fail fast with an actionable message if the Cloudflare credentials or the
+      # Pages project name are missing, rather than letting wrangler fail late
+      # with a cryptic "Must specify a project name" or 9106 auth error after a
+      # full build. Secrets must be visible to the `web-production` environment
+      # (see the header note); they expand to empty strings when they are not.
+      - name: Check Cloudflare deploy config
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_WEB_PAGES_PROJECT: ${{ vars.CLOUDFLARE_WEB_PAGES_PROJECT }}
+        run: |
+          missing=()
+          [ -n "$CLOUDFLARE_API_TOKEN" ] || missing+=("secret CLOUDFLARE_API_TOKEN")
+          [ -n "$CLOUDFLARE_ACCOUNT_ID" ] || missing+=("secret CLOUDFLARE_ACCOUNT_ID")
+          [ -n "$CLOUDFLARE_WEB_PAGES_PROJECT" ] || missing+=("variable CLOUDFLARE_WEB_PAGES_PROJECT")
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required Cloudflare deploy config: ${missing[*]}"
+            echo "Set these at the repository level (Settings → Secrets and variables → Actions)"
+            echo "or on the 'web-production' environment (Settings → Environments → web-production)."
+            echo "An env-scoped secret on a different environment is NOT visible to this job."
+            exit 1
+          fi
+          echo "Cloudflare deploy config present (project: $CLOUDFLARE_WEB_PAGES_PROJECT)."
 
       # Installs the workspace and builds the backend packages, which generates
       # the fal/kie pricing JSONs the Vite build aliases resolve.
