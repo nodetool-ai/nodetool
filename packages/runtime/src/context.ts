@@ -2284,14 +2284,23 @@ export class ProcessingContext {
       flac: "audio/flac"
     };
 
+    // `data:` is the provider-ready encoding and `http://` / `https://` are
+    // external URLs the provider will fetch itself — both skip dereferencing.
+    // The check uses the full `://` suffix on http/https so a custom scheme
+    // like `httpfoo://…` (which would pass a bare `startsWith("http")` test)
+    // still falls through to the asset / storage retrieval path.
+    const isAlreadyResolved = (uri: string): boolean =>
+      uri.startsWith("data:") ||
+      uri.startsWith("http://") ||
+      uri.startsWith("https://");
+
     const resolvePart = async (
       part: MessageContent
     ): Promise<MessageContent[]> => {
       if (
         part.type === "image_url" &&
         part.image.uri &&
-        !part.image.uri.startsWith("data:") &&
-        !part.image.uri.startsWith("http")
+        !isAlreadyResolved(part.image.uri)
       ) {
         const bytes = await this.retrieveMediaBytes(part.image.uri);
         if (bytes) {
@@ -2310,8 +2319,7 @@ export class ProcessingContext {
       if (
         part.type === "audio" &&
         part.audio.uri &&
-        !part.audio.uri.startsWith("data:") &&
-        !part.audio.uri.startsWith("http")
+        !isAlreadyResolved(part.audio.uri)
       ) {
         const bytes = await this.retrieveMediaBytes(part.audio.uri);
         if (bytes) {
