@@ -20,7 +20,7 @@ Opens from the icons down the left edge. It's a tabbed drawer — click an icon 
 
 The node browser. Search and browse all available nodes, organized into sub-tabs (All, I/O, Image, Image AI, Video, Video AI, Audio, Audio AI, 3D, Agents, Control). Drag a node onto the canvas to add it.
 
-![Left Panel — Nodes](assets/screenshots/editor-left-panel-nodes.png)
+![Left Panel — Nodes](assets/screenshots/screenshot-placeholder.svg)
 
 ### Workflows Tab
 
@@ -32,37 +32,37 @@ Your saved workflows. Search, filter, and double-click to open in a new tab.
 
 Quick image sketches you can drop into the workflow, edited with the built-in layered sketch editor. See [Sketch Editor]({{ '/sketch-editor' | relative_url }}).
 
-![Left Panel — Sketches](assets/screenshots/editor-left-panel-sketches.png)
+![Left Panel — Sketches](assets/screenshots/screenshot-placeholder.svg)
 
 ### Timelines Tab
 
 Timeline-based media arrangements used by the workflow.
 
-![Left Panel — Timelines](assets/screenshots/editor-left-panel-timelines.png)
+![Left Panel — Timelines](assets/screenshots/screenshot-placeholder.svg)
 
 ### Settings Tab
 
 Workflow-level settings.
 
-![Left Panel — Settings](assets/screenshots/editor-left-panel-settings.png)
+![Left Panel — Settings](assets/screenshots/screenshot-placeholder.svg)
 
 ### History Tab
 
 Recent edits and activity for the current workflow.
 
-![Left Panel — History](assets/screenshots/editor-left-panel-history.png)
+![Left Panel — History](assets/screenshots/screenshot-placeholder.svg)
 
 ### Favorites Tab
 
 Your starred nodes for quick access.
 
-![Left Panel — Favorites](assets/screenshots/editor-left-panel-favorites.png)
+![Left Panel — Favorites](assets/screenshots/screenshot-placeholder.svg)
 
 ### Assets Tab
 
 Folder tree plus file grid. Drag a file onto the canvas to instantly create the matching input node.
 
-![Left Panel — Assets](assets/screenshots/editor-left-panel-assets.png)
+![Left Panel — Assets](assets/screenshots/screenshot-placeholder.svg)
 
 ---
 
@@ -100,37 +100,37 @@ The bottom panel docks runtime diagnostics and secondary workflow tools. Drag it
 
 Raw logs from the current run. Filter by level (`debug`, `info`, `warn`, `error`) and search.
 
-![Log Panel](assets/screenshots/editor-bottom-panel-logs.png)
+![Log Panel](assets/screenshots/screenshot-placeholder.svg)
 
 ### Queue
 
 Background jobs queued by your workflows — long-running fine-tunes, downloads, and batch runs.
 
-![Jobs Panel](assets/screenshots/editor-bottom-panel-queue.png)
+![Jobs Panel](assets/screenshots/screenshot-placeholder.svg)
 
 ### Sandboxes & Workers
 
 The code-runner sandboxes and worker processes backing the current run.
 
-![Sandboxes Panel](assets/screenshots/editor-bottom-panel-sandboxes.png)
+![Sandboxes Panel](assets/screenshots/screenshot-placeholder.svg)
 
 ### Versions
 
 Every save is versioned. Review past versions and roll back.
 
-![Version History](assets/screenshots/editor-bottom-panel-versions.png)
+![Version History](assets/screenshots/screenshot-placeholder.svg)
 
 ### Workspace
 
 File hierarchy of the backing workspace (on local installs) or the assigned workspace (on server installs).
 
-![Workspace Tree](assets/screenshots/editor-bottom-panel-workspace.png)
+![Workspace Tree](assets/screenshots/screenshot-placeholder.svg)
 
 ### Trace
 
 The full execution trace of the most recent run — per-node timing and the call tree.
 
-![Execution Tree](assets/screenshots/editor-bottom-panel-trace.png)
+![Execution Tree](assets/screenshots/screenshot-placeholder.svg)
 
 ---
 
