@@ -449,11 +449,11 @@ export function filterNodesUtil(
     selectedInputType ||
     selectedOutputType
   ) {
+    const searchResultKeys = new Set(
+      searchResults.map((r) => `${r.namespace}::${r.title}`)
+    );
     filteredNodes = nodes.filter((node) =>
-      searchResults.some(
-        (result) =>
-          result.title === node.title && result.namespace === node.namespace
-      )
+      searchResultKeys.has(`${node.namespace}::${node.title}`)
     );
   } else {
     filteredNodes = nodes.filter((node) => {

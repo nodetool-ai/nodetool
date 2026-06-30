@@ -23,6 +23,8 @@
 | **release.yaml** | Git tags `v*` + manual | Build and sign cross-platform release artifacts |
 | **flatpak-ci.yml** | Push to main + manual | Build Flatpak desktop package |
 | **jekyll.yml** | Push to main + manual | Build and deploy docs site to GitHub Pages |
+| **marketing-ci.yml** | Push/PR touching `marketing/**` | Typecheck, lint, build & Playwright smoke tests for the marketing site; on push to main, deploys it to Cloudflare Workers (OpenNext) after the gates pass |
+| **web-deploy.yml** | Push to main (+ manual) | Build the web app (Vite) and deploy it to Cloudflare Pages |
 
 ## Reusable Workflows
 

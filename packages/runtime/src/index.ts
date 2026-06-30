@@ -113,6 +113,7 @@ export { loadMediaRefBytes, type MediaRefValue } from "./media-ref-bytes.js";
 export {
   classifyAssetToken,
   classifyTextToken,
+  expandAssetReferences,
   findAssetRefs,
   findImageAssetRefs,
   findTextAssetRefs,

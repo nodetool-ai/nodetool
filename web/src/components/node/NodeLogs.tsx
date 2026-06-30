@@ -3,14 +3,21 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useRef, useEffect, useCallback, useState, useMemo } from "react";
+
+import useLogsStore, { nodeLogKey } from "../../stores/LogStore";
+import isEqual from "fast-deep-equal";
 import {
+  CopyButton,
+  Text,
+  Chip,
+  EditorButton,
+  Dialog,
+  FlexRow,
+  BORDER_RADIUS,
   DialogTitle,
   DialogContent,
   DialogActions
-} from "@mui/material";
-import useLogsStore, { nodeLogKey } from "../../stores/LogStore";
-import isEqual from "fast-deep-equal";
-import { CopyButton, Text, Chip, EditorButton, Dialog, FlexRow, BORDER_RADIUS } from "../ui_primitives";
+} from "../ui_primitives";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import LogsTable, { LogRow, Severity } from "../common/LogsTable";
 

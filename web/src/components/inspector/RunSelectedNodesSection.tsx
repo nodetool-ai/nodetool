@@ -155,9 +155,9 @@ const RunSelectedNodesSectionInternal: React.FC = () => {
           <span>Run selected nodes</span>
           <ShortcutHint className="run-shortcut" shortcut={["⌘", "Enter"]} />
         </EditorButton>
-        {inSequence ? (
+        {inSequence && runProgress !== null ? (
           <Caption size="smaller" color="muted">
-            {`Run ${runProgress!.current}/${runProgress!.total}`}
+            {`Run ${runProgress.current}/${runProgress.total}`}
           </Caption>
         ) : null}
       </FlexColumn>

@@ -60,7 +60,7 @@ Each tile shows:
 
 If a template requires a model you don't have, opening it shows the **Recommended Models** dialog so you can install them in one click.
 
-![Recommended Models from Template](assets/screenshots/screenshot-placeholder.svg)
+![Recommended Models from Template](assets/screenshots/recommended-models.png)
 
 ---
 

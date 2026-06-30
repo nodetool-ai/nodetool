@@ -3,8 +3,6 @@
 import React, { memo, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
-  Tabs,
-  Tab,
   useMediaQuery
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -20,7 +18,9 @@ import {
   Tooltip,
   EditorButton,
   FlexColumn,
-  Box
+  Box,
+  Tabs,
+  Tab
 } from "../ui_primitives";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";

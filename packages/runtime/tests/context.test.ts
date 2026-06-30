@@ -988,6 +988,48 @@ describe("ProcessingContext – asset helper methods", () => {
     }
   });
 
+  it("resolveMessageMediaUris splits a text-embedded image mention into its own resolved block", async () => {
+    const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      userId: "u1",
+      fetchFn: async (input: string | URL | Request) => {
+        const url = String(input);
+        if (url.endsWith("/api/assets/img.png")) {
+          return new Response(
+            JSON.stringify({ id: "img", get_url: "/api/storage/img.png" }),
+            { status: 200, headers: { "content-type": "application/json" } }
+          );
+        }
+        if (url.endsWith("/api/storage/img.png")) {
+          return new Response(pngBytes, {
+            status: 200,
+            headers: { "content-type": "image/png" }
+          });
+        }
+        return new Response("not found", { status: 404 });
+      }
+    });
+
+    const resolved = await ctx.resolveMessageMediaUris([
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "describe asset://img.png in detail" }
+        ]
+      }
+    ]);
+
+    const parts = resolved[0].content as Array<Record<string, any>>;
+    expect(parts).toHaveLength(3);
+    expect(parts[0]).toEqual({ type: "text", text: "describe " });
+    expect(parts[1].type).toBe("image_url");
+    expect(parts[1].image.uri).toBe(
+      `data:image/png;base64,${Buffer.from(pngBytes).toString("base64")}`
+    );
+    expect(parts[2]).toEqual({ type: "text", text: " in detail" });
+  });
+
   it("resolveMessageMediaUris inlines asset:// text documents into text parts", async () => {
     const storage = new InMemoryStorageAdapter();
     await storage.store(

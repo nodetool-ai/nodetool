@@ -1,5 +1,9 @@
-import { Autocomplete, SxProps, TextField } from "@mui/material";
-import { Text } from "../ui_primitives";
+import type { SxProps } from "@mui/material";
+import {
+  Text,
+  TextField,
+  MuiAutocomplete as Autocomplete
+} from "../ui_primitives";
 import { WorkflowList } from "../../stores/ApiTypes";
 import { useQuery } from "@tanstack/react-query";
 import { memo } from "react";

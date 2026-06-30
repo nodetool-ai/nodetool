@@ -331,9 +331,12 @@ const PanelContent = memo(function PanelContent({
         >
           {!isMobile && (
             <PanelHeadline
-              title="Assets"
+              title={currentWorkflow ? "Workflow Output" : "Assets"}
               actions={
-                <Tooltip title="Fullscreen" placement="right-start">
+                <Tooltip
+                  title="Open the global asset library"
+                  placement="right-start"
+                >
                   <ToolbarIconButton
                     className={`${path === "/assets" ? "active" : ""}`}
                     onClick={handleFullscreenClick}

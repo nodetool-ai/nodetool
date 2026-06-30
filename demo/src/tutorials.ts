@@ -137,7 +137,7 @@ export const TUTORIALS: TutorialEntry[] = [
     ],
     captions: [
       { fromMs: 1500, toMs: 2800, text: "Two inputs this time — a name and a topic." },
-      { fromMs: 3100, toMs: 5700, text: "Both wire into one Format Text node that fills a {{ template }}." },
+      { fromMs: 3100, toMs: 5700, text: "Both wire into one Prompt node that fills a {{ template }}." },
       { fromMs: 6100, toMs: 8800, text: "The merged sentence appears in the Preview." },
     ],
     outroTitle: "Branch and merge",

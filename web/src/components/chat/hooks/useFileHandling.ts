@@ -33,12 +33,16 @@ export const useFileHandling = () => {
   const addNotification = useNotificationStore((state) => state.addNotification);
 
   const makeMessageContent = (file: DroppedFile): MessageContent => {
+    // For asset-library drops, send the `asset://<id>.<ext>` reference instead
+    // of the inline bytes — the server resolves it before the provider call.
+    // Local-file drops still ride as a `data:` URI in `dataUri`.
+    const uri = file.assetUri ?? file.dataUri;
     if (file.type.startsWith("image/")) {
       return {
         type: "image_url",
         image: {
           type: "image",
-          uri: file.dataUri
+          uri
         }
       };
     } else if (file.type.startsWith("audio/")) {
@@ -46,7 +50,7 @@ export const useFileHandling = () => {
         type: "audio",
         audio: {
           type: "audio",
-          uri: file.dataUri
+          uri
         }
       };
     } else if (file.type.startsWith("video/")) {
@@ -54,7 +58,7 @@ export const useFileHandling = () => {
         type: "video",
         video: {
           type: "video",
-          uri: file.dataUri
+          uri
         }
       };
     } else if (file.type.match(DOC_TYPES_REGEX)) {
@@ -62,7 +66,7 @@ export const useFileHandling = () => {
         type: "document",
         document: {
           type: "document",
-          uri: file.dataUri
+          uri
         }
       };
     } else {

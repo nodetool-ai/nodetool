@@ -3327,6 +3327,16 @@ export class UnifiedWebSocketRunner {
       memoryContext = "";
     }
 
+    // Expand any `asset://<id>.<ext>` references the composer or a prior turn
+    // attached and dereference the URIs to data the provider can consume.
+    // Image / audio mentions typed inline in a text part get split into proper
+    // blocks first (mirroring what the workflow agent node does in
+    // `buildUserMessage`), then every block with an `asset://` / storage URI is
+    // resolved to a data URI. Text-document mentions are inlined as their
+    // decoded contents. Without this step the provider would see literal
+    // `asset://…` text and never look at the referenced media.
+    messagesToSend = await ctx.resolveMessageMediaUris(messagesToSend);
+
     // Run one tool call and return the result to feed back to the model. Owns
     // server/client tool routing, side effects (client round-trips via the
     // ToolBridge), and asset materialization; the provider's loop orchestrates.

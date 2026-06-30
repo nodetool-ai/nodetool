@@ -13,9 +13,6 @@ import React, {
 } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import {
-  Select,
-  MenuItem,
-  FormControl,
   SelectChangeEvent
 } from "@mui/material";
 import {
@@ -25,7 +22,14 @@ import {
   ToggleGroup,
   ToggleOption,
   FlexColumn,
-  FlexRow, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+  FlexRow,
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx,
+  Select,
+  MenuItem,
+  FormControl
+} from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Canvas, useThree, ThreeEvent } from "@react-three/fiber";

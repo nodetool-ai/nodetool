@@ -1,7 +1,14 @@
 import React, { memo } from "react";
 //mui
-import { MenuItem } from "@mui/material";
-import { Text, Divider, ContextMenu, SPACING, getSpacingPx } from "../ui_primitives";
+
+import {
+  Text,
+  Divider,
+  ContextMenu,
+  SPACING,
+  getSpacingPx,
+  MenuItem
+} from "../ui_primitives";
 import { shallow } from "zustand/shallow";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import ContextMenuItem from "./ContextMenuItem";

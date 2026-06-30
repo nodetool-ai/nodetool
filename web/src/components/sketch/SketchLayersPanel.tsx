@@ -20,15 +20,25 @@ import {
 } from "./sketchStyles";
 import { alpha, useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+
 import {
+  FlexColumn,
+  FlexRow,
+  Box,
+  Tooltip,
+  Divider,
+  Text,
+  MOTION,
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx,
   IconButton,
   Menu,
   Slider,
   Select,
   MenuItem,
   FormControl
-} from "@mui/material";
-import { FlexColumn, FlexRow, Box, Tooltip, Divider, Text, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+} from "../ui_primitives";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";

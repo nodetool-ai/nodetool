@@ -1,5 +1,4 @@
 import { spawn } from "node:child_process";
-import { rm } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -28,8 +27,16 @@ export async function runCommand(command, args, options = {}) {
 }
 
 export async function prepareTypeScriptWorkspaceBuild(workspaceDir, execute = runCommand) {
-  await rm(resolve(workspaceDir, "dist"), { recursive: true, force: true });
-  await rm(resolve(workspaceDir, "tsconfig.tsbuildinfo"), { force: true });
+  // Intentionally do NOT `rm -rf dist` here. `tsc --build` is incremental: it
+  // tracks outputs in `tsconfig.tsbuildinfo` and rewrites only what changed,
+  // including removing artifacts for sources that were deleted from the input
+  // set. Wiping `dist/` first opens a window where the package's files are
+  // missing — turbo schedules build tasks in parallel with concurrent
+  // `test --filter --affected` tasks, and a test that imports a leaf package
+  // (or transitively reaches a `dist/` subpath via re-exports in another
+  // package's compiled output) races against the rebuild and fails with
+  // `ERR_MODULE_NOT_FOUND`. Letting `tsc` update in place closes the window
+  // without changing the build outputs.
 
   const { command, args } = getTypeScriptBuildCommand(repoRoot);
   await execute(command, args, {

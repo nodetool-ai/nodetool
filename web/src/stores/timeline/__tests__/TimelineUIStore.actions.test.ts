@@ -191,3 +191,32 @@ describe("TimelineUIStore — FX panel", () => {
     expect(store.getState().expandedFxTrackId).toBe("track-2");
   });
 });
+
+describe("TimelineUIStore — track drag-reorder", () => {
+  it("beginTrackDrag sets id and clears stale drop target", () => {
+    store.getState().setTrackDropTarget({ trackId: "x", position: "after" });
+    store.getState().beginTrackDrag("t1");
+    expect(store.getState().draggingTrackId).toBe("t1");
+    expect(store.getState().trackDropTarget).toBeNull();
+  });
+
+  it("setTrackDropTarget stores the target", () => {
+    const target = { trackId: "t2", position: "before" as const };
+    store.getState().setTrackDropTarget(target);
+    expect(store.getState().trackDropTarget).toEqual(target);
+  });
+
+  it("setTrackDropTarget clears with null", () => {
+    store.getState().setTrackDropTarget({ trackId: "t1", position: "after" });
+    store.getState().setTrackDropTarget(null);
+    expect(store.getState().trackDropTarget).toBeNull();
+  });
+
+  it("endTrackDrag clears dragging id and drop target", () => {
+    store.getState().beginTrackDrag("t1");
+    store.getState().setTrackDropTarget({ trackId: "t2", position: "after" });
+    store.getState().endTrackDrag();
+    expect(store.getState().draggingTrackId).toBeNull();
+    expect(store.getState().trackDropTarget).toBeNull();
+  });
+});

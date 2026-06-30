@@ -9,16 +9,21 @@ import React, {
   useMemo,
   useState
 } from "react";
+
+import CheckIcon from "@mui/icons-material/Check";
+import { CANVAS_PRESETS } from "./types";
+import { SKETCH_COLORS, SKETCH_FONT, SKETCH_SPACING, SKETCH_TOOLTIP_DELAY_MS } from "./sketchStyles";
 import {
+  FlexColumn,
+  FlexRow,
+  StateIconButton,
+  Text,
+  Tooltip,
   MenuItem,
   Select,
   Switch,
   TextField
-} from "@mui/material";
-import CheckIcon from "@mui/icons-material/Check";
-import { CANVAS_PRESETS } from "./types";
-import { SKETCH_COLORS, SKETCH_FONT, SKETCH_SPACING, SKETCH_TOOLTIP_DELAY_MS } from "./sketchStyles";
-import { FlexColumn, FlexRow, StateIconButton, Text, Tooltip } from "../ui_primitives";
+} from "../ui_primitives";
 
 function cycleArrayValue<T>(
   values: readonly T[],
