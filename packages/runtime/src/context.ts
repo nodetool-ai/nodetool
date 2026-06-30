@@ -2284,15 +2284,19 @@ export class ProcessingContext {
       flac: "audio/flac"
     };
 
-    // Only resolve URIs that name a known reference into the asset / storage
-    // layer — `asset://<id>.<ext>` (the user-mentioned-asset scheme) and the
-    // legacy `/api/storage/<key>` browser-facing path that older DB messages
-    // still carry. Everything else (data URIs, external http(s), unknown
-    // schemes) passes through untouched so a malicious or unexpected URI
-    // never reaches `retrieveMediaBytes` — that function feeds the storage
-    // adapter and would otherwise be a sink for caller-controlled paths.
+    // Strict, anchored sanitizer for the URIs that may flow into the asset /
+    // storage retrieval path. Two schemes are recognized — `asset://<id>.<ext>`
+    // (the user-mentioned-asset scheme) and the legacy `/api/storage/<key>`
+    // browser-facing path that older DB messages still carry. The character
+    // class matches the one in `prompt-asset-refs`' parser regex, so a
+    // hand-typed token and an inline expansion behave identically. Everything
+    // else (data URIs, external http(s), arbitrary or attacker-supplied
+    // strings) is rejected and the part passes through untouched — so the
+    // storage adapter never sees an unrecognized URI shape.
+    const RESOLVABLE_URI_RE =
+      /^(?:asset:\/\/|\/api\/storage\/)[A-Za-z0-9._~\-/]+$/;
     const isResolvableUri = (uri: string): boolean =>
-      uri.startsWith("asset://") || uri.startsWith("/api/storage/");
+      RESOLVABLE_URI_RE.test(uri);
 
     const resolvePart = async (
       part: MessageContent
