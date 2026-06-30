@@ -38,7 +38,7 @@ The in-app Settings dialog is the easiest way to manage everything. It has a sid
 | **Remote** | Point the app at a remote NodeTool server |
 | **About** | Version and build info |
 
-![Settings Subviews](assets/screenshots/screenshot-placeholder.svg)
+![Settings Subviews](assets/screenshots/settings-api-keys.png)
 
 From the command line:
 
