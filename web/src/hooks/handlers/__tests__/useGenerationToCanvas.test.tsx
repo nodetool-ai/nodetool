@@ -1,17 +1,5 @@
 import { renderHook, act } from "@testing-library/react";
 
-type AnyMsg = {
-  id?: string;
-  role: string;
-  content: unknown;
-};
-
-// Mutable backing state for the mocked stores; each rerender reads it fresh.
-const gcState: { currentThreadId: string | null; messageCache: Record<string, AnyMsg[]> } = {
-  currentThreadId: "t1",
-  messageCache: { t1: [] }
-};
-
 let nodeCounter = 0;
 const createNode = jest.fn((_meta: unknown, position: { x: number; y: number }) => ({
   id: `node-${(nodeCounter += 1)}`,
@@ -23,13 +11,16 @@ const nodeStoreState = { nodes: [] as unknown[], createNode, addNode };
 const getMetadata = jest.fn(() => ({ node_type: "stub" }));
 
 jest.mock("../../../contexts/NodeContext", () => ({
-  useNodeStoreRef: () => ({ getState: () => nodeStoreState })
+  NodeContext: { Provider: ({ children }: { children: unknown }) => children }
 }));
 
-jest.mock("../../../stores/GlobalChatStore", () => ({
-  __esModule: true,
-  default: (selector: (s: typeof gcState) => unknown) => selector(gcState)
-}));
+jest.mock("react", () => {
+  const actual = jest.requireActual("react");
+  return {
+    ...actual,
+    useContext: () => ({ getState: () => nodeStoreState })
+  };
+});
 
 jest.mock("../../../stores/MetadataStore", () => ({
   __esModule: true,
@@ -37,38 +28,30 @@ jest.mock("../../../stores/MetadataStore", () => ({
     selector({ getMetadata })
 }));
 
-import { useGenerationToCanvas } from "../useGenerationToCanvas";
+import {
+  useAddMediaToCanvas,
+  type MediaContentBlock
+} from "../useGenerationToCanvas";
 
-const imageMessage = (id: string): AnyMsg => ({
-  id,
-  role: "assistant",
-  content: [
-    {
-      type: "image_url",
-      image: { type: "image", asset_id: "a1", uri: "http://x/img.png" }
-    }
-  ]
-});
+const imageBlock: MediaContentBlock = {
+  type: "image_url",
+  image: { type: "image", asset_id: "a1", uri: "http://x/img.png" }
+} as MediaContentBlock;
 
 beforeEach(() => {
   createNode.mockClear();
   addNode.mockClear();
   getMetadata.mockClear();
   nodeCounter = 0;
-  gcState.currentThreadId = "t1";
-  gcState.messageCache = { t1: [] };
 });
 
-describe("useGenerationToCanvas", () => {
-  it("drops a node for a new assistant media message after a generation is requested", () => {
-    const { result, rerender } = renderHook(() => useGenerationToCanvas());
+describe("useAddMediaToCanvas", () => {
+  it("creates a constant node when addBlocksToCanvas is called", () => {
+    const { result } = renderHook(() => useAddMediaToCanvas());
 
     act(() => {
-      result.current.markGenerationStarted();
+      result.current.addBlocksToCanvas([imageBlock]);
     });
-
-    gcState.messageCache = { t1: [imageMessage("m1")] };
-    rerender();
 
     expect(createNode).toHaveBeenCalledTimes(1);
     expect(addNode).toHaveBeenCalledTimes(1);
@@ -82,17 +65,8 @@ describe("useGenerationToCanvas", () => {
     });
   });
 
-  it("does not drop nodes for messages that predate mount (history)", () => {
-    gcState.messageCache = { t1: [imageMessage("old")] };
-    const { rerender } = renderHook(() => useGenerationToCanvas());
-    rerender();
-    expect(addNode).not.toHaveBeenCalled();
-  });
-
-  it("ignores assistant media when no generation was requested", () => {
-    const { rerender } = renderHook(() => useGenerationToCanvas());
-    gcState.messageCache = { t1: [imageMessage("m1")] };
-    rerender();
-    expect(addNode).not.toHaveBeenCalled();
+  it("reports canvas availability based on NodeContext", () => {
+    const { result } = renderHook(() => useAddMediaToCanvas());
+    expect(result.current.isCanvasAvailable).toBe(true);
   });
 });
