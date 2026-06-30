@@ -4,12 +4,23 @@
  */
 
 import React, { memo, useState, useMemo, useEffect, useCallback } from "react";
+
 import {
+  Text,
+  Caption,
+  EditorButton,
+  ToolbarIconButton,
+  Chip,
+  Box,
+  ProgressBar,
+  Collapse,
+  MOTION,
+  Card,
+  BORDER_RADIUS,
   List,
   ListItem,
   ListItemText
-} from "@mui/material";
-import { Text, Caption, EditorButton, ToolbarIconButton, Chip, Box, ProgressBar, Collapse, MOTION, Card, BORDER_RADIUS } from "../ui_primitives";
+} from "../ui_primitives";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import DownloadIcon from "@mui/icons-material/Download";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";

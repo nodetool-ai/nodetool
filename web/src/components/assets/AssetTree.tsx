@@ -2,13 +2,17 @@
 import { css } from "@emotion/react";
 
 import React, { useEffect, useState, useCallback, useMemo, memo } from "react";
+
 import {
+  Text,
+  LoadingSpinner,
+  Box,
+  Collapse,
   List,
   ListItemButton,
   ListItemIcon,
   ListItemText
-} from "@mui/material";
-import { Text, LoadingSpinner, Box, Collapse } from "../ui_primitives";
+} from "../ui_primitives";
 import { ExpandLess, ExpandMore } from "@mui/icons-material";
 import { useAssetStore } from "../../stores/AssetStore";
 import { Asset } from "../../stores/ApiTypes";

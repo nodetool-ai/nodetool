@@ -3,8 +3,14 @@ import { css } from "@emotion/react";
 import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { InputAdornment } from "@mui/material";
-import { TextInput, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+
+import {
+  TextInput,
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx,
+  InputAdornment
+} from "../ui_primitives";
 import { Box } from "../ui_primitives";
 import { useColorConversion } from "../../hooks/useColorConversion";
 import type { ColorMode } from "../../hooks/useColorConversion";

@@ -3,8 +3,15 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useCallback, useState, useRef, useMemo } from "react";
-import { Popover, Button } from "@mui/material";
-import { Tooltip, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import {
+  Tooltip,
+  MOTION,
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx,
+  Button,
+  Popover
+} from "../ui_primitives";
 import { colorPickerColors } from "../../constants/colors";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { ColorPickerModal } from "../color_picker";

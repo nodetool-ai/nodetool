@@ -1,9 +1,17 @@
 import React, { memo, useCallback, useMemo, useState } from "react";
+
 import {
+  ToolbarIconButton,
+  FlexRow,
+  Checkbox,
+  EditorMenu,
+  EditorMenuItem,
+  MOTION,
+  SPACING,
+  getSpacingPx,
   ListItemIcon,
   ListItemText
-} from "@mui/material";
-import { ToolbarIconButton, FlexRow, Checkbox, EditorMenu, EditorMenuItem, MOTION, SPACING, getSpacingPx } from "../ui_primitives";
+} from "../ui_primitives";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "fast-deep-equal";

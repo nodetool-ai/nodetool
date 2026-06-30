@@ -1,13 +1,22 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useMemo } from "react";
 import { css } from "@emotion/react";
+
+import AnnouncementIcon from "@mui/icons-material/Announcement";
 import {
+  Dialog,
+  CloseButton,
+  Text,
+  FlexColumn,
+  Divider,
+  EditorButton,
+  Box,
+  SPACING,
+  getSpacingPx,
   DialogTitle,
   DialogContent,
   DialogActions
-} from "@mui/material";
-import AnnouncementIcon from "@mui/icons-material/Announcement";
-import { Dialog, CloseButton, Text, FlexColumn, Divider, EditorButton, Box, SPACING, getSpacingPx } from "../ui_primitives";
+} from "../ui_primitives";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { useShallow } from "zustand/react/shallow";
 import { DownloadProgress } from "./DownloadProgress";

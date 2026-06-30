@@ -2,11 +2,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { shallow } from "zustand/shallow";
-import {
-  MenuItem,
-  TextField,
-  InputAdornment
-} from "@mui/material";
+
 import { css } from "@emotion/react";
 import useConnectableNodesStore, { ConnectableNodesState } from "../../stores/ConnectableNodesStore";
 import { useReactFlow } from "@xyflow/react";
@@ -17,7 +13,19 @@ import { rankSearchNodes } from "../../utils/nodeSearch";
 import ClearIcon from "@mui/icons-material/Clear";
 import SearchIcon from "@mui/icons-material/Search";
 import NodeItem from "../node_menu/NodeItem";
-import { Text, ToolbarIconButton, Box, MOTION, ContextMenu, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import {
+  Text,
+  ToolbarIconButton,
+  Box,
+  MOTION,
+  ContextMenu,
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx,
+  MenuItem,
+  TextField,
+  InputAdornment
+} from "../ui_primitives";
 import { useNodes } from "../../contexts/NodeContext";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 import { useTheme } from "@mui/material/styles";

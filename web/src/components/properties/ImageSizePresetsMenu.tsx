@@ -1,6 +1,14 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { ListSubheader, InputAdornment } from "@mui/material";
-import { FlexColumn, FlexRow, NodeTextField, EditorMenu, EditorMenuItem } from "../ui_primitives";
+
+import {
+  FlexColumn,
+  FlexRow,
+  NodeTextField,
+  EditorMenu,
+  EditorMenuItem,
+  ListSubheader,
+  InputAdornment
+} from "../ui_primitives";
 import Search from "@mui/icons-material/Search";
 import { IMAGE_SIZE_PRESETS, PresetOption } from "../../config/constants";
 

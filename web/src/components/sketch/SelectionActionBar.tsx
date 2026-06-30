@@ -27,8 +27,6 @@ import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import TuneIcon from "@mui/icons-material/Tune";
 
-import { Box } from "@mui/material";
-
 import {
   BORDER_RADIUS,
   CloseButton,
@@ -38,7 +36,8 @@ import {
   reducedMotion,
   TextInput,
   Toast,
-  Tooltip
+  Tooltip,
+  Box
 } from "../ui_primitives";
 import ImageModelSelect from "../properties/ImageModelSelect";
 import type { ImageModelValue } from "../../stores/ApiTypes";

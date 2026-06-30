@@ -11,12 +11,16 @@ import React, { memo, useCallback, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import MenuItem from "@mui/material/MenuItem";
-import Select from "@mui/material/Select";
-import type { SelectChangeEvent } from "@mui/material/Select";
 import ImageIcon from "@mui/icons-material/Image";
 
-import { CheckerDropzone, NodeSlider, BORDER_RADIUS } from "../../ui_primitives";
+import {
+  CheckerDropzone,
+  NodeSlider,
+  BORDER_RADIUS,
+  MenuItem,
+  Select,
+  type SelectChangeEvent
+} from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import ImageRefPreview from "../../node/ImageRefPreview";
 import { NodeOutputs } from "../../node/NodeOutputs";

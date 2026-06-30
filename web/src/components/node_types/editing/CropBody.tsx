@@ -29,11 +29,14 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ImageIcon from "@mui/icons-material/Image";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
-import MenuItem from "@mui/material/MenuItem";
-import Select from "@mui/material/Select";
-import type { SelectChangeEvent } from "@mui/material/Select";
 
-import { CheckerDropzone, BORDER_RADIUS } from "../../ui_primitives";
+import {
+  CheckerDropzone,
+  BORDER_RADIUS,
+  MenuItem,
+  Select,
+  type SelectChangeEvent
+} from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";

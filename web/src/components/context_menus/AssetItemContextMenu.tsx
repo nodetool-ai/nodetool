@@ -2,8 +2,13 @@ import type { MouseEvent } from "react";
 import { useCallback, memo } from "react";
 import { useNavigate } from "react-router-dom";
 //mui
-import { MenuItem } from "@mui/material";
-import { Text, Divider, ContextMenu } from "../ui_primitives";
+
+import {
+  Text,
+  Divider,
+  ContextMenu,
+  MenuItem
+} from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 //icons
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";

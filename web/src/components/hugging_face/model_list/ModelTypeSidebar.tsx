@@ -1,11 +1,19 @@
 import React, { useCallback } from "react";
+
 import {
+  Chip,
+  Text,
+  ToolbarIconButton,
+  Box,
+  MOTION,
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx,
   List,
   ListItem,
   ListItemButton,
   ListItemText
-} from "@mui/material";
-import { Chip, Text, ToolbarIconButton, Box, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
+} from "../../ui_primitives";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { IconForType } from "../../../config/IconForType";
 import { prettifyModelType } from "../../../utils/modelFormatting";

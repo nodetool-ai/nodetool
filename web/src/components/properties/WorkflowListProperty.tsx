@@ -1,5 +1,7 @@
 import { memo, useCallback } from "react";
-import { OutlinedInput, SelectChangeEvent } from "@mui/material";
+import {
+  SelectChangeEvent
+} from "@mui/material";
 import { WorkflowList } from "../../stores/ApiTypes";
 import PropertyLabel from "../node/PropertyLabel";
 import { useQuery } from "@tanstack/react-query";
@@ -8,6 +10,9 @@ import isEqual from "fast-deep-equal";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { NodeSelect, NodeMenuItem } from "../editor_ui";
 
+import {
+  OutlinedInput
+} from "../ui_primitives";
 const WorkflowListProperty = (props: PropertyProps) => {
   const id = `workflow-list-${props.property.name}-${props.propertyIndex}`;
   const workflowIds: string[] = props.value?.map((workflow: { id: string }) => workflow.id) || [];

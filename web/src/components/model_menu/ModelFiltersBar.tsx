@@ -1,17 +1,21 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React from "react";
+
 import {
+  ToolbarIconButton,
+  Checkbox,
+  Box,
+  EditorMenu,
+  EditorMenuItem,
   ListItemText
-} from "@mui/material";
-import { ToolbarIconButton, Checkbox, Box, EditorMenu, EditorMenuItem } from "../ui_primitives";
+} from "../ui_primitives";
 import CategoryIcon from "@mui/icons-material/Category";
 import StraightenIcon from "@mui/icons-material/Straighten";
 import useModelFiltersStore, {
   SizeBucket,
   TypeTag
 } from "../../stores/ModelFiltersStore";
-
 
 const barStyles = css({
   display: "flex",

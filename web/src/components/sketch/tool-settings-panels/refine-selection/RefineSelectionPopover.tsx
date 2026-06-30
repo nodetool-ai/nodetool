@@ -11,7 +11,7 @@
  */
 
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
-import { Slider } from "@mui/material";
+
 import { useTheme } from "@mui/material/styles";
 
 import {
@@ -19,7 +19,8 @@ import {
   FlexColumn,
   FlexRow,
   Popover,
-  Text
+  Text,
+  Slider
 } from "../../../ui_primitives";
 import { sketchSliderSx } from "../../sketchStyles";
 import { cloneSelectionMask, MAX_SELECTION_FEATHER_RADIUS } from "../../selection";

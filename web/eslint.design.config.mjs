@@ -53,6 +53,10 @@ export default [
       "@typescript-eslint/no-require-imports": "off",
       "no-restricted-imports": noRestrictedImports,
       "no-restricted-syntax": noRestrictedSyntax,
+      // Raw MUI component imports are fully migrated (zero violations) — locked
+      // in as an error so any new one fails the gate. See docs/DESIGN.md and
+      // ui_primitives/STRATEGY.md.
+      "design-tokens/no-raw-mui": "error",
       // Spacing is fully migrated (zero violations) — locked in as an error so
       // any new raw-px padding/margin/gap fails the gate. See docs/DESIGN.md §2.
       "design-tokens/spacing-tokens": "error",

@@ -1,10 +1,14 @@
 import React, { useState, useCallback, useMemo, useRef, memo } from "react";
 import isEqual from "fast-deep-equal";
+
 import {
+  Text,
+  Caption,
+  LoadingSpinner,
+  FlexRow,
   ListItemText,
   ListItemIcon
-} from "@mui/material";
-import { Text, Caption, LoadingSpinner, FlexRow } from "../ui_primitives";
+} from "../ui_primitives";
 import CheckIcon from "@mui/icons-material/Check";
 import { useOllamaModels } from "../../hooks/useOllamaModels";
 import { isElectron } from "../../lib/env";

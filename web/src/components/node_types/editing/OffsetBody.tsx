@@ -10,11 +10,16 @@ import React, { memo, useCallback, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import ToggleButton from "@mui/material/ToggleButton";
-import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import ImageIcon from "@mui/icons-material/Image";
 
-import { CheckerDropzone, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
+import {
+  CheckerDropzone,
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx,
+  ToggleButton,
+  ToggleButtonGroup
+} from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import ImageRefPreview from "../../node/ImageRefPreview";
 import { NodeOutputs } from "../../node/NodeOutputs";

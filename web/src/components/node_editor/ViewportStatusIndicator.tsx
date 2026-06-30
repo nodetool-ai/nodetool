@@ -1,9 +1,20 @@
 import { memo, useCallback, useMemo, useState, useEffect, useRef } from "react";
+
 import {
+  Tooltip,
+  ToolbarIconButton,
+  Text,
+  FlexRow,
+  Box,
+  Popover,
+  ListGroup,
+  MOTION,
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx,
   ListItemButton,
   ListItemText
-} from "@mui/material";
-import { Tooltip, ToolbarIconButton, Text, FlexRow, Box, Popover, ListGroup, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+} from "../ui_primitives";
 import { useViewport, useReactFlow } from "@xyflow/react";
 import { useTheme } from "@mui/material/styles";
 import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";

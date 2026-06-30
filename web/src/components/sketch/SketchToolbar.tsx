@@ -11,8 +11,16 @@ import { css } from "@emotion/react";
 import React, { memo, useCallback } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { ToggleButtonGroup, ToggleButton } from "@mui/material";
-import { Divider, FlexColumn, Tooltip, MOTION, BORDER_RADIUS } from "../ui_primitives";
+
+import {
+  Divider,
+  FlexColumn,
+  Tooltip,
+  MOTION,
+  BORDER_RADIUS,
+  ToggleButtonGroup,
+  ToggleButton
+} from "../ui_primitives";
 import type { SelectToolMode, SketchTool } from "./types";
 import {
   getToolShortcutActionId,
