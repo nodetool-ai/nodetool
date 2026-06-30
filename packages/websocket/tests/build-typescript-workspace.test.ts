@@ -16,7 +16,11 @@ describe("prepareTypeScriptWorkspaceBuild", () => {
     await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
   });
 
-  it("removes dist and tsbuildinfo before invoking tsc --build", async () => {
+  it("leaves dist and tsbuildinfo in place when invoking tsc --build", async () => {
+    // Incremental build: the helper must NOT wipe outputs before running tsc.
+    // Wiping opens a window where the package's files are missing, racing
+    // concurrent turbo tasks (see scripts/build-typescript-workspace.mjs for
+    // the full rationale). `tsc --build` updates and removes outputs itself.
     const workspaceDir = await mkdtemp(join(tmpdir(), "nodetool-build-helper-"));
     tempDirs.push(workspaceDir);
 
@@ -25,8 +29,8 @@ describe("prepareTypeScriptWorkspaceBuild", () => {
     await writeFile(join(workspaceDir, "tsconfig.tsbuildinfo"), "stale build state");
 
     const runCommand = vi.fn(async () => {
-      expect(existsSync(join(workspaceDir, "dist"))).toBe(false);
-      expect(existsSync(join(workspaceDir, "tsconfig.tsbuildinfo"))).toBe(false);
+      expect(existsSync(join(workspaceDir, "dist"))).toBe(true);
+      expect(existsSync(join(workspaceDir, "tsconfig.tsbuildinfo"))).toBe(true);
     });
 
     await prepareTypeScriptWorkspaceBuild(workspaceDir, runCommand);
@@ -38,7 +42,9 @@ describe("prepareTypeScriptWorkspaceBuild", () => {
         cwd: workspaceDir
       }
     );
-    await expect(readFile(join(workspaceDir, "tsconfig.tsbuildinfo"), "utf8")).rejects.toThrow();
+    await expect(readFile(join(workspaceDir, "tsconfig.tsbuildinfo"), "utf8")).resolves.toBe(
+      "stale build state"
+    );
   });
 
   it("uses the repo-local TypeScript CLI through node", () => {
