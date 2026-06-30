@@ -1,3 +1,4 @@
+/** @jsxImportSource @emotion/react */
 /**
  * DemoPlayer — renders the real NodeTool graph UI for a cast at a given time.
  *
