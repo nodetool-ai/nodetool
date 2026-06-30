@@ -35,13 +35,11 @@
       "default": "./dist/index.js"
     },
     "./nodes/*": {
-      "nodetool-dev": "./src/nodes/*.ts",
       "types": "./dist/nodes/*.d.ts",
       "import": "./dist/nodes/*.js",
       "default": "./dist/nodes/*.js"
     },
     "./lib/*": {
-      "nodetool-dev": "./src/lib/*.ts",
       "types": "./dist/lib/*.d.ts",
       "import": "./dist/lib/*.js",
       "default": "./dist/lib/*.js"
