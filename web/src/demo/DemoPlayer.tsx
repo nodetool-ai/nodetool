@@ -32,7 +32,12 @@ import { TRPCProvider } from "../trpc/Provider";
 import { queryClient } from "../queryClient";
 
 // Global side-effect styles so the graph renders identically to the editor.
+// vars.css must come first: it defines --handle_width / --handle_height (used
+// in handle_edge_tooltip.css) and the --c_* tokens base.css/nodes.css read.
+// Without it handles render at zero size (the "thin" look) and the editor
+// background falls back to transparent.
 import "@xyflow/react/dist/style.css";
+import "../styles/vars.css";
 import "../styles/base.css";
 import "../styles/nodes.css";
 import "../styles/properties.css";
@@ -41,6 +46,7 @@ import "../styles/special_nodes.css";
 import "../styles/handle_edge_tooltip.css";
 
 import ThemeNodetool from "../components/themes/ThemeNodetool";
+import { generateCSS } from "../components/themes/GenerateCSS";
 import useMetadataStore from "../stores/MetadataStore";
 
 // Real node + edge components (registered so the canvas matches production).
@@ -216,8 +222,13 @@ export function DemoPlayer({
               <ContextMenuProvider active={false}>
                 <NodeContext.Provider value={engine.nodeStore as NodeStore}>
                   <ReactFlowProvider>
+                    {/* `node-editor` class + generateCSS mirror NodeEditor's
+                        wrapper so per-data-type handle/edge colors resolve
+                        the same way they do in the live editor. */}
                     <div
                       data-demo-player
+                      className="node-editor"
+                      css={generateCSS}
                       style={{ width: "100%", height: "100%", ...style }}
                     >
                       <DemoCanvas
