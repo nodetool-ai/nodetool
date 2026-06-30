@@ -18,6 +18,7 @@ import { ModelPack, UnifiedModel } from "../../stores/ApiTypes";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { formatBytes } from "../../utils/modelFormatting";
 import { useHfCacheStatusStore } from "../../stores/HfCacheStatusStore";
+import { useShallow } from "zustand/react/shallow";
 import {
   buildHfCacheRequest,
   canCheckHfCache,
@@ -35,10 +36,12 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
 }) => {
   const [expanded, setExpanded] = useState(false);
   const downloads = useModelDownloadStore((state) => state.downloads);
-  const cacheStatuses = useHfCacheStatusStore((state) => state.statuses);
-  const cacheVersion = useHfCacheStatusStore((state) => state.version);
-  const ensureStatuses = useHfCacheStatusStore(
-    (state) => state.ensureStatuses
+  const { cacheStatuses, cacheVersion, ensureStatuses } = useHfCacheStatusStore(
+    useShallow((state) => ({
+      cacheStatuses: state.statuses,
+      cacheVersion: state.version,
+      ensureStatuses: state.ensureStatuses
+    }))
   );
 
   // Track download progress
