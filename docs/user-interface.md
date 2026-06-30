@@ -351,7 +351,7 @@ Your layout is saved automatically. To reset:
 
 Press `Ctrl+K` (Windows/Linux) or `⌘+K` (Mac) to open the **Command Menu**.
 
-![Command Menu](assets/screenshots/screenshot-placeholder.svg)
+![Command Menu](assets/screenshots/editor-command-menu.png)
 
 This is the fastest way to:
 - Open any workflow

@@ -1,7 +1,22 @@
+/** @jsxImportSource @emotion/react */
 import React, { useCallback, useRef, useEffect, useMemo } from "react";
+import { css } from "@emotion/react";
+import AddToCanvasIcon from "@mui/icons-material/AddPhotoAlternate";
 import { MessageContent } from "../../../stores/ApiTypes";
 import ImageView from "../../node/ImageView";
 import AudioPlayer from "../../audio/AudioPlayer";
+import {
+  BORDER_RADIUS,
+  MOTION,
+  SPACING,
+  ToolbarIconButton,
+  Z_INDEX,
+  getSpacingPx
+} from "../../ui_primitives";
+import {
+  useAddMediaToCanvas,
+  type MediaContentBlock
+} from "../../../hooks/handlers/useGenerationToCanvas";
 import {
   parseHarmonyContent,
   hasHarmonyTokens,
@@ -14,12 +29,40 @@ interface MessageContentRendererProps {
   index: number;
 }
 
+const wrapperStyles = css({
+  position: "relative",
+  ".add-to-canvas-button": {
+    position: "absolute",
+    top: getSpacingPx(SPACING.xs),
+    left: getSpacingPx(SPACING.xs),
+    zIndex: Z_INDEX.dropdown,
+    opacity: 0,
+    transition: `opacity ${MOTION.normal}`,
+    backgroundColor: "var(--palette-c_scrim)",
+    color: "var(--palette-grey-0)",
+    borderRadius: BORDER_RADIUS.sm,
+    width: 24,
+    height: 24,
+    padding: getSpacingPx(SPACING.xs),
+    "&:hover": {
+      backgroundColor: "var(--palette-c_scrim_strong)"
+    },
+    "& svg": {
+      fontSize: 14
+    }
+  },
+  "&:hover .add-to-canvas-button": {
+    opacity: 1
+  }
+});
+
 export const MessageContentRenderer: React.FC<MessageContentRendererProps> = React.memo(({
   content,
   renderTextContent,
   index
 }) => {
   const objectUrlRef = useRef<string | null>(null);
+  const { isCanvasAvailable, addBlocksToCanvas } = useAddMediaToCanvas();
 
   const createObjectUrl = useCallback(
     (
@@ -60,6 +103,21 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
 
   // Memoize video style to prevent recreation on every render
   const videoStyle = useMemo(() => ({ width: "100%" }), []);
+
+  const handleAddToCanvas = useCallback(() => {
+    addBlocksToCanvas([content as MediaContentBlock]);
+  }, [addBlocksToCanvas, content]);
+
+  const addButton = isCanvasAvailable ? (
+    <ToolbarIconButton
+      className="add-to-canvas-button"
+      tooltip="Add to canvas"
+      size="small"
+      onClick={handleAddToCanvas}
+    >
+      <AddToCanvasIcon />
+    </ToolbarIconButton>
+  ) : null;
 
   // Render content according to Harmony format
   switch (content.type) {
@@ -106,18 +164,26 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
         return <div>Error: No image source available</div>;
       }
 
-      return <ImageView source={imageSource} />;
+      return (
+        <div css={wrapperStyles}>
+          <ImageView source={imageSource} />
+          {addButton}
+        </div>
+      );
     }
     case "audio":
       // Handle audio content in Harmony format
       return (
-        <AudioPlayer
-          source={
-            content.audio?.uri === ""
-              ? (content.audio?.data as Uint8Array)
-              : content.audio?.uri
-          }
-        />
+        <div css={wrapperStyles}>
+          <AudioPlayer
+            source={
+              content.audio?.uri === ""
+                ? (content.audio?.data as Uint8Array)
+                : content.audio?.uri
+            }
+          />
+          {addButton}
+        </div>
       );
     case "video": {
       // Handle video content in Harmony format
@@ -128,7 +194,10 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
         "video/mp4"
       );
       return (
-        <video ref={videoRef} controls style={videoStyle} src={uri} aria-label="Video content" />
+        <div css={wrapperStyles}>
+          <video ref={videoRef} controls style={videoStyle} src={uri} aria-label="Video content" />
+          {addButton}
+        </div>
       );
     }
     case "document":

@@ -11,7 +11,6 @@ import {
   isShapeTool,
   isPaintingTool,
   isTransformOnlyTool,
-  isPixelEditTool,
   cloneDefaultToolSettings,
   mergePenPressureIntoBrush,
   mergePenPressureIntoPencil,
@@ -188,18 +187,6 @@ describe("isTransformOnlyTool", () => {
 
   it("returns false for pixel tools", () => {
     expect(isTransformOnlyTool("brush")).toBe(false);
-  });
-});
-
-describe("isPixelEditTool", () => {
-  it("returns true for pixel-editing tools", () => {
-    expect(isPixelEditTool("brush")).toBe(true);
-    expect(isPixelEditTool("eraser")).toBe(true);
-  });
-
-  it("returns false for non-pixel tools", () => {
-    expect(isPixelEditTool("move")).toBe(false);
-    expect(isPixelEditTool("eyedropper")).toBe(false);
   });
 });
 

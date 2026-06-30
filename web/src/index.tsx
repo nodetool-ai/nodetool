@@ -514,9 +514,9 @@ const handleHashRoute = () => {
 handleHashRoute();
 
 const router = createBrowserRouter(getRoutes());
-const root = ReactDOM.createRoot(
-  document.getElementById("root") as HTMLElement
-);
+const rootElement = document.getElementById("root");
+if (!rootElement) throw new Error("Root element #root not found");
+const root = ReactDOM.createRoot(rootElement);
 
 /**
  * Routes Electron menu/tray "Settings" actions to the in-app settings page.

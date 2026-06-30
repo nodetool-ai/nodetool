@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useEffect, useMemo, useRef, memo } from "react";
-import { Text, Tooltip, Divider, Box } from "../ui_primitives";
+import { Text, Tooltip, Divider, Box, Chip, FlexRow } from "../ui_primitives";
+import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import { useTheme } from "@mui/material/styles";
 
 import AudioPlayer from "../audio/AudioPlayer";
@@ -132,7 +133,8 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     selectedFolderId,
     currentAudioAsset,
     currentFolderId,
-    foldersVisible
+    foldersVisible,
+    workflowFilter
   } = useAssetGridStore(
     useShallow((state) => ({
       setOpenAsset: state.setOpenAsset,
@@ -144,12 +146,19 @@ const AssetGrid: React.FC<AssetGridProps> = ({
       selectedFolderId: state.selectedFolderId,
       currentAudioAsset: state.currentAudioAsset,
       currentFolderId: state.currentFolderId,
-      foldersVisible: state.foldersVisible
+      foldersVisible: state.foldersVisible,
+      workflowFilter: state.workflowFilter
     }))
   );
   const currentWorkflowId = useWorkflowManager(
     (state) => state.currentWorkflowId
   );
+  const currentWorkflowName = useWorkflowManager((state) => {
+    const id = state.currentWorkflowId;
+    if (!id) return null;
+    const store = state.nodeStores[id];
+    return store?.getState().getWorkflow()?.name ?? null;
+  });
 
   // Default asset scope per surface: the in-editor sidebar follows the current
   // workflow (re-asserted whenever the open workflow changes), while the
@@ -327,6 +336,42 @@ const AssetGrid: React.FC<AssetGridProps> = ({
           onClose={() => setOpenAsset(null)}
         />
       )}
+      {!isMobile &&
+        !isFullscreenAssets &&
+        currentWorkflowName &&
+        workflowFilter === currentWorkflowId && (
+          <FlexRow
+            align="center"
+            sx={{
+              px: 1,
+              pt: 0.5,
+              pb: 0.25,
+              minWidth: 0
+            }}
+          >
+            <Tooltip
+              title="This panel shows assets produced or used by the workflow you're editing. Open the global library to see all assets."
+              placement="bottom-start"
+              disableInteractive
+            >
+              <Chip
+                compact
+                color="primary"
+                active
+                icon={<AccountTreeOutlinedIcon />}
+                label={currentWorkflowName}
+                sx={{
+                  maxWidth: "100%",
+                  "& .MuiChip-label": {
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap"
+                  }
+                }}
+              />
+            </Tooltip>
+          </FlexRow>
+        )}
       {!isMobile && (
         <AssetActionsMenu
           maxItemSize={maxItemSize}

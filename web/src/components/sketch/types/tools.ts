@@ -763,8 +763,3 @@ export function isPaintingTool(tool: SketchTool): boolean {
 export function isTransformOnlyTool(tool: SketchTool): boolean {
   return editActionKindForTool(tool) === "transform-only";
 }
-
-/** True when the tool may modify layer.data / raster bounds. */
-export function isPixelEditTool(tool: SketchTool): boolean {
-  return editActionKindForTool(tool) === "pixel-edit";
-}

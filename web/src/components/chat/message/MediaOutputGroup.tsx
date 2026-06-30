@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo, useMemo } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -12,7 +12,19 @@ import RecordVoiceOverIcon from "@mui/icons-material/RecordVoiceOver";
 import SpeedIcon from "@mui/icons-material/Speed";
 import TuneIcon from "@mui/icons-material/Tune";
 import LayersIcon from "@mui/icons-material/Layers";
-import { BORDER_RADIUS, FlexColumn, FlexRow, Text, FONT_SIZE_SANS, SPACING, getSpacingPx } from "../../ui_primitives";
+import AddToCanvasIcon from "@mui/icons-material/AddPhotoAlternate";
+import {
+  BORDER_RADIUS,
+  FlexColumn,
+  FlexRow,
+  MOTION,
+  Text,
+  ToolbarIconButton,
+  FONT_SIZE_SANS,
+  SPACING,
+  Z_INDEX,
+  getSpacingPx
+} from "../../ui_primitives";
 import ImageView from "../../node/ImageView";
 import type {
   Message,
@@ -24,6 +36,10 @@ import {
   isImageContent,
   isVideoContent
 } from "./MediaOutputGroup.helpers";
+import {
+  useAddMediaToCanvas,
+  type MediaContentBlock
+} from "../../../hooks/handlers/useGenerationToCanvas";
 
 const VIDEO_STYLE: React.CSSProperties = { width: "100%", height: "100%" };
 const AUDIO_STYLE: React.CSSProperties = { width: "100%", padding: getSpacingPx(SPACING.lg) };
@@ -93,6 +109,7 @@ const styles = (theme: Theme) =>
     },
 
     ".media-grid > *": {
+      position: "relative",
       width: "100%",
       aspectRatio: "auto",
       borderRadius: BORDER_RADIUS.lg,
@@ -105,6 +122,40 @@ const styles = (theme: Theme) =>
       height: "100%",
       display: "block",
       objectFit: "cover"
+    },
+
+    ".add-to-canvas-button": {
+      position: "absolute",
+      top: getSpacingPx(SPACING.xs),
+      left: getSpacingPx(SPACING.xs),
+      zIndex: Z_INDEX.dropdown,
+      opacity: 0,
+      transition: `opacity ${MOTION.normal}`,
+      backgroundColor: "var(--palette-c_scrim)",
+      color: "var(--palette-grey-0)",
+      borderRadius: BORDER_RADIUS.sm,
+      width: 24,
+      height: 24,
+      padding: getSpacingPx(SPACING.xs),
+      "&:hover": {
+        backgroundColor: "var(--palette-c_scrim_strong)"
+      },
+      "& svg": {
+        fontSize: 14
+      }
+    },
+
+    ".media-grid > *:hover .add-to-canvas-button": {
+      opacity: 1
+    },
+
+    ".media-output-header:hover .add-all-button, .media-output-group:hover .add-all-button": {
+      opacity: 1
+    },
+
+    ".add-all-button": {
+      opacity: 0.6,
+      transition: `opacity ${MOTION.normal}`
     }
   });
 
@@ -126,6 +177,22 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const gen = message.media_generation ?? null;
+  const { isCanvasAvailable, addBlocksToCanvas } = useAddMediaToCanvas();
+
+  const addOne = useCallback(
+    (block: MediaContentBlock) => addBlocksToCanvas([block]),
+    [addBlocksToCanvas]
+  );
+  const addAll = useCallback(
+    () =>
+      addBlocksToCanvas(
+        mediaContents.filter(
+          (c): c is MediaContentBlock =>
+            isImageContent(c) || isVideoContent(c) || isAudioContent(c)
+        )
+      ),
+    [addBlocksToCanvas, mediaContents]
+  );
 
   // Derive a title from the message prompt when possible
   const prompt = useMemo(() => {
@@ -227,6 +294,16 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
               {gen.speed}x
             </span>
           )}
+          {isCanvasAvailable && mediaContents.length > 1 && (
+            <ToolbarIconButton
+              className="add-all-button"
+              tooltip="Add all to canvas"
+              size="small"
+              onClick={addAll}
+            >
+              <AddToCanvasIcon fontSize="small" />
+            </ToolbarIconButton>
+          )}
         </FlexRow>
       </div>
 
@@ -239,6 +316,16 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
             return (
               <div key={key}>
                 <ImageView source={src} />
+                {isCanvasAvailable && (
+                  <ToolbarIconButton
+                    className="add-to-canvas-button"
+                    tooltip="Add to canvas"
+                    size="small"
+                    onClick={() => addOne(c)}
+                  >
+                    <AddToCanvasIcon />
+                  </ToolbarIconButton>
+                )}
               </div>
             );
           }
@@ -255,6 +342,16 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
                   aria-label="Generated video"
                   style={VIDEO_STYLE}
                 />
+                {isCanvasAvailable && (
+                  <ToolbarIconButton
+                    className="add-to-canvas-button"
+                    tooltip="Add to canvas"
+                    size="small"
+                    onClick={() => addOne(c)}
+                  >
+                    <AddToCanvasIcon />
+                  </ToolbarIconButton>
+                )}
               </div>
             );
           }
@@ -270,6 +367,16 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
                   aria-label="Generated audio"
                   style={AUDIO_STYLE}
                 />
+                {isCanvasAvailable && (
+                  <ToolbarIconButton
+                    className="add-to-canvas-button"
+                    tooltip="Add to canvas"
+                    size="small"
+                    onClick={() => addOne(c)}
+                  >
+                    <AddToCanvasIcon />
+                  </ToolbarIconButton>
+                )}
               </div>
             );
           }

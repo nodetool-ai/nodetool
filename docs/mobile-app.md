@@ -129,7 +129,7 @@ Mini Apps are workflows converted to simple interfaces. They hide the complexity
 4. Tap **Run**
 5. View results below
 
-![Mini App Runner](assets/screenshots/screenshot-placeholder.svg)
+![Mini App Runner](assets/screenshots/mobile-mini-app-runner.png)
 
 ### Supported Input Types
 
@@ -185,7 +185,7 @@ Interactions:
 
 Configure the mobile app from the gear icon:
 
-![Mobile Settings](assets/screenshots/screenshot-placeholder.svg)
+![Mobile Settings](assets/screenshots/mobile-settings.png)
 
 | Section | Purpose |
 |---------|---------|
@@ -206,7 +206,7 @@ Tapping the model name at the top of a chat opens a two-step picker:
 
 A search box appears in either step once the list is long enough, and a back arrow returns from models to providers. There is no API-key gating, disabled styling, or docs links in this picker.
 
-![Mobile Model Selection](assets/screenshots/screenshot-placeholder.svg)
+![Mobile Model Selection](assets/screenshots/mobile-language-model-selection.png)
 
 ---
 

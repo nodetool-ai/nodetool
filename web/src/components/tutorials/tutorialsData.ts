@@ -100,7 +100,7 @@ export const TUTORIALS: Tutorial[] = [
     title: "Combine two inputs",
     tagline: "Merge values with a template",
     description:
-      "The first graph that branches in: two text inputs flow into one Format Text node that fills a template, composing a single result from reusable parts.",
+      "The first graph that branches in: two text inputs flow into one Prompt node that fills a template, composing a single result from reusable parts.",
     level: "Beginner",
     durationLabel: "0:12",
     video: "/tutorials/combine-inputs.mp4",
