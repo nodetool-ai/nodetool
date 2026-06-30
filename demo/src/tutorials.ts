@@ -147,6 +147,52 @@ export const TUTORIALS: TutorialEntry[] = [
       "Build prompts from reusable parts",
     ],
   }),
+
+  entry("summarize-text", 30, {
+    castId: "summarize-text",
+    title: "Summarize a document",
+    subtitle: "Long text in, key points out",
+    replayWindowMs: 13000,
+    steps: [
+      { atMs: 1400, label: "Paste your text", focus: "source", zoom: 2.1 },
+      { atMs: 2900, label: "Summarize it", focus: "summary", zoom: 1.9 },
+      { atMs: 10500, label: "Read the summary", focus: "preview", zoom: 1.85 },
+    ],
+    captions: [
+      { fromMs: 1600, toMs: 2800, text: "Drop in a long passage — an article, a transcript, any block of text." },
+      { fromMs: 3000, toMs: 9400, text: "A Summarizer node condenses it into the key points, streaming as it writes." },
+      { fromMs: 10700, toMs: 12800, text: "The short summary lands in a Preview, ready to reuse." },
+    ],
+    outroTitle: "Condense anything",
+    outroPoints: [
+      "Swap in articles, transcripts, or notes",
+      "Tune the length with the system prompt",
+      "Feed the summary into the next node",
+    ],
+  }),
+
+  entry("describe-image", 30, {
+    castId: "describe-image",
+    title: "Describe an image",
+    subtitle: "Show the AI a picture, get words back",
+    replayWindowMs: 13500,
+    steps: [
+      { atMs: 1400, label: "Add an image", focus: "image", zoom: 1.9 },
+      { atMs: 3000, label: "Ask the AI to look", focus: "describe", zoom: 1.9 },
+      { atMs: 11000, label: "Read the description", focus: "preview", zoom: 1.85 },
+    ],
+    captions: [
+      { fromMs: 1600, toMs: 2900, text: "Start with an Image Input — drop in any picture you want the AI to read." },
+      { fromMs: 3200, toMs: 9800, text: "An Agent node looks at the image and describes it, streaming as it sees." },
+      { fromMs: 11200, toMs: 13300, text: "The description lands in a Preview — text you can search, label, or reuse." },
+    ],
+    outroTitle: "Let the AI see",
+    outroPoints: [
+      "Feed in photos, screenshots, or diagrams",
+      "Ask for captions, alt text, or tags",
+      "Chain the description into any text node",
+    ],
+  }),
 ];
 
 /** Total frames for an entry: intro + replay window + outro. */

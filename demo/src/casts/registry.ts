@@ -15,6 +15,8 @@ import {
   listGeneratorCast,
   chatQaCast,
   templateMergeCast,
+  summarizeCast,
+  describeImageCast,
   type DemoCast,
 } from "@web-demo";
 
@@ -25,6 +27,8 @@ const casts: DemoCast[] = [
   listGeneratorCast,
   chatQaCast,
   templateMergeCast,
+  summarizeCast,
+  describeImageCast,
 ];
 
 /** The cast bound to the canonical `WorkflowDemo` composition id. */

@@ -34,3 +34,5 @@ export { connectRunCast } from "./connectRunCast";
 export { listGeneratorCast } from "./listGeneratorCast";
 export { chatQaCast } from "./chatQaCast";
 export { templateMergeCast } from "./templateMergeCast";
+export { summarizeCast } from "./summarizeCast";
+export { describeImageCast } from "./describeImageCast";

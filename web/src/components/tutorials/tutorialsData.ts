@@ -112,6 +112,40 @@ export const TUTORIALS: Tutorial[] = [
       "Building prompts from reusable parts",
     ],
   },
+  {
+    id: "summarize-text",
+    title: "Summarize a document",
+    tagline: "Long text in, key points out",
+    description:
+      "Condense an article, transcript, or any block of text into a short summary with a single Summarizer node, streaming it as it writes.",
+    level: "Beginner",
+    durationLabel: "0:16",
+    video: "/tutorials/summarize-text.mp4",
+    poster: "/tutorials/summarize-text.jpg",
+    accent: "#14b8a6",
+    learn: [
+      "Feeding a long passage into a Summarizer node",
+      "Watching the summary stream as it generates",
+      "Passing the result into the rest of a workflow",
+    ],
+  },
+  {
+    id: "describe-image",
+    title: "Describe an image",
+    tagline: "Show the AI a picture, get words back",
+    description:
+      "The first multimodal graph: drop a picture into an Image Input, wire it into an Agent, and watch the model look at the image and describe it in words.",
+    level: "Beginner",
+    durationLabel: "0:17",
+    video: "/tutorials/describe-image.mp4",
+    poster: "/tutorials/describe-image.jpg",
+    accent: "#f97316",
+    learn: [
+      "Bringing an image into a graph",
+      "Sending a picture to a vision model",
+      "Reusing the streamed description downstream",
+    ],
+  },
 ];
 
 export const getTutorial = (id: string | null | undefined): Tutorial =>
