@@ -52,4 +52,6 @@ declare module "@web-demo" {
   export const templateMergeCast: DemoCast;
   export const summarizeCast: DemoCast;
   export const describeImageCast: DemoCast;
+  /** One synthetic cast per cookbook recipe (web/src/demo/cookbook). */
+  export const cookbookCasts: DemoCast[];
 }

@@ -24,6 +24,8 @@
     "still:tutorial:combine": "remotion still src/index.ts Tutorial-combine-inputs ../web/public/tutorials/combine-inputs.jpg --frame=210",
     "still:tutorial:summarize": "remotion still src/index.ts Tutorial-summarize-text ../web/public/tutorials/summarize-text.jpg --frame=300",
     "still:tutorial:describe": "remotion still src/index.ts Tutorial-describe-image ../web/public/tutorials/describe-image.jpg --frame=300",
+    "render:cookbook": "tsx scripts/render-cookbook.ts",
+    "still:cookbook": "tsx scripts/render-cookbook.ts --stills-only",
     "pin-assets": "tsx scripts/pin-cast-assets.ts",
     "typecheck": "tsc --noEmit"
   },
