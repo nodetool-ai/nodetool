@@ -17,7 +17,7 @@ name: Web Deploy (Cloudflare Pages)
 #     VITE_SUPABASE_ANON_KEY        — Supabase anon key baked into the build
 #   Variables:
 #     CLOUDFLARE_WEB_PAGES_PROJECT  — the Cloudflare Pages project name to deploy to
-#     VITE_API_URL                  — API base URL (e.g. https://api.nodetool.run)
+#     VITE_API_URL                  — API base URL (e.g. https://api.nodetool.ai)
 #     VITE_SUPABASE_URL             — Supabase project URL
 #     VITE_AUTH_REDIRECT_URL        — optional OAuth redirect URL
 #
