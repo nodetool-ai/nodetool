@@ -12,14 +12,22 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useState, useRef, useCallback, useEffect } from "react";
 import {
-  Popover,
+  FlexColumn,
+  FlexRow,
+  Box,
+  Text,
+  EditorButton,
+  Tooltip,
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx,
   ToggleButtonGroup,
   ToggleButton,
   TextField,
   Slider,
   IconButton,
-} from "@mui/material";
-import { FlexColumn, FlexRow, Box, Text, EditorButton, Tooltip, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+  Popover
+} from "../ui_primitives";
 import CloseIcon from "@mui/icons-material/Close";
 import {
   ColorMode,

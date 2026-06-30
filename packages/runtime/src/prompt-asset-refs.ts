@@ -22,6 +22,7 @@
  */
 
 import type { ProcessingContext } from "./context.js";
+import type { MessageContent } from "./providers/types.js";
 import { encodeBase64, loadMediaRefBytes } from "./media-ref-bytes.js";
 
 export type AssetMediaKind = "image" | "audio" | "video";
@@ -254,6 +255,51 @@ export async function inlineTextAssetRefs(
 /** Convenience: only the image references in a prompt. */
 export function findImageAssetRefs(prompt: string): PromptAssetRef[] {
   return findAssetRefs(prompt).filter((ref) => ref.kind === "image");
+}
+
+/**
+ * Split a prompt containing inline `asset://<id>.<ext>` references into a
+ * multimodal content array: text segments interleaved with image / audio
+ * blocks that carry the `asset://` URI verbatim. The blocks are NOT resolved
+ * here — {@link ProcessingContext.resolveMessageMediaUris} dereferences the
+ * URIs to data URIs just before the provider call. Tokens that aren't a
+ * supported chat media type (video, unknown) stay as literal text so the
+ * model still sees the mention.
+ */
+export function expandAssetReferences(prompt: string): MessageContent[] {
+  const refs = findAssetRefs(prompt);
+  if (refs.length === 0) {
+    return [{ type: "text", text: prompt }];
+  }
+
+  const parts: MessageContent[] = [];
+  const pushText = (text: string) => {
+    if (text) parts.push({ type: "text", text });
+  };
+
+  let cursor = 0;
+  for (const ref of refs) {
+    pushText(prompt.slice(cursor, ref.index));
+    if (ref.kind === "image") {
+      parts.push({
+        type: "image_url",
+        image: { uri: ref.uri, mimeType: ref.mime }
+      });
+    } else if (ref.kind === "audio") {
+      parts.push({
+        type: "audio",
+        audio: { uri: ref.uri, mimeType: ref.mime }
+      });
+    } else {
+      // Video (and any other non-chat media): keep the mention as literal text
+      // so the model still sees the reference rather than a mislabeled block.
+      pushText(ref.uri);
+    }
+    cursor = ref.index + ref.length;
+  }
+  pushText(prompt.slice(cursor));
+
+  return parts.length > 0 ? parts : [{ type: "text", text: prompt }];
 }
 
 /**

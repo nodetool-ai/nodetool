@@ -15,7 +15,10 @@ import { packageAssetHttpPath, parsePackageAssetUri } from "@nodetool-ai/protoco
 import { AgentMemory } from "./agent-memory.js";
 import { VariableChannel } from "./variable-channel.js";
 import { encodeRawImageRef } from "./image-codec.js";
-import { inlineTextAssetRefs } from "./prompt-asset-refs.js";
+import {
+  expandAssetReferences,
+  inlineTextAssetRefs
+} from "./prompt-asset-refs.js";
 import { importNodeBuiltin } from "@nodetool-ai/config";
 
 // `node:fs/promises`, `node:path`, `node:url`, `node:crypto` are loaded
@@ -2257,9 +2260,107 @@ export class ProcessingContext {
    * Resolve non-data, non-http media URIs in message content to data URIs so
    * providers can consume them directly. Covers `/api/storage/` and other
    * storage URIs as well as the `asset://<id>` reference scheme (assets
-   * mentioned inline in a prompt).
+   * mentioned inline in a prompt). Text parts that contain `asset://<id>.<ext>`
+   * image / audio tokens are first split into proper blocks via
+   * {@link expandAssetReferences} so the same provider path handles chat
+   * surfaces (where the user typed / dropped a reference) and workflow node
+   * surfaces (where the agent node builds the message). Text document mentions
+   * (`asset://doc.md`, `.txt`, `.csv`, …) are inlined as their decoded
+   * contents in place of the token.
    */
   async resolveMessageMediaUris(messages: Message[]): Promise<Message[]> {
+    const IMAGE_MIME: Record<string, string> = {
+      png: "image/png",
+      jpg: "image/jpeg",
+      jpeg: "image/jpeg",
+      gif: "image/gif",
+      webp: "image/webp"
+    };
+    const AUDIO_MIME: Record<string, string> = {
+      mp3: "audio/mpeg",
+      wav: "audio/wav",
+      ogg: "audio/ogg",
+      m4a: "audio/mp4",
+      flac: "audio/flac"
+    };
+
+    // Strict, anchored sanitizer for the URIs that may flow into the asset /
+    // storage retrieval path. Two schemes are recognized — `asset://<id>.<ext>`
+    // (the user-mentioned-asset scheme) and the legacy `/api/storage/<key>`
+    // browser-facing path that older DB messages still carry. The character
+    // class matches the one in `prompt-asset-refs`' parser regex, so a
+    // hand-typed token and an inline expansion behave identically. Everything
+    // else (data URIs, external http(s), arbitrary or attacker-supplied
+    // strings) is rejected and the part passes through untouched — so the
+    // storage adapter never sees an unrecognized URI shape.
+    const RESOLVABLE_URI_RE =
+      /^(?:asset:\/\/|\/api\/storage\/)[A-Za-z0-9._~\-/]+$/;
+    const isResolvableUri = (uri: string): boolean =>
+      RESOLVABLE_URI_RE.test(uri);
+
+    const resolvePart = async (
+      part: MessageContent
+    ): Promise<MessageContent[]> => {
+      if (
+        part.type === "image_url" &&
+        part.image.uri &&
+        isResolvableUri(part.image.uri)
+      ) {
+        const bytes = await this.retrieveMediaBytes(part.image.uri);
+        if (bytes) {
+          const ext = part.image.uri.split(".").pop()?.toLowerCase() ?? "png";
+          const mimeType = IMAGE_MIME[ext] ?? part.image.mimeType ?? "image/png";
+          const b64 = Buffer.from(bytes).toString("base64");
+          return [
+            {
+              type: "image_url",
+              image: { uri: `data:${mimeType};base64,${b64}`, mimeType }
+            }
+          ];
+        }
+        return [part];
+      }
+      if (
+        part.type === "audio" &&
+        part.audio.uri &&
+        isResolvableUri(part.audio.uri)
+      ) {
+        const bytes = await this.retrieveMediaBytes(part.audio.uri);
+        if (bytes) {
+          const ext = part.audio.uri.split(".").pop()?.toLowerCase() ?? "mp3";
+          const mimeType = AUDIO_MIME[ext] ?? part.audio.mimeType ?? "audio/mpeg";
+          const b64 = Buffer.from(bytes).toString("base64");
+          return [
+            {
+              type: "audio",
+              audio: { uri: `data:${mimeType};base64,${b64}`, mimeType }
+            }
+          ];
+        }
+        return [part];
+      }
+      if (part.type === "text" && part.text.includes("asset://")) {
+        // First split out image / audio mentions into their own blocks; what
+        // stays as text is then run through the document inliner so any
+        // .md/.txt/.csv mentions become their decoded contents. The image and
+        // audio blocks fall through to the URI-resolution branches above on a
+        // second pass so the provider receives data URIs.
+        const expanded = expandAssetReferences(part.text);
+        const out: MessageContent[] = [];
+        for (const sub of expanded) {
+          if (sub.type === "text") {
+            const inlined = await inlineTextAssetRefs(sub.text, this);
+            if (inlined) out.push({ type: "text", text: inlined });
+          } else {
+            const resolved = await resolvePart(sub);
+            out.push(...resolved);
+          }
+        }
+        return out;
+      }
+      return [part];
+    };
+
     const resolved: Message[] = [];
     for (const msg of messages) {
       if (!Array.isArray(msg.content)) {
@@ -2268,65 +2369,7 @@ export class ProcessingContext {
       }
       const parts: MessageContent[] = [];
       for (const part of msg.content) {
-        if (
-          part.type === "image_url" &&
-          part.image.uri &&
-          !part.image.uri.startsWith("data:") &&
-          !part.image.uri.startsWith("http")
-        ) {
-          const bytes = await this.retrieveMediaBytes(part.image.uri);
-          if (bytes) {
-            const ext = part.image.uri.split(".").pop()?.toLowerCase() ?? "png";
-            const mime: Record<string, string> = {
-              png: "image/png",
-              jpg: "image/jpeg",
-              jpeg: "image/jpeg",
-              gif: "image/gif",
-              webp: "image/webp"
-            };
-            const mimeType = mime[ext] ?? part.image.mimeType ?? "image/png";
-            const b64 = Buffer.from(bytes).toString("base64");
-            parts.push({
-              type: "image_url",
-              image: { uri: `data:${mimeType};base64,${b64}`, mimeType }
-            });
-            continue;
-          }
-        }
-        if (
-          part.type === "audio" &&
-          part.audio.uri &&
-          !part.audio.uri.startsWith("data:") &&
-          !part.audio.uri.startsWith("http")
-        ) {
-          const bytes = await this.retrieveMediaBytes(part.audio.uri);
-          if (bytes) {
-            const ext = part.audio.uri.split(".").pop()?.toLowerCase() ?? "mp3";
-            const mime: Record<string, string> = {
-              mp3: "audio/mpeg",
-              wav: "audio/wav",
-              ogg: "audio/ogg",
-              m4a: "audio/mp4",
-              flac: "audio/flac"
-            };
-            const mimeType = mime[ext] ?? part.audio.mimeType ?? "audio/mpeg";
-            const b64 = Buffer.from(bytes).toString("base64");
-            parts.push({
-              type: "audio",
-              audio: { uri: `data:${mimeType};base64,${b64}`, mimeType }
-            });
-            continue;
-          }
-        }
-        if (part.type === "text" && part.text.includes("asset://")) {
-          // Inline any plain-text document mention (asset://doc.md, .txt, .csv …)
-          // as its decoded contents. Resolved here, at call time, so the stored
-          // thread message keeps the compact asset:// URI like media does.
-          const inlined = await inlineTextAssetRefs(part.text, this);
-          parts.push(inlined === part.text ? part : { type: "text", text: inlined });
-          continue;
-        }
-        parts.push(part);
+        parts.push(...(await resolvePart(part)));
       }
       resolved.push({ ...msg, content: parts });
     }

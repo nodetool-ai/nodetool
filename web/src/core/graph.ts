@@ -286,8 +286,9 @@ export const autoLayout = async (
     const controlled = new Map<string, string[]>();
     for (const e of groupEdges) {
       if (!isControlEdge(e)) continue;
-      if (!controlled.has(e.source)) controlled.set(e.source, []);
-      controlled.get(e.source)!.push(e.target);
+      let targets = controlled.get(e.source);
+      if (!targets) { targets = []; controlled.set(e.source, targets); }
+      targets.push(e.target);
     }
     if (controlled.size === 0) return groupNodes;
 
@@ -323,15 +324,17 @@ export const autoLayout = async (
 
     const incoming = new Map<string, Edge[]>();
     for (const edge of dataEdges) {
-      if (!incoming.has(edge.target)) incoming.set(edge.target, []);
-      incoming.get(edge.target)!.push(edge);
+      let edges = incoming.get(edge.target);
+      if (!edges) { edges = []; incoming.set(edge.target, edges); }
+      edges.push(edge);
     }
 
     const byLayer = new Map<number, Node<NodeData>[]>();
     for (const node of groupNodes) {
       const layer = layerPartitions.get(node.id) ?? 0;
-      if (!byLayer.has(layer)) byLayer.set(layer, []);
-      byLayer.get(layer)!.push(node);
+      let layerArr = byLayer.get(layer);
+      if (!layerArr) { layerArr = []; byLayer.set(layer, layerArr); }
+      layerArr.push(node);
     }
     const layers = [...byLayer.keys()].sort((a, b) => a - b);
 
@@ -339,10 +342,9 @@ export const autoLayout = async (
     const ordered: Node<NodeData>[] = [];
 
     layers.forEach((layer, layerIdx) => {
-      const layerNodes = byLayer.get(layer)!;
+      const layerNodes = byLayer.get(layer) ?? [];
       if (layerIdx === 0) {
-        // Sources keep their existing relative order.
-        layerNodes.sort((a, b) => origIndex.get(a.id)! - origIndex.get(b.id)!);
+        layerNodes.sort((a, b) => (origIndex.get(a.id) ?? 0) - (origIndex.get(b.id) ?? 0));
       } else {
         const sortKey = new Map<string, number>();
         for (const node of layerNodes) {
@@ -350,7 +352,7 @@ export const autoLayout = async (
             orderIndex.has(edge.source)
           );
           if (preds.length === 0) {
-            sortKey.set(node.id, origIndex.get(node.id)!);
+            sortKey.set(node.id, origIndex.get(node.id) ?? 0);
             continue;
           }
           // Barycenter of predecessor positions, refined by the source handle
@@ -454,9 +456,7 @@ export const autoLayout = async (
 
       // Update group node dimensions based on children
       if (groupId !== "root") {
-        const parentNode = nodes.find(
-          (n) => n.id === groupId
-        ) as Node<NodeData>;
+        const parentNode = nodes.find((n) => n.id === groupId);
         if (parentNode) {
           const xExtent = Math.max(
             ...groupUpdatedNodes.map(

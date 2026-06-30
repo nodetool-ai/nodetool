@@ -45,7 +45,7 @@ Configure providers in **Settings > Providers**. See [Models & Providers](models
 
 ## Conversation Threads
 
-![Chat Thread List](assets/screenshots/screenshot-placeholder.svg)
+![Chat Thread List](assets/screenshots/global-chat-interface.png)
 
 Global Chat organizes conversations into threads:
 

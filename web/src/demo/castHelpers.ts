@@ -79,13 +79,14 @@ export const node = (
   y: number,
   width: number,
   title: string,
-  data: Record<string, unknown> = {}
+  data: Record<string, unknown> = {},
+  dynamicProperties: Record<string, unknown> = {}
 ): GraphNode => ({
   id,
   type,
   data,
   ui_properties: { position: { x, y }, zIndex: 0, width, selectable: true, title },
-  dynamic_properties: {},
+  dynamic_properties: dynamicProperties,
   dynamic_outputs: {},
 });
 

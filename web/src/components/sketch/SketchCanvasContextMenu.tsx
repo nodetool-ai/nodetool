@@ -3,10 +3,17 @@ import React, { memo, useEffect } from "react";
 import { sketchToolSettingsContainerSx, SKETCH_FONT } from "./sketchStyles";
 import { alpha, useTheme } from "@mui/material/styles";
 import {
+  FlexColumn,
+  FlexRow,
+  Box,
+  Text,
+  Divider,
+  ToolbarIconButton,
+  MOTION,
+  BORDER_RADIUS,
   ButtonBase,
-  Popover,
-} from "@mui/material";
-import { FlexColumn, FlexRow, Box, Text, Divider, ToolbarIconButton, MOTION, BORDER_RADIUS } from "../ui_primitives";
+  Popover
+} from "../ui_primitives";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import DeselectIcon from "@mui/icons-material/Deselect";
 import RestoreIcon from "@mui/icons-material/Restore";

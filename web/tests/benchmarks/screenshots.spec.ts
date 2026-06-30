@@ -89,10 +89,33 @@ function shouldSkip(filename: string): boolean {
  * mounts. Each editor panel is hidden by default — pass `true` for the panels
  * you want visible in the screenshot.
  */
+// Mirror the per-store union types so the seeded values match the runtime
+// stores. The persist version below must also match each store's `version`
+// or zustand discards the seeded state on rehydrate (the left/right panel
+// stores moved to version 3, the bottom panel to version 2).
+type LeftPanelView =
+  | "workflows"
+  | "sketches"
+  | "timelines"
+  | "settings"
+  | "history"
+  | "favorites"
+  | "assets"
+  | "nodes";
+type RightPanelView = "inspector";
+type BottomPanelView =
+  | "logs"
+  | "queue"
+  | "sandboxes"
+  | "workers"
+  | "versions"
+  | "workspace"
+  | "trace";
+
 type PanelOverrides = {
-  left?: { visible?: boolean; activeView?: "workflowGrid" | "assets" };
-  right?: { visible?: boolean; activeView?: string };
-  bottom?: { visible?: boolean; activeView?: string };
+  left?: { visible?: boolean; activeView?: LeftPanelView };
+  right?: { visible?: boolean; activeView?: RightPanelView };
+  bottom?: { visible?: boolean; activeView?: BottomPanelView };
 };
 
 async function seedLocalStorage(
@@ -139,6 +162,7 @@ async function seedLocalStorage(
         key: string,
         size: number,
         defaultView: string,
+        version: number,
         opts: { visible?: boolean; activeView?: string } | undefined
       ) => {
         if (!opts) return;
@@ -152,9 +176,10 @@ async function seedLocalStorage(
                 activeView: opts.activeView ?? defaultView
               }
             },
-            // The persist version must match each store's `version: 1`,
-            // otherwise zustand discards the persisted state on rehydrate.
-            version: 1
+            // Persist version must match the matching store's `version`
+            // (left=3, right=3, bottom=2). Mismatch → zustand discards
+            // the seeded state on rehydrate.
+            version
           })
         );
       };
@@ -162,19 +187,22 @@ async function seedLocalStorage(
       writePanel(
         "left-panel-storage",
         360,
-        "workflowGrid",
+        "workflows",
+        3,
         panelsInBrowser.left
       );
       writePanel(
         "right-panel-storage",
         380,
         "inspector",
+        3,
         panelsInBrowser.right
       );
       writePanel(
         "bottom-panel-storage",
         320,
-        "trace",
+        "logs",
+        2,
         panelsInBrowser.bottom
       );
     } catch {
@@ -616,10 +644,37 @@ if (process.env.JEST_WORKER_ID) {
     test("Editor – left panel open", async ({ page }) => {
       test.skip(shouldSkip("editor-left-panel.png"), "Already captured");
       await openEditorWithNodes(page, {
-        left: { visible: true, activeView: "workflowGrid" }
+        left: { visible: true, activeView: "workflows" }
       });
       await saveScreenshot(page, "editor-left-panel.png");
     });
+
+    // Per-view captures for the left panel — every activeView in
+    // LeftPanelView gets its own screenshot so docs/editor-panels.md can
+    // illustrate each tab. Skips the generic "workflows" view because the
+    // "Editor – left panel open" capture above already covers it.
+    const LEFT_PANEL_VIEWS: ReadonlyArray<{
+      view: LeftPanelView;
+      filename: string;
+    }> = [
+      { view: "nodes", filename: "editor-left-panel-nodes.png" },
+      { view: "sketches", filename: "editor-left-panel-sketches.png" },
+      { view: "timelines", filename: "editor-left-panel-timelines.png" },
+      { view: "settings", filename: "editor-left-panel-settings.png" },
+      { view: "history", filename: "editor-left-panel-history.png" },
+      { view: "favorites", filename: "editor-left-panel-favorites.png" },
+      { view: "assets", filename: "editor-left-panel-assets.png" }
+    ];
+
+    for (const { view, filename } of LEFT_PANEL_VIEWS) {
+      test(`Editor – left panel (${view})`, async ({ page }) => {
+        test.skip(shouldSkip(filename), "Already captured");
+        await openEditorWithNodes(page, {
+          left: { visible: true, activeView: view }
+        });
+        await saveScreenshot(page, filename);
+      });
+    }
 
     test("Editor – right panel (Inspector)", async ({ page }) => {
       test.skip(shouldSkip("editor-right-panel.png"), "Already captured");
@@ -636,6 +691,30 @@ if (process.env.JEST_WORKER_ID) {
       });
       await saveScreenshot(page, "editor-bottom-panel.png");
     });
+
+    // Per-view captures for the bottom panel. docs/editor-panels.md uses one
+    // image per tab to illustrate the Run / Workflow / Debug groups.
+    const BOTTOM_PANEL_VIEWS: ReadonlyArray<{
+      view: BottomPanelView;
+      filename: string;
+    }> = [
+      { view: "logs", filename: "editor-bottom-panel-logs.png" },
+      { view: "queue", filename: "editor-bottom-panel-queue.png" },
+      { view: "sandboxes", filename: "editor-bottom-panel-sandboxes.png" },
+      { view: "versions", filename: "editor-bottom-panel-versions.png" },
+      { view: "workspace", filename: "editor-bottom-panel-workspace.png" },
+      { view: "trace", filename: "editor-bottom-panel-trace.png" }
+    ];
+
+    for (const { view, filename } of BOTTOM_PANEL_VIEWS) {
+      test(`Editor – bottom panel (${view})`, async ({ page }) => {
+        test.skip(shouldSkip(filename), "Already captured");
+        await openEditorWithNodes(page, {
+          bottom: { visible: true, activeView: view }
+        });
+        await saveScreenshot(page, filename);
+      });
+    }
 
     test("Editor – node canvas", async ({ page }) => {
       test.skip(shouldSkip("editor-node-canvas.png"), "Already captured");

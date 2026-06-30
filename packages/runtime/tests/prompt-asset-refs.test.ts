@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   classifyAssetToken,
   classifyTextToken,
+  expandAssetReferences,
   findAssetRefs,
   findImageAssetRefs,
   findTextAssetRefs,
@@ -154,6 +155,42 @@ describe("findImageAssetRefs", () => {
   it("keeps only image references", () => {
     const refs = findImageAssetRefs("img asset://a.png clip asset://b.mp3");
     expect(refs.map((r) => r.uri)).toEqual(["asset://a.png"]);
+  });
+});
+
+describe("expandAssetReferences", () => {
+  it("returns a single text block when there is no reference", () => {
+    expect(expandAssetReferences("just some text")).toEqual([
+      { type: "text", text: "just some text" }
+    ]);
+  });
+
+  it("splits an inline image reference into text + image block", () => {
+    expect(expandAssetReferences("Describe asset://abc.png please")).toEqual([
+      { type: "text", text: "Describe " },
+      {
+        type: "image_url",
+        image: { uri: "asset://abc.png", mimeType: "image/png" }
+      },
+      { type: "text", text: " please" }
+    ]);
+  });
+
+  it("encodes a lone audio mention as an audio block", () => {
+    expect(expandAssetReferences("asset://clip.mp3")).toEqual([
+      {
+        type: "audio",
+        audio: { uri: "asset://clip.mp3", mimeType: "audio/mpeg" }
+      }
+    ]);
+  });
+
+  it("leaves a video mention as literal text", () => {
+    expect(expandAssetReferences("clip asset://reel.mp4 here")).toEqual([
+      { type: "text", text: "clip " },
+      { type: "text", text: "asset://reel.mp4" },
+      { type: "text", text: " here" }
+    ]);
   });
 });
 

@@ -49,17 +49,11 @@ jest.mock("../../../contexts/NodeContext", () => ({
     selector({ workflow: { id: "canvas-doc-id" } })
 }));
 
-const markGenerationStarted = jest.fn();
-jest.mock("../../../hooks/handlers/useGenerationToCanvas", () => ({
-  useGenerationToCanvas: () => ({ markGenerationStarted })
-}));
-
 import CanvasMediaComposer from "../CanvasMediaComposer";
 
 beforeEach(() => {
   capturedProps = null;
   sendMessage.mockClear();
-  markGenerationStarted.mockClear();
 });
 
 describe("CanvasMediaComposer", () => {
@@ -85,7 +79,6 @@ describe("CanvasMediaComposer", () => {
     // which tries to run the canvas document as a chat-responder workflow and
     // fails with "Workflow <id> not found". Media generation must not set it.
     expect(outgoing.workflow_id ?? null).toBeNull();
-    expect(markGenerationStarted).toHaveBeenCalledTimes(1);
   });
 
   it("does not send the canvas document id as a chat workflow_id for plain chat", () => {

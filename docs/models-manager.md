@@ -20,7 +20,7 @@ The Models Manager is a full page at the `/models` route — open it from the ap
 
 ## Browsing Models
 
-![Model Type Filters](assets/screenshots/screenshot-placeholder.svg)
+![Model Type Filters](assets/screenshots/models-list.png)
 
 ### Filter by Type
 
@@ -48,7 +48,7 @@ The available tags reflect what's actually present in your model list; each show
 
 ## Downloading Models
 
-![Download Progress](assets/screenshots/screenshot-placeholder.svg)
+![Download Progress](assets/screenshots/download-manager.png)
 
 1. Find the model you want in the browser
 2. Click **Download** to start fetching it to your local cache
@@ -71,18 +71,18 @@ Downloaded models are stored in your local HuggingFace cache (`~/.cache/huggingf
 
 ### Per-Model Actions
 
-![Model Card Actions](assets/screenshots/screenshot-placeholder.svg)
+![Model Card Actions](assets/screenshots/component-models.png)
 
 - **Download** -- Fetch a model to your local cache
 - **Delete** -- Remove a model you no longer need to free disk space
 - **Show in Explorer** -- Open the model folder on your computer
 - **README** -- Read the model's documentation on Hugging Face
 
-![Model README](assets/screenshots/screenshot-placeholder.svg)
+![Model README](assets/screenshots/node-readme.png)
 
 ### Recommended Models
 
-![Recommended Models Dialog](assets/screenshots/screenshot-placeholder.svg)
+![Recommended Models Dialog](assets/screenshots/recommended-models.png)
 
 Many workflow nodes specify recommended or required models. The Models Manager highlights these under a **Recommended** section with direct install links, so you can quickly get the models your workflows need.
 
@@ -97,7 +97,7 @@ Each property role has a type-aware picker:
 - **Embedding Model** — vector embedding models only
 - **HuggingFace Model** — search any HF repo
 
-![Language Model Selector](assets/screenshots/screenshot-placeholder.svg)
+![Language Model Selector](assets/screenshots/recommended-models.png)
 
 ### Cloud Provider Models
 

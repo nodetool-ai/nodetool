@@ -5,13 +5,16 @@ import LoginIcon from "@mui/icons-material/Login";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import LinkOffIcon from "@mui/icons-material/LinkOff";
 import { useMemo, useState, useCallback, useEffect, memo } from "react";
+
 import {
+  TextInput,
+  Text,
+  EditorButton,
   Select,
   MenuItem,
   FormControl,
   InputLabel
-} from "@mui/material";
-import { TextInput, Text, EditorButton } from "../ui_primitives";
+} from "../ui_primitives";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import useRemoteSettingsStore, {
   type SettingWithValue

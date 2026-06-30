@@ -1,6 +1,10 @@
 import React, { memo, useState } from "react";
-import { Slider } from "@mui/material";
-import { Box, Text } from "../../ui_primitives";
+
+import {
+  Box,
+  Text,
+  Slider
+} from "../../ui_primitives";
 import { EditorButton } from "../../editor_ui";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";

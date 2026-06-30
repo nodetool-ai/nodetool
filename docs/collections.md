@@ -49,7 +49,7 @@ Click a collection tile to open its details. You can:
 - **Re-index** after adding new documents or changing the embedding model.
 - **Preview** any document inline with the built-in viewer.
 
-![Collection Details](assets/screenshots/screenshot-placeholder.svg)
+![Collection Details](assets/screenshots/collections-explorer.png)
 
 ---
 

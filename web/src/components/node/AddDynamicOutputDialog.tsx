@@ -1,13 +1,16 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+
 import {
+  FlexRow,
+  EditorButton,
+  Dialog,
   TextField,
   DialogTitle,
   DialogContent,
   DialogActions,
   MenuItem
-} from "@mui/material";
-import { FlexRow, EditorButton, Dialog } from "../ui_primitives";
+} from "../ui_primitives";
 import { useCallback, useState, memo } from "react";
 import { TypeMetadata } from "../../stores/ApiTypes";
 import { validateIdentifierName } from "../../utils/identifierValidation";

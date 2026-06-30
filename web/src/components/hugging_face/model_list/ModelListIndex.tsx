@@ -25,6 +25,7 @@ import type { UnifiedModel } from "../../../stores/ApiTypes";
 import { useModelCompatibility } from "./useModelCompatibility";
 import { isElectron } from "../../../lib/env";
 import { useHfCacheStatusStore } from "../../../stores/HfCacheStatusStore";
+import { useShallow } from "zustand/react/shallow";
 import {
   buildHfCacheRequest,
   canCheckHfCache,
@@ -132,25 +133,35 @@ const ModelListIndex: React.FC = () => {
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const [modelToDelete, setModelToDelete] = useState<string | null>(null);
-  const selectedModelType = useModelManagerStore((state) => state.selectedModelType);
-  const setSelectedModelType = useModelManagerStore(
-    (state) => state.setSelectedModelType
+  const {
+    selectedModelType, setSelectedModelType,
+    modelSearchTerm, setModelSearchTerm,
+    scope, setScope,
+    source, setSource
+  } = useModelManagerStore(
+    useShallow((state) => ({
+      selectedModelType: state.selectedModelType,
+      setSelectedModelType: state.setSelectedModelType,
+      modelSearchTerm: state.modelSearchTerm,
+      setModelSearchTerm: state.setModelSearchTerm,
+      scope: state.scope,
+      setScope: state.setScope,
+      source: state.source,
+      setSource: state.setSource
+    }))
   );
-  const modelSearchTerm = useModelManagerStore((state) => state.modelSearchTerm);
-  const setModelSearchTerm = useModelManagerStore(
-    (state) => state.setModelSearchTerm
-  );
-  const scope = useModelManagerStore((state) => state.scope);
-  const setScope = useModelManagerStore((state) => state.setScope);
-  const source = useModelManagerStore((state) => state.source);
-  const setSource = useModelManagerStore((state) => state.setSource);
   const { activeWorker } = useWorkers();
   const workerName = activeWorker?.profile_name ?? activeWorker?.id ?? null;
   const [visibleRange, setVisibleRange] = useState({ start: 0, stop: -1 });
-  const cacheStatuses = useHfCacheStatusStore((state) => state.statuses);
-  const cachePending = useHfCacheStatusStore((state) => state.pending);
-  const cacheVersion = useHfCacheStatusStore((state) => state.version);
-  const ensureStatuses = useHfCacheStatusStore((state) => state.ensureStatuses);
+  const { cacheStatuses, cachePending, cacheVersion, ensureStatuses } =
+    useHfCacheStatusStore(
+      useShallow((state) => ({
+        cacheStatuses: state.statuses,
+        cachePending: state.pending,
+        cacheVersion: state.version,
+        ensureStatuses: state.ensureStatuses
+      }))
+    );
 
   const {
     modelTypes,

@@ -3,7 +3,6 @@ import { useShallow } from "zustand/react/shallow";
 
 import MediaChatComposer from "../chat/composer/MediaChatComposer";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
-import { useGenerationToCanvas } from "../../hooks/handlers/useGenerationToCanvas";
 import type { MessageContent } from "../../stores/ApiTypes";
 import type {
   ChatOutgoingMessage,
@@ -12,10 +11,10 @@ import type {
 
 /**
  * Media composer for the workflow canvas. Reuses the chat `MediaChatComposer`
- * but, instead of rendering replies in a thread, its generated image/video/
- * audio results are dropped onto the canvas as constant nodes (see
- * {@link useGenerationToCanvas}). Generation still routes through the chat
- * pipeline, so results also remain visible in the chat panel's history.
+ * so its generated image/video/audio results land in the chat panel's history;
+ * from there the user can add them to the canvas via the per-asset hover
+ * buttons (see {@link useAddMediaToCanvas}). Generation routes through the
+ * normal chat pipeline.
  */
 export interface CanvasMediaComposerProps {
   /** Workflow controls (Run button + menu) rendered inside the composer
@@ -51,8 +50,6 @@ const CanvasMediaComposer: React.FC<CanvasMediaComposerProps> = ({
     }))
   );
 
-  const { markGenerationStarted } = useGenerationToCanvas();
-
   // Establish the chat connection lazily so generation works even when the
   // chat panel was never opened. Skip if it's already wired up by the panel.
   useEffect(() => {
@@ -69,9 +66,6 @@ const CanvasMediaComposer: React.FC<CanvasMediaComposerProps> = ({
       mediaGeneration?: MediaGenerationRequest
     ) => {
       const isMedia = !!mediaGeneration && mediaGeneration.mode !== "chat";
-      if (isMedia) {
-        markGenerationStarted();
-      }
       const outgoing: ChatOutgoingMessage = {
         type: "message",
         name: "",
@@ -86,13 +80,11 @@ const CanvasMediaComposer: React.FC<CanvasMediaComposerProps> = ({
         // Intentionally no workflow_id: the canvas document is being edited,
         // not run as a chat-responder. Setting it routes the backend into
         // handleWorkflowMessage, which fails with "Workflow <id> not found".
-        // Generated assets reach the canvas via the thread message cache
-        // (see useGenerationToCanvas), not via this field.
         media_generation: isMedia ? mediaGeneration : null
       } as ChatOutgoingMessage;
       void sendMessage(outgoing);
     },
-    [markGenerationStarted, selectedModel, sendMessage]
+    [selectedModel, sendMessage]
   );
 
   return (

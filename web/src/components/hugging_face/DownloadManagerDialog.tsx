@@ -1,14 +1,24 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useMemo } from "react";
 import { css } from "@emotion/react";
+
+import AnnouncementIcon from "@mui/icons-material/Announcement";
 import {
+  Dialog,
+  CloseButton,
+  Text,
+  FlexColumn,
+  Divider,
+  EditorButton,
+  Box,
+  SPACING,
+  getSpacingPx,
   DialogTitle,
   DialogContent,
   DialogActions
-} from "@mui/material";
-import AnnouncementIcon from "@mui/icons-material/Announcement";
-import { Dialog, CloseButton, Text, FlexColumn, Divider, EditorButton, Box, SPACING, getSpacingPx } from "../ui_primitives";
+} from "../ui_primitives";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
+import { useShallow } from "zustand/react/shallow";
 import { DownloadProgress } from "./DownloadProgress";
 import { useTheme } from "@mui/material/styles";
 import { type Theme } from "@mui/material/styles";
@@ -51,9 +61,13 @@ const styles = (theme: Theme) =>
   });
 
 const DownloadManagerDialog: React.FC = () => {
-  const isDialogOpen = useModelDownloadStore((state) => state.isDialogOpen);
-  const closeDialog = useModelDownloadStore((state) => state.closeDialog);
-  const downloads = useModelDownloadStore((state) => state.downloads);
+  const { isDialogOpen, closeDialog, downloads } = useModelDownloadStore(
+    useShallow((state) => ({
+      isDialogOpen: state.isDialogOpen,
+      closeDialog: state.closeDialog,
+      downloads: state.downloads
+    }))
+  );
 
   // Memoize download names to avoid recomputing Object.keys on every render
   const downloadNames = useMemo(() => Object.keys(downloads), [downloads]);

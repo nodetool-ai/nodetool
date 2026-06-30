@@ -12,7 +12,12 @@ import type {
   ProviderTool,
   ToolCall
 } from "@nodetool-ai/runtime";
-import { findAssetRefs } from "@nodetool-ai/runtime";
+import { expandAssetReferences } from "@nodetool-ai/runtime";
+
+// Re-exported so existing consumers of `@nodetool-ai/llm-nodes` keep finding
+// the symbol; the canonical home is `@nodetool-ai/runtime`'s
+// `prompt-asset-refs` module, alongside the shared `findAssetRefs` parser.
+export { expandAssetReferences };
 import type {
   Chunk,
   LanguageModel,
@@ -486,54 +491,6 @@ function logThreadWarning(
     ...details,
     error: String(error)
   });
-}
-
-/**
- * Split a prompt containing inline `asset://<id>.<ext>` references into a
- * multimodal content array: text segments interleaved with image / audio
- * blocks that carry the `asset://` URI verbatim. The blocks are NOT resolved
- * here — the runtime layer (`ProcessingContext.resolveMessageMediaUris`)
- * dereferences the URIs to data URIs just before the provider call. Tokens
- * that aren't a supported media type (text, video, unknown) stay as literal
- * text so the model still sees the mention.
- *
- * Parsing is shared with non-chat tasks via {@link findAssetRefs}; see
- * `@nodetool-ai/runtime`'s `prompt-asset-refs` module.
- */
-export function expandAssetReferences(prompt: string): MessageContent[] {
-  const refs = findAssetRefs(prompt);
-  if (refs.length === 0) {
-    return [{ type: "text", text: prompt }];
-  }
-
-  const parts: MessageContent[] = [];
-  const pushText = (text: string) => {
-    if (text) parts.push({ type: "text", text });
-  };
-
-  let cursor = 0;
-  for (const ref of refs) {
-    pushText(prompt.slice(cursor, ref.index));
-    if (ref.kind === "image") {
-      parts.push({
-        type: "image_url",
-        image: { uri: ref.uri, mimeType: ref.mime }
-      });
-    } else if (ref.kind === "audio") {
-      parts.push({
-        type: "audio",
-        audio: { uri: ref.uri, mimeType: ref.mime }
-      });
-    } else {
-      // Video (and any other non-chat media): keep the mention as literal text
-      // so the model still sees the reference rather than a mislabeled block.
-      pushText(ref.uri);
-    }
-    cursor = ref.index + ref.length;
-  }
-  pushText(prompt.slice(cursor));
-
-  return parts.length > 0 ? parts : [{ type: "text", text: prompt }];
 }
 
 /**
