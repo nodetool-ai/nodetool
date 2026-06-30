@@ -438,11 +438,6 @@ function fillerRanges(clips: TimelineClip[]): Array<{ startMs: number; endMs: nu
     .map((t) => ({ startMs: t.startMs, endMs: t.endMs }));
 }
 
-/** How many filler words the transcript currently contains. */
-export function countFillers(clips: TimelineClip[]): number {
-  return fillerRanges(clips).length;
-}
-
 /**
  * Ripple-cut every filler word ("um", "uh", …) in one pass. Ranges are removed
  * right-to-left so each deletion leaves the earlier (left) ranges' absolute
@@ -677,26 +672,6 @@ export function pasteClipsAt(
   }
 
   return { clips: next, durationMs: maxEnd(next) };
-}
-
-/**
- * Move the word span [startMs, endMs) to `targetMs` (a word boundary): cut it
- * out, close the gap, then paste it at the target — "cut a paragraph and paste
- * it earlier, the media follows the text". The target is taken in the original
- * coordinate space and adjusted for the gap the cut closes.
- */
-export function moveWordRange(
-  clips: TimelineClip[],
-  startMs: number,
-  endMs: number,
-  targetMs: number
-): ReflowedClips {
-  if (targetMs >= startMs && targetMs <= endMs) {
-    return { clips, durationMs: maxEnd(clips) }; // dropping inside the cut → no-op
-  }
-  const cut = cutWordRange(clips, startMs, endMs);
-  const adjustedTarget = targetMs > endMs ? targetMs - (endMs - startMs) : targetMs;
-  return pasteClipsAt(cut.clips, adjustedTarget, cut.extracted);
 }
 
 // ── Migration: legacy line/caption-clip model → clip-sourced captions ─────────

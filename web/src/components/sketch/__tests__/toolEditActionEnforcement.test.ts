@@ -10,7 +10,6 @@
 import {
   editActionKindForTool,
   isTransformOnlyTool,
-  isPixelEditTool,
   isPaintingTool,
   createDefaultDocument
 } from "../types";
@@ -138,16 +137,6 @@ describe("EditActionKind helpers", () => {
 
     it("returns false for brush", () => {
       expect(isTransformOnlyTool("brush")).toBe(false);
-    });
-  });
-
-  describe("isPixelEditTool", () => {
-    it("returns true for fill", () => {
-      expect(isPixelEditTool("fill")).toBe(true);
-    });
-
-    it("returns false for move", () => {
-      expect(isPixelEditTool("move")).toBe(false);
     });
   });
 

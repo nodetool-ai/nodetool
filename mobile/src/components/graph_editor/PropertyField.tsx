@@ -411,7 +411,7 @@ const ImageWidget: React.FC<{
   value: unknown;
   onChange: (v: unknown) => void;
   colors: ThemeColors;
-}> = ({ prop, value, onChange, colors }) => {
+}> = ({ value, onChange, colors }) => {
   const uri = extractUri(value);
   const [uploading, setUploading] = useState(false);
 
@@ -499,7 +499,7 @@ const AudioWidget: React.FC<{
   value: unknown;
   onChange: (v: unknown) => void;
   colors: ThemeColors;
-}> = ({ prop, value, onChange, colors }) => {
+}> = ({ value, onChange, colors }) => {
   const uri = extractUri(value);
   const [uploading, setUploading] = useState(false);
 
@@ -573,7 +573,7 @@ const VideoWidget: React.FC<{
   value: unknown;
   onChange: (v: unknown) => void;
   colors: ThemeColors;
-}> = ({ prop, value, onChange, colors }) => {
+}> = ({ value, onChange, colors }) => {
   const uri = extractUri(value);
   const [uploading, setUploading] = useState(false);
 
