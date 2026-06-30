@@ -36,3 +36,4 @@ export { chatQaCast } from "./chatQaCast";
 export { templateMergeCast } from "./templateMergeCast";
 export { summarizeCast } from "./summarizeCast";
 export { describeImageCast } from "./describeImageCast";
+export { cookbookCasts } from "./cookbook";

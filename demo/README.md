@@ -62,6 +62,29 @@ to retime or reword the narration; the timeline itself lives in `tutorialCast.ts
 To narrate a real recorded run instead, point the `Tutorial` composition at your
 own cast id in `demo/src/Root.tsx`.
 
+## Cookbook recipe videos (no backend)
+
+One short video per recipe in `docs/cookbook/patterns.md` — 15 in all, from the
+simple image-enhancement pipeline to text-to-video and talking avatars. Each is a
+synthetic, backend-free cast that replays the real graph UI building and running
+the recipe, narrated by the same `Tutorial` composition (title card → step
+indicator + captions → call-to-action).
+
+```bash
+cd demo
+npm run render:cookbook                          # all 15 → docs/assets/cookbook/<slug>.mp4 + .jpg
+npm run render:cookbook -- --only text-to-video  # one recipe
+npm run still:cookbook                            # JPG thumbnails only (fast)
+```
+
+The casts live in `web/src/demo/cookbook/` (one file per recipe, built from the
+shared metadata factories in `cookbook/builders.ts`); the per-recipe titles,
+camera beats, and captions live in `demo/src/cookbook.ts`. Every node type is a
+real registry type and the media is inline (the kitten image, a tiny WebM clip,
+a short WAV chime — `web/src/demo/assets/`), so they replay with no backend and
+no generation credits. `scripts/render-cookbook.ts` bundles the project once and
+renders all 15, so it's far cheaper than 15 separate `remotion render` calls.
+
 ## Recording a real demo
 
 1. **Record.** From the editor (dev build), capture one real run:

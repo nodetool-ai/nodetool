@@ -17,6 +17,7 @@ import {
   templateMergeCast,
   summarizeCast,
   describeImageCast,
+  cookbookCasts,
   type DemoCast,
 } from "@web-demo";
 
@@ -29,6 +30,7 @@ const casts: DemoCast[] = [
   templateMergeCast,
   summarizeCast,
   describeImageCast,
+  ...cookbookCasts,
 ];
 
 /** The cast bound to the canonical `WorkflowDemo` composition id. */
