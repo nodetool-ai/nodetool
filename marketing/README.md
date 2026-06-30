@@ -29,8 +29,20 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
 
-## Deploy on Vercel
+## Deployment
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The site runs on Cloudflare Workers via [`@opennextjs/cloudflare`](https://opennext.js.org/cloudflare). Production deploys are driven by GitHub Actions (`.github/workflows/marketing-ci.yml`), not by Cloudflare's git integration: the `deploy` job runs on push to `main` and only ships after typecheck, lint, build, and the Playwright smoke tests pass.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+To enable it, set two secrets on the repo (or on the `marketing-production` environment):
+
+- `CLOUDFLARE_API_TOKEN` — token with "Edit Cloudflare Workers" + Workers R2 Storage permissions
+- `CLOUDFLARE_ACCOUNT_ID` — the account that owns the Worker
+
+Then disconnect the repo from Cloudflare Workers Builds / Pages git integration so the site is only deployed from the workflow.
+
+Deploy from your machine when you need to (uses your local `wrangler` auth):
+
+```bash
+npm run deploy    # opennextjs-cloudflare build && opennextjs-cloudflare deploy
+npm run preview   # build and preview the Worker locally
+```
