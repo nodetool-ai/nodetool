@@ -168,6 +168,26 @@
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
+      },
+      {
+        "id": "report_output",
+        "type": "nodetool.output.StringOutput",
+        "data": {
+          "name": "Report"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1540,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "Report",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
       }
     ],
     "edges": [
@@ -194,6 +214,17 @@
         "target": "2",
         "targetHandle": "trends",
         "ui_properties": null
+      },
+      {
+        "id": "e_report_output",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "report_output",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
       }
     ]
   },
@@ -204,5 +235,87 @@
   "path": null,
   "run_mode": null,
   "required_providers": null,
-  "required_models": null
+  "required_models": null,
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Instagram Insights"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-16",
+            "text": "📸 Instagram Insights",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-17",
+            "text": "Analyze an account or topic focus."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "c-20",
+            "title": "Focus",
+            "content": [
+              {
+                "type": "TextInput",
+                "props": {
+                  "id": "in-18",
+                  "binding": "focus",
+                  "label": "Focus",
+                  "placeholder": "e.g. sustainable fashion",
+                  "multiline": false,
+                  "events": []
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "id": "b-19",
+                  "label": "Analyze",
+                  "variant": "contained",
+                  "color": "primary",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "key": "",
+                      "value": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "c-22",
+            "title": "Report",
+            "content": [
+              {
+                "type": "Markdown",
+                "props": {
+                  "id": "md-21",
+                  "binding": "Report",
+                  "text": ""
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
 }

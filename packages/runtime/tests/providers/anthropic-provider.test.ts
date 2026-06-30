@@ -67,6 +67,28 @@ describe("AnthropicProvider", () => {
     ]);
   });
 
+  it("renders the web_search tool as Anthropic's native server tool", () => {
+    const provider = new AnthropicProvider(
+      { ANTHROPIC_API_KEY: "k" },
+      { client: {} as any }
+    );
+    expect(provider.supportsNativeWebSearch).toBe(true);
+
+    const tools: ProviderTool[] = [
+      { name: "web_search", description: "Search the web", inputSchema: { type: "object", properties: {} } },
+      { name: "extract", description: "Extract", inputSchema: { type: "object", properties: {} } }
+    ];
+    const formatted = provider.formatTools(tools);
+    expect(formatted[0]).toEqual({
+      type: "web_search_20250305",
+      name: "web_search",
+      max_uses: 5
+    });
+    // Other tools are still normal function tools.
+    expect(formatted[1].name).toBe("extract");
+    expect(formatted[1].input_schema).toBeDefined();
+  });
+
   it("converts tool and assistant messages", async () => {
     const provider = new AnthropicProvider(
       { ANTHROPIC_API_KEY: "k" },

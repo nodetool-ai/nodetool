@@ -729,6 +729,7 @@ import { LIST_NODES } from "@nodetool-ai/core-nodes/nodes/list";
 import { VARIABLE_NODES } from "@nodetool-ai/core-nodes/nodes/variable";
 import { TEXT_EXTRA_NODES } from "@nodetool-ai/text-nodes/nodes/text-extra";
 import { CONSTANT_NODES } from "@nodetool-ai/core-nodes/nodes/constant";
+import { FAKE_MEDIA_NODES } from "@nodetool-ai/core-nodes/nodes/fake-media";
 import { EXTENDED_PLACEHOLDER_NODES } from "@nodetool-ai/core-nodes/nodes/extended-placeholders";
 import { INPUT_NODES } from "@nodetool-ai/core-nodes/nodes/input";
 import { OUTPUT_NODES } from "@nodetool-ai/audio-nodes/nodes/output";
@@ -815,6 +816,7 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...VARIABLE_NODES,
   ...TEXT_EXTRA_NODES,
   ...CONSTANT_NODES,
+  ...FAKE_MEDIA_NODES,
   ...EXTENDED_PLACEHOLDER_NODES,
   ...INPUT_NODES,
   ...OUTPUT_NODES,

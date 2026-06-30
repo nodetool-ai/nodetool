@@ -349,7 +349,8 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
               settings: workflow.settings as Record<string, unknown> | null | undefined,
               run_mode: workflow.run_mode,
               workspace_id: workflow.workspace_id,
-              html_app: workflow.html_app
+              html_app: workflow.html_app,
+              app_doc: workflow.app_doc
             })) as Workflow;
           } catch (err) {
             throw createErrorMessage(err, "Failed to save workflow");
@@ -463,6 +464,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
             run_mode: workflow.run_mode,
             workspace_id: workflow.workspace_id,
             html_app: workflow.html_app,
+            app_doc: workflow.app_doc,
             from_example_package: fromExamplePackage,
             from_example_name: fromExampleName
           })) as Workflow;

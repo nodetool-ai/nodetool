@@ -279,7 +279,6 @@ BLOCKED: setTimeout, setInterval, eval, require, import, process, __dirname, __f
           provider: selectedModel?.provider,
           model: selectedModel?.id,
           content,
-          help_mode: false,
           workflow_assistant: true
         } as Message);
       } catch {

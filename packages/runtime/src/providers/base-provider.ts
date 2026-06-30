@@ -225,6 +225,29 @@ export abstract class BaseProvider {
   private _cost = 0;
   private _emitMessage: ((msg: unknown) => void) | null = null;
 
+  /**
+   * Whether this provider runs its own agent loop with a built-in tool-search
+   * facility (the Claude Agent SDK defers tool schemas and exposes `ToolSearch`
+   * natively). When `true`, the harness passes the full toolbelt and does NOT
+   * register its own `ToolSearch`. When `false` (the default, stateless
+   * providers), the harness keeps a resident core, defers the rest, and adds
+   * its own `ToolSearch`.
+   */
+  get usesNativeToolSearch(): boolean {
+    return false;
+  }
+
+  /**
+   * Whether this provider has a built-in, server-side web search it runs
+   * itself (e.g. Anthropic's `web_search_20250305` server tool, the Claude
+   * Agent SDK's `WebSearch`). When `true`, a tool named
+   * {@link WEB_SEARCH_TOOL_NAME} is fulfilled by the provider natively rather
+   * than the SerpAPI-backed `WebSearchTool`. Default `false` (use the fallback).
+   */
+  get supportsNativeWebSearch(): boolean {
+    return false;
+  }
+
   setMessageEmitter(fn: (msg: unknown) => void): void {
     this._emitMessage = fn;
   }

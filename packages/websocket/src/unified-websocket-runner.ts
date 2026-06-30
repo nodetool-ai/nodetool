@@ -79,6 +79,11 @@ import type {
 import { Tool } from "@nodetool-ai/agents";
 import { RunSubtaskTool, RunSearchTool } from "@nodetool-ai/agents";
 import {
+  ToolSearchTool,
+  formatDeferredToolsReminder,
+  type ToolSearchEntry
+} from "@nodetool-ai/agents";
+import {
   getBuiltinTools,
   getAllMcpTools,
   registerBuiltinTools,
@@ -970,14 +975,32 @@ const CHAT_AGENT_SYSTEM_PROMPT = `You are NodeTool's chat assistant. Reply in cl
   decompose work that you could just do directly.
 
 # Your toolbelt
-You always have a fixed toolbelt — there is no per-message tool selection.
-- Run any node directly with \`run_node\`, or run a saved workflow with
-  \`run_workflow\`. Discover node types and inputs via \`list_nodes\`,
-  \`search_nodes\`, \`get_node_info\`, and workflows via \`list_workflows\`.
-- Find and read knowledge collections yourself: \`list_collections\` to see
-  what exists, then \`query_collection\` to search one.
-- Read and write files, browse and search the web, and generate images and
-  audio. Decompose work with \`run_subtask\`.
+You start with a resident core, always available without loading:
+- Delegation: \`run_subtask\` (and \`run_search\`).
+- Nodes and workflows: \`run_node\`, \`run_workflow\`, \`search_nodes\`,
+  \`list_nodes\`, \`get_node_info\`, \`list_workflows\`, \`get_workflow\`.
+- Tool discovery: \`ToolSearch\`.
+
+Everything else is a DEFERRED tool you load on demand with \`ToolSearch\` (see
+"Deferred tools" below) — web search and browsing, reading knowledge
+collections, files, code execution, media generation, document conversion, and
+any editor / app-builder (\`ui_*\`) actions. The deferred tools are listed by
+name in a \`<system-reminder>\` — that list is authoritative, so load only what
+appears there, and load the ones you need before calling them.
+
+# Deferred tools
+Some tools are not loaded up front — they appear by name only, listed in a
+\`<system-reminder>\`. You cannot call a deferred tool until you load its schema
+with the \`ToolSearch\` tool.
+- \`ToolSearch\` takes a \`query\` and returns the matching tools' full schemas
+  in a \`<functions>\` block. Once a tool's schema appears there, call it like
+  any other tool.
+- Query forms:
+  - \`select:Name1,Name2\` — load these exact tools by name.
+  - \`keyword words\` — search names + descriptions, best \`max_results\` matches.
+  - \`+substr words\` — require \`substr\` in the tool name, rank by the rest.
+- Load every tool you intend to use before calling it; one search can load
+  several. If a call fails because a tool is unknown, ToolSearch it first.
 
 # Image and media
 When tools return media URLs, embed them as markdown image / link tags.
@@ -1007,9 +1030,42 @@ const PERMISSION_MODE_PROMPTS: Record<PermissionMode, string> = {
     "that write, run, or have external side effects.\n"
 };
 
-/** Build the chat-agent system prompt for the given permission mode. */
-function buildChatAgentSystemPrompt(mode: PermissionMode): string {
-  return CHAT_AGENT_SYSTEM_PROMPT + PERMISSION_MODE_PROMPTS[mode];
+/**
+ * The resident toolbelt on stateless providers: the delegation primitives plus
+ * the high-traffic discovery/execution tools nearly every task reaches for, so
+ * the common path needs no `ToolSearch` round-trip. `ToolSearch` is added
+ * alongside; the long tail (collections, files, web, media, other MCP tools,
+ * and all client `ui_*` tools) is deferred and loaded on demand.
+ */
+const RESIDENT_TOOL_NAMES: ReadonlySet<string> = new Set([
+  // Delegation primitives.
+  "run_subtask",
+  "run_search",
+  // Node + workflow discovery and execution — the bread-and-butter toolbelt.
+  "search_nodes",
+  "get_node_info",
+  "list_nodes",
+  "list_workflows",
+  "get_workflow",
+  "run_node",
+  "run_workflow"
+]);
+
+/**
+ * Build the chat-agent system prompt for the given permission mode. A surface
+ * (App Builder, timeline editor, …) can append its own guidance by sending a
+ * `system_prompt` on the chat message — it is layered after the base prompt as
+ * a context-specific addendum, never a replacement.
+ */
+function buildChatAgentSystemPrompt(
+  mode: PermissionMode,
+  extraSystemPrompt?: string | null
+): string {
+  const extra =
+    typeof extraSystemPrompt === "string" && extraSystemPrompt.trim()
+      ? `\n\n${extraSystemPrompt.trim()}\n`
+      : "";
+  return CHAT_AGENT_SYSTEM_PROMPT + PERMISSION_MODE_PROMPTS[mode] + extra;
 }
 
 export interface WebSocketReceiveFrame {
@@ -2999,6 +3055,11 @@ export class UnifiedWebSocketRunner {
         ? data.permission_mode
         : "default";
 
+    // A surface can send a context-specific system-prompt addendum (e.g. the
+    // App Builder's build-an-app-UI guidance), layered after the base prompt.
+    const extraSystemPrompt =
+      typeof data.system_prompt === "string" ? data.system_prompt : null;
+
     // Long-term memory mines the whole conversation, so it needs the full
     // history; the resume fast path below is skipped when it is enabled.
     const memoryEnabled =
@@ -3012,9 +3073,17 @@ export class UnifiedWebSocketRunner {
     // (resume failed / system prompt changed). Otherwise we load the full
     // history and use the standard slice-based resume. The DB column is the
     // source of truth; the provider also keeps an in-process cache.
+    // Generic-provider tool search appends a `<system-reminder>` listing the
+    // deferred tools. Assigned during tool resolution below; read lazily here
+    // because the resume `loadFullHistory` thunk and the prepend both run after.
+    let toolSearchReminder = "";
+    const buildSystemContent = (): string => {
+      const base = buildChatAgentSystemPrompt(permissionMode, extraSystemPrompt);
+      return toolSearchReminder ? `${base}\n\n${toolSearchReminder}` : base;
+    };
     const systemChatMessage = (): ProviderMessage => ({
       role: "system",
-      content: buildChatAgentSystemPrompt(permissionMode),
+      content: buildSystemContent(),
       toolCallId: null,
       toolCalls: null,
       threadId: null
@@ -3197,14 +3266,14 @@ export class UnifiedWebSocketRunner {
       resolved: serverTools.map((t) => t.name)
     });
 
-    // Build provider-format tool schemas from resolved Tool instances + client tools
-    const providerToolSchemas: ProviderTool[] = serverTools.map((t) =>
+    const serverSchemas: ProviderTool[] = serverTools.map((t) =>
       t.toProviderTool()
     );
-    // Only include client tools (ui_*) when a workflow is active
+    // Client tools (ui_*) only exist when a workflow is active.
     const clientToolNames = workflowId
       ? Object.keys(this.clientToolsManifest)
       : [];
+    const clientSchemas: ProviderTool[] = [];
     if (workflowId) {
       for (const [name, manifest] of Object.entries(this.clientToolsManifest)) {
         // The frontend manifest carries the JSON schema under `parameters`
@@ -3216,7 +3285,7 @@ export class UnifiedWebSocketRunner {
             : typeof manifest.inputSchema === "object"
               ? (manifest.inputSchema as Record<string, unknown>)
               : undefined;
-        providerToolSchemas.push({
+        clientSchemas.push({
           name,
           description:
             typeof manifest.description === "string"
@@ -3226,11 +3295,52 @@ export class UnifiedWebSocketRunner {
         });
       }
     }
+    const allSchemas: ProviderTool[] = [...serverSchemas, ...clientSchemas];
+
+    // The live tool list handed to the provider. On the generic path it starts
+    // with the minimal resident set + ToolSearch and GROWS in place as
+    // ToolSearch reveals deferred tools — base-provider's loop re-reads this
+    // array each iteration, so pushes become callable on the next turn.
+    const providerToolSchemas: ProviderTool[] = [];
+    let deferredToolCount = 0;
+    if (provider.usesNativeToolSearch) {
+      // Native tool search (Claude Agent SDK): pass everything; the SDK defers.
+      providerToolSchemas.push(...allSchemas);
+    } else {
+      // Resident = the minimal delegation primitives; everything else deferred.
+      const resident = allSchemas.filter((s) => RESIDENT_TOOL_NAMES.has(s.name));
+      const deferred = allSchemas.filter((s) => !RESIDENT_TOOL_NAMES.has(s.name));
+      providerToolSchemas.push(...resident);
+      deferredToolCount = deferred.length;
+      if (deferred.length > 0) {
+        const catalog: ToolSearchEntry[] = deferred.map((s) => ({
+          name: s.name,
+          description: s.description,
+          parameters: s.inputSchema
+        }));
+        const deferredByName = new Map(deferred.map((s) => [s.name, s]));
+        const revealed = new Set<string>();
+        const toolSearch = new ToolSearchTool(catalog, (entries) => {
+          for (const e of entries) {
+            if (revealed.has(e.name)) continue;
+            const schema = deferredByName.get(e.name);
+            if (!schema) continue;
+            revealed.add(e.name);
+            providerToolSchemas.push(schema);
+          }
+        });
+        serverToolMap.set(toolSearch.name, toolSearch);
+        providerToolSchemas.push(toolSearch.toProviderTool());
+        toolSearchReminder = formatDeferredToolsReminder(catalog);
+      }
+    }
     log.info("Provider tool schemas", {
+      permissionMode,
+      nativeToolSearch: provider.usesNativeToolSearch,
       serverToolCount: serverTools.length,
       clientToolCount: clientToolNames.length,
-      clientTools: clientToolNames,
-      totalSchemas: providerToolSchemas.length,
+      deferredToolCount,
+      residentSchemas: providerToolSchemas.length,
       schemaNames: providerToolSchemas.map((t) => t.name)
     });
 
@@ -3250,7 +3360,7 @@ export class UnifiedWebSocketRunner {
     if (chatHistory.length === 0 || chatHistory[0].role !== "system") {
       chatHistory.unshift({
         role: "system",
-        content: buildChatAgentSystemPrompt(permissionMode),
+        content: buildSystemContent(),
         toolCallId: null,
         toolCalls: null,
         threadId: null
@@ -3314,8 +3424,10 @@ export class UnifiedWebSocketRunner {
         ? { ...capturedSession, checkpoint: sessionCheckpointOverride }
         : capturedSession;
 
-    // Cap on tool-calling rounds before the loop stops.
-    const MAX_TOOL_ROUNDS = 10;
+    // Cap on tool-calling rounds before the loop stops. Generous enough to
+    // build a multi-component app UI or run a long edit session in one turn —
+    // 10 was too low and cut off the app builder mid-build.
+    const MAX_TOOL_ROUNDS = 50;
     const useTools = providerToolSchemas.length > 0;
 
     // The wire messages: chat history + the ephemeral memory block (which goes

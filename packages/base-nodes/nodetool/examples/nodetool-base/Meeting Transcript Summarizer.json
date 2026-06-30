@@ -17,8 +17,9 @@
       {
         "id": "1",
         "parent_id": null,
-        "type": "nodetool.constant.Audio",
+        "type": "nodetool.input.AudioInput",
         "data": {
+          "name": "Recording",
           "value": {
             "uri": "https://app.nodetool.ai/examples/remove_silence.mp3",
             "type": "audio"
@@ -32,7 +33,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "1️⃣ Meeting audio",
+          "title": "Recording",
           "selectable": true
         },
         "dynamic_properties": {},
@@ -101,6 +102,46 @@
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
+      },
+      {
+        "id": "summary_output",
+        "type": "nodetool.output.StringOutput",
+        "data": {
+          "name": "Summary"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1040,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "Summary",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "transcript_output",
+        "type": "nodetool.output.StringOutput",
+        "data": {
+          "name": "Transcript"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 720,
+            "y": 420
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "Transcript",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
       }
     ],
     "edges": [
@@ -123,6 +164,28 @@
         "ui_properties": {
           "className": "audio"
         }
+      },
+      {
+        "id": "e_summary_out",
+        "source": "3",
+        "sourceHandle": "text",
+        "target": "summary_output",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "e_transcript_out",
+        "source": "a2e09377-c0e4-4f7e-8cf0-dbbc5a8ff94c",
+        "sourceHandle": "text",
+        "target": "transcript_output",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
       }
     ]
   },

@@ -2,6 +2,7 @@ type ProviderKind = "api" | "local";
 
 const namespaceToSecretKey: Record<string, string> = {
   openai: "OPENAI_API_KEY",
+  openai_responses: "OPENAI_API_KEY",
   anthropic: "ANTHROPIC_API_KEY",
   mistral: "MISTRAL_API_KEY",
   google: "GEMINI_API_KEY",
@@ -89,4 +90,3 @@ export const getProviderKindForNamespace = (namespace: string): ProviderKind => 
     ? "api"
     : "local";
 };
-

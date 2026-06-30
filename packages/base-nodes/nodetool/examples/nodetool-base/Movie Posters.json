@@ -189,6 +189,17 @@
           "className": "str"
         },
         "edge_type": "data"
+      },
+      {
+        "id": "e_poster_out",
+        "source": "0276f606-d899-4487-be65-4615564507cc",
+        "sourceHandle": "output",
+        "target": "poster_output",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        },
+        "edge_type": "data"
       }
     ],
     "nodes": [
@@ -589,6 +600,26 @@
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
+      },
+      {
+        "id": "poster_output",
+        "type": "nodetool.output.ImageOutput",
+        "data": {
+          "name": "Poster"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3200,
+            "y": 187
+          },
+          "zIndex": 0,
+          "width": 320,
+          "title": "Poster",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
       }
     ]
   },
@@ -602,5 +633,111 @@
   "required_providers": null,
   "required_models": null,
   "html_app": null,
-  "etag": "c20ab9c0d0a33c79c4ec768459e5a0aa"
+  "etag": "c20ab9c0d0a33c79c4ec768459e5a0aa",
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Movie Poster Studio"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-1",
+            "text": "🎬 Movie Poster Studio",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-2",
+            "text": "Describe your film and generate a cinematic poster."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "c-7",
+            "title": "Details",
+            "content": [
+              {
+                "type": "TextInput",
+                "props": {
+                  "id": "in-3",
+                  "binding": "Movie Title",
+                  "label": "Movie Title",
+                  "placeholder": "e.g. Singularity",
+                  "multiline": false,
+                  "events": []
+                }
+              },
+              {
+                "type": "TextInput",
+                "props": {
+                  "id": "in-4",
+                  "binding": "Genre",
+                  "label": "Genre",
+                  "placeholder": "e.g. Sci-Fi",
+                  "multiline": false,
+                  "events": []
+                }
+              },
+              {
+                "type": "TextInput",
+                "props": {
+                  "id": "in-5",
+                  "binding": "Primary Audience",
+                  "label": "Primary Audience",
+                  "placeholder": "e.g. AI Enthusiasts",
+                  "multiline": false,
+                  "events": []
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "id": "b-6",
+                  "label": "Generate Poster",
+                  "variant": "contained",
+                  "color": "primary",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "key": "",
+                      "value": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "c-9",
+            "title": "Poster",
+            "content": [
+              {
+                "type": "Image",
+                "props": {
+                  "id": "img-8",
+                  "binding": "Poster",
+                  "fit": "contain",
+                  "height": 520,
+                  "placeholder": "Your poster will appear here"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
 }

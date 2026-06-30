@@ -86,6 +86,14 @@ export interface ToolCall {
   _rawGeminiParts?: unknown[];
 }
 
+/**
+ * Canonical name for the web-search tool. Providers with a built-in web search
+ * (`supportsNativeWebSearch`) render a tool with this name as their native
+ * server-side search instead of a function call; everyone else falls back to
+ * the SerpAPI-backed `WebSearchTool`.
+ */
+export const WEB_SEARCH_TOOL_NAME = "web_search";
+
 export interface ProviderTool {
   name: string;
   description?: string;

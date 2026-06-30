@@ -146,6 +146,26 @@
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
+      },
+      {
+        "id": "findings_output",
+        "type": "nodetool.output.StringOutput",
+        "data": {
+          "name": "Findings"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1180,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "Findings",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
       }
     ],
     "edges": [
@@ -172,6 +192,17 @@
         "target": "2",
         "targetHandle": "prompt",
         "ui_properties": null
+      },
+      {
+        "id": "e_findings_output",
+        "source": "2",
+        "sourceHandle": "text",
+        "target": "findings_output",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
       }
     ]
   },
@@ -182,5 +213,98 @@
   "path": null,
   "run_mode": null,
   "required_providers": null,
-  "required_models": null
+  "required_models": null,
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Wikipedia Research Agent"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-62",
+            "text": "📚 Wikipedia Research Agent",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-63",
+            "text": "Point the agent at a seed article and a topic to research."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "c-67",
+            "title": "Inputs",
+            "content": [
+              {
+                "type": "TextInput",
+                "props": {
+                  "id": "in-64",
+                  "binding": "seed_url",
+                  "label": "Seed URL",
+                  "placeholder": "https://en.wikipedia.org/wiki/…",
+                  "multiline": false,
+                  "events": []
+                }
+              },
+              {
+                "type": "TextInput",
+                "props": {
+                  "id": "in-65",
+                  "binding": "topic_label",
+                  "label": "Topic",
+                  "placeholder": "e.g. history of computing",
+                  "multiline": false,
+                  "events": []
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "id": "b-66",
+                  "label": "Research",
+                  "variant": "contained",
+                  "color": "primary",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "key": "",
+                      "value": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "c-69",
+            "title": "Findings",
+            "content": [
+              {
+                "type": "Markdown",
+                "props": {
+                  "id": "md-68",
+                  "binding": "Findings",
+                  "text": ""
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
 }

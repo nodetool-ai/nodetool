@@ -414,6 +414,8 @@ export interface Workflow {
   required_providers?: string[] | null;
   required_models?: string[] | null;
   html_app?: string | null;
+  /** App-builder document (Puck layout + bindings): `{ version, data }`. */
+  app_doc?: Record<string, unknown> | null;
   receive_clipboard?: boolean | null;
   access: string;
   created_at: string;
@@ -439,6 +441,7 @@ export interface WorkflowRequest {
   run_mode?: string | null;
   workspace_id?: string | null;
   html_app?: string | null;
+  app_doc?: Record<string, unknown> | null;
   thumbnail?: string | null;
   thumbnail_url?: string | null;
   receive_clipboard?: boolean | null;
@@ -630,18 +633,6 @@ export interface Message {
    * remove it from the toolbelt.
    */
   enable_read_only_search?: boolean | null;
-  agent_mode?: boolean | null;
-  /**
-   * When `agent_mode` is true, selects which planner the server uses:
-   * - `"multi"` — TaskPlanner builds a parallel task DAG (one LLM step per
-   *   task) and ParallelTaskExecutor runs them.
-   * - `"graph"` — GraphPlanner builds a workflow graph of nodes
-   *   (TextToImage, AgentStep, etc.) and AgentWorkflowRunner executes it.
-   *
-   * If omitted, the server picks a default ("graph" when a NodeRegistry is
-   * wired, otherwise "multi") for backward compatibility.
-   */
-  agent_planner?: "multi" | "graph" | null;
   /**
    * Per-message opt-in for long-term memory recall + extraction. When
    * `true`, the websocket session resolves a per-user, per-thread
@@ -650,7 +641,13 @@ export interface Message {
    * message even if the global env flag is set.
    */
   memory_enabled?: boolean | null;
-  help_mode?: boolean | null;
+  /**
+   * Context-specific system-prompt addendum supplied by the originating surface
+   * (e.g. the App Builder's build-an-app-UI guidance, an editor's assistant
+   * instructions). The server layers it after the base chat system prompt — it
+   * augments, never replaces. Omit for plain chat.
+   */
+  system_prompt?: string | null;
   agent_execution_id?: string | null;
   execution_event_type?: string | null;
   workflow_target?: string | null;
@@ -858,6 +855,8 @@ export interface ResourceLimits {
 export const PROVIDER_IDS = {
   // Hosted LLM / multimodal APIs
   OPENAI: "openai",
+  // OpenAI Responses API path with hosted tools such as native web search.
+  OPENAI_RESPONSES: "openai_responses",
   // OpenAI via ChatGPT/Codex OAuth login (no API key — uses the stored
   // Codex OAuth token and the chatgpt.com Codex backend).
   CODEX: "codex",

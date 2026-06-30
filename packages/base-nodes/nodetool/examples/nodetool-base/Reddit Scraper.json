@@ -71,6 +71,17 @@
         "sourceHandle": "recommendations",
         "target": "2",
         "targetHandle": "recommendations"
+      },
+      {
+        "id": "e_report_output",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "report_output",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
       }
     ],
     "nodes": [
@@ -116,8 +127,16 @@
           "subreddit": "webdev",
           "summary": "Developers frequently discuss tooling fatigue, deployment friction, and keeping up with framework churn.",
           "posts": "12",
-          "key_issues": ["Build tooling complexity", "Slow local dev environments", "Framework churn"],
-          "recommendations": ["Adopt simpler defaults", "Document upgrade paths", "Share starter templates"]
+          "key_issues": [
+            "Build tooling complexity",
+            "Slow local dev environments",
+            "Framework churn"
+          ],
+          "recommendations": [
+            "Adopt simpler defaults",
+            "Document upgrade paths",
+            "Share starter templates"
+          ]
         },
         "dynamic_outputs": {}
       },
@@ -266,6 +285,26 @@
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
+      },
+      {
+        "id": "report_output",
+        "type": "nodetool.output.StringOutput",
+        "data": {
+          "name": "Report"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1400,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "Report",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
       }
     ]
   },
@@ -305,5 +344,98 @@
   "path": null,
   "run_mode": null,
   "required_providers": null,
-  "required_models": null
+  "required_models": null,
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Reddit Scraper"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-8",
+            "text": "👽 Reddit Insights",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-9",
+            "text": "Summarize a subreddit around a focus area."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "c-13",
+            "title": "Inputs",
+            "content": [
+              {
+                "type": "TextInput",
+                "props": {
+                  "id": "in-10",
+                  "binding": "subreddit",
+                  "label": "Subreddit",
+                  "placeholder": "e.g. r/MachineLearning",
+                  "multiline": false,
+                  "events": []
+                }
+              },
+              {
+                "type": "TextInput",
+                "props": {
+                  "id": "in-11",
+                  "binding": "focus_area",
+                  "label": "Focus Area",
+                  "placeholder": "e.g. new model releases",
+                  "multiline": false,
+                  "events": []
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "id": "b-12",
+                  "label": "Scrape & Summarize",
+                  "variant": "contained",
+                  "color": "primary",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "key": "",
+                      "value": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "c-15",
+            "title": "Report",
+            "content": [
+              {
+                "type": "Markdown",
+                "props": {
+                  "id": "md-14",
+                  "binding": "Report",
+                  "text": ""
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
 }

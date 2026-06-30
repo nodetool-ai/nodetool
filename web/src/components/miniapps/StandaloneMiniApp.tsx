@@ -18,6 +18,9 @@ import { NodeContext } from "../../contexts/NodeContext";
 import { useMiniAppsStore } from "../../stores/MiniAppsStore";
 import ThemeToggle from "../ui/ThemeToggle";
 import MiniWorkflowGraph from "./components/MiniWorkflowGraph";
+import AppRuntimeView from "../appbuilder/AppRuntimeView";
+import { loadAppData } from "../appbuilder/persistence";
+import { isRenderableData } from "../appbuilder/appData";
 
 const StandaloneMiniApp: React.FC = () => {
   const theme = useTheme();
@@ -55,6 +58,10 @@ const StandaloneMiniApp: React.FC = () => {
 
   const clearResults = useMiniAppsStore((state) => state.clearResults);
 
+  // A WYSIWYG app (built in the App Builder) takes over the whole view.
+  const appData = useMemo(() => loadAppData(workflow), [workflow]);
+  const hasApp = isRenderableData(appData);
+
   const { nodes: workflowNodes, edges: workflowEdges } = useMemo(() => {
     if (!workflow?.graph) {
       return {
@@ -85,6 +92,23 @@ const StandaloneMiniApp: React.FC = () => {
       ? state.nodeStores[state.currentWorkflowId]
       : undefined
   );
+
+  if (workflow && hasApp && appData) {
+    return (
+      <NodeContext.Provider value={activeNodeStore ?? null}>
+        <Box
+          sx={{
+            width: "100%",
+            height: "100vh",
+            overflow: "auto",
+            background: "var(--palette-background-default)"
+          }}
+        >
+          <AppRuntimeView workflow={workflow} data={appData} />
+        </Box>
+      </NodeContext.Provider>
+    );
+  }
 
   return (
     <NodeContext.Provider value={activeNodeStore ?? null}>

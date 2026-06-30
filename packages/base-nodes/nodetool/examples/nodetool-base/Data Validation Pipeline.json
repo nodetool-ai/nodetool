@@ -34,6 +34,17 @@
         "sourceHandle": "text",
         "target": "2",
         "targetHandle": "analysis"
+      },
+      {
+        "id": "e_report_output",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "report_output",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
       }
     ],
     "nodes": [
@@ -158,6 +169,26 @@
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
+      },
+      {
+        "id": "report_output",
+        "type": "nodetool.output.StringOutput",
+        "data": {
+          "name": "Report"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1310,
+            "y": 1076
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "Report",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
       }
     ]
   },
@@ -191,5 +222,87 @@
   "path": null,
   "run_mode": null,
   "required_providers": null,
-  "required_models": null
+  "required_models": null,
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Data Validation"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-23",
+            "text": "✅ Data Validation",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-24",
+            "text": "Paste data to validate and get a structured report."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "c-27",
+            "title": "Data",
+            "content": [
+              {
+                "type": "TextInput",
+                "props": {
+                  "id": "in-25",
+                  "binding": "data",
+                  "label": "Data",
+                  "placeholder": "Paste CSV / JSON / text…",
+                  "multiline": true,
+                  "events": []
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "id": "b-26",
+                  "label": "Validate",
+                  "variant": "contained",
+                  "color": "primary",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "key": "",
+                      "value": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "c-29",
+            "title": "Report",
+            "content": [
+              {
+                "type": "Markdown",
+                "props": {
+                  "id": "md-28",
+                  "binding": "Report",
+                  "text": ""
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
 }

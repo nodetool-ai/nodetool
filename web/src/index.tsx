@@ -78,6 +78,9 @@ const GlobalChat = React.lazy(
 const StandaloneMiniApp = React.lazy(
   () => import("./components/miniapps/StandaloneMiniApp")
 );
+const AppBuilderPage = React.lazy(
+  () => import("./components/appbuilder/AppBuilderPage")
+);
 const ModelsPage = React.lazy(
   () => import("./components/hugging_face/model_list/ModelsPage")
 );
@@ -298,6 +301,25 @@ function getRoutes() {
       element: (
         <ProtectedRoute>
           <StandaloneMiniApp />
+        </ProtectedRoute>
+      )
+    },
+    {
+      path: "/app-builder/:workflowId",
+      element: (
+        <ProtectedRoute>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              width: "100%",
+              height: "100%"
+            }}
+          >
+            <React.Suspense fallback={<LoadingSpinner />}>
+              <AppBuilderPage />
+            </React.Suspense>
+          </div>
         </ProtectedRoute>
       )
     },
