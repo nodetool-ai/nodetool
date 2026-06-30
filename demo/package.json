@@ -14,7 +14,11 @@
     "render:tutorial:ask": "remotion render src/index.ts Tutorial-ask-ai ../web/public/tutorials/ask-ai.mp4",
     "render:tutorial:combine": "remotion render src/index.ts Tutorial-combine-inputs ../web/public/tutorials/combine-inputs.mp4",
     "still": "remotion still src/index.ts WorkflowDemo out/frame.png --frame=60",
-    "still:tutorial:ask": "remotion still src/index.ts Tutorial-ask-ai ../web/public/tutorials/ask-ai.jpg --frame=255",
+    "still:tutorials": "npm run still:tutorial:first && npm run still:tutorial:connect && npm run still:tutorial:list && npm run still:tutorial:ask && npm run still:tutorial:combine",
+    "still:tutorial:first": "remotion still src/index.ts Tutorial-first-workflow ../web/public/tutorials/first-workflow.jpg --frame=560",
+    "still:tutorial:connect": "remotion still src/index.ts Tutorial-connect-run ../web/public/tutorials/connect-run.jpg --frame=270",
+    "still:tutorial:list": "remotion still src/index.ts Tutorial-list-generator ../web/public/tutorials/list-generator.jpg --frame=430",
+    "still:tutorial:ask": "remotion still src/index.ts Tutorial-ask-ai ../web/public/tutorials/ask-ai.jpg --frame=400",
     "still:tutorial:combine": "remotion still src/index.ts Tutorial-combine-inputs ../web/public/tutorials/combine-inputs.jpg --frame=210",
     "pin-assets": "tsx scripts/pin-cast-assets.ts",
     "typecheck": "tsc --noEmit"

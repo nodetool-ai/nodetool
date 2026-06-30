@@ -1,17 +1,19 @@
 /**
  * "Ask the AI" tutorial cast.
  *
- * A single question flows into an LLM that streams its answer, which renders in
- * a preview — the simplest possible chat-style Q&A. Fully synthetic (fabricated
- * metadata, streamed text, no backend), so it replays with no recording.
+ * A single question flows into the real `nodetool.agents.Agent`, which streams
+ * its answer. The Agent renders with its `body: "content_card"` text card: the
+ * answer streams in live (ChunkDisplay) and settles into the card, then lands
+ * in a Preview — the simplest chat-style Q&A. Fully synthetic (real metadata,
+ * streamed text, no backend), so it replays with no recording.
  */
 import { PREVIEW_NODE_TYPE } from "../constants/nodeTypes";
 import { CAST_VERSION, type CastEvent, type DemoCast } from "./castTypes";
 import { castMessages, edge, meta, node, out, prop } from "./castHelpers";
 import type { Workflow } from "../stores/ApiTypes";
 
-const INPUT_TYPE = "nodetool.input.TextInput";
-const CHAT_TYPE = "nodetool.llm.Chat";
+const INPUT_TYPE = "nodetool.input.StringInput";
+const CHAT_TYPE = "nodetool.agents.Agent";
 
 const WF = "wf-chat-qa";
 const JOB = "chat-qa-job";
@@ -33,7 +35,7 @@ const workflow = {
   id: WF,
   name: "Ask the AI",
   access: "private",
-  description: "Question → Chat (LLM) → Preview.",
+  description: "Question → Agent (LLM) → Preview.",
   thumbnail: "",
   tags: [],
   run_mode: "workflow",
@@ -42,12 +44,12 @@ const workflow = {
   created_at: new Date(0).toISOString(),
   graph: {
     nodes: [
-      node("question", INPUT_TYPE, 0, 150, 260, "Question", { name: "question", text: QUESTION }),
-      node("chat", CHAT_TYPE, 400, 150, 320, "Chat", { prompt: "" }),
+      node("question", INPUT_TYPE, 0, 150, 260, "Question", { name: "question", value: QUESTION }),
+      node("chat", CHAT_TYPE, 400, 150, 320, "Agent", { prompt: QUESTION }),
       node("preview", PREVIEW_NODE_TYPE, 840, 150, 340, "Preview", {}),
     ],
     edges: [
-      edge("e1", "question", "text", "chat", "prompt"),
+      edge("e1", "question", "output", "chat", "prompt"),
       edge("e2", "chat", "text", "preview", "value"),
     ],
   },
@@ -59,19 +61,19 @@ const events: CastEvent[] = [
 
   // 1) A question feeds the model.
   m.nodeUpdate(300, "question", "Question", INPUT_TYPE, "running"),
-  m.nodeUpdate(1500, "question", "Question", INPUT_TYPE, "completed", { text: QUESTION }),
+  m.nodeUpdate(1500, "question", "Question", INPUT_TYPE, "completed", { output: QUESTION }),
   m.edgeUpdate(1800, "e1", "active"),
 
-  // 2) The LLM streams its answer.
-  m.nodeUpdate(2500, "chat", "Chat", CHAT_TYPE, "running"),
+  // 2) The Agent streams its answer into the text content card.
+  m.nodeUpdate(2500, "chat", "Agent", CHAT_TYPE, "running"),
   ...m.stream("chat", ANSWER_TOKENS, 3000, 6000),
-  m.nodeUpdate(9600, "chat", "Chat", CHAT_TYPE, "completed", { text: ANSWER }),
+  m.nodeUpdate(9600, "chat", "Agent", CHAT_TYPE, "completed", { text: ANSWER }),
   m.edgeUpdate(9800, "e1", "completed"),
   m.edgeUpdate(10000, "e2", "active"),
 
   // 3) Preview shows the finished answer.
   m.nodeUpdate(10700, "preview", "Preview", PREVIEW_NODE_TYPE, "running"),
-  m.output(11300, "preview", "Preview", "value", ANSWER, "string"),
+  m.output(11300, "preview", "Preview", "value", ANSWER, "str"),
   m.nodeUpdate(11900, "preview", "Preview", PREVIEW_NODE_TYPE, "completed", { value: ANSWER }),
   m.edgeUpdate(12200, "e2", "completed"),
   m.jobUpdate(12500, "completed", { outputs: { value: ANSWER } }),
@@ -89,17 +91,25 @@ export const chatQaCast: DemoCast = {
   metadata: {
     [INPUT_TYPE]: meta({
       node_type: INPUT_TYPE,
-      title: "Question",
-      properties: [prop("text", "str")],
-      outputs: [out("text", "str")],
-      inline_fields: ["text"],
+      title: "String Input",
+      properties: [prop("name", "str"), prop("value", "str")],
+      outputs: [out("output", "str")],
+      inline_fields: ["value"],
+      input_fields: [],
     }),
     [CHAT_TYPE]: meta({
       node_type: CHAT_TYPE,
-      title: "Chat",
-      properties: [prop("prompt", "str")],
-      outputs: [out("text", "str", true)],
-      inline_fields: ["prompt"],
+      title: "Agent",
+      body: "content_card",
+      auto_save_asset: true,
+      properties: [
+        prop("prompt", "str"),
+        prop("model", "language_model"),
+        prop("system", "str"),
+      ],
+      outputs: [out("text", "str"), out("chunk", "chunk", true)],
+      inline_fields: [],
+      input_fields: ["prompt"],
       is_streaming_output: true,
     }),
     [PREVIEW_NODE_TYPE]: meta({
