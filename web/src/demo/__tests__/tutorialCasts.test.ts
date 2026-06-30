@@ -15,6 +15,8 @@ import { connectRunCast } from "../connectRunCast";
 import { listGeneratorCast } from "../listGeneratorCast";
 import { chatQaCast } from "../chatQaCast";
 import { templateMergeCast } from "../templateMergeCast";
+import { summarizeCast } from "../summarizeCast";
+import { describeImageCast } from "../describeImageCast";
 import type { DemoCast } from "../castTypes";
 import useResultsStore from "../../stores/ResultsStore";
 import useStatusStore from "../../stores/StatusStore";
@@ -28,6 +30,8 @@ const TUTORIAL_CASTS: DemoCast[] = [
   listGeneratorCast,
   chatQaCast,
   templateMergeCast,
+  summarizeCast,
+  describeImageCast,
 ];
 
 /** Types that must never resurface — fabricated or removed/migrated. */
@@ -46,8 +50,10 @@ const FORBIDDEN_NODE_TYPES = new Set([
 /** The real registry types the tutorials are built from. */
 const ALLOWED_NODE_TYPES = new Set([
   "nodetool.input.StringInput",
+  "nodetool.input.ImageInput",
   "nodetool.agents.EnhancePrompt",
   "nodetool.agents.Agent",
+  "nodetool.agents.Summarizer",
   "nodetool.image.TextToImage",
   "nodetool.generators.ListGenerator",
   "nodetool.text.ToUppercase",
@@ -94,6 +100,12 @@ describe("tutorial casts — real node types", () => {
       "content_card"
     );
     expect(chatQaCast.metadata["nodetool.agents.Agent"].body).toBe(
+      "content_card"
+    );
+    expect(summarizeCast.metadata["nodetool.agents.Summarizer"].body).toBe(
+      "content_card"
+    );
+    expect(describeImageCast.metadata["nodetool.agents.Agent"].body).toBe(
       "content_card"
     );
   });
@@ -186,6 +198,55 @@ describe("tutorial casts — bespoke bodies get their data", () => {
         .getState()
         .getOutputResult(wf, focused(wf), "preview");
       expect(result).toBe("HELLO NODETOOL");
+    } finally {
+      engine.dispose();
+    }
+  });
+
+  it("summarize-text: the Summarizer text card streams then settles its summary", () => {
+    const engine = new DemoEngine(summarizeCast, { resolveAssetUrl });
+    try {
+      const wf = summarizeCast.workflow.id;
+      engine.seekToTime(6000);
+      expect(
+        useResultsStore.getState().getChunk(wf, focused(wf), "summary")
+      ).toContain("workflows");
+      engine.seekToTime(12800);
+      expect(lastOutputs(wf, "summary").text).toContain("no code required");
+      const result = useResultsStore
+        .getState()
+        .getOutputResult(wf, focused(wf), "preview");
+      expect(result).toContain("AI workflows visually");
+    } finally {
+      engine.dispose();
+    }
+  });
+
+  it("describe-image: the Agent describes the image and the preview gets the text", () => {
+    const engine = new DemoEngine(describeImageCast, { resolveAssetUrl });
+    try {
+      const wf = describeImageCast.workflow.id;
+
+      // The Image Input settles with the picture it hands downstream.
+      engine.seekToTime(2000);
+      const imageOut = lastOutputs(wf, "image").output as
+        | { uri?: string }
+        | undefined;
+      expect(imageOut?.uri).toBeTruthy();
+
+      // Mid-stream: the Agent's text card is receiving the description.
+      engine.seekToTime(7000);
+      expect(
+        useResultsStore.getState().getChunk(wf, focused(wf), "describe")
+      ).toContain("kitten");
+
+      // End: the description settles and reaches the preview.
+      engine.seekToTime(13000);
+      expect(lastOutputs(wf, "describe").text).toContain("HELLO WORLD");
+      const result = useResultsStore
+        .getState()
+        .getOutputResult(wf, focused(wf), "preview");
+      expect(result).toContain("ginger kitten");
     } finally {
       engine.dispose();
     }

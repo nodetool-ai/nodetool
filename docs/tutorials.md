@@ -1,7 +1,7 @@
 ---
 layout: page
 title: "Tutorials"
-description: "Short, beginner-friendly video walkthroughs of NodeTool — build your first workflow, connect and run nodes, generate a list, ask the AI, and combine inputs."
+description: "Short, beginner-friendly video walkthroughs of NodeTool — build your first workflow, connect and run nodes, generate a list, ask the AI, combine inputs, summarize a document, and describe an image."
 ---
 
 Short, beginner-friendly walkthroughs. Each plays a real workflow on the canvas
@@ -68,6 +68,32 @@ that fills a template, composing a single result from reusable parts.
 
 You'll learn how to wire several inputs into one node, compose text with
 `{{ placeholders }}`, and build prompts from reusable parts.
+
+## Summarize a document
+
+Long text in, key points out. A single Summarizer node condenses an article,
+transcript, or any block of text into a short summary, streaming it as it
+writes — the pattern behind the Summarize Paper and Meeting Transcript examples.
+
+<video controls preload="metadata" poster="{{ '/assets/tutorials/summarize-text.jpg' | relative_url }}">
+  <source src="{{ '/assets/tutorials/summarize-text.mp4' | relative_url }}" type="video/mp4">
+</video>
+
+You'll learn how to feed a long passage into a Summarizer, watch the summary
+stream as it generates, and pass the result into the rest of a workflow.
+
+## Describe an image
+
+The first multimodal graph. Drop a picture into an Image Input, wire it into an
+Agent, and watch the model look at the image and describe it in words — the
+vision pattern behind captioning and alt-text workflows.
+
+<video controls preload="metadata" poster="{{ '/assets/tutorials/describe-image.jpg' | relative_url }}">
+  <source src="{{ '/assets/tutorials/describe-image.mp4' | relative_url }}" type="video/mp4">
+</video>
+
+You'll learn how to bring an image into a graph, send it to a vision model, and
+reuse the streamed description in any downstream text node.
 
 ---
 

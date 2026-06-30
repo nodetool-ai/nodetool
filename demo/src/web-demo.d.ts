@@ -50,4 +50,6 @@ declare module "@web-demo" {
   export const listGeneratorCast: DemoCast;
   export const chatQaCast: DemoCast;
   export const templateMergeCast: DemoCast;
+  export const summarizeCast: DemoCast;
+  export const describeImageCast: DemoCast;
 }
