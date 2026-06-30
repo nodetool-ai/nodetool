@@ -205,6 +205,7 @@ function classifyError(message: string | undefined): string {
   if (m.includes("not found") || m.includes("enoent")) return "not-found";
   if (m.includes("network") || m.includes("fetch")) return "network";
   if (m.includes("input") && m.includes("required")) return "missing-input";
+  if (m.includes("provide a") && m.includes("input")) return "missing-input";
   if (m.includes("required")) return "missing-input";
   if (m.includes("no tiles provided")) return "missing-input";
   return "other";
