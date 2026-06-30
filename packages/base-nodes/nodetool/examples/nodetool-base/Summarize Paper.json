@@ -17,11 +17,8 @@
       {
         "id": "4",
         "parent_id": null,
-        "type": "lib.pymupdf.ExtractText",
-        "data": {
-          "start_page": 0,
-          "end_page": 4
-        },
+        "type": "lib.convert.ConvertToMarkdown",
+        "data": {},
         "ui_properties": {
           "position": {
             "x": 661,
@@ -38,11 +35,8 @@
       {
         "id": "5",
         "parent_id": null,
-        "type": "lib.http.GetRequestDocument",
-        "data": {
-          "headers": null,
-          "auth": null
-        },
+        "type": "lib.http.GetBytes",
+        "data": {},
         "ui_properties": {
           "position": {
             "x": 351,
@@ -131,7 +125,7 @@
         "source": "5",
         "sourceHandle": "output",
         "target": "4",
-        "targetHandle": "pdf",
+        "targetHandle": "bytes",
         "ui_properties": {
           "className": "document"
         }

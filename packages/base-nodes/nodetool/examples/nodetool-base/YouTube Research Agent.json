@@ -3,7 +3,7 @@
   "access": "public",
   "created_at": "2026-03-08T12:00:00.000000",
   "updated_at": "2026-06-22T12:00:00.000Z",
-  "name": "YouTube Research with Claude Agent",
+  "name": "YouTube Research Agent",
   "tool_name": null,
   "description": "Search YouTube using SerpAPI and analyze results with Claude Agent for deep research insights.",
   "tags": [

@@ -91,34 +91,11 @@
         "dynamic_properties": {}
       },
       {
-        "id": "21698cb0-1d6a-47bc-a621-1d346a5008f5",
-        "parent_id": null,
-        "type": "lib.http.DownloadFiles",
-        "data": {
-          "output_folder": {},
-          "auth": null,
-          "max_concurrent_downloads": 5
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 1630,
-            "y": 269
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true,
-          "title": "6️⃣ Download papers"
-        },
-        "dynamic_properties": {}
-      },
-      {
         "id": "42210238-9ee4-4c29-96b8-8c385d439777",
         "parent_id": null,
-        "type": "lib.http.GetRequest",
+        "type": "lib.http.GetText",
         "data": {
-          "url": "https://raw.githubusercontent.com/abacaj/awesome-transformers/refs/heads/main/README.md",
-          "auth": null
+          "url": "https://raw.githubusercontent.com/abacaj/awesome-transformers/refs/heads/main/README.md"
         },
         "ui_properties": {
           "selected": false,
@@ -151,6 +128,78 @@
           "height": 180,
           "selectable": true,
           "title": "Workflow Documentation and Process Overview"
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "foreach",
+        "parent_id": null,
+        "type": "nodetool.control.ForEach",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1580,
+            "y": 90
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "6️⃣ For Each URL"
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "dl",
+        "parent_id": null,
+        "type": "lib.browser.DownloadFile",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1870,
+            "y": 90
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "7️⃣ Download File"
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "collect",
+        "parent_id": null,
+        "type": "nodetool.control.Collect",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 2160,
+            "y": 90
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "8️⃣ Collect"
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "preview",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 2450,
+            "y": 90
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "9️⃣ Downloaded Files"
         },
         "dynamic_properties": {}
       }
@@ -187,22 +236,52 @@
         }
       },
       {
-        "id": "418b827f-9891-46c3-bd74-7edd9192af9e",
-        "source": "25",
-        "sourceHandle": "output",
-        "target": "21698cb0-1d6a-47bc-a621-1d346a5008f5",
-        "targetHandle": "urls",
-        "ui_properties": {
-          "className": "list"
-        }
-      },
-      {
         "id": "016630df-9589-43fb-a22a-b75afb138ad2",
         "source": "42210238-9ee4-4c29-96b8-8c385d439777",
         "sourceHandle": "output",
         "target": "32",
         "targetHandle": "markdown",
         "ui_properties": null
+      },
+      {
+        "id": "redesign-edge-1",
+        "source": "25",
+        "sourceHandle": "output",
+        "target": "foreach",
+        "targetHandle": "input_list",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "redesign-edge-2",
+        "source": "foreach",
+        "sourceHandle": "output",
+        "target": "dl",
+        "targetHandle": "url",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "redesign-edge-3",
+        "source": "dl",
+        "sourceHandle": "output",
+        "target": "collect",
+        "targetHandle": "input_item",
+        "ui_properties": {
+          "className": "document"
+        }
+      },
+      {
+        "id": "redesign-edge-4",
+        "source": "collect",
+        "sourceHandle": "output",
+        "target": "preview",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "list"
+        }
       }
     ]
   },

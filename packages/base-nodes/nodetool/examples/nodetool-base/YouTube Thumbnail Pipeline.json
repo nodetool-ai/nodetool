@@ -262,7 +262,7 @@
       },
       {
         "id": "with_main_text",
-        "type": "nodetool.lib.image.draw.RenderText",
+        "type": "lib.image.draw.RenderText",
         "data": {
           "x": 50,
           "y": 100,
@@ -292,7 +292,7 @@
       },
       {
         "id": "final_thumbnail",
-        "type": "nodetool.lib.image.draw.RenderText",
+        "type": "lib.image.draw.RenderText",
         "data": {
           "x": 50,
           "y": 620,
