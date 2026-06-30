@@ -26,9 +26,10 @@ name: Web Deploy (Cloudflare Pages)
 # `web-production` environment itself (Settings → Environments → web-production).
 # An env-scoped secret defined only on a DIFFERENT environment (e.g. the
 # marketing deploy's `marketing-production`) is NOT available here — it expands to
-# an empty string, and wrangler then fails with Cloudflare error 9106
-# ("Authentication error" / missing Authorization header). The preflight step
-# below catches that before the deploy runs.
+# an empty string. For the Cloudflare creds, wrangler then fails with error 9106
+# ("Authentication error" / missing Authorization header); for the Supabase build
+# vars, the bundle silently falls back to localhost placeholders and breaks auth
+# in production. The preflight step below catches both before the deploy runs.
 #
 # Disconnect the repo from the Cloudflare Pages git integration so the site is
 # only deployed from here.
@@ -68,29 +69,36 @@ jobs:
         with:
           fetch-depth: 1
 
-      # Fail fast with an actionable message if the Cloudflare credentials or the
-      # Pages project name are missing, rather than letting wrangler fail late
-      # with a cryptic "Must specify a project name" or 9106 auth error after a
-      # full build. Secrets must be visible to the `web-production` environment
-      # (see the header note); they expand to empty strings when they are not.
+      # Fail fast with an actionable message if the Cloudflare credentials, the
+      # Pages project name, or the Supabase build vars are missing, rather than
+      # letting wrangler fail late with a cryptic "Must specify a project name" or
+      # 9106 auth error — or, worse, shipping a bundle that silently falls back to
+      # the `http://localhost` / `public-anon-key` Supabase placeholders in
+      # web/src/lib/supabaseClient.ts and breaks auth in production with no error.
+      # Secrets/vars must be visible to the `web-production` environment (see the
+      # header note); they expand to empty strings when they are not.
       - name: Check Cloudflare deploy config
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_WEB_PAGES_PROJECT: ${{ vars.CLOUDFLARE_WEB_PAGES_PROJECT }}
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: |
           missing=()
           [ -n "$CLOUDFLARE_API_TOKEN" ] || missing+=("secret CLOUDFLARE_API_TOKEN")
           [ -n "$CLOUDFLARE_ACCOUNT_ID" ] || missing+=("secret CLOUDFLARE_ACCOUNT_ID")
           [ -n "$CLOUDFLARE_WEB_PAGES_PROJECT" ] || missing+=("variable CLOUDFLARE_WEB_PAGES_PROJECT")
+          [ -n "$VITE_SUPABASE_URL" ] || missing+=("variable VITE_SUPABASE_URL")
+          [ -n "$VITE_SUPABASE_ANON_KEY" ] || missing+=("secret VITE_SUPABASE_ANON_KEY")
           if [ ${#missing[@]} -ne 0 ]; then
-            echo "::error::Missing required Cloudflare deploy config: ${missing[*]}"
+            echo "::error::Missing required deploy config: ${missing[*]}"
             echo "Set these at the repository level (Settings → Secrets and variables → Actions)"
             echo "or on the 'web-production' environment (Settings → Environments → web-production)."
             echo "An env-scoped secret on a different environment is NOT visible to this job."
             exit 1
           fi
-          echo "Cloudflare deploy config present (project: $CLOUDFLARE_WEB_PAGES_PROJECT)."
+          echo "Deploy config present (project: $CLOUDFLARE_WEB_PAGES_PROJECT, Supabase URL: $VITE_SUPABASE_URL)."
 
       # Installs the workspace and builds the backend packages, which generates
       # the fal/kie pricing JSONs the Vite build aliases resolve.
