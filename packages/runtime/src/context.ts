@@ -2284,15 +2284,15 @@ export class ProcessingContext {
       flac: "audio/flac"
     };
 
-    // `data:` is the provider-ready encoding and `http://` / `https://` are
-    // external URLs the provider will fetch itself — both skip dereferencing.
-    // The check uses the full `://` suffix on http/https so a custom scheme
-    // like `httpfoo://…` (which would pass a bare `startsWith("http")` test)
-    // still falls through to the asset / storage retrieval path.
-    const isAlreadyResolved = (uri: string): boolean =>
-      uri.startsWith("data:") ||
-      uri.startsWith("http://") ||
-      uri.startsWith("https://");
+    // Only resolve URIs that name a known reference into the asset / storage
+    // layer — `asset://<id>.<ext>` (the user-mentioned-asset scheme) and the
+    // legacy `/api/storage/<key>` browser-facing path that older DB messages
+    // still carry. Everything else (data URIs, external http(s), unknown
+    // schemes) passes through untouched so a malicious or unexpected URI
+    // never reaches `retrieveMediaBytes` — that function feeds the storage
+    // adapter and would otherwise be a sink for caller-controlled paths.
+    const isResolvableUri = (uri: string): boolean =>
+      uri.startsWith("asset://") || uri.startsWith("/api/storage/");
 
     const resolvePart = async (
       part: MessageContent
@@ -2300,7 +2300,7 @@ export class ProcessingContext {
       if (
         part.type === "image_url" &&
         part.image.uri &&
-        !isAlreadyResolved(part.image.uri)
+        isResolvableUri(part.image.uri)
       ) {
         const bytes = await this.retrieveMediaBytes(part.image.uri);
         if (bytes) {
@@ -2319,7 +2319,7 @@ export class ProcessingContext {
       if (
         part.type === "audio" &&
         part.audio.uri &&
-        !isAlreadyResolved(part.audio.uri)
+        isResolvableUri(part.audio.uri)
       ) {
         const bytes = await this.retrieveMediaBytes(part.audio.uri);
         if (bytes) {
