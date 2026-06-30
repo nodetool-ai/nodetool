@@ -51,7 +51,7 @@
     "@eslint/compat": "^2.1.0",
     "@eslint/eslintrc": "^3.3.5",
     "@eslint/js": "^9.39.4",
-    "@react-native/jest-preset": "^0.85.3",
+    "@react-native/jest-preset": "^0.86.0",
     "@testing-library/react-native": "^13.3.3",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.19.20",
