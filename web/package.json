@@ -10,7 +10,7 @@
     "@fontsource/jetbrains-mono": "^5.2.8",
     "@lexical/code": "^0.45.0",
     "@lexical/link": "^0.45.0",
-    "@lexical/list": "^0.45.0",
+    "@lexical/list": "^0.46.0",
     "@lexical/markdown": "^0.46.0",
     "@lexical/react": "^0.45.0",
     "@lexical/rich-text": "^0.45.0",
