@@ -34,3 +34,6 @@
 ## 2026-05-25 - O(N*M) lookup bottleneck in workflowUpdates.ts
 **Learning:** Found an $O(N \times M)$ performance bottleneck in `web/src/stores/workflowUpdates.ts` where `runsStore.getRuns(workflow.id).some(r => r.jobId === job.job_id)` was called on every node update. For workflows with thousands of jobs, this iteration causes noticeable CPU stalling.
 **Action:** Implemented a new `hasRun(workflowId, jobId)` method in `WorkflowRunsStore` that uses an O(1) property lookup (`runs[wf]?.[jobId] !== undefined`). Replace `.some()` array iterations with dictionary/map lookups when processing high-frequency updates.
+## 2026-05-25 - O(N*M) optimization in SketchLayersPanel layer mapping
+**Learning:** Found an $O(N \times (N + M))$ performance bottleneck in `web/src/components/sketch/SketchLayersPanel.tsx` where `layers.indexOf(layer)` and `selectedLayerIds.includes(layer.id)` were called inside `layerRows.map(...)`. This causes the render complexity of the layer panel to scale poorly when working with numerous layers.
+**Action:** Replaced `.indexOf()` and `.includes()` with `useMemo` hooks returning a `Map` of IDs to indices and a `Set` of selected IDs. Doing so allows $O(1)$ lookups within the loop, reducing the mapping step complexity to $O(N)$ and preventing UI stalling on complex projects.

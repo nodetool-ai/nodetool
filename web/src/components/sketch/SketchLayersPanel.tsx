@@ -466,6 +466,16 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
     () => buildLayersPanelRows(layers),
     [layers]
   );
+
+  const layerIndexMap = useMemo(
+    () => new Map(layers.map((layer, index) => [layer.id, index])),
+    [layers]
+  );
+
+  const selectedLayerSet = useMemo(
+    () => new Set(selectedLayerIds),
+    [selectedLayerIds]
+  );
   const [dropTarget, setDropTarget] = useState<{
     realIdx: number;
     position: DropPosition;
@@ -1120,11 +1130,11 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         }}
       >
         {layerRows.map(({ layer, depth }) => {
-          const realIdx = layers.indexOf(layer);
+          const realIdx = layerIndexMap.get(layer.id) ?? -1;
           const isPaintTarget = layer.id === activeLayerId;
           const isRowSelected =
             selectedLayerIds.length >= 2
-              ? selectedLayerIds.includes(layer.id)
+              ? selectedLayerSet.has(layer.id)
               : layer.id === activeLayerId;
           return (
             <LayerItem
