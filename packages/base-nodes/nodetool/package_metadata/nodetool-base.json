@@ -20,11 +20,6 @@
     },
     {
       "package_name": "nodetool-base",
-      "name": "Product Description Generator.jpg",
-      "path": ""
-    },
-    {
-      "package_name": "nodetool-base",
       "name": "Transcribe Audio.jpg",
       "path": ""
     },
@@ -55,11 +50,6 @@
     },
     {
       "package_name": "nodetool-base",
-      "name": "Competitive Analysis.jpg",
-      "path": ""
-    },
-    {
-      "package_name": "nodetool-base",
       "name": "Movie Posters.jpg",
       "path": ""
     },
@@ -80,16 +70,6 @@
     },
     {
       "package_name": "nodetool-base",
-      "name": "Reddit Scraper.jpg",
-      "path": ""
-    },
-    {
-      "package_name": "nodetool-base",
-      "name": "Game Encounter Planner Agent.jpg",
-      "path": ""
-    },
-    {
-      "package_name": "nodetool-base",
       "name": "Conditional Logic Engine.jpg",
       "path": ""
     },
@@ -106,11 +86,6 @@
     {
       "package_name": "nodetool-base",
       "name": "Fetch Papers.jpg",
-      "path": ""
-    },
-    {
-      "package_name": "nodetool-base",
-      "name": "Instagram Scraper.jpg",
       "path": ""
     },
     {
@@ -210,16 +185,6 @@
     },
     {
       "package_name": "nodetool-base",
-      "name": "Data Visualization Pipeline.jpg",
-      "path": ""
-    },
-    {
-      "package_name": "nodetool-base",
-      "name": "Data Validation Pipeline.jpg",
-      "path": ""
-    },
-    {
-      "package_name": "nodetool-base",
       "name": "Social Media Calendar Filler.jpg",
       "path": ""
     },
@@ -249,15 +214,6 @@
       ]
     },
     {
-      "id": "",
-      "name": "Data Validation Pipeline",
-      "description": "Validate and clean data for quality assurance before processing.",
-      "tags": [
-        "data",
-        "example"
-      ]
-    },
-    {
       "id": "004a7fd2-4492-485d-8bdb-ea1ba61f7bdf",
       "name": "Photo Enhancement Suite",
       "description": "Batch enhance photos with AI-powered improvements including color correction and upscaling.",
@@ -284,15 +240,6 @@
       "description": "Workflow that demonstrates multi-branch decision logic with value routing.",
       "tags": [
         "boolean"
-      ]
-    },
-    {
-      "id": "competitive_analysis",
-      "name": "Competitive Analysis",
-      "description": "Analyze competitor offerings and market positioning for strategic planning. Fetches competitor information from Google search results.",
-      "tags": [
-        "business",
-        "data"
       ]
     },
     {
@@ -326,14 +273,6 @@
       ]
     },
     {
-      "id": "data_visualization_pipeline",
-      "name": "Data Visualization Pipeline",
-      "description": "Transform natural language descriptions into data visualizations with AI-powered data and chart generation. This workflow demonstrates how to create customized charts from text prompts without manual data preparation.",
-      "tags": [
-        "agents"
-      ]
-    },
-    {
       "id": "agent-google-search-example",
       "name": "Agent Google Search",
       "description": "Demonstrates an Agent using dynamic outputs to perform Google searches and display results.",
@@ -342,16 +281,6 @@
         "google",
         "search",
         "dynamic-outputs"
-      ]
-    },
-    {
-      "id": "a519d747-d864-411d-a2f9-f35c0261bf25",
-      "name": "Instagram Scraper",
-      "description": "Analyze Instagram trends for a specific topic.",
-      "tags": [
-        "instagram",
-        "social-media",
-        "trends"
       ]
     },
     {
@@ -539,17 +468,6 @@
       ]
     },
     {
-      "id": "",
-      "name": "Reddit Scraper",
-      "description": "Analyze a subreddit for specific issues.",
-      "tags": [
-        "reddit",
-        "research",
-        "analysis",
-        "example"
-      ]
-    },
-    {
       "id": "bcbefdbea78311f09c5e000014a97b82",
       "name": "Summarize RSS",
       "description": "",
@@ -572,17 +490,6 @@
       "tags": [
         "start",
         "multimodal"
-      ]
-    },
-    {
-      "id": "",
-      "name": "Game Encounter Planner Agent",
-      "description": "Coordinate a squad of AI agents to design, critique, and brief a Frostfang Tundra combat encounter using StructuredOutputGenerator for robust schema enforcement.",
-      "tags": [
-        "agent",
-        "data",
-        "rag",
-        "example"
       ]
     },
     {
@@ -636,17 +543,6 @@
         "business",
         "data",
         "video",
-        "example"
-      ]
-    },
-    {
-      "id": "",
-      "name": "Product Description Generator",
-      "description": "Automatically generate marketing copy and product descriptions from product data.",
-      "tags": [
-        "business",
-        "data",
-        "research",
         "example"
       ]
     },
