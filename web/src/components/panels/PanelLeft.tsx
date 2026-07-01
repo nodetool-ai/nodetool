@@ -12,6 +12,7 @@ import isEqual from "fast-deep-equal";
 import { memo, useCallback, useEffect, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import AssetGrid from "../assets/AssetGrid";
+import { AssetGridStoreProvider } from "../../stores/AssetGridStore";
 import WorkflowList from "../workflows/WorkflowList";
 import WorkflowForm from "../workflows/WorkflowForm";
 import CreateWorkflowButton from "../workflows/CreateWorkflowButton";
@@ -216,6 +217,12 @@ const VerticalToolbar = memo(function VerticalToolbar({
   hiddenViews?: readonly LeftPanelView[];
 }) {
   const panelVisible = usePanelStore((state) => state.panel.isVisible);
+  const currentWorkflow = useWorkflowManager((state) =>
+    state.currentWorkflowId
+      ? state.nodeStores[state.currentWorkflowId]?.getState().getWorkflow() ??
+        null
+      : null
+  );
 
   // Sidebar shows the view as "active" only when the panel is open and
   // that view is selected.
@@ -223,6 +230,11 @@ const VerticalToolbar = memo(function VerticalToolbar({
     panelVisible && LEFT_PANEL_TOP_LEVEL.some((c) => c.id === activeView)
       ? (activeView as LeftPanelView)
       : "";
+
+  const labelOverrides = useMemo(
+    () => (currentWorkflow ? { assets: "Workflow Output" } : undefined),
+    [currentWorkflow]
+  );
 
   return (
     <div className="vertical-toolbar">
@@ -236,6 +248,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
         activeCategory={renderedActive}
         onCategoryClick={onViewChange}
         hiddenViews={hiddenViews}
+        labelOverrides={labelOverrides}
       />
       <div style={{ flexGrow: 1 }} />
       <div className="toolbar-divider" aria-hidden />
@@ -348,7 +361,9 @@ const PanelContent = memo(function PanelContent({
               }
             />
           )}
-          <AssetGrid maxItemSize={5} isMobile={isMobile} />
+          <AssetGridStoreProvider persistKey="asset-grid-storage:assets">
+            <AssetGrid maxItemSize={5} isMobile={isMobile} />
+          </AssetGridStoreProvider>
         </FlexColumn>
       )}
       {activeView === "library" && (
@@ -375,7 +390,9 @@ const PanelContent = memo(function PanelContent({
               }
             />
           )}
-          <AssetGrid maxItemSize={5} isMobile={isMobile} forceGlobalAssets />
+          <AssetGridStoreProvider persistKey="asset-grid-storage:library">
+            <AssetGrid maxItemSize={5} isMobile={isMobile} forceGlobalAssets />
+          </AssetGridStoreProvider>
         </FlexColumn>
       )}
       {activeView === "workflows" && (

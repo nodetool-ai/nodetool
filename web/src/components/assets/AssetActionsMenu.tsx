@@ -91,12 +91,15 @@ interface AssetActionsMenuProps {
   maxItemSize: number;
   onUploadFiles?: (files: File[]) => void;
   isFullscreenAssets?: boolean;
+  /** Hides folder browsing/creation controls (e.g. the workflow-output sidebar). */
+  hideFolderControls?: boolean;
 }
 
 const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
   maxItemSize,
   onUploadFiles,
-  isFullscreenAssets = false
+  isFullscreenAssets = false,
+  hideFolderControls = false
 }) => {
   const setSelectedAssetIds = useAssetGridStore(
     (state) => state.setSelectedAssetIds
@@ -176,7 +179,7 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
         }}
       >
         {/* Browse: toggle the folder navigator (sidebar only) */}
-        {!isFullscreenAssets && hasFolders && (
+        {!isFullscreenAssets && !hideFolderControls && hasFolders && (
           <ToolbarIconButton
             icon={foldersVisible ? <FolderIcon /> : <FolderOffIcon />}
             tooltip={foldersVisible ? "Hide folders" : "Show folders"}
@@ -227,13 +230,15 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
         {/* Actions: create & add assets */}
         <FlexRow align="center" gap={0.5} sx={{ ml: "auto", pl: 0.5 }}>
           <Divider orientation="vertical" flexItem sx={{ my: 0.5, mr: 0.5 }} />
-          <ToolbarIconButton
-            icon={<CreateNewFolderIcon />}
-            tooltip="Create folder"
-            onClick={() => setCreateFolderDialogOpen(true)}
-            tooltipPlacement="top"
-            nodrag={false}
-          />
+          {!hideFolderControls && (
+            <ToolbarIconButton
+              icon={<CreateNewFolderIcon />}
+              tooltip="Create folder"
+              onClick={() => setCreateFolderDialogOpen(true)}
+              tooltipPlacement="top"
+              nodrag={false}
+            />
+          )}
           <UploadButton
             onFileSelect={(files) => onUploadFiles?.(files)}
             iconVariant="file"

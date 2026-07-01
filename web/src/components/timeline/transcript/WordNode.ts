@@ -22,13 +22,13 @@ import {
 } from "lexical";
 import type { CaptionWordKind } from "@nodetool-ai/timeline";
 
-export interface WordBinding {
+export type WordBinding = {
   clipId: string;
   wordIndex: number;
   startMs: number;
   endMs: number;
   wordKind: CaptionWordKind;
-}
+};
 
 export type SerializedWordNode = Spread<
   { type: "transcript-word"; version: 1 } & WordBinding,
