@@ -3,19 +3,21 @@
  * MagicGenerationFill
  *
  * The shared "generating" fill — a flowing translucent multi-colour wash plus a
- * diagonal shimmer sweep — that fills its positioned parent. Used both on the
- * canvas (over a generating layer's bounds) and in the layers panel (over a
- * generating layer's thumbnail) so the effect reads identically in both places.
+ * diagonal shimmer sweep — that fills its positioned parent. Used everywhere a
+ * surface needs to read as "AI is generating this right now": the sketch
+ * canvas (over a generating layer's bounds and its layers-panel thumbnail),
+ * timeline clips and the preview compositor, and chat's media-generation
+ * placeholder grid. One shared visual language across all of them.
  *
- * The parent must be `position: relative` (and usually `overflow: hidden` with a
- * matching border radius so the wash clips to the shape). Content underneath
+ * The parent must be `position: relative` (and usually `overflow: hidden` with
+ * a matching border radius so the wash clips to the shape). Content underneath
  * stays visible through the wash.
  */
 
 import { css, keyframes } from "@emotion/react";
 import { memo } from "react";
 
-import { reducedMotion } from "../ui_primitives";
+import { reducedMotion } from "./tokens";
 
 const gradientFlow = keyframes`
   0%   { background-position: 0% 50%; }

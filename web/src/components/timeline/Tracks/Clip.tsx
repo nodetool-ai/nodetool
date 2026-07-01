@@ -35,7 +35,13 @@ import { useAssetStore } from "../../../stores/AssetStore";
 import { getAssetUrl } from "../../../utils/assetHelpers";
 import useErrorStore, { hasNodeError, nodeErrorToDisplayString } from "../../../stores/ErrorStore";
 import { type NodeKey } from "../../../stores/nodeKey";
-import { StatusIndicator, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
+import {
+  StatusIndicator,
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx,
+  MagicGenerationFill
+} from "../../ui_primitives";
 import type { StatusType } from "../../ui_primitives/StatusIndicator";
 import { deriveClipStatus } from "../status/clipStatusReducer";
 import type { ClipErrorState } from "../status/clipStatusReducer";
@@ -45,7 +51,6 @@ import { samplePeaksWindow } from "./audioPeaks";
 import { isCompatibleWithTrack } from "../dnd/assetToClipAdapter";
 import { clipSurfaceTint, clipBorderTint } from "./trackVisuals";
 import { ClipContextMenu } from "./ClipContextMenu";
-import MagicGenerationFill from "../../sketch/MagicGenerationFill";
 
 /** Clip-side wrapper: TimelineClip.mediaType also includes "overlay";
  *  treat those as video-track-compatible. */

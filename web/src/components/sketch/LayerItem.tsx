@@ -37,11 +37,11 @@ import {
   BORDER_RADIUS,
   SPACING,
   getSpacingPx,
-  IconButton
+  IconButton,
+  MagicGenerationFill
 } from "../ui_primitives";
 import type { LayerStatus } from "@nodetool-ai/image-editor";
 import { LAYER_STATUS_MAP } from "./Inspector/layerStatusMapping";
-import MagicGenerationFill from "./MagicGenerationFill";
 
 /** Base left padding for the layer row (px). 0 so the thumbnail sits flush
  *  with the row's left edge — the row background should not stick out past it. */

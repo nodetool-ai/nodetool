@@ -1273,8 +1273,10 @@ export async function handleChatWebSocketMessage(
         set({ sendMessageTimeoutId: null });
       }
     }
-    // Surface a progress message for media generation chunks so the UI
-    // shows "Generating image…" / "Generating video…" instead of "Thinking…"
+    // Surface a progress message for media generation chunks so the UI shows
+    // "Conjuring image…" / "Conjuring video…" instead of "Thinking…". The
+    // "Conjuring" verb doubles as the signal ChatThreadView keys off of to
+    // swap in the spellcasting indicator — keep them in sync.
     const mediaMeta = data.content_metadata?.media_generation as
       | Record<string, unknown>
       | undefined;
@@ -1282,11 +1284,13 @@ export async function handleChatWebSocketMessage(
       const mode = String(mediaMeta.mode ?? "");
       const model = mediaMeta.model ? String(mediaMeta.model) : "";
       const label =
-        mode === "image"
-          ? "Generating image"
-          : mode === "video"
-            ? "Generating video"
-            : "Generating";
+        mode === "image" || mode === "image_edit"
+          ? "Conjuring image"
+          : mode === "video" || mode === "image_to_video"
+            ? "Conjuring video"
+            : mode === "audio"
+              ? "Conjuring sound"
+              : "Conjuring";
       set({ statusMessage: model ? `${label} with ${model}…` : `${label}…` });
     }
     applyReducer(applyChunk, data);
