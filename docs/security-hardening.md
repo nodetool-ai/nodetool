@@ -20,8 +20,17 @@ These apply to **every** deployment, regardless of environment:
 
 ### Authentication
 
-- **Enforce auth on any network-accessible deployment.** The server enforces authentication only when it is in Supabase mode — that is, when **both** `SUPABASE_URL` and `SUPABASE_KEY` are set. Without them it runs in Local mode and trusts loopback connections. See [Authentication](authentication.md#authentication-modes).
+> **⚠️ `NODETOOL_TRUST_LOCAL_NETWORKS` bypasses login entirely.** Every source
+> IP in that list is trusted as admin user `"1"` with no password — full access
+> to data, secrets, and API keys. The Docker Compose file trusts the Docker
+> bridge (`172.16.0.0/12`) so a single-user local install works out of the box.
+> **Never set it to `0.0.0.0/0` on a public IP, and never widen it as a
+> substitute for real auth** — enable Supabase mode instead. See
+> [Authentication → Local mode in Docker](authentication.md#local-mode-in-docker).
+
+- **Enforce auth on any network-accessible deployment.** The server enforces authentication only when it is in Supabase mode — that is, when **both** `SUPABASE_URL` and `SUPABASE_KEY` are set. Without them it runs in Local mode and trusts loopback connections (and any `NODETOOL_TRUST_LOCAL_NETWORKS` you configure). See [Authentication](authentication.md#authentication-modes).
 - **Lock down localhost trust.** Behind a reverse proxy or in a container, set `NODETOOL_TRUST_LOCALHOST=false` (it already defaults off when auth is enforced) and list only your real proxies in `NODETOOL_TRUSTED_PROXIES`, so a proxy connecting from loopback cannot silently bypass auth.
+- **Keep `NODETOOL_TRUST_LOCAL_NETWORKS` tight.** Trust the smallest range that works (the Docker bridge, not `0.0.0.0/0`), and firewall the published port. It is ignored in Supabase mode.
 - **Rotate keys regularly** -- set calendar reminders to rotate Supabase service-role keys.
 
 ### Secrets Management
@@ -73,6 +82,7 @@ Production deployments require the strictest security posture:
 
 - **Enable Supabase mode** (set both `SUPABASE_URL` and `SUPABASE_KEY`) for any multi-user or network-accessible deployment so every request is authenticated
 - Keep `NODETOOL_TRUST_LOCALHOST` off and restrict `NODETOOL_TRUSTED_PROXIES` to your real proxy addresses
+- **Unset `NODETOOL_TRUST_LOCAL_NETWORKS`** (or leave it ignored under Supabase mode) — never carry a `0.0.0.0/0` trust rule into production
 - Use **dedicated service accounts** for each deployment; avoid shared credentials
 - Keep `proxy.yaml` free of embedded secrets -- distribute bearer tokens via your secrets manager
 
@@ -111,6 +121,7 @@ Run through this checklist before any deployment goes live:
 
 - [ ] TLS enabled with valid certificates
 - [ ] Supabase mode enabled (`SUPABASE_URL` + `SUPABASE_KEY` set) for any network-accessible deployment
+- [ ] `NODETOOL_TRUST_LOCAL_NETWORKS` unset or tightly scoped — **no `0.0.0.0/0`** on a network-accessible deployment
 - [ ] `NODETOOL_TRUST_LOCALHOST` off and `NODETOOL_TRUSTED_PROXIES` scoped to real proxies
 - [ ] All API keys loaded from env vars or secrets manager (not hardcoded)
 - [ ] Container resource limits configured

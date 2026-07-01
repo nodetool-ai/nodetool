@@ -28,7 +28,9 @@ import { zipExtensionDist } from "./lib/extension-dist.js";
 import {
   resolveTrustLocalhost,
   isLoopbackAddress,
-  parseTrustedProxies
+  parseTrustedProxies,
+  parseTrustedLocalNetworks,
+  isTrustedLocalAddress
 } from "./lib/localhost-trust.js";
 import {
   initTelemetry,
@@ -740,6 +742,28 @@ if (enforceAuth && trustLocalhost) {
   );
 }
 
+// Source networks trusted to run as the local user "1" without a token. Needed
+// for containerized self-hosting: Docker NATs a published-port connection to
+// the bridge gateway (e.g. 172.17.0.1), so it never arrives from loopback and
+// the isLoopbackAddress bypass can't fire. Honored ONLY in Local mode — when
+// auth is enforced a CIDR must never bypass a real login, so the list is empty.
+const trustLocalNetworks = enforceAuth
+  ? []
+  : parseTrustedLocalNetworks(process.env["NODETOOL_TRUST_LOCAL_NETWORKS"]);
+
+if (enforceAuth && process.env["NODETOOL_TRUST_LOCAL_NETWORKS"]) {
+  log.warn(
+    "NODETOOL_TRUST_LOCAL_NETWORKS is set while auth is enforced (Supabase " +
+      "mode); it is ignored so every request must present a valid token."
+  );
+} else if (trustLocalNetworks.length > 0) {
+  log.warn(
+    `Local mode: trusting connections from ${trustLocalNetworks.join(", ")} ` +
+      "as user \"1\" without authentication. Only expose this instance to " +
+      "networks you trust."
+  );
+}
+
 app.decorateRequest("userId", null);
 
 app.addHook("onRequest", async (req, reply) => {
@@ -783,8 +807,13 @@ app.addHook("onRequest", async (req, reply) => {
   // Loopback connections bypass auth as user "1" only when explicitly trusted.
   // Behind a reverse proxy/container/SSH tunnel the proxy itself connects from
   // loopback, so this is gated by NODETOOL_TRUST_LOCALHOST (off by default when
-  // auth is enforced).
-  if (trustLocalhost && isLoopbackAddress(clientIp)) {
+  // auth is enforced). Docker's bridge NAT means the peer is the gateway rather
+  // than loopback, so NODETOOL_TRUST_LOCAL_NETWORKS additionally trusts that
+  // source range (Local mode only).
+  if (
+    (trustLocalhost && isLoopbackAddress(clientIp)) ||
+    isTrustedLocalAddress(clientIp, trustLocalNetworks)
+  ) {
     req.userId = "1";
     return;
   }

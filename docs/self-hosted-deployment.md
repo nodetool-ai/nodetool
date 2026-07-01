@@ -44,6 +44,7 @@ Common overrides (set in `.env` or the shell):
 |----------|---------|---------|
 | `NODETOOL_VERSION` | `latest` | Image tag to pull (pin a release in production) |
 | `NODETOOL_PORT` | `17777` | Host port mapped to the container's `7777` |
+| `NODETOOL_TRUST_LOCAL_NETWORKS` | `172.16.0.0/12` | ⚠️ Source CIDRs trusted as user `1` **without a login** (Local mode). Docker bridge by default — **never `0.0.0.0/0`** on a public IP. Ignored in Supabase mode |
 | `SECRETS_MASTER_KEY` | auto-generated | 32-byte base64 key encrypting stored secrets — set explicitly in production (`openssl rand -base64 32`) |
 | `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `FAL_API_KEY`, `HF_TOKEN` | unset | Model provider keys |
 
@@ -67,8 +68,11 @@ no rebuild, and it works even when the frontend is served from a different
 origin.
 
 - **Login off (default).** With `SUPABASE_URL`/`SUPABASE_KEY` unset the server
-  runs in **Local mode**: localhost requests are trusted as a single user,
-  remote requests are rejected, and the UI shows no login screen.
+  runs in **Local mode**: it trusts requests by *source IP* (loopback, plus any
+  `NODETOOL_TRUST_LOCAL_NETWORKS` you set) and runs them as a single user; other
+  requests are rejected, and the UI shows no login screen. In Docker the bundled
+  Compose file trusts the Docker bridge (`172.16.0.0/12`) so a local install
+  works out of the box — see the warning below.
 - **Login on.** Set these three on the server to switch to **Supabase mode** —
   the server requires a valid Supabase JWT on every request and the UI shows the
   login screen:
@@ -85,6 +89,20 @@ origin.
 `GET /api/config` returns `authMode`, `supabaseUrl`, `supabaseAnonKey`,
 `authRedirectUrl`, and `version` — never the service-role key. See
 [Authentication](authentication.md) and [Supabase Deployment](supabase-deployment.md).
+
+> ### 🔒 Do not expose Local mode to the internet
+>
+> Local mode has **no login**. `NODETOOL_TRUST_LOCAL_NETWORKS` trusts a set of
+> source IPs as admin user `"1"` with no password — full access to your data,
+> secrets, and API keys. Anyone who can reach the published port from a trusted
+> range gets in.
+>
+> - Safe on a laptop or a private LAN/VPN behind a firewall.
+> - The default `172.16.0.0/12` trusts only Docker's bridge, not the wider
+>   internet. **Never change it to `0.0.0.0/0` on a public IP.**
+> - Putting NodeTool on a public address or sharing it with untrusted users?
+>   **Enable Supabase mode** (above) so every request needs a real login, and
+>   terminate TLS in front of the server.
 
 > Serving the web UI from a **different origin** (e.g. a CDN)? Point the frontend
 > at the backend with the build-time `VITE_API_URL`, and add that origin to the

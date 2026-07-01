@@ -10,6 +10,19 @@
 # assets, vector store, model cache, and the generated secret key — lives under
 # /workspace, backed by the named `nodetool-data` volume, so it survives
 # restarts and image upgrades.
+#
+# ############################################################################
+# ##  🔒🔒🔒  SECURITY — DO NOT EXPOSE THIS TO THE INTERNET AS-IS  🔒🔒🔒   ##
+# ############################################################################
+# ##  This file runs in LOCAL MODE: NO LOGIN, NO PASSWORD. Every request     ##
+# ##  from a trusted network runs as the single ADMIN user "1" with full     ##
+# ##  access to your workflows, files, stored secrets, and API keys.         ##
+# ##                                                                          ##
+# ##  Safe on a laptop / private LAN / VPN. BEFORE putting this on a public   ##
+# ##  IP or sharing with untrusted users you MUST enable Supabase auth (see   ##
+# ##  the Authentication section below) OR keep the port firewalled.         ##
+# ##  See the NODETOOL_TRUST_LOCAL_NETWORKS warning below.                    ##
+# ############################################################################
 
 name: nodetool
 
@@ -19,6 +32,10 @@ services:
     container_name: nodetool
     restart: unless-stopped
     ports:
+      # ⚠️  Published on 0.0.0.0 — reachable from your whole LAN. In Local mode
+      # that means no-login admin access to anyone who can hit this port. To
+      # restrict it to just this machine, bind to loopback:
+      #     - "127.0.0.1:${NODETOOL_PORT:-17777}:7777"
       - "${NODETOOL_PORT:-17777}:7777"
     volumes:
       - nodetool-data:/workspace
@@ -45,9 +62,36 @@ services:
       # rebuild is needed to turn login on or off.
       #
       # Disabled by default: with SUPABASE_URL/SUPABASE_KEY unset the server
-      # runs in "Local mode" — localhost requests are trusted as a single user,
-      # remote requests are rejected, and no login screen is shown.
+      # runs in "Local mode" — no login screen is shown and trusted requests run
+      # as a single user "1".
       #
+      # In Local mode the server only trusts a request when its *source IP* is
+      # trusted. Loopback (127.0.0.1/::1) always is — but Docker NATs a
+      # published-port connection to the bridge gateway (e.g. 172.17.0.1), so it
+      # never arrives from loopback. Without the setting below every API/WS call
+      # returns 401 "Remote access requires authentication" even though the UI
+      # loads.
+      #
+      # ┌────────────────────────────────────────────────────────────────────┐
+      # │  ⚠️⚠️⚠️  DANGER: NODETOOL_TRUST_LOCAL_NETWORKS BYPASSES LOGIN  ⚠️⚠️⚠️  │
+      # ├────────────────────────────────────────────────────────────────────┤
+      # │  Every source IP in this list is trusted as admin user "1" with NO  │
+      # │  password. ANYONE who can reach the published port from one of      │
+      # │  these ranges gets full control of your data, secrets & API keys.   │
+      # │                                                                     │
+      # │  172.16.0.0/12  ✅ DEFAULT — Docker's bridge range. Host + LAN       │
+      # │                    clients reach the app through the port mapping,  │
+      # │                    but nothing off the Docker bridge is trusted.    │
+      # │                                                                     │
+      # │  0.0.0.0/0      🚫 DO NOT USE on a public IP. Trusts EVERY source —  │
+      # │                    the entire internet if the port is reachable.    │
+      # │                    Only on a network you fully control (LAN / VPN). │
+      # │                                                                     │
+      # │  🔒 Exposing NodeTool publicly or to untrusted users? Do NOT widen  │
+      # │     this list — enable real logins with Supabase auth below.        │
+      # └────────────────────────────────────────────────────────────────────┘
+      NODETOOL_TRUST_LOCAL_NETWORKS: "${NODETOOL_TRUST_LOCAL_NETWORKS:-172.16.0.0/12}"
+
       # To require login (multi-user or remote access), point these at your
       # Supabase project. The server enforces a valid Supabase JWT on every
       # request and the web UI shows the login screen. SUPABASE_KEY is the
