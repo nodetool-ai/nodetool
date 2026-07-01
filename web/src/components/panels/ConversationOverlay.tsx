@@ -239,6 +239,8 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
   const {
     currentThreadId,
     threads,
+    threadWorkflowId,
+    workflowId,
     messageCache,
     title,
     createNewThread,
@@ -248,6 +250,8 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
     useShallow((state) => ({
       currentThreadId: state.currentThreadId,
       threads: state.threads,
+      threadWorkflowId: state.threadWorkflowId,
+      workflowId: state.workflowId,
       messageCache: state.messageCache,
       title: state.currentThreadId
         ? state.threads[state.currentThreadId]?.title ?? null
@@ -324,10 +328,21 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
     [threads, messageCache]
   );
 
+  // Scope the editor's thread list to the open workflow: a thread belongs to
+  // it if the server bound it (`workflow_id`) or the client did before it was
+  // persisted (`threadWorkflowId`). With no workflow bound, show everything.
   const threadsWithMessages = useMemo<Record<string, ThreadInfo>>(() => {
     const query = searchQuery.trim().toLowerCase();
     return Object.fromEntries(
       Object.entries(threads)
+        .filter(([id, thread]) => {
+          if (!workflowId) {
+            return true;
+          }
+          const threadWorkflow =
+            thread.workflow_id ?? threadWorkflowId[id] ?? null;
+          return threadWorkflow === workflowId;
+        })
         .map(([id, thread]): [string, ThreadInfo] => [
           id,
           {
@@ -348,7 +363,14 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
           );
         })
     );
-  }, [threads, messageCache, searchQuery, getThreadPreview]);
+  }, [
+    threads,
+    threadWorkflowId,
+    workflowId,
+    messageCache,
+    searchQuery,
+    getThreadPreview
+  ]);
 
   return (
     <div

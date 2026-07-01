@@ -5,6 +5,7 @@ import { z } from "zod";
 export const threadResponse = z.object({
   id: z.string(),
   user_id: z.string(),
+  workflow_id: z.string().nullable().optional(),
   title: z.string().nullable(),
   created_at: z.string(),
   updated_at: z.string(),
@@ -13,10 +14,13 @@ export const threadResponse = z.object({
 export type ThreadResponse = z.infer<typeof threadResponse>;
 
 // ── list (GET /api/threads) ──────────────────────────────────────
+// `workflow_id` scopes the list to one workflow's conversations (node
+// editor); omit it to list all of the user's threads (global chat).
 export const listInput = z.object({
   limit: z.number().int().min(1).max(500).default(10),
   cursor: z.string().optional(),
-  reverse: z.boolean().optional()
+  reverse: z.boolean().optional(),
+  workflow_id: z.string().optional()
 });
 export type ListInput = z.infer<typeof listInput>;
 
@@ -35,7 +39,8 @@ export type GetInput = z.infer<typeof getInput>;
 // ── create (POST /api/threads) ───────────────────────────────────
 // `title` is optional; defaults to "New Thread" server-side.
 export const createInput = z.object({
-  title: z.string().optional()
+  title: z.string().optional(),
+  workflow_id: z.string().nullable().optional()
 });
 export type CreateInput = z.infer<typeof createInput>;
 
