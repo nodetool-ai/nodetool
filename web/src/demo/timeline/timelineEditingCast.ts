@@ -50,7 +50,7 @@ export const timelineEditingCast: TimelineDemoCast = {
   description:
     "A short timeline-editor session: add a clip, trim it, drop in a caption, then scrub the cut.",
   createdAt: "2026-01-01T00:00:00.000Z",
-  durationMs: 12000,
+  durationMs: 16500,
   fps: 30,
   sequence: makeSequence({
     id: "demo-seq-trim-arrange",
@@ -114,6 +114,6 @@ export const timelineEditingCast: TimelineDemoCast = {
     selectClips(6400, []),
 
     zoom(7200, 6),
-    playRange(7600, 0, 8000, 4200),
+    playRange(7600, 0, 8000, 8000),
   ],
 };

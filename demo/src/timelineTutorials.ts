@@ -35,7 +35,7 @@ export const TIMELINE_TUTORIALS: TimelineTutorialEntry[] = [
     castId: "timeline-trim-arrange",
     title: "Cut a scene together",
     subtitle: "Timeline editor · trim, arrange, caption",
-    replayWindowMs: 9500,
+    replayWindowMs: 16000,
     steps: [
       { atMs: 600, label: "Select a clip" },
       { atMs: 3600, label: "Add another, drop in a caption" },
@@ -44,7 +44,7 @@ export const TIMELINE_TUTORIALS: TimelineTutorialEntry[] = [
     captions: [
       { fromMs: 700, toMs: 2000, text: "Select a clip on the timeline to trim or inspect it." },
       { fromMs: 3800, toMs: 6200, text: "Drag in the next shot and a caption — both land on their own track." },
-      { fromMs: 7400, toMs: 9300, text: "Zoom in, scrub the playhead, and watch the cut play back live." },
+      { fromMs: 7400, toMs: 15600, text: "Zoom in, scrub the playhead, and watch the cut play back live." },
     ],
     outroTitle: "Edit at native speed",
     outroPoints: [

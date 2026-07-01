@@ -61,6 +61,7 @@ export const agentChatCast: ChatDemoCast = {
     progress(1300, 1, 1, "Searching the web…"),
 
     toolRunning(3600, null),
+    progress(3600, 0, 0, null),
     toolResult(3600, ASSISTANT_ID, [
       {
         id: TOOL_CALL_ID,
