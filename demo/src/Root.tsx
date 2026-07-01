@@ -6,6 +6,10 @@ import { Tutorial } from "./Tutorial";
 import { TUTORIALS, tutorialFrames } from "./tutorials";
 import { COOKBOOK } from "./cookbook";
 import { DEFAULT_CAST, listCasts } from "./casts/registry";
+import { ChatTutorial } from "./ChatTutorial";
+import { CHAT_TUTORIALS, chatTutorialFrames } from "./chatTutorials";
+import { TimelineTutorial } from "./TimelineTutorial";
+import { TIMELINE_TUTORIALS, timelineTutorialFrames } from "./timelineTutorials";
 import type { DemoCast } from "@web-demo";
 
 const WIDTH = 1920;
@@ -74,6 +78,32 @@ export const Root: React.FC = () => {
           width={WIDTH}
           height={HEIGHT}
           durationInFrames={framesFor(cast, 0)}
+        />
+      ))}
+
+      {CHAT_TUTORIALS.map((tut) => (
+        <Composition
+          key={tut.compositionId}
+          id={tut.compositionId}
+          component={ChatTutorial}
+          defaultProps={tut.props}
+          fps={tut.fps}
+          width={WIDTH}
+          height={HEIGHT}
+          durationInFrames={chatTutorialFrames(tut)}
+        />
+      ))}
+
+      {TIMELINE_TUTORIALS.map((tut) => (
+        <Composition
+          key={tut.compositionId}
+          id={tut.compositionId}
+          component={TimelineTutorial}
+          defaultProps={tut.props}
+          fps={tut.fps}
+          width={WIDTH}
+          height={HEIGHT}
+          durationInFrames={timelineTutorialFrames(tut)}
         />
       ))}
     </>

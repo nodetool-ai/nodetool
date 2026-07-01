@@ -54,4 +54,50 @@ declare module "@web-demo" {
   export const describeImageCast: DemoCast;
   /** One synthetic cast per cookbook recipe (web/src/demo/cookbook). */
   export const cookbookCasts: DemoCast[];
+
+  /** Mirror of web/src/demo/chat/chatCastTypes.ts `ChatDemoCast`. */
+  export interface ChatDemoCast {
+    version: number;
+    kind: "chat";
+    id: string;
+    name: string;
+    description?: string;
+    createdAt: string;
+    durationMs: number;
+    fps?: number;
+    [key: string]: unknown;
+  }
+
+  export interface ChatDemoPlayerProps {
+    cast: ChatDemoCast;
+    /** Elapsed time into the cast, in milliseconds. */
+    timeMs: number;
+    style?: React.CSSProperties;
+  }
+
+  export const ChatDemoPlayer: React.FC<ChatDemoPlayerProps>;
+  export const agentChatCast: ChatDemoCast;
+
+  /** Mirror of web/src/demo/timeline/timelineCastTypes.ts `TimelineDemoCast`. */
+  export interface TimelineDemoCast {
+    version: number;
+    kind: "timeline";
+    id: string;
+    name: string;
+    description?: string;
+    createdAt: string;
+    durationMs: number;
+    fps?: number;
+    [key: string]: unknown;
+  }
+
+  export interface TimelineDemoPlayerProps {
+    cast: TimelineDemoCast;
+    /** Elapsed time into the cast, in milliseconds. */
+    timeMs: number;
+    style?: React.CSSProperties;
+  }
+
+  export const TimelineDemoPlayer: React.FC<TimelineDemoPlayerProps>;
+  export const timelineEditingCast: TimelineDemoCast;
 }
