@@ -2,13 +2,13 @@ import { useState, type ReactNode } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink, loggerLink } from "@trpc/client";
 import { trpc } from "./client";
-import { isLocalhost } from "../lib/env";
+import { isAuthRequired } from "../lib/runtimeConfig";
 import { supabase } from "../lib/supabaseClient";
 import { queryClient } from "../queryClient";
 import { BASE_URL } from "../stores/BASE_URL";
 
 async function authHeaders(): Promise<Record<string, string>> {
-  if (isLocalhost) return {};
+  if (!isAuthRequired()) return {};
   const {
     data: { session }
   } = await supabase.auth.getSession();
