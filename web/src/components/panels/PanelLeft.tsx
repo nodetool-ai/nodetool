@@ -12,7 +12,10 @@ import isEqual from "fast-deep-equal";
 import { memo, useCallback, useEffect, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import AssetGrid from "../assets/AssetGrid";
-import { AssetGridStoreProvider } from "../../stores/AssetGridStore";
+import {
+  AssetGridStoreProvider,
+  LIBRARY_ASSET_GRID_STORE_KEY
+} from "../../stores/AssetGridStore";
 import WorkflowList from "../workflows/WorkflowList";
 import WorkflowForm from "../workflows/WorkflowForm";
 import CreateWorkflowButton from "../workflows/CreateWorkflowButton";
@@ -390,7 +393,7 @@ const PanelContent = memo(function PanelContent({
               }
             />
           )}
-          <AssetGridStoreProvider persistKey="asset-grid-storage:library">
+          <AssetGridStoreProvider persistKey={LIBRARY_ASSET_GRID_STORE_KEY}>
             <AssetGrid maxItemSize={5} isMobile={isMobile} forceGlobalAssets />
           </AssetGridStoreProvider>
         </FlexColumn>

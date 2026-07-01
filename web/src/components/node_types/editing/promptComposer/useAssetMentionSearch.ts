@@ -69,7 +69,10 @@ export const useAssetMentionSearch = (
       search({ query: queryString, page_size: PAGE_SIZE })
         .then((result) => {
           if (active && queryTokenRef.current === token) {
-            setSavedAssets(result.assets ?? []);
+            // Folders aren't attachable — the mention picker is for files only.
+            setSavedAssets(
+              (result.assets ?? []).filter((a) => a.content_type !== "folder")
+            );
             setSavedCursor(result.next_cursor ?? null);
           }
         })
@@ -98,7 +101,10 @@ export const useAssetMentionSearch = (
         if (queryTokenRef.current !== token) {
           return;
         }
-        setSavedAssets((prev) => [...prev, ...(result.assets ?? [])]);
+        const nextAssets = (result.assets ?? []).filter(
+          (a) => a.content_type !== "folder"
+        );
+        setSavedAssets((prev) => [...prev, ...nextAssets]);
         setSavedCursor(result.next_cursor ?? null);
       })
       .catch(() => {
