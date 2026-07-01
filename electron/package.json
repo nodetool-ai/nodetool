@@ -61,7 +61,7 @@
     "bufferutil": "^4.1.0",
     "electron-log": "^5.4.4",
     "electron-updater": "^6.8.3",
-    "js-yaml": "^4.3.0",
+    "js-yaml": "^5.0.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "sharp": "^0.34.5",
