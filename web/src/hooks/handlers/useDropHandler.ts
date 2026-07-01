@@ -17,7 +17,12 @@ import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 import { shallow } from "zustand/shallow";
 import { instantiatePaletteNode } from "../../utils/instantiatePaletteNode";
 import useMetadataStore from "../../stores/MetadataStore";
-import type { SketchDragPayload, TimelineDragPayload } from "../../lib/dragdrop";
+import type {
+  ChatMediaDragPayload,
+  SketchDragPayload,
+  TimelineDragPayload
+} from "../../lib/dragdrop";
+import { blockToConstant } from "./useGenerationToCanvas";
 
 /** Horizontal spacing between nodes when dropping multiple assets */
 const MULTI_NODE_HORIZONTAL_SPACING = 250;
@@ -166,6 +171,28 @@ export const useDropHandler = (): UseDropHandlerResult => {
 
       // Handle asset/sketch/timeline drops on pane
       if (targetIsPane && dragData) {
+        if (dragData.type === "chat-media") {
+          const block = dragData.payload as ChatMediaDragPayload;
+          const constant = blockToConstant(block);
+          if (!constant) {
+            return;
+          }
+          const metadata = getMetadata(constant.nodeType);
+          if (!metadata) {
+            addNotification({
+              type: "error",
+              content: `Could not add media to canvas: metadata for ${constant.nodeType} is missing.`,
+              alert: true
+            });
+            return;
+          }
+          const newNode = createNode(metadata, position);
+          newNode.data.properties.value = constant.value;
+          addNode(newNode);
+          addRecentNode(constant.nodeType);
+          return;
+        }
+
         if (dragData.type === "sketch") {
           const sketch = dragData.payload as SketchDragPayload;
           const metadata = getMetadata(CONSTANT_SKETCH_NODE_TYPE);
