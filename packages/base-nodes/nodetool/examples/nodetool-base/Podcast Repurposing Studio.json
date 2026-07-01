@@ -1,0 +1,702 @@
+{
+  "id": "podcast_repurposing_studio",
+  "access": "public",
+  "created_at": "2026-07-01T00:00:00.000000",
+  "updated_at": "2026-07-01T00:00:00.000000",
+  "name": "Podcast Repurposing Studio",
+  "tool_name": null,
+  "description": "Drop in one podcast episode and ship the whole content pack: episode titles and show notes, a newsletter edition, five social posts, and quote cards rendered as square images. Whisper transcribes once; four writer branches fan out from the transcript.",
+  "tags": [
+    "podcast",
+    "audio",
+    "content",
+    "marketing",
+    "agents",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "edges": [
+      {
+        "id": "p1",
+        "source": "episode_audio",
+        "sourceHandle": "output",
+        "target": "transcribe",
+        "targetHandle": "audio",
+        "ui_properties": {
+          "className": "audio"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "p2",
+        "source": "transcribe",
+        "sourceHandle": "text",
+        "target": "shownotes_prompt",
+        "targetHandle": "TRANSCRIPT",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "p3",
+        "source": "show_context",
+        "sourceHandle": "output",
+        "target": "shownotes_prompt",
+        "targetHandle": "SHOW",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "p4",
+        "source": "shownotes_prompt",
+        "sourceHandle": "output",
+        "target": "shownotes_agent",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "p5",
+        "source": "shownotes_agent",
+        "sourceHandle": "text",
+        "target": "preview_shownotes",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "p6",
+        "source": "transcribe",
+        "sourceHandle": "text",
+        "target": "newsletter_prompt",
+        "targetHandle": "TRANSCRIPT",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "p7",
+        "source": "show_context",
+        "sourceHandle": "output",
+        "target": "newsletter_prompt",
+        "targetHandle": "SHOW",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "p8",
+        "source": "newsletter_prompt",
+        "sourceHandle": "output",
+        "target": "newsletter_agent",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "p9",
+        "source": "newsletter_agent",
+        "sourceHandle": "text",
+        "target": "preview_newsletter",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "p10",
+        "source": "transcribe",
+        "sourceHandle": "text",
+        "target": "posts_prompt",
+        "targetHandle": "TRANSCRIPT",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "p11",
+        "source": "show_context",
+        "sourceHandle": "output",
+        "target": "posts_prompt",
+        "targetHandle": "SHOW",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "p12",
+        "source": "posts_prompt",
+        "sourceHandle": "output",
+        "target": "posts_list",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "p13",
+        "source": "posts_list",
+        "sourceHandle": "item",
+        "target": "preview_posts",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "p14",
+        "source": "transcribe",
+        "sourceHandle": "text",
+        "target": "quotes_prompt",
+        "targetHandle": "TRANSCRIPT",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "p15",
+        "source": "quote_count",
+        "sourceHandle": "output",
+        "target": "quotes_prompt",
+        "targetHandle": "COUNT",
+        "ui_properties": {
+          "className": "int"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "p16",
+        "source": "quotes_prompt",
+        "sourceHandle": "output",
+        "target": "quotes_list",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "p17",
+        "source": "quotes_list",
+        "sourceHandle": "item",
+        "target": "card_prompt",
+        "targetHandle": "QUOTE",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "p18",
+        "source": "show_context",
+        "sourceHandle": "output",
+        "target": "card_prompt",
+        "targetHandle": "SHOW",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "p19",
+        "source": "card_prompt",
+        "sourceHandle": "output",
+        "target": "quote_card",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "p20",
+        "source": "quote_card",
+        "sourceHandle": "output",
+        "target": "preview_cards",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        },
+        "edge_type": "data"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# 🎙️ Podcast Repurposing Studio\n\nDrop in one episode and ship the whole content pack: titles and show notes, a newsletter edition, five social posts, and quote cards rendered as square images. The episode is transcribed once; four writer branches fan out from the transcript.\n\n**Pipeline:** Episode audio → Transcript → Show notes · Newsletter · Posts · Quotes → Quote cards\n\n**Try this:** pick the ASR, language, and image models, then tune each writer's prompt to your show's voice."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 40,
+            "y": -260
+          },
+          "zIndex": 0,
+          "width": 480,
+          "height": 220,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "episode_audio",
+        "type": "nodetool.input.AudioInput",
+        "data": {
+          "name": "episode_audio",
+          "value": {},
+          "description": "The full episode recording (any common audio format)"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "1️⃣ Episode audio",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "show_context",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "show_context",
+          "value": "Trailhead — a weekly hiking and outdoor-gear podcast hosted by Maya. Voice: warm, practical, a little irreverent. CTA: subscribe and grab the free gear checklist at trailhead.fm",
+          "description": "Show name, host, voice, and call to action — every writer branch uses this"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 330
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "2️⃣ Show context",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "quote_count",
+        "type": "nodetool.input.IntegerInput",
+        "data": {
+          "name": "quote_count",
+          "value": 4,
+          "description": "How many quote cards to render",
+          "min": 2,
+          "max": 8
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 580
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "3️⃣ Quote-card count",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "transcribe",
+        "type": "nodetool.text.AutomaticSpeechRecognition",
+        "data": {
+          "model": {}
+        },
+        "ui_properties": {
+          "position": {
+            "x": 410,
+            "y": 100
+          },
+          "zIndex": 0,
+          "width": 300,
+          "height": 240,
+          "title": "4️⃣ Transcribe the episode",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "shownotes_prompt",
+        "type": "nodetool.text.Prompt",
+        "data": {
+          "prompt": "You are producing the episode page for this podcast.\n\nShow: {{ SHOW }}\n\nFrom the transcript below, return Markdown, no commentary:\n\nTitles: 3 episode title options — specific, curiosity-driven, under 60 characters.\nSummary: one paragraph, 3-4 sentences, written for the episode page.\nShow notes: 6-10 bullet chapters in listening order — each a short phrase naming what gets discussed.\nResources: anything mentioned worth linking — books, tools, people, places.\nCTA: one closing line using the show's call to action.\n\nTranscript:\n{{ TRANSCRIPT }}"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 790,
+            "y": -240
+          },
+          "zIndex": 0,
+          "width": 320,
+          "height": 360,
+          "title": "Build show-notes prompt",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {
+          "SHOW": "",
+          "TRANSCRIPT": ""
+        },
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "shownotes_agent",
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {},
+          "system": "You are a podcast producer who writes episode pages people actually read. Specific and concrete, in the show's voice, no filler.",
+          "audio": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "history": [],
+          "thread_id": null,
+          "max_tokens": 100000
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1150,
+            "y": -220
+          },
+          "zIndex": 0,
+          "width": 330,
+          "height": 330,
+          "title": "5️⃣ Write show notes & titles",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "preview_shownotes",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "show_notes"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1530,
+            "y": -200
+          },
+          "zIndex": 0,
+          "width": 320,
+          "height": 300,
+          "title": "📝 Show notes & titles",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "newsletter_prompt",
+        "type": "nodetool.text.Prompt",
+        "data": {
+          "prompt": "Turn this podcast episode into the show's email newsletter edition.\n\nShow: {{ SHOW }}\n\nReturn Markdown, no commentary:\n\nSubject: 3 subject-line options under 50 characters.\nBody: 150-250 words in the host's voice — open on the episode's single most surprising idea, tease two more takeaways without spoiling them, close with the show's call to action and a listen-link placeholder.\n\nTranscript:\n{{ TRANSCRIPT }}"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 790,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 320,
+          "height": 360,
+          "title": "Build newsletter prompt",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {
+          "SHOW": "",
+          "TRANSCRIPT": ""
+        },
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "newsletter_agent",
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {},
+          "system": "You write email newsletters for podcasters. Short, personal, in the host's voice — the reader should feel the episode, not a summary of it.",
+          "audio": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "history": [],
+          "thread_id": null,
+          "max_tokens": 100000
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1150,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 330,
+          "height": 330,
+          "title": "6️⃣ Draft the newsletter",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "preview_newsletter",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "newsletter"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1530,
+            "y": 220
+          },
+          "zIndex": 0,
+          "width": 320,
+          "height": 300,
+          "title": "✉️ Newsletter edition",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "posts_prompt",
+        "type": "nodetool.text.Prompt",
+        "data": {
+          "prompt": "From this podcast episode transcript, write exactly 5 social posts, one per line — no numbering, no labels, no hashtags unless they earn their place.\n\nRules:\n- Each post stands alone: one idea, claim, or moment from the episode, written to stop the scroll.\n- Mix formats across the five: a bold take, a question, a mini-story, a concrete stat or detail, a one-line lesson.\n- Plain language in the show's voice ({{ SHOW }}). 280 characters maximum each.\n\nTranscript:\n{{ TRANSCRIPT }}"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 790,
+            "y": 600
+          },
+          "zIndex": 0,
+          "width": 320,
+          "height": 340,
+          "title": "Build posts prompt",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {
+          "SHOW": "",
+          "TRANSCRIPT": ""
+        },
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "posts_list",
+        "type": "nodetool.generators.ListGenerator",
+        "data": {
+          "model": {},
+          "input_text": "",
+          "max_tokens": 100000
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1150,
+            "y": 640
+          },
+          "zIndex": 0,
+          "width": 330,
+          "height": 245,
+          "title": "7️⃣ Generate social posts",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "preview_posts",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "social_posts"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1530,
+            "y": 660
+          },
+          "zIndex": 0,
+          "width": 300,
+          "height": 260,
+          "title": "📣 Social posts",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "quotes_prompt",
+        "type": "nodetool.text.Prompt",
+        "data": {
+          "prompt": "From this transcript, pick exactly {{ COUNT }} verbatim quotes worth putting on a quote card, one per line — no numbering, no attribution, no surrounding quotation marks.\n\nRules:\n- Verbatim from the transcript, lightly trimmed for readability only.\n- 8 to 25 words: punchy, self-contained, meaningful without context.\n- Prefer strong opinions, hard-won lessons, and vivid phrasing over pleasantries.\n\nTranscript:\n{{ TRANSCRIPT }}"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 790,
+            "y": 1010
+          },
+          "zIndex": 0,
+          "width": 320,
+          "height": 340,
+          "title": "Build quotes prompt",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {
+          "COUNT": "4",
+          "TRANSCRIPT": ""
+        },
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "quotes_list",
+        "type": "nodetool.generators.ListGenerator",
+        "data": {
+          "model": {},
+          "input_text": "",
+          "max_tokens": 100000
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1150,
+            "y": 1050
+          },
+          "zIndex": 0,
+          "width": 330,
+          "height": 245,
+          "title": "8️⃣ Pull the best quotes",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "card_prompt",
+        "type": "nodetool.text.Prompt",
+        "data": {
+          "prompt": "Minimal typographic quote card, square 1:1, for this podcast: {{ SHOW }}\n\nRender exactly this text as the centerpiece, large and perfectly legible, spelled exactly as written:\n\"{{ QUOTE }}\"\n\nClean editorial design: bold modern sans-serif type on a calm, softly textured background, generous margins, one subtle accent color, a small quotation-mark motif. No people, no photos, no logos, no watermark, no words beyond the quote."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1530,
+            "y": 1080
+          },
+          "zIndex": 0,
+          "width": 340,
+          "height": 360,
+          "title": "Build quote-card prompt",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {
+          "QUOTE": "",
+          "SHOW": ""
+        },
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "quote_card",
+        "type": "nodetool.image.TextToImage",
+        "data": {
+          "model": {},
+          "negative_prompt": "",
+          "aspect_ratio": "1:1",
+          "resolution": "1K",
+          "timeout_seconds": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1910,
+            "y": 1100
+          },
+          "zIndex": 0,
+          "width": 320,
+          "height": 340,
+          "title": "9️⃣ Render quote cards",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "preview_cards",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "quote_cards"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2270,
+            "y": 1090
+          },
+          "zIndex": 0,
+          "width": 360,
+          "height": 380,
+          "title": "🖼️ Quote cards",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null,
+  "html_app": null,
+  "etag": null
+}
