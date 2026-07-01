@@ -24,6 +24,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/vs/weavy", priority: 0.7, changeFrequency: "monthly" },
     { path: "/use-cases/product-video", priority: 0.6, changeFrequency: "monthly" },
     { path: "/use-cases/movie-poster", priority: 0.6, changeFrequency: "monthly" },
+    { path: "/use-cases/movie-trailer", priority: 0.6, changeFrequency: "monthly" },
     { path: "/imprint", priority: 0.3, changeFrequency: "yearly" },
     { path: "/privacy", priority: 0.3, changeFrequency: "yearly" },
     { path: "/terms", priority: 0.3, changeFrequency: "yearly" },
