@@ -12,6 +12,51 @@ Self-hosted deployment runs NodeTool in a **Docker** container — on `localhost
 or on a remote host reached over SSH. Docker is the only supported deployment
 `type` (`SUPPORTED_TYPES = ["docker"]`).
 
+Two paths:
+
+- **Docker Compose** — a single `docker-compose.yml` you run yourself. The
+  fastest way to stand up one server. See below.
+- **`nodetool deploy` CLI** — a managed flow driven by `deployment.yaml` that
+  also handles remote hosts over SSH, image transfer, and workflow sync. See
+  [Deployment Configuration](#deployment-configuration).
+
+## Docker Compose (reference)
+
+The repository ships a reference [`docker-compose.yml`](../docker-compose.yml)
+for running one server on a host you control.
+
+```bash
+cp .env.example .env      # fill in the provider keys you use
+docker compose up -d
+# open http://localhost:17777
+```
+
+The server binds to `0.0.0.0:7777` inside the container and is published on the
+host as `${NODETOOL_PORT:-17777}`. All persistent state — SQLite database,
+assets, vector store, model cache, and the generated secret key — lives under
+`/workspace`, backed by the named `nodetool-data` volume, so it survives
+restarts and image upgrades.
+
+Common overrides (set in `.env` or the shell):
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `NODETOOL_VERSION` | `latest` | Image tag to pull (pin a release in production) |
+| `NODETOOL_PORT` | `17777` | Host port mapped to the container's `7777` |
+| `SECRETS_MASTER_KEY` | auto-generated | 32-byte base64 key encrypting stored secrets — set explicitly in production (`openssl rand -base64 32`) |
+| `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `FAL_API_KEY`, `HF_TOKEN` | unset | Model provider keys |
+
+Upgrade in place:
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+To store data in a host directory instead of the named volume, replace the
+`nodetool-data:/workspace` mount with a bind mount (e.g. `./nodetool-data:/workspace`)
+and make sure the host directory is writable by the container's `node` user.
+
 ## Deployment Configuration
 
 Deployments are configured via `deployment.yaml`.

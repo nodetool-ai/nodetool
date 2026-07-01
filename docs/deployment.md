@@ -40,7 +40,12 @@ see the [End-to-End Deployment Guide](deployment-e2e-guide.md).
 
 ## Server: self-host with Docker
 
-The `nodetool deploy` commands manage a single Docker server target driven by a
+The quickest path is the reference [`docker-compose.yml`](../docker-compose.yml)
+at the repo root — `cp .env.example .env && docker compose up -d`. See
+[Self-Hosted Deployment › Docker Compose](self-hosted-deployment.md#docker-compose-reference).
+
+For a managed flow (remote hosts over SSH, image transfer, workflow sync), the
+`nodetool deploy` commands manage a single Docker server target driven by a
 `deployment.yaml` file.
 
 1. **Pull the base image**:
