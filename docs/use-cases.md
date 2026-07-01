@@ -70,6 +70,30 @@ us, and you can switch any model for a better one the day it ships.
       </div>
     </div>
   </article>
+
+  <article class="usecase-card">
+    <a href="{{ '/use-cases/podcast-repurposing-studio' | relative_url }}" class="usecase-media"></a>
+    <div class="usecase-body">
+      <span class="usecase-tag">Creators</span>
+      <h3><a href="{{ '/use-cases/podcast-repurposing-studio' | relative_url }}">Podcast Repurposing Studio</a></h3>
+      <p>Drop in one episode and ship the whole content pack: titles and show notes, a newsletter edition, five social posts, and quote cards rendered as square images. Transcribed once, written four ways.</p>
+      <div class="pipeline-chips">
+        <span>Episode</span><span>Transcript</span><span>Notes</span><span>Newsletter</span><span>Cards</span>
+      </div>
+    </div>
+  </article>
+
+  <article class="usecase-card">
+    <a href="{{ '/use-cases/seo-content-engine' | relative_url }}" class="usecase-media"></a>
+    <div class="usecase-body">
+      <span class="usecase-tag">Content</span>
+      <h3><a href="{{ '/use-cases/seo-content-engine' | relative_url }}">SEO Content Engine</a></h3>
+      <p>One topic in, a keyword-targeted article batch out. A strategist agent plans the cluster, and every brief becomes a full Markdown article with an editorial hero image — a cluster per run, not an article per invoice.</p>
+      <div class="pipeline-chips">
+        <span>Topic</span><span>Cluster</span><span>Briefs</span><span>Articles</span><span>Heroes</span>
+      </div>
+    </div>
+  </article>
 </div>
 
 ## Build your own
