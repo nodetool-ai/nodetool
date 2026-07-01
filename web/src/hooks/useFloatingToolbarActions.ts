@@ -20,6 +20,7 @@ import useNodeMenuStore from "../stores/NodeMenuStore";
 import { useBottomPanelStore } from "../stores/BottomPanelStore";
 import { usePanelStore } from "../stores/PanelStore";
 import { useMiniMapStore } from "../stores/MiniMapStore";
+import { useNotificationStore } from "../stores/NotificationStore";
 
 /**
  * Hook that provides all action handlers for the floating toolbar.
@@ -32,7 +33,7 @@ export interface FloatingToolbarActions {
   handleStop: () => void;
   handlePause: () => void;
   handleResume: () => void;
-  handleSave: () => void;
+  handleSave: () => Promise<void>;
   handleDownload: () => void;
   handleAutoLayout: () => void;
   handleRunAsApp: () => void;
@@ -83,6 +84,7 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
 
   const getWorkflowById = useWorkflowManager((state) => state.getWorkflow);
   const saveWorkflow = useWorkflowManager((state) => state.saveWorkflow);
+  const addNotification = useNotificationStore((state) => state.addNotification);
 
   const autosave = useSettingsStore((state) => state.settings.autosave);
   const confirmLargeRun = useSettingsStore(
@@ -266,15 +268,30 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
     resume();
   }, [resume]);
 
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
     if (!workflow) {
       return;
     }
     const w = getWorkflowById(workflow.id);
-    if (w) {
-      saveWorkflow(w);
+    if (!w) {
+      return;
     }
-  }, [getWorkflowById, saveWorkflow, workflow]);
+    try {
+      await saveWorkflow(w);
+      addNotification({
+        content: `Workflow ${w.name} saved`,
+        type: "success",
+        alert: true
+      });
+    } catch (error) {
+      console.error("Failed to save workflow:", error);
+      addNotification({
+        content: `Failed to save workflow: ${error instanceof Error ? error.message : "Server unreachable"}`,
+        type: "error",
+        alert: true
+      });
+    }
+  }, [getWorkflowById, saveWorkflow, workflow, addNotification]);
 
   const handleDownload = useCallback(() => {
     if (!workflow) {
