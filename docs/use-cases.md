@@ -7,7 +7,7 @@ image: /assets/use-cases/poster-singularity-1.png
 
 These are the showcase workflows from [nodetool.ai](https://nodetool.ai). Each
 one starts from a handful of inputs and ends with a finished result — a trailer,
-a product video, a set of poster concepts — built on a single canvas. Nothing is
+a batch of video ads, a set of poster concepts — built on a single canvas. Nothing is
 locked: swap a model, rewrite an agent's prompt, or drop in a new brief and run
 it again. The workflow is the reusable part, not the example output.
 
@@ -44,6 +44,20 @@ us, and you can switch any model for a better one the day it ships.
   </article>
 
   <article class="usecase-card">
+    <a href="{{ '/use-cases/ad-creative-factory' | relative_url }}" class="usecase-media">
+      <img src="{{ '/assets/use-cases/smartwatch.png' | relative_url }}" alt="Product photo feeding the Ad Creative Factory">
+    </a>
+    <div class="usecase-body">
+      <span class="usecase-tag">Advertising</span>
+      <h3><a href="{{ '/use-cases/ad-creative-factory' | relative_url }}">Ad Creative Factory</a></h3>
+      <p>One product photo and one offer become a batch of ready-to-test vertical video ads. A strategist agent plans a persona × angle test matrix, and every cell becomes a spoken hook, a staged scene, an animated clip, and a voiceover.</p>
+      <div class="pipeline-chips">
+        <span>Offer</span><span>Matrix</span><span>Hooks</span><span>Scenes</span><span>Ads</span>
+      </div>
+    </div>
+  </article>
+
+  <article class="usecase-card">
     <a href="{{ '/use-cases/movie-poster' | relative_url }}" class="usecase-media">
       <img src="{{ '/assets/use-cases/poster-singularity-1.png' | relative_url }}" alt="Movie poster concept from the Movie Poster Generator">
     </a>
@@ -60,7 +74,7 @@ us, and you can switch any model for a better one the day it ships.
 
 ## Build your own
 
-These three are starting points, not limits. The same building blocks — inputs,
+These are starting points, not limits. The same building blocks — inputs,
 prompts, agents, and image/video/audio models on one canvas — cover far more
 ground. For smaller, single-purpose examples, see the [Workflow
 Gallery]({{ '/workflows/' | relative_url }}) and the

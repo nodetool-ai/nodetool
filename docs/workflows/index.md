@@ -5,7 +5,7 @@ title: "Workflow Gallery"
 
 Ready-to-use workflow examples. Each includes explanations and visual diagrams.
 
-For the flagship, end-to-end showcases — trailer, product video, poster — see
+For the flagship, end-to-end showcases — trailer, ad batch, product video, poster — see
 [Use Cases]({{ '/use-cases' | relative_url }}). See
 [Workflow Patterns]({{ '/cookbook/patterns' | relative_url }}) for reusable techniques.
 
