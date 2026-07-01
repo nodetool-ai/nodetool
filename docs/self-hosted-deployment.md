@@ -57,6 +57,38 @@ To store data in a host directory instead of the named volume, replace the
 `nodetool-data:/workspace` mount with a bind mount (e.g. `./nodetool-data:/workspace`)
 and make sure the host directory is writable by the container's `node` user.
 
+### Authentication / login screen
+
+Auth has two layers, controlled separately:
+
+- **Server enforcement (runtime).** With `SUPABASE_URL`/`SUPABASE_KEY` unset the
+  server runs in **Local mode**: localhost requests are trusted as a single user
+  and remote requests are rejected. Set both (the `KEY` is the service-role key)
+  to switch to **Supabase mode**, where the server requires a valid Supabase JWT
+  on every request. These are runtime env vars — uncomment them in the compose
+  `environment:` block. See [Authentication](authentication.md) and
+  [Supabase Deployment](supabase-deployment.md).
+- **The web login screen (build time).** Whether the browser shows a login page
+  is decided client-side: served on `localhost`/`127.0.0.1` the app skips login;
+  served on any other host it routes to `/login`. That login page authenticates
+  against Supabase using `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY`, which Vite
+  inlines into the web bundle at **build time**. The prebuilt image ships without
+  them, so a working login screen requires building the image yourself.
+
+To enable a working login screen, uncomment the `build:` block in the compose
+file and build locally with your Supabase project's public credentials:
+
+```bash
+VITE_SUPABASE_URL=https://your-project.supabase.co \
+VITE_SUPABASE_ANON_KEY=your-anon-key \
+SUPABASE_URL=https://your-project.supabase.co \
+SUPABASE_KEY=your-service-role-key \
+docker compose up -d --build
+```
+
+Point the frontend (`VITE_*`, anon key) and the server (`SUPABASE_*`, service-role
+key) at the same Supabase project.
+
 ## Deployment Configuration
 
 Deployments are configured via `deployment.yaml`.

@@ -57,7 +57,18 @@ RUN set -eu; \
 
 COPY web/ web/
 ARG WEB_BUILD_NODE_OPTIONS=--max-old-space-size=4096
-RUN cd web && NODE_OPTIONS="$WEB_BUILD_NODE_OPTIONS" npm run build
+# Supabase credentials for the web login screen are compiled into the bundle
+# here (Vite inlines VITE_* at build time). Left empty — the default — the UI
+# has no working login and the app relies on server-side Local/Supabase mode.
+# Pass these build args to bake in a working Supabase login screen.
+ARG VITE_SUPABASE_URL=
+ARG VITE_SUPABASE_ANON_KEY=
+ARG VITE_AUTH_REDIRECT_URL=
+RUN cd web && NODE_OPTIONS="$WEB_BUILD_NODE_OPTIONS" \
+    VITE_SUPABASE_URL="$VITE_SUPABASE_URL" \
+    VITE_SUPABASE_ANON_KEY="$VITE_SUPABASE_ANON_KEY" \
+    VITE_AUTH_REDIRECT_URL="$VITE_AUTH_REDIRECT_URL" \
+    npm run build
 
 # Assemble a minimal runtime filesystem with compiled packages, web assets, and
 # bundled workflow examples/thumbnails.
