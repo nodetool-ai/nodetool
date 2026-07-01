@@ -54,6 +54,8 @@ declare module "@web-demo" {
   export const describeImageCast: DemoCast;
   /** One synthetic cast per cookbook recipe (web/src/demo/cookbook). */
   export const cookbookCasts: DemoCast[];
+  /** One synthetic cast per workflow-gallery example (web/src/demo/workflows). */
+  export const workflowCasts: DemoCast[];
 
   /** Mirror of web/src/demo/chat/chatCastTypes.ts `ChatDemoCast`. */
   export interface ChatDemoCast {

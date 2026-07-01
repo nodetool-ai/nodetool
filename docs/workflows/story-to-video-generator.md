@@ -7,6 +7,12 @@ title: "Story to Video Generator"
 
 Transform story ideas into AI-generated videos. An agent crafts detailed visual prompts optimized for video generation, then Gemini Veo renders the video.
 
+## Demo
+
+<video controls preload="metadata" poster="{{ '/assets/cookbook/storyboard-to-video.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/storyboard-to-video.mp4' | relative_url }}" type="video/mp4">
+</video>
+
 ## How It Works
 
 1. **Story Theme** - Describe your scene or story idea

@@ -85,6 +85,26 @@ a short WAV chime — `web/src/demo/assets/`), so they replay with no backend an
 no generation credits. `scripts/render-cookbook.ts` bundles the project once and
 renders all 15, so it's far cheaper than 15 separate `remotion render` calls.
 
+## Workflow-gallery videos (no backend)
+
+Every example on the docs Workflow Gallery (`docs/workflows/`) embeds a demo
+video. Examples that match a cookbook recipe reuse that recipe's video; the rest
+get their own synthetic cast here — Transcribe Audio, Data Generator, Creative
+Story Ideas, Meeting Transcript Summarizer, Categorize Mails, Color Boost Video,
+and Fetch Papers. Same shape as the cookbook videos: a backend-free cast replayed
+through the real graph UI under the `Tutorial` composition.
+
+```bash
+cd demo
+npm run render:workflows                              # all → docs/assets/workflows/<slug>.mp4 + .jpg
+npm run render:workflows -- --only transcribe-audio  # one example
+npm run still:workflows                              # JPG thumbnails only (fast)
+```
+
+The casts live in `web/src/demo/workflows/` (reusing `cookbook/builders.ts`); the
+per-example titles, camera beats, and captions live in `demo/src/workflows.ts`.
+`scripts/render-workflows.ts` bundles once and renders all of them.
+
 ## Other UI surfaces (chat, timeline)
 
 The graph editor isn't the only NodeTool UI that can star in a tutorial video.

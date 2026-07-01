@@ -18,6 +18,7 @@ import {
   summarizeCast,
   describeImageCast,
   cookbookCasts,
+  workflowCasts,
   type DemoCast,
 } from "@web-demo";
 
@@ -31,6 +32,7 @@ const casts: DemoCast[] = [
   summarizeCast,
   describeImageCast,
   ...cookbookCasts,
+  ...workflowCasts,
 ];
 
 /** The cast bound to the canonical `WorkflowDemo` composition id. */

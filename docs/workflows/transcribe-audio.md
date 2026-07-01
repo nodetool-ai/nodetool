@@ -11,6 +11,12 @@ Convert speech to text using the Whisper model with word-level timestamps.
 2. **Automatic Speech Recognition** - Processes audio through Whisper
 3. **String Output** - Displays the transcribed text
 
+## Demo
+
+<video controls preload="metadata" poster="{{ '/assets/workflows/transcribe-audio.jpg' | relative_url }}">
+  <source src="{{ '/assets/workflows/transcribe-audio.mp4' | relative_url }}" type="video/mp4">
+</video>
+
 ## How to Use
 
 - Record your voice or upload a file using the audio input

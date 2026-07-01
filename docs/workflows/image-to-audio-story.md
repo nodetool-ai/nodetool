@@ -18,6 +18,12 @@ Transforms images into narrated stories by combining vision AI with language gen
 - "Write a short poem inspired by this artwork"
 - "Create a brief backstory for this scene"
 
+## Demo
+
+<video controls preload="metadata" poster="{{ '/assets/cookbook/image-to-story.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/image-to-story.mp4' | relative_url }}" type="video/mp4">
+</video>
+
 ## Tags
 
 start, multimodal, creative, audio, storytelling
