@@ -4,7 +4,10 @@ import { useAssetStore } from "../stores/AssetStore";
 import { Asset } from "../stores/ApiTypes";
 import { useSettingsStore } from "../stores/SettingsStore";
 import useAuth from "../stores/useAuth";
-import { useAssetGridStore } from "../stores/AssetGridStore";
+import {
+  useAssetGridStore,
+  useAssetGridStoreApi
+} from "../stores/AssetGridStore";
 import { SIZE_FILTERS } from "../utils/formatUtils";
 import { getAssetCategory } from "../components/assets/assetGridUtils";
 import { trpcClient } from "../trpc/client";
@@ -29,6 +32,7 @@ type AssetUpdate = {
 };
 
 export const useAssets = (_initialFolderId: string | null = null) => {
+  const gridStore = useAssetGridStoreApi();
   const setCurrentFolderId = useAssetGridStore(
     (state) => state.setCurrentFolderId
   );
@@ -264,7 +268,7 @@ export const useAssets = (_initialFolderId: string | null = null) => {
         setCurrentFolderId(folder.id || currentUser?.id || "");
         setCurrentFolder(folder || null);
         setSelectedAssetIds([]);
-        loadCurrentFolder();
+        loadCurrentFolder(gridStore);
       }
     },
     [
@@ -274,7 +278,8 @@ export const useAssets = (_initialFolderId: string | null = null) => {
       setSelectedFolderIds,
       setCurrentFolder,
       setSelectedAssetIds,
-      loadCurrentFolder
+      loadCurrentFolder,
+      gridStore
     ]
   );
   // Navigate to folder id
@@ -289,7 +294,7 @@ export const useAssets = (_initialFolderId: string | null = null) => {
         setCurrentFolderId(folderId || currentUser?.id || "");
         setCurrentFolder(folder || null);
         setSelectedAssetIds([]);
-        loadCurrentFolder();
+        loadCurrentFolder(gridStore);
       }
     },
     [
@@ -299,7 +304,8 @@ export const useAssets = (_initialFolderId: string | null = null) => {
       currentUser?.id,
       setCurrentFolder,
       setSelectedAssetIds,
-      loadCurrentFolder
+      loadCurrentFolder,
+      gridStore
     ]
   );
 
