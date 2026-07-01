@@ -194,4 +194,35 @@ describe("useTextareaAssetMention", () => {
     await user.type(textarea, "x");
     expect(screen.queryByTestId("asset-mention-menu")).not.toBeInTheDocument();
   });
+
+  it("dismisses on an outside click", async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <button type="button">outside</button>
+        <Harness onSelectAsset={jest.fn()} />
+      </>
+    );
+    const textarea = screen.getByLabelText("prompt");
+
+    await user.type(textarea, "@fo");
+    await screen.findByTestId("asset-mention-menu");
+
+    await user.click(screen.getByRole("button", { name: "outside" }));
+    await waitFor(() =>
+      expect(screen.queryByTestId("asset-mention-menu")).not.toBeInTheDocument()
+    );
+  });
+
+  it("stays open when clicking inside the picker menu", async () => {
+    const user = userEvent.setup();
+    render(<Harness onSelectAsset={jest.fn()} />);
+    const textarea = screen.getByLabelText("prompt");
+
+    await user.type(textarea, "@fo");
+    const menu = await screen.findByTestId("asset-mention-menu");
+
+    await user.click(menu);
+    expect(screen.getByTestId("asset-mention-menu")).toBeInTheDocument();
+  });
 });

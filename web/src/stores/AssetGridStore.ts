@@ -249,6 +249,20 @@ const getOrCreateStore = (key: string): AssetGridStoreApi => {
 export const SINGLETON_ASSET_GRID_STORE_KEY = "asset-grid-storage";
 const singletonStore = getOrCreateStore(SINGLETON_ASSET_GRID_STORE_KEY);
 
+// The sidebar Library panel (PanelLeft) is the surface users browse folders
+// in day-to-day; canvas drop/paste uploads should land in whatever folder is
+// open there, not just the rarely-visited fullscreen assets page (which reads
+// the singleton above).
+export const LIBRARY_ASSET_GRID_STORE_KEY = "asset-grid-storage:library";
+
+const libraryStore = getOrCreateStore(LIBRARY_ASSET_GRID_STORE_KEY);
+
+/** Reactive access to the Library panel's current folder, for cross-cutting
+ * callers (e.g. canvas file-drop/paste) that need it without being inside
+ * the panel's provider subtree. */
+export const useLibraryCurrentFolderId = (): string | null =>
+  useStore(libraryStore, (state) => state.currentFolderId);
+
 const AssetGridStoreContext =
   createContext<AssetGridStoreApi>(singletonStore);
 

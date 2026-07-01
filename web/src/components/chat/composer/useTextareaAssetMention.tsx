@@ -110,6 +110,8 @@ export const useTextareaAssetMention = ({
   const dismissedStartRef = useRef<number | null>(null);
   // Pending caret to restore after a value edit re-renders the textarea.
   const pendingCaretRef = useRef<number | null>(null);
+  // The portaled menu's DOM node, so outside-click detection can exempt it.
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   const {
     activeTab,
@@ -189,6 +191,31 @@ export const useTextareaAssetMention = ({
     };
   }, [trigger, measure]);
 
+  // Dismiss on an outside click — anywhere but the textarea itself or the
+  // picker menu.
+  useEffect(() => {
+    if (!trigger) {
+      return;
+    }
+    const onPointerDown = (e: PointerEvent) => {
+      const target = e.target as Node | null;
+      if (!target) {
+        return;
+      }
+      if (textareaRef.current?.contains(target)) {
+        return;
+      }
+      if (menuRef.current?.contains(target)) {
+        return;
+      }
+      dismissedStartRef.current = trigger.start;
+      close();
+    };
+    document.addEventListener("pointerdown", onPointerDown, true);
+    return () =>
+      document.removeEventListener("pointerdown", onPointerDown, true);
+  }, [trigger, textareaRef, close]);
+
   // Restore the caret after we strip the `@query` from the value.
   useLayoutEffect(() => {
     const caret = pendingCaretRef.current;
@@ -261,7 +288,7 @@ export const useTextareaAssetMention = ({
       return null;
     }
     return createPortal(
-      <div style={menuWrapperStyles(rect)}>
+      <div ref={menuRef} style={menuWrapperStyles(rect)}>
         <AssetMentionMenu
           activeTab={activeTab}
           onTabChange={(tab) => {
