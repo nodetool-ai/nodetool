@@ -146,6 +146,40 @@ export const TUTORIALS: Tutorial[] = [
       "Reusing the streamed description downstream",
     ],
   },
+  {
+    id: "chat-agent-qa",
+    title: "Ask the chat agent",
+    tagline: "Global Chat · tool calls, streamed live",
+    description:
+      "A question goes straight to Global Chat: the agent calls a web-search tool in the open, then streams its answer back token by token.",
+    level: "Beginner",
+    durationLabel: "0:17",
+    video: "/tutorials/chat-agent-qa.mp4",
+    poster: "/tutorials/chat-agent-qa.jpg",
+    accent: "#06b6d4",
+    learn: [
+      "Sending a message from Global Chat",
+      "Watching a tool call run in the open",
+      "Reading a streamed answer as it arrives",
+    ],
+  },
+  {
+    id: "timeline-trim-arrange",
+    title: "Cut a scene together",
+    tagline: "Timeline editor · trim, arrange, caption",
+    description:
+      "A short editing session on the timeline: trim a clip, drag in another, drop in a word-synced caption, then scrub the finished cut.",
+    level: "Beginner",
+    durationLabel: "0:23",
+    video: "/tutorials/timeline-trim-arrange.mp4",
+    poster: "/tutorials/timeline-trim-arrange.jpg",
+    accent: "#8b5cf6",
+    learn: [
+      "Trimming and arranging clips on tracks",
+      "Adding a caption synced word-by-word",
+      "Scrubbing and previewing the cut live",
+    ],
+  },
 ];
 
 export const getTutorial = (id: string | null | undefined): Tutorial =>

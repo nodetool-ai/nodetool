@@ -1,7 +1,7 @@
 ---
 layout: page
 title: "Tutorials"
-description: "Short, beginner-friendly video walkthroughs of NodeTool — build your first workflow, connect and run nodes, generate a list, ask the AI, combine inputs, summarize a document, and describe an image."
+description: "Short, beginner-friendly video walkthroughs of NodeTool — build your first workflow, connect and run nodes, generate a list, ask the AI, combine inputs, summarize a document, describe an image, chat with an agent, and cut a scene on the timeline."
 ---
 
 Short, beginner-friendly walkthroughs. Each plays a real workflow on the canvas
@@ -94,6 +94,31 @@ vision pattern behind captioning and alt-text workflows.
 
 You'll learn how to bring an image into a graph, send it to a vision model, and
 reuse the streamed description in any downstream text node.
+
+## Ask the chat agent
+
+A different surface: Global Chat. A question goes straight to the agent, which
+calls a web-search tool in the open — no hidden spinner — then streams its
+answer back token by token.
+
+<video controls preload="metadata" poster="{{ '/assets/tutorials/chat-agent-qa.jpg' | relative_url }}">
+  <source src="{{ '/assets/tutorials/chat-agent-qa.mp4' | relative_url }}" type="video/mp4">
+</video>
+
+You'll learn how to send a message from Global Chat, watch a tool call run in
+the open, and read a streamed answer as it arrives.
+
+## Cut a scene together
+
+The timeline (video) editor: trim a clip, drag in another shot, drop in a
+caption that syncs word-by-word with the audio, then scrub the finished cut.
+
+<video controls preload="metadata" poster="{{ '/assets/tutorials/timeline-trim-arrange.jpg' | relative_url }}">
+  <source src="{{ '/assets/tutorials/timeline-trim-arrange.mp4' | relative_url }}" type="video/mp4">
+</video>
+
+You'll learn how to trim and arrange clips on real tracks, add a caption synced
+to the audio, and scrub and preview a cut without leaving the browser.
 
 ---
 
