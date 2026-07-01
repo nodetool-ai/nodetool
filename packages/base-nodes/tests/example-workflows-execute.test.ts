@@ -227,24 +227,35 @@ describe("example workflows execute end-to-end with fakes", () => {
     }
   );
 
-  it("every workflow finishes within the per-workflow timeout", async () => {
-    // Sanity-roll a fast sweep that just times each run. Per-workflow
-    // assertions live in the describe.each below; this aggregate guards
-    // against a regression that makes the suite hang.
-    const slow: Array<{ name: string; ms: number }> = [];
-    for (const w of workflows) {
-      const r = await executeWorkflow(w);
-      if (r.durationMs > PER_WORKFLOW_TIMEOUT_MS) {
-        slow.push({ name: w.fileName, ms: r.durationMs });
+  it(
+    "every workflow finishes within the per-workflow timeout",
+    async () => {
+      // Sanity-roll a fast sweep that just times each run. Per-workflow
+      // assertions live in the describe.each below; this aggregate guards
+      // against a regression that makes the suite hang.
+      //
+      // This runs every workflow sequentially (cwd is process-global, see
+      // executeWorkflow), so the test timeout must cover the whole sweep,
+      // not just one workflow — otherwise Vitest's default 5s test timeout
+      // aborts the loop mid-workflow, leaving process.cwd() pointed at a
+      // temp dir that the next test's cleanup then deletes out from under
+      // it, cascading into an unrelated ENOENT failure there.
+      const slow: Array<{ name: string; ms: number }> = [];
+      for (const w of workflows) {
+        const r = await executeWorkflow(w);
+        if (r.durationMs > PER_WORKFLOW_TIMEOUT_MS) {
+          slow.push({ name: w.fileName, ms: r.durationMs });
+        }
       }
-    }
-    expect(
-      slow,
-      `workflows exceeded ${PER_WORKFLOW_TIMEOUT_MS} ms:\n${slow
-        .map((s) => `  ${s.name} (${s.ms} ms)`)
-        .join("\n")}`
-    ).toEqual([]);
-  });
+      expect(
+        slow,
+        `workflows exceeded ${PER_WORKFLOW_TIMEOUT_MS} ms:\n${slow
+          .map((s) => `  ${s.name} (${s.ms} ms)`)
+          .join("\n")}`
+      ).toEqual([]);
+    },
+    workflows.length * PER_WORKFLOW_TIMEOUT_MS
+  );
 });
 
 describe.each(workflows)(

@@ -2,7 +2,10 @@ import { useCallback, useState } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import useContextMenu from "../../stores/ContextMenuStore";
 import { useAssetUpdate } from "../../serverState/useAssetUpdate";
-import { useAssetGridStore } from "../../stores/AssetGridStore";
+import {
+  useAssetGridStore,
+  useAssetGridStoreApi
+} from "../../stores/AssetGridStore";
 import { useShallow } from "zustand/react/shallow";
 import {
   serializeDragData,
@@ -15,6 +18,7 @@ export const useAssetActions = (asset: Asset) => {
   const [isDragHovered, setIsDragHovered] = useState(false);
 
   const { openContextMenu } = useContextMenu();
+  const gridStore = useAssetGridStoreApi();
   const {
     selectedAssetIds,
     setSelectedAssetIds,
@@ -99,8 +103,7 @@ export const useAssetActions = (asset: Asset) => {
 
       // Create and set drag image using the unified utility
       // Try to get other selected assets from store for preview
-      const allSelectedAssets =
-        useAssetGridStore.getState().selectedAssets || [];
+      const allSelectedAssets = gridStore.getState().selectedAssets || [];
       const dragImage = createAssetDragImage(
         asset,
         assetIds.length,
@@ -118,7 +121,7 @@ export const useAssetActions = (asset: Asset) => {
         metadata: { count: assetIds.length, sourceId: asset.id }
       });
     },
-    [selectedAssetIds, setSelectedAssetIds, asset, setActiveDrag]
+    [selectedAssetIds, setSelectedAssetIds, asset, setActiveDrag, gridStore]
   );
 
   const handleDragEnd = useCallback(() => {
