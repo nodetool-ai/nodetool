@@ -7,13 +7,13 @@ import {
 } from "@trpc/client";
 import type { AppRouter } from "@nodetool-ai/websocket/trpc";
 import { BASE_URL } from "../stores/BASE_URL";
-import { isLocalhost } from "../lib/env";
+import { isAuthRequired } from "../lib/runtimeConfig";
 import { supabase } from "../lib/supabaseClient";
 
 export const trpc = createTRPCReact<AppRouter>();
 
 async function authHeaders(): Promise<Record<string, string>> {
-  if (isLocalhost) return {};
+  if (!isAuthRequired()) return {};
   const {
     data: { session }
   } = await supabase.auth.getSession();

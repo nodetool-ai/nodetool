@@ -59,35 +59,36 @@ and make sure the host directory is writable by the container's `node` user.
 
 ### Authentication / login screen
 
-Auth has two layers, controlled separately:
+Auth is configured **entirely on the backend**. The web UI fetches its auth mode
+and public Supabase credentials at runtime from `GET /api/config` (a public,
+non-secret endpoint), so the same frontend build works with or without login —
+no rebuild, and it works even when the frontend is served from a different
+origin.
 
-- **Server enforcement (runtime).** With `SUPABASE_URL`/`SUPABASE_KEY` unset the
-  server runs in **Local mode**: localhost requests are trusted as a single user
-  and remote requests are rejected. Set both (the `KEY` is the service-role key)
-  to switch to **Supabase mode**, where the server requires a valid Supabase JWT
-  on every request. These are runtime env vars — uncomment them in the compose
-  `environment:` block. See [Authentication](authentication.md) and
-  [Supabase Deployment](supabase-deployment.md).
-- **The web login screen (build time).** Whether the browser shows a login page
-  is decided client-side: served on `localhost`/`127.0.0.1` the app skips login;
-  served on any other host it routes to `/login`. That login page authenticates
-  against Supabase using `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY`, which Vite
-  inlines into the web bundle at **build time**. The prebuilt image ships without
-  them, so a working login screen requires building the image yourself.
+- **Login off (default).** With `SUPABASE_URL`/`SUPABASE_KEY` unset the server
+  runs in **Local mode**: localhost requests are trusted as a single user,
+  remote requests are rejected, and the UI shows no login screen.
+- **Login on.** Set these three on the server to switch to **Supabase mode** —
+  the server requires a valid Supabase JWT on every request and the UI shows the
+  login screen:
 
-To enable a working login screen, uncomment the `build:` block in the compose
-file and build locally with your Supabase project's public credentials:
+  ```bash
+  SUPABASE_URL=https://your-project.supabase.co
+  SUPABASE_KEY=your-service-role-key   # server-only, never sent to the browser
+  SUPABASE_ANON_KEY=your-anon-key      # public key the login screen uses
+  ```
 
-```bash
-VITE_SUPABASE_URL=https://your-project.supabase.co \
-VITE_SUPABASE_ANON_KEY=your-anon-key \
-SUPABASE_URL=https://your-project.supabase.co \
-SUPABASE_KEY=your-service-role-key \
-docker compose up -d --build
-```
+  Optionally set `AUTH_REDIRECT_URL` when serving behind a domain/proxy (it must
+  be in the Supabase project's redirect allow list).
 
-Point the frontend (`VITE_*`, anon key) and the server (`SUPABASE_*`, service-role
-key) at the same Supabase project.
+`GET /api/config` returns `authMode`, `supabaseUrl`, `supabaseAnonKey`,
+`authRedirectUrl`, and `version` — never the service-role key. See
+[Authentication](authentication.md) and [Supabase Deployment](supabase-deployment.md).
+
+> Serving the web UI from a **different origin** (e.g. a CDN)? Point the frontend
+> at the backend with the build-time `VITE_API_URL`, and add that origin to the
+> server's `NODETOOL_ALLOWED_ORIGINS` so the cross-origin `GET /api/config` and
+> API calls are permitted. Everything else still comes from `/api/config`.
 
 ## Deployment Configuration
 

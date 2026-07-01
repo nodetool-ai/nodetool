@@ -18,17 +18,6 @@ services:
     image: ghcr.io/nodetool-ai/nodetool:${NODETOOL_VERSION:-latest}
     container_name: nodetool
     restart: unless-stopped
-    # Build the image locally instead of pulling. Only needed to bake Supabase
-    # credentials into the web login screen (see "Authentication" below). With
-    # both `image:` and `build:` set, `docker compose up --build` builds and
-    # tags the result as `image:`.
-    # build:
-    #   context: .
-    #   args:
-    #     VITE_SUPABASE_URL: "${VITE_SUPABASE_URL:-}"
-    #     VITE_SUPABASE_ANON_KEY: "${VITE_SUPABASE_ANON_KEY:-}"
-    #     # Optional OAuth redirect when served behind a domain/proxy:
-    #     VITE_AUTH_REDIRECT_URL: "${VITE_AUTH_REDIRECT_URL:-}"
     ports:
       - "${NODETOOL_PORT:-17777}:7777"
     volumes:
@@ -51,23 +40,25 @@ services:
       # SECRETS_MASTER_KEY: "${SECRETS_MASTER_KEY:-}"
 
       # ── Authentication / login screen ──────────────────────────────────────
-      # Disabled by default: with SUPABASE_URL/SUPABASE_KEY unset the server
-      # runs in "Local mode" — requests from localhost are trusted as a single
-      # user and remote requests are rejected. Opening http://localhost:17777
-      # shows no login screen.
+      # Configured entirely on the backend — the web UI reads its auth mode and
+      # public Supabase credentials at runtime from GET /api/config, so no image
+      # rebuild is needed to turn login on or off.
       #
-      # To require login (multi-user or remote access), point both at your
-      # Supabase project. The server switches to "Supabase mode" and enforces a
-      # valid Supabase JWT on every request. SUPABASE_KEY is the service-role
-      # key. See docs/supabase-deployment.md and docs/authentication.md.
+      # Disabled by default: with SUPABASE_URL/SUPABASE_KEY unset the server
+      # runs in "Local mode" — localhost requests are trusted as a single user,
+      # remote requests are rejected, and no login screen is shown.
+      #
+      # To require login (multi-user or remote access), point these at your
+      # Supabase project. The server enforces a valid Supabase JWT on every
+      # request and the web UI shows the login screen. SUPABASE_KEY is the
+      # service-role key (server-only, never sent to the browser);
+      # SUPABASE_ANON_KEY is the public key the login screen uses. See
+      # docs/supabase-deployment.md and docs/authentication.md.
       # SUPABASE_URL: "${SUPABASE_URL:-}"
       # SUPABASE_KEY: "${SUPABASE_KEY:-}"
-      #
-      # NOTE: the web login screen authenticates against Supabase using
-      # credentials compiled into the frontend bundle at BUILD time
-      # (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY). The prebuilt image above
-      # ships without them, so a working login screen requires building the
-      # image locally — uncomment the `build:` block above and set those args.
+      # SUPABASE_ANON_KEY: "${SUPABASE_ANON_KEY:-}"
+      # Optional OAuth redirect when served behind a domain/proxy:
+      # AUTH_REDIRECT_URL: "${AUTH_REDIRECT_URL:-}"
 
       # Model provider keys — only the ones you use. Values come from .env.
       OPENAI_API_KEY: "${OPENAI_API_KEY:-}"

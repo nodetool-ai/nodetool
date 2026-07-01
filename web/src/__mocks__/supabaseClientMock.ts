@@ -9,3 +9,5 @@ export const supabase = {
     signOut: jest.fn().mockResolvedValue({ error: null })
   }
 };
+
+export const initSupabaseFromConfig = jest.fn();
