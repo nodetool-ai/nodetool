@@ -17,7 +17,7 @@ The site (`marketing/src/app/`) has 13 indexed pages: `/`, `/studio`, `/cloud`, 
 `/agents`, `/creatives`, `/developers`, two comparison pages (`/vs/comfyui`, `/vs/weavy`), two
 use-case pages (`/use-cases/product-video`, `/use-cases/movie-poster`), and three legal pages.
 
-Three gaps stand out:
+Four gaps stand out:
 
 - **`/use-cases/movie-trailer` exists but is missing from `sitemap.ts`** (`marketing/src/app/sitemap.ts`).
   It has a page folder and an entry in `useCaseEntries.ts` but never reaches search engines. Fix
@@ -28,6 +28,13 @@ Three gaps stand out:
 - **3 use-case pages for 61 shipped example workflows.** The `useCaseEntries.ts` pattern (a single
   data array plus a matching page folder) is already built to scale — it's just underused by a
   factor of 20.
+- **No `/marketing` segment page.** The homepage and `/creatives` copy both explicitly name
+  "marketing teams" as a target audience, and one of the three flagship use cases (Product Video
+  Generator) is already tagged `category: "Marketing"` in `useCaseEntries.ts`. But the nav
+  (Studio, Cloud, Creatives, Agents, Developers, Pricing) has no landing page built for that
+  audience — marketing searches currently land on the general `/creatives` page instead of copy
+  written for their job (campaigns, social calendars, brand consistency, output volume), same as
+  `/agents` serves automation and `/developers` serves engineers. See §4.0.
 
 The existing meta setup is solid: `layout.tsx` already ships title/description/OG/Twitter tags and
 a keyword list (creative AI workspace, BYOK AI canvas, ComfyUI alternative, Weavy alternative,
@@ -70,19 +77,49 @@ not assert abstractly.
 
 | Segment | What they search | Where they currently land instead |
 |---|---|---|
-| Creatives (filmmakers, designers, marketers) | "text to video pipeline", "ComfyUI alternative no code", "AI movie poster generator", "product video AI tool" | Runway, Krea, Melies, Weavy alternatives posts |
+| Creatives (filmmakers, designers) | "text to video pipeline", "ComfyUI alternative no code", "AI movie poster generator" | Runway, Krea, Melies, Weavy alternatives posts |
+| Marketing teams (campaigns, growth, social) | "product video AI tool", "AI content calendar generator", "brand asset generator AI", "AI ad video generator" | Lindy, Gumloop, Runway, Weavy alternatives posts |
 | Developers / ML engineers | "open source AI agent framework", "RAG pipeline no code", "TypeScript AI workflow SDK", "custom LLM node builder" | Langflow, Flowise, LlamaIndex RAGArch |
 | Automation / ops teams | "n8n alternative for AI agents", "no-code AI workflow local", "email triage AI automation" | n8n, Activepieces, Gumloop |
 | Privacy-conscious / local-first users | "run AI models locally desktop app", "local LLM privacy no cloud", "self-hosted AI agent" | Jan, LM Studio, Ollama-based roundups |
 | Researchers / knowledge workers | "chat with PDF tool", "summarize research papers AI", "document RAG open source" | Kapa.ai, Prisme.ai |
 
 The site already has landing pages for creatives, developers, and agents (automation). It has none
-targeting the local-first/privacy segment specifically (this is argued piecemeal on `/studio` and
-in comparisons, never as its own page) or the researcher/knowledge-worker segment (despite shipping
+targeting marketing teams specifically, even though the homepage copy names them by title (see
+§4.0) — nor the local-first/privacy segment (this is argued piecemeal on `/studio` and in
+comparisons, never as its own page), nor the researcher/knowledge-worker segment (despite shipping
 5 document-processing example workflows: Chat with Docs, Index PDFs, Summarize Paper, Fetch Papers,
 Meeting Transcript Summarizer).
 
 ## 4. Page-type playbooks
+
+### 4.0 Segment landing page — `/marketing`
+
+`/creatives`, `/agents`, and `/developers` are each a persona-framed rewrite of the same product,
+built to rank on that persona's job-title searches and to give paid/social traffic a landing page
+that speaks their language instead of the generic homepage. Marketing teams get named in that same
+homepage copy but have no fourth page.
+
+Build `/marketing` on the identical pattern (`marketing/src/app/creatives/page.tsx` is the closest
+template — same section shape: headline, "why teams choose NodeTool" section, use-case teasers,
+community/CTA). Content already exists to fill it without new production work:
+
+- **Lead use case**: Product Video Generator (`use-cases/product-video`, already `category:
+  "Marketing"` in `useCaseEntries.ts`) — feature it the way `/creatives` features the Movie Poster
+  and Movie Trailer generators.
+- **Supporting use cases to build** (from the §4.2 backlog, reprioritized for this page): Social
+  Media Calendar Filler, Brand Asset Generator, Cold Outreach Co-Pilot, YouTube Thumbnail Pipeline —
+  all four are marketing-ops workflows, not creative-production ones, and read oddly grouped under
+  "Creatives".
+- **Target keywords**: "AI product video generator", "AI content calendar tool", "brand asset
+  generator AI", "AI ad video tool open source" (§3).
+- **Differentiation angle**: same BYOK/no-markup argument as `/creatives`, reframed around output
+  volume and cost-per-asset at campaign scale rather than single-artifact craft — this is the
+  argument marketing buyers actually compare tools on (per the n8n/Activepieces/Gumloop comparisons
+  in §2, which sell on throughput and integration count, not per-asset quality).
+
+Add `/marketing` to `sitemap.ts` at the same priority tier as the other three segment pages (0.8,
+monthly — see §5) and to the main nav alongside Creatives/Agents/Developers.
 
 ### 4.1 Comparison pages (`/vs/*`)
 
@@ -109,10 +146,11 @@ internal audit) natural category groupings. Prioritize by search-intent match, n
 easiest to build:
 
 - **Ship first** (clear existing search terms, per §3): Research Paper Summarizer, Chat with Docs
-  (→ "chat with PDF"), Meeting Transcript Summarizer, Music Video Visualizer, Brand Asset Generator,
-  YouTube Thumbnail Pipeline
-- **Ship second**: Cold Outreach Co-Pilot, Social Media Calendar Filler, Hacker News Agent /
-  YouTube Research Agent (agent-mode examples double as `/agents` landing-page proof)
+  (→ "chat with PDF"), Meeting Transcript Summarizer, Music Video Visualizer
+- **Ship second**: Hacker News Agent / YouTube Research Agent (agent-mode examples double as
+  `/agents` landing-page proof)
+- **Marketing segment** (feature on `/marketing`, see §4.0): Cold Outreach Co-Pilot, Social Media
+  Calendar Filler, Brand Asset Generator, YouTube Thumbnail Pipeline
 - **Fix immediately**: add `/use-cases/movie-trailer` to `sitemap.ts` (see §1)
 
 At 61 candidates, treat this as a backlog, not a one-time push — 3-5 new use-case pages per month
@@ -147,15 +185,17 @@ scope, not a general-purpose blog:
 ## 5. Technical SEO checklist
 
 - [ ] Add `/use-cases/movie-trailer` to `marketing/src/app/sitemap.ts` (confirmed missing, §1)
-- [ ] Confirm every new page under `/vs/`, `/use-cases/`, and any future `/blog/` gets an
-      `opengraph-image.tsx` (existing `vs/*` pages already do this — keep the pattern)
+- [ ] Build `/marketing` (§4.0) and add it to `sitemap.ts` at priority 0.8 / monthly — same tier as
+      `/agents`, `/creatives`, `/developers` — plus main nav
+- [ ] Confirm every new page under `/vs/`, `/use-cases/`, `/marketing`, and any future `/blog/` gets
+      an `opengraph-image.tsx` (existing `vs/*` pages already do this — keep the pattern)
 - [ ] Add `priority`/`changeFrequency` entries to `sitemap.ts` for every new page as it ships —
       don't let the list drift out of sync with `app/` folders again
 - [ ] Verify `docs/nodes/<provider>/index.md` pages carry unique titles and descriptions (currently
       generated docs; check for duplicate/boilerplate meta across providers)
-- [ ] Internal linking: `/agents`, `/creatives`, `/developers` should each link to the use-case pages
-      relevant to their segment (per §3's mapping) — currently the use-case showcase only appears on
-      the homepage
+- [ ] Internal linking: `/agents`, `/creatives`, `/developers`, `/marketing` should each link to the
+      use-case pages relevant to their segment (per §3's mapping) — currently the use-case showcase
+      only appears on the homepage
 
 ## 6. Distribution (off-site)
 
@@ -182,8 +222,10 @@ Content only ranks if something points at it:
 ## 7. Prioritized roadmap
 
 1. **Immediate** (hours): fix the `movie-trailer` sitemap omission (§1, §5).
-2. **Phase 1** (this month): ship 3-5 use-case pages from the "ship first" list (§4.2); add
-   `/vs/langflow` and `/vs/n8n` (highest-volume comparison targets per §2).
+2. **Phase 1** (this month): build `/marketing` (§4.0) with its four supporting use-case pages
+   (Product Video, Cold Outreach Co-Pilot, Social Media Calendar Filler, Brand Asset Generator);
+   ship the remaining "ship first" use-case pages (§4.2); add `/vs/langflow` and `/vs/n8n`
+   (highest-volume comparison targets per §2).
 3. **Phase 2** (next month): stand up the blog with 3 posts — one comparison/roundup post, one
    cookbook walkthrough, one technical post (§4.4); submit NodeTool to the two GitHub awesome-lists
    named in §6.
