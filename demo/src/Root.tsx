@@ -5,6 +5,7 @@ import { WorkflowDemo, type WorkflowDemoProps } from "./WorkflowDemo";
 import { Tutorial } from "./Tutorial";
 import { TUTORIALS, tutorialFrames } from "./tutorials";
 import { COOKBOOK } from "./cookbook";
+import { WORKFLOWS } from "./workflows";
 import { DEFAULT_CAST, listCasts } from "./casts/registry";
 import { ChatTutorial } from "./ChatTutorial";
 import { CHAT_TUTORIALS, chatTutorialFrames } from "./chatTutorials";
@@ -45,7 +46,7 @@ export const Root: React.FC = () => {
 
   return (
     <>
-      {[...TUTORIALS, ...COOKBOOK].map((tut) => (
+      {[...TUTORIALS, ...COOKBOOK, ...WORKFLOWS].map((tut) => (
         <Composition
           key={tut.compositionId}
           id={tut.compositionId}

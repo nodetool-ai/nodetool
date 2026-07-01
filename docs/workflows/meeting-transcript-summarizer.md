@@ -12,6 +12,12 @@ Transcribes a meeting recording with OpenAI Whisper, then condenses the transcri
 3. **Summarization** - Transcript is condensed into key points.
 4. **Output** - A text node displays the final summary.
 
+## Demo
+
+<video controls preload="metadata" poster="{{ '/assets/workflows/meeting-transcript-summarizer.jpg' | relative_url }}">
+  <source src="{{ '/assets/workflows/meeting-transcript-summarizer.mp4' | relative_url }}" type="video/mp4">
+</video>
+
 ## Tags
 
 audio, llm

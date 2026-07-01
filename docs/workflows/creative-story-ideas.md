@@ -17,6 +17,12 @@ A beginner-friendly template for combining inputs with an AI agent to generate c
 - Use templates with {{VARIABLES}} for dynamic prompts
 - AI agents process inputs and generate results
 
+## Demo
+
+<video controls preload="metadata" poster="{{ '/assets/workflows/creative-story-ideas.jpg' | relative_url }}">
+  <source src="{{ '/assets/workflows/creative-story-ideas.mp4' | relative_url }}" type="video/mp4">
+</video>
+
 ## Tags
 
 start, beginner, tutorial, template, creative, writing

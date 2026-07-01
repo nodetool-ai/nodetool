@@ -26,6 +26,8 @@
     "still:tutorial:describe": "remotion still src/index.ts Tutorial-describe-image ../web/public/tutorials/describe-image.jpg --frame=300",
     "render:cookbook": "tsx scripts/render-cookbook.ts",
     "still:cookbook": "tsx scripts/render-cookbook.ts --stills-only",
+    "render:workflows": "tsx scripts/render-workflows.ts",
+    "still:workflows": "tsx scripts/render-workflows.ts --stills-only",
     "render:tutorial:chat-agent-qa": "remotion render src/index.ts ChatTutorial-agent-qa ../web/public/tutorials/chat-agent-qa.mp4",
     "still:tutorial:chat-agent-qa": "remotion still src/index.ts ChatTutorial-agent-qa ../web/public/tutorials/chat-agent-qa.jpg --frame=300",
     "render:tutorial:timeline-trim-arrange": "remotion render src/index.ts TimelineTutorial-trim-arrange ../web/public/tutorials/timeline-trim-arrange.mp4",

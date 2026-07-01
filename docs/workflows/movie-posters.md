@@ -14,6 +14,12 @@ An AI-powered poster generator: a strategy agent plans the visual concept, then 
 4. **Image Generator** - Renders 512×768px posters with Stable Diffusion/Flux
 5. **Preview** - Shows the strategy and all generated posters
 
+## Demo
+
+<video controls preload="metadata" poster="{{ '/assets/cookbook/movie-poster.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/movie-poster.mp4' | relative_url }}" type="video/mp4">
+</video>
+
 ## Tags
 
 start, image, creative, design, posters
