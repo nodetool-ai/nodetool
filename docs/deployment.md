@@ -40,7 +40,8 @@ see the [End-to-End Deployment Guide](deployment-e2e-guide.md).
 
 ## Server: self-host with Docker
 
-The quickest path is the reference [`docker-compose.yml`](../docker-compose.yml)
+The quickest path is the reference
+[`docker-compose.yml`](https://github.com/nodetool-ai/nodetool/blob/main/docker-compose.yml)
 at the repo root — `cp .env.example .env && docker compose up -d`. See
 [Self-Hosted Deployment › Docker Compose](self-hosted-deployment.md#docker-compose-reference).
 

@@ -22,7 +22,8 @@ Two paths:
 
 ## Docker Compose (reference)
 
-The repository ships a reference [`docker-compose.yml`](../docker-compose.yml)
+The repository ships a reference
+[`docker-compose.yml`](https://github.com/nodetool-ai/nodetool/blob/main/docker-compose.yml)
 for running one server on a host you control.
 
 ```bash
