@@ -71,6 +71,7 @@ token/cost/latency.
 - **Node.js 22.22.1** (required — see `.nvmrc`). Matches Electron 39's embedded Node (22.22.1). Native module ABI rebuild is handled by `@electron/rebuild` in `electron/`'s postinstall.
 - Use `nvm use` to activate the correct version.
 - If you see `NODE_MODULE_VERSION` errors, run `npm rebuild`.
+- **Fresh checkout or missing `node_modules`**: if `npm run typecheck`/`lint`/`test` fail with module-resolution errors (`Cannot find module`, `Cannot find type definition file`) on files you didn't touch, run `npm install` first — don't spend a cycle proving the failure predates your change. Re-run the checks after install before investigating further.
 
 ## Build, Lint & Test Commands
 
