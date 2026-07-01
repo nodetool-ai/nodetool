@@ -1,0 +1,75 @@
+# Reference Docker Compose for self-hosting the NodeTool server.
+#
+# Quick start:
+#   1. cp .env.example .env      # then fill in the provider keys you use
+#   2. docker compose up -d
+#   3. open http://localhost:17777
+#
+# The server binds to 0.0.0.0:7777 inside the container and is published on the
+# host as ${NODETOOL_PORT:-17777}. All persistent state — SQLite database,
+# assets, vector store, model cache, and the generated secret key — lives under
+# /workspace, backed by the named `nodetool-data` volume, so it survives
+# restarts and image upgrades.
+
+name: nodetool
+
+services:
+  nodetool:
+    image: ghcr.io/nodetool-ai/nodetool:${NODETOOL_VERSION:-latest}
+    container_name: nodetool
+    restart: unless-stopped
+    ports:
+      - "${NODETOOL_PORT:-17777}:7777"
+    volumes:
+      - nodetool-data:/workspace
+    environment:
+      # Bind on all interfaces so the published host port reaches the server.
+      HOST: "0.0.0.0"
+      PORT: "7777"
+      NODETOOL_ENV: "production"
+
+      # Keep every persistent path on the /workspace volume.
+      DB_PATH: "/workspace/nodetool.sqlite3"
+      VECTORSTORE_DB_PATH: "/workspace/vectorstore.db"
+      ASSET_FOLDER: "/workspace/assets"
+      HF_HOME: "/workspace/hf-cache"
+
+      # 32-byte base64 key that encrypts stored secrets. If unset, one is
+      # generated and persisted to /workspace/.secrets_master_key on first run.
+      # Set it explicitly in production: openssl rand -base64 32
+      # SECRETS_MASTER_KEY: "${SECRETS_MASTER_KEY:-}"
+
+      # ── Authentication / login screen ──────────────────────────────────────
+      # Configured entirely on the backend — the web UI reads its auth mode and
+      # public Supabase credentials at runtime from GET /api/config, so no image
+      # rebuild is needed to turn login on or off.
+      #
+      # Disabled by default: with SUPABASE_URL/SUPABASE_KEY unset the server
+      # runs in "Local mode" — localhost requests are trusted as a single user,
+      # remote requests are rejected, and no login screen is shown.
+      #
+      # To require login (multi-user or remote access), point these at your
+      # Supabase project. The server enforces a valid Supabase JWT on every
+      # request and the web UI shows the login screen. SUPABASE_KEY is the
+      # service-role key (server-only, never sent to the browser);
+      # SUPABASE_ANON_KEY is the public key the login screen uses. See
+      # docs/supabase-deployment.md and docs/authentication.md.
+      # SUPABASE_URL: "${SUPABASE_URL:-}"
+      # SUPABASE_KEY: "${SUPABASE_KEY:-}"
+      # SUPABASE_ANON_KEY: "${SUPABASE_ANON_KEY:-}"
+      # Optional OAuth redirect when served behind a domain/proxy:
+      # AUTH_REDIRECT_URL: "${AUTH_REDIRECT_URL:-}"
+
+      # Model provider keys — only the ones you use. Values come from .env.
+      OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
+      GEMINI_API_KEY: "${GEMINI_API_KEY:-}"
+      FAL_API_KEY: "${FAL_API_KEY:-}"
+      HF_TOKEN: "${HF_TOKEN:-}"
+
+      # Local inference backends — point these at your own services if you run
+      # them (e.g. an Ollama container on the same Docker network).
+      # OLLAMA_API_URL: "http://ollama:11434"
+
+volumes:
+  nodetool-data:

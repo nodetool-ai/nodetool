@@ -1,23 +1,52 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { RuntimeConfig } from "./runtimeConfig";
 
 /**
- * Create the Supabase client using credentials from environment variables.
- * The variables should be provided in a Vite-compatible `.env` file or
- * through the deployment environment. This keeps sensitive data out of
- * the repository and allows easy configuration for different deployments.
+ * Supabase client for the web app.
+ *
+ * Credentials come from the backend at runtime via `GET /api/config` (see
+ * `runtimeConfig.ts`) and are applied at boot through `initSupabaseFromConfig`.
+ * The build-time `VITE_SUPABASE_*` variables remain a fallback for the dev
+ * server and pure-static hosting where `/api/config` is not reachable.
+ *
+ * The exported `supabase` handle is stable across (re)initialization: it proxies
+ * to a swappable underlying client, so existing `import { supabase }` callers
+ * keep working after runtime config replaces the credentials.
  */
 
-// Vite exposes environment variables via `import.meta.env`
-const supabaseUrl: string | undefined = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey: string | undefined = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const FALLBACK_URL = "http://localhost";
+const FALLBACK_ANON_KEY = "public-anon-key";
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn(
-    "Supabase credentials not found in environment. Using test placeholders for development."
-  );
-}
+const buildTimeUrl: string | undefined = import.meta.env.VITE_SUPABASE_URL;
+const buildTimeAnonKey: string | undefined =
+  import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-export const supabase = createClient(
-  supabaseUrl ?? "http://localhost",
-  supabaseAnonKey ?? "public-anon-key"
-);
+const makeClient = (
+  url: string | null | undefined,
+  key: string | null | undefined
+): SupabaseClient => {
+  const resolvedUrl = url || buildTimeUrl || FALLBACK_URL;
+  const resolvedKey = key || buildTimeAnonKey || FALLBACK_ANON_KEY;
+  if (!url && !buildTimeUrl) {
+    console.warn(
+      "Supabase credentials not configured. Using placeholders — login will " +
+        "not work until the backend provides them via /api/config (or " +
+        "VITE_SUPABASE_* is set at build time)."
+    );
+  }
+  return createClient(resolvedUrl, resolvedKey);
+};
+
+let innerClient: SupabaseClient = makeClient(null, null);
+
+/**
+ * Rebuild the Supabase client from runtime config fetched from the backend.
+ * Called once at boot after `loadRuntimeConfig()`, before auth initializes.
+ */
+export const initSupabaseFromConfig = (config: RuntimeConfig): void => {
+  innerClient = makeClient(config.supabaseUrl, config.supabaseAnonKey);
+};
+
+export const supabase = new Proxy({} as SupabaseClient, {
+  get: (_target, prop) => Reflect.get(innerClient, prop)
+});

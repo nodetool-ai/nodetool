@@ -78,6 +78,7 @@ import {
 
 import websocketPlugin from "./plugins/websocket.js";
 import healthRoute from "./routes/health.js";
+import configRoute from "./routes/config.js";
 import assetsRoutes from "./routes/assets.js";
 import workflowsRoutes from "./routes/workflows.js";
 import jobsRoutes from "./routes/jobs.js";
@@ -751,6 +752,7 @@ app.addHook("onRequest", async (req, reply) => {
     pathname === "/health" ||
     pathname === "/ready" ||
     pathname === "/api/health" ||
+    pathname === "/api/config" ||
     pathname.startsWith("/api/oauth/") ||
     pathname === "/api/assets/packages" ||
     pathname.startsWith("/api/assets/packages/") ||
@@ -1050,6 +1052,7 @@ await app.register(websocketPlugin, {
 });
 
 await app.register(healthRoute);
+await app.register(configRoute);
 
 // All HTTP API routes receive apiOptions
 const routeOpts = { apiOptions };

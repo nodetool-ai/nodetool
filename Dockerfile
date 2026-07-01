@@ -57,6 +57,9 @@ RUN set -eu; \
 
 COPY web/ web/
 ARG WEB_BUILD_NODE_OPTIONS=--max-old-space-size=4096
+# The web app learns its auth mode and public Supabase credentials from the
+# backend at runtime via GET /api/config, so no VITE_* build args are needed
+# here — configure the server (SUPABASE_URL/KEY/ANON_KEY) instead.
 RUN cd web && NODE_OPTIONS="$WEB_BUILD_NODE_OPTIONS" npm run build
 
 # Assemble a minimal runtime filesystem with compiled packages, web assets, and
