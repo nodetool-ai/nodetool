@@ -400,7 +400,8 @@ const TimelineListPanel = () => {
   const utils = trpc.useUtils();
   const createTimeline = useCreateTimeline();
   const updateTimeline = trpc.timeline.update.useMutation({
-    onSuccess: () => {
+    onSuccess: (updated) => {
+      utils.timeline.get.setData({ id: updated.id }, updated);
       void utils.timeline.list.invalidate();
     }
   });
