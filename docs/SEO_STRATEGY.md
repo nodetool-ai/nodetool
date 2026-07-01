@@ -6,10 +6,40 @@ description: "Content and search strategy for nodetool.ai — audit, competitive
 ---
 
 Research basis: an audit of `marketing/` (the nodetool.ai Next.js site), `docs/`, the 61 example
-workflows in `packages/base-nodes/nodetool/examples/`, and the node packages in `packages/`, plus
-external research on competitor positioning and search behavior (sources linked inline). Written
-2026-07-01 — re-audit the live site before acting on the numbers below if this file is more than a
-quarter old.
+workflows in `packages/base-nodes/nodetool/examples/`, and the node packages in `packages/`;
+external research on competitor positioning and search behavior (sources linked inline); and a
+correlation of the 12-month Search Console click/impression curve against git history on `marketing/`
+and `docs/` (next section). Written 2026-07-01 — re-audit the live site before acting on the numbers
+below if this file is more than a quarter old.
+
+## What the search history already proved
+
+The 12-month Search Console curve (Jun 2025 – Jun 2026), lined up against git history on `marketing/`
+and `docs/`, shows four moves that each shifted traffic. The playbook below is built to repeat what
+worked, not to guess.
+
+| Search Console move | When | What shipped in git | Lesson |
+|---|---|---|---|
+| Flat at ~0 | Jun–Nov 2025 | `docs/` existed in-repo since 2024-12 but had no published site | Unpublished content earns nothing — a page has to deploy to a real domain before it ranks |
+| Rise begins | Nov–Dec 2025 | Docs site went live 2025-11-21 (CNAME, deploy config, in-site search, ~6–7 new pages/mo) | Publishing infra, not writing more, was the unlock |
+| First click spike (~45 clicks, ~1.5K impressions) | ~30 Jan 2026 | `robots.txt` for sitemap discovery landed 19 Jan (#1081); 8 new doc pages that month | Sitemap discovery plus a content burst produced a crawl/click spike ~11 days later |
+| Collapse back toward 0 | Feb 2026 | Doc cadence fell to its lowest since the ramp (5 new pages) | Stop-start content gives the gains back — cadence has to hold |
+| Durable step-change | Apr–Jun 2026 | Marketing site launched 27 Apr; June "Phase 2" JSON-LD/OG/SEO overhaul (#3802, #3845) + docs surge | A second indexed property plus structured data drove the lasting lift |
+
+Three rules fall out of this and shape the roadmap in §7:
+
+1. **Ship to a live, sitemapped URL or it does not count.** The `movie-trailer` sitemap omission
+   (§1, §5) is the same class of miss the January spike shows matters — a built page absent from
+   `sitemap.ts` is invisible to search.
+2. **Hold a steady cadence.** The February collapse followed a content lull; the §7 "3–5 use-case
+   pages/month" target exists to avoid repeating it, not as an arbitrary number.
+3. **Effects lag deploys by ~1–2 weeks.** Every cause above sits days-to-weeks ahead of its curve
+   move (clearest: 19 Jan `robots.txt` → 30 Jan spike). Judge each change against Search Console on
+   that lag, not the next day (§8).
+
+§1 calls the current problem page count, not technical hygiene. That holds *now* because the
+Nov-2025/Jan-2026 hygiene work already banked the technical wins — §5 is the maintenance checklist
+that keeps them banked and stops the site sliding back to the flat baseline.
 
 ## 1. Where nodetool.ai stands today
 
@@ -237,5 +267,11 @@ Content only ranks if something points at it:
 
 Track per page: organic impressions/clicks (Search Console), and which comparison/use-case pages
 convert to `/studio` or `/pricing` visits (the two highest-priority pages in the existing sitemap).
+
+Read each SEO change against its deploy date on a ~1–2 week lag, the pattern established in "What the
+search history already proved" — mark when a page or sitemap/robots/structured-data change shipped
+and check the curve a week or two later, not the next day. Watch for cadence gaps: the February 2026
+collapse is on record as content stop-start giving back ranked traffic.
+
 Re-run the competitive scan in §2 quarterly — this is a fast-moving category and new entrants
 (Flora, Reflet.ai, both surfaced only in this audit's research) can appear within months.
