@@ -50,6 +50,7 @@ import { ScrollArea, Tooltip, MobileBottomSheet, MOTION } from "../ui_primitives
 import MenuIcon from "@mui/icons-material/Menu";
 import CodeIcon from "@mui/icons-material/Code";
 import GridViewIcon from "@mui/icons-material/GridView";
+import CollectionsOutlinedIcon from "@mui/icons-material/CollectionsOutlined";
 
 import { Fullscreen } from "@mui/icons-material";
 
@@ -350,6 +351,33 @@ const PanelContent = memo(function PanelContent({
           <AssetGrid maxItemSize={5} isMobile={isMobile} />
         </FlexColumn>
       )}
+      {activeView === "library" && (
+        <FlexColumn
+          className="library-container"
+          fullWidth
+          fullHeight
+          sx={{
+            overflow: "hidden"
+          }}
+        >
+          {!isMobile && (
+            <PanelHeadline
+              title="Library"
+              actions={
+                <Tooltip title="Open in full page" placement="right-start">
+                  <ToolbarIconButton
+                    className={`${path === "/assets" ? "active" : ""}`}
+                    onClick={handleFullscreenClick}
+                    tabIndex={-1}
+                    icon={<Fullscreen />}
+                  />
+                </Tooltip>
+              }
+            />
+          )}
+          <AssetGrid maxItemSize={5} isMobile={isMobile} forceGlobalAssets />
+        </FlexColumn>
+      )}
       {activeView === "workflows" && (
         <FlexColumn
           className="workflow-grid-container"
@@ -569,6 +597,15 @@ const MobilePanelLeft: React.FC<{
                 ariaLabel="Show assets"
                 tabIndex={-1}
                 icon={<IconForType iconName="asset" showTooltip={false} iconSize="small" />}
+              />
+            </Tooltip>
+            <Tooltip title="Library" placement="bottom" delay={TOOLTIP_ENTER_DELAY}>
+              <ToolbarIconButton
+                className={`tab-button ${activeView === "library" ? "active" : ""}`}
+                onClick={() => handleSheetViewChange("library")}
+                ariaLabel="Show library"
+                tabIndex={-1}
+                icon={<CollectionsOutlinedIcon fontSize="small" />}
               />
             </Tooltip>
 

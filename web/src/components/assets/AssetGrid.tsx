@@ -111,6 +111,12 @@ interface AssetGridProps {
   initialFoldersPanelWidth?: number;
   isFullscreenAssets?: boolean;
   isMobile?: boolean;
+  /**
+   * Force the global (all-workflows) asset scope regardless of the currently
+   * open workflow, without adopting the fullscreen page's layout (folders
+   * pinned open, side-by-side position). Used by the "Library" sidebar panel.
+   */
+  forceGlobalAssets?: boolean;
 }
 
 const AssetGrid: React.FC<AssetGridProps> = ({
@@ -120,7 +126,8 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   sortedAssets,
   isFullscreenAssets,
   initialFoldersPanelWidth = FOLDERS_PANEL_WIDTH,
-  isMobile = false
+  isMobile = false,
+  forceGlobalAssets = false
 }) => {
   const { error, folderFilesFiltered, folderTree } = useAssets();
   const {
@@ -165,8 +172,12 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   // fullscreen page opens on the global/all-assets view. A manual pick (a
   // folder or another workflow) holds until one of these inputs changes.
   useEffect(() => {
+    if (forceGlobalAssets) {
+      setWorkflowFilter(null);
+      return;
+    }
     setWorkflowFilter(isFullscreenAssets ? null : currentWorkflowId ?? null);
-  }, [isFullscreenAssets, currentWorkflowId, setWorkflowFilter]);
+  }, [isFullscreenAssets, currentWorkflowId, setWorkflowFilter, forceGlobalAssets]);
   const openMenuType = useContextMenuStore((state) => state.openMenuType);
 
   const theme = useTheme();
