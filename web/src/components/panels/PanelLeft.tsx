@@ -217,6 +217,12 @@ const VerticalToolbar = memo(function VerticalToolbar({
   hiddenViews?: readonly LeftPanelView[];
 }) {
   const panelVisible = usePanelStore((state) => state.panel.isVisible);
+  const currentWorkflow = useWorkflowManager((state) =>
+    state.currentWorkflowId
+      ? state.nodeStores[state.currentWorkflowId]?.getState().getWorkflow() ??
+        null
+      : null
+  );
 
   // Sidebar shows the view as "active" only when the panel is open and
   // that view is selected.
@@ -224,6 +230,11 @@ const VerticalToolbar = memo(function VerticalToolbar({
     panelVisible && LEFT_PANEL_TOP_LEVEL.some((c) => c.id === activeView)
       ? (activeView as LeftPanelView)
       : "";
+
+  const labelOverrides = useMemo(
+    () => (currentWorkflow ? { assets: "Workflow Output" } : undefined),
+    [currentWorkflow]
+  );
 
   return (
     <div className="vertical-toolbar">
@@ -237,6 +248,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
         activeCategory={renderedActive}
         onCategoryClick={onViewChange}
         hiddenViews={hiddenViews}
+        labelOverrides={labelOverrides}
       />
       <div style={{ flexGrow: 1 }} />
       <div className="toolbar-divider" aria-hidden />
