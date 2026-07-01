@@ -11,7 +11,7 @@
  * Subscription setup is handled by WorkflowManagerContext when workflows are loaded.
  */
 import { create, StoreApi, UseBoundStore } from "zustand";
-import { isLocalhost } from "../lib/env";
+import { isAuthRequired } from "../lib/runtimeConfig";
 import { NodeData } from "./NodeData";
 import { BASE_URL } from "./BASE_URL";
 import { Edge, Node } from "@xyflow/react";
@@ -482,7 +482,7 @@ export const createWorkflowRunnerStore = (
       // doesn't stay stuck in "connecting" with a phantom job_id.
       let auth_token = "local_token";
       let user = "1";
-      if (!isLocalhost) {
+      if (isAuthRequired()) {
         try {
           const {
             data: { session }
