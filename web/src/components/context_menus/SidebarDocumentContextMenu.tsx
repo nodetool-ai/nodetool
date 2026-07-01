@@ -59,6 +59,7 @@ const SidebarDocumentContextMenu: React.FC = () => {
       onClose={closeContextMenu}
       onContextMenu={(event) => event.preventDefault()}
       position={menuPosition}
+      disableRestoreFocus
     >
       <MenuItem disabled>
         <Text>{payload.name}</Text>
