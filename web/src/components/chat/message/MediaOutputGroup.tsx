@@ -3,10 +3,10 @@ import React, { memo, useCallback, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import AspectRatioIcon from "@mui/icons-material/CropOriginal";
 import AppsIcon from "@mui/icons-material/Apps";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import TvIcon from "@mui/icons-material/Tv";
 import RecordVoiceOverIcon from "@mui/icons-material/RecordVoiceOver";
 import SpeedIcon from "@mui/icons-material/Speed";
@@ -17,6 +17,7 @@ import {
   BORDER_RADIUS,
   FlexColumn,
   FlexRow,
+  MagicGenerationFill,
   MOTION,
   Text,
   ToolbarIconButton,
@@ -51,7 +52,45 @@ type ChatMessageWithMedia = Message & {
 interface MediaOutputGroupProps {
   message: ChatMessageWithMedia;
   mediaContents: MessageContent[];
+  /**
+   * True while this turn's media is still being generated: renders the same
+   * header + grid shell as a finished turn, but with shimmering tiles in
+   * place of `mediaContents` (which is empty at this point).
+   */
+  isPending?: boolean;
 }
+
+/** `"16:9"` → `"16 / 9"` for the CSS `aspect-ratio` property. */
+function cssAspectRatio(aspectRatio: string | null | undefined): string | undefined {
+  if (!aspectRatio) return undefined;
+  const [w, h] = aspectRatio.split(":");
+  const wNum = Number(w);
+  const hNum = Number(h);
+  if (!wNum || !hNum) return undefined;
+  return `${wNum} / ${hNum}`;
+}
+
+/** How many shimmering placeholder tiles to show, and their shape, for a
+ * pending `media_generation` request — mirrors what the finished grid will
+ * actually contain (one tile per variation for images, one for video/audio). */
+function pendingTiles(gen: MediaGenerationRequest | null): {
+  count: number;
+  aspectRatio: string | undefined;
+  kind: "image" | "video" | "audio";
+} {
+  if (gen?.mode === "image" || gen?.mode === "image_edit") {
+    return {
+      count: Math.max(1, gen.variations ?? 1),
+      aspectRatio: cssAspectRatio(gen.aspect_ratio),
+      kind: "image"
+    };
+  }
+  if (gen?.mode === "video" || gen?.mode === "image_to_video") {
+    return { count: 1, aspectRatio: cssAspectRatio(gen.aspect_ratio), kind: "video" };
+  }
+  return { count: 1, aspectRatio: undefined, kind: "audio" };
+}
+
 
 const styles = (theme: Theme) =>
   css({
@@ -124,6 +163,21 @@ const styles = (theme: Theme) =>
       objectFit: "cover"
     },
 
+    // Same shell every generating surface uses to host `MagicGenerationFill`
+    // (sketch canvas/layers panel, timeline clips + preview compositor): a
+    // positioned, clipped box the wash + shimmer sweep fills edge to edge.
+    ".media-tile-shimmer": {
+      position: "relative",
+      minHeight: 96,
+      overflow: "hidden",
+      backgroundColor: theme.vars.palette.c_overlay_subtle
+    },
+
+    ".media-tile-shimmer.audio-shimmer": {
+      minHeight: 54,
+      borderRadius: BORDER_RADIUS.lg
+    },
+
     ".add-to-canvas-button": {
       position: "absolute",
       top: getSpacingPx(SPACING.xs),
@@ -172,7 +226,8 @@ function titleFromPrompt(prompt: string | null | undefined): string {
  */
 const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
   message,
-  mediaContents
+  mediaContents,
+  isPending = false
 }) => {
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
@@ -209,7 +264,8 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
 
   const title = titleFromPrompt(prompt);
 
-  const count = mediaContents.length;
+  const pending = useMemo(() => pendingTiles(gen), [gen]);
+  const count = isPending ? pending.count : mediaContents.length;
   const gridClass =
     count === 1
       ? "count-1"
@@ -294,7 +350,7 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
               {gen.speed}x
             </span>
           )}
-          {isCanvasAvailable && mediaContents.length > 1 && (
+          {!isPending && isCanvasAvailable && mediaContents.length > 1 && (
             <ToolbarIconButton
               className="add-all-button"
               tooltip="Add all to canvas"
@@ -308,7 +364,24 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
       </div>
 
       <div className={`media-grid ${gridClass}`}>
-        {mediaContents.map((c, i) => {
+        {isPending
+          ? Array.from({ length: pending.count }, (_, i) => (
+              <div
+                key={`pending-${i}`}
+                className={`media-tile-shimmer${
+                  pending.kind === "audio" ? " audio-shimmer" : ""
+                }`}
+                style={
+                  pending.kind !== "audio" && pending.aspectRatio
+                    ? { aspectRatio: pending.aspectRatio }
+                    : undefined
+                }
+                aria-hidden="true"
+              >
+                <MagicGenerationFill />
+              </div>
+            ))
+          : mediaContents.map((c, i) => {
           if (isImageContent(c)) {
             const src =
               c.image?.uri || (c.image?.data as string | undefined) || "";

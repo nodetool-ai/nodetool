@@ -85,6 +85,8 @@ export type { EmptyStateProps, EmptyStateVariant } from "./EmptyState";
 export { LoadingSpinner } from "./LoadingSpinner";
 export type { LoadingSpinnerProps, LoadingVariant } from "./LoadingSpinner";
 
+export { default as MagicGenerationFill } from "./MagicGenerationFill";
+
 export { ProgressBar } from "./ProgressBar";
 export type { ProgressBarProps } from "./ProgressBar";
 

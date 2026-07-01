@@ -20,7 +20,12 @@ import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlayb
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { getAssetUrl } from "../../../utils/assetHelpers";
-import { FONT_SIZE_SANS, FONT_WEIGHT, BORDER_RADIUS } from "../../ui_primitives";
+import {
+  FONT_SIZE_SANS,
+  FONT_WEIGHT,
+  BORDER_RADIUS,
+  MagicGenerationFill
+} from "../../ui_primitives";
 
 import { createCompositor } from "./gpu/createCompositor";
 import type {
@@ -39,7 +44,6 @@ import {
 } from "./sceneModel";
 import type { ResolvedCaption } from "./sceneModel";
 import { CaptionRasterizer } from "./captionRender";
-import MagicGenerationFill from "../../sketch/MagicGenerationFill";
 
 interface PlaceholderLayer {
   clipId: string;
