@@ -98,7 +98,6 @@ const CanvasMediaComposer: React.FC<CanvasMediaComposerProps> = ({
       memoryEnabled={memoryEnabled}
       onMemoryToggle={setMemoryEnabled}
       autoFocus={false}
-      collapsible
       leadingActions={leadingActions}
       trailingActions={trailingActions}
     />

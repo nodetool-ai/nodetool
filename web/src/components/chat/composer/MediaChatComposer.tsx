@@ -114,10 +114,6 @@ export interface MediaChatComposerProps {
   requireToolSupport?: boolean;
   /** Focus the prompt textarea on mount. Defaults to true (chat panel). */
   autoFocus?: boolean;
-  /** When true, the composer minimizes to just the input (+ leading Run
-   *  button) while unfocused and empty, expanding to the full chip row on
-   *  focus. Used by the canvas composer; off in the chat panel. */
-  collapsible?: boolean;
   /** Extra actions rendered at the end of the footer chip row (e.g. the
    *  canvas Run button + workflow menu). Empty in the chat panel. */
   trailingActions?: React.ReactNode;
@@ -161,15 +157,12 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   autoFocus = true,
   trailingActions,
   leadingActions,
-  placeholder: placeholderOverride,
-  collapsible = false
+  placeholder: placeholderOverride
 }) => {
   const theme = useTheme();
   const styles = useMemo(() => createMediaComposerStyles(theme), [theme]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [prompt, setPrompt] = useState("");
-  const [focused, setFocused] = useState(false);
-  const blurTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // Mode + media params from persistent store
   const mode = useMediaGenerationStore((s) => s.mode);
@@ -793,41 +786,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   const isDisabled = disabled || isBusy;
   const elapsed = useElapsedTime(isBusy);
 
-  // When `collapsible`, the composer dims its border + footer controls while
-  // unfocused and idle, brightening on focus (or pending content / open menu /
-  // active generation). Blur is delayed so clicking a chip — which momentarily
-  // blurs the textarea before its menu opens — doesn't flash the dim state.
-  const anyMenuOpen =
-    !!modeAnchor ||
-    !!durationAnchor ||
-    !!resolutionAnchor ||
-    !!aspectAnchor ||
-    !!variationsAnchor ||
-    !!voiceAnchor ||
-    !!speedAnchor ||
-    !!audioFormatAnchor ||
-    !!strengthAnchor ||
-    !!stepsAnchor ||
-    imageModelOpen ||
-    videoModelOpen ||
-    languageModelOpen ||
-    ttsModelOpen;
-  const hasContent = prompt.trim().length > 0 || droppedFiles.length > 0;
-  const dimmed =
-    collapsible && !focused && !hasContent && !anyMenuOpen && !isBusy;
-
-  const handleFocus = useCallback(() => {
-    if (blurTimer.current) clearTimeout(blurTimer.current);
-    setFocused(true);
-  }, []);
-  const handleBlur = useCallback(() => {
-    if (blurTimer.current) clearTimeout(blurTimer.current);
-    blurTimer.current = setTimeout(() => setFocused(false), 150);
-  }, []);
-  useEffect(() => () => {
-    if (blurTimer.current) clearTimeout(blurTimer.current);
-  }, []);
-
   const removeCallbacks = useMemo(
     () => new Map(droppedFiles.map((f) => [f.id, () => removeFile(f.id)])),
     [droppedFiles, removeFile]
@@ -836,9 +794,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   return (
     <div css={styles} className="media-chat-composer">
       <div
-        className={`media-compose-card${isDragging ? " dragging" : ""}${
-          dimmed ? " dimmed" : ""
-        }`}
+        className={`media-compose-card${isDragging ? " dragging" : ""}`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -864,8 +820,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
           onInput={adjustHeight}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
           placeholder={placeholder}
           rows={1}
           spellCheck={false}
@@ -897,12 +851,9 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
         )}
 
         <div className="media-chip-row">
-          {/* Leading actions (e.g. the canvas dock drag handle). Stays visible
-              even while the composer is minimized. */}
+          {/* Leading actions (e.g. the canvas dock drag handle). */}
           {leadingActions}
-          {/* Collapsible cluster: mode/model chips + primary action. Hidden
-              while the composer is minimized (idle + empty); the trailing
-              run actions below stay visible so the workflow can still run. */}
+          {/* Chip cluster: mode/model chips + primary action. */}
           <div className="media-chip-main">
           {/* Mode selector chip */}
           <MediaControlChip
@@ -1424,8 +1375,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
           </div>
 
           {/* Host-supplied actions at the end of the footer (e.g. the canvas
-              Run button + workflow menu). Empty in the chat panel. Stays
-              visible even while the composer is minimized. */}
+              Run button + workflow menu). Empty in the chat panel. */}
           {trailingActions}
         </div>
       </div>
