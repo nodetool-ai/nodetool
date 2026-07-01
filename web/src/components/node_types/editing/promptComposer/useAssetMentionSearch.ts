@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useAssetStore } from "../../../../stores/AssetStore";
 import { useRecentAssetsStore } from "../../../../stores/RecentAssetsStore";
@@ -47,9 +47,18 @@ export const useAssetMentionSearch = (
     recentAssets.length > 0 ? "recent" : "saved"
   );
 
+  // Bumped on every query change so in-flight requests from a stale query
+  // (including a stale loadMoreSaved) can recognize themselves as outdated
+  // and skip applying their result.
+  const queryTokenRef = useRef(0);
+  const loadingMoreRef = useRef(false);
+
   // An empty query still hits the server: it's treated as "browse everything",
   // so the Saved tab has content to scroll through before the user types.
   useEffect(() => {
+    queryTokenRef.current += 1;
+    const token = queryTokenRef.current;
+    loadingMoreRef.current = false;
     if (queryString === null) {
       setSavedAssets([]);
       setSavedCursor(null);
@@ -59,13 +68,13 @@ export const useAssetMentionSearch = (
     const handle = setTimeout(() => {
       search({ query: queryString, page_size: PAGE_SIZE })
         .then((result) => {
-          if (active) {
+          if (active && queryTokenRef.current === token) {
             setSavedAssets(result.assets ?? []);
             setSavedCursor(result.next_cursor ?? null);
           }
         })
         .catch(() => {
-          if (active) {
+          if (active && queryTokenRef.current === token) {
             setSavedAssets([]);
             setSavedCursor(null);
           }
@@ -78,17 +87,29 @@ export const useAssetMentionSearch = (
   }, [queryString, search]);
 
   const loadMoreSaved = useCallback(() => {
-    if (!savedCursor || queryString === null) {
+    if (!savedCursor || queryString === null || loadingMoreRef.current) {
       return;
     }
     const cursor = savedCursor;
+    const token = queryTokenRef.current;
+    loadingMoreRef.current = true;
     search({ query: queryString, page_size: PAGE_SIZE, cursor })
       .then((result) => {
+        if (queryTokenRef.current !== token) {
+          return;
+        }
         setSavedAssets((prev) => [...prev, ...(result.assets ?? [])]);
         setSavedCursor(result.next_cursor ?? null);
       })
       .catch(() => {
-        setSavedCursor(null);
+        if (queryTokenRef.current === token) {
+          setSavedCursor(null);
+        }
+      })
+      .finally(() => {
+        if (queryTokenRef.current === token) {
+          loadingMoreRef.current = false;
+        }
       });
   }, [savedCursor, queryString, search]);
 
