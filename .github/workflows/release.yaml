@@ -817,3 +817,23 @@ jobs:
             release-assets/*.blockmap
             release-assets/*.yml
           fail_on_unmatched_files: true
+
+  notify-discord:
+    name: Post nightly summary to Discord
+    needs: [preflight, publish-release]
+    if: ${{ !failure() && !cancelled() && needs.publish-release.result == 'success' && needs.preflight.outputs.release_channel == 'nightly' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.preflight.outputs.ref }}
+
+      - name: Post summary to Discord
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_NIGHTLY_WEBHOOK_URL }}
+        run: |
+          node scripts/notify-discord-nightly.mjs \
+            --tag "${{ needs.preflight.outputs.tag }}" \
+            --release-name "${{ needs.preflight.outputs.release_name }}"
