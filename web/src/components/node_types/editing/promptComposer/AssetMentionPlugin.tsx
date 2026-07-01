@@ -36,8 +36,14 @@ const AssetMentionPlugin: React.FC = () => {
   const addRecentAsset = useRecentAssetsStore((state) => state.addRecentAsset);
 
   const [queryString, setQueryString] = useState<string | null>(null);
-  const { activeTab, setActiveTab, displayedAssets, handleRename } =
-    useAssetMentionSearch(queryString);
+  const {
+    activeTab,
+    setActiveTab,
+    displayedAssets,
+    hasMoreSaved,
+    loadMoreSaved,
+    handleRename
+  } = useAssetMentionSearch(queryString);
 
   const triggerFn = useBasicTypeaheadTriggerMatch("@", {
     minLength: 0,
@@ -99,6 +105,8 @@ const AssetMentionPlugin: React.FC = () => {
             onHighlight={setHighlightedIndex}
             onRename={handleRename}
             queryString={queryString}
+            hasMore={hasMoreSaved}
+            onLoadMore={loadMoreSaved}
           />,
           anchorElementRef.current
         );

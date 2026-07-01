@@ -169,9 +169,10 @@ export class Asset extends DBModel {
     opts: {
       contentType?: string;
       limit?: number;
+      cursor?: string;
     } = {}
   ): Promise<[Asset[], string, Array<Record<string, string>>]> {
-    const { contentType, limit = 100 } = opts;
+    const { contentType, limit = 100, cursor: startKey } = opts;
     // Escape LIKE special characters to prevent pattern injection
     const sanitized = query.trim().replace(/[%_\\]/g, "\\$&");
     const db = getDb();
@@ -184,15 +185,26 @@ export class Asset extends DBModel {
       const sanitizedType = contentType.replace(/[%_\\]/g, "\\$&");
       conditions.push(like(assets.content_type, `${sanitizedType}%`));
     }
+    if (startKey) {
+      const cursorAsset = await Asset.get<Asset>(startKey);
+      if (cursorAsset && cursorAsset.user_id === userId) {
+        conditions.push(lt(assets.created_at, cursorAsset.created_at));
+      }
+    }
 
     const rows = await db
       .select()
       .from(assets)
       .where(and(...conditions))
-      .limit(limit)
+      .orderBy(desc(assets.created_at))
+      .limit(limit + 1)
 
     const items = rows.map((r: Record<string, unknown>) => new Asset(r as Record<string, unknown>));
-    const cursor = "";
+    let cursor = "";
+    if (items.length > limit) {
+      items.pop();
+      cursor = items[items.length - 1]?.id ?? "";
+    }
 
     const pathInfo = await Asset.getAssetPathInfo(
       userId,

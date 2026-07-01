@@ -111,8 +111,14 @@ export const useTextareaAssetMention = ({
   // Pending caret to restore after a value edit re-renders the textarea.
   const pendingCaretRef = useRef<number | null>(null);
 
-  const { activeTab, setActiveTab, displayedAssets, handleRename } =
-    useAssetMentionSearch(trigger ? trigger.query : null);
+  const {
+    activeTab,
+    setActiveTab,
+    displayedAssets,
+    hasMoreSaved,
+    loadMoreSaved,
+    handleRename
+  } = useAssetMentionSearch(trigger ? trigger.query : null);
 
   const measure = useCallback(() => {
     const el = textareaRef.current;
@@ -273,6 +279,8 @@ export const useTextareaAssetMention = ({
           onHighlight={setSelectedIndex}
           onRename={handleRename}
           queryString={trigger.query}
+          hasMore={hasMoreSaved}
+          onLoadMore={loadMoreSaved}
         />
       </div>,
       document.body
@@ -285,7 +293,9 @@ export const useTextareaAssetMention = ({
     displayedAssets,
     selectedIndex,
     selectAsset,
-    handleRename
+    handleRename,
+    hasMoreSaved,
+    loadMoreSaved
   ]);
 
   return { mentionMenu, handleKeyDown };

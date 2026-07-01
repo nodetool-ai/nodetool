@@ -75,6 +75,10 @@ export interface AssetMentionMenuProps {
   onRename: (id: string, name: string) => Promise<void>;
   /** Text typed after `@`, or `null` when the mention was just opened. */
   queryString: string | null;
+  /** Whether the Saved tab has more results below the fold. */
+  hasMore?: boolean;
+  /** Fetch the next page; called when the grid is scrolled near the bottom. */
+  onLoadMore?: () => void;
   className?: string;
 }
 
@@ -94,6 +98,8 @@ export const AssetMentionMenu: React.FC<AssetMentionMenuProps> = ({
   onHighlight,
   onRename,
   queryString,
+  hasMore = false,
+  onLoadMore,
   className
 }) => {
   const theme = useTheme();
@@ -104,7 +110,17 @@ export const AssetMentionMenu: React.FC<AssetMentionMenuProps> = ({
         : "No assets used yet. Generate or drag one in."
       : queryString
         ? "No assets match."
-        : "Type to search your saved assets.";
+        : "No saved assets yet.";
+
+  const handleGridScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (!hasMore || !onLoadMore) {
+      return;
+    }
+    const el = e.currentTarget;
+    if (el.scrollHeight - el.scrollTop - el.clientHeight < 120) {
+      onLoadMore();
+    }
+  };
 
   return (
     <div
@@ -126,7 +142,11 @@ export const AssetMentionMenu: React.FC<AssetMentionMenuProps> = ({
           </button>
         ))}
       </div>
-      <div className="mention-grid" role="listbox">
+      <div
+        className="mention-grid"
+        role="listbox"
+        onScroll={activeTab === "saved" ? handleGridScroll : undefined}
+      >
         {assets.length === 0 ? (
           <div className="mention-empty">{emptyMessage}</div>
         ) : (

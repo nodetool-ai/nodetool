@@ -6,11 +6,17 @@ import type { Asset } from "../../../../stores/ApiTypes";
 
 export type MentionTab = "recent" | "saved";
 
+const PAGE_SIZE = 24;
+
 export interface AssetMentionSearch {
   activeTab: MentionTab;
   setActiveTab: (tab: MentionTab) => void;
   /** Assets shown for the active tab (recent list or saved-search results). */
   displayedAssets: Asset[];
+  /** Whether the Saved tab has more results beyond `displayedAssets`. */
+  hasMoreSaved: boolean;
+  /** Fetch the next page of saved results and append them. */
+  loadMoreSaved: () => void;
   /**
    * Persist a rename, rejecting on a name collision within the visible scope so
    * two assets in the same bucket can't share a name.
@@ -36,26 +42,32 @@ export const useAssetMentionSearch = (
   );
 
   const [savedAssets, setSavedAssets] = useState<Asset[]>([]);
+  const [savedCursor, setSavedCursor] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<MentionTab>(
     recentAssets.length > 0 ? "recent" : "saved"
   );
 
+  // An empty query still hits the server: it's treated as "browse everything",
+  // so the Saved tab has content to scroll through before the user types.
   useEffect(() => {
     if (queryString === null) {
       setSavedAssets([]);
+      setSavedCursor(null);
       return;
     }
     let active = true;
     const handle = setTimeout(() => {
-      search({ query: queryString, page_size: 24 })
+      search({ query: queryString, page_size: PAGE_SIZE })
         .then((result) => {
           if (active) {
             setSavedAssets(result.assets ?? []);
+            setSavedCursor(result.next_cursor ?? null);
           }
         })
         .catch(() => {
           if (active) {
             setSavedAssets([]);
+            setSavedCursor(null);
           }
         });
     }, 150);
@@ -64,6 +76,21 @@ export const useAssetMentionSearch = (
       clearTimeout(handle);
     };
   }, [queryString, search]);
+
+  const loadMoreSaved = useCallback(() => {
+    if (!savedCursor || queryString === null) {
+      return;
+    }
+    const cursor = savedCursor;
+    search({ query: queryString, page_size: PAGE_SIZE, cursor })
+      .then((result) => {
+        setSavedAssets((prev) => [...prev, ...(result.assets ?? [])]);
+        setSavedCursor(result.next_cursor ?? null);
+      })
+      .catch(() => {
+        setSavedCursor(null);
+      });
+  }, [savedCursor, queryString, search]);
 
   const filteredRecent = useMemo(() => {
     const q = (queryString ?? "").trim().toLowerCase();
@@ -94,5 +121,12 @@ export const useAssetMentionSearch = (
     [displayedAssets, updateAsset, renameRecentAsset]
   );
 
-  return { activeTab, setActiveTab, displayedAssets, handleRename };
+  return {
+    activeTab,
+    setActiveTab,
+    displayedAssets,
+    hasMoreSaved: savedCursor !== null,
+    loadMoreSaved,
+    handleRename
+  };
 };
