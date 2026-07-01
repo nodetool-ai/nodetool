@@ -7,6 +7,8 @@ import TextSurface from "./TextSurface";
 import Model3DSurface from "./Model3DSurface";
 import AudioSurface from "./AudioSurface";
 import TimelineSurface from "./TimelineSurface";
+import PageSurface from "./PageSurface";
+import { isPageTabKey } from "./pageTabs";
 
 interface TabContentProps {
   tab: WorkspaceTab;
@@ -39,6 +41,8 @@ const TabContent = ({ tab, active }: TabContentProps) => {
       return <AudioSurface refId={tab.ref} mode={tab.mode} active={active} />;
     case "timeline":
       return <TimelineSurface refId={tab.ref} mode={tab.mode} active={active} />;
+    case "page":
+      return isPageTabKey(tab.ref) ? <PageSurface pageKey={tab.ref} /> : null;
     default: {
       // Exhaustiveness guard — a new WorkspaceTabType must add a case here.
       const exhaustive: never = tab.type;
