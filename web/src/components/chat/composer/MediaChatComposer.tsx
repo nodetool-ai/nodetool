@@ -64,6 +64,7 @@ import VideoModelMenuDialog from "../../model_menu/VideoModelMenuDialog";
 import LanguageModelMenuDialog from "../../model_menu/LanguageModelMenuDialog";
 import TTSModelMenuDialog from "../../model_menu/TTSModelMenuDialog";
 import type {
+  Asset,
   ImageModel,
   LanguageModel,
   MessageContent,
@@ -71,6 +72,8 @@ import type {
   VideoModel
 } from "../../../stores/ApiTypes";
 import type { MediaGenerationRequest } from "../types/media.types";
+import { assetToUri } from "../../node_types/editing/promptComposer/promptTokens";
+import { useTextareaAssetMention } from "./useTextareaAssetMention";
 import { FilePreview } from "./FilePreview";
 import { useFileHandling } from "../hooks/useFileHandling";
 import { useDragAndDrop } from "../hooks/useDragAndDrop";
@@ -234,6 +237,32 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       altKeyPressed: state.isKeyPressed("alt")
     })
   );
+
+  // Typing `@` opens the asset picker; a picked asset is attached as an
+  // `asset://` reference (like a drag from the asset library) rather than
+  // inlined into the prompt text.
+  const handleSelectAsset = useCallback(
+    (asset: Asset) => {
+      addDroppedFiles([
+        {
+          id: "",
+          dataUri: asset.thumb_url || asset.get_url || "",
+          type: asset.content_type || "application/octet-stream",
+          name: asset.name || asset.id,
+          assetUri: assetToUri(asset)
+        }
+      ]);
+    },
+    [addDroppedFiles]
+  );
+
+  const { mentionMenu, handleKeyDown: handleMentionKeyDown } =
+    useTextareaAssetMention({
+      textareaRef,
+      value: prompt,
+      setValue: setPrompt,
+      onSelectAsset: handleSelectAsset
+    });
 
   // Adjust textarea height based on content
   const adjustHeight = useCallback(() => {
@@ -423,7 +452,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     if (mode === "motion_control") {
       return "Describe the motion…";
     }
-    return "Continue the thread — or @ a node to compose with the canvas…";
+    return "Continue the thread — or type @ to add an asset…";
   }, [mode, isPi, placeholderOverride]);
 
   const isMediaMode =
@@ -479,6 +508,10 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      // Let the asset-mention picker consume nav / select / dismiss keys first.
+      if (handleMentionKeyDown(e)) {
+        return;
+      }
       if (e.key === "Enter") {
         if (shiftKeyPressed) {
           return;
@@ -489,7 +522,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
         }
       }
     },
-    [shiftKeyPressed, metaKeyPressed, altKeyPressed, handleSend]
+    [handleMentionKeyDown, shiftKeyPressed, metaKeyPressed, altKeyPressed, handleSend]
   );
 
   // Mode icon for the mode chip
@@ -838,6 +871,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
           spellCheck={false}
           autoComplete="off"
         />
+        {mentionMenu}
 
         {queuedMessage && (
           <FlexRow
