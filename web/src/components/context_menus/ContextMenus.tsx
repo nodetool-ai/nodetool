@@ -9,6 +9,7 @@ import InputContextMenu from "./InputContextMenu";
 import EdgeContextMenu from "./EdgeContextMenu";
 import ConnectionMatchMenu from "./ConnectionMatchMenu";
 import WorkflowContextMenu from "./WorkflowContextMenu";
+import SidebarDocumentContextMenu from "./SidebarDocumentContextMenu";
 
 const ContextMenus = memo(function ContextMenus() {
     const { openMenuType } = useContextMenu();
@@ -24,6 +25,9 @@ const ContextMenus = memo(function ContextMenus() {
             {openMenuType === "edge-context-menu" && <EdgeContextMenu />}
             {openMenuType === "connection-match-menu" && <ConnectionMatchMenu />}
             {openMenuType === "workflow-context-menu" && <WorkflowContextMenu />}
+            {openMenuType === "sidebar-document-context-menu" && (
+                <SidebarDocumentContextMenu />
+            )}
         </>
     );
 });
