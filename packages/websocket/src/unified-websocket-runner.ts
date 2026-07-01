@@ -4093,13 +4093,6 @@ export class UnifiedWebSocketRunner {
           name: modelId,
           provider: providerId
         };
-        const params: TextToVideoParams = {
-          model: videoModel,
-          prompt,
-          aspectRatio,
-          resolution,
-          durationSeconds: duration
-        };
 
         await this.sendMessage({
           type: "chunk",
@@ -4110,7 +4103,36 @@ export class UnifiedWebSocketRunner {
           done: false
         });
 
-        const bytes = await provider.textToVideo(params);
+        // If the user referenced/attached an image, they want it animated:
+        // route to image-to-video so the image actually reaches the provider.
+        // Many "video" models (e.g. fal-ai/stable-video) in fact require an
+        // image and reject a text-only request with an opaque 422.
+        const sourceBytes = await this.resolveSourceImageBytes(
+          data,
+          mediaGeneration,
+          userId
+        );
+        let bytes: Uint8Array;
+        if (sourceBytes && sourceBytes.length > 0) {
+          const i2vParams: ImageToVideoParams = {
+            model: videoModel,
+            prompt,
+            aspectRatio,
+            resolution,
+            durationSeconds: duration,
+            numInferenceSteps: null
+          };
+          bytes = await provider.imageToVideo([sourceBytes], i2vParams);
+        } else {
+          const params: TextToVideoParams = {
+            model: videoModel,
+            prompt,
+            aspectRatio,
+            resolution,
+            durationSeconds: duration
+          };
+          bytes = await provider.textToVideo(params);
+        }
         const assetId = await storeMediaAsset(bytes, "video/mp4", "mp4");
 
         await this.sendMessage({
@@ -4340,7 +4362,12 @@ export class UnifiedWebSocketRunner {
           mediaGeneration,
           userId
         );
-        if (!sourceBytes) {
+        // A zero-length buffer (e.g. a storage read that resolved but came
+        // back empty) is truthy — without the length check it sails past this
+        // guard, then silently drops out of `attachAssets`'s image field
+        // downstream, so fal gets a request with no image at all and rejects
+        // it with an opaque 422 instead of the friendly error below.
+        if (!sourceBytes || sourceBytes.length === 0) {
           await this.sendMessage({
             type: "error",
             message:
@@ -4552,7 +4579,7 @@ export class UnifiedWebSocketRunner {
         : null;
     if (explicitId) {
       const fromAsset = await tryLoadAsset(explicitId);
-      if (fromAsset) return fromAsset;
+      if (fromAsset && fromAsset.length > 0) return fromAsset;
     }
 
     const content = data.content;
@@ -4568,12 +4595,20 @@ export class UnifiedWebSocketRunner {
             : null;
         if (assetId) {
           const bytes = await tryLoadAsset(assetId);
-          if (bytes) return bytes;
+          if (bytes && bytes.length > 0) return bytes;
         }
         const uri =
           typeof image.uri === "string" ? (image.uri as string) : null;
         if (uri) {
-          if (uri.startsWith("data:")) {
+          if (uri.startsWith("asset://")) {
+            // `@`-mentioned or library-dragged asset: `asset://<id>.<ext>`.
+            const withoutScheme = uri.slice("asset://".length);
+            const dotIdx = withoutScheme.lastIndexOf(".");
+            const mentionedId =
+              dotIdx > -1 ? withoutScheme.slice(0, dotIdx) : withoutScheme;
+            const bytes = await tryLoadAsset(mentionedId);
+            if (bytes && bytes.length > 0) return bytes;
+          } else if (uri.startsWith("data:")) {
             const commaIdx = uri.indexOf(",");
             if (commaIdx > -1) {
               const b64 = uri.slice(commaIdx + 1);

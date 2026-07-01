@@ -426,6 +426,7 @@ if (update.status === "IN_PROGRESS") {
     const client = await this.getClient();
     const modelId = params.model.id;
     const input = this.buildTextToMusicArgs(modelId, params);
+    this.recordRequestPayload(input);
     log.debug("FAL textToMusic", { model: modelId });
     const result = await client.subscribe(modelId, {
       input,
@@ -629,6 +630,7 @@ if (update.status === "IN_PROGRESS") {
     const client = await this.getClient();
     const modelId = params.model.id;
     const args = this.buildTextToImageArgs(modelId, params);
+    this.recordRequestPayload(args);
     log.debug("FAL textToImage", { model: modelId });
     const result = await client.subscribe(modelId, {
       input: args,
@@ -646,6 +648,7 @@ if (update.status === "IN_PROGRESS") {
     const client = await this.getClient();
     const modelId = params.model.id;
     const args = await this.buildImageToImageArgs(modelId, images, params);
+    this.recordRequestPayload(args);
     log.debug("FAL imageToImage", { model: modelId });
     const result = await client.subscribe(modelId, {
       input: args,
@@ -663,6 +666,7 @@ if (update.status === "IN_PROGRESS") {
     const client = await this.getClient();
     const modelId = params.model.id;
     const args = await this.buildInpaintArgs(modelId, images, params);
+    this.recordRequestPayload(args);
     log.debug("FAL inpaint", { model: modelId });
     const result = await client.subscribe(modelId, {
       input: args,
@@ -687,6 +691,7 @@ if (update.status === "IN_PROGRESS") {
     if (new FalArgsBuilder(modelId).has("num_images")) {
       args.num_images = numImages;
     }
+    this.recordRequestPayload(args);
     log.debug("FAL inpaintImages", { model: modelId, numImages });
     const result = await client.subscribe(modelId, {
       input: args,
@@ -702,6 +707,7 @@ if (update.status === "IN_PROGRESS") {
     const client = await this.getClient();
     const modelId = params.model.id;
     const args = this.buildTextToVideoArgs(modelId, params);
+    this.recordRequestPayload(args);
     log.debug("FAL textToVideo", { model: modelId });
     const result = await client.subscribe(modelId, {
       input: args,
@@ -726,6 +732,7 @@ if (update.status === "IN_PROGRESS") {
     if (new FalArgsBuilder(modelId).has("num_images")) {
       args.num_images = numImages;
     }
+    this.recordRequestPayload(args);
     log.debug("FAL imageToImages", { model: modelId, numImages });
     const result = await client.subscribe(modelId, {
       input: args,
@@ -750,6 +757,7 @@ if (update.status === "IN_PROGRESS") {
     if (new FalArgsBuilder(modelId).has("num_images")) {
       args.num_images = numImages;
     }
+    this.recordRequestPayload(args);
     log.debug("FAL textToImages", { model: modelId, numImages });
     const result = await client.subscribe(modelId, {
       input: args,
@@ -768,6 +776,7 @@ if (update.status === "IN_PROGRESS") {
     const client = await this.getClient();
     const modelId = params.model.id;
     const args = await this.buildImageToVideoArgs(modelId, images, params);
+    this.recordRequestPayload(args);
     log.debug("FAL imageToVideo", { model: modelId });
     const result = await client.subscribe(modelId, {
       input: args,
@@ -800,6 +809,7 @@ if (update.status === "IN_PROGRESS") {
     args: Record<string, unknown>
   ): Promise<Uint8Array> {
     const client = await this.getClient();
+    this.recordRequestPayload(args);
     const result = await client.subscribe(modelId, {
       input: args,
       logs: true,
@@ -815,6 +825,7 @@ if (update.status === "IN_PROGRESS") {
     args: Record<string, unknown>
   ): Promise<Uint8Array> {
     const client = await this.getClient();
+    this.recordRequestPayload(args);
     const result = await client.subscribe(modelId, {
       input: args,
       logs: true,
