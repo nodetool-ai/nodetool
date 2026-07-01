@@ -55,7 +55,7 @@ const SidebarDocumentContextMenu: React.FC = () => {
   return (
     <ContextMenu
       className="context-menu sidebar-document-context-menu"
-      open={menuPosition !== null}
+      open
       onClose={closeContextMenu}
       onContextMenu={(event) => event.preventDefault()}
       position={menuPosition}
