@@ -85,6 +85,60 @@ a short WAV chime — `web/src/demo/assets/`), so they replay with no backend an
 no generation credits. `scripts/render-cookbook.ts` bundles the project once and
 renders all 15, so it's far cheaper than 15 separate `remotion render` calls.
 
+## Other UI surfaces (chat, timeline)
+
+The graph editor isn't the only NodeTool UI that can star in a tutorial video.
+The same "hand-author a cast, replay it through the real components, drive it
+from Remotion's clock" approach works for any surface whose state is a pure
+function of a handful of props or a small store — it just needs its own cast
+format and player, because each surface's state shape is different. Two ship
+today:
+
+| Surface | Cast type | Player | Tutorial composition |
+| --- | --- | --- | --- |
+| Graph editor | `DemoCast` (`web/src/demo/castTypes.ts`) | `DemoPlayer` | `Tutorial` |
+| Global Chat | `ChatDemoCast` (`web/src/demo/chat/chatCastTypes.ts`) | `ChatDemoPlayer` | `ChatTutorial` |
+| Timeline editor | `TimelineDemoCast` (`web/src/demo/timeline/timelineCastTypes.ts`) | `TimelineDemoPlayer` | `TimelineTutorial` |
+
+All three tutorial compositions share one shell, `demo/src/components/TutorialShell.tsx`
+— the title card / step indicator / lower-third captions / outro card timing —
+so a new surface only has to supply a replay player, not re-implement the
+narration chrome. See `demo/src/Tutorial.tsx`, `ChatTutorial.tsx`, and
+`TimelineTutorial.tsx` for the three (nearly identical) call sites.
+
+```bash
+cd demo
+npm run render:tutorial:chat-agent-qa           # Ask the chat agent → web/public/tutorials/chat-agent-qa.mp4
+npm run render:tutorial:timeline-trim-arrange   # Cut a scene together → web/public/tutorials/timeline-trim-arrange.mp4
+```
+
+**Chat** (`web/src/demo/chat/`): `ChatView` is prop-driven, not store-driven, so
+`ChatDemoPlayer` skips the "engine" machinery entirely — `computeChatStateAt`
+is a plain fold over `ChatCastEvent[]` (message arrives, token streams in, tool
+call starts/finishes, status changes) recomputed fresh on every frame. A couple
+of chat components (the tool-call spinner, the todo sidebar) read a few fields
+straight off the global `GlobalChatStore` instead of props; `seedChatGlobalState`
+mirrors the replay state into that store each frame, the same "seed the shared
+store" trick `seedCastMetadata`/`seedDemoAuth` use for the graph editor.
+
+**Timeline** (`web/src/demo/timeline/`): mounts only `PreviewArea` +
+`TracksRegion` inside a `TimelineProvider` — not the full `TimelineEditor` page,
+which also wires up autosave, generation-job subscriptions, and tRPC-backed
+sequence loading that don't apply to a hand-authored, backend-free cast.
+`TimelineDemoEngine` seeds a fresh `TimelineInstance` (`createTimelineInstance`,
+exported from `TimelineInstance.tsx` for exactly this purpose) with the cast's
+starting `TimelineSequence`, then folds `TimelineCastEvent[]` (add/patch/remove
+a clip, select, zoom, seek, or ramp the playhead) into the instance's stores on
+every seek. Clips reference media by `currentAssetId`; `seedTimelineCastAssets`
+patches `useAssetStore.get` to resolve those ids from the cast's inline `data:`
+URIs instead of a real backend fetch.
+
+To add a fourth surface, follow the same shape: a `<Surface>CastTypes.ts`
+(events + a base document/props snapshot), a pure replay function or minimal
+engine class, a `<Surface>DemoPlayer.tsx` that mounts the real production
+component(s) inside whatever provider stack they need, a cast registry, and a
+`<Surface>Tutorial.tsx` composition built on `TutorialShell`.
+
 ## Recording a real demo
 
 1. **Record.** From the editor (dev build), capture one real run:

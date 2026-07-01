@@ -1,20 +1,12 @@
 import React, { useMemo } from "react";
-import {
-  AbsoluteFill,
-  Sequence,
-  staticFile,
-  useCurrentFrame,
-  useVideoConfig,
-} from "remotion";
+import { staticFile } from "remotion";
 
 import { DemoPlayer } from "@web-demo";
 import { getCast } from "./casts/registry";
-import { TitleCard } from "./components/TitleCard";
-import { Caption } from "./components/Caption";
-import { OutroCard } from "./components/OutroCard";
-import { StepIndicator, type TutorialStep } from "./components/StepIndicator";
+import { TutorialShell } from "./components/TutorialShell";
+import type { TutorialStep } from "./components/StepIndicator";
 import { buildCameraKeys, cameraAt, type CameraCast } from "./camera";
-import type { CaptionCue } from "./WorkflowDemo";
+import type { CaptionCue } from "./types";
 
 // A `type` alias so its implicit index signature satisfies Remotion's
 // `Composition` props constraint (`Record<string, unknown>`).
@@ -45,12 +37,13 @@ export type TutorialProps = {
 };
 
 /**
- * The "How to use NodeTool" intro tutorial.
+ * The "How to use NodeTool" intro tutorial (and every graph-editor tutorial /
+ * cookbook video built on the same cast format).
  *
  * Three beats over one continuous take:
  *   1. a title card,
- *   2. the real graph UI replaying a four-node AI pipeline — narrated by a
- *      step indicator (which node is active) and lower-third captions,
+ *   2. the real graph UI replaying a workflow — narrated by a step indicator
+ *      (which node is active) and lower-third captions,
  *   3. a closing call-to-action.
  *
  * The replay is the same `DemoPlayer` the product uses, driven by Remotion's
@@ -70,16 +63,6 @@ export const Tutorial: React.FC<TutorialProps> = ({
   outroPoints,
 }) => {
   const cast = getCast(castId);
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-
-  const introFrames = Math.round(introSeconds * fps);
-  const replayFrames = Math.round((replayWindowMs / 1000) * fps);
-  const outroFrames = Math.round(outroSeconds * fps);
-
-  const replayFrame = Math.max(0, frame - introFrames);
-  const timeMs = (replayFrame / fps) * 1000;
-
   const resolveAssetUrl = (file: string) => staticFile(`casts/${cast.id}/${file}`);
 
   // Animated camera: zoom/pan onto each step's focus node, then pull back.
@@ -87,42 +70,27 @@ export const Tutorial: React.FC<TutorialProps> = ({
     () => buildCameraKeys(cast as CameraCast, steps, replayWindowMs),
     [cast, steps, replayWindowMs]
   );
-  const viewport = cameraAt(cameraKeys, timeMs);
 
   return (
-    <AbsoluteFill style={{ background: "#0f0f17" }}>
-      <DemoPlayer
-        cast={cast}
-        timeMs={timeMs}
-        resolveAssetUrl={resolveAssetUrl}
-        viewport={viewport}
-      />
-
-      {/* Step indicator + captions only during the replay beat. */}
-      <Sequence from={introFrames} durationInFrames={replayFrames}>
-        <StepIndicator steps={steps} timeMs={timeMs} />
-      </Sequence>
-
-      {captions.map((cue, i) => {
-        const from = introFrames + Math.round((cue.fromMs / 1000) * fps);
-        const durationInFrames = Math.max(
-          1,
-          Math.round(((cue.toMs - cue.fromMs) / 1000) * fps)
-        );
-        return (
-          <Sequence key={i} from={from} durationInFrames={durationInFrames}>
-            <Caption text={cue.text} />
-          </Sequence>
-        );
-      })}
-
-      <Sequence from={0} durationInFrames={introFrames}>
-        <TitleCard title={title} subtitle={subtitle} />
-      </Sequence>
-
-      <Sequence from={introFrames + replayFrames} durationInFrames={outroFrames}>
-        <OutroCard title={outroTitle} points={outroPoints} footer="nodetool.ai" />
-      </Sequence>
-    </AbsoluteFill>
+    <TutorialShell
+      title={title}
+      subtitle={subtitle}
+      introSeconds={introSeconds}
+      outroSeconds={outroSeconds}
+      replayWindowMs={replayWindowMs}
+      steps={steps}
+      captions={captions}
+      outroTitle={outroTitle}
+      outroPoints={outroPoints}
+    >
+      {(timeMs) => (
+        <DemoPlayer
+          cast={cast}
+          timeMs={timeMs}
+          resolveAssetUrl={resolveAssetUrl}
+          viewport={cameraAt(cameraKeys, timeMs)}
+        />
+      )}
+    </TutorialShell>
   );
 };

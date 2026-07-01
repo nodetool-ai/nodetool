@@ -8,6 +8,7 @@
  * web app under `web/public/tutorials/`.
  */
 import type { TutorialProps } from "./Tutorial";
+import { framesForTiming } from "./tutorialTiming";
 
 const INTRO_SECONDS = 2.5;
 const OUTRO_SECONDS = 4;
@@ -197,7 +198,5 @@ export const TUTORIALS: TutorialEntry[] = [
 
 /** Total frames for an entry: intro + replay window + outro. */
 export function tutorialFrames(e: TutorialEntry): number {
-  const seconds =
-    e.props.introSeconds + e.props.replayWindowMs / 1000 + e.props.outroSeconds;
-  return Math.round(seconds * e.fps);
+  return framesForTiming(e.fps, e.props);
 }
