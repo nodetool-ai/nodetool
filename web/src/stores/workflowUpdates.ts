@@ -698,10 +698,6 @@ export const handleUpdate = (
         (runnerJobId === null &&
           (runnerState === "idle" || runnerState === "connecting")));
 
-    // Whether this run was sitting in the backend's concurrency queue, so we
-    // can clear the "Queued…" status once it actually starts running.
-    const wasQueued = runnerStore.getState().queuePosition !== null;
-
     // Consolidate state mapping
     let newState:
       | "idle"
@@ -919,9 +915,12 @@ export const handleUpdate = (
         }
         break;
       case "running":
-        // Clear the "Queued…" status carried over once the run actually starts.
-        // No "started" toast — the Queue panel/overlay shows the running job.
-        if (isRunnerJob && wasQueued) {
+        // Clear the carried-over status ("Workflow starting…" from run(), or
+        // "Queued…" if it sat in the queue) once the run actually starts. Node
+        // updates set no per-node status text, so without this the "starting"
+        // message would linger top-right for the whole run. No "started" toast —
+        // the Queue panel/overlay shows the running job.
+        if (isRunnerJob) {
           runnerStore.setState({ statusMessage: null });
         }
         break;
