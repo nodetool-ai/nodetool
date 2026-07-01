@@ -75,10 +75,10 @@ const uri = (value: unknown): string | undefined =>
   (value as { uri?: string } | undefined)?.uri;
 
 describe("cookbook casts — structure", () => {
-  it("covers all 15 cookbook patterns with unique ids", () => {
-    expect(cookbookCasts).toHaveLength(15);
+  it("covers all 13 cookbook patterns with unique ids", () => {
+    expect(cookbookCasts).toHaveLength(13);
     const ids = cookbookCasts.map((c) => c.id);
-    expect(new Set(ids).size).toBe(15);
+    expect(new Set(ids).size).toBe(13);
     ids.forEach((id) => expect(id.startsWith("cookbook-")).toBe(true));
   });
 

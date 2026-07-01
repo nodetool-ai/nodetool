@@ -2,8 +2,8 @@
  * "Summarize a document" tutorial cast.
  *
  * A long passage flows into the real `nodetool.agents.Summarizer`, which streams
- * a short summary — the condense pattern behind the Summarize Paper / Summarize
- * RSS / Meeting Transcript templates. The Summarizer renders with its
+ * a short summary — the condense pattern behind the Summarize RSS / Meeting
+ * Transcript templates. The Summarizer renders with its
  * `body: "content_card"` text card: the summary streams in live (ChunkDisplay)
  * and settles into the card, then lands in a Preview. Fully synthetic (real
  * metadata, streamed text, no backend), so it replays with no recording.

@@ -13,10 +13,8 @@ import { moviePosterCast } from "./moviePosterCast";
 import { chatWithDocsCast } from "./chatWithDocsCast";
 import { flashcardsSqliteCast } from "./flashcardsSqliteCast";
 import { summarizeNewslettersCast } from "./summarizeNewslettersCast";
-import { realtimeAgentCast } from "./realtimeAgentCast";
 import { audioToImageCast } from "./audioToImageCast";
 import { styleTransferCast } from "./styleTransferCast";
-import { dataVisualizationCast } from "./dataVisualizationCast";
 import { textToVideoCast } from "./textToVideoCast";
 import { imageToVideoCast } from "./imageToVideoCast";
 import { talkingAvatarCast } from "./talkingAvatarCast";
@@ -30,10 +28,8 @@ export {
   chatWithDocsCast,
   flashcardsSqliteCast,
   summarizeNewslettersCast,
-  realtimeAgentCast,
   audioToImageCast,
   styleTransferCast,
-  dataVisualizationCast,
   textToVideoCast,
   imageToVideoCast,
   talkingAvatarCast,
@@ -49,10 +45,8 @@ export const cookbookCasts: DemoCast[] = [
   chatWithDocsCast,
   flashcardsSqliteCast,
   summarizeNewslettersCast,
-  realtimeAgentCast,
   audioToImageCast,
   styleTransferCast,
-  dataVisualizationCast,
   textToVideoCast,
   imageToVideoCast,
   talkingAvatarCast,

@@ -40,11 +40,6 @@
     },
     {
       "package_name": "nodetool-base",
-      "name": "Realtime Agent.jpg",
-      "path": ""
-    },
-    {
-      "package_name": "nodetool-base",
       "name": "Brand Asset Generator.jpg",
       "path": ""
     },
@@ -160,11 +155,6 @@
     },
     {
       "package_name": "nodetool-base",
-      "name": "Summarize Paper.jpg",
-      "path": ""
-    },
-    {
-      "package_name": "nodetool-base",
       "name": "AI Workflows on Reddit.jpg",
       "path": ""
     },
@@ -260,15 +250,6 @@
       "description": "",
       "tags": [
         "video",
-        "start"
-      ]
-    },
-    {
-      "id": "d22725a09fc211f0b7bb00007bf02e69",
-      "name": "Summarize Paper",
-      "description": "",
-      "tags": [
-        "audio",
         "start"
       ]
     },
@@ -446,15 +427,6 @@
         "start",
         "video",
         "huggingface"
-      ]
-    },
-    {
-      "id": "06d8221c907e11f0a4240000006ab9b5",
-      "name": "Realtime Agent",
-      "description": "",
-      "tags": [
-        "openai",
-        "agent"
       ]
     },
     {

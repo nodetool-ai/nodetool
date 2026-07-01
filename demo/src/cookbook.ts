@@ -165,33 +165,10 @@ export const COOKBOOK: TutorialEntry[] = [
     ],
   }),
 
-  entry("realtime-agent", {
-    castId: "cookbook-realtime-agent",
-    title: "Realtime Agent",
-    subtitle: "Pattern 7 · Realtime Processing",
-    replayWindowMs: 12000,
-    steps: [
-      { atMs: 900, label: "Speak", focus: "mic", zoom: 2.0 },
-      { atMs: 1800, label: "Realtime reply", focus: "agent", zoom: 1.9 },
-      { atMs: 9000, label: "Read it", focus: "preview", zoom: 1.95 },
-    ],
-    captions: [
-      { fromMs: 1000, toMs: 1700, text: "Streaming microphone audio flows straight into the graph." },
-      { fromMs: 1900, toMs: 8000, text: "A Realtime Agent answers as you speak — text and audio at once." },
-      { fromMs: 9000, toMs: 11500, text: "The reply lands in a preview, ready for the next turn." },
-    ],
-    outroTitle: "Build voice interfaces",
-    outroPoints: [
-      "Stream audio in, stream a reply out",
-      "Live transcription and responses",
-      "Low-latency, interactive apps",
-    ],
-  }),
-
   entry("audio-to-image", {
     castId: "cookbook-audio-to-image",
     title: "Audio to Image",
-    subtitle: "Pattern 8 · Multi-Modal Workflows",
+    subtitle: "Pattern 7 · Multi-Modal Workflows",
     replayWindowMs: 16500,
     steps: [
       { atMs: 1300, label: "Audio in", focus: "clip", zoom: 2.0 },
@@ -214,7 +191,7 @@ export const COOKBOOK: TutorialEntry[] = [
   entry("style-transfer", {
     castId: "cookbook-style-transfer",
     title: "Style Transfer",
-    subtitle: "Pattern 9 · Advanced Image Processing",
+    subtitle: "Pattern 8 · Advanced Image Processing",
     replayWindowMs: 16500,
     steps: [
       { atMs: 1300, label: "Two images", focus: "content", zoom: 1.7 },
@@ -234,33 +211,10 @@ export const COOKBOOK: TutorialEntry[] = [
     ],
   }),
 
-  entry("data-visualization", {
-    castId: "cookbook-data-visualization",
-    title: "Data Visualization",
-    subtitle: "Pattern 10 · Data Processing Pipeline",
-    replayWindowMs: 15500,
-    steps: [
-      { atMs: 1300, label: "Fetch CSV", focus: "get", zoom: 1.9 },
-      { atMs: 4100, label: "Filter data", focus: "filter", zoom: 1.9 },
-      { atMs: 7000, label: "Make a chart", focus: "chart", zoom: 1.8 },
-    ],
-    captions: [
-      { fromMs: 1400, toMs: 3300, text: "Fetch CSV from the web and parse it into a dataframe." },
-      { fromMs: 4100, toMs: 6700, text: "Filter the rows — the table preview updates with the result." },
-      { fromMs: 7000, toMs: 13000, text: "A Chart Generator turns the data into a Plotly chart, no plotting code." },
-    ],
-    outroTitle: "From data to insight",
-    outroPoints: [
-      "Fetch, parse, filter, visualize",
-      "Branch into table and chart",
-      "AI-generated charts on the fly",
-    ],
-  }),
-
   entry("text-to-video", {
     castId: "cookbook-text-to-video",
     title: "Text to Video",
-    subtitle: "Pattern 11 · Text-to-Video",
+    subtitle: "Pattern 9 · Text-to-Video",
     replayWindowMs: 13500,
     steps: [
       { atMs: 1300, label: "A prompt", focus: "prompt", zoom: 2.0 },
@@ -283,7 +237,7 @@ export const COOKBOOK: TutorialEntry[] = [
   entry("image-to-video", {
     castId: "cookbook-image-to-video",
     title: "Image to Video",
-    subtitle: "Pattern 12 · Image-to-Video",
+    subtitle: "Pattern 10 · Image-to-Video",
     replayWindowMs: 13500,
     steps: [
       { atMs: 1300, label: "Image + motion", focus: "image", zoom: 1.9 },
@@ -306,7 +260,7 @@ export const COOKBOOK: TutorialEntry[] = [
   entry("talking-avatar", {
     castId: "cookbook-talking-avatar",
     title: "Talking Avatar",
-    subtitle: "Pattern 13 · Talking Avatar",
+    subtitle: "Pattern 11 · Talking Avatar",
     replayWindowMs: 14000,
     steps: [
       { atMs: 1300, label: "Face + speech", focus: "face", zoom: 1.9 },
@@ -329,7 +283,7 @@ export const COOKBOOK: TutorialEntry[] = [
   entry("image-upscaling", {
     castId: "cookbook-image-upscaling",
     title: "Image Upscaling",
-    subtitle: "Pattern 14 · Enhancement & Upscaling",
+    subtitle: "Pattern 12 · Enhancement & Upscaling",
     replayWindowMs: 12000,
     steps: [
       { atMs: 1300, label: "Low-res in", focus: "lowres", zoom: 2.0 },
@@ -352,7 +306,7 @@ export const COOKBOOK: TutorialEntry[] = [
   entry("storyboard-to-video", {
     castId: "cookbook-storyboard-to-video",
     title: "Storyboard to Video",
-    subtitle: "Pattern 15 · Storyboard to Video",
+    subtitle: "Pattern 13 · Storyboard to Video",
     replayWindowMs: 15500,
     steps: [
       { atMs: 1300, label: "Story + scenes", focus: "scene2", zoom: 1.5 },

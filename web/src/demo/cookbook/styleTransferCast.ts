@@ -10,7 +10,7 @@
  */
 import { CAST_VERSION, type CastEvent, type DemoCast } from "../castTypes";
 import { castMessages, prop } from "../castHelpers";
-import { EXAMPLE_IMAGE_DATA_URI } from "../assets/exampleImage";
+import { STYLE_CONTENT_IMAGE_DATA_URI } from "../assets/cookbookImages";
 import {
   OUTPUT_NODE_TYPE,
   cookbookWorkflow,
@@ -32,7 +32,7 @@ const WF = "wf-cookbook-style-transfer";
 const JOB = "cookbook-style-transfer-job";
 const m = castMessages(WF, JOB);
 
-const image = { type: "image", uri: EXAMPLE_IMAGE_DATA_URI };
+const image = { type: "image", uri: STYLE_CONTENT_IMAGE_DATA_URI };
 const CAPTION = "a ginger kitten holding a hello world sign on a sunny street";
 
 const nodes = [

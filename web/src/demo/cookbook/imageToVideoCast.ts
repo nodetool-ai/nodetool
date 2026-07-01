@@ -11,7 +11,7 @@
  */
 import { CAST_VERSION, type CastEvent, type DemoCast } from "../castTypes";
 import { castMessages, prop } from "../castHelpers";
-import { EXAMPLE_IMAGE_DATA_URI } from "../assets/exampleImage";
+import { VIDEO_STILL_IMAGE_DATA_URI } from "../assets/cookbookImages";
 import { SAMPLE_VIDEO_WEBM_DATA_URI } from "../assets/sampleMedia";
 import {
   OUTPUT_NODE_TYPE,
@@ -33,7 +33,7 @@ const WF = "wf-cookbook-image-to-video";
 const JOB = "cookbook-image-to-video-job";
 const m = castMessages(WF, JOB);
 
-const image = { type: "image", uri: EXAMPLE_IMAGE_DATA_URI };
+const image = { type: "image", uri: VIDEO_STILL_IMAGE_DATA_URI };
 const MOTION = "slow zoom in, gentle camera pan, the kitten blinks";
 const video = { type: "video", uri: SAMPLE_VIDEO_WEBM_DATA_URI, metadata: { format: "webm" } };
 

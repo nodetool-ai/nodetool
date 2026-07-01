@@ -11,7 +11,7 @@
 import { PREVIEW_NODE_TYPE } from "../../constants/nodeTypes";
 import { CAST_VERSION, type CastEvent, type DemoCast } from "../castTypes";
 import { castMessages, prop } from "../castHelpers";
-import { EXAMPLE_IMAGE_DATA_URI } from "../assets/exampleImage";
+import { STORY_SCENE_IMAGE_DATA_URI } from "../assets/cookbookImages";
 import { SAMPLE_AUDIO_WAV_DATA_URI } from "../assets/sampleMedia";
 import {
   audioNodeMeta,
@@ -32,7 +32,7 @@ const WF = "wf-cookbook-image-to-story";
 const JOB = "cookbook-image-to-story-job";
 const m = castMessages(WF, JOB);
 
-const image = { type: "image", uri: EXAMPLE_IMAGE_DATA_URI };
+const image = { type: "image", uri: STORY_SCENE_IMAGE_DATA_URI };
 const audio = { type: "audio", uri: SAMPLE_AUDIO_WAV_DATA_URI, metadata: { format: "wav" } };
 
 const STORY_TOKENS = [

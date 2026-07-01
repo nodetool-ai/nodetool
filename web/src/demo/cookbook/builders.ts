@@ -111,17 +111,6 @@ export const audioInputMeta = (): NodeMetadata =>
     input_fields: [],
   });
 
-export const realtimeAudioInputMeta = (): NodeMetadata =>
-  meta({
-    node_type: "nodetool.input.RealtimeAudioInput",
-    title: "Realtime Audio Input",
-    properties: [prop("name", "str")],
-    outputs: [out("chunk", "audio", true)],
-    inline_fields: [],
-    input_fields: [],
-    is_streaming_output: true,
-  });
-
 export const previewMeta = (title = "Preview"): NodeMetadata =>
   meta({
     node_type: PREVIEW_NODE_TYPE,

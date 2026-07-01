@@ -292,6 +292,22 @@ npm run dev:nodetool -- node run <type> --props '{...}' --no-secrets   # hermeti
 npm run dev:nodetool -- node run <type> --props '{...}' --json
 ```
 
+### nodetool generate (Media Generation)
+
+Generate an image from any registered provider straight to a file — no workflow.
+Positional `<provider> <model> <prompt>`, with lenient name matching (`fal-ai` →
+`fal_ai`, `flux-schnell` → `fal-ai/flux/schnell` via the provider's model
+manifest). Currently covers text-to-image (and image-to-image with `--image`).
+Resolves the provider key from the secret store or env (e.g. `FAL_API_KEY`).
+
+```bash
+npm run dev:nodetool -- generate fal-ai flux-schnell "a red fox in snow" -o fox.png
+npm run dev:nodetool -- generate fal-ai flux-schnell "a logo" --aspect-ratio 1:1 -n 4
+npm run dev:nodetool -- generate fal-ai flux-dev "restyle this" --image in.png --strength 0.6
+npm run dev:nodetool -- generate fal-ai --list-models              # discover model ids
+npm run dev:nodetool -- generate fal-ai flux-schnell "..." --json  # machine-readable
+```
+
 ### nodetool affected (Changed-File → Workspace Mapping)
 
 Maps changed files (or the git working tree) to the minimal set of workspaces to

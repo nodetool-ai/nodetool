@@ -9,7 +9,7 @@
  */
 import { CAST_VERSION, type CastEvent, type DemoCast } from "../castTypes";
 import { castMessages, prop } from "../castHelpers";
-import { EXAMPLE_IMAGE_DATA_URI } from "../assets/exampleImage";
+import { AUDIO_DREAM_IMAGE_DATA_URI } from "../assets/cookbookImages";
 import { SAMPLE_AUDIO_WAV_DATA_URI } from "../assets/sampleMedia";
 import {
   OUTPUT_NODE_TYPE,
@@ -32,7 +32,7 @@ const JOB = "cookbook-audio-to-image-job";
 const m = castMessages(WF, JOB);
 
 const audio = { type: "audio", uri: SAMPLE_AUDIO_WAV_DATA_URI, metadata: { format: "wav" } };
-const image = { type: "image", uri: EXAMPLE_IMAGE_DATA_URI };
+const image = { type: "image", uri: AUDIO_DREAM_IMAGE_DATA_URI };
 
 const TRANSCRIPT_TOKENS = [
   "A fluffy ginger kitten ",

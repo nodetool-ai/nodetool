@@ -9,7 +9,7 @@
  */
 import { CAST_VERSION, type CastEvent, type DemoCast } from "../castTypes";
 import { castMessages, prop } from "../castHelpers";
-import { EXAMPLE_IMAGE_DATA_URI } from "../assets/exampleImage";
+import { UPSCALE_BEFORE_IMAGE_DATA_URI } from "../assets/cookbookImages";
 import {
   OUTPUT_NODE_TYPE,
   cookbookWorkflow,
@@ -28,7 +28,7 @@ const WF = "wf-cookbook-image-upscaling";
 const JOB = "cookbook-image-upscaling-job";
 const m = castMessages(WF, JOB);
 
-const image = { type: "image", uri: EXAMPLE_IMAGE_DATA_URI };
+const image = { type: "image", uri: UPSCALE_BEFORE_IMAGE_DATA_URI };
 
 const nodes = [
   node("lowres", IMAGE_INPUT, 0, 170, 300, "Low Res", { name: "lowres", value: image }),

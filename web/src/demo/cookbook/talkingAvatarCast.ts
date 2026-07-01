@@ -11,7 +11,7 @@
  */
 import { CAST_VERSION, type CastEvent, type DemoCast } from "../castTypes";
 import { castMessages, prop } from "../castHelpers";
-import { EXAMPLE_IMAGE_DATA_URI } from "../assets/exampleImage";
+import { AVATAR_FACE_IMAGE_DATA_URI } from "../assets/cookbookImages";
 import { SAMPLE_AUDIO_WAV_DATA_URI, SAMPLE_VIDEO_WEBM_DATA_URI } from "../assets/sampleMedia";
 import {
   OUTPUT_NODE_TYPE,
@@ -33,7 +33,7 @@ const WF = "wf-cookbook-talking-avatar";
 const JOB = "cookbook-talking-avatar-job";
 const m = castMessages(WF, JOB);
 
-const image = { type: "image", uri: EXAMPLE_IMAGE_DATA_URI };
+const image = { type: "image", uri: AVATAR_FACE_IMAGE_DATA_URI };
 const audio = { type: "audio", uri: SAMPLE_AUDIO_WAV_DATA_URI, metadata: { format: "wav" } };
 const video = { type: "video", uri: SAMPLE_VIDEO_WEBM_DATA_URI, metadata: { format: "webm" } };
 

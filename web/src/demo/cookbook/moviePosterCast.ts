@@ -13,7 +13,7 @@
 import { PREVIEW_NODE_TYPE } from "../../constants/nodeTypes";
 import { CAST_VERSION, type CastEvent, type DemoCast } from "../castTypes";
 import { castMessages, prop } from "../castHelpers";
-import { EXAMPLE_IMAGE_DATA_URI } from "../assets/exampleImage";
+import { MOVIE_POSTER_IMAGE_DATA_URI } from "../assets/cookbookImages";
 import {
   cookbookWorkflow,
   edge,
@@ -37,7 +37,7 @@ const WF = "wf-cookbook-movie-poster";
 const JOB = "cookbook-movie-poster-job";
 const m = castMessages(WF, JOB);
 
-const poster = { type: "image", uri: EXAMPLE_IMAGE_DATA_URI };
+const poster = { type: "image", uri: MOVIE_POSTER_IMAGE_DATA_URI };
 
 const STRATEGY_TOKENS = [
   "Lead with a lone hero ",

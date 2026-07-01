@@ -73,7 +73,7 @@ You'll learn how to wire several inputs into one node, compose text with
 
 Long text in, key points out. A single Summarizer node condenses an article,
 transcript, or any block of text into a short summary, streaming it as it
-writes — the pattern behind the Summarize Paper and Meeting Transcript examples.
+writes — the pattern behind the Meeting Transcript Summarizer example.
 
 <video controls preload="metadata" poster="{{ '/assets/tutorials/summarize-text.jpg' | relative_url }}">
   <source src="{{ '/assets/tutorials/summarize-text.mp4' | relative_url }}" type="video/mp4">

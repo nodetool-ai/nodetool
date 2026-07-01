@@ -53,6 +53,7 @@ import { registerDbCommands } from "./commands/db.js";
 import { registerDebugCommands } from "./commands/debug.js";
 import { registerValidateCommand } from "./commands/validate.js";
 import { registerNodeCommands } from "./commands/node.js";
+import { registerGenerateCommand } from "./commands/generate.js";
 import { registerAffectedCommand } from "./commands/affected.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -1807,6 +1808,7 @@ registerDbCommands(program);
 registerDebugCommands(program);
 registerValidateCommand(program);
 registerNodeCommands(program);
+registerGenerateCommand(program);
 registerAffectedCommand(program);
 
 // ---------------------------------------------------------------------------
