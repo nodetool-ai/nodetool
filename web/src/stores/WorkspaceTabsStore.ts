@@ -21,7 +21,10 @@ export type WorkspaceTabType =
   | "timeline"
   | "model3d"
   | "audio"
-  | "text";
+  | "text"
+  // App pages (Settings, Costs, Model Manager, …) opened from the logo menu.
+  // `ref` is a PageTabKey; these have no edit mode.
+  | "page";
 
 export type WorkspaceTabMode = "view" | "edit";
 
