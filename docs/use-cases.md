@@ -7,7 +7,7 @@ image: /assets/use-cases/poster-singularity-1.png
 
 These are the showcase workflows from [nodetool.ai](https://nodetool.ai). Each
 one starts from a handful of inputs and ends with a finished result — a trailer,
-a product video, a set of poster concepts — built on a single canvas. Nothing is
+a batch of video ads, a set of poster concepts — built on a single canvas. Nothing is
 locked: swap a model, rewrite an agent's prompt, or drop in a new brief and run
 it again. The workflow is the reusable part, not the example output.
 
@@ -44,6 +44,20 @@ us, and you can switch any model for a better one the day it ships.
   </article>
 
   <article class="usecase-card">
+    <a href="{{ '/use-cases/ad-creative-factory' | relative_url }}" class="usecase-media">
+      <img src="{{ '/assets/use-cases/smartwatch.png' | relative_url }}" alt="Product photo feeding the Ad Creative Factory">
+    </a>
+    <div class="usecase-body">
+      <span class="usecase-tag">Advertising</span>
+      <h3><a href="{{ '/use-cases/ad-creative-factory' | relative_url }}">Ad Creative Factory</a></h3>
+      <p>One product photo and one offer become a batch of ready-to-test vertical video ads. A strategist agent plans a persona × angle test matrix, and every cell becomes a spoken hook, a staged scene, an animated clip, and a voiceover.</p>
+      <div class="pipeline-chips">
+        <span>Offer</span><span>Matrix</span><span>Hooks</span><span>Scenes</span><span>Ads</span>
+      </div>
+    </div>
+  </article>
+
+  <article class="usecase-card">
     <a href="{{ '/use-cases/movie-poster' | relative_url }}" class="usecase-media">
       <img src="{{ '/assets/use-cases/poster-singularity-1.png' | relative_url }}" alt="Movie poster concept from the Movie Poster Generator">
     </a>
@@ -56,11 +70,35 @@ us, and you can switch any model for a better one the day it ships.
       </div>
     </div>
   </article>
+
+  <article class="usecase-card">
+    <a href="{{ '/use-cases/podcast-repurposing-studio' | relative_url }}" class="usecase-media"></a>
+    <div class="usecase-body">
+      <span class="usecase-tag">Creators</span>
+      <h3><a href="{{ '/use-cases/podcast-repurposing-studio' | relative_url }}">Podcast Repurposing Studio</a></h3>
+      <p>Drop in one episode and ship the whole content pack: titles and show notes, a newsletter edition, five social posts, and quote cards rendered as square images. Transcribed once, written four ways.</p>
+      <div class="pipeline-chips">
+        <span>Episode</span><span>Transcript</span><span>Notes</span><span>Newsletter</span><span>Cards</span>
+      </div>
+    </div>
+  </article>
+
+  <article class="usecase-card">
+    <a href="{{ '/use-cases/seo-content-engine' | relative_url }}" class="usecase-media"></a>
+    <div class="usecase-body">
+      <span class="usecase-tag">Content</span>
+      <h3><a href="{{ '/use-cases/seo-content-engine' | relative_url }}">SEO Content Engine</a></h3>
+      <p>One topic in, a keyword-targeted article batch out. A strategist agent plans the cluster, and every brief becomes a full Markdown article with an editorial hero image — a cluster per run, not an article per invoice.</p>
+      <div class="pipeline-chips">
+        <span>Topic</span><span>Cluster</span><span>Briefs</span><span>Articles</span><span>Heroes</span>
+      </div>
+    </div>
+  </article>
 </div>
 
 ## Build your own
 
-These three are starting points, not limits. The same building blocks — inputs,
+These are starting points, not limits. The same building blocks — inputs,
 prompts, agents, and image/video/audio models on one canvas — cover far more
 ground. For smaller, single-purpose examples, see the [Workflow
 Gallery]({{ '/workflows/' | relative_url }}) and the

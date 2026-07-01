@@ -18,7 +18,7 @@ jest.mock("../../websocket/GlobalWebSocketManager", () => {
     }
   };
 });
-jest.mock("../../env", () => ({ isLocalhost: true }));
+jest.mock("../../runtimeConfig", () => ({ isAuthRequired: () => false }));
 jest.mock("../../supabaseClient", () => ({
   supabase: { auth: { getSession: jest.fn() } }
 }));

@@ -134,6 +134,11 @@ describe("isIpInCidr", () => {
     expect(isIpInCidr("172.17.0.1", "")).toBe(false);
     expect(isIpInCidr("172.17.0.1", "172.16.0.0/99")).toBe(false);
   });
+
+  it("rejects a trailing-slash CIDR instead of degrading to /0", () => {
+    expect(isIpInCidr("8.8.8.8", "172.16.0.0/")).toBe(false);
+    expect(isIpInCidr("172.17.0.1", "172.16.0.0/")).toBe(false);
+  });
 });
 
 describe("isTrustedLocalAddress", () => {

@@ -19,7 +19,8 @@ const VALID_DRAG_TYPES: ReadonlySet<string> = new Set<DragDataType>([
   "timeline",
   "file",
   "tab",
-  "collection-file"
+  "collection-file",
+  "chat-media"
 ]);
 
 function isDragData(value: unknown): value is DragData {
@@ -72,7 +73,8 @@ const LEGACY_KEY_MAP: Record<DragDataType, string> = {
   timeline: "timeline",
   file: "", // External files don't use custom keys
   tab: "text/plain",
-  "collection-file": ""
+  "collection-file": "",
+  "chat-media": "" // Only carried in the unified format
 };
 
 /**

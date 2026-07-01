@@ -125,6 +125,7 @@ export function isIpInCidr(ip: string | undefined | null, cidr: string): boolean
   const ipInt = ipv4ToInt(toIpv4(ip));
   const rangeInt = ipv4ToInt(toIpv4(range));
   if (ipInt !== null && rangeInt !== null) {
+    if (prefixStr === "") return false;
     const prefix = prefixStr === null ? 32 : Number(prefixStr);
     if (!Number.isInteger(prefix) || prefix < 0 || prefix > 32) return false;
     const mask = prefix === 0 ? 0 : (0xffffffff << (32 - prefix)) >>> 0;

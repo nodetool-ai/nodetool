@@ -369,6 +369,7 @@ const AssetActions = ({
       {viewMode === "grid" && (
         <div className="asset-size-slider">
           <SliderBasic
+            size="small"
             defaultValue={settings.assetItemSize}
             aria-label="Small"
             tooltipText="Item Size"

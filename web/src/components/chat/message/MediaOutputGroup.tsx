@@ -41,6 +41,10 @@ import {
   useAddMediaToCanvas,
   type MediaContentBlock
 } from "../../../hooks/handlers/useGenerationToCanvas";
+import { serializeDragData } from "../../../lib/dragdrop";
+
+/** Edge length of a generated-media thumbnail tile (px). */
+const THUMBNAIL_SIZE = 120;
 
 const VIDEO_STYLE: React.CSSProperties = { width: "100%", height: "100%" };
 const AUDIO_STYLE: React.CSSProperties = { width: "100%", padding: getSpacingPx(SPACING.lg) };
@@ -135,25 +139,29 @@ const styles = (theme: Theme) =>
       display: "grid",
       gap: 8,
       width: "100%",
-      "&.count-1": { gridTemplateColumns: "1fr" },
-      "&.count-2": { gridTemplateColumns: "1fr 1fr" },
-      "&.count-3": {
-        gridTemplateColumns: "1fr 1fr",
-        "& > :nth-of-type(1)": { gridColumn: "1 / span 2" }
-      },
-      "&.count-4": { gridTemplateColumns: "1fr 1fr" },
-      "&.count-many": {
-        gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))"
-      }
+      gridTemplateColumns: `repeat(auto-fill, ${THUMBNAIL_SIZE}px)`,
+      justifyContent: "start"
     },
 
     ".media-grid > *": {
       position: "relative",
-      width: "100%",
-      aspectRatio: "auto",
+      width: THUMBNAIL_SIZE,
+      height: THUMBNAIL_SIZE,
       borderRadius: BORDER_RADIUS.lg,
       overflow: "hidden",
-      background: theme.vars.palette.grey[900]
+      background: theme.vars.palette.grey[900],
+      cursor: "grab"
+    },
+
+    ".media-grid > *:active": {
+      cursor: "grabbing"
+    },
+
+    // Audio has no meaningful thumbnail — let its player span the full row.
+    ".media-grid > .audio-tile": {
+      gridColumn: "1 / -1",
+      width: "100%",
+      height: "auto"
     },
 
     ".media-grid img, .media-grid video": {
@@ -238,6 +246,13 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
     (block: MediaContentBlock) => addBlocksToCanvas([block]),
     [addBlocksToCanvas]
   );
+  const handleDragStart = useCallback(
+    (e: React.DragEvent, block: MediaContentBlock) => {
+      serializeDragData({ type: "chat-media", payload: block }, e.dataTransfer);
+      e.dataTransfer.effectAllowed = "copy";
+    },
+    []
+  );
   const addAll = useCallback(
     () =>
       addBlocksToCanvas(
@@ -265,17 +280,6 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
   const title = titleFromPrompt(prompt);
 
   const pending = useMemo(() => pendingTiles(gen), [gen]);
-  const count = isPending ? pending.count : mediaContents.length;
-  const gridClass =
-    count === 1
-      ? "count-1"
-      : count === 2
-        ? "count-2"
-        : count === 3
-          ? "count-3"
-          : count === 4
-            ? "count-4"
-            : "count-many";
 
   return (
     <div css={cssStyles} className="media-output-group">
@@ -363,13 +367,13 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
         </FlexRow>
       </div>
 
-      <div className={`media-grid ${gridClass}`}>
+      <div className="media-grid">
         {isPending
           ? Array.from({ length: pending.count }, (_, i) => (
               <div
                 key={`pending-${i}`}
                 className={`media-tile-shimmer${
-                  pending.kind === "audio" ? " audio-shimmer" : ""
+                  pending.kind === "audio" ? " audio-shimmer audio-tile" : ""
                 }`}
                 style={
                   pending.kind !== "audio" && pending.aspectRatio
@@ -387,7 +391,11 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
               c.image?.uri || (c.image?.data as string | undefined) || "";
             const key = c.image?.asset_id || c.image?.uri || `media-${i}`;
             return (
-              <div key={key}>
+              <div
+                key={key}
+                draggable
+                onDragStart={(e) => handleDragStart(e, c)}
+              >
                 <ImageView source={src} />
                 {isCanvasAvailable && (
                   <ToolbarIconButton
@@ -406,7 +414,11 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
             const src = c.video?.uri || "";
             const key = c.video?.asset_id || c.video?.uri || `media-${i}`;
             return (
-              <div key={key}>
+              <div
+                key={key}
+                draggable
+                onDragStart={(e) => handleDragStart(e, c)}
+              >
                 <video
                   src={src}
                   controls
@@ -432,7 +444,12 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
             const src = c.audio?.uri || "";
             const key = c.audio?.asset_id || c.audio?.uri || `media-${i}`;
             return (
-              <div key={key}>
+              <div
+                key={key}
+                className="audio-tile"
+                draggable
+                onDragStart={(e) => handleDragStart(e, c)}
+              >
                 <audio
                   src={src}
                   controls

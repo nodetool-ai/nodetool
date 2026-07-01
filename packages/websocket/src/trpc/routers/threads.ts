@@ -35,6 +35,7 @@ function toThreadResponse(thread: ThreadModel): ThreadResponse {
   return {
     id: thread.id,
     user_id: thread.user_id,
+    workflow_id: thread.workflow_id ?? null,
     title: thread.title,
     created_at: thread.created_at,
     updated_at: thread.updated_at,
@@ -91,7 +92,10 @@ export const threadsRouter = router({
       const [threads, cursor] = await Thread.paginate(ctx.userId, {
         limit: input.limit,
         startKey: input.cursor,
-        reverse: input.reverse
+        reverse: input.reverse,
+        ...(input.workflow_id !== undefined
+          ? { workflowId: input.workflow_id }
+          : {})
       });
       return {
         threads: threads.map((t) => toThreadResponse(t)),
@@ -117,6 +121,7 @@ export const threadsRouter = router({
       const title = input.title ?? "New Thread";
       const thread = (await Thread.create({
         user_id: ctx.userId,
+        workflow_id: input.workflow_id ?? null,
         title
       })) as unknown as ThreadModel;
       return toThreadResponse(thread);

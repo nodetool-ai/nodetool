@@ -59,6 +59,10 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Compute short SHA
+        id: vars
+        run: echo "short_sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v6
@@ -82,6 +86,8 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             USE_LOCAL_REPO=1
+            GIT_COMMIT_HASH=${{ steps.vars.outputs.short_sha }}
+            BUILD_NUMBER=${{ github.run_number }}
           no-cache-filters: |
             pip-deps
           cache-from: type=registry,ref=ghcr.io/nodetool-ai/nodetool:buildcache

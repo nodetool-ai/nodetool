@@ -44,10 +44,16 @@ jest.mock("../../../stores/GlobalChatStore", () => ({
   default: useGlobalChatStore
 }));
 
-jest.mock("../../../contexts/NodeContext", () => ({
-  useNodes: (selector: (s: { workflow: { id: string } }) => unknown) =>
-    selector({ workflow: { id: "canvas-doc-id" } })
-}));
+jest.mock("../../../contexts/NodeContext", () => {
+  const actualReact = jest.requireActual("react");
+  return {
+    // A real context (defaulting to null) so useAddMediaToCanvas, pulled in via
+    // the auto-add-to-canvas hook, resolves to "no canvas" instead of crashing.
+    NodeContext: actualReact.createContext(null),
+    useNodes: (selector: (s: { workflow: { id: string } }) => unknown) =>
+      selector({ workflow: { id: "canvas-doc-id" } })
+  };
+});
 
 import CanvasMediaComposer from "../CanvasMediaComposer";
 

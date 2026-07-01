@@ -198,6 +198,7 @@ describe("messages router", () => {
       expect(Message.create).toHaveBeenCalledWith({
         user_id: "user-1",
         thread_id: "t1",
+        workflow_id: null,
         role: "user",
         name: null,
         content: "hello",
@@ -224,6 +225,7 @@ describe("messages router", () => {
       });
       expect(Thread.create).toHaveBeenCalledWith({
         user_id: "user-1",
+        workflow_id: null,
         title: "New Thread"
       });
       expect(result.thread_id).toBe("auto-thread");
