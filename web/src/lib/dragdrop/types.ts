@@ -61,6 +61,14 @@ export interface DragMetadata {
   sourceName?: string;
   count?: number;
   thumbnailUrl?: string;
+  /**
+   * Full Asset objects for an "assets-multiple" drag, captured at drag-start
+   * time. Consumers should prefer this over looking assets up by id in an
+   * AssetGridStore, since the store that produced the drag (a scoped
+   * sidebar panel) may not be the same store instance the drop target reads
+   * from.
+   */
+  assets?: Asset[];
 }
 
 /**

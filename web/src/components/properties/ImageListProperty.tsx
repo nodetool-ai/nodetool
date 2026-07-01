@@ -11,7 +11,11 @@ import isEqual from "fast-deep-equal";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import ImageDimensions from "../node/ImageDimensions";
 import { isElectron } from "../../utils/browser";
-import { deserializeDragData, hasExternalFiles } from "../../lib/dragdrop";
+import {
+  deserializeDragData,
+  hasExternalFiles,
+  resolveAssetsMultiple
+} from "../../lib/dragdrop";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useUpstreamValue } from "../../hooks/nodes/useNodeIO";
 
@@ -263,25 +267,11 @@ const ImageListProperty = (props: PropertyProps) => {
         // Handle multiple assets
         if (dragData.type === "assets-multiple") {
           const selectedIds = dragData.payload as string[];
-          // Optimize: Use Set for O(1) lookup and single-pass iteration
-          const selectedIdsSet = new Set(selectedIds);
-          const uniqueAssets = [];
-          const seenIds = new Set<string>();
-
-          // Single pass through all potential assets
-          for (const asset of [
-            ...filteredAssets,
-            ...globalSearchResults,
-            ...(selectedAssets || [])
-          ]) {
-            if (
-              selectedIdsSet.has(asset.id) &&
-              !seenIds.has(asset.id)
-            ) {
-              uniqueAssets.push(asset);
-              seenIds.add(asset.id);
-            }
-          }
+          const uniqueAssets = resolveAssetsMultiple(
+            selectedIds,
+            dragData.metadata?.assets,
+            [...filteredAssets, ...globalSearchResults, ...(selectedAssets || [])]
+          );
 
           uniqueAssets.forEach(asset => {
             if (asset.get_url && asset.content_type?.startsWith("image/")) {

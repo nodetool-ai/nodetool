@@ -194,6 +194,39 @@ export function deserializeDragData(dataTransfer: DataTransfer): DragData | null
 }
 
 /**
+ * Resolve the full Asset objects for an "assets-multiple" drag.
+ *
+ * Prefers the assets captured on `dragData.metadata.assets` at drag-start
+ * time, since the AssetGridStore instance that produced the drag (a scoped
+ * sidebar panel) may not be the store instance the drop target reads from.
+ * Falls back to looking the ids up in `fallbackAssets` (e.g. a singleton
+ * store's cached assets) for drags that predate the metadata field.
+ */
+export function resolveAssetsMultiple(
+  ids: string[],
+  metadataAssets: Asset[] | undefined,
+  fallbackAssets: Asset[]
+): Asset[] {
+  const idOrder = new Map(ids.map((id, index) => [id, index]));
+  const byId = new Map<string, Asset>();
+
+  for (const asset of metadataAssets ?? []) {
+    if (idOrder.has(asset.id)) byId.set(asset.id, asset);
+  }
+  if (byId.size < idOrder.size) {
+    for (const asset of fallbackAssets) {
+      if (idOrder.has(asset.id) && !byId.has(asset.id)) {
+        byId.set(asset.id, asset);
+      }
+    }
+  }
+
+  return ids
+    .map((id) => byId.get(id))
+    .filter((asset): asset is Asset => asset !== undefined);
+}
+
+/**
  * Check if dataTransfer contains external files
  */
 export function hasExternalFiles(dataTransfer: DataTransfer): boolean {

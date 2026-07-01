@@ -2,7 +2,10 @@ import { useCallback, useState } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import useContextMenu from "../../stores/ContextMenuStore";
 import { useAssetUpdate } from "../../serverState/useAssetUpdate";
-import { useAssetGridStore } from "../../stores/AssetGridStore";
+import {
+  useAssetGridStore,
+  useAssetGridStoreApi
+} from "../../stores/AssetGridStore";
 import { useShallow } from "zustand/react/shallow";
 import {
   serializeDragData,
@@ -34,6 +37,7 @@ export const useAssetActions = (asset: Asset) => {
   const { mutation: updateAssetMutation } = useAssetUpdate();
   const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
   const clearDrag = useDragDropStore((s) => s.clearDrag);
+  const assetGridStoreApi = useAssetGridStoreApi();
 
   const handleClick = useCallback(
     (
@@ -83,11 +87,23 @@ export const useAssetActions = (asset: Asset) => {
           e.dataTransfer
         );
       } else {
+        const allSelectedAssets =
+          assetGridStoreApi.getState().selectedAssets || [];
+        const assetsById = new Map(
+          [...allSelectedAssets, asset].map((a) => [a.id, a])
+        );
+        const resolvedAssets = assetIds
+          .map((id) => assetsById.get(id))
+          .filter((a): a is Asset => a !== undefined);
         serializeDragData(
           {
             type: "assets-multiple",
             payload: assetIds,
-            metadata: { count: assetIds.length, sourceId: asset.id }
+            metadata: {
+              count: assetIds.length,
+              sourceId: asset.id,
+              assets: resolvedAssets
+            }
           },
           e.dataTransfer
         );
@@ -100,7 +116,7 @@ export const useAssetActions = (asset: Asset) => {
       // Create and set drag image using the unified utility
       // Try to get other selected assets from store for preview
       const allSelectedAssets =
-        useAssetGridStore.getState().selectedAssets || [];
+        assetGridStoreApi.getState().selectedAssets || [];
       const dragImage = createAssetDragImage(
         asset,
         assetIds.length,
@@ -118,7 +134,7 @@ export const useAssetActions = (asset: Asset) => {
         metadata: { count: assetIds.length, sourceId: asset.id }
       });
     },
-    [selectedAssetIds, setSelectedAssetIds, asset, setActiveDrag]
+    [selectedAssetIds, setSelectedAssetIds, asset, setActiveDrag, assetGridStoreApi]
   );
 
   const handleDragEnd = useCallback(() => {

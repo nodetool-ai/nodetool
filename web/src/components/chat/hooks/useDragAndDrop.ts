@@ -5,7 +5,8 @@ import { useAssetGridStore } from "../../../stores/AssetGridStore";
 import {
   deserializeDragData,
   hasExternalFiles,
-  extractFiles
+  extractFiles,
+  resolveAssetsMultiple
 } from "../../../lib/dragdrop";
 
 // Generate a unique ID for each file
@@ -76,11 +77,18 @@ export const useDragAndDrop = (
           // Handle multiple assets
           if (dragData.type === "assets-multiple") {
             const selectedIds = dragData.payload as string[];
-            const selectedIdsSet = new Set(selectedIds);
-            const { filteredAssets, globalSearchResults } = useAssetGridStore.getState();
-            const potentialAssets = [...filteredAssets, ...globalSearchResults, ...(useAssetGridStore.getState().selectedAssets || [])];
-            const foundAssets = potentialAssets.filter(a => selectedIdsSet.has(a.id));
-            const uniqueAssets = Array.from(new Map(foundAssets.map(item => [item.id, item])).values());
+            const { filteredAssets, globalSearchResults, selectedAssets } =
+              useAssetGridStore.getState();
+            const fallbackAssets = [
+              ...filteredAssets,
+              ...globalSearchResults,
+              ...(selectedAssets || [])
+            ];
+            const uniqueAssets = resolveAssetsMultiple(
+              selectedIds,
+              dragData.metadata?.assets,
+              fallbackAssets
+            );
             const resolved = await Promise.all(uniqueAssets.filter(a => a.get_url).map(assetToDroppedFile));
             droppedFiles.push(...resolved);
           }
