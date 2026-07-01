@@ -43,6 +43,7 @@ function makeCtx(overrides: Partial<Context> = {}): Context {
 function makeThread(opts: {
   id?: string;
   user_id?: string;
+  workflow_id?: string | null;
   title?: string;
   etag?: string;
   created_at?: string;
@@ -51,6 +52,7 @@ function makeThread(opts: {
   const stub = {
     id: opts.id ?? "t1",
     user_id: opts.user_id ?? "user-1",
+    workflow_id: opts.workflow_id ?? null,
     title: opts.title ?? "Alpha",
     created_at: opts.created_at ?? "2026-01-01T00:00:00Z",
     updated_at: opts.updated_at ?? "2026-01-01T00:00:00Z",
@@ -136,6 +138,24 @@ describe("threads router", () => {
       });
     });
 
+    it("scopes the list to a workflow when workflow_id is given", async () => {
+      const t = makeThread({ id: "t1", workflow_id: "wf-1" });
+      (Thread.paginate as ReturnType<typeof vi.fn>).mockResolvedValue([
+        [t],
+        ""
+      ]);
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.threads.list({ workflow_id: "wf-1" });
+      expect(Thread.paginate).toHaveBeenCalledWith("user-1", {
+        limit: 10,
+        startKey: undefined,
+        reverse: undefined,
+        workflowId: "wf-1"
+      });
+      expect(result.threads[0]?.workflow_id).toBe("wf-1");
+    });
+
     it("rejects unauthenticated callers", async () => {
       const caller = createCaller(makeCtx({ userId: null }));
       await expect(caller.threads.list({})).rejects.toMatchObject({
@@ -154,6 +174,7 @@ describe("threads router", () => {
       const result = await caller.threads.create({ title: "My Thread" });
       expect(Thread.create).toHaveBeenCalledWith({
         user_id: "user-1",
+        workflow_id: null,
         title: "My Thread"
       });
       expect(result.id).toBe("new-t");
@@ -168,6 +189,20 @@ describe("threads router", () => {
       await caller.threads.create({});
       expect(Thread.create).toHaveBeenCalledWith({
         user_id: "user-1",
+        workflow_id: null,
+        title: "New Thread"
+      });
+    });
+
+    it("binds the thread to a workflow when workflow_id is given", async () => {
+      const t = makeThread({ id: "wf-t", title: "New Thread" });
+      (Thread.create as ReturnType<typeof vi.fn>).mockResolvedValue(t);
+
+      const caller = createCaller(makeCtx());
+      await caller.threads.create({ workflow_id: "wf-1" });
+      expect(Thread.create).toHaveBeenCalledWith({
+        user_id: "user-1",
+        workflow_id: "wf-1",
         title: "New Thread"
       });
     });

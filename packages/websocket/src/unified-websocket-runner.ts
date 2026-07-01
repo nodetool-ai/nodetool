@@ -2490,10 +2490,17 @@ export class UnifiedWebSocketRunner {
     };
   }
 
-  private async ensureThreadExists(threadId?: string): Promise<string> {
+  private async ensureThreadExists(
+    threadId?: string,
+    workflowId?: string | null
+  ): Promise<string> {
     const userId = this.userId ?? "1";
     if (!threadId) {
-      const thread = await Thread.create({ user_id: userId, title: "" });
+      const thread = await Thread.create({
+        user_id: userId,
+        workflow_id: workflowId ?? null,
+        title: ""
+      });
       return thread.id;
     }
     const existing = await Thread.find(userId, threadId);
@@ -2501,6 +2508,7 @@ export class UnifiedWebSocketRunner {
     const thread = await Thread.create({
       id: threadId,
       user_id: userId,
+      workflow_id: workflowId ?? null,
       title: ""
     });
     return thread.id;
@@ -2923,8 +2931,11 @@ export class UnifiedWebSocketRunner {
     data: Record<string, unknown>,
     requestSeq?: number
   ): Promise<void> {
+    const messageWorkflowId =
+      typeof data.workflow_id === "string" ? data.workflow_id : null;
     const threadId = await this.ensureThreadExists(
-      typeof data.thread_id === "string" ? data.thread_id : undefined
+      typeof data.thread_id === "string" ? data.thread_id : undefined,
+      messageWorkflowId
     );
     data.thread_id = threadId;
 
@@ -2934,8 +2945,7 @@ export class UnifiedWebSocketRunner {
 
     const providerId = data.provider as string;
     const model = data.model as string;
-    const workflowId =
-      typeof data.workflow_id === "string" ? data.workflow_id : null;
+    const workflowId = messageWorkflowId;
     const userId = this.userId ?? "1";
     log.debug("Chat message", { threadId, model, provider: providerId });
 

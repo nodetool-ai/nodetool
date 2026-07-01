@@ -61,6 +61,7 @@ export type ListOutput = z.infer<typeof listOutput>;
 // "New Thread" for the caller.
 export const createInput = z.object({
   thread_id: z.string().optional(),
+  workflow_id: z.string().nullable().optional(),
   role: z.string().min(1),
   name: z.string().nullable().optional(),
   content: z.union([

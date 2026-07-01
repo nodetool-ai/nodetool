@@ -87,6 +87,7 @@ export const messagesRouter = router({
       if (!threadId) {
         const thread = (await Thread.create({
           user_id: ctx.userId,
+          workflow_id: input.workflow_id ?? null,
           title: "New Thread"
         })) as unknown as { id: string };
         threadId = thread.id;
@@ -98,6 +99,7 @@ export const messagesRouter = router({
       const msg = (await Message.create({
         user_id: ctx.userId,
         thread_id: threadId,
+        workflow_id: input.workflow_id ?? null,
         role: input.role,
         name: input.name ?? null,
         content: contentStr,
