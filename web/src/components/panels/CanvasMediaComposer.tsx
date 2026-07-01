@@ -3,6 +3,7 @@ import { useShallow } from "zustand/react/shallow";
 
 import MediaChatComposer from "../chat/composer/MediaChatComposer";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
+import { useAutoAddGeneratedMediaToCanvas } from "../../hooks/handlers/useAutoAddGeneratedMediaToCanvas";
 import type { MessageContent } from "../../stores/ApiTypes";
 import type {
   ChatOutgoingMessage,
@@ -11,10 +12,11 @@ import type {
 
 /**
  * Media composer for the workflow canvas. Reuses the chat `MediaChatComposer`
- * so its generated image/video/audio results land in the chat panel's history;
- * from there the user can add them to the canvas via the per-asset hover
- * buttons (see {@link useAddMediaToCanvas}). Generation routes through the
- * normal chat pipeline.
+ * so its generated image/video/audio results land in the chat panel's history.
+ * Finished generations are auto-added to the canvas as constant nodes (see
+ * {@link useAutoAddGeneratedMediaToCanvas}); the per-asset hover buttons and
+ * drag-to-canvas remain for adding them again or placing them by hand.
+ * Generation routes through the normal chat pipeline.
  */
 export interface CanvasMediaComposerProps {
   /** Workflow controls (Run button + menu) rendered inside the composer
@@ -49,6 +51,9 @@ const CanvasMediaComposer: React.FC<CanvasMediaComposerProps> = ({
       setMemoryEnabled: state.setMemoryEnabled
     }))
   );
+
+  // Drop each finished generation onto the canvas automatically.
+  useAutoAddGeneratedMediaToCanvas();
 
   // Establish the chat connection lazily so generation works even when the
   // chat panel was never opened. Skip if it's already wired up by the panel.

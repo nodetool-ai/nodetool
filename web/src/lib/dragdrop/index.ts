@@ -8,6 +8,7 @@
 export type {
   DragDataType,
   DragPayloadMap,
+  ChatMediaDragPayload,
   SketchDragPayload,
   TimelineDragPayload,
   DragData,

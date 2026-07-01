@@ -17,6 +17,7 @@ import {
   useAddMediaToCanvas,
   type MediaContentBlock
 } from "../../../hooks/handlers/useGenerationToCanvas";
+import { serializeDragData } from "../../../lib/dragdrop";
 import {
   parseHarmonyContent,
   hasHarmonyTokens,
@@ -108,6 +109,21 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
     addBlocksToCanvas([content as MediaContentBlock]);
   }, [addBlocksToCanvas, content]);
 
+  const handleDragStart = useCallback(
+    (e: React.DragEvent) => {
+      serializeDragData(
+        { type: "chat-media", payload: content as MediaContentBlock },
+        e.dataTransfer
+      );
+      e.dataTransfer.effectAllowed = "copy";
+    },
+    [content]
+  );
+
+  const dragProps = isCanvasAvailable
+    ? { draggable: true, onDragStart: handleDragStart }
+    : {};
+
   const addButton = isCanvasAvailable ? (
     <ToolbarIconButton
       className="add-to-canvas-button"
@@ -165,7 +181,7 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
       }
 
       return (
-        <div css={wrapperStyles}>
+        <div css={wrapperStyles} {...dragProps}>
           <ImageView source={imageSource} />
           {addButton}
         </div>
@@ -174,7 +190,7 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
     case "audio":
       // Handle audio content in Harmony format
       return (
-        <div css={wrapperStyles}>
+        <div css={wrapperStyles} {...dragProps}>
           <AudioPlayer
             source={
               content.audio?.uri === ""
@@ -194,7 +210,7 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
         "video/mp4"
       );
       return (
-        <div css={wrapperStyles}>
+        <div css={wrapperStyles} {...dragProps}>
           <video ref={videoRef} controls style={videoStyle} src={uri} aria-label="Video content" />
           {addButton}
         </div>
