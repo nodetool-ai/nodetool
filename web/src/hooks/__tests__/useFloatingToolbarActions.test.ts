@@ -11,6 +11,7 @@ import { useMiniMapStore } from "../../stores/MiniMapStore";
 import { useRunWarningStore } from "../../stores/RunWarningStore";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useSearchProviderCalloutStore } from "../../stores/SearchProviderCalloutStore";
+import { useNotificationStore } from "../../stores/NotificationStore";
 
 jest.mock("react-router-dom", () => ({
   useNavigate: jest.fn(() => jest.fn()),
@@ -408,15 +409,51 @@ describe("useFloatingToolbarActions", () => {
   });
 
   describe("handleSave", () => {
-    it("saves workflow", () => {
+    beforeEach(() => {
+      useNotificationStore.getState().clearNotifications();
+    });
+
+    it("saves workflow", async () => {
       const { result } = renderHook(() => useFloatingToolbarActions());
 
-      act(() => {
-        result.current.handleSave();
+      await act(async () => {
+        await result.current.handleSave();
       });
 
       expect(mockGetWorkflow).toHaveBeenCalledWith("workflow-123");
       expect(mockSaveWorkflow).toHaveBeenCalled();
+    });
+
+    it("shows a success notification after saving", async () => {
+      mockSaveWorkflow.mockResolvedValueOnce(undefined);
+      const { result } = renderHook(() => useFloatingToolbarActions());
+
+      await act(async () => {
+        await result.current.handleSave();
+      });
+
+      const notifications = useNotificationStore.getState().notifications;
+      expect(notifications).toHaveLength(1);
+      expect(notifications[0]).toMatchObject({
+        type: "success",
+        content: expect.stringContaining("saved")
+      });
+    });
+
+    it("shows an error notification when saving fails", async () => {
+      mockSaveWorkflow.mockRejectedValueOnce(new Error("boom"));
+      const { result } = renderHook(() => useFloatingToolbarActions());
+
+      await act(async () => {
+        await result.current.handleSave();
+      });
+
+      const notifications = useNotificationStore.getState().notifications;
+      expect(notifications).toHaveLength(1);
+      expect(notifications[0]).toMatchObject({
+        type: "error",
+        content: expect.stringContaining("boom")
+      });
     });
 
     it("does nothing when workflow is null", () => {
