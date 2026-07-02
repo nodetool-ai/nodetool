@@ -9,6 +9,9 @@
     "lint": "next lint",
     "og:screenshots": "next build && node scripts/generate-og-screenshots.mjs",
     "test:e2e": "playwright test",
+    "seo:seed": "tsx seo/seed.ts",
+    "seo:ingest": "node scripts/ingest-showcase.mjs",
+    "seo:typecheck": "tsc -p seo/tsconfig.json --noEmit",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"

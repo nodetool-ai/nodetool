@@ -17,6 +17,10 @@
 /.next/
 /out/
 
+# showcase seeder batch output (assets + manifest.jsonl) — ingested into
+# src/data + public/showcase, the raw batches are not committed
+/seo/out/
+
 # production
 /build
 
