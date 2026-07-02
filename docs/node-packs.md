@@ -17,7 +17,7 @@ A Node Pack can include any combination of:
 | **Node definitions** | New processing nodes that appear in the Node Menu |
 | **npm dependencies** | Required libraries bundled with the pack |
 | **Workflow templates** | Pre-built workflows that demonstrate the pack's capabilities |
-| **Chat tools** | Tools accessible from Global Chat agents |
+| **Chat tools** | Tools accessible from chat agents |
 
 ---
 

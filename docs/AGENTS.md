@@ -495,7 +495,7 @@ avoids the SDK's refusal to run that flag as `uid=0`.
 ## Related Pages
 
 - [Agent Memory System](agent-memory.md) — Unified memory across all agent types: API, propagation, examples
-- [Global Chat & Agents](global-chat-agents.md) — Using agents in the chat interface
+- [Chat & Agents](global-chat-agents.md) — Using agents in the chat interface
 - [Agent CLI](agent-cli.md) — Running agents from the command line
 - [Agent Configuration Schema](agent-config-schema.md) — YAML configuration reference
 - [Custom Nodes Guide](developer/custom-nodes-guide.md) — Building custom workflow nodes

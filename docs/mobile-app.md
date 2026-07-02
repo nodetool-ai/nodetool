@@ -341,5 +341,5 @@ eas build --platform ios --profile production
 - [Getting Started](getting-started.md) – Desktop setup and first workflow
 - [User Interface](user-interface.md) – Full UI guide
 - [Mini Apps](user-interface.md#mini-apps) – Creating Mini Apps
-- [Global Chat](global-chat-agents.md) – Chat features in detail
+- [Chat & Agents](global-chat-agents.md) – Chat features in detail
 - [API Reference](api-reference.md) – Server API documentation

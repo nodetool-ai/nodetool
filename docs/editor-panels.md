@@ -190,5 +190,5 @@ To reset: open the command menu (`Ctrl+K` / `⌘+K`), type "reset layout", and h
 ## Next Steps
 
 - [Workflow Editor]({{ '/workflow-editor' | relative_url }}) — building on the canvas
-- [Global Chat]({{ '/global-chat' | relative_url }}) — how the in-editor chat works
+- [Chat]({{ '/global-chat' | relative_url }}) — how the in-editor chat works
 - [Configuration]({{ '/configuration' | relative_url }}) — settings that affect the editor

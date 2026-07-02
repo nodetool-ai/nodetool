@@ -364,6 +364,6 @@ describe("YourProvider", () => {
 ## See Also
 
 - [Chat API](chat-api.md) - WebSocket API for chat interactions and provider routing
-- [Global Chat](global-chat.md) - UI reference for multi-turn chat threads
+- [Chat](global-chat.md) - UI reference for multi-turn chat threads
 - [Agents](global-chat.md#agent-mode) - Using providers with the agent system
 - [Workflow API](workflow-api.md) - Building workflows with providers

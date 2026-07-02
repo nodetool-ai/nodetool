@@ -373,7 +373,7 @@ model:
 
 ## Related Documentation
 
-- [Global Chat & Agents](global-chat-agents.md) — Agent system overview
+- [Chat & Agents](global-chat-agents.md) — Agent system overview
 - [Chat CLI](chat-cli.md) — Interactive chat interface
 - [NodeTool CLI](cli.md) — Complete CLI reference
 - [Agent Configuration Schema](agent-config-schema.md) — YAML configuration reference

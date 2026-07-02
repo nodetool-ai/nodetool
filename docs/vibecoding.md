@@ -182,6 +182,6 @@ Feel free to reference known patterns:
 ## Related Topics
 
 - [Workflow Editor](workflow-editor.md) – Build workflows visually
-- [Global Chat](global-chat.md) – AI assistant interface
+- [Chat](global-chat.md) – AI assistant interface
 - [User Interface](user-interface.md) – UI overview
 - [Key Concepts](key-concepts.md) – Core NodeTool concepts
