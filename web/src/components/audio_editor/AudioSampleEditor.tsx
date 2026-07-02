@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore
+} from "react";
 
 import {
   Box,
@@ -14,6 +21,7 @@ import { useSaveAudioToAsset } from "../../hooks/audio/useSaveAudioToAsset";
 import WaveformView, { type Selection } from "./WaveformView";
 import AudioEditorToolbar from "./AudioEditorToolbar";
 import { useEditHistory } from "./useEditHistory";
+import { createPlayheadStore, type PlayheadStore } from "./playheadStore";
 import {
   applyGain,
   audioBufferToSample,
@@ -63,11 +71,36 @@ const formatTime = (seconds: number): string => {
   return `${m}:${String(s).padStart(2, "0")}.${String(ms).padStart(3, "0")}`;
 };
 
+/** Clock in the footer — the only editor text that updates during playback. */
+const PlaybackClock = memo(function PlaybackClock({
+  playhead,
+  duration
+}: {
+  playhead: PlayheadStore;
+  duration: number;
+}) {
+  const seconds = useSyncExternalStore(
+    playhead.subscribe,
+    playhead.get,
+    playhead.get
+  );
+  return (
+    <Caption>
+      {formatTime(seconds)} / {formatTime(duration)}
+    </Caption>
+  );
+});
+
 /**
  * In-browser audio sample editor (Audacity-style): decode an asset into PCM,
  * select a region on the waveform, apply destructive edits (trim, delete,
  * silence, fade, normalize, reverse, gain) with undo/redo, audition with the
  * transport, and save the result back to the asset as WAV.
+ *
+ * The playhead advances every animation frame during playback, so it lives in
+ * an external store (`playheadStore`) rather than state here — only the
+ * playhead line and the clock subscribe, and this component doesn't re-render
+ * per frame.
  */
 const AudioSampleEditor = ({ asset, onClose }: AudioSampleEditorProps) => {
   const history = useEditHistory<AudioSample>();
@@ -82,12 +115,7 @@ const AudioSampleEditor = ({ asset, onClose }: AudioSampleEditorProps) => {
   const selectionRef = useRef<Selection | null>(null);
   selectionRef.current = selection;
 
-  const [playhead, setPlayheadState] = useState(0);
-  const playheadRef = useRef(0);
-  const setPlayhead = useCallback((value: number) => {
-    playheadRef.current = value;
-    setPlayheadState(value);
-  }, []);
+  const [playhead] = useState(createPlayheadStore);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [loop, setLoop] = useState(false);
@@ -97,6 +125,10 @@ const AudioSampleEditor = ({ asset, onClose }: AudioSampleEditorProps) => {
 
   const audioCtxRef = useRef<AudioContext | null>(null);
   const sourceRef = useRef<AudioBufferSourceNode | null>(null);
+  const playBufferRef = useRef<{
+    sample: AudioSample;
+    buffer: AudioBuffer;
+  } | null>(null);
   const rafRef = useRef<number | null>(null);
   const startCtxTimeRef = useRef(0);
   const startOffsetRef = useRef(0);
@@ -146,12 +178,20 @@ const AudioSampleEditor = ({ asset, onClose }: AudioSampleEditorProps) => {
     const useLoop = loopRef.current;
     const begin = Math.max(
       0,
-      Math.min(sel ? sel.start : playheadRef.current, duration)
+      Math.min(sel ? sel.start : playhead.get(), duration)
     );
     const end = sel ? sel.end : duration;
 
     const src = ctx.createBufferSource();
-    src.buffer = sampleToAudioBuffer(current, ctx);
+    // Building the AudioBuffer copies every channel, so reuse it while the
+    // sample is unchanged (replay, loop, seek-and-play).
+    if (playBufferRef.current?.sample !== current) {
+      playBufferRef.current = {
+        sample: current,
+        buffer: sampleToAudioBuffer(current, ctx)
+      };
+    }
+    src.buffer = playBufferRef.current.buffer;
     src.connect(ctx.destination);
     if (useLoop) {
       src.loop = true;
@@ -169,7 +209,7 @@ const AudioSampleEditor = ({ asset, onClose }: AudioSampleEditorProps) => {
       if (loopRef.current) return;
       teardownSource();
       setIsPlaying(false);
-      setPlayhead(selectionRef.current ? selectionRef.current.start : begin);
+      playhead.set(selectionRef.current ? selectionRef.current.start : begin);
     };
     sourceRef.current = src;
     setIsPlaying(true);
@@ -183,11 +223,11 @@ const AudioSampleEditor = ({ asset, onClose }: AudioSampleEditorProps) => {
       } else if (t > endRef.current) {
         t = endRef.current;
       }
-      setPlayhead(t);
+      playhead.set(t);
       rafRef.current = requestAnimationFrame(tick);
     };
     rafRef.current = requestAnimationFrame(tick);
-  }, [getCtx, teardownSource, setPlayhead]);
+  }, [getCtx, teardownSource, playhead]);
 
   const pause = useCallback(() => {
     teardownSource();
@@ -197,8 +237,8 @@ const AudioSampleEditor = ({ asset, onClose }: AudioSampleEditorProps) => {
   const stop = useCallback(() => {
     teardownSource();
     setIsPlaying(false);
-    setPlayhead(selectionRef.current ? selectionRef.current.start : 0);
-  }, [teardownSource, setPlayhead]);
+    playhead.set(selectionRef.current ? selectionRef.current.start : 0);
+  }, [teardownSource, playhead]);
 
   const togglePlay = useCallback(() => {
     if (isPlaying) pause();
@@ -252,10 +292,10 @@ const AudioSampleEditor = ({ asset, onClose }: AudioSampleEditorProps) => {
       const end = Math.min(sel.end, duration);
       return end > start ? { start, end } : null;
     });
-    if (playheadRef.current > duration) {
-      setPlayhead(duration);
+    if (playhead.get() > duration) {
+      playhead.set(duration);
     }
-  }, [sample, teardownSource, setPlayhead]);
+  }, [sample, teardownSource, playhead]);
 
   useEffect(
     () => () => {
@@ -268,17 +308,18 @@ const AudioSampleEditor = ({ asset, onClose }: AudioSampleEditorProps) => {
     [teardownSource]
   );
 
-  const waveAreaRef = useRef<HTMLDivElement>(null);
+  // Element state (not a ref) so the observer attaches when the wave area
+  // mounts — it only appears after loading finishes, past the mount effect.
+  const [waveArea, setWaveArea] = useState<HTMLDivElement | null>(null);
   const [containerWidth, setContainerWidth] = useState(0);
   useEffect(() => {
-    const el = waveAreaRef.current;
-    if (!el) return;
+    if (!waveArea) return;
     const observer = new ResizeObserver((entries) => {
       setContainerWidth(entries[0]?.contentRect.width ?? 0);
     });
-    observer.observe(el);
+    observer.observe(waveArea);
     return () => observer.disconnect();
-  }, []);
+  }, [waveArea]);
 
   const duration = sample ? sampleDuration(sample) : 0;
   const fitPps =
@@ -300,16 +341,16 @@ const AudioSampleEditor = ({ asset, onClose }: AudioSampleEditorProps) => {
     if (!selection) return;
     commitEdit((s) => cropToRange(s, selection.start, selection.end));
     setSelection(null);
-    setPlayhead(0);
-  }, [selection, commitEdit, setPlayhead]);
+    playhead.set(0);
+  }, [selection, commitEdit, playhead]);
 
   const handleDelete = useCallback(() => {
     if (!selection) return;
     const start = selection.start;
     commitEdit((s) => deleteRange(s, selection.start, selection.end));
     setSelection(null);
-    setPlayhead(start);
-  }, [selection, commitEdit, setPlayhead]);
+    playhead.set(start);
+  }, [selection, commitEdit, playhead]);
 
   const handleSilence = useCallback(() => {
     if (!selection) return;
@@ -418,14 +459,14 @@ const AudioSampleEditor = ({ asset, onClose }: AudioSampleEditorProps) => {
         onDone={onClose}
       />
 
-      <Box ref={waveAreaRef} sx={{ flex: 1, minHeight: 0, position: "relative" }}>
+      <Box ref={setWaveArea} sx={{ flex: 1, minHeight: 0, position: "relative" }}>
         <WaveformView
           sample={sample}
           pixelsPerSecond={pixelsPerSecond}
           selection={selection}
-          playheadSec={playhead}
+          playhead={playhead}
           onSelectionChange={setSelection}
-          onSeek={setPlayhead}
+          onSeek={playhead.set}
         />
       </Box>
 
@@ -446,9 +487,7 @@ const AudioSampleEditor = ({ asset, onClose }: AudioSampleEditorProps) => {
               )} (${formatTime(selection.end - selection.start)})`
             : "Drag to select · Click to seek"}
         </Caption>
-        <Caption>
-          {formatTime(playhead)} / {formatTime(duration)}
-        </Caption>
+        <PlaybackClock playhead={playhead} duration={duration} />
       </FlexRow>
     </FlexColumn>
   );
