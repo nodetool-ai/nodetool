@@ -38,7 +38,7 @@ NodeTool is an open-source, local-first visual environment for building AI workf
 
 ## Chat & Agents
 
-- [Global Chat]({{ site.url }}/global-chat): Provider-agnostic chat interface.
+- [Chat]({{ site.url }}/global-chat): Provider-agnostic chat interface.
 - [Chat & Agents]({{ site.url }}/global-chat-agents): Use agents from chat.
 - [Agent Config]({{ site.url }}/agent-config-schema): YAML schema for agent definitions.
 - [Agent Memory]({{ site.url }}/agent-memory): How agents persist context.

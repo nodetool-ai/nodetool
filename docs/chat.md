@@ -1,6 +1,6 @@
 ---
 layout: page
-title: "Chat"
+title: "Chat CLI Overview"
 ---
 
 Interactive CLI for chatting with models. Works with OpenAI, Anthropic, Gemini, Ollama, and others. The assistant can call tools during a session.

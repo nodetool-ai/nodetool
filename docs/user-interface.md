@@ -4,7 +4,7 @@ title: "NodeTool User Interface"
 description: "Tour of the NodeTool interface."
 ---
 
-Tour of the interface — Dashboard, Canvas, Global Chat, Mini-Apps, Assets. Same on desktop and in the browser.
+Tour of the interface — Dashboard, Canvas, Chat, Mini-Apps, Assets. Same on desktop and in the browser.
 
 > New here? Start with [Getting Started](getting-started.md), then come back.
 
@@ -38,13 +38,13 @@ A linear, card-based alternative to the node graph. Better for simple pipelines 
 
 Docs: [Chain Editor](chain-editor.md)
 
-### Global Chat — `/chat/:thread_id?`
+### Chat — `/chat/:thread_id?`
 
 Conversational AI with multi-thread history, an always-on agent loop, tools, and workflow integration.
 
-![Global Chat](assets/screenshots/global-chat-interface.png)
+![Chat](assets/screenshots/global-chat-interface.png)
 
-Docs: [Global Chat](global-chat.md)
+Docs: [Chat](global-chat.md)
 
 ### Mini-Apps — `/apps/:workflowId?`
 
@@ -120,7 +120,7 @@ Five workspaces:
 |-----------|---------|
 | **Dashboard** | Home, templates, recent projects |
 | **Canvas** | Build and run workflows |
-| **Global Chat** | Chat with models, run agents |
+| **Chat** | Chat with models, run agents |
 | **Mini-Apps** | Run workflows behind a simple UI |
 | **Assets** | Files and media |
 
@@ -215,11 +215,11 @@ When you select a node, the right panel shows its **configuration**:
 
 ---
 
-## Global Chat
+## Chat
 
 AI assistant built into NodeTool.
 
-![Global Chat Interface](assets/screenshots/global-chat-interface.png)
+![Chat Interface](assets/screenshots/global-chat-interface.png)
 
 ### Features
 

@@ -72,7 +72,7 @@ A special node that shows you intermediate results while your workflow runs. Add
 ### Mini-App
 A simplified interface for running a workflow. Mini-Apps hide the complexity and show only the inputs and outputs, making them easy to share with non-technical users.
 
-### Global Chat
+### Chat
 NodeTool's AI assistant interface. Chat with AI models, run workflows conversationally, or let the agent plan and execute multi-step tasks on its own.
 
 ### Inspector / Properties Panel
@@ -121,7 +121,7 @@ An optional service that sits in front of NodeTool to handle security, routing, 
 *Technical: Reverse proxy that terminates TLS and forwards to the API server.*
 
 ### Thread ID
-An identifier that tracks a conversation in Global Chat. Each chat thread has its own history and context.
+An identifier that tracks a conversation in Chat. Each chat thread has its own history and context.
 
 *Technical: Conversation identifier for chat/agent sessions; used by WebSocket and SSE streams.*
 

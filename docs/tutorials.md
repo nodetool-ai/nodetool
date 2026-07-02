@@ -97,7 +97,7 @@ reuse the streamed description in any downstream text node.
 
 ## Ask the chat agent
 
-A different surface: Global Chat. A question goes straight to the agent, which
+A different surface: Chat. A question goes straight to the agent, which
 calls a web-search tool in the open — no hidden spinner — then streams its
 answer back token by token.
 
@@ -105,7 +105,7 @@ answer back token by token.
   <source src="{{ '/assets/tutorials/chat-agent-qa.mp4' | relative_url }}" type="video/mp4">
 </video>
 
-You'll learn how to send a message from Global Chat, watch a tool call run in
+You'll learn how to send a message from Chat, watch a tool call run in
 the open, and read a streamed answer as it arrives.
 
 ## Cut a scene together
