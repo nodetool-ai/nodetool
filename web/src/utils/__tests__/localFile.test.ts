@@ -4,7 +4,8 @@ import {
   getLocalFilePath,
   pathToFileUri,
   fileUriToPath,
-  isFileUri
+  isFileUri,
+  fileUriToHttpUrl
 } from "../localFile";
 
 describe("pathToFileUri", () => {
@@ -47,6 +48,27 @@ describe("isFileUri", () => {
     expect(isFileUri("http://x/y.png")).toBe(false);
     expect(isFileUri(undefined)).toBe(false);
     expect(isFileUri(null)).toBe(false);
+  });
+});
+
+describe("fileUriToHttpUrl", () => {
+  it("maps a file:// URI to the backend streaming endpoint", () => {
+    expect(fileUriToHttpUrl("file:///Users/me/song.mp3")).toBe(
+      "http://localhost:7777/api/files/local?path=%2FUsers%2Fme%2Fsong.mp3"
+    );
+  });
+
+  it("encodes spaces and other unsafe characters in the path", () => {
+    expect(fileUriToHttpUrl("file:///Users/me/Kreuzberg%20Neon.mp3")).toBe(
+      "http://localhost:7777/api/files/local?path=%2FUsers%2Fme%2FKreuzberg%20Neon.mp3"
+    );
+  });
+
+  it("returns null for non-file URIs", () => {
+    expect(fileUriToHttpUrl("http://example.com/a.mp3")).toBeNull();
+    expect(fileUriToHttpUrl("asset://abc")).toBeNull();
+    expect(fileUriToHttpUrl(undefined)).toBeNull();
+    expect(fileUriToHttpUrl(null)).toBeNull();
   });
 });
 

@@ -4,7 +4,7 @@ import { Asset } from "../../../stores/ApiTypes";
 import { BASE_URL } from "../../../stores/BASE_URL";
 import { trpc } from "../../../trpc/client";
 import { bitmapToPngDataUrl } from "../../../lib/workflow/materializeBrowserOutputs";
-import { useFileUriDataUrl } from "../../../utils/localFile";
+import { fileUriToHttpUrl } from "../../../utils/localFile";
 
 /**
  * Base type for typed output values with a type discriminator
@@ -177,10 +177,11 @@ export function useSignedUrl(uri: string | undefined | null): string {
     { enabled: Boolean(key), staleTime: 6 * 24 * 60 * 60 * 1000 }
   );
   // `file://` URIs (local-mode assets) can't be loaded directly by the renderer
-  // under webSecurity — resolve them to a data URL via the Electron bridge.
-  const fileDataUrl = useFileUriDataUrl(uri);
-  if (fileDataUrl !== null) {
-    return fileDataUrl;
+  // under webSecurity — point them at the backend's `/api/files/local`
+  // streaming endpoint.
+  const fileHttpUrl = fileUriToHttpUrl(uri);
+  if (fileHttpUrl !== null) {
+    return fileHttpUrl;
   }
   return data?.url ?? resolveAssetUri(uri);
 }

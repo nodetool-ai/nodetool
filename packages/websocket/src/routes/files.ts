@@ -17,6 +17,13 @@ const filesRoutes: FastifyPluginAsync<RouteOptions> = async (app, _opts) => {
   app.all("/api/files/download", async (req, reply) => {
     await bridge(req, reply, (request) => handleFileRequest(request));
   });
+
+  // Stream a local file by absolute path (previews for `file://` URIs). GET/HEAD
+  // with Range support; the handler enforces the production guard and path
+  // denylist.
+  app.all("/api/files/local", async (req, reply) => {
+    await bridge(req, reply, (request) => handleFileRequest(request));
+  });
 };
 
 export default filesRoutes;
