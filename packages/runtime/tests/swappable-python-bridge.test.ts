@@ -99,6 +99,52 @@ class FakeBridge extends EventEmitter {
   supportsModelManagement(): boolean {
     return false;
   }
+  supportsComfy(): boolean {
+    return false;
+  }
+  getComfyStatus(): null {
+    return null;
+  }
+  comfyExecute(): Promise<Record<string, unknown>> {
+    return Promise.resolve({});
+  }
+  cancelComfyExecute(): void {}
+  comfyQueue(): Promise<Record<string, unknown>> {
+    return Promise.resolve({});
+  }
+  comfyInterrupt(): Promise<void> {
+    return Promise.resolve();
+  }
+  comfyCancelPrompt(): Promise<void> {
+    return Promise.resolve();
+  }
+  comfyUpload(): Promise<Record<string, unknown>> {
+    return Promise.resolve({});
+  }
+  comfyView(): Promise<Record<string, unknown>> {
+    return Promise.resolve({});
+  }
+  comfyObjectInfo(): Promise<Record<string, unknown>> {
+    return Promise.resolve({});
+  }
+  comfySystemStats(): Promise<Record<string, unknown>> {
+    return Promise.resolve({});
+  }
+  comfyStatus(): Promise<{ enabled: boolean }> {
+    return Promise.resolve({ enabled: false });
+  }
+  comfyFree(): Promise<void> {
+    return Promise.resolve();
+  }
+  comfyModelsList(): Promise<never[]> {
+    return Promise.resolve([]);
+  }
+  comfyModelsDownload(): Promise<void> {
+    return Promise.resolve();
+  }
+  comfyModelsDelete(): Promise<boolean> {
+    return Promise.resolve(false);
+  }
   getRecentStderrSummary(): string | null {
     return null;
   }

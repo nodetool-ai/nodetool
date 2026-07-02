@@ -46,6 +46,20 @@ tables live in NodeTool's SQLite DB so the UI and CLI share one source of truth.
   built from a NodeTool Python package. It must run `python -m nodetool.worker`
   on port 7777 (msgpack RPC, bearer-token auth).
 
+### Worker images
+
+| Image | Contents | Use for |
+|-------|----------|---------|
+| `ghcr.io/nodetool-ai/nodetool-worker:latest` | The lean Python worker | Python nodes, HuggingFace pipelines, LLM providers |
+| `ghcr.io/nodetool-ai/nodetool-worker-comfy:latest` | Worker + a co-located, loopback-only ComfyUI | Everything above **plus** the **Run ComfyUI Workflow (Worker)** node |
+
+A worker started from the ComfyUI image fronts ComfyUI over the worker bridge
+(ComfyUI itself is never exposed outside the container) and reports
+`worker.status.comfy.enabled: true`. The **Run ComfyUI Workflow (Worker)** node
+runs an API-format ComfyUI workflow on such a worker. Pick the ComfyUI image
+from the **Worker image preset** dropdown in the Profiles editor, or pass
+`--image ghcr.io/nodetool-ai/nodetool-worker-comfy:latest` on the CLI.
+
 Store the API key in the secret store so the manager can read it:
 
 ```bash

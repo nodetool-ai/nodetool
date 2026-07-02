@@ -151,6 +151,49 @@ simply does not expose them (see [Versioning](#versioning)).
 - `models.download` — download a model onto the worker cache, streaming ordered `progress` frames then a terminal `result`
 - `models.delete` — delete a cached model; returns whether it existed
 
+### `comfy.*`
+
+ComfyUI proxy. Introduced in bridge protocol **v3**, gated by `supportsComfy()`
+— a worker offers these only when it fronts a co-located, loopback-only ComfyUI
+server AND reports `worker.status.comfy.enabled: true`. Route `comfy.*` requests
+only to such workers. The full field-level reference lives in
+`docs/comfy-proxy.md` in nodetool-core.
+
+- `comfy.execute` — submit an API-format workflow; streams its lifecycle as
+  dedicated `comfy.event` frames (see below), then a terminal `result`/`error`.
+  Cancel with the standard `cancel` frame.
+- `comfy.queue` — `{queue_running, queue_pending}`
+- `comfy.interrupt` — global stop of the running job (admin-only)
+- `comfy.cancel` — best-effort per-prompt cancel (`{prompt_id}`); the safe
+  user-facing cancel
+- `comfy.upload` / `comfy.view` — stage a file into / fetch a file from ComfyUI's
+  input dir
+- `comfy.object_info` — full ComfyUI node catalog
+- `comfy.system_stats` / `comfy.status` — health/capacity; `comfy.status` adds
+  worker-level `{enabled, url, reachable}`
+- `comfy.free` — unload models from VRAM without a cold restart
+- `comfy.models.list` / `comfy.models.download` / `comfy.models.delete` — manage
+  model files on the worker's persistent volume. `comfy.models.download` streams
+  generic `progress` frames (NOT `comfy.event`) then a terminal `result`.
+
+#### `comfy.event`
+
+`comfy.execute` does **not** stream `progress` frames — ComfyUI's events don't
+fit the `{progress, total, message}` shape. Instead it emits a dedicated frame:
+
+```json
+{
+  "type": "comfy.event",
+  "request_id": "<the execute request's id>",
+  "data": { "event": "executing", "prompt_id": "p1", "node": "3" }
+}
+```
+
+`data.event` is the discriminator, in emission order: `queued` → `queue`
+(repeatable) → `started` / `cached` → `executing` (per node) → `progress` →
+`node_output` → `preview` (only if `previews: true`) → `completed` or
+`cancelled`. `result` is always the last frame.
+
 ## Result, error, chunk, and progress
 
 ### `result`
@@ -230,7 +273,7 @@ The JS runtime and Python worker each report a `BRIDGE_PROTOCOL_VERSION`. Two
 distinct numbers govern compatibility (see `packages/protocol/src/bridge-protocol.ts`):
 
 - **`BRIDGE_PROTOCOL_VERSION`** — the protocol the JS runtime currently speaks
-  (presently `2`).
+  (presently `3`).
 - **`MIN_BRIDGE_PROTOCOL_VERSION`** — the *hard floor* (presently `1`). The JS
   runtime rejects a worker only if it reports a protocol **below** this floor.
 
@@ -239,8 +282,9 @@ Compatibility rules:
 - **Older worker, at or above the floor** — connects normally. It does **not**
   fail startup. Additive features the worker predates are gated per-capability:
   a v1 worker connects fine and simply doesn't expose the `models.*` family
-  (gated by `supportsModelManagement()`, which requires v2+). Workers that
-  predate the `protocol_version` field are treated as v1.
+  (gated by `supportsModelManagement()`, which requires v2+) or `comfy.*`
+  (gated by `supportsComfy()`, which requires v3+ and `comfy.enabled`). Workers
+  that predate the `protocol_version` field are treated as v1.
 - **Worker below `MIN_BRIDGE_PROTOCOL_VERSION`** — rejected at `discover` with
   an actionable error (reinstall the Python environment). This is the only
   startup-failing case, reserved for genuine wire breaks.

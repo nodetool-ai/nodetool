@@ -33,6 +33,17 @@ const API_KEY_BY_TARGET: Record<WorkerTarget, string> = {
 // The default NodeTool worker image. Editable — only override if you publish
 // your own build of `python -m nodetool.worker`.
 const DEFAULT_WORKER_IMAGE = "ghcr.io/nodetool-ai/nodetool-worker:latest";
+// Combined worker + ComfyUI image. A worker from this image fronts a
+// loopback-only ComfyUI and reports `worker.status.comfy.enabled: true`, so it
+// can run the "Run ComfyUI Workflow (Worker)" node.
+const COMFY_WORKER_IMAGE = "ghcr.io/nodetool-ai/nodetool-worker-comfy:latest";
+// Sentinel select value that keeps the free-text image field for a custom build.
+const CUSTOM_IMAGE = "__custom_image__";
+const IMAGE_PRESETS = [
+  { value: DEFAULT_WORKER_IMAGE, label: "NodeTool Worker" },
+  { value: COMFY_WORKER_IMAGE, label: "NodeTool Worker + ComfyUI" },
+  { value: CUSTOM_IMAGE, label: "Custom…" }
+] as const;
 const DEFAULT_IDLE_TIMEOUT = "30";
 // Persistent volume default — big enough for several HF image models. Models
 // download here and survive a stop/resume.
@@ -448,11 +459,26 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
             defaultOpen={false}
           >
             <FlexColumn gap={2} sx={{ pt: 1 }}>
+              <SelectField
+                label="Worker image preset"
+                value={
+                  IMAGE_PRESETS.some((p) => p.value === image)
+                    ? image
+                    : CUSTOM_IMAGE
+                }
+                onChange={(value) => {
+                  if (value !== CUSTOM_IMAGE) setImage(value);
+                }}
+                options={IMAGE_PRESETS}
+                variant="outlined"
+                size="small"
+                description="ComfyUI worker fronts a co-located ComfyUI server for the “Run ComfyUI Workflow (Worker)” node."
+              />
               <TextInput
                 label="Worker image"
                 value={image}
                 onChange={(e) => setImage(e.target.value)}
-                helperText="Container image the provider runs. Keep the default unless you publish your own worker build."
+                helperText="Container image the provider runs. Pick a preset above, or set your own worker build."
                 fullWidth
                 compact
               />
