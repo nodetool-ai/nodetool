@@ -12,12 +12,15 @@
  * happens in `TimelineInspector`.
  */
 
-import React, { memo, useCallback, useMemo } from "react";
+import React, { memo, useCallback, useMemo, useRef } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import { findClipById } from "../../../stores/timeline/clipLookup";
+import { useTimelineHistoryBatch } from "../../../stores/timeline/useTimelineHistoryBatch";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { useGenerateClip } from "../../../hooks/timeline/useGenerateClip";
 import ImageModelSelect from "../../properties/ImageModelSelect";
@@ -69,13 +72,23 @@ const panelSx = {
   overflow: "auto"
 };
 
+// Source-clip dropdown is only rendered in image-to-image mode. Sharing one
+// empty array (rather than `[]` inline in the selector) keeps the selector's
+// result referentially stable outside that mode, so `useShallow` bails out
+// without a re-render.
+const EMPTY_SOURCE_ENTRIES: readonly string[] = [];
+// Encodes id + SEP + label as one primitive per eligible clip so the array
+// compares element-wise under useShallow (an array of fresh {value, label}
+// objects would never compare equal across renders). Clip ids never contain
+// this separator, so splitting on its first occurrence is unambiguous.
+const SOURCE_ENTRY_SEP = "\u0000";
+
 const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
   clipId
 }) => {
   const theme = useTheme();
 
-  const clip = useTimelineStore((s) => s.clips.find((c) => c.id === clipId));
-  const clips = useTimelineStore((s) => s.clips);
+  const clip = useTimelineStore((s) => findClipById(s.clips, clipId));
   const setClipPrompt = useTimelineStore((s) => s.setClipPrompt);
   const setClipDirectGenModel = useTimelineStore(
     (s) => s.setClipDirectGenModel
@@ -100,21 +113,36 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
   const isImageToImage = clip?.bindingKind === "image-to-image";
 
   // Eligible image-to-image source clips: any other image/overlay clip with
-  // a rendered asset in the sequence.
-  const sourceOptions = useMemo(() => {
-    if (!clip) return [];
-    return clips
-      .filter(
-        (c) =>
-          c.id !== clip.id &&
-          (c.mediaType === "image" || c.mediaType === "overlay") &&
-          !!c.currentAssetId
-      )
-      .map((c) => ({
-        value: c.id,
-        label: c.name || c.id.slice(0, 8)
-      }));
-  }, [clips, clip]);
+  // a rendered asset in the sequence. Gated on `isImageToImage` so clips in
+  // every other mode never subscribe to the full `clips` array; the selector
+  // returns primitive strings (not fresh {value, label} objects) so
+  // `useShallow` can actually bail out the re-render when nothing eligible
+  // changed.
+  const sourceEntries = useTimelineStore(
+    useShallow((s) =>
+      isImageToImage
+        ? s.clips
+            .filter(
+              (c) =>
+                c.id !== clipId &&
+                (c.mediaType === "image" || c.mediaType === "overlay") &&
+                !!c.currentAssetId
+            )
+            .map(
+              (c) => `${c.id}${SOURCE_ENTRY_SEP}${c.name || c.id.slice(0, 8)}`
+            )
+        : EMPTY_SOURCE_ENTRIES
+    )
+  );
+
+  const sourceOptions = useMemo(
+    () =>
+      sourceEntries.map((entry) => {
+        const sepIndex = entry.indexOf(SOURCE_ENTRY_SEP);
+        return { value: entry.slice(0, sepIndex), label: entry.slice(sepIndex + 1) };
+      }),
+    [sourceEntries]
+  );
 
   const handleModelChange = useCallback(
     (v: ImageModelValue) => {
@@ -143,11 +171,31 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
     [clipId, patchClipBinding]
   );
 
+  // Typing in the prompt field would otherwise push one undo entry per
+  // keystroke. Batch the whole focused-editing session into a single entry:
+  // begin on focus, mark per keystroke, end on blur (a stray unmount mid-edit
+  // is covered by useTimelineHistoryBatch's own unmount safety net).
+  const promptHistory = useTimelineHistoryBatch();
+  const promptGestureActiveRef = useRef(false);
+
+  const handlePromptFocus = useCallback(() => {
+    promptGestureActiveRef.current = true;
+    promptHistory.begin();
+  }, [promptHistory]);
+
+  const handlePromptBlur = useCallback(() => {
+    if (promptGestureActiveRef.current) {
+      promptGestureActiveRef.current = false;
+      promptHistory.end();
+    }
+  }, [promptHistory]);
+
   const handlePromptChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       setClipPrompt(clipId, e.target.value);
+      promptHistory.mark();
     },
-    [clipId, setClipPrompt]
+    [clipId, setClipPrompt, promptHistory]
   );
 
   const handleSourceChange = useCallback(
@@ -266,6 +314,8 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
             <TextInput
               value={clip.prompt ?? ""}
               onChange={handlePromptChange}
+              onFocus={handlePromptFocus}
+              onBlur={handlePromptBlur}
               placeholder={promptPlaceholder}
               multiline
               minRows={2}

@@ -14,7 +14,7 @@
  * so a panel stays open/closed across selections.
  */
 
-import React, { memo } from "react";
+import React, { memo, useCallback, useRef } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -30,7 +30,6 @@ import type {
   ClipColorEffect,
   ClipEffect,
   ClipTransform,
-  ClipTransition,
   TimelineClip
 } from "@nodetool-ai/timeline";
 import { BLEND_MODES } from "@nodetool-ai/gpu";
@@ -43,7 +42,8 @@ import {
   FlexRow,
   NodeSelect,
   NodeMenuItem,
-  Text
+  Text,
+  type SelectChangeEvent
 } from "../../ui_primitives";
 import { usePersistedFold } from "./usePersistedFold";
 import {
@@ -130,18 +130,305 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
     const isAudio = clip.mediaType === "audio";
     const isOverlay = clip.mediaType === "overlay";
 
-    const onPatchNumber = (
-      field: string,
-      raw: string,
-      min?: number,
-      max?: number
-    ) => {
-      const parsed = Number(raw);
-      if (!Number.isFinite(parsed)) return;
-      const value =
-        min != null && max != null ? clamp(parsed, min, max) : parsed;
-      patchClip(clip.id, { [field]: value });
-    };
+    // Latest-clip ref: lets the handlers below stay referentially stable
+    // across re-renders of the same clip (deps keyed on clip.id, not on
+    // `clip` itself) while still merging onto its current fields — otherwise
+    // every memoized row (InspectorSliderRow, InspectorPillInput…) would
+    // re-render on every keystroke in any other row, since a handler that
+    // closed over `clip` directly gets a new identity on every patch.
+    const clipRef = useRef(clip);
+    clipRef.current = clip;
+
+    const onPatchNumber = useCallback(
+      (field: string, raw: string, min?: number, max?: number) => {
+        const parsed = Number(raw);
+        if (!Number.isFinite(parsed)) return;
+        const value =
+          min != null && max != null ? clamp(parsed, min, max) : parsed;
+        patchClip(clipRef.current.id, { [field]: value });
+      },
+      [patchClip]
+    );
+
+    // ── Render section ─────────────────────────────────────────────────────
+
+    const handleOpacityChange = useCallback(
+      (value: number) => patchClip(clip.id, { opacity: value }),
+      [clip.id, patchClip]
+    );
+    const handleBlendModeChange = useCallback(
+      (e: SelectChangeEvent<unknown>) =>
+        patchClip(clip.id, { blendMode: e.target.value as BlendMode }),
+      [clip.id, patchClip]
+    );
+    const handleVolumeCommit = useCallback(
+      (raw: string) => onPatchNumber("volumeDb", raw, -60, 12),
+      [onPatchNumber]
+    );
+    const handleFadeInCommit = useCallback(
+      (raw: string) => {
+        const ms = parseSeconds(raw);
+        if (ms == null) return;
+        onPatchNumber(
+          "fadeInMs",
+          String(ms),
+          0,
+          Math.floor(clipRef.current.durationMs / 2)
+        );
+      },
+      [onPatchNumber]
+    );
+    const handleFadeOutCommit = useCallback(
+      (raw: string) => {
+        const ms = parseSeconds(raw);
+        if (ms == null) return;
+        onPatchNumber(
+          "fadeOutMs",
+          String(ms),
+          0,
+          Math.floor(clipRef.current.durationMs / 2)
+        );
+      },
+      [onPatchNumber]
+    );
+
+    // ── Transform section ──────────────────────────────────────────────────
+
+    const setTransform = useCallback(
+      (next: ClipTransform) => patchClip(clip.id, { transform: next }),
+      [clip.id, patchClip]
+    );
+    const handlePositionXCommit = useCallback(
+      (raw: string) => {
+        const n = Number(raw);
+        if (!Number.isFinite(n)) return;
+        const t = clipRef.current.transform ?? IDENTITY_TRANSFORM;
+        setTransform({ ...t, position: { ...t.position, x: n } });
+      },
+      [setTransform]
+    );
+    const handlePositionYCommit = useCallback(
+      (raw: string) => {
+        const n = Number(raw);
+        if (!Number.isFinite(n)) return;
+        const t = clipRef.current.transform ?? IDENTITY_TRANSFORM;
+        setTransform({ ...t, position: { ...t.position, y: n } });
+      },
+      [setTransform]
+    );
+    const handleScaleXCommit = useCallback(
+      (raw: string) => {
+        const n = Number(raw);
+        if (!Number.isFinite(n)) return;
+        const t = clipRef.current.transform ?? IDENTITY_TRANSFORM;
+        setTransform({ ...t, scale: { ...t.scale, x: n } });
+      },
+      [setTransform]
+    );
+    const handleScaleYCommit = useCallback(
+      (raw: string) => {
+        const n = Number(raw);
+        if (!Number.isFinite(n)) return;
+        const t = clipRef.current.transform ?? IDENTITY_TRANSFORM;
+        setTransform({ ...t, scale: { ...t.scale, y: n } });
+      },
+      [setTransform]
+    );
+    const handleRotationCommit = useCallback(
+      (raw: string) => {
+        const n = Number(raw);
+        if (!Number.isFinite(n)) return;
+        const t = clipRef.current.transform ?? IDENTITY_TRANSFORM;
+        setTransform({ ...t, rotation: (n * Math.PI) / 180 });
+      },
+      [setTransform]
+    );
+    const handleAnchorXChange = useCallback(
+      (value: number) => {
+        const t = clipRef.current.transform ?? IDENTITY_TRANSFORM;
+        setTransform({ ...t, anchor: { ...t.anchor, x: value } });
+      },
+      [setTransform]
+    );
+    const handleAnchorYChange = useCallback(
+      (value: number) => {
+        const t = clipRef.current.transform ?? IDENTITY_TRANSFORM;
+        setTransform({ ...t, anchor: { ...t.anchor, y: value } });
+      },
+      [setTransform]
+    );
+    const handleBorderRadiusChange = useCallback(
+      (value: number) => patchClip(clip.id, { borderRadius: value }),
+      [clip.id, patchClip]
+    );
+    const handleResetTransform = useCallback(
+      () =>
+        patchClip(clip.id, { transform: undefined, borderRadius: undefined }),
+      [clip.id, patchClip]
+    );
+
+    // ── Color section ──────────────────────────────────────────────────────
+
+    const updateColor = useCallback(
+      (patch: Partial<ClipColorEffect>): void => {
+        const current = findColorEffect(clipRef.current);
+        const next: ClipColorEffect = {
+          id: COLOR_EFFECT_ID,
+          type: "color",
+          enabled: current?.enabled ?? false,
+          brightness: current?.brightness,
+          contrast: current?.contrast,
+          saturation: current?.saturation,
+          hue: current?.hue,
+          temperature: current?.temperature,
+          tint: current?.tint,
+          shadows: current?.shadows,
+          highlights: current?.highlights,
+          ...patch
+        };
+        patchClip(clipRef.current.id, {
+          effects: upsertEffect(clipRef.current.effects, next)
+        });
+      },
+      [patchClip]
+    );
+    const handleColorEnabledChange = useCallback(
+      (next: boolean) => updateColor({ enabled: next }),
+      [updateColor]
+    );
+    const handleBrightnessChange = useCallback(
+      (value: number) => updateColor({ brightness: value }),
+      [updateColor]
+    );
+    const handleContrastChange = useCallback(
+      (value: number) => updateColor({ contrast: value }),
+      [updateColor]
+    );
+    const handleSaturationChange = useCallback(
+      (value: number) => updateColor({ saturation: value }),
+      [updateColor]
+    );
+    const handleHueChange = useCallback(
+      (value: number) => updateColor({ hue: value }),
+      [updateColor]
+    );
+    const handleTemperatureChange = useCallback(
+      (value: number) => updateColor({ temperature: value }),
+      [updateColor]
+    );
+    const handleTintChange = useCallback(
+      (value: number) => updateColor({ tint: value }),
+      [updateColor]
+    );
+    const handleShadowsChange = useCallback(
+      (value: number) => updateColor({ shadows: value }),
+      [updateColor]
+    );
+    const handleHighlightsChange = useCallback(
+      (value: number) => updateColor({ highlights: value }),
+      [updateColor]
+    );
+    const handleClearColor = useCallback(
+      () =>
+        patchClip(clipRef.current.id, {
+          effects: clipRef.current.effects?.filter(
+            (e) => e.id !== COLOR_EFFECT_ID
+          )
+        }),
+      [patchClip]
+    );
+
+    // ── Blur section ───────────────────────────────────────────────────────
+
+    const updateBlur = useCallback(
+      (patch: Partial<ClipBlurEffect>) => {
+        const current = findBlurEffect(clipRef.current);
+        const next: ClipBlurEffect = {
+          id: BLUR_EFFECT_ID,
+          type: "blur",
+          enabled: current?.enabled ?? false,
+          radius: current?.radius ?? 0,
+          sigma: current?.sigma,
+          ...patch
+        };
+        patchClip(clipRef.current.id, {
+          effects: upsertEffect(clipRef.current.effects, next)
+        });
+      },
+      [patchClip]
+    );
+    const handleBlurEnabledChange = useCallback(
+      (next: boolean) => updateBlur({ enabled: next }),
+      [updateBlur]
+    );
+    const handleBlurRadiusChange = useCallback(
+      (value: number) => updateBlur({ radius: value }),
+      [updateBlur]
+    );
+    const handleClearBlur = useCallback(
+      () =>
+        patchClip(clipRef.current.id, {
+          effects: clipRef.current.effects?.filter(
+            (e) => e.id !== BLUR_EFFECT_ID
+          )
+        }),
+      [patchClip]
+    );
+
+    // ── Transition section ─────────────────────────────────────────────────
+
+    const setTransitionMode = useCallback(
+      (next: "auto" | "crossfade" | "none") => {
+        if (next === "auto") {
+          patchClip(clipRef.current.id, { transitionIn: undefined });
+        } else if (next === "none") {
+          patchClip(clipRef.current.id, {
+            transitionIn: { type: "crossfade", durationMs: 0 }
+          });
+        } else {
+          const t = clipRef.current.transitionIn;
+          const duration = t && t.durationMs > 0 ? t.durationMs : 500;
+          patchClip(clipRef.current.id, {
+            transitionIn: { type: "crossfade", durationMs: duration }
+          });
+        }
+      },
+      [patchClip]
+    );
+    const handleTransitionModeChange = useCallback(
+      (e: SelectChangeEvent<unknown>) =>
+        setTransitionMode(e.target.value as "auto" | "crossfade" | "none"),
+      [setTransitionMode]
+    );
+    const handleTransitionDurationCommit = useCallback(
+      (raw: string) => {
+        const ms = parseSeconds(raw);
+        if (ms == null) return;
+        patchClip(clipRef.current.id, {
+          transitionIn: { type: "crossfade", durationMs: Math.max(0, ms) }
+        });
+      },
+      [patchClip]
+    );
+
+    // ── Derived display values ──────────────────────────────────────────────
+
+    const transform = clip.transform ?? IDENTITY_TRANSFORM;
+    const color = findColorEffect(clip);
+    const colorEnabled = color?.enabled ?? false;
+    const blur = findBlurEffect(clip);
+    const blurEnabled = blur?.enabled ?? false;
+    const blurRadius = blur?.radius ?? 0;
+    const transitionMode: "auto" | "crossfade" | "none" =
+      clip.transitionIn == null
+        ? "auto"
+        : clip.transitionIn.durationMs <= 0
+          ? "none"
+          : "crossfade";
+    const transitionDuration =
+      clip.transitionIn && clip.transitionIn.durationMs > 0
+        ? clip.transitionIn.durationMs
+        : 500;
 
     return (
       <>
@@ -155,6 +442,7 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
           }
           open={renderOpen}
           onToggle={setRenderOpen}
+          unmountOnExit
         >
           <FlexColumn css={sectionContentStyles(theme)}>
             {!isAudio && (
@@ -165,18 +453,14 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
                 step={0.01}
                 value={clip.opacity ?? 1}
                 display={`${Math.round((clip.opacity ?? 1) * 100)}%`}
-                onChange={(value) => patchClip(clip.id, { opacity: value })}
+                onChange={handleOpacityChange}
               />
             )}
             {isOverlay && !isAudio && (
               <InspectorRow label="Blend">
                 <NodeSelect
                   value={clip.blendMode ?? "normal"}
-                  onChange={(e) =>
-                    patchClip(clip.id, {
-                      blendMode: e.target.value as BlendMode
-                    })
-                  }
+                  onChange={handleBlendModeChange}
                 >
                   {BLEND_MODES.map((mode) => (
                     <NodeMenuItem key={mode.value} value={mode.value}>
@@ -192,7 +476,7 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
                   <InspectorPillInput
                     value={(clip.volumeDb ?? 0).toFixed(1)}
                     unit="dB"
-                    onCommit={(raw) => onPatchNumber("volumeDb", raw, -60, 12)}
+                    onCommit={handleVolumeCommit}
                     ariaLabel="Volume (dB)"
                   />
                 </InspectorRow>
@@ -200,16 +484,7 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
                   <InspectorPillInput
                     value={((clip.fadeInMs ?? 0) / 1000).toFixed(2)}
                     unit="s"
-                    onCommit={(raw) => {
-                      const ms = parseSeconds(raw);
-                      if (ms == null) return;
-                      onPatchNumber(
-                        "fadeInMs",
-                        String(ms),
-                        0,
-                        Math.floor(clip.durationMs / 2)
-                      );
-                    }}
+                    onCommit={handleFadeInCommit}
                     ariaLabel="Fade in (seconds)"
                   />
                 </InspectorRow>
@@ -217,16 +492,7 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
                   <InspectorPillInput
                     value={((clip.fadeOutMs ?? 0) / 1000).toFixed(2)}
                     unit="s"
-                    onCommit={(raw) => {
-                      const ms = parseSeconds(raw);
-                      if (ms == null) return;
-                      onPatchNumber(
-                        "fadeOutMs",
-                        String(ms),
-                        0,
-                        Math.floor(clip.durationMs / 2)
-                      );
-                    }}
+                    onCommit={handleFadeOutCommit}
                     ariaLabel="Fade out (seconds)"
                   />
                 </InspectorRow>
@@ -247,133 +513,83 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
               }
               open={transformOpen}
               onToggle={setTransformOpen}
+              unmountOnExit
             >
               <FlexColumn css={sectionContentStyles(theme)}>
-                {(() => {
-                  const t = clip.transform ?? IDENTITY_TRANSFORM;
-                  const setTransform = (next: ClipTransform) =>
-                    patchClip(clip.id, { transform: next });
-                  const setPos = (axis: "x" | "y", v: number) =>
-                    setTransform({
-                      ...t,
-                      position: { ...t.position, [axis]: v }
-                    });
-                  const setScale = (axis: "x" | "y", v: number) =>
-                    setTransform({
-                      ...t,
-                      scale: { ...t.scale, [axis]: v }
-                    });
-                  const setAnchor = (axis: "x" | "y", v: number) =>
-                    setTransform({
-                      ...t,
-                      anchor: { ...t.anchor, [axis]: v }
-                    });
-                  const setRotationDeg = (deg: number) =>
-                    setTransform({ ...t, rotation: (deg * Math.PI) / 180 });
-                  return (
-                    <>
-                      <InspectorRow label="Position">
-                        <InspectorPillInput
-                          value={t.position.x.toFixed(0)}
-                          unit="px"
-                          minWidth={72}
-                          onCommit={(raw) => {
-                            const n = Number(raw);
-                            if (Number.isFinite(n)) setPos("x", n);
-                          }}
-                          ariaLabel="Position X"
-                        />
-                        <InspectorPillInput
-                          value={t.position.y.toFixed(0)}
-                          unit="px"
-                          minWidth={72}
-                          onCommit={(raw) => {
-                            const n = Number(raw);
-                            if (Number.isFinite(n)) setPos("y", n);
-                          }}
-                          ariaLabel="Position Y"
-                        />
-                      </InspectorRow>
-                      <InspectorRow label="Scale">
-                        <InspectorPillInput
-                          value={t.scale.x.toFixed(2)}
-                          unit="×"
-                          minWidth={72}
-                          onCommit={(raw) => {
-                            const n = Number(raw);
-                            if (Number.isFinite(n)) setScale("x", n);
-                          }}
-                          ariaLabel="Scale X"
-                        />
-                        <InspectorPillInput
-                          value={t.scale.y.toFixed(2)}
-                          unit="×"
-                          minWidth={72}
-                          onCommit={(raw) => {
-                            const n = Number(raw);
-                            if (Number.isFinite(n)) setScale("y", n);
-                          }}
-                          ariaLabel="Scale Y"
-                        />
-                      </InspectorRow>
-                      <InspectorRow label="Rotation">
-                        <InspectorPillInput
-                          value={((t.rotation * 180) / Math.PI).toFixed(1)}
-                          unit="°"
-                          onCommit={(raw) => {
-                            const n = Number(raw);
-                            if (Number.isFinite(n)) setRotationDeg(n);
-                          }}
-                          ariaLabel="Rotation in degrees"
-                        />
-                      </InspectorRow>
-                      <InspectorSliderRow
-                        label="Anchor X"
-                        min={0}
-                        max={1}
-                        step={0.01}
-                        value={t.anchor.x}
-                        origin={0.5}
-                        display={t.anchor.x.toFixed(2)}
-                        onChange={(value) => setAnchor("x", value)}
-                      />
-                      <InspectorSliderRow
-                        label="Anchor Y"
-                        min={0}
-                        max={1}
-                        step={0.01}
-                        value={t.anchor.y}
-                        origin={0.5}
-                        display={t.anchor.y.toFixed(2)}
-                        onChange={(value) => setAnchor("y", value)}
-                      />
-                      <InspectorSliderRow
-                        label="Radius"
-                        min={0}
-                        max={500}
-                        step={1}
-                        value={clip.borderRadius ?? 0}
-                        display={`${(clip.borderRadius ?? 0).toFixed(0)}px`}
-                        onChange={(value) =>
-                          patchClip(clip.id, { borderRadius: value })
-                        }
-                      />
-                      <FlexRow justify="flex-end" sx={{ mt: 1, px: 0.5 }}>
-                        <EditorButton
-                          size="small"
-                          onClick={() =>
-                            patchClip(clip.id, {
-                              transform: undefined,
-                              borderRadius: undefined
-                            })
-                          }
-                        >
-                          Reset transform
-                        </EditorButton>
-                      </FlexRow>
-                    </>
-                  );
-                })()}
+                <InspectorRow label="Position">
+                  <InspectorPillInput
+                    value={transform.position.x.toFixed(0)}
+                    unit="px"
+                    minWidth={72}
+                    onCommit={handlePositionXCommit}
+                    ariaLabel="Position X"
+                  />
+                  <InspectorPillInput
+                    value={transform.position.y.toFixed(0)}
+                    unit="px"
+                    minWidth={72}
+                    onCommit={handlePositionYCommit}
+                    ariaLabel="Position Y"
+                  />
+                </InspectorRow>
+                <InspectorRow label="Scale">
+                  <InspectorPillInput
+                    value={transform.scale.x.toFixed(2)}
+                    unit="×"
+                    minWidth={72}
+                    onCommit={handleScaleXCommit}
+                    ariaLabel="Scale X"
+                  />
+                  <InspectorPillInput
+                    value={transform.scale.y.toFixed(2)}
+                    unit="×"
+                    minWidth={72}
+                    onCommit={handleScaleYCommit}
+                    ariaLabel="Scale Y"
+                  />
+                </InspectorRow>
+                <InspectorRow label="Rotation">
+                  <InspectorPillInput
+                    value={((transform.rotation * 180) / Math.PI).toFixed(1)}
+                    unit="°"
+                    onCommit={handleRotationCommit}
+                    ariaLabel="Rotation in degrees"
+                  />
+                </InspectorRow>
+                <InspectorSliderRow
+                  label="Anchor X"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={transform.anchor.x}
+                  origin={0.5}
+                  display={transform.anchor.x.toFixed(2)}
+                  onChange={handleAnchorXChange}
+                />
+                <InspectorSliderRow
+                  label="Anchor Y"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={transform.anchor.y}
+                  origin={0.5}
+                  display={transform.anchor.y.toFixed(2)}
+                  onChange={handleAnchorYChange}
+                />
+                <InspectorSliderRow
+                  label="Radius"
+                  min={0}
+                  max={500}
+                  step={1}
+                  value={clip.borderRadius ?? 0}
+                  display={`${(clip.borderRadius ?? 0).toFixed(0)}px`}
+                  onChange={handleBorderRadiusChange}
+                />
+                <FlexRow justify="flex-end" sx={{ mt: 1, px: 0.5 }}>
+                  <EditorButton size="small" onClick={handleResetTransform}>
+                    Reset transform
+                  </EditorButton>
+                </FlexRow>
               </FlexColumn>
             </CollapsibleSection>
           </>
@@ -391,94 +607,111 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
               }
               open={colorOpen}
               onToggle={setColorOpen}
+              unmountOnExit
             >
               <FlexColumn css={sectionContentStyles(theme)}>
-                {(() => {
-                  const color = findColorEffect(clip);
-                  const enabled = color?.enabled ?? false;
-                  const update = (patch: Partial<ClipColorEffect>): void => {
-                    const next: ClipColorEffect = {
-                      id: COLOR_EFFECT_ID,
-                      type: "color",
-                      enabled,
-                      brightness: color?.brightness,
-                      contrast: color?.contrast,
-                      saturation: color?.saturation,
-                      hue: color?.hue,
-                      temperature: color?.temperature,
-                      tint: color?.tint,
-                      shadows: color?.shadows,
-                      highlights: color?.highlights,
-                      ...patch
-                    };
-                    patchClip(clip.id, {
-                      effects: upsertEffect(clip.effects, next)
-                    });
-                  };
-                  const slider = (
-                    label: string,
-                    key: keyof Omit<
-                      ClipColorEffect,
-                      "id" | "type" | "enabled"
-                    >,
-                    min: number,
-                    max: number,
-                    step: number,
-                    defaultV: number,
-                    format: (v: number) => string = (v) => v.toFixed(2)
-                  ) => {
-                    const v = color?.[key] ?? defaultV;
-                    return (
-                      <InspectorSliderRow
-                        label={label}
-                        min={min}
-                        max={max}
-                        step={step}
-                        value={v}
-                        origin={defaultV}
-                        display={format(v)}
-                        disabled={!enabled}
-                        onChange={(value) =>
-                          update({ [key]: value } as Partial<ClipColorEffect>)
-                        }
-                      />
-                    );
-                  };
-                  return (
-                    <>
-                      <InspectorToggleRow
-                        label="Enabled"
-                        checked={enabled}
-                        onChange={(next) => update({ enabled: next })}
-                      />
-                      {slider("Brightness", "brightness", -1, 1, 0.01, 0)}
-                      {slider("Contrast", "contrast", 0, 4, 0.01, 1)}
-                      {slider("Saturation", "saturation", 0, 4, 0.01, 1)}
-                      {slider("Hue", "hue", -180, 180, 1, 0, (v) =>
-                        `${v.toFixed(0)}°`
-                      )}
-                      {slider("Temperature", "temperature", -1, 1, 0.01, 0)}
-                      {slider("Tint", "tint", -1, 1, 0.01, 0)}
-                      {slider("Shadows", "shadows", -1, 1, 0.01, 0)}
-                      {slider("Highlights", "highlights", -1, 1, 0.01, 0)}
-                      <FlexRow justify="flex-end" sx={{ mt: 1, px: 0.5 }}>
-                        <EditorButton
-                          size="small"
-                          disabled={!color}
-                          onClick={() =>
-                            patchClip(clip.id, {
-                              effects: clip.effects?.filter(
-                                (e) => e.id !== COLOR_EFFECT_ID
-                              )
-                            })
-                          }
-                        >
-                          Clear color
-                        </EditorButton>
-                      </FlexRow>
-                    </>
-                  );
-                })()}
+                <InspectorToggleRow
+                  label="Enabled"
+                  checked={colorEnabled}
+                  onChange={handleColorEnabledChange}
+                />
+                <InspectorSliderRow
+                  label="Brightness"
+                  min={-1}
+                  max={1}
+                  step={0.01}
+                  value={color?.brightness ?? 0}
+                  origin={0}
+                  display={(color?.brightness ?? 0).toFixed(2)}
+                  disabled={!colorEnabled}
+                  onChange={handleBrightnessChange}
+                />
+                <InspectorSliderRow
+                  label="Contrast"
+                  min={0}
+                  max={4}
+                  step={0.01}
+                  value={color?.contrast ?? 1}
+                  origin={1}
+                  display={(color?.contrast ?? 1).toFixed(2)}
+                  disabled={!colorEnabled}
+                  onChange={handleContrastChange}
+                />
+                <InspectorSliderRow
+                  label="Saturation"
+                  min={0}
+                  max={4}
+                  step={0.01}
+                  value={color?.saturation ?? 1}
+                  origin={1}
+                  display={(color?.saturation ?? 1).toFixed(2)}
+                  disabled={!colorEnabled}
+                  onChange={handleSaturationChange}
+                />
+                <InspectorSliderRow
+                  label="Hue"
+                  min={-180}
+                  max={180}
+                  step={1}
+                  value={color?.hue ?? 0}
+                  origin={0}
+                  display={`${(color?.hue ?? 0).toFixed(0)}°`}
+                  disabled={!colorEnabled}
+                  onChange={handleHueChange}
+                />
+                <InspectorSliderRow
+                  label="Temperature"
+                  min={-1}
+                  max={1}
+                  step={0.01}
+                  value={color?.temperature ?? 0}
+                  origin={0}
+                  display={(color?.temperature ?? 0).toFixed(2)}
+                  disabled={!colorEnabled}
+                  onChange={handleTemperatureChange}
+                />
+                <InspectorSliderRow
+                  label="Tint"
+                  min={-1}
+                  max={1}
+                  step={0.01}
+                  value={color?.tint ?? 0}
+                  origin={0}
+                  display={(color?.tint ?? 0).toFixed(2)}
+                  disabled={!colorEnabled}
+                  onChange={handleTintChange}
+                />
+                <InspectorSliderRow
+                  label="Shadows"
+                  min={-1}
+                  max={1}
+                  step={0.01}
+                  value={color?.shadows ?? 0}
+                  origin={0}
+                  display={(color?.shadows ?? 0).toFixed(2)}
+                  disabled={!colorEnabled}
+                  onChange={handleShadowsChange}
+                />
+                <InspectorSliderRow
+                  label="Highlights"
+                  min={-1}
+                  max={1}
+                  step={0.01}
+                  value={color?.highlights ?? 0}
+                  origin={0}
+                  display={(color?.highlights ?? 0).toFixed(2)}
+                  disabled={!colorEnabled}
+                  onChange={handleHighlightsChange}
+                />
+                <FlexRow justify="flex-end" sx={{ mt: 1, px: 0.5 }}>
+                  <EditorButton
+                    size="small"
+                    disabled={!color}
+                    onClick={handleClearColor}
+                  >
+                    Clear color
+                  </EditorButton>
+                </FlexRow>
               </FlexColumn>
             </CollapsibleSection>
           </>
@@ -496,60 +729,33 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
               }
               open={blurOpen}
               onToggle={setBlurOpen}
+              unmountOnExit
             >
               <FlexColumn css={sectionContentStyles(theme)}>
-                {(() => {
-                  const blur = findBlurEffect(clip);
-                  const enabled = blur?.enabled ?? false;
-                  const radius = blur?.radius ?? 0;
-                  const updateBlur = (patch: Partial<ClipBlurEffect>) => {
-                    const next: ClipBlurEffect = {
-                      id: BLUR_EFFECT_ID,
-                      type: "blur",
-                      enabled,
-                      radius,
-                      sigma: blur?.sigma,
-                      ...patch
-                    };
-                    patchClip(clip.id, {
-                      effects: upsertEffect(clip.effects, next)
-                    });
-                  };
-                  return (
-                    <>
-                      <InspectorToggleRow
-                        label="Enabled"
-                        checked={enabled}
-                        onChange={(next) => updateBlur({ enabled: next })}
-                      />
-                      <InspectorSliderRow
-                        label="Radius"
-                        min={0}
-                        max={20}
-                        step={0.5}
-                        value={radius}
-                        display={`${radius.toFixed(0)}px`}
-                        disabled={!enabled}
-                        onChange={(value) => updateBlur({ radius: value })}
-                      />
-                      <FlexRow justify="flex-end" sx={{ mt: 1, px: 0.5 }}>
-                        <EditorButton
-                          size="small"
-                          disabled={!blur}
-                          onClick={() =>
-                            patchClip(clip.id, {
-                              effects: clip.effects?.filter(
-                                (e) => e.id !== BLUR_EFFECT_ID
-                              )
-                            })
-                          }
-                        >
-                          Clear blur
-                        </EditorButton>
-                      </FlexRow>
-                    </>
-                  );
-                })()}
+                <InspectorToggleRow
+                  label="Enabled"
+                  checked={blurEnabled}
+                  onChange={handleBlurEnabledChange}
+                />
+                <InspectorSliderRow
+                  label="Radius"
+                  min={0}
+                  max={20}
+                  step={0.5}
+                  value={blurRadius}
+                  display={`${blurRadius.toFixed(0)}px`}
+                  disabled={!blurEnabled}
+                  onChange={handleBlurRadiusChange}
+                />
+                <FlexRow justify="flex-end" sx={{ mt: 1, px: 0.5 }}>
+                  <EditorButton
+                    size="small"
+                    disabled={!blur}
+                    onClick={handleClearBlur}
+                  >
+                    Clear blur
+                  </EditorButton>
+                </FlexRow>
               </FlexColumn>
             </CollapsibleSection>
           </>
@@ -567,81 +773,39 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
               }
               open={transitionOpen}
               onToggle={setTransitionOpen}
+              unmountOnExit
             >
               <FlexColumn css={sectionContentStyles(theme)}>
-                {(() => {
-                  const t = clip.transitionIn;
-                  // Auto (default): cross-fade across any same-track overlap.
-                  // Crossfade: explicit duration. None: a zero-length cross-fade
-                  // — an opt-out that stays a hard cut even when clips overlap.
-                  const mode: "auto" | "crossfade" | "none" =
-                    t == null ? "auto" : t.durationMs <= 0 ? "none" : "crossfade";
-                  const duration = t && t.durationMs > 0 ? t.durationMs : 500;
-                  const setMode = (next: "auto" | "crossfade" | "none") => {
-                    if (next === "auto") {
-                      patchClip(clip.id, { transitionIn: undefined });
-                    } else if (next === "none") {
-                      patchClip(clip.id, {
-                        transitionIn: { type: "crossfade", durationMs: 0 }
-                      });
-                    } else {
-                      const transition: ClipTransition = {
-                        type: "crossfade",
-                        durationMs: duration
-                      };
-                      patchClip(clip.id, { transitionIn: transition });
-                    }
-                  };
-                  return (
-                    <>
-                      <InspectorRow label="Type">
-                        <NodeSelect
-                          value={mode}
-                          onChange={(e) =>
-                            setMode(
-                              e.target.value as "auto" | "crossfade" | "none"
-                            )
-                          }
-                        >
-                          <NodeMenuItem value="auto">Auto</NodeMenuItem>
-                          <NodeMenuItem value="crossfade">
-                            Crossfade
-                          </NodeMenuItem>
-                          <NodeMenuItem value="none">None</NodeMenuItem>
-                        </NodeSelect>
-                      </InspectorRow>
-                      {mode === "crossfade" && (
-                        <InspectorRow label="Duration">
-                          <InspectorPillInput
-                            value={(duration / 1000).toFixed(2)}
-                            unit="s"
-                            onCommit={(raw) => {
-                              const ms = parseSeconds(raw);
-                              if (ms == null) return;
-                              patchClip(clip.id, {
-                                transitionIn: {
-                                  type: "crossfade",
-                                  durationMs: Math.max(0, ms)
-                                }
-                              });
-                            }}
-                            ariaLabel="Transition duration"
-                          />
-                        </InspectorRow>
-                      )}
-                      <Text
-                        size="small"
-                        sx={{ px: 0.5, color: "text.secondary" }}
-                      >
-                        {mode === "auto"
-                          ? "Overlap this clip with the previous one on the same track to cross-fade."
-                          : mode === "crossfade"
-                            ? "Fixed cross-fade length, measured from this clip's start."
-                            : "Always a hard cut, even when clips overlap."}
-                      </Text>
-                    </>
-                  );
-                })()}
+                <InspectorRow label="Type">
+                  <NodeSelect
+                    value={transitionMode}
+                    onChange={handleTransitionModeChange}
+                  >
+                    <NodeMenuItem value="auto">Auto</NodeMenuItem>
+                    <NodeMenuItem value="crossfade">Crossfade</NodeMenuItem>
+                    <NodeMenuItem value="none">None</NodeMenuItem>
+                  </NodeSelect>
+                </InspectorRow>
+                {transitionMode === "crossfade" && (
+                  <InspectorRow label="Duration">
+                    <InspectorPillInput
+                      value={(transitionDuration / 1000).toFixed(2)}
+                      unit="s"
+                      onCommit={handleTransitionDurationCommit}
+                      ariaLabel="Transition duration"
+                    />
+                  </InspectorRow>
+                )}
+                <Text
+                  size="small"
+                  sx={{ px: 0.5, color: "text.secondary" }}
+                >
+                  {transitionMode === "auto"
+                    ? "Overlap this clip with the previous one on the same track to cross-fade."
+                    : transitionMode === "crossfade"
+                      ? "Fixed cross-fade length, measured from this clip's start."
+                      : "Always a hard cut, even when clips overlap."}
+                </Text>
               </FlexColumn>
             </CollapsibleSection>
           </>

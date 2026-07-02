@@ -14,6 +14,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import { findClipById } from "../../../stores/timeline/clipLookup";
 import { useWorkflow } from "../../../serverState/useWorkflow";
 import { useWorkflowManager } from "../../../contexts/WorkflowManagerContext";
 import { NodeContext } from "../../../contexts/NodeContext";
@@ -47,6 +48,11 @@ import { ClipVersionHistory } from "./ClipVersionHistory";
 export interface GeneratedClipPanelProps {
   clipId: string;
 }
+
+// Stable identity so `clip.paramOverrides ?? EMPTY_PARAM_OVERRIDES` doesn't
+// hand MiniAppInputsForm a fresh object every render, which would defeat its
+// memoization for clips with no overrides.
+const EMPTY_PARAM_OVERRIDES: Record<string, unknown> = {};
 
 const panelSx = {
   width: "100%",
@@ -85,7 +91,7 @@ const inputsContainerStyles = (theme: Theme) =>
 export const GeneratedClipPanel: React.FC<GeneratedClipPanelProps> = memo(
   ({ clipId }) => {
     const theme = useTheme();
-    const clip = useTimelineStore((s) => s.clips.find((c) => c.id === clipId));
+    const clip = useTimelineStore((s) => findClipById(s.clips, clipId));
     const setParamOverride = useTimelineStore((s) => s.setParamOverride);
 
     const workflowId = clip?.workflowId ?? null;
@@ -155,7 +161,7 @@ export const GeneratedClipPanel: React.FC<GeneratedClipPanelProps> = memo(
       return null;
     }
 
-    const paramOverrides = clip.paramOverrides ?? {};
+    const paramOverrides = clip.paramOverrides ?? EMPTY_PARAM_OVERRIDES;
     const generateLabel = clip.currentAssetId ? "Regenerate" : "Generate";
 
     return (

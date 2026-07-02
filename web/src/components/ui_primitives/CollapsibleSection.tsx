@@ -26,6 +26,12 @@ export interface CollapsibleSectionProps extends Omit<BoxProps, "title" | "onTog
   hideIcon?: boolean;
   /** Compact mode with less padding */
   compact?: boolean;
+  /**
+   * Unmount children while collapsed instead of keeping them in the DOM
+   * (forwarded to MUI `Collapse`). Defaults to false so existing consumers
+   * that rely on folded content staying mounted are unaffected.
+   */
+  unmountOnExit?: boolean;
 }
 
 /**
@@ -61,6 +67,7 @@ const CollapsibleSectionInternal: React.FC<CollapsibleSectionProps> = ({
   timeout = 200,
   hideIcon = false,
   compact = false,
+  unmountOnExit = false,
   sx,
   children,
   ...props
@@ -115,7 +122,7 @@ const CollapsibleSectionInternal: React.FC<CollapsibleSectionProps> = ({
         )}
         <Box sx={{ flex: 1 }}>{title}</Box>
       </Box>
-      <Collapse in={isOpen} timeout={timeout}>
+      <Collapse in={isOpen} timeout={timeout} unmountOnExit={unmountOnExit}>
         {children}
       </Collapse>
     </Box>

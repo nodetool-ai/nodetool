@@ -14,6 +14,7 @@ import AutoAwesomeMotionIcon from "@mui/icons-material/AutoAwesomeMotion";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
+import { findClipById } from "../../../stores/timeline/clipLookup";
 import { ToolbarIconButton, FlexRow, Text, Dialog, TextInput, Toast } from "../../ui_primitives";
 
 // ── Styles ─────────────────────────────────────────────────────────────────
@@ -38,9 +39,7 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
     const theme = useTheme();
     const navigate = useNavigate();
 
-    const clip = useTimelineStore(
-      (s) => s.clips.find((c) => c.id === clipId)
-    );
+    const clip = useTimelineStore((s) => findClipById(s.clips, clipId));
     const sequenceId = useTimelineStore((s) => s.sequenceId);
 
     const duplicateClip = useTimelineStore((s) => s.duplicateClip);
