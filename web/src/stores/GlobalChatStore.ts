@@ -1337,6 +1337,11 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
         // Stopping cancels the run, so drop any pending tool/plan-approval
         // prompts for the current thread — they belong to the cancelled run.
+        // Null-thread plan approvals go too: the server's stop command calls
+        // approvalBridge.cancelAll(), which cancels every waiter on this
+        // socket (including ones from non-thread-bound workflow runs), so
+        // keeping their cards would leave orphaned prompts whose responses
+        // resolve nothing.
         if (currentThreadId) {
           set((state) => {
             const remaining = Object.fromEntries(

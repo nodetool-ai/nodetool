@@ -129,6 +129,9 @@ const ToolCallCard: React.FC<{
 
   const hasArgs = !!displayArgs && Object.keys(displayArgs).length > 0;
   const resultContent = result?.content;
+  // The call is complete once a result arrived; expandable details only show
+  // when the result actually has content.
+  const isCompleted = result !== undefined;
   const hasResult =
     resultContent != null &&
     !(typeof resultContent === "string" && resultContent.trim().length === 0);
@@ -214,7 +217,7 @@ const ToolCallCard: React.FC<{
           {isRunning ? (
             <LoadingSpinner size="small" />
           ) : (
-            hasResult && (
+            isCompleted && (
               <CheckCircleRoundedIcon
                 className="tool-status-icon done"
                 aria-label="completed"
@@ -325,13 +328,11 @@ const ToolCallGroup: React.FC<{
   const isRunning = toolCalls.some(
     (tc) => tc.id && runningToolCallId === tc.id
   );
-  const completedCount = toolCalls.filter((tc) => {
-    const content = durationFor(tc).toolResult?.content;
-    return (
-      content != null &&
-      !(typeof content === "string" && content.trim().length === 0)
-    );
-  }).length;
+  // A call is completed once a result message arrived — tools may
+  // legitimately return empty/null content.
+  const completedCount = toolCalls.filter(
+    (tc) => durationFor(tc).toolResult !== undefined
+  ).length;
   // Per-call durations are measured from the message start, so the chain's
   // total wall-clock time is the longest one.
   const totalDurationMs = toolCalls.reduce<number | null>((max, tc) => {

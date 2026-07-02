@@ -81,6 +81,30 @@ describe("MessageView tool-call grouping", () => {
     expect(screen.queryByText("Search")).not.toBeInTheDocument();
   });
 
+  it("counts a call with an empty result as completed in the summary", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <MessageView
+          message={
+            {
+              id: "m4",
+              role: "assistant",
+              tool_calls: [toolCall("a", "search"), toolCall("b", "run_tests")]
+            } as Message
+          }
+          isThoughtExpanded={() => false}
+          onToggleThought={() => {}}
+          toolResultsByCallId={{
+            // Empty-string content still means the tool responded.
+            a: { name: "search", content: "" }
+          }}
+        />
+      </ThemeProvider>
+    );
+
+    expect(screen.getByText("1/2 completed")).toBeInTheDocument();
+  });
+
   it("renders a single tool call inline without the group wrapper", () => {
     renderView({
       id: "m3",
