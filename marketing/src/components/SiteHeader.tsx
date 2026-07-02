@@ -19,6 +19,7 @@ const NAV: NavItem[] = [
   { name: "Creatives", href: "/creatives" },
   { name: "Agents", href: "/agents" },
   { name: "Developers", href: "/developers" },
+  { name: "Marketing", href: "/marketing" },
   { name: "Pricing", href: "/pricing" },
   { name: "Docs", href: "https://docs.nodetool.ai", external: true },
 ];

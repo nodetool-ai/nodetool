@@ -7,11 +7,14 @@ const ROUTES = [
   "/agents",
   "/developers",
   "/creatives",
+  "/marketing",
   "/pricing",
   "/vs/comfyui",
   "/vs/weavy",
   "/vs/langflow",
   "/vs/n8n",
+  "/vs/flowise",
+  "/vs/dify",
 ];
 
 test.describe("marketing smoke", () => {
