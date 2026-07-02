@@ -101,6 +101,39 @@ function captureDocumentCanvas(
 }
 
 /**
+ * Serialize layer structure for equality comparison without cloning.
+ * JSON.stringify only reads its input, so the per-layer `structuredClone`
+ * that `captureLayerStructure` performs (needed for snapshot immutability)
+ * is pure overhead on the compare path. Both sides of a comparison must go
+ * through this same mapper so key order is identical.
+ */
+function serializeStructureForCompare(
+  layers: readonly Layer[] | readonly LayerStructureSnapshot[]
+): string {
+  return JSON.stringify(
+    layers.map((l) => ({
+      id: l.id,
+      name: l.name,
+      type: l.type,
+      visible: l.visible,
+      opacity: l.opacity,
+      locked: l.locked,
+      alphaLock: l.alphaLock,
+      blendMode: l.blendMode,
+      transform: l.transform,
+      contentBounds: l.contentBounds,
+      exposedAsInput: l.exposedAsInput,
+      exposedAsOutput: l.exposedAsOutput,
+      imageReference: l.imageReference,
+      parentId: l.parentId,
+      collapsed: l.collapsed,
+      segmentationMeta: l.segmentationMeta,
+      effects: l.effects
+    }))
+  );
+}
+
+/**
  * Whether the live document is *ahead* of the snapshot stored at `index` —
  * i.e. there are uncommitted edits since that checkpoint.
  *
@@ -151,11 +184,39 @@ function isLiveStateAhead(
   // visibility, etc. Selection isn't compared: selection edits always commit
   // via a push, so they never leave an uncommitted tip.
   const storedStructure = resolveLayerStructure(history, index);
-  const liveStructure = captureLayerStructure(document.layers);
-  if (storedStructure.length !== liveStructure.length) {
+  if (storedStructure.length !== document.layers.length) {
     return true;
   }
-  return JSON.stringify(liveStructure) !== JSON.stringify(storedStructure);
+  return (
+    serializeStructureForCompare(document.layers) !==
+    serializeStructureForCompare(storedStructure)
+  );
+}
+
+/**
+ * Identity-keyed cache for {@link isLiveStateAhead}. `canUndo()` is evaluated
+ * inside component selectors, which re-run on every store write (including
+ * high-frequency cursor-position updates). Document, history array, and index
+ * are immutable snapshots, so the last answer can be reused until any of them
+ * changes identity.
+ */
+const liveStateAheadCache = new WeakMap<
+  SketchDocument,
+  { history: HistoryEntry[]; index: number; result: boolean }
+>();
+
+function isLiveStateAheadCached(
+  document: SketchDocument,
+  history: HistoryEntry[],
+  index: number
+): boolean {
+  const cached = liveStateAheadCache.get(document);
+  if (cached && cached.history === history && cached.index === index) {
+    return cached.result;
+  }
+  const result = isLiveStateAhead(document, history, index);
+  liveStateAheadCache.set(document, { history, index, result });
+  return result;
 }
 
 /**
@@ -289,7 +350,7 @@ export const createHistorySlice: StateCreator<
     // always leave the live state equal to the entry at `historyIndex`.
     const dirtyTip =
       state.historyIndex === state.history.length - 1 &&
-      isLiveStateAhead(state.document, state.history, state.historyIndex);
+      isLiveStateAheadCached(state.document, state.history, state.historyIndex);
 
     let history = state.history;
     let newIndex: number;
@@ -436,7 +497,7 @@ export const createHistorySlice: StateCreator<
     return (
       state.historyIndex === 0 &&
       state.historyIndex === state.history.length - 1 &&
-      isLiveStateAhead(state.document, state.history, 0)
+      isLiveStateAheadCached(state.document, state.history, 0)
     );
   },
   canRedo: () => get().historyIndex < get().history.length - 1

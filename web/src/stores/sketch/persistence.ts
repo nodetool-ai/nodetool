@@ -40,25 +40,34 @@ function cloneValue<T>(value: T): T {
   return structuredClone(value);
 }
 
+/**
+ * Drop the non-serializable `layerCanvasSnapshots` from each entry. Shallow —
+ * the returned entries share all other fields with the store's history, so
+ * treat the result as read-only.
+ */
 export function stripHistoryCanvasSnapshots(
   history: readonly HistoryEntry[]
 ): PersistedHistoryEntry[] {
-  return history.map(({ layerCanvasSnapshots: _ignored, ...entry }) =>
-    cloneValue(entry)
-  );
+  return history.map(({ layerCanvasSnapshots: _ignored, ...entry }) => entry);
 }
 
+/**
+ * Assemble the persisted shape without deep-cloning. Layer data URLs and
+ * history entries can total many MB, so this must stay allocation-light: the
+ * result shares `document` and `history` references with the store. Treat it
+ * as read-only — mutating paths (`externalizeOversizedBitmaps`) clone first.
+ */
 export function toPersistedSketchEditorState(
   snapshot: SketchPersistenceSnapshot
 ): PersistedSketchEditorState {
   return {
-    ...cloneValue(snapshot.document),
+    ...snapshot.document,
     activeTool: snapshot.activeTool,
     viewport: {
       zoom: snapshot.zoom,
-      pan: cloneValue(snapshot.pan)
+      pan: { x: snapshot.pan.x, y: snapshot.pan.y }
     },
-    history: cloneValue(snapshot.history),
+    history: snapshot.history,
     historyIndex: snapshot.historyIndex
   };
 }

@@ -685,8 +685,18 @@ async function externalizeOversizedBitmaps(
 
   const candidates = buildCandidates();
 
+  // Serializing the whole document is O(total bytes); do it once and track the
+  // running total as candidates are externalized instead of re-serializing per
+  // iteration. The estimate is conservative (each replacement also adds a
+  // small imageReference / uri payload, padded below), and `saveSnapshot`
+  // re-checks the exact size after externalization.
+  const REPLACEMENT_PADDING_BYTES = 512;
+  let totalBytes =
+    candidates.length > 0
+      ? getImageDocumentByteLength(nextSketch, layerBindings)
+      : 0;
+
   for (const candidate of candidates) {
-    const totalBytes = getImageDocumentByteLength(nextSketch, layerBindings);
     if (
       candidate.bytes <= MAX_INLINE_LAYER_BYTES &&
       totalBytes <= MAX_PERSISTED_IMAGE_DOCUMENT_BYTES
@@ -709,6 +719,10 @@ async function externalizeOversizedBitmaps(
     }
 
     candidate.replace(uri);
+    totalBytes -= Math.max(
+      0,
+      sourceData.length - uri.length - REPLACEMENT_PADDING_BYTES
+    );
     if (candidate.layerId) {
       externalizedLayerIds.add(candidate.layerId);
     }
@@ -849,7 +863,10 @@ export function useStandaloneSketchDocument(
   const editorStore = instance.editor;
   const sessionStore = instance.session;
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingHashRef = useRef<string | null>(null);
+  // Whether editor/binding state changed since the last save attempt. Store
+  // mutations only flip this flag — the expensive serialize/hash runs once
+  // inside the debounced save (`saveSnapshot`), never on the mutation path.
+  const pendingDirtyRef = useRef(false);
   // Keep the latest trpc utils available to the autosave callback. Reassign
   // on every render so the closure inside `saveSnapshot` sees the current
   // utils object even though it lives outside any React effect.
@@ -873,7 +890,7 @@ export function useStandaloneSketchDocument(
       toPersistedSketchEditorState(initialState),
       response.document.layerBindings ?? []
     );
-    pendingHashRef.current = serverHash;
+    pendingDirtyRef.current = false;
     const session = sessionStore.getState();
     session.setLoadedDocument(
       {
@@ -903,25 +920,21 @@ export function useStandaloneSketchDocument(
       const store = sessionStore.getState();
       if (inFlightRef.current || !store.documentId) {
         // A manual save may be in flight (shared guard). Re-arm the debounce
-        // so a pending hash isn't dropped if that save fails — but never
+        // so a pending change isn't dropped if that save fails — but never
         // after unmount (cleanup also calls flush()).
-        if (
-          alive &&
-          inFlightRef.current &&
-          pendingHashRef.current &&
-          pendingHashRef.current !== store.lastServerHash
-        ) {
+        if (alive && inFlightRef.current && pendingDirtyRef.current) {
           schedule();
         }
         return;
       }
-      const nextHash = pendingHashRef.current;
-      if (!nextHash || nextHash === store.lastServerHash) {
+      if (!pendingDirtyRef.current) {
         return;
       }
-      pendingHashRef.current = null;
+      pendingDirtyRef.current = false;
       inFlightRef.current = true;
       const documentId = store.documentId;
+      // `saveSnapshot` serializes + hashes once here and skips the network
+      // call when the document matches the last server hash.
       void saveSnapshot(instance, documentId, store.name, (saved) => {
         utilsRef.current.sketch.get.setData({ id: documentId }, saved);
       }).finally(() => {
@@ -929,11 +942,7 @@ export function useStandaloneSketchDocument(
         if (!alive) {
           return;
         }
-        const currentStore = sessionStore.getState();
-        if (
-          pendingHashRef.current &&
-          pendingHashRef.current !== currentStore.lastServerHash
-        ) {
+        if (pendingDirtyRef.current) {
           schedule();
         }
       });
@@ -974,38 +983,18 @@ export function useStandaloneSketchDocument(
         return;
       }
       prevSelected = nextSelected;
-
-      const nextHash = computeImageDocumentHash(
-        toPersistedSketchEditorState({
-          document: state.document,
-          activeTool: state.activeTool ?? DEFAULT_SKETCH_ACTIVE_TOOL,
-          zoom: state.zoom,
-          pan: state.pan,
-          history: stripHistoryCanvasSnapshots(state.history),
-          historyIndex: state.historyIndex
-        }),
-        Object.values(sessionStore.getState().bindings)
-      );
-      pendingHashRef.current = nextHash;
-      if (nextHash !== sessionStore.getState().lastServerHash) {
-        schedule();
-      }
+      pendingDirtyRef.current = true;
+      schedule();
     });
 
     // Subscribe to the merged session store too — bindings live here now,
-    // and a binding change still needs to bump the pending hash.
+    // and a binding change still needs to trigger a save.
     let prevBindings = sessionStore.getState().bindings;
     const unsubscribeSession = sessionStore.subscribe((state) => {
       if (state.bindings === prevBindings) return;
       prevBindings = state.bindings;
-      const nextHash = computeImageDocumentHash(
-        toPersistedSketchEditorState(buildSnapshot(editorStore)),
-        Object.values(state.bindings)
-      );
-      pendingHashRef.current = nextHash;
-      if (nextHash !== sessionStore.getState().lastServerHash) {
-        schedule();
-      }
+      pendingDirtyRef.current = true;
+      schedule();
     });
 
     return () => {
