@@ -3,24 +3,106 @@
 //
 // The backend always runs on vanilla Node, NOT Electron's embedded Node, so we
 // build against Node headers (node-gyp's default dist-url), not Electron's.
-// Only better-sqlite3 is V8-locked; N-API modules are ABI-stable and skipped.
+// Only better-sqlite3 is V8-locked; N-API modules (bufferutil, etc.) are
+// ABI-stable, ship their own prebuilds, and are skipped here.
+//
+// This runs from the ROOT postinstall (see the root package.json), i.e. AFTER
+// npm has fully materialized the dependency tree — never during reify. Running
+// mid-reify used to race npm's atomic renames of node-gyp's own deps (e.g.
+// `tinyglobby`), which surfaced as "Cannot find module 'tinyglobby'". The retry
+// loop below is defense-in-depth against any residual transient resolution
+// failure. Also exposed as `npm run rebuild:native` for a manual force-rebuild.
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { dirname } from "node:path";
 
 const require = createRequire(import.meta.url);
 const arch = process.arch;
-const moduleDir = dirname(require.resolve("better-sqlite3/package.json"));
-const nodeGyp = require.resolve("node-gyp/bin/node-gyp.js");
 
-console.log(`Rebuilding better-sqlite3 for Node ${process.versions.node} (${arch})`);
+// better-sqlite3 is hoisted to the root node_modules; resolve it from here.
+// If it isn't installed (e.g. a filtered/minimal install), there's nothing to
+// rebuild — skip cleanly rather than failing the postinstall.
+let moduleDir;
+try {
+  moduleDir = dirname(require.resolve("better-sqlite3/package.json"));
+} catch {
+  console.log("better-sqlite3 not installed; skipping native rebuild.");
+  process.exit(0);
+}
 
-const result = spawnSync(
-  process.execPath,
-  [nodeGyp, "rebuild", "--release", `--arch=${arch}`],
-  { cwd: moduleDir, stdio: "inherit" }
+// Resolve node-gyp's CLI robustly: prefer the copy hoisted next to this script's
+// tree, then fall back to the one nested under better-sqlite3. Either exists in a
+// settled tree; trying both survives odd hoisting layouts.
+function resolveNodeGyp() {
+  const candidates = [
+    () => require.resolve("node-gyp/bin/node-gyp.js"),
+    () =>
+      createRequire(`${moduleDir}/`).resolve("node-gyp/bin/node-gyp.js"),
+  ];
+  for (const resolve of candidates) {
+    try {
+      return resolve();
+    } catch {
+      // try the next candidate
+    }
+  }
+  return null;
+}
+
+const isTransientResolutionError = (out) =>
+  /Cannot find module|MODULE_NOT_FOUND/.test(out ?? "");
+
+// Block synchronously (no busy-wait) so the sync spawn retry loop stays simple.
+const sleep = (ms) =>
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+
+console.log(
+  `Rebuilding better-sqlite3 for Node ${process.versions.node} (${arch})`
 );
 
-if (result.status !== 0) {
-  process.exit(result.status ?? 1);
+const MAX_ATTEMPTS = 3;
+let lastStatus = 1;
+
+for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+  const nodeGyp = resolveNodeGyp();
+  if (!nodeGyp) {
+    if (attempt < MAX_ATTEMPTS) {
+      console.warn(
+        `node-gyp not resolvable yet (attempt ${attempt}/${MAX_ATTEMPTS}); retrying…`
+      );
+      sleep(500 * attempt);
+      continue;
+    }
+    console.error("Could not resolve node-gyp to rebuild better-sqlite3.");
+    process.exit(1);
+  }
+
+  // Capture (rather than inherit) so we can inspect stderr for a transient
+  // resolution failure before deciding whether to retry, then echo it through.
+  const result = spawnSync(
+    process.execPath,
+    [nodeGyp, "rebuild", "--release", `--arch=${arch}`],
+    { cwd: moduleDir, encoding: "utf8" }
+  );
+  if (result.stdout) process.stdout.write(result.stdout);
+  if (result.stderr) process.stderr.write(result.stderr);
+  lastStatus = result.status ?? 1;
+
+  if (lastStatus === 0) {
+    process.exit(0);
+  }
+
+  // node-gyp exits non-zero on a transient dep-resolution failure; retry.
+  const combined = `${result.stdout ?? ""}${result.stderr ?? ""}`;
+  if (attempt < MAX_ATTEMPTS && isTransientResolutionError(combined)) {
+    console.warn(
+      `better-sqlite3 rebuild hit a transient module-resolution error (attempt ${attempt}/${MAX_ATTEMPTS}); retrying…`
+    );
+    sleep(500 * attempt);
+    continue;
+  }
+
+  break;
 }
+
+process.exit(lastStatus);

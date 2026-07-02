@@ -52,10 +52,13 @@ runs:
       env:
         ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
 
+    # `npm ci`'s root postinstall already rebuilds better-sqlite3 for this
+    # runner's Node ABI (electron/scripts/rebuild-native.mjs). This explicit,
+    # idempotent step is belt-and-suspenders in case that hook is ever skipped.
     - name: Rebuild native modules
       if: steps.node-modules-cache.outputs.cache-hit != 'true'
       shell: bash
-      run: npm rebuild better-sqlite3
+      run: npm run rebuild:native
 
     # Restore Turbo's local cache so `build:packages`/`test:packages` reuse prior
     # task outputs instead of rebuilding ~55 packages from scratch in every job.

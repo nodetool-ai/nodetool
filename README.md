@@ -218,13 +218,11 @@ The Electron app auto-detects your active Conda environment. Settings are stored
 - **Linux/macOS**: `~/.config/nodetool/settings.yaml`
 - **Windows**: `%APPDATA%\nodetool\settings.yaml`
 
-> **Native module ABI caveat.** Electron 39 bundles its own Node.js (22.22.1) but uses a distinct `NODE_MODULE_VERSION` (140), so native modules like `better-sqlite3` must be compiled against Electron's headers — *not* system Node, even when the major matches. This is handled automatically by `@electron/rebuild`, wired into `electron/`'s `postinstall`. If you ever see a `NODE_MODULE_VERSION` mismatch, force a rebuild:
+> **Native module rebuild.** The backend always runs on vanilla Node (system Node in dev, the bundled Node 22.x in prod — same ABI), so the one source-built native module, `better-sqlite3`, is compiled against **Node** headers. This runs automatically from the root `postinstall` (`electron/scripts/rebuild-native.mjs`) after `npm install`/`npm ci` finishes, so a clean checkout builds in a single command. If you ever see a `NODE_MODULE_VERSION` mismatch, force a rebuild:
 >
 > ```bash
-> npm --prefix electron run postinstall
+> npm run rebuild:native
 > ```
->
-> **Do not** use plain `npm rebuild` — it compiles against system Node's ABI, which will not match Electron's runtime.
 
 ### Mobile App
 
