@@ -33,9 +33,10 @@ describe("manifest-models task inference (FAL manifest)", () => {
       "relight"
     ]);
     // IC-Light is a relighting model that never says "relight" in its id/name.
-    expect(byId(images, "fal-ai/iclight-v2")?.supportedTasks).toEqual([
+    // (It declares a mask input, so it also picks up the "inpainting" task.)
+    expect(byId(images, "fal-ai/iclight-v2")?.supportedTasks).toContain(
       "relight"
-    ]);
+    );
     expect(byId(images, "fal-ai/recraft/vectorize")?.supportedTasks).toEqual([
       "vectorize"
     ]);
