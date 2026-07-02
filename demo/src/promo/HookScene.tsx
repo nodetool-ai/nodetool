@@ -22,8 +22,7 @@ import {
 } from "remotion";
 import { TimelineDemoPlayer, promoTimelineCast } from "@web-demo";
 import { usePendingMediaDelay } from "./usePendingMediaDelay";
-import { Headline } from "./overlays";
-import { easeOutProgress } from "./helpers";
+import { easeOutProgress, progress } from "./helpers";
 import { PROMO_BG } from "./theme";
 
 const resolvePromoAsset = (file: string): string =>
@@ -197,7 +196,15 @@ export const HookScene: React.FC = () => {
         />
       </div>
 
-      <Headline from={46} to={94} text="Made in NodeTool. Start to finish." />
+      {/* Hold the landed editor a beat, then fade to black — the title card
+          scene carries the "Made in NodeTool" line where it can be read. */}
+      <AbsoluteFill
+        style={{
+          background: "#000",
+          opacity: progress(frame, 92, 104),
+          pointerEvents: "none",
+        }}
+      />
     </AbsoluteFill>
   );
 };

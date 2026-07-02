@@ -74,14 +74,31 @@ export const Headline: React.FC<{
           pointerEvents: "none",
         }}
       >
+        {/* Dark halo so the copy reads over bright footage — the bottom
+            scrim alone is not enough when the monitor fills the frame. */}
         <div
           style={{
+            position: "absolute",
+            left: "50%",
+            top: "50%",
+            transform: "translate(-50%, -50%)",
+            width: "min(1300px, 92%)",
+            height: small ? 260 : 190,
+            background:
+              "radial-gradient(50% 50% at 50% 50%, rgba(2,6,23,0.78), rgba(2,6,23,0.45) 55%, transparent 75%)",
+            filter: "blur(6px)",
+          }}
+        />
+        <div
+          style={{
+            position: "relative",
             fontFamily: PROMO_FONT,
             fontWeight: 800,
             fontSize: 58,
             letterSpacing: "-0.02em",
             color: PROMO_TEXT,
-            textShadow: "0 4px 24px rgba(0,0,0,0.65)",
+            textShadow:
+              "0 2px 6px rgba(0,0,0,0.9), 0 4px 24px rgba(0,0,0,0.8), 0 0 56px rgba(0,0,0,0.7)",
           }}
         >
           {text}
@@ -89,12 +106,14 @@ export const Headline: React.FC<{
         {small ? (
           <div
             style={{
+              position: "relative",
               marginTop: 14,
               fontFamily: PROMO_FONT,
               fontWeight: 500,
               fontSize: 27,
               color: PROMO_TEXT_DIM,
-              textShadow: "0 2px 12px rgba(0,0,0,0.6)",
+              textShadow:
+                "0 1px 4px rgba(0,0,0,0.9), 0 2px 16px rgba(0,0,0,0.8)",
             }}
           >
             {small}

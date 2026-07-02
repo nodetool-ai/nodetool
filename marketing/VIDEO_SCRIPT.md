@@ -2,7 +2,7 @@
 
 One video, two placements: the `#demo-video` slot on the landing page
 (`src/app/page.tsx`, plays as `/demo.mp4` at 3:2) and social posts (X, Instagram,
-TikTok, YouTube Shorts, LinkedIn). The master cut is 45 seconds; 30s and 15s
+TikTok, YouTube Shorts, LinkedIn). The master cut is 50 seconds; 30s and 15s
 cutdowns are specified below.
 
 Design constraints that shape every scene:
@@ -35,17 +35,21 @@ The subject is the **Movie Trailer Generator** use case: the graph generates
 shot variations, the timeline turns them into the trailer. The video's arc is
 the product's arc — generate wide, then cut with intent.
 
-## Master cut — 45 seconds
+## Master cut — 50 seconds
 
 | Time | Scene | Visual | On-screen text | Voice-over |
 |---|---|---|---|---|
-| 0:00–0:03 | Hook | The finished trailer plays full-frame for ~1.5s, then scales down into the timeline's preview monitor; the full editor with its cut sequence comes into view. | **Made in NodeTool. Start to finish.** | "This was made in NodeTool, start to finish." |
-| 0:03–0:12 | Generate variations | Cut to the canvas: a prompt node fans out into four video nodes. Click Run; four takes render in parallel in their preview nodes — two from Seedance, two from Wan, model names visible on the nodes. | **Generate variations on the canvas.** Small line: One prompt. Four takes. Seedance · Wan · your keys | "On the canvas, one prompt fans out into variations — takes from Seedance, Wan, whichever models you want, rendered with your own keys." |
-| 0:12–0:16 | Pick | Scrub two takes side by side in their preview nodes; a beat of comparison, then a decisive click on the winner. | **Keep the takes that work.** | "Keep the best takes…" |
-| 0:16–0:25 | Build the cut | The chosen takes drag onto the timeline editor. Multi-track view: clips trimmed, split, reordered on the video track; a music waveform (Suno) on the audio track below; playhead scrubs the sequence. | **Build the final video on the timeline.** Small line: Multi-track video & audio. | "…and build the cut on the built-in timeline. Video and audio, trim, split, rearrange." |
-| 0:25–0:31 | Generate at the playhead | A gap in the sequence. Type a prompt into the timeline's prompt bar; the new clip renders and lands on the track right under the playhead. | **Missing a shot? Prompt it at the playhead.** Small line: No import step. | "Missing a shot? Prompt it at the playhead and the clip lands on the track. No import, no second app." |
-| 0:31–0:37 | Cost | The cost dashboard: per-node prices, grouped by provider, real dollar amounts. | **Your keys. Provider prices.** Then: **No credits. No markup.** | "You pay providers directly. No credits, no markup." |
-| 0:37–0:45 | Export & close | Click Export; the finished trailer plays full-frame for ~3s, then the NodeTool mark over a defocused canvas. | **Export a finished cut.** Then: **NodeTool — the open creative AI workspace.** CTA line: Free & open source · nodetool.ai | "Export the finished cut. NodeTool is free and open source. Download it, and put every model on one canvas." |
+| 0:00–0:03.5 | Hook | The finished trailer plays full-frame for ~1.5s, then scales down onto the timeline's preview monitor; the full editor with its cut sequence comes into view. Fade to black — no text over the footage. | — | "This was made in NodeTool, start to finish." |
+| 0:03.5–0:08 | Title card | Five quiet seconds on black: the NodeTool mark, then the line, its second half in the hero gradient. | **Made in NodeTool.** / **Start to finish.** | — |
+| 0:08–0:17 | Generate variations | Cut to the canvas: a prompt node fans out into four video nodes. Click Run; four takes render in parallel in their preview nodes — two from Seedance, two from Wan, model names visible on the nodes. | **Generate variations on the canvas.** Small line: One prompt. Four takes. Seedance · Wan · your keys | "On the canvas, one prompt fans out into variations — takes from Seedance, Wan, whichever models you want, rendered with your own keys." |
+| 0:17–0:21 | Pick | Scrub two takes side by side in their preview nodes; a beat of comparison, then a decisive click on the winner. | **Keep the takes that work.** | "Keep the best takes…" |
+| 0:21–0:30 | Build the cut | The chosen takes drag onto the timeline editor. Multi-track view: clips trimmed, split, reordered on the video track; a music waveform (Suno) on the audio track below; playhead scrubs the sequence. | **Build the final video on the timeline.** Small line: Multi-track video & audio. | "…and build the cut on the built-in timeline. Video and audio, trim, split, rearrange." |
+| 0:30–0:36 | Generate at the playhead | A gap in the sequence. Type a prompt into the timeline's prompt bar; the new clip renders and lands on the track right under the playhead. | **Missing a shot? Prompt it at the playhead.** Small line: No import step. | "Missing a shot? Prompt it at the playhead and the clip lands on the track. No import, no second app." |
+| 0:36–0:42 | Cost | The cost dashboard: per-node prices, grouped by provider, real dollar amounts. | **Your keys. Provider prices.** Then: **No credits. No markup.** | "You pay providers directly. No credits, no markup." |
+| 0:42–0:50 | Export & close | Click Export; the finished trailer plays full-frame for ~3s, then the NodeTool mark over a defocused canvas. | **Export a finished cut.** Then: **NodeTool — the open creative AI workspace.** CTA line: Free & open source · nodetool.ai | "Export the finished cut. NodeTool is free and open source. Download it, and put every model on one canvas." |
+
+On-screen text sits in a soft dark halo (radial scrim + text shadow) so it
+reads over bright footage.
 
 ### Voice-over, full read (~90 words, conversational pace)
 
