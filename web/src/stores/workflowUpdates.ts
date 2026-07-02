@@ -136,6 +136,17 @@ const queueTextChunk = (
   }
 };
 
+/**
+ * Flush all coalesced stream appends (audio + text) into the stores now.
+ * Live runs rely on the flush timers; deterministic replay (the demo engine's
+ * seek) and tests read the stores synchronously after `handleUpdate` and must
+ * call this — replay frames may never yield to the timer at all.
+ */
+export const flushPendingNodeStreams = (): void => {
+  flushAudioAppends();
+  flushTextChunks();
+};
+
 export type { NodeStore };
 
 /**

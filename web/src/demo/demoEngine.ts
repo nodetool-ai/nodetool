@@ -23,7 +23,11 @@ import useWorkflowRunsStore from "../stores/WorkflowRunsStore";
 import { useNotificationStore, type Notification } from "../stores/NotificationStore";
 import useAuth from "../stores/useAuth";
 import { createNodeStore, type NodeStore } from "../stores/NodeStore";
-import { handleUpdate, type MsgpackData } from "../stores/workflowUpdates";
+import {
+  handleUpdate,
+  flushPendingNodeStreams,
+  type MsgpackData
+} from "../stores/workflowUpdates";
 import type { WorkflowRunner, WorkflowRunnerStore } from "../stores/WorkflowRunner";
 import type { NodeMetadata, WorkflowAttributes } from "../stores/ApiTypes";
 
@@ -136,6 +140,9 @@ export class DemoEngine {
       this.applyEvent(this.events[i]);
     }
     this.appliedIndex = target;
+    // handleUpdate coalesces stream chunks on a timer; a seek must leave the
+    // stores fully settled (Remotion frames never yield to timers).
+    flushPendingNodeStreams();
   }
 
   private applyEvent(event: CastEvent): void {
