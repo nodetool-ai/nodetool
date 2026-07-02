@@ -86,9 +86,13 @@ import {
   QueryCollectionTool,
   gateTools,
   extractInjectableImages,
+  PLAN_APPROVAL_CONTEXT_KEY,
   type PermissionMode,
   type ApprovalDecision,
-  type ApprovalRequest
+  type ApprovalRequest,
+  type PlanApprovalDecision,
+  type RequestPlanApproval,
+  type TaskPlan
 } from "@nodetool-ai/agents";
 import {
   createDefaultLongTermMemory,
@@ -1926,6 +1930,9 @@ export class UnifiedWebSocketRunner {
       workspaceDir,
       assetOutputMode: this.mode === "text" ? "data_uri" : "temp_url"
     });
+    // Agents planning inside this run pause for user approval over this
+    // socket before executing their plan.
+    this.attachPlanApproval(context, null);
 
     // Expose executor/node-type resolution on the context so that
     // sub-workflow nodes (WorkflowNode) can create child runners.
@@ -2807,6 +2814,67 @@ export class UnifiedWebSocketRunner {
   }
 
   /**
+   * Round-trip a plan approval to the client and resolve with the user's
+   * decision. Emits a `plan_approval_request` carrying the serialized plan,
+   * then waits for the matching `plan_approval_response` (resolved via
+   * {@link approvalBridge}). A cancelled wait (stop) is treated as a
+   * rejection without feedback, which aborts the agent run.
+   */
+  private async requestPlanApproval(
+    threadId: string | null,
+    plan: TaskPlan
+  ): Promise<PlanApprovalDecision> {
+    const approvalId = `plan_${randomUUID()}`;
+    await this.sendMessage({
+      type: "plan_approval_request",
+      thread_id: threadId,
+      approval_id: approvalId,
+      plan: {
+        title: plan.title,
+        tasks: plan.tasks.map((t) => ({
+          id: t.id,
+          title: t.title,
+          depends_on: t.dependsOn ?? [],
+          steps: t.steps.map((s) => ({
+            id: s.id,
+            instructions: s.instructions
+          }))
+        }))
+      }
+    });
+    try {
+      // No timeout — the user may take a while; `stop` cancels via cancelAll.
+      const response = await this.approvalBridge.createWaiter(approvalId, 0);
+      if (response.decision === "approve") {
+        return { decision: "approve" };
+      }
+      const feedback =
+        typeof response.feedback === "string" && response.feedback.trim()
+          ? response.feedback.trim()
+          : undefined;
+      return { decision: "reject", feedback };
+    } catch {
+      // Cancelled (generation stopped) — treat as a rejection.
+      return { decision: "reject" };
+    }
+  }
+
+  /**
+   * Expose the plan-approval round-trip on a processing context so any Agent
+   * that plans inside this run (e.g. an Agent node in plan mode) pauses for
+   * user approval before executing. See PLAN_APPROVAL_CONTEXT_KEY in
+   * `@nodetool-ai/agents`.
+   */
+  private attachPlanApproval(
+    context: RuntimeProcessingContext,
+    threadId: string | null
+  ): void {
+    const request: RequestPlanApproval = (plan) =>
+      this.requestPlanApproval(threadId, plan);
+    context.set(PLAN_APPROVAL_CONTEXT_KEY, request);
+  }
+
+  /**
    * Execute a single node by type and return its output. Builds a one-node
    * graph and runs it through a fresh {@link WorkflowRunner}, then returns the
    * node's completed result. Backs the `run_node` chat tool.
@@ -2814,7 +2882,8 @@ export class UnifiedWebSocketRunner {
   private async runSingleNode(
     nodeType: string,
     inputs: Record<string, unknown>,
-    userId: string
+    userId: string,
+    threadId: string | null = null
   ): Promise<unknown> {
     const jobId = randomUUID();
     const nodeId = "node_0";
@@ -2853,6 +2922,7 @@ export class UnifiedWebSocketRunner {
       workspaceDir: tmpdir(),
       assetOutputMode: this.mode === "text" ? "data_uri" : "temp_url"
     });
+    this.attachPlanApproval(context, threadId);
     context.setResolveExecutor((node) => this.resolveExecutor(node));
     if (this.resolveNodeType) {
       const resolverObj =
@@ -3121,7 +3191,7 @@ export class UnifiedWebSocketRunner {
       new ListCollectionsTool(),
       new QueryCollectionTool(),
       new RunNodeTool((nodeType, inputs) =>
-        this.runSingleNode(nodeType, inputs, userId)
+        this.runSingleNode(nodeType, inputs, userId, threadId)
       )
     ];
     // De-duplicate by name (builtins / mcp / extras may overlap); first wins.
@@ -3255,6 +3325,9 @@ export class UnifiedWebSocketRunner {
       userId,
       workspaceDir: chatWorkspaceDir
     });
+    // Any agent planning inside this turn (e.g. via run_node spawning an
+    // Agent node in plan mode) pauses for user plan approval.
+    this.attachPlanApproval(ctx, threadId || null);
 
     // Prepend system prompt if first message isn't system role — matches Python
     if (chatHistory.length === 0 || chatHistory[0].role !== "system") {
@@ -5981,6 +6054,15 @@ export class UnifiedWebSocketRunner {
       }
 
       if (msgType === "tool_approval_response") {
+        const approvalId =
+          typeof data.approval_id === "string" ? data.approval_id : null;
+        if (approvalId) {
+          this.approvalBridge.resolveResult(approvalId, data);
+        }
+        continue;
+      }
+
+      if (msgType === "plan_approval_response") {
         const approvalId =
           typeof data.approval_id === "string" ? data.approval_id : null;
         if (approvalId) {

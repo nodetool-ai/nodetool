@@ -167,6 +167,36 @@ for await (const msg of agent.execute(ctx)) {
 const result = agent.getResults();
 ```
 
+## Plan Approval Gate
+
+`Agent` can pause after planning and present the plan for user approval before
+executing it. Wire a callback either as the `requestPlanApproval` option or on
+the ProcessingContext under `PLAN_APPROVAL_CONTEXT_KEY` (the websocket runner
+sets the context variable for chat-triggered runs, so Agent nodes in plan mode
+gate without explicit wiring):
+
+```typescript
+const agent = new Agent({
+  ...,
+  requestPlanApproval: async (plan) =>
+    userSaysYes(plan) ? { decision: "approve" } : { decision: "reject", feedback: "..." }
+});
+```
+
+- **approve** — execution proceeds.
+- **reject with feedback** — the planner re-runs with the feedback appended to
+  the objective (bounded by `MAX_PLAN_REVISIONS`, 3) and the revised plan is
+  presented again.
+- **reject without feedback** — the run ends; `getResults()` returns a
+  rejection notice.
+
+The gate emits `planning_update` events with phase `awaiting_approval`
+(status Running/Success/Failed) and `revision` so UIs can show state. Over the
+websocket this round-trips as `plan_approval_request` / `plan_approval_response`
+messages; the web chat renders a `PlanApprovalCard` with approve/reject and a
+feedback field. Without a callback, planning flows straight into execution as
+before. Tests: `packages/agents/tests/plan-approval.test.ts`.
+
 ## Parallel Task Execution
 
 The Agent class automatically decomposes objectives into parallel tasks via `TaskPlanner.planMultiTask()`. Tasks form a DAG — independent tasks run concurrently.

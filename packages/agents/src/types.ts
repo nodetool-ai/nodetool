@@ -40,3 +40,29 @@ export interface TaskPlan {
   title: string;
   tasks: Task[];
 }
+
+/**
+ * User decision on a proposed {@link TaskPlan}. A rejection may carry
+ * feedback; the agent replans with it (bounded) instead of aborting.
+ */
+export type PlanApprovalDecision =
+  | { decision: "approve" }
+  | { decision: "reject"; feedback?: string };
+
+/**
+ * Callback a host wires in to gate execution on user plan approval.
+ * Called after planning with the proposed plan; execution proceeds only on
+ * an approve decision.
+ */
+export type RequestPlanApproval = (
+  plan: TaskPlan
+) => Promise<PlanApprovalDecision>;
+
+/**
+ * ProcessingContext variable key under which hosts (e.g. the websocket
+ * runner) expose a {@link RequestPlanApproval} callback. `Agent.execute`
+ * falls back to this when no `requestPlanApproval` option was passed, so
+ * plan gating reaches agents buried inside workflow nodes without explicit
+ * wiring at every construction site.
+ */
+export const PLAN_APPROVAL_CONTEXT_KEY = "request_plan_approval";

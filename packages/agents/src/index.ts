@@ -3,7 +3,14 @@
  */
 
 // Types
-export type { Step, Task, TaskPlan } from "./types.js";
+export type {
+  Step,
+  Task,
+  TaskPlan,
+  PlanApprovalDecision,
+  RequestPlanApproval
+} from "./types.js";
+export { PLAN_APPROVAL_CONTEXT_KEY } from "./types.js";
 
 // Tools
 export { Tool } from "./tools/base-tool.js";
