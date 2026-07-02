@@ -1404,17 +1404,6 @@ function isRuntimePackageId(id: string): id is RuntimePackageId {
 export const RUNTIME_PACKAGE_IDS: readonly RuntimePackageId[] =
   REGISTRY_RUNTIME_PACKAGE_IDS;
 
-// Track which runtime packages are currently being installed (delegated to registry).
-// Kept for backwards-compatible internal use; status is sourced from the registry.
-
-function getOptionalNodeRuntimeRoot(): string {
-  return path.dirname(getOptionalNodeModulesPath());
-}
-
-async function isOptionalNodePackageInstalled(packageName: string): Promise<boolean> {
-  return fileExists(path.join(getOptionalNodeModulesPath(), ...packageName.split("/"), "package.json"));
-}
-
 /**
  * Check the installation status of all runtime packages.
  * Delegates to the runtime registry.
@@ -1490,7 +1479,3 @@ export async function uninstallRuntimePackage(
     return { success: false, message: `Failed to uninstall: ${errorMsg(error)}` };
   }
 }
-
-// Suppress "declared but unused" for helpers retained for tests.
-void getOptionalNodeRuntimeRoot;
-void isOptionalNodePackageInstalled;

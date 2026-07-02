@@ -1,7 +1,6 @@
 import { NodeMetadata } from "../stores/ApiTypes";
 import {
   rank,
-  scoreItem,
   searchTermsFromQuery as genericSearchTermsFromQuery,
   type RankConfig,
   type RankField

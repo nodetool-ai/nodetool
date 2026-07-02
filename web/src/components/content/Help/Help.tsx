@@ -33,13 +33,6 @@ interface HelpItem {
   details?: string;
 }
 
-interface _HelpItemGroup {
-  category?: string;
-  subCategory?: string;
-  explanation?: string;
-  items?: HelpItem[];
-}
-
 interface TabPanelProps {
   children: React.ReactNode;
   index: number;
