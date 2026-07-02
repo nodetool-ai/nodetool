@@ -41,6 +41,7 @@ import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 import { TopBar } from "./TopBar";
 import { BottomStatusBar } from "./BottomStatusBar";
 import { ProjectSettingsDialog } from "./ProjectSettingsDialog";
+import SaveToFolderMenu from "../assets/SaveToFolderMenu";
 import {
   useCreateTimeline,
   useTimeline,
@@ -381,6 +382,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
   // Offline video export (frame-by-frame, 1:1 with the live preview).
   const {
     exportVideo,
+    saveAsAsset,
     cancel: cancelExport,
     clearError: clearExportError,
     isExporting,
@@ -390,6 +392,16 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
   const handleExportVideo = useCallback(() => {
     void exportVideo(sequence?.name);
   }, [exportVideo, sequence?.name]);
+
+  // "Save as Asset" — anchor the folder chooser to the TopBar button, then
+  // render the timeline into a new asset in the chosen folder.
+  const [saveAssetAnchor, setSaveAssetAnchor] = useState<HTMLElement | null>(
+    null
+  );
+  const handleSaveToAssets = useCallback(
+    (anchorEl: HTMLElement) => setSaveAssetAnchor(anchorEl),
+    []
+  );
 
   // Project settings dialog (canvas size + fps) ────────────────────────────
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -573,8 +585,15 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
         isExporting={isExporting}
         onSave={sequenceUnavailable ? undefined : handleSave}
         isSaving={isSaving}
+        onSaveToAssets={sequenceUnavailable ? undefined : handleSaveToAssets}
         onOpenSettings={sequenceUnavailable ? undefined : handleOpenSettings}
         activitySlot={activitySlot}
+      />
+      <SaveToFolderMenu
+        anchorEl={saveAssetAnchor}
+        open={!!saveAssetAnchor}
+        onClose={() => setSaveAssetAnchor(null)}
+        onSelectFolder={(folderId) => void saveAsAsset(folderId, sequence?.name)}
       />
 
       {/* ── Middle: assets + preview + inspector ──────────────────── */}

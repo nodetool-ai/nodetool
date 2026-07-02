@@ -11,6 +11,7 @@ import { useCallback, useRef, useState } from "react";
 
 import { useTimelineStoreApi } from "../../stores/timeline/TimelineStore";
 import { useAssetStore } from "../../stores/AssetStore";
+import { useNotificationStore } from "../../stores/NotificationStore";
 import { getAssetUrl } from "../../utils/assetHelpers";
 import {
   renderTimeline,
@@ -20,6 +21,12 @@ import {
 export interface UseTimelineExportResult {
   /** Render + download the timeline as an MP4. Resolves when the file is saved. */
   exportVideo: (filename?: string) => Promise<void>;
+  /**
+   * Render the timeline and save the MP4 as a new asset in `folderId` (or the
+   * library root when null), linked back to this timeline via `timeline_id`.
+   * Shares the render + progress + cancel machinery with {@link exportVideo}.
+   */
+  saveAsAsset: (folderId: string | null, filename?: string) => Promise<void>;
   /** Abort an in-flight render. */
   cancel: () => void;
   /** Dismiss a surfaced error. */
@@ -62,6 +69,8 @@ export function useTimelineExport(): UseTimelineExportResult {
   // re-render this hook's owner (the whole editor shell).
   const store = useTimelineStoreApi();
   const getAsset = useAssetStore((s) => s.get);
+  const createAsset = useAssetStore((s) => s.createAsset);
+  const updateAsset = useAssetStore((s) => s.update);
 
   const [isExporting, setIsExporting] = useState(false);
   const [progress, setProgress] = useState<RenderProgress | null>(null);
@@ -74,8 +83,18 @@ export function useTimelineExport(): UseTimelineExportResult {
 
   const clearError = useCallback(() => setError(null), []);
 
-  const exportVideo = useCallback(
-    async (filename?: string) => {
+  // Shared render core: renders the sequence to MP4 bytes and hands them to a
+  // `sink` (download or save-as-asset). Owns the progress / cancel / error
+  // lifecycle so both public actions behave identically.
+  const runExport = useCallback(
+    async (
+      sink: (
+        bytes: Uint8Array,
+        mimeType: string,
+        name: string
+      ) => void | Promise<void>,
+      filename?: string
+    ) => {
       if (abortRef.current) return; // already running
       const controller = new AbortController();
       abortRef.current = controller;
@@ -136,7 +155,7 @@ export function useTimelineExport(): UseTimelineExportResult {
           signal: controller.signal,
           onProgress: handleProgress
         });
-        downloadBlob(bytes, mimeType, `${sanitizeFilename(filename ?? "timeline")}.mp4`);
+        await sink(bytes, mimeType, sanitizeFilename(filename ?? "timeline"));
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") {
           // User cancelled — not an error.
@@ -152,5 +171,47 @@ export function useTimelineExport(): UseTimelineExportResult {
     [store, getAsset]
   );
 
-  return { exportVideo, cancel, clearError, isExporting, progress, error };
+  const exportVideo = useCallback(
+    (filename?: string) =>
+      runExport((bytes, mimeType, name) => {
+        downloadBlob(bytes, mimeType, `${name}.mp4`);
+      }, filename),
+    [runExport]
+  );
+
+  const saveAsAsset = useCallback(
+    (folderId: string | null, filename?: string) =>
+      runExport(async (bytes, mimeType, name) => {
+        const file = new File([bytes as BlobPart], `${name}.mp4`, {
+          type: mimeType
+        });
+        const asset = await createAsset(
+          file,
+          undefined,
+          folderId ?? undefined,
+          undefined,
+          "file"
+        );
+        // Link the exported video back to this timeline so it can be traced.
+        const sequenceId = store.getState().sequenceId;
+        if (sequenceId) {
+          await updateAsset({ id: asset.id, timeline_id: sequenceId });
+        }
+        useNotificationStore.getState().addNotification({
+          type: "success",
+          content: "Saved timeline to assets."
+        });
+      }, filename),
+    [runExport, createAsset, updateAsset, store]
+  );
+
+  return {
+    exportVideo,
+    saveAsAsset,
+    cancel,
+    clearError,
+    isExporting,
+    progress,
+    error
+  };
 }

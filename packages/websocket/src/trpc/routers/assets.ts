@@ -243,6 +243,9 @@ export const assetsRouter = router({
       if (input.sketch_document_id !== undefined) {
         asset.sketch_document_id = input.sketch_document_id;
       }
+      if (input.timeline_id !== undefined) {
+        asset.timeline_id = input.timeline_id;
+      }
       if (input.size !== undefined) asset.size = input.size;
 
       if (input.data != null) {

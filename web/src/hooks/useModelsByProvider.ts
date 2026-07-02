@@ -258,6 +258,30 @@ export const useImageModelsByProvider = (opts?: { task?: ImageModelTask }): Mode
 };
 
 /**
+ * Hook to fetch per-model media options (aspect ratios, resolutions, durations)
+ * for a given provider/model. Runs only once both provider and model are known.
+ * The result shape ({ aspectRatios, resolutions, durations }) is inferred from
+ * the `models.mediaOptions` tRPC procedure.
+ */
+export const useMediaOptions = (opts: {
+  provider?: string | null;
+  model?: string | null;
+  task: "image" | "video";
+}) =>
+  useQuery({
+    queryKey: ["media-options", opts.task, opts.provider ?? null, opts.model ?? null],
+    queryFn: () =>
+      trpc.models.mediaOptions.query({
+        provider: opts.provider as string,
+        model: opts.model as string,
+        task: opts.task
+      }),
+    enabled: Boolean(opts.provider) && Boolean(opts.model),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false
+  });
+
+/**
  * Hook to fetch TTS models from all providers that support text-to-speech.
  * Queries each provider in parallel for better performance.
  */

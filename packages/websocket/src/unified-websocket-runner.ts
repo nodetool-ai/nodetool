@@ -5235,6 +5235,8 @@ export class UnifiedWebSocketRunner {
       maskAssetId?: string;
       width?: number;
       height?: number;
+      aspectRatio?: string;
+      resolution?: string;
       strength?: number;
       numInferenceSteps?: number;
       variations?: number;
@@ -5409,7 +5411,9 @@ export class UnifiedWebSocketRunner {
         model: imageModel,
         prompt: req.prompt,
         width: req.width,
-        height: req.height
+        height: req.height,
+        aspectRatio: req.aspectRatio ?? null,
+        resolution: req.resolution ?? null
       };
       images = await provider.textToImages(params, variations);
     } else if (req.mode === "inpaint") {
@@ -5439,6 +5443,8 @@ export class UnifiedWebSocketRunner {
         prompt: req.prompt,
         targetWidth: req.width ?? null,
         targetHeight: req.height ?? null,
+        aspectRatio: req.aspectRatio ?? null,
+        resolution: req.resolution ?? null,
         strength: req.strength ?? null,
         numInferenceSteps: req.numInferenceSteps ?? null,
         mask: maskBytes
@@ -5466,6 +5472,8 @@ export class UnifiedWebSocketRunner {
         prompt: req.prompt,
         targetWidth: req.width ?? null,
         targetHeight: req.height ?? null,
+        aspectRatio: req.aspectRatio ?? null,
+        resolution: req.resolution ?? null,
         strength: req.strength ?? null,
         numInferenceSteps: req.numInferenceSteps ?? null
       };
@@ -5855,6 +5863,14 @@ export class UnifiedWebSocketRunner {
           typeof data.width === "number" ? (data.width as number) : undefined;
         const height =
           typeof data.height === "number" ? (data.height as number) : undefined;
+        const aspectRatio =
+          typeof data.aspect_ratio === "string"
+            ? (data.aspect_ratio as string)
+            : undefined;
+        const resolution =
+          typeof data.resolution === "string"
+            ? (data.resolution as string)
+            : undefined;
         const strength =
           typeof data.strength === "number"
             ? (data.strength as number)
@@ -5885,6 +5901,8 @@ export class UnifiedWebSocketRunner {
             maskAssetId,
             width,
             height,
+            aspectRatio,
+            resolution,
             strength,
             numInferenceSteps,
             variations,
