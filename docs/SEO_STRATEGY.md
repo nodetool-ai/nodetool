@@ -15,6 +15,11 @@ file is more than a quarter old.
 items 1 and 3) and the footer "Compare" column (§1, orphaned-pages finding) shipped 2026-07-02.
 `/marketing` (§4.0), `/vs/flowise`, and `/vs/dify` (§4.1 items 2 and 5) shipped 2026-07-02.
 §0 (the Search Console audit) added 2026-07-02 — it re-prioritizes §7 with real query data.
+Shipped from §0 on 2026-07-02: 79 redirect stubs under `docs/redirects/` (§0.5, plus a fix to the
+three pre-existing stubs, whose trailing-slash `redirect_to` 404s on GitHub Pages); `providers.md`
+and `installation.md` rewrites (§0.6); `comparisons.md` cross-links to `/vs/*` (§0.6); `/agents`
+and `/cloud` retitles (§0.7); `llms.txt` on nodetool.ai and JSON-LD on `/agents`, `/creatives`,
+`/marketing` (§0.8).
 
 ## 0. What Search Console actually says (audit 2026-07-02)
 
@@ -306,12 +311,14 @@ Content only ranks if something points at it:
 Re-prioritized 2026-07-02 against the Search Console audit in §0.
 
 1. **Immediate** (hours): ~~fix the `movie-trailer` sitemap omission (§1, §5)~~ done 2026-07-01;
-   ~~internal-link the orphaned `/vs/*` pages (§1, §5)~~ done 2026-07-02; batch-generate redirect
-   stubs for the moved node-docs URLs (§0.5); link `comparisons.html` to the `/vs/*` pages (§0.6);
-   add `llms.txt` to nodetool.ai (§0.8).
-2. **Phase 1** (this month): rework `providers.html` and `installation.html` — the two
-   highest-demand docs pages, both ranking on page 2 (§0.6); give `/agents` and `/cloud` distinct
-   non-branded query targets (§0.7); ~~build `/marketing` (§4.0)~~ done 2026-07-02 — its four
+   ~~internal-link the orphaned `/vs/*` pages (§1, §5)~~ done 2026-07-02; ~~batch-generate redirect
+   stubs for the moved node-docs URLs (§0.5)~~ done 2026-07-02 (79 stubs); ~~link
+   `comparisons.html` to the `/vs/*` pages (§0.6)~~ done 2026-07-02; ~~add `llms.txt` to
+   nodetool.ai (§0.8)~~ done 2026-07-02.
+2. **Phase 1** (this month): ~~rework `providers.html` and `installation.html` — the two
+   highest-demand docs pages, both ranking on page 2 (§0.6)~~ done 2026-07-02; ~~give `/agents`
+   and `/cloud` distinct non-branded query targets (§0.7)~~ done 2026-07-02; ~~build `/marketing`
+   (§4.0)~~ done 2026-07-02 — its four
    supporting use-case pages (Cold Outreach Co-Pilot, Social Media Calendar Filler, Brand Asset
    Generator, YouTube Thumbnail Pipeline) still need real generated assets before they can ship;
    ship the remaining "ship first" use-case pages (§4.2); ~~add `/vs/langflow` and `/vs/n8n`~~ done
