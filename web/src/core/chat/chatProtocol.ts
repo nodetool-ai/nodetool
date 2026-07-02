@@ -102,7 +102,7 @@ import type {
   GlobalChatState,
   StepToolCall
 } from "../../stores/GlobalChatStore";
-import { globalWebSocketManager } from "../../lib/websocket/GlobalWebSocketManager";
+import { globalWebSocketManager, type WebSocketMessage } from "../../lib/websocket/GlobalWebSocketManager";
 import useResultsStore from "../../stores/ResultsStore";
 import useStatusStore from "../../stores/StatusStore";
 import type { Graph } from "../../stores/ApiTypes";
@@ -1218,10 +1218,11 @@ export async function sendToolApprovalResponse(
 }
 
 export async function handleChatWebSocketMessage(
-  data: MsgpackData,
+  msg: WebSocketMessage,
   set: ChatStateSetter,
   get: ChatStateGetter
 ) {
+  const data = msg as MsgpackData;
   const currentState = get();
 
   if (currentState.status === "stopping") {

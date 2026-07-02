@@ -162,13 +162,15 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   // shape before handing it to onModelChange.
   const handleSelectRecommended = useCallback(
     (model: UnifiedModel) => {
-      onModelChange?.({
+      if (!model.provider) return;
+      const selected: ModelSelectorModel = {
         type: model.type ?? "",
         id: model.id,
         name: model.name,
         provider: model.provider,
         path: model.path ?? undefined
-      } as unknown as TModel);
+      };
+      onModelChange?.(selected as TModel);
     },
     [onModelChange]
   );
