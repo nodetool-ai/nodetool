@@ -3,6 +3,9 @@ web/node_modules
 .git
 .deploy
 electron
+# The root postinstall runs this script during `npm ci` in the image, so it
+# must be re-included from the otherwise-excluded electron/ tree.
+!electron/scripts/rebuild-native.mjs
 mobile
 workflow_runner
 docs
