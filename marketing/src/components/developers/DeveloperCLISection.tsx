@@ -136,7 +136,7 @@ export default function DeveloperCLISection({
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-3xl sm:text-4xl font-bold text-white"
           >
-Build, Run, Extend from Code
+Build, run, and extend from code
           </motion.h2>
           <motion.p
             initial={reducedMotion ? {} : { opacity: 0, y: 20 }}

@@ -54,7 +54,7 @@ export default function AssetManagerSection() {
           Built-in Asset Manager
         </h3>
         <p className="section-subtitle mt-4 text-slate-300">
-          Centralized asset management. Drag files in, use them anywhere.
+          Drag files in once, use them in any workflow.
         </p>
       </div>
 

@@ -56,7 +56,7 @@ const rows: Row[] = [
   {
     label: "GPU requirements",
     studio: { value: "Recommended for local models", ok: false },
-    cloud: { value: "None — we run the heavy lifting", ok: true },
+    cloud: { value: "None — heavy jobs run on cloud APIs", ok: true },
   },
   {
     label: "Updates",

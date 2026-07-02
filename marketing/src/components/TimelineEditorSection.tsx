@@ -67,7 +67,7 @@ export default function TimelineEditorSection() {
           >
             Generate AI video and audio straight onto a multi-track timeline.
             Prompt a model at the playhead, drop the clip on a track, then trim,
-            split, and export a finished cut — without ever leaving NodeTool.
+            split, and export a finished cut.
           </motion.p>
         </div>
 

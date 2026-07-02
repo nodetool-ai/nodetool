@@ -234,15 +234,13 @@ export default function VsDifyPage() {
             <p className="mt-4 leading-relaxed text-slate-300">
               Dify earns its reputation on debugging and knowledge-base
               tooling for text-first LLM apps — a support bot, an internal
-              copilot, a document Q&amp;A assistant. None of that changes when
-              the deliverable needs to include a generated image, a video
-              cut, or a synthesized voice line: that step has to leave the
-              platform. NodeTool puts image, video, and music models from
-              every major provider on the same canvas as its agent and
-              retrieval nodes, with masks, inpaint, relight, upscale, and
-              layers built in. It is open source under AGPL-3.0, runs as a
-              desktop app on macOS, Windows, and Linux, and calls every
-              provider with your own keys at list price.
+              copilot, a document Q&amp;A assistant. But when the deliverable
+              includes a generated image, a video cut, or a synthesized
+              voice line, that step has to leave the platform. NodeTool puts
+              image, video, and music models from every major provider on
+              the same canvas as its agent and retrieval nodes, with masks,
+              inpaint, relight, upscale, and layers built in — every call on
+              your own keys at list price.
             </p>
           </div>
         </section>

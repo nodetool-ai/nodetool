@@ -231,19 +231,16 @@ export default function VsFlowisePage() {
               A chatbot is often just the front door.
             </h2>
             <p className="mt-4 leading-relaxed text-slate-300">
-              Flowise is genuinely fast for what it is built for: wire a
+              Flowise is genuinely fast at what it&apos;s built for: wire a
               vector store, a retriever, and an LLM node into a working RAG
               chatbot in minutes. But the moment the workflow needs to
-              produce something — a rendered image, a video cut, a generated
-              voice line — that step lands in a generic HTTP request node
-              calling an external API by hand. NodeTool treats generation as
-              a first-class citizen: image, video, and music models from
-              every major provider sit on the same canvas as the agent and
-              retrieval nodes, with masks, inpaint, relight, upscale, and
-              layers built in. It is open source under AGPL-3.0, runs as a
-              desktop app on macOS, Windows, and Linux, and calls every
-              provider with your own keys at list price — no credit tiers on
-              top.
+              produce something — a rendered image, a video cut, a voice
+              line — that step lands in a generic HTTP node calling an
+              external API by hand. In NodeTool, image, video, and music
+              models from every major provider sit on the same canvas as the
+              agent and retrieval nodes, with masks, inpaint, relight,
+              upscale, and layers built in — every call on your own keys at
+              list price, no credit tiers on top.
             </p>
           </div>
         </section>

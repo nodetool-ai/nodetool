@@ -87,7 +87,7 @@ const proPoints = [
 const consPoints = [
   {
     title: "Alpha — not yet GA",
-    body: "Cloud is in active alpha. Expect breaking changes, missing polish, and occasional downtime. SLAs and production guarantees come with general availability, which we haven't reached yet.",
+    body: "Cloud is in active alpha. Expect breaking changes, missing polish, and occasional downtime. SLAs and production guarantees come with general availability.",
   },
   {
     title: "No local LLMs",

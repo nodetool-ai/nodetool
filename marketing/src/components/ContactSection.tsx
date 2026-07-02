@@ -35,7 +35,7 @@ export default function ContactSection() {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-lg text-slate-300"
           >
-            Questions, bug reports, feature requests. We&apos;re here to help.
+            Questions, bug reports, feature requests — we answer.
           </motion.p>
         </div>
 
@@ -59,7 +59,7 @@ export default function ContactSection() {
             {
               icon: MapPin,
               title: "The Team",
-              description: "Direct contact to the developers.",
+              description: "Email the developers directly.",
               content: (
                 <div className="space-y-2">
                   <div className="flex items-center justify-center gap-2 text-slate-300">

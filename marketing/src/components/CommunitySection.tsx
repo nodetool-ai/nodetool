@@ -35,7 +35,7 @@ const variants = {
         </span>
       </>
     ),
-    body: "Trade workflows, swap prompts, and ship work with other working creatives. NodeTool is open source under AGPL-3.0 — built in the open.",
+    body: "Trade workflows, swap prompts, and ship work with other working creatives. NodeTool is open source under AGPL-3.0.",
     card: "rounded-3xl border border-white/10 bg-gradient-to-br from-rose-500/10 via-teal-500/10 to-cyan-500/10 backdrop-blur-xl p-8 md:p-16 text-center overflow-hidden relative",
     topBar:
       "absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-rose-500 via-teal-500 to-cyan-500 opacity-50",
