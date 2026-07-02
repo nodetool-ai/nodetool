@@ -24,6 +24,7 @@ import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 
 import type { TimelineClip, TimelineTrack, ClipStatus } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import { findClipById } from "../../../stores/timeline/clipLookup";
 import { useTimelineHistoryBatch } from "../../../stores/timeline/useTimelineHistoryBatch";
 import {
   useTimelineUIStore,
@@ -334,15 +335,16 @@ const WaveformCanvas: React.FC<WaveformCanvasProps> = ({
 };
 WaveformCanvas.displayName = "WaveformCanvas";
 
-const filmstripCellStyles = (url: string) =>
-  css({
-    flex: 1,
-    height: "100%",
-    backgroundImage: `url(${url})`,
-    backgroundSize: "cover",
-    backgroundPosition: "center",
-    opacity: 0.78
-  });
+// Static (no per-URL variant): backgroundImage is set via inline `style`
+// instead, so a distinct thumbnail data URL per cell doesn't make emotion
+// hash a multi-KB string and insert a permanent CSSOM rule per render.
+const filmstripCellStyles = css({
+  flex: 1,
+  height: "100%",
+  backgroundSize: "cover",
+  backgroundPosition: "center",
+  opacity: 0.78
+});
 
 const trimHandleStyles = (
   theme: Theme,
@@ -392,10 +394,10 @@ export interface ClipProps {
 export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
   const theme = useTheme();
 
-  // Selector: only this clip's fields
-  const clip = useTimelineStore(
-    (s) => s.clips.find((c) => c.id === clipId) as TimelineClip | undefined
-  );
+  // Selector: only this clip's fields. findClipById is O(1) via a WeakMap
+  // index keyed on `clips` identity, shared across every mounted Clip — vs.
+  // O(n) per clip per store publish (O(n²) aggregate during a drag).
+  const clip = useTimelineStore((s) => findClipById(s.clips, clipId));
 
   const isSelected = useIsClipSelected(clipId);
   const msPerPx = useTimelineUIStore((s) => s.msPerPx);
@@ -453,26 +455,32 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
   // Node-level errors from ErrorStore. Error keys are now scoped per run
   // (`${wf}:${jobId}:${node}`), so restrict the scan to the workflow's focused
   // run; with no focused run there's no error to surface.
+  //
+  // The scan lives INSIDE the selector so it returns this clip's own derived
+  // message (a primitive) rather than the whole `errors` record — every clip
+  // subscribing to the full record re-renders (and re-scans all keys) on any
+  // error anywhere; a primitive return only re-renders this clip when its own
+  // derived error actually changes.
   const workflowId = clip?.workflowId;
-  const errorEntries = useErrorStore((s) => s.errors);
   const focusedJobId = useWorkflowRunsStore((s) =>
     workflowId ? s.focusedJob[workflowId] : undefined
   );
-  const errorState: ClipErrorState | null = useMemo(() => {
+  const errorMessage = useErrorStore((s) => {
     if (!workflowId || !focusedJobId) {
       return null;
     }
     const prefix = `${workflowId}:${focusedJobId}:`;
-    for (const key of Object.keys(errorEntries) as NodeKey[]) {
-      if (key.startsWith(prefix) && hasNodeError(errorEntries[key])) {
-        return {
-          hasError: true,
-          message: nodeErrorToDisplayString(errorEntries[key])
-        };
+    for (const key of Object.keys(s.errors) as NodeKey[]) {
+      if (key.startsWith(prefix) && hasNodeError(s.errors[key])) {
+        return nodeErrorToDisplayString(s.errors[key]);
       }
     }
     return null;
-  }, [workflowId, focusedJobId, errorEntries]);
+  });
+  const errorState: ClipErrorState | null = useMemo(
+    () => (errorMessage !== null ? { hasError: true, message: errorMessage } : null),
+    [errorMessage]
+  );
 
   // Derive the displayed status badge.
   // For the "missing" check we trust clip.currentAssetId: if it's set,
@@ -1087,7 +1095,11 @@ const ClipBody: React.FC<ClipBodyProps> = memo(({
       {filmstripCells && (
         <div css={filmstripStyles}>
           {filmstripCells.map((cell, i) => (
-            <div key={i} css={filmstripCellStyles(cell.url)} />
+            <div
+              key={i}
+              css={filmstripCellStyles}
+              style={{ backgroundImage: `url(${cell.url})` }}
+            />
           ))}
         </div>
       )}
