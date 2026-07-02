@@ -280,6 +280,8 @@ The work splits cleanly into code that ships once and content that regenerates f
 second half is exactly what NodeTool is for, so the SEO machine's production layer is NodeTool
 workflows run headlessly — which is also a marketing story in itself (the site's content is made
 by the product it sells, and the seeder workflows ship as `/templates/*` pages like any other).
+The PR-by-PR breakdown of everything below — file-level specs, acceptance criteria, rollout
+timeline, and open decisions — is in the [SEO Execution Plan](SEO_EXECUTION_PLAN.md).
 
 **Layer 1 — the factory (TypeScript, one-time, ~3 PRs).** Not workflows; this is Next.js build
 plumbing in `marketing/`:
