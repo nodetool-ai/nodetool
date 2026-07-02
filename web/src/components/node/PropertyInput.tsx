@@ -184,7 +184,6 @@ export type PropertyInputProps = {
   value: unknown;
   property: Property;
   propertyIndex?: string;
-  controlKeyPressed?: boolean;
   isInspector?: boolean;
   /** When the inspector edits multiple nodes, reset/context menu apply to all of these ids. */
   inspectorBatchNodeIds?: readonly string[];
@@ -203,7 +202,6 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   value,
   property,
   propertyIndex,
-  controlKeyPressed,
   tabIndex,
   isDynamicProperty,
   hideActionIcons,
@@ -225,7 +223,6 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     }),
     shallow
   );
-  const metadata = useMetadataStore((state) => state.metadata);
 
   const targetNodeIds = useMemo(
     () =>
@@ -327,6 +324,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   );
 
   const handleResetToDefault = useCallback(() => {
+    const metadata = useMetadataStore.getState().metadata;
     for (const nodeId of targetNodeIds) {
       const node = findNode(nodeId);
       if (!node?.data) {
@@ -368,7 +366,6 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   }, [
     findNode,
     isDynamicProperty,
-    metadata,
     property,
     targetNodeIds,
     updateNodeData,
@@ -389,7 +386,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     (event: React.MouseEvent<HTMLElement>) => {
       event.preventDefault();
       event.stopPropagation();
-      if (controlKeyPressed || event.ctrlKey || event.metaKey) {
+      if (event.ctrlKey || event.metaKey) {
         if (isChanged) {
           handleResetToDefault();
         }
@@ -398,7 +395,6 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
       }
     },
     [
-      controlKeyPressed,
       handlePropertyContextMenu,
       handleResetToDefault,
       isChanged,
@@ -602,7 +598,6 @@ export default memo(PropertyInput, (prev, next) => {
     prev.id !== next.id ||
     prev.nodeType !== next.nodeType ||
     prev.propertyIndex !== next.propertyIndex ||
-    prev.controlKeyPressed !== next.controlKeyPressed ||
     prev.isInspector !== next.isInspector ||
     prev.tabIndex !== next.tabIndex ||
     prev.isDynamicProperty !== next.isDynamicProperty ||

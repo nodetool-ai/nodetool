@@ -462,7 +462,15 @@ describe("Computed caching — end-to-end activation (dispatch → stamp → reu
           const n = byId.get(id);
           if (n) n.data = { ...n.data, ...data };
         }
-      })
+      }),
+      // handleUpdate pauses undo history around the echo write-back.
+      temporal: {
+        getState: () => ({
+          isTracking: true,
+          pause: () => {},
+          resume: () => {}
+        })
+      }
     };
     const dispatchWithStore = (data: unknown) =>
       handleUpdate(

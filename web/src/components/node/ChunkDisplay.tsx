@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useCallback, useEffect, useMemo, useRef, memo } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, memo } from "react";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import { EditorButton, SPACING, getSpacingPx } from "../ui_primitives";
 
@@ -12,6 +12,7 @@ const SCROLL_AMOUNT = 50;
 
 const ChunkDisplay: React.FC<ChunkDisplayProps> = memo(({ chunk }) => {
   const chunkRef = useRef<HTMLDivElement>(null);
+  const deferredChunk = useDeferredValue(chunk);
 
   useEffect(() => {
     if (chunkRef.current) {
@@ -75,7 +76,7 @@ const ChunkDisplay: React.FC<ChunkDisplayProps> = memo(({ chunk }) => {
         css={chunkCss}
         style={chunkStyles}
       >
-        <MarkdownRenderer content={chunk} />
+        <MarkdownRenderer content={deferredChunk} />
       </div>
       <div style={buttonContainerStyles}>
         <EditorButton size="small" onClick={scrollUp}>

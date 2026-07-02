@@ -19,6 +19,7 @@ type MetadataStore = {
   nodeTypes: NodeTypes;
   setNodeTypes: (nodeTypes: NodeTypes) => void;
   addNodeType: (nodeType: string, nodeTypeComponent: NodeTypes[string]) => void;
+  addNodeTypes: (entries: NodeTypes) => void;
 };
 const useMetadataStore = create<MetadataStore>((set, get) => ({
   metadata: {},
@@ -30,6 +31,20 @@ const useMetadataStore = create<MetadataStore>((set, get) => ({
     set((state) => ({
       nodeTypes: { ...state.nodeTypes, [nodeType]: nodeTypeComponent }
     })),
+  addNodeTypes: (entries) => {
+    const current = get().nodeTypes;
+    let hasNew = false;
+    for (const key in entries) {
+      if (current[key] !== entries[key]) {
+        hasNew = true;
+        break;
+      }
+    }
+    if (!hasNew) {
+      return;
+    }
+    set({ nodeTypes: { ...current, ...entries } });
+  },
   setMetadata: (metadata) => set({ metadata }),
   getMetadata: (nodeType) => {
     return get().metadata[nodeType];

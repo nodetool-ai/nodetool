@@ -143,7 +143,7 @@ const errorStyles = (theme: Theme) =>
     },
   });
 
-export const NodeErrors: React.FC<{
+const NodeErrorsImpl: React.FC<{
   id: string;
   workflow_id: string;
   nodeType?: string;
@@ -156,23 +156,25 @@ export const NodeErrors: React.FC<{
     (state) => state.logsByNode[nodeLogKey(workflow_id, id)]
   );
 
+  // Computed before the early return so the hook order stays stable
+  // (rules-of-hooks). `nodeErrorToDisplayString` tolerates an absent error.
+  // Hoisted into a single value reused below and in `handleReport` — it was
+  // previously recomputed twice per render for the same `error` input.
+  const errorDisplay = nodeErrorToDisplayString(error);
+
   const handleReport = useCallback(() => {
-    const errorText = nodeErrorToDisplayString(error);
     const logLines = (logs ?? []).map(
       (l) => `[${l.severity.toUpperCase()}] ${l.content}`
     );
     const url = buildReportUrl(
       nodeType,
-      errorText,
+      errorDisplay,
       logLines,
       getSystemInfo()
     );
     window.open(url, "_blank", "noopener,noreferrer");
-  }, [error, logs, nodeType]);
+  }, [errorDisplay, logs, nodeType]);
 
-  // Computed before the early return so the hook order stays stable
-  // (rules-of-hooks). `nodeErrorToDisplayString` tolerates an absent error.
-  const errorDisplay = nodeErrorToDisplayString(error);
   const kieTaskId = useMemo(
     () => extractKieTaskId(errorDisplay),
     [errorDisplay]
@@ -220,4 +222,6 @@ export const NodeErrors: React.FC<{
   );
 };
 
-export default memo(NodeErrors, isEqual);
+export const NodeErrors = memo(NodeErrorsImpl, isEqual);
+NodeErrors.displayName = "NodeErrors";
+export default NodeErrors;
