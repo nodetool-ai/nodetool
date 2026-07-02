@@ -10,12 +10,20 @@ import type { TimelineClip, TimelineSequence } from "@nodetool-ai/timeline";
 /** Schema version. Bump on breaking changes to the cast shape. */
 export const TIMELINE_CAST_VERSION = 1 as const;
 
-/** An inline, backend-free stand-in for a generated/imported media asset. */
+/**
+ * A backend-free stand-in for a generated/imported media asset. Carries its
+ * bytes either inline (`dataUri`) or as a pinned file next to the cast
+ * (`file`, resolved by the player's `resolveAssetUrl` — the same pinning
+ * scheme the graph cast uses). Exactly one of the two must be set; `file`
+ * exists because real video clips are far too large to inline.
+ */
 export interface TimelineCastAsset {
   /** Matches a clip's `currentAssetId` / `thumbnailAssetId`. */
   key: string;
   /** Inline `data:` URI — no backend, no pinned files. */
-  dataUri: string;
+  dataUri?: string;
+  /** Pinned file name, mapped to a host URL by `resolveAssetUrl`. */
+  file?: string;
   contentType: string;
 }
 

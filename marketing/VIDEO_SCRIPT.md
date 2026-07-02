@@ -130,22 +130,22 @@ node, and the playhead near frame center.
 
 ## Production notes
 
-Produce it with the Remotion harness in `demo/` (see `demo/README.md`):
+The master cut is implemented in the Remotion harness: `demo/src/promo/`
+(scene components) plus two synthetic casts replayed through the real product
+UI — `web/src/demo/promoTrailerCast.ts` (Act 1, graph editor) and
+`web/src/demo/timeline/promoTimelineCast.ts` (Act 2, timeline editor). All
+footage is cut from `marketing/public/movie_trailer_example.mp4` and pinned
+under `demo/public/casts/promo/`; the same clips appear on the canvas and the
+timeline, keeping the two acts visibly continuous. See `demo/README.md` § "The
+product promo".
 
-1. Record one real run of the variation-generating graph with `CastRecorder`
-   (`web/src/demo/recorder.ts`) — a prompt node fanned into four video nodes.
-   The cast replays deterministically, so retiming and re-rendering cost no
-   further generations. Pin the four rendered takes as cast assets; the same
-   files appear in Act 2 on the timeline, which keeps the two acts visibly
-   continuous.
-2. Build Act 1 on `DemoPlayer` — it renders the production node components,
-   so running rings, streaming text, and progress bars look exactly like the
-   app.
-3. Act 2 (timeline build, prompt-at-playhead, export) is a screen capture of
-   the timeline editor. Keep cursor speed unhurried and constant; rehearse the
-   drag-trim-split sequence so it reads in one pass.
-4. Add the text cards and the hook's pull-back move in Remotion
-   (`demo/src/Tutorial.tsx` is the pattern for title cards and captions).
-5. Render the 3:2 master first, then the crops. Replace
-   `marketing/public/demo.mp4` and verify the `#demo-video` section on the
-   landing page.
+```bash
+cd demo
+npm run render:promo            # 16:9 master → demo/out/promo-master.mp4
+npm run render:promo:landing    # 3:2 landing variant → demo/out/promo-landing.mp4
+```
+
+To ship it: copy `out/promo-landing.mp4` to `marketing/public/demo.mp4` and
+verify the `#demo-video` section. The 1:1 and 9:16 social crops and the
+15s/30s cutdowns are not implemented yet — add scenes/compositions in
+`demo/src/promo/` following the same pattern.
