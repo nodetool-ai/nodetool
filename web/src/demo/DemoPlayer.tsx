@@ -31,6 +31,7 @@ import InitColorSchemeScript from "@mui/material/InitColorSchemeScript";
 import { MemoryRouter } from "react-router-dom";
 import { TRPCProvider } from "../trpc/Provider";
 import { queryClient } from "../queryClient";
+import { useMediaReadiness, type PendingMediaHandler } from "./mediaReadiness";
 
 // Global side-effect styles so the graph renders identically to the editor.
 // vars.css must come first: it defines --handle_width / --handle_height (used
@@ -186,6 +187,9 @@ export interface DemoPlayerProps {
   /** Controlled camera; when set, overrides the cast's recorded viewport so a
    *  host can animate zoom/pan (e.g. a Remotion composition driving the clock). */
   viewport?: { x: number; y: number; zoom: number };
+  /** Called with a promise per not-yet-decoded video so a frame renderer can
+   *  block the capture until media is paintable (see mediaReadiness.ts). */
+  onPendingMedia?: PendingMediaHandler;
 }
 
 /**
@@ -198,9 +202,12 @@ export function DemoPlayer({
   resolveAssetUrl,
   style,
   viewport,
+  onPendingMedia,
 }: DemoPlayerProps): React.JSX.Element {
   const resolveRef = useRef(resolveAssetUrl);
   resolveRef.current = resolveAssetUrl;
+  const rootRef = useRef<HTMLDivElement>(null);
+  useMediaReadiness(rootRef, timeMs, onPendingMedia);
 
   const engine = useMemo(
     () => new DemoEngine(cast, { resolveAssetUrl: (f) => resolveRef.current(f) }),
@@ -227,6 +234,7 @@ export function DemoPlayer({
                         wrapper so per-data-type handle/edge colors resolve
                         the same way they do in the live editor. */}
                     <div
+                      ref={rootRef}
                       data-demo-player
                       className="node-editor"
                       css={generateCSS}

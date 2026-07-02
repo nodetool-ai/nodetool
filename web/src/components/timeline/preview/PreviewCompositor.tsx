@@ -851,13 +851,23 @@ export const PreviewCompositor: React.FC = memo(() => {
   // asynchronously — so the one-shot render above runs before the frame is
   // ready and paints a stale (or empty) texture. Re-composite once each video
   // element fires `seeked`, when the decoded frame is actually available.
+  // `loadeddata` matters too: a clip whose target time equals the element's
+  // current time (e.g. the playhead sits at the clip's first frame) never
+  // seeks, so without it the freshly loaded video stays unpainted until the
+  // next scrub.
   useEffect(() => {
     if (!poolReady) return;
     const pool = videoRefs.current;
-    const onSeeked = () => renderFrame();
-    pool.forEach((el) => el.addEventListener("seeked", onSeeked));
+    const onFrameReady = () => renderFrame();
+    pool.forEach((el) => {
+      el.addEventListener("seeked", onFrameReady);
+      el.addEventListener("loadeddata", onFrameReady);
+    });
     return () => {
-      pool.forEach((el) => el.removeEventListener("seeked", onSeeked));
+      pool.forEach((el) => {
+        el.removeEventListener("seeked", onFrameReady);
+        el.removeEventListener("loadeddata", onFrameReady);
+      });
     };
   }, [poolReady, renderFrame]);
 

@@ -151,13 +151,56 @@ starting `TimelineSequence`, then folds `TimelineCastEvent[]` (add/patch/remove
 a clip, select, zoom, seek, or ramp the playhead) into the instance's stores on
 every seek. Clips reference media by `currentAssetId`; `seedTimelineCastAssets`
 patches `useAssetStore.get` to resolve those ids from the cast's inline `data:`
-URIs instead of a real backend fetch.
+URIs — or, for media too large to inline, from pinned files: a
+`TimelineCastAsset` may carry `file` instead of `dataUri`, resolved through the
+player's `resolveAssetUrl` prop (Remotion `staticFile`), the same pinning
+scheme the graph cast uses.
 
 To add a fourth surface, follow the same shape: a `<Surface>CastTypes.ts`
 (events + a base document/props snapshot), a pure replay function or minimal
 engine class, a `<Surface>DemoPlayer.tsx` that mounts the real production
 component(s) inside whatever provider stack they need, a cast registry, and a
 `<Surface>Tutorial.tsx` composition built on `TutorialShell`.
+
+## The product promo (`demo/src/promo/`)
+
+The landing-page / social product video (script: `marketing/VIDEO_SCRIPT.md`)
+is a scene-based composition that goes beyond the tutorial shell: a real-film
+hook (`<OffthreadVideo>`), Act 1 on the graph editor (`DemoPlayer` replaying
+`promo-trailer` with an authored camera), Act 2 on the timeline editor
+(`TimelineDemoPlayer` replaying `promo-timeline`, plus a recreated
+generate-at-the-playhead prompt bar), a cost-dashboard beat, and an export /
+brand-card close. Registered at two sizes: `Promo-Master` (1920×1080) and
+`Promo-Landing` (2250×1500, the landing page's 3:2 `/demo.mp4` slot); the
+scenes read `useVideoConfig()`, so both come from the same components.
+
+```bash
+cd demo
+npm run render:promo            # → demo/out/promo-master.mp4 (16:9)
+npm run render:promo:landing    # → demo/out/promo-landing.mp4 (3:2)
+npm run still:promo             # one frame for a fast visual check
+```
+
+The media under `demo/public/casts/promo/` are real segments of
+`marketing/public/movie_trailer_example.mp4`, cut with Remotion's bundled
+ffmpeg (`npx remotion ffmpeg`). Two codec rules keep renders working
+everywhere:
+
+- **In-DOM `<video>` media must be VP9/WebM.** The node cards and timeline
+  clips play through real `<video>` elements in the render browser, and
+  Chromium builds without proprietary codecs (e.g. Playwright's) can't decode
+  H.264 — cards silently capture black. `OffthreadVideo` sources (the hook and
+  close films) decode server-side, so they stay H.264 MP4.
+- **Frame-exact video cards need `onPendingMedia`.** Both players accept the
+  prop and report a promise per not-yet-decoded video
+  (`web/src/demo/mediaReadiness.ts`); `demo/src/promo/usePendingMediaDelay.ts`
+  maps each to a `delayRender` handle so no captured frame shows an unloaded
+  card.
+
+The promo's casts live with the other synthetic casts —
+`web/src/demo/promoTrailerCast.ts` and
+`web/src/demo/timeline/promoTimelineCast.ts` (invariants guarded by
+`web/src/demo/__tests__/promoCasts.test.ts`).
 
 ## Recording a real demo
 
@@ -243,7 +286,12 @@ to the `IGNORE` list in `webpackOverride.ts`.
 ## First render & troubleshooting
 
 The first `npm run studio` / `render` downloads a headless Chromium and bundles
-the web components — give it a minute. The sample renders cleanly today; the
+the web components — give it a minute. To reuse a system browser instead of the
+download, set `CHROMIUM_PATH` (honored by both the batch scripts and, via
+`remotion.config.ts`, the plain `remotion` CLI commands). It must be a
+new-headless-capable build — a Chrome headless shell works; note that builds
+without proprietary codecs can't decode H.264 in `<video>` elements (see the
+promo section's codec rules). The sample renders cleanly today; the
 override already handles every Vite↔webpack parity gap in the current node UI
 (see the list above). A new cast that pulls in a node type the sample doesn't
 could surface another gap — if so, the error names it. Add the matching

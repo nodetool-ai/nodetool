@@ -128,4 +128,24 @@ describe("seedTimelineCastAssets", () => {
     const asset = await useAssetStore.getState().get("inline-asset-1");
     expect(asset.get_url).toBe("data:image/png;base64,AAA");
   });
+
+  it("resolves a file-backed asset through resolveAssetUrl", async () => {
+    seedTimelineCastAssets(
+      [{ key: "pinned-asset-1", file: "clip.mp4", contentType: "video/mp4" }],
+      (file) => `/casts/promo/${file}`
+    );
+
+    const asset = await useAssetStore.getState().get("pinned-asset-1");
+    expect(asset.get_url).toBe("/casts/promo/clip.mp4");
+    expect(asset.content_type).toBe("video/mp4");
+  });
+
+  it("falls back to the bare file name when no resolver is given", async () => {
+    seedTimelineCastAssets([
+      { key: "pinned-asset-2", file: "clip2.mp4", contentType: "video/mp4" },
+    ]);
+
+    const asset = await useAssetStore.getState().get("pinned-asset-2");
+    expect(asset.get_url).toBe("clip2.mp4");
+  });
 });

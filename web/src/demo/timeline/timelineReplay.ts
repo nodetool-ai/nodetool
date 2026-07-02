@@ -17,17 +17,27 @@ import type { Asset } from "../../stores/ApiTypes";
 import type { TimelineClip } from "@nodetool-ai/timeline";
 import type { TimelineCastAsset, TimelineCastEvent, TimelineDemoCast } from "./timelineCastTypes";
 
-const assetOverrides = new Map<string, TimelineCastAsset>();
+const assetOverrides = new Map<string, { asset: TimelineCastAsset; url: string }>();
 let assetStorePatched = false;
 
 /**
- * Serve a cast's inline `data:` URIs from `useAssetStore.get` instead of the
- * real backend, same "seed the shared store" pattern as `seedCastMetadata` in
- * the workflow demo engine. Patches the store's `get` action once; later
- * calls just add more entries to the shared override map.
+ * Serve a cast's media from `useAssetStore.get` instead of the real backend,
+ * same "seed the shared store" pattern as `seedCastMetadata` in the workflow
+ * demo engine. Inline `dataUri` assets are served as-is; pinned `file` assets
+ * resolve through `resolveAssetUrl` (Vite public dir, Remotion `staticFile`).
+ * Patches the store's `get` action once; later calls just add more entries to
+ * the shared override map.
  */
-export function seedTimelineCastAssets(assets: TimelineCastAsset[]): void {
-  for (const asset of assets) assetOverrides.set(asset.key, asset);
+export function seedTimelineCastAssets(
+  assets: TimelineCastAsset[],
+  resolveAssetUrl?: (file: string) => string
+): void {
+  for (const asset of assets) {
+    const url =
+      asset.dataUri ??
+      (asset.file ? resolveAssetUrl?.(asset.file) ?? asset.file : "");
+    assetOverrides.set(asset.key, { asset, url });
+  }
   if (assetStorePatched) return;
   assetStorePatched = true;
 
@@ -37,11 +47,11 @@ export function seedTimelineCastAssets(assets: TimelineCastAsset[]): void {
       const preset = assetOverrides.get(id);
       if (preset) {
         return {
-          id: preset.key,
-          name: preset.key,
-          content_type: preset.contentType,
-          get_url: preset.dataUri,
-          thumb_url: preset.dataUri
+          id: preset.asset.key,
+          name: preset.asset.key,
+          content_type: preset.asset.contentType,
+          get_url: preset.url,
+          thumb_url: preset.url
         } as unknown as Asset;
       }
       return original(id);
@@ -63,6 +73,11 @@ function countAppliedAt(events: TimelineCastEvent[], timeMs: number): number {
   return n;
 }
 
+export interface TimelineDemoEngineOptions {
+  /** Maps a pinned asset's `file` name to a host URL (required for casts with file-backed assets). */
+  resolveAssetUrl?: (file: string) => string;
+}
+
 export class TimelineDemoEngine {
   readonly instance: TimelineInstance;
   readonly durationMs: number;
@@ -73,13 +88,13 @@ export class TimelineDemoEngine {
   private appliedIndex = 0;
   private state: TimelineReplayState;
 
-  constructor(cast: TimelineDemoCast) {
+  constructor(cast: TimelineDemoCast, options: TimelineDemoEngineOptions = {}) {
     this.durationMs = cast.durationMs;
     this.fps = cast.fps ?? 30;
     this.events = cast.events;
     this.pristineClips = clone(cast.sequence.clips);
 
-    seedTimelineCastAssets(cast.assets);
+    seedTimelineCastAssets(cast.assets, options.resolveAssetUrl);
 
     this.instance = createTimelineInstance();
     this.instance.doc.getState().loadSequence(cast.sequence);

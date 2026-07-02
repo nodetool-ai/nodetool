@@ -32,6 +32,9 @@
     "still:tutorial:chat-agent-qa": "remotion still src/index.ts ChatTutorial-agent-qa ../web/public/tutorials/chat-agent-qa.jpg --frame=300",
     "render:tutorial:timeline-trim-arrange": "remotion render src/index.ts TimelineTutorial-trim-arrange ../web/public/tutorials/timeline-trim-arrange.mp4",
     "still:tutorial:timeline-trim-arrange": "remotion still src/index.ts TimelineTutorial-trim-arrange ../web/public/tutorials/timeline-trim-arrange.jpg --frame=300",
+    "render:promo": "remotion render src/index.ts Promo-Master out/promo-master.mp4",
+    "render:promo:landing": "remotion render src/index.ts Promo-Landing out/promo-landing.mp4",
+    "still:promo": "remotion still src/index.ts Promo-Master out/promo-frame.jpg --frame=300",
     "pin-assets": "tsx scripts/pin-cast-assets.ts",
     "typecheck": "tsc --noEmit"
   },
