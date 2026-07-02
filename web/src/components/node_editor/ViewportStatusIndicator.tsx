@@ -15,7 +15,7 @@ import {
   ListItemButton,
   ListItemText
 } from "../ui_primitives";
-import { useViewport, useReactFlow } from "@xyflow/react";
+import { useStore, useReactFlow } from "@xyflow/react";
 import { useTheme } from "@mui/material/styles";
 import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
 import AddIcon from "@mui/icons-material/Add";
@@ -36,7 +36,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
   visible = true
 }) => {
   const theme = useTheme();
-  const { zoom } = useViewport();
+  const zoom = useStore((s) => s.transform[2]);
   const { zoomTo, fitView } = useReactFlow();
   const [zoomMenuAnchor, setZoomMenuAnchor] = useState<HTMLElement | null>(
     null

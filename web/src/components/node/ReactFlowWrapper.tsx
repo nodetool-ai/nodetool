@@ -15,7 +15,7 @@ import {
   ReactFlow,
   SelectionMode,
   ConnectionMode,
-  useViewport,
+  useStore,
   useUpdateNodeInternals,
   type Edge,
   type Node,
@@ -93,6 +93,10 @@ import { useConnectionEvents } from "../../hooks/handlers/useConnectionEvents";
 import type { NodeData } from "../../stores/NodeData";
 import type { NodeStoreState } from "../../stores/NodeStore";
 import { scheduleNodeInternalsRefresh } from "../../utils/scheduleNodeInternalsRefresh";
+import type { EdgeKey, NodeKey } from "../../stores/nodeKey";
+
+type ResultsState = ReturnType<typeof useResultsStore.getState>;
+type StatusState = ReturnType<typeof useStatusStore.getState>;
 
 const CONTAINER_STYLE = {
   width: "100%",
@@ -359,7 +363,7 @@ const ReactFlowWrapper = ({
   }, [nodes, edges, updateNodeInternals]);
 
   const ref = useRef<HTMLDivElement | null>(null);
-  const { zoom } = useViewport();
+  const zoomedOut = useStore((s) => s.transform[2] <= ZOOMED_OUT);
 
   useEffect(() => {
     const container = ref.current;
@@ -578,6 +582,39 @@ const ReactFlowWrapper = ({
     setSuppressNodeDrivenEdgeSelection(false);
   }, []);
 
+  const handleNodeDoubleClick = useCallback(
+    (_event: ReactMouseEvent, node: Node) => {
+      if (node.type !== SUBGRAPH_NODE_TYPE) return;
+      const data = node.data as {
+        workflow_id?: string;
+        title?: string;
+        properties?: { graph?: { nodes?: unknown[]; edges?: unknown[] } };
+      };
+      const innerGraph = data.properties?.graph ?? { nodes: [], edges: [] };
+      const key = useSubgraphTabsStore.getState().openTab({
+        workflowId: data.workflow_id ?? "",
+        nodeId: node.id,
+        label: data.title || "Subgraph",
+        initialGraph: {
+          nodes: Array.isArray(innerGraph.nodes) ? innerGraph.nodes : [],
+          edges: Array.isArray(innerGraph.edges) ? innerGraph.edges : []
+        }
+      });
+      const tab = useSubgraphTabsStore.getState().getTab(key);
+      if (tab) {
+        // Register the subgraph store synchronously so the upcoming
+        // SubgraphTabContent → ReactFlowWrapper render sees
+        // workflowExistsLocally === true and skips the 404 fetch for
+        // the synthetic id. SubgraphTabContent's useEffect also
+        // re-registers (idempotent) to survive StrictMode double-mount.
+        workflowManagerStore.setState((state) => ({
+          nodeStores: { ...state.nodeStores, [key]: tab.store }
+        }));
+      }
+    },
+    [workflowManagerStore]
+  );
+
   const handlePaneClickWithSuppress = useCallback(
     (event: ReactMouseEvent) => {
       setSuppressNodeDrivenEdgeSelection(false);
@@ -586,14 +623,88 @@ const ReactFlowWrapper = ({
     [handlePaneClick]
   );
 
-  const edgeStatuses = useResultsStore((state) => state.edges);
-  const nodeStatuses = useStatusStore((state) => state.statuses);
   // Node statuses are keyed per run; the canvas animates edges for the
   // workflow's focused run. Subscribing here re-runs edge processing when the
   // focus switches between concurrent runs.
   const focusedJobId = useWorkflowRunsStore(
     (state) => state.focusedJob[workflowId]
   );
+  const runPrefix =
+    workflowId && focusedJobId ? `${workflowId}:${focusedJobId}:` : null;
+
+  // Both `edges` and `statuses` are global maps (keys `workflowId:jobId:id`)
+  // rebuilt wholesale on every status write from ANY workflow or job. Scope
+  // each subscription to the focused run's key prefix via a cached selector
+  // that returns the SAME record reference unless an entry under that prefix
+  // changed, so status writes from other workflows/jobs are no-ops here.
+  const edgeStatusesSelector = useMemo(() => {
+    let lastSource: ResultsState["edges"] | null = null;
+    let lastResult: ResultsState["edges"] = {};
+    let lastCount = 0;
+    return (state: ResultsState) => {
+      if (state.edges === lastSource) return lastResult;
+      lastSource = state.edges;
+      if (!runPrefix) {
+        if (lastCount !== 0) {
+          lastResult = {};
+          lastCount = 0;
+        }
+        return lastResult;
+      }
+      const next: ResultsState["edges"] = {};
+      let count = 0;
+      let changed = false;
+      for (const key in state.edges) {
+        if (key.startsWith(runPrefix)) {
+          next[key as EdgeKey] = state.edges[key as EdgeKey];
+          count++;
+          if (lastResult[key as EdgeKey] !== next[key as EdgeKey]) {
+            changed = true;
+          }
+        }
+      }
+      if (!changed && count === lastCount) return lastResult;
+      lastResult = next;
+      lastCount = count;
+      return next;
+    };
+  }, [runPrefix]);
+  const edgeStatuses = useResultsStore(edgeStatusesSelector);
+
+  const nodeStatusesSelector = useMemo(() => {
+    let lastSource: StatusState["statuses"] | null = null;
+    let lastResult: StatusState["statuses"] = {};
+    let lastCount = 0;
+    return (state: StatusState) => {
+      if (state.statuses === lastSource) return lastResult;
+      lastSource = state.statuses;
+      if (!runPrefix) {
+        if (lastCount !== 0) {
+          lastResult = {};
+          lastCount = 0;
+        }
+        return lastResult;
+      }
+      const next: StatusState["statuses"] = {};
+      let count = 0;
+      let changed = false;
+      for (const key in state.statuses) {
+        if (key.startsWith(runPrefix)) {
+          next[key as NodeKey] = state.statuses[key as NodeKey];
+          count++;
+          if (lastResult[key as NodeKey] !== next[key as NodeKey]) {
+            changed = true;
+          }
+        }
+      }
+      if (!changed && count === lastCount) return lastResult;
+      lastResult = next;
+      lastCount = count;
+      return next;
+    };
+  }, [runPrefix]);
+  const nodeStatuses = useStatusStore(nodeStatusesSelector);
+
   const { processedEdges, activeGradientKeys } = useProcessedEdges({
     edges,
     nodes,
@@ -717,7 +828,7 @@ const ReactFlowWrapper = ({
 
   const reactFlowClasses = useMemo(() => {
     const classes = [];
-    if (zoom <= ZOOMED_OUT) {
+    if (zoomedOut) {
       classes.push("zoomed-out");
     }
     if (connecting) {
@@ -730,7 +841,7 @@ const ReactFlowWrapper = ({
       classes.push("live-scrubbing");
     }
     return classes.join(" ");
-  }, [zoom, connecting, instantUpdate, isScrubbing]);
+  }, [zoomedOut, connecting, instantUpdate, isScrubbing]);
 
   const conditionalProps = useMemo(() => {
     const props: { selectionOnDrag?: boolean } = {};
@@ -820,35 +931,7 @@ const ReactFlowWrapper = ({
         onNodeContextMenu={handleNodeContextMenu}
         onPaneClick={handlePaneClickWithSuppress}
         onNodeClick={handleNodeClick}
-        onNodeDoubleClick={(_event, node) => {
-          if (node.type !== SUBGRAPH_NODE_TYPE) return;
-          const data = node.data as {
-            workflow_id?: string;
-            title?: string;
-            properties?: { graph?: { nodes?: unknown[]; edges?: unknown[] } };
-          };
-          const innerGraph = data.properties?.graph ?? { nodes: [], edges: [] };
-          const key = useSubgraphTabsStore.getState().openTab({
-            workflowId: data.workflow_id ?? "",
-            nodeId: node.id,
-            label: data.title || "Subgraph",
-            initialGraph: {
-              nodes: Array.isArray(innerGraph.nodes) ? innerGraph.nodes : [],
-              edges: Array.isArray(innerGraph.edges) ? innerGraph.edges : []
-            }
-          });
-          const tab = useSubgraphTabsStore.getState().getTab(key);
-          if (tab) {
-            // Register the subgraph store synchronously so the upcoming
-            // SubgraphTabContent → ReactFlowWrapper render sees
-            // workflowExistsLocally === true and skips the 404 fetch for
-            // the synthetic id. SubgraphTabContent's useEffect also
-            // re-registers (idempotent) to survive StrictMode double-mount.
-            workflowManagerStore.setState((state) => ({
-              nodeStores: { ...state.nodeStores, [key]: tab.store }
-            }));
-          }
-        }}
+        onNodeDoubleClick={handleNodeDoubleClick}
         onPaneContextMenu={handlePaneContextMenu}
         onMoveStart={handleOnMoveStart}
         onDoubleClick={handleDoubleClick}

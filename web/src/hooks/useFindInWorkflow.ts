@@ -6,6 +6,13 @@ import useMetadataStore from "../stores/MetadataStore";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
 
+// Stable empty array so the `useNodes` selector below returns the same
+// reference while the dialog is closed — `useNodes` uses shallow equality by
+// default, so this yields zero re-renders instead of one per nodes change
+// (e.g. every drag frame) for a hook that's mounted permanently but only
+// needs `nodes` while the dialog is open.
+const EMPTY_NODES: Node<NodeData>[] = [];
+
 interface UseFindInWorkflowResult {
   isOpen: boolean;
   searchTerm: string;
@@ -82,7 +89,7 @@ export const useFindInWorkflow = (): UseFindInWorkflowResult => {
   const navigatePrevious = useFindInWorkflowStore((state) => state.navigatePrevious);
   const clearSearch = useFindInWorkflowStore((state) => state.clearSearch);
 
-  const nodes = useNodes((state) => state.nodes);
+  const nodes = useNodes((state) => (isOpen ? state.nodes : EMPTY_NODES));
   const { setCenter, fitView } = useReactFlow();
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
