@@ -108,6 +108,7 @@ class FakeBridge extends EventEmitter {
   comfyExecute(): Promise<Record<string, unknown>> {
     return Promise.resolve({});
   }
+  cancelComfyExecute(): void {}
   comfyQueue(): Promise<Record<string, unknown>> {
     return Promise.resolve({});
   }

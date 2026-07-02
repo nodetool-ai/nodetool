@@ -368,12 +368,22 @@ function sniffMedia(bytes: Uint8Array): {
   if (b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46) {
     return { kind: "image", mime: "image/gif" };
   }
-  // RIFF container: WEBP (image) or WAV (audio)
+  // RIFF container — disambiguate by the form type in bytes 8-11. RIFF is
+  // generic (WEBP, WAVE, AVI, …), so only classify on an exact form match and
+  // fall through otherwise rather than assuming WebP.
   if (b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46) {
+    // "WEBP"
+    if (b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) {
+      return { kind: "image", mime: "image/webp" };
+    }
+    // "WAVE"
     if (b[8] === 0x57 && b[9] === 0x41 && b[10] === 0x56 && b[11] === 0x45) {
       return { kind: "audio", mime: "audio/wav" };
     }
-    return { kind: "image", mime: "image/webp" };
+    // "AVI "
+    if (b[8] === 0x41 && b[9] === 0x56 && b[10] === 0x49 && b[11] === 0x20) {
+      return { kind: "video", mime: "video/x-msvideo" };
+    }
   }
   // ftyp box → MP4/MOV
   if (b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70) {

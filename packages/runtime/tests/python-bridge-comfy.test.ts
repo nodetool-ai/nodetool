@@ -133,14 +133,17 @@ describe("comfy.* bridge methods", () => {
     expect(pendingComfy.size).toBe(0);
   });
 
-  it("comfyExecute is cancellable via the standard cancel(requestId)", async () => {
+  it("cancelComfyExecute settles the promise and leaves no leaked entries", async () => {
+    // The worker hangs after `queued` — no terminal result/error ever arrives.
+    // cancelComfyExecute must reject the promise itself, not wait forever.
     const b = await connect({ comfyExecuteMode: "hang" });
 
     const events: ComfyEvent[] = [];
-    // The worker hangs after `queued`, so this run never settles on its own;
-    // swallow the rejection from the afterEach close() so it isn't unhandled.
-    b.comfyExecute({ "3": {} }, {}, (e) => events.push(e), "run-1").catch(
-      () => {}
+    const runPromise = b.comfyExecute(
+      { "3": {} },
+      {},
+      (e) => events.push(e),
+      "run-1"
     );
 
     // Wait for the first (queued) event to confirm the run is in flight.
@@ -150,7 +153,20 @@ describe("comfy.* bridge methods", () => {
     }
     expect(events[0]!.event).toBe("queued");
 
-    b.cancel("run-1");
+    b.cancelComfyExecute("run-1");
+    await expect(runPromise).rejects.toThrow(/cancelled/i);
+
+    // No leaked entries on either map after the local settle.
+    const pendingStream = (
+      bridge as unknown as { _pendingStream: Map<string, unknown> }
+    )._pendingStream;
+    const pendingComfy = (
+      bridge as unknown as { _pendingComfyEvents: Map<string, unknown> }
+    )._pendingComfyEvents;
+    expect(pendingStream.size).toBe(0);
+    expect(pendingComfy.size).toBe(0);
+
+    // A cancel frame reached the worker.
     const cancelStart = Date.now();
     while (
       worker!.received("cancel").length === 0 &&

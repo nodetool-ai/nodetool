@@ -365,6 +365,11 @@ export interface PythonBridge extends EventEmitter {
     onEvent?: (event: ComfyEvent) => void,
     requestId?: string
   ): Promise<ComfyExecuteResult>;
+  /**
+   * Cancel an in-flight {@link comfyExecute} by request id, settling its promise
+   * locally (does not rely on a terminal frame from the worker).
+   */
+  cancelComfyExecute(requestId: string): void;
   /** `{queue_running, queue_pending}` — for a queue-position/ETA UI. */
   comfyQueue(): Promise<Record<string, unknown>>;
   /** Global interrupt: stops whatever ComfyUI is running. Admin-only. */

@@ -985,8 +985,11 @@ export abstract class PythonBridgeBase
    * The event callback is registered in {@link _pendingComfyEvents} and the
    * terminal frame in {@link _pendingStream}; both are cleared on settle.
    *
-   * Cancellable via the standard {@link cancel}(requestId): pass a stable
-   * `requestId` (or reuse the returned default) to reach this exact run.
+   * Cancellable via {@link cancelComfyExecute}(requestId): pass a stable
+   * `requestId` (or reuse the returned default) to reach this exact run. Prefer
+   * that over the bare {@link cancel} — a plain cancel frame does not settle the
+   * local promise, so if the worker never emits a terminal frame the promise
+   * would hang and the pending maps would leak.
    */
   comfyExecute(
     prompt: Record<string, unknown>,
@@ -1023,6 +1026,25 @@ export abstract class PythonBridgeBase
         );
       }
     });
+  }
+
+  /**
+   * Cancel an in-flight {@link comfyExecute} by request id. Sends the cancel
+   * frame AND settles the local promise by rejecting it — the worker may never
+   * emit a terminal `result`/`error` after a cancel (or may be hung), so we
+   * cannot rely on one to clean up. Rejecting through the pending-stream entry
+   * runs comfyExecute's settle(), clearing BOTH `_pendingStream` and
+   * `_pendingComfyEvents`. A no-op if the id is unknown. Mirrors
+   * {@link cancelModelDownload}.
+   */
+  cancelComfyExecute(requestId: string): void {
+    this.cancel(requestId);
+    const streamReq = this._pendingStream.get(requestId);
+    if (streamReq) {
+      streamReq.reject(
+        new Error(`ComfyUI execution "${requestId}" was cancelled.`)
+      );
+    }
   }
 
   async comfyQueue(): Promise<Record<string, unknown>> {

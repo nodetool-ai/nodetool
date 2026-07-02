@@ -261,6 +261,10 @@ export class SwappableBridge extends EventEmitter implements PythonBridge {
     return this._target.comfyExecute(prompt, options, onEvent, requestId);
   }
 
+  cancelComfyExecute(requestId: string): void {
+    this._target.cancelComfyExecute(requestId);
+  }
+
   comfyQueue(): Promise<Record<string, unknown>> {
     return this._target.comfyQueue();
   }
