@@ -100,6 +100,7 @@ import { FrontendToolRegistry } from "../../lib/tools/frontendTools";
 import { getFrontendToolRuntimeState } from "../../lib/tools/frontendToolRuntimeState";
 import type {
   GlobalChatState,
+  ProposedPlan,
   StepToolCall
 } from "../../stores/GlobalChatStore";
 import { globalWebSocketManager, type WebSocketMessage } from "../../lib/websocket/GlobalWebSocketManager";
@@ -139,6 +140,18 @@ export interface ToolApprovalRequestMessage {
   args: Record<string, unknown>;
 }
 
+/**
+ * Server → client request to approve a proposed agent plan. Routed to the
+ * GlobalChatStore as a pending plan approval; the user resolves it via the
+ * inline PlanApprovalCard, which sends a `plan_approval_response` back.
+ */
+export interface PlanApprovalRequestMessage {
+  type: "plan_approval_request";
+  thread_id: string | null;
+  approval_id: string;
+  plan: ProposedPlan;
+}
+
 export interface ToolCallMessage {
   type: "tool_call";
   tool_call_id: string;
@@ -167,6 +180,7 @@ export type MsgpackData =
   | ToolCallMessage
   | ToolResultMessage
   | ToolApprovalRequestMessage
+  | PlanApprovalRequestMessage
   | ErrorMessage;
 
 export interface ToolResultMessage {
@@ -1217,6 +1231,28 @@ export async function sendToolApprovalResponse(
   }
 }
 
+/**
+ * Send the user's decision on a proposed agent plan back to the server,
+ * resuming the paused agent. An approve starts execution; a reject with
+ * feedback triggers a replan; a plain reject aborts the run.
+ */
+export async function sendPlanApprovalResponse(
+  approvalId: string,
+  decision: "approve" | "reject",
+  feedback?: string
+): Promise<void> {
+  try {
+    await globalWebSocketManager.send({
+      type: "plan_approval_response",
+      approval_id: approvalId,
+      decision,
+      ...(feedback ? { feedback } : {})
+    });
+  } catch (error) {
+    console.error("Failed to send plan_approval_response:", error);
+  }
+}
+
 export async function handleChatWebSocketMessage(
   msg: WebSocketMessage,
   set: ChatStateSetter,
@@ -1329,6 +1365,8 @@ export async function handleChatWebSocketMessage(
     void executeToolCall(data, get, set, globalWebSocketManager);
   } else if (data.type === "tool_approval_request") {
     get().addPendingApproval(data);
+  } else if (data.type === "plan_approval_request") {
+    get().addPendingPlanApproval(data);
   } else if (data.type === "generation_stopped") {
     // Clear the safety timeout when generation is stopped
     const timeoutId = get().sendMessageTimeoutId;

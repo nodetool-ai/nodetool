@@ -25,7 +25,10 @@ import {
   TodoItem,
   PermissionMode
 } from "./ApiTypes";
-import { sendToolApprovalResponse } from "../core/chat/chatProtocol";
+import {
+  sendPlanApprovalResponse,
+  sendToolApprovalResponse
+} from "../core/chat/chatProtocol";
 import { isLocalhost } from "../lib/env";
 import { trpcClient } from "../trpc/client";
 import {
@@ -102,6 +105,48 @@ interface ToolApprovalRequest {
   args: Record<string, unknown>;
 }
 
+/** A step of a proposed agent plan, as serialized on the wire. */
+export interface ProposedPlanStep {
+  id: string;
+  instructions: string;
+}
+
+/** A task of a proposed agent plan, as serialized on the wire. */
+export interface ProposedPlanTask {
+  id: string;
+  title: string;
+  depends_on: string[];
+  steps: ProposedPlanStep[];
+}
+
+/** The plan an agent proposes before executing. */
+export interface ProposedPlan {
+  title: string;
+  tasks: ProposedPlanTask[];
+}
+
+/** Decision a user can make on a proposed agent plan. */
+export type PlanDecision = "approve" | "reject";
+
+/**
+ * A pending plan-approval request awaiting a user decision. Keyed by
+ * `approval_id` in `pendingPlanApprovals`. `thread_id` is null when the plan
+ * comes from a run not bound to a thread (e.g. an editor workflow run) — the
+ * card then shows on the active thread.
+ */
+export interface PendingPlanApproval {
+  thread_id: string | null;
+  plan: ProposedPlan;
+}
+
+/** Server → client plan-approval request payload. */
+interface PlanApprovalRequest {
+  type: "plan_approval_request";
+  thread_id: string | null;
+  approval_id: string;
+  plan: ProposedPlan;
+}
+
 export interface GlobalChatState extends ChatPiSlice {
   // Connection state
   status: ChatStatus;
@@ -175,6 +220,15 @@ export interface GlobalChatState extends ChatPiSlice {
   pendingApprovals: Record<string, PendingApproval>;
   addPendingApproval: (req: ToolApprovalRequest) => void;
   resolveApproval: (approvalId: string, decision: ApprovalDecision) => void;
+
+  // Inline plan-approval prompts awaiting a user decision, keyed by approval_id.
+  pendingPlanApprovals: Record<string, PendingPlanApproval>;
+  addPendingPlanApproval: (req: PlanApprovalRequest) => void;
+  resolvePlanApproval: (
+    approvalId: string,
+    decision: PlanDecision,
+    feedback?: string
+  ) => void;
 
   // Planning updates
   currentPlanningUpdate: PlanningUpdate | null;
@@ -395,6 +449,32 @@ const useGlobalChatStore = create<GlobalChatState>()(
         set((state) => {
           const { [approvalId]: _resolved, ...rest } = state.pendingApprovals;
           return { pendingApprovals: rest };
+        });
+      },
+
+      // Inline plan-approval prompts
+      pendingPlanApprovals: {},
+      addPendingPlanApproval: (req: PlanApprovalRequest) =>
+        set((state) => ({
+          pendingPlanApprovals: {
+            ...state.pendingPlanApprovals,
+            [req.approval_id]: {
+              thread_id: req.thread_id ?? null,
+              plan: req.plan
+            }
+          }
+        })),
+      resolvePlanApproval: (
+        approvalId: string,
+        decision: PlanDecision,
+        feedback?: string
+      ) => {
+        if (!get().pendingPlanApprovals[approvalId]) return;
+        void sendPlanApprovalResponse(approvalId, decision, feedback);
+        set((state) => {
+          const { [approvalId]: _resolved, ...rest } =
+            state.pendingPlanApprovals;
+          return { pendingPlanApprovals: rest };
         });
       },
 
@@ -1255,8 +1335,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
         // Abort any active frontend tools
         FrontendToolRegistry.abortAll();
 
-        // Stopping cancels the run, so drop any pending tool-approval prompts
-        // for the current thread — they belong to the now-cancelled run.
+        // Stopping cancels the run, so drop any pending tool/plan-approval
+        // prompts for the current thread — they belong to the cancelled run.
         if (currentThreadId) {
           set((state) => {
             const remaining = Object.fromEntries(
@@ -1264,7 +1344,17 @@ const useGlobalChatStore = create<GlobalChatState>()(
                 ([, approval]) => approval.thread_id !== currentThreadId
               )
             );
-            return { pendingApprovals: remaining };
+            const remainingPlans = Object.fromEntries(
+              Object.entries(state.pendingPlanApprovals).filter(
+                ([, approval]) =>
+                  approval.thread_id !== null &&
+                  approval.thread_id !== currentThreadId
+              )
+            );
+            return {
+              pendingApprovals: remaining,
+              pendingPlanApprovals: remainingPlans
+            };
           });
         }
 
@@ -1435,6 +1525,9 @@ const useGlobalChatStore = create<GlobalChatState>()(
           }
           if (!state.pendingApprovals) {
             state.pendingApprovals = {};
+          }
+          if (!state.pendingPlanApprovals) {
+            state.pendingPlanApprovals = {};
           }
           if (!state.selectedModel) {
             state.selectedModel = buildDefaultLanguageModel();

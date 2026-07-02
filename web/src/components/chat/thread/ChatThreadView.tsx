@@ -24,6 +24,7 @@ import { MessageView } from "../message/MessageView";
 import MediaOutputGroup from "../message/MediaOutputGroup";
 import type { MediaGenerationRequest } from "../../../stores/MediaGenerationStore";
 import ToolApprovalCard from "../message/ToolApprovalCard";
+import PlanApprovalCard from "../message/PlanApprovalCard";
 import { ScrollToBottomButton } from "../controls/ScrollToBottomButton";
 import { createStyles } from "./ChatThreadView.styles";
 import PlanningUpdateDisplay from "../../node/PlanningUpdateDisplay";
@@ -261,6 +262,22 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
         ([, approval]) => approval.thread_id === currentThreadId
       ),
     [pendingApprovals, currentThreadId]
+  );
+
+  // Pending plan-approval prompts. Plans from runs not bound to a thread
+  // (thread_id null, e.g. editor workflow runs) show on the active thread.
+  const pendingPlanApprovals = useGlobalChatStore(
+    (s) => s.pendingPlanApprovals
+  );
+  const resolvePlanApproval = useGlobalChatStore((s) => s.resolvePlanApproval);
+  const threadPlanApprovals = useMemo(
+    () =>
+      Object.entries(pendingPlanApprovals).filter(
+        ([, approval]) =>
+          approval.thread_id === null ||
+          approval.thread_id === currentThreadId
+      ),
+    [pendingPlanApprovals, currentThreadId]
   );
 
   // The generating turn's own outgoing message carries `media_generation` —
@@ -656,6 +673,27 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
                     message={approval.message}
                     args={approval.args}
                     onResolve={resolveApproval}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {threadPlanApprovals.length > 0 && (
+            <div className="chat-message-list-item">
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: getSpacingPx(SPACING.md)
+                }}
+              >
+                {threadPlanApprovals.map(([approvalId, approval]) => (
+                  <PlanApprovalCard
+                    key={approvalId}
+                    approvalId={approvalId}
+                    approval={approval}
+                    onResolve={resolvePlanApproval}
                   />
                 ))}
               </div>

@@ -21,6 +21,7 @@ import type {
   ProcessingMessage,
   StepResult,
   LogUpdate,
+  PlanningUpdate,
   TaskUpdate,
   Chunk
 } from "@nodetool-ai/protocol";
@@ -37,7 +38,13 @@ import {
   SecurityMonitor,
   createSecurityMonitorConsult
 } from "./security-monitor.js";
-import type { Task, TaskPlan } from "./types.js";
+import type {
+  PlanApprovalDecision,
+  RequestPlanApproval,
+  Task,
+  TaskPlan
+} from "./types.js";
+import { PLAN_APPROVAL_CONTEXT_KEY } from "./types.js";
 import type { PlanCache, CheckpointStore } from "./checkpoint-store.js";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import {
@@ -289,7 +296,19 @@ export interface AgentOptions {
   checkpointStore?: CheckpointStore;
   /** Run identifier the checkpoint is keyed by. Required for checkpointing. */
   runId?: string;
+  /**
+   * Opt-in plan approval gate. When supplied (or found on the
+   * ProcessingContext under {@link PLAN_APPROVAL_CONTEXT_KEY}), the agent
+   * pauses after planning and presents the plan for approval. A rejection
+   * with feedback triggers a bounded replan; a plain rejection aborts the
+   * run with a rejection notice as the result. Omit to keep the original
+   * plan-then-execute behavior.
+   */
+  requestPlanApproval?: RequestPlanApproval;
 }
+
+/** Maximum replan rounds a rejection-with-feedback can trigger. */
+const MAX_PLAN_REVISIONS = 3;
 
 export class Agent {
   readonly name: string;
@@ -323,6 +342,7 @@ export class Agent {
   private readonly planCache?: PlanCache;
   private readonly checkpointStore?: CheckpointStore;
   private readonly runId?: string;
+  private readonly requestPlanApproval?: RequestPlanApproval;
   /** The multi-task plan, set after planning. */
   taskPlan: TaskPlan | null = null;
 
@@ -357,6 +377,7 @@ export class Agent {
     this.planCache = opts.planCache;
     this.checkpointStore = opts.checkpointStore;
     this.runId = opts.runId;
+    this.requestPlanApproval = opts.requestPlanApproval;
     if (opts.task) {
       this.task = opts.task;
     }
@@ -663,7 +684,7 @@ export class Agent {
       yield planResult.value;
       planResult = await planGen.next();
     }
-    const taskPlan = planResult.value;
+    let taskPlan = planResult.value;
 
     if (!taskPlan) {
       log.error("Agent failed", {
@@ -671,6 +692,29 @@ export class Agent {
         error: "TaskPlanner failed to create a multi-task plan."
       });
       throw new Error("TaskPlanner failed to create a task plan.");
+    }
+
+    // Plan approval gate: when a host wired in a callback (option or context
+    // variable), pause here and present the plan. Rejection with feedback
+    // replans; plain rejection ends the run with a rejection notice.
+    const requestApproval =
+      this.requestPlanApproval ??
+      context.get<RequestPlanApproval>(PLAN_APPROVAL_CONTEXT_KEY);
+    if (typeof requestApproval === "function") {
+      const approved = yield* this.awaitPlanApproval(
+        requestApproval,
+        taskPlan,
+        planner,
+        context,
+        effectiveObjective
+      );
+      if (!approved) {
+        log.info("Plan rejected by user — execution aborted", {
+          name: this.name
+        });
+        return;
+      }
+      taskPlan = approved;
     }
 
     this.taskPlan = taskPlan;
@@ -763,6 +807,104 @@ export class Agent {
 
     log.info("Agent completed", { name: this.name });
     this.persistAgentRunMemory();
+  }
+
+  /**
+   * Present a plan for user approval, replanning on rejection-with-feedback
+   * (bounded by {@link MAX_PLAN_REVISIONS}). Returns the approved plan, or
+   * null when the user rejected it — in that case `this.results` carries a
+   * rejection notice and the caller must end the run.
+   */
+  private async *awaitPlanApproval(
+    requestApproval: RequestPlanApproval,
+    initialPlan: TaskPlan,
+    planner: TaskPlanner,
+    context: ProcessingContext,
+    objective: string
+  ): AsyncGenerator<ProcessingMessage, TaskPlan | null> {
+    let plan = initialPlan;
+    for (let revision = 0; ; revision++) {
+      yield {
+        type: "planning_update",
+        node_id: "agent_planner",
+        phase: "awaiting_approval",
+        status: "Running",
+        content: `Waiting for approval: ${plan.title} (${plan.tasks.length} tasks)`
+      } satisfies PlanningUpdate;
+
+      let decision: PlanApprovalDecision;
+      try {
+        decision = await requestApproval(structuredClone(plan));
+      } catch (err) {
+        log.warn("Plan approval request failed — treating as rejection", {
+          name: this.name,
+          error: err instanceof Error ? err.message : String(err)
+        });
+        decision = { decision: "reject" };
+      }
+
+      if (decision.decision === "approve") {
+        yield {
+          type: "planning_update",
+          node_id: "agent_planner",
+          phase: "awaiting_approval",
+          status: "Success",
+          content: `Plan approved: ${plan.title}`
+        } satisfies PlanningUpdate;
+        return plan;
+      }
+
+      const feedback = decision.feedback?.trim() ?? "";
+      if (!feedback || revision >= MAX_PLAN_REVISIONS) {
+        yield {
+          type: "planning_update",
+          node_id: "agent_planner",
+          phase: "awaiting_approval",
+          status: "Failed",
+          content: feedback
+            ? `Plan rejected after ${revision} revision(s).`
+            : "Plan rejected by user."
+        } satisfies PlanningUpdate;
+        this.results = feedback
+          ? `Plan rejected by user. Feedback: ${feedback}`
+          : "Plan rejected by user.";
+        return null;
+      }
+
+      yield {
+        type: "planning_update",
+        node_id: "agent_planner",
+        phase: "revision",
+        status: "Running",
+        content: `Revising plan with feedback: ${feedback.slice(0, 200)}`
+      } satisfies PlanningUpdate;
+
+      const revisedObjective = [
+        objective,
+        "",
+        `A previous plan titled "${plan.title}" was rejected by the user.`,
+        `User feedback: ${feedback}`,
+        "Create a revised plan that addresses this feedback."
+      ].join("\n");
+
+      const planGen = planner.planMultiTask(revisedObjective, context);
+      let next = await planGen.next();
+      while (!next.done) {
+        yield next.value;
+        next = await planGen.next();
+      }
+      if (!next.value) {
+        yield {
+          type: "planning_update",
+          node_id: "agent_planner",
+          phase: "awaiting_approval",
+          status: "Failed",
+          content: "Replanning after feedback failed."
+        } satisfies PlanningUpdate;
+        throw new Error("TaskPlanner failed to create a revised plan.");
+      }
+      plan = next.value;
+    }
   }
 
   /**
