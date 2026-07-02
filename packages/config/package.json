@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/config",
-  "version": "0.7.0-rc.27",
+  "version": "0.7.0-rc.28",
   "type": "module",
   "engines": {
     "node": ">=22.0.0 <23.0.0"

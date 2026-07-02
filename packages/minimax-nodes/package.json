@@ -4,7 +4,7 @@
   "engines": {
     "node": ">=22.0.0 <23.0.0"
   },
-  "version": "0.7.0-rc.27",
+  "version": "0.7.0-rc.28",
   "description": "MiniMax AI nodes for nodetool",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
