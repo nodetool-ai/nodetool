@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 
 let tempDir: string;
 const originalPlatform = process.platform;
