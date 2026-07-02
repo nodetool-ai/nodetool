@@ -73,7 +73,7 @@ A special node that shows you intermediate results while your workflow runs. Add
 A simplified interface for running a workflow. Mini-Apps hide the complexity and show only the inputs and outputs, making them easy to share with non-technical users.
 
 ### Global Chat
-NodeTool's AI assistant interface. Chat with AI models, run workflows conversationally, or enable Agent Mode for autonomous task completion.
+NodeTool's AI assistant interface. Chat with AI models, run workflows conversationally, or let the agent plan and execute multi-step tasks on its own.
 
 ### Inspector / Properties Panel
 The panel (usually on the right) that shows settings for the selected node. This is where you configure how each node behaves.

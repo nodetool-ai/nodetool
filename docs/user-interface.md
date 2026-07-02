@@ -40,7 +40,7 @@ Docs: [Chain Editor](chain-editor.md)
 
 ### Global Chat — `/chat/:thread_id?`
 
-Conversational AI with multi-thread history, agent mode, tools, and workflow integration.
+Conversational AI with multi-thread history, an always-on agent loop, tools, and workflow integration.
 
 ![Global Chat](assets/screenshots/global-chat-interface.png)
 
@@ -225,7 +225,7 @@ AI assistant built into NodeTool.
 
 - **Chat** with AI models
 - **Run workflows** from conversation
-- **Agent Mode** for autonomous task execution
+- **Agent loop** for autonomous, multi-step task execution
 - **File sharing** – images, audio, documents
 
 ### Chat Features
@@ -235,7 +235,7 @@ AI assistant built into NodeTool.
 | **Threads** | Multiple conversations, each with its own history |
 | **Model Selector** | Choose which AI model to chat with |
 | **Workflow Menu** | Attach and run your saved workflows |
-| **Agent Mode** | Let the AI use tools and modify your canvas |
+| **Agent Loop** | The AI uses tools and modifies your canvas as each task needs |
 
 ### Standalone Chat Window
 

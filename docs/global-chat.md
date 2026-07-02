@@ -12,7 +12,7 @@ Global Chat is the always-on chat surface inside NodeTool. It talks to any provi
 
 - 20+ providers (OpenAI, Anthropic, Gemini, Ollama, …)
 - Tools: web search, files, code execution
-- Agent mode for multi-step planning
+- Every turn runs the agent loop — the assistant plans and calls tools on its own as a task needs it
 - Run saved workflows from the composer
 - Multiple threads, persistent history
 - Standalone tray window
@@ -63,9 +63,7 @@ Global Chat organizes conversations into threads:
 
 ![Agent Mode Enabled](assets/screenshots/screenshot-placeholder.svg)
 
-Agent Mode enables autonomous task execution. When enabled, the AI can break down complex requests into steps, select appropriate tools, and execute multi-step plans without manual intervention.
-
-Toggle Agent Mode using the switch in the chat controls.
+Every Global Chat turn runs the same agent loop — there's no separate mode to turn on. The assistant decides for itself, per request, whether to break a task down into steps, select tools, and execute a multi-step plan, or just answer directly.
 
 ### How Agents Work
 
@@ -77,7 +75,7 @@ Toggle Agent Mode using the switch in the chat controls.
 
 ### Agent Capabilities
 
-With Agent Mode enabled, the assistant can:
+When a request calls for it, the assistant can:
 
 | Capability | Examples |
 |------------|---------|
@@ -116,7 +114,7 @@ When an agent is executing tasks, you'll see:
 
 ### Creating Workflows from Chat
 
-In Agent Mode, you can ask the agent to create or modify workflows. The agent uses workspace tools to build workflow configurations programmatically.
+You can ask the agent to create or modify workflows. It uses workspace tools to build workflow configurations programmatically.
 
 ---
 

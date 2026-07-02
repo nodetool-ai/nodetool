@@ -8,6 +8,6 @@ Interactive CLI for chatting with models. Works with OpenAI, Anthropic, Gemini, 
 - Interactive REPL with history and completion
 - Sandboxed workspace for file operations
 - Provider-specific models
-- Optional agent mode for tool use
+- Unified agent loop — the assistant calls tools and decomposes work on its own; no separate mode to toggle
 
 See the [Chat CLI](chat-cli.md) and [Chat API](chat-api.md).
