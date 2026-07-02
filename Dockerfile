@@ -19,6 +19,9 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY --parents packages/*/package.json ./
 COPY web/package.json web/
+# The root postinstall rebuilds better-sqlite3 via this script (see the root
+# package.json); it's re-included from the ignored electron/ tree in .dockerignore.
+COPY electron/scripts/rebuild-native.mjs electron/scripts/rebuild-native.mjs
 
 RUN npm ci
 
