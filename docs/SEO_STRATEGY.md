@@ -15,6 +15,10 @@ file is more than a quarter old.
 items 1 and 3) and the footer "Compare" column (§1, orphaned-pages finding) shipped 2026-07-02.
 `/marketing` (§4.0), `/vs/flowise`, and `/vs/dify` (§4.1 items 2 and 5) shipped 2026-07-02.
 §0 (the Search Console audit) added 2026-07-02 — it re-prioritizes §7 with real query data.
+The programmatic build plan (template pages, comparison/alternatives mesh at scale, keyword
+landing matrix, FAQ/ideas hubs, and the publish-loop UGC engine) lives in
+[SEO_PROGRAMMATIC.md](SEO_PROGRAMMATIC.md) — it extends §4 from hand-built pages to data-driven
+page factories, adapted from a photoai.com teardown.
 Shipped from §0 on 2026-07-02: 79 redirect stubs under `docs/redirects/` (§0.5, plus a fix to the
 three pre-existing stubs, whose trailing-slash `redirect_to` 404s on GitHub Pages); `providers.md`
 and `installation.md` rewrites (§0.6); `comparisons.md` cross-links to `/vs/*` (§0.6); `/agents`
