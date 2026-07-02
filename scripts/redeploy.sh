@@ -113,8 +113,10 @@ npm run build:web
 echo ""
 
 # ── 4. Rolling deploy with restored prod config ──────────────────────
+# deploy.sh lives at the repo root, not in scripts/ alongside this file.
 echo "--- Deploying ---"
-"$SCRIPT_DIR/deploy.sh" "${NO_PULL_FLAG[@]}" "${DEPLOY_ARGS[@]}"
+[[ -x "$REPO_ROOT/deploy.sh" ]] || { echo "ERROR: deploy.sh not found (or not executable) at $REPO_ROOT" >&2; exit 1; }
+"$REPO_ROOT/deploy.sh" "${NO_PULL_FLAG[@]}" "${DEPLOY_ARGS[@]}"
 echo ""
 
 # ── 5. Verify: health + running-image-revision-vs-HEAD ───────────────
