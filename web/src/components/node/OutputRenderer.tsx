@@ -44,19 +44,12 @@ import { Chunk } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
 import { trpc } from "../../trpc/client";
 import {
-  isRecord,
   getSketchId,
-  isSketchDocumentLike,
-  unwrapSketchDocumentCandidate,
   resolveSketchDocument,
   getTimelineId,
-  isTimelineSequenceLike,
-  unwrapTimelineSequenceCandidate,
   resolveTimelineSequence
 } from "./outputValueResolvers";
 import SketchRenderer from "../sketch/SketchRenderer";
-import type { SketchDocument } from "../sketch/types";
-import type { TimelineSequence } from "@nodetool-ai/timeline";
 
 /** In-flight raw straight-alpha RGBA image format (see protocol RAW_RGBA_MIME). */
 const RAW_RGBA_MIME = "image/x-raw-rgba";
