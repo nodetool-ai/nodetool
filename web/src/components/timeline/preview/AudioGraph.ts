@@ -374,13 +374,19 @@ export class AudioGraph {
     }
   }
 
+  /**
+   * Stop + schedule to exactly match `clips`: any currently-scheduled source
+   * whose clip isn't in the list is stopped first, then the new set is
+   * decoded and scheduled via `addClips`. Used for a play/seek gesture's
+   * initial window, where the caller wants playback to end up matching this
+   * set exactly (superseding whatever an older gesture left running).
+   */
   async scheduleClips(
     clips: ScheduledAudioClip[],
     tracks: TimelineTrack[],
     currentTimeMs: number,
     shouldCancel?: () => boolean
   ): Promise<void> {
-    const ctx = this.getContext();
     const activeIds = new Set(clips.map((c) => c.clip.id));
 
     for (const [id, src] of this.clipSources) {
@@ -401,6 +407,23 @@ export class AudioGraph {
       }
     }
 
+    await this.addClips(clips, tracks, currentTimeMs, shouldCancel);
+  }
+
+  /**
+   * Decode + schedule the subset of `clips` not already playing, without
+   * stopping any other currently-scheduled source. This is the primitive
+   * `scheduleClips` builds on; windowed audio top-up calls it directly so
+   * bringing newly-in-range clips in never disturbs sources already playing
+   * from an earlier `scheduleClips`/`addClips` call.
+   */
+  async addClips(
+    clips: ScheduledAudioClip[],
+    tracks: TimelineTrack[],
+    currentTimeMs: number,
+    shouldCancel?: () => boolean
+  ): Promise<void> {
+    const ctx = this.getContext();
     this.updateTracks(tracks);
 
     const bufferPromises = clips.map(async ({ clip, assetUrl }) => {
