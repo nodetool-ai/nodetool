@@ -22,6 +22,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/developers", priority: 0.8, changeFrequency: "monthly" },
     { path: "/vs/comfyui", priority: 0.7, changeFrequency: "monthly" },
     { path: "/vs/weavy", priority: 0.7, changeFrequency: "monthly" },
+    { path: "/vs/langflow", priority: 0.7, changeFrequency: "monthly" },
+    { path: "/vs/n8n", priority: 0.7, changeFrequency: "monthly" },
     { path: "/use-cases/product-video", priority: 0.6, changeFrequency: "monthly" },
     { path: "/use-cases/movie-poster", priority: 0.6, changeFrequency: "monthly" },
     { path: "/use-cases/movie-trailer", priority: 0.6, changeFrequency: "monthly" },

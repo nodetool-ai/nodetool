@@ -8,8 +8,11 @@ description: "Content and search strategy for nodetool.ai — audit, competitive
 Research basis: an audit of `marketing/` (the nodetool.ai Next.js site), `docs/`, the 61 example
 workflows in `packages/base-nodes/nodetool/examples/`, and the node packages in `packages/`, plus
 external research on competitor positioning and search behavior (sources linked inline). Written
-2026-07-01 — re-audit the live site before acting on the numbers below if this file is more than a
-quarter old.
+2026-07-01, updated 2026-07-02 — re-audit the live site before acting on the numbers below if this
+file is more than a quarter old.
+
+**Status**: the movie-trailer sitemap fix shipped 2026-07-01. `/vs/langflow` and `/vs/n8n` (§4.1
+items 1 and 3) and the footer "Compare" column (§1, orphaned-pages finding) shipped 2026-07-02.
 
 ## 1. Where nodetool.ai stands today
 
@@ -17,11 +20,17 @@ The site (`marketing/src/app/`) has 13 indexed pages: `/`, `/studio`, `/cloud`, 
 `/agents`, `/creatives`, `/developers`, two comparison pages (`/vs/comfyui`, `/vs/weavy`), two
 use-case pages (`/use-cases/product-video`, `/use-cases/movie-poster`), and three legal pages.
 
-Four gaps stand out:
+Five gaps stand out:
 
 - **`/use-cases/movie-trailer` exists but is missing from `sitemap.ts`** (`marketing/src/app/sitemap.ts`).
-  It has a page folder and an entry in `useCaseEntries.ts` but never reaches search engines. Fix
-  this regardless of anything else in this doc — it's a one-line omission, not a strategy question.
+  ~~It has a page folder and an entry in `useCaseEntries.ts` but never reaches search engines.~~
+  **Fixed 2026-07-01.**
+- **The `/vs/*` comparison pages are orphaned.** Nothing on the site links to them — they're
+  reachable only through `sitemap.xml`. Pages with zero internal links get crawled less, rank
+  worse, and pass no authority. **Fixed 2026-07-02** with a "Compare" column in the shared footer
+  (`marketing/src/components/SiteFooter.tsx`), which gives every comparison page a sitewide
+  internal link. Keep this rule for every future page type: nothing ships without at least one
+  internal link from an existing page.
 - **No blog.** Every competitor identified in research below (Dify, n8n, Flowise, Langflow, Lindy,
   Gumloop, Vellum, StackAI, Wireflow) runs a blog and ranks on "X vs Y" and "best tools for Z"
   queries, which is exactly the traffic NodeTool needs and currently cedes to them.
@@ -127,9 +136,15 @@ Pattern already proven at `marketing/src/app/vs/comfyui/page.tsx` and `vs/weavy/
 (feature-table format, ~250 lines each, hand-built per page). Expand from 2 to a target list based
 on what people are already comparing:
 
-1. `/vs/langflow` — pull in the "no media generation" gap
+1. ~~`/vs/langflow` — pull in the "no media generation" gap~~ **Shipped 2026-07-02.** Angle used:
+   both cover agents/RAG; only NodeTool generates media natively (Langflow is MIT, has a
+   macOS/Windows desktop app — the honest table concedes both).
 2. `/vs/flowise` — same gap, plus BYOK vs. hosted credits
-3. `/vs/n8n` — orchestration-only vs. orchestration + native generation
+3. ~~`/vs/n8n` — orchestration-only vs. orchestration + native generation~~ **Shipped 2026-07-02.**
+   Angle used: "workflows that create, not just connect", plus AGPL-3.0 (open source) vs.
+   Sustainable Use License (fair-code, commercially restricted) — a real differentiator n8n's own
+   docs confirm. The FAQ answers "when should I pick n8n instead?" honestly (400+ connectors,
+   schedules/retries), which is what makes the rest of the page credible.
 4. `/vs/flora` (or a combined "AI canvas alternatives" page covering Flora, Freepik Spaces, Krea)
 5. `/vs/dify` — RAG/agent platform, no creative media
 6. `/vs/lmstudio` or `/vs/jan` — local chat only vs. local + cloud workflow canvas
@@ -184,13 +199,18 @@ scope, not a general-purpose blog:
 
 ## 5. Technical SEO checklist
 
-- [ ] Add `/use-cases/movie-trailer` to `marketing/src/app/sitemap.ts` (confirmed missing, §1)
+- [x] Add `/use-cases/movie-trailer` to `marketing/src/app/sitemap.ts` (shipped 2026-07-01)
+- [x] Internal-link the `/vs/*` pages — footer "Compare" column in `SiteFooter.tsx` links all four
+      comparison pages sitewide (shipped 2026-07-02); every future page needs at least one internal
+      link before it ships
 - [ ] Build `/marketing` (§4.0) and add it to `sitemap.ts` at priority 0.8 / monthly — same tier as
       `/agents`, `/creatives`, `/developers` — plus main nav
 - [ ] Confirm every new page under `/vs/`, `/use-cases/`, `/marketing`, and any future `/blog/` gets
-      an `opengraph-image.tsx` (existing `vs/*` pages already do this — keep the pattern)
+      an `opengraph-image.tsx` (all four `vs/*` pages do — keep the pattern)
 - [ ] Add `priority`/`changeFrequency` entries to `sitemap.ts` for every new page as it ships —
-      don't let the list drift out of sync with `app/` folders again
+      don't let the list drift out of sync with `app/` folders again (langflow/n8n added 2026-07-02)
+- [ ] Add every new indexed route to `marketing/tests/e2e/smoke.spec.ts` — it guards title,
+      single-`h1`, and render status per route (langflow/n8n added 2026-07-02)
 - [ ] Verify `docs/nodes/<provider>/index.md` pages carry unique titles and descriptions (currently
       generated docs; check for duplicate/boilerplate meta across providers)
 - [ ] Internal linking: `/agents`, `/creatives`, `/developers`, `/marketing` should each link to the
@@ -221,11 +241,13 @@ Content only ranks if something points at it:
 
 ## 7. Prioritized roadmap
 
-1. **Immediate** (hours): fix the `movie-trailer` sitemap omission (§1, §5).
+1. **Immediate** (hours): ~~fix the `movie-trailer` sitemap omission (§1, §5)~~ done 2026-07-01;
+   ~~internal-link the orphaned `/vs/*` pages (§1, §5)~~ done 2026-07-02.
 2. **Phase 1** (this month): build `/marketing` (§4.0) with its four supporting use-case pages
    (Product Video, Cold Outreach Co-Pilot, Social Media Calendar Filler, Brand Asset Generator);
-   ship the remaining "ship first" use-case pages (§4.2); add `/vs/langflow` and `/vs/n8n`
-   (highest-volume comparison targets per §2).
+   ship the remaining "ship first" use-case pages (§4.2); ~~add `/vs/langflow` and `/vs/n8n`
+   (highest-volume comparison targets per §2)~~ done 2026-07-02 — next comparison targets are
+   `/vs/flowise` and `/vs/dify` (§4.1).
 3. **Phase 2** (next month): stand up the blog with 3 posts — one comparison/roundup post, one
    cookbook walkthrough, one technical post (§4.4); submit NodeTool to the two GitHub awesome-lists
    named in §6.
