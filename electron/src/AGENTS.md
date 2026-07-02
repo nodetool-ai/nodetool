@@ -8,9 +8,9 @@ Desktop application wrapping the NodeTool web UI with native capabilities (local
 
 ## Prerequisites
 
-- **Node.js 22.22.1 required.** Matches Electron 39's embedded Node so dev and packaged app run on the same Node version (same APIs, same V8). Note: Electron uses its own ABI tag (`NODE_MODULE_VERSION` 140) regardless of which Node version it embeds, so native modules like `better-sqlite3` are still rebuilt against Electron headers via `@electron/rebuild` (see `electron/package.json` `postinstall`).
+- **Node.js 22.22.1 required.** Matches Electron 39's embedded Node so dev and packaged app run on the same Node version (same APIs, same V8). The backend runs on vanilla Node, so `better-sqlite3` (the only source-built native module) is rebuilt against **Node** headers by `electron/scripts/rebuild-native.mjs`, invoked from the repo root `postinstall`.
 - Use `nvm use` from the repo root (reads `.nvmrc`).
-- `npm install` triggers `@electron/rebuild` automatically. To force a rebuild: `npm --prefix electron run postinstall`.
+- `npm install`/`npm ci` runs the rebuild automatically (from the root `postinstall`, after reify). To force a rebuild: `npm run rebuild:native` (root) or `npm --prefix electron run rebuild:native`.
 
 ## Build, Lint & Test
 
