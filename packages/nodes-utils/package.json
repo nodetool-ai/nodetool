@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/nodes-utils",
-  "version": "0.7.0-rc.26",
+  "version": "0.7.0-rc.27",
   "description": "Shared helpers for node packages: platform tags and lazy Node-only module loaders",
   "type": "module",
   "engines": {

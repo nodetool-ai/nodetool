@@ -1,5 +1,5 @@
 // APP
-export const VERSION = "0.7.0-rc.26";
+export const VERSION = "0.7.0-rc.27";
 
 // Build provenance injected by Vite at build time (see web/vite.config.ts).
 // In non-Vite contexts (e.g. Jest), the defines are absent — fall back to a

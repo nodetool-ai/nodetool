@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/image-editor",
-  "version": "0.7.0-rc.26",
+  "version": "0.7.0-rc.27",
   "description": "Shared image-editor types, dependency hashing, and seeded layer templates",
   "type": "module",
   "engines": {

@@ -4,7 +4,7 @@
   "engines": {
     "node": ">=22.0.0 <23.0.0"
   },
-  "version": "0.7.0-rc.26",
+  "version": "0.7.0-rc.27",
   "description": "Hugging Face Transformers.js nodes for nodetool — run NLP, vision, and audio models locally via ONNX Runtime",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

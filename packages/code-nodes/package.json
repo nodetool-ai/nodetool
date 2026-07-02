@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/code-nodes",
-  "version": "0.7.0-rc.26",
+  "version": "0.7.0-rc.27",
   "description": "NodeTool code-execution nodes — JS code, sandboxed code, agent tool wrappers",
   "type": "module",
   "engines": {
