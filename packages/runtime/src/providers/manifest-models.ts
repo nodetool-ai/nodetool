@@ -161,7 +161,9 @@ export function inferImageTasks(name: string, id: string): string[] {
   if (matchesAny(hay, "background/remove", "remove-background", "remove background", "removebackground", "rembg", "bg-remove", "/remove-bg", "background-removal", "bria/background")) {
     return ["remove_background"];
   }
-  if (matchesAny(hay, "relight", "relighting", "re-light")) {
+  // IC-Light (fal-ai/iclight-v2, zsxkib/ic-light-background, …) is a relighting
+  // model but never spells out "relight" in its id/name, so match it explicitly.
+  if (matchesAny(hay, "relight", "relighting", "re-light", "iclight", "ic-light", "ic_light")) {
     return ["relight"];
   }
   if (matchesAny(hay, "vectorize", "vectorization", "/vectorize", "to-svg", "image-to-svg")) {

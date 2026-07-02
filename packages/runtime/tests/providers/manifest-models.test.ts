@@ -32,6 +32,10 @@ describe("manifest-models task inference (FAL manifest)", () => {
     expect(byId(images, "fal-ai/image-apps-v2/relighting")?.supportedTasks).toEqual([
       "relight"
     ]);
+    // IC-Light is a relighting model that never says "relight" in its id/name.
+    expect(byId(images, "fal-ai/iclight-v2")?.supportedTasks).toEqual([
+      "relight"
+    ]);
     expect(byId(images, "fal-ai/recraft/vectorize")?.supportedTasks).toEqual([
       "vectorize"
     ]);
