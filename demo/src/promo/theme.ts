@@ -8,11 +8,7 @@ export const PROMO_PANEL = "rgba(15, 23, 42, 0.88)";
 export const PROMO_PANEL_BORDER = "rgba(148, 163, 184, 0.22)";
 export const PROMO_TEXT = "#f8fafc";
 export const PROMO_TEXT_DIM = "#94a3b8";
-export const PROMO_BLUE = "#3b82f6";
 export const PROMO_FUCHSIA = "#e879f9";
-export const PROMO_AMBER = "#fcd34d";
-export const PROMO_EMERALD = "#34d399";
-export const PROMO_ROSE = "#fb7185";
 
 /** The hero headline gradient from the landing page. */
 export const PROMO_ACCENT_GRADIENT =
