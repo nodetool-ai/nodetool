@@ -53,7 +53,7 @@ import EditableTitle from "./EditableTitle";
 import { NodeMetadata, Property, OutputSlot } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
 import PlanningUpdateDisplay from "./PlanningUpdateDisplay";
-import ChunkDisplay from "./ChunkDisplay";
+import NodeChunkDisplay from "./NodeChunkDisplay";
 import NodeTerminal from "./NodeTerminal";
 import NodeResizeHandle from "./NodeResizeHandle";
 import { useDelayedVisibility } from "../../hooks/useDelayedVisibility";
@@ -531,7 +531,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   // Single subscription instead of 5 — one listener per node instead of five
-  const { result, chunk, terminal, toolCall, planningUpdate, task } =
+  const { result, terminal, toolCall, planningUpdate, task } =
     useNodeArtifacts(workflow_id, id);
 
   // Optimize: Use memoized selectors that only perform O(E) filter operations when the
@@ -857,7 +857,9 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       {!terminal && planningUpdate && !task && (
         <PlanningUpdateDisplay planningUpdate={planningUpdate} />
       )}
-      {!terminal && chunk && <ChunkDisplay chunk={chunk} />}
+      {!terminal && (
+        <NodeChunkDisplay workflowId={workflow_id} nodeId={id} />
+      )}
       {/* Terminal-driving nodes (e.g. Claude Code) stream their raw pane via
           terminal_update. It renders below the input/output handles so the
           emulator never displaces them from their natural edge positions. */}

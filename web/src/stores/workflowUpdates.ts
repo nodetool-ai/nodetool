@@ -92,6 +92,50 @@ const queueAudioAppend = (
   }
 };
 
+/**
+ * Pending text-chunk store appends, coalesced per node and flushed on a
+ * timer. LLM streams emit one chunk per token; landing each one as its own
+ * ResultsStore set means one map spread + full subscriber sweep per token.
+ * Mirrors the audio-chunk coalescing above.
+ */
+const TEXT_CHUNK_FLUSH_MS = 100;
+const pendingTextChunks = new Map<
+  string,
+  { workflowId: string; jobId: string; nodeId: string; text: string }
+>();
+let textChunkFlushTimer: ReturnType<typeof setTimeout> | null = null;
+
+const flushTextChunks = (): void => {
+  if (textChunkFlushTimer !== null) {
+    clearTimeout(textChunkFlushTimer);
+    textChunkFlushTimer = null;
+  }
+  if (pendingTextChunks.size === 0) return;
+  const addChunk = useResultsStore.getState().addChunk;
+  for (const { workflowId, jobId, nodeId, text } of pendingTextChunks.values()) {
+    addChunk(workflowId, jobId, nodeId, text);
+  }
+  pendingTextChunks.clear();
+};
+
+const queueTextChunk = (
+  workflowId: string,
+  jobId: string,
+  nodeId: string,
+  text: string
+): void => {
+  const key = `${workflowId}:${jobId}:${nodeId}`;
+  const pending = pendingTextChunks.get(key);
+  if (pending) {
+    pending.text += text;
+  } else {
+    pendingTextChunks.set(key, { workflowId, jobId, nodeId, text });
+  }
+  if (textChunkFlushTimer === null) {
+    textChunkFlushTimer = setTimeout(flushTextChunks, TEXT_CHUNK_FLUSH_MS);
+  }
+};
+
 export type { NodeStore };
 
 /**
@@ -423,7 +467,6 @@ export const handleUpdate = (
   const appendLog = useLogsStore.getState().appendLog;
   const setError = useErrorStore.getState().setError;
   const setProgress = useResultsStore.getState().setProgress;
-  const addChunk = useResultsStore.getState().addChunk;
   const addTerminal = useResultsStore.getState().addTerminal;
   const setTask = useResultsStore.getState().setTask;
   const setToolCall = useResultsStore.getState().setToolCall;
@@ -585,15 +628,23 @@ export const handleUpdate = (
     }
 
     if (!isAudioChunk) {
+      // Media payloads normalize to `{ type: "image" | "video" | ..., data: <bytes> }`;
+      // stringifying that would serialize multi-MB payloads into the log line before
+      // the log store's truncation runs. Summarize typed objects instead.
+      const logValue =
+        typeof normalizedValue === "string"
+          ? normalizedValue
+          : normalizedValue !== null &&
+              typeof normalizedValue === "object" &&
+              "type" in normalizedValue
+            ? `<${String((normalizedValue as { type: unknown }).type)}>`
+            : JSON.stringify(normalizedValue);
       appendLog({
         workflowId: workflow.id,
         workflowName: workflow.name,
         nodeId: data.node_id,
         nodeName: data.node_name,
-        content: `Output: ${typeof normalizedValue === "string"
-            ? normalizedValue
-            : JSON.stringify(normalizedValue)
-          }`,
+        content: `Output: ${logValue}`,
         severity: "info",
         timestamp: Date.now()
       });
@@ -644,7 +695,7 @@ export const handleUpdate = (
       data.content &&
       messageJobId
     ) {
-      addChunk(workflow.id, messageJobId, data.node_id, data.content);
+      queueTextChunk(workflow.id, messageJobId, data.node_id, data.content);
     }
   }
   if (data.type === "terminal_update") {
@@ -662,15 +713,16 @@ export const handleUpdate = (
     // job list on every frame.
     const silentJob = isSilentJob(job.job_id);
     const runnerJobId = runnerStore.getState().job_id;
-    // Land any coalesced audio-chunk appends before the run's terminal state
-    // is processed, so the buffer holds the complete stream (incl. the done
-    // marker) the moment the job ends.
+    // Land any coalesced audio/text-chunk appends before the run's terminal
+    // state is processed, so the buffer holds the complete stream (incl. the
+    // done marker) the moment the job ends.
     if (
       ["completed", "failed", "cancelled", "error", "timed_out"].includes(
         String(job.status)
       )
     ) {
       flushAudioAppends();
+      flushTextChunks();
       // The run is over: its saw-generation_complete flags are no longer read
       // (the terminal node_update fallback already ran). Drop them so the set
       // doesn't accumulate one dead entry per generator node per run for the
@@ -1165,10 +1217,30 @@ export const handleUpdate = (
           }
         );
 
-        state.updateNodeData(update.node_id, {
-          properties: staticProperties,
-          dynamic_properties: dynamicProperties
-        });
+        // This runs while undo tracking is active, so writing here would push
+        // an undo entry and mark the workflow dirty for a runtime echo the
+        // user never authored. Pause history around the write and mark it
+        // quiet. The wasTracking guard avoids un-pausing history that
+        // something else (e.g. an active drag) already paused.
+        const temporal = nodeStore.temporal.getState();
+        const wasTracking = temporal.isTracking;
+        if (wasTracking) {
+          temporal.pause();
+        }
+        try {
+          state.updateNodeData(
+            update.node_id,
+            {
+              properties: staticProperties,
+              dynamic_properties: dynamicProperties
+            },
+            { quiet: true }
+          );
+        } finally {
+          if (wasTracking) {
+            nodeStore.temporal.getState().resume();
+          }
+        }
       }
     }
   }
