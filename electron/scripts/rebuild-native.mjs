@@ -13,6 +13,7 @@
 // loop below is defense-in-depth against any residual transient resolution
 // failure. Also exposed as `npm run rebuild:native` for a manual force-rebuild.
 import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname } from "node:path";
 
@@ -30,14 +31,20 @@ try {
   process.exit(0);
 }
 
-// Resolve node-gyp's CLI robustly: prefer the copy hoisted next to this script's
-// tree, then fall back to the one nested under better-sqlite3. Either exists in a
-// settled tree; trying both survives odd hoisting layouts.
+// Resolve node-gyp's CLI. During `npm ci`/`npm install`/`npm run`, npm exports
+// its OWN bundled node-gyp via `npm_config_node_gyp` — the only copy guaranteed
+// present during a clean install (project deps don't reliably hoist node-gyp to
+// a resolvable path, and its bundled deps like `tinyglobby` are never touched by
+// the project's reify, so there's no race). Fall back to require.resolve for the
+// case where the script is run directly with plain `node`, not via npm.
 function resolveNodeGyp() {
+  const fromNpm = process.env.npm_config_node_gyp;
+  if (fromNpm && existsSync(fromNpm)) {
+    return fromNpm;
+  }
   const candidates = [
     () => require.resolve("node-gyp/bin/node-gyp.js"),
-    () =>
-      createRequire(`${moduleDir}/`).resolve("node-gyp/bin/node-gyp.js"),
+    () => createRequire(`${moduleDir}/`).resolve("node-gyp/bin/node-gyp.js"),
   ];
   for (const resolve of candidates) {
     try {
