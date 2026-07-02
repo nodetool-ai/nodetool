@@ -81,6 +81,10 @@ const syncAllReactFlowNodeChromeClass = (
   return changed ? next : nodes;
 };
 
+// Keys that only carry ReactFlow measurement state; an update setting all of
+// them to `undefined` is a re-measure request, not a user edit.
+const MEASUREMENT_RESET_KEYS = new Set(["height", "width", "measured"]);
+
 /**
  * Generates a default name for input nodes based on their type.
  * For example, "nodetool.input.StringInput" becomes "string_input_1"
@@ -802,10 +806,9 @@ export const createNodeStore = (
             // a re-measure via `{ height: undefined, measured: undefined }`
             // when a result overlay appears) — never a user edit, so it
             // shouldn't dirty the workflow / trigger autosave.
-            const measurementResetKeys = new Set(["height", "width", "measured"]);
             const isOnlyMeasurementReset = Object.keys(nodeUpdate).every(
               (key) =>
-                measurementResetKeys.has(key) &&
+                MEASUREMENT_RESET_KEYS.has(key) &&
                 (nodeUpdate as Record<string, unknown>)[key] === undefined
             );
 

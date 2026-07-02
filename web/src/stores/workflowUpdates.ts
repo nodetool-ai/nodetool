@@ -639,15 +639,21 @@ export const handleUpdate = (
     }
 
     if (!isAudioChunk) {
-      // Media payloads normalize to `{ type: "image" | "video" | ..., data: <bytes> }`;
-      // stringifying that would serialize multi-MB payloads into the log line before
-      // the log store's truncation runs. Summarize typed objects instead.
+      // Media payloads normalize to `{ type: "image" | "video" | ..., data: <bytes> }`
+      // (or `uri`/`asset_id` refs); stringifying those would serialize multi-MB
+      // payloads into the log line before the log store's truncation runs.
+      // Summarize only that ref shape — other typed objects keep full logging.
+      const isMediaRef =
+        normalizedValue !== null &&
+        typeof normalizedValue === "object" &&
+        "type" in normalizedValue &&
+        ("data" in normalizedValue ||
+          "uri" in normalizedValue ||
+          "asset_id" in normalizedValue);
       const logValue =
         typeof normalizedValue === "string"
           ? normalizedValue
-          : normalizedValue !== null &&
-              typeof normalizedValue === "object" &&
-              "type" in normalizedValue
+          : isMediaRef
             ? `<${String((normalizedValue as { type: unknown }).type)}>`
             : JSON.stringify(normalizedValue);
       appendLog({
