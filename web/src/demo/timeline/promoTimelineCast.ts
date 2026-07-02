@@ -167,7 +167,7 @@ export const promoTimelineCast: TimelineDemoCast = {
     ),
 
     selectClips(6600, []),
-    zoom(6700, 14),
+    zoom(6700, 7),
     playRange(7000, 0, 7800, 2800),
 
     // ── Generate at the playhead: park at the end of the cut. ─────────────

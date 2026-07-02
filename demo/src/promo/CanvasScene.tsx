@@ -83,11 +83,11 @@ export const CanvasScene: React.FC = () => {
   const vp = cameraAt(cameraKeys, castMs);
 
   // ── Pick beat: cursor weighs the two top-row takes, clicks the winner. ──
-  const wanCenter = project(vp, WAN26.x + WAN26.w / 2, WAN26.y + NODE_H * 0.55);
+  const wanCenter = project(vp, WAN26.x + WAN26.w / 2, WAN26.y + NODE_H * 0.42);
   const seedanceCenter = project(
     vp,
     SEEDANCE.x + SEEDANCE.w / 2,
-    SEEDANCE.y + NODE_H * 0.55
+    SEEDANCE.y + NODE_H * 0.42
   );
   const cursorEntry = project(vp, 1150, 900);
   const waypoints: CursorWaypoint[] = [

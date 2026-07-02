@@ -77,12 +77,14 @@ export const TimelineScene: React.FC = () => {
         to={288}
         text="Build the final video on the timeline."
         small="Multi-track video & audio. Trim, swap, and score the cut."
+        anchor={0.62}
       />
       <Headline
         from={306}
         to={492}
         text="Missing a shot? Prompt it at the playhead."
         small="The clip lands on the track. No import step."
+        anchor={0.62}
       />
     </AbsoluteFill>
   );

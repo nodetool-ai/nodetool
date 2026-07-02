@@ -1,21 +1,27 @@
 /**
  * Media readiness for frame-exact captures.
  *
- * The demo players embed the production components, which render plain
- * `<video>` elements (`preload="metadata"` by default). A frame renderer
- * screenshots as soon as React commits, which is *before* those videos have
- * decoded their first frame — video cards capture black. This hook lets a
- * host block the capture until media is paintable; the in-app preview passes
- * nothing and keeps today's lazy behavior.
+ * The demo players embed the production components, which play media through
+ * plain `<video>` elements — the node cards render them directly, and the
+ * timeline's `PreviewCompositor` keeps an off-screen pool it draws onto a
+ * canvas. A frame renderer screenshots as soon as React commits, which can be
+ * before those videos have decoded (or finished seeking to) the target frame,
+ * so video surfaces capture black. This hook lets a host block the capture
+ * until media has settled; the in-app preview passes nothing and keeps
+ * today's lazy behavior.
  *
- * Timing subtlety: the seek (`engine.seekToTime`) runs in a layout effect and
- * updates zustand stores, and the components that own the `<video>` elements
- * re-render in a *subsequent* commit — so scanning the DOM synchronously here
- * would miss them. Instead the hook immediately reports one "scan" promise
- * (holding the capture open), waits two animation frames for the store-driven
- * commit to land, then scans: every video that hasn't decoded a frame yet is
- * nudged to load fully and reported as another pending promise that settles
- * on `loadeddata`. A Remotion host maps each promise to a `delayRender`
+ * Timing subtleties, all handled by one convergence loop:
+ *  - the seek runs in a layout effect and the media-bearing components
+ *    re-render in a later commit — a synchronous DOM scan misses them;
+ *  - the compositor assigns pool `src`s in its own effects, possibly several
+ *    commits after the seek — one deferred scan misses those too;
+ *  - a loaded video that is still seeking paints its previous frame — the
+ *    capture must also wait for `seeked`, then leave animation frames for
+ *    the canvas draw tick.
+ *
+ * So: report one promise that resolves only after repeated scans find no
+ * pending video (bounded rounds, per-round timeout — a failed load must not
+ * hang the render). A Remotion host maps the promise to a `delayRender`
  * handle (see demo/src/promo/usePendingMediaDelay.ts).
  */
 import { useLayoutEffect, useRef, type RefObject } from "react";
@@ -24,13 +30,49 @@ export type PendingMediaHandler = (pending: Promise<void>) => void;
 
 /** readyState >= HAVE_CURRENT_DATA means a frame is decoded and paintable. */
 const HAVE_CURRENT_DATA = 2;
+const MAX_ROUNDS = 20;
+const ROUND_TIMEOUT_MS = 1500;
+
+const twoFrames = (): Promise<void> =>
+  new Promise((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  });
+
+const withTimeout = (p: Promise<void>, ms: number): Promise<void> =>
+  new Promise((resolve) => {
+    const t = setTimeout(resolve, ms);
+    const done = () => {
+      clearTimeout(t);
+      resolve();
+    };
+    p.then(done, done);
+  });
+
+const isPending = (video: HTMLVideoElement): boolean => {
+  if (!video.currentSrc && !video.src) return false;
+  if (video.error) return false;
+  return video.readyState < HAVE_CURRENT_DATA || video.seeking;
+};
+
+const waitForSettle = (video: HTMLVideoElement): Promise<void> =>
+  new Promise<void>((resolve) => {
+    const settle = () => {
+      video.removeEventListener("loadeddata", settle);
+      video.removeEventListener("seeked", settle);
+      video.removeEventListener("error", settle);
+      resolve();
+    };
+    video.addEventListener("loadeddata", settle);
+    video.addEventListener("seeked", settle);
+    video.addEventListener("error", settle);
+  });
 
 export function useMediaReadiness(
   rootRef: RefObject<HTMLElement | null>,
   timeMs: number,
   onPendingMedia?: PendingMediaHandler
 ): void {
-  // Videos we already nudged with load(); re-loading them every tick would
+  // Videos we already nudged with load(); re-loading them every round would
   // restart the fetch and never converge.
   const nudged = useRef(new WeakSet<HTMLVideoElement>());
 
@@ -38,43 +80,36 @@ export function useMediaReadiness(
     if (!onPendingMedia) return;
     let cancelled = false;
 
-    const waitFor = (video: HTMLVideoElement): Promise<void> =>
-      new Promise<void>((resolve) => {
-        const settle = () => {
-          video.removeEventListener("loadeddata", settle);
-          video.removeEventListener("error", settle);
-          resolve();
-        };
-        video.addEventListener("loadeddata", settle);
-        video.addEventListener("error", settle);
-      });
+    const settleAll = async (): Promise<void> => {
+      for (let round = 0; round < MAX_ROUNDS; round++) {
+        // Let the store-driven commits land and the canvas draw tick run.
+        await twoFrames();
+        if (cancelled) return;
+        const root = rootRef.current;
+        if (!root) return;
 
-    const scan = (resolveScan: () => void) => {
-      const root = rootRef.current;
-      if (!cancelled && root) {
-        for (const video of root.querySelectorAll("video")) {
-          if (video.readyState >= HAVE_CURRENT_DATA) continue;
-          if (!video.currentSrc && !video.src) continue;
+        const pending = Array.from(root.querySelectorAll("video")).filter(
+          isPending
+        );
+        if (pending.length === 0) return;
+
+        for (const video of pending) {
           if (!nudged.current.has(video)) {
             nudged.current.add(video);
             video.muted = true;
             video.preload = "auto";
-            video.load();
+            if (video.readyState === 0) video.load();
           }
-          onPendingMedia(waitFor(video));
         }
+        await withTimeout(
+          Promise.all(pending.map(waitForSettle)).then(() => undefined),
+          ROUND_TIMEOUT_MS
+        );
+        if (cancelled) return;
       }
-      resolveScan();
     };
 
-    // Hold the capture open until the post-commit scan has run.
-    onPendingMedia(
-      new Promise<void>((resolveScan) => {
-        requestAnimationFrame(() =>
-          requestAnimationFrame(() => scan(resolveScan))
-        );
-      })
-    );
+    onPendingMedia(settleAll());
 
     return () => {
       cancelled = true;
