@@ -26,7 +26,7 @@ import ErrorBoundary from "./ErrorBoundary";
 // Lazy-load panel components to reduce initial bundle size
 const PanelLeft = React.lazy(() => import("./components/panels/PanelLeft"));
 const PanelBottom = React.lazy(() => import("./components/panels/PanelBottom"));
-import { LoadingSpinner } from "./components/ui_primitives/LoadingSpinner";
+import { LoadingSpinner } from "./components/ui_primitives";
 import { ThemeProvider } from "@mui/material/styles";
 import InitColorSchemeScript from "@mui/system/InitColorSchemeScript";
 import ThemeNodetool from "./components/themes/ThemeNodetool";
@@ -49,6 +49,8 @@ import Login from "./components/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import useAuth from "./stores/useAuth";
 import { isLocalhost } from "./lib/env";
+import { loadRuntimeConfig, isAuthRequired } from "./lib/runtimeConfig";
+import { initSupabaseFromConfig } from "./lib/supabaseClient";
 import { initKeyListeners } from "./stores/KeyPressedStore";
 import useRemoteSettingsStore from "./stores/RemoteSettingStore";
 import { loadMetadata } from "./serverState/useMetadata";
@@ -67,7 +69,7 @@ const SearchProviderSetupDialog = React.lazy(
 
 import { installIpcLogBridge } from "./logging/ipcLogBridge";
 import MobileClassProvider from "./components/MobileClassProvider";
-import { SkipLinks } from "./components/ui_primitives/SkipLinks";
+import { SkipLinks } from "./components/ui_primitives";
 
 import ChatComposerLayout from "./components/chat/containers/ChatComposerLayout";
 
@@ -178,7 +180,7 @@ const NavigateToStart = () => {
     if (state === "init") {
       return;
     }
-    if (isLocalhost || state === "logged_in") {
+    if (!isAuthRequired() || state === "logged_in") {
       navigate("/workspace", { replace: true });
     } else if (state === "logged_out" || state === "error") {
       navigate("/login", { replace: true });
@@ -514,9 +516,9 @@ const handleHashRoute = () => {
 handleHashRoute();
 
 const router = createBrowserRouter(getRoutes());
-const root = ReactDOM.createRoot(
-  document.getElementById("root") as HTMLElement
-);
+const rootElement = document.getElementById("root");
+if (!rootElement) throw new Error("Root element #root not found");
+const root = ReactDOM.createRoot(rootElement);
 
 /**
  * Routes Electron menu/tray "Settings" actions to the in-app settings page.
@@ -550,9 +552,10 @@ const AppWrapper = () => {
   }, []);
 
   useEffect(() => {
-    // In production mode, wait until user is logged in before fetching metadata.
-    // When logged out, skip metadata so the router can render and redirect to /login.
-    if (!isLocalhost && authState !== "logged_in") {
+    // When auth is enforced, wait until the user is logged in before fetching
+    // metadata. When logged out, skip metadata so the router can render and
+    // redirect to /login.
+    if (isAuthRequired() && authState !== "logged_in") {
       if (authState === "logged_out" || authState === "error") {
         setStatus("logged_out");
       }
@@ -693,6 +696,12 @@ const AppWrapper = () => {
 
 // We need to make the initialization async
 const initialize = async () => {
+  // Learn auth mode and Supabase credentials from the backend before wiring up
+  // the client and auth, so the frontend reflects the server's configuration
+  // without any build-time VITE_* values.
+  const config = await loadRuntimeConfig();
+  initSupabaseFromConfig(config);
+
   useAuth.getState().initialize();
   initKeyListeners();
 

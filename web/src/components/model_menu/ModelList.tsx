@@ -3,12 +3,20 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 
 import React, { useCallback, useEffect, useMemo, useRef, memo } from "react";
+
 import {
+  FlexRow,
+  Tooltip,
+  EmptyState,
+  Box,
+  Text,
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx,
   ListItemButton,
   ListItemText,
   ListItemIcon
-} from "@mui/material";
-import { FlexRow, Tooltip, EmptyState, Box, Text, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+} from "../ui_primitives";
 import DownloadIcon from "@mui/icons-material/Download";
 import FavoriteStar from "./FavoriteStar";
 import DefaultModelPin from "./DefaultModelPin";

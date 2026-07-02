@@ -1,5 +1,5 @@
 import React, { memo, useRef, useState } from "react";
-import { Slider } from "@mui/material";
+
 import { SketchModeToggle, SketchModeOption } from "./SketchModeToggle";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import CropIcon from "@mui/icons-material/Crop";
@@ -25,7 +25,8 @@ import {
   ToolbarIconButton,
   Tooltip,
   Box,
-  BORDER_RADIUS
+  BORDER_RADIUS,
+  Slider
 } from "../../ui_primitives";
 import { RefineSelectionPopover } from "./refine-selection";
 import { useSketchStore } from "../state";

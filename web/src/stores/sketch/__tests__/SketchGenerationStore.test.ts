@@ -1,11 +1,7 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
 
 import {
-  useSketchGenerationStore,
-  useGeneratingLayerCount,
-  useFailedLayerCount,
-  useGeneratingLayerIds,
-  useFailedLayerIds
+  useSketchGenerationStore
 } from "../SketchGenerationStore";
 import useResultsStore from "../../ResultsStore";
 
@@ -110,7 +106,7 @@ describe("SketchGenerationStore", () => {
     ).toBeUndefined();
   });
 
-  it("selectors aggregate active and failed jobs", () => {
+  it("aggregates active and failed jobs via store state", () => {
     const store = useSketchGenerationStore.getState();
     store.registerJob("layer-1", "job-1", "wf");
     store.registerJob("layer-2", "job-2", "wf");
@@ -118,16 +114,9 @@ describe("SketchGenerationStore", () => {
     store.registerJob("layer-3", "job-3", "wf");
     store.updateJobStatus("job-3", "failed", { errorMessage: "boom" });
 
-    expect(useGeneratingLayerCount.bind(null)).toBeDefined();
     expect(
       Object.keys(useSketchGenerationStore.getState().layerJobs)
     ).toHaveLength(3);
-
-    // Use the underlying selectors directly without rendering.
-    const active = useGeneratingLayerIds.bind(null);
-    const failed = useFailedLayerIds.bind(null);
-    expect(active).toBeDefined();
-    expect(failed).toBeDefined();
 
     const activeIds = Object.keys(useSketchGenerationStore.getState().layerJobs)
       .filter((id) => {
@@ -142,9 +131,5 @@ describe("SketchGenerationStore", () => {
         (id) => useSketchGenerationStore.getState().layerJobs[id].status === "failed"
       );
     expect(failedIds).toEqual(["layer-3"]);
-
-    // Sanity-check the count selectors exist as functions.
-    expect(typeof useGeneratingLayerCount).toBe("function");
-    expect(typeof useFailedLayerCount).toBe("function");
   });
 });

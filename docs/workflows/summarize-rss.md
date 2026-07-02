@@ -7,6 +7,12 @@ title: "Summarize RSS"
 
 Fetches an RSS feed, collects all entries, and generates a summary.
 
+## Demo
+
+<video controls preload="metadata" poster="{{ '/assets/cookbook/summarize-newsletters.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/summarize-newsletters.mp4' | relative_url }}" type="video/mp4">
+</video>
+
 ## Tags
 
 rss, llm

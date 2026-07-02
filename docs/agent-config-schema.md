@@ -467,4 +467,4 @@ tools:
 
 - [Agent CLI Documentation](agent-cli.md) — Complete CLI reference
 - [Agent Examples](examples/agents/) — Sample configurations
-- [Global Chat & Agents](global-chat-agents.md) — Agent system overview
+- [Chat & Agents](global-chat-agents.md) — Agent system overview

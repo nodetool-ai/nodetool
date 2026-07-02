@@ -102,7 +102,7 @@ import type {
   GlobalChatState,
   StepToolCall
 } from "../../stores/GlobalChatStore";
-import { globalWebSocketManager } from "../../lib/websocket/GlobalWebSocketManager";
+import { globalWebSocketManager, type WebSocketMessage } from "../../lib/websocket/GlobalWebSocketManager";
 import useResultsStore from "../../stores/ResultsStore";
 import useStatusStore from "../../stores/StatusStore";
 import type { Graph } from "../../stores/ApiTypes";
@@ -1218,10 +1218,11 @@ export async function sendToolApprovalResponse(
 }
 
 export async function handleChatWebSocketMessage(
-  data: MsgpackData,
+  msg: WebSocketMessage,
   set: ChatStateSetter,
   get: ChatStateGetter
 ) {
+  const data = msg as MsgpackData;
   const currentState = get();
 
   if (currentState.status === "stopping") {
@@ -1273,8 +1274,10 @@ export async function handleChatWebSocketMessage(
         set({ sendMessageTimeoutId: null });
       }
     }
-    // Surface a progress message for media generation chunks so the UI
-    // shows "Generating image…" / "Generating video…" instead of "Thinking…"
+    // Surface a progress message for media generation chunks so the UI shows
+    // "Conjuring image…" / "Conjuring video…" instead of "Thinking…". The
+    // "Conjuring" verb doubles as the signal ChatThreadView keys off of to
+    // swap in the spellcasting indicator — keep them in sync.
     const mediaMeta = data.content_metadata?.media_generation as
       | Record<string, unknown>
       | undefined;
@@ -1282,11 +1285,13 @@ export async function handleChatWebSocketMessage(
       const mode = String(mediaMeta.mode ?? "");
       const model = mediaMeta.model ? String(mediaMeta.model) : "";
       const label =
-        mode === "image"
-          ? "Generating image"
-          : mode === "video"
-            ? "Generating video"
-            : "Generating";
+        mode === "image" || mode === "image_edit"
+          ? "Conjuring image"
+          : mode === "video" || mode === "image_to_video"
+            ? "Conjuring video"
+            : mode === "audio"
+              ? "Conjuring sound"
+              : "Conjuring";
       set({ statusMessage: model ? `${label} with ${model}…` : `${label}…` });
     }
     applyReducer(applyChunk, data);

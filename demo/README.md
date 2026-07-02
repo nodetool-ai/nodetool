@@ -62,6 +62,103 @@ to retime or reword the narration; the timeline itself lives in `tutorialCast.ts
 To narrate a real recorded run instead, point the `Tutorial` composition at your
 own cast id in `demo/src/Root.tsx`.
 
+## Cookbook recipe videos (no backend)
+
+One short video per recipe in `docs/cookbook/patterns.md` — 15 in all, from the
+simple image-enhancement pipeline to text-to-video and talking avatars. Each is a
+synthetic, backend-free cast that replays the real graph UI building and running
+the recipe, narrated by the same `Tutorial` composition (title card → step
+indicator + captions → call-to-action).
+
+```bash
+cd demo
+npm run render:cookbook                          # all 15 → docs/assets/cookbook/<slug>.mp4 + .jpg
+npm run render:cookbook -- --only text-to-video  # one recipe
+npm run still:cookbook                            # JPG thumbnails only (fast)
+```
+
+The casts live in `web/src/demo/cookbook/` (one file per recipe, built from the
+shared metadata factories in `cookbook/builders.ts`); the per-recipe titles,
+camera beats, and captions live in `demo/src/cookbook.ts`. Every node type is a
+real registry type and the media is inline (the kitten image, a tiny WebM clip,
+a short WAV chime — `web/src/demo/assets/`), so they replay with no backend and
+no generation credits. `scripts/render-cookbook.ts` bundles the project once and
+renders all 15, so it's far cheaper than 15 separate `remotion render` calls.
+
+## Workflow-gallery videos (no backend)
+
+Every example on the docs Workflow Gallery (`docs/workflows/`) embeds a demo
+video. Examples that match a cookbook recipe reuse that recipe's video; the rest
+get their own synthetic cast here — Transcribe Audio, Data Generator, Creative
+Story Ideas, Meeting Transcript Summarizer, Categorize Mails, Color Boost Video,
+and Fetch Papers. Same shape as the cookbook videos: a backend-free cast replayed
+through the real graph UI under the `Tutorial` composition.
+
+```bash
+cd demo
+npm run render:workflows                              # all → docs/assets/workflows/<slug>.mp4 + .jpg
+npm run render:workflows -- --only transcribe-audio  # one example
+npm run still:workflows                              # JPG thumbnails only (fast)
+```
+
+The casts live in `web/src/demo/workflows/` (reusing `cookbook/builders.ts`); the
+per-example titles, camera beats, and captions live in `demo/src/workflows.ts`.
+`scripts/render-workflows.ts` bundles once and renders all of them.
+
+## Other UI surfaces (chat, timeline)
+
+The graph editor isn't the only NodeTool UI that can star in a tutorial video.
+The same "hand-author a cast, replay it through the real components, drive it
+from Remotion's clock" approach works for any surface whose state is a pure
+function of a handful of props or a small store — it just needs its own cast
+format and player, because each surface's state shape is different. Two ship
+today:
+
+| Surface | Cast type | Player | Tutorial composition |
+| --- | --- | --- | --- |
+| Graph editor | `DemoCast` (`web/src/demo/castTypes.ts`) | `DemoPlayer` | `Tutorial` |
+| Global Chat | `ChatDemoCast` (`web/src/demo/chat/chatCastTypes.ts`) | `ChatDemoPlayer` | `ChatTutorial` |
+| Timeline editor | `TimelineDemoCast` (`web/src/demo/timeline/timelineCastTypes.ts`) | `TimelineDemoPlayer` | `TimelineTutorial` |
+
+All three tutorial compositions share one shell, `demo/src/components/TutorialShell.tsx`
+— the title card / step indicator / lower-third captions / outro card timing —
+so a new surface only has to supply a replay player, not re-implement the
+narration chrome. See `demo/src/Tutorial.tsx`, `ChatTutorial.tsx`, and
+`TimelineTutorial.tsx` for the three (nearly identical) call sites.
+
+```bash
+cd demo
+npm run render:tutorial:chat-agent-qa           # Ask the chat agent → web/public/tutorials/chat-agent-qa.mp4
+npm run render:tutorial:timeline-trim-arrange   # Cut a scene together → web/public/tutorials/timeline-trim-arrange.mp4
+```
+
+**Chat** (`web/src/demo/chat/`): `ChatView` is prop-driven, not store-driven, so
+`ChatDemoPlayer` skips the "engine" machinery entirely — `computeChatStateAt`
+is a plain fold over `ChatCastEvent[]` (message arrives, token streams in, tool
+call starts/finishes, status changes) recomputed fresh on every frame. A couple
+of chat components (the tool-call spinner, the todo sidebar) read a few fields
+straight off the global `GlobalChatStore` instead of props; `seedChatGlobalState`
+mirrors the replay state into that store each frame, the same "seed the shared
+store" trick `seedCastMetadata`/`seedDemoAuth` use for the graph editor.
+
+**Timeline** (`web/src/demo/timeline/`): mounts only `PreviewArea` +
+`TracksRegion` inside a `TimelineProvider` — not the full `TimelineEditor` page,
+which also wires up autosave, generation-job subscriptions, and tRPC-backed
+sequence loading that don't apply to a hand-authored, backend-free cast.
+`TimelineDemoEngine` seeds a fresh `TimelineInstance` (`createTimelineInstance`,
+exported from `TimelineInstance.tsx` for exactly this purpose) with the cast's
+starting `TimelineSequence`, then folds `TimelineCastEvent[]` (add/patch/remove
+a clip, select, zoom, seek, or ramp the playhead) into the instance's stores on
+every seek. Clips reference media by `currentAssetId`; `seedTimelineCastAssets`
+patches `useAssetStore.get` to resolve those ids from the cast's inline `data:`
+URIs instead of a real backend fetch.
+
+To add a fourth surface, follow the same shape: a `<Surface>CastTypes.ts`
+(events + a base document/props snapshot), a pure replay function or minimal
+engine class, a `<Surface>DemoPlayer.tsx` that mounts the real production
+component(s) inside whatever provider stack they need, a cast registry, and a
+`<Surface>Tutorial.tsx` composition built on `TutorialShell`.
+
 ## Recording a real demo
 
 1. **Record.** From the editor (dev build), capture one real run:

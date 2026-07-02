@@ -195,11 +195,17 @@ const styles = (theme: Theme) =>
     }
   });
 
-const NodeInfoPanel: React.FC = memo(() => {
+/**
+ * Renders the panel body for the currently inspected node. Mounted only
+ * while a node is inspected, so the `useViewport` subscription (needed to
+ * reposition the panel while panning/zooming) doesn't re-render anything
+ * when the panel is hidden.
+ */
+const NodeInfoPanelContent: React.FC<{ inspectedNodeId: string }> = memo(
+  ({ inspectedNodeId }) => {
   const theme = useTheme();
   const { getNode, setCenter, flowToScreenPosition } = useReactFlow();
   const { x: viewportX, y: viewportY, zoom } = useViewport();
-  const inspectedNodeId = useInspectedNodeStore((state) => state.inspectedNodeId);
   const setInspectedNodeId = useInspectedNodeStore((state) => state.setInspectedNodeId);
   const panelStyles = useMemo(() => styles(theme), [theme]);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
@@ -441,6 +447,27 @@ const NodeInfoPanel: React.FC = memo(() => {
       </Box>
     </Box >
   );
+  }
+);
+
+NodeInfoPanelContent.displayName = "NodeInfoPanelContent";
+
+/**
+ * Gate component: subscribes only to `inspectedNodeId` (no viewport hook),
+ * so it stays inert while nothing is inspected. Mounts `NodeInfoPanelContent`
+ * — which owns the `useViewport` subscription needed to reposition the panel
+ * while panning/zooming — only once a node is actually inspected.
+ */
+const NodeInfoPanel: React.FC = memo(() => {
+  const inspectedNodeId = useInspectedNodeStore(
+    (state) => state.inspectedNodeId
+  );
+
+  if (!inspectedNodeId) {
+    return null;
+  }
+
+  return <NodeInfoPanelContent inspectedNodeId={inspectedNodeId} />;
 });
 
 NodeInfoPanel.displayName = "NodeInfoPanel";

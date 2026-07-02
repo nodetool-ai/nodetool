@@ -1,5 +1,30 @@
 import { Edge } from "@xyflow/react";
 
+// The store replaces `edges` immutably on any change, so array identity
+// safely keys this cache.
+const adjacencyCache = new WeakMap<Edge[], Map<string, string[]>>();
+
+function getAdjacency(edges: Edge[]): Map<string, string[]> {
+  const cached = adjacencyCache.get(edges);
+  if (cached) {
+    return cached;
+  }
+
+  const adjacency = new Map<string, string[]>();
+  for (const edge of edges) {
+    if (!edge.source || !edge.target) {
+      continue;
+    }
+    if (!adjacency.has(edge.source)) {
+      adjacency.set(edge.source, []);
+    }
+    adjacency.get(edge.source)!.push(edge.target);
+  }
+
+  adjacencyCache.set(edges, adjacency);
+  return adjacency;
+}
+
 /**
  * Returns true if adding an edge from sourceId -> targetId would introduce a cycle.
  * Checks whether targetId can already reach sourceId through existing edges.
@@ -16,16 +41,7 @@ export function wouldCreateCycle(
     return true;
   }
 
-  const adjacency = new Map<string, string[]>();
-  for (const edge of edges) {
-    if (!edge.source || !edge.target) {
-      continue;
-    }
-    if (!adjacency.has(edge.source)) {
-      adjacency.set(edge.source, []);
-    }
-    adjacency.get(edge.source)!.push(edge.target);
-  }
+  const adjacency = getAdjacency(edges);
 
   const stack: string[] = [targetId];
   const visited = new Set<string>();

@@ -7,7 +7,7 @@ description: "Install NodeTool, run a template, ship a Mini-App."
 Install, open a template, run it, edit it, ship it.
 
 Prefer to watch first? Here's a full workflow running on the canvas — see the
-[Tutorials](tutorials.md) page for all three.
+[Tutorials](tutorials.md) page for all of them.
 
 <video controls preload="metadata" poster="{{ '/assets/tutorials/first-workflow.jpg' | relative_url }}">
   <source src="{{ '/assets/tutorials/first-workflow.mp4' | relative_url }}" type="video/mp4">
@@ -32,19 +32,8 @@ No GPU? Use cloud providers with your keys. See [hardware notes](installation.md
 2. Run the installer.
 3. Launch. No setup wizard.
 
-![Dashboard](assets/screenshots/dashboard-overview.png)
 
-Python and inference engines install on first use. [Installation guide](installation.md) for platform notes.
-
-### Local models (optional)
-
-1. Open **Models** in the sidebar.
-2. Pick:
-   - **Flux** or **Qwen Image** for images (8–12 GB VRAM)
-   - **Llama** or **Qwen** for text
-3. Wait for downloads (~20 GB).
-
-Cloud-only: open **Settings → Providers** and paste a key from [OpenAI](https://platform.openai.com), [Anthropic](https://www.anthropic.com), or [Google](https://ai.google.dev). Skip the download.
+Providers: open **Settings → Providers** and paste a key from [OpenAI](https://platform.openai.com), [Anthropic](https://www.anthropic.com), or [Google](https://ai.google.dev). Skip the download.
 
 ---
 

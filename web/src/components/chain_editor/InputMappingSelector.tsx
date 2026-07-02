@@ -8,8 +8,17 @@
 
 import React, { useState, useCallback, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
-import { ListItemText, ListItemIcon } from "@mui/material";
-import { ToolbarIconButton, Box, EditorMenu, EditorMenuItem, MOTION, BORDER_RADIUS } from "../ui_primitives";
+
+import {
+  ToolbarIconButton,
+  Box,
+  EditorMenu,
+  EditorMenuItem,
+  MOTION,
+  BORDER_RADIUS,
+  ListItemText,
+  ListItemIcon
+} from "../ui_primitives";
 import InputOutlinedIcon from "@mui/icons-material/InputOutlined";
 import CheckIcon from "@mui/icons-material/Check";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";

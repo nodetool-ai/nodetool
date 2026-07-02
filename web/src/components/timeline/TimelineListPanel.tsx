@@ -13,14 +13,21 @@ import {
   useRef,
   useState
 } from "react";
-import type { DragEvent, KeyboardEvent } from "react";
+import type { DragEvent, FocusEvent, KeyboardEvent, MouseEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { useCreateTimeline, useTimelines } from "../../hooks/useTimelineSequence";
 import { usePanelStore } from "../../stores/PanelStore";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { serializeDragData, useDragDropStore } from "../../lib/dragdrop";
+import useContextMenuStore from "../../stores/ContextMenuStore";
+import {
+  useSidebarDocumentActionsStore,
+  type SidebarDocumentItem
+} from "../../stores/SidebarDocumentActionsStore";
+import { trpc } from "../../trpc/client";
 import { groupByDate } from "../../utils/groupByDate";
+import ConfirmDialog from "../dialogs/ConfirmDialog";
 import CategorySearchBar from "../node_menu/CategorySearchBar";
 import {
   EmptyState,
@@ -73,6 +80,17 @@ const styles = (theme: Theme) =>
       flexShrink: 0,
       color: theme.vars.palette.text.secondary,
       fontSize: 20
+    },
+    ".rename-input": {
+      width: "100%",
+      background: "transparent",
+      border: `1px solid ${theme.vars.palette.primary.main}`,
+      borderRadius: theme.rounded.sm,
+      color: "inherit",
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
+      fontSize: "var(--fontSizeSmall)",
+      fontWeight: 600,
+      outline: "none"
     },
     ".date-header-row": {
       width: "100%",
@@ -154,7 +172,11 @@ interface TimelineListItemProps {
   name: string;
   updatedAt: string;
   active: boolean;
+  editing: boolean;
   onOpen: (id: string, name: string) => void;
+  onContextMenu: (event: MouseEvent<HTMLButtonElement>, id: string, name: string) => void;
+  onCommitRename: (id: string, newName: string) => void;
+  onCancelRename: () => void;
 }
 
 const TimelineListItem = memo(function TimelineListItem({
@@ -162,11 +184,36 @@ const TimelineListItem = memo(function TimelineListItem({
   name,
   updatedAt,
   active,
-  onOpen
+  editing,
+  onOpen,
+  onContextMenu,
+  onCommitRename,
+  onCancelRename
 }: TimelineListItemProps) {
   const setActiveDrag = useDragDropStore((state) => state.setActiveDrag);
   const clearDrag = useDragDropStore((state) => state.clearDrag);
   const handleClick = useCallback(() => onOpen(id, name), [id, name, onOpen]);
+  const handleContextMenu = useCallback(
+    (event: MouseEvent<HTMLButtonElement>) => onContextMenu(event, id, name),
+    [id, name, onContextMenu]
+  );
+  const handleRenameKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLInputElement>) => {
+      event.stopPropagation();
+      if (event.key === "Enter") {
+        onCommitRename(id, event.currentTarget.value);
+      } else if (event.key === "Escape") {
+        onCancelRename();
+      }
+    },
+    [id, onCommitRename, onCancelRename]
+  );
+  const handleRenameBlur = useCallback(
+    (event: FocusEvent<HTMLInputElement>) => {
+      onCommitRename(id, event.currentTarget.value);
+    },
+    [id, onCommitRename]
+  );
   const handleKeyDown = useCallback(
     (event: KeyboardEvent<HTMLButtonElement>) => {
       if (event.key === "Enter" || event.key === " ") {
@@ -204,12 +251,35 @@ const TimelineListItem = memo(function TimelineListItem({
     clearDrag();
   }, [clearDrag]);
 
+  if (editing) {
+    return (
+      <div className={`timeline-item ${active ? "active" : ""}`}>
+        <FlexRow align="center" gap={1} fullWidth>
+          <MovieOutlinedIcon className="timeline-icon" />
+          <FlexColumn gap={0.5} sx={{ minWidth: 0, flex: 1 }}>
+            <input
+              className="rename-input"
+              type="text"
+              defaultValue={name}
+              aria-label="Timeline name"
+              autoFocus
+              onFocus={(event) => event.currentTarget.select()}
+              onKeyDown={handleRenameKeyDown}
+              onBlur={handleRenameBlur}
+            />
+          </FlexColumn>
+        </FlexRow>
+      </div>
+    );
+  }
+
   return (
     <button
       type="button"
       className={`timeline-item ${active ? "active" : ""}`}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
+      onContextMenu={handleContextMenu}
       draggable
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
@@ -301,9 +371,19 @@ const TimelineListPanel = () => {
     const filtered = needle
       ? all.filter((timeline) => timeline.name.toLowerCase().includes(needle))
       : all;
-    return [...filtered].sort(
-      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-    );
+    const withTimestamps = filtered.map((timeline) => ({
+      ...timeline,
+      updatedAtMs: new Date(timeline.updatedAt).getTime()
+    }));
+    withTimestamps.sort((a, b) => b.updatedAtMs - a.updatedAtMs);
+
+    let currentGroup = "";
+    return withTimestamps.map((timeline) => {
+      const group = groupByDate(timeline.updatedAt);
+      const showHeader = group !== currentGroup;
+      currentGroup = group;
+      return { ...timeline, group, showHeader };
+    });
   }, [data, filterValue]);
 
   const handleOpen = useCallback(
@@ -323,8 +403,121 @@ const TimelineListPanel = () => {
     [location.pathname, navigate, openTab, setVisibility]
   );
 
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<SidebarDocumentItem | null>(
+    null
+  );
+  const utils = trpc.useUtils();
+  const createTimeline = useCreateTimeline();
+  const updateTimeline = trpc.timeline.update.useMutation({
+    onSuccess: (updated) => {
+      utils.timeline.get.setData({ id: updated.id }, updated);
+      void utils.timeline.list.invalidate();
+    }
+  });
+  const deleteTimeline = trpc.timeline.delete.useMutation({
+    onSuccess: () => {
+      void utils.timeline.list.invalidate();
+    }
+  });
+  const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
+  const setActions = useSidebarDocumentActionsStore((state) => state.setActions);
+  const clearActions = useSidebarDocumentActionsStore(
+    (state) => state.clearActions
+  );
+
+  const handleContextMenu = useCallback(
+    (event: MouseEvent<HTMLButtonElement>, id: string, name: string) => {
+      event.preventDefault();
+      event.stopPropagation();
+      openContextMenu(
+        "sidebar-document-context-menu",
+        id,
+        event.clientX,
+        event.clientY,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        { id, name }
+      );
+    },
+    [openContextMenu]
+  );
+
+  const handleCommitRename = useCallback(
+    (id: string, newName: string) => {
+      const trimmed = newName.trim();
+      const current = (data ?? []).find((t) => t.id === id);
+      setEditingId(null);
+      if (trimmed && current && trimmed !== current.name) {
+        updateTimeline.mutate({ id, name: trimmed });
+      }
+    },
+    [data, updateTimeline]
+  );
+
+  const handleDuplicate = useCallback(
+    async (item: SidebarDocumentItem) => {
+      try {
+        const source = await utils.timeline.get.fetch({ id: item.id });
+        const copy = await createTimeline.mutateAsync({
+          name: `${source.name} (copy)`.substring(0, 200),
+          projectId: source.projectId,
+          fps: source.fps,
+          width: source.width,
+          height: source.height
+        });
+        await updateTimeline.mutateAsync({
+          id: copy.id,
+          document: {
+            tracks: source.tracks,
+            clips: source.clips,
+            markers: source.markers,
+            transcript: source.transcript,
+            scriptEnabled: source.scriptEnabled
+          }
+        });
+      } catch (error) {
+        console.error("Failed to duplicate timeline", error);
+      }
+    },
+    [utils, createTimeline, updateTimeline]
+  );
+
+  const handleRequestDelete = useCallback((item: SidebarDocumentItem) => {
+    setItemToDelete(item);
+  }, []);
+
+  const handleCancelRename = useCallback(() => setEditingId(null), []);
+
+  const handleConfirmDelete = useCallback(() => {
+    if (itemToDelete) {
+      deleteTimeline.mutate({ id: itemToDelete.id });
+    }
+  }, [itemToDelete, deleteTimeline]);
+
+  useEffect(() => {
+    setActions({
+      onRename: (item) => setEditingId(item.id),
+      onDuplicate: (item) => void handleDuplicate(item),
+      onDelete: handleRequestDelete
+    });
+    return () => clearActions();
+  }, [setActions, clearActions, handleDuplicate, handleRequestDelete]);
+
   return (
     <FlexColumn fullHeight fullWidth gap={0} css={styles(theme)}>
+      <ConfirmDialog
+        open={itemToDelete !== null}
+        onClose={() => setItemToDelete(null)}
+        onConfirm={handleConfirmDelete}
+        title="Delete timeline"
+        content={`Delete "${itemToDelete?.name ?? ""}"? This cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+      />
       <div className="timeline-search">
         <CategorySearchBar
           ref={searchRef}
@@ -359,37 +552,33 @@ const TimelineListPanel = () => {
         </FlexColumn>
       ) : (
         <FlexColumn className="timeline-list" gap={0.5}>
-          {(() => {
-            let currentGroup = "";
-            return timelines.map((timeline) => {
-              const group = groupByDate(timeline.updatedAt);
-              const showHeader = group !== currentGroup;
-              currentGroup = group;
-              return (
-                <Fragment key={timeline.id}>
-                  {showHeader && (
-                    <div className="date-header-row">
-                      <Text
-                        className="date-header"
-                        size="small"
-                        color="secondary"
-                        weight={400}
-                      >
-                        {group}
-                      </Text>
-                    </div>
-                  )}
-                  <TimelineListItem
-                    id={timeline.id}
-                    name={timeline.name}
-                    updatedAt={timeline.updatedAt}
-                    active={timeline.id === activeTimelineId}
-                    onOpen={handleOpen}
-                  />
-                </Fragment>
-              );
-            });
-          })()}
+          {timelines.map((timeline) => (
+            <Fragment key={timeline.id}>
+              {timeline.showHeader && (
+                <div className="date-header-row">
+                  <Text
+                    className="date-header"
+                    size="small"
+                    color="secondary"
+                    weight={400}
+                  >
+                    {timeline.group}
+                  </Text>
+                </div>
+              )}
+              <TimelineListItem
+                id={timeline.id}
+                name={timeline.name}
+                updatedAt={timeline.updatedAt}
+                active={timeline.id === activeTimelineId}
+                editing={timeline.id === editingId}
+                onOpen={handleOpen}
+                onContextMenu={handleContextMenu}
+                onCommitRename={handleCommitRename}
+                onCancelRename={handleCancelRename}
+              />
+            </Fragment>
+          ))}
         </FlexColumn>
       )}
     </FlexColumn>

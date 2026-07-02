@@ -11,14 +11,7 @@ import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "
 import ReactDOM from "react-dom";
 import { alpha, useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import {
-  IconButton,
-  Menu,
-  MenuItem,
-  ListItemIcon,
-  ListItemText,
-  Slider
-} from "@mui/material";
+
 import DrawOutlinedIcon from "@mui/icons-material/DrawOutlined";
 import CloseIcon from "@mui/icons-material/Close";
 import TrashIconSvg from "../../icons/trash.svg?react";
@@ -63,7 +56,13 @@ import {
   Box,
   BORDER_RADIUS,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  IconButton,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
+  Slider
 } from "../ui_primitives";
 
 function isPressureSketchTool(tool: SketchTool): boolean {

@@ -18,6 +18,7 @@ export const useAssetActions = (asset: Asset) => {
   const [isDragHovered, setIsDragHovered] = useState(false);
 
   const { openContextMenu } = useContextMenu();
+  const gridStore = useAssetGridStoreApi();
   const {
     selectedAssetIds,
     setSelectedAssetIds,
@@ -37,7 +38,6 @@ export const useAssetActions = (asset: Asset) => {
   const { mutation: updateAssetMutation } = useAssetUpdate();
   const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
   const clearDrag = useDragDropStore((s) => s.clearDrag);
-  const assetGridStoreApi = useAssetGridStoreApi();
 
   const handleClick = useCallback(
     (
@@ -88,7 +88,7 @@ export const useAssetActions = (asset: Asset) => {
         );
       } else {
         const allSelectedAssets =
-          assetGridStoreApi.getState().selectedAssets || [];
+          gridStore.getState().selectedAssets || [];
         const assetsById = new Map(
           [...allSelectedAssets, asset].map((a) => [a.id, a])
         );
@@ -115,8 +115,7 @@ export const useAssetActions = (asset: Asset) => {
 
       // Create and set drag image using the unified utility
       // Try to get other selected assets from store for preview
-      const allSelectedAssets =
-        assetGridStoreApi.getState().selectedAssets || [];
+      const allSelectedAssets = gridStore.getState().selectedAssets || [];
       const dragImage = createAssetDragImage(
         asset,
         assetIds.length,
@@ -134,7 +133,7 @@ export const useAssetActions = (asset: Asset) => {
         metadata: { count: assetIds.length, sourceId: asset.id }
       });
     },
-    [selectedAssetIds, setSelectedAssetIds, asset, setActiveDrag, assetGridStoreApi]
+    [selectedAssetIds, setSelectedAssetIds, asset, setActiveDrag, gridStore]
   );
 
   const handleDragEnd = useCallback(() => {

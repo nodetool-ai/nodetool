@@ -570,6 +570,39 @@ export NODETOOL_TRUSTED_PROXIES=127.0.0.1   # trust the local proxy's XFF
 # NODETOOL_TRUST_LOCALHOST stays off — clients must present a valid token.
 ```
 
+### Local mode in Docker
+
+Docker NATs a published-port connection to the bridge gateway (e.g.
+`172.17.0.1`), so in Local mode the request never arrives from loopback and the
+`NODETOOL_TRUST_LOCALHOST` bypass can't fire — the UI loads (static assets and
+`/api/config` are public) but every API/WebSocket call returns
+`401 "Remote access requires authentication"`.
+
+`NODETOOL_TRUST_LOCAL_NETWORKS` (comma-separated source CIDRs) restores the
+single-local-user model by trusting those sources as user `"1"` without a token.
+It is honored **only in Local mode** — in Supabase mode it is ignored so every
+request must present a valid token.
+
+> ### ⚠️ This bypasses authentication
+>
+> Every source IP in `NODETOOL_TRUST_LOCAL_NETWORKS` is trusted as **admin user
+> `"1"` with no password** — full access to your workflows, files, stored
+> secrets, and API keys. **Anyone who can reach the published port from a listed
+> range gets that access.**
+>
+> - **`172.16.0.0/12`** — the Docker bridge range. Host and LAN clients reach the
+>   app through the port mapping, but nothing off the bridge is trusted. Use this.
+> - **`0.0.0.0/0`** — trusts *every* source, the whole internet if the port is
+>   reachable. **Never use this on a public IP.** Only on a network you fully
+>   control (private LAN / VPN), ideally with the port firewalled.
+> - Exposing NodeTool to the internet or untrusted users? **Do not widen this
+>   list — enable Supabase auth** so every request needs a real login.
+
+```bash
+# Docker self-host, single user, no login (safe on a private LAN):
+NODETOOL_TRUST_LOCAL_NETWORKS=172.16.0.0/12   # the Docker bridge range
+```
+
 ## Security Hardening
 
 - Production: enable Supabase mode by setting `SUPABASE_URL` and `SUPABASE_KEY`, terminate TLS in front of all non-public endpoints, and rotate Supabase service-role keys via your secrets manager.

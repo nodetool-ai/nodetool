@@ -10,6 +10,8 @@ interface QuickAccessSidebarProps {
   onCategoryClick: (id: LeftPanelView) => void;
   /** Top-level views to omit from the rail (e.g. show only Assets on /chat). */
   hiddenViews?: readonly LeftPanelView[];
+  /** Per-view label overrides (e.g. "Assets" -> "Workflow Output" while a workflow is open). */
+  labelOverrides?: Partial<Record<LeftPanelView, string>>;
 }
 
 /**
@@ -17,26 +19,29 @@ interface QuickAccessSidebarProps {
  * buttons — the parent provides container styling via `.vertical-toolbar`.
  */
 const QuickAccessSidebar = memo<QuickAccessSidebarProps>(
-  ({ activeCategory, onCategoryClick, hiddenViews }) => (
+  ({ activeCategory, onCategoryClick, hiddenViews, labelOverrides }) => (
     <>
       {LEFT_PANEL_TOP_LEVEL.filter(
         (cat) => !hiddenViews?.includes(cat.id)
-      ).map((cat) => (
-        <Tooltip
-          key={cat.id}
-          title={cat.label}
-          placement="right-start"
-          delay={TOOLTIP_ENTER_DELAY}
-        >
-          <ToolbarIconButton
-            tabIndex={-1}
-            ariaLabel={cat.label}
-            className={activeCategory === cat.id ? "active" : ""}
-            onClick={() => onCategoryClick(cat.id)}
-            icon={cat.icon}
-          />
-        </Tooltip>
-      ))}
+      ).map((cat) => {
+        const label = labelOverrides?.[cat.id] ?? cat.label;
+        return (
+          <Tooltip
+            key={cat.id}
+            title={label}
+            placement="right-start"
+            delay={TOOLTIP_ENTER_DELAY}
+          >
+            <ToolbarIconButton
+              tabIndex={-1}
+              ariaLabel={label}
+              className={activeCategory === cat.id ? "active" : ""}
+              onClick={() => onCategoryClick(cat.id)}
+              icon={cat.icon}
+            />
+          </Tooltip>
+        );
+      })}
     </>
   )
 );

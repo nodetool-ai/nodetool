@@ -1,7 +1,11 @@
 import { normalizeOutputUpdateValue } from "../outputUpdateValue";
 import type { Chunk, OutputUpdate, WorkflowAttributes } from "../ApiTypes";
 import useResultsStore from "../ResultsStore";
-import { handleUpdate, mergeNodeUpdateProperties } from "../workflowUpdates";
+import {
+  handleUpdate,
+  flushPendingNodeStreams,
+  mergeNodeUpdateProperties
+} from "../workflowUpdates";
 
 const mockRunnerStore = {
   getState: () => ({
@@ -99,6 +103,8 @@ describe("handleUpdate", () => {
       mockRunnerStore as never,
       () => undefined
     );
+    // Text chunks are coalesced on a timer; settle them before reading.
+    flushPendingNodeStreams();
 
     expect(
       useResultsStore.getState().getChunk("workflow-1", "job-1", "node-1")

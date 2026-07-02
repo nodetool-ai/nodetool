@@ -54,7 +54,14 @@ export interface TimelineInstance {
   playback: TimelinePlaybackStoreApi;
 }
 
-const createTimelineInstance = (): TimelineInstance => ({
+/**
+ * Build a fresh, isolated bundle of timeline stores. Exported so a host that
+ * needs the instance's store APIs up front (e.g. the demo harness seeding a
+ * synthetic sequence before first paint) can create one and hand it to
+ * `TimelineProvider` via its `instance` prop instead of letting the provider
+ * create — and hide — its own.
+ */
+export const createTimelineInstance = (): TimelineInstance => ({
   doc: createTimelineStore(),
   ui: createTimelineUIStore(),
   playback: createTimelinePlaybackStore()
@@ -163,14 +170,24 @@ interface TimelineProviderProps {
    * mirror, save). Defaults to `true` for the always-focused standalone page.
    */
   active?: boolean;
+  /**
+   * Use this pre-built instance instead of creating a new one. Lets a caller
+   * seed the stores (e.g. `loadSequence`) before the provider's subtree
+   * mounts, rather than reaching for the instance reactively after the fact.
+   */
+  instance?: TimelineInstance;
   children: React.ReactNode;
 }
 
 export const TimelineProvider = ({
   active = true,
+  instance: providedInstance,
   children
 }: TimelineProviderProps) => {
-  const instance = useMemo(() => createTimelineInstance(), []);
+  const instance = useMemo(
+    () => providedInstance ?? createTimelineInstance(),
+    [providedInstance]
+  );
 
   useEffect(() => attachUiPruning(instance.doc, instance.ui), [instance]);
 

@@ -45,7 +45,7 @@ export const assetToItem = (asset: Asset): CollectionItem | null => {
   };
 };
 
-export type AppendResult =
+type AppendResult =
   | { ok: true; items: CollectionItem[]; added: number }
   | { ok: false; reason: "type-mismatch" | "duplicate" | "empty"; expected?: string };
 

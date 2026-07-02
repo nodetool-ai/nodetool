@@ -1,5 +1,6 @@
 import { renderHook, act } from "@testing-library/react";
 import { useFindInWorkflow } from "../useFindInWorkflow";
+import { useFindInWorkflowStore } from "../../stores/FindInWorkflowStore";
 import { useNodes } from "../../contexts/NodeContext";
 import { useReactFlow } from "@xyflow/react";
 import { Node } from "@xyflow/react";
@@ -94,7 +95,18 @@ describe("useFindInWorkflow", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Reset the global find store between tests (isOpen: false, empty term/results).
+    act(() => {
+      useFindInWorkflowStore.getState().closeFind();
+    });
   });
+
+  // The hook only subscribes to nodes while the find dialog is open; searching
+  // tests must open it first, mirroring real usage via FindInWorkflowDialog.
+  const openFind = () =>
+    act(() => {
+      useFindInWorkflowStore.getState().openFind();
+    });
 
   describe("store integration", () => {
     it("should return isOpen state from store", () => {
@@ -145,6 +157,10 @@ describe("useFindInWorkflow", () => {
   });
 
   describe("search functionality with immediateSearch", () => {
+    beforeEach(() => {
+      openFind();
+    });
+
     it("should perform immediate search without debouncing", () => {
       mockUseNodes.mockImplementation((selector: any) => {
         const state = { nodes: mockNodes, edges: [] };
@@ -300,6 +316,10 @@ describe("useFindInWorkflow", () => {
   });
 
   describe("navigation", () => {
+    beforeEach(() => {
+      openFind();
+    });
+
     it("should navigate to next result", () => {
       mockUseNodes.mockImplementation((selector: any) => {
         const state = { nodes: mockNodes, edges: [] };
@@ -389,6 +409,10 @@ describe("useFindInWorkflow", () => {
   });
 
   describe("goToSelected", () => {
+    beforeEach(() => {
+      openFind();
+    });
+
     it("should call setCenter and fitView when result exists", () => {
       mockUseNodes.mockImplementation((selector: any) => {
         const state = { nodes: mockNodes, edges: [] };
@@ -464,6 +488,10 @@ describe("useFindInWorkflow", () => {
   });
 
   describe("clearSearch", () => {
+    beforeEach(() => {
+      openFind();
+    });
+
     it("should clear search results", () => {
       mockUseNodes.mockImplementation((selector: any) => {
         const state = { nodes: mockNodes, edges: [] };
@@ -530,6 +558,10 @@ describe("useFindInWorkflow", () => {
   });
 
   describe("totalCount", () => {
+    beforeEach(() => {
+      openFind();
+    });
+
     it("should return total count of results", () => {
       mockUseNodes.mockImplementation((selector: any) => {
         const state = { nodes: mockNodes, edges: [] };

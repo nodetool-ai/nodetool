@@ -5,11 +5,12 @@ import { useCallback, memo, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import SelectAllIcon from "@mui/icons-material/SelectAll";
 import DeselectIcon from "@mui/icons-material/Deselect";
+
 import {
+  ButtonGroup,
   Select,
   MenuItem
-} from "@mui/material";
-import { ButtonGroup } from "../ui_primitives";
+} from "../ui_primitives";
 import { EditorButton } from "../editor_ui";
 
 import useAssets from "../../serverState/useAssets";
@@ -316,7 +317,6 @@ const AssetActions = ({
         )}
       </ButtonGroup>
 
-
       <Tooltip
         delay={TOOLTIP_ENTER_DELAY}
         title="Sort assets"
@@ -369,6 +369,7 @@ const AssetActions = ({
       {viewMode === "grid" && (
         <div className="asset-size-slider">
           <SliderBasic
+            size="small"
             defaultValue={settings.assetItemSize}
             aria-label="Small"
             tooltipText="Item Size"

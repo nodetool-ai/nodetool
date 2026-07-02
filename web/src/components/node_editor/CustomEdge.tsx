@@ -41,6 +41,7 @@ export function CustomEdge({
   const counter = data?.counter as number | undefined;
   const dataTypeLabel = data?.dataTypeLabel as string | undefined;
   const sourceTypeColor = data?.sourceTypeColor as string | undefined;
+  const accent = sourceTypeColor || "currentColor";
   const showLabel = counter && counter > 1;
 
   // EXPERIMENTAL: Check if edge has active data flow
@@ -83,25 +84,39 @@ export function CustomEdge({
 
   // A4: Selected edges get a 2px stroke + a subtle outer glow that uses the
   // source type's color so the highlight reads as "this typed wire" rather
-  // than a generic UI selection. Unselected edges keep the 1.5px stroke
+  // than a generic UI selection. The glow is a wider translucent stroke
+  // rendered underneath the edge (see the glow <path> below) instead of an
+  // SVG filter: drop-shadow, which re-rasterizes on every path change — and
+  // node-driven edge selection makes "selected edge whose path changes every
+  // drag frame" the common case. Unselected edges keep the 1.5px stroke
   // applied in useProcessedEdges. CSS transitions animate the color change.
   const enhancedStyle = useMemo(() => {
-    const accent = sourceTypeColor || "currentColor";
     return {
       ...style,
       ...(selected && {
-        strokeWidth: 2,
-        filter: `drop-shadow(0 0 4px color-mix(in srgb, ${accent} 60%, transparent))`
+        strokeWidth: 2
       }),
       ...(isActive && {
         strokeDasharray: "14 10",
         animation: "edgeFlow 2s linear infinite"
       })
     } as React.CSSProperties;
-  }, [style, isActive, selected, sourceTypeColor]);
+  }, [style, isActive, selected]);
 
   return (
     <>
+      {selected && (
+        <path
+          d={edgePath}
+          fill="none"
+          stroke={accent}
+          strokeWidth={6}
+          strokeOpacity={0.25}
+          strokeLinecap="round"
+          pointerEvents="none"
+          className="react-flow__edge-glow"
+        />
+      )}
       <BaseEdge
         id={id}
         path={edgePath}

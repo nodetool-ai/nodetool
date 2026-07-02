@@ -1,10 +1,12 @@
 import React, { useCallback, useState, memo, useMemo, useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
 import {
-  Autocomplete,
-  TextField
-} from "@mui/material";
-import { Caption, LoadingSpinner, Box } from "../../ui_primitives";
+  Caption,
+  LoadingSpinner,
+  Box,
+  TextField,
+  MuiAutocomplete as Autocomplete
+} from "../../ui_primitives";
 import { useQuery } from "@tanstack/react-query";
 import isEqual from "fast-deep-equal";
 import { useNodes } from "../../../contexts/NodeContext";

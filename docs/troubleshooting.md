@@ -199,7 +199,7 @@ When a workflow isn't working as expected, work through this checklist systemati
 #### Common Causes & Fixes
 
 **Cause 1: Documents not indexed**
-- **Fix:** Run indexing workflow first (see [Index PDFs example](workflows/index-pdfs.md))
+- **Fix:** Run an indexing workflow first to populate the collection
 - **Verify:** Check collection count, should match number of chunks
 
 **Cause 2: Poor chunking strategy**

@@ -47,6 +47,8 @@ import {
   COMMAND_PRIORITY_LOW
 } from "lexical";
 
+import { useShallow } from "zustand/react/shallow";
+
 import { WordNode, $createWordNode, $isWordNode } from "./WordNode";
 import { DraftNode, $createDraftNode, $isDraftNode } from "./DraftNode";
 import {
@@ -60,6 +62,7 @@ import {
 import {
   applyEditorEdits,
   buildTranscriptDoc,
+  isTranscriptClip,
   type EditorEdits
 } from "../../../stores/timeline/transcriptOps";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
@@ -194,23 +197,150 @@ function $extractEdits(): EditorEdits {
   return { survivors, draftUpdates, newDraftTexts };
 }
 
+// ── Shared word index (F4: one DOM pass feeds every per-tick plugin) ─────────
+
+/** One rendered `.transcript-word` span, with its timing and cached layout. */
+interface TranscriptWordEntry {
+  el: HTMLElement;
+  clipId: string;
+  /** Absolute timeline start/end, parsed once from `data-start`/`data-end`. */
+  startMs: number;
+  endMs: number;
+  /** Layout relative to `.transcript-editor-area`, read once per rebuild so
+   *  per-tick consumers (the caret) never force a reflow. */
+  offsetLeft: number;
+  offsetTop: number;
+  offsetWidth: number;
+  offsetHeight: number;
+}
+
+/**
+ * A sorted-by-time index over every `.transcript-word` span in the editor,
+ * rebuilt from a single `querySelectorAll` + one dataset/layout read pass.
+ * `ActiveWordPlugin`, `ScriptCaretPlugin`, `SelectionHighlightPlugin`, and the
+ * arrow-key word-stepping in `EditorBody` all read from one instance instead
+ * of each re-querying and re-parsing the whole word DOM on every 60 Hz time
+ * tick. `findActive`/`findNextStart` binary-search the sorted entries.
+ */
+class TranscriptWordIndex {
+  private entries: TranscriptWordEntry[] = [];
+  private listeners = new Set<() => void>();
+
+  /** Re-scan the DOM. Call after any change that can move or replace words. */
+  rebuild(root: HTMLElement | null): void {
+    if (!root) {
+      this.entries = [];
+    } else {
+      const next: TranscriptWordEntry[] = [];
+      // Document order out of `querySelectorAll` is already chronological
+      // (words render left-to-right, time-ordered), so no separate sort is
+      // needed.
+      root.querySelectorAll<HTMLElement>(".transcript-word").forEach((el) => {
+        const startMs = Number(el.dataset.start);
+        const endMs = Number(el.dataset.end);
+        if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) return;
+        next.push({
+          el,
+          clipId: el.dataset.clip ?? "",
+          startMs,
+          endMs,
+          offsetLeft: el.offsetLeft,
+          offsetTop: el.offsetTop,
+          offsetWidth: el.offsetWidth,
+          offsetHeight: el.offsetHeight
+        });
+      });
+      this.entries = next;
+    }
+    this.listeners.forEach((cb) => cb());
+  }
+
+  /**
+   * Notified after every `rebuild()` (content or layout changed). Plugins that
+   * must reflect the words as soon as they appear — not just on the next time
+   * tick — subscribe here in addition to the playback time channel (mirrors
+   * why the pre-index code re-ran its whole effect on every `clips` change).
+   */
+  subscribe(cb: () => void): () => void {
+    this.listeners.add(cb);
+    return () => {
+      this.listeners.delete(cb);
+    };
+  }
+
+  get size(): number {
+    return this.entries.length;
+  }
+
+  get all(): readonly TranscriptWordEntry[] {
+    return this.entries;
+  }
+
+  at(index: number): TranscriptWordEntry | null {
+    return this.entries[index] ?? null;
+  }
+
+  /** The word spanning `timeMs` (`start <= timeMs < end`), or null between words. */
+  findActive(timeMs: number): TranscriptWordEntry | null {
+    const entries = this.entries;
+    let lo = 0;
+    let hi = entries.length - 1;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      const entry = entries[mid];
+      if (timeMs < entry.startMs) hi = mid - 1;
+      else if (timeMs >= entry.endMs) lo = mid + 1;
+      else return entry;
+    }
+    return null;
+  }
+
+  /** The first word starting at or after `timeMs`, or null if none remain. */
+  findNextStart(timeMs: number): TranscriptWordEntry | null {
+    const entries = this.entries;
+    let lo = 0;
+    let hi = entries.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (entries[mid].startMs >= timeMs) hi = mid;
+      else lo = mid + 1;
+    }
+    return lo < entries.length ? entries[lo] : null;
+  }
+}
+
 // ── Plugins ──────────────────────────────────────────────────────────────────
+
+/** Cooldown window (ms) on the reseed signature check — see the effect below. */
+const RESEED_DEBOUNCE_MS = 150;
 
 /**
  * Owns the model↔editor sync. Re-seeds the editor from the clips when their
  * word content changes externally (and the editor is unfocused); reconciles the
  * editor back onto the clips on blur.
  */
-const SyncPlugin: React.FC = () => {
+const SyncPlugin: React.FC<{ wordIndex: TranscriptWordIndex }> = ({
+  wordIndex
+}) => {
   const [editor] = useLexicalComposerContext();
-  const clips = useTimelineStore((s) => s.clips);
+  // Only the transcript/caption-bearing subset — untouched clips (B-roll,
+  // music) keep their identity across store publishes, so `useShallow` returns
+  // the SAME array reference for those publishes and this effect below never
+  // re-runs for them. A B-roll drag no longer touches this plugin at all.
+  const clips = useTimelineStore(useShallow((s) => s.clips.filter(isTranscriptClip)));
   const markers = useTimelineStore((s) => s.markers);
   const setTranscriptAndClips = useTimelineStore((s) => s.setTranscriptAndClips);
 
   const focusedRef = useRef(false);
-  const seededClipsRef = useRef<TimelineClip[]>(clips);
   const seededSigRef = useRef<string>("");
   const seededMarkerSigRef = useRef<string>("");
+  const hasSeededRef = useRef(false);
+  // A "cooldown" window after each applied check: a change that lands inside
+  // it is remembered as `pendingCheckRef` instead of reseeding immediately, and
+  // is caught up in one trailing call when the window elapses. A change that
+  // lands outside any cooldown (mount, or a quiet period) applies immediately.
+  const cooldownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingCheckRef = useRef<(() => void) | null>(null);
 
   const reseed = useCallback(
     (nextClips: TimelineClip[], nextMarkers: TimelineMarker[]) => {
@@ -218,26 +348,70 @@ const SyncPlugin: React.FC = () => {
         () => $seedFromClips(nextClips, nextMarkers),
         { discrete: true }
       );
-      seededClipsRef.current = nextClips;
       seededSigRef.current = transcriptSignature(nextClips);
       seededMarkerSigRef.current = markerSignature(nextMarkers);
+      // `discrete: true` flushes the reconciliation synchronously, so the DOM
+      // already reflects the new words — rebuild the shared index right away
+      // rather than waiting for the next coalesced rebuild.
+      wordIndex.rebuild(editor.getRootElement());
     },
-    [editor]
+    [editor, wordIndex]
   );
 
-  // Re-seed when the model changes from outside the editor while it is unfocused
-  // — word content (generate / import / load / undo) or scene markers (a "/ New
-  // scene" command, or a removed break). The initial seed is done by
-  // `initialConfig.editorState`; this also fires on mount to capture
-  // `seededClipsRef` for the blur reconcile.
+  // Re-seed when the model changes from outside the editor while it is
+  // unfocused — word content (generate / import / load / undo) or scene
+  // markers (a "/ New scene" command, or a removed break). A single, isolated
+  // change (the common case: load / generate / undo, or a test asserting
+  // synchronously) applies immediately. A burst of changes within
+  // `RESEED_DEBOUNCE_MS` of each other (a caption-clip drag — identity churn
+  // on every pointermove) collapses into that first immediate check plus one
+  // trailing catch-up for the final state, instead of one reseed per tick.
+  // Reseeding only matters while unfocused, so neither the immediate nor the
+  // trailing path is user-visible as a delay.
   useEffect(() => {
-    if (focusedRef.current) return;
-    const sig = transcriptSignature(clips);
-    const msig = markerSignature(markers);
-    if (sig !== seededSigRef.current || msig !== seededMarkerSigRef.current) {
-      reseed(clips, markers);
+    const check = () => {
+      if (focusedRef.current) return;
+      const sig = transcriptSignature(clips);
+      const msig = markerSignature(markers);
+      if (sig !== seededSigRef.current || msig !== seededMarkerSigRef.current) {
+        reseed(clips, markers);
+      }
+    };
+
+    if (!hasSeededRef.current) {
+      hasSeededRef.current = true;
+      check();
+      return;
     }
+
+    if (cooldownTimerRef.current !== null) {
+      // Inside a cooldown from a recent check — remember this as the trailing
+      // call; the timer below picks it up with the latest clips/markers.
+      pendingCheckRef.current = check;
+      return;
+    }
+
+    check();
+    cooldownTimerRef.current = setTimeout(() => {
+      cooldownTimerRef.current = null;
+      const pending = pendingCheckRef.current;
+      pendingCheckRef.current = null;
+      pending?.();
+    }, RESEED_DEBOUNCE_MS);
   }, [clips, markers, reseed]);
+
+  // Cancel any cooldown timer and flush a still-pending trailing check on
+  // unmount, so the last queued change in a burst isn't silently dropped.
+  useEffect(() => {
+    return () => {
+      if (cooldownTimerRef.current !== null) {
+        clearTimeout(cooldownTimerRef.current);
+        cooldownTimerRef.current = null;
+      }
+      pendingCheckRef.current?.();
+      pendingCheckRef.current = null;
+    };
+  }, []);
 
   // Reconcile the edit on blur.
   useEffect(() => {
@@ -250,7 +424,11 @@ const SyncPlugin: React.FC = () => {
     const onBlur = () => {
       focusedRef.current = false;
       const edits = editor.getEditorState().read(() => $extractEdits());
-      const base = seededClipsRef.current;
+      // `applyEditorEdits` ripples cuts/moves across every track (B-roll
+      // included), so it needs the full clip list, not the transcript subset
+      // this plugin reacts to — read it fresh from the store here rather than
+      // widening the reactive selection above.
+      const base = useTimelineStore.getState().clips;
 
       // A brand-new line needs a voiceover track to land on.
       let audioTrackId =
@@ -316,30 +494,19 @@ const CaretSeekPlugin: React.FC = () => {
  * The playhead advances ~60×/s during playback through the transient time
  * channel, so this subscribes to {@link subscribeTime} and toggles the
  * `.is-active` class imperatively — never via React state, so it costs zero
- * re-renders per frame. The subscription also fires on discrete seek/scrub/stop
- * (they all emit on the same channel), and we apply once on mount / when the
- * word DOM changes (load / generate / reseed) so the highlight is correct at
- * rest too.
+ * re-renders per frame. It reads the shared `wordIndex` instead of querying
+ * the DOM itself, and only touches the DOM when the active word actually
+ * changes between ticks.
  */
-const ActiveWordPlugin: React.FC = () => {
-  const [editor] = useLexicalComposerContext();
+const ActiveWordPlugin: React.FC<{ wordIndex: TranscriptWordIndex }> = ({
+  wordIndex
+}) => {
   const playbackApi = useTimelinePlaybackStoreApi();
-  const clips = useTimelineStore((s) => s.clips);
   const lastActive = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     const apply = (timeMs: number): void => {
-      const root = editor.getRootElement();
-      if (!root) return;
-      let next: HTMLElement | null = null;
-      for (const el of root.querySelectorAll<HTMLElement>(".transcript-word")) {
-        const start = Number(el.dataset.start);
-        const end = Number(el.dataset.end);
-        if (timeMs >= start && timeMs < end) {
-          next = el;
-          break;
-        }
-      }
+      const next = wordIndex.findActive(timeMs)?.el ?? null;
       if (next === lastActive.current) return;
       lastActive.current?.classList.remove("is-active");
       if (next) {
@@ -350,8 +517,17 @@ const ActiveWordPlugin: React.FC = () => {
     };
 
     apply(playbackApi.getState().getTimeMs());
-    return playbackApi.getState().subscribeTime(apply);
-  }, [editor, playbackApi, clips]);
+    const unsubscribeTime = playbackApi.getState().subscribeTime(apply);
+    // Also re-apply whenever the word DOM is rebuilt (load / generate / reseed
+    // / resize) — otherwise the highlight wouldn't appear until the next tick.
+    const unsubscribeIndex = wordIndex.subscribe(() =>
+      apply(playbackApi.getState().getTimeMs())
+    );
+    return () => {
+      unsubscribeTime();
+      unsubscribeIndex();
+    };
+  }, [playbackApi, wordIndex]);
 
   return null;
 };
@@ -363,13 +539,17 @@ const ActiveWordPlugin: React.FC = () => {
  * moves the playhead — so there's always a cursor moving across the words. Word
  * offsets are relative to `.transcript-editor-area` (its `position: relative`
  * makes it the words' offsetParent), so the caret positions in the same space.
+ *
+ * All positioning comes from the shared `wordIndex`'s cached offsets — this
+ * plugin never reads `offsetLeft`/`offsetWidth` itself, so a tick never forces
+ * a layout reflow (it still writes `style.left` every tick while a word is
+ * active, since the caret genuinely sweeps across it).
  */
-const ScriptCaretPlugin: React.FC<{ visible: boolean }> = ({ visible }) => {
-  const [editor] = useLexicalComposerContext();
+const ScriptCaretPlugin: React.FC<{
+  visible: boolean;
+  wordIndex: TranscriptWordIndex;
+}> = ({ visible, wordIndex }) => {
   const playbackApi = useTimelinePlaybackStoreApi();
-  // Re-run when the projected words change (load / generate / reseed), not just
-  // when the playhead moves — otherwise the caret wouldn't appear until a seek.
-  const clips = useTimelineStore((s) => s.clips);
   const caretRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -380,43 +560,29 @@ const ScriptCaretPlugin: React.FC<{ visible: boolean }> = ({ visible }) => {
     // imperatively off the transient time channel (~60×/s during playback) and
     // off discrete seek/scrub — no React state, so zero per-frame re-renders.
     const apply = (timeMs: number): void => {
-      const root = editor.getRootElement();
-      if (!visible || !root) {
+      if (!visible || wordIndex.size === 0) {
         caret.style.display = "none";
         return;
       }
 
-      const words = [...root.querySelectorAll<HTMLElement>(".transcript-word")];
-      if (words.length === 0) {
-        caret.style.display = "none";
-        return;
-      }
-
-      let target: HTMLElement | null = null;
+      const active = wordIndex.findActive(timeMs);
+      let target = active;
       let fraction = 0;
-      for (const el of words) {
-        const start = Number(el.dataset.start);
-        const end = Number(el.dataset.end);
-        if (timeMs >= start && timeMs < end) {
-          target = el;
-          // The enclosing check guarantees start <= timeMs < end, so end > start
-          // and the denominator is always positive.
-          fraction = (timeMs - start) / (end - start);
-          break;
+      if (active) {
+        // The enclosing check guarantees start <= timeMs < end, so end > start
+        // and the denominator is always positive.
+        fraction = (timeMs - active.startMs) / (active.endMs - active.startMs);
+      } else {
+        // Between words / paused: sit at the next word's start, else after the last.
+        target = wordIndex.findNextStart(timeMs);
+        if (!target) {
+          target = wordIndex.at(wordIndex.size - 1);
+          fraction = 1; // offsetLeft + 1 * offsetWidth == right after the word.
         }
       }
-      // Between words / paused: sit at the next word's start, else after the last.
       if (!target) {
-        target =
-          words.find((el) => Number(el.dataset.start) >= timeMs) ?? null;
-        if (!target) {
-          const last = words[words.length - 1];
-          caret.style.display = "block";
-          caret.style.left = `${last.offsetLeft + last.offsetWidth}px`;
-          caret.style.top = `${last.offsetTop}px`;
-          caret.style.height = `${last.offsetHeight}px`;
-          return;
-        }
+        caret.style.display = "none";
+        return;
       }
 
       caret.style.display = "block";
@@ -426,8 +592,18 @@ const ScriptCaretPlugin: React.FC<{ visible: boolean }> = ({ visible }) => {
     };
 
     apply(playbackApi.getState().getTimeMs());
-    return playbackApi.getState().subscribeTime(apply);
-  }, [editor, playbackApi, visible, clips]);
+    const unsubscribeTime = playbackApi.getState().subscribeTime(apply);
+    // Re-run when the word DOM is rebuilt (load / generate / reseed / resize),
+    // not just when the playhead moves — otherwise the caret wouldn't appear
+    // (or would sit at stale offsets) until the next tick or seek.
+    const unsubscribeIndex = wordIndex.subscribe(() =>
+      apply(playbackApi.getState().getTimeMs())
+    );
+    return () => {
+      unsubscribeTime();
+      unsubscribeIndex();
+    };
+  }, [playbackApi, visible, wordIndex]);
 
   return <div ref={caretRef} className="script-caret" aria-hidden="true" />;
 };
@@ -436,22 +612,19 @@ const ScriptCaretPlugin: React.FC<{ visible: boolean }> = ({ visible }) => {
  * Mirrors the timeline's clip selection into the transcript: every word of a
  * selected clip gets `.is-selected`, so clicking a word (which selects its
  * clip) highlights here, and selecting a clip on the timeline highlights its
- * words. A DOM class toggle — no editor-state change.
+ * words. A DOM class toggle — no editor-state change. Reads the shared
+ * `wordIndex` instead of re-querying the word DOM.
  */
-const SelectionHighlightPlugin: React.FC = () => {
-  const [editor] = useLexicalComposerContext();
+const SelectionHighlightPlugin: React.FC<{ wordIndex: TranscriptWordIndex }> = ({
+  wordIndex
+}) => {
   const selectedClipIds = useTimelineUIStore((s) => s.selectedClipIds);
 
   useEffect(() => {
-    const root = editor.getRootElement();
-    if (!root) return;
-    for (const el of root.querySelectorAll<HTMLElement>(".transcript-word")) {
-      el.classList.toggle(
-        "is-selected",
-        selectedClipIds.has(el.dataset.clip ?? "")
-      );
+    for (const entry of wordIndex.all) {
+      entry.el.classList.toggle("is-selected", selectedClipIds.has(entry.clipId));
     }
-  }, [editor, selectedClipIds]);
+  }, [wordIndex, selectedClipIds]);
 
   return null;
 };
@@ -542,6 +715,14 @@ const EditorBody: React.FC<{
   const [editor] = useLexicalComposerContext();
   const writing = mode === "write";
 
+  // One shared index over the rendered `.transcript-word` DOM (F4): every
+  // per-tick plugin below reads it instead of each re-querying and
+  // re-parsing the whole word DOM 60×/s. Created once and never replaced —
+  // plugins receive the same instance for the component's lifetime.
+  const wordIndexRef = useRef<TranscriptWordIndex | null>(null);
+  if (!wordIndexRef.current) wordIndexRef.current = new TranscriptWordIndex();
+  const wordIndex = wordIndexRef.current;
+
   // Imperative handles to *this* instance's stores. We deliberately avoid the
   // `useTimelineStore.getState()` statics: those route to whichever timeline is
   // "active" on the activation stack, which is a *different* instance whenever a
@@ -559,6 +740,38 @@ const EditorBody: React.FC<{
     if (writing) root?.focus();
     else root?.blur();
   }, [editor, writing]);
+
+  // Keep the word index current. `registerUpdateListener` fires for every
+  // editor update (typing, node changes, and `SyncPlugin`'s reseeds); coalesce
+  // bursts of those into one rebuild per animation frame. The `ResizeObserver`
+  // catches layout-only changes (e.g. text wrapping shifts offsets without any
+  // editor update).
+  useEffect(() => {
+    wordIndex.rebuild(editor.getRootElement());
+
+    let rafId: number | null = null;
+    const scheduleRebuild = () => {
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        wordIndex.rebuild(editor.getRootElement());
+      });
+    };
+
+    const unregisterUpdateListener = editor.registerUpdateListener(() => {
+      scheduleRebuild();
+    });
+
+    const root = editor.getRootElement();
+    const resizeObserver = new ResizeObserver(() => scheduleRebuild());
+    if (root) resizeObserver.observe(root);
+
+    return () => {
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      unregisterUpdateListener();
+      resizeObserver.disconnect();
+    };
+  }, [editor, wordIndex]);
 
   const togglePlay = useCallback(() => {
     const pb = playbackApi.getState();
@@ -620,13 +833,9 @@ const EditorBody: React.FC<{
         openSlashCommand();
       } else if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
         // Step the cursor word-by-word (the playhead follows, so the Script
-        // caret moves across words).
-        const root = editor.getRootElement();
-        if (!root) return;
-        const starts = [...root.querySelectorAll<HTMLElement>(".transcript-word")]
-          .map((el) => Number(el.dataset.start))
-          .filter((n) => Number.isFinite(n))
-          .sort((a, b) => a - b);
+        // caret moves across words). Reuses the shared word index — already
+        // sorted by time — instead of re-querying the word DOM.
+        const starts = wordIndex.all.map((entry) => entry.startMs);
         if (starts.length === 0) return;
         e.preventDefault();
         const t = playbackApi.getState().currentTimeMs;
@@ -640,7 +849,7 @@ const EditorBody: React.FC<{
 
     window.addEventListener("keydown", onWindowKeyDown);
     return () => window.removeEventListener("keydown", onWindowKeyDown);
-  }, [writing, togglePlay, openSlashCommand, editor, playbackApi]);
+  }, [writing, togglePlay, openSlashCommand, playbackApi, wordIndex]);
 
   // Write-mode keys ride the editor (it holds focus): ⌘S plays, Esc finishes,
   // and "/" at the start of a block opens the command menu (mid-text "/" stays
@@ -710,11 +919,11 @@ const EditorBody: React.FC<{
           ErrorBoundary={LexicalErrorBoundary}
         />
         <HistoryPlugin />
-        <SyncPlugin />
+        <SyncPlugin wordIndex={wordIndex} />
         <CaretSeekPlugin />
-        <ActiveWordPlugin />
-        <ScriptCaretPlugin visible={!writing} />
-        <SelectionHighlightPlugin />
+        <ActiveWordPlugin wordIndex={wordIndex} />
+        <ScriptCaretPlugin visible={!writing} wordIndex={wordIndex} />
+        <SelectionHighlightPlugin wordIndex={wordIndex} />
       </div>
     </EditorSurface>
   );

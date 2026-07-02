@@ -105,13 +105,13 @@ export default function ComparisonSection({
               <p className="text-slate-300 leading-relaxed mb-4 text-[1.025rem]">
                 Take Seedance, one of today&apos;s top video models. It&apos;s
                 available on FAL, Replicate, and KIE at different price points.
-                NodeTool lets you pick the cheapest. When the next Veo or Kling
-                ships, you swap one node and you&apos;re on it the same day.
+                NodeTool lets you pick the cheapest. And when the next Veo or
+                Kling ships, it&apos;s one node swap away.
               </p>
               <p className="text-slate-400 leading-relaxed text-[1.025rem]">
-                That&apos;s what vendor neutrality actually buys you: the best
-                model at the best price, every week — and no roadmap risk if
-                your favourite tool gets acquired.
+                That&apos;s what vendor neutrality buys you: the best model at
+                the best price, every week — and no roadmap risk if your
+                favorite tool gets acquired.
               </p>
             </div>
           </div>

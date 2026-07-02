@@ -419,35 +419,6 @@ const TableActions: React.FC<TableActionsProps> = memo(({
     });
   }, [data, dataframeColumns, addNotification]);
 
-  // Export JSON - exclude select and rownum columns - kept for future use
-  const _handleExportJSON = useCallback(() => {
-    if (!dataframeColumns || !Array.isArray(data)) {return;}
-
-    // Build clean data without utility columns
-    const cleanData = (data as DictTableRow[]).map((row) => {
-      const cleanRow: Record<string, DataframeCellValue> = {};
-      dataframeColumns.forEach((col) => {
-        cleanRow[col.name] = (row as Record<string, DataframeCellValue>)[col.name];
-      });
-      return cleanRow;
-    });
-    
-    const jsonContent = JSON.stringify(cleanData, null, 2);
-    const blob = new Blob([jsonContent], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "dataframe.json";
-    link.click();
-    URL.revokeObjectURL(url);
-    
-    addNotification({
-      content: "Exported as JSON",
-      type: "success",
-      alert: true
-    });
-  }, [data, dataframeColumns, addNotification]);
-
   return (
     <div className="table-actions">
       {editable && (

@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { List, ListItem, ListItemSecondaryAction } from "@mui/material";
+
 import React, { useCallback, memo, useMemo } from "react";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
@@ -23,7 +23,10 @@ import {
   FlexRow,
   LoadingSpinner,
   Text,
-  ToolbarIconButton
+  ToolbarIconButton,
+  List,
+  ListItem,
+  ListItemSecondaryAction
 } from "../ui_primitives";
 
 const styles = (theme: Theme) =>

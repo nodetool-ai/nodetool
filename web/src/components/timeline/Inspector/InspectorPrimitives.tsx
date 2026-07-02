@@ -15,14 +15,14 @@ import React, {
   useEffect,
   useId,
   useMemo,
+  useRef,
   useState
 } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import Switch from "@mui/material/Switch";
-
-import { NodeSlider, Tooltip, MOTION, BORDER_RADIUS, FONT_SIZE_SANS, FONT_SIZE_MONO, FONT_WEIGHT, SPACING, getSpacingPx, reducedMotion } from "../../ui_primitives";
+import { NodeSlider, Tooltip, MOTION, BORDER_RADIUS, FONT_SIZE_SANS, FONT_SIZE_MONO, FONT_WEIGHT, SPACING, getSpacingPx, reducedMotion, Switch } from "../../ui_primitives";
+import { useTimelineHistoryBatch } from "../../../stores/timeline/useTimelineHistoryBatch";
 
 // ── Header ─────────────────────────────────────────────────────────────────
 
@@ -601,6 +601,68 @@ export const InspectorSliderRow: React.FC<InspectorSliderRowProps> = memo(
   ({ label, value, display, min, max, step, disabled, onChange, origin }) => {
     const theme = useTheme();
     const sliderSx = useMemo(() => precisionSliderSx(theme), [theme]);
+    const history = useTimelineHistoryBatch();
+
+    // Gesture state: pointermove/key-repeat onChange ticks are coalesced to
+    // one store write per animation frame; onChangeCommitted flushes the
+    // final value and closes the undo batch. See useTimelineHistoryBatch for
+    // why a single arrow-key press (onChange immediately followed by
+    // onChangeCommitted, both synchronous) still yields exactly one entry:
+    // the pending rAF write never fires because onChangeCommitted cancels it
+    // and applies the value itself before the frame runs.
+    const onChangeRef = useRef(onChange);
+    onChangeRef.current = onChange;
+    const gestureActiveRef = useRef(false);
+    const pendingValueRef = useRef<number | null>(null);
+    const rafIdRef = useRef<number | null>(null);
+
+    const flush = useCallback(() => {
+      rafIdRef.current = null;
+      if (pendingValueRef.current === null) return;
+      const next = pendingValueRef.current;
+      pendingValueRef.current = null;
+      onChangeRef.current(next);
+      history.mark();
+    }, [history]);
+
+    const handleChange = useCallback(
+      (_e: Event, next: number | number[]) => {
+        const value = Array.isArray(next) ? next[0] : next;
+        if (!gestureActiveRef.current) {
+          gestureActiveRef.current = true;
+          history.begin();
+        }
+        pendingValueRef.current = value;
+        if (rafIdRef.current === null) {
+          rafIdRef.current = requestAnimationFrame(flush);
+        }
+      },
+      [history, flush]
+    );
+
+    const handleChangeCommitted = useCallback(
+      (_e: React.SyntheticEvent | Event, next: number | number[]) => {
+        const value = Array.isArray(next) ? next[0] : next;
+        if (rafIdRef.current !== null) {
+          cancelAnimationFrame(rafIdRef.current);
+          rafIdRef.current = null;
+        }
+        pendingValueRef.current = null;
+        onChangeRef.current(value);
+        history.mark();
+        history.end();
+        gestureActiveRef.current = false;
+      },
+      [history]
+    );
+
+    useEffect(() => {
+      return () => {
+        if (rafIdRef.current !== null) {
+          cancelAnimationFrame(rafIdRef.current);
+        }
+      };
+    }, []);
 
     const span = max - min || 1;
     const toPct = (v: number) =>
@@ -617,6 +679,7 @@ export const InspectorSliderRow: React.FC<InspectorSliderRowProps> = memo(
       "--fill-show-tick": showTick ? 1 : 0
     } as React.CSSProperties;
 
+    // Double-click reset is a single, discrete write — left un-batched.
     const handleReset = useCallback(() => {
       if (origin !== undefined) onChange(origin);
     }, [origin, onChange]);
@@ -640,9 +703,8 @@ export const InspectorSliderRow: React.FC<InspectorSliderRowProps> = memo(
             track={false}
             aria-label={label}
             sx={sliderSx}
-            onChange={(_e, next) =>
-              onChange(Array.isArray(next) ? next[0] : next)
-            }
+            onChange={handleChange}
+            onChangeCommitted={handleChangeCommitted}
           />
         </div>
         <span css={sliderValueStyles(theme)}>{display}</span>

@@ -11,6 +11,7 @@ import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelinePlaybackStoreApi } from "../../../stores/timeline/TimelineInstance";
+import { findClipById } from "../../../stores/timeline/clipLookup";
 import { usePersistedFold } from "./usePersistedFold";
 import {
   CollapsibleSection,
@@ -108,7 +109,7 @@ export const TimelineInspector: React.FC = memo(() => {
   const [timingOpen, setTimingOpen] = usePersistedFold("timing");
 
   const clip = useTimelineStore((s) =>
-    clipId ? s.clips.find((c) => c.id === clipId) : null
+    clipId ? (findClipById(s.clips, clipId) ?? null) : null
   );
   const track = useTimelineStore((s) =>
     clip ? s.tracks.find((t) => t.id === clip.trackId) : null
@@ -266,6 +267,7 @@ export const TimelineInspector: React.FC = memo(() => {
         }
         open={mediaOpen}
         onToggle={setMediaOpen}
+        unmountOnExit
       >
         <FlexColumn css={sectionContentStyles(theme)}>
           <InspectorRow label="Type">
@@ -288,6 +290,7 @@ export const TimelineInspector: React.FC = memo(() => {
         }
         open={timingOpen}
         onToggle={setTimingOpen}
+        unmountOnExit
       >
         <FlexColumn css={sectionContentStyles(theme)}>
           <InspectorRow label="Start">

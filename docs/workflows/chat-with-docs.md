@@ -9,6 +9,12 @@ Document retrieval and question-answering using vector search and local LLMs.
 
 > This tutorial does not ship as an importable template. Build it manually by following the steps below.
 
+## Demo
+
+<video controls preload="metadata" poster="{{ '/assets/cookbook/chat-with-docs.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/chat-with-docs.mp4' | relative_url }}" type="video/mp4">
+</video>
+
 ## Tags
 
 chat, rag

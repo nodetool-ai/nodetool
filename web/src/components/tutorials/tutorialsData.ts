@@ -78,6 +78,108 @@ export const TUTORIALS: Tutorial[] = [
       "Passing a list into the rest of a workflow",
     ],
   },
+  {
+    id: "ask-ai",
+    title: "Ask the AI",
+    tagline: "A question in, a streamed answer out",
+    description:
+      "The simplest chat-style graph: type a question, send it to an LLM node, and watch the answer stream in phrase by phrase before it lands in a Preview.",
+    level: "Beginner",
+    durationLabel: "0:16",
+    video: "/tutorials/ask-ai.mp4",
+    poster: "/tutorials/ask-ai.jpg",
+    accent: "#06b6d4",
+    learn: [
+      "Feeding a question into an LLM node",
+      "Watching an answer stream as it generates",
+      "Reusing the answer downstream",
+    ],
+  },
+  {
+    id: "combine-inputs",
+    title: "Combine two inputs",
+    tagline: "Merge values with a template",
+    description:
+      "The first graph that branches in: two text inputs flow into one Prompt node that fills a template, composing a single result from reusable parts.",
+    level: "Beginner",
+    durationLabel: "0:12",
+    video: "/tutorials/combine-inputs.mp4",
+    poster: "/tutorials/combine-inputs.jpg",
+    accent: "#ec4899",
+    learn: [
+      "Wiring several inputs into one node",
+      "Composing text with {{ placeholders }}",
+      "Building prompts from reusable parts",
+    ],
+  },
+  {
+    id: "summarize-text",
+    title: "Summarize a document",
+    tagline: "Long text in, key points out",
+    description:
+      "Condense an article, transcript, or any block of text into a short summary with a single Summarizer node, streaming it as it writes.",
+    level: "Beginner",
+    durationLabel: "0:16",
+    video: "/tutorials/summarize-text.mp4",
+    poster: "/tutorials/summarize-text.jpg",
+    accent: "#14b8a6",
+    learn: [
+      "Feeding a long passage into a Summarizer node",
+      "Watching the summary stream as it generates",
+      "Passing the result into the rest of a workflow",
+    ],
+  },
+  {
+    id: "describe-image",
+    title: "Describe an image",
+    tagline: "Show the AI a picture, get words back",
+    description:
+      "The first multimodal graph: drop a picture into an Image Input, wire it into an Agent, and watch the model look at the image and describe it in words.",
+    level: "Beginner",
+    durationLabel: "0:17",
+    video: "/tutorials/describe-image.mp4",
+    poster: "/tutorials/describe-image.jpg",
+    accent: "#f97316",
+    learn: [
+      "Bringing an image into a graph",
+      "Sending a picture to a vision model",
+      "Reusing the streamed description downstream",
+    ],
+  },
+  {
+    id: "chat-agent-qa",
+    title: "Ask the chat agent",
+    tagline: "Global Chat · tool calls, streamed live",
+    description:
+      "A question goes straight to Global Chat: the agent calls a web-search tool in the open, then streams its answer back token by token.",
+    level: "Beginner",
+    durationLabel: "0:17",
+    video: "/tutorials/chat-agent-qa.mp4",
+    poster: "/tutorials/chat-agent-qa.jpg",
+    accent: "#06b6d4",
+    learn: [
+      "Sending a message from Global Chat",
+      "Watching a tool call run in the open",
+      "Reading a streamed answer as it arrives",
+    ],
+  },
+  {
+    id: "timeline-trim-arrange",
+    title: "Cut a scene together",
+    tagline: "Timeline editor · trim, arrange, caption",
+    description:
+      "A short editing session on the timeline: trim a clip, drag in another, drop in a word-synced caption, then scrub the finished cut.",
+    level: "Beginner",
+    durationLabel: "0:23",
+    video: "/tutorials/timeline-trim-arrange.mp4",
+    poster: "/tutorials/timeline-trim-arrange.jpg",
+    accent: "#8b5cf6",
+    learn: [
+      "Trimming and arranging clips on tracks",
+      "Adding a caption synced word-by-word",
+      "Scrubbing and previewing the cut live",
+    ],
+  },
 ];
 
 export const getTutorial = (id: string | null | undefined): Tutorial =>

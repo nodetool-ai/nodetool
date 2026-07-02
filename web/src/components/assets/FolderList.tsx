@@ -1,11 +1,13 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+
 import {
+  Box,
+  MOTION,
   Accordion,
   AccordionSummary,
   AccordionDetails
-} from "@mui/material";
-import { Box, MOTION } from "../ui_primitives";
+} from "../ui_primitives";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import React, { useCallback, useState, memo, useMemo, useEffect } from "react";
 import FolderItem from "./FolderItem";

@@ -44,7 +44,7 @@ const wf = workflow(reply);
 const dslExplanation = [
   {
     title: "Declarative, Not Imperative",
-    description: "Define what to compute, not how. The DSL builds a graph that the engine executes optimally.",
+    description: "Define what to compute, not how. The DSL builds a graph the engine schedules and streams.",
   },
   {
     title: "Automatic Data Flow",
@@ -52,7 +52,7 @@ const dslExplanation = [
   },
   {
     title: "Built for Composition",
-    description: "Chain operations naturally. Each node's output becomes another's input, creating complex workflows from simple parts.",
+    description: "Each node's output feeds the next node's input — big workflows are small nodes wired together.",
   },
   {
     title: "Visual + Code Sync",
@@ -274,7 +274,7 @@ export default function DeveloperCoreSection({
             </div>
             <div>
               <h3 className="text-xl font-semibold text-white">Why the DSL?</h3>
-              <p className="text-sm text-slate-400">The NodeTool DSL is fundamentally different from imperative code</p>
+              <p className="text-sm text-slate-400">What declaring a graph buys you over imperative code</p>
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">

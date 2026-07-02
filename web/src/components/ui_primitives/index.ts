@@ -85,6 +85,8 @@ export type { EmptyStateProps, EmptyStateVariant } from "./EmptyState";
 export { LoadingSpinner } from "./LoadingSpinner";
 export type { LoadingSpinnerProps, LoadingVariant } from "./LoadingSpinner";
 
+export { default as MagicGenerationFill } from "./MagicGenerationFill";
+
 export { ProgressBar } from "./ProgressBar";
 export type { ProgressBarProps } from "./ProgressBar";
 
@@ -385,3 +387,101 @@ export type { DynamicInputButtonProps } from "./DynamicInputButton";
 
 export { RunModelButton } from "./RunModelButton";
 export type { RunModelButtonProps } from "./RunModelButton";
+
+// Low-level MUI re-exports — structural / control building blocks (lists, dialog
+// sub-parts, form controls, plain menus/selects/switches, tabs, …) that have no
+// richer primitive of their own. Theme-governed pass-throughs so app code imports
+// from the barrel, never from @mui/material. Prefer a semantic primitive when one
+// fits (see ./muiReexports for the policy).
+export {
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  ListItemAvatar,
+  ListItemSecondaryAction,
+  ListSubheader,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  FormControl,
+  FormGroup,
+  FormHelperText,
+  FormControlLabel,
+  InputLabel,
+  InputAdornment,
+  OutlinedInput,
+  Input,
+  Menu,
+  MenuItem,
+  MenuList,
+  Select,
+  Switch,
+  TextField,
+  IconButton,
+  Button,
+  ButtonBase,
+  Drawer,
+  Fab,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Tabs,
+  Tab,
+  ToggleButton,
+  ToggleButtonGroup,
+  Modal,
+  Fade,
+  Toolbar,
+  LinearProgress,
+  MuiAutocomplete,
+  MuiDialog
+} from "./muiReexports";
+export type {
+  ListProps,
+  ListItemProps,
+  ListItemButtonProps,
+  ListItemIconProps,
+  ListItemTextProps,
+  ListItemAvatarProps,
+  ListSubheaderProps,
+  DialogTitleProps,
+  DialogContentProps,
+  DialogContentTextProps,
+  DialogActionsProps,
+  FormControlProps,
+  FormGroupProps,
+  FormHelperTextProps,
+  FormControlLabelProps,
+  InputLabelProps,
+  InputAdornmentProps,
+  OutlinedInputProps,
+  InputProps,
+  MenuProps,
+  MenuItemProps,
+  MenuListProps,
+  SelectProps,
+  SelectChangeEvent,
+  SwitchProps,
+  TextFieldProps,
+  IconButtonProps,
+  ButtonProps,
+  ButtonBaseProps,
+  DrawerProps,
+  FabProps,
+  AccordionProps,
+  AccordionSummaryProps,
+  AccordionDetailsProps,
+  TabsProps,
+  TabProps,
+  ToggleButtonProps,
+  ToggleButtonGroupProps,
+  ModalProps,
+  FadeProps,
+  ToolbarProps,
+  LinearProgressProps,
+  MuiAutocompleteProps,
+  MuiDialogProps
+} from "./muiReexports";

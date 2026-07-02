@@ -31,7 +31,6 @@ import {
   applyMove,
   applyRotate,
   applyScale,
-  canvasToLayerTexel,
   layerCorners,
   midpoint,
   pointInLayer,

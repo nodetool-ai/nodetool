@@ -21,6 +21,11 @@ import { isProduction } from "../../lib/env";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
+import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import {
+  PAGE_TAB_TITLES,
+  type PageTabKey
+} from "../workspace/pageTabs";
 import Help from "../content/Help/Help";
 import Logo from "../Logo";
 import { Popover, MenuItemPrimitive, Tooltip, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
@@ -89,51 +94,37 @@ const RailAppMenu: React.FC = () => {
   useCombo(["Control", "/"], handleShowKeyboardShortcuts);
 
   const close = useCallback(() => setOpen(false), []);
+  const openTab = useWorkspaceTabsStore((state) => state.openTab);
+
+  // Open an app page (Settings, Costs, …) as a workspace tab and focus the
+  // workspace, instead of navigating to a dedicated route.
+  const openPage = useCallback(
+    (key: PageTabKey) => {
+      openTab({
+        type: "page",
+        ref: key,
+        mode: "view",
+        title: PAGE_TAB_TITLES[key]
+      });
+      navigate("/workspace");
+      close();
+    },
+    [openTab, navigate, close]
+  );
 
   const goDashboard = useCallback(() => {
     navigate("/dashboard");
     close();
   }, [navigate, close]);
 
-  const goExamples = useCallback(() => {
-    navigate("/examples");
-    close();
-  }, [navigate, close]);
-
-  const goTutorials = useCallback(() => {
-    navigate("/tutorials");
-    close();
-  }, [navigate, close]);
-
-  const goCosts = useCallback(() => {
-    navigate("/costs");
-    close();
-  }, [navigate, close]);
-
-  const goModels = useCallback(() => {
-    navigate("/models");
-    close();
-  }, [navigate, close]);
-
-  const goPackages = useCallback(() => {
-    navigate("/packages");
-    close();
-  }, [navigate, close]);
-
-  const goCollections = useCallback(() => {
-    navigate("/collections");
-    close();
-  }, [navigate, close]);
-
-  const goWorkspaces = useCallback(() => {
-    navigate("/workspaces");
-    close();
-  }, [navigate, close]);
-
-  const goSettings = useCallback(() => {
-    navigate("/settings");
-    close();
-  }, [navigate, close]);
+  const goExamples = useCallback(() => openPage("examples"), [openPage]);
+  const goTutorials = useCallback(() => openPage("tutorials"), [openPage]);
+  const goCosts = useCallback(() => openPage("costs"), [openPage]);
+  const goModels = useCallback(() => openPage("models"), [openPage]);
+  const goPackages = useCallback(() => openPage("packages"), [openPage]);
+  const goCollections = useCallback(() => openPage("collections"), [openPage]);
+  const goWorkspaces = useCallback(() => openPage("workspaces"), [openPage]);
+  const goSettings = useCallback(() => openPage("settings"), [openPage]);
 
   const openHelp = useCallback(() => {
     handleOpenHelp();

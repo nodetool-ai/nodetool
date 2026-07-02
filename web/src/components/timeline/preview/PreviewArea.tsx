@@ -4,7 +4,6 @@ import React, {
   memo,
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState
 } from "react";
@@ -12,6 +11,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useShallow } from "zustand/react/shallow";
+import type { TimelineClip } from "@nodetool-ai/timeline";
 
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PauseIcon from "@mui/icons-material/Pause";
@@ -58,6 +58,33 @@ function formatTimecode(timeMs: number, fps: number): string {
 
 function frameDeltaMs(fps: number): number {
   return 1000 / Math.max(1, fps);
+}
+
+/** Schedule/top-up audio clips whose start falls within this horizon of the
+ *  playhead — matches PreviewCompositor's PRELOAD_LOOKAHEAD_MS so video and
+ *  audio preload the same window. Bounds play-gesture decode latency and
+ *  resident PCM memory regardless of timeline length. */
+const AUDIO_LOOKAHEAD_MS = 30_000;
+/** How often the top-up interval re-scans for clips that entered the window
+ *  while playing. Must stay well under AUDIO_LOOKAHEAD_MS so every clip is
+ *  scheduled before the playhead reaches it. */
+const AUDIO_TOPUP_INTERVAL_MS = 5_000;
+/** Trailing debounce for the seek-while-playing audio restart. A ruler scrub
+ *  delivers pointermove-rate seeks; only the last one in a burst should pay
+ *  for asset resolution + decode + a fresh clock start. */
+const SEEK_RESTART_DEBOUNCE_MS = 120;
+
+/** True if `clip` is a schedulable audio clip that hasn't finished by `atMs`. */
+function isPendingAudioClip(clip: TimelineClip, atMs: number): boolean {
+  return (
+    clip.mediaType === "audio" &&
+    !clip.muted &&
+    !!clip.currentAssetId &&
+    (clip.status === "generated" ||
+      clip.status === "stale" ||
+      clip.status === "locked") &&
+    clip.startMs + clip.durationMs > atMs
+  );
 }
 
 const containerStyles = (theme: Theme) =>
@@ -198,12 +225,49 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       }))
     );
 
-    const { clips, tracks, durationMs } = useTimelineStore(
-      useShallow((s) => ({
-        clips: s.clips,
-        tracks: s.tracks,
-        durationMs: s.durationMs
-      }))
+    // `clips` is read imperatively via `useTimelineStore.getState()` inside
+    // handlers (handlePlay, the audio top-up) rather than subscribed here —
+    // it gets a new identity on every drag/trim/slider tick, which would
+    // otherwise re-render this whole control bar per pointermove for a value
+    // only ever read at click/gesture time. `tracks` stays a live
+    // subscription: it feeds the `graph.updateTracks` effect below so DSP/
+    // gain/solo/mute changes are audible immediately.
+    const tracks = useTimelineStore((s) => s.tracks);
+    const durationMs = useTimelineStore((s) => s.durationMs);
+
+    // `durationMs` is set only on load and is NOT recomputed when clips are
+    // added/moved (see TracksRegion, which derives its own content extent).
+    // For a new/unsaved sequence it stays 0, which would pin the scrubber's
+    // range to [0, 1] (max ≤ step → every drag snaps to the end). Derive the
+    // max from the actual clip extent, matching the ruler. Returning a
+    // primitive means the default equality skips re-renders for edits that
+    // don't move the content boundary (e.g. an opacity slider drag).
+    const contentEndMs = useTimelineStore((s) => {
+      let end = s.durationMs || 0;
+      for (const c of s.clips) {
+        end = Math.max(end, c.startMs + c.durationMs);
+      }
+      return end;
+    });
+
+    /** All unique clip boundary timestamps (start + end), sorted ascending.
+     *  `useShallow` keeps the returned array's identity stable across clip
+     *  edits that don't touch start/end (opacity, color, transform, ...), so
+     *  boundary-jump navigation doesn't re-render on every unrelated drag
+     *  tick. */
+    const clipBoundaries = useTimelineStore(
+      useShallow((s) => {
+        const pts = new Set<number>();
+        pts.add(0);
+        for (const c of s.clips) {
+          pts.add(c.startMs);
+          pts.add(c.startMs + c.durationMs);
+        }
+        if (s.durationMs) {
+          pts.add(s.durationMs);
+        }
+        return Array.from(pts).sort((a, b) => a - b);
+      })
     );
 
     const getAsset = useAssetStore((s) => s.get);
@@ -214,6 +278,44 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
      *  handlePlay compare against their captured value and bail when a later
      *  gesture has superseded them, so stale audio is never scheduled. */
     const playGenRef = useRef(0);
+    /** Clip ids scheduled in AudioGraph for the current play session. Reset
+     *  on every stop/restart so the top-up interval can tell which clips
+     *  still need scheduling. */
+    const scheduledClipIdsRef = useRef<Set<string>>(new Set());
+    /** Windowed-audio top-up interval id — started in handlePlay, cleared
+     *  with the rest of the session. */
+    const topUpIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
+      null
+    );
+    /** Pending seek-while-playing restart — see the seekNonce effect. */
+    const seekDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(
+      null
+    );
+
+    const clearTopUpInterval = useCallback(() => {
+      if (topUpIntervalRef.current !== null) {
+        clearInterval(topUpIntervalRef.current);
+        topUpIntervalRef.current = null;
+      }
+    }, []);
+
+    const clearSeekDebounce = useCallback(() => {
+      if (seekDebounceRef.current !== null) {
+        clearTimeout(seekDebounceRef.current);
+        seekDebounceRef.current = null;
+      }
+    }, []);
+
+    /** Tear down the windowed-audio session: stop the top-up interval,
+     *  cancel a pending seek-restart debounce, and forget which clips were
+     *  scheduled so the next play/seek starts a clean window. Called on
+     *  every path that stops or restarts audio — pause, stop, the
+     *  end-of-timeline auto-pause, seek, and the top of handlePlay itself. */
+    const stopAudioSession = useCallback(() => {
+      clearTopUpInterval();
+      clearSeekDebounce();
+      scheduledClipIdsRef.current.clear();
+    }, [clearTopUpInterval, clearSeekDebounce]);
 
     useEffect(() => {
       const clock = clockRef.current;
@@ -221,8 +323,9 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       return () => {
         clock.stop();
         graph.dispose();
+        stopAudioSession();
       };
-    }, []);
+    }, [stopAudioSession]);
 
     // Live-apply track gain/solo/mute and DSP chain changes so effect tweaks
     // are audible immediately without waiting for the next play/seek cycle.
@@ -231,6 +334,66 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       if (!graph.context) return;
       graph.updateTracks(tracks);
     }, [tracks]);
+
+    /**
+     * Re-scan for audio clips that entered the lookahead window since the
+     * last check and schedule only those, without touching clips already
+     * playing. Runs on a timer started in handlePlay so a long timeline's
+     * audio is brought in incrementally instead of decoding everything up
+     * front.
+     */
+    const topUpAudio = useCallback(
+      async (isStale: () => boolean) => {
+        if (isStale()) return;
+        const graph = graphRef.current;
+        const liveMs = getTimeMs();
+        const windowEndMs = liveMs + AUDIO_LOOKAHEAD_MS;
+        const clipsNow = useTimelineStore.getState().clips;
+
+        const newlyEnteredClips = clipsNow.filter(
+          (c) =>
+            isPendingAudioClip(c, liveMs) &&
+            c.startMs < windowEndMs &&
+            !scheduledClipIdsRef.current.has(c.id)
+        );
+        if (newlyEnteredClips.length === 0) return;
+
+        // Mark up front so an overlapping tick (a slow asset fetch outliving
+        // the 5 s interval) can't attempt the same clip twice.
+        for (const c of newlyEnteredClips) {
+          scheduledClipIdsRef.current.add(c.id);
+        }
+
+        const resolved = await Promise.all(
+          newlyEnteredClips.map(async (clip) => {
+            try {
+              const asset = await getAsset(clip.currentAssetId!);
+              const url = getAssetUrl(asset);
+              return url ? { clip, assetUrl: url } : null;
+            } catch {
+              return null;
+            }
+          })
+        );
+        if (isStale()) return;
+
+        const validClips = resolved.filter(
+          (c): c is NonNullable<typeof c> => c !== null
+        );
+        if (validClips.length === 0) return;
+
+        // `addClips` reuses scheduleClips' decode+schedule internals but
+        // skips its "stop sources not in this list" prune, so sources
+        // already playing from the initial window are left untouched.
+        await graph.addClips(
+          validClips,
+          useTimelineStore.getState().tracks,
+          getTimeMs(),
+          isStale
+        );
+      },
+      [getAsset, getTimeMs]
+    );
 
     const handlePlay = useCallback(async () => {
       const generation = ++playGenRef.current;
@@ -243,6 +406,9 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       // resume, asset fetches) a still-ticking clock would keep overwriting
       // currentTimeMs from its old start position, stomping a fresh seek.
       clock.stop();
+      // A fresh play/restart supersedes any top-up interval or debounced
+      // seek-restart left over from a previous session.
+      stopAudioSession();
 
       // Read fresh to avoid stale closure when the user scrubs before pressing play.
       let startMs = useTimelinePlaybackStore.getState().currentTimeMs;
@@ -254,23 +420,39 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
 
       play();
 
+      // Read fresh rather than closing over the reactive `clips` value so
+      // this component never needs to subscribe to (and re-render on) the
+      // clips array itself.
+      const clipsNow = useTimelineStore.getState().clips;
+      const remainingAudioClips = clipsNow.filter((c) =>
+        isPendingAudioClip(c, startMs)
+      );
+
+      if (remainingAudioClips.length === 0) {
+        // Nothing left to play — e.g. a seek landed past the last audio
+        // clip. Silence whatever an older gesture left running, but skip
+        // AudioContext creation/resume entirely rather than paying the
+        // autoplay-policy round trip for silence.
+        graph.stopAll();
+        clock.start(startMs, 1, null, durationMs || Infinity);
+        return;
+      }
+
       const ctx = graph.getContext();
       await ctx.resume();
       if (isStale()) return;
 
-      const activeAudioClips = clips.filter(
-        (c) =>
-          c.mediaType === "audio" &&
-          !c.muted &&
-          c.currentAssetId &&
-          (c.status === "generated" ||
-            c.status === "stale" ||
-            c.status === "locked") &&
-          c.startMs + c.durationMs > startMs
+      // Only decode/schedule what's audible now or about to become audible —
+      // not the rest of the timeline. The top-up interval below brings in
+      // the remaining clips as the playhead advances, so play latency and
+      // resident PCM memory stop scaling with timeline length.
+      const windowEndMs = startMs + AUDIO_LOOKAHEAD_MS;
+      const windowedClips = remainingAudioClips.filter(
+        (c) => c.startMs < windowEndMs
       );
 
       const scheduledClips = await Promise.all(
-        activeAudioClips.map(async (clip) => {
+        windowedClips.map(async (clip) => {
           try {
             const asset = await getAsset(clip.currentAssetId!);
             const url = getAssetUrl(asset);
@@ -295,13 +477,25 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       await graph.scheduleClips(validClips, tracks, startMs, isStale);
       if (isStale()) return;
 
-      clock.start(
-        startMs,
-        1,
-        validClips.length > 0 ? ctx : null,
-        durationMs || Infinity
-      );
-    }, [play, clips, tracks, durationMs, fps, getAsset, setCurrentTimeMs]);
+      for (const { clip } of validClips) {
+        scheduledClipIdsRef.current.add(clip.id);
+      }
+
+      clock.start(startMs, 1, ctx, durationMs || Infinity);
+
+      topUpIntervalRef.current = setInterval(() => {
+        void topUpAudio(isStale);
+      }, AUDIO_TOPUP_INTERVAL_MS);
+    }, [
+      play,
+      tracks,
+      durationMs,
+      fps,
+      getAsset,
+      setCurrentTimeMs,
+      stopAudioSession,
+      topUpAudio
+    ]);
 
     const handlePause = useCallback(() => {
       playGenRef.current++;
@@ -309,7 +503,8 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       clockRef.current.stop();
       graphRef.current.stopAll();
       graphRef.current.suspend();
-    }, [pause]);
+      stopAudioSession();
+    }, [pause, stopAudioSession]);
 
     const handleStop = useCallback(() => {
       playGenRef.current++;
@@ -317,7 +512,8 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       clockRef.current.stop();
       graphRef.current.stopAll();
       graphRef.current.suspend();
-    }, [stop]);
+      stopAudioSession();
+    }, [stop, stopAudioSession]);
 
     // The clock auto-pauses via the store when it hits the timeline end —
     // a path that bypasses handlePause. Mirror its teardown here so audio
@@ -328,18 +524,31 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       clockRef.current.stop();
       graphRef.current.stopAll();
       graphRef.current.suspend();
-    }, [isPlaying]);
+      stopAudioSession();
+    }, [isPlaying, stopAudioSession]);
 
     // On external seek while playing, restart audio scheduling + clock at the
     // new position so audio re-aligns with the playhead. We key on seekNonce
     // (bumped only by store.seek()) so frame-by-frame clock updates don't
-    // trigger a restart.
+    // trigger a restart. Silence immediately (`stopAll`), but debounce the
+    // actual restart: a ruler scrub delivers pointermove-rate seeks, and only
+    // the last one in a burst should pay for asset resolution, decode, and a
+    // fresh clock start. The effect cleanup cancels the pending restart when
+    // a newer seek supersedes it (or the component unmounts); `stopAudioSession`
+    // cancels it on pause/stop too.
     useEffect(() => {
       if (seekNonce === 0 || !isPlaying) {
         return;
       }
       graphRef.current.stopAll();
-      void handlePlay();
+      stopAudioSession();
+
+      seekDebounceRef.current = setTimeout(() => {
+        seekDebounceRef.current = null;
+        void handlePlay();
+      }, SEEK_RESTART_DEBOUNCE_MS);
+
+      return clearSeekDebounce;
       // handlePlay reads the latest currentTimeMs from the store.
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [seekNonce]);
@@ -369,20 +578,6 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
 
     const stepBack = useCallback(() => stepFrame(-1), [stepFrame]);
     const stepForward = useCallback(() => stepFrame(1), [stepFrame]);
-
-    /** All unique clip boundary timestamps (start + end), sorted ascending. */
-    const clipBoundaries = useMemo(() => {
-      const pts = new Set<number>();
-      pts.add(0);
-      for (const c of clips) {
-        pts.add(c.startMs);
-        pts.add(c.startMs + c.durationMs);
-      }
-      if (durationMs) {
-        pts.add(durationMs);
-      }
-      return Array.from(pts).sort((a, b) => a - b);
-    }, [clips, durationMs]);
 
     const jumpToPrevBoundary = useCallback(() => {
       // Read the live playhead: while playing, `currentTimeMs` is frozen at the
@@ -447,18 +642,6 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       }
     }, []);
 
-    // `durationMs` is set only on load and is NOT recomputed when clips are
-    // added/moved (see TracksRegion, which derives its own content extent).
-    // For a new/unsaved sequence it stays 0, which would pin the scrubber's
-    // range to [0, 1] (max ≤ step → every drag snaps to the end). Derive the
-    // max from the actual clip extent, matching the ruler.
-    const contentEndMs = useMemo(() => {
-      let end = durationMs || 0;
-      for (const c of clips) {
-        end = Math.max(end, c.startMs + c.durationMs);
-      }
-      return end;
-    }, [clips, durationMs]);
     const scrubMax = Math.max(1, contentEndMs);
     const scrubValue = Math.min(scrubMax, scrubMs ?? currentTimeMs);
 

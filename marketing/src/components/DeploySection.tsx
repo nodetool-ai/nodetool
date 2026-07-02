@@ -49,7 +49,7 @@ export default function DeploySection({
                     One Command Deploy
                   </h3>
                   <p className="text-slate-400 text-sm mt-1 leading-relaxed">
-                    Simply run{" "}
+                    Run{" "}
                     <code className="bg-slate-800 px-1.5 py-0.5 rounded text-purple-300 text-xs font-mono border border-white/5">
                       nodetool deploy
                     </code>{" "}

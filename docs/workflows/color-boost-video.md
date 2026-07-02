@@ -12,6 +12,12 @@ Extracts frames from a video, amplifies color intensity, and reassembles them in
 3. **Color Enhancement** - Each frame's exposure and saturation are amplified using `lib.image.color_grading.Exposure` and `lib.image.color_grading.SaturationVibrance`.
 4. **Reassembly** (`nodetool.video.FrameToVideo`) - Enhanced frames are recompiled into a new video stream.
 
+## Demo
+
+<video controls preload="metadata" poster="{{ '/assets/workflows/color-boost-video.jpg' | relative_url }}">
+  <source src="{{ '/assets/workflows/color-boost-video.mp4' | relative_url }}" type="video/mp4">
+</video>
+
 ## Tags
 
 video, start

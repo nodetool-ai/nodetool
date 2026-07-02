@@ -3,13 +3,23 @@ import { isConnectable } from "../../utils/TypeHandler";
 
 type ConnectabilityMatrix = Record<TypeName, Record<TypeName, boolean>>;
 
+// TypeMetadata objects come from fetched node metadata and are never mutated
+// after load, so caching their hash by object identity is safe.
+const hashTypeCache = new WeakMap<TypeMetadata, string>();
+
 const hashType = (type: TypeMetadata): string => {
-  if (type) {
-    // Include type_name for enums to prevent different enums from colliding
-    const enumIdentity = type.type === "enum" && type.type_name ? `@${type.type_name}` : "";
-    return `${type.type}${enumIdentity}_${(type.type_args ?? []).map((t) => hashType(t)).join("_")}`;
+  if (!type) {
+    return "";
   }
-  return "";
+  const cached = hashTypeCache.get(type);
+  if (cached !== undefined) {
+    return cached;
+  }
+  // Include type_name for enums to prevent different enums from colliding
+  const enumIdentity = type.type === "enum" && type.type_name ? `@${type.type_name}` : "";
+  const result = `${type.type}${enumIdentity}_${(type.type_args ?? []).map((t) => hashType(t)).join("_")}`;
+  hashTypeCache.set(type, result);
+  return result;
 };
 
 let connectabilityMatrix: ConnectabilityMatrix | null = null;

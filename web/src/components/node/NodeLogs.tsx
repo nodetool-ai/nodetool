@@ -3,14 +3,21 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useRef, useEffect, useCallback, useState, useMemo } from "react";
+
+import useLogsStore, { nodeLogKey } from "../../stores/LogStore";
+import isEqual from "fast-deep-equal";
 import {
+  CopyButton,
+  Text,
+  Chip,
+  EditorButton,
+  Dialog,
+  FlexRow,
+  BORDER_RADIUS,
   DialogTitle,
   DialogContent,
   DialogActions
-} from "@mui/material";
-import useLogsStore, { nodeLogKey } from "../../stores/LogStore";
-import isEqual from "fast-deep-equal";
-import { CopyButton, Text, Chip, EditorButton, Dialog, FlexRow, BORDER_RADIUS } from "../ui_primitives";
+} from "../ui_primitives";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import LogsTable, { LogRow, Severity } from "../common/LogsTable";
 
@@ -63,31 +70,36 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
 
     const count = logs?.length || 0;
 
+    // Gated on `open`: while the dialog is closed there's no point walking
+    // the (potentially large) logs array on every appended line. Kept even
+    // though the dialog is now only mounted while open (see NodeHeader),
+    // for robustness against other callers.
     const logText = useMemo(() => {
+      if (!open) return "";
       const MAX_LINES = 2000;
       const logsToCopy = (logs || []).slice(-MAX_LINES);
       return logsToCopy
         .map((log) => `${log.timestamp} ${log.severity} ${log.content}`)
         .join("\n");
-    }, [logs]);
+    }, [logs, open]);
 
-    const logRows = useMemo(
-      () =>
-        (logs || []).map((l) => ({
-          severity: l.severity as LogRow["severity"],
-          timestamp: l.timestamp,
-          content: l.content,
-          workflowName: undefined,
-          data: l.data
-        })),
-      [logs]
-    );
+    const logRows = useMemo(() => {
+      if (!open) return [] as LogRow[];
+      return (logs || []).map((l) => ({
+        severity: l.severity as LogRow["severity"],
+        timestamp: l.timestamp,
+        content: l.content,
+        workflowName: undefined,
+        data: l.data
+      }));
+    }, [logs, open]);
 
     useEffect(() => {
+      if (!open) return;
       if (logsRef.current) {
         logsRef.current.scrollTop = logsRef.current.scrollHeight;
       }
-    }, [logs]);
+    }, [logs, open]);
 
     const toggleSeverity = useCallback(
       (severity: Severity) => () => {
@@ -216,7 +228,7 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
 
 NodeLogsDialog.displayName = "NodeLogsDialog";
 
-export const NodeLogs: React.FC<NodeLogsProps> = ({ id, workflowId }) => {
+const NodeLogsImpl: React.FC<NodeLogsProps> = ({ id, workflowId }) => {
   const theme = useTheme();
   const memoizedStyles = useMemo(() => styles(theme), [theme]);
   // O(1) lookup via pre-keyed map instead of filtering the full logs array.
@@ -264,4 +276,6 @@ export const NodeLogs: React.FC<NodeLogsProps> = ({ id, workflowId }) => {
   );
 };
 
-export default memo(NodeLogs, isEqual);
+export const NodeLogs = memo(NodeLogsImpl, isEqual);
+NodeLogs.displayName = "NodeLogs";
+export default NodeLogs;

@@ -8,9 +8,20 @@ import React, {
 } from "react";
 import { shallow } from "zustand/shallow";
 //mui
-import { InputAdornment, TextField } from "@mui/material";
+
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Divider, Text, ToolbarIconButton, Box, ContextMenu, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import {
+  Divider,
+  Text,
+  ToolbarIconButton,
+  Box,
+  ContextMenu,
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx,
+  InputAdornment,
+  TextField
+} from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 //icons
 import PushPinIcon from "@mui/icons-material/PushPin";

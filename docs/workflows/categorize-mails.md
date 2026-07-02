@@ -7,6 +7,12 @@ title: "Categorize Mails"
 
 Classifies emails into predefined categories (Newsletter, Work, Family, Friends) using an LLM and applies matching Gmail labels.
 
+## Demo
+
+<video controls preload="metadata" poster="{{ '/assets/workflows/categorize-mails.jpg' | relative_url }}">
+  <source src="{{ '/assets/workflows/categorize-mails.mp4' | relative_url }}" type="video/mp4">
+</video>
+
 ## Workflow Steps
 
 1. **Gmail Search** - Fetches up to 10 recent emails using the specified filters (date, subject, sender).

@@ -131,15 +131,19 @@ export async function renderTimeline(
   const height = Math.max(2, Math.floor(opts.height / 2) * 2);
   const totalFrames = Math.max(1, Math.round((durationMs / 1000) * fps));
 
-  // Resolve each asset url at most once across the whole render.
-  const urlCache = new Map<string, string | undefined>();
-  const resolveCached = async (
-    assetId: string
-  ): Promise<string | undefined> => {
-    if (urlCache.has(assetId)) return urlCache.get(assetId);
-    const url = await resolveUrl(assetId);
-    urlCache.set(assetId, url);
-    return url;
+  // Resolve each asset url at most once across the whole render. Cached by
+  // the in-flight promise (not the resolved value) so the per-frame layer
+  // resolution below — which now resolves every layer of a frame
+  // concurrently — can't kick off a second `resolveUrl` for the same asset
+  // before the first one has settled.
+  const urlCache = new Map<string, Promise<string | undefined>>();
+  const resolveCached = (assetId: string): Promise<string | undefined> => {
+    let pending = urlCache.get(assetId);
+    if (!pending) {
+      pending = resolveUrl(assetId);
+      urlCache.set(assetId, pending);
+    }
+    return pending;
   };
 
   onProgress?.({ phase: "preparing", frame: 0, totalFrames, ratio: 0 });
@@ -214,60 +218,87 @@ export async function renderTimeline(
       audioSource.close();
     }
 
+    // Video/overlay clips release their pooled `<video>` element as soon as
+    // their fixed time range has fully passed. Each clip is a single
+    // contiguous span, so a released clip can never be seeked again — this
+    // caps live media elements at the overlap width instead of the whole
+    // export's clip count.
+    const videoClipsByEnd = clips
+      .filter((c) => c.mediaType === "video" || c.mediaType === "overlay")
+      .sort(
+        (a, b) => a.startMs + a.durationMs - (b.startMs + b.durationMs)
+      );
+    let releasePastIndex = 0;
+
     const frameDurationSec = 1 / fps;
     for (let frame = 0; frame < totalFrames; frame++) {
       throwIfAborted(signal);
       const timeMs = (frame * 1000) / fps;
 
+      while (
+        releasePastIndex < videoClipsByEnd.length &&
+        videoClipsByEnd[releasePastIndex].startMs +
+          videoClipsByEnd[releasePastIndex].durationMs <
+          timeMs
+      ) {
+        videoPool.release(videoClipsByEnd[releasePastIndex].id);
+        releasePastIndex++;
+      }
+
       const layers = computeActiveLayers(tracks, clips, timeMs);
-      const composite: CompositeLayer[] = [];
 
-      for (const layer of layers) {
-        if (layer.kind === "caption" && layer.caption) {
-          const bitmap = captionRasterizer.rasterize(
-            layer.caption,
-            width,
-            height
-          );
-          if (!bitmap) continue;
-          composite.push({
-            id: `c:${layer.clipId}`,
-            source: bitmap,
-            opacity: layer.opacity,
-            blendMode: layer.blendMode,
-            zIndex: trackZ(layer.trackIndex),
-            transform: layer.transform
-          });
-          continue;
-        }
+      // Resolve every layer's source concurrently — with several overlapping
+      // videos this turns N sequential seek round-trips into one. Promise.all
+      // preserves input order in its result array regardless of resolution
+      // order, so the composite below still assembles in the original
+      // (bottom-to-top) layer order.
+      const resolved = await Promise.all(
+        layers.map(async (layer): Promise<CompositeLayer | null> => {
+          if (layer.kind === "caption" && layer.caption) {
+            const bitmap = captionRasterizer.rasterize(
+              layer.caption,
+              width,
+              height
+            );
+            if (!bitmap) return null;
+            return {
+              id: `c:${layer.clipId}`,
+              source: bitmap,
+              opacity: layer.opacity,
+              blendMode: layer.blendMode,
+              zIndex: trackZ(layer.trackIndex),
+              transform: layer.transform
+            };
+          }
 
-        if (!layer.assetId) continue;
-        const url = await resolveCached(layer.assetId);
-        if (!url) continue;
+          if (!layer.assetId) return null;
+          const url = await resolveCached(layer.assetId);
+          if (!url) return null;
 
-        if (layer.kind === "video") {
-          const el = await videoPool.seek(
-            layer.clipId,
-            url,
-            clipSourceTimeSec(layer.clip, timeMs),
-            signal
-          );
-          if (el.videoWidth === 0) continue;
-          composite.push({
-            id: `v:${layer.clipId}`,
-            source: el,
-            opacity: layer.opacity,
-            blendMode: layer.blendMode,
-            zIndex: trackZ(layer.trackIndex),
-            transform: layer.transform,
-            borderRadius: layer.borderRadius,
-            effects: layer.effects,
-            trackEffects: layer.trackEffects
-          });
-        } else {
+          if (layer.kind === "video") {
+            const el = await videoPool.seek(
+              layer.clipId,
+              url,
+              clipSourceTimeSec(layer.clip, timeMs),
+              signal
+            );
+            if (el.videoWidth === 0) return null;
+            return {
+              id: `v:${layer.clipId}`,
+              source: el,
+              opacity: layer.opacity,
+              blendMode: layer.blendMode,
+              zIndex: trackZ(layer.trackIndex),
+              transform: layer.transform,
+              borderRadius: layer.borderRadius,
+              effects: layer.effects,
+              trackEffects: layer.trackEffects
+            };
+          }
+
           const img = await loadImage(url);
-          if (!img) continue;
-          composite.push({
+          if (!img) return null;
+          return {
             id: `i:${layer.clipId}`,
             source: img,
             opacity: layer.opacity,
@@ -277,9 +308,12 @@ export async function renderTimeline(
             borderRadius: layer.borderRadius,
             effects: layer.effects,
             trackEffects: layer.trackEffects
-          });
-        }
-      }
+          };
+        })
+      );
+      const composite: CompositeLayer[] = resolved.filter(
+        (layer): layer is CompositeLayer => layer !== null
+      );
 
       compositor.setLayers(composite);
       compositor.render();

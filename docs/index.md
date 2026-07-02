@@ -110,7 +110,7 @@ Same code, same workflows. Both AGPL-3.0.
   <article class="pattern-card">
     <h5>Agents</h5>
     <p>Multi-step agents that plan, call tools, and drive pipelines.</p>
-    <a href="{{ '/workflows/realtime-agent' | relative_url }}">Realtime Agent →</a>
+    <a href="{{ '/workflows/fetch-papers' | relative_url }}">Fetch Papers →</a>
   </article>
 </div>
 

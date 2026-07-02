@@ -3,8 +3,9 @@
  *
  * The playhead must update its DOM position from the playback store's TRANSIENT
  * channel (`setTimeMs` → `subscribeTime`) WITHOUT re-rendering the React tree.
- * These tests verify the element's `left` and the pill text track live time
- * pushes, and that those pushes don't trigger a component render.
+ * These tests verify the element's `transform` (compositor-only positioning;
+ * the -8px is the folded half-width centering offset) and the pill text track
+ * live time pushes, and that those pushes don't trigger a component render.
  */
 
 import React from "react";
@@ -35,17 +36,18 @@ describe("Playhead", () => {
 
     const el = screen.getByTestId("playhead");
 
-    // Push a live time of 1000ms → 1000 / 10 = 100px.
+    // Push a live time of 1000ms → 1000 / 10 = 100px, minus the 8px
+    // half-width centering offset.
     act(() => {
       useTimelinePlaybackStore.getState().setTimeMs(1000);
     });
-    expect(el.style.left).toBe("100px");
+    expect(el.style.transform).toBe("translateX(92px)");
 
     // A second push moves it again without remounting.
     act(() => {
       useTimelinePlaybackStore.getState().setTimeMs(2000);
     });
-    expect(el.style.left).toBe("200px");
+    expect(el.style.transform).toBe("translateX(192px)");
   });
 
   it("reflects the live position in the timecode pill", () => {

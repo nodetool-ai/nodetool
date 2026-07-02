@@ -40,6 +40,12 @@ defaults:
       path: ""
     values:
       image: /assets/home.png
+      # Explicit front-matter (layout: home / layout: redirect / layout: page)
+      # always wins over this default. Pages that ship with no front matter at
+      # all (e.g. generated via jekyll-optional-front-matter) still need the
+      # "page" layout to get the sidebar, header/footer, and the "Edit this
+      # page on GitHub" link in _layouts/page.html.
+      layout: page
   # Node reference pages are pure generated Markdown. Some node descriptions
   # legitimately contain `{{ variable }}` / `{% ... %}` template syntax, which
   # Jekyll would otherwise try to parse as Liquid (and warn/err on). They need

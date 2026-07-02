@@ -18,6 +18,7 @@ export type LeftPanelView =
   | "history"
   | "favorites"
   | "assets"
+  | "library"
   | "nodes";
 export type PanelView = LeftPanelView;
 
@@ -72,6 +73,7 @@ const VALID_VIEWS: LeftPanelView[] = [
   "history",
   "favorites",
   "assets",
+  "library",
   "nodes"
 ];
 

@@ -175,7 +175,7 @@ jobs:
           build-packages: "false"
 
       - name: Download package dist
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: packages-dist
           path: packages
@@ -185,7 +185,7 @@ jobs:
       - name: Cache mobile node_modules
         if: matrix.mobile-deps == 'true'
         id: mobile-node-modules
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: mobile/node_modules
           key: ${{ runner.os }}-mobile-node-modules-${{ hashFiles('mobile/package-lock.json') }}

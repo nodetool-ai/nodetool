@@ -5,8 +5,14 @@ import { BASE_URL } from "../../stores/BASE_URL";
 import { Model3DModelValue } from "../../stores/ApiTypes";
 import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
-import { ListItemText } from "@mui/material";
-import { Caption, Divider, EditorMenu, EditorMenuItem } from "../ui_primitives";
+
+import {
+  Caption,
+  Divider,
+  EditorMenu,
+  EditorMenuItem,
+  ListItemText
+} from "../ui_primitives";
 
 // Local type until codegen adds Model3DModel to ApiTypes
 interface Model3DModel {

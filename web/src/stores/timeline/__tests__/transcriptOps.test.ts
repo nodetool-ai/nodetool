@@ -5,14 +5,12 @@ import {
   PLACEHOLDER_BEAT_MS,
   applyEditorEdits,
   buildTranscriptDoc,
-  countFillers,
   cutWordRange,
   hasWords,
   isFillerWord,
   isTranscriptClip,
   isVoiceoverBeat,
   migrateTranscriptToClips,
-  moveWordRange,
   pasteClipsAt,
   reconcileTranscript,
   reflowGenerated,
@@ -447,37 +445,6 @@ describe("pasteClipsAt", () => {
   });
 });
 
-describe("moveWordRange", () => {
-  it("moves a word range and the media follows the text", () => {
-    const c = beat("c", {
-      startMs: 0,
-      durationMs: 900,
-      words: words(["a", 0, 300], ["b", 300, 600], ["c", 600, 900])
-    });
-    // Move "c" (600–900) to the front (target 0): transcript becomes "c a b".
-    const out = moveWordRange([c], 600, 900, 0);
-    const texts = buildTranscriptDoc(out.clips)
-      .segments.flatMap((s) => s.tokens)
-      .map((t) => t.text);
-    expect(texts).toEqual(["c", "a", "b"]);
-    expect(out.durationMs).toBe(900);
-  });
-
-  it("is a no-op when the target is inside the moved range", () => {
-    const c = beat("c", {
-      startMs: 0,
-      durationMs: 900,
-      words: words(["a", 0, 300], ["b", 300, 600], ["c", 600, 900])
-    });
-    const out = moveWordRange([c], 300, 600, 450);
-    expect(out.clips).toHaveLength(1);
-    const texts = buildTranscriptDoc(out.clips)
-      .segments.flatMap((s) => s.tokens)
-      .map((t) => t.text);
-    expect(texts).toEqual(["a", "b", "c"]);
-  });
-});
-
 // ── Filler words ─────────────────────────────────────────────────────────────
 
 describe("filler words", () => {
@@ -497,7 +464,6 @@ describe("filler words", () => {
     const tokens = buildTranscriptDoc([c]).segments[0].tokens;
     expect(tokens.find((t) => t.text === "um")!.kind).toBe("filler");
     expect(tokens.find((t) => t.text === "hi")!.kind).toBe("word");
-    expect(countFillers([c])).toBe(1);
   });
 
   it("ripple-cuts every filler in one pass, keeping the rest in order", () => {

@@ -1,6 +1,14 @@
 import React, { memo } from "react";
-import { Slider, Switch } from "@mui/material";
-import { FlexRow, Box, Text, SPACING, getSpacingPx } from "../../ui_primitives";
+
+import {
+  FlexRow,
+  Box,
+  Text,
+  SPACING,
+  getSpacingPx,
+  Slider,
+  Switch
+} from "../../ui_primitives";
 import { sketchSliderSx } from "../sketchStyles";
 import { SketchModeToggle, SketchModeOption } from "./SketchModeToggle";
 import {

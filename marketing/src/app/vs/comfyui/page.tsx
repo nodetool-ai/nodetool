@@ -129,12 +129,11 @@ export default function VsComfyUIPage() {
             The open creative AI workspace, not just a diffusion editor.
           </h1>
           <p className="mt-5 text-lg leading-relaxed text-slate-300">
-            ComfyUI is a node editor focused on Stable Diffusion and diffusion
-            image generation, with engineer-first UX. NodeTool is the studio
-            around it: image, video, music, and words on one canvas; a much wider
-            model roster across providers and modalities; editing tools creatives
-            actually use — called with your own keys at provider prices. Both are
-            node-based and open source.
+            ComfyUI is a node editor for Stable Diffusion, built with an
+            engineer-first UX. NodeTool is the studio around it: image, video,
+            music, and words on one canvas, a far wider model roster, and the
+            editing tools creatives reach for — called with your own keys at
+            provider prices. Both are node-based and open source.
           </p>
         </section>
 
@@ -222,12 +221,11 @@ export default function VsComfyUIPage() {
               If your work starts and ends with Stable Diffusion images, ComfyUI
               gives you fine-grained control. But most creative projects span
               modalities — image into video, voice and music into a cut, words
-              into everything. NodeTool keeps image, video, audio, and text on one
-              node-based canvas with the editing tools you reach for built in:
-              masks, inpaint, outpaint, relight, upscale, layers, and
-              compositing. You call every major model from every major provider
-              with your own keys at provider prices — no credits, no markup, no
-              curated roster — and run locally too via Ollama, MLX, and llama.cpp.
+              into everything. NodeTool keeps all of it on one node-based canvas
+              with masks, inpaint, outpaint, relight, upscale, layers, and
+              compositing built in. You call every major model with your own
+              keys at provider prices, and run locally via Ollama, MLX, and
+              llama.cpp.
             </p>
           </div>
         </section>

@@ -20,7 +20,7 @@ import { AddNodeButton } from "./AddNodeButton";
 import { NodePickerDialog } from "./NodePickerDialog";
 import { trpcClient } from "../../trpc/client";
 import type { NodeMetadata } from "../../stores/ApiTypes";
-import type { ChainNode, InputSource } from "./chainTypes";
+import type { ChainNode } from "./chainTypes";
 
 interface ChainEditorProps {
   onSave?: () => void;

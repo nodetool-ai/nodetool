@@ -19,6 +19,10 @@ To build any example:
 
 **Example**: Image Enhancement
 
+<video controls preload="metadata" poster="{{ '/assets/cookbook/image-enhancement.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/image-enhancement.mp4' | relative_url }}" type="video/mp4">
+</video>
+
 {% mermaid %}
 graph TD
   output["Output"]
@@ -45,6 +49,10 @@ ______________________________________________________________________
 **Use Case**: LLM generates content based on input
 
 **Example**: Image to Story
+
+<video controls preload="metadata" poster="{{ '/assets/cookbook/image-to-story.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/image-to-story.mp4' | relative_url }}" type="video/mp4">
+</video>
 
 {% mermaid %}
 graph TD
@@ -78,6 +86,10 @@ ______________________________________________________________________
 **Use Case**: Show intermediate results during generation
 
 **Example**: Movie Poster Generator
+
+<video controls preload="metadata" poster="{{ '/assets/cookbook/movie-poster.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/movie-poster.mp4' | relative_url }}" type="video/mp4">
+</video>
 
 {% mermaid %}
 graph TD
@@ -129,6 +141,10 @@ ______________________________________________________________________
 
 **Example**: Chat with Docs
 
+<video controls preload="metadata" poster="{{ '/assets/cookbook/chat-with-docs.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/chat-with-docs.mp4' | relative_url }}" type="video/mp4">
+</video>
+
 {% mermaid %}
 graph TD
   chat_input["StringInput"]
@@ -155,26 +171,6 @@ graph TD
 1. **Format**: Inject retrieved context into prompt
 1. **Generate**: Stream LLM response with context
 
-**Related Workflow**: Index PDFs
-
-{% mermaid %}
-graph TD
-  list_files["ListFiles"]
-  collection["Collection"]
-  load_document["LoadDocumentFile"]
-  extract_text["ExtractText"]
-  index_chunks["IndexTextChunk"]
-  sentence_splitter["SplitRecursively"]
-  path_to_string["PathToString"]
-  extract_text --> sentence_splitter
-  load_document --> extract_text
-  sentence_splitter --> index_chunks
-  collection --> index_chunks
-  list_files --> load_document
-  list_files --> path_to_string
-  path_to_string --> sentence_splitter
-{% endmermaid %}
-
 ______________________________________________________________________
 
 <span id="pattern-5-database-persistence"></span>
@@ -184,6 +180,10 @@ ______________________________________________________________________
 **Use Case**: Store generated data for later retrieval
 
 **Example**: AI Flashcard Generator with SQLite
+
+<video controls preload="metadata" poster="{{ '/assets/cookbook/flashcards-sqlite.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/flashcards-sqlite.mp4' | relative_url }}" type="video/mp4">
+</video>
 
 {% mermaid %}
 graph TD
@@ -233,6 +233,10 @@ ______________________________________________________________________
 
 **Example**: Summarize Newsletters
 
+<video controls preload="metadata" poster="{{ '/assets/cookbook/summarize-newsletters.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/summarize-newsletters.mp4' | relative_url }}" type="video/mp4">
+</video>
+
 {% mermaid %}
 graph TD
   gmail_search["GmailSearch"]
@@ -261,44 +265,17 @@ graph TD
 
 ______________________________________________________________________
 
-<span id="pattern-7-realtime-processing"></span>
+<span id="pattern-7-multi-modal-workflows"></span>
 
-### Pattern 7: Realtime Processing
-
-**Use Case**: Process streaming audio/video in real-time
-
-**Example**: Realtime Agent
-
-{% mermaid %}
-graph TD
-  audio_input["RealtimeAudioInput"]
-  preview_output["Preview"]
-  realtime_agent["RealtimeAgent"]
-  audio_input --> realtime_agent
-  realtime_agent --> preview_output
-{% endmermaid %}
-
-**When to Use**:
-
-- Voice interfaces
-- Live transcription
-- Interactive audio applications
-
-**Key Nodes**:
-
-- `RealtimeAudioInput`: Streaming audio input
-- `RealtimeAgent` (`openai.agents.RealtimeAgent`): OpenAI Realtime API with streaming
-- `RealtimeTranscription` (`openai.agents.RealtimeTranscription`): OpenAI transcription streaming
-
-______________________________________________________________________
-
-<span id="pattern-8-multi-modal-workflows"></span>
-
-### Pattern 8: Multi-Modal Workflows
+### Pattern 7: Multi-Modal Workflows
 
 **Use Case**: Convert between different media types
 
 **Example**: Audio to Image
+
+<video controls preload="metadata" poster="{{ '/assets/cookbook/audio-to-image.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/audio-to-image.mp4' | relative_url }}" type="video/mp4">
+</video>
 
 {% mermaid %}
 graph TD
@@ -325,13 +302,17 @@ graph TD
 
 ______________________________________________________________________
 
-<span id="pattern-9-advanced-image-processing"></span>
+<span id="pattern-8-advanced-image-processing"></span>
 
-### Pattern 9: Advanced Image Processing
+### Pattern 8: Advanced Image Processing
 
 **Use Case**: AI-powered image transformations
 
 **Example**: Style Transfer
+
+<video controls preload="metadata" poster="{{ '/assets/cookbook/style-transfer.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/style-transfer.mp4' | relative_url }}" type="video/mp4">
+</video>
 
 {% mermaid %}
 graph TD
@@ -365,51 +346,17 @@ graph TD
 
 ______________________________________________________________________
 
-<span id="pattern-10-data-processing-pipeline"></span>
+<span id="pattern-9-text-to-video"></span>
 
-### Pattern 10: Data Processing Pipeline
-
-**Use Case**: Fetch, transform, and visualize data
-
-**Example**: Data Visualization Pipeline
-
-{% mermaid %}
-graph TD
-  preview_1["Preview"]
-  get_request["GetRequest"]
-  import_c_s_v["ImportCSV"]
-  filter["Filter"]
-  chart_generator["ChartGenerator"]
-  preview_2["Preview"]
-  get_request --> import_c_s_v
-  import_c_s_v --> filter
-  filter --> preview_1
-  filter --> chart_generator
-  chart_generator --> preview_2
-{% endmermaid %}
-
-**When to Use**:
-
-- Fetch external data sources
-- Transform and filter datasets
-- Auto-generate visualizations
-
-**Key Nodes**:
-
-- `GetRequest`: Fetch web resources
-- `ImportCSV`: Parse CSV data
-- `Filter`: Transform data
-- `ChartGenerator`: AI-generated charts with Plotly
-
-______________________________________________________________________
-
-<span id="pattern-11-text-to-video"></span>
-
-### Pattern 11: Text-to-Video Generation
+### Pattern 9: Text-to-Video Generation
 
 **Use Case**: Generate videos from text descriptions
 
 **Example**: Cinematic Video from Prompt
+
+<video controls preload="metadata" poster="{{ '/assets/cookbook/text-to-video.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/text-to-video.mp4' | relative_url }}" type="video/mp4">
+</video>
 
 {% mermaid %}
 graph TD
@@ -442,13 +389,17 @@ graph TD
 
 ______________________________________________________________________
 
-<span id="pattern-12-image-to-video"></span>
+<span id="pattern-10-image-to-video"></span>
 
-### Pattern 12: Image-to-Video Generation
+### Pattern 10: Image-to-Video Generation
 
 **Use Case**: Animate images into videos
 
 **Example**: Bring Images to Life
+
+<video controls preload="metadata" poster="{{ '/assets/cookbook/image-to-video.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/image-to-video.mp4' | relative_url }}" type="video/mp4">
+</video>
 
 {% mermaid %}
 graph TD
@@ -494,13 +445,17 @@ graph TD
 
 ______________________________________________________________________
 
-<span id="pattern-13-talking-avatar"></span>
+<span id="pattern-11-talking-avatar"></span>
 
-### Pattern 13: Talking Avatar Generation
+### Pattern 11: Talking Avatar Generation
 
 **Use Case**: Create lip-synced avatar videos
 
 **Example**: Virtual Presenter
+
+<video controls preload="metadata" poster="{{ '/assets/cookbook/talking-avatar.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/talking-avatar.mp4' | relative_url }}" type="video/mp4">
+</video>
 
 {% mermaid %}
 graph TD
@@ -535,13 +490,17 @@ graph TD
 
 ______________________________________________________________________
 
-<span id="pattern-14-video-enhancement"></span>
+<span id="pattern-12-video-enhancement"></span>
 
-### Pattern 14: Image Enhancement & Upscaling
+### Pattern 12: Image Enhancement & Upscaling
 
 **Use Case**: Improve image quality and resolution
 
 **Example**: HD Image Upscaling
+
+<video controls preload="metadata" poster="{{ '/assets/cookbook/image-upscaling.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/image-upscaling.mp4' | relative_url }}" type="video/mp4">
+</video>
 
 {% mermaid %}
 graph TD
@@ -572,13 +531,17 @@ graph TD
 
 ______________________________________________________________________
 
-<span id="pattern-15-storyboard-to-video"></span>
+<span id="pattern-13-storyboard-to-video"></span>
 
-### Pattern 15: Storyboard to Video
+### Pattern 13: Storyboard to Video
 
 **Use Case**: Convert image sequences to coherent videos
 
 **Example**: Visual Story Generation
+
+<video controls preload="metadata" poster="{{ '/assets/cookbook/storyboard-to-video.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/storyboard-to-video.mp4' | relative_url }}" type="video/mp4">
+</video>
 
 {% mermaid %}
 graph TD

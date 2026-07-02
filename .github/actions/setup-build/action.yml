@@ -57,10 +57,28 @@ runs:
       shell: bash
       run: npm rebuild better-sqlite3
 
-    # Persist Turbo's local cache so `build:packages`/`test:packages` restore
-    # prior task outputs instead of rebuilding ~55 packages from scratch in every
-    # job. Keyed by commit with a prefix fallback to the latest available cache.
+    # Restore Turbo's local cache so `build:packages`/`test:packages` reuse prior
+    # task outputs instead of rebuilding ~55 packages from scratch in every job.
+    # Keyed by commit with a prefix fallback to the latest available cache.
+    #
+    # Only the job that actually builds (build-packages: true) saves the cache
+    # back — restore-only jobs never populate `.turbo/cache`, so if they also
+    # saved, they'd race the real build job for the immutable per-SHA key: a
+    # fast non-building leg that finishes first "claims" the key with a stale
+    # (restore-keys-fallback) cache, and the build job's own save then fails
+    # because the key already exists, leaving `test-packages` to restore that
+    # stale cache and rebuild from scratch anyway.
+    - name: Restore Turbo build outputs
+      if: inputs.build-packages != 'true'
+      uses: actions/cache/restore@v5
+      with:
+        path: .turbo/cache
+        key: ${{ runner.os }}-turbo-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-turbo-
+
     - name: Cache Turbo build outputs
+      if: inputs.build-packages == 'true'
       uses: actions/cache@v5
       with:
         path: .turbo/cache

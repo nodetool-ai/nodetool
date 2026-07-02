@@ -1,8 +1,16 @@
 /** @jsxImportSource @emotion/react */
 import React, { useState } from "react";
 import { useTheme } from "@mui/material/styles";
-import { ListItemIcon, ListItemText } from "@mui/material";
-import { Box, EditorMenu, EditorMenuItem, MOTION, BORDER_RADIUS } from "../ui_primitives";
+
+import {
+  Box,
+  EditorMenu,
+  EditorMenuItem,
+  MOTION,
+  BORDER_RADIUS,
+  ListItemIcon,
+  ListItemText
+} from "../ui_primitives";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import CheckIcon from "@mui/icons-material/Check";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";

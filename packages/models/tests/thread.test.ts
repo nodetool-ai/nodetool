@@ -13,9 +13,14 @@ import { Thread } from "../src/thread.js";
 
 async function createThread(
   userId: string,
-  title = "Test Thread"
+  title = "Test Thread",
+  workflowId?: string
 ): Promise<Thread> {
-  return Thread.create<Thread>({ user_id: userId, title });
+  return Thread.create<Thread>({
+    user_id: userId,
+    title,
+    ...(workflowId ? { workflow_id: workflowId } : {})
+  });
 }
 
 describe("Thread model", () => {
@@ -104,5 +109,32 @@ describe("Thread model", () => {
     const [threads, cursor] = await Thread.paginate("u1");
     expect(threads).toHaveLength(0);
     expect(cursor).toBe("");
+  });
+
+  // ── workflow scoping ──────────────────────────────────────────────
+
+  it("defaults workflow_id to null", () => {
+    const thread = new Thread({ user_id: "u1" });
+    expect(thread.workflow_id).toBeNull();
+  });
+
+  it("persists workflow_id", async () => {
+    const thread = await createThread("u1", "Bound", "wf-1");
+    const found = await Thread.find("u1", thread.id);
+    expect(found!.workflow_id).toBe("wf-1");
+  });
+
+  it("scopes pagination to a workflow when workflowId is given", async () => {
+    await createThread("u1", "A", "wf-1");
+    await createThread("u1", "B", "wf-2");
+    await createThread("u1", "C", "wf-1");
+    await createThread("u1", "Unbound");
+
+    const [scoped] = await Thread.paginate("u1", { workflowId: "wf-1" });
+    expect(scoped).toHaveLength(2);
+    expect(scoped.map((t) => t.title).sort()).toEqual(["A", "C"]);
+
+    const [all] = await Thread.paginate("u1");
+    expect(all).toHaveLength(4);
   });
 });

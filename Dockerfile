@@ -57,6 +57,16 @@ RUN set -eu; \
 
 COPY web/ web/
 ARG WEB_BUILD_NODE_OPTIONS=--max-old-space-size=4096
+# The web app learns its auth mode and public Supabase credentials from the
+# backend at runtime via GET /api/config, so no VITE_* build args are needed
+# here — configure the server (SUPABASE_URL/KEY/ANON_KEY) instead.
+#
+# .git is excluded from the build context (see .dockerignore), so vite.config.ts's
+# git-based fallback can't resolve the commit/build number here — pass them in.
+ARG GIT_COMMIT_HASH=unknown
+ARG BUILD_NUMBER=0
+ENV GIT_COMMIT_HASH=$GIT_COMMIT_HASH \
+    BUILD_NUMBER=$BUILD_NUMBER
 RUN cd web && NODE_OPTIONS="$WEB_BUILD_NODE_OPTIONS" npm run build
 
 # Assemble a minimal runtime filesystem with compiled packages, web assets, and

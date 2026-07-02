@@ -179,7 +179,7 @@ done
 For complete documentation, see:
 
 - [Agent CLI Documentation](../../agent-cli.md) — Complete reference
-- [Global Chat & Agents](../../global-chat-agents.md) — Agent system overview
+- [Chat & Agents](../../global-chat-agents.md) — Agent system overview
 - [NodeTool CLI](../../cli.md) — Full CLI reference
 
 ## Troubleshooting

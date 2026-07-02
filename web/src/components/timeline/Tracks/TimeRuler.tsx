@@ -21,7 +21,10 @@ import { useColorScheme, useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 import type { TimelineMarker } from "@nodetool-ai/timeline";
-import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
+import {
+  useTimelinePlaybackStore,
+  useTimelinePlaybackStoreApi
+} from "../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { BORDER_RADIUS, FONT_SIZE_MONO } from "../../ui_primitives";
@@ -137,7 +140,10 @@ interface MarkerOverlayProps {
   markers: TimelineMarker[];
   msPerPx: number;
   scrollLeftPx: number;
-  totalWidthPx: number;
+  /** Visible width of the ruler viewport (px) — NOT the scrollable content
+   *  width, which can be orders of magnitude larger and would make the
+   *  right-side cull effectively never fire. */
+  viewportWidthPx: number;
   headerWidthPx: number;
   onSeek: (timeMs: number) => void;
   onRemove: (id: string) => void;
@@ -147,7 +153,7 @@ const MarkerOverlayInner: React.FC<MarkerOverlayProps> = ({
   markers,
   msPerPx,
   scrollLeftPx,
-  totalWidthPx,
+  viewportWidthPx,
   headerWidthPx,
   onSeek,
   onRemove
@@ -163,9 +169,12 @@ const MarkerOverlayInner: React.FC<MarkerOverlayProps> = ({
     >
       {markers.map((m) => {
         const contentPx = m.timeMs / msPerPx;
-        // Cull markers outside the currently visible window.
-        const viewportPx = contentPx - scrollLeftPx;
-        if (viewportPx < 0 || viewportPx > totalWidthPx) {
+        // Cull markers outside the visible window (with a small overscan),
+        // in content space: [scrollLeftPx - 200, scrollLeftPx + viewport + 200].
+        if (
+          contentPx < scrollLeftPx - 200 ||
+          contentPx > scrollLeftPx + viewportWidthPx + 200
+        ) {
           return null;
         }
         return (
@@ -263,7 +272,7 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
     const msPerPx = useTimelineUIStore((s) => s.msPerPx);
     const scrollLeftPx = useTimelineUIStore((s) => s.scrollLeftPx);
     const seek = useTimelinePlaybackStore((s) => s.seek);
-    const currentTimeMs = useTimelinePlaybackStore((s) => s.currentTimeMs);
+    const playbackStoreApi = useTimelinePlaybackStoreApi();
     const markers = useTimelineStore((s) => s.markers);
     const removeScene = useTimelineStore((s) => s.removeScene);
 
@@ -271,18 +280,49 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
     //
     // The canvas backing store is sized from offsetWidth/offsetHeight inside
     // the draw effect; bump a tick on container resize so the effect reruns
-    // and the ruler redraws at the new size.
+    // and the ruler redraws at the new size. Also track the canvas's visible
+    // width for the marker overlay's cull predicate (viewport, not content,
+    // width).
 
     const [resizeTick, setResizeTick] = useState(0);
+    const [viewportWidthPx, setViewportWidthPx] = useState(0);
     useEffect(() => {
       const canvas = canvasRef.current;
       if (!canvas) {
         return;
       }
-      const ro = new ResizeObserver(() => setResizeTick((t) => t + 1));
+      const ro = new ResizeObserver(() => {
+        setResizeTick((t) => t + 1);
+        setViewportWidthPx(canvas.offsetWidth);
+      });
       ro.observe(canvas);
       return () => ro.disconnect();
     }, []);
+
+    // ── Scrub/playhead aria value ────────────────────────────────────────────
+    //
+    // aria-valuenow only needs to reflect the position for a11y, not track it
+    // at full frame rate — subscribing to reactive `currentTimeMs` would
+    // re-render this memoized ruler (and redraw its canvas) on every
+    // scrub/playback tick. Write the attribute imperatively off the playback
+    // store's transient channel instead, throttled to ~10 Hz, mirroring
+    // Playhead's subscribeTime effect.
+    const lastAriaBucketRef = useRef<number | null>(null);
+    useEffect(() => {
+      const applyAriaValue = (timeMs: number) => {
+        const bucket = Math.round(timeMs / 100);
+        if (bucket === lastAriaBucketRef.current) {
+          return;
+        }
+        lastAriaBucketRef.current = bucket;
+        canvasRef.current?.setAttribute(
+          "aria-valuenow",
+          String(Math.round(timeMs))
+        );
+      };
+      applyAriaValue(playbackStoreApi.getState().getTimeMs());
+      return playbackStoreApi.getState().subscribeTime(applyAriaValue);
+    }, [playbackStoreApi]);
 
     // ── Draw ────────────────────────────────────────────────────────────────
     //
@@ -479,13 +519,12 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
           aria-label="Time ruler — click or drag to set playhead"
           role="slider"
           aria-valuemin={0}
-          aria-valuenow={Math.round(currentTimeMs)}
         />
         <MarkerOverlay
           markers={markers}
           msPerPx={msPerPx}
           scrollLeftPx={scrollLeftPx}
-          totalWidthPx={totalWidthPx}
+          viewportWidthPx={viewportWidthPx}
           headerWidthPx={headerWidthPx}
           onSeek={seek}
           onRemove={removeScene}

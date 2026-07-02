@@ -44,10 +44,16 @@ function useSignedImageSources(
     })
   );
 
+  const uriIndexMap = React.useMemo(() => {
+    const map = new Map<object, number>();
+    uriItems.forEach((item, i) => map.set(item, i));
+    return map;
+  }, [items]);
+
   return items
     .map((item): ImageSource | undefined => {
       if (item.uri) {
-        const idx = uriItems.indexOf(item);
+        const idx = uriIndexMap.get(item) ?? -1;
         return results[idx]?.data?.url ?? item.uri;
       }
       return item.data;

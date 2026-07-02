@@ -48,7 +48,7 @@ export interface NodeOutputsProps {
   outputs: OutputSlot[];
 }
 
-const NodeOutputs: React.FC<NodeOutputsProps> = ({
+const NodeOutputsImpl: React.FC<NodeOutputsProps> = ({
   id,
   outputs
 }) => {
@@ -98,5 +98,6 @@ const arePropsEqual = (
   );
 };
 
-export { NodeOutputs };
-export default memo(NodeOutputs, arePropsEqual);
+export const NodeOutputs = memo(NodeOutputsImpl, arePropsEqual);
+NodeOutputs.displayName = "NodeOutputs";
+export default NodeOutputs;

@@ -28,7 +28,7 @@ const creativeFeatures = [
   {
     title: "Visual Workflow Canvas",
     description:
-      "Build complex creative pipelines by connecting nodes. See your entire process at a glance and iterate faster.",
+      "Snap nodes into full creative pipelines — the whole process on one screen, from brief to render.",
     icon: Layers,
     image: "/screen_canvas.png",
     features: [
@@ -139,7 +139,7 @@ export default function CreativesPage() {
 
                 <p className="text-lg md:text-xl text-slate-400 mb-12 max-w-3xl mx-auto leading-relaxed">
                   Every model. Your keys. Your canvas. Wire Seedance, Kling, Veo, Runway,
-                  Luma, Suno, Flux, and more on one open-source surface — no credit markup, no vendor lock-in.
+                  Luma, Suno, and Flux on one open-source surface — no credit markup, no vendor lock-in.
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14">
@@ -155,7 +155,7 @@ export default function CreativesPage() {
                     className="inline-flex items-center gap-2.5 px-9 py-4 rounded-full border border-white/15 bg-[#0a0a14]/70 backdrop-blur-sm text-white font-semibold hover:bg-white/5 hover:border-white/25 transition-all"
                   >
                     <Play className="w-5 h-5" />
-                    See How It Works
+                    See how it works
                   </a>
                 </div>
 
@@ -231,8 +231,7 @@ export default function CreativesPage() {
               <p className="text-lg text-slate-400 leading-relaxed">
                 Type a prompt at the playhead, pick a model, and the new clip drops onto
                 the track — video and audio on one multi-track timeline. Trim, split, and
-                arrange like any editor, then export a finished cut without ever leaving
-                NodeTool.
+                arrange like any editor, then export a finished cut.
               </p>
             </motion.div>
 
@@ -512,7 +511,7 @@ export default function CreativesPage() {
                 {
                   title: "No credits. No markup.",
                   description:
-                    "Studio is free and open source under AGPL-3.0. Bring your own keys to every provider and pay providers directly.",
+                    "Studio is free and open source under AGPL-3.0. Bring your own keys and pay providers directly.",
                   icon: Sparkles,
                   color: "text-amber-400",
                   bgColor: "bg-amber-500/10",

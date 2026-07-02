@@ -28,6 +28,7 @@ import LoginIcon from "@mui/icons-material/Login";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
 import HubIcon from "@mui/icons-material/Hub";
 import PermMediaOutlinedIcon from "@mui/icons-material/PermMediaOutlined";
+import CollectionsOutlinedIcon from "@mui/icons-material/CollectionsOutlined";
 
 import type { NodeMetadata } from "../stores/ApiTypes";
 import {
@@ -86,7 +87,8 @@ export const LEFT_PANEL_TOP_LEVEL: readonly LeftPanelTopLevelCategory[] = [
   { id: "settings", label: "Settings", icon: <SettingsIcon /> },
   { id: "history", label: "History", icon: <HistoryIcon /> },
   { id: "favorites", label: "Favorites", icon: <StarIcon /> },
-  { id: "assets", label: "Assets", icon: <PermMediaOutlinedIcon /> }
+  { id: "assets", label: "Assets", icon: <PermMediaOutlinedIcon /> },
+  { id: "library", label: "Library", icon: <CollectionsOutlinedIcon /> }
 ];
 
 /**

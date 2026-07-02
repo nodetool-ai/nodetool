@@ -12,6 +12,103 @@ Self-hosted deployment runs NodeTool in a **Docker** container — on `localhost
 or on a remote host reached over SSH. Docker is the only supported deployment
 `type` (`SUPPORTED_TYPES = ["docker"]`).
 
+Two paths:
+
+- **Docker Compose** — a single `docker-compose.yml` you run yourself. The
+  fastest way to stand up one server. See below.
+- **`nodetool deploy` CLI** — a managed flow driven by `deployment.yaml` that
+  also handles remote hosts over SSH, image transfer, and workflow sync. See
+  [Deployment Configuration](#deployment-configuration).
+
+## Docker Compose (reference)
+
+The repository ships a reference
+[`docker-compose.yml`](https://github.com/nodetool-ai/nodetool/blob/main/docker-compose.yml)
+for running one server on a host you control.
+
+```bash
+cp .env.example .env      # fill in the provider keys you use
+docker compose up -d
+# open http://localhost:17777
+```
+
+The server binds to `0.0.0.0:7777` inside the container and is published on the
+host as `${NODETOOL_PORT:-17777}`. All persistent state — SQLite database,
+assets, vector store, model cache, and the generated secret key — lives under
+`/workspace`, backed by the named `nodetool-data` volume, so it survives
+restarts and image upgrades.
+
+Common overrides (set in `.env` or the shell):
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `NODETOOL_VERSION` | `latest` | Image tag to pull (pin a release in production) |
+| `NODETOOL_PORT` | `17777` | Host port mapped to the container's `7777` |
+| `NODETOOL_TRUST_LOCAL_NETWORKS` | `172.16.0.0/12` | ⚠️ Source CIDRs trusted as user `1` **without a login** (Local mode). Docker bridge by default — **never `0.0.0.0/0`** on a public IP. Ignored in Supabase mode |
+| `SECRETS_MASTER_KEY` | auto-generated | 32-byte base64 key encrypting stored secrets — set explicitly in production (`openssl rand -base64 32`) |
+| `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `FAL_API_KEY`, `HF_TOKEN` | unset | Model provider keys |
+
+Upgrade in place:
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+To store data in a host directory instead of the named volume, replace the
+`nodetool-data:/workspace` mount with a bind mount (e.g. `./nodetool-data:/workspace`)
+and make sure the host directory is writable by the container's `node` user.
+
+### Authentication / login screen
+
+Auth is configured **entirely on the backend**. The web UI fetches its auth mode
+and public Supabase credentials at runtime from `GET /api/config` (a public,
+non-secret endpoint), so the same frontend build works with or without login —
+no rebuild, and it works even when the frontend is served from a different
+origin.
+
+- **Login off (default).** With `SUPABASE_URL`/`SUPABASE_KEY` unset the server
+  runs in **Local mode**: it trusts requests by *source IP* (loopback, plus any
+  `NODETOOL_TRUST_LOCAL_NETWORKS` you set) and runs them as a single user; other
+  requests are rejected, and the UI shows no login screen. In Docker the bundled
+  Compose file trusts the Docker bridge (`172.16.0.0/12`) so a local install
+  works out of the box — see the warning below.
+- **Login on.** Set these three on the server to switch to **Supabase mode** —
+  the server requires a valid Supabase JWT on every request and the UI shows the
+  login screen:
+
+  ```bash
+  SUPABASE_URL=https://your-project.supabase.co
+  SUPABASE_KEY=your-service-role-key   # server-only, never sent to the browser
+  SUPABASE_ANON_KEY=your-anon-key      # public key the login screen uses
+  ```
+
+  Optionally set `AUTH_REDIRECT_URL` when serving behind a domain/proxy (it must
+  be in the Supabase project's redirect allow list).
+
+`GET /api/config` returns `authMode`, `supabaseUrl`, `supabaseAnonKey`,
+`authRedirectUrl`, and `version` — never the service-role key. See
+[Authentication](authentication.md) and [Supabase Deployment](supabase-deployment.md).
+
+> ### 🔒 Do not expose Local mode to the internet
+>
+> Local mode has **no login**. `NODETOOL_TRUST_LOCAL_NETWORKS` trusts a set of
+> source IPs as admin user `"1"` with no password — full access to your data,
+> secrets, and API keys. Anyone who can reach the published port from a trusted
+> range gets in.
+>
+> - Safe on a laptop or a private LAN/VPN behind a firewall.
+> - The default `172.16.0.0/12` trusts only Docker's bridge, not the wider
+>   internet. **Never change it to `0.0.0.0/0` on a public IP.**
+> - Putting NodeTool on a public address or sharing it with untrusted users?
+>   **Enable Supabase mode** (above) so every request needs a real login, and
+>   terminate TLS in front of the server.
+
+> Serving the web UI from a **different origin** (e.g. a CDN)? Point the frontend
+> at the backend with the build-time `VITE_API_URL`, and add that origin to the
+> server's `NODETOOL_ALLOWED_ORIGINS` so the cross-origin `GET /api/config` and
+> API calls are permitted. Everything else still comes from `/api/config`.
+
 ## Deployment Configuration
 
 Deployments are configured via `deployment.yaml`.

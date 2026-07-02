@@ -1,12 +1,17 @@
 import React, { memo, useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useReactFlow, Node } from "@xyflow/react";
+
 import {
+  Divider,
+  ToolbarIconButton,
+  EditorMenu,
+  EditorMenuItem,
+  BORDER_RADIUS,
   Toolbar,
   ListItemIcon,
   ListItemText
-} from "@mui/material";
-import { Divider, ToolbarIconButton, EditorMenu, EditorMenuItem, BORDER_RADIUS } from "../ui_primitives";
+} from "../ui_primitives";
 import CopyAllIcon from "@mui/icons-material/CopyAll";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";

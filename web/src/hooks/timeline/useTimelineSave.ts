@@ -4,13 +4,17 @@
  * Autosave ({@link useTimelineAutosave}) covers the common case, but the Save
  * button lets the user force an immediate PATCH of the current document and see
  * explicit feedback. Reads the live snapshot straight from the TimelineStore
- * and rolls `baseUpdatedAt` forward from the response, same as autosave.
+ * and rolls `baseUpdatedAt` forward from the response, same as autosave. The
+ * document payload itself comes from the shared `buildTimelineDocumentPayload`
+ * (see `timelineDocumentPayload.ts`) so this can never send a different field
+ * set than autosave does.
  */
 import { useCallback, useState } from "react";
 
 import { useTimelineStoreApi } from "../../stores/timeline/TimelineStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { trpcClient } from "../../trpc/client";
+import { buildTimelineDocumentPayload } from "./timelineDocumentPayload";
 
 export interface UseTimelineSaveResult {
   /** PATCH the current document immediately. Resolves when the save settles. */
@@ -30,12 +34,7 @@ export function useTimelineSave(): UseTimelineSaveResult {
       const response = await trpcClient.timeline.update.mutate({
         id: state.sequenceId,
         baseUpdatedAt: state.baseUpdatedAt ?? undefined,
-        document: {
-          tracks: state.tracks,
-          clips: state.clips,
-          markers: state.markers,
-          scriptEnabled: state.scriptEnabled
-        }
+        document: buildTimelineDocumentPayload(state)
       });
       const updatedAt = (response as { updatedAt?: unknown } | undefined)
         ?.updatedAt;

@@ -4,7 +4,7 @@ title: "Chain Editor"
 description: "A linear, card-based way to author workflows in NodeTool."
 ---
 
-The **Chain Editor** is a streamlined alternative to the node graph. Instead of placing nodes on an infinite canvas, you compose an ordered chain of cards — perfect for linear pipelines like "transcribe → summarize → email" or "fetch → parse → index".
+The **Chain Editor** is a linear alternative to the node graph. Instead of placing nodes on an infinite canvas, you compose an ordered chain of cards — "transcribe → summarize → email", "fetch → parse → index".
 
 > **Prefer the node graph?** The full [Workflow Editor]({{ '/workflow-editor' | relative_url }}) is always one click away. Both editors read and write the same workflow format.
 

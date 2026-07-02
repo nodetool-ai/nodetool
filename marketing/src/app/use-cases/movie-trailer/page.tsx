@@ -154,10 +154,10 @@ export default function MovieTrailerUseCase() {
                 Movie Trailer Generator
               </h1>
               <p className="mt-6 text-lg md:text-xl text-slate-400 leading-relaxed">
-                Type one logline and the canvas builds a cinematic teaser, a
-                treatment, a shot list, key art for every beat, then animated and
-                cut into a finished trailer. No editor, no studio, one canvas you
-                can re-run for any story.
+                Type one logline and the canvas builds the teaser: a treatment,
+                a shot list, key art for every beat — animated and cut into a
+                finished trailer. No editor, no studio, one canvas you can
+                re-run for any story.
               </p>
             </motion.div>
 

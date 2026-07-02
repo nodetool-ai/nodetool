@@ -110,6 +110,12 @@ interface AssetGridProps {
   initialFoldersPanelWidth?: number;
   isFullscreenAssets?: boolean;
   isMobile?: boolean;
+  /**
+   * Force the global (all-workflows) asset scope regardless of the currently
+   * open workflow, without adopting the fullscreen page's layout (folders
+   * pinned open, side-by-side position). Used by the "Library" sidebar panel.
+   */
+  forceGlobalAssets?: boolean;
 }
 
 const AssetGrid: React.FC<AssetGridProps> = ({
@@ -119,7 +125,8 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   sortedAssets,
   isFullscreenAssets,
   initialFoldersPanelWidth = FOLDERS_PANEL_WIDTH,
-  isMobile = false
+  isMobile = false,
+  forceGlobalAssets = false
 }) => {
   const { error, folderFilesFiltered, folderTree } = useAssets();
   const {
@@ -132,7 +139,8 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     selectedFolderId,
     currentAudioAsset,
     currentFolderId,
-    foldersVisible
+    foldersVisible,
+    workflowFilter
   } = useAssetGridStore(
     useShallow((state) => ({
       setOpenAsset: state.setOpenAsset,
@@ -144,20 +152,24 @@ const AssetGrid: React.FC<AssetGridProps> = ({
       selectedFolderId: state.selectedFolderId,
       currentAudioAsset: state.currentAudioAsset,
       currentFolderId: state.currentFolderId,
-      foldersVisible: state.foldersVisible
+      foldersVisible: state.foldersVisible,
+      workflowFilter: state.workflowFilter
     }))
   );
   const currentWorkflowId = useWorkflowManager(
     (state) => state.currentWorkflowId
   );
-
   // Default asset scope per surface: the in-editor sidebar follows the current
   // workflow (re-asserted whenever the open workflow changes), while the
   // fullscreen page opens on the global/all-assets view. A manual pick (a
   // folder or another workflow) holds until one of these inputs changes.
   useEffect(() => {
+    if (forceGlobalAssets) {
+      setWorkflowFilter(null);
+      return;
+    }
     setWorkflowFilter(isFullscreenAssets ? null : currentWorkflowId ?? null);
-  }, [isFullscreenAssets, currentWorkflowId, setWorkflowFilter]);
+  }, [isFullscreenAssets, currentWorkflowId, setWorkflowFilter, forceGlobalAssets]);
   const openMenuType = useContextMenuStore((state) => state.openMenuType);
 
   const theme = useTheme();
@@ -169,8 +181,17 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     () => !!folderTree && Object.keys(folderTree).length > 0,
     [folderTree]
   );
+  // The in-editor "workflow output" sidebar is scoped to the current
+  // workflow's assets and has no folder hierarchy of its own.
+  const isWorkflowOutputScope =
+    !isFullscreenAssets &&
+    !forceGlobalAssets &&
+    !!currentWorkflowId &&
+    workflowFilter === currentWorkflowId;
   const effectiveFoldersVisible =
-    hasFolders && (Boolean(isFullscreenAssets) || foldersVisible);
+    !isWorkflowOutputScope &&
+    hasFolders &&
+    (Boolean(isFullscreenAssets) || foldersVisible);
 
   // Dockview panel components are defined below; handlers for files live inside the Files panel
 
@@ -332,6 +353,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
           maxItemSize={maxItemSize}
           onUploadFiles={uploadFiles}
           isFullscreenAssets={isFullscreenAssets}
+          hideFolderControls={isWorkflowOutputScope}
         />
       )}
       {!isMobile && (

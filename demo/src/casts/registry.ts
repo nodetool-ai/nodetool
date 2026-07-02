@@ -13,6 +13,12 @@ import {
   tutorialCast,
   connectRunCast,
   listGeneratorCast,
+  chatQaCast,
+  templateMergeCast,
+  summarizeCast,
+  describeImageCast,
+  cookbookCasts,
+  workflowCasts,
   type DemoCast,
 } from "@web-demo";
 
@@ -21,6 +27,12 @@ const casts: DemoCast[] = [
   tutorialCast,
   connectRunCast,
   listGeneratorCast,
+  chatQaCast,
+  templateMergeCast,
+  summarizeCast,
+  describeImageCast,
+  ...cookbookCasts,
+  ...workflowCasts,
 ];
 
 /** The cast bound to the canonical `WorkflowDemo` composition id. */

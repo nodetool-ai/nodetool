@@ -7,6 +7,12 @@ title: "Flashcard Generator"
 
 Generate study flashcards using AI and store them in a database. Enter any topic and get instant flashcards saved for future review.
 
+## Demo
+
+<video controls preload="metadata" poster="{{ '/assets/cookbook/flashcards-sqlite.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/flashcards-sqlite.mp4' | relative_url }}" type="video/mp4">
+</video>
+
 ## Tags
 
 education, database, ai, flashcards, learning

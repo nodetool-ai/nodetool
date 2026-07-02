@@ -237,6 +237,32 @@ describe("serialization", () => {
       expect(result?.payload).toEqual({ id: "timeline-1", name: "Cutdown" });
     });
 
+    it("should round-trip chat-media through the unified format", () => {
+      const store: Record<string, string> = {};
+      const mockDataTransfer = {
+        setData: jest.fn((key: string, value: string) => {
+          store[key] = value;
+        }),
+        getData: jest.fn((key: string) => store[key] ?? ""),
+        items: [],
+        files: { length: 0 }
+      } as unknown as DataTransfer;
+
+      const data: DragData<"chat-media"> = {
+        type: "chat-media",
+        payload: {
+          type: "image_url",
+          image: { type: "image", asset_id: "a1", uri: "http://x/img.png" }
+        } as any
+      };
+
+      serializeDragData(data, mockDataTransfer);
+      const result = deserializeDragData(mockDataTransfer);
+
+      expect(result?.type).toBe("chat-media");
+      expect(result?.payload).toEqual(data.payload);
+    });
+
     it("should return null for invalid JSON", () => {
       const mockDataTransfer = {
         getData: jest.fn((key: string) => {
