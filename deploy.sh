@@ -21,6 +21,12 @@ set -euo pipefail
 #   --self-signed   Auto-generated cert — Cloudflare "Full" SSL
 #   --no-tls        Plain HTTP origin — Cloudflare "Flexible" SSL
 #
+# Redeploying current main:
+#   For the common "pull main and roll it out" flow, prefer `npm run redeploy`
+#   (scripts/redeploy.sh): it fetches main, rebuilds web/dist, calls this script
+#   with the restored prod config, and verifies health + revision-vs-HEAD. This
+#   script is the lower-level primitive it builds on.
+#
 # Usage:
 #   ./deploy.sh                  # Pull + deploy (HTTPS, requires cert.pem + key.pem)
 #   ./deploy.sh --self-signed    # Auto-generate TLS cert for origin
