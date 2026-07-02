@@ -28,6 +28,7 @@ const COLUMNS: Col[] = [
       { name: "Creatives", href: "/creatives" },
       { name: "Agents", href: "/agents" },
       { name: "Developers", href: "/developers" },
+      { name: "Marketing", href: "/marketing" },
     ],
   },
   {
@@ -37,6 +38,8 @@ const COLUMNS: Col[] = [
       { name: "vs Weavy", href: "/vs/weavy" },
       { name: "vs Langflow", href: "/vs/langflow" },
       { name: "vs n8n", href: "/vs/n8n" },
+      { name: "vs Flowise", href: "/vs/flowise" },
+      { name: "vs Dify", href: "/vs/dify" },
     ],
   },
   {

@@ -13,6 +13,7 @@ file is more than a quarter old.
 
 **Status**: the movie-trailer sitemap fix shipped 2026-07-01. `/vs/langflow` and `/vs/n8n` (§4.1
 items 1 and 3) and the footer "Compare" column (§1, orphaned-pages finding) shipped 2026-07-02.
+`/marketing` (§4.0), `/vs/flowise`, and `/vs/dify` (§4.1 items 2 and 5) shipped 2026-07-02.
 
 ## 1. Where nodetool.ai stands today
 
@@ -37,13 +38,9 @@ Five gaps stand out:
 - **3 use-case pages for 61 shipped example workflows.** The `useCaseEntries.ts` pattern (a single
   data array plus a matching page folder) is already built to scale — it's just underused by a
   factor of 20.
-- **No `/marketing` segment page.** The homepage and `/creatives` copy both explicitly name
-  "marketing teams" as a target audience, and one of the three flagship use cases (Product Video
-  Generator) is already tagged `category: "Marketing"` in `useCaseEntries.ts`. But the nav
-  (Studio, Cloud, Creatives, Agents, Developers, Pricing) has no landing page built for that
-  audience — marketing searches currently land on the general `/creatives` page instead of copy
-  written for their job (campaigns, social calendars, brand consistency, output volume), same as
-  `/agents` serves automation and `/developers` serves engineers. See §4.0.
+- ~~**No `/marketing` segment page.**~~ **Fixed 2026-07-02.** `/marketing` ships, featuring the
+  Product Video Generator, in the nav, footer, and sitemap alongside Creatives/Agents/Developers.
+  See §4.0.
 
 The existing meta setup is solid: `layout.tsx` already ships title/description/OG/Twitter tags and
 a keyword list (creative AI workspace, BYOK AI canvas, ComfyUI alternative, Weavy alternative,
@@ -104,31 +101,25 @@ Meeting Transcript Summarizer).
 
 ### 4.0 Segment landing page — `/marketing`
 
-`/creatives`, `/agents`, and `/developers` are each a persona-framed rewrite of the same product,
-built to rank on that persona's job-title searches and to give paid/social traffic a landing page
-that speaks their language instead of the generic homepage. Marketing teams get named in that same
-homepage copy but have no fourth page.
+**Shipped 2026-07-02.** `/creatives`, `/agents`, `/developers`, and now `/marketing` are each a
+persona-framed rewrite of the same product, built to rank on that persona's job-title searches and
+to give paid/social traffic a landing page that speaks their language instead of the generic
+homepage.
 
-Build `/marketing` on the identical pattern (`marketing/src/app/creatives/page.tsx` is the closest
-template — same section shape: headline, "why teams choose NodeTool" section, use-case teasers,
-community/CTA). Content already exists to fill it without new production work:
+`/marketing` (`marketing/src/app/marketing/page.tsx`) follows the `/creatives` pattern — headline,
+"why marketing teams choose NodeTool" section, a lead use-case feature, community/CTA — and is in
+`sitemap.ts` at priority 0.8/monthly, the main nav, and the footer "Solutions" column:
 
 - **Lead use case**: Product Video Generator (`use-cases/product-video`, already `category:
-  "Marketing"` in `useCaseEntries.ts`) — feature it the way `/creatives` features the Movie Poster
-  and Movie Trailer generators.
-- **Supporting use cases to build** (from the §4.2 backlog, reprioritized for this page): Social
-  Media Calendar Filler, Brand Asset Generator, Cold Outreach Co-Pilot, YouTube Thumbnail Pipeline —
-  all four are marketing-ops workflows, not creative-production ones, and read oddly grouped under
-  "Creatives".
+  "Marketing"` in `useCaseEntries.ts`), featured with its own section and real assets.
+- **Supporting use cases still to build** (§4.2 backlog): Social Media Calendar Filler, Brand Asset
+  Generator, Cold Outreach Co-Pilot, YouTube Thumbnail Pipeline. `/marketing` lists these as
+  "coming soon" teaser cards (no dead links — they get real hrefs once `useCaseEntries.ts` gains
+  matching entries and page folders with real generated assets).
 - **Target keywords**: "AI product video generator", "AI content calendar tool", "brand asset
-  generator AI", "AI ad video tool open source" (§3).
+  generator AI", "AI ad video tool open source" (§3) — in the page's metadata/keywords.
 - **Differentiation angle**: same BYOK/no-markup argument as `/creatives`, reframed around output
-  volume and cost-per-asset at campaign scale rather than single-artifact craft — this is the
-  argument marketing buyers actually compare tools on (per the n8n/Activepieces/Gumloop comparisons
-  in §2, which sell on throughput and integration count, not per-asset quality).
-
-Add `/marketing` to `sitemap.ts` at the same priority tier as the other three segment pages (0.8,
-monthly — see §5) and to the main nav alongside Creatives/Agents/Developers.
+  volume and cost-per-asset at campaign scale rather than single-artifact craft.
 
 ### 4.1 Comparison pages (`/vs/*`)
 
@@ -139,14 +130,21 @@ on what people are already comparing:
 1. ~~`/vs/langflow` — pull in the "no media generation" gap~~ **Shipped 2026-07-02.** Angle used:
    both cover agents/RAG; only NodeTool generates media natively (Langflow is MIT, has a
    macOS/Windows desktop app — the honest table concedes both).
-2. `/vs/flowise` — same gap, plus BYOK vs. hosted credits
+2. ~~`/vs/flowise` — same gap, plus BYOK vs. hosted credits~~ **Shipped 2026-07-02.** Angle used:
+   Flowise is the fastest path to a LangChain RAG chatbot; NodeTool covers the same agent/RAG
+   ground and adds native image, video, and music generation plus editing tools on the same canvas.
 3. ~~`/vs/n8n` — orchestration-only vs. orchestration + native generation~~ **Shipped 2026-07-02.**
    Angle used: "workflows that create, not just connect", plus AGPL-3.0 (open source) vs.
    Sustainable Use License (fair-code, commercially restricted) — a real differentiator n8n's own
    docs confirm. The FAQ answers "when should I pick n8n instead?" honestly (400+ connectors,
    schedules/retries), which is what makes the rest of the page credible.
 4. `/vs/flora` (or a combined "AI canvas alternatives" page covering Flora, Freepik Spaces, Krea)
-5. `/vs/dify` — RAG/agent platform, no creative media
+5. ~~`/vs/dify` — RAG/agent platform, no creative media~~ **Shipped 2026-07-02.** Angle used: Dify
+   is a strong text-first LLM app platform (prompt orchestration, knowledge bases, agent
+   debugging); NodeTool starts from the same agent/RAG ground and adds native media generation and
+   editing tools. License claim about Dify's modified Apache 2.0 terms is hedged ("check Dify's own
+   license file for current terms") rather than asserted precisely, since Dify's commercial-use
+   conditions change between releases.
 6. `/vs/lmstudio` or `/vs/jan` — local chat only vs. local + cloud workflow canvas
 
 Each page keeps the existing format: one comparison table, one differentiation section, one CTA.
@@ -203,19 +201,21 @@ scope, not a general-purpose blog:
 - [x] Internal-link the `/vs/*` pages — footer "Compare" column in `SiteFooter.tsx` links all four
       comparison pages sitewide (shipped 2026-07-02); every future page needs at least one internal
       link before it ships
-- [ ] Build `/marketing` (§4.0) and add it to `sitemap.ts` at priority 0.8 / monthly — same tier as
-      `/agents`, `/creatives`, `/developers` — plus main nav
-- [ ] Confirm every new page under `/vs/`, `/use-cases/`, `/marketing`, and any future `/blog/` gets
-      an `opengraph-image.tsx` (all four `vs/*` pages do — keep the pattern)
-- [ ] Add `priority`/`changeFrequency` entries to `sitemap.ts` for every new page as it ships —
-      don't let the list drift out of sync with `app/` folders again (langflow/n8n added 2026-07-02)
-- [ ] Add every new indexed route to `marketing/tests/e2e/smoke.spec.ts` — it guards title,
-      single-`h1`, and render status per route (langflow/n8n added 2026-07-02)
+- [x] Build `/marketing` (§4.0) and add it to `sitemap.ts` at priority 0.8 / monthly — same tier as
+      `/agents`, `/creatives`, `/developers` — plus main nav (shipped 2026-07-02)
+- [x] Confirm every new page under `/vs/`, `/use-cases/`, `/marketing`, and any future `/blog/` gets
+      an `opengraph-image.tsx` (all six `vs/*` pages and `/marketing` do — keep the pattern)
+- [x] Add `priority`/`changeFrequency` entries to `sitemap.ts` for every new page as it ships —
+      don't let the list drift out of sync with `app/` folders again (`/marketing`, `/vs/flowise`,
+      `/vs/dify` added 2026-07-02)
+- [x] Add every new indexed route to `marketing/tests/e2e/smoke.spec.ts` — it guards title,
+      single-`h1`, and render status per route (`/marketing`, `/vs/flowise`, `/vs/dify` added
+      2026-07-02)
 - [ ] Verify `docs/nodes/<provider>/index.md` pages carry unique titles and descriptions (currently
       generated docs; check for duplicate/boilerplate meta across providers)
-- [ ] Internal linking: `/agents`, `/creatives`, `/developers`, `/marketing` should each link to the
-      use-case pages relevant to their segment (per §3's mapping) — currently the use-case showcase
-      only appears on the homepage
+- [ ] Internal linking: `/agents`, `/creatives`, `/developers` should each link to the use-case
+      pages relevant to their segment (per §3's mapping) — `/marketing` now does this for its lead
+      use case, but the use-case showcase otherwise only appears on the homepage and `/creatives`
 
 ## 6. Distribution (off-site)
 
@@ -243,11 +243,12 @@ Content only ranks if something points at it:
 
 1. **Immediate** (hours): ~~fix the `movie-trailer` sitemap omission (§1, §5)~~ done 2026-07-01;
    ~~internal-link the orphaned `/vs/*` pages (§1, §5)~~ done 2026-07-02.
-2. **Phase 1** (this month): build `/marketing` (§4.0) with its four supporting use-case pages
-   (Product Video, Cold Outreach Co-Pilot, Social Media Calendar Filler, Brand Asset Generator);
-   ship the remaining "ship first" use-case pages (§4.2); ~~add `/vs/langflow` and `/vs/n8n`
-   (highest-volume comparison targets per §2)~~ done 2026-07-02 — next comparison targets are
-   `/vs/flowise` and `/vs/dify` (§4.1).
+2. **Phase 1** (this month): ~~build `/marketing` (§4.0)~~ done 2026-07-02 — its four supporting
+   use-case pages (Cold Outreach Co-Pilot, Social Media Calendar Filler, Brand Asset Generator,
+   YouTube Thumbnail Pipeline) still need real generated assets before they can ship; ship the
+   remaining "ship first" use-case pages (§4.2); ~~add `/vs/langflow` and `/vs/n8n`~~ done
+   2026-07-02, ~~add `/vs/flowise` and `/vs/dify`~~ done 2026-07-02 — next comparison target is
+   `/vs/flora` (or a combined AI-canvas-alternatives page, §4.1 item 4).
 3. **Phase 2** (next month): stand up the blog with 3 posts — one comparison/roundup post, one
    cookbook walkthrough, one technical post (§4.4); submit NodeTool to the two GitHub awesome-lists
    named in §6.
