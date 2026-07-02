@@ -101,8 +101,7 @@
   transition:
     stroke 0.18s ease-in-out,
     stroke-opacity 0.2s ease-in-out,
-    stroke-width 0.15s ease-in-out,
-    filter 0.2s ease-in-out;
+    stroke-width 0.15s ease-in-out;
 }
 
 /* Dim static edges by default */
@@ -295,7 +294,8 @@
 .react-flow__node .react-flow__handle {
   transform: translate(0, -50%) scale(1, 1);
   transform-origin: right center;
-  transition: all 0.15s;
+  transition: transform 0.15s, width 0.15s, height 0.15s, opacity 0.15s,
+    background-color 0.15s, box-shadow 0.15s;
   width: var(--handle_width);
   height: var(--handle_height);
   background-color: var(--palette-grey-700);
@@ -305,17 +305,6 @@
   opacity: 1;
 }
 
-/* Light mode: desaturate the saturated type-color palette so handles and
-   edges read as a quiet family rather than a fruit basket. */
-[data-mui-color-scheme="light"] .react-flow__node .react-flow__handle {
-  filter: saturate(0.5) brightness(0.95);
-}
-[data-mui-color-scheme="light"] .react-flow__edge path {
-  filter: saturate(0.55) brightness(0.92);
-}
-[data-mui-color-scheme="light"] .react-flow__node .react-flow__handle:hover {
-  filter: saturate(0.85) brightness(0.95);
-}
 .react-flow__node .react-flow__handle-left {
   transform-origin: right center;
   /* -6px (visual overhang) - node-body padding so handle sits on the outer edge */
@@ -658,38 +647,11 @@ ul.multi-outputs li::marker {
   stroke-linecap: round;
   stroke-dasharray: 14 10;
   animation: edgeFlow 2s linear infinite;
-  /* Subtle glow for visibility without excessive blur */
-  filter: drop-shadow(0 0 1px currentColor);
   /* Ensure crisp rendering */
   shape-rendering: geometricPrecision;
 }
 
-/* 
-   EXPERIMENTAL: Pulsing source node effect
-   
-   When data flows from a node, the source edge gets a subtle pulse
-   to indicate origin of data flow.
-*/
-@keyframes sourcePulse {
-  0%,
-  100% {
-    stroke-width: 2.5;
-    filter: brightness(1);
-  }
-  50% {
-    stroke-width: 4;
-    filter: brightness(1.2) drop-shadow(0 0 2px currentColor);
-  }
-}
-
-/* Apply pulse animation to active edges */
-.react-flow .react-flow__edge.message-sent.pulse-active .react-flow__edge-path {
-  animation:
-    edgeFlow 2s linear infinite,
-    sourcePulse 1s ease-in-out infinite;
-}
-
-/* 
+/*
    DATA TYPE-SPECIFIC PARTICLE COLORS
    
    Different data types get different particle colors for visual distinction.
@@ -761,32 +723,7 @@ ul.multi-outputs li::marker {
   animation: gradientFlow 3s linear infinite;
 }
 
-/* 
-   EXPERIMENTAL: Connection anticipation effect
-   
-   When hovering over a node that has active output edges,
-   those edges glow to show potential data flow paths.
-*/
-.react-flow__node:hover
-  ~ .react-flow__edge.message-sent
-  .react-flow__edge-path {
-  filter: drop-shadow(0 0 2px currentColor);
-}
-
-/* 
-   PERFORMANCE OPTIMIZATION
-   
-   Use will-change to hint browser for animated properties.
-   Use transform for GPU acceleration.
-   Add crisp rendering hints to prevent blur.
-*/
-.react-flow .react-flow__edge.message-sent .react-flow__edge-path {
-  will-change: stroke-dashoffset;
-  transform: translateZ(0);
-  -webkit-font-smoothing: antialiased;
-}
-
-/* 
+/*
    REDUCED MOTION SUPPORT
    
    Respect user's reduced motion preference for accessibility.

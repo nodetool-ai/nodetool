@@ -8,20 +8,22 @@
     --node-primary-color,
     var(--palette-text-primary)
   ) !important;
-  filter: drop-shadow(
-      0 0 10px
-        color-mix(
-          in srgb,
-          var(--node-primary-color, var(--palette-primary-main)) 22%,
-          transparent
-        )
-    )
-    drop-shadow(0 14px 24px rgb(0 0 0 / 0.18));
+  /* box-shadow instead of filter: drop-shadow(...) — filter forces the node's
+     paint through the filter pipeline and re-rasterizes the blur region on
+     every repaint (every drag frame while selected). box-shadow is composited
+     without re-rasterizing the node content. */
+  box-shadow:
+    0 0 10px
+      color-mix(
+        in srgb,
+        var(--node-primary-color, var(--palette-primary-main)) 22%,
+        transparent
+      ),
+    0 14px 24px rgb(0 0 0 / 0.18);
 }
 
 .react-flow__node:not(.selected) {
-  box-shadow: none;
-  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.04));
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
   outline: 1px solid var(--palette-divider);
   outline-offset: 0;
 }
