@@ -39,7 +39,6 @@ import { FrontendToolRegistry } from "../lib/tools/frontendTools";
 import { createChatPiSlice, type ChatPiSlice } from "./chatPi";
 import {
   handleChatWebSocketMessage,
-  MsgpackData,
   WorkflowCreatedUpdate,
   WorkflowUpdatedUpdate
 } from "../core/chat/chatProtocol";
@@ -515,7 +514,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           threadSubscriptions[threadId] = globalWebSocketManager.subscribe(
             threadId,
             (data) => {
-              handleChatWebSocketMessage(data as MsgpackData, set, get);
+              handleChatWebSocketMessage(data, set, get);
             }
           );
         });
@@ -676,7 +675,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           const unsub = globalWebSocketManager.subscribe(
             threadId as string,
             (data) => {
-              handleChatWebSocketMessage(data as MsgpackData, set, get);
+              handleChatWebSocketMessage(data, set, get);
             }
           );
           set((state) => {
@@ -884,11 +883,12 @@ const useGlobalChatStore = create<GlobalChatState>()(
         const now = new Date().toISOString();
         const localThread: Thread = {
           id,
+          user_id: "",
           workflow_id: boundWorkflowId,
           title: safeTitle || "New conversation",
           created_at: now,
           updated_at: now
-        } as Thread;
+        };
 
         // Subscribe first, then atomically store the unsubscribe handle.
         // This avoids the closure being created inside set() where a stale
@@ -900,7 +900,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
         const newUnsub = globalWebSocketManager.subscribe(
           id,
           (data) => {
-            handleChatWebSocketMessage(data as MsgpackData, set, get);
+            handleChatWebSocketMessage(data, set, get);
           }
         );
 
@@ -941,7 +941,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           const unsub = globalWebSocketManager.subscribe(
             threadId,
             (data) => {
-              handleChatWebSocketMessage(data as MsgpackData, set, get);
+              handleChatWebSocketMessage(data, set, get);
             }
           );
           set((state) => {
