@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/chat",
-  "version": "0.7.0-rc.28",
+  "version": "0.7.0-rc.29",
   "type": "module",
   "engines": {
     "node": ">=22.0.0 <23.0.0"

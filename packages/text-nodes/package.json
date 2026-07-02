@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/text-nodes",
-  "version": "0.7.0-rc.28",
+  "version": "0.7.0-rc.29",
   "description": "NodeTool text-processing nodes — text manipulation, NLP, markdown, HTML parse, SVG",
   "type": "module",
   "engines": {

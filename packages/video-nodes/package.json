@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/video-nodes",
-  "version": "0.7.0-rc.28",
+  "version": "0.7.0-rc.29",
   "description": "NodeTool video + 3D model nodes",
   "type": "module",
   "engines": {

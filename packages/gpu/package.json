@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/gpu",
-  "version": "0.7.0-rc.28",
+  "version": "0.7.0-rc.29",
   "description": "Canonical blend-mode catalog and shared WGSL blend functions for NodeTool compositors (sketch, timeline, Compositor node)",
   "type": "module",
   "engines": {

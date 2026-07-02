@@ -4,7 +4,7 @@
   "engines": {
     "node": ">=22.0.0 <23.0.0"
   },
-  "version": "0.7.0-rc.28",
+  "version": "0.7.0-rc.29",
   "description": "Compatibility shell re-exporting the 11 domain-specific node packages (core, text, llm, data, document, image, audio, video, integration, code, automation)",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

@@ -4,7 +4,7 @@
   "engines": {
     "node": ">=22.0.0 <23.0.0"
   },
-  "version": "0.7.0-rc.28",
+  "version": "0.7.0-rc.29",
   "description": "Local-models BaseProvider backed by @huggingface/transformers and kokoro-js (chat, TTS, ASR, embeddings)",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
