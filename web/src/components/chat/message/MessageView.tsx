@@ -25,17 +25,15 @@ import {
   Text,
   FlexRow,
   FlexColumn,
-  ToolbarIconButton,
   LoadingSpinner,
-  Collapse,
-  SPACING,
-  getSpacingPx
+  Collapse
 } from "../../ui_primitives";
 import ErrorIcon from "@mui/icons-material/Error";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
+import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import PersonOutlineRoundedIcon from "@mui/icons-material/PersonOutlineRounded";
 import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
+import { getToolVisual } from "./toolCallIcon";
 
 
 import AgentExecutionView from "./AgentExecutionView";
@@ -142,6 +140,12 @@ const ToolCallCard: React.FC<{
   const handleToggleOpen = useCallback(() => {
     setOpen((v) => !v);
   }, []);
+  const handleHeaderKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      setOpen((v) => !v);
+    }
+  }, []);
 
   // For subtasks we keep the title + "Subtask" badge as the headline. For
   // regular tool calls we drop the tool name entirely and let the LLM-authored
@@ -154,6 +158,7 @@ const ToolCallCard: React.FC<{
     : liveMessage || fallbackName;
   const showSeparateMessage = isSubtask && !!liveMessage;
   const headlineLabel = isSubtask ? "Subtask" : null;
+  const { Icon: ToolIcon, accent } = getToolVisual(tc.name);
 
   return (
     <div
@@ -161,15 +166,21 @@ const ToolCallCard: React.FC<{
         isSubtask ? " run-subtask" : ""
       }`}
     >
-      <FlexRow className="tool-call-header" align="center" justify="space-between" fullWidth gap={0.5}>
-        <FlexRow align="center" gap={0.5} sx={{ minWidth: 0 }}>
-          {isSubtask && (
-            <AccountTreeOutlinedIcon
-              fontSize="small"
-              className="subtask-icon"
-              aria-hidden
-            />
-          )}
+      <FlexRow
+        className={`tool-call-header${hasDetails ? " expandable" : ""}`}
+        align="center"
+        fullWidth
+        gap={1}
+        role={hasDetails ? "button" : undefined}
+        tabIndex={hasDetails ? 0 : undefined}
+        aria-expanded={hasDetails ? open : undefined}
+        onClick={hasDetails ? handleToggleOpen : undefined}
+        onKeyDown={hasDetails ? handleHeaderKeyDown : undefined}
+      >
+        <span className={`tool-icon-tile accent-${accent}`} aria-hidden>
+          <ToolIcon />
+        </span>
+        <FlexRow align="center" gap={1} sx={{ minWidth: 0, flex: 1 }}>
           {headlineLabel && (
             <Text
               component="span"
@@ -183,7 +194,7 @@ const ToolCallCard: React.FC<{
           <Text
             component="span"
             size="small"
-            weight={isSubtask ? 500 : 400}
+            weight={500}
             className="tool-call-name"
             truncate
           >
@@ -194,31 +205,32 @@ const ToolCallCard: React.FC<{
               {liveMessage}
             </Text>
           )}
-          {isRunning && <LoadingSpinner size="small" />}
+          {!isSubtask && <span className="tool-call-id">{tc.name}</span>}
         </FlexRow>
-        <FlexRow align="center" gap={0.5} sx={{ flexShrink: 0 }}>
+        <FlexRow align="center" gap={1} sx={{ flexShrink: 0 }}>
           {durationLabel && (
-            <Text
-              component="span"
-              size="small"
-              className="tool-call-duration"
-              sx={{ color: "text.disabled", whiteSpace: "nowrap" }}
-            >
-              {durationLabel}
-            </Text>
+            <span className="tool-call-duration">{durationLabel}</span>
+          )}
+          {isRunning ? (
+            <LoadingSpinner size="small" />
+          ) : (
+            hasResult && (
+              <CheckCircleRoundedIcon
+                className="tool-status-icon done"
+                aria-label="completed"
+              />
+            )
           )}
           {hasDetails && (
-            <ToolbarIconButton
-              tooltip={open ? "Hide details" : "Show details"}
-              onClick={handleToggleOpen}
-              icon={<ExpandMoreIcon className={`expand-icon${open ? " expanded" : ""}`} />}
-              className="tool-expand-button"
+            <ExpandMoreIcon
+              className={`expand-icon${open ? " expanded" : ""}`}
+              aria-hidden
             />
           )}
         </FlexRow>
       </FlexRow>
       <Collapse in={open} timeout="auto" unmountOnExit>
-        <FlexColumn gap={0.5} sx={{ marginTop: getSpacingPx(SPACING.xs) }}>
+        <FlexColumn className="tool-call-details" gap={0.5}>
           {isSubtask && subtaskInstructions && (
             <FlexColumn gap={0.5}>
               <Caption className="tool-section-title">Instructions</Caption>
@@ -254,16 +266,17 @@ type ToolResultLookup = Record<
 >;
 
 /**
- * ToolCallGroup - Collapses a message's tool calls behind a single
- * "N tools called" line that unfolds to reveal each ToolCallCard. A lone
- * tool call renders directly with no extra chrome.
+ * ToolCallGroup - Renders a message's tool calls as a "tool execution chain":
+ * a tiny uppercase section label with a hairline rule, one bordered card per
+ * call, and a completion summary bar. The section header collapses the chain
+ * for dense threads. A lone tool call renders as a single card with no chrome.
  */
 const ToolCallGroup: React.FC<{
   toolCalls: ToolCall[];
   toolResultsByCallId?: ToolResultLookup;
   messageCreatedAt?: string | null;
 }> = React.memo(({ toolCalls, toolResultsByCallId, messageCreatedAt }) => {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const runningToolCallId = useGlobalChatStore((s) => s.currentRunningToolCallId);
   const handleToggleOpen = useCallback(() => setOpen((v) => !v), []);
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -273,8 +286,8 @@ const ToolCallGroup: React.FC<{
     }
   }, []);
 
-  const renderCard = useCallback(
-    (tc: ToolCall, i: number) => {
+  const durationFor = useCallback(
+    (tc: ToolCall) => {
       const toolResult =
         tc.id && toolResultsByCallId
           ? toolResultsByCallId[String(tc.id)]
@@ -284,6 +297,14 @@ const ToolCallGroup: React.FC<{
           ? new Date(toolResult.createdAt).getTime() -
             new Date(messageCreatedAt).getTime()
           : null;
+      return { toolResult, durationMs };
+    },
+    [toolResultsByCallId, messageCreatedAt]
+  );
+
+  const renderCard = useCallback(
+    (tc: ToolCall, i: number) => {
+      const { toolResult, durationMs } = durationFor(tc);
       return (
         <ToolCallCard
           key={tc.id || i}
@@ -293,7 +314,7 @@ const ToolCallGroup: React.FC<{
         />
       );
     },
-    [toolResultsByCallId, messageCreatedAt]
+    [durationFor]
   );
 
   // A single tool call keeps the original inline card — no group wrapper.
@@ -304,13 +325,31 @@ const ToolCallGroup: React.FC<{
   const isRunning = toolCalls.some(
     (tc) => tc.id && runningToolCallId === tc.id
   );
+  const completedCount = toolCalls.filter((tc) => {
+    const content = durationFor(tc).toolResult?.content;
+    return (
+      content != null &&
+      !(typeof content === "string" && content.trim().length === 0)
+    );
+  }).length;
+  // Per-call durations are measured from the message start, so the chain's
+  // total wall-clock time is the longest one.
+  const totalDurationMs = toolCalls.reduce<number | null>((max, tc) => {
+    const { durationMs } = durationFor(tc);
+    if (typeof durationMs !== "number" || !Number.isFinite(durationMs)) {
+      return max;
+    }
+    return max === null ? durationMs : Math.max(max, durationMs);
+  }, null);
+  const totalDurationLabel =
+    totalDurationMs !== null ? formatDuration(totalDurationMs) : null;
 
   return (
     <div className="tool-call-group">
       <FlexRow
         className="tool-call-group-header"
         align="center"
-        gap={0.5}
+        gap={1}
         role="button"
         tabIndex={0}
         aria-expanded={open}
@@ -319,12 +358,13 @@ const ToolCallGroup: React.FC<{
       >
         <Text
           component="span"
-          size="small"
+          size="smaller"
           weight={500}
           className="tool-call-group-label"
         >
-          {toolCalls.length} tools called
+          Tool execution chain
         </Text>
+        <span className="tool-call-group-rule" aria-hidden />
         {isRunning && <LoadingSpinner size="small" />}
         <ExpandMoreIcon
           className={`expand-icon${open ? " expanded" : ""}`}
@@ -332,12 +372,23 @@ const ToolCallGroup: React.FC<{
         />
       </FlexRow>
       <Collapse in={open} timeout="auto" unmountOnExit>
-        <FlexColumn
-          className="tool-call-group-body"
-          gap={0.1}
-          sx={{ marginTop: getSpacingPx(SPACING.xs) }}
-        >
+        <FlexColumn className="tool-call-chain" gap={1}>
           {toolCalls.map(renderCard)}
+          <FlexRow className="tool-call-summary" align="center" gap={1.5}>
+            <span className="tool-call-summary-count">
+              {completedCount}/{toolCalls.length} completed
+            </span>
+            {totalDurationLabel && (
+              <>
+                <span className="tool-call-summary-divider" aria-hidden>
+                  |
+                </span>
+                <span className="tool-call-summary-duration">
+                  {totalDurationLabel}
+                </span>
+              </>
+            )}
+          </FlexRow>
         </FlexColumn>
       </Collapse>
     </div>

@@ -1,44 +1,38 @@
 /** @jsxImportSource @emotion/react */
 /**
- * ExecutionTree — Web port of the CLI tree execution view.
+ * ExecutionTree — Agent plan/execution timeline.
  *
- * Renders agent task/step hierarchy as an interactive tree:
- *
- * ◆ Plan  (2/3 tasks)
- * ├─ ✓ Task 1: Search for sources              3.2s (3 steps)
- * ├─ ◐ Task 2: Analyze findings
- * │  ├─ ✓ google_search("topic")
- * │  │    → Found 5 results
- * │  └─ ◐ llm_call
- * │       → The key themes emerging from...
- * └─ ○ Task 3: Write summary                   waiting
+ * Renders the agent task/step hierarchy as a vertical status timeline:
+ * a plan header with progress bar and per-status dot counts, then one
+ * timeline node per task (check / spinner / waiting circle / failed) joined
+ * by status-colored connector lines, with the task's steps nested inside.
  */
 
 import React, { memo, useMemo, useState, useCallback } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text, FlexRow, FlexColumn, BORDER_RADIUS, MOTION } from "../ui_primitives";
+import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import AutorenewRoundedIcon from "@mui/icons-material/AutorenewRounded";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded";
+import {
+  FlexRow,
+  FlexColumn,
+  BORDER_RADIUS,
+  MOTION,
+  reducedMotion
+} from "../ui_primitives";
 import type {
   ExecutionTreeState,
   TaskState,
   StepState,
   StepToolCallEntry,
-  PlanningEntry,
-  LogEntry
+  PlanningEntry
 } from "../../hooks/useExecutionTreeState";
 
-// ---------------------------------------------------------------------------
-// Icons (matching CLI)
-// ---------------------------------------------------------------------------
-
-const ICONS = {
-  waiting: "○",
-  running: "◐",
-  completed: "✓",
-  failed: "✗",
-  plan: "◆"
-} as const;
+type NodeStatus = "waiting" | "running" | "completed" | "failed";
 
 // ---------------------------------------------------------------------------
 // Styles
@@ -46,168 +40,324 @@ const ICONS = {
 
 const treeStyles = (theme: Theme) =>
   css({
-    fontFamily: theme.fontFamily2 || "monospace",
+    fontFamily: theme.fontFamily1,
     fontSize: "var(--fontSizeSmall)",
-    lineHeight: 1.6,
-    padding: "0.75rem 0",
+    lineHeight: 1.5,
     userSelect: "text",
 
-    ".tree-plan-header": {
+    "@keyframes tlSpin": {
+      from: { transform: "rotate(0deg)" },
+      to: { transform: "rotate(360deg)" }
+    },
+
+    "@keyframes tlPulse": {
+      "0%, 100%": { opacity: 1 },
+      "50%": { opacity: 0.4 }
+    },
+
+    ".plan-card": {
+      border: `1px solid ${theme.vars.palette.divider}`,
+      borderRadius: BORDER_RADIUS.lg,
+      overflow: "hidden",
+      background: "transparent"
+    },
+
+    ".plan-header": {
       display: "flex",
       alignItems: "center",
-      gap: "0.35rem",
-      marginBottom: "0.25rem"
+      gap: theme.spacing(2),
+      padding: theme.spacing(1.25, 2),
+      borderBottom: `1px solid ${theme.vars.palette.divider}`
     },
 
-    ".tree-plan-icon": {
-      color: theme.vars.palette.primary.main,
-      fontWeight: 600
-    },
-
-    ".tree-plan-label": {
-      color: theme.vars.palette.primary.main,
-      fontWeight: 600,
-      fontSize: "var(--fontSizeNormal)"
-    },
-
-    ".tree-plan-count": {
-      color: theme.vars.palette.text.secondary,
+    ".plan-title": {
       fontSize: "var(--fontSizeSmall)",
-      marginLeft: "0.25rem"
+      fontWeight: 500,
+      color: theme.vars.palette.text.primary,
+      whiteSpace: "nowrap"
     },
 
-    ".tree-task": {
-      cursor: "pointer",
-      "&:hover .tree-task-name": {
-        textDecoration: "underline",
-        textDecorationColor: theme.vars.palette.text.secondary,
-        textUnderlineOffset: "2px"
+    ".plan-progress-track": {
+      flex: 1,
+      height: 6,
+      borderRadius: BORDER_RADIUS.pill,
+      background: theme.vars.palette.action.hover,
+      overflow: "hidden"
+    },
+
+    ".plan-progress-fill": {
+      height: "100%",
+      borderRadius: BORDER_RADIUS.pill,
+      background: theme.vars.palette.text.primary,
+      transition: `width ${MOTION.slow}`,
+      ...reducedMotion({ transition: MOTION.none })
+    },
+
+    ".plan-count": {
+      fontFamily: theme.fontFamily2,
+      fontSize: "var(--fontSizeSmaller)",
+      color: theme.vars.palette.text.secondary,
+      fontVariantNumeric: "tabular-nums",
+      whiteSpace: "nowrap"
+    },
+
+    ".plan-dots": {
+      display: "flex",
+      alignItems: "center",
+      gap: theme.spacing(1.5)
+    },
+
+    ".plan-dot": {
+      display: "flex",
+      alignItems: "center",
+      gap: theme.spacing(0.5),
+      fontSize: "var(--fontSizeSmaller)",
+      color: theme.vars.palette.text.secondary,
+      whiteSpace: "nowrap",
+      "&::before": {
+        content: '""',
+        width: 6,
+        height: 6,
+        borderRadius: BORDER_RADIUS.circle,
+        background: "currentColor"
       }
     },
 
-    ".tree-branch": {
-      color: theme.vars.palette.text.disabled,
-      whiteSpace: "pre"
+    ".plan-dot.completed::before": { background: theme.vars.palette.success.main },
+    ".plan-dot.running::before": { background: theme.vars.palette.info.main },
+    ".plan-dot.failed::before": { background: theme.vars.palette.error.main },
+    ".plan-dot.waiting::before": {
+      background: theme.vars.palette.action.disabled
     },
 
-    "@keyframes gradientShift": {
-      "0%": { color: theme.vars.palette.warning.main },
-      "50%": { color: theme.vars.palette.primary.main },
-      "100%": { color: theme.vars.palette.warning.main }
+    ".plan-body": {
+      padding: theme.spacing(2)
     },
 
-    "@keyframes treeItemEnter": {
-      "0%": { opacity: 0, transform: "translateY(-4px)" },
-      "100%": { opacity: 1, transform: "translateY(0)" }
-    },
-
-    "@media (prefers-reduced-motion: no-preference)": {
-      ".tree-planning-entry, .tree-task, .tree-step, .tree-plan-header": {
-        animation: `treeItemEnter ${MOTION.normal} both`
-      }
-    },
-
-    ".tree-icon-waiting": { color: theme.vars.palette.text.disabled },
-    ".tree-icon-running": {
-      animation: "gradientShift 2s ease-in-out infinite"
-    },
-    ".tree-icon-completed": { color: theme.vars.palette.success.main },
-    ".tree-icon-failed": { color: theme.vars.palette.error.main },
-
-    ".tree-task-name": {
-      fontWeight: 600,
-      marginLeft: "0.2rem"
-    },
-
-    ".tree-task-meta": {
-      color: theme.vars.palette.text.secondary,
-      fontSize: "var(--fontSizeSmall)",
-      marginLeft: "0.5rem"
-    },
-
-    ".tree-step-name": {
-      marginLeft: "0.2rem"
-    },
-
-    ".tree-step-output": {
-      color: theme.vars.palette.text.secondary,
-      fontSize: "var(--fontSizeSmall)"
-    },
-
-    ".tree-step-error": {
-      color: theme.vars.palette.error.main,
-      fontSize: "var(--fontSizeSmall)"
-    },
-
-    ".tree-planning": {
+    // ── Timeline nodes ─────────────────────────────────────────────────────
+    ".tl-item": {
       display: "flex",
-      alignItems: "center",
-      gap: "0.35rem",
-      fontFamily: theme.fontFamily1,
-      color: theme.vars.palette.warning.main
+      gap: theme.spacing(1.5),
+      position: "relative"
     },
 
-    ".tree-planning-text": {
-      fontFamily: theme.fontFamily1,
-      color: theme.vars.palette.text.secondary,
-      fontSize: "var(--fontSizeSmall)",
-      marginLeft: "0.25rem"
-    },
-
-    ".tree-planning-log": {
+    ".tl-rail": {
       display: "flex",
       flexDirection: "column",
-      gap: "0.2rem",
-      marginBottom: "0.5rem",
-      fontFamily: theme.fontFamily1
-    },
-
-    ".tree-planning-entry": {
-      display: "flex",
-      alignItems: "baseline",
-      gap: "0.5rem",
-      fontFamily: theme.fontFamily1
-    },
-
-    ".tree-planning-phase": {
-      fontFamily: theme.fontFamily1,
-      fontSize: "var(--fontSizeSmall)",
-      fontWeight: 600,
-      textTransform: "capitalize",
-      letterSpacing: 0,
-      minWidth: "5.5rem",
+      alignItems: "center",
       flexShrink: 0
     },
 
-    ".tree-planning-content": {
-      fontFamily: theme.fontFamily1,
-      color: theme.vars.palette.text.secondary,
+    ".tl-badge": {
+      width: 24,
+      height: 24,
+      borderRadius: BORDER_RADIUS.circle,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      flexShrink: 0,
+      zIndex: 1,
+      transition: MOTION.all,
+      ...reducedMotion({ transition: MOTION.none }),
+      "& svg": { fontSize: 14 }
+    },
+
+    ".tl-badge.completed": {
+      background: theme.vars.palette.success.main,
+      color: theme.vars.palette.success.contrastText
+    },
+
+    ".tl-badge.failed": {
+      background: theme.vars.palette.error.main,
+      color: theme.vars.palette.error.contrastText
+    },
+
+    ".tl-badge.running": {
+      background: theme.vars.palette.info.main,
+      color: theme.vars.palette.info.contrastText,
+      boxShadow: `0 0 0 4px rgb(${theme.vars.palette.info.mainChannel} / 0.2)`,
+      "& svg": {
+        animation: "tlSpin 1.4s linear infinite",
+        ...reducedMotion({ animation: "none" })
+      }
+    },
+
+    ".tl-badge.waiting": {
+      background: theme.vars.palette.action.hover,
+      color: theme.vars.palette.text.disabled,
+      "&::after": {
+        content: '""',
+        width: 8,
+        height: 8,
+        borderRadius: BORDER_RADIUS.circle,
+        border: `2px solid currentColor`
+      }
+    },
+
+    ".tl-connector": {
+      width: 2,
+      flex: 1,
+      minHeight: theme.spacing(1.5),
+      background: theme.vars.palette.divider
+    },
+
+    ".tl-connector.completed": {
+      background: `rgb(${theme.vars.palette.success.mainChannel} / 0.4)`
+    },
+    ".tl-connector.running": {
+      background: `rgb(${theme.vars.palette.info.mainChannel} / 0.4)`
+    },
+    ".tl-connector.failed": {
+      background: `rgb(${theme.vars.palette.error.mainChannel} / 0.4)`
+    },
+
+    ".tl-content": {
+      flex: 1,
+      minWidth: 0,
+      paddingBottom: theme.spacing(2.5)
+    },
+
+    ".tl-item.last > .tl-content": {
+      paddingBottom: 0
+    },
+
+    ".tl-row": {
+      display: "flex",
+      alignItems: "flex-start",
+      gap: theme.spacing(1),
+      minHeight: 24
+    },
+
+    ".tl-row-main": {
+      display: "flex",
+      alignItems: "center",
+      gap: theme.spacing(1),
+      flex: 1,
+      minWidth: 0,
+      textAlign: "left"
+    },
+
+    ".tl-row-main.clickable": {
+      cursor: "pointer",
+      "&:hover .tl-name": {
+        textDecoration: "underline",
+        textDecorationColor: theme.vars.palette.text.secondary,
+        textUnderlineOffset: "2px"
+      },
+      "&:focus-visible": {
+        outline: `2px solid ${theme.vars.palette.primary.main}`,
+        outlineOffset: 2,
+        borderRadius: BORDER_RADIUS.xs
+      }
+    },
+
+    ".tl-name": {
       fontSize: "var(--fontSizeSmall)",
-      lineHeight: 1.45,
+      color: theme.vars.palette.text.secondary,
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"
     },
 
-    ".tree-log-entry": {
-      color: theme.vars.palette.text.disabled,
-      fontSize: "var(--fontSizeSmaller)",
-      paddingLeft: "1.5rem"
+    ".tl-name.running": {
+      color: theme.vars.palette.text.primary,
+      fontWeight: 500
     },
 
-    ".tree-step-row": {
-      cursor: "pointer",
-      "&:hover .tree-step-name": {
-        textDecoration: "underline",
-        textDecorationColor: theme.vars.palette.text.secondary,
-        textUnderlineOffset: "2px"
+    ".tl-name.waiting": {
+      color: theme.vars.palette.text.disabled
+    },
+
+    ".tl-name.failed": {
+      color: theme.vars.palette.error.main
+    },
+
+    ".tl-chevron": {
+      fontSize: 14,
+      color: theme.vars.palette.text.disabled,
+      flexShrink: 0,
+      transition: MOTION.transform,
+      ...reducedMotion({ transition: MOTION.none }),
+      "&.collapsed": { transform: "rotate(-90deg)" }
+    },
+
+    ".tl-meta": {
+      display: "flex",
+      alignItems: "center",
+      gap: theme.spacing(0.5),
+      flexShrink: 0,
+      fontFamily: theme.fontFamily2,
+      fontSize: "var(--fontSizeSmaller)",
+      color: theme.vars.palette.text.secondary,
+      fontVariantNumeric: "tabular-nums",
+      whiteSpace: "nowrap",
+      "& svg": { fontSize: 11 }
+    },
+
+    ".tl-meta.running": {
+      fontFamily: theme.fontFamily1,
+      color: theme.vars.palette.info.main,
+      "&::before": {
+        content: '""',
+        width: 6,
+        height: 6,
+        borderRadius: BORDER_RADIUS.circle,
+        background: "currentColor",
+        animation: "tlPulse 1.6s ease-in-out infinite",
+        ...reducedMotion({ animation: "none" })
       }
     },
 
-    ".tree-step-inspector": {
-      marginTop: "0.25rem",
-      marginBottom: "0.4rem",
-      padding: "0.5rem 0.75rem",
+    ".tl-meta.waiting": {
+      fontFamily: theme.fontFamily1,
+      color: theme.vars.palette.text.disabled
+    },
+
+    ".tl-detail": {
+      marginTop: theme.spacing(0.25),
+      fontFamily: theme.fontFamily2,
+      fontSize: "var(--fontSizeSmaller)",
+      lineHeight: 1.6,
+      color: theme.vars.palette.text.secondary,
+      whiteSpace: "pre-wrap",
+      wordBreak: "break-word"
+    },
+
+    ".tl-detail.error": {
+      color: theme.vars.palette.error.main
+    },
+
+    ".tl-children": {
+      marginTop: theme.spacing(1.5)
+    },
+
+    // ── Planning trace ─────────────────────────────────────────────────────
+    ".planning-log": {
+      display: "flex",
+      flexDirection: "column",
+      marginBottom: theme.spacing(1)
+    },
+
+    ".planning-phase": {
+      fontSize: "var(--fontSizeSmall)",
+      fontWeight: 500,
+      textTransform: "capitalize",
+      color: theme.vars.palette.text.primary,
+      whiteSpace: "nowrap"
+    },
+
+    ".planning-content": {
+      fontSize: "var(--fontSizeSmall)",
+      color: theme.vars.palette.text.secondary,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    },
+
+    // ── Step inspector ─────────────────────────────────────────────────────
+    ".tl-inspector": {
+      marginTop: theme.spacing(1),
+      padding: theme.spacing(1, 1.5),
       borderLeft: `2px solid ${theme.vars.palette.divider}`,
       background: `${theme.vars.palette.action.hover}`,
       borderRadius: `0 ${BORDER_RADIUS.sm} ${BORDER_RADIUS.sm} 0`,
@@ -215,16 +365,16 @@ const treeStyles = (theme: Theme) =>
       lineHeight: 1.5,
       display: "flex",
       flexDirection: "column",
-      gap: "0.4rem"
+      gap: theme.spacing(1)
     },
 
-    ".tree-step-inspector-section": {
+    ".tl-inspector-section": {
       display: "flex",
       flexDirection: "column",
-      gap: "0.15rem"
+      gap: theme.spacing(0.25)
     },
 
-    ".tree-step-inspector-label": {
+    ".tl-inspector-label": {
       color: theme.vars.palette.text.secondary,
       fontWeight: 600,
       textTransform: "uppercase",
@@ -232,37 +382,38 @@ const treeStyles = (theme: Theme) =>
       fontSize: "var(--fontSizeSmaller)"
     },
 
-    ".tree-step-inspector-body": {
+    ".tl-inspector-body": {
       color: theme.vars.palette.text.primary,
       whiteSpace: "pre-wrap",
       wordBreak: "break-word",
-      fontFamily: theme.fontFamily2 || "monospace",
+      fontFamily: theme.fontFamily2,
       fontSize: "var(--fontSizeSmall)"
     },
 
-    ".tree-step-inspector-code": {
+    ".tl-inspector-code": {
+      margin: 0,
       color: theme.vars.palette.text.primary,
       whiteSpace: "pre-wrap",
       wordBreak: "break-word",
-      fontFamily: theme.fontFamily2 || "monospace",
+      fontFamily: theme.fontFamily2,
       fontSize: "var(--fontSizeSmall)",
       background: theme.vars.palette.background.default,
-      padding: "0.35rem 0.5rem",
+      padding: theme.spacing(0.75, 1),
       borderRadius: BORDER_RADIUS.sm,
       maxHeight: "20rem",
       overflow: "auto"
     },
 
-    ".tree-step-inspector-tool": {
+    ".tl-inspector-tool": {
       display: "flex",
       flexDirection: "column",
-      gap: "0.15rem",
-      padding: "0.25rem 0",
+      gap: theme.spacing(0.25),
+      padding: theme.spacing(0.5, 0),
       borderTop: `1px dashed ${theme.vars.palette.divider}`,
       "&:first-of-type": { borderTop: "none" }
     },
 
-    ".tree-step-inspector-error": {
+    ".tl-inspector-error": {
       color: theme.vars.palette.error.main
     }
   });
@@ -289,10 +440,6 @@ function truncateOutput(output: string, maxLines: number = 2): string {
   return result;
 }
 
-// ---------------------------------------------------------------------------
-// Step rendering
-// ---------------------------------------------------------------------------
-
 function stringifyResult(v: unknown): string {
   if (v === undefined || v === null) return "";
   if (typeof v === "string") return v;
@@ -303,43 +450,57 @@ function stringifyResult(v: unknown): string {
   }
 }
 
+const StatusBadge: React.FC<{ status: NodeStatus }> = memo(({ status }) => (
+  <div className={`tl-badge ${status}`} aria-hidden>
+    {status === "completed" && <CheckRoundedIcon />}
+    {status === "failed" && <CloseRoundedIcon />}
+    {status === "running" && <AutorenewRoundedIcon />}
+  </div>
+));
+
+StatusBadge.displayName = "StatusBadge";
+
+// ---------------------------------------------------------------------------
+// Step inspector
+// ---------------------------------------------------------------------------
+
 const StepInspector: React.FC<{ step: StepState }> = memo(({ step }) => {
   const resultText = useMemo(() => stringifyResult(step.rawResult), [step.rawResult]);
 
   return (
-    <div className="tree-step-inspector">
+    <div className="tl-inspector">
       {step.instructions ? (
-        <div className="tree-step-inspector-section">
-          <span className="tree-step-inspector-label">Instructions</span>
-          <span className="tree-step-inspector-body">{step.instructions}</span>
+        <div className="tl-inspector-section">
+          <span className="tl-inspector-label">Instructions</span>
+          <span className="tl-inspector-body">{step.instructions}</span>
         </div>
       ) : null}
 
       {step.duration !== undefined ? (
-        <div className="tree-step-inspector-section">
-          <span className="tree-step-inspector-label">Duration</span>
-          <span className="tree-step-inspector-body">
+        <div className="tl-inspector-section">
+          <span className="tl-inspector-label">Duration</span>
+          <span className="tl-inspector-body">
             {formatDuration(step.duration)}
           </span>
         </div>
       ) : null}
 
       {step.toolCalls.length > 0 ? (
-        <div className="tree-step-inspector-section">
-          <span className="tree-step-inspector-label">
+        <div className="tl-inspector-section">
+          <span className="tl-inspector-label">
             Tool calls ({step.toolCalls.length})
           </span>
           {step.toolCalls.map((call: StepToolCallEntry, i: number) => (
             <div
               key={call.id ?? `${call.name}-${i}`}
-              className="tree-step-inspector-tool"
+              className="tl-inspector-tool"
             >
-              <span className="tree-step-inspector-body">
+              <span className="tl-inspector-body">
                 <strong>{call.name || "tool"}</strong>
                 {call.message ? `  ${call.message}` : ""}
               </span>
               {Object.keys(call.args ?? {}).length > 0 ? (
-                <pre className="tree-step-inspector-code">
+                <pre className="tl-inspector-code">
                   {JSON.stringify(call.args, null, 2)}
                 </pre>
               ) : null}
@@ -349,18 +510,16 @@ const StepInspector: React.FC<{ step: StepState }> = memo(({ step }) => {
       ) : null}
 
       {resultText ? (
-        <div className="tree-step-inspector-section">
-          <span className="tree-step-inspector-label">Result</span>
-          <pre className="tree-step-inspector-code">{resultText}</pre>
+        <div className="tl-inspector-section">
+          <span className="tl-inspector-label">Result</span>
+          <pre className="tl-inspector-code">{resultText}</pre>
         </div>
       ) : null}
 
       {step.error ? (
-        <div className="tree-step-inspector-section">
-          <span className="tree-step-inspector-label tree-step-inspector-error">
-            Error
-          </span>
-          <pre className="tree-step-inspector-code tree-step-inspector-error">
+        <div className="tl-inspector-section">
+          <span className="tl-inspector-label tl-inspector-error">Error</span>
+          <pre className="tl-inspector-code tl-inspector-error">
             {step.error}
           </pre>
         </div>
@@ -371,28 +530,24 @@ const StepInspector: React.FC<{ step: StepState }> = memo(({ step }) => {
 
 StepInspector.displayName = "StepInspector";
 
+// ---------------------------------------------------------------------------
+// Step node
+// ---------------------------------------------------------------------------
+
 const StepNode: React.FC<{
   step: StepState;
   isLast: boolean;
-  parentPrefix: string;
-}> = memo(({ step, isLast, parentPrefix }) => {
+}> = memo(({ step, isLast }) => {
   const [expanded, setExpanded] = useState(false);
-  const branch = isLast ? "└─ " : "├─ ";
-  const cont = isLast ? "   " : "│  ";
-  const iconClass = `tree-icon-${step.status}`;
-  const icon = ICONS[step.status];
 
   const displayName = step.toolName
     ? step.toolArgs
       ? `${step.toolName}(${step.toolArgs.slice(0, 50)})`
       : step.toolName
-    : step.name.slice(0, 60);
+    : step.name.slice(0, 80);
 
-  const duration =
-    step.duration !== undefined ? ` ${formatDuration(step.duration)}` : "";
   const outputPreview = truncateOutput(step.output);
-  const errorText =
-    typeof step.error === "string" ? step.error : "";
+  const errorText = typeof step.error === "string" ? step.error : "";
   const errorPreview = errorText.slice(0, 120);
 
   const hasInspector =
@@ -405,46 +560,61 @@ const StepNode: React.FC<{
     if (hasInspector) setExpanded((v) => !v);
   }, [hasInspector]);
 
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (hasInspector && (e.key === "Enter" || e.key === " ")) {
+        e.preventDefault();
+        setExpanded((v) => !v);
+      }
+    },
+    [hasInspector]
+  );
+
   return (
-    <FlexColumn className="tree-step">
-      <FlexRow
-        align="center"
-        className={hasInspector ? "tree-step-row" : undefined}
-        onClick={hasInspector ? handleToggle : undefined}
-      >
-        <span className="tree-branch">
-          {parentPrefix}
-          {branch}
-        </span>
-        <span className={iconClass}>{icon}</span>
-        <span className={`tree-step-name ${iconClass}`}>{displayName}</span>
-        {duration && <span className="tree-task-meta">{duration}</span>}
-      </FlexRow>
-      {outputPreview && step.status === "running" && !expanded ? (
-        <span className="tree-step-output">
-          {parentPrefix}
-          {cont}
-          {"   → "}
-          {outputPreview}
-        </span>
-      ) : null}
-      {errorPreview && !expanded ? (
-        <span className="tree-step-error">
-          {parentPrefix}
-          {cont}
-          {"   ✗ "}
-          {errorPreview}
-        </span>
-      ) : null}
-      {expanded && hasInspector ? <StepInspector step={step} /> : null}
-    </FlexColumn>
+    <div className={`tl-item${isLast ? " last" : ""}`}>
+      <div className="tl-rail">
+        <StatusBadge status={step.status} />
+        {!isLast && <div className={`tl-connector ${step.status}`} aria-hidden />}
+      </div>
+      <div className="tl-content">
+        <div className="tl-row">
+          <FlexRow
+            className={`tl-row-main${hasInspector ? " clickable" : ""}`}
+            align="center"
+            gap={1}
+            role={hasInspector ? "button" : undefined}
+            tabIndex={hasInspector ? 0 : undefined}
+            aria-expanded={hasInspector ? expanded : undefined}
+            onClick={hasInspector ? handleToggle : undefined}
+            onKeyDown={hasInspector ? handleKeyDown : undefined}
+          >
+            <span className={`tl-name ${step.status}`}>{displayName}</span>
+          </FlexRow>
+          {step.status === "running" ? (
+            <span className="tl-meta running">In progress</span>
+          ) : step.duration !== undefined ? (
+            <span className="tl-meta">
+              <AccessTimeRoundedIcon aria-hidden />
+              {formatDuration(step.duration)}
+            </span>
+          ) : null}
+        </div>
+        {outputPreview && !expanded ? (
+          <div className="tl-detail">{outputPreview}</div>
+        ) : null}
+        {errorPreview && !expanded ? (
+          <div className="tl-detail error">{errorPreview}</div>
+        ) : null}
+        {expanded && hasInspector ? <StepInspector step={step} /> : null}
+      </div>
+    </div>
   );
 });
 
 StepNode.displayName = "StepNode";
 
 // ---------------------------------------------------------------------------
-// Task rendering
+// Task node
 // ---------------------------------------------------------------------------
 
 const TaskNode: React.FC<{
@@ -452,51 +622,79 @@ const TaskNode: React.FC<{
   isLast: boolean;
   onToggle: () => void;
 }> = memo(({ task, isLast, onToggle }) => {
-  const branch = isLast ? "└─ " : "├─ ";
-  const cont = isLast ? "   " : "│  ";
-  const iconClass = `tree-icon-${task.status}`;
-  const icon = ICONS[task.status];
-
-  const duration =
-    task.duration !== undefined ? formatDuration(task.duration) : "";
   const stepCount = task.steps.length;
   const completedSteps = task.steps.filter(
     (s) => s.status === "completed"
   ).length;
+  const duration =
+    task.duration !== undefined ? formatDuration(task.duration) : "";
+  const hasSteps = stepCount > 0;
 
-  if (!task.expanded) {
-    return (
-      <FlexRow align="center" className="tree-task" onClick={onToggle}>
-        <span className="tree-branch">{branch}</span>
-        <span className={iconClass}>{icon}</span>
-        <span className={`tree-task-name ${iconClass}`}>{task.name}</span>
-        {duration && <span className="tree-task-meta">{duration}</span>}
-        <span className="tree-task-meta">
-          ({completedSteps}/{stepCount} steps)
-        </span>
-      </FlexRow>
-    );
-  }
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onToggle();
+      }
+    },
+    [onToggle]
+  );
 
   return (
-    <FlexColumn>
-      <FlexRow align="center" className="tree-task" onClick={onToggle}>
-        <span className="tree-branch">{branch}</span>
-        <span className={iconClass}>{icon}</span>
-        <span className={`tree-task-name ${iconClass}`}>{task.name}</span>
-        {task.status === "waiting" && (
-          <span className="tree-task-meta">waiting</span>
-        )}
-      </FlexRow>
-      {task.steps.map((step, i) => (
-        <StepNode
-          key={step.id}
-          step={step}
-          isLast={i === task.steps.length - 1}
-          parentPrefix={cont}
-        />
-      ))}
-    </FlexColumn>
+    <div className={`tl-item${isLast ? " last" : ""}`}>
+      <div className="tl-rail">
+        <StatusBadge status={task.status} />
+        {!isLast && <div className={`tl-connector ${task.status}`} aria-hidden />}
+      </div>
+      <div className="tl-content">
+        <div className="tl-row">
+          <FlexRow
+            className={`tl-row-main${hasSteps ? " clickable" : ""}`}
+            align="center"
+            gap={1}
+            role={hasSteps ? "button" : undefined}
+            tabIndex={hasSteps ? 0 : undefined}
+            aria-expanded={hasSteps ? task.expanded : undefined}
+            onClick={hasSteps ? onToggle : undefined}
+            onKeyDown={hasSteps ? handleKeyDown : undefined}
+          >
+            <span className={`tl-name ${task.status}`}>{task.name}</span>
+            {hasSteps && (
+              <ExpandMoreIcon
+                className={`tl-chevron${task.expanded ? "" : " collapsed"}`}
+                aria-hidden
+              />
+            )}
+          </FlexRow>
+          {task.status === "running" ? (
+            <span className="tl-meta running">In progress</span>
+          ) : task.status === "waiting" ? (
+            <span className="tl-meta waiting">waiting</span>
+          ) : (
+            <span className="tl-meta">
+              {duration && (
+                <>
+                  <AccessTimeRoundedIcon aria-hidden />
+                  {duration}
+                </>
+              )}
+              {hasSteps ? ` ${completedSteps}/${stepCount} steps` : null}
+            </span>
+          )}
+        </div>
+        {task.expanded && hasSteps ? (
+          <div className="tl-children">
+            {task.steps.map((step, i) => (
+              <StepNode
+                key={step.id}
+                step={step}
+                isLast={i === task.steps.length - 1}
+              />
+            ))}
+          </div>
+        ) : null}
+      </div>
+    </div>
   );
 });
 
@@ -506,62 +704,61 @@ TaskNode.displayName = "TaskNode";
 // Planning log
 // ---------------------------------------------------------------------------
 
-const PHASE_ICONS_DONE: Record<string, string> = {
-  initialization: "✓",
-  generation: "✓",
-  validation: "✗",
-  complete: "✓"
-};
-
-const PHASE_ICONS_ACTIVE: Record<string, string> = {
-  initialization: "◐",
-  generation: "◐",
-  validation: "✗",
-  complete: "✓"
-};
-
 const PlanningLog: React.FC<{
   entries: PlanningEntry[];
-  logs: LogEntry[];
   isActive: boolean;
-}> = memo(({ entries, logs, isActive }) => {
-  if (entries.length === 0 && logs.length === 0) {
+}> = memo(({ entries, isActive }) => {
+  if (entries.length === 0) {
     if (isActive) {
       return (
-        <FlexRow align="center" className="tree-planning">
-          <span className="tree-icon-running">{ICONS.running}</span>
-          <Text>planning</Text>
-        </FlexRow>
+        <div className="planning-log">
+          <div className="tl-item last">
+            <div className="tl-rail">
+              <StatusBadge status="running" />
+            </div>
+            <div className="tl-content">
+              <div className="tl-row">
+                <span className="planning-phase">Planning</span>
+                <span className="tl-meta running">In progress</span>
+              </div>
+            </div>
+          </div>
+        </div>
       );
     }
     return null;
   }
 
   return (
-    <div className="tree-planning-log">
+    <div className="planning-log">
       {entries.map((entry, i) => {
         const isLast = i === entries.length - 1;
         const isRunning = isLast && isActive;
-        const statusClass =
+        const status: NodeStatus =
           entry.status === "failed"
-            ? "tree-icon-failed"
-            : entry.status === "success"
-            ? "tree-icon-completed"
+            ? "failed"
             : isRunning
-            ? "tree-icon-running"
-            : "tree-icon-completed";
-        const icons = isRunning ? PHASE_ICONS_ACTIVE : PHASE_ICONS_DONE;
-        const icon = icons[entry.phase] ?? "○";
+              ? "running"
+              : "completed";
 
         return (
-          <div key={`${entry.phase}-${i}`} className="tree-planning-entry">
-            <span className={statusClass}>{icon}</span>
-            <span className={`tree-planning-phase ${statusClass}`}>
-              {entry.phase}
-            </span>
-            <span className="tree-planning-content">
-              {entry.content}
-            </span>
+          <div
+            key={`${entry.phase}-${i}`}
+            className={`tl-item${isLast ? " last" : ""}`}
+          >
+            <div className="tl-rail">
+              <StatusBadge status={status} />
+              {!isLast && <div className={`tl-connector ${status}`} aria-hidden />}
+            </div>
+            <div className="tl-content">
+              <div className="tl-row">
+                <span className="planning-phase">{entry.phase}</span>
+                {isRunning && <span className="tl-meta running">In progress</span>}
+              </div>
+              {entry.content ? (
+                <div className="planning-content">{entry.content}</div>
+              ) : null}
+            </div>
           </div>
         );
       })}
@@ -583,43 +780,62 @@ interface ExecutionTreeProps {
 const ExecutionTree: React.FC<ExecutionTreeProps> = ({ state, onToggleTask }) => {
   const theme = useTheme();
 
-  const completedCount = useMemo(
-    () => state.tasks.filter((t) => t.status === "completed").length,
-    [state.tasks]
-  );
+  const counts = useMemo(() => {
+    const c = { completed: 0, running: 0, waiting: 0, failed: 0 };
+    for (const t of state.tasks) c[t.status] += 1;
+    return c;
+  }, [state.tasks]);
 
   if (state.phase === "idle") return null;
 
   const hasTasks = state.tasks.length > 0;
+  const total = state.tasks.length;
+  const progressPct = total > 0 ? (counts.completed / total) * 100 : 0;
 
   return (
     <div css={treeStyles(theme)}>
       {/* Planning trace is a live indicator — only keep it on screen while
           planning is still running. Once planning is complete, the plan
-          tree below is the durable representation. */}
-      {state.phase === "planning" && state.planningLog.length > 0 && (
-        <PlanningLog
-          entries={state.planningLog}
-          logs={state.logs}
-          isActive={true}
-        />
-      )}
-      {state.phase === "planning" && state.planningLog.length === 0 && (
-        <FlexRow align="center" className="tree-planning">
-          <span className="tree-icon-running">{ICONS.running}</span>
-          <Text>planning</Text>
-        </FlexRow>
+          timeline below is the durable representation. */}
+      {state.phase === "planning" && (
+        <PlanningLog entries={state.planningLog} isActive={true} />
       )}
       {hasTasks && (
-        <>
-          <FlexRow align="center" className="tree-plan-header">
-            <span className="tree-plan-icon">{ICONS.plan}</span>
-            <span className="tree-plan-label">Plan</span>
-            <span className="tree-plan-count">
-              ({completedCount}/{state.tasks.length} tasks)
+        <div className="plan-card">
+          <FlexRow className="plan-header" align="center" gap={2}>
+            <span className="plan-title">Execution plan</span>
+            <div
+              className="plan-progress-track"
+              role="progressbar"
+              aria-valuenow={counts.completed}
+              aria-valuemin={0}
+              aria-valuemax={total}
+              aria-label="Completed tasks"
+            >
+              <div
+                className="plan-progress-fill"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+            <span className="plan-count">
+              {counts.completed}/{total}
             </span>
+            <div className="plan-dots">
+              {counts.completed > 0 && (
+                <span className="plan-dot completed">{counts.completed}</span>
+              )}
+              {counts.running > 0 && (
+                <span className="plan-dot running">{counts.running}</span>
+              )}
+              {counts.failed > 0 && (
+                <span className="plan-dot failed">{counts.failed}</span>
+              )}
+              {counts.waiting > 0 && (
+                <span className="plan-dot waiting">{counts.waiting}</span>
+              )}
+            </div>
           </FlexRow>
-          <FlexColumn>
+          <FlexColumn className="plan-body" gap={0}>
             {state.tasks.map((task, i) => (
               <TaskNode
                 key={task.id}
@@ -629,7 +845,7 @@ const ExecutionTree: React.FC<ExecutionTreeProps> = ({ state, onToggleTask }) =>
               />
             ))}
           </FlexColumn>
-        </>
+        </div>
       )}
     </div>
   );
