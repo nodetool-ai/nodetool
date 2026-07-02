@@ -274,6 +274,50 @@ Revised: the showcase pipeline moves early because Engines 1, 3, and 4 all lead 
 Steps 1–6 take nodetool.ai from 21 indexed pages to ~600–800, every one output-first and from a
 fixed template, before any real user publishes anything.
 
+## Execution: NodeTool workflows run the machine
+
+The work splits cleanly into code that ships once and content that regenerates forever. The
+second half is exactly what NodeTool is for, so the SEO machine's production layer is NodeTool
+workflows run headlessly — which is also a marketing story in itself (the site's content is made
+by the product it sells, and the seeder workflows ship as `/templates/*` pages like any other).
+
+**Layer 1 — the factory (TypeScript, one-time, ~3 PRs).** Not workflows; this is Next.js build
+plumbing in `marketing/`:
+
+1. Data modules + `/templates/[slug]` route with the JSON→flow-components graph renderer, the
+   `/templates` hub, derived sitemap, and the smoke-test walker. Everything later reuses this.
+2. `/models/[slug]` and `/models/[a]-vs-[b]` routes reading `modelEntries.ts`.
+3. `/showcase/[slug]` route reading the generated showcase manifest.
+
+**Layer 2 — content production (NodeTool workflows in `marketing/seo/workflows/`, DSL `.ts`
+files, run via `nodetool run <file> --params`).** Four workflows:
+
+- **Showcase Seeder** — inputs: template slug, model list, prompt count. An agent or
+  `ListGenerator` writes prompt variants in the template's domain, each fans out through
+  `TextToImage`/`ImageToVideo` per model, outputs land in `marketing/seo/out/<batch>/` with one
+  manifest row per run (prompt, model, provider, params, file). The same pattern as the shipped
+  `Image to Video Animation` and `Movie Posters` examples, parameterized.
+- **Model Duel** — one prompt, two model parameters, identical generation nodes; emits the paired
+  outputs plus an agent-drafted observation block for the `/models/a-vs-b` page.
+- **Copy Writer** — the shipped `SEO Content Engine` template (strategist agent → briefs → full
+  Markdown per brief), retargeted: given a model id and its provider manifest, draft the
+  hand-written slice of its model page (capability blurb, FAQ answers, title/meta) as Markdown
+  for review. Drafts only — a human edits before merge.
+- **Model Watcher** — a plain CI script, not a workflow (reliability beats dogfooding here):
+  weekly `generate <provider> --list-models --json` diff against `modelEntries.ts`; a new model
+  opens a PR with the stub entry and kicks a Seeder batch for it.
+
+**Layer 3 — glue (GitHub Actions).** One `seo-seed.yml` with cron + manual dispatch: runs the
+seeder/duel workflows with provider keys from repo secrets and an explicit per-batch spend cap in
+`--params`, then an ingest script that converts manifests into
+`showcaseEntries.generated.ts`, moves assets to the CDN path, and opens a PR. **The PR is the
+quality gate**: a human eyeballs every batch's outputs before they go live — this is where the
+playbook's index gate is enforced, not in code review of the pipeline. Merge deploys the site.
+
+What deliberately stays out of workflows: page rendering, sitemap, canonicals — all derived at
+Next.js build time from the checked-in data. The workflows produce data and assets; the build
+consumes them. That boundary keeps a bad generation batch revertable with `git revert`.
+
 ## Guardrails
 
 - **The node-docs lesson is the null hypothesis.** Any engine can reproduce §0.4 (thousands of
