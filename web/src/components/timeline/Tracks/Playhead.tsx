@@ -13,9 +13,11 @@
  * Performance: the playhead position is driven imperatively. During playback
  * the live time advances ~60×/s through the playback store's TRANSIENT channel
  * (`subscribeTime`), which bypasses React. We subscribe once and set the DOM
- * `left` / pill text directly on refs — the component itself never re-renders
- * per frame. Reactive `currentTimeMs` is only read for the initial/resting
- * position (seek/scrub/pause), and zoom/scroll changes reposition via the same
+ * `transform` (not `left`, which would invalidate layout every frame) / pill
+ * text directly on refs — the component itself never re-renders per frame.
+ * `aria-valuenow` and the pill text are additionally throttled to ~10 Hz.
+ * Reactive `currentTimeMs` is only read for the initial/resting position
+ * (seek/scrub/pause), and zoom/scroll changes reposition via the same
  * imperative path.
  */
 
@@ -51,8 +53,13 @@ const hitAreaStyles = (theme: Theme, dragging: boolean) =>
     position: "absolute",
     top: 0,
     bottom: 0,
+    // Fixed base position — per-frame placement is done entirely via an
+    // imperative `transform: translateX()` (see applyTimeMs) so a moving
+    // playhead never invalidates layout the way animating `left` would. The
+    // half-width centering offset that used to live here as a static
+    // transform is folded into that same imperative translateX.
+    left: 0,
     width: HIT_AREA_WIDTH_PX,
-    transform: `translateX(-${HIT_AREA_WIDTH_PX / 2}px)`,
     cursor: dragging ? "grabbing" : "ew-resize",
     touchAction: "none",
     pointerEvents: "auto",
@@ -148,7 +155,18 @@ export const Playhead: React.FC<PlayheadProps> = memo(
     trackAreaOffsetRef.current = trackAreaOffsetPx;
     fpsRef.current = fps;
 
+    // Last-written aria bucket / pill text, so the throttled DOM writes below
+    // only fire when the displayed value actually changes.
+    const lastAriaBucketRef = useRef<number | null>(null);
+    const lastPillTextRef = useRef<string | null>(null);
+
     // Imperatively position the element + pill text from a time in ms.
+    // Position updates every call (needed every frame during playback) via
+    // `transform` (no layout invalidation, unlike animating `left`).
+    // aria-valuenow and the pill text are comparatively expensive DOM writes
+    // (attribute mutation / text reflow) that only need to change ~10×/s for
+    // a11y/readability, so they're gated behind a "did the rounded value
+    // actually change" check.
     const applyTimeMs = useCallback((timeMs: number) => {
       const leftPx =
         trackAreaOffsetRef.current +
@@ -156,12 +174,20 @@ export const Playhead: React.FC<PlayheadProps> = memo(
         scrollLeftRef.current;
       const el = hitAreaRef.current;
       if (el) {
-        el.style.left = `${leftPx}px`;
-        el.setAttribute("aria-valuenow", String(Math.round(timeMs)));
+        el.style.transform = `translateX(${leftPx - HIT_AREA_WIDTH_PX / 2}px)`;
+        const ariaBucket = Math.round(timeMs / 100);
+        if (ariaBucket !== lastAriaBucketRef.current) {
+          lastAriaBucketRef.current = ariaBucket;
+          el.setAttribute("aria-valuenow", String(Math.round(timeMs)));
+        }
       }
       const pill = pillRef.current;
       if (pill) {
-        pill.textContent = formatTimecode(timeMs, fpsRef.current);
+        const text = formatTimecode(timeMs, fpsRef.current);
+        if (text !== lastPillTextRef.current) {
+          lastPillTextRef.current = text;
+          pill.textContent = text;
+        }
       }
     }, []);
 

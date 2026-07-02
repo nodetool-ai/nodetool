@@ -10,15 +10,20 @@
  * highlights during playback. Read/navigate only — editing stays in the panel.
  */
 
-import React, { useMemo } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import { styled } from "@mui/material/styles";
 import GraphicEqIcon from "@mui/icons-material/GraphicEq";
+import { useShallow } from "zustand/react/shallow";
 import { MOTION, BORDER_RADIUS, FONT_SIZE_SANS, FONT_SIZE_MONO, FONT_WEIGHT, SPACING, getSpacingPx } from "../../ui_primitives";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
-import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
-import { buildTranscriptDoc } from "../../../stores/timeline/transcriptOps";
+import { useTimelinePlaybackStoreApi } from "../../../stores/timeline/TimelinePlaybackStore";
+import {
+  buildTranscriptDoc,
+  isTranscriptClip,
+  type TranscriptSegment
+} from "../../../stores/timeline/transcriptOps";
 import { TRACK_HEADER_WIDTH_PX } from "./TrackHeader";
 
 export const SCRIPT_LANE_HEIGHT_PX = 46;
@@ -37,7 +42,7 @@ const LaneRoot = styled("div")(({ theme }) => ({
   overflow: "hidden"
 }));
 
-const PhraseChip = styled("button")(({ theme }) => ({
+const PhraseChipRoot = styled("button")(({ theme }) => ({
   position: "absolute",
   top: 7,
   height: SCRIPT_LANE_HEIGHT_PX - 16,
@@ -120,88 +125,212 @@ export const ScriptLaneHeader: React.FC = () => (
   </HeaderCell>
 );
 
+// ── Imperative active-word/segment highlight ──────────────────────────────────
+
+/** A time span with a stable identity, sorted ascending and non-overlapping. */
+interface TimedKey {
+  key: string;
+  startMs: number;
+  endMs: number;
+}
+
+/** Binary-search the entry spanning `timeMs` (`start <= timeMs < end`), or null. */
+function findActiveRange<T extends TimedKey>(ranges: T[], timeMs: number): T | null {
+  let lo = 0;
+  let hi = ranges.length - 1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    const r = ranges[mid];
+    if (timeMs < r.startMs) hi = mid - 1;
+    else if (timeMs >= r.endMs) lo = mid + 1;
+    else return r;
+  }
+  return null;
+}
+
+// ── Per-segment chip ───────────────────────────────────────────────────────────
+
+/** Precomputed per-segment render inputs (F5c: avoids recomputing `title` per render). */
+interface ScriptChipView {
+  segment: TranscriptSegment;
+  gapMs: number;
+  prevEndMs: number | undefined;
+  title: string;
+}
+
+interface PhraseChipProps {
+  view: ScriptChipView;
+  msPerPx: number;
+  isSelected: boolean;
+  onSelect: (segment: TranscriptSegment) => void;
+  registerChipEl: (id: string, el: HTMLButtonElement | null) => void;
+  registerWordEl: (key: string, el: HTMLElement | null) => void;
+}
+
+/**
+ * One phrase chip (plus its leading pause chip, if any). Memoized on the
+ * segment's own identity so an edit to one paragraph doesn't re-render every
+ * other chip — segments keep their identity across unrelated store publishes
+ * (`buildTranscriptDoc` is cached; `ScriptLane` only recomputes it when the
+ * transcript-relevant clip subset actually changes).
+ */
+const PhraseChip: React.FC<PhraseChipProps> = memo(function PhraseChip({
+  view,
+  msPerPx,
+  isSelected,
+  onSelect,
+  registerChipEl,
+  registerWordEl
+}) {
+  const { segment: seg, gapMs, prevEndMs, title } = view;
+  const left = seg.startMs / msPerPx;
+  const width = Math.max(10, (seg.endMs - seg.startMs) / msPerPx);
+
+  return (
+    <React.Fragment>
+      {gapMs >= PAUSE_MIN_MS && prevEndMs !== undefined && (
+        <PauseChip
+          style={{
+            left: prevEndMs / msPerPx,
+            width: gapMs / msPerPx
+          }}
+        >
+          {(gapMs / 1000).toFixed(1)}s
+        </PauseChip>
+      )}
+      <PhraseChipRoot
+        ref={(el) => registerChipEl(seg.id, el)}
+        type="button"
+        style={{ left, width }}
+        className={[isSelected ? "is-selected" : "", seg.isDraft ? "is-draft" : ""]
+          .filter(Boolean)
+          .join(" ")}
+        title={title}
+        data-testid="script-chip"
+        data-segment={seg.id}
+        onClick={() => onSelect(seg)}
+      >
+        <span className="phrase-text">
+          {seg.isDraft
+            ? seg.draftText || "…"
+            : seg.tokens.map((t, ti) => (
+                <React.Fragment key={t.wordIndex}>
+                  {ti > 0 ? " " : ""}
+                  <span
+                    ref={(el) => registerWordEl(`${seg.id}:${ti}`, el)}
+                    data-start={t.startMs}
+                    data-end={t.endMs}
+                  >
+                    {t.text}
+                  </span>
+                </React.Fragment>
+              ))}
+        </span>
+      </PhraseChipRoot>
+    </React.Fragment>
+  );
+});
+
 // ── Lane (for the scrollable lanes area) ──────────────────────────────────────
 
 export const ScriptLane: React.FC = () => {
-  const clips = useTimelineStore((s) => s.clips);
+  // Only the transcript/caption-bearing subset — untouched clips (B-roll,
+  // music) keep their identity across store publishes, so `useShallow`
+  // returns the SAME array reference for those publishes and the `segments`
+  // memo below skips recomputing entirely for a B-roll drag.
+  const clips = useTimelineStore(useShallow((s) => s.clips.filter(isTranscriptClip)));
   const msPerPx = useTimelineUIStore((s) => s.msPerPx);
   const selectedClipIds = useTimelineUIStore((s) => s.selectedClipIds);
   const setSelection = useTimelineUIStore((s) => s.setSelection);
-  const currentTimeMs = useTimelinePlaybackStore((s) => s.currentTimeMs);
-  const seek = useTimelinePlaybackStore((s) => s.seek);
+  const playbackApi = useTimelinePlaybackStoreApi();
 
-  const segments = useMemo(
-    () => buildTranscriptDoc(clips).segments,
-    [clips]
+  // Chip view models plus the two sorted lookup tables the highlight effect
+  // binary-searches — all derived from `segments` in one pass so `title` and
+  // the ranges never redo the `buildTranscriptDoc` walk.
+  const { chipViews, segmentRanges, wordRanges } = useMemo(() => {
+    const segments = buildTranscriptDoc(clips).segments;
+    const chipViews: ScriptChipView[] = [];
+    const segmentRanges: TimedKey[] = [];
+    const wordRanges: TimedKey[] = [];
+
+    segments.forEach((seg, i) => {
+      const prev = segments[i - 1];
+      const gapMs = prev ? seg.startMs - prev.endMs : 0;
+      const title = seg.isDraft ? seg.draftText : seg.tokens.map((t) => t.text).join(" ");
+      chipViews.push({ segment: seg, gapMs, prevEndMs: prev?.endMs, title });
+      segmentRanges.push({ key: seg.id, startMs: seg.startMs, endMs: seg.endMs });
+      seg.tokens.forEach((t, ti) => {
+        wordRanges.push({ key: `${seg.id}:${ti}`, startMs: t.startMs, endMs: t.endMs });
+      });
+    });
+
+    return { chipViews, segmentRanges, wordRanges };
+  }, [clips]);
+
+  // DOM refs for the imperative highlight — populated by the chips' callback
+  // refs, so applying the highlight is a Map lookup, never a DOM query.
+  const chipElsRef = useRef(new Map<string, HTMLButtonElement>());
+  const wordElsRef = useRef(new Map<string, HTMLElement>());
+  const registerChipEl = useCallback((id: string, el: HTMLButtonElement | null) => {
+    if (el) chipElsRef.current.set(id, el);
+    else chipElsRef.current.delete(id);
+  }, []);
+  const registerWordEl = useCallback((key: string, el: HTMLElement | null) => {
+    if (el) wordElsRef.current.set(key, el);
+    else wordElsRef.current.delete(key);
+  }, []);
+
+  const onSelect = useCallback(
+    (segment: TranscriptSegment) => {
+      playbackApi.getState().seek(segment.startMs);
+      if (segment.clipIds.length > 0) setSelection(segment.clipIds);
+    },
+    [playbackApi, setSelection]
   );
+
+  // The active word/segment highlight, driven off the transient time channel
+  // instead of the reactive `currentTimeMs` (which is frozen during playback
+  // — it only updates on discrete seek/scrub/stop — so the old reactive
+  // version never lit up while actually playing). Subscribes once per
+  // `segmentRanges`/`wordRanges` identity change and toggles classes only when
+  // the active id changes, via the ref Maps above (no DOM query per tick).
+  useEffect(() => {
+    let lastSegmentId: string | null = null;
+    let lastWordKey: string | null = null;
+
+    const applyHighlight = (timeMs: number): void => {
+      const segId = findActiveRange(segmentRanges, timeMs)?.key ?? null;
+      if (segId !== lastSegmentId) {
+        if (lastSegmentId) chipElsRef.current.get(lastSegmentId)?.classList.remove("is-active");
+        if (segId) chipElsRef.current.get(segId)?.classList.add("is-active");
+        lastSegmentId = segId;
+      }
+
+      const wordKey = findActiveRange(wordRanges, timeMs)?.key ?? null;
+      if (wordKey !== lastWordKey) {
+        if (lastWordKey) wordElsRef.current.get(lastWordKey)?.classList.remove("w-active");
+        if (wordKey) wordElsRef.current.get(wordKey)?.classList.add("w-active");
+        lastWordKey = wordKey;
+      }
+    };
+
+    applyHighlight(playbackApi.getState().getTimeMs());
+    return playbackApi.getState().subscribeTime(applyHighlight);
+  }, [playbackApi, segmentRanges, wordRanges]);
 
   return (
     <LaneRoot style={{ width: "100%" }} data-testid="script-lane">
-      {segments.map((seg, i) => {
-        const prev = segments[i - 1];
-        const gapMs = prev ? seg.startMs - prev.endMs : 0;
-        const isSelected = seg.clipIds.some((id) => selectedClipIds.has(id));
-        const isActive =
-          currentTimeMs >= seg.startMs && currentTimeMs < seg.endMs;
-        const left = seg.startMs / msPerPx;
-        const width = Math.max(10, (seg.endMs - seg.startMs) / msPerPx);
-
-        return (
-          <React.Fragment key={seg.id}>
-            {gapMs >= PAUSE_MIN_MS && (
-              <PauseChip
-                style={{
-                  left: prev.endMs / msPerPx,
-                  width: gapMs / msPerPx
-                }}
-              >
-                {(gapMs / 1000).toFixed(1)}s
-              </PauseChip>
-            )}
-            <PhraseChip
-              type="button"
-              style={{ left, width }}
-              className={[
-                isSelected ? "is-selected" : "",
-                isActive ? "is-active" : "",
-                seg.isDraft ? "is-draft" : ""
-              ]
-                .filter(Boolean)
-                .join(" ")}
-              title={
-                seg.isDraft
-                  ? seg.draftText
-                  : seg.tokens.map((t) => t.text).join(" ")
-              }
-              data-testid="script-chip"
-              data-segment={seg.id}
-              onClick={() => {
-                seek(seg.startMs);
-                if (seg.clipIds.length > 0) setSelection(seg.clipIds);
-              }}
-            >
-              <span className="phrase-text">
-                {seg.isDraft
-                  ? seg.draftText || "…"
-                  : seg.tokens.map((t, ti) => (
-                      <React.Fragment key={t.wordIndex}>
-                        {ti > 0 ? " " : ""}
-                        <span
-                          className={
-                            currentTimeMs >= t.startMs && currentTimeMs < t.endMs
-                              ? "w-active"
-                              : undefined
-                          }
-                        >
-                          {t.text}
-                        </span>
-                      </React.Fragment>
-                    ))}
-              </span>
-            </PhraseChip>
-          </React.Fragment>
-        );
-      })}
+      {chipViews.map((view) => (
+        <PhraseChip
+          key={view.segment.id}
+          view={view}
+          msPerPx={msPerPx}
+          isSelected={view.segment.clipIds.some((id) => selectedClipIds.has(id))}
+          onSelect={onSelect}
+          registerChipEl={registerChipEl}
+          registerWordEl={registerWordEl}
+        />
+      ))}
     </LaneRoot>
   );
 };

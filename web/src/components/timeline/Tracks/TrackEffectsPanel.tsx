@@ -39,6 +39,7 @@ import type {
   TrackChromaKeyEffect
 } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import { useTimelineHistoryBatch } from "../../../stores/timeline/useTimelineHistoryBatch";
 import {
   DEVICE_WIDTHS,
   EFFECT_LABELS,
@@ -225,38 +226,91 @@ interface ParamRowProps {
   disabled?: boolean;
 }
 
-const ParamRow: React.FC<ParamRowProps> = ({
-  label,
-  value,
-  min,
-  max,
-  step,
-  unit,
-  format,
-  onChange,
-  disabled
-}) => {
-  const theme = useTheme();
-  const display = format ? format(value) : value.toFixed(step < 1 ? 2 : 0);
-  return (
-    <FlexRow css={paramRowStyles}>
-      <span css={paramLabelStyles(theme)}>{label}</span>
-      <NodeSlider
-        value={value}
-        min={min}
-        max={max}
-        step={step}
-        disabled={disabled}
-        onChange={(_, v) => onChange(Array.isArray(v) ? v[0] : v)}
-        sx={{ flex: 1 }}
-      />
-      <span css={paramValueStyles(theme)}>
-        {display}
-        {unit ? ` ${unit}` : ""}
-      </span>
-    </FlexRow>
-  );
-};
+const ParamRow: React.FC<ParamRowProps> = memo(
+  ({ label, value, min, max, step, unit, format, onChange, disabled }) => {
+    const theme = useTheme();
+    const history = useTimelineHistoryBatch();
+
+    // Same rAF-coalesced, history-batched gesture as InspectorSliderRow: at
+    // most one store write per animation frame while dragging, one undo
+    // entry per gesture (or per key-repeat press) instead of one per tick.
+    const onChangeRef = useRef(onChange);
+    onChangeRef.current = onChange;
+    const gestureActiveRef = useRef(false);
+    const pendingValueRef = useRef<number | null>(null);
+    const rafIdRef = useRef<number | null>(null);
+
+    const flush = useCallback(() => {
+      rafIdRef.current = null;
+      if (pendingValueRef.current === null) return;
+      const next = pendingValueRef.current;
+      pendingValueRef.current = null;
+      onChangeRef.current(next);
+      history.mark();
+    }, [history]);
+
+    const handleChange = useCallback(
+      (_e: Event, v: number | number[]) => {
+        const next = Array.isArray(v) ? v[0] : v;
+        if (!gestureActiveRef.current) {
+          gestureActiveRef.current = true;
+          history.begin();
+        }
+        pendingValueRef.current = next;
+        if (rafIdRef.current === null) {
+          rafIdRef.current = requestAnimationFrame(flush);
+        }
+      },
+      [history, flush]
+    );
+
+    const handleChangeCommitted = useCallback(
+      (_e: React.SyntheticEvent | Event, v: number | number[]) => {
+        const next = Array.isArray(v) ? v[0] : v;
+        if (rafIdRef.current !== null) {
+          cancelAnimationFrame(rafIdRef.current);
+          rafIdRef.current = null;
+        }
+        pendingValueRef.current = null;
+        onChangeRef.current(next);
+        history.mark();
+        history.end();
+        gestureActiveRef.current = false;
+      },
+      [history]
+    );
+
+    useEffect(() => {
+      return () => {
+        if (rafIdRef.current !== null) {
+          cancelAnimationFrame(rafIdRef.current);
+        }
+      };
+    }, []);
+
+    const display = format ? format(value) : value.toFixed(step < 1 ? 2 : 0);
+    return (
+      <FlexRow css={paramRowStyles}>
+        <span css={paramLabelStyles(theme)}>{label}</span>
+        <NodeSlider
+          value={value}
+          min={min}
+          max={max}
+          step={step}
+          disabled={disabled}
+          onChange={handleChange}
+          onChangeCommitted={handleChangeCommitted}
+          sx={{ flex: 1 }}
+        />
+        <span css={paramValueStyles(theme)}>
+          {display}
+          {unit ? ` ${unit}` : ""}
+        </span>
+      </FlexRow>
+    );
+  }
+);
+ParamRow.displayName = "ParamRow";
 
 // ── Per-effect editors ──────────────────────────────────────────────────────
 
@@ -449,6 +503,9 @@ const Eq3Curve: React.FC<Eq3CurveProps> = ({ effect, onPatch, disabled }) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [width, setWidth] = useState(600);
   const [dragBand, setDragBand] = useState<Band | null>(null);
+  const history = useTimelineHistoryBatch();
+  const onPatchRef = useRef(onPatch);
+  onPatchRef.current = onPatch;
 
   // Track SVG width to compute layout in user space.
   React.useEffect(() => {
@@ -507,14 +564,49 @@ const Eq3Curve: React.FC<Eq3CurveProps> = ({ effect, onPatch, disabled }) => {
     );
   }, [curvePath, width, height]);
 
+  // Drag gestures are rAF-coalesced (one onPatch per frame) and wrapped in a
+  // single undo entry: begin() on pointerdown, mark() per flushed patch,
+  // end() on pointerup/pointercancel (flushing any not-yet-flushed patch
+  // synchronously first so the final position is never dropped).
+  const pendingPatchRef = useRef<Partial<TrackEq3Effect> | null>(null);
+  const dragRafIdRef = useRef<number | null>(null);
+
+  const flushPatch = useCallback(() => {
+    dragRafIdRef.current = null;
+    if (!pendingPatchRef.current) return;
+    const patch = pendingPatchRef.current;
+    pendingPatchRef.current = null;
+    onPatchRef.current(patch);
+    history.mark();
+  }, [history]);
+
+  const schedulePatch = useCallback(
+    (patch: Partial<TrackEq3Effect>) => {
+      pendingPatchRef.current = patch;
+      if (dragRafIdRef.current === null) {
+        dragRafIdRef.current = requestAnimationFrame(flushPatch);
+      }
+    },
+    [flushPatch]
+  );
+
+  useEffect(() => {
+    return () => {
+      if (dragRafIdRef.current !== null) {
+        cancelAnimationFrame(dragRafIdRef.current);
+      }
+    };
+  }, []);
+
   const handlePointerDown = useCallback(
     (band: Band) => (e: React.PointerEvent<SVGElement>) => {
       if (disabled) return;
       (e.target as Element).setPointerCapture(e.pointerId);
       setDragBand(band);
+      history.begin();
       e.stopPropagation();
     },
-    [disabled]
+    [disabled, history]
   );
 
   const handlePointerMove = useCallback(
@@ -529,14 +621,14 @@ const Eq3Curve: React.FC<Eq3CurveProps> = ({ effect, onPatch, disabled }) => {
       const clampedFreq = clamp(freq, fMin, fMax);
       const clampedDb = clamp(db, -EQ_DB_RANGE, EQ_DB_RANGE);
       if (dragBand === "low") {
-        onPatch({ lowFreq: clampedFreq, lowGainDb: clampedDb });
+        schedulePatch({ lowFreq: clampedFreq, lowGainDb: clampedDb });
       } else if (dragBand === "mid") {
-        onPatch({ midFreq: clampedFreq, midGainDb: clampedDb });
+        schedulePatch({ midFreq: clampedFreq, midGainDb: clampedDb });
       } else {
-        onPatch({ highFreq: clampedFreq, highGainDb: clampedDb });
+        schedulePatch({ highFreq: clampedFreq, highGainDb: clampedDb });
       }
     },
-    [dragBand, onPatch]
+    [dragBand, schedulePatch]
   );
 
   const handlePointerUp = useCallback(
@@ -547,32 +639,72 @@ const Eq3Curve: React.FC<Eq3CurveProps> = ({ effect, onPatch, disabled }) => {
         } catch {
           // ignore — capture may have already ended
         }
+        if (dragRafIdRef.current !== null) {
+          cancelAnimationFrame(dragRafIdRef.current);
+          dragRafIdRef.current = null;
+        }
+        if (pendingPatchRef.current) {
+          const patch = pendingPatchRef.current;
+          pendingPatchRef.current = null;
+          onPatchRef.current(patch);
+          history.mark();
+        }
+        history.end();
       }
       setDragBand(null);
     },
-    [dragBand]
+    [dragBand, history]
   );
 
   // Scroll-wheel on mid handle adjusts Q. Attached as a native non-passive
   // listener: React's onWheel is passive, so preventDefault() there can't
-  // stop the page from scrolling.
+  // stop the page from scrolling. `midQRef`/`disabledRef` keep the listener
+  // itself stable (attached once) instead of re-attaching on every value
+  // change; a burst of wheel ticks is batched into one undo entry, closed
+  // after 300 ms of inactivity.
   const midHandleRef = useRef<SVGCircleElement | null>(null);
+  const midQRef = useRef(effect.midQ);
+  midQRef.current = effect.midQ;
+  const disabledRef = useRef(disabled);
+  disabledRef.current = disabled;
+  const wheelActiveRef = useRef(false);
+  const wheelTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     const el = midHandleRef.current;
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
-      if (disabled) return;
+      if (disabledRef.current) return;
       e.preventDefault();
-      const next = clamp(
-        effect.midQ * (e.deltaY > 0 ? 0.9 : 1.1),
-        0.1,
-        10
-      );
-      onPatch({ midQ: parseFloat(next.toFixed(2)) });
+      if (!wheelActiveRef.current) {
+        wheelActiveRef.current = true;
+        history.begin();
+      }
+      const next = clamp(midQRef.current * (e.deltaY > 0 ? 0.9 : 1.1), 0.1, 10);
+      onPatchRef.current({ midQ: parseFloat(next.toFixed(2)) });
+      history.mark();
+      if (wheelTimeoutRef.current !== null) {
+        clearTimeout(wheelTimeoutRef.current);
+      }
+      wheelTimeoutRef.current = setTimeout(() => {
+        wheelTimeoutRef.current = null;
+        wheelActiveRef.current = false;
+        history.end();
+      }, 300);
     };
     el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
-  }, [effect.midQ, onPatch, disabled]);
+    return () => {
+      el.removeEventListener("wheel", onWheel);
+      if (wheelTimeoutRef.current !== null) {
+        clearTimeout(wheelTimeoutRef.current);
+        wheelTimeoutRef.current = null;
+        if (wheelActiveRef.current) {
+          wheelActiveRef.current = false;
+          history.end();
+        }
+      }
+    };
+  }, [history]);
 
   // Static grid: log decade lines + dB lines.
   const gridFreqs = [50, 100, 200, 500, 1000, 2000, 5000, 10000];
@@ -919,6 +1051,9 @@ const CompressorCurve: React.FC<CompressorCurveProps> = ({
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [drag, setDrag] = useState<CompDrag>(null);
   const size = COMP_GRAPH_SIZE;
+  const history = useTimelineHistoryBatch();
+  const onPatchRef = useRef(onPatch);
+  onPatchRef.current = onPatch;
 
   const curvePath = useMemo(() => {
     const samples = 80;
@@ -972,14 +1107,47 @@ const CompressorCurve: React.FC<CompressorCurveProps> = ({
   const ratioX = compXY(ratioRefInput, size);
   const ratioY = size - compXY(ratioOutDb, size);
 
+  // Drag gestures are rAF-coalesced (one onPatch per frame) and wrapped in a
+  // single undo entry, matching Eq3Curve's band handles.
+  const pendingPatchRef = useRef<Partial<TrackCompressorEffect> | null>(null);
+  const dragRafIdRef = useRef<number | null>(null);
+
+  const flushPatch = useCallback(() => {
+    dragRafIdRef.current = null;
+    if (!pendingPatchRef.current) return;
+    const patch = pendingPatchRef.current;
+    pendingPatchRef.current = null;
+    onPatchRef.current(patch);
+    history.mark();
+  }, [history]);
+
+  const schedulePatch = useCallback(
+    (patch: Partial<TrackCompressorEffect>) => {
+      pendingPatchRef.current = patch;
+      if (dragRafIdRef.current === null) {
+        dragRafIdRef.current = requestAnimationFrame(flushPatch);
+      }
+    },
+    [flushPatch]
+  );
+
+  useEffect(() => {
+    return () => {
+      if (dragRafIdRef.current !== null) {
+        cancelAnimationFrame(dragRafIdRef.current);
+      }
+    };
+  }, []);
+
   const onDown = useCallback(
     (which: CompDrag) => (e: React.PointerEvent<SVGElement>) => {
       if (disabled) return;
       (e.target as Element).setPointerCapture(e.pointerId);
       setDrag(which);
+      history.begin();
       e.stopPropagation();
     },
-    [disabled]
+    [disabled, history]
   );
 
   const onMove = useCallback(
@@ -991,7 +1159,7 @@ const CompressorCurve: React.FC<CompressorCurveProps> = ({
       if (drag === "threshold") {
         // Drag along the X axis primarily; clamp threshold.
         const t = clamp(compFromX(px * (size / rect.width), size), -60, 0);
-        onPatch({ thresholdDb: parseFloat(t.toFixed(1)) });
+        schedulePatch({ thresholdDb: parseFloat(t.toFixed(1)) });
       } else if (drag === "ratio") {
         // Vertical drag controls ratio. Output at ratioRefInput is the Y position.
         const outDb = compFromY(py * (size / rect.height), size);
@@ -1004,19 +1172,19 @@ const CompressorCurve: React.FC<CompressorCurveProps> = ({
             1,
             20
           );
-          onPatch({ ratio: parseFloat(r.toFixed(2)) });
+          schedulePatch({ ratio: parseFloat(r.toFixed(2)) });
         } else {
           const compressedDelta = outDb - effect.thresholdDb;
           if (compressedDelta <= 0.01) {
-            onPatch({ ratio: 20 });
+            schedulePatch({ ratio: 20 });
           } else {
             const r = clamp(delta / compressedDelta, 1, 20);
-            onPatch({ ratio: parseFloat(r.toFixed(2)) });
+            schedulePatch({ ratio: parseFloat(r.toFixed(2)) });
           }
         }
       }
     },
-    [drag, onPatch, size, effect.thresholdDb]
+    [drag, schedulePatch, size, effect.thresholdDb]
   );
 
   const onUp = useCallback(
@@ -1027,31 +1195,71 @@ const CompressorCurve: React.FC<CompressorCurveProps> = ({
         } catch {
           // ignore
         }
+        if (dragRafIdRef.current !== null) {
+          cancelAnimationFrame(dragRafIdRef.current);
+          dragRafIdRef.current = null;
+        }
+        if (pendingPatchRef.current) {
+          const patch = pendingPatchRef.current;
+          pendingPatchRef.current = null;
+          onPatchRef.current(patch);
+          history.mark();
+        }
+        history.end();
       }
       setDrag(null);
     },
-    [drag]
+    [drag, history]
   );
 
   // Threshold-line wheel changes knee width. Native non-passive listener so
   // preventDefault() actually blocks scrolling (React's onWheel is passive).
+  // `kneeDbRef`/`disabledRef` keep the listener itself stable instead of
+  // re-attaching on every value change; a wheel burst batches into one undo
+  // entry, closed after 300 ms of inactivity.
   const threshHandleRef = useRef<SVGCircleElement | null>(null);
+  const kneeDbRef = useRef(effect.kneeDb);
+  kneeDbRef.current = effect.kneeDb;
+  const disabledRef = useRef(disabled);
+  disabledRef.current = disabled;
+  const wheelActiveRef = useRef(false);
+  const wheelTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     const el = threshHandleRef.current;
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
-      if (disabled) return;
+      if (disabledRef.current) return;
       e.preventDefault();
-      const next = clamp(
-        effect.kneeDb + (e.deltaY > 0 ? -1 : 1),
-        0,
-        40
-      );
-      onPatch({ kneeDb: parseFloat(next.toFixed(1)) });
+      if (!wheelActiveRef.current) {
+        wheelActiveRef.current = true;
+        history.begin();
+      }
+      const next = clamp(kneeDbRef.current + (e.deltaY > 0 ? -1 : 1), 0, 40);
+      onPatchRef.current({ kneeDb: parseFloat(next.toFixed(1)) });
+      history.mark();
+      if (wheelTimeoutRef.current !== null) {
+        clearTimeout(wheelTimeoutRef.current);
+      }
+      wheelTimeoutRef.current = setTimeout(() => {
+        wheelTimeoutRef.current = null;
+        wheelActiveRef.current = false;
+        history.end();
+      }, 300);
     };
     el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
-  }, [effect.kneeDb, onPatch, disabled]);
+    return () => {
+      el.removeEventListener("wheel", onWheel);
+      if (wheelTimeoutRef.current !== null) {
+        clearTimeout(wheelTimeoutRef.current);
+        wheelTimeoutRef.current = null;
+        if (wheelActiveRef.current) {
+          wheelActiveRef.current = false;
+          history.end();
+        }
+      }
+    };
+  }, [history]);
 
   const gridDbs = [-48, -36, -24, -12];
   const gridColor = theme.vars.palette.divider;

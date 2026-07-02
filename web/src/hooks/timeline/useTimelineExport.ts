@@ -8,9 +8,8 @@
  */
 
 import { useCallback, useRef, useState } from "react";
-import { useShallow } from "zustand/react/shallow";
 
-import { useTimelineStore } from "../../stores/timeline/TimelineStore";
+import { useTimelineStoreApi } from "../../stores/timeline/TimelineStore";
 import { useAssetStore } from "../../stores/AssetStore";
 import { getAssetUrl } from "../../utils/assetHelpers";
 import {
@@ -53,17 +52,15 @@ function clipEndMs(clip: { startMs: number; durationMs: number }): number {
   return clip.startMs + clip.durationMs;
 }
 
+/** Minimum time between non-terminal progress state updates, in ms. */
+const PROGRESS_UPDATE_INTERVAL_MS = 250;
+
 export function useTimelineExport(): UseTimelineExportResult {
-  const { tracks, clips, width, height, fps, durationMs } = useTimelineStore(
-    useShallow((s) => ({
-      tracks: s.tracks,
-      clips: s.clips,
-      width: s.width,
-      height: s.height,
-      fps: s.fps,
-      durationMs: s.durationMs
-    }))
-  );
+  // `tracks`/`clips`/etc. are only read once, at click time, inside
+  // `exportVideo` — reading them via the store api (instead of a reactive
+  // selector) means drag/trim/slider ticks that replace `clips` no longer
+  // re-render this hook's owner (the whole editor shell).
+  const store = useTimelineStoreApi();
   const getAsset = useAssetStore((s) => s.get);
 
   const [isExporting, setIsExporting] = useState(false);
@@ -97,26 +94,47 @@ export function useTimelineExport(): UseTimelineExportResult {
         }
       };
 
+      // Coalesce per-frame progress into React state: at most one update per
+      // `PROGRESS_UPDATE_INTERVAL_MS`, plus every integer-percent change, plus
+      // the terminal update (ratio 1) so the dialog always reaches 100%.
+      let lastProgressPercent = -1;
+      let lastProgressAtMs = 0;
+      const handleProgress = (next: RenderProgress): void => {
+        const percent = Math.round(next.ratio * 100);
+        const now = Date.now();
+        const isTerminal = next.ratio >= 1;
+        if (
+          isTerminal ||
+          percent !== lastProgressPercent ||
+          now - lastProgressAtMs >= PROGRESS_UPDATE_INTERVAL_MS
+        ) {
+          lastProgressPercent = percent;
+          lastProgressAtMs = now;
+          setProgress(next);
+        }
+      };
+
       try {
-        const clipsDurationMs = clips.reduce(
+        const state = store.getState();
+        const clipsDurationMs = state.clips.reduce(
           (max, clip) => Math.max(max, clipEndMs(clip)),
           0
         );
-        const exportDurationMs = Math.max(durationMs, clipsDurationMs);
+        const exportDurationMs = Math.max(state.durationMs, clipsDurationMs);
         if (exportDurationMs <= 0) {
           throw new Error("Add a clip before exporting.");
         }
 
         const { bytes, mimeType } = await renderTimeline({
-          tracks,
-          clips,
-          width,
-          height,
-          fps,
+          tracks: state.tracks,
+          clips: state.clips,
+          width: state.width,
+          height: state.height,
+          fps: state.fps,
           durationMs: exportDurationMs,
           resolveUrl,
           signal: controller.signal,
-          onProgress: setProgress
+          onProgress: handleProgress
         });
         downloadBlob(bytes, mimeType, `${sanitizeFilename(filename ?? "timeline")}.mp4`);
       } catch (err) {
@@ -131,7 +149,7 @@ export function useTimelineExport(): UseTimelineExportResult {
         setProgress(null);
       }
     },
-    [tracks, clips, width, height, fps, durationMs, getAsset]
+    [store, getAsset]
   );
 
   return { exportVideo, cancel, clearError, isExporting, progress, error };

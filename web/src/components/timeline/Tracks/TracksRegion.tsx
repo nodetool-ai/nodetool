@@ -45,10 +45,12 @@ import {
 } from "../../../stores/timeline/TimelineStore";
 import {
   useTimelineUIStore,
+  useTimelineUIStoreApi,
   MIN_MS_PER_PX,
   MAX_MS_PER_PX
 } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStoreApi } from "../../../stores/timeline/TimelinePlaybackStore";
+import { useTimelineHistoryBatch } from "../../../stores/timeline/useTimelineHistoryBatch";
 import {
   buildPastedClips,
   copyClipsToClipboard,
@@ -224,11 +226,8 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     const hasScript = useHasScript();
 
     const msPerPx = useTimelineUIStore((s) => s.msPerPx);
-    const scrollLeftPx = useTimelineUIStore((s) => s.scrollLeftPx);
     const setScrollLeftPx = useTimelineUIStore((s) => s.setScrollLeftPx);
-    const setZoom = useTimelineUIStore((s) => s.setZoom);
 
-    const selectedClipIds = useTimelineUIStore((s) => s.selectedClipIds);
     const setActiveTool = useTimelineUIStore((s) => s.setActiveTool);
     const setSelection = useTimelineUIStore((s) => s.setSelection);
     const deleteSelected = useTimelineStore((s) => s.deleteSelected);
@@ -239,14 +238,17 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     const moveSelectedClips = useTimelineStore((s) => s.moveSelectedClips);
     const addClips = useTimelineStore((s) => s.addClips);
     // Store handles for values read only inside event handlers (playhead
-    // time, fps, clip list). Subscribing reactively to currentTimeMs here
-    // would re-render every lane ~60×/s during playback.
+    // time, fps, clip list, selection, zoom). Subscribing reactively to these
+    // here would re-render the whole region ~60×/s during playback/zoom/pan
+    // and re-attach the keydown listener on every selection change.
     const docStore = useTimelineStoreApi();
     const playbackStore = useTimelinePlaybackStoreApi();
+    const uiStoreApi = useTimelineUIStoreApi();
 
     const addTrack = useTimelineStore((s) => s.addTrack);
     const addImportedClip = useTimelineStore((s) => s.addImportedClip);
     const importVideoWithAudio = useVideoAudioImport();
+    const arrowNudgeHistory = useTimelineHistoryBatch();
 
     const scrollableRef = useRef<HTMLDivElement>(null);
     const headerColumnRef = useRef<HTMLDivElement>(null);
@@ -285,12 +287,13 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         const trackType: "video" | "audio" =
           mediaType === "audio" ? "audio" : "video";
 
-        const rect = scrollableRef.current?.getBoundingClientRect();
-        if (!rect) return;
+        const scrollEl = scrollableRef.current;
+        if (!scrollEl) return;
+        const rect = scrollEl.getBoundingClientRect();
         const dropX = Math.max(0, e.clientX - rect.left);
         const startMs = Math.max(
           0,
-          Math.round((dropX + scrollLeftPx) * msPerPx)
+          Math.round((dropX + scrollEl.scrollLeft) * msPerPx)
         );
 
         addTrack(trackType);
@@ -305,20 +308,16 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           addImportedClip(asset, newTrack.id, startMs);
         }
       },
-      [
-        isAssetDrag,
-        scrollLeftPx,
-        msPerPx,
-        addTrack,
-        addImportedClip,
-        importVideoWithAudio
-      ]
+      [isAssetDrag, msPerPx, addTrack, addImportedClip, importVideoWithAudio]
     );
 
     // Total scrollable width from the real content extent, with a trailing pad
-    // so the last clip isn't flush against the edge.
+    // so the last clip isn't flush against the edge. Quantized to 256-px
+    // steps so dragging/trimming the right-most clip (which changes
+    // contentEndMs on every pointermove) only re-layouts the scroll area
+    // every 256px of content growth instead of every move.
     const totalWidthPx = Math.max(
-      contentEndMs / msPerPx + 200,
+      Math.ceil((contentEndMs / msPerPx + 200) / 256) * 256,
       1000
     );
 
@@ -372,26 +371,56 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     // keep the playhead pinned to the same viewport x as the lanes rescale.
     const prevMsPerPxRef = useRef(msPerPx);
 
+    // Zoom accumulation for the wheel listener below: a trackpad pinch
+    // delivers 60–120+ Hz of wheel events, so we accumulate the compounded
+    // factor from every event landing within one animation frame and apply a
+    // SINGLE `setZoom` per frame (trailing rAF) instead of one store publish
+    // (→ re-render of every clip/lane/ruler/scrollbar) per event.
+    const pendingZoomFactorRef = useRef(1);
+    const pendingZoomClientXRef = useRef(0);
+    const zoomRafIdRef = useRef<number | null>(null);
+
     useEffect(() => {
       const el = scrollableRef.current;
       if (!el) return;
+
+      const flushZoom = () => {
+        zoomRafIdRef.current = null;
+        const factor = pendingZoomFactorRef.current;
+        pendingZoomFactorRef.current = 1;
+        if (factor === 1) return;
+
+        // Read the live scale from the store (not a render closure) so
+        // consecutive rAF flushes compound on top of the zoom the previous
+        // flush actually applied, even though this listener never re-attaches.
+        const current = uiStoreApi.getState().msPerPx;
+        const next = Math.min(
+          MAX_MS_PER_PX,
+          Math.max(MIN_MS_PER_PX, current * factor)
+        );
+        if (next === current) return;
+
+        // The container rect is read at most once per flushed frame, not
+        // once per wheel event.
+        const rect = el.getBoundingClientRect();
+        const cursorPx = pendingZoomClientXRef.current - rect.left;
+        zoomAnchorRef.current = {
+          timeMs: (el.scrollLeft + cursorPx) * current,
+          cursorPx
+        };
+        uiStoreApi.getState().setZoom(next);
+      };
+
       const onWheel = (e: WheelEvent) => {
         const { zoomDelta, scrollDelta } = partitionTimelineWheel(e);
 
         if (e.ctrlKey || e.metaKey) {
           e.preventDefault();
-          const factor = 1 + zoomDelta * ZOOM_SENSITIVITY;
-          const next = Math.min(
-            MAX_MS_PER_PX,
-            Math.max(MIN_MS_PER_PX, msPerPx * factor)
-          );
-          if (next === msPerPx) return;
-          const cursorPx = e.clientX - el.getBoundingClientRect().left;
-          zoomAnchorRef.current = {
-            timeMs: (el.scrollLeft + cursorPx) * msPerPx,
-            cursorPx
-          };
-          setZoom(next);
+          pendingZoomFactorRef.current *= 1 + zoomDelta * ZOOM_SENSITIVITY;
+          pendingZoomClientXRef.current = e.clientX;
+          if (zoomRafIdRef.current === null) {
+            zoomRafIdRef.current = requestAnimationFrame(flushZoom);
+          }
           return;
         }
 
@@ -414,9 +443,18 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           }
         }
       };
+      // Attached once with stable (empty) deps — msPerPx is read fresh from
+      // the store inside flushZoom, never from this closure, so events landing
+      // between renders always compute from the current scale.
       el.addEventListener("wheel", onWheel, { passive: false });
-      return () => el.removeEventListener("wheel", onWheel);
-    }, [msPerPx, setZoom]);
+      return () => {
+        el.removeEventListener("wheel", onWheel);
+        if (zoomRafIdRef.current !== null) {
+          cancelAnimationFrame(zoomRafIdRef.current);
+          zoomRafIdRef.current = null;
+        }
+      };
+    }, [uiStoreApi]);
 
     // The header column clips its overflow, so a wheel over it would otherwise
     // do nothing. Forward a vertical wheel to the lanes scroller (whose onScroll
@@ -479,6 +517,26 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         target instanceof HTMLTextAreaElement ||
         (target instanceof HTMLElement && target.isContentEditable);
 
+      // Arrow-key nudge undo batching: a held key repeats ~30×/s, each nudge
+      // mutating the store. Without batching that's one undo entry per
+      // repeat; begin() on the first nudge of a burst, mark() per nudge, and
+      // end() on keyup OR a 400ms trailing timeout (covers focus loss/OS key
+      // repeat quirks that swallow the keyup) so the whole burst collapses
+      // into a single undo entry.
+      let arrowNudgeOpen = false;
+      let arrowNudgeTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
+      const endArrowNudgeBatch = () => {
+        if (arrowNudgeTimeoutId !== null) {
+          clearTimeout(arrowNudgeTimeoutId);
+          arrowNudgeTimeoutId = null;
+        }
+        if (arrowNudgeOpen) {
+          arrowNudgeOpen = false;
+          arrowNudgeHistory.end();
+        }
+      };
+
       const handleKeyDown = (e: KeyboardEvent) => {
         if (isEditableTarget(e.target)) {
           return;
@@ -490,6 +548,10 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         }
 
         const isCtrl = e.ctrlKey || e.metaKey;
+        // Read on demand instead of subscribing reactively — subscribing
+        // would re-render the region and re-attach this listener on every
+        // selection change (e.g. every rubber-band drag tick).
+        const { selectedClipIds } = uiStoreApi.getState();
 
         // Delete / Backspace → delete selected
         if (
@@ -509,11 +571,20 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           selectedClipIds.size > 0
         ) {
           e.preventDefault();
+          if (!arrowNudgeOpen) {
+            arrowNudgeOpen = true;
+            arrowNudgeHistory.begin();
+          }
           const fps = docStore.getState().fps;
           const stepMs = e.shiftKey ? 1000 : Math.round(1000 / Math.max(1, fps));
           const deltaMs = e.key === "ArrowLeft" ? -stepMs : stepMs;
           const primaryId: string = selectedClipIds.values().next().value!;
           moveSelectedClips(primaryId, selectedClipIds, deltaMs);
+          arrowNudgeHistory.mark();
+          if (arrowNudgeTimeoutId !== null) {
+            clearTimeout(arrowNudgeTimeoutId);
+          }
+          arrowNudgeTimeoutId = setTimeout(endArrowNudgeBatch, 400);
           return;
         }
 
@@ -600,10 +671,21 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         }
       };
 
+      const handleKeyUp = (e: KeyboardEvent) => {
+        if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+          endArrowNudgeBatch();
+        }
+      };
+
       window.addEventListener("keydown", handleKeyDown);
-      return () => window.removeEventListener("keydown", handleKeyDown);
+      window.addEventListener("keyup", handleKeyUp);
+      return () => {
+        window.removeEventListener("keydown", handleKeyDown);
+        window.removeEventListener("keyup", handleKeyUp);
+        endArrowNudgeBatch();
+      };
     }, [
-      selectedClipIds,
+      uiStoreApi,
       deleteSelected,
       duplicateSelected,
       setSelection,
@@ -612,7 +694,14 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
       addClips,
       docStore,
       playbackStore,
-      setActiveTool
+      setActiveTool,
+      // useTimelineHistoryBatch() returns a fresh object per render, but
+      // begin/mark/end are individually stable (useCallback over a stable
+      // store api) — depend on those instead of the wrapper object so this
+      // listener doesn't re-attach every render.
+      arrowNudgeHistory.begin,
+      arrowNudgeHistory.mark,
+      arrowNudgeHistory.end
     ]);
 
     const expandedFxTrackId = useTimelineUIStore(
@@ -766,7 +855,6 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         <TimelineScrollbar
           contentWidthPx={totalWidthPx}
           viewportWidthPx={fxPanelWidth}
-          scrollLeftPx={scrollLeftPx}
           leftInsetPx={TRACK_HEADER_WIDTH_PX}
           onScrollTo={scrollToLeft}
         />

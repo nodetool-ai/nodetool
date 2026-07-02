@@ -371,9 +371,19 @@ const TimelineListPanel = () => {
     const filtered = needle
       ? all.filter((timeline) => timeline.name.toLowerCase().includes(needle))
       : all;
-    return [...filtered].sort(
-      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-    );
+    const withTimestamps = filtered.map((timeline) => ({
+      ...timeline,
+      updatedAtMs: new Date(timeline.updatedAt).getTime()
+    }));
+    withTimestamps.sort((a, b) => b.updatedAtMs - a.updatedAtMs);
+
+    let currentGroup = "";
+    return withTimestamps.map((timeline) => {
+      const group = groupByDate(timeline.updatedAt);
+      const showHeader = group !== currentGroup;
+      currentGroup = group;
+      return { ...timeline, group, showHeader };
+    });
   }, [data, filterValue]);
 
   const handleOpen = useCallback(
@@ -480,6 +490,8 @@ const TimelineListPanel = () => {
     setItemToDelete(item);
   }, []);
 
+  const handleCancelRename = useCallback(() => setEditingId(null), []);
+
   const handleConfirmDelete = useCallback(() => {
     if (itemToDelete) {
       deleteTimeline.mutate({ id: itemToDelete.id });
@@ -540,41 +552,33 @@ const TimelineListPanel = () => {
         </FlexColumn>
       ) : (
         <FlexColumn className="timeline-list" gap={0.5}>
-          {(() => {
-            let currentGroup = "";
-            return timelines.map((timeline) => {
-              const group = groupByDate(timeline.updatedAt);
-              const showHeader = group !== currentGroup;
-              currentGroup = group;
-              return (
-                <Fragment key={timeline.id}>
-                  {showHeader && (
-                    <div className="date-header-row">
-                      <Text
-                        className="date-header"
-                        size="small"
-                        color="secondary"
-                        weight={400}
-                      >
-                        {group}
-                      </Text>
-                    </div>
-                  )}
-                  <TimelineListItem
-                    id={timeline.id}
-                    name={timeline.name}
-                    updatedAt={timeline.updatedAt}
-                    active={timeline.id === activeTimelineId}
-                    editing={timeline.id === editingId}
-                    onOpen={handleOpen}
-                    onContextMenu={handleContextMenu}
-                    onCommitRename={handleCommitRename}
-                    onCancelRename={() => setEditingId(null)}
-                  />
-                </Fragment>
-              );
-            });
-          })()}
+          {timelines.map((timeline) => (
+            <Fragment key={timeline.id}>
+              {timeline.showHeader && (
+                <div className="date-header-row">
+                  <Text
+                    className="date-header"
+                    size="small"
+                    color="secondary"
+                    weight={400}
+                  >
+                    {timeline.group}
+                  </Text>
+                </div>
+              )}
+              <TimelineListItem
+                id={timeline.id}
+                name={timeline.name}
+                updatedAt={timeline.updatedAt}
+                active={timeline.id === activeTimelineId}
+                editing={timeline.id === editingId}
+                onOpen={handleOpen}
+                onContextMenu={handleContextMenu}
+                onCommitRename={handleCommitRename}
+                onCancelRename={handleCancelRename}
+              />
+            </Fragment>
+          ))}
         </FlexColumn>
       )}
     </FlexColumn>

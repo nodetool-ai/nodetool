@@ -26,10 +26,39 @@ interface CacheEntry {
   state: "pending" | "ready" | "failed";
   thumbnails?: ClipThumbnail[];
   promise?: Promise<ClipThumbnail[]>;
+  /** `Date.now()` when a "failed" entry was recorded; drives the retry window. */
+  failedAt?: number;
 }
+
+/** Cap on distinct video URLs held in `cache`, each worth up to 24 JPEG data
+ *  URLs. Insertion order in the Map doubles as recency order: every access
+ *  re-inserts its key (see `touch`), so the front of the Map is always the
+ *  least-recently-used entry. */
+const MAX_CACHE_ENTRIES = 32;
+/** How long a failed extraction stays poisoned before a fresh request for the
+ *  same URL is allowed to retry (e.g. a transient network blip). */
+const FAILURE_RETRY_MS = 30_000;
 
 const cache = new Map<string, CacheEntry>();
 const subscribers = new Map<string, Set<() => void>>();
+
+/** Re-insert `url` so it becomes the most-recently-used entry. */
+function touch(url: string, entry: CacheEntry): void {
+  cache.delete(url);
+  cache.set(url, entry);
+}
+
+/** Evict the least-recently-used entry once the cache exceeds its cap.
+ *  In-flight ("pending") entries are never evicted — losing track of a
+ *  running extraction would leak its concurrency slot. */
+function evictIfNeeded(): void {
+  if (cache.size <= MAX_CACHE_ENTRIES) return;
+  for (const [url, entry] of cache) {
+    if (entry.state === "pending") continue;
+    cache.delete(url);
+    return;
+  }
+}
 
 const MAX_CONCURRENT = 2;
 let active = 0;
@@ -180,13 +209,16 @@ export function extractVideoFrames(
 /** Get cached thumbnails synchronously (or null if not ready). */
 export function getThumbnails(url: string): ClipThumbnail[] | null {
   const entry = cache.get(url);
-  return entry?.state === "ready" ? entry.thumbnails ?? null : null;
+  if (entry?.state !== "ready") return null;
+  touch(url, entry);
+  return entry.thumbnails ?? null;
 }
 
 /**
  * Kick off thumbnail extraction for `url` if it hasn't started yet. Calls
  * to this function with the same URL share a single extraction. Notifies
- * subscribers when the result is ready.
+ * subscribers when the result is ready. A "failed" entry is retried once
+ * `FAILURE_RETRY_MS` has passed instead of staying poisoned forever.
  */
 export function requestThumbnails(
   url: string,
@@ -195,7 +227,15 @@ export function requestThumbnails(
 ): void {
   if (!url) return;
   const existing = cache.get(url);
-  if (existing) return; // already pending or ready/failed
+  if (existing) {
+    const retryDue =
+      existing.state === "failed" &&
+      Date.now() - (existing.failedAt ?? 0) >= FAILURE_RETRY_MS;
+    if (!retryDue) {
+      touch(url, existing);
+      return; // already pending, ready, or still within the failure cooldown
+    }
+  }
 
   const entry: CacheEntry = { state: "pending" };
   const promise = extract(url, count, width)
@@ -207,11 +247,13 @@ export function requestThumbnails(
     })
     .catch((err) => {
       entry.state = "failed";
+      entry.failedAt = Date.now();
       notify(url);
       throw err;
     });
   entry.promise = promise;
-  cache.set(url, entry);
+  touch(url, entry);
+  evictIfNeeded();
 }
 
 /** Subscribe to thumbnail-ready notifications for `url`. Returns unsubscribe. */
