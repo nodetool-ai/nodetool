@@ -14,11 +14,11 @@
 [![Platform: Windows](https://img.shields.io/badge/platform-Windows-blue)](https://nodetool.ai)
 [![Platform: Linux](https://img.shields.io/badge/platform-Linux-orange)](https://nodetool.ai)
 
-NodeTool is an open-source creative AI suite that runs entirely on your local machine. It combines a node-based canvas, a multi-track video timeline, and a layered sketch editor into a unified workspace. Wire every major AI model—cloud or local—directly into the professional production tools you already rely on.
+NodeTool is an open-source creative AI suite that runs on your machine. A node-based canvas, a multi-track video timeline, and a layered sketch editor share one workspace, and every major AI model, cloud or local, wires into all three.
 
-* **Pay Provider Prices:** Plug in your own API keys and pay cloud providers directly at cost. 
-* **Zero Lock-In:** Swap foundational models, media APIs, or local LLMs across text, image, video, and audio whenever you want.
-* **Three Ways to Work:** Seamlessly fluid between node-based workflows, multi-track video generation, and layer-based painting and masking.
+* **Pay Provider Prices:** Bring your own API keys and pay providers at cost. No markup.
+* **Zero Lock-In:** Swap any model — cloud or local — without touching the rest of the workflow.
+* **Three Ways to Work:** Node graphs, a video timeline, and layered painting, all on one canvas.
 
 ![NodeTool Interface](screen_canvas.png)
 
@@ -41,7 +41,7 @@ NodeTool is an open-source creative AI suite that runs entirely on your local ma
 
 ## Why NodeTool
 
-Closed platforms lock you into their ecosystem. NodeTool is built for complete creative independence.
+Closed platforms lock you in. NodeTool is built for independence.
 
 **Own your AI.**
 
@@ -49,7 +49,7 @@ Closed platforms lock you into their ecosystem. NodeTool is built for complete c
 *   **Independent Data:** Workflows, keys, and files stay on your machine.
 *   **Independent Software:** Open-source (AGPL-3.0).
 
-> **Infrastructure Freedom:** If a provider raises prices or deprecates a model, just swap the backend node. Your creative workflow stays exactly the same.
+> **Infrastructure Freedom:** If a provider raises prices or deprecates a model, swap the node. The rest of the workflow doesn't change.
 
 ## What's in the box
 
@@ -101,7 +101,7 @@ See the [Sketch Editor guide](https://docs.nodetool.ai/sketch-editor) for tools,
 | **Models** | Every major provider, BYOK | Stable Diffusion | Curated marketplace | API integrations |
 | **Source & pricing** | AGPL-3.0, provider prices | Open source, free | Closed, credits | Fair-code, subscription |
 
-**vs ComfyUI.** ComfyUI exposes every parameter for engineers who want them. NodeTool keeps the node-based power, gives it an interface that doesn't fight you, and covers the rest of the stack — video, audio, text, document search.
+**vs ComfyUI.** ComfyUI exposes every parameter for engineers who want them. NodeTool keeps the node graph, gives it an interface that doesn't fight you, and covers the rest of the stack — video, audio, text, document search.
 
 **vs Weavy.** Weavy was the closed-source canvas for creative AI. After the Figma acquisition, the roadmap belongs to someone else. NodeTool is the open alternative — same node-based canvas, your keys, your files, no acquisition risk.
 

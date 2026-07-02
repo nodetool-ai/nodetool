@@ -75,7 +75,7 @@ const proPoints = [
   {
     icon: RefreshCcw,
     title: "Always on the latest version",
-    body: "We ship Cloud updates continuously. New nodes, new providers, and bug fixes land without you lifting a finger.",
+    body: "We ship Cloud updates continuously — new nodes, new providers, and bug fixes, no update step on your side.",
   },
   {
     icon: Cloud,

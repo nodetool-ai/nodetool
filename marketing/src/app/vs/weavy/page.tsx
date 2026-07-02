@@ -214,8 +214,8 @@ export default function VsWeavyPage() {
               keys and pay each provider their published list price — no credits,
               no markup, no curated roster. The whole workspace is open source
               under AGPL-3.0, so you can run it as a desktop app or self-host it,
-              and your workflows and files stay yours. NodeTool Cloud is simply
-              managed hosting of that same open-source code.
+              and your workflows and files stay yours. NodeTool Cloud is
+              managed hosting of the same code.
             </p>
           </div>
         </section>

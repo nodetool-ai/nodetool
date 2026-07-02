@@ -139,7 +139,7 @@ export default function CreativesPage() {
 
                 <p className="text-lg md:text-xl text-slate-400 mb-12 max-w-3xl mx-auto leading-relaxed">
                   Every model. Your keys. Your canvas. Wire Seedance, Kling, Veo, Runway,
-                  Luma, Suno, Flux, and more on one open-source surface — no credit markup, no vendor lock-in.
+                  Luma, Suno, and Flux on one open-source surface — no credit markup, no vendor lock-in.
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14">

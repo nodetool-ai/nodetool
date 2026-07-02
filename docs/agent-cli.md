@@ -328,7 +328,7 @@ system_prompt: |
 ### Model Selection
 
 - **Planning model**: Use a fast, cost-effective model (`gpt-4o-mini`, a small Claude model)
-- **Main model**: Use a powerful model for complex reasoning
+- **Main model**: Use a stronger model for the actual reasoning
 - **Code tasks**: Models with large context windows
 
 ### Tool Configuration
