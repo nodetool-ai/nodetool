@@ -51,7 +51,7 @@ const BASE_CORS_HEADERS: Record<string, string> = {
   Vary: "Origin"
 };
 
-function corsHeaders(request: Request): Record<string, string> {
+export function corsHeaders(request: Request): Record<string, string> {
   const headers: Record<string, string> = { ...BASE_CORS_HEADERS };
   const allowed = resolveAllowedOrigin(request.headers.get("Origin"));
   if (allowed) {
@@ -91,7 +91,7 @@ interface ParsedRange {
   end: number;
 }
 
-function parseRangeHeader(
+export function parseRangeHeader(
   rangeHeader: string,
   fileSize: number
 ): ParsedRange | null {
@@ -125,7 +125,7 @@ function parseRangeHeader(
 
 // ── Node.js ReadableStream wrapper around fs.createReadStream ─────
 
-function nodeStreamToWebStream(
+export function nodeStreamToWebStream(
   filePath: string,
   options?: { start?: number; end?: number }
 ): ReadableStream<Uint8Array> {
