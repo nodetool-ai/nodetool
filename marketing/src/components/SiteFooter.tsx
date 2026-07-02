@@ -115,7 +115,7 @@ export default function SiteFooter() {
             <span className="text-rose-400" aria-hidden>
               ♥
             </span>
-            Open source today. The future is yours to build.
+            Built in the open.
           </p>
           <p className="text-xs text-slate-400">AGPL-3.0 · NodeTool</p>
         </div>

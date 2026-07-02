@@ -4,7 +4,7 @@ import JsonLd from "../../components/JsonLd";
 export const metadata: Metadata = {
   title: "NodeTool for Developers | Open-Source AI Workflow SDK & API",
   description:
-    "Build creative AI applications with NodeTool's TypeScript SDK and REST API. Workflows run in an async Node.js runner. Write custom nodes in TypeScript or Python, integrate with any model, and deploy to production. Open-source, extensible, and developer-friendly.",
+    "Build creative AI applications with NodeTool's TypeScript SDK and REST API. Workflows run in an async Node.js runner. Write custom nodes in TypeScript or Python, integrate with any model, and deploy to production. Open source under AGPL-3.0.",
   metadataBase: new URL("https://nodetool.ai"),
   alternates: {
     canonical: "/developers",
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "NodeTool for Developers",
     description:
-      "Build creative AI applications with NodeTool's TypeScript SDK and REST API. Open-source and extensible.",
+      "Build creative AI applications with NodeTool's TypeScript SDK and REST API. Open source under AGPL-3.0.",
     images: ["/preview.png"],
   },
 };

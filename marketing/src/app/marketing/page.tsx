@@ -315,7 +315,7 @@ export default function MarketingSegmentPage() {
               </h2>
               <p className="text-lg text-slate-400 leading-relaxed">
                 The Product Video Generator ships today. These are next on
-                the backlog, the same pattern of brief-in, campaign-out.
+                the backlog — same pattern: brief in, campaign out.
               </p>
             </motion.div>
 

@@ -112,7 +112,7 @@ export default function FeaturesSection({
         >
           {[
             {
-              title: "Editing tools, not just generation",
+              title: "Edit where you generate",
               description:
                 "Masks, inpaint, outpaint, relight, upscale, layers, compositing. The post tools you reach for, wired into the same canvas as the model calls.",
               icon: MousePointer2,

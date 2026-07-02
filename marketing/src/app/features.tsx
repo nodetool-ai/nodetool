@@ -52,8 +52,8 @@ export const features = [
     description: (
       <>
         Ship workflows to RunPod with one command. GPU acceleration,
-        auto-scaling, multi-region, and custom Docker images — for when you need
-        a workflow to run on something bigger than your laptop.
+        auto-scaling, multi-region, and custom Docker images — for workflows
+        that outgrow your laptop.
       </>
     ),
     icon: CloudArrowUpIcon,
