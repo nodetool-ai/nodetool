@@ -199,5 +199,11 @@ export const promoTimelineCast: TimelineDemoCast = {
     // Play the new shot: the cut now runs through the generated clip.
     selectClips(14800, [chainedId]),
     playRange(15200, 7600, 9800, 1600),
+
+    // Final state (used by the promo's hook and export beats, past the
+    // Act-2 scene window): park the playhead inside the opening drift clip
+    // so the monitor shows the same footage the hook's full-frame film plays
+    // — the pull-back lands on a matching image.
+    seek(16880, 1730),
   ],
 };
