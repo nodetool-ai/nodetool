@@ -69,6 +69,8 @@ import {
 } from "./types";
 import LayerItem from "./LayerItem";
 import type { DropPosition } from "./LayerItem";
+import type { LayerStatus } from "@nodetool-ai/image-editor";
+import { shallow } from "zustand/shallow";
 import { useSketchSessionStore } from "../../stores/sketch/SketchSessionStore";
 import { getRememberedModel } from "../../stores/lastModelStore";
 import { useSketchStore } from "./state/useSketchStore";
@@ -488,9 +490,17 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   const dragSourceIndex = useRef<number | null>(null);
 
   // ─── Per-layer generation status (for status badges) ──────────────
-  // Subscribe to the bindings dictionary so each row picks up status flips
-  // (draft → stale → generated → failed) without manual prop drilling.
-  const layerBindings = useSketchSessionStore((s) => s.bindings);
+  // Derive only the per-layer statuses (shallow-compared) instead of
+  // subscribing to the whole bindings dictionary: binding edits that don't
+  // flip a status (prompt keystrokes, param overrides, version appends)
+  // must not re-render the panel.
+  const layerBindingStatuses = useSketchSessionStore((s) => {
+    const statuses: Record<string, LayerStatus> = {};
+    for (const layerId in s.bindings) {
+      statuses[layerId] = s.bindings[layerId].status;
+    }
+    return statuses;
+  }, shallow);
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
 
   // ─── Direct-generation layers (text-to-image, image-to-image) ─────
@@ -1149,8 +1159,8 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               dropPosition={
                 dropTarget?.realIdx === realIdx ? dropTarget.position : null
               }
-              editingLayerId={editingLayerId}
-              editName={editName}
+              isEditing={editingLayerId === layer.id}
+              editName={editingLayerId === layer.id ? editName : ""}
               onLayerRowPointerDown={handleLayerRowPointerDown}
               onLayerRowClick={handleLayerRowClick}
               onVisibilityButtonMouseDown={handleVisibilityButtonMouseDown}
@@ -1170,7 +1180,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               onDrop={handleDrop}
               onDragEnd={handleDragEnd}
               onToggleGroupCollapsed={onToggleGroupCollapsed}
-              bindingStatus={layerBindings[layer.id]?.status}
+              bindingStatus={layerBindingStatuses[layer.id]}
             />
           );
         })}

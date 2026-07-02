@@ -71,7 +71,9 @@ export interface LayerItemProps {
   isMask: boolean;
   isIsolated: boolean;
   dropPosition: DropPosition;
-  editingLayerId: string | null;
+  /** True only for the row being renamed — keeps other rows' memo stable while typing. */
+  isEditing: boolean;
+  /** Live rename input value; empty string for rows not being edited. */
   editName: string;
   onLayerRowPointerDown: (e: React.PointerEvent, layerId: string) => void;
   onLayerRowClick: (e: React.MouseEvent, layerId: string) => void;
@@ -122,7 +124,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
   isMask,
   isIsolated,
   dropPosition,
-  editingLayerId,
+  isEditing,
   editName,
   onLayerRowPointerDown,
   onLayerRowClick,
@@ -327,7 +329,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
           </Tooltip>
         )}
 
-        {editingLayerId === layer.id ? (
+        {isEditing ? (
           <input
             aria-label="Layer name"
             value={editName}

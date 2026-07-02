@@ -14,7 +14,6 @@
 import React, {
   useCallback,
   useEffect,
-  useState,
   useMemo,
   useRef,
   forwardRef
@@ -409,10 +408,11 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
     // ─── Document-space cursor tracking ─────────────────────────────────
 
-    const [cursorDocPos, setCursorDocPos] = useState<Point | null>(null);
-    // Mirror the document-space cursor into the store so the (standalone)
-    // status bar can read it without prop-drilling. Local state still drives
-    // the floating info pill used by the in-node modal.
+    // The document-space cursor lives in the store only (`cursorDocPos`), not
+    // in local state: pointer moves fire at 60–120+ Hz and a local setState
+    // here would re-render the whole canvas subtree per event. The store
+    // setter dedupes same-cell writes, and only the tiny readout components
+    // (status bar / info pill) subscribe to it.
     const setStoreCursorDocPos = useSketchStore((s) => s.setCursorDocPos);
     // The standalone editor (bound document) shows the full-width status bar,
     // which subsumes the floating info pill — hide the pill there. The in-node
@@ -429,9 +429,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
               x: ((clientX - rect.left) / rect.width) * doc.canvas.width,
               y: ((clientY - rect.top) / rect.height) * doc.canvas.height
             };
-            const next = { x: Math.floor(p.x), y: Math.floor(p.y) };
-            setCursorDocPos(next);
-            setStoreCursorDocPos(next);
+            setStoreCursorDocPos({ x: Math.floor(p.x), y: Math.floor(p.y) });
             return;
           }
         }
@@ -448,9 +446,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
             doc.canvas.width,
             doc.canvas.height
           );
-          const next = { x: Math.floor(p.x), y: Math.floor(p.y) };
-          setCursorDocPos(next);
-          setStoreCursorDocPos(next);
+          setStoreCursorDocPos({ x: Math.floor(p.x), y: Math.floor(p.y) });
         }
       },
       [
@@ -483,7 +479,6 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
 
     const handleMouseLeaveWithCoords = useCallback(() => {
       pointerHandlers.handleMouseLeave();
-      setCursorDocPos(null);
       setStoreCursorDocPos(null);
     }, [pointerHandlers, setStoreCursorDocPos]);
 
@@ -515,7 +510,6 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         interactionTool={interactionTool}
         bootstrapPhaseActive={compositing.bootstrapPhaseActive}
         backend={compositing.backend}
-        cursorDocPos={cursorDocPos}
         showInfoBar={!standaloneDocumentId}
         containerCursor={pointerHandlers.containerCursor}
         onPointerDown={handlePointerDownWithClient}

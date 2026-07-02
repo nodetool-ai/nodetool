@@ -6,7 +6,7 @@
  * signatures used by the compositing trigger effects.
  */
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import type { SketchDocument } from "../types";
 import type { SketchRuntime } from "../rendering";
 import { resolveAssetUri } from "../../node/output/hooks";
@@ -71,35 +71,71 @@ export function useLayerHydration({
   >(new Map());
 
   /**
+   * Per-layer data-identity versions. `layer.data` is a serialized raster
+   * (often a multi-MB base64 string), so signatures must never embed it —
+   * concatenating it on every layers change is O(total raster bytes). Instead
+   * each distinct data value per layer gets a small monotonic version number;
+   * `===` on the unchanged case compares by reference in O(1).
+   */
+  const layerDataVersionRef = useRef<
+    Map<string, { data: string | null; version: number }>
+  >(new Map());
+  const dataVersionCounterRef = useRef(0);
+
+  const getLayerDataVersion = (
+    layerId: string,
+    data: string | null
+  ): number => {
+    const versions = layerDataVersionRef.current;
+    const prev = versions.get(layerId);
+    if (prev && prev.data === data) {
+      return prev.version;
+    }
+    const version = ++dataVersionCounterRef.current;
+    versions.set(layerId, { data, version });
+    return version;
+  };
+
+  /**
    * Stable hydration key: must NOT include doc canvas size when width/height
    * are inferred from the document (resize would re-run setLayerData and stretch
    * pixels into a larger backing store).
    */
-  const layerHydrationSignature = doc.layers
-    .map((layer) => {
-      const ref = layer.imageReference;
-      const refKey = ref
-        ? `${ref.uri}|${ref.objectFit}|${ref.naturalWidth}x${ref.naturalHeight}|${ref.sourceCrop ? `${ref.sourceCrop.x},${ref.sourceCrop.y},${ref.sourceCrop.width},${ref.sourceCrop.height}` : ""}`
-        : "";
-      const w =
-        layer.contentBounds?.width != null
-          ? String(layer.contentBounds.width)
-          : "";
-      const h =
-        layer.contentBounds?.height != null
-          ? String(layer.contentBounds.height)
-          : "";
-      return `${layer.id}:${layer.data ?? ""}:${refKey}:${layer.contentBounds?.x ?? 0}:${layer.contentBounds?.y ?? 0}:${w}:${h}`;
-    })
-    .join("|");
+  const layerHydrationSignature = useMemo(
+    () =>
+      doc.layers
+        .map((layer) => {
+          const ref = layer.imageReference;
+          const refKey = ref
+            ? `${ref.uri}|${ref.objectFit}|${ref.naturalWidth}x${ref.naturalHeight}|${ref.sourceCrop ? `${ref.sourceCrop.x},${ref.sourceCrop.y},${ref.sourceCrop.width},${ref.sourceCrop.height}` : ""}`
+            : "";
+          const w =
+            layer.contentBounds?.width != null
+              ? String(layer.contentBounds.width)
+              : "";
+          const h =
+            layer.contentBounds?.height != null
+              ? String(layer.contentBounds.height)
+              : "";
+          const dataVersion = getLayerDataVersion(layer.id, layer.data ?? null);
+          return `${layer.id}:${dataVersion}:${refKey}:${layer.contentBounds?.x ?? 0}:${layer.contentBounds?.y ?? 0}:${w}:${h}`;
+        })
+        .join("|"),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- getLayerDataVersion reads refs only
+    [doc.layers]
+  );
 
   /** Visibility / opacity / blend / type / order — drives display recomposite. */
-  const layerDisplayStackSignature = doc.layers
-    .map(
-      (l) =>
-        `${l.id}:${l.visible ? 1 : 0}:${l.opacity}:${String(l.blendMode ?? "normal")}:${l.type}`
-    )
-    .join("|");
+  const layerDisplayStackSignature = useMemo(
+    () =>
+      doc.layers
+        .map(
+          (l) =>
+            `${l.id}:${l.visible ? 1 : 0}:${l.opacity}:${String(l.blendMode ?? "normal")}:${l.type}`
+        )
+        .join("|"),
+    [doc.layers]
+  );
 
   // ─── Initialize layer canvases from document data ───────────────────
 
@@ -112,6 +148,7 @@ export function useLayerHydration({
         runtime.deleteLayerCanvas(id);
         hydratedLayerStateRef.current.delete(id);
         layerStableRasterSizeRef.current.delete(id);
+        layerDataVersionRef.current.delete(id);
       }
     }
 
@@ -151,7 +188,8 @@ export function useLayerHydration({
       const refKey = ref
         ? `${ref.uri}|${ref.objectFit}|${ref.naturalWidth}x${ref.naturalHeight}|${ref.sourceCrop ? `${ref.sourceCrop.x},${ref.sourceCrop.y},${ref.sourceCrop.width},${ref.sourceCrop.height}` : ""}`
         : "";
-      const hydrationKey = `${layer.data ?? ""}:${refKey}:${defaultBounds.x}:${defaultBounds.y}:${defaultBounds.width}:${defaultBounds.height}`;
+      const dataVersion = getLayerDataVersion(layer.id, layer.data ?? null);
+      const hydrationKey = `${dataVersion}:${refKey}:${defaultBounds.x}:${defaultBounds.y}:${defaultBounds.width}:${defaultBounds.height}`;
       if (hydratedLayerStateRef.current.get(layer.id) === hydrationKey) {
         const ex = layerCanvasesRef.current.get(layer.id);
         if (ex != null && ex.width > 0 && ex.height > 0) {
