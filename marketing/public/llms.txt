@@ -1,0 +1,44 @@
+# NodeTool
+
+> NodeTool is the open-source creative AI workspace: a node-based canvas that wires image, video, audio, and text models from every major provider into one workflow, plus planning agents that run multi-step jobs on the same canvas. Bring your own API keys. Runs as a free desktop app (Studio) or in the browser (Cloud). Licensed AGPL-3.0.
+
+## What NodeTool is
+
+- A visual, node-based editor for building AI workflows: connect models and tools as nodes on a canvas instead of writing glue code.
+- Two editions of one open-source codebase: **Studio**, a free desktop app for macOS, Windows, and Linux, and **Cloud**, the same app hosted in a browser (currently in alpha).
+- Planning agents: give an agent a goal and it plans the steps, picks a model or tool, and executes multi-step tasks on the canvas.
+- Native nodes for image, video, audio, and text generation and editing — masks, inpaint, outpaint, relight, upscale, compositing — plus RAG/vector search and custom code nodes.
+- Model access is bring-your-own-key (BYOK): OpenAI, Anthropic, Gemini, Replicate, FAL, KIE, Mistral, Groq, Together, OpenRouter, HuggingFace, and more, plus local inference via Ollama, MLX, llama.cpp, vLLM, and LM Studio.
+
+## License and pricing
+
+- Source license: AGPL-3.0. Self-hostable. Repository: https://github.com/nodetool-ai/nodetool
+- Studio is free. Cloud is a subscription for managed hosting (currently alpha; pricing is finalized at general availability).
+- In both editions you bring your own provider API keys and pay providers directly at their list prices. NodeTool does not run inference on its own servers, does not issue credits, and does not mark up model calls.
+
+## Key pages
+
+- [Home](https://nodetool.ai/): what NodeTool is, Studio vs Cloud, what you can build.
+- [Studio](https://nodetool.ai/studio): the free, open-source desktop app; local models, offline use.
+- [Cloud](https://nodetool.ai/cloud): the hosted, browser-based edition (alpha).
+- [Pricing](https://nodetool.ai/pricing): edition comparison and how BYOK pricing works.
+- [Agents](https://nodetool.ai/agents): building and running AI agents visually on the canvas.
+- [For creatives](https://nodetool.ai/creatives): artists, motion designers, AI-native illustrators.
+- [For developers](https://nodetool.ai/developers): TypeScript SDK, REST API, custom nodes in TypeScript or Python.
+- [For marketing teams](https://nodetool.ai/marketing): product videos, ad creative, and brand assets at campaign scale.
+- [Documentation](https://docs.nodetool.ai): install guides, key concepts, node reference, API reference, CLI.
+
+## Comparisons
+
+- [NodeTool vs ComfyUI](https://nodetool.ai/vs/comfyui)
+- [NodeTool vs Dify](https://nodetool.ai/vs/dify)
+- [NodeTool vs Flowise](https://nodetool.ai/vs/flowise)
+- [NodeTool vs Langflow](https://nodetool.ai/vs/langflow)
+- [NodeTool vs n8n](https://nodetool.ai/vs/n8n)
+- [NodeTool vs Weavy](https://nodetool.ai/vs/weavy)
+
+## Use cases
+
+- [Movie poster](https://nodetool.ai/use-cases/movie-poster): generate a poster campaign from a brief.
+- [Movie trailer](https://nodetool.ai/use-cases/movie-trailer): cut a trailer from generated and edited shots.
+- [Product video](https://nodetool.ai/use-cases/product-video): produce product video variants for a campaign.

@@ -60,6 +60,20 @@ export default function CreativesLayout({
       <JsonLd
         data={{
           "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          name: "NodeTool for Creatives",
+          description:
+            "The open creative AI workspace for working artists, motion designers, and AI-native illustrators. Every major model from every major provider, called with your own keys, on one node-based canvas with masks, inpaint, outpaint, relight, upscale, and compositing built in.",
+          applicationCategory: "MultimediaApplication",
+          operatingSystem: "macOS, Windows, Linux, Web browser",
+          url: "https://nodetool.ai/creatives",
+          license: "https://github.com/nodetool-ai/nodetool/blob/main/LICENSE",
+          author: { "@type": "Organization", name: "NodeTool", url: "https://nodetool.ai" },
+        }}
+      />
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
           "@type": "BreadcrumbList",
           itemListElement: [
             { "@type": "ListItem", position: 1, name: "Home", item: "https://nodetool.ai" },

@@ -1,9 +1,9 @@
 import JsonLd from "../../components/JsonLd";
 import type { Metadata } from "next";
 
-const TITLE = "Agents for creative work | NodeTool";
+const TITLE = "AI Agent Workflow Builder — Visual Canvas | NodeTool";
 const DESCRIPTION =
-  "An art director that never sleeps. Drop an agent on the canvas, give it a brief, and watch it plan the shot, pick the model, generate variants, and hand the cut to the next node. Wire image, video, music, and voice models — Flux, Seedance, Veo, Kling, Suno, ElevenLabs — into agents that ship your work. Open source, BYOK, runs on your machine.";
+  "Build and run AI agents visually — plan-act agents on a node canvas that plan the steps, pick the model, and execute, no code required. Wire image, video, music, and voice models — Flux, Seedance, Veo, Kling, Suno, ElevenLabs — into agents that ship the work. Open source, BYOK, runs on your machine.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -13,6 +13,10 @@ export const metadata: Metadata = {
     canonical: "/agents",
   },
   keywords: [
+    "AI agent workflow builder",
+    "visual AI agent builder",
+    "no-code AI agents",
+    "plan-act agents",
     "creative AI agents",
     "art director agent",
     "brief to asset",
@@ -48,6 +52,20 @@ export default function AgentsLayout({
 }) {
   return (
     <>
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          name: "NodeTool Agents",
+          description:
+            "Plan-act AI agents built visually on NodeTool's node canvas: give an agent a goal and it plans the steps, picks the model, and executes across image, video, music, and voice models — Flux, Seedance, Veo, Kling, Suno, ElevenLabs. Open source, BYOK, runs on your machine.",
+          applicationCategory: "MultimediaApplication",
+          operatingSystem: "macOS, Windows, Linux, Web browser",
+          url: "https://nodetool.ai/agents",
+          license: "https://github.com/nodetool-ai/nodetool/blob/main/LICENSE",
+          author: { "@type": "Organization", name: "NodeTool", url: "https://nodetool.ai" },
+        }}
+      />
       <JsonLd
         data={{
           "@context": "https://schema.org",
