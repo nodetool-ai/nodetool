@@ -1,7 +1,7 @@
 ---
 layout: page
-title: "Installing NodeTool"
-description: "Install NodeTool on Windows, macOS, and Linux."
+title: "Install NodeTool on Windows, macOS, or Linux"
+description: "Download NodeTool for Windows, macOS, or Linux — dmg, exe, or AppImage. No setup wizard: Python, Conda, and AI engines install on demand as you need them."
 ---
 
 NodeTool opens on first launch with no setup wizard. Python, Conda, and inference engines install on demand the first time you need them.
@@ -14,384 +14,136 @@ NodeTool opens on first launch with no setup wizard. Python, Conda, and inferenc
 2. Run the installer
 3. Launch NodeTool
 
+The download is a `.dmg` on macOS, `.exe` on Windows, and an AppImage on Linux — see [macOS](#macos), [Windows](#windows), and [Linux](#linux) below for the exact steps and platform notes.
+
+No local AI stack? Skip the download entirely: open **Settings → Providers** and add a key from [OpenAI](https://platform.openai.com), [Anthropic](https://www.anthropic.com), or [Google](https://ai.google.dev). See [Providers](providers.md).
+
 ---
 
-## System Requirements
+## macOS
 
-### Basics
+1. Download the `.dmg` from [nodetool.ai](https://nodetool.ai). Separate builds ship for Apple Silicon (arm64) and Intel (x64) — pick the one matching your Mac (Apple menu → About This Mac).
+2. Open the DMG and drag Nodetool into Applications.
+3. Launch it from Applications. Release builds are code-signed and notarized, so Gatekeeper shouldn't block the first launch.
+4. Recording audio or video in a workflow prompts for microphone/camera permission the first time — approve it to use those nodes.
 
-| Component | Need |
-|-----------|------|
-| **OS** | Windows 10+, macOS 11+, Linux (Ubuntu 20.04+) |
-| **RAM** | 8 GB minimum, 16 GB recommended |
-| **Storage** | 20 GB free (SSD recommended) |
-| **Internet** | For setup and cloud AI |
+Apple Silicon Macs run local models through Apple's [MLX framework](models.md#mlx-framework-apple-silicon) automatically; no extra setup.
 
-### For local inference
+---
 
-| Hardware | Runs |
-|----------|------|
-| **NVIDIA GPU** (8+ GB VRAM) | Full local stack including image generation |
-| **Apple Silicon** (M1/M2/M3) | MLX backend |
-| **CPU only** | Works, slower |
+## Windows
 
-No GPU? Use cloud providers with your own keys (Settings → Providers).
+1. Download the installer (`Nodetool-Setup-<version>.exe`) from [nodetool.ai](https://nodetool.ai).
+2. Run it. You choose the install directory; the installer adds a desktop shortcut and launches NodeTool when it finishes.
+3. Approve the firewall prompt — NodeTool runs a local server on port 7777 that the UI connects to.
+
+The installer and app executable are code-signed. For local model acceleration, keep your NVIDIA driver current.
+
+---
+
+## Linux
+
+1. Download the AppImage from [nodetool.ai](https://nodetool.ai) — it's the only Linux package NodeTool ships today.
+2. Make it executable and run it:
+   ```bash
+   chmod +x Nodetool-*.AppImage
+   ./Nodetool-*.AppImage
+   ```
+3. There's no install step. The AppImage runs in place — move the file wherever you want it to live.
+
+Prefer Flatpak? The project publishes unsigned CI builds from every push to `main` — see [Flatpak CI Builds](https://github.com/nodetool-ai/nodetool/actions/workflows/flatpak-ci.yml) (not yet on Flathub).
+
+---
+
+## What installs on demand
+
+The app itself is small. Everything else downloads the first time a workflow needs it:
+
+- **Python and Conda** — installs when you run a workflow that uses a Python node (HuggingFace, MLX, Apple integrations). The backend's `PythonStdioBridge` spawns the Python worker only at that point; a workflow built entirely from TypeScript nodes never triggers it. One-time download, roughly 3-5 GB.
+- **Local inference engines** — Ollama and llama.cpp download when you install or run a model that needs them, from the **Models** panel.
+- **Model weights** — each model you install pulls its own weights, typically 4-20 GB depending on the model.
+
+No GPU, or don't want the download? Use a cloud provider with your own API key instead (**Settings → Providers**). See [Providers](providers.md) and [Models & Providers](models-and-providers.md).
 
 ### What Different Tasks Need
 
-| GPU Tier | Card | Runs locally |
-| --- | --- | --- |
-| **Entry (8 GB)** | RTX 4060 / 5060 | Flux.1 Schnell (Nunchaku), Qwen-Image-Lightning, 8B LLMs (Llama 3/4) |
-| **Mid (12–16 GB)** | RTX 4070 Ti / 5070 | Qwen-Image-Edit (4-bit), Flux.1 Dev (Nunchaku), 32B reasoning LLMs (DeepSeek R1 Distill) |
-| **Pro (24–32 GB)** | RTX 3090 / 4090 / 5090 | Full Qwen-Image 2512, Wan2.1 Video (720p), 70B LLMs (Llama 3.3/4 Q4) |
-| **Ultra (48 GB+)** | Dual 5090s / Mac Ultra | DeepSeek-V3 full, LTX-2 4K video, LoRA training |
+Hardware maps to inference engine, not to a specific GPU model:
 
-Apple Silicon's unified memory lets MLX use most of system RAM as VRAM. Rule of thumb: model size + 4 GB < total RAM.
+| Hardware | Engine | Good for |
+|----------|--------|----------|
+| NVIDIA GPU | Nunchaku (4-bit diffusion), llama.cpp/GGUF | Image generation, quantized LLMs |
+| Apple Silicon | MLX | LLMs, vision models, Flux ported to MLX |
+| CPU only | llama.cpp, Transformers | Works, slower |
+| No GPU | Cloud providers (BYOK) | Every modality, no download |
 
----
-
-## Platform-Specific Instructions
-
-### Windows
-
-1. **Download** the `.exe` installer from [nodetool.ai](https://nodetool.ai)
-2. **Run** the installer – Windows Defender may ask for permission (click "Run anyway")
-3. **Approve** any firewall prompts so NodeTool can run its local server
-4. **NVIDIA users**: Ensure you have recent GPU drivers installed for best performance
-
-### macOS
-
-1. **Download** the `.dmg` file from [nodetool.ai](https://nodetool.ai)
-2. **Open** the DMG and drag NodeTool to Applications
-3. **First launch**: Right-click and choose "Open" (required for unsigned apps)
-4. **Apple Silicon**: NodeTool automatically uses MLX for optimized local AI
-
-### Linux
-
-1. **Download** the AppImage or `.deb` package from [nodetool.ai](https://nodetool.ai)
-2. **AppImage**: Make executable with `chmod +x` and run directly
-3. **Debian/Ubuntu**: Install with `sudo dpkg -i nodetool.deb`
-4. **NVIDIA users**: Ensure CUDA drivers are installed for GPU acceleration
+See [Supported Models](models.md) for the full engine comparison.
 
 ---
 
-## What Gets Installed
+## Alternative installs
 
-NodeTool uses an on-demand installation approach — the app itself is lightweight and launches immediately. Additional components are downloaded automatically when you first use a feature that needs them.
+Don't need the desktop app:
 
-### Core Components (installed with the app)
+**CLI only** — install the standalone `nodetool` CLI without Electron:
 
-- **Node.js Runtime** -- Self-contained Node.js installation (does not affect your system Node.js)
-- **NodeTool application** -- The visual editor, dashboard, and all core functionality
+```bash
+curl -fsSL https://raw.githubusercontent.com/nodetool-ai/nodetool/main/install.sh | bash
+```
 
-### On-Demand Components (installed automatically when needed)
+or through npm:
 
-- **Python / Conda** -- Installed through the app UI when you first run a workflow that requires Python-based AI models
-- **AI Engines** -- Downloaded when you install or use specific model types:
-  - **Ollama** -- For language models
-  - **llama.cpp** -- Optimized inference (GPU-accelerated where available)
-- **Model-specific dependencies** -- Each model or node pack installs its own requirements
+```bash
+npm install -g @nodetool-ai/cli
+nodetool serve
+```
 
-### Disk Space
+See the [CLI Reference](cli.md).
 
-NodeTool itself is small, but AI models can be large:
+**Self-hosted server (Docker)** — run the backend on your own machine or a remote host:
 
-| Component | Typical Size |
-|-----------|--------------|
-| NodeTool + Node.js runtime | 2-4 GB |
-| Python/Conda environment | ~3-5 GB (installed on demand) |
-| GPT-OSS (recommended LLM) | ~4 GB |
-| Flux (image generation) | ~12 GB |
-| **Total with recommended models** | ~25 GB |
+```bash
+cp .env.example .env
+docker compose up -d
+```
 
-You can install fewer models to save space, or use cloud providers instead.
+See [Self-Hosted Deployment](self-hosted-deployment.md) for auth modes, upgrades, and remote hosts, or the [Deployment Guide](deployment.md) for the full server/worker picture.
 
-> **Tip**: Use an SSD for faster AI model loading and workflow execution.
+**From source** — for contributors:
 
----
+```bash
+nvm use
+npm install
+npm run build:packages
+npm run dev
+```
 
-## After Installation
-
-### First Launch
-
-1. **Firewall prompts**: Approve any requests – NodeTool runs a local server that needs network access
-2. **Explore the Dashboard**: Browse ready-to-use workflow templates
-3. **Set up AI access**: Either add cloud API keys in **Settings → Providers**, or install local models from the **Models** panel
-
-> **On-demand setup**: The first time you run a workflow that needs local AI, NodeTool will prompt you to install the required Python environment. This is a one-time download (~3-5 GB) and happens automatically through the app UI.
-
-### Sign In (Optional)
-
-- **Sign in with Supabase**: Sync workflows across devices
-- **Localhost Mode**: Keep everything local and private
-
-### Install AI Models
-
-To run workflows with local AI models:
-
-1. Open **Models** from the header bar
-2. Browse or search for models (e.g., **Flux** for images, **Llama** for text)
-3. Click to install — NodeTool handles all dependencies automatically
-4. Or skip local models and use cloud providers with your API keys
+Requires Node.js 22.22.1 (`.nvmrc`) and, for Python nodes, Python 3.11+ with conda. Full setup in the [repo README](https://github.com/nodetool-ai/nodetool#development-setup).
 
 ---
 
 ## Troubleshooting Installation
 
-### Common Installation Issues
+Most install problems are one of these. For workflow and runtime issues once NodeTool is running, see the [Troubleshooting Guide](troubleshooting.md).
 
-**On-demand Python/Conda setup fails**
-- Check internet connection — the environment download requires ~3-5 GB
-- Restart NodeTool and try again — partial downloads resume automatically
-- Check disk space — you need at least 5 GB free for the Python environment
-- On macOS, ensure you've approved any permission prompts
+**On-demand Python/Conda setup fails** — needs internet access and about 5 GB free disk space. Restart NodeTool; partial downloads resume automatically.
 
-**Not enough disk space**
-- Free up space or choose a different installation location
-- Use cloud providers instead of local models to skip Python environment setup entirely
+**GPU not detected** — check your driver with `nvidia-smi` in a terminal (the same check NodeTool's own Help → System Information dialog runs). No dedicated GPU? NodeTool falls back to CPU, or use a cloud provider instead.
 
-**GPU not detected**
-- Update GPU drivers
-- On Windows, ensure CUDA is installed for NVIDIA GPUs
-- See [CUDA Troubleshooting](#cuda-and-nvidia-driver-issues)
+**Model download fails or stalls** — usually disk space or network. See [Model Download Troubleshooting](troubleshooting.md#issue-model-download-fails-or-stalls) for the full list: disk space, resuming, and HuggingFace rate limits.
 
-**Can't connect to server**
-- Approve firewall prompts
-- Restart NodeTool
-- Check if antivirus is blocking the connection
+**Can't connect to the local server** — approve the firewall prompt for NodeTool's local server (port 7777 by default). Running the self-hosted Docker image instead? See [Deployment Troubleshooting](troubleshooting.md#issue-deployment-fails-or-service-wont-start).
 
----
-
-### CUDA and NVIDIA Driver Issues
-
-NodeTool uses CUDA for GPU acceleration on NVIDIA cards. If you're having GPU issues:
-
-#### Check Your CUDA Version
-
-Open a terminal/command prompt and run:
-```bash
-nvidia-smi
-```
-
-You should see your GPU model and driver version. NodeTool requires:
-- **CUDA 11.8** or **CUDA 12.x** (12.1+ recommended)
-- **Driver version 525.60+** for CUDA 12.x
-
-#### Common CUDA Problems
-
-**"CUDA out of memory"**
-- Close other GPU-intensive applications (browsers, games, other AI tools)
-- Use smaller/quantized models (see [Hardware Requirements](#what-different-tasks-need))
-- Reduce batch sizes in workflow settings
-- Check if another process is using GPU: `nvidia-smi` shows GPU memory usage
-
-**"No CUDA-capable device detected"**
-1. Verify your GPU is NVIDIA and supports CUDA (GTX 900 series or newer)
-2. Update NVIDIA drivers from [nvidia.com/drivers](https://www.nvidia.com/drivers)
-3. Reinstall CUDA Toolkit if needed: [developer.nvidia.com/cuda-downloads](https://developer.nvidia.com/cuda-downloads)
-
-**"CUDA version mismatch" or "cuDNN errors"**
-- Multiple CUDA versions can conflict. Check installed versions:
-  ```bash
-  # Windows
-  nvcc --version
-  where nvcc
-  
-  # Linux/macOS
-  nvcc --version
-  which nvcc
-  ```
-- If multiple versions exist, ensure your PATH points to the correct one
-- NodeTool's bundled environment usually handles this, but system conflicts can occur
-
-**GPU acceleration unavailable**
-- NodeTool delegates GPU workloads to external engines (Ollama, llama.cpp, ComfyUI). Ensure those engines have CUDA/Metal support enabled.
-- Verify your GPU driver version with `nvidia-smi`.
-
-#### Windows-Specific CUDA Issues
-
-- **Visual C++ Redistributable**: Install from [Microsoft](https://aka.ms/vs/17/release/vc_redist.x64.exe)
-- **Windows Defender**: May quarantine CUDA files. Add NodeTool folder to exclusions
-- **Path length**: Install NodeTool in a short path (e.g., `C:\NodeTool`) to avoid Windows path limits
-
----
-
-### Antivirus and Firewall Issues
-
-Security software can interfere with NodeTool's local server and AI model execution.
-
-#### Symptoms
-
-- NodeTool installs but won't start
-- "Connection refused" errors
-- Models download but won't load
-- Slow performance despite adequate hardware
-
-#### Solutions by Antivirus
-
-**Windows Defender**
-1. Open Windows Security → Virus & threat protection
-2. Click "Manage settings" under Virus & threat protection settings
-3. Scroll to "Exclusions" and click "Add or remove exclusions"
-4. Add these folders:
-   - NodeTool installation directory
-   - `%USERPROFILE%\.nodetool`
-   - `%USERPROFILE%\.cache\huggingface`
-
-**Norton, McAfee, Bitdefender, etc.**
-- Add NodeTool to your antivirus's trusted/excluded programs list
-- Temporarily disable real-time scanning during installation
-- Some AV software blocks Node.js processes -- whitelist `node.exe` in NodeTool's folder
-
-#### Firewall Configuration
-
-NodeTool runs a local server (default port 7777). Allow it through your firewall:
-
-**Windows Firewall**
-1. Open Windows Firewall → "Allow an app through firewall"
-2. Click "Change settings" then "Allow another app"
-3. Browse to NodeTool's executable and add it
-4. Ensure both Private and Public are checked
-
-**macOS Firewall**
-1. System Preferences → Security & Privacy → Firewall
-2. Click "Firewall Options"
-3. Add NodeTool and set to "Allow incoming connections"
-
-**Linux (ufw)**
-```bash
-sudo ufw allow 7777/tcp
-```
-
----
-
-### Runtime Environment Issues
-
-NodeTool includes its own Node.js runtime, but system-level conflicts can occasionally occur.
-
-#### "Module not found" or startup errors
-
-- NodeTool uses a bundled runtime -- this error usually means installation is incomplete
-- Try reinstalling NodeTool, ensuring the installer completes fully
-- Check that you are launching NodeTool from the correct location
-
-#### Development Setup (for contributors)
-
-If running NodeTool from source:
-```bash
-# Install dependencies
-npm install
-
-# Build all packages
-npm run build
-
-# Start the development server
-npm run dev
-```
-
----
-
-### Platform-Specific Troubleshooting
-
-#### Windows
-
-**"Missing DLL" errors**
-- Install Visual C++ Redistributable (x64): [Download](https://aka.ms/vs/17/release/vc_redist.x64.exe)
-- Restart after installation
-
-**"Access denied" during installation**
-- Run installer as Administrator
-- Install to a user-writable location (not `C:\Program Files`)
-- Disable controlled folder access temporarily
-
-**Long path errors**
-- Enable long paths in Windows (requires admin):
-  ```powershell
-  New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force
-  ```
-- Or install NodeTool in a short path like `C:\NT`
-
-#### macOS
-
-**"App is damaged" or "unidentified developer"**
-1. Right-click the app and select "Open" (bypasses Gatekeeper once)
-2. Or: System Preferences → Security & Privacy → "Open Anyway"
-3. If still blocked: `xattr -cr /Applications/NodeTool.app`
-
-**Rosetta 2 (Intel apps on Apple Silicon)**
-- NodeTool is native Apple Silicon – no Rosetta needed
-- If you installed the wrong version, delete and reinstall the ARM version
-
-**Permissions**
-- Grant Full Disk Access if accessing files outside standard locations
-- Grant accessibility permissions if prompted
-
-#### Linux
-
-**AppImage won't run**
-```bash
-chmod +x NodeTool-*.AppImage
-./NodeTool-*.AppImage
-```
-
-**Missing libraries**
-```bash
-# Ubuntu/Debian
-sudo apt update
-sudo apt install libfuse2 libgl1 libglib2.0-0
-
-# Fedora
-sudo dnf install fuse-libs mesa-libGL glib2
-```
-
-**GPU not detected (NVIDIA)**
-```bash
-# Check driver installation
-nvidia-smi
-
-# Install NVIDIA drivers if needed (Ubuntu)
-sudo ubuntu-drivers autoinstall
-
-# Install CUDA toolkit
-sudo apt install nvidia-cuda-toolkit
-```
-
----
-
-### Resetting NodeTool
-
-If all else fails, try a clean reinstall:
-
-1. **Uninstall NodeTool** (see [Uninstalling](#uninstalling) below)
-2. **Delete configuration folders**:
-   - Windows: `%USERPROFILE%\.nodetool`
-   - macOS: `~/.nodetool` and `~/Library/Application Support/NodeTool`
-   - Linux: `~/.nodetool` and `~/.config/nodetool`
-3. **Delete model caches** (optional, saves redownloading):
-   - `~/.cache/huggingface`
-   - `~/.ollama`
-4. **Reinstall** from [nodetool.ai](https://nodetool.ai)
-
-### Getting Help
-
-If you're still stuck:
-
-- **[Discord Community](https://discord.gg/WmQTWZRcYE)** – Ask questions and get help from users
-- **[GitHub Issues](https://github.com/nodetool-ai/nodetool/issues)** – Report bugs with system details
-- **[Troubleshooting Guide](troubleshooting.md)** – For workflow and runtime issues (not installation)
+**Still stuck** — ask in [Discord](https://discord.gg/WmQTWZRcYE) or file a [GitHub Issue](https://github.com/nodetool-ai/nodetool/issues). Include your OS and NodeTool version (Help → About).
 
 ---
 
 ## Uninstalling
 
-### Windows
-Use **Add/Remove Programs** in Windows Settings
+- **Windows** — Settings → Apps → Nodetool → Uninstall.
+- **macOS** — drag Nodetool from Applications to the Trash.
+- **Linux** — delete the AppImage file.
 
-### macOS
-Drag NodeTool from Applications to Trash, then remove `~/Library/Application Support/NodeTool`
-
-### Linux
-Remove the AppImage or use `sudo dpkg -r nodetool` for Debian packages
+Settings live in `~/.config/nodetool/settings.yaml` (macOS/Linux) or `%APPDATA%\nodetool\settings.yaml` (Windows) — remove that folder too for a clean reset.
 
 ---
 
