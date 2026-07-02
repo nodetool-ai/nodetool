@@ -1,10 +1,71 @@
-# Showcase seeder
+# SEO generation tooling
+
+Two toolsets for generating SEO pages. Both produce artifacts a human reviews
+before anything ships — no generator writes to a page-data module on its own.
+
+- **[Model Page Copy Writer](#model-page-copy-writer)** — drafts a
+  `/models/<slug>` page from a model slug + provider-coverage rows + pasted
+  vendor facts. Output lands in [`drafts/`](drafts/) behind a
+  [human-edit gate](drafts/README.md).
+- **[Showcase seeder](#showcase-seeder)** — batch-generates showcase assets and
+  a manifest, then ingests them into the page data the `/showcase/*` routes read.
+
+## Model Page Copy Writer
+
+Retargets the shipped `SEO Content Engine` example at a single `/models/<slug>`
+page. Feed it a model slug, its provider-coverage rows, and the vendor facts you
+paste in; it drafts the page in Markdown — YAML `title`/`description`, a blurb,
+capability facts, FAQ candidates, and reviewer notes — and writes it to
+`drafts/models/<slug>.md`.
+
+- `model-page-copy-writer.json` — the graph. Import it in the NodeTool editor to
+  run and tweak it visually.
+- `model-page-copy-writer.ts` — the same graph exported as a runnable DSL.
+
+The writer restates and organizes the facts you give it. It does not invent
+specs, benchmarks, prices, or dates, and it flags its own uncertainty in a
+`## Reviewer notes` block so you know what to verify.
+
+### Run it from the CLI
+
+Edit the three inputs and pick a model, then run **from the repo root** so the
+draft lands in the right place:
+
+1. Open `model-page-copy-writer.ts` and set:
+   - `slug` → the model's URL slug (kebab-case; becomes the filename).
+   - `coverage` → the model's rows from the provider-coverage table.
+   - `facts` → the vendor facts, pasted.
+   - the `writer` agent's `model` → any language model you have a key for. The
+     shipped `model: {}` is a placeholder; the default `max_tokens` (16000) fits
+     the common OpenAI and Anthropic models.
+2. Run it:
+
+   ```bash
+   # from the repo root, so paths resolve to marketing/seo/drafts/models/
+   npm run dev:nodetool -- run marketing/seo/model-page-copy-writer.ts
+   ```
+
+The draft is written to `marketing/seo/drafts/models/<slug>.md` and previewed in
+the run output. Then work it per the [gate](drafts/README.md).
+
+> The path is relative to the current directory, so run from the repo root. In
+> the editor, the file lands in your NodeTool workspace instead — use the CLI
+> when you want it in the repo.
+
+### Competitor pages
+
+The same graph drafts competitor comparison pages (PR-5, wave 2): paste the
+competitor's facts into `facts` and its coverage/positioning into `coverage`,
+and point `slug` at the competitor page. The output structure — blurb, facts,
+FAQ, reviewer notes — carries over unchanged.
+
+## Showcase seeder
 
 Batch-generates showcase assets and a manifest, then ingests them into the
 page data the `/showcase/*` routes read. Two steps: **seed** (generate) →
 **ingest** (publish).
 
-## Layout
+### Layout
 
 ```
 seo/
@@ -19,7 +80,7 @@ seo/
 ../public/showcase/<batch>/      # committed images (ingest destination)
 ```
 
-## Seed
+### Seed
 
 For each `template × model`, an LLM (OpenAI) writes `--count` prompt variants in
 the template's domain, then the render provider (fal.ai) renders each. Every
@@ -41,21 +102,21 @@ checks).
 Requires `OPENAI_API_KEY` and `FAL_API_KEY` in the local secret store (the same
 store `nodetool serve` uses) or the environment.
 
-### Budget
+#### Budget
 
 The run stops once the summed cost reaches `--budget-usd`, writing the manifest
 up to that point — a killed batch is still a valid batch. LLM cost is the real
 figure from the provider's cost counter; fal image/video calls don't report
 cost, so their cost comes from a small per-model estimate table in `seed.ts`.
 
-### Dedup
+#### Dedup
 
 The dedup key is `sha256(model + normalized-prompt)`. The seeder loads every
 existing manifest under `out/`, skips prompts whose key already exists, and —
 per `template × model` — only generates the shortfall below `--count`. Re-running
 the same command adds zero rows.
 
-## Ingest
+### Ingest
 
 ```bash
 npm run seo:ingest                 # all batches
@@ -77,7 +138,7 @@ Asset handling:
 Ingest then regenerates `src/data/showcaseEntries.generated.ts` (sorted by
 route for deterministic diffs).
 
-## Typecheck
+### Typecheck
 
 `seo/` imports backend workspace packages and is excluded from the Next app
 tsconfig. Typecheck it on its own:
