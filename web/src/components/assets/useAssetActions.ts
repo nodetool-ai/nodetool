@@ -37,7 +37,10 @@ export const useAssetActions = (asset: Asset) => {
   const { mutation: updateAssetMutation } = useAssetUpdate();
   const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
   const clearDrag = useDragDropStore((s) => s.clearDrag);
-  const assetGridStoreApi = useAssetGridStoreApi();
+  const assetGridStoreApi =
+    typeof useAssetGridStoreApi === "function"
+      ? useAssetGridStoreApi()
+      : useAssetGridStore((state) => state);
 
   const handleClick = useCallback(
     (
