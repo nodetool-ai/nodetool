@@ -242,11 +242,11 @@ Build, Run, Extend from Code
         >
           <Workflow className="h-12 w-12 text-violet-400 mx-auto mb-4" />
           <h3 className="text-2xl font-bold text-white mb-3">
-            Ready to Get Started?
+            Build your first workflow
           </h3>
           <p className="text-slate-400 max-w-xl mx-auto mb-6">
-            Check out our comprehensive documentation with examples, tutorials, and API
-            references to help you build your first AI workflow.
+            The docs take you from install to a running workflow, with examples
+            and API references.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <a

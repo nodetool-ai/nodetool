@@ -59,7 +59,7 @@ const proPoints = [
   {
     icon: WifiOff,
     title: "Works fully offline",
-    body: "Once your local models are downloaded, you can disconnect the internet and keep building. Perfect for travel, secure environments, or air-gapped machines.",
+    body: "Once your local models are downloaded, disconnect the internet and keep building — travel, secure environments, air-gapped machines.",
   },
   {
     icon: Shield,
