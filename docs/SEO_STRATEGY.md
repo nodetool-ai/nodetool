@@ -14,6 +14,73 @@ file is more than a quarter old.
 **Status**: the movie-trailer sitemap fix shipped 2026-07-01. `/vs/langflow` and `/vs/n8n` (§4.1
 items 1 and 3) and the footer "Compare" column (§1, orphaned-pages finding) shipped 2026-07-02.
 `/marketing` (§4.0), `/vs/flowise`, and `/vs/dify` (§4.1 items 2 and 5) shipped 2026-07-02.
+§0 (the Search Console audit) added 2026-07-02 — it re-prioritizes §7 with real query data.
+Shipped from §0 on 2026-07-02: 79 redirect stubs under `docs/redirects/` (§0.5, plus a fix to the
+three pre-existing stubs, whose trailing-slash `redirect_to` 404s on GitHub Pages); `providers.md`
+and `installation.md` rewrites (§0.6); `comparisons.md` cross-links to `/vs/*` (§0.6); `/agents`
+and `/cloud` retitles (§0.7); `llms.txt` on nodetool.ai and JSON-LD on `/agents`, `/creatives`,
+`/marketing` (§0.8).
+
+## 0. What Search Console actually says (audit 2026-07-02)
+
+Everything below §0 was written from a content audit. This section is the first pass with real
+Google Search Console data (export pulled 2026-07-02, trailing window): 939 clicks / 48.2k
+impressions across 474 pages; 504 clicks / 11.1k impressions across the visible query set; 933
+clicks / 40.1k impressions by country. Eight findings, each with the action it forces:
+
+1. **Traffic is almost entirely branded.** "nodetool"-variant queries deliver 389 of 504 visible
+   query clicks (77%) at position ~1.7 and 23.6% CTR. Non-branded queries: 115 clicks on 9.4k
+   impressions — 1.23% CTR. The doc's premise (the site lacks non-branded surface) is confirmed,
+   not just plausible.
+2. **Exactly one non-branded cluster ranks, and it's stuck at position 7–9.** "ai node" (3,171
+   impressions, pos 7.4), "node ai" (1,093, pos 8.7), "node based ai" (797, pos 8.7), "ai node
+   editor" (197, pos 5.8) and ~20 variants — all landing on the homepage. At position 7–9 CTR is
+   ~1%; the same impressions at top-3 would be 10–25×. This cluster is also intent-ambiguous
+   (Node.js AI? ComfyUI nodes?), which is why the better-intent comparison and use-case queries in
+   §3–§4 matter more: the export shows **zero impressions** for "comfyui alternative", "weavy
+   alternative", "langflow", or "n8n alternative" — the `/vs/*` pages shipped 07-01/07-02 and have
+   no data yet. Watch them weekly.
+3. **The US is the weak market, and it's the biggest.** 17.3k of 40.1k impressions are US, but
+   average US position is 12.5 vs 6.4–7.3 in every other top-10 country (US CTR 0.59% vs 3–5%
+   elsewhere). That gap is authority/competition, not on-page tags — it upgrades §6 (distribution:
+   directories, awesome-lists, Show HN, roundup outreach) from "ongoing" to a priority.
+4. **Docs earn 39% of impressions and 0.4% CTR.** docs.nodetool.ai: 75 clicks / 18.9k impressions.
+   The 375 node-reference URLs in the export took 7.8k impressions for **12 clicks** — the queries
+   are "official docs" lookups for third-party libraries (pdfplumber, stable diffusion img2img,
+   mlx_whisper) that will never click a NodeTool page. Do not invest in ranking node pages further;
+   fix their meta (§4.3) and move on.
+5. **The node-docs restructure orphaned 234 of 460 docs URLs in the export (~6.9k impressions) with
+   no redirects.** `nodes/comfy/*`, `nodes/mlx/*`, `nodes/huggingface/image_to_image/*`,
+   `nodes/lib/pdfplumber/*`, and `runpod-deployment` all 404 now. The mechanism to fix it already
+   exists (`_layouts/redirect.html` + `redirect_to` front matter, used by `desktop-app.md`,
+   `api.md`, `packs.md`). Batch-generate redirect stubs where a successor page exists
+   (`lib/pdfplumber/*` → `lib/pdf/*`, `huggingface/image_to_image/*` → `huggingface/imagetoimage`,
+   `runpod-deployment` → `deployment`); let genuinely removed packs 404.
+6. **Three docs pages carry real demand and rank badly.** `providers.html` is the second-highest
+   impression URL on either domain (3,181 impressions, position 20, 0.09% CTR); `installation.html`
+   (1,904, pos 15.1); `comparisons.html` (716, pos 21 — it overlaps the new `/vs/*` pages and
+   should link to them prominently). These three are the only docs pages worth active optimization:
+   restructure `providers.html` with per-provider H2s and a capability table; expand
+   `installation.html` with per-OS sections and troubleshooting.
+7. **Marketing pages at position 5–9 get near-zero clicks** — `/cloud` (716 impressions, pos 4.9,
+   0 clicks), `/agents` (664, pos 5.1, 0), `/developers` (1,570, pos 6.1, 0.51%), `/creatives`
+   (1,034, pos 9.1, 0.48%), `/studio` (942, pos 6.8, 0.32%). Most of these impressions are likely
+   sitelinks under branded queries, where the homepage absorbs the click — so title rewrites alone
+   won't fix CTR. The durable fix is giving each page a distinct non-branded query target so it
+   earns its own impressions: `/agents` → "AI agent workflow builder" (its current title, "Agents
+   for creative work", targets nothing anyone searches), `/cloud` → "browser AI workflow builder /
+   no-install", `/developers` already targets "AI workflow SDK" reasonably.
+8. **AI assistants are a real, visible acquisition channel.** Dozens of queries in the export are
+   LLM-generated: persona-length prompts ("shortlist node-based ai editors that let design teams…"),
+   `site:`/`after:` operators, and conversational follow-ups ("which is free", "are any of these
+   open source?", "you sure?"). NodeTool is being evaluated inside AI-assisted research sessions.
+   Actions: add `llms.txt` to nodetool.ai (docs already has one); keep license/pricing/free-tier
+   facts as plain crawlable text on `/pricing` and every `/vs/*` page; extend the existing JSON-LD
+   (`JsonLd.tsx`, currently on a handful of pages) to all indexed routes.
+
+One stray demand signal: "real time agent api" (132 impressions, pos 36) plus the now-deleted
+`nodes/openai/agents/realtimeagent.html` (192 impressions) — there is search demand for a realtime
+agent guide; a proper docs page would inherit it.
 
 ## 1. Where nodetool.ai stands today
 
@@ -241,22 +308,37 @@ Content only ranks if something points at it:
 
 ## 7. Prioritized roadmap
 
+Re-prioritized 2026-07-02 against the Search Console audit in §0.
+
 1. **Immediate** (hours): ~~fix the `movie-trailer` sitemap omission (§1, §5)~~ done 2026-07-01;
-   ~~internal-link the orphaned `/vs/*` pages (§1, §5)~~ done 2026-07-02.
-2. **Phase 1** (this month): ~~build `/marketing` (§4.0)~~ done 2026-07-02 — its four supporting
-   use-case pages (Cold Outreach Co-Pilot, Social Media Calendar Filler, Brand Asset Generator,
-   YouTube Thumbnail Pipeline) still need real generated assets before they can ship; ship the
-   remaining "ship first" use-case pages (§4.2); ~~add `/vs/langflow` and `/vs/n8n`~~ done
+   ~~internal-link the orphaned `/vs/*` pages (§1, §5)~~ done 2026-07-02; ~~batch-generate redirect
+   stubs for the moved node-docs URLs (§0.5)~~ done 2026-07-02 (79 stubs); ~~link
+   `comparisons.html` to the `/vs/*` pages (§0.6)~~ done 2026-07-02; ~~add `llms.txt` to
+   nodetool.ai (§0.8)~~ done 2026-07-02.
+2. **Phase 1** (this month): ~~rework `providers.html` and `installation.html` — the two
+   highest-demand docs pages, both ranking on page 2 (§0.6)~~ done 2026-07-02; ~~give `/agents`
+   and `/cloud` distinct non-branded query targets (§0.7)~~ done 2026-07-02; ~~build `/marketing`
+   (§4.0)~~ done 2026-07-02 — its four
+   supporting use-case pages (Cold Outreach Co-Pilot, Social Media Calendar Filler, Brand Asset
+   Generator, YouTube Thumbnail Pipeline) still need real generated assets before they can ship;
+   ship the remaining "ship first" use-case pages (§4.2); ~~add `/vs/langflow` and `/vs/n8n`~~ done
    2026-07-02, ~~add `/vs/flowise` and `/vs/dify`~~ done 2026-07-02 — next comparison target is
    `/vs/flora` (or a combined AI-canvas-alternatives page, §4.1 item 4).
-3. **Phase 2** (next month): stand up the blog with 3 posts — one comparison/roundup post, one
-   cookbook walkthrough, one technical post (§4.4); submit NodeTool to the two GitHub awesome-lists
-   named in §6.
+3. **Phase 2** (next month): distribution (§6) — upgraded from "ongoing" because the US
+   position gap (§0.3) is an authority problem: submit to the two GitHub awesome-lists, refresh
+   directory listings, and time a Show HN / r/LocalLLaMA post to a release; stand up the blog with
+   3 posts — one comparison/roundup post, one cookbook walkthrough, one technical post (§4.4).
 4. **Ongoing**: 3-5 use-case pages/month from the remaining 61-workflow backlog; one comparison page
    per new credible competitor; internal-link every new page from its matching segment landing page
-   (§5).
+   (§5); check the `/vs/*` pages' query impressions weekly until they register (§0.2).
 
 ## 8. Measurement
+
+Baseline (GSC export, trailing window ending 2026-07-02): 939 clicks / 48.2k impressions total;
+non-branded 115 clicks / 9.4k impressions / 1.23% CTR; US position 12.5; docs 75 clicks / 18.9k
+impressions. The numbers to move: non-branded clicks (proves §4's content plan), US average
+position (proves §6's distribution plan), and impressions on `/vs/*` and `/use-cases/*` (currently
+zero — proves the pages are entering the index at all).
 
 Track per page: organic impressions/clicks (Search Console), and which comparison/use-case pages
 convert to `/studio` or `/pricing` visits (the two highest-priority pages in the existing sitemap).

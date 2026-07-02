@@ -1,9 +1,9 @@
 import JsonLd from "../../components/JsonLd";
 import type { Metadata } from "next";
 
-const TITLE = "NodeTool Cloud (Alpha) — Visual AI Workflows in Your Browser";
+const TITLE = "Build AI Workflows in Your Browser — NodeTool Cloud (Alpha)";
 const DESCRIPTION =
-  "NodeTool Cloud is the hosted version of the open-source NodeTool platform, currently in alpha (not yet generally available). Build AI workflows in any browser, no install, no GPU. Bring your own API keys for OpenAI, Anthropic, Gemini, Replicate, and more. AGPL-3.0.";
+  "Build AI workflows in your browser — no install, no GPU required. NodeTool Cloud is the hosted, browser-based edition of the open-source NodeTool platform, currently in alpha (not yet generally available). Bring your own API keys for OpenAI, Anthropic, Gemini, Replicate, and more. AGPL-3.0.";
 
 export const metadata: Metadata = {
   title: TITLE,
