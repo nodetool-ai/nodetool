@@ -1,0 +1,4 @@
+{
+  "//": "Marker only: scopes the showcase seeder tooling to ES modules so `tsx seo/seed.ts` runs as ESM (the parent Next app package.json is CommonJS). Not a published/installed package.",
+  "type": "module"
+}
