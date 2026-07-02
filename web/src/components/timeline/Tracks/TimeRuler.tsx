@@ -291,6 +291,10 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
       if (!canvas) {
         return;
       }
+      // Seed the width synchronously — ResizeObserver's initial callback
+      // lands after first paint, and until then a 0 viewport width would cull
+      // every marker right of `scrollLeftPx + 200` for a frame.
+      setViewportWidthPx(canvas.offsetWidth);
       const ro = new ResizeObserver(() => {
         setResizeTick((t) => t + 1);
         setViewportWidthPx(canvas.offsetWidth);

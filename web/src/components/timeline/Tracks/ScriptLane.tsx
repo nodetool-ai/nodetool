@@ -264,6 +264,13 @@ export const ScriptLane: React.FC = () => {
       });
     });
 
+    // The binary search in `findActiveRange` requires ascending `startMs`.
+    // Segments are chronological (clips sort `byTimeline` in the projection),
+    // but word order inside `clip.caption.words` carries no such invariant —
+    // sort both defensively here, where it costs once per transcript change.
+    segmentRanges.sort((a, b) => a.startMs - b.startMs);
+    wordRanges.sort((a, b) => a.startMs - b.startMs);
+
     return { chipViews, segmentRanges, wordRanges };
   }, [clips]);
 
