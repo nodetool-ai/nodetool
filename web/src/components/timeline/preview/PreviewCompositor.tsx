@@ -18,6 +18,7 @@ import type { TimelineClip, TrackEffect } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
+import { useTimelineHistoryBatch } from "../../../stores/timeline/useTimelineHistoryBatch";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { getAssetUrl } from "../../../utils/assetHelpers";
 import {
@@ -37,6 +38,7 @@ import { TransformGizmoOverlay } from "./TransformGizmoOverlay";
 import {
   clipSourceTimeSec,
   computeActiveLayers,
+  computeActiveLayersWithHorizon,
   effectiveAssetId,
   isClipActive,
   trackZ,
@@ -211,6 +213,10 @@ export const PreviewCompositor: React.FC = memo(() => {
     s.selectedClipIds.size === 1 ? [...s.selectedClipIds][0] : null
   );
 
+  // Collapses a whole gizmo drag (60-240 Hz `onChange`) into a single undo
+  // entry instead of one per pointermove — see `onDragStart`/`onDragEnd` below.
+  const gizmoHistory = useTimelineHistoryBatch();
+
   const assetUrlCache = useRef<Map<string, AssetUrlEntry>>(new Map());
   const [urlCacheVersion, setUrlCacheVersion] = useState(0);
   const getAsset = useAssetStore((s) => s.get);
@@ -304,7 +310,10 @@ export const PreviewCompositor: React.FC = memo(() => {
     return () => {
       for (const el of pool) {
         el.pause();
-        el.src = "";
+        // Plain `el.src = ""` resolves to the document URL and can fire a
+        // spurious request; this is what actually clears the media element.
+        el.removeAttribute("src");
+        el.load();
         if (container.contains(el)) {
           container.removeChild(el);
         }
@@ -412,12 +421,17 @@ export const PreviewCompositor: React.FC = memo(() => {
   // Signature of the visible scene at a given time: the ordered active layer
   // ids plus, for captions, which word is currently spoken (so a highlight
   // change inside one clip still bumps the scene during playback). Used to
-  // decide when the rAF loop must re-render React / re-composite.
+  // decide when the rAF loop must re-render React / re-composite. Also
+  // returns the change horizon so the loop can skip recomputing this while
+  // the query time stays inside the current clip/word boundaries.
   const sceneSignature = useCallback(
-    (timeMs: number): string => {
-      const layers = computeActiveLayers(tracks, clips, timeMs, {
-        maxVideoLayers: HOT_POOL_SIZE
-      });
+    (timeMs: number): { signature: string; nextChangeMs: number } => {
+      const { layers, nextChangeMs } = computeActiveLayersWithHorizon(
+        tracks,
+        clips,
+        timeMs,
+        { maxVideoLayers: HOT_POOL_SIZE }
+      );
       let sig = "";
       for (const l of layers) {
         sig += `${l.kind}:${l.clipId}`;
@@ -426,7 +440,7 @@ export const PreviewCompositor: React.FC = memo(() => {
         }
         sig += "|";
       }
-      return sig;
+      return { signature: sig, nextChangeMs };
     },
     [tracks, clips]
   );
@@ -547,6 +561,20 @@ export const PreviewCompositor: React.FC = memo(() => {
     urlCacheVersion
   ]);
 
+  // The pool effect below is keyed on `currentTimeMs` (React state), which
+  // only advances on scene bumps — so during one long clip, an upcoming
+  // clip's cold-pool preload would never fire before its boundary. This
+  // ticks a counter every 2s while playing purely to re-run that effect;
+  // every write inside it is already same-value-guarded (see the
+  // `data-asset` checks), so the extra evaluations are cheap no-ops for
+  // slots that are already correctly bound.
+  const [preloadTick, setPreloadTick] = useState(0);
+  useEffect(() => {
+    if (!isPlaying) return;
+    const id = window.setInterval(() => setPreloadTick((t) => t + 1), 2000);
+    return () => window.clearInterval(id);
+  }, [isPlaying]);
+
   // Drive the HTMLVideoElement pool (src/seek/play state). Same logic as
   // before, just without setting display/zIndex/blendMode — those are owned
   // by the GPU compositor now.
@@ -651,13 +679,16 @@ export const PreviewCompositor: React.FC = memo(() => {
       if (el && !el.paused) el.pause();
     }
 
-    // Preload upcoming clips into cold pool slots.
+    // Preload upcoming clips into cold pool slots. Sorted soonest-first so
+    // that with more than COLD_POOL_SIZE upcoming clips, the ones closest to
+    // the playhead win the slots (array order is otherwise arbitrary).
     const upcomingVideoClips = clips
       .filter(
         (c) =>
           (c.mediaType === "video" || c.mediaType === "overlay") &&
           isClipUpcoming(c, currentTimeMs)
       )
+      .sort((a, b) => a.startMs - b.startMs)
       .slice(0, COLD_POOL_SIZE);
 
     upcomingVideoClips.forEach((clip, i) => {
@@ -679,7 +710,10 @@ export const PreviewCompositor: React.FC = memo(() => {
     isPlaying,
     clips,
     clipById,
-    resolveUrl
+    resolveUrl,
+    // Not read directly — bumped every 2s during playback purely to
+    // re-evaluate cold-pool preloads mid-clip (see the effect above).
+    preloadTick
   ]);
 
   // Resolve / preload image elements for image layers.
@@ -834,6 +868,22 @@ export const PreviewCompositor: React.FC = memo(() => {
   const getTimeMsRef = useRef(getTimeMs);
   getTimeMsRef.current = getTimeMs;
 
+  // Latest `tracks`/`clips` identities, refreshed every render, so the rAF
+  // loop (whose closure is only recreated when `[gpuReady, isPlaying]`
+  // change) can detect a document mutation without re-subscribing.
+  const latestTracksRef = useRef(tracks);
+  latestTracksRef.current = tracks;
+  const latestClipsRef = useRef(clips);
+  latestClipsRef.current = clips;
+
+  // Change-horizon bookkeeping for the tick loop below: the `tracks`/`clips`
+  // identities and playhead position the last signature+horizon computation
+  // used, so steady-state frames can skip recomputing it entirely.
+  const lastComputeTracksRef = useRef(tracks);
+  const lastComputeClipsRef = useRef(clips);
+  const lastLiveMsRef = useRef(0);
+  const lastNextChangeMsRef = useRef(Number.NEGATIVE_INFINITY);
+
   // While playing, drive a rAF loop off the TRANSIENT playhead (`getTimeMs`),
   // not React state. It (a) bumps the React scene only when the active clip
   // set changes — so we re-bind the video pool / placeholders at boundaries
@@ -846,8 +896,15 @@ export const PreviewCompositor: React.FC = memo(() => {
 
     let raf = 0;
     // Seed with the current scene so the first playing frame doesn't trigger a
-    // spurious scene bump.
-    let lastSignature = sceneSignatureRef.current(getTimeMsRef.current());
+    // spurious scene bump. Also seeds the change horizon and the "last
+    // computed at" bookkeeping the skip-check below relies on.
+    const seedMs = getTimeMsRef.current();
+    const seed = sceneSignatureRef.current(seedMs);
+    let lastSignature = seed.signature;
+    lastLiveMsRef.current = seedMs;
+    lastNextChangeMsRef.current = seed.nextChangeMs;
+    lastComputeTracksRef.current = latestTracksRef.current;
+    lastComputeClipsRef.current = latestClipsRef.current;
     // Force a composite on the very first frame after play starts so any
     // pending texture uploads flush even before a video reports as playing.
     let forceRender = true;
@@ -855,13 +912,28 @@ export const PreviewCompositor: React.FC = memo(() => {
     const tick = () => {
       const liveMs = getTimeMsRef.current();
 
-      // Re-derive the active set; only push it into React when it changed.
-      const signature = sceneSignatureRef.current(liveMs);
-      const setChanged = signature !== lastSignature;
-      if (setChanged) {
-        lastSignature = signature;
-        setSceneTimeMs(liveMs);
+      // Steady-state frames (no clip/caption-word boundary crossed, no seek,
+      // no document mutation) skip re-deriving the scene entirely — the prior
+      // horizon already proves the active set can't have changed.
+      const needsRecompute =
+        liveMs >= lastNextChangeMsRef.current ||
+        liveMs < lastLiveMsRef.current ||
+        latestTracksRef.current !== lastComputeTracksRef.current ||
+        latestClipsRef.current !== lastComputeClipsRef.current;
+
+      let setChanged = false;
+      if (needsRecompute) {
+        const result = sceneSignatureRef.current(liveMs);
+        setChanged = result.signature !== lastSignature;
+        lastSignature = result.signature;
+        lastNextChangeMsRef.current = result.nextChangeMs;
+        lastComputeTracksRef.current = latestTracksRef.current;
+        lastComputeClipsRef.current = latestClipsRef.current;
+        if (setChanged) {
+          setSceneTimeMs(liveMs);
+        }
       }
+      lastLiveMsRef.current = liveMs;
 
       // A frame needs re-compositing when the active set just changed, or when
       // any active video is decoding new pixels (i.e. actually playing). Pure
@@ -895,8 +967,25 @@ export const PreviewCompositor: React.FC = memo(() => {
     activeImageLayers.length > 0 ||
     placeholderLayers.length > 0;
 
-  const generatingClips = clips.filter(
-    (c) => c.status === "generating" && isClipActive(c, currentTimeMs)
+  const generatingClips = useMemo(
+    () =>
+      clips.filter(
+        (c) => c.status === "generating" && isClipActive(c, currentTimeMs)
+      ),
+    [clips, currentTimeMs]
+  );
+
+  const staleActiveClips = useMemo(
+    () =>
+      clips.filter(
+        (c) =>
+          c.status === "stale" &&
+          isClipActive(c, currentTimeMs) &&
+          (c.mediaType === "video" ||
+            c.mediaType === "overlay" ||
+            c.mediaType === "image")
+      ),
+    [clips, currentTimeMs]
   );
 
   return (
@@ -925,7 +1014,12 @@ export const PreviewCompositor: React.FC = memo(() => {
             sequenceHeight={sequenceHeight}
             frameWidth={frameSize.w}
             frameHeight={frameSize.h}
-            onChange={(id, next) => patchClip(id, { transform: next })}
+            onChange={(id, next) => {
+              patchClip(id, { transform: next });
+              gizmoHistory.mark();
+            }}
+            onDragStart={gizmoHistory.begin}
+            onDragEnd={gizmoHistory.end}
           />
         )}
 
@@ -947,24 +1041,15 @@ export const PreviewCompositor: React.FC = memo(() => {
           </div>
         ))}
 
-        {clips
-          .filter(
-            (c) =>
-              c.status === "stale" &&
-              isClipActive(c, currentTimeMs) &&
-              (c.mediaType === "video" ||
-                c.mediaType === "overlay" ||
-                c.mediaType === "image")
-          )
-          .map((c) => (
-            <div
-              key={`stale-${c.id}`}
-              css={overlayBadgeStyles(theme, "#c08000")}
-              style={{ zIndex: 9999 }}
-            >
-              stale
-            </div>
-          ))}
+        {staleActiveClips.map((c) => (
+          <div
+            key={`stale-${c.id}`}
+            css={overlayBadgeStyles(theme, "#c08000")}
+            style={{ zIndex: 9999 }}
+          >
+            stale
+          </div>
+        ))}
 
         {generatingClips.length > 0 && (
           <div css={previewMagicOverlayStyles} aria-hidden>
