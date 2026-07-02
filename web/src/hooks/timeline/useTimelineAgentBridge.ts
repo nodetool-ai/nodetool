@@ -126,7 +126,7 @@ function toClipNode(
 
 function toTrackNode(
   track: TimelineTrack,
-  clips: TimelineClip[]
+  clipCount: number
 ): TimelineTrackNode {
   return {
     id: track.id,
@@ -137,7 +137,7 @@ function toTrackNode(
     locked: track.locked,
     muted: !!track.muted,
     solo: !!track.solo,
-    clipCount: clips.reduce((n, c) => (c.trackId === track.id ? n + 1 : n), 0)
+    clipCount
   };
 }
 
@@ -203,6 +203,11 @@ export const useTimelineAgentBridge = (active: boolean): void => {
       getSnapshot(): TimelineSnapshot {
         const state = doc.getState();
         const tracks = state.tracks;
+        const map = trackMap();
+        const clipCountByTrack = new Map<string, number>();
+        for (const c of state.clips) {
+          clipCountByTrack.set(c.trackId, (clipCountByTrack.get(c.trackId) ?? 0) + 1);
+        }
         return {
           sequenceId: state.sequenceId,
           fps: state.fps,
@@ -211,15 +216,18 @@ export const useTimelineAgentBridge = (active: boolean): void => {
           durationMs: state.durationMs,
           playheadMs: Math.round(playback.getState().getTimeMs()),
           selectedClipIds: [...ui.getState().selectedClipIds],
-          tracks: tracks.map((t) => toTrackNode(t, state.clips)),
-          clips: state.clips.map((c) => toClipNode(c, trackMap()))
+          tracks: tracks.map((t) =>
+            toTrackNode(t, clipCountByTrack.get(t.id) ?? 0)
+          ),
+          clips: state.clips.map((c) => toClipNode(c, map))
         };
       },
 
       addTrack(type, name) {
         doc.getState().addTrack(type, name);
         const tracks = doc.getState().tracks;
-        return toTrackNode(tracks[tracks.length - 1], doc.getState().clips);
+        // A freshly added track has no clips yet.
+        return toTrackNode(tracks[tracks.length - 1], 0);
       },
 
       async generateClip(opts) {

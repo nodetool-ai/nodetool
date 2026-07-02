@@ -21,12 +21,22 @@
  *     save; the one exception is a load that migrated a legacy transcript,
  *     which is persisted once (see `markTimelineLoadMigrated`).
  *   - Pending edits are flushed on unmount.
+ *   - Gesture-aware: a drag/trim/slider gesture pauses the zundo temporal
+ *     store for its duration (`useTimelineHistoryBatch`). If the debounce
+ *     timer fires while a gesture is still open, the flush re-arms itself
+ *     instead of PATCHing the intermediate, mid-gesture state — pointerup
+ *     resumes tracking and the next flush attempt (scheduled or the one it
+ *     just re-armed) goes through.
  */
 import { useEffect, useRef } from "react";
 
-import { useTimelineStoreApi } from "../../stores/timeline/TimelineStore";
+import {
+  useTimelineStoreApi,
+  timelineTemporalOf
+} from "../../stores/timeline/TimelineStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { trpcClient } from "../../trpc/client";
+import { buildTimelineDocumentPayload } from "./timelineDocumentPayload";
 
 import type { TimelineStoreState } from "../../stores/timeline/TimelineStore";
 
@@ -48,11 +58,7 @@ interface DocumentSnapshot {
 const pickSnapshot = (state: TimelineStoreState): DocumentSnapshot => ({
   sequenceId: state.sequenceId,
   baseUpdatedAt: state.baseUpdatedAt,
-  tracks: state.tracks,
-  clips: state.clips,
-  markers: state.markers,
-  transcript: state.transcript,
-  scriptEnabled: state.scriptEnabled
+  ...buildTimelineDocumentPayload(state)
 });
 
 // Sequence ids whose load migrated a legacy transcript onto clips. The
@@ -137,13 +143,7 @@ export function useTimelineAutosave(
         const response = await trpcClient.timeline.update.mutate({
           id: snapshot.sequenceId,
           baseUpdatedAt: baseUpdatedAt ?? undefined,
-          document: {
-            tracks: snapshot.tracks,
-            clips: snapshot.clips,
-            markers: snapshot.markers,
-            transcript: snapshot.transcript,
-            scriptEnabled: snapshot.scriptEnabled
-          }
+          document: buildTimelineDocumentPayload(snapshot)
         });
         const updatedAt = (response as { updatedAt?: unknown } | undefined)
           ?.updatedAt;
@@ -198,6 +198,15 @@ export function useTimelineAutosave(
         timeoutRef.current = null;
       }
       if (inFlightRef.current) return;
+      if (!timelineTemporalOf(store).isTracking) {
+        // A drag/trim/slider gesture is holding history paused
+        // (useTimelineHistoryBatch). Saving now would PATCH intermediate,
+        // mid-gesture state. Re-arm instead of clearing `pendingRef` — the
+        // gesture always ends on pointerup (which resumes tracking), so the
+        // re-armed timer's flush goes through with no cap needed.
+        scheduleFn();
+        return;
+      }
       const pending = pendingRef.current;
       pendingRef.current = null;
       if (!pending || !pending.sequenceId) return;
