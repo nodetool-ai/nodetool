@@ -31,6 +31,15 @@ const COLUMNS: Col[] = [
     ],
   },
   {
+    title: "Compare",
+    links: [
+      { name: "vs ComfyUI", href: "/vs/comfyui" },
+      { name: "vs Weavy", href: "/vs/weavy" },
+      { name: "vs Langflow", href: "/vs/langflow" },
+      { name: "vs n8n", href: "/vs/n8n" },
+    ],
+  },
+  {
     title: "Resources",
     links: [
       { name: "Docs", href: "https://docs.nodetool.ai", external: true, onClick: () => track("Open Docs") },
@@ -53,7 +62,7 @@ export default function SiteFooter() {
     <footer className="relative border-t border-slate-800/50 bg-slate-950/80">
       <div className="pointer-events-none absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-blue-800/40 to-transparent" />
       <div className="mx-auto max-w-7xl px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:grid-cols-6">
           <div className="col-span-2 sm:col-span-3 lg:col-span-1">
             <a href="/" className="inline-flex items-center gap-2 focus-ring rounded" aria-label="NodeTool home">
               <Image

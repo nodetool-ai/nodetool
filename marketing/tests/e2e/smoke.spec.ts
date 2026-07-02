@@ -10,6 +10,8 @@ const ROUTES = [
   "/pricing",
   "/vs/comfyui",
   "/vs/weavy",
+  "/vs/langflow",
+  "/vs/n8n",
 ];
 
 test.describe("marketing smoke", () => {
