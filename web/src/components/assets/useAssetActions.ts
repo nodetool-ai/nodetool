@@ -87,11 +87,23 @@ export const useAssetActions = (asset: Asset) => {
           e.dataTransfer
         );
       } else {
+        const allSelectedAssets =
+          gridStore.getState().selectedAssets || [];
+        const assetsById = new Map(
+          [...allSelectedAssets, asset].map((a) => [a.id, a])
+        );
+        const resolvedAssets = assetIds
+          .map((id) => assetsById.get(id))
+          .filter((a): a is Asset => a !== undefined);
         serializeDragData(
           {
             type: "assets-multiple",
             payload: assetIds,
-            metadata: { count: assetIds.length, sourceId: asset.id }
+            metadata: {
+              count: assetIds.length,
+              sourceId: asset.id,
+              assets: resolvedAssets
+            }
           },
           e.dataTransfer
         );

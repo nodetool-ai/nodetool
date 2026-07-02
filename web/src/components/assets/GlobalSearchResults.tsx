@@ -289,11 +289,21 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
           e.dataTransfer
         );
       } else {
+        const assetsById = new Map(
+          [...results, ...(selectedAssets || []), asset].map((a) => [a.id, a])
+        );
+        const resolvedAssets = assetIds
+          .map((id) => assetsById.get(id))
+          .filter((a): a is AssetWithPath => a !== undefined);
         serializeDragData(
           {
             type: "assets-multiple",
             payload: assetIds,
-            metadata: { count: assetIds.length, sourceId: asset.id }
+            metadata: {
+              count: assetIds.length,
+              sourceId: asset.id,
+              assets: resolvedAssets
+            }
           },
           e.dataTransfer
         );
@@ -328,7 +338,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
         metadata: { count: assetIds.length, sourceId: asset.id }
       });
     },
-    [selectedAssetIds, handleSelectAsset, setActiveDrag, selectedAssets]
+    [selectedAssetIds, handleSelectAsset, setActiveDrag, selectedAssets, results]
   );
 
   const handleDragEnd = useCallback(() => {

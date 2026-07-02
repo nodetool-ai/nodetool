@@ -33,6 +33,7 @@ export {
   hasExternalFiles,
   extractFiles,
   createDragCountBadge,
+  resolveAssetsMultiple,
   DRAG_DATA_MIME
 } from "./serialization";
 
