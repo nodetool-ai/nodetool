@@ -2,7 +2,14 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useSyncExternalStore
+} from "react";
 
 import {
   numChannels,
@@ -10,6 +17,8 @@ import {
   sampleDuration,
   type AudioSample
 } from "./audioSample";
+import { buildChannelPeaks, peakRange } from "./waveformPeaks";
+import type { PlayheadStore } from "./playheadStore";
 
 export interface Selection {
   start: number;
@@ -21,7 +30,7 @@ interface WaveformViewProps {
   /** Horizontal scale; total content width is `duration * pixelsPerSecond`. */
   pixelsPerSecond: number;
   selection: Selection | null;
-  playheadSec: number;
+  playhead: PlayheadStore;
   onSelectionChange: (selection: Selection | null) => void;
   onSeek: (seconds: number) => void;
 }
@@ -42,10 +51,11 @@ const styles = (theme: Theme) =>
       cursor: "text"
     },
     "& canvas": {
-      position: "absolute",
+      position: "sticky",
       top: 0,
       left: 0,
-      display: "block"
+      display: "block",
+      pointerEvents: "none"
     },
     "& .selection": {
       position: "absolute",
@@ -118,20 +128,47 @@ const formatRulerTime = (seconds: number, interval: number): string => {
   return `${minutes}:${String(secs).padStart(2, "0")}`;
 };
 
+/** Positioned line that tracks the playhead store without re-rendering the view. */
+const PlayheadLine = memo(function PlayheadLine({
+  playhead,
+  pixelsPerSecond
+}: {
+  playhead: PlayheadStore;
+  pixelsPerSecond: number;
+}) {
+  const seconds = useSyncExternalStore(
+    playhead.subscribe,
+    playhead.get,
+    playhead.get
+  );
+  return (
+    <div
+      className="playhead"
+      style={{ left: `${seconds * pixelsPerSecond}px` }}
+    />
+  );
+});
+
 /**
  * Canvas waveform with click-to-seek and drag-to-select. Channels are drawn as
- * stacked min/max lanes. The waveform canvas only repaints when the sample,
- * zoom, or size changes; the selection band and playhead are positioned DOM
- * nodes so seeking and playback don't trigger a redraw.
+ * stacked min/max lanes.
+ *
+ * The canvas is viewport-sized and sticky inside a wide scrollable inner div:
+ * only the visible slice is ever painted, and per-column min/max comes from a
+ * peak cache built once per sample. Redraws (scroll, zoom, resize) therefore
+ * cost O(visible pixels), not O(total frames), and the canvas never hits the
+ * browser's per-dimension size limit at high zoom. The selection band and
+ * playhead are positioned DOM nodes, so selecting and playback don't repaint
+ * the canvas at all.
  */
-const WaveformView = ({
+const WaveformView = memo(function WaveformView({
   sample,
   pixelsPerSecond,
   selection,
-  playheadSec,
+  playhead,
   onSelectionChange,
   onSeek
-}: WaveformViewProps) => {
+}: WaveformViewProps) {
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
@@ -141,28 +178,44 @@ const WaveformView = ({
   const duration = sampleDuration(sample);
   const width = Math.max(1, Math.ceil(duration * pixelsPerSecond));
 
+  const peaks = useMemo(
+    () => sample.channels.map((channel) => buildChannelPeaks(channel)),
+    [sample]
+  );
+
   const waveColor = theme.palette.grey[300];
   const midColor = theme.palette.grey[700];
   const rulerColor = theme.palette.text.secondary;
   const rulerLineColor = theme.palette.divider;
 
-  useEffect(() => {
+  const draw = useCallback(() => {
     const canvas = canvasRef.current;
     const container = containerRef.current;
     if (!canvas || !container) return;
 
+    const viewportWidth = container.clientWidth;
     const height = container.clientHeight;
-    const waveformHeight = Math.max(1, height - RULER_HEIGHT);
+    if (viewportWidth === 0 || height === 0) return;
+
     const dpr = window.devicePixelRatio || 1;
-    canvas.width = Math.floor(width * dpr);
-    canvas.height = Math.floor(height * dpr);
-    canvas.style.width = `${width}px`;
-    canvas.style.height = `${height}px`;
+    const deviceWidth = Math.floor(viewportWidth * dpr);
+    const deviceHeight = Math.floor(height * dpr);
+    if (canvas.width !== deviceWidth) canvas.width = deviceWidth;
+    if (canvas.height !== deviceHeight) canvas.height = deviceHeight;
+    const cssWidth = `${viewportWidth}px`;
+    const cssHeight = `${height}px`;
+    if (canvas.style.width !== cssWidth) canvas.style.width = cssWidth;
+    if (canvas.style.height !== cssHeight) canvas.style.height = cssHeight;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    ctx.scale(dpr, dpr);
-    ctx.clearRect(0, 0, width, height);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, viewportWidth, height);
+
+    const scrollX = Math.max(0, Math.round(container.scrollLeft));
+    const contentWidth = Math.max(1, Math.ceil(duration * pixelsPerSecond));
+    const drawWidth = Math.max(0, Math.min(viewportWidth, contentWidth - scrollX));
+    const waveformHeight = Math.max(1, height - RULER_HEIGHT);
 
     const tickInterval = chooseTickInterval(pixelsPerSecond);
     ctx.strokeStyle = rulerLineColor;
@@ -171,9 +224,18 @@ const WaveformView = ({
     ctx.textBaseline = "top";
     ctx.beginPath();
     ctx.moveTo(0, RULER_HEIGHT - 0.5);
-    ctx.lineTo(width, RULER_HEIGHT - 0.5);
-    for (let t = 0; t <= duration; t += tickInterval) {
-      const x = Math.round(t * pixelsPerSecond) + 0.5;
+    ctx.lineTo(viewportWidth, RULER_HEIGHT - 0.5);
+    // Start one tick early so a label whose tick sits just left of the
+    // viewport still renders its visible text.
+    const firstTick =
+      Math.max(0, Math.floor(scrollX / pixelsPerSecond / tickInterval) - 1) *
+      tickInterval;
+    const lastVisibleSec = Math.min(
+      duration,
+      (scrollX + viewportWidth) / pixelsPerSecond
+    );
+    for (let t = firstTick; t <= lastVisibleSec; t += tickInterval) {
+      const x = Math.round(t * pixelsPerSecond - scrollX) + 0.5;
       ctx.moveTo(x, RULER_HEIGHT - 8);
       ctx.lineTo(x, RULER_HEIGHT);
       ctx.fillText(formatRulerTime(t, tickInterval), x + 4, 4);
@@ -184,41 +246,42 @@ const WaveformView = ({
     const lanes = numChannels(sample);
     const laneHeight = waveformHeight / lanes;
     const frames = numFrames(sample);
-    const samplesPerPx = frames / width;
+    const framesPerPx = sample.sampleRate / pixelsPerSecond;
 
     for (let c = 0; c < lanes; c += 1) {
       const data = channels[c];
+      const channelPeaks = peaks[c];
       const mid = RULER_HEIGHT + laneHeight * c + laneHeight / 2;
       const amp = (laneHeight / 2) * 0.92;
 
       ctx.fillStyle = midColor;
-      ctx.fillRect(0, Math.round(mid), width, 1);
+      ctx.fillRect(0, Math.round(mid), drawWidth, 1);
 
       ctx.fillStyle = waveColor;
-      for (let x = 0; x < width; x += 1) {
-        const startI = Math.floor(x * samplesPerPx);
-        const endI = Math.min(frames, Math.floor((x + 1) * samplesPerPx));
-        let min = 1;
-        let max = -1;
+      for (let px = 0; px < drawWidth; px += 1) {
+        const contentX = scrollX + px;
+        const startI = Math.floor(contentX * framesPerPx);
+        const endI = Math.min(frames, Math.floor((contentX + 1) * framesPerPx));
+        let min: number;
+        let max: number;
         if (endI <= startI) {
           const v = data[Math.min(startI, frames - 1)] ?? 0;
           min = v;
           max = v;
         } else {
-          for (let i = startI; i < endI; i += 1) {
-            const v = data[i];
-            if (v < min) min = v;
-            if (v > max) max = v;
-          }
+          const peak = peakRange(data, channelPeaks, startI, endI);
+          if (!peak) continue;
+          min = peak.min;
+          max = peak.max;
         }
         const yMax = mid - max * amp;
         const yMin = mid - min * amp;
-        ctx.fillRect(x, yMax, 1, Math.max(1, yMin - yMax));
+        ctx.fillRect(px, yMax, 1, Math.max(1, yMin - yMax));
       }
     }
   }, [
     sample,
-    width,
+    peaks,
     duration,
     pixelsPerSecond,
     waveColor,
@@ -228,6 +291,36 @@ const WaveformView = ({
     theme.fontSizeTiny,
     theme.fontFamily2
   ]);
+
+  const drawRef = useRef(draw);
+  drawRef.current = draw;
+
+  useEffect(() => {
+    draw();
+  }, [draw]);
+
+  // Repaint the visible slice on scroll and container resize, at most once per
+  // animation frame.
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    let raf: number | null = null;
+    const schedule = () => {
+      if (raf != null) return;
+      raf = requestAnimationFrame(() => {
+        raf = null;
+        drawRef.current();
+      });
+    };
+    container.addEventListener("scroll", schedule, { passive: true });
+    const observer = new ResizeObserver(schedule);
+    observer.observe(container);
+    return () => {
+      container.removeEventListener("scroll", schedule);
+      observer.disconnect();
+      if (raf != null) cancelAnimationFrame(raf);
+    };
+  }, []);
 
   const secondsFromEvent = useCallback(
     (clientX: number): number => {
@@ -289,8 +382,10 @@ const WaveformView = ({
     };
   }, [selection, pixelsPerSecond]);
 
+  const containerStyles = useMemo(() => styles(theme), [theme]);
+
   return (
-    <div ref={containerRef} css={styles(theme)} className="waveform-view">
+    <div ref={containerRef} css={containerStyles} className="waveform-view">
       <div
         ref={innerRef}
         className="waveform-inner"
@@ -301,13 +396,10 @@ const WaveformView = ({
       >
         <canvas ref={canvasRef} />
         {selectionStyle && <div className="selection" style={selectionStyle} />}
-        <div
-          className="playhead"
-          style={{ left: `${playheadSec * pixelsPerSecond}px` }}
-        />
+        <PlayheadLine playhead={playhead} pixelsPerSecond={pixelsPerSecond} />
       </div>
     </div>
   );
-};
+});
 
 export default WaveformView;

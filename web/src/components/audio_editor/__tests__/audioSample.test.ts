@@ -51,6 +51,14 @@ describe("audioSample frame helpers", () => {
   });
 });
 
+describe("makeAudioSample", () => {
+  it("hides channel data from enumeration (React dev-mode prop walks)", () => {
+    const result = cropToRange(makeSample([[0, 1, 2, 3]], 4), 0, 0.5);
+    expect(Object.keys(result)).toEqual(["sampleRate"]);
+    expect(Array.from(result.channels[0])).toEqual([0, 1]);
+  });
+});
+
 describe("cropToRange", () => {
   it("keeps only the selected range", () => {
     const sample = makeSample([[0, 1, 2, 3, 4, 5, 6, 7]], 8);
