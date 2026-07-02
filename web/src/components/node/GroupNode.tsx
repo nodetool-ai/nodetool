@@ -391,39 +391,46 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const [color, setColor] = useState<string | null>(
     (props.data.properties.group_color as string) || theme.vars.palette.c_bg_group || null
   );
+  const propsDataRef = useRef(props.data);
+  propsDataRef.current = props.data;
+
   const handleResize = useCallback(
     (event: ResizeDragEvent) => {
       const newWidth = event.x;
       const newHeight = event.y;
       updateNodeData(props.id, {
-        ...props.data,
+        ...propsDataRef.current,
         size: { width: newWidth, height: newHeight }
       });
     },
-    [props.id, props.data, updateNodeData]
+    [props.id, updateNodeData]
   );
 
   const handlePillDoubleClick = (_e: React.MouseEvent) => {
     headerInputRef.current?.focus();
     headerInputRef.current?.select();
   };
+
+  const debouncedHeadlineSave = useMemo(
+    () =>
+      debounce((newData: Record<string, unknown>) => {
+        const d = propsDataRef.current;
+        updateNodeData(props.id, {
+          ...d,
+          properties: { ...d.properties, ...newData }
+        });
+      }, 500),
+    [props.id, updateNodeData]
+  );
+  useEffect(() => () => debouncedHeadlineSave.cancel(), [debouncedHeadlineSave]);
+
   const handleHeadlineChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const newHeadline = event.target.value;
       setHeadline(newHeadline);
-      debounce((newData) => {
-        updateNodeData(props.id, {
-          ...props.data,
-          properties: {
-            ...props.data.properties,
-            ...newData
-          }
-        });
-      }, 500)({
-        headline: newHeadline
-      });
+      debouncedHeadlineSave({ headline: newHeadline });
     },
-    [props.data, props.id, updateNodeData]
+    [debouncedHeadlineSave]
   );
 
   const handleMenuToggle = useCallback(() => {
