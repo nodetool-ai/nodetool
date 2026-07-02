@@ -68,8 +68,12 @@
   "scripts": {
     "postinstall": "node -e \"try{require('fs').unlinkSync('node_modules/.electron-native-rebuild-stamp')}catch{}\"",
     "create:pack": "node scripts/create-pack.mjs",
+    "preflight": "node scripts/preflight.mjs",
+    "prebuild:packages": "node scripts/preflight.mjs",
     "build:packages": "turbo run build --filter=\"./packages/*\"",
+    "prebuild:packages:clean": "node scripts/preflight.mjs",
     "build:packages:clean": "turbo run build --filter=\"./packages/*\" --force",
+    "prebuild:packages:tsc": "node scripts/preflight.mjs",
     "build:packages:tsc": "tsc --build tsconfig.build.json && node scripts/copy-manifests.mjs",
     "build:web": "turbo run build --filter=web",
     "build": "turbo run build",
