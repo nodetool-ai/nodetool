@@ -69,6 +69,13 @@ import type {
   UnifiedModelLike,
   ModelDownloadRequest,
   ModelDownloadUpdate,
+  ComfyStatusInfo,
+  ComfyEvent,
+  ComfyExecuteOptions,
+  ComfyExecuteResult,
+  ComfyModelDownloadRequest,
+  ComfyModelDownloadUpdate,
+  ComfyModelInfo,
   PythonBridge
 } from "./python-bridge-types.js";
 
@@ -109,6 +116,13 @@ export abstract class PythonBridgeBase
   protected _workerStatus: PythonWorkerStatus | null = null;
   protected _pending = new Map<string, PendingRequest>();
   protected _pendingStream = new Map<string, PendingStreamRequest>();
+  /**
+   * `comfy.execute` event callbacks, keyed by request id. Separate from the
+   * pending maps because `comfy.event` frames are neither `progress` (wrong
+   * shape) nor terminal — they stream the ComfyUI lifecycle while the same
+   * request's terminal `result`/`error` settles via {@link _pendingStream}.
+   */
+  protected _pendingComfyEvents = new Map<string, (event: ComfyEvent) => void>();
   protected _options: PythonBridgeOptions;
   protected _connected = false;
   private _connectPromise: Promise<void> | null = null;
@@ -263,6 +277,14 @@ export abstract class PythonBridgeBase
         pending.onProgress({ request_id: requestId, ...data });
       }
       this.emit("progress", msg.data);
+    } else if (type === "comfy.event" && requestId) {
+      // Dedicated `comfy.execute` lifecycle frame. Distinct from `progress`
+      // because ComfyUI's events don't fit `{progress,total,message}`. Without
+      // this explicit case the frames would fall through and vanish silently.
+      const onEvent = this._pendingComfyEvents.get(requestId);
+      if (onEvent) {
+        onEvent(msg.data as ComfyEvent);
+      }
     }
   }
 
@@ -275,6 +297,7 @@ export abstract class PythonBridgeBase
       req.reject(error);
     }
     this._pendingStream.clear();
+    this._pendingComfyEvents.clear();
   }
 
   // ── Discover ───────────────────────────────────────────────────────
@@ -816,6 +839,28 @@ export abstract class PythonBridgeBase
     onProgress: (update: ModelDownloadUpdate) => void,
     requestId: string = randomUUID()
   ): Promise<void> {
+    return this._streamingDownload(
+      "models.download",
+      req as unknown as Record<string, unknown>,
+      (u) => onProgress(u as unknown as ModelDownloadUpdate),
+      requestId
+    );
+  }
+
+  /**
+   * Shared engine for the streaming-download RPCs (`models.download`,
+   * `comfy.models.download`): a request that emits ordered `progress` frames
+   * then a terminal `result`/`error`. Registers in BOTH pending maps and settles
+   * defensively — an inactivity watchdog (reset on every progress frame) and
+   * {@link cancel} both clear both maps so nothing leaks even if no terminal
+   * frame ever arrives. See {@link downloadModel} for the full rationale.
+   */
+  protected _streamingDownload(
+    type: string,
+    data: Record<string, unknown>,
+    onProgress: (update: Record<string, unknown>) => void,
+    requestId: string
+  ): Promise<void> {
     const idleTimeoutMs =
       this._options.downloadIdleTimeoutMs ?? DEFAULT_DOWNLOAD_IDLE_TIMEOUT_MS;
     return new Promise<void>((resolve, reject) => {
@@ -845,7 +890,7 @@ export abstract class PythonBridgeBase
           settle(() =>
             reject(
               new Error(
-                `Model download "${requestId}" stalled: no progress for ${idleTimeoutMs}ms.` +
+                `Download "${requestId}" stalled: no progress for ${idleTimeoutMs}ms.` +
                   (stderrHint ? ` Recent stderr: ${stderrHint}` : "")
               )
             )
@@ -857,7 +902,7 @@ export abstract class PythonBridgeBase
         reject: () => undefined,
         onProgress: (event) => {
           armIdleTimer();
-          onProgress(event as unknown as ModelDownloadUpdate);
+          onProgress(event as unknown as Record<string, unknown>);
         }
       });
       this._pendingStream.set(requestId, {
@@ -867,7 +912,7 @@ export abstract class PythonBridgeBase
       });
       armIdleTimer();
       try {
-        this._send({ type: "models.download", request_id: requestId, data: req });
+        this._send({ type, request_id: requestId, data });
       } catch (err) {
         settle(() => reject(err instanceof Error ? err : new Error(String(err))));
       }
@@ -907,6 +952,154 @@ export abstract class PythonBridgeBase
    */
   supportsModelManagement(): boolean {
     return (this._workerStatus?.protocol_version ?? 0) >= 2;
+  }
+
+  // ── ComfyUI proxy (bridge protocol v3+) ────────────────────────────────
+
+  /**
+   * Whether the attached worker fronts a ComfyUI server and speaks `comfy.*`.
+   * Requires protocol v3+ (the `comfy.*` family) AND a `worker.status.comfy`
+   * block reporting `enabled: true` — not every v3 worker has a ComfyUI, so
+   * route ComfyUI jobs only where this is true. Per-capability soft gate, like
+   * {@link supportsModelManagement}.
+   */
+  supportsComfy(): boolean {
+    const status = this._workerStatus;
+    return (
+      (status?.protocol_version ?? 0) >= 3 && status?.comfy?.enabled === true
+    );
+  }
+
+  /** The last-known `comfy` block from `worker.status`, or null. */
+  getComfyStatus(): ComfyStatusInfo | null {
+    return this._workerStatus?.comfy ?? null;
+  }
+
+  /**
+   * Submit a ComfyUI workflow and drain its `comfy.event` lifecycle.
+   *
+   * `comfy.execute` streams `queued → queue → started/cached → executing →
+   * progress → node_output → preview → completed/cancelled` as dedicated
+   * `comfy.event` frames (routed to {@link onEvent}), then settles with a
+   * terminal `result` (resolve) or `error` (reject) — `result` is always last.
+   * The event callback is registered in {@link _pendingComfyEvents} and the
+   * terminal frame in {@link _pendingStream}; both are cleared on settle.
+   *
+   * Cancellable via the standard {@link cancel}(requestId): pass a stable
+   * `requestId` (or reuse the returned default) to reach this exact run.
+   */
+  comfyExecute(
+    prompt: Record<string, unknown>,
+    options: ComfyExecuteOptions = {},
+    onEvent?: (event: ComfyEvent) => void,
+    requestId: string = randomUUID()
+  ): Promise<ComfyExecuteResult> {
+    const data: Record<string, unknown> = { prompt };
+    if (options.blobs) data.blobs = options.blobs;
+    if (options.previews) data.previews = true;
+    if (typeof options.timeout === "number") data.timeout = options.timeout;
+
+    return new Promise<ComfyExecuteResult>((resolve, reject) => {
+      let settled = false;
+      const settle = (fn: () => void) => {
+        if (settled) return;
+        settled = true;
+        this._pendingStream.delete(requestId);
+        this._pendingComfyEvents.delete(requestId);
+        fn();
+      };
+      if (onEvent) this._pendingComfyEvents.set(requestId, onEvent);
+      this._pendingStream.set(requestId, {
+        resolve: (result) =>
+          settle(() => resolve(result as ComfyExecuteResult)),
+        reject: (err) => settle(() => reject(err)),
+        onChunk: () => {}
+      });
+      try {
+        this._send({ type: "comfy.execute", request_id: requestId, data });
+      } catch (err) {
+        settle(() =>
+          reject(err instanceof Error ? err : new Error(String(err)))
+        );
+      }
+    });
+  }
+
+  async comfyQueue(): Promise<Record<string, unknown>> {
+    return this._providerCall("comfy.queue", {});
+  }
+
+  async comfyInterrupt(): Promise<void> {
+    await this._providerCall("comfy.interrupt", {});
+  }
+
+  async comfyCancelPrompt(promptId: string): Promise<void> {
+    await this._providerCall("comfy.cancel", { prompt_id: promptId });
+  }
+
+  async comfyUpload(
+    filename: string,
+    bytes: Uint8Array,
+    options: Record<string, unknown> = {}
+  ): Promise<Record<string, unknown>> {
+    return this._providerCall("comfy.upload", {
+      filename,
+      blob: bytes,
+      ...options
+    });
+  }
+
+  async comfyView(
+    filename: string,
+    options: Record<string, unknown> = {}
+  ): Promise<Record<string, unknown>> {
+    return this._providerCall("comfy.view", { filename, ...options });
+  }
+
+  async comfyObjectInfo(): Promise<Record<string, unknown>> {
+    return this._providerCall("comfy.object_info", {});
+  }
+
+  async comfySystemStats(): Promise<Record<string, unknown>> {
+    return this._providerCall("comfy.system_stats", {});
+  }
+
+  async comfyStatus(): Promise<ComfyStatusInfo> {
+    const result = await this._providerCall("comfy.status", {});
+    return result as unknown as ComfyStatusInfo;
+  }
+
+  async comfyFree(options: Record<string, unknown> = {}): Promise<void> {
+    await this._providerCall("comfy.free", options);
+  }
+
+  async comfyModelsList(folder?: string): Promise<ComfyModelInfo[]> {
+    const result = await this._providerCall(
+      "comfy.models.list",
+      folder ? { folder } : {}
+    );
+    return (result as { models?: ComfyModelInfo[] }).models ?? [];
+  }
+
+  async comfyModelsDownload(
+    req: ComfyModelDownloadRequest,
+    onProgress: (update: ComfyModelDownloadUpdate) => void,
+    requestId: string = randomUUID()
+  ): Promise<void> {
+    return this._streamingDownload(
+      "comfy.models.download",
+      req as unknown as Record<string, unknown>,
+      (u) => onProgress(u as ComfyModelDownloadUpdate),
+      requestId
+    );
+  }
+
+  async comfyModelsDelete(folder: string, filename: string): Promise<boolean> {
+    const result = await this._providerCall("comfy.models.delete", {
+      folder,
+      filename
+    });
+    return Boolean((result as { deleted?: boolean }).deleted);
   }
 
   protected async _providerCall(

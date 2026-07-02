@@ -57,6 +57,19 @@ export interface FakeWorkerOptions {
    *    worker)
    */
   downloadMode?: "progress" | "error" | "hang";
+  /**
+   * The `comfy` block echoed in the worker.status response. Defaults to an
+   * enabled block so comfy tests route correctly; pass `null` to omit it
+   * entirely (simulating a worker with no ComfyUI).
+   */
+  comfy?: { enabled: boolean; url?: string } | null;
+  /**
+   * comfy.execute behavior:
+   *  - "events": stream the full lifecycle then a terminal result (default)
+   *  - "error": emit a couple events then a terminal error frame
+   *  - "hang": emit `queued` then go silent (for cancel tests)
+   */
+  comfyExecuteMode?: "events" | "error" | "hang";
 }
 
 export interface FakeWorkerHandle {
@@ -123,7 +136,12 @@ export function startFakeWorker(
     answerExecute: initialOptions.answerExecute ?? true,
     streamMode: initialOptions.streamMode ?? "chunks",
     protocolVersion: initialOptions.protocolVersion ?? BRIDGE_PROTOCOL_VERSION,
-    downloadMode: initialOptions.downloadMode ?? "progress"
+    downloadMode: initialOptions.downloadMode ?? "progress",
+    comfy:
+      initialOptions.comfy === undefined
+        ? { enabled: true, url: "http://127.0.0.1:8188" }
+        : initialOptions.comfy,
+    comfyExecuteMode: initialOptions.comfyExecuteMode ?? "events"
   };
 
   wss.on("connection", (ws, request) => {
@@ -171,7 +189,8 @@ export function startFakeWorker(
               provider_count: 1,
               namespaces: ["fake"],
               load_errors: [],
-              max_frame_size: 256 * 1024 * 1024
+              max_frame_size: 256 * 1024 * 1024,
+              ...(opts.comfy ? { comfy: opts.comfy } : {})
             }
           });
           break;
@@ -330,6 +349,81 @@ export function startFakeWorker(
           });
           break;
         }
+        case "comfy.execute": {
+          const emitEvent = (data: Record<string, unknown>) =>
+            send({ type: "comfy.event", request_id: requestId, data });
+          emitEvent({ event: "queued", prompt_id: "p1" });
+          if (opts.comfyExecuteMode === "hang") break;
+          emitEvent({ event: "started", prompt_id: "p1" });
+          emitEvent({ event: "executing", prompt_id: "p1", node: "3" });
+          emitEvent({ event: "progress", prompt_id: "p1", node: "3", value: 1, max: 2 });
+          emitEvent({
+            event: "node_output",
+            prompt_id: "p1",
+            node: "9",
+            output: { images: [{ filename: "out.png" }] }
+          });
+          if (opts.comfyExecuteMode === "error") {
+            send({
+              type: "error",
+              request_id: requestId,
+              data: { error: "comfy boom", traceback: "Traceback ..." }
+            });
+            break;
+          }
+          emitEvent({ event: "completed", prompt_id: "p1" });
+          send({
+            type: "result",
+            request_id: requestId,
+            data: {
+              prompt_id: "p1",
+              outputs: { "9": { images: ["out.png"] } },
+              blobs: {}
+            }
+          });
+          break;
+        }
+        case "comfy.queue":
+          send({
+            type: "result",
+            request_id: requestId,
+            data: { queue_running: [], queue_pending: [] }
+          });
+          break;
+        case "comfy.interrupt":
+        case "comfy.cancel":
+        case "comfy.free":
+          send({ type: "result", request_id: requestId, data: { ok: true } });
+          break;
+        case "comfy.status":
+          send({
+            type: "result",
+            request_id: requestId,
+            data: {
+              enabled: opts.comfy?.enabled ?? false,
+              url: opts.comfy?.url,
+              reachable: true
+            }
+          });
+          break;
+        case "comfy.models.list":
+          send({
+            type: "result",
+            request_id: requestId,
+            data: {
+              models: [
+                { folder: "checkpoints", filename: "sd_xl_base.safetensors", size: 42 }
+              ]
+            }
+          });
+          break;
+        case "comfy.models.delete":
+          send({
+            type: "result",
+            request_id: requestId,
+            data: { deleted: true }
+          });
+          break;
         case "cancel":
           // no-op
           break;

@@ -22,7 +22,14 @@ import type {
   PythonProviderInfo,
   UnifiedModelLike,
   ModelDownloadRequest,
-  ModelDownloadUpdate
+  ModelDownloadUpdate,
+  ComfyStatusInfo,
+  ComfyEvent,
+  ComfyExecuteOptions,
+  ComfyExecuteResult,
+  ComfyModelDownloadRequest,
+  ComfyModelDownloadUpdate,
+  ComfyModelInfo
 } from "./python-bridge-types.js";
 import type { ASRResult } from "./providers/types.js";
 
@@ -235,6 +242,82 @@ export class SwappableBridge extends EventEmitter implements PythonBridge {
 
   supportsModelManagement(): boolean {
     return this._target.supportsModelManagement();
+  }
+
+  supportsComfy(): boolean {
+    return this._target.supportsComfy();
+  }
+
+  getComfyStatus(): ComfyStatusInfo | null {
+    return this._target.getComfyStatus();
+  }
+
+  comfyExecute(
+    prompt: Record<string, unknown>,
+    options?: ComfyExecuteOptions,
+    onEvent?: (event: ComfyEvent) => void,
+    requestId?: string
+  ): Promise<ComfyExecuteResult> {
+    return this._target.comfyExecute(prompt, options, onEvent, requestId);
+  }
+
+  comfyQueue(): Promise<Record<string, unknown>> {
+    return this._target.comfyQueue();
+  }
+
+  comfyInterrupt(): Promise<void> {
+    return this._target.comfyInterrupt();
+  }
+
+  comfyCancelPrompt(promptId: string): Promise<void> {
+    return this._target.comfyCancelPrompt(promptId);
+  }
+
+  comfyUpload(
+    filename: string,
+    bytes: Uint8Array,
+    options?: Record<string, unknown>
+  ): Promise<Record<string, unknown>> {
+    return this._target.comfyUpload(filename, bytes, options);
+  }
+
+  comfyView(
+    filename: string,
+    options?: Record<string, unknown>
+  ): Promise<Record<string, unknown>> {
+    return this._target.comfyView(filename, options);
+  }
+
+  comfyObjectInfo(): Promise<Record<string, unknown>> {
+    return this._target.comfyObjectInfo();
+  }
+
+  comfySystemStats(): Promise<Record<string, unknown>> {
+    return this._target.comfySystemStats();
+  }
+
+  comfyStatus(): Promise<ComfyStatusInfo> {
+    return this._target.comfyStatus();
+  }
+
+  comfyFree(options?: Record<string, unknown>): Promise<void> {
+    return this._target.comfyFree(options);
+  }
+
+  comfyModelsList(folder?: string): Promise<ComfyModelInfo[]> {
+    return this._target.comfyModelsList(folder);
+  }
+
+  comfyModelsDownload(
+    req: ComfyModelDownloadRequest,
+    onProgress: (update: ComfyModelDownloadUpdate) => void,
+    requestId?: string
+  ): Promise<void> {
+    return this._target.comfyModelsDownload(req, onProgress, requestId);
+  }
+
+  comfyModelsDelete(folder: string, filename: string): Promise<boolean> {
+    return this._target.comfyModelsDelete(folder, filename);
   }
 
   getRecentStderrSummary(limit?: number): string | null {
