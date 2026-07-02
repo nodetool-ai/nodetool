@@ -8,6 +8,14 @@ set -euo pipefail
 # and runs it with zero-downtime rolling deploys. Cloudflare terminates public
 # TLS — origin runs plain HTTP by default.
 #
+# What actually gets deployed:
+#   The deploy unit is the GHCR image. All backend code is baked into it, so a
+#   backend change needs a new image (rebuilt by .github/workflows/docker.yml).
+#   Only web/dist is mounted from the host (read-only), so a frontend change
+#   needs `npm run build:web` here — no new image. A host `npm run build:packages`
+#   does not touch the running container; it rebuilds local packages the image
+#   never reads.
+#
 # TLS modes:
 #   (default)       Bring cert.pem + key.pem — Cloudflare "Full (Strict)"
 #   --self-signed   Auto-generated cert — Cloudflare "Full" SSL
