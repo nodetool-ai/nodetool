@@ -19,6 +19,7 @@ const COLUMNS: Col[] = [
     links: [
       { name: "Studio", href: "/studio" },
       { name: "Cloud", href: "/cloud" },
+      { name: "Templates", href: "/templates" },
       { name: "Pricing", href: "/pricing" },
     ],
   },
