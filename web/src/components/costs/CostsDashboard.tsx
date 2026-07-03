@@ -24,6 +24,7 @@ import {
   Checkbox,
   Popover,
   LoadingSpinner,
+  MOTION,
   BORDER_RADIUS,
   SPACING,
   getSpacingPx
