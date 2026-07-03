@@ -15,6 +15,7 @@
 import React, {
   memo,
   useCallback,
+  useEffect,
   useMemo,
   useRef,
   useState
@@ -35,17 +36,19 @@ import {
 import MediaControlChip from "../../chat/composer/MediaControlChip";
 import MediaAspectRatioMenu from "../../chat/composer/MediaAspectRatioMenu";
 import MediaOptionMenu from "../../chat/composer/MediaOptionMenu";
+import { buildImageModelOptions } from "../../chat/composer/imageModelOptions";
+import { clampToAllowed } from "../../chat/composer/videoModelOptions";
 import ImageModelMenuDialog from "../../model_menu/ImageModelMenuDialog";
 import type { ImageModel } from "../../../stores/ApiTypes";
 import {
   IMAGE_ASPECT_RATIOS,
-  IMAGE_RESOLUTIONS,
   resolveImageSize,
   type ImageResolution
 } from "../../../stores/MediaGenerationStore";
 import { useSketchStore } from "../state/useSketchStore";
 import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
 import { useDirectGenJob } from "../../../hooks/sketch/useDirectGenJob";
+import { useMediaOptions } from "../../../hooks/useModelsByProvider";
 import { SKETCH_SPACING } from "../sketchStyles";
 
 /** Nearest aspect-ratio + resolution preset for an existing canvas size, so the
@@ -104,7 +107,6 @@ const ConnectedModePromptBarInner: React.FC<ConnectedModePromptBarProps> = ({
   const panelsHidden = useSketchStore((s) => s.panelsHidden);
   const docW = useSketchStore((s) => s.document.canvas.width);
   const docH = useSketchStore((s) => s.document.canvas.height);
-  const resizeCanvas = useSketchStore((s) => s.resizeCanvas);
 
   const documentId = useSketchSessionStore((s) => s.documentId);
 
@@ -117,13 +119,22 @@ const ConnectedModePromptBarInner: React.FC<ConnectedModePromptBarProps> = ({
   // The remembered seed carries only ids, so the chip shows the id until a
   // model is picked through the dialog (which provides a display name).
   const [modelName, setModelName] = useState(seed.model);
+  // Per-model option constraints from the freshly-picked model. Empty until a
+  // model is chosen through the dialog; before that the seeded model's
+  // constraints come from useMediaOptions below.
+  const [modelConstraints, setModelConstraints] = useState<{
+    aspectRatios?: string[];
+    resolutions?: string[];
+  }>({});
   const imageModelAnchorRef = useRef<HTMLButtonElement>(null);
   const [imageModelOpen, setImageModelOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Output size — aspect ratio + resolution, mirroring the media composer.
-  // Changing either resizes the artboard so the generated layer matches.
+  // Generated-image size — aspect ratio + resolution, mirroring the media
+  // composer. These shape the generation output only; the artboard size is
+  // controlled separately in the canvas panel. Seeded from the current canvas
+  // so the first generation defaults to the artboard's shape.
   const [sizeSeed] = useState(() => deriveSizePreset(docW, docH));
   const [aspectRatio, setAspectRatio] = useState(sizeSeed.aspectRatio);
   const [resolution, setResolution] = useState<ImageResolution>(
@@ -134,33 +145,64 @@ const ConnectedModePromptBarInner: React.FC<ConnectedModePromptBarProps> = ({
     null
   );
 
-  const resolutionOptions = useMemo(
-    () => IMAGE_RESOLUTIONS.map((r) => ({ id: r, label: r })),
-    []
+  // Constraints for the seeded/remembered model, so the menus are limited even
+  // before the picker dialog is reopened. A freshly-picked model's constraints
+  // (set in handlePickImageModel) take precedence over the fetched ones.
+  const mediaOptions = useMediaOptions({ provider, model, task: "image" });
+  const effectiveConstraints = useMemo(() => {
+    const picked =
+      modelConstraints.aspectRatios !== undefined ||
+      modelConstraints.resolutions !== undefined;
+    return picked
+      ? modelConstraints
+      : {
+          aspectRatios: mediaOptions.data?.aspectRatios,
+          resolutions: mediaOptions.data?.resolutions
+        };
+  }, [modelConstraints, mediaOptions.data]);
+
+  const { aspectOptions, resolutionOptions } = useMemo(
+    () => buildImageModelOptions(effectiveConstraints),
+    [effectiveConstraints]
+  );
+  const aspectIds = useMemo(
+    () => aspectOptions.map((a) => a.id),
+    [aspectOptions]
+  );
+  const resolutionIds = useMemo(
+    () => resolutionOptions.map((r) => r.id),
+    [resolutionOptions]
   );
 
-  const handleResolutionChange = useCallback(
-    (r: ImageResolution) => {
-      setResolution(r);
-      const { width, height } = resolveImageSize(r, aspectRatio);
-      resizeCanvas(width, height);
-    },
-    [aspectRatio, resizeCanvas]
-  );
+  // Snap the current aspect / resolution into the selected model's allowed sets
+  // when the model (and thus the option lists) changes. clampToAllowed returns
+  // the value unchanged when it already qualifies, so this no-ops on manual
+  // changes and never loops. Only the generation size is affected — never the
+  // canvas.
+  useEffect(() => {
+    const nextAspect = clampToAllowed(aspectRatio, aspectIds);
+    const nextResolution = clampToAllowed(resolution, resolutionIds);
+    if (nextAspect !== aspectRatio) setAspectRatio(nextAspect);
+    if (nextResolution !== resolution) setResolution(nextResolution);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the allowed-id lists so it runs once per model change; guarded to no-op when values already qualify
+  }, [aspectIds, resolutionIds]);
 
-  const handleAspectChange = useCallback(
-    (a: string) => {
-      setAspectRatio(a);
-      const { width, height } = resolveImageSize(resolution, a);
-      resizeCanvas(width, height);
-    },
-    [resolution, resizeCanvas]
-  );
+  const handleResolutionChange = useCallback((r: ImageResolution) => {
+    setResolution(r);
+  }, []);
+
+  const handleAspectChange = useCallback((a: string) => {
+    setAspectRatio(a);
+  }, []);
 
   const handlePickImageModel = useCallback((m: ImageModel) => {
     setModel(m.id);
     setProvider(m.provider);
     setModelName(m.name || m.id);
+    setModelConstraints({
+      aspectRatios: m.aspect_ratios ?? undefined,
+      resolutions: m.resolutions ?? undefined
+    });
     setImageModelOpen(false);
   }, []);
 
@@ -179,6 +221,8 @@ const ConnectedModePromptBarInner: React.FC<ConnectedModePromptBarProps> = ({
         model,
         width,
         height,
+        aspectRatio,
+        resolution,
         sourceLayerId: null,
         status: "draft",
         versions: []
@@ -306,7 +350,7 @@ const ConnectedModePromptBarInner: React.FC<ConnectedModePromptBarProps> = ({
           open={!!aspectAnchor}
           onClose={() => setAspectAnchor(null)}
           value={aspectRatio}
-          options={IMAGE_ASPECT_RATIOS}
+          options={aspectOptions}
           onChange={handleAspectChange}
         />
 

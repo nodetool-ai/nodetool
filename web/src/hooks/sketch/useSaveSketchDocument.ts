@@ -1,9 +1,6 @@
 import { useCallback, useState } from "react";
 
-import {
-  saveSketchDocument,
-  useSketchSessionStore
-} from "../../stores/sketch/SketchSessionStore";
+import { saveSketchDocument } from "../../stores/sketch/SketchSessionStore";
 import { useSketchInstance } from "../../stores/sketch/SketchInstance";
 import { trpc } from "../../trpc/client";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -11,7 +8,6 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 export function useSaveSketchDocument(): { save: () => Promise<void>; saving: boolean } {
   const utils = trpc.useUtils();
   const instance = useSketchInstance();
-  const saveState = useSketchSessionStore((state) => state.saveState);
   const [saving, setSaving] = useState(false);
 
   const save = useCallback(async () => {
@@ -36,5 +32,7 @@ export function useSaveSketchDocument(): { save: () => Promise<void>; saving: bo
     }
   }, [utils, instance]);
 
-  return { save, saving: saving || saveState === "saving" };
+  // Only the manual save (button / Cmd+S) flips the button — background
+  // autosave (session `saveState`) must not disable it or swap its label.
+  return { save, saving };
 }

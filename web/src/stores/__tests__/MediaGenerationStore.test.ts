@@ -52,6 +52,18 @@ describe("resolveImageSize", () => {
     expect(size).toEqual({ width: 1024, height: 1024 });
   });
 
+  it("parses an arbitrary W:H ratio outside the preset list", () => {
+    // A model may report a ratio the static IMAGE_ASPECT_RATIOS list lacks;
+    // the canvas must still match instead of collapsing to a square.
+    const landscape = resolveImageSize("1K", "12:5");
+    expect(landscape.height).toBe(1024);
+    expect(landscape.width).toBe(Math.round((1024 * 12) / 5));
+
+    const portrait = resolveImageSize("1K", "5:12");
+    expect(portrait.width).toBe(1024);
+    expect(portrait.height).toBe(Math.round((1024 * 12) / 5));
+  });
+
   it("handles all standard aspect ratios without error", () => {
     for (const ar of IMAGE_ASPECT_RATIOS) {
       const size = resolveImageSize("1K", ar.id);

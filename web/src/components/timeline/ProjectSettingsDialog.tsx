@@ -157,20 +157,24 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
       confirmDisabled={!allValid || !dirty || isSaving}
       minWidth="min(440px, 100vw - 32px)"
     >
-      <FlexColumn gap={2.5} sx={{ py: 1 }}>
+      <FlexColumn gap={4} sx={{ py: 1 }}>
         {/* ── Canvas size ─────────────────────────────────────────── */}
         <FlexColumn gap={1.5}>
-          <Text size="small" sx={{ fontWeight: 600 }}>
+          <Text size="small" sx={{ fontWeight: 600, mb: 1.5 }}>
             Canvas size
           </Text>
+          {/* Label hidden — the section header names it; an outlined variant
+              keeps it consistent with the Width/Height fields below. */}
           <SelectField
-            label="Preset"
+            label="Canvas preset"
+            hideLabel
+            variant="outlined"
             value={resolutionPreset}
             onChange={handleResolutionPreset}
             options={RESOLUTION_OPTIONS}
             size="small"
           />
-          <FlexRow gap={1.5} align="flex-start">
+          <FlexRow gap={1.5} align="flex-start" sx={{ mt: 2 }}>
             <TextInput
               label="Width"
               type="number"
@@ -183,6 +187,7 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
                   : undefined
               }
               inputProps={{ min: MIN_DIM, max: MAX_DIM, step: 2 }}
+              sx={{ flex: 1 }}
             />
             <TextInput
               label="Height"
@@ -196,23 +201,28 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
                   : undefined
               }
               inputProps={{ min: MIN_DIM, max: MAX_DIM, step: 2 }}
+              sx={{ flex: 1 }}
             />
           </FlexRow>
         </FlexColumn>
 
         {/* ── Frame rate ──────────────────────────────────────────── */}
         <FlexColumn gap={1.5}>
-          <Text size="small" sx={{ fontWeight: 600 }}>
+          <Text size="small" sx={{ fontWeight: 600, mb: 1.5 }}>
             Frame rate
           </Text>
           <FlexRow gap={1.5} align="flex-start">
-            <SelectField
-              label="Rate"
-              value={fpsPreset}
-              onChange={handleFpsPreset}
-              options={FPS_OPTIONS}
-              size="small"
-            />
+            <FlexColumn sx={{ flex: 1 }}>
+              <SelectField
+                label="Frame rate preset"
+                hideLabel
+                variant="outlined"
+                value={fpsPreset}
+                onChange={handleFpsPreset}
+                options={FPS_OPTIONS}
+                size="small"
+              />
+            </FlexColumn>
             <TextInput
               label="fps"
               type="number"
@@ -225,6 +235,7 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
                   : undefined
               }
               inputProps={{ min: MIN_FPS, max: MAX_FPS, step: 1 }}
+              sx={{ width: 120 }}
             />
           </FlexRow>
         </FlexColumn>

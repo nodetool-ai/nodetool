@@ -405,6 +405,8 @@ export interface ImageModelValue {
   provider: Provider;
   name: string;
   path: string;
+  aspectRatios?: string[];
+  resolutions?: string[];
 }
 
 export interface TTSModelValue {

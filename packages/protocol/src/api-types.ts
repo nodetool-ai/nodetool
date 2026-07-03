@@ -1014,6 +1014,9 @@ export interface ImageModel {
   provider: Provider;
   path?: string | null;
   supported_tasks?: string[];
+  /** Per-model option constraints derived from the provider manifest. */
+  resolutions?: string[] | null;
+  aspect_ratios?: string[] | null;
 }
 
 export interface TTSModel {

@@ -66,6 +66,12 @@ const AspectRatioPicker: React.FC<AspectRatioBaseProps> = ({
   );
 };
 
+// Full static image aspect ratios: this generic per-property input receives
+// only PropertyProps (this field's own value), not the node's selected image
+// model, so it can't constrain the list per-model. Given the model object,
+// derive the options with buildImageModelOptions() and snap the current value
+// with clampToAllowed() from ../chat/composer/imageModelOptions (mirroring the
+// video controls' videoModelOptions usage).
 export const MediaAspectRatioImageProperty = memo<PropertyProps>(
   (props) => (
     <AspectRatioPicker
@@ -142,6 +148,11 @@ function OptionPicker<T extends string | number>({
   );
 }
 
+// Full static image resolutions: like the image aspect-ratio control above,
+// this per-property input has no access to the selected image model object, so
+// it can't constrain the list per-model. Given the model, source the options
+// from buildImageModelOptions() and snap the value with clampToAllowed()
+// (../chat/composer/imageModelOptions).
 export const MediaResolutionImageProperty = memo<PropertyProps>((props) => {
   const options = useMemo<MediaOption<string>[]>(
     () =>

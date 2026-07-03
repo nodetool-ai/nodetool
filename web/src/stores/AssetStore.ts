@@ -130,6 +130,7 @@ export type AssetUpdate = {
   content_type?: string;
   metadata?: Record<string, unknown>;
   sketch_document_id?: string | null;
+  timeline_id?: string | null;
   data?: string;
   data_encoding?: "base64";
 };
@@ -572,6 +573,9 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       ...(req.metadata !== undefined ? { metadata: req.metadata } : {}),
       ...(req.sketch_document_id !== undefined
         ? { sketch_document_id: req.sketch_document_id }
+        : {}),
+      ...(req.timeline_id !== undefined
+        ? { timeline_id: req.timeline_id }
         : {}),
       ...(req.data !== undefined ? { data: req.data } : {}),
       ...(req.data_encoding !== undefined

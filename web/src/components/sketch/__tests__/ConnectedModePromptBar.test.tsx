@@ -26,6 +26,14 @@ jest.mock("../../../hooks/sketch/useDirectGenJob", () => ({
   useDirectGenJob: () => ({ start: mockStart, cancel: jest.fn() })
 }));
 
+// useMediaOptions fetches per-model constraints via TanStack Query; these tests
+// don't render a QueryClientProvider, so stub it (the bar falls back to the full
+// static option lists, which is what these assertions expect).
+jest.mock("../../../hooks/useModelsByProvider", () => ({
+  __esModule: true,
+  useMediaOptions: () => ({ data: undefined })
+}));
+
 function renderBar() {
   const theme = createTheme({ cssVariables: true });
   return render(

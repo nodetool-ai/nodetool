@@ -313,6 +313,8 @@ export function useDirectGenJob(): UseDirectGenJobApi {
           mask_asset_id: maskAssetId,
           width: binding.width,
           height: binding.height,
+          aspect_ratio: binding.aspectRatio,
+          resolution: binding.resolution,
           strength: binding.strength,
           num_inference_steps: binding.numInferenceSteps,
           variations: 1

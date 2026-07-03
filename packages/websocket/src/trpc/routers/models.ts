@@ -1386,6 +1386,59 @@ export const modelsRouter = router({
     ),
 
   /**
+   * Aspect ratios / resolutions / (video) durations a given model supports.
+   * Empty arrays are intentional — the client falls back to the full static
+   * lists when a model declares no constraints.
+   */
+  mediaOptions: protectedProcedure
+    .input(
+      z.object({
+        provider: z.string().min(1),
+        model: z.string().min(1),
+        task: z.enum(["image", "video"])
+      })
+    )
+    .output(
+      z.object({
+        aspectRatios: z.array(z.string()),
+        resolutions: z.array(z.string()),
+        durations: z.array(z.number()).nullish()
+      })
+    )
+    .query(async ({ ctx, input }) =>
+      safeProviderCall(
+        "mediaOptions",
+        { provider: input.provider, task: input.task, userId: ctx.userId },
+        async () => {
+          const instance = await instantiateProvider(
+            input.provider as ProviderId,
+            ctx.userId
+          );
+          if (!instance) {
+            return { aspectRatios: [], resolutions: [], durations: null };
+          }
+          if (input.task === "image") {
+            const models = await instance.getAvailableImageModels();
+            const m = models.find((x) => x.id === input.model);
+            return {
+              aspectRatios: m?.aspectRatios ?? [],
+              resolutions: m?.resolutions ?? [],
+              durations: null
+            };
+          }
+          const models = await instance.getAvailableVideoModels();
+          const m = models.find((x) => x.id === input.model);
+          return {
+            aspectRatios: m?.aspectRatios ?? [],
+            resolutions: m?.resolutions ?? [],
+            durations: m?.durations ?? null
+          };
+        },
+        { aspectRatios: [], resolutions: [], durations: null }
+      )
+    ),
+
+  /**
    * Image models by provider.
    */
   imageByProvider: protectedProcedure

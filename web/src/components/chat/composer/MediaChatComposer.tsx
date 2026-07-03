@@ -33,8 +33,6 @@ import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import { FlexRow, Text } from "../../ui_primitives";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import useMediaGenerationStore, {
-  IMAGE_ASPECT_RATIOS,
-  IMAGE_RESOLUTIONS,
   IMAGE_VARIATIONS,
   AUDIO_FORMATS,
   AUDIO_SPEEDS,
@@ -45,7 +43,6 @@ import useMediaGenerationStore, {
 } from "../../../stores/MediaGenerationStore";
 import type {
   MediaMode,
-  ImageResolution,
   AudioFormat
 } from "../../../stores/MediaGenerationStore";
 import MediaControlChip from "./MediaControlChip";
@@ -59,6 +56,10 @@ import {
   clampToAllowed,
   videoModelConstraints
 } from "./videoModelOptions";
+import {
+  buildImageModelOptions,
+  imageModelConstraints
+} from "./imageModelOptions";
 import ImageModelMenuDialog from "../../model_menu/ImageModelMenuDialog";
 import VideoModelMenuDialog from "../../model_menu/VideoModelMenuDialog";
 import LanguageModelMenuDialog from "../../model_menu/LanguageModelMenuDialog";
@@ -547,14 +548,24 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   // Model dialog selection callbacks
   const handlePickImageModel = useCallback(
     (model: ImageModel) => {
+      const constraints = imageModelConstraints(model);
       setImageParams({
         model: {
           type: "image_model",
           id: model.id,
           provider: model.provider,
           name: model.name || "",
-          path: model.path || ""
-        }
+          path: model.path || "",
+          ...constraints
+        },
+        resolution: clampToAllowed(
+          imageParams.resolution,
+          constraints.resolutions
+        ),
+        aspectRatio: clampToAllowed(
+          imageParams.aspectRatio,
+          constraints.aspectRatios
+        )
       });
       addRecentModel({
         provider: model.provider || "",
@@ -563,7 +574,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       });
       setImageModelOpen(false);
     },
-    [setImageParams, addRecentModel]
+    [setImageParams, addRecentModel, imageParams.resolution, imageParams.aspectRatio]
   );
 
   const handlePickVideoModel = useCallback(
@@ -599,14 +610,24 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
 
   const handlePickImageEditModel = useCallback(
     (model: ImageModel) => {
+      const constraints = imageModelConstraints(model);
       setImageEditParams({
         model: {
           type: "image_model",
           id: model.id,
           provider: model.provider,
           name: model.name || "",
-          path: model.path || ""
-        }
+          path: model.path || "",
+          ...constraints
+        },
+        resolution: clampToAllowed(
+          imageEditParams.resolution,
+          constraints.resolutions
+        ),
+        aspectRatio: clampToAllowed(
+          imageEditParams.aspectRatio,
+          constraints.aspectRatios
+        )
       });
       addRecentModel({
         provider: model.provider || "",
@@ -615,7 +636,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       });
       setImageModelOpen(false);
     },
-    [setImageEditParams, addRecentModel]
+    [setImageEditParams, addRecentModel, imageEditParams.resolution, imageEditParams.aspectRatio]
   );
 
   const handlePickImageToVideoModel = useCallback(
@@ -694,14 +715,24 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     aspectOptions: videoAspectOptions
   } = useMemo(() => buildVideoModelOptions(activeVideoModel), [activeVideoModel]);
 
-  const imageResolutionOptions = useMemo<MediaOption<ImageResolution>[]>(
-    () =>
-      IMAGE_RESOLUTIONS.map((r) => ({
-        id: r,
-        label: r,
-        icon: <DisplaySettingsIcon fontSize="small" />
-      })),
-    []
+  // Image option lists — derived from the selected model's manifest (shared
+  // with the sketch connected-mode prompt bar via buildImageModelOptions),
+  // falling back to the full sets when the model declares no constraints. The
+  // image-edit chip cluster has its own model, so it gets a parallel set.
+  const {
+    aspectOptions: imageAspectOptions,
+    resolutionOptions: imageResolutionOptions
+  } = useMemo(
+    () => buildImageModelOptions(imageParams.model),
+    [imageParams.model]
+  );
+
+  const {
+    aspectOptions: imageEditAspectOptions,
+    resolutionOptions: imageEditResolutionOptions
+  } = useMemo(
+    () => buildImageModelOptions(imageEditParams.model),
+    [imageEditParams.model]
   );
 
   const variationsOptions = useMemo<MediaOption<number>[]>(
@@ -968,7 +999,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 open={!!aspectAnchor}
                 onClose={() => setAspectAnchor(null)}
                 value={imageParams.aspectRatio}
-                options={IMAGE_ASPECT_RATIOS}
+                options={imageAspectOptions}
                 onChange={(v) => setImageParams({ aspectRatio: v })}
               />
 
@@ -1100,7 +1131,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 onClose={() => setResolutionAnchor(null)}
                 header="Image Resolution"
                 value={imageEditParams.resolution}
-                options={imageResolutionOptions}
+                options={imageEditResolutionOptions}
                 onChange={(r) => setImageEditParams({ resolution: r })}
               />
 
@@ -1116,7 +1147,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 open={!!aspectAnchor}
                 onClose={() => setAspectAnchor(null)}
                 value={imageEditParams.aspectRatio}
-                options={IMAGE_ASPECT_RATIOS}
+                options={imageEditAspectOptions}
                 onChange={(v) => setImageEditParams({ aspectRatio: v })}
               />
 
