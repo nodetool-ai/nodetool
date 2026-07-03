@@ -62,5 +62,18 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "workflow-runner",
+    "serverless",
+    "vercel",
+    "cloudflare-workers",
+    "edge",
+    "web-standard"
   ]
 }

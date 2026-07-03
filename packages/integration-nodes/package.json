@@ -69,5 +69,24 @@
   },
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "ai-nodes",
+    "no-code",
+    "visual-programming",
+    "workflow-nodes",
+    "http",
+    "graphql",
+    "s3",
+    "notion",
+    "twilio",
+    "apify",
+    "integrations",
+    "api"
+  ]
 }
