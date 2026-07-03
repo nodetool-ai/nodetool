@@ -1,9 +1,7 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import type { SxProps } from "@mui/material";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import GridViewIcon from "@mui/icons-material/GridView";
 import ShowChartIcon from "@mui/icons-material/ShowChart";
@@ -26,7 +24,6 @@ import {
   Checkbox,
   Popover,
   LoadingSpinner,
-  MOTION,
   BORDER_RADIUS,
   SPACING,
   getSpacingPx
@@ -113,7 +110,6 @@ const matchesSearch = (
 
 const CostsDashboard: React.FC = () => {
   const theme = useTheme();
-  const navigate = useNavigate();
 
   const [range, setRange] = useState<DateRange>("14d");
   const [groupBy, setGroupBy] = useState<GroupByKey>("execution");
@@ -222,32 +218,6 @@ const CostsDashboard: React.FC = () => {
           )} + ${getSpacingPx(SPACING.xxxl)} + ${getSpacingPx(SPACING.md)})` // was 24px 40px 72px
         }}
       >
-        {/* back to editor */}
-        <Box
-          component="button"
-          type="button"
-          onClick={() => navigate("/editor")}
-          sx={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: getSpacingPx(SPACING.sm),
-            mb: 2,
-            padding: 0,
-            border: "none",
-            background: "none",
-            cursor: "pointer",
-            fontFamily: "inherit",
-            fontSize: "var(--fontSizeSmall)",
-            fontWeight: 500,
-            color: theme.vars.palette.text.secondary,
-            transition: `color ${MOTION.fast}`,
-            "&:hover": { color: theme.vars.palette.text.primary }
-          }}
-        >
-          <ArrowBackIcon sx={{ fontSize: 16 }} />
-          Back to editor
-        </Box>
-
         {/* header */}
         <FlexRow
           justify="space-between"
