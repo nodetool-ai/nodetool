@@ -10,7 +10,7 @@ import { getCollapseTogglePatches } from "../../stores/collapseNodeLayout";
 import { useNodes } from "../../contexts/NodeContext";
 import { IconForType } from "../../config/IconForType";
 import ListAltIcon from "@mui/icons-material/ListAlt";
-import { OpenInNew } from "@mui/icons-material";
+import OpenInNew from "@mui/icons-material/OpenInNew";
 import { NodeLogsDialog } from "./NodeLogs";
 import { BORDER_RADIUS, FlexRow, Tooltip, ToolbarIconButton, MOTION, SPACING, getSpacingPx } from "../ui_primitives";
 
