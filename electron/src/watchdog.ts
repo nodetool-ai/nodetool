@@ -129,7 +129,7 @@ export class Watchdog {
     }
     // Wait until the process exits, but don't wait longer than the graceful timeout
     const start = Date.now();
-    const timeoutMs = this.opts.gracefulStopTimeoutMs as number;
+    const timeoutMs = this.opts.gracefulStopTimeoutMs ?? 30000;
     while (Date.now() - start < timeoutMs) {
       const stillAlive = await this.isPidAlive();
       if (!stillAlive) break;
@@ -260,7 +260,10 @@ export class Watchdog {
 
   /** Fork the backend via Electron's utilityProcess (uses Electron's Node.js). */
   private async forkUtilityProcess(): Promise<void> {
-    const opts = this.opts as ForkWatchdogOptions;
+    if (!("modulePath" in this.opts) || !this.opts.modulePath) {
+      throw new Error("forkUtilityProcess requires modulePath");
+    }
+    const opts = this.opts;
     logMessage(
       `${opts.name} watchdog: forking utilityProcess: ${opts.modulePath} ${(opts.args ?? []).join(" ")}`
     );
@@ -271,9 +274,15 @@ export class Watchdog {
     );
 
     try {
+      const env: Record<string, string> = {};
+      if (opts.env) {
+        for (const [k, v] of Object.entries(opts.env)) {
+          if (v !== undefined) env[k] = v;
+        }
+      }
       this.utilProcess = utilityProcess.fork(opts.modulePath, opts.args ?? [], {
         stdio: "pipe",
-        env: opts.env as Record<string, string>,
+        env,
         cwd: opts.cwd,
         serviceName: opts.name,
       });
@@ -326,7 +335,10 @@ export class Watchdog {
 
   /** Spawn an external command via child_process (e.g. ollama, llama-server). */
   private async spawnChildProcess(): Promise<void> {
-    const opts = this.opts as SpawnWatchdogOptions;
+    if (!("command" in this.opts) || !this.opts.command) {
+      throw new Error("spawnChildProcess requires command");
+    }
+    const opts = this.opts;
     logMessage(
       `${opts.name} watchdog: starting: ${opts.command} ${opts.args.join(" ")}`
     );

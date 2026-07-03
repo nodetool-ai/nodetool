@@ -181,23 +181,23 @@ except Exception as e:
           return;
         }
 
-        const platform = result.platform as TorchPlatform;
-        logMessage(`Detected torch platform: ${platform} (GPUs: ${result.gpu_count})`);
-        
+        const rawPlatform: string = String(result.platform);
+        logMessage(`Detected torch platform: ${rawPlatform} (GPUs: ${result.gpu_count})`);
+
         const validPlatforms: TorchPlatform[] = [
           "cu118", "cu124", "cu128", "cu129",
           "rocm5.2", "rocm5.7", "rocm6.2", "rocm6.4",
           "mps", "cpu"
         ];
-        
-        if (!validPlatforms.includes(platform)) {
-          const error = `Unknown platform '${platform}' detected by torchruntime`;
+
+        if (!validPlatforms.includes(rawPlatform as TorchPlatform)) {
+          const error = `Unknown platform '${rawPlatform}' detected by torchruntime`;
           logMessage(error, "warn");
           reject(new Error(error));
           return;
         }
-        
-        resolve(platform);
+
+        resolve(rawPlatform as TorchPlatform);
       } catch (parseError) {
         logMessage(`Failed to parse torchruntime output: ${parseError}`, "error");
         reject(new Error(`Failed to parse detection result: ${stdout}`));
