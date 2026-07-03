@@ -26,13 +26,6 @@ import ControlsShortcutsTab from "./ControlsShortcutsTab";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { Dialog } from "../../ui_primitives";
 
-interface HelpItem {
-  text: string;
-  buttons?: string[];
-  isButtonBorderless?: boolean[];
-  details?: string;
-}
-
 interface TabPanelProps {
   children: React.ReactNode;
   index: number;
