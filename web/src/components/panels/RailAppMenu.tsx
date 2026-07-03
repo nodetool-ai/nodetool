@@ -210,11 +210,13 @@ const RailAppMenu: React.FC = () => {
             icon={<ViewInArOutlinedIcon />}
             onClick={goModels}
           />
-          <MenuItemPrimitive
-            label="Package Manager"
-            icon={<Inventory2OutlinedIcon />}
-            onClick={goPackages}
-          />
+          {!isProduction && (
+            <MenuItemPrimitive
+              label="Package Manager"
+              icon={<Inventory2OutlinedIcon />}
+              onClick={goPackages}
+            />
+          )}
           <MenuItemPrimitive
             label="Collections"
             icon={<LibraryBooksOutlinedIcon />}
