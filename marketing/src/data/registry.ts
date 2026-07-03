@@ -1,5 +1,7 @@
 import type { PageEntry } from "./types";
 import { staticEntries } from "./staticEntries";
+import { entries as modelEntries } from "./modelEntries";
+import { entries as modelComparisonEntries } from "./modelComparisonEntries";
 
 /**
  * A page engine's contribution to the registry. `sample`, when set, tells the
@@ -20,6 +22,8 @@ export type RegistryModule = {
  */
 export const registryModules: RegistryModule[] = [
   { name: "static", entries: staticEntries },
+  { name: "models", entries: modelEntries },
+  { name: "model-comparisons", entries: modelComparisonEntries },
 ];
 
 /** Flat list of every page entry across all modules. */
