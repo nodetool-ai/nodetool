@@ -44,6 +44,8 @@ Creative artists working with generative AI: designers, illustrators, photograph
 
 ## Roadmap
 
+The current operating plan is [ROADMAP.md](ROADMAP.md). Long-standing product bets:
+
 - **Workflow templates.** Ready examples for common creative pipelines.
 - **Version control.** Track changes, compare versions, roll back.
 - **Batch processing.** Run a workflow across many inputs and variations.
