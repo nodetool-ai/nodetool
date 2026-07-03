@@ -57,12 +57,12 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
 
   // Track download progress
   const activeDownloads = useMemo(() => {
-    return pack.models.filter((model) => {
-      const download = Object.values(downloads).find(
-        (d) => d.id === model.id && (d.status === "running" || d.status === "progress")
-      );
-      return !!download;
-    });
+    const activeDownloadIds = new Set(
+      Object.values(downloads)
+        .filter((d) => d.status === "running" || d.status === "progress")
+        .map((d) => d.id)
+    );
+    return pack.models.filter((model) => activeDownloadIds.has(model.id));
   }, [downloads, pack.models]);
 
   useEffect(() => {
