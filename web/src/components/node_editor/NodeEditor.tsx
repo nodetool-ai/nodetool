@@ -183,7 +183,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
               <LoadingSpinner variant="circular" size="medium" /> Uploading assets…
             </div>
           )}
-          <ReactFlowWrapper workflowId={workflowId} active={active} />
+          <ReactFlowWrapper workflowId={workflowId} />
           {active && (
             <>
               <SelectionActionToolbar

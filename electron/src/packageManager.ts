@@ -2,7 +2,6 @@ import { spawn } from "child_process";
 import { app } from "electron";
 import { logMessage } from "./logger";
 import {
-  getOptionalNodeModulesPath,
   getProcessEnv,
   getPythonPath,
   getCondaEnvPath,

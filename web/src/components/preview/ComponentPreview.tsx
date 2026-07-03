@@ -10,7 +10,7 @@
  * normally need a UI trigger so a single navigation produces a clean capture.
  */
 
-import React, { Suspense, useEffect, useMemo, useState } from "react";
+import React, { Suspense, useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import { Text, Caption, LoadingSpinner, Surface, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";

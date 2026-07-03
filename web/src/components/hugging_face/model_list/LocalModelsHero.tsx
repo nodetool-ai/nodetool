@@ -148,7 +148,6 @@ interface StatProps {
 }
 
 const Stat: React.FC<StatProps> = ({ value, label, icon }) => {
-  const theme = useTheme();
   return (
     <FlexColumn align="flex-start" sx={{ minWidth: 0 }}>
       <FlexRow align="center" gap={0.5}>

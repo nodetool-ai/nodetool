@@ -1,7 +1,5 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import { memo, useMemo } from "react";
 
 import { EmptyState, FlexColumn } from "../ui_primitives";
@@ -9,7 +7,7 @@ import SearchResultsPanel from "./SearchResultsPanel";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 
-const styles = (theme: Theme) =>
+const styles = () =>
   css({
     "&.history-tiles": {
       display: "flex",
@@ -32,7 +30,6 @@ const styles = (theme: Theme) =>
  * resolved against MetadataStore. Same compact row style as Search.
  */
 const HistoryTilesPanel = memo(() => {
-  const theme = useTheme();
   const recent = useRecentNodesStore((s) => s.recentNodes);
   const metadataRecord = useMetadataStore((s) => s.metadata);
 
@@ -45,7 +42,7 @@ const HistoryTilesPanel = memo(() => {
   );
 
   return (
-    <div css={styles(theme)} className="history-tiles">
+    <div css={styles()} className="history-tiles">
       <div className="history-list">
         {nodes.length === 0 ? (
           <FlexColumn gap={2} justify="center" align="center" sx={{ flex: 1, px: 2 }}>
