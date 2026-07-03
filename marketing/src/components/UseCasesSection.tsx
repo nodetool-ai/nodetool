@@ -103,7 +103,7 @@ export default function UseCasesSection({
 
         <div className="mt-16 text-center">
           <motion.a
-            href="https://docs.nodetool.ai/workflows"
+            href="/templates"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
