@@ -3,7 +3,8 @@ import { css } from "@emotion/react";
 
 import React, { useCallback, useEffect, useRef, useState, memo } from "react";
 import BackspaceIcon from "@mui/icons-material/Backspace";
-import { Public as GlobalIcon, Folder as LocalIcon } from "@mui/icons-material";
+import Public from "@mui/icons-material/Public";
+import Folder from "@mui/icons-material/Folder";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { useDebouncedCallback } from "../../hooks/useDebouncedCallback";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
@@ -421,7 +422,7 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
           data-testid="asset-search-mode-toggle"
           tabIndex={-1}
         >
-          {isGlobalSearchMode ? <GlobalIcon /> : <LocalIcon />}
+          {isGlobalSearchMode ? <Public /> : <Folder />}
         </button>
       </Tooltip>
 

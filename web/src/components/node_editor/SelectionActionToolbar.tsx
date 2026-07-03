@@ -11,22 +11,20 @@ import {
   SPACING,
   getSpacingPx
 } from "../ui_primitives";
-import {
-  AlignHorizontalCenter,
-  AlignHorizontalLeft,
-  AlignHorizontalRight,
-  AlignVerticalBottom,
-  AlignVerticalCenter,
-  AlignVerticalTop,
-  ArrowDropDown,
-  ContentCopy,
-  Delete,
-  Layers,
-  PlayArrow,
-  PowerSettingsNew,
-  ViewColumn,
-  ViewStream
-} from "@mui/icons-material";
+import AlignHorizontalCenter from "@mui/icons-material/AlignHorizontalCenter";
+import AlignHorizontalLeft from "@mui/icons-material/AlignHorizontalLeft";
+import AlignHorizontalRight from "@mui/icons-material/AlignHorizontalRight";
+import AlignVerticalBottom from "@mui/icons-material/AlignVerticalBottom";
+import AlignVerticalCenter from "@mui/icons-material/AlignVerticalCenter";
+import AlignVerticalTop from "@mui/icons-material/AlignVerticalTop";
+import ArrowDropDown from "@mui/icons-material/ArrowDropDown";
+import ContentCopy from "@mui/icons-material/ContentCopy";
+import Delete from "@mui/icons-material/Delete";
+import Layers from "@mui/icons-material/Layers";
+import PlayArrow from "@mui/icons-material/PlayArrow";
+import PowerSettingsNew from "@mui/icons-material/PowerSettingsNew";
+import ViewColumn from "@mui/icons-material/ViewColumn";
+import ViewStream from "@mui/icons-material/ViewStream";
 import { useNodes } from "../../contexts/NodeContext";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useSelectionActions } from "../../hooks/useSelectionActions";
