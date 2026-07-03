@@ -4,6 +4,9 @@ import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
 import SiteHeader from "../../components/SiteHeader";
 import SiteFooter from "../../components/SiteFooter";
+import FaqBlock from "../../components/FaqBlock";
+import JsonLd from "../../components/JsonLd";
+import { faqForSurface } from "../../data/faqEntries";
 
 const AgentsGraphHero = dynamic(() => import("../../components/agents/AgentsGraphHero"), {
   ssr: true,
@@ -116,8 +119,21 @@ export default function AgentsPage() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [reducedMotion]);
 
+  const agentFaqs = faqForSurface("agents");
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: agentFaqs.map((e) => ({
+      "@type": "Question",
+      name: e.question,
+      url: `https://nodetool.ai${e.route}`,
+      acceptedAnswer: { "@type": "Answer", text: e.description },
+    })),
+  };
+
   return (
     <main className="relative min-h-screen overflow-hidden text-white">
+      <JsonLd data={faqSchema} />
       {/* Background */}
       <div className="absolute inset-0 -z-10 overflow-hidden">
         {/* Soft radial glows */}
@@ -220,6 +236,11 @@ export default function AgentsPage() {
 
         {/* Integrations */}
         <AgentIntegrationsSection reducedMotion={reducedMotion} />
+
+        {/* FAQ — same rows as /faq, pinned to the "agents" surface */}
+        <section aria-label="Frequently asked questions" className="rhythm-section">
+          <FaqBlock surface="agents" linkToStandalone />
+        </section>
 
         {/* Community */}
         <CommunitySection stars={stars} />

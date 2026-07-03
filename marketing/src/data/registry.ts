@@ -1,5 +1,7 @@
 import type { PageEntry } from "./types";
 import { staticEntries } from "./staticEntries";
+import { faqPageEntries } from "./faqEntries";
+import { ideasPageEntries } from "./ideasEntries";
 
 /**
  * A page engine's contribution to the registry. `sample`, when set, tells the
@@ -20,6 +22,8 @@ export type RegistryModule = {
  */
 export const registryModules: RegistryModule[] = [
   { name: "static", entries: staticEntries },
+  { name: "faq", entries: faqPageEntries },
+  { name: "ideas", entries: ideasPageEntries },
 ];
 
 /** Flat list of every page entry across all modules. */
