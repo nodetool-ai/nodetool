@@ -1008,6 +1008,11 @@ with the \`ToolSearch\` tool.
 
 # Image and media
 When tools return media URLs, embed them as markdown image / link tags.
+Image URIs often use the \`asset://<id>.<ext>\` scheme (e.g.
+\`asset://b7953a3877e2437bbc1bc51792fcd222.png\`) — embed these verbatim as
+markdown images: \`![](asset://<id>.<ext>)\`. The chat UI resolves \`asset://\`
+to a fetchable URL and renders the image inline; do not rewrite it to an HTTP
+URL or wrap it in a code block.
 
 # File types
 References to documents, images, videos, or audio files have the shape:
@@ -3334,11 +3339,18 @@ export class UnifiedWebSocketRunner {
         this.runSingleNode(nodeType, inputs, userId, threadId)
       )
     ];
+    // When the active provider generates images natively (OpenAI Responses
+    // `image_generation` tool), drop the redundant provider-specific
+    // `openai_image_generation` tool — the native `image_generation` covers it
+    // and avoids offering two overlapping image tools.
+    const dropOpenAIImageTool = provider.supportsNativeImageGeneration;
     // De-duplicate by name (builtins / mcp / extras may overlap); first wins.
     const dedupedToolbelt: Tool[] = [];
     const seenToolNames = new Set<string>();
     for (const tool of rawToolbelt) {
       if (seenToolNames.has(tool.name)) continue;
+      if (dropOpenAIImageTool && tool.name === "openai_image_generation")
+        continue;
       seenToolNames.add(tool.name);
       dedupedToolbelt.push(tool);
     }
