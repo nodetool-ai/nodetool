@@ -162,6 +162,69 @@ describe("TriggerWakeupService — durable store delivery", () => {
   });
 });
 
+describe("TriggerWakeupService — concurrent delivery sequencing (finding #9)", () => {
+  it("assigns strictly increasing, duplicate-free seq under concurrent deliveries for the same (run, node)", async () => {
+    const store = new MemoryDurableInboxStore();
+    const svc = new TriggerWakeupService(store);
+
+    const N = 50;
+    const results = await Promise.all(
+      Array.from({ length: N }, (_, i) =>
+        svc.deliverTriggerInput({
+          runId: "r1",
+          nodeId: "n1",
+          inputId: `input-${i}`,
+          payload: { i }
+        })
+      )
+    );
+
+    // Every distinct inputId is a new delivery.
+    expect(results.every((r) => r === true)).toBe(true);
+
+    const persisted = await store.findPending("r1", "n1", "trigger", N * 2);
+    expect(persisted).toHaveLength(N);
+
+    const seqs = persisted.map((m) => m.seq);
+    // Duplicate-free.
+    expect(new Set(seqs).size).toBe(N);
+    // Strictly increasing 1..N (findPending sorts by seq).
+    expect(seqs).toEqual(Array.from({ length: N }, (_, i) => i + 1));
+  });
+
+  it("keeps sequences independent across distinct (run, node) pairs", async () => {
+    const store = new MemoryDurableInboxStore();
+    const svc = new TriggerWakeupService(store);
+
+    await Promise.all([
+      svc.deliverTriggerInput({
+        runId: "r1",
+        nodeId: "n1",
+        inputId: "a",
+        payload: {}
+      }),
+      svc.deliverTriggerInput({
+        runId: "r1",
+        nodeId: "n2",
+        inputId: "b",
+        payload: {}
+      }),
+      // A colliding plain-":" join of these two would be "r1:n2:x" vs
+      // "r1:n2x" — JSON keying keeps them apart.
+      svc.deliverTriggerInput({
+        runId: "r1",
+        nodeId: "n2x",
+        inputId: "c",
+        payload: {}
+      })
+    ]);
+
+    expect(await store.findPending("r1", "n1", "trigger", 10)).toHaveLength(1);
+    expect(await store.findPending("r1", "n2", "trigger", 10)).toHaveLength(1);
+    expect(await store.findPending("r1", "n2x", "trigger", 10)).toHaveLength(1);
+  });
+});
+
 describe("TriggerWakeupService — getPendingInputs filtering", () => {
   it("respects the limit", async () => {
     const svc = new TriggerWakeupService();
