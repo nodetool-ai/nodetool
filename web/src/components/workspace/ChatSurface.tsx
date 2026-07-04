@@ -1,9 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 import { FlexColumn, Text } from "../ui_primitives";
 import ChatView from "../chat/containers/ChatView";
-import useGlobalChatStore from "../../stores/GlobalChatStore";
+import useGlobalChatStore, {
+  useThreadRuntime
+} from "../../stores/GlobalChatStore";
+import type { Message, LanguageModel } from "../../stores/ApiTypes";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 
 interface ChatSurfaceProps {
@@ -11,31 +14,29 @@ interface ChatSurfaceProps {
   active: boolean;
 }
 
-const NO_MESSAGES: never[] = [];
+const NO_MESSAGES: Message[] = [];
 
 /**
  * The document surface for a chat thread tab. `refId` is the thread id.
  *
- * GlobalChatStore is a single-active-thread store: streaming state, the
- * composer, and `sendMessage` all target `currentThreadId`. All workspace tabs
- * stay mounted in the shell, so only the *active* chat tab claims the store's
- * current thread (via `switchThread`); inactive tabs render their cached
- * message history and re-claim the thread when re-activated.
+ * Each tab is a live, independent session: messages, streaming status,
+ * progress, and agent updates all come from the thread's own entry in
+ * `GlobalChatStore.threadRuntime`, and sends/stops target `refId` explicitly.
+ * Several chat tabs can generate concurrently — a tab keeps streaming while
+ * hidden. Activating a tab additionally makes its thread the store's current
+ * one so thread-global UI (sidebar selection, conversation header) follows
+ * the focused tab.
  */
 const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
   const [notFound, setNotFound] = useState(false);
 
-  const {
-    currentThreadId,
-    thread,
-    cachedMessages,
-    getCurrentMessagesSync
-  } = useGlobalChatStore(
+  const runtime = useThreadRuntime(refId);
+
+  const { currentThreadId, thread, messages } = useGlobalChatStore(
     useShallow((state) => ({
       currentThreadId: state.currentThreadId,
       thread: state.threads[refId],
-      cachedMessages: state.messageCache[refId],
-      getCurrentMessagesSync: state.getCurrentMessagesSync
+      messages: state.messageCache[refId] ?? NO_MESSAGES
     }))
   );
 
@@ -43,56 +44,41 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
     connect,
     fetchThread,
     switchThread,
+    loadMessages,
     createNewThread,
     sendMessage,
-    stopGeneration
+    stopGeneration,
+    selectedModel,
+    setSelectedModel
   } = useGlobalChatStore(
     useShallow((state) => ({
       connect: state.connect,
       fetchThread: state.fetchThread,
       switchThread: state.switchThread,
+      loadMessages: state.loadMessages,
       createNewThread: state.createNewThread,
       sendMessage: state.sendMessage,
-      stopGeneration: state.stopGeneration
+      stopGeneration: state.stopGeneration,
+      selectedModel: state.selectedModel,
+      setSelectedModel: state.setSelectedModel
     }))
   );
 
-  const {
-    status,
-    progress,
-    statusMessage,
-    currentLogUpdate,
-    currentPlanningUpdate,
-    currentTaskUpdate,
-    currentTaskUpdateThreadId,
-    lastTaskUpdatesByThread,
-    currentRunningToolCallId,
-    currentToolMessage,
-    selectedModel,
-    setSelectedModel,
-    workflowId
-  } = useGlobalChatStore(
-    useShallow((state) => ({
-      status: state.status,
-      progress: state.progress,
-      statusMessage: state.statusMessage,
-      currentLogUpdate: state.currentLogUpdate,
-      currentPlanningUpdate: state.currentPlanningUpdate,
-      currentTaskUpdate: state.currentTaskUpdate,
-      currentTaskUpdateThreadId: state.currentTaskUpdateThreadId,
-      lastTaskUpdatesByThread: state.lastTaskUpdatesByThread,
-      currentRunningToolCallId: state.currentRunningToolCallId,
-      currentToolMessage: state.currentToolMessage,
-      selectedModel: state.selectedModel,
-      setSelectedModel: state.setSelectedModel,
-      workflowId: state.workflowId
-    }))
+  const workflowId = useGlobalChatStore(
+    (state) =>
+      state.threads[refId]?.workflow_id ?? state.threadWorkflowId[refId] ?? null
+  );
+
+  // The pi transport drives the legacy top-level status (single-thread), not
+  // threadRuntime — fall back to it so a pi run still shows as streaming.
+  const piStatus = useGlobalChatStore((state) =>
+    state.mode === "pi" && state.currentThreadId === refId
+      ? state.status
+      : null
   );
 
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const setTitle = useWorkspaceTabsStore((state) => state.setTitle);
-
-  const isCurrent = currentThreadId === refId;
 
   // Connect the shared chat WebSocket. Deliberately no disconnect on unmount:
   // the connection is a singleton shared by every mounted chat tab, so closing
@@ -103,16 +89,15 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
     });
   }, [connect]);
 
-  // The active chat tab owns the store's current thread. A restored tab may
-  // reference a thread the store hasn't seen yet — fetch it first, and mark
-  // the tab when the thread no longer exists on the server.
+  // Hydrate the thread on mount: a restored tab may reference a thread the
+  // store hasn't seen yet. Mark the tab when the thread no longer exists.
   const threadKnown = thread !== undefined;
   useEffect(() => {
-    if (!active || isCurrent || notFound) {
+    if (notFound) {
       return;
     }
     let cancelled = false;
-    const claim = async () => {
+    const hydrate = async () => {
       try {
         if (!threadKnown) {
           const fetched = await fetchThread(refId);
@@ -124,18 +109,27 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
             return;
           }
         }
-        switchThread(refId);
+        await loadMessages(refId);
       } catch (error) {
         if (!cancelled) {
-          console.error("Failed to open chat thread:", error);
+          console.error("Failed to load chat thread:", error);
         }
       }
     };
-    void claim();
+    void hydrate();
     return () => {
       cancelled = true;
     };
-  }, [active, isCurrent, notFound, threadKnown, refId, fetchThread, switchThread]);
+  }, [notFound, threadKnown, refId, fetchThread, loadMessages]);
+
+  // The active tab's thread becomes the store's current one (sidebar
+  // selection, header, persistent composer default). Generation itself is
+  // per-thread and does not depend on this.
+  useEffect(() => {
+    if (active && threadKnown && currentThreadId !== refId) {
+      switchThread(refId);
+    }
+  }, [active, threadKnown, currentThreadId, refId, switchThread]);
 
   // Keep the tab title in sync with the thread title (the server names a
   // thread after its first exchange).
@@ -146,6 +140,20 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
     }
   }, [threadTitle, refId, setTitle]);
 
+  const handleSendMessage = useCallback(
+    (message: Message) => sendMessage(message, refId),
+    [sendMessage, refId]
+  );
+
+  const handleStop = useCallback(() => {
+    stopGeneration(refId);
+  }, [stopGeneration, refId]);
+
+  const handleModelChange = useCallback(
+    (model: LanguageModel) => setSelectedModel(model),
+    [setSelectedModel]
+  );
+
   const handleNewChat = useCallback(async () => {
     try {
       const threadId = await createNewThread();
@@ -154,17 +162,6 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
       console.error("Failed to create new chat thread:", error);
     }
   }, [createNewThread, openTab]);
-
-  const messages = isCurrent
-    ? getCurrentMessagesSync()
-    : cachedMessages ?? NO_MESSAGES;
-
-  const taskUpdateForDisplay = useMemo(() => {
-    if (currentTaskUpdate && currentTaskUpdateThreadId === refId) {
-      return currentTaskUpdate;
-    }
-    return lastTaskUpdatesByThread[refId] ?? null;
-  }, [currentTaskUpdate, currentTaskUpdateThreadId, lastTaskUpdatesByThread, refId]);
 
   if (notFound) {
     return (
@@ -179,29 +176,29 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
   return (
     <FlexColumn fullWidth fullHeight sx={{ minHeight: 0, overflow: "hidden" }}>
       <ChatView
-        status={
-          isCurrent
-            ? status === "stopping"
-              ? "loading"
-              : status
-            : "connected"
-        }
+        threadId={refId}
+        status={(() => {
+          const status = piStatus ?? runtime.status;
+          if (status === "idle") return "connected";
+          if (status === "stopping") return "loading";
+          return status;
+        })()}
         messages={messages}
-        sendMessage={sendMessage}
-        progress={isCurrent ? progress.current : 0}
-        total={isCurrent ? progress.total : 0}
-        progressMessage={isCurrent ? statusMessage : null}
-        runningToolCallId={isCurrent ? currentRunningToolCallId : null}
-        runningToolMessage={isCurrent ? currentToolMessage : null}
+        sendMessage={handleSendMessage}
+        progress={runtime.progress.current}
+        total={runtime.progress.total}
+        progressMessage={runtime.statusMessage}
+        runningToolCallId={runtime.runningToolCallId}
+        runningToolMessage={runtime.toolMessage}
         model={selectedModel}
-        onModelChange={setSelectedModel}
-        onStop={stopGeneration}
+        onModelChange={handleModelChange}
+        onStop={handleStop}
         onNewChat={() => void handleNewChat()}
-        currentPlanningUpdate={isCurrent ? currentPlanningUpdate : null}
-        currentTaskUpdate={taskUpdateForDisplay}
-        currentLogUpdate={isCurrent ? currentLogUpdate : null}
+        currentPlanningUpdate={runtime.planningUpdate}
+        currentTaskUpdate={runtime.taskUpdate}
+        currentLogUpdate={runtime.logUpdate}
         workflowId={workflowId}
-        showConversationHeader={isCurrent}
+        showConversationHeader={currentThreadId === refId}
       />
     </FlexColumn>
   );

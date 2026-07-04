@@ -46,6 +46,14 @@ import {
   WorkflowUpdatedUpdate
 } from "../core/chat/chatProtocol";
 import type { ChatOutgoingMessage } from "./MediaGenerationStore";
+import { useShallow } from "zustand/react/shallow";
+import {
+  DEFAULT_THREAD_RUNTIME,
+  getThreadRuntime,
+  mirrorsForThread,
+  threadRuntimeUpdate,
+  type ThreadRuntime
+} from "../core/chat/threadRuntime";
 
 // Include additional runtime statuses used during message streaming
 type ChatStatus =
@@ -148,11 +156,17 @@ interface PlanApprovalRequest {
 }
 
 export interface GlobalChatState extends ChatPiSlice {
-  // Connection state
+  // Connection state + mirror of the CURRENT thread's runtime (see
+  // core/chat/threadRuntime.ts). Multi-thread consumers read `threadRuntime`.
   status: ChatStatus;
   statusMessage: string | null;
   progress: { current: number; total: number };
   error: string | null;
+  /**
+   * Per-thread generation runtime, keyed by thread id. Every thread streams
+   * independently; the top-level fields above mirror the current thread.
+   */
+  threadRuntime: Record<string, ThreadRuntime>;
   workflowId: string | null;
   threadWorkflowId: Record<string, string | null>;
 
@@ -249,15 +263,21 @@ export interface GlobalChatState extends ChatPiSlice {
   // Workflow graph updates
   lastWorkflowGraphUpdate: WorkflowCreatedUpdate | WorkflowUpdatedUpdate | null;
 
-  // Safety timeout tracking for sendMessage
-  sendMessageTimeoutId: ReturnType<typeof setTimeout> | null;
   // Safety timeout tracking for loadMessages after delete
   loadMessagesTimeoutId: ReturnType<typeof setTimeout> | null;
 
   // Actions
   connect: () => Promise<void>;
   disconnect: () => void;
-  sendMessage: (message: Message | ChatOutgoingMessage) => Promise<void>;
+  /**
+   * Send a message to `threadId`, or to the current thread when omitted
+   * (creating one if none exists). Threads generate independently, so a
+   * send to a background thread does not disturb the current one.
+   */
+  sendMessage: (
+    message: Message | ChatOutgoingMessage,
+    threadId?: string
+  ) => Promise<void>;
   resetMessages: () => void;
 
   // Thread actions
@@ -279,7 +299,8 @@ export interface GlobalChatState extends ChatPiSlice {
     model: string,
     content: string
   ) => Promise<void>;
-  stopGeneration: () => void;
+  /** Stop generation on `threadId`, or the current thread when omitted. */
+  stopGeneration: (threadId?: string) => void;
 
   // Message cache management
   addMessageToCache: (threadId: string, message: Message) => void;
@@ -336,6 +357,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
       statusMessage: null,
       progress: { current: 0, total: 0 },
       error: null,
+      threadRuntime: {},
       workflowId: null,
       threadWorkflowId: {},
       wsEventUnsubscribes: [],
@@ -511,8 +533,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
       // Workflow graph updates
       lastWorkflowGraphUpdate: null,
 
-      // Safety timeout tracking for sendMessage
-      sendMessageTimeoutId: null,
       loadMessagesTimeoutId: null,
 
       connect: async () => {
@@ -608,7 +628,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           threadSubscriptions[threadId] = globalWebSocketManager.subscribe(
             threadId,
             (data) => {
-              handleChatWebSocketMessage(data, set, get);
+              handleChatWebSocketMessage(data, set, get, threadId);
             }
           );
         });
@@ -686,7 +706,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
         const {
           wsEventUnsubscribes,
           wsThreadSubscriptions,
-          sendMessageTimeoutId,
+          threadRuntime,
           loadMessagesTimeoutId
         } = get();
         wsEventUnsubscribes.forEach((unsubscribe) => unsubscribe());
@@ -694,10 +714,12 @@ const useGlobalChatStore = create<GlobalChatState>()(
           unsubscribe()
         );
 
-        // Clear any pending sendMessage timeout
-        if (sendMessageTimeoutId !== null) {
-          clearTimeout(sendMessageTimeoutId);
-        }
+        // Clear every thread's pending safety timeout
+        Object.values(threadRuntime).forEach((rt) => {
+          if (rt.sendMessageTimeoutId !== null) {
+            clearTimeout(rt.sendMessageTimeoutId);
+          }
+        });
         // Clear any pending loadMessages timeout
         if (loadMessagesTimeoutId !== null) {
           clearTimeout(loadMessagesTimeoutId);
@@ -709,23 +731,21 @@ const useGlobalChatStore = create<GlobalChatState>()(
           status: "disconnected",
           error: null,
           statusMessage: null,
-          sendMessageTimeoutId: null,
+          threadRuntime: {},
           loadMessagesTimeoutId: null
         });
       },
 
-      sendMessage: async (message: Message | ChatOutgoingMessage) => {
-        const {
-          currentThreadId,
-          workflowId,
-          memoryEnabled,
-          selectedModel,
-          sendMessageTimeoutId
-        } = get();
+      sendMessage: async (
+        message: Message | ChatOutgoingMessage,
+        targetThreadId?: string
+      ) => {
+        const { currentThreadId, workflowId, memoryEnabled, selectedModel } =
+          get();
 
         // Pi mode routes through the agent socket instead of the /ws chat loop.
         if (get().mode === "pi") {
-          let threadId = currentThreadId;
+          let threadId = targetThreadId ?? currentThreadId;
           if (!threadId) {
             threadId = await get().createNewThread();
           }
@@ -739,12 +759,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
         const outgoing = message as ChatOutgoingMessage;
         const mediaGeneration = outgoing.media_generation ?? null;
 
-        // Clear any existing safety timeout
-        if (sendMessageTimeoutId !== null) {
-          clearTimeout(sendMessageTimeoutId);
-          set({ sendMessageTimeoutId: null });
-        }
-
         set({ error: null });
 
         // Ensure WebSocket connection is established before sending
@@ -753,29 +767,50 @@ const useGlobalChatStore = create<GlobalChatState>()(
         } catch (connError) {
           const detail =
             connError instanceof Error ? connError.message : String(connError);
-          set({ error: `Not connected to chat service: ${detail}` });
+          const knownTid = targetThreadId ?? currentThreadId;
+          set((state) => ({
+            error: `Not connected to chat service: ${detail}`,
+            ...(knownTid
+              ? threadRuntimeUpdate(state, knownTid, {
+                  error: `Not connected to chat service: ${detail}`
+                })
+              : {})
+          }));
           return;
         }
 
         // Ensure we have a thread
-        let threadId = currentThreadId;
+        let threadId = targetThreadId ?? currentThreadId;
         if (!threadId) {
           threadId = await get().createNewThread();
         }
+        const tid = threadId;
+
+        // Clear the target thread's existing safety timeout
+        const existingTimeoutId = getThreadRuntime(
+          get(),
+          tid
+        ).sendMessageTimeoutId;
+        if (existingTimeoutId !== null) {
+          clearTimeout(existingTimeoutId);
+        }
+        set((state) =>
+          threadRuntimeUpdate(state, tid, {
+            error: null,
+            sendMessageTimeoutId: null
+          })
+        );
 
         // Ensure we have a WS subscription for this thread before sending,
         // otherwise streamed chunks/messages will be routed with no handler.
         if (!get().wsThreadSubscriptions[threadId]) {
-          const unsub = globalWebSocketManager.subscribe(
-            threadId as string,
-            (data) => {
-              handleChatWebSocketMessage(data, set, get);
-            }
-          );
+          const unsub = globalWebSocketManager.subscribe(tid, (data) => {
+            handleChatWebSocketMessage(data, set, get, tid);
+          });
           set((state) => {
             // Guard against a race: if another path registered a handler
             // between our check and this set(), clean ours up to avoid a leak.
-            const existing = state.wsThreadSubscriptions[threadId as string];
+            const existing = state.wsThreadSubscriptions[tid];
             if (existing !== undefined) {
               unsub();
               return {};
@@ -783,16 +818,24 @@ const useGlobalChatStore = create<GlobalChatState>()(
             return {
               wsThreadSubscriptions: {
                 ...state.wsThreadSubscriptions,
-                [threadId as string]: unsub
+                [tid]: unsub
               }
             };
           });
         }
 
+        // Targeted sends (chat tabs) keep the thread's own workflow binding;
+        // untargeted sends bind the thread to the currently-open workflow as
+        // before.
+        const boundWorkflowId = targetThreadId
+          ? get().threads[tid]?.workflow_id ??
+            get().threadWorkflowId[tid] ??
+            null
+          : workflowId ?? null;
         set((state) => ({
           threadWorkflowId: {
             ...state.threadWorkflowId,
-            [threadId as string]: workflowId ?? null
+            [tid]: boundWorkflowId
           }
         }));
 
@@ -819,7 +862,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           message as Message;
         const chatMessageData = {
           ...messageWithoutTools,
-          workflow_id: message.workflow_id ?? workflowId ?? null,
+          workflow_id: message.workflow_id ?? boundWorkflowId,
           thread_id: threadId,
           memory_enabled: memoryEnabled,
           permission_mode: get().getPermissionMode(threadId),
@@ -841,43 +884,52 @@ const useGlobalChatStore = create<GlobalChatState>()(
         // Add message to cache optimistically
         get().addMessageToCache(threadId, messageForCache);
 
-        set({ status: "loading" }); // Waiting for response
+        // Waiting for response — only this thread's runtime enters "loading"
+        set((state) => threadRuntimeUpdate(state, tid, { status: "loading" }));
 
         try {
           await globalWebSocketManager.send(commandMessage);
 
-          // Safety timeout - reset status if no response after 5 minutes
+          // Safety timeout - reset the thread if no response after 5 minutes
           const timeoutId = setTimeout(() => {
-            const currentState = get();
-            if (
-              currentState.status === "loading" ||
-              currentState.status === "streaming"
-            ) {
-              console.warn("Generation timeout - resetting status to connected");
-              set({
-                status: "connected",
-                progress: { current: 0, total: 0 },
-                statusMessage: null,
-                currentPlanningUpdate: null,
-                currentTaskUpdate: null,
-                currentTaskUpdateThreadId: null,
-                sendMessageTimeoutId: null
-              });
+            const runtime = getThreadRuntime(get(), tid);
+            if (runtime.status === "loading" || runtime.status === "streaming") {
+              console.warn("Generation timeout - resetting thread to idle");
+              set((state) =>
+                threadRuntimeUpdate(state, tid, {
+                  status: "idle",
+                  progress: { current: 0, total: 0 },
+                  statusMessage: null,
+                  planningUpdate: null,
+                  taskUpdate: null,
+                  sendMessageTimeoutId: null
+                })
+              );
             }
           }, 5 * 60 * 1000);
-          set({ sendMessageTimeoutId: timeoutId });
+          set((state) =>
+            threadRuntimeUpdate(state, tid, { sendMessageTimeoutId: timeoutId })
+          );
         } catch (error) {
-          // Clear timeout on error
-          const currentTimeoutId = get().sendMessageTimeoutId;
+          // Clear this thread's timeout on error
+          const currentTimeoutId = getThreadRuntime(
+            get(),
+            tid
+          ).sendMessageTimeoutId;
           if (currentTimeoutId !== null) {
             clearTimeout(currentTimeoutId);
-            set({ sendMessageTimeoutId: null });
           }
           console.error("Failed to send message:", error);
-          set({
-            error:
-              error instanceof Error ? error.message : "Failed to send message"
-          });
+          const errorMessage =
+            error instanceof Error ? error.message : "Failed to send message";
+          set((state) => ({
+            error: errorMessage,
+            ...threadRuntimeUpdate(state, tid, {
+              error: errorMessage,
+              status: "idle",
+              sendMessageTimeoutId: null
+            })
+          }));
           throw error;
         }
       },
@@ -991,12 +1043,9 @@ const useGlobalChatStore = create<GlobalChatState>()(
         if (existingUnsub) {
           existingUnsub();
         }
-        const newUnsub = globalWebSocketManager.subscribe(
-          id,
-          (data) => {
-            handleChatWebSocketMessage(data, set, get);
-          }
-        );
+        const newUnsub = globalWebSocketManager.subscribe(id, (data) => {
+          handleChatWebSocketMessage(data, set, get, id);
+        });
 
         set((state) => ({
           threads: {
@@ -1019,7 +1068,9 @@ const useGlobalChatStore = create<GlobalChatState>()(
           wsThreadSubscriptions: {
             ...state.wsThreadSubscriptions,
             [id]: newUnsub
-          }
+          },
+          // The new thread becomes current with a fresh (idle) runtime.
+          ...mirrorsForThread({ ...state, currentThreadId: id }, id)
         }));
 
         return id;
@@ -1032,12 +1083,9 @@ const useGlobalChatStore = create<GlobalChatState>()(
         }
 
         if (!get().wsThreadSubscriptions[threadId]) {
-          const unsub = globalWebSocketManager.subscribe(
-            threadId,
-            (data) => {
-              handleChatWebSocketMessage(data, set, get);
-            }
-          );
+          const unsub = globalWebSocketManager.subscribe(threadId, (data) => {
+            handleChatWebSocketMessage(data, set, get, threadId);
+          });
           set((state) => {
             const existing = state.wsThreadSubscriptions[threadId];
             if (existing !== undefined) {
@@ -1059,7 +1107,11 @@ const useGlobalChatStore = create<GlobalChatState>()(
           workflowId:
             state.threads[threadId]?.workflow_id ??
             state.threadWorkflowId[threadId] ??
-            state.workflowId
+            state.workflowId,
+          // Project the newly-focused thread's runtime onto the legacy
+          // top-level mirrors so the UI doesn't carry the previous thread's
+          // streaming state.
+          ...mirrorsForThread(state, threadId)
         }));
         get().loadMessages(threadId);
       },
@@ -1082,13 +1134,19 @@ const useGlobalChatStore = create<GlobalChatState>()(
             threadUnsubscribe?.();
             const { [threadId]: _deletedTodos, ...remainingTodos } =
               state.todosByThread;
+            const { [threadId]: deletedRuntime, ...remainingRuntime } =
+              state.threadRuntime;
+            if (deletedRuntime?.sendMessageTimeoutId != null) {
+              clearTimeout(deletedRuntime.sendMessageTimeoutId);
+            }
 
             const newState: Partial<GlobalChatState> = {
               threads: remainingThreads,
               messageCache: remainingCache,
               messageCursors: remainingCursors,
               wsThreadSubscriptions: remainingSubscriptions,
-              todosByThread: remainingTodos
+              todosByThread: remainingTodos,
+              threadRuntime: remainingRuntime
             };
 
             // If deleting current thread, switch to another or create new
@@ -1324,21 +1382,23 @@ const useGlobalChatStore = create<GlobalChatState>()(
         });
       },
 
-      stopGeneration: () => {
-        const { currentThreadId, sendMessageTimeoutId, loadMessagesTimeoutId } = get();
+      stopGeneration: (threadId?: string) => {
+        const { currentThreadId, loadMessagesTimeoutId } = get();
+        const tid = threadId ?? currentThreadId;
 
         // Pi mode stops via the agent socket, not the /ws stop command.
         if (get().mode === "pi") {
           FrontendToolRegistry.abortAll();
-          if (currentThreadId) {
-            get().stopPi(currentThreadId);
+          if (tid) {
+            get().stopPi(tid);
           }
           return;
         }
 
-        // Clear any pending sendMessage timeout
-        if (sendMessageTimeoutId !== null) {
-          clearTimeout(sendMessageTimeoutId);
+        // Clear the thread's pending sendMessage timeout
+        const pendingTimeoutId = getThreadRuntime(get(), tid).sendMessageTimeoutId;
+        if (pendingTimeoutId !== null) {
+          clearTimeout(pendingTimeoutId);
         }
         // Clear any pending loadMessages timeout
         if (loadMessagesTimeoutId !== null) {
@@ -1356,18 +1416,17 @@ const useGlobalChatStore = create<GlobalChatState>()(
         // socket (including ones from non-thread-bound workflow runs), so
         // keeping their cards would leave orphaned prompts whose responses
         // resolve nothing.
-        if (currentThreadId) {
+        if (tid) {
           set((state) => {
             const remaining = Object.fromEntries(
               Object.entries(state.pendingApprovals).filter(
-                ([, approval]) => approval.thread_id !== currentThreadId
+                ([, approval]) => approval.thread_id !== tid
               )
             );
             const remainingPlans = Object.fromEntries(
               Object.entries(state.pendingPlanApprovals).filter(
                 ([, approval]) =>
-                  approval.thread_id !== null &&
-                  approval.thread_id !== currentThreadId
+                  approval.thread_id !== null && approval.thread_id !== tid
               )
             );
             return {
@@ -1377,18 +1436,16 @@ const useGlobalChatStore = create<GlobalChatState>()(
           });
         }
 
-        if (!globalWebSocketManager) {
-          set({ sendMessageTimeoutId: null });
-          return;
-        }
-
-        if (!globalWebSocketManager.isConnectionOpen()) {
-          set({ sendMessageTimeoutId: null });
-          return;
-        }
-
-        if (!currentThreadId) {
-          set({ sendMessageTimeoutId: null });
+        if (
+          !tid ||
+          !globalWebSocketManager ||
+          !globalWebSocketManager.isConnectionOpen()
+        ) {
+          if (tid) {
+            set((state) =>
+              threadRuntimeUpdate(state, tid, { sendMessageTimeoutId: null })
+            );
+          }
           return;
         }
 
@@ -1399,30 +1456,34 @@ const useGlobalChatStore = create<GlobalChatState>()(
           void globalWebSocketManager
             .send({
               command: "stop",
-              data: { thread_id: currentThreadId }
+              data: { thread_id: tid }
             })
             .catch((error) => {
               console.error("Failed to send stop signal:", error);
             });
 
-          set({
-            status: "connected",
-            progress: { current: 0, total: 0 },
-            statusMessage: null,
-            currentPlanningUpdate: null,
-            currentTaskUpdate: null,
-            currentTaskUpdateThreadId: null,
-            sendMessageTimeoutId: null,
-            loadMessagesTimeoutId: null
-          });
+          set((state) => ({
+            loadMessagesTimeoutId: null,
+            ...threadRuntimeUpdate(state, tid, {
+              status: "idle",
+              progress: { current: 0, total: 0 },
+              statusMessage: null,
+              planningUpdate: null,
+              taskUpdate: null,
+              sendMessageTimeoutId: null
+            })
+          }));
         } catch (error) {
           console.error("Failed to send stop signal:", error);
-          set({
+          set((state) => ({
             error: "Failed to stop generation",
-            status: "error",
-            statusMessage: null,
-            sendMessageTimeoutId: null
-          });
+            ...threadRuntimeUpdate(state, tid, {
+              error: "Failed to stop generation",
+              status: "error",
+              statusMessage: null,
+              sendMessageTimeoutId: null
+            })
+          }));
         }
       },
 
@@ -1673,5 +1734,22 @@ export const useThreadsQuery = () => {
 
   return query;
 };
+
+/**
+ * Subscribe to one thread's generation runtime. Returns the default (idle)
+ * runtime for unknown/null thread ids. Use this instead of the top-level
+ * status/progress mirrors when the component is bound to a specific thread
+ * (e.g. a workspace chat tab) rather than the store's current one.
+ */
+export const useThreadRuntime = (threadId: string | null): ThreadRuntime =>
+  useGlobalChatStore(
+    useShallow((state) =>
+      threadId
+        ? state.threadRuntime[threadId] ?? DEFAULT_THREAD_RUNTIME
+        : DEFAULT_THREAD_RUNTIME
+    )
+  );
+
+export type { ThreadRuntime } from "../core/chat/threadRuntime";
 
 export default useGlobalChatStore;
