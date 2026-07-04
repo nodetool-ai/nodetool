@@ -417,9 +417,15 @@ export class TaskPlanner {
     // agent loop (e.g. the Claude Agent SDK) work. Each plan tool carries its
     // own `execute` closure that mutates the shared builder and buffers the UI
     // events its result implies; the stream consumer below drains that buffer
-    // in order. `finish_plan` is `terminal`, so the loop ends after it runs.
-    // The AbortController only short-circuits the loop when a single task fails
-    // validation too many times (an early-stop that is not a terminal tool).
+    // in order.
+    //
+    // `finish_plan` is only *conditionally* terminal: on a valid plan it
+    // commits and aborts the loop; on a validation failure it returns the
+    // errors as the tool result and does NOT abort, so the model iterates and
+    // fixes the plan within the call budget. The static `terminal` flag can't
+    // express that, so the AbortController stops the loop on a successful
+    // finish. It also short-circuits when a single task fails validation too
+    // many times (an early-stop that is not a terminal tool).
     const abort = new AbortController();
     const uiEvents: ProcessingMessage[] = [];
     let finished = false;
@@ -516,6 +522,7 @@ export class TaskPlanner {
           content: `Plan created: ${plan.title} (${plan.tasks.length} tasks, ${totalSteps} steps, ${independent} parallelizable)`
         } satisfies PlanningUpdate);
         finished = true;
+        abort.abort();
       } else if (status === "validation_failed") {
         const errors = (result["errors"] as string[]) ?? [];
         uiEvents.push({
@@ -533,8 +540,7 @@ export class TaskPlanner {
       { ...removeTaskTool.toProviderTool(), execute: removeTaskExecute },
       {
         ...finishPlanTool.toProviderTool(),
-        execute: finishPlanExecute,
-        terminal: true
+        execute: finishPlanExecute
       }
     ];
 

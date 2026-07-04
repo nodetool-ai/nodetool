@@ -67,6 +67,8 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   extract_pdf_text: "read",
   extract_pdf_tables: "read",
   convert_pdf_to_markdown: "read",
+  view_image: "read",
+  list_images: "read",
   // --- read: nodetool inspection (REST + local) ---
   list_workflows: "read",
   get_workflow: "read",
