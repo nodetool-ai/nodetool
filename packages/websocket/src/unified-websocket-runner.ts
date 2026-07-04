@@ -3650,7 +3650,8 @@ export class UnifiedWebSocketRunner {
         let bodyMsg: string | null = null;
         try {
           if ("body" in err || "response" in err) {
-            const body = (err as any).body ?? (err as any).response;
+            const errObj = err as Record<string, unknown>;
+            const body = errObj.body ?? errObj.response;
             if (body && typeof body === "object" && "error" in body) {
               const errorDetail = body.error;
               if (

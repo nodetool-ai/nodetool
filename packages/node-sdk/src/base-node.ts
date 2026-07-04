@@ -314,18 +314,18 @@ export abstract class BaseNode {
         properties[name] !== undefined
       ) {
         // Explicit value provided — use it (auto-wrap scalars into list[T]).
-        (this as any)[name] = coerceToDeclaredType(
+        (this as Record<string, unknown>)[name] = coerceToDeclaredType(
           properties[name],
           options.type
         );
       } else if (
-        (this as any)[name] === undefined &&
+        (this as Record<string, unknown>)[name] === undefined &&
         Object.prototype.hasOwnProperty.call(options, "default")
       ) {
         // No value on instance yet and a default exists — apply it.
         // Deep-copy mutable defaults so instances don't share references.
         const def = options.default;
-        (this as any)[name] =
+        (this as Record<string, unknown>)[name] =
           // Stryker disable next-line ConditionalExpression,LogicalOperator: the guard only matters for object defaults (covered by the deep-copy test); for scalars the JSON round-trip is identity, so every variant still deep-copies objects and passes scalars through (equivalent).
           def !== null && typeof def === "object"
             ? JSON.parse(JSON.stringify(def))
@@ -355,7 +355,7 @@ export abstract class BaseNode {
     const result: Record<string, unknown> = {};
 
     for (const { name } of ctor.getDeclaredProperties()) {
-      result[name] = (this as any)[name];
+      result[name] = (this as Record<string, unknown>)[name];
     }
 
     // Include dynamic properties so round-trip serialization is lossless
