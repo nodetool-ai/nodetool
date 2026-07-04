@@ -60,7 +60,7 @@ const sectionContentStyles = (theme: Theme) =>
     display: "flex",
     flexDirection: "column",
     gap: 2,
-    padding: theme.spacing(1, 0, 3)
+    padding: theme.spacing(0.5, 0, 2)
   });
 
 const inspectorPanelSx = {
@@ -304,6 +304,7 @@ export const TimelineInspector: React.FC = memo(() => {
             <InspectorPillInput
               value={(clip.durationMs / 1000).toFixed(2)}
               unit="s"
+              scrub={{ step: 0.02, min: 0.01 }}
               onCommit={(raw) => {
                 const ms = parseSeconds(raw);
                 if (ms == null || ms < 1) return;
@@ -316,6 +317,7 @@ export const TimelineInspector: React.FC = memo(() => {
             <InspectorPillInput
               value={(clip.speedMultiplier ?? 1).toFixed(2)}
               unit="×"
+              scrub={{ step: 0.01, min: 0.1, max: 8 }}
               onCommit={(raw) =>
                 onPatchNumber("speedMultiplier", raw, 0.1, 8)
               }
