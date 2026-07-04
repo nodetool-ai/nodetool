@@ -526,12 +526,16 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     };
   }, [props.id]);
   const edges = useNodes(nodeEdgesSelector);
-  const updateNodeProperties = useNodes((s) => s.updateNodeProperties);
-  const updateNodeData = useNodes((s) => s.updateNodeData);
-  const updateEdgeHandle = useNodes((s) => s.updateEdgeHandle);
-  const updateEdge = useNodes((s) => s.updateEdge);
-  const deleteEdges = useNodes((s) => s.deleteEdges);
-  const findNode = useNodes((s) => s.findNode);
+  const { updateNodeProperties, updateNodeData, updateEdgeHandle, updateEdge, deleteEdges, findNode } = useNodes(
+    useShallow((s) => ({
+      updateNodeProperties: s.updateNodeProperties,
+      updateNodeData: s.updateNodeData,
+      updateEdgeHandle: s.updateEdgeHandle,
+      updateEdge: s.updateEdge,
+      deleteEdges: s.deleteEdges,
+      findNode: s.findNode
+    }))
+  );
 
   const sketchRefId = useMemo(
     () => getSketchRefId(props.data.properties?.value),
