@@ -4,6 +4,7 @@ import { BaseProvider, splitToolResultImages } from "./base-provider.js";
 import { OpenAIProvider } from "./openai-provider.js";
 import { hashSystemPrompt } from "./provider-session.js";
 import {
+  extractResponsesImages,
   extractResponsesText,
   extractResponsesToolCalls,
   isRecord,
@@ -16,10 +17,12 @@ import {
 import {
   isProviderMessageEvent,
   isProviderSessionUpdate,
+  IMAGE_GENERATION_TOOL_NAME,
   WEB_SEARCH_TOOL_NAME,
   type LanguageModel,
   type Message,
   type MessageContent,
+  type MessageImageContent,
   type ProviderSession,
   type ProviderStreamItem,
   type ProviderTool,
@@ -30,6 +33,10 @@ const log = createLogger("nodetool.runtime.providers.openai-responses");
 
 const RESPONSE_WEB_SEARCH_TOOL: Record<string, unknown> = {
   type: "web_search"
+};
+
+const RESPONSE_IMAGE_GENERATION_TOOL: Record<string, unknown> = {
+  type: "image_generation"
 };
 
 const OPENAI_RESPONSES_FALLBACK_MODELS: LanguageModel[] = [
@@ -69,6 +76,7 @@ type ResponsesCreate = (
 
 interface StreamTurnState {
   assistantText: string;
+  images: MessageImageContent[];
   pending: ToolCall[];
   responseId: string | null;
   emittedContent: boolean;
@@ -92,6 +100,38 @@ function systemPrompt(messages: Message[]): string {
     .join("\n\n");
 }
 
+/**
+ * A native image_generation result surfaced by the stream parser as an image
+ * chunk. Returns the content block to attach to the assistant message, or
+ * null for any other stream item. The multi-megabyte base64 blob must be
+ * absorbed here, never yielded onward as a chunk.
+ */
+function imageContentFromChunk(item: unknown): MessageImageContent | null {
+  if (
+    !isRecord(item) ||
+    item.type !== "chunk" ||
+    item.content_type !== "image" ||
+    typeof item.content !== "string"
+  ) {
+    return null;
+  }
+  const metadata = isRecord(item.content_metadata) ? item.content_metadata : {};
+  const mimeType =
+    typeof metadata.mimeType === "string" ? metadata.mimeType : "image/png";
+  return { type: "image_url", image: { data: item.content, mimeType } };
+}
+
+/** Text block (when non-empty) followed by generated-image blocks. */
+function assistantContentWithImages(
+  text: string,
+  images: MessageImageContent[]
+): MessageContent[] {
+  const blocks: MessageContent[] = [];
+  if (text) blocks.push({ type: "text", text });
+  blocks.push(...images);
+  return blocks;
+}
+
 export class OpenAIResponsesProvider extends OpenAIProvider {
   static override requiredSecrets(): string[] {
     return ["OPENAI_API_KEY"];
@@ -108,6 +148,10 @@ export class OpenAIResponsesProvider extends OpenAIProvider {
   }
 
   override get supportsNativeWebSearch(): boolean {
+    return true;
+  }
+
+  override get supportsNativeImageGeneration(): boolean {
     return true;
   }
 
@@ -131,6 +175,10 @@ export class OpenAIResponsesProvider extends OpenAIProvider {
     for (const tool of tools) {
       if (tool.name === WEB_SEARCH_TOOL_NAME) {
         formatted.push(RESPONSE_WEB_SEARCH_TOOL);
+        continue;
+      }
+      if (tool.name === IMAGE_GENERATION_TOOL_NAME) {
+        formatted.push(RESPONSE_IMAGE_GENERATION_TOOL);
         continue;
       }
       const [functionTool] = responseTools([tool]);
@@ -167,10 +215,15 @@ export class OpenAIResponsesProvider extends OpenAIProvider {
       response.output,
       this.buildToolCall.bind(this)
     );
+    const images = extractResponsesImages(response.output);
+    const content: string | MessageContent[] | null =
+      images.length > 0
+        ? assistantContentWithImages(outputText, images)
+        : outputText || null;
 
     return {
       role: "assistant",
-      content: outputText || null,
+      content,
       toolCalls: toolCalls.length > 0 ? toolCalls : undefined
     };
   }
@@ -186,7 +239,36 @@ export class OpenAIResponsesProvider extends OpenAIProvider {
       stream: true,
       store: false
     });
-    yield* this.streamResponsesRequest(args, request);
+    // Absorb native image results here too — this non-loop path must uphold
+    // the same invariant as collectModelTurn: the base64 blob never leaks
+    // outward as a chunk. The image rides a trailing assistant message event.
+    const images: MessageImageContent[] = [];
+    let assistantText = "";
+    for await (const item of this.streamResponsesRequest(args, request)) {
+      const image = imageContentFromChunk(item);
+      if (image) {
+        images.push(image);
+        continue;
+      }
+      if (
+        isRecord(item) &&
+        item.type === "chunk" &&
+        typeof item.content === "string" &&
+        !item.thinking
+      ) {
+        assistantText += item.content;
+      }
+      yield item;
+    }
+    if (images.length > 0) {
+      yield {
+        type: "message",
+        message: {
+          role: "assistant",
+          content: assistantContentWithImages(assistantText, images)
+        }
+      };
+    }
   }
 
   override async *generateLoop(
@@ -278,7 +360,8 @@ export class OpenAIResponsesProvider extends OpenAIProvider {
     if (tools.length > 0) {
       request.tools = tools;
       request.tool_choice =
-        args.toolChoice === WEB_SEARCH_TOOL_NAME
+        args.toolChoice === WEB_SEARCH_TOOL_NAME ||
+        args.toolChoice === IMAGE_GENERATION_TOOL_NAME
           ? "auto"
           : responseToolChoice(args.toolChoice) ?? "auto";
     }
@@ -309,6 +392,7 @@ export class OpenAIResponsesProvider extends OpenAIProvider {
   private createTurnState(responseId: string | null): StreamTurnState {
     return {
       assistantText: "",
+      images: [],
       pending: [],
       responseId,
       emittedContent: false
@@ -346,9 +430,15 @@ export class OpenAIResponsesProvider extends OpenAIProvider {
       yield* this.collectModelTurn(config.args, request, config.systemHash, state);
 
       previousResponseId = state.responseId;
+      // Native image_generation results ride the assistant message as image
+      // content and don't affect pending-tool semantics.
+      const assistantContent: string | MessageContent[] | null =
+        state.images.length > 0
+          ? assistantContentWithImages(state.assistantText, state.images)
+          : state.assistantText || null;
       const assistantMsg: Message = {
         role: "assistant",
-        content: state.assistantText || null,
+        content: assistantContent,
         toolCalls: state.pending.length > 0 ? state.pending : null
       };
       yield { type: "message", message: assistantMsg };
@@ -465,6 +555,12 @@ export class OpenAIResponsesProvider extends OpenAIProvider {
         continue;
       }
       if (isRecord(item) && item.type === "chunk") {
+        const image = imageContentFromChunk(item);
+        if (image) {
+          state.images.push(image);
+          state.emittedContent = true;
+          continue;
+        }
         if (typeof item.content === "string" && !item.thinking) {
           state.assistantText += item.content;
           if (item.content) state.emittedContent = true;

@@ -206,6 +206,7 @@ export {
   TranscribeAudioTool,
   EmbedTextTool
 } from "./tools/media-tools.js";
+export { ImageGenerationTool } from "./tools/image-generation-tool.js";
 export {
   persistOutput,
   workspaceDir as workspaceDirFromContext,

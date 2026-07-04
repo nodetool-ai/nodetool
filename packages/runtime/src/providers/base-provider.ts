@@ -248,6 +248,18 @@ export abstract class BaseProvider {
     return false;
   }
 
+  /**
+   * Whether this provider has a built-in, server-side image generator (e.g.
+   * the OpenAI Responses `image_generation` tool). When `true`, a tool named
+   * {@link IMAGE_GENERATION_TOOL_NAME} is rendered as the provider's native
+   * tool — its result arrives as image content on the assistant message, not
+   * as a function-call round-trip. Default `false` (use the fallback function
+   * tool).
+   */
+  get supportsNativeImageGeneration(): boolean {
+    return false;
+  }
+
   setMessageEmitter(fn: (msg: unknown) => void): void {
     this._emitMessage = fn;
   }

@@ -1008,6 +1008,11 @@ with the \`ToolSearch\` tool.
 
 # Image and media
 When tools return media URLs, embed them as markdown image / link tags.
+Image URIs often use the \`asset://<id>.<ext>\` scheme (e.g.
+\`asset://b7953a3877e2437bbc1bc51792fcd222.png\`) — embed these verbatim as
+markdown images: \`![](asset://<id>.<ext>)\`. The chat UI resolves \`asset://\`
+to a fetchable URL and renders the image inline; do not rewrite it to an HTTP
+URL or wrap it in a code block.
 
 # File types
 References to documents, images, videos, or audio files have the shape:
@@ -2624,6 +2629,77 @@ export class UnifiedWebSocketRunner {
   }
 
   /**
+   * Persist raw image bytes carried on an assistant message (native providers
+   * that run a server-side image tool emit them inline) as real assets, and
+   * rewrite each such block to the wire shape `{ type: "image_url", image: {
+   * type: "image", asset_id, mimeType } }`. Blocks that already reference an
+   * asset (uri / asset_id, no raw data) and non-image blocks pass through
+   * untouched. Raw base64 is never persisted or sent.
+   */
+  private async materializeAssistantImageContent(
+    content: MessageContent[],
+    userId: string,
+    workflowId: string | null
+  ): Promise<Array<Record<string, unknown>>> {
+    const out: Array<Record<string, unknown>> = [];
+    for (const block of content) {
+      if (block.type !== "image_url") {
+        out.push(block as unknown as Record<string, unknown>);
+        continue;
+      }
+      const image = block.image;
+      const rawData = image.data;
+      let bytes: Uint8Array | null = null;
+      if (rawData instanceof Uint8Array) {
+        bytes = rawData;
+      } else if (typeof rawData === "string" && rawData) {
+        bytes = new Uint8Array(Buffer.from(rawData, "base64"));
+      }
+      if (!bytes) {
+        // Already an asset/uri reference (or empty) — leave as-is.
+        out.push(block as unknown as Record<string, unknown>);
+        continue;
+      }
+      const mimeType =
+        typeof image.mimeType === "string" ? image.mimeType : "image/png";
+      const ext = IMAGE_MIME_TO_EXT[mimeType] ?? "png";
+      // Per-block isolation: a storage failure must not abort the whole turn —
+      // the image is already generated (and billed), and the assistant text
+      // plus any sibling images should still reach the user. Degrade the
+      // failed block to a text notice; never fall back to raw base64.
+      try {
+        const asset = new Asset({
+          user_id: userId,
+          workflow_id: workflowId ?? null,
+          name: `image_${Date.now()}`,
+          content_type: mimeType,
+          parent_id: null
+        });
+        const fileName = `${asset.id}.${ext}`;
+        await storeAssetWithThumbnail(asset.id, fileName, bytes, mimeType);
+        asset.size = bytes.length;
+        await asset.save();
+        // The DB / wire shape mirrors handleMediaGenerationMessage: an asset_id
+        // reference (never raw bytes). resolveContentUrls / resolveContentForProvider
+        // dereference asset_id on the way out and on the next turn.
+        out.push({
+          type: "image_url",
+          image: { type: "image", asset_id: asset.id, mimeType }
+        });
+      } catch (err) {
+        log.error("Failed to store generated image as asset", {
+          error: err instanceof Error ? err.message : String(err)
+        });
+        out.push({
+          type: "text",
+          text: "[a generated image could not be saved]"
+        });
+      }
+    }
+    return out;
+  }
+
+  /**
    * Recursively process tool results, handling asset-like objects.
    * Mirrors Python's RegularChatProcessor._process_tool_result().
    *
@@ -3263,11 +3339,18 @@ export class UnifiedWebSocketRunner {
         this.runSingleNode(nodeType, inputs, userId, threadId)
       )
     ];
+    // When the active provider generates images natively (OpenAI Responses
+    // `image_generation` tool), drop the redundant provider-specific
+    // `openai_image_generation` tool — the native `image_generation` covers it
+    // and avoids offering two overlapping image tools.
+    const dropOpenAIImageTool = provider.supportsNativeImageGeneration;
     // De-duplicate by name (builtins / mcp / extras may overlap); first wins.
     const dedupedToolbelt: Tool[] = [];
     const seenToolNames = new Set<string>();
     for (const tool of rawToolbelt) {
       if (seenToolNames.has(tool.name)) continue;
+      if (dropOpenAIImageTool && tool.name === "openai_image_generation")
+        continue;
       seenToolNames.add(tool.name);
       dedupedToolbelt.push(tool);
     }
@@ -3624,7 +3707,27 @@ export class UnifiedWebSocketRunner {
         if (isProviderMessageEvent(item)) {
           const m = item.message;
           if (m.role === "assistant") {
-            if (typeof m.content === "string") content = m.content;
+            // Content may be a plain string or a MessageContent[] carrying
+            // native-image blocks. Raw image bytes are turned into real assets
+            // here so base64 never lands in the DB or on the wire.
+            let persistedContent: unknown = m.content ?? null;
+            if (typeof m.content === "string") {
+              content = m.content;
+            } else if (Array.isArray(m.content)) {
+              const materialized = await this.materializeAssistantImageContent(
+                m.content,
+                userId,
+                workflowId
+              );
+              persistedContent = materialized;
+              content = materialized
+                .filter(
+                  (c) =>
+                    c.type === "text" && typeof c.text === "string"
+                )
+                .map((c) => c.text as string)
+                .join("");
+            }
             const toolCalls = Array.isArray(m.toolCalls)
               ? m.toolCalls.map((tc) => ({
                   id: tc.id,
@@ -3636,7 +3739,7 @@ export class UnifiedWebSocketRunner {
             const assistantMsgData: Record<string, unknown> = {
               type: "message",
               role: "assistant",
-              content: m.content ?? null,
+              content: persistedContent,
               ...(toolCalls ? { tool_calls: toolCalls } : {}),
               thread_id: threadId,
               workflow_id: workflowId,
