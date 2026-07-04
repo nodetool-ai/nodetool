@@ -2,7 +2,15 @@
 
 Review of `packages/kernel/` (runner, actor, inbox, graph, io, correlation
 analysis, triggers, durable inbox) as of 2026-07-04. Findings are ordered by
-severity within each section. Line references are against the current source.
+severity within each section. Line references are against the source at the
+time of review (commit 21230c7).
+
+**Fix status (this PR):** findings #1, #2, #3, #4, #6, #9, #13, #16, #17 are
+fixed; #7, #11, #12 now emit warnings instead of failing silently (see the
+follow-up commits on this branch). Still open, pending a design decision:
+#5 (control-response attribution needs an event id echoed through the
+actor), #8 (`RunResult.outputs` accumulation semantics), #10 (backpressure
+defaults), #14, #15, and the smaller issues.
 
 ## Bugs
 
