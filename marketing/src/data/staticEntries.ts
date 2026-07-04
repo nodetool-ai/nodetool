@@ -14,9 +14,9 @@ import type { PageEntry } from "./types";
  */
 export const staticEntries: PageEntry[] = [
   { route: "/", title: "NodeTool", description: "The open creative AI workspace.", priority: 1.0, changeFrequency: "weekly", indexable: true },
-  { route: "/studio", title: "NodeTool Studio", description: "Run open-weight models locally.", priority: 0.9, changeFrequency: "weekly", indexable: true },
+  { route: "/studio", title: "NodeTool Studio", description: "Run open models on your own machine.", priority: 0.9, changeFrequency: "weekly", indexable: true },
   { route: "/cloud", title: "NodeTool Cloud", description: "Run NodeTool workflows in the cloud.", priority: 0.9, changeFrequency: "weekly", indexable: true },
-  { route: "/pricing", title: "Pricing", description: "Free Studio, BYOK, pay providers directly.", priority: 0.8, changeFrequency: "weekly", indexable: true },
+  { route: "/pricing", title: "Pricing", description: "Free Studio, your own keys, pay providers directly.", priority: 0.8, changeFrequency: "weekly", indexable: true },
   { route: "/agents", title: "AI Agents", description: "Build planning agents on a visual canvas.", priority: 0.8, changeFrequency: "monthly", indexable: true },
   { route: "/creatives", title: "For Creatives", description: "A node-based canvas for creative AI work.", priority: 0.8, changeFrequency: "monthly", indexable: true },
   { route: "/developers", title: "For Developers", description: "Wire every major model into one canvas.", priority: 0.8, changeFrequency: "monthly", indexable: true },

@@ -6,14 +6,14 @@ import JsonLd from "../../components/JsonLd";
 import { SmartDownloadButton } from "../SmartDownloadButton";
 
 export const metadata: Metadata = {
-  title: "Pricing — free Studio, BYOK, pay providers directly | NodeTool",
+  title: "Pricing — free Studio, your own keys, pay providers directly | NodeTool",
   description:
     "NodeTool Studio is free and open source. NodeTool Cloud is a subscription for managed hosting. In both, you bring your own API keys and pay providers their list prices — no credits, no markup.",
   alternates: { canonical: "/pricing" },
   openGraph: {
-    title: "NodeTool Pricing — free Studio, BYOK to every provider",
+    title: "NodeTool Pricing — free Studio, your own keys to every provider",
     description:
-      "Studio is free and open source. Cloud is managed hosting. Both are BYOK: pay providers directly at their list prices, no credits, no markup.",
+      "Studio is free and open source. Cloud is managed hosting. In both you bring your own keys: pay providers directly at their list prices, no credits, no markup.",
     url: "https://nodetool.ai/pricing",
     type: "website",
   },
@@ -33,7 +33,7 @@ const offers = {
   "@type": "Product",
   name: "NodeTool",
   description:
-    "The open creative AI workspace. Studio (desktop) is free; Cloud is a managed subscription. Both are BYOK.",
+    "The open creative AI workspace. Studio (desktop) is free; Cloud is a managed subscription. In both you bring your own API keys.",
   brand: { "@type": "Brand", name: "NodeTool" },
   offers: [
     {
@@ -41,14 +41,14 @@ const offers = {
       name: "NodeTool Studio",
       price: "0",
       priceCurrency: "USD",
-      description: "Free, open-source desktop app. BYOK to every provider.",
+      description: "Free, open-source desktop app. Bring your own keys to every provider.",
       url: "https://nodetool.ai/studio",
     },
     {
       "@type": "Offer",
       name: "NodeTool Cloud",
       description:
-        "Managed hosting subscription (currently in alpha). BYOK to every provider.",
+        "Managed hosting subscription (currently in alpha). Bring your own keys to every provider.",
       url: "https://nodetool.ai/cloud",
       availability: "https://schema.org/PreOrder",
     },
@@ -104,7 +104,7 @@ export default function PricingPage() {
             NodeTool Studio is free and open source. NodeTool Cloud is a
             subscription for managed hosting. In both editions you bring your own
             API keys and pay each provider their list price — no credits, no
-            markup, no curated roster.
+            markup, no locked-down model list.
           </p>
         </section>
 
@@ -114,7 +114,7 @@ export default function PricingPage() {
             {/* Studio */}
             <div className="relative flex flex-col rounded-2xl border border-slate-800/70 bg-slate-900/60 p-8 ring-1 ring-white/5 backdrop-blur-md">
               <h2 className="text-xl font-semibold text-white">NodeTool Studio</h2>
-              <p className="mt-1 text-sm text-slate-400">Desktop app · local-first</p>
+              <p className="mt-1 text-sm text-slate-400">Desktop app · runs on your machine</p>
               <div className="mt-6 flex items-baseline gap-2">
                 <span className="text-4xl font-bold text-white">Free</span>
                 <span className="text-sm text-slate-400">forever · AGPL-3.0</span>
@@ -123,7 +123,7 @@ export default function PricingPage() {
                 {[
                   "Runs on macOS, Windows, and Linux",
                   "Local models via Ollama, MLX, llama.cpp",
-                  "BYOK to every cloud provider",
+                  "Your own keys to every cloud provider",
                   "Your workflows and files stay on your machine",
                 ].map((f) => (
                   <li key={f} className="flex items-start gap-2">
@@ -153,13 +153,13 @@ export default function PricingPage() {
                 <span className="text-4xl font-bold text-white">Subscription</span>
               </div>
               <p className="mt-1 text-sm text-slate-400">
-                Managed hosting of the same open-source app. Pricing finalised at
-                general availability.
+                Managed hosting of the same open-source app. Pricing will be
+                set at full release.
               </p>
               <ul className="mt-6 space-y-3 text-sm text-slate-300">
                 {[
                   "Runs in your browser — no install, no GPU",
-                  "BYOK to every cloud provider",
+                  "Your own keys to every cloud provider",
                   "Same AGPL-3.0 codebase you can self-host",
                   "Pay providers directly at provider prices",
                 ].map((f) => (
@@ -220,8 +220,8 @@ export default function PricingPage() {
               You add your own API keys for the providers you use — FAL, KIE,
               OpenAI, Anthropic, Gemini, Replicate, and the rest. Model calls go
               to those providers and you pay them their published list prices.
-              NodeTool does not run inference on its own servers, does not issue
-              proprietary credits, and does not mark up model calls. Your
+              NodeTool does not run models on its own servers, does not issue
+              its own credits, and does not mark up model calls. Your
               Cloud subscription pays for hosting the workspace, nothing more.
             </p>
           </div>

@@ -8,12 +8,12 @@ import { SmartDownloadButton } from "../../SmartDownloadButton";
 export const metadata: Metadata = {
   title: "NodeTool vs Flowise — RAG chatbots plus native media generation",
   description:
-    "Flowise is the fastest drag-and-drop path to a LangChain-based RAG chatbot. NodeTool covers the same agent and retrieval ground, then adds native image, video, and music generation and editing tools on the same canvas — BYOK at provider prices, no hosted-credit tiers.",
+    "Flowise is the fastest drag-and-drop path to a LangChain-based RAG chatbot. NodeTool covers the same agent and retrieval ground, then adds native image, video, and music generation and editing tools on the same canvas — your own keys at provider prices, no hosted credit tiers.",
   alternates: { canonical: "/vs/flowise" },
   openGraph: {
     title: "NodeTool vs Flowise — RAG chatbots plus native media generation",
     description:
-      "Flowise builds RAG chatbots fast. NodeTool builds the chatbot and the image, video, and music pipeline around it — one canvas, BYOK.",
+      "Flowise builds RAG chatbots fast. NodeTool builds the chatbot and the image, video, and music workflow around it — one canvas, your own keys.",
     url: "https://nodetool.ai/vs/flowise",
     type: "website",
   },
@@ -50,7 +50,7 @@ const faq = {
       name: "Is Flowise open source?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Flowise is source-available under the Apache 2.0 license, with a hosted Flowise Cloud sold on usage-based credit tiers. NodeTool is open source under AGPL-3.0 and BYOK: you connect your own provider keys and pay providers directly at their list prices, with no credit markup on either self-hosted or NodeTool Cloud usage.",
+        text: "Flowise is source-available under the Apache 2.0 license, with a hosted Flowise Cloud sold on usage-based credit tiers. NodeTool is open source under AGPL-3.0: you connect your own provider keys and pay providers directly at their list prices, with no marked-up credits on either self-hosted or NodeTool Cloud usage.",
       },
     },
     {
@@ -66,7 +66,7 @@ const faq = {
       name: "When should I pick Flowise instead of NodeTool?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "When the job is strictly a LangChain-flavored chatbot or assistant over a document set, and you want the fastest drag-and-drop path to that specific shape. NodeTool is the better fit once the workflow also needs to produce image, video, or audio, or you want a desktop app with local-model support and BYOK pricing across everything, not just the LLM calls.",
+        text: "When the job is strictly a LangChain-flavored chatbot or assistant over a document set, and you want the fastest drag-and-drop path to that specific shape. NodeTool is the better fit once the workflow also needs to produce image, video, or audio, or you want a desktop app with local-model support and your own keys across everything, not just the LLM calls.",
       },
     },
   ],
@@ -102,7 +102,7 @@ const rows: { label: string; flowise: string | boolean; nodetool: string | boole
   {
     label: "Pricing model",
     flowise: "Usage-based credits (cloud)",
-    nodetool: "BYOK / provider prices",
+    nodetool: "Your own keys / provider prices",
   },
   { label: "Desktop app", flowise: false, nodetool: true },
 ];
@@ -145,7 +145,7 @@ export default function VsFlowisePage() {
             Flowise is the fastest drag-and-drop path to a LangChain RAG
             chatbot. NodeTool covers the same agent and retrieval ground, then
             adds native image, video, and music generation and editing tools
-            on the same canvas — open source under AGPL-3.0, BYOK at provider
+            on the same canvas — open source under AGPL-3.0, your own keys at provider
             prices, with a desktop app and local models.
           </p>
         </section>
@@ -185,7 +185,7 @@ export default function VsFlowisePage() {
                   "Agents, RAG, and native image/video/music generation",
                   "Built-in editing tools — masks, inpaint, relight, layers",
                   "Open source under AGPL-3.0, desktop app included",
-                  "BYOK at provider prices — no credits, no markup",
+                  "Your own keys at provider prices — no credits, no markup",
                 ].map((f) => (
                   <li key={f} className="flex items-start gap-2">
                     <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
