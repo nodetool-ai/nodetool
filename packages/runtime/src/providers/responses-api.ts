@@ -69,12 +69,41 @@ export async function messagesToResponsesInput(
     }
 
     if (message.role === "assistant") {
-      const text = stringifyContent(message.content);
-      if (text) {
+      const outputParts: Array<Record<string, unknown>> = [];
+      // The Responses input schema doesn't accept images in assistant output,
+      // so a previously generated image is re-presented as a user input_image
+      // after the assistant turn. Preserves multi-turn edit context on a fresh
+      // replay (no previous_response_id to resume from / expired session).
+      const trailingImages: Array<Record<string, unknown>> = [];
+      if (typeof message.content === "string") {
+        if (message.content) {
+          outputParts.push({ type: "output_text", text: message.content });
+        }
+      } else if (Array.isArray(message.content)) {
+        const textParts: string[] = [];
+        for (const part of message.content) {
+          if (part.type === "text") {
+            textParts.push(part.text);
+          } else if (part.type === "image_url") {
+            const converted = await responseInputContent(part, resolveUri);
+            if (converted) {
+              trailingImages.push({
+                type: "message",
+                role: "user",
+                content: [converted]
+              });
+            }
+          }
+        }
+        const text = textParts.join("");
+        if (text) outputParts.push({ type: "output_text", text });
+      }
+
+      if (outputParts.length > 0) {
         input.push({
           type: "message",
           role: "assistant",
-          content: [{ type: "output_text", text }]
+          content: outputParts
         });
       }
       for (const toolCall of message.toolCalls ?? []) {
@@ -86,6 +115,7 @@ export async function messagesToResponsesInput(
           arguments: JSON.stringify(toolCall.args ?? {})
         });
       }
+      for (const imageItem of trailingImages) input.push(imageItem);
       continue;
     }
 
@@ -158,6 +188,27 @@ export function extractResponsesToolCalls(
     );
   }
   return toolCalls;
+}
+
+export function extractResponsesImages(output: unknown): MessageImageContent[] {
+  if (!Array.isArray(output)) return [];
+  const images: MessageImageContent[] = [];
+  for (const item of output) {
+    if (
+      !isRecord(item) ||
+      item.type !== "image_generation_call" ||
+      typeof item.result !== "string"
+    ) {
+      continue;
+    }
+    const format =
+      typeof item.output_format === "string" ? item.output_format : "png";
+    images.push({
+      type: "image_url",
+      image: { data: item.result, mimeType: `image/${format}` }
+    });
+  }
+  return images;
 }
 
 export function responseUsage(response: Record<string, unknown>): UsageInfo {
@@ -253,6 +304,37 @@ export async function* streamResponsesEvents(
         String(event.name ?? current?.name ?? ""),
         argsText
       );
+      continue;
+    }
+
+    if (type === "response.output_item.done") {
+      // The `image_generation` tool is a server-side tool: the image arrives as
+      // a completed output item, with no function_call_output round trip, so it
+      // must never enter the pending tool-call set. Surface it as an image chunk.
+      const item = event.item;
+      if (
+        isRecord(item) &&
+        item.type === "image_generation_call" &&
+        typeof item.result === "string"
+      ) {
+        const format =
+          typeof item.output_format === "string" ? item.output_format : "png";
+        const chunk: Chunk = {
+          type: "chunk",
+          content: item.result,
+          content_type: "image",
+          content_metadata: {
+            mimeType: `image/${format}`,
+            itemId: typeof item.id === "string" ? item.id : undefined,
+            revisedPrompt:
+              typeof item.revised_prompt === "string"
+                ? item.revised_prompt
+                : undefined
+          },
+          done: false
+        };
+        yield chunk;
+      }
       continue;
     }
 

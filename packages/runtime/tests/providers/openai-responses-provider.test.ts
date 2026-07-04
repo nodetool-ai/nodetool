@@ -3,9 +3,16 @@ import { PROVIDER_IDS } from "@nodetool-ai/protocol";
 import type OpenAI from "openai";
 import { OpenAIProvider } from "../../src/providers/openai-provider.js";
 import { OpenAIResponsesProvider } from "../../src/providers/openai-responses-provider.js";
-import type {
-  Message,
-  ProviderStreamItem
+import {
+  extractResponsesImages,
+  messagesToResponsesInput
+} from "../../src/providers/responses-api.js";
+import {
+  IMAGE_GENERATION_TOOL_NAME,
+  type Message,
+  type MessageContent,
+  type MessageImageContent,
+  type ProviderStreamItem
 } from "../../src/providers/types.js";
 
 function makeAsyncIterable(
@@ -50,6 +57,10 @@ describe("OpenAIResponsesProvider", () => {
     expect(new OpenAIProvider({ OPENAI_API_KEY: "k" }).supportsNativeWebSearch).toBe(
       false
     );
+    expect(provider.supportsNativeImageGeneration).toBe(true);
+    expect(
+      new OpenAIProvider({ OPENAI_API_KEY: "k" }).supportsNativeImageGeneration
+    ).toBe(false);
     await expect(provider.hasToolSupport("o3-mini")).resolves.toBe(true);
     await expect(provider.hasToolSupport("text-embedding-3-small")).resolves.toBe(
       false
@@ -288,6 +299,116 @@ describe("OpenAIResponsesProvider", () => {
       "assistant",
       "tool",
       "assistant"
+    ]);
+  });
+
+  it("maps the image_generation tool to a hosted Responses tool", () => {
+    const provider = providerWithCreate(vi.fn());
+
+    expect(
+      provider.formatTools([{ name: IMAGE_GENERATION_TOOL_NAME }])
+    ).toEqual([{ type: "image_generation" }]);
+  });
+
+  it("surfaces a native image_generation_call as assistant image content", async () => {
+    const b64 = "aGVsbG8="; // "hello"
+    const create = vi.fn().mockResolvedValue(
+      makeAsyncIterable([
+        { type: "response.created", response: { id: "resp_img" } },
+        { type: "response.output_text.delta", delta: "Here you go" },
+        {
+          type: "response.output_item.done",
+          item: {
+            type: "image_generation_call",
+            id: "ig_1",
+            result: b64,
+            output_format: "webp",
+            revised_prompt: "a red fox"
+          }
+        },
+        { type: "response.completed", response: { id: "resp_img" } }
+      ])
+    );
+    const provider = providerWithCreate(create);
+
+    const items = await collect(
+      provider.generateLoop({
+        model: "gpt-5",
+        messages: [{ role: "user", content: "draw a fox" }],
+        tools: [{ name: IMAGE_GENERATION_TOOL_NAME }]
+      })
+    );
+
+    // Only one request — the server-side tool must not trigger a tool round.
+    expect(create).toHaveBeenCalledTimes(1);
+
+    const chunks = items.filter(
+      (item): item is Extract<ProviderStreamItem, { type: "chunk" }> =>
+        "type" in item && item.type === "chunk"
+    );
+    // The base64 blob must never leak into the outward chunk stream.
+    expect(chunks.every((c) => c.content !== b64)).toBe(true);
+    expect(chunks.some((c) => c.content === "Here you go")).toBe(true);
+
+    const messages = items.filter(
+      (item): item is Extract<ProviderStreamItem, { type: "message" }> =>
+        "type" in item && item.type === "message"
+    );
+    expect(messages).toHaveLength(1);
+    const content = messages[0].message.content as MessageContent[];
+    expect(content).toEqual([
+      { type: "text", text: "Here you go" },
+      { type: "image_url", image: { data: b64, mimeType: "image/webp" } }
+    ]);
+    expect(messages[0].message.toolCalls).toBeNull();
+  });
+
+  it("re-presents an assistant image as a user input_image in replay input", async () => {
+    const b64 = "aGVsbG8=";
+    const messages: Message[] = [
+      {
+        role: "assistant",
+        content: [
+          { type: "text", text: "here is your image" },
+          { type: "image_url", image: { data: b64, mimeType: "image/png" } }
+        ] as MessageContent[]
+      }
+    ];
+
+    const input = await messagesToResponsesInput(messages, async (uri) => uri);
+
+    expect(input).toEqual([
+      {
+        type: "message",
+        role: "assistant",
+        content: [{ type: "output_text", text: "here is your image" }]
+      },
+      {
+        type: "message",
+        role: "user",
+        content: [
+          { type: "input_image", image_url: `data:image/png;base64,${b64}` }
+        ]
+      }
+    ]);
+  });
+
+  it("extractResponsesImages pulls image_generation_call items", () => {
+    const b64 = "aGVsbG8=";
+    const images = extractResponsesImages([
+      { type: "message", content: [{ type: "output_text", text: "x" }] },
+      {
+        type: "image_generation_call",
+        id: "ig_1",
+        result: b64,
+        output_format: "jpeg"
+      },
+      { type: "image_generation_call", id: "ig_2", result: b64 }
+    ]);
+
+    expect(images).toEqual<MessageImageContent[]>([
+      { type: "image_url", image: { data: b64, mimeType: "image/jpeg" } },
+      { type: "image_url", image: { data: b64, mimeType: "image/png" } }
     ]);
   });
 });

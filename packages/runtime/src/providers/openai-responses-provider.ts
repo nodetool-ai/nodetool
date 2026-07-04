@@ -4,6 +4,7 @@ import { BaseProvider, splitToolResultImages } from "./base-provider.js";
 import { OpenAIProvider } from "./openai-provider.js";
 import { hashSystemPrompt } from "./provider-session.js";
 import {
+  extractResponsesImages,
   extractResponsesText,
   extractResponsesToolCalls,
   isRecord,
@@ -16,10 +17,12 @@ import {
 import {
   isProviderMessageEvent,
   isProviderSessionUpdate,
+  IMAGE_GENERATION_TOOL_NAME,
   WEB_SEARCH_TOOL_NAME,
   type LanguageModel,
   type Message,
   type MessageContent,
+  type MessageImageContent,
   type ProviderSession,
   type ProviderStreamItem,
   type ProviderTool,
@@ -30,6 +33,10 @@ const log = createLogger("nodetool.runtime.providers.openai-responses");
 
 const RESPONSE_WEB_SEARCH_TOOL: Record<string, unknown> = {
   type: "web_search"
+};
+
+const RESPONSE_IMAGE_GENERATION_TOOL: Record<string, unknown> = {
+  type: "image_generation"
 };
 
 const OPENAI_RESPONSES_FALLBACK_MODELS: LanguageModel[] = [
@@ -69,6 +76,7 @@ type ResponsesCreate = (
 
 interface StreamTurnState {
   assistantText: string;
+  images: MessageImageContent[];
   pending: ToolCall[];
   responseId: string | null;
   emittedContent: boolean;
@@ -111,6 +119,10 @@ export class OpenAIResponsesProvider extends OpenAIProvider {
     return true;
   }
 
+  override get supportsNativeImageGeneration(): boolean {
+    return true;
+  }
+
   override async hasToolSupport(model: string): Promise<boolean> {
     return isOpenAIResponsesModel(model);
   }
@@ -131,6 +143,10 @@ export class OpenAIResponsesProvider extends OpenAIProvider {
     for (const tool of tools) {
       if (tool.name === WEB_SEARCH_TOOL_NAME) {
         formatted.push(RESPONSE_WEB_SEARCH_TOOL);
+        continue;
+      }
+      if (tool.name === IMAGE_GENERATION_TOOL_NAME) {
+        formatted.push(RESPONSE_IMAGE_GENERATION_TOOL);
         continue;
       }
       const [functionTool] = responseTools([tool]);
@@ -167,10 +183,21 @@ export class OpenAIResponsesProvider extends OpenAIProvider {
       response.output,
       this.buildToolCall.bind(this)
     );
+    const images = extractResponsesImages(response.output);
+
+    let content: string | MessageContent[] | null;
+    if (images.length > 0) {
+      const blocks: MessageContent[] = [];
+      if (outputText) blocks.push({ type: "text", text: outputText });
+      blocks.push(...images);
+      content = blocks;
+    } else {
+      content = outputText || null;
+    }
 
     return {
       role: "assistant",
-      content: outputText || null,
+      content,
       toolCalls: toolCalls.length > 0 ? toolCalls : undefined
     };
   }
@@ -278,7 +305,8 @@ export class OpenAIResponsesProvider extends OpenAIProvider {
     if (tools.length > 0) {
       request.tools = tools;
       request.tool_choice =
-        args.toolChoice === WEB_SEARCH_TOOL_NAME
+        args.toolChoice === WEB_SEARCH_TOOL_NAME ||
+        args.toolChoice === IMAGE_GENERATION_TOOL_NAME
           ? "auto"
           : responseToolChoice(args.toolChoice) ?? "auto";
     }
@@ -309,6 +337,7 @@ export class OpenAIResponsesProvider extends OpenAIProvider {
   private createTurnState(responseId: string | null): StreamTurnState {
     return {
       assistantText: "",
+      images: [],
       pending: [],
       responseId,
       emittedContent: false
@@ -346,9 +375,23 @@ export class OpenAIResponsesProvider extends OpenAIProvider {
       yield* this.collectModelTurn(config.args, request, config.systemHash, state);
 
       previousResponseId = state.responseId;
+      // Native image_generation results ride the assistant message as image
+      // content (a multi-megabyte base64 blob must not hit the text stream) and
+      // don't affect pending-tool semantics.
+      let assistantContent: string | MessageContent[] | null;
+      if (state.images.length > 0) {
+        const blocks: MessageContent[] = [];
+        if (state.assistantText) {
+          blocks.push({ type: "text", text: state.assistantText });
+        }
+        blocks.push(...state.images);
+        assistantContent = blocks;
+      } else {
+        assistantContent = state.assistantText || null;
+      }
       const assistantMsg: Message = {
         role: "assistant",
-        content: state.assistantText || null,
+        content: assistantContent,
         toolCalls: state.pending.length > 0 ? state.pending : null
       };
       yield { type: "message", message: assistantMsg };
@@ -465,6 +508,23 @@ export class OpenAIResponsesProvider extends OpenAIProvider {
         continue;
       }
       if (isRecord(item) && item.type === "chunk") {
+        if (item.content_type === "image" && typeof item.content === "string") {
+          // Absorb the native image into the assistant message rather than
+          // leaking a base64 blob into the outward text-chunk stream.
+          const metadata = isRecord(item.content_metadata)
+            ? item.content_metadata
+            : {};
+          const mimeType =
+            typeof metadata.mimeType === "string"
+              ? metadata.mimeType
+              : "image/png";
+          state.images.push({
+            type: "image_url",
+            image: { data: item.content, mimeType }
+          });
+          state.emittedContent = true;
+          continue;
+        }
         if (typeof item.content === "string" && !item.thinking) {
           state.assistantText += item.content;
           if (item.content) state.emittedContent = true;
