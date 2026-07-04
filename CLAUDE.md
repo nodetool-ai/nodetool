@@ -54,6 +54,13 @@ npm install          # Install all workspace dependencies
 npm run build:packages  # Build backend packages
 ```
 
+**Agents / dev containers:** where Node is already installed (Claude Code on the
+web, Codex, CI), run `bash scripts/agent-setup.sh` — it does the install + build
+above, skips work on a warm tree, and installs the one native-build dep
+(`libsecret-1-dev`). On Claude Code on the web it runs automatically via the
+`.claude/hooks/session-start.sh` SessionStart hook. See
+[docs/developer/agent-setup.md](docs/developer/agent-setup.md).
+
 ## Architecture
 
 ```

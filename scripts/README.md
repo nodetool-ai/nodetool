@@ -9,6 +9,36 @@ Utility scripts used during development and release.
 
 These scripts are typically executed manually by maintainers.
 
+## agent-setup.sh
+
+Fast, idempotent setup for coding agents and dev containers where Node.js is
+already installed (Claude Code on the web, Codex, CI sandboxes). Installs npm
+dependencies and builds the backend packages — the minimum before you can
+typecheck, lint, test, and run the dev servers. Skips the install on a warm tree,
+so re-runs cost seconds. Full guide: [docs/developer/agent-setup.md](../docs/developer/agent-setup.md).
+
+```bash
+bash scripts/agent-setup.sh
+# then: npm run check   (typecheck + lint + tests)
+
+FORCE_INSTALL=1 bash scripts/agent-setup.sh   # reinstall even if warm
+SKIP_BUILD=1    bash scripts/agent-setup.sh   # install deps only
+```
+
+On Claude Code on the web this runs automatically via `.claude/hooks/session-start.sh`.
+
+## setup-codex.sh
+
+Full bootstrap for a bare Linux container: installs apt build dependencies,
+ensures Node via nvm, installs all npm dependencies, optionally prepares the
+Python worker env, and compiles every workspace. Slower than `agent-setup.sh`;
+use it only when the base tools aren't already present.
+
+```bash
+bash scripts/setup-codex.sh
+SKIP_PYTHON=1 SKIP_BUILD=1 bash scripts/setup-codex.sh   # see script header for all flags
+```
+
 ## start-production.sh
 
 Starts the NodeTool API server in production using pm2 for process management (auto-restart, log rotation, memory limits).

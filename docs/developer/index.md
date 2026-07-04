@@ -38,6 +38,10 @@ Export a `register(registry)` function from your package and NodeTool discovers 
 
 ## Guides
 
+### Environment Setup
+
+- **[Fast Setup for Agents & Dev Containers](agent-setup.md)** -- One-command install + build for a fresh checkout, optimized for coding agents (Claude Code on the web, Codex, CI sandboxes). Covers the SessionStart hook, warm re-runs, and troubleshooting.
+
 ### Provider & Model Guides
 
 - **[Provider Guides](providers/index.md)** -- **Add models & nodes to any provider.** Per-provider runbooks (OpenAI, Anthropic, Gemini, xAI, FAL, Replicate, KIE, Together, AtlasCloud, Topaz, MiniMax, Reve, ElevenLabs, HuggingFace, Ollama, local inference, OpenAI-compatible) with exact files, commands, and how past PRs did it. Written for coding agents and contributors.

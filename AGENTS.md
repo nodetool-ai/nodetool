@@ -8,6 +8,7 @@ Guidelines for working with code in this repository. These are linter-like rules
 
 ## Quick Navigation
 
+- **[Fast Setup for Agents](docs/developer/agent-setup.md)** — One-command install + build for a fresh checkout (`bash scripts/agent-setup.sh`). Read this first on a new container.
 - **[Development Standards](docs/DEVELOPMENT_STANDARDS.md)** — **Canonical standards for the whole repo (MUST READ).**
 - **[Design System](docs/DESIGN.md)** — **Design token rules: SPACING, TYPOGRAPHY, BORDER_RADIUS, MOTION, Z_INDEX (MUST READ for any UI work).**
 - **[TypeScript Backend](packages/AGENTS.md)** — TypeScript backend packages (`packages/`)
