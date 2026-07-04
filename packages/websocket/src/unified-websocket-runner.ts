@@ -2658,24 +2658,38 @@ export class UnifiedWebSocketRunner {
       const mimeType =
         typeof image.mimeType === "string" ? image.mimeType : "image/png";
       const ext = IMAGE_MIME_TO_EXT[mimeType] ?? "png";
-      const asset = new Asset({
-        user_id: userId,
-        workflow_id: workflowId ?? null,
-        name: `image_${Date.now()}`,
-        content_type: mimeType,
-        parent_id: null
-      });
-      const fileName = `${asset.id}.${ext}`;
-      await storeAssetWithThumbnail(asset.id, fileName, bytes, mimeType);
-      asset.size = bytes.length;
-      await asset.save();
-      // The DB / wire shape mirrors handleMediaGenerationMessage: an asset_id
-      // reference (never raw bytes). resolveContentUrls / resolveContentForProvider
-      // dereference asset_id on the way out and on the next turn.
-      out.push({
-        type: "image_url",
-        image: { type: "image", asset_id: asset.id, mimeType }
-      });
+      // Per-block isolation: a storage failure must not abort the whole turn —
+      // the image is already generated (and billed), and the assistant text
+      // plus any sibling images should still reach the user. Degrade the
+      // failed block to a text notice; never fall back to raw base64.
+      try {
+        const asset = new Asset({
+          user_id: userId,
+          workflow_id: workflowId ?? null,
+          name: `image_${Date.now()}`,
+          content_type: mimeType,
+          parent_id: null
+        });
+        const fileName = `${asset.id}.${ext}`;
+        await storeAssetWithThumbnail(asset.id, fileName, bytes, mimeType);
+        asset.size = bytes.length;
+        await asset.save();
+        // The DB / wire shape mirrors handleMediaGenerationMessage: an asset_id
+        // reference (never raw bytes). resolveContentUrls / resolveContentForProvider
+        // dereference asset_id on the way out and on the next turn.
+        out.push({
+          type: "image_url",
+          image: { type: "image", asset_id: asset.id, mimeType }
+        });
+      } catch (err) {
+        log.error("Failed to store generated image as asset", {
+          error: err instanceof Error ? err.message : String(err)
+        });
+        out.push({
+          type: "text",
+          text: "[a generated image could not be saved]"
+        });
+      }
     }
     return out;
   }

@@ -393,6 +393,103 @@ describe("OpenAIResponsesProvider", () => {
     ]);
   });
 
+  it("keeps function_call/function_call_output adjacent when replaying an image+tool turn", async () => {
+    const b64 = "aGVsbG8=";
+    const messages: Message[] = [
+      {
+        role: "assistant",
+        content: [
+          { type: "text", text: "image and a lookup" },
+          { type: "image_url", image: { data: b64, mimeType: "image/png" } }
+        ] as MessageContent[],
+        toolCalls: [{ id: "call_1", name: "lookup", args: { q: "fox" } }]
+      },
+      { role: "tool", toolCallId: "call_1", content: "result" },
+      { role: "user", content: "make it blue" }
+    ];
+
+    const input = await messagesToResponsesInput(messages, async (uri) => uri);
+
+    // The re-presented image must NOT split the call/output pair; it flushes
+    // after the tool block, before the next user turn.
+    expect(input.map((item) => item.type ?? (item.role as string))).toEqual([
+      "message", // assistant text
+      "function_call",
+      "function_call_output",
+      "message", // re-presented user input_image
+      "user" // next user turn
+    ]);
+    expect(input[3]).toEqual({
+      type: "message",
+      role: "user",
+      content: [
+        { type: "input_image", image_url: `data:image/png;base64,${b64}` }
+      ]
+    });
+  });
+
+  it("re-presents a trailing assistant image even when history ends on a tool message", async () => {
+    const b64 = "aGVsbG8=";
+    const messages: Message[] = [
+      {
+        role: "assistant",
+        content: [
+          { type: "image_url", image: { data: b64, mimeType: "image/png" } }
+        ] as MessageContent[],
+        toolCalls: [{ id: "call_1", name: "lookup", args: {} }]
+      },
+      { role: "tool", toolCallId: "call_1", content: "result" }
+    ];
+
+    const input = await messagesToResponsesInput(messages, async (uri) => uri);
+
+    expect(input.map((item) => item.type)).toEqual([
+      "function_call",
+      "function_call_output",
+      "message"
+    ]);
+  });
+
+  it("absorbs native image chunks on the non-loop generateMessages path", async () => {
+    const b64 = "aGVsbG8=";
+    const create = vi.fn().mockResolvedValue(
+      makeAsyncIterable([
+        { type: "response.created", response: { id: "resp_img" } },
+        { type: "response.output_text.delta", delta: "Sure" },
+        {
+          type: "response.output_item.done",
+          item: { type: "image_generation_call", id: "ig_1", result: b64 }
+        },
+        { type: "response.completed", response: { id: "resp_img" } }
+      ])
+    );
+    const provider = providerWithCreate(create);
+
+    const items = await collect(
+      provider.generateMessages({
+        model: "gpt-5",
+        messages: [{ role: "user", content: "draw" }],
+        tools: [{ name: IMAGE_GENERATION_TOOL_NAME }]
+      })
+    );
+
+    const chunks = items.filter(
+      (item): item is Extract<ProviderStreamItem, { type: "chunk" }> =>
+        "type" in item && item.type === "chunk"
+    );
+    expect(chunks.every((c) => c.content !== b64)).toBe(true);
+
+    const messages = items.filter(
+      (item): item is Extract<ProviderStreamItem, { type: "message" }> =>
+        "type" in item && item.type === "message"
+    );
+    expect(messages).toHaveLength(1);
+    expect(messages[0].message.content).toEqual([
+      { type: "text", text: "Sure" },
+      { type: "image_url", image: { data: b64, mimeType: "image/png" } }
+    ]);
+  });
+
   it("extractResponsesImages pulls image_generation_call items", () => {
     const b64 = "aGVsbG8=";
     const images = extractResponsesImages([

@@ -100,6 +100,38 @@ function systemPrompt(messages: Message[]): string {
     .join("\n\n");
 }
 
+/**
+ * A native image_generation result surfaced by the stream parser as an image
+ * chunk. Returns the content block to attach to the assistant message, or
+ * null for any other stream item. The multi-megabyte base64 blob must be
+ * absorbed here, never yielded onward as a chunk.
+ */
+function imageContentFromChunk(item: unknown): MessageImageContent | null {
+  if (
+    !isRecord(item) ||
+    item.type !== "chunk" ||
+    item.content_type !== "image" ||
+    typeof item.content !== "string"
+  ) {
+    return null;
+  }
+  const metadata = isRecord(item.content_metadata) ? item.content_metadata : {};
+  const mimeType =
+    typeof metadata.mimeType === "string" ? metadata.mimeType : "image/png";
+  return { type: "image_url", image: { data: item.content, mimeType } };
+}
+
+/** Text block (when non-empty) followed by generated-image blocks. */
+function assistantContentWithImages(
+  text: string,
+  images: MessageImageContent[]
+): MessageContent[] {
+  const blocks: MessageContent[] = [];
+  if (text) blocks.push({ type: "text", text });
+  blocks.push(...images);
+  return blocks;
+}
+
 export class OpenAIResponsesProvider extends OpenAIProvider {
   static override requiredSecrets(): string[] {
     return ["OPENAI_API_KEY"];
@@ -184,16 +216,10 @@ export class OpenAIResponsesProvider extends OpenAIProvider {
       this.buildToolCall.bind(this)
     );
     const images = extractResponsesImages(response.output);
-
-    let content: string | MessageContent[] | null;
-    if (images.length > 0) {
-      const blocks: MessageContent[] = [];
-      if (outputText) blocks.push({ type: "text", text: outputText });
-      blocks.push(...images);
-      content = blocks;
-    } else {
-      content = outputText || null;
-    }
+    const content: string | MessageContent[] | null =
+      images.length > 0
+        ? assistantContentWithImages(outputText, images)
+        : outputText || null;
 
     return {
       role: "assistant",
@@ -213,7 +239,36 @@ export class OpenAIResponsesProvider extends OpenAIProvider {
       stream: true,
       store: false
     });
-    yield* this.streamResponsesRequest(args, request);
+    // Absorb native image results here too — this non-loop path must uphold
+    // the same invariant as collectModelTurn: the base64 blob never leaks
+    // outward as a chunk. The image rides a trailing assistant message event.
+    const images: MessageImageContent[] = [];
+    let assistantText = "";
+    for await (const item of this.streamResponsesRequest(args, request)) {
+      const image = imageContentFromChunk(item);
+      if (image) {
+        images.push(image);
+        continue;
+      }
+      if (
+        isRecord(item) &&
+        item.type === "chunk" &&
+        typeof item.content === "string" &&
+        !item.thinking
+      ) {
+        assistantText += item.content;
+      }
+      yield item;
+    }
+    if (images.length > 0) {
+      yield {
+        type: "message",
+        message: {
+          role: "assistant",
+          content: assistantContentWithImages(assistantText, images)
+        }
+      };
+    }
   }
 
   override async *generateLoop(
@@ -376,19 +431,11 @@ export class OpenAIResponsesProvider extends OpenAIProvider {
 
       previousResponseId = state.responseId;
       // Native image_generation results ride the assistant message as image
-      // content (a multi-megabyte base64 blob must not hit the text stream) and
-      // don't affect pending-tool semantics.
-      let assistantContent: string | MessageContent[] | null;
-      if (state.images.length > 0) {
-        const blocks: MessageContent[] = [];
-        if (state.assistantText) {
-          blocks.push({ type: "text", text: state.assistantText });
-        }
-        blocks.push(...state.images);
-        assistantContent = blocks;
-      } else {
-        assistantContent = state.assistantText || null;
-      }
+      // content and don't affect pending-tool semantics.
+      const assistantContent: string | MessageContent[] | null =
+        state.images.length > 0
+          ? assistantContentWithImages(state.assistantText, state.images)
+          : state.assistantText || null;
       const assistantMsg: Message = {
         role: "assistant",
         content: assistantContent,
@@ -508,20 +555,9 @@ export class OpenAIResponsesProvider extends OpenAIProvider {
         continue;
       }
       if (isRecord(item) && item.type === "chunk") {
-        if (item.content_type === "image" && typeof item.content === "string") {
-          // Absorb the native image into the assistant message rather than
-          // leaking a base64 blob into the outward text-chunk stream.
-          const metadata = isRecord(item.content_metadata)
-            ? item.content_metadata
-            : {};
-          const mimeType =
-            typeof metadata.mimeType === "string"
-              ? metadata.mimeType
-              : "image/png";
-          state.images.push({
-            type: "image_url",
-            image: { data: item.content, mimeType }
-          });
+        const image = imageContentFromChunk(item);
+        if (image) {
+          state.images.push(image);
           state.emittedContent = true;
           continue;
         }

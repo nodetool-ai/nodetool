@@ -57,8 +57,21 @@ export async function messagesToResponsesInput(
   resolveUri: (uri: string) => Promise<string>
 ): Promise<Array<Record<string, unknown>>> {
   const input: Array<Record<string, unknown>> = [];
+  // Images generated on a prior assistant turn, awaiting re-presentation. The
+  // Responses input schema doesn't accept images in assistant output, so each
+  // one is re-presented as a user input_image — but only AFTER the turn's tool
+  // block: a function_call and its function_call_output must stay adjacent,
+  // so the flush waits for the first non-tool message (or end of history).
+  // Preserves multi-turn edit context on a fresh replay (no
+  // previous_response_id to resume from / expired session).
+  let pendingImages: Array<Record<string, unknown>> = [];
 
   for (const message of messages) {
+    if (message.role !== "tool" && pendingImages.length > 0) {
+      input.push(...pendingImages);
+      pendingImages = [];
+    }
+
     if (message.role === "tool") {
       input.push({
         type: "function_call_output",
@@ -70,11 +83,6 @@ export async function messagesToResponsesInput(
 
     if (message.role === "assistant") {
       const outputParts: Array<Record<string, unknown>> = [];
-      // The Responses input schema doesn't accept images in assistant output,
-      // so a previously generated image is re-presented as a user input_image
-      // after the assistant turn. Preserves multi-turn edit context on a fresh
-      // replay (no previous_response_id to resume from / expired session).
-      const trailingImages: Array<Record<string, unknown>> = [];
       if (typeof message.content === "string") {
         if (message.content) {
           outputParts.push({ type: "output_text", text: message.content });
@@ -87,7 +95,7 @@ export async function messagesToResponsesInput(
           } else if (part.type === "image_url") {
             const converted = await responseInputContent(part, resolveUri);
             if (converted) {
-              trailingImages.push({
+              pendingImages.push({
                 type: "message",
                 role: "user",
                 content: [converted]
@@ -115,7 +123,6 @@ export async function messagesToResponsesInput(
           arguments: JSON.stringify(toolCall.args ?? {})
         });
       }
-      for (const imageItem of trailingImages) input.push(imageItem);
       continue;
     }
 
@@ -133,6 +140,7 @@ export async function messagesToResponsesInput(
     input.push({ role: message.role, content });
   }
 
+  input.push(...pendingImages);
   return input;
 }
 

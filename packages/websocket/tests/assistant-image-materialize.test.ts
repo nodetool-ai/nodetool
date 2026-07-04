@@ -96,6 +96,43 @@ describe("materializeAssistantImageContent", () => {
     expect(out).toEqual(content);
   });
 
+  it("isolates a storage failure to its block and keeps the rest of the turn", async () => {
+    const b64ok = Buffer.from([0x89, 0x50, 0x4e, 0x47]).toString("base64");
+    const b64bad = Buffer.from([0xff, 0xd8]).toString("base64");
+    storeMock
+      .mockRejectedValueOnce(new Error("disk full"))
+      .mockResolvedValueOnce(undefined);
+    const content: MessageContent[] = [
+      { type: "text", text: "two images" },
+      {
+        type: "image_url",
+        image: { type: "image", data: b64bad, mimeType: "image/jpeg" }
+      },
+      {
+        type: "image_url",
+        image: { type: "image", data: b64ok, mimeType: "image/png" }
+      }
+    ];
+
+    const out = await (
+      runner as unknown as MaterializeRunner
+    ).materializeAssistantImageContent(content, "user-9", "wf-1");
+
+    // The failed block degrades to a text notice; the sibling image and the
+    // assistant text still make it through, and no base64 leaks.
+    expect(out[0]).toEqual({ type: "text", text: "two images" });
+    expect(out[1]).toEqual({
+      type: "text",
+      text: "[a generated image could not be saved]"
+    });
+    expect(out[2]).toEqual({
+      type: "image_url",
+      image: { type: "image", asset_id: "asset-2", mimeType: "image/png" }
+    });
+    expect(JSON.stringify(out)).not.toContain(b64bad);
+    expect(JSON.stringify(out)).not.toContain(b64ok);
+  });
+
   it("decodes Uint8Array image data as well", async () => {
     const bytes = new Uint8Array([0xff, 0xd8, 0xff, 0xe0]);
     const content: MessageContent[] = [
