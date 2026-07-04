@@ -19,6 +19,7 @@ import {
 } from "../../stores/WorkspaceTabsStore";
 import { useWorkflowManager, useWorkflowManagerStore } from "../../contexts/WorkflowManagerContext";
 import { useAssetStore } from "../../stores/AssetStore";
+import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { trpcClient } from "../../trpc/client";
 import { colorForType } from "../../config/data_types";
 import { TOOLBAR_WIDTH } from "../../config/constants";
@@ -36,6 +37,7 @@ const SUPPORTS_BOTH_MODES: Record<WorkspaceTabType, boolean> = {
   model3d: true,
   text: true,
   audio: true,
+  chat: false,
   page: false
 };
 
@@ -44,7 +46,8 @@ const RENAMEABLE_TYPES = new Set<WorkspaceTabType>([
   "workflow",
   "sketch",
   "timeline",
-  "model3d"
+  "model3d",
+  "chat"
 ]);
 
 const TYPE_GLYPH: Record<WorkspaceTabType, string> = {
@@ -55,6 +58,7 @@ const TYPE_GLYPH: Record<WorkspaceTabType, string> = {
   model3d: "◈",
   audio: "♪",
   text: "¶",
+  chat: "❝",
   page: "☰"
 };
 
@@ -67,6 +71,7 @@ const TYPE_COLOR: Record<WorkspaceTabType, string> = {
   model3d: colorForType("model_3d"),
   audio: colorForType("audio"),
   text: colorForType("text"),
+  chat: colorForType("str"),
   page: colorForType("any")
 };
 
@@ -424,6 +429,11 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
             break;
           case "model3d":
             await useAssetStore.getState().update({ id: tab.ref, name: trimmed });
+            break;
+          case "chat":
+            await useGlobalChatStore
+              .getState()
+              .updateThreadTitle(tab.ref, trimmed);
             break;
           default:
             break;

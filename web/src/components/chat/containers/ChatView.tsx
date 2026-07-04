@@ -158,6 +158,12 @@ type ChatViewProps = {
    * so the title would not match. Defaults to off.
    */
   showConversationHeader?: boolean;
+  /**
+   * Bind thread-scoped store reads (todos) to this thread instead of the
+   * store's current one. Pass it when the surface renders a specific thread
+   * (e.g. a workspace chat tab) that may not be `currentThreadId`.
+   */
+  threadId?: string | null;
 };
 
 // Stable empty-array sentinel so the Zustand selector below returns the same
@@ -196,7 +202,8 @@ const ChatView = ({
   composerPlaceholder,
   hideModePicker,
   useExternalComposer = false,
-  showConversationHeader = false
+  showConversationHeader = false,
+  threadId
 }: ChatViewProps) => {
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
@@ -239,7 +246,7 @@ const ChatView = ({
   );
 
   const todos = useGlobalChatStore((state) => {
-    const id = state.currentThreadId;
+    const id = threadId ?? state.currentThreadId;
     return (id && state.todosByThread[id]) || NO_TODOS;
   });
   const showTodoSidebar = todos.length > 0;
