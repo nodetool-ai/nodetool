@@ -6,10 +6,11 @@
  * IMPORTANT: `expression` is model-supplied and must never reach a dynamic
  * code sink (`eval`, `new Function`, `with`, `vm`). This file implements a
  * small self-contained tokenizer and recursive-descent parser/evaluator that
- * only understands numeric literals, the four arithmetic operators, `**`,
- * parentheses, and a fixed whitelist of function/constant identifiers. Any
- * other identifier (e.g. `constructor`, `process`, `require`, `globalThis`)
- * is rejected as "unknown" rather than resolved through the prototype chain.
+ * only understands numeric literals, the arithmetic operators (`+ - * / %` and
+ * `**`), parentheses, comma-separated function arguments, and a fixed whitelist
+ * of function/constant identifiers. Any other identifier (e.g. `constructor`,
+ * `process`, `require`, `globalThis`) is rejected as "unknown" rather than
+ * resolved through the prototype chain.
  */
 
 import type { ProcessingContext } from "@nodetool-ai/runtime";
