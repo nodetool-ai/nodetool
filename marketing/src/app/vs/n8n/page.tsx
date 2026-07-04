@@ -8,12 +8,12 @@ import { SmartDownloadButton } from "../../SmartDownloadButton";
 export const metadata: Metadata = {
   title: "NodeTool vs n8n — when the workflow creates, not just connects",
   description:
-    "n8n moves data between hundreds of business apps. NodeTool is built for workflows where the AI work is the point: native image, video, and music generation, agents, and editing tools on one canvas — open source under AGPL-3.0 (not fair-code), BYOK at provider prices, with a desktop app and local models.",
+    "n8n moves data between hundreds of business apps. NodeTool is built for workflows where the AI work is the point: native image, video, and music generation, agents, and editing tools on one canvas — open source under AGPL-3.0 (not fair-code), your own keys at provider prices, with a desktop app and local models.",
   alternates: { canonical: "/vs/n8n" },
   openGraph: {
     title: "NodeTool vs n8n — when the workflow creates, not just connects",
     description:
-      "n8n connects apps. NodeTool generates — image, video, music, and agents on one canvas. Open source (AGPL-3.0), BYOK, desktop app, local models.",
+      "n8n connects apps. NodeTool generates — image, video, music, and agents on one canvas. Open source (AGPL-3.0), your own keys, desktop app, local models.",
     url: "https://nodetool.ai/vs/n8n",
     type: "website",
   },
@@ -66,7 +66,7 @@ const faq = {
       name: "When should I pick n8n instead of NodeTool?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "When the hard part of your workflow is business-app plumbing: hundreds of connectors, schedules, retries, and branching between SaaS tools. That is what n8n is built for. NodeTool is the better fit when the workflow's output is AI-generated media or agent work, and you want local models, BYOK provider pricing, and a desktop app.",
+        text: "When the hard part of your workflow is business-app plumbing: hundreds of connectors, schedules, retries, and branching between SaaS tools. That is what n8n is built for. NodeTool is the better fit when the workflow's output is AI-generated media or agent work, and you want local models, your own keys at provider prices, and a desktop app.",
       },
     },
   ],
@@ -102,7 +102,7 @@ const rows: { label: string; n8n: string | boolean; nodetool: string | boolean }
   {
     label: "Pricing model",
     n8n: "Per-execution plans (cloud)",
-    nodetool: "BYOK / provider prices",
+    nodetool: "Your own keys / provider prices",
   },
   { label: "Desktop app", n8n: false, nodetool: true },
 ];
@@ -146,7 +146,7 @@ export default function VsN8nPage() {
             retries, branching. NodeTool is built for workflows where the AI
             work is the point: native image, video, and music generation,
             agents, and editing tools on one canvas. Open source under
-            AGPL-3.0, BYOK at provider prices, with a desktop app and local
+            AGPL-3.0, your own keys at provider prices, with a desktop app and local
             models.
           </p>
         </section>
@@ -163,7 +163,7 @@ export default function VsN8nPage() {
               <ul className="mt-6 space-y-3 text-sm text-slate-300">
                 {[
                   "400+ integrations for business apps",
-                  "Orchestration: schedules, retries, branching",
+                  "Schedules, retries, branching",
                   "AI agent nodes built on LangChain",
                   "Fair-code: source-available, commercially restricted",
                 ].map((f) => (
@@ -186,7 +186,7 @@ export default function VsN8nPage() {
                   "Native image, video, and music generation nodes",
                   "Agents and RAG on the same canvas as generation",
                   "Open source under AGPL-3.0, desktop app included",
-                  "BYOK at provider prices — no credits, no markup",
+                  "Your own keys at provider prices — no credits, no markup",
                 ].map((f) => (
                   <li key={f} className="flex items-start gap-2">
                     <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />

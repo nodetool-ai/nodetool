@@ -219,7 +219,7 @@ export function ogImage(title: string, subtitle: string, opts: OgOptions = {}) {
           <div
             style={{ display: "flex", color: "#94a3b8", fontSize: 21, fontWeight: 500 }}
           >
-            Open source · BYOK · nodetool.ai
+            Open source · your own keys · nodetool.ai
           </div>
         </div>
 
