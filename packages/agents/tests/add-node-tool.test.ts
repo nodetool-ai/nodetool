@@ -182,12 +182,16 @@ describe("FinishGraphTool", () => {
     expect(tool.graph!.nodes).toHaveLength(2);
   });
 
-  it("returns validation errors for cycles", async () => {
+  it("rejects a cycle-forming edge at add time", async () => {
     const builder = new GraphBuilder();
     builder.addNode("a", "test.Node");
     builder.addNode("b", "test.Node");
-    builder.addEdge("a", "out", "b", "in");
-    builder.addEdge("b", "out", "a", "in");
+    expect(builder.addEdge("a", "out", "b", "in")).toHaveLength(0);
+
+    // The closing edge b→a is rejected here, so the cycle never enters the
+    // graph and finish_graph finalizes the acyclic remainder.
+    const cycleErrors = builder.addEdge("b", "out", "a", "in");
+    expect(cycleErrors.some((e) => e.includes("cycle"))).toBe(true);
 
     const tool = new FinishGraphTool(builder);
     const result = (await tool.process(
@@ -195,10 +199,7 @@ describe("FinishGraphTool", () => {
       {}
     )) as Record<string, unknown>;
 
-    expect(result.status).toBe("validation_failed");
-    expect((result.errors as string[]).some((e) => e.includes("cycle"))).toBe(
-      true
-    );
-    expect(tool.graph).toBeNull();
+    expect(result.status).toBe("graph_finalized");
+    expect(result.edges).toBe(1);
   });
 });
