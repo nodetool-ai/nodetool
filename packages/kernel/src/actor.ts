@@ -385,7 +385,27 @@ export class NodeActor {
         } else {
           // Legacy fallback: call process() once with the node's own
           // property values, matching the defaults merge every other
-          // execution path applies.
+          // execution path applies. process() reads no inbox data, so any
+          // value queued on a connected data handle is dropped. Surface that
+          // instead of completing silently: the node is misdeclared (registry
+          // says is_streaming_input, implementation has no run()). Downgraded
+          // to a warning rather than a hard error because existing fixtures
+          // rely on the fallback firing with connected inputs.
+          const droppedHandles = this.inbox
+            .handles()
+            .filter((h) => h !== "__control__");
+          if (droppedHandles.length > 0) {
+            const warning =
+              `streaming-input node ${this.node.type} has no run() ` +
+              `implementation but has connected inputs ` +
+              `(${droppedHandles.join(", ")}); data would be silently dropped`;
+            // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
+            log.warn(warning, {
+              nodeId: this.node.id,
+              type: this.node.type
+            });
+            this._emitNodeStatus("warning", undefined, warning);
+          }
           const outputs = await this._executor.process(
             {
               ...(this.node.properties ?? {}),
@@ -591,6 +611,10 @@ export class NodeActor {
     const maxBuckets = new Map<string, Map<string, MessageEnvelope[]>>();
     const prefixSticky = new Map<string, Map<string, MessageEnvelope>>();
     const emptySticky = new Map<string, MessageEnvelope>();
+    // Handles already warned about empty-scope overwrite (§11): warn once per
+    // handle per run so an unmigrated stream collapsing to last-value-wins is
+    // visible without flooding the log.
+    const emptyStickyWarned = new Set<string>();
     // Multi-edge list inputs accumulate every envelope instead of
     // overwriting; drained as an array when the node fires.
     const emptyListEnvelopes = new Map<string, MessageEnvelope[]>();
@@ -813,6 +837,17 @@ export class NodeActor {
         if (isListInput(handle)) {
           emptyListEnvelopes.get(handle)!.push(envelope);
         } else {
+          if (emptySticky.has(handle) && !emptyStickyWarned.has(handle)) {
+            emptyStickyWarned.add(handle);
+            // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
+            log.warn(
+              `Node "${this.node.id}" handle "${handle}" received multiple ` +
+                `values at empty scope; only the last is kept. Declare ` +
+                `output_correlation (chunk/iteration) on the upstream output ` +
+                `to preserve the stream.`,
+              { nodeId: this.node.id, handle }
+            );
+          }
           emptySticky.set(handle, envelope);
         }
         // Empty-scope arrival can unblock any pending max-scope key.
@@ -879,6 +914,36 @@ export class NodeActor {
         this._lastEnvelopes = envelopes;
         await this._executeWithInputs(values);
         fired.add("");
+      }
+    }
+
+    // Envelopes still stranded in actor-local buckets at close are invisible to
+    // the runner's post-run pending-inbox check (they were already popped). §12.
+    // With no repeating driver a key fires at most once, so a second max-scope
+    // envelope for an already-fired key is dropped silently; a key that never
+    // reached readiness keeps its envelopes too. Warn for both so the loss is
+    // not silent. Scheduling is unchanged.
+    for (const [handle, buckets] of maxBuckets) {
+      for (const [key, bucket] of buckets) {
+        if (bucket.length === 0) continue;
+        if (fired.has(key)) {
+          // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
+          log.warn(
+            `Node "${this.node.id}" dropped ${bucket.length} envelope(s) on ` +
+              `handle "${handle}" for key "${key}" already fired without a ` +
+              `repeating driver; declare output_correlation to fan out per ` +
+              `item.`,
+            { nodeId: this.node.id, handle, key, count: bucket.length }
+          );
+        } else {
+          // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
+          log.warn(
+            `Node "${this.node.id}" left ${bucket.length} envelope(s) on ` +
+              `handle "${handle}" for key "${key}" unfired at close; its ` +
+              `inputs never completed for this key.`,
+            { nodeId: this.node.id, handle, key, count: bucket.length }
+          );
+        }
       }
     }
   }
@@ -1352,22 +1417,46 @@ export class NodeActor {
       return;
     }
 
-    // Drain items until all data handles have at least one value.
-    // Control events that arrive first are held aside and re-queued after
-    // the wait: prepending them back while still iterating would make the
-    // very next tryPopAny() pop the same event again — an unbounded
-    // microtask spin that starves the event loop and blocks the upstream
-    // data put() forever.
+    // Drain items until every data handle has a value. A handle whose upstream
+    // sources have all closed with nothing buffered can never be satisfied, so
+    // drop it from `pending` and let the node's declared default apply —
+    // mirroring how `_runCorrelatedImpl` treats a closed empty-scope handle.
+    // Without this the wait blocks forever whenever an upstream completes
+    // without emitting on a data handle (filter/conditional output), stranding
+    // held control events and hanging any controller awaiting sendControlEvent.
+    //
+    // A close wakes the inbox's internal waiters but yields no envelope, so this
+    // is a manual loop over `tryPopAnyWithEnvelope()` + `waitForActivity()`
+    // rather than a for-await: the pruning below must re-run on a closure that
+    // arrives while blocked.
+    //
+    // Control events that arrive first are held aside and re-queued after the
+    // wait: prepending them back while still iterating would make the very next
+    // pop return the same event again — an unbounded microtask spin that
+    // starves the event loop and blocks the upstream data put() forever.
     const heldControlEvents: MessageEnvelope[] = [];
-    for await (const [handle, envelope] of this.inbox.iterAnyWithEnvelope()) {
-      if (handle === "__control__") {
-        heldControlEvents.push(envelope);
+    for (;;) {
+      for (const handle of [...pending]) {
+        if (!this.inbox.isOpen(handle) && !this.inbox.hasBuffered(handle)) {
+          pending.delete(handle);
+        }
+      }
+      if (pending.size === 0) break;
+
+      const popped = this.inbox.tryPopAnyWithEnvelope();
+      if (popped) {
+        const [handle, envelope] = popped;
+        if (handle === "__control__") {
+          heldControlEvents.push(envelope);
+          continue;
+        }
+        if (!this._cachedInputs) this._cachedInputs = {};
+        this._cachedInputs[handle] = envelope.data;
+        pending.delete(handle);
         continue;
       }
-      if (!this._cachedInputs) this._cachedInputs = {};
-      this._cachedInputs[handle] = envelope.data;
-      pending.delete(handle);
-      if (pending.size === 0) break;
+
+      await this.inbox.waitForActivity();
     }
     // Re-queue held control events at the front, preserving arrival order,
     // so iterInput("__control__") consumes them next.
