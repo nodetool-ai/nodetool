@@ -36,6 +36,7 @@ import {
   GoogleGroundedSearchTool,
   GoogleImageGenerationTool
 } from "./google-tools.js";
+import { ImageGenerationTool } from "./image-generation-tool.js";
 import {
   DataForSEOSearchTool,
   DataForSEONewsTool,
@@ -104,6 +105,7 @@ export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   DataForSEOImagesTool,
 
   // Generation
+  ImageGenerationTool,
   GoogleImageGenerationTool,
   OpenAIImageGenerationTool,
   OpenAITextToSpeechTool,
