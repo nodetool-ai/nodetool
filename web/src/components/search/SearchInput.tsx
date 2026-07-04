@@ -8,8 +8,8 @@ import BackspaceIcon from "@mui/icons-material/Backspace";
 import SearchIcon from "@mui/icons-material/Search";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { useDebouncedCallback } from "../../hooks/useDebouncedCallback";
-import { NodeMetadata } from "../../stores/ApiTypes";
 import { isMac } from "../../utils/platform";
+import type { NodeMetadata } from "../../stores/ApiTypes";
 
 const styles = (theme: Theme) =>
   css({
@@ -135,7 +135,6 @@ const SearchInput: React.FC<SearchInputProps> = ({
   maxWidth = "unset",
   debounceTime = 50,
   searchTerm: externalSearchTerm = "",
-  searchResults = [],
   width = 150
 }) => {
   const theme = useTheme();

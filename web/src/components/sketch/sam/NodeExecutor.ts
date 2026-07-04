@@ -4,8 +4,6 @@
 
 import {
   runInlineGraphJob,
-  type GraphNode,
-  type GraphEdge,
   type InlineGraph
 } from "../../../lib/workflow/runInlineGraphJob";
 

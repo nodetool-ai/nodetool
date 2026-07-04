@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useCallback, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { css } from "@emotion/react";
 import { useTheme, type Theme } from "@mui/material/styles";
 import ContentCutOutlinedIcon from "@mui/icons-material/ContentCutOutlined";
@@ -97,7 +96,6 @@ const clamp = (value: number, min: number, max: number) =>
 
 export const TimelineInspector: React.FC = memo(() => {
   const theme = useTheme();
-  const navigate = useNavigate();
 
   const selectedClipIds = useTimelineUIStore((s) => s.selectedClipIds);
   const clipId = selectedClipIds.size === 1 ? [...selectedClipIds][0] : null;
@@ -136,9 +134,6 @@ export const TimelineInspector: React.FC = memo(() => {
     },
     [clipId, patchClip]
   );
-
-  const isAudio = clip?.mediaType === "audio";
-  const isOverlay = track?.type === "overlay";
 
   // ── Header action handlers ──────────────────────────────────────────────
 
