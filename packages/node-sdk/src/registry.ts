@@ -371,25 +371,30 @@ export function hydrateGraphNodeFlags(
     const meta = cls ? undefined : registry.resolveMetadata(node.type);
     return {
       ...node,
+      // `??`, not `||`: a registered class always carries explicit booleans
+      // (BaseNode defaults them to false), so the registry corrects a stale
+      // saved `true` when a node type migrates away from streaming/control.
+      // OR let the saved value win forever. Saved flags apply only when the
+      // registry has no opinion (unknown type, or metadata omitting the flag).
       is_streaming_input:
-        (cls ? cls.isStreamingInput : meta?.is_streaming_input) ||
-        node.is_streaming_input ||
+        (cls ? cls.isStreamingInput : meta?.is_streaming_input) ??
+        node.is_streaming_input ??
         false,
       is_streaming_output:
-        (cls ? hasStreamingOutput(cls) : meta?.is_streaming_output) ||
-        node.is_streaming_output ||
+        (cls ? hasStreamingOutput(cls) : meta?.is_streaming_output) ??
+        node.is_streaming_output ??
         false,
       is_controlled:
-        (cls ? cls.isControlled : meta?.is_controlled) ||
-        node.is_controlled ||
+        (cls ? cls.isControlled : meta?.is_controlled) ??
+        node.is_controlled ??
         false,
       is_join_node:
-        (cls ? cls.isJoinNode : meta?.is_join_node) ||
-        node.is_join_node ||
+        (cls ? cls.isJoinNode : meta?.is_join_node) ??
+        node.is_join_node ??
         false,
       always_emit_output_updates:
-        (cls ? cls.alwaysEmitOutputUpdates : meta?.always_emit_output_updates) ||
-        node.always_emit_output_updates ||
+        (cls ? cls.alwaysEmitOutputUpdates : meta?.always_emit_output_updates) ??
+        node.always_emit_output_updates ??
         false,
       input_mode: (cls ? cls.inputMode : meta?.input_mode) ?? node.input_mode,
       output_correlation:
@@ -458,14 +463,19 @@ export function createGraphNodeTypeResolver(
         supportsDynamicInputs: metadata.supports_dynamic_inputs ?? false,
         descriptorDefaults: {
           name: metadata.title,
-          ...(metadata.is_streaming_input && { is_streaming_input: true }),
-          ...(metadata.is_streaming_output && { is_streaming_output: true }),
+          // Explicit booleans, never omitted: Graph.loadFromDict resolves each
+          // flag as `descriptorDefaults.flag ?? saved ?? false`, so an omitted
+          // false here would let a stale saved `true` survive a node type's
+          // migration away from streaming/control. Metadata is built from the
+          // class statics (BaseNode defaults false), so absent means false.
+          is_streaming_input: metadata.is_streaming_input ?? false,
+          is_streaming_output: metadata.is_streaming_output ?? false,
+          is_controlled: metadata.is_controlled ?? false,
+          is_join_node: metadata.is_join_node ?? false,
           ...(metadata.input_mode && { input_mode: metadata.input_mode }),
           ...(metadata.output_correlation && {
             output_correlation: metadata.output_correlation
           }),
-          ...(metadata.is_controlled && { is_controlled: true }),
-          ...(metadata.is_join_node && { is_join_node: true }),
           ...(metadata.always_emit_output_updates && {
             always_emit_output_updates: true
           }),
