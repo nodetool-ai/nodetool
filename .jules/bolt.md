@@ -40,3 +40,6 @@
 ## 2026-05-25 - O(N*M) lookup optimization in ModelPackCard
 **Learning:** Found an $O(N \times M)$ performance bottleneck in `web/src/components/hugging_face/ModelPackCard.tsx` where `Object.values(downloads).find(...)` was called inside `pack.models.filter(...)`. Since this runs in a useMemo on every render, it significantly degrades performance as the number of models and downloads grows.
 **Action:** Always extract the target search into a `Set` of IDs outside the array iteration to allow $O(1)$ lookups via `Set.has()`, reducing the complexity from $O(N \times M)$ to $O(N + M)$ and noticeably improving performance.
+## 2026-05-25 - O(N*M) lookup optimization in Timeline deleteSelected
+**Learning:** Found an $O(N \times M)$ performance bottleneck in `web/src/stores/timeline/TimelineStore.ts` inside `deleteSelected` where `clips.filter(c => c.linkId === linkId)` was called in a loop for each affected `linkId`. For large multi-clip selections across many linked groups, this caused an $O(N^2)$ algorithmic slowdown during the deletion process.
+**Action:** Replace nested array `.filter()` lookups with a single-pass loop over the array to compute a `Map<linkId, count>` tally. The tally is then used to un-link clips in a single $O(N)$ `.map()` pass, significantly reducing overall complexity.
