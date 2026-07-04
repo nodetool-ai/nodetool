@@ -203,7 +203,7 @@
       },
       {
         "id": "summary_output",
-        "type": "nodetool.output.StringOutput",
+        "type": "nodetool.output.Output",
         "data": {
           "name": "Summary"
         },

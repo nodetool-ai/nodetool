@@ -149,7 +149,7 @@
       },
       {
         "id": "findings_output",
-        "type": "nodetool.output.StringOutput",
+        "type": "nodetool.output.Output",
         "data": {
           "name": "Findings"
         },

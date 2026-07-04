@@ -359,7 +359,7 @@
       },
       {
         "id": "concept_art_output",
-        "type": "nodetool.output.ImageOutput",
+        "type": "nodetool.output.Output",
         "data": {
           "name": "Concept Art"
         },

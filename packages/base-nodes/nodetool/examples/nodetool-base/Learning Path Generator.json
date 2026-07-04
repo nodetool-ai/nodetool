@@ -234,7 +234,7 @@
       },
       {
         "id": "learning_path_output",
-        "type": "nodetool.output.StringOutput",
+        "type": "nodetool.output.Output",
         "data": {
           "name": "Learning Path"
         },
