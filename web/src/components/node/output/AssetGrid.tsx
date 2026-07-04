@@ -31,7 +31,7 @@ function extractStorageKey(uri: string | undefined): string | null {
 function useSignedImageSources(
   items: (AssetRef & { data?: Uint8Array; uri?: string })[]
 ): ImageSource[] {
-  const uriItems = items.filter((item) => item.uri);
+  const uriItems = React.useMemo(() => items.filter((item) => item.uri), [items]);
   const staleTime = 6 * 24 * 60 * 60 * 1000;
 
   const results = trpc.useQueries((t) =>
@@ -48,17 +48,21 @@ function useSignedImageSources(
     const map = new Map<object, number>();
     uriItems.forEach((item, i) => map.set(item, i));
     return map;
-  }, [items]);
+  }, [uriItems]);
 
-  return items
-    .map((item): ImageSource | undefined => {
-      if (item.uri) {
-        const idx = uriIndexMap.get(item) ?? -1;
-        return results[idx]?.data?.url ?? item.uri;
-      }
-      return item.data;
-    })
-    .filter((img): img is ImageSource => img !== undefined);
+  return React.useMemo(
+    () =>
+      items
+        .map((item): ImageSource | undefined => {
+          if (item.uri) {
+            const idx = uriIndexMap.get(item) ?? -1;
+            return results[idx]?.data?.url ?? item.uri;
+          }
+          return item.data;
+        })
+        .filter((img): img is ImageSource => img !== undefined),
+    [items, uriIndexMap, results]
+  );
 }
 
 export const AssetGrid: React.FC<Props> = ({ values, onOpenIndex, enableSelection = true }) => {

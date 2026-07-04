@@ -371,7 +371,7 @@ const EditCommands = memo(function EditCommands({
   const duplicateNodes = useDuplicateNodes();
   const duplicateNodesVertical = useDuplicateNodes(true);
   const selectedNodes = useNodes(
-    (state) => state.nodes.filter((node) => node.selected),
+    (state) => state.getSelectedNodes(),
     areNodesEqualIgnoringPosition
   );
   const surroundWithGroup = useSurroundWithGroup();
