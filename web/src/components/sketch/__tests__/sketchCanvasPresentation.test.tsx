@@ -6,9 +6,10 @@
  * info bar content, and resize handle rendering.
  */
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, act } from "@testing-library/react";
 import SketchCanvasPresentation from "../SketchCanvasPresentation";
 import type { SketchCanvasPresentationProps } from "../SketchCanvasPresentation";
+import { useSketchStore } from "../state";
 import { cursorStyleForTool } from "../sketchCursorStyle";
 import { canvasTransformStyle } from "../sketchCanvasPresentation.helpers";
 import { TransformTool } from "../tools/TransformTool";
@@ -64,7 +65,6 @@ function makeProps(
     containerCursor: cursorStyleForTool("brush"),
     bootstrapPhaseActive: false,
     backend: "canvas2d",
-    cursorDocPos: null,
     onPointerDown: jest.fn(),
     onPointerMove: jest.fn(),
     onPointerUp: jest.fn(),
@@ -162,15 +162,22 @@ describe("SketchCanvasPresentation", () => {
     expect(infoBar!.textContent).toContain("200%");
   });
 
-  it("shows cursor position when cursorDocPos is provided", () => {
-    const { container } = render(
-      <SketchCanvasPresentation
-        {...makeProps({ cursorDocPos: { x: 42, y: 17 } })}
-      />
-    );
-    const infoBar = container.querySelector(".sketch-canvas__info-bar");
-    expect(infoBar!.textContent).toContain("42");
-    expect(infoBar!.textContent).toContain("17");
+  it("shows cursor position when the store cursorDocPos is set", () => {
+    act(() => {
+      useSketchStore.setState({ cursorDocPos: { x: 42, y: 17 } });
+    });
+    try {
+      const { container } = render(
+        <SketchCanvasPresentation {...makeProps()} />
+      );
+      const infoBar = container.querySelector(".sketch-canvas__info-bar");
+      expect(infoBar!.textContent).toContain("42");
+      expect(infoBar!.textContent).toContain("17");
+    } finally {
+      act(() => {
+        useSketchStore.setState({ cursorDocPos: null });
+      });
+    }
   });
 
   it("does NOT render resize handles when onCanvasResize is not provided", () => {

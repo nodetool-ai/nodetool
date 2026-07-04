@@ -2,7 +2,6 @@ import { spawn } from "child_process";
 import { app } from "electron";
 import { logMessage } from "./logger";
 import {
-  getOptionalNodeModulesPath,
   getProcessEnv,
   getPythonPath,
   getCondaEnvPath,
@@ -209,15 +208,14 @@ export async function fetchAvailablePackages(): Promise<PackageListResponse> {
 
 function getNpmAvailablePackages(): PackageInfo[] {
   return (Object.entries(RUNTIME_PACKAGES) as [RuntimePackageId, typeof RUNTIME_PACKAGES[RuntimePackageId]][])
-    .filter(([, pkg]) => pkg instanceof NpmRuntimePackage)
-    .map(([id, pkg]) => {
-      const npmPkg = pkg as NpmRuntimePackage;
+    .filter((entry): entry is [RuntimePackageId, NpmRuntimePackage] => entry[1] instanceof NpmRuntimePackage)
+    .map(([id, npmPkg]) => {
       const firstSpec = npmPkg.npmPackages[0] || "";
       const at = firstSpec.lastIndexOf("@");
       const version = at > 0 ? firstSpec.slice(at + 1) : undefined;
       return {
-        name: pkg.name,
-        description: pkg.description,
+        name: npmPkg.name,
+        description: npmPkg.description,
         repo_id: id,
         version,
       };
@@ -764,7 +762,7 @@ export async function checkForPackageUpdates(): Promise<PackageUpdateInfo[]> {
 
     const updateChecks = installedPackages.map(async (pkg) => {
       // For npm runtime packages, compare installed version against pinned version
-      const runtimePkg = RUNTIME_PACKAGES[pkg.repo_id as RuntimePackageId];
+      const runtimePkg = isRuntimePackageId(pkg.repo_id) ? RUNTIME_PACKAGES[pkg.repo_id] : undefined;
       if (runtimePkg instanceof NpmRuntimePackage) {
         const firstSpec = runtimePkg.npmPackages[0] || "";
         const at = firstSpec.lastIndexOf("@");
@@ -1059,9 +1057,11 @@ export async function listInstalledPackages(): Promise<InstalledPackageListRespo
  */
 export async function installPackage(repoId: string): Promise<PackageResponse> {
   // Route npm runtime packages to the runtime installer
-  const runtimePkg = RUNTIME_PACKAGES[repoId as RuntimePackageId];
-  if (runtimePkg instanceof NpmRuntimePackage) {
-    return installRuntimePackage(repoId as RuntimePackageId);
+  if (isRuntimePackageId(repoId)) {
+    const runtimePkg = RUNTIME_PACKAGES[repoId];
+    if (runtimePkg instanceof NpmRuntimePackage) {
+      return installRuntimePackage(repoId);
+    }
   }
 
   try {
@@ -1127,9 +1127,11 @@ export async function installPackage(repoId: string): Promise<PackageResponse> {
 export async function uninstallPackage(
   repoId: string
 ): Promise<PackageResponse> {
-  const runtimePkg = RUNTIME_PACKAGES[repoId as RuntimePackageId];
-  if (runtimePkg instanceof NpmRuntimePackage) {
-    return uninstallRuntimePackage(repoId as RuntimePackageId);
+  if (isRuntimePackageId(repoId)) {
+    const runtimePkg = RUNTIME_PACKAGES[repoId];
+    if (runtimePkg instanceof NpmRuntimePackage) {
+      return uninstallRuntimePackage(repoId);
+    }
   }
 
   try {
@@ -1162,9 +1164,11 @@ export async function uninstallPackage(
  * Forces a true reinstall by clearing the uv cache and reinstalling the package
  */
 export async function updatePackage(repoId: string): Promise<PackageResponse> {
-  const runtimePkg = RUNTIME_PACKAGES[repoId as RuntimePackageId];
-  if (runtimePkg instanceof NpmRuntimePackage) {
-    return runLifecycleToCompletion(repoId as RuntimePackageId, "update");
+  if (isRuntimePackageId(repoId)) {
+    const runtimePkg = RUNTIME_PACKAGES[repoId];
+    if (runtimePkg instanceof NpmRuntimePackage) {
+      return runLifecycleToCompletion(repoId, "update");
+    }
   }
 
   try {
@@ -1391,20 +1395,13 @@ export function validateRepoId(repoId: string): {
 
 import type { RuntimePackageId, RuntimePackageStatus } from "./types.d";
 
+function isRuntimePackageId(id: string): id is RuntimePackageId {
+  return id in RUNTIME_PACKAGES;
+}
+
 /** All valid runtime package IDs — sourced from the runtime registry. */
 export const RUNTIME_PACKAGE_IDS: readonly RuntimePackageId[] =
   REGISTRY_RUNTIME_PACKAGE_IDS;
-
-// Track which runtime packages are currently being installed (delegated to registry).
-// Kept for backwards-compatible internal use; status is sourced from the registry.
-
-function getOptionalNodeRuntimeRoot(): string {
-  return path.dirname(getOptionalNodeModulesPath());
-}
-
-async function isOptionalNodePackageInstalled(packageName: string): Promise<boolean> {
-  return fileExists(path.join(getOptionalNodeModulesPath(), ...packageName.split("/"), "package.json"));
-}
 
 /**
  * Check the installation status of all runtime packages.
@@ -1481,7 +1478,3 @@ export async function uninstallRuntimePackage(
     return { success: false, message: `Failed to uninstall: ${errorMsg(error)}` };
   }
 }
-
-// Suppress "declared but unused" for helpers retained for tests.
-void getOptionalNodeRuntimeRoot;
-void isOptionalNodePackageInstalled;

@@ -29,15 +29,13 @@ permissions:
   contents: read
 
 jobs:
-  # One job per check, run in parallel. Each leg does only the setup it needs:
-  # lint/deps skip `build:packages`; only the package-test leg needs the CPU
-  # Vulkan driver; only typecheck/test-app need the mobile dependency tree.
-  # Wall-clock drops from sum(checks) to max(checks) + a trivial gate, and each
-  # leg surfaces its own status check (e.g. "Quality Gate (npm run check) / lint").
-  checks:
+  # Static checks that need no built packages. Kept independent of `build` so
+  # the fastest signals (lint, dependency guards) are not delayed behind the
+  # ~minutes-long package build. Each leg surfaces its own status check.
+  static:
     name: ${{ matrix.check }}
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 30
     strategy:
       fail-fast: ${{ inputs.fail-fast }}
       matrix:
@@ -46,33 +44,96 @@ jobs:
           # guards (run on source, no build).
           - check: deps
             command: node scripts/check-workspace-deps.mjs && node scripts/check-circular-deps.mjs && node scripts/check-key-boundaries.mjs && node scripts/check-coupled-deps.mjs
-            build-packages: "false"
-            mobile-deps: "false"
-            extra-apt: ""
-            is-test: "false"
-            fetch-depth: "1"
+          # oxlint + web design-token lint. Neither needs package dist.
+          - check: lint
+            command: npm run lint
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Set up Node, install deps
+        uses: ./.github/actions/setup-build
+        with:
+          build-packages: "false"
+
+      - name: Run npm audit (advisory)
+        # Advisory only (continue-on-error) so a pre-existing vulnerability
+        # backlog doesn't block every PR, but high/critical issues in the
+        # production dependency closure are surfaced in the job summary.
+        if: matrix.check == 'deps'
+        continue-on-error: true
+        run: |
+          echo "::group::npm audit (production deps, high+)"
+          echo "## npm audit (production deps, high and critical)" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          npm audit --omit=dev --audit-level=high 2>&1 | tee -a $GITHUB_STEP_SUMMARY || true
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "::endgroup::"
+
+      - name: Run ${{ matrix.check }}
+        run: |
+          echo "::group::${{ matrix.check }}"
+          ${{ matrix.command }}
+          echo "::endgroup::"
+
+  # Build the ~55 backend packages ONCE and publish their dist as an artifact.
+  # The `built` legs below consume it instead of each rebuilding from scratch,
+  # which on a fresh commit (cold per-SHA Turbo cache) means one build instead
+  # of four racing in parallel. setup-build also persists the per-SHA Turbo
+  # cache here, so the test-packages leg's `turbo run test` restores `build`
+  # as a cache hit rather than rebuilding its `^build` dependencies.
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Set up Node, install deps, build packages
+        uses: ./.github/actions/setup-build
+        with:
+          build-packages: "true"
+
+      - name: Upload package dist
+        uses: actions/upload-artifact@v7
+        with:
+          name: packages-dist
+          path: packages/*/dist
+          retention-days: 1
+          if-no-files-found: error
+
+  # Checks that need the built packages on disk. They download the dist artifact
+  # and set build-packages:false, so they skip the redundant per-leg build. The
+  # app legs (typecheck/test-app) and parity/base-nodes run plain tsc/jest/vitest
+  # against the prebuilt dist; test-packages runs Turbo and rides the warm
+  # per-SHA Turbo cache the `build` job populated.
+  built:
+    name: ${{ matrix.check }}
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: ${{ inputs.fail-fast }}
+      matrix:
+        include:
           - check: typecheck
             command: npm run typecheck
-            build-packages: "true"
             mobile-deps: "true"
             extra-apt: ""
             is-test: "false"
             fetch-depth: "1"
-          - check: lint
-            command: npm run lint
-            build-packages: "false"
-            mobile-deps: "false"
-            extra-apt: ""
-            is-test: "false"
-            fetch-depth: "1"
           # base-nodes parity/contract suite (Python-parity + example-workflow
-          # contracts). is-test:false keeps it non-skippable — these tests encode
-          # intentional behavior contracts (see the revert in commit 2c0fd8fad),
-          # so they stay a required gate even when skip-tests drops the bulk test
-          # legs. (lint:design is likewise required via the `lint` leg above.)
+          # contracts) plus the web design-token lint. is-test:false keeps it
+          # non-skippable — these tests encode intentional behavior contracts
+          # (see the revert in commit 2c0fd8fad), so they stay a required gate
+          # even when skip-tests drops the bulk test legs.
           - check: parity
             command: npm run lint:design --workspace=web && npm test --workspace=@nodetool-ai/base-nodes -- parity example-workflows
-            build-packages: "true"
             mobile-deps: "false"
             extra-apt: ""
             is-test: "false"
@@ -88,14 +149,12 @@ jobs:
             # main (no base sha) the full suite runs. Needs fetch-depth: 0 for
             # the SCM diff and TURBO_SCM_BASE (set on the Run step below).
             command: npm run test:packages${{ github.event_name == 'pull_request' && ' -- --affected' || '' }}
-            build-packages: "true"
             mobile-deps: "false"
             extra-apt: "mesa-vulkan-drivers"
             is-test: "true"
             fetch-depth: "0"
           - check: test-app
             command: npm run test
-            build-packages: "true"
             mobile-deps: "true"
             extra-apt: ""
             is-test: "true"
@@ -108,18 +167,25 @@ jobs:
           # so Turbo's `--affected` can diff against the PR base commit.
           fetch-depth: ${{ matrix.fetch-depth }}
 
-      - name: Set up Node, install deps, build packages
+      - name: Set up Node, install deps
         uses: ./.github/actions/setup-build
         with:
           extra-apt: ${{ matrix.extra-apt }}
-          build-packages: ${{ matrix.build-packages }}
+          # The dist comes from the artifact below; don't rebuild it per leg.
+          build-packages: "false"
+
+      - name: Download package dist
+        uses: actions/download-artifact@v8
+        with:
+          name: packages-dist
+          path: packages
 
       # mobile is NOT a root workspace (separate dependency tree), so its
       # node_modules is cached on its own lockfile and `npm ci` is skipped on hit.
       - name: Cache mobile node_modules
         if: matrix.mobile-deps == 'true'
         id: mobile-node-modules
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: mobile/node_modules
           key: ${{ runner.os }}-mobile-node-modules-${{ hashFiles('mobile/package-lock.json') }}
@@ -127,20 +193,6 @@ jobs:
       - name: Install mobile dependencies
         if: matrix.mobile-deps == 'true' && steps.mobile-node-modules.outputs.cache-hit != 'true'
         run: cd mobile && npm ci
-
-      - name: Run npm audit (advisory)
-        # Advisory only (continue-on-error) so a pre-existing vulnerability
-        # backlog doesn't block every PR, but high/critical issues in the
-        # production dependency closure are surfaced in the job summary.
-        if: matrix.check == 'deps'
-        continue-on-error: true
-        run: |
-          echo "::group::npm audit (production deps, high+)"
-          echo "## npm audit (production deps, high and critical)" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          npm audit --omit=dev --audit-level=high 2>&1 | tee -a $GITHUB_STEP_SUMMARY || true
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          echo "::endgroup::"
 
       - name: Run ${{ matrix.check }}
         # skip-tests drops the package + app test legs without touching the
@@ -158,10 +210,11 @@ jobs:
 
   # Aggregating gate. Kept as job id `quality` (no custom name) so the surfaced
   # status check stays "Quality Gate (npm run check) / quality" — the existing
-  # REQUIRED check, so branch protection needs no change. Fails iff any leg failed.
+  # REQUIRED check, so branch protection needs no change. Fails iff any leg or
+  # the build failed (or was skipped because an upstream job failed).
   quality:
     name: quality
-    needs: [checks]
+    needs: [static, build, built]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -171,14 +224,16 @@ jobs:
       - name: Aggregate check results
         id: gate
         run: |
-          result="${{ needs.checks.result }}"
+          static="${{ needs.static.result }}"
+          build="${{ needs.build.result }}"
+          built="${{ needs.built.result }}"
           echo "## Quality Gate" >> $GITHUB_STEP_SUMMARY
-          if [ "$result" == "success" ]; then
+          if [ "$static" == "success" ] && [ "$build" == "success" ] && [ "$built" == "success" ]; then
             echo "all-passed=true" >> $GITHUB_OUTPUT
             echo "✅ **All quality checks passed.**" >> $GITHUB_STEP_SUMMARY
           else
             echo "all-passed=false" >> $GITHUB_OUTPUT
-            echo "❌ **One or more quality checks failed** (matrix result: \`$result\`)." >> $GITHUB_STEP_SUMMARY
+            echo "❌ **One or more quality checks failed** (static: \`$static\`, build: \`$build\`, built: \`$built\`)." >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "See the individual check legs above to find which one." >> $GITHUB_STEP_SUMMARY
             exit 1

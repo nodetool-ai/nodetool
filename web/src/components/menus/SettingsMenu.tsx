@@ -1,10 +1,8 @@
 /** @jsxImportSource @emotion/react */
 // Full-page settings (formerly a Dialog).
 import React, { memo, useMemo } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import {
-  Tabs,
-  Tab,
   useMediaQuery
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -20,9 +18,10 @@ import {
   Tooltip,
   EditorButton,
   FlexColumn,
-  Box
+  Box,
+  Tabs,
+  Tab
 } from "../ui_primitives";
-import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { isLocalhost, isElectron } from "../../lib/env";
 import RemoteSettingsMenuComponent from "./RemoteSettingsMenu";
@@ -155,7 +154,6 @@ const SearchItem = React.memo(function SearchItem({
 });
 
 function SettingsPage() {
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const session = useAuth((state) => state.session);
 
@@ -469,10 +467,6 @@ function SettingsPage() {
     },
     [setTimeFormat]
   );
-  const handleClose = useCallback(() => {
-    navigate(-1);
-  }, [navigate]);
-
   const copyAuthToken = async () => {
     const accessToken = session?.access_token;
     if (accessToken) {
@@ -619,15 +613,6 @@ function SettingsPage() {
     >
       <Box css={settingsStyles(theme)} sx={{ flex: 1, minHeight: 0 }}>
         <header className="settings-page-header">
-          <EditorButton
-            className="settings-back"
-            density="normal"
-            onClick={handleClose}
-            startIcon={<ArrowBackRoundedIcon sx={{ fontSize: 16 }} />}
-            aria-label="Go back"
-          >
-            Back
-          </EditorButton>
           <div className="settings-page-header__titles">
             <h1 className="settings-page-header__title">Settings</h1>
             <p className="settings-page-header__subtitle">

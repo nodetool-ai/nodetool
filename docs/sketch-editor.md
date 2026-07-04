@@ -6,7 +6,7 @@ description: "A layered, GPU-accelerated paint and AI-generation canvas built in
 
 Draw, paint, mask, and generate AI imagery on a layered canvas — without leaving your workflow.
 
-> **Quick Access:** Add a **Sketch** node (`nodetool.constant.Sketch`) to your canvas and click **Edit**, or open a sketch from the left **Sketches** panel.
+> **Quick Access:** Click **+ New** in the workspace tab bar and choose **New image** for a blank canvas, or open a sketch from the left **Sketches** panel.
 
 ---
 
@@ -32,11 +32,11 @@ The Sketch Editor is a layered raster editor with a built-in AI generation pipel
 
 The Sketch Editor runs in three places, all backed by the same document so your work stays in sync.
 
-### From a Sketch node
+### From the new tab button
 
-1. Add a **Sketch** node to the canvas (search for **Sketch** in the node menu).
-2. Click **Edit** on the node to open the full editor in a modal.
-3. When you close it, the node exposes the result as outputs — a flattened **image**, a **mask**, and a **layers** list — ready to wire into downstream nodes.
+1. Click **+ New** in the workspace tab bar (top of the editor).
+2. Choose **New image** to open a blank canvas in a new tab, or **Open asset…** to edit an existing image.
+3. The editor fills the tab. Use **Save to image** to render the composite back into the asset, then **Done** to return the tab to view mode.
 
 ### From the Sketches panel
 
@@ -218,11 +218,11 @@ History persists while the editor is open. Large documents with extensive histor
 
 ## Saving & Exporting
 
-- **Autosave** — standalone sketches save automatically as you work.
-- **Outputs** — a Sketch node exposes the flattened composite (**image**), the designated **mask**, and a list of exposed **layer** images. Wire these into any downstream node.
-- **Per-layer outputs** — mark a layer as an output to expose it individually for compositing pipelines.
+- **Autosave** — sketches save automatically as you work.
+- **Save to image** — render the flattened composite back into the backing image asset, ready to use anywhere an image is.
+- **Workflow nodes** — to pull a sketch into a graph, use the [Render Sketch](nodes/nodetool/sketch/rendersketch.md) and [Sketch Layers](nodes/nodetool/sketch/sketchlayers.md) nodes, which flatten the document or expose its individual layers.
 
-Because the result lives in the node graph, the edited image flows straight into the rest of your workflow — no manual export/import round-trip required.
+Because the document is shared across the tab, the Sketches panel, and the standalone page, your edits stay in sync everywhere it's open.
 
 ---
 
@@ -303,7 +303,7 @@ Because the result lives in the node graph, the edited image flows straight into
 
 ### Sketch-and-generate
 
-1. Add a **Sketch** node and open the editor.
+1. Open a blank canvas from **+ New → New image**.
 2. Block in a rough composition with the brush on one layer.
 3. Add a new layer, select the region you want to generate, and bind the layer to a model or workflow in the Inspector.
 4. Write a prompt and **Generate**.
@@ -335,7 +335,6 @@ The sketch type is also available as workflow nodes:
 
 ## Related Features
 
-- **[Image Editor](image-editor.md)** — the photo-style raster editor for pixel work
 - **[Asset Management](asset-management.md)** — organize and reuse generated images
 - **[Workflow Editor](workflow-editor.md)** — main editor documentation
 

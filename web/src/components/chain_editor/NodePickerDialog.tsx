@@ -8,8 +8,14 @@ import { css } from "@emotion/react";
 import React, { useState, useMemo, useCallback, useRef } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { InputAdornment } from "@mui/material";
-import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+
+import {
+  MOTION,
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx,
+  InputAdornment
+} from "../ui_primitives";
 import { Box } from "../ui_primitives";
 import SearchIcon from "@mui/icons-material/Search";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -104,7 +110,6 @@ export const NodePickerDialog: React.FC<NodePickerDialogProps> = ({
     );
     return sortedResults;
   }, [metadataList, searchQuery, hasSearch]);
-
 
   const handleSelect = useCallback(
     (m: NodeMetadata) => {

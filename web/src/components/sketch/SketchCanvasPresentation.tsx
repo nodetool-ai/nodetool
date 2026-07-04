@@ -14,6 +14,7 @@ import React, { memo } from "react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { FlexRow, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { useSketchStore } from "./state";
 import type { Point, SketchTool } from "./types";
 import SketchCanvasResizeHandles from "./SketchCanvasResizeHandles";
 import { SKETCH_Z_INDEX, SKETCH_FONT } from "./sketchStyles";
@@ -93,7 +94,6 @@ export interface SketchCanvasPresentationProps {
   backend: "webgpu" | "canvas2d";
 
   // ── Info bar data ──────────────────────────────────────────────────
-  cursorDocPos: Point | null;
   /**
    * Floating bottom-center info pill (dimensions / zoom / cursor). Defaults to
    * true; the standalone editor hides it because its full-width status bar
@@ -128,6 +128,24 @@ export interface SketchCanvasPresentationProps {
   docOverlay?: React.ReactNode;
 }
 
+// ─── Cursor readout ──────────────────────────────────────────────────────────
+
+/**
+ * Subscribes to the store cursor position itself so pointer moves re-render
+ * only this span — not the canvas component tree.
+ */
+const CursorPosReadout = memo(function CursorPosReadout() {
+  const cursorDocPos = useSketchStore((s) => s.cursorDocPos);
+  if (cursorDocPos === null) {
+    return null;
+  }
+  return (
+    <span style={{ fontSize: SKETCH_FONT.sm, minWidth: 65 }}>
+      {cursorDocPos.x}, {cursorDocPos.y}
+    </span>
+  );
+});
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
@@ -149,7 +167,6 @@ const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
       containerCursor,
       bootstrapPhaseActive,
       backend,
-      cursorDocPos,
       showInfoBar = true,
       onPointerDown,
       onPointerMove,
@@ -317,11 +334,7 @@ const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
               {canvasWidth} × {canvasHeight}
             </span>
             <span>{Math.round(zoom * 100)}%</span>
-            {cursorDocPos !== null && (
-              <span style={{ fontSize: SKETCH_FONT.sm, minWidth: 65 }}>
-                {cursorDocPos.x}, {cursorDocPos.y}
-              </span>
-            )}
+            <CursorPosReadout />
           </FlexRow>
         )}
       </div>

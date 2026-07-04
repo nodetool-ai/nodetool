@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AssetUpdate, useAssetStore } from "../stores/AssetStore";
 import { useState } from "react";
 import { useNotificationStore } from "../stores/NotificationStore";
-import { useAssetGridStore } from "../stores/AssetGridStore";
+import { useAssetGridStoreApi } from "../stores/AssetGridStore";
 import { AssetList } from "../stores/ApiTypes";
 
 export const useAssetUpdate = () => {
@@ -11,6 +11,7 @@ export const useAssetUpdate = () => {
     (state) => state.addNotification
   );
   const updateAsset = useAssetStore((state) => state.update);
+  const gridStore = useAssetGridStoreApi();
   const [assets, setAssets] = useState<AssetUpdate[]>([]);
   const performMutation = async (updates: AssetUpdate[]) => {
     setAssets(updates);
@@ -19,7 +20,7 @@ export const useAssetUpdate = () => {
   const mutation = useMutation({
     mutationFn: performMutation,
     onMutate: async (updates: AssetUpdate[]) => {
-      const currentFolderId = useAssetGridStore.getState().currentFolderId;
+      const currentFolderId = gridStore.getState().currentFolderId;
       const queryKey = ["assets", { parent_id: currentFolderId }];
 
       // Cancel outgoing refetches so they don't overwrite the optimistic update

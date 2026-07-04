@@ -1,9 +1,7 @@
-import type { ZodType } from "zod";
 import {
   isZodSchema,
   parseWithTypeCoercion,
   zodToJsonSchema,
-  type JsonSchema,
   type ZodOrJsonSchema
 } from "@nodetool-ai/runtime/zod-schema";
 import { NodeMetadata, Workflow, WorkflowList } from "../../stores/ApiTypes";
@@ -19,7 +17,6 @@ export interface FrontendToolDefinition<Result = unknown> {
    */
   hidden?: boolean;
   requireUserConsent?: boolean;
-  // Use `any` here to allow destructured parameters in tool implementations
   execute: (args: any, ctx: FrontendToolContext) => Promise<Result>;
 }
 

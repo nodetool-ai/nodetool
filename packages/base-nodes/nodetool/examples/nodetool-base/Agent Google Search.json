@@ -1,8 +1,8 @@
 {
   "id": "",
   "access": "private",
-  "created_at": "2026-06-20T10:54:13.137Z",
-  "updated_at": "2026-06-22T12:00:00.000Z",
+  "created_at": "2026-06-30T12:39:53.776Z",
+  "updated_at": "2026-06-30T12:40:54.974Z",
   "name": "Agent Google Search",
   "tool_name": null,
   "description": "Demonstrates an Agent using dynamic outputs to perform Google searches and display results.",
@@ -24,17 +24,6 @@
         "target": "d6a1dc18-d26c-45c4-9196-2d6524018b1b",
         "targetHandle": "__control__",
         "edge_type": "control"
-      },
-      {
-        "id": "9f5a7f36-4226-48b2-90db-bcf2ca98ab21",
-        "source": "6ababfd3-5743-4d7c-accd-97242130a8d8",
-        "sourceHandle": "chunk",
-        "target": "daa79a05-7849-418d-98c3-f2a56912bef4",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "chunk"
-        },
-        "edge_type": "data"
       }
     ],
     "nodes": [
@@ -45,7 +34,6 @@
           "comment": "# 🔎 Agent Google Search\n\nAn agent picks a search query, runs it on Google, and streams the answer.\n\n**Pipeline:** Agent → Google Search\n\n**Try this:** change the agent's objective or model to research a different topic."
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": -473,
             "y": 81
@@ -65,9 +53,9 @@
         "data": {
           "model": {
             "type": "language_model",
-            "id": "",
-            "provider": "",
-            "name": ""
+            "id": "gemini-3.1-flash-lite",
+            "provider": "gemini",
+            "name": "Gemini 3.1 Flash Lite"
           },
           "system": "You are a an AI agent. \n\nBehavior\n- Understand the user's intent and the context of the task.\n- Break down the task into smaller steps.\n- Be precise, concise, and actionable.\n- Use tools to accomplish your goal. \n\nTool preambles\n- Outline the next step(s) you will perform.\n- After acting, summarize the outcome.\n\nRendering\n- Use Markdown to display media assets.\n- Display images, audio, and video assets using the appropriate Markdown.\n\nFile handling\n- Inputs and outputs are files in the /workspace directory.\n- Write outputs of code execution to the /workspace directory.\n",
           "prompt": "search for agent libs",
@@ -94,7 +82,8 @@
             "y": 50
           },
           "zIndex": 0,
-          "width": 280,
+          "width": 768,
+          "height": 567,
           "title": "1️⃣ Agent picks query",
           "selectable": true,
           "bypassed": false
@@ -111,33 +100,12 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 50,
-            "y": 347
+            "x": 299,
+            "y": 685
           },
           "zIndex": 0,
           "width": 280,
           "title": "2️⃣ Run Google search",
-          "selectable": true,
-          "bypassed": false
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
-      },
-      {
-        "id": "daa79a05-7849-418d-98c3-f2a56912bef4",
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "chunk"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 385,
-            "y": 49
-          },
-          "zIndex": 0,
-          "width": 351,
-          "height": 462,
           "selectable": true,
           "bypassed": false
         },
@@ -156,5 +124,5 @@
   "required_providers": null,
   "required_models": null,
   "html_app": null,
-  "etag": "873365fc9a2574dfbd797d315285f73e"
+  "etag": "43bd2b1fea5f109f5a1594b60e299886"
 }

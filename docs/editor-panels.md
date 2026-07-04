@@ -12,9 +12,9 @@ The NodeTool [Workflow Editor]({{ '/workflow-editor' | relative_url }}) is surro
 
 ## Left Panel
 
-Opens from the icons down the left edge. It's a tabbed drawer — click an icon to expand, click the same icon to collapse. The top-level views are: **Nodes**, **Workflows**, **Sketches**, **Timelines**, **Settings**, **History**, **Favorites**, **Assets**, and **Agent**.
+Opens from the icons down the left edge. It's a tabbed drawer — click an icon to expand, click the same icon to collapse. The top-level views are: **Nodes**, **Workflows**, **Sketches**, **Timelines**, **Settings**, **History**, **Favorites**, and **Assets**.
 
-![Left Panel](assets/screenshots/screenshot-placeholder.svg)
+![Left Panel](assets/screenshots/editor-left-panel.png)
 
 ### Nodes Tab
 
@@ -26,11 +26,11 @@ The node browser. Search and browse all available nodes, organized into sub-tabs
 
 Your saved workflows. Search, filter, and double-click to open in a new tab.
 
-![Left Panel — Workflows](assets/screenshots/screenshot-placeholder.svg)
+![Left Panel — Workflows](assets/screenshots/editor-left-panel.png)
 
 ### Sketches Tab
 
-Quick image sketches you can drop into the workflow, edited with the built-in layered sketch editor. See [Image Editor]({{ '/image-editor' | relative_url }}).
+Quick image sketches you can drop into the workflow, edited with the built-in layered sketch editor. See [Sketch Editor]({{ '/sketch-editor' | relative_url }}).
 
 ![Left Panel — Sketches](assets/screenshots/screenshot-placeholder.svg)
 
@@ -64,31 +64,25 @@ Folder tree plus file grid. Drag a file onto the canvas to instantly create the 
 
 ![Left Panel — Assets](assets/screenshots/screenshot-placeholder.svg)
 
-### Agent Tab
-
-When Agent Mode is active, the agent plan, steps, and tool calls surface here.
-
-![Left Panel — Agent](assets/screenshots/screenshot-placeholder.svg)
-
 ---
 
 ## Right Panel (Inspector)
 
 Press `i` or click the icon in the top right to toggle. The right panel hosts only the **Inspector** — its contents switch based on what's selected on the canvas. (Logs, Queue, Trace, Version History, and Workspace are not here — they live in the [Bottom Panel](#bottom-panel).)
 
-![Right Panel](assets/screenshots/screenshot-placeholder.svg)
+![Right Panel](assets/screenshots/editor-right-panel.png)
 
 ### Inspector — Node Properties
 
 When a node is selected, the Inspector renders every property with the right input type (number, slider, model picker, asset selector, dropdown, color picker, and so on).
 
-![Node Properties](assets/screenshots/screenshot-placeholder.svg)
+![Node Properties](assets/screenshots/editor-right-panel.png)
 
 ### Inspector — Workflow Properties
 
 When no node is selected, the Inspector shows workflow-level metadata: title, description, tags, thumbnail.
 
-![Workflow Properties](assets/screenshots/screenshot-placeholder.svg)
+![Workflow Properties](assets/screenshots/workflow-form.png)
 
 ---
 
@@ -100,7 +94,7 @@ The bottom panel docks runtime diagnostics and secondary workflow tools. Drag it
 - **Workflow** — Versions, Workspace
 - **Debug** — Trace
 
-![Bottom Panel](assets/screenshots/screenshot-placeholder.svg)
+![Bottom Panel](assets/screenshots/editor-bottom-panel.png)
 
 ### Logs
 
@@ -144,7 +138,7 @@ The full execution trace of the most recent run — per-node timing and the call
 
 An overlay on the canvas with the most-used runtime controls.
 
-![Floating Toolbar](assets/screenshots/screenshot-placeholder.svg)
+![Floating Toolbar](assets/screenshots/editor-floating-toolbar.png)
 
 | Button | When shown | Action |
 |--------|------------|--------|
@@ -196,5 +190,5 @@ To reset: open the command menu (`Ctrl+K` / `⌘+K`), type "reset layout", and h
 ## Next Steps
 
 - [Workflow Editor]({{ '/workflow-editor' | relative_url }}) — building on the canvas
-- [Global Chat]({{ '/global-chat' | relative_url }}) — how the in-editor chat works
+- [Chat]({{ '/global-chat' | relative_url }}) — how the in-editor chat works
 - [Configuration]({{ '/configuration' | relative_url }}) — settings that affect the editor

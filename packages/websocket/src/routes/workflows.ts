@@ -4,7 +4,7 @@
  * The web app uses `/trpc/workflows.*`. These routes serve:
  *   - Workflow list / detail JSON (`GET /api/workflows`, `GET /api/workflows/:id`) for SDKs (e.g. VVVV)
  *   - Public workflows, examples, tools, names (parity with `http-api` router)
- *   - File endpoints that cannot use tRPC's JSON layer (DSL export, thumbnails, Gradio stub)
+ *   - File endpoints that cannot use tRPC's JSON layer (DSL export, thumbnails)
  */
 
 import type { FastifyPluginAsync } from "fastify";
@@ -19,7 +19,6 @@ import {
   handleWorkflowImportBundle,
   handleWorkflowExamples,
   handleWorkflowExamplesSearch,
-  handleWorkflowGradioExport,
   handleWorkflowExamplesThumbnail,
   handleWorkflowTools,
   handleWorkflowsRoot,
@@ -131,13 +130,6 @@ const workflowsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
     const { id } = req.params as { id: string };
     await bridge(req, reply, (request) =>
       handleWorkflowExportBundle(request, id, apiOptions)
-    );
-  });
-
-  app.post("/api/workflows/:id/gradio-export", async (req, reply) => {
-    const { id } = req.params as { id: string };
-    await bridge(req, reply, (request) =>
-      handleWorkflowGradioExport(request, id, apiOptions)
     );
   });
 

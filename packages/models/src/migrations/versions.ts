@@ -1679,5 +1679,31 @@ export const migrations: MigrationDef[] = [
     async down() {
       // no-op: dropping columns is unsafe across dialects and versions
     }
+  },
+
+  // ── Scope chat threads to a workflow ───────────────────────────────
+  // Threads gain a nullable `workflow_id` so the node editor can list only
+  // the conversations for the open workflow and reopen the last one. Null
+  // means workflow-agnostic (e.g. the global chat).
+  {
+    version: "20260701_000001",
+    name: "add_workflow_id_to_threads",
+    createsTables: [],
+    modifiesTables: ["nodetool_threads"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_threads"))) return;
+      if (!(await db.columnExists("nodetool_threads", "workflow_id"))) {
+        await db.execute(
+          "ALTER TABLE nodetool_threads ADD COLUMN workflow_id TEXT"
+        );
+      }
+      await db.execute(
+        `CREATE INDEX IF NOT EXISTS idx_threads_user_workflow
+         ON nodetool_threads (user_id, workflow_id)`
+      );
+    },
+    async down(db) {
+      await db.execute("DROP INDEX IF EXISTS idx_threads_user_workflow");
+    }
   }
 ];

@@ -25,17 +25,15 @@ import {
   Text,
   FlexRow,
   FlexColumn,
-  ToolbarIconButton,
   LoadingSpinner,
-  Collapse,
-  SPACING,
-  getSpacingPx
+  Collapse
 } from "../../ui_primitives";
 import ErrorIcon from "@mui/icons-material/Error";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
+import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import PersonOutlineRoundedIcon from "@mui/icons-material/PersonOutlineRounded";
 import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
+import { getToolVisual } from "./toolCallIcon";
 
 
 import AgentExecutionView from "./AgentExecutionView";
@@ -131,6 +129,9 @@ const ToolCallCard: React.FC<{
 
   const hasArgs = !!displayArgs && Object.keys(displayArgs).length > 0;
   const resultContent = result?.content;
+  // The call is complete once a result arrived; expandable details only show
+  // when the result actually has content.
+  const isCompleted = result !== undefined;
   const hasResult =
     resultContent != null &&
     !(typeof resultContent === "string" && resultContent.trim().length === 0);
@@ -141,6 +142,12 @@ const ToolCallCard: React.FC<{
 
   const handleToggleOpen = useCallback(() => {
     setOpen((v) => !v);
+  }, []);
+  const handleHeaderKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      setOpen((v) => !v);
+    }
   }, []);
 
   // For subtasks we keep the title + "Subtask" badge as the headline. For
@@ -154,6 +161,7 @@ const ToolCallCard: React.FC<{
     : liveMessage || fallbackName;
   const showSeparateMessage = isSubtask && !!liveMessage;
   const headlineLabel = isSubtask ? "Subtask" : null;
+  const { Icon: ToolIcon, accent } = getToolVisual(tc.name);
 
   return (
     <div
@@ -161,15 +169,21 @@ const ToolCallCard: React.FC<{
         isSubtask ? " run-subtask" : ""
       }`}
     >
-      <FlexRow className="tool-call-header" align="center" justify="space-between" fullWidth gap={0.5}>
-        <FlexRow align="center" gap={0.5} sx={{ minWidth: 0 }}>
-          {isSubtask && (
-            <AccountTreeOutlinedIcon
-              fontSize="small"
-              className="subtask-icon"
-              aria-hidden
-            />
-          )}
+      <FlexRow
+        className={`tool-call-header${hasDetails ? " expandable" : ""}`}
+        align="center"
+        fullWidth
+        gap={1}
+        role={hasDetails ? "button" : undefined}
+        tabIndex={hasDetails ? 0 : undefined}
+        aria-expanded={hasDetails ? open : undefined}
+        onClick={hasDetails ? handleToggleOpen : undefined}
+        onKeyDown={hasDetails ? handleHeaderKeyDown : undefined}
+      >
+        <span className={`tool-icon-tile accent-${accent}`} aria-hidden>
+          <ToolIcon />
+        </span>
+        <FlexRow align="center" gap={1} sx={{ minWidth: 0, flex: 1 }}>
           {headlineLabel && (
             <Text
               component="span"
@@ -183,7 +197,7 @@ const ToolCallCard: React.FC<{
           <Text
             component="span"
             size="small"
-            weight={isSubtask ? 500 : 400}
+            weight={500}
             className="tool-call-name"
             truncate
           >
@@ -194,31 +208,32 @@ const ToolCallCard: React.FC<{
               {liveMessage}
             </Text>
           )}
-          {isRunning && <LoadingSpinner size="small" />}
+          {!isSubtask && <span className="tool-call-id">{tc.name}</span>}
         </FlexRow>
-        <FlexRow align="center" gap={0.5} sx={{ flexShrink: 0 }}>
+        <FlexRow align="center" gap={1} sx={{ flexShrink: 0 }}>
           {durationLabel && (
-            <Text
-              component="span"
-              size="small"
-              className="tool-call-duration"
-              sx={{ color: "text.disabled", whiteSpace: "nowrap" }}
-            >
-              {durationLabel}
-            </Text>
+            <span className="tool-call-duration">{durationLabel}</span>
+          )}
+          {isRunning ? (
+            <LoadingSpinner size="small" />
+          ) : (
+            isCompleted && (
+              <CheckCircleRoundedIcon
+                className="tool-status-icon done"
+                aria-label="completed"
+              />
+            )
           )}
           {hasDetails && (
-            <ToolbarIconButton
-              tooltip={open ? "Hide details" : "Show details"}
-              onClick={handleToggleOpen}
-              icon={<ExpandMoreIcon className={`expand-icon${open ? " expanded" : ""}`} />}
-              className="tool-expand-button"
+            <ExpandMoreIcon
+              className={`expand-icon${open ? " expanded" : ""}`}
+              aria-hidden
             />
           )}
         </FlexRow>
       </FlexRow>
       <Collapse in={open} timeout="auto" unmountOnExit>
-        <FlexColumn gap={0.5} sx={{ marginTop: getSpacingPx(SPACING.xs) }}>
+        <FlexColumn className="tool-call-details" gap={0.5}>
           {isSubtask && subtaskInstructions && (
             <FlexColumn gap={0.5}>
               <Caption className="tool-section-title">Instructions</Caption>
@@ -247,6 +262,140 @@ const ToolCallCard: React.FC<{
   );
 });
 ToolCallCard.displayName = "ToolCallCard";
+
+type ToolResultLookup = Record<
+  string,
+  { name?: string | null; content: unknown; createdAt?: string | null }
+>;
+
+/**
+ * ToolCallGroup - Renders a message's tool calls as a "tool execution chain":
+ * a tiny uppercase section label with a hairline rule, one bordered card per
+ * call, and a completion summary bar. The section header collapses the chain
+ * for dense threads. A lone tool call renders as a single card with no chrome.
+ */
+const ToolCallGroup: React.FC<{
+  toolCalls: ToolCall[];
+  toolResultsByCallId?: ToolResultLookup;
+  messageCreatedAt?: string | null;
+}> = React.memo(({ toolCalls, toolResultsByCallId, messageCreatedAt }) => {
+  const [open, setOpen] = useState(true);
+  const runningToolCallId = useGlobalChatStore((s) => s.currentRunningToolCallId);
+  const handleToggleOpen = useCallback(() => setOpen((v) => !v), []);
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      setOpen((v) => !v);
+    }
+  }, []);
+
+  const durationFor = useCallback(
+    (tc: ToolCall) => {
+      const toolResult =
+        tc.id && toolResultsByCallId
+          ? toolResultsByCallId[String(tc.id)]
+          : undefined;
+      const durationMs =
+        toolResult?.createdAt && messageCreatedAt
+          ? new Date(toolResult.createdAt).getTime() -
+            new Date(messageCreatedAt).getTime()
+          : null;
+      return { toolResult, durationMs };
+    },
+    [toolResultsByCallId, messageCreatedAt]
+  );
+
+  const renderCard = useCallback(
+    (tc: ToolCall, i: number) => {
+      const { toolResult, durationMs } = durationFor(tc);
+      return (
+        <ToolCallCard
+          key={tc.id || i}
+          tc={tc}
+          result={toolResult}
+          durationMs={durationMs}
+        />
+      );
+    },
+    [durationFor]
+  );
+
+  // A single tool call keeps the original inline card — no group wrapper.
+  if (toolCalls.length <= 1) {
+    return <>{toolCalls.map(renderCard)}</>;
+  }
+
+  const isRunning = toolCalls.some(
+    (tc) => tc.id && runningToolCallId === tc.id
+  );
+  // A call is completed once a result message arrived — tools may
+  // legitimately return empty/null content.
+  const completedCount = toolCalls.filter(
+    (tc) => durationFor(tc).toolResult !== undefined
+  ).length;
+  // Per-call durations are measured from the message start, so the chain's
+  // total wall-clock time is the longest one.
+  const totalDurationMs = toolCalls.reduce<number | null>((max, tc) => {
+    const { durationMs } = durationFor(tc);
+    if (typeof durationMs !== "number" || !Number.isFinite(durationMs)) {
+      return max;
+    }
+    return max === null ? durationMs : Math.max(max, durationMs);
+  }, null);
+  const totalDurationLabel =
+    totalDurationMs !== null ? formatDuration(totalDurationMs) : null;
+
+  return (
+    <div className="tool-call-group">
+      <FlexRow
+        className="tool-call-group-header"
+        align="center"
+        gap={1}
+        role="button"
+        tabIndex={0}
+        aria-expanded={open}
+        onClick={handleToggleOpen}
+        onKeyDown={handleKeyDown}
+      >
+        <Text
+          component="span"
+          size="smaller"
+          weight={500}
+          className="tool-call-group-label"
+        >
+          Tool execution chain
+        </Text>
+        <span className="tool-call-group-rule" aria-hidden />
+        {isRunning && <LoadingSpinner size="small" />}
+        <ExpandMoreIcon
+          className={`expand-icon${open ? " expanded" : ""}`}
+          aria-hidden
+        />
+      </FlexRow>
+      <Collapse in={open} timeout="auto" unmountOnExit>
+        <FlexColumn className="tool-call-chain" gap={1}>
+          {toolCalls.map(renderCard)}
+          <FlexRow className="tool-call-summary" align="center" gap={1.5}>
+            <span className="tool-call-summary-count">
+              {completedCount}/{toolCalls.length} completed
+            </span>
+            {totalDurationLabel && (
+              <>
+                <span className="tool-call-summary-divider" aria-hidden>
+                  |
+                </span>
+                <span className="tool-call-summary-duration">
+                  {totalDurationLabel}
+                </span>
+              </>
+            )}
+          </FlexRow>
+        </FlexColumn>
+      </Collapse>
+    </div>
+  );
+});
+ToolCallGroup.displayName = "ToolCallGroup";
 
 interface MessageViewProps {
   message: Message;
@@ -450,26 +599,13 @@ export const MessageView: React.FC<
         <div className="message-content">
           {message.role === "assistant" &&
             Array.isArray(message.tool_calls) &&
-            !message.agent_execution_id && // Don't render tool cards for agent tasks here (they are in AgentExecutionView)
-            (message.tool_calls as ToolCall[]).map((tc, i) => {
-              const toolResult =
-                tc.id && toolResultsByCallId
-                  ? toolResultsByCallId[String(tc.id)]
-                  : undefined;
-              const durationMs =
-                toolResult?.createdAt && message.created_at
-                  ? new Date(toolResult.createdAt).getTime() -
-                    new Date(message.created_at).getTime()
-                  : null;
-              return (
-                <ToolCallCard
-                  key={tc.id || i}
-                  tc={tc}
-                  result={toolResult}
-                  durationMs={durationMs}
-                />
-              );
-            })}
+            !message.agent_execution_id && ( // Don't render tool cards for agent tasks here (they are in AgentExecutionView)
+              <ToolCallGroup
+                toolCalls={message.tool_calls as ToolCall[]}
+                toolResultsByCallId={toolResultsByCallId}
+                messageCreatedAt={message.created_at}
+              />
+            )}
           {(message.role === "assistant" || message.role === "user") && (
             <>
               {typeof message.content === "string" &&

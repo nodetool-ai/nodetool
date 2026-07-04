@@ -1,5 +1,5 @@
 import { globalWebSocketManager } from "../websocket/GlobalWebSocketManager";
-import { isLocalhost } from "../env";
+import { isAuthRequired } from "../runtimeConfig";
 import { supabase } from "../supabaseClient";
 import { BASE_URL } from "../../stores/BASE_URL";
 import useMetadataStore from "../../stores/MetadataStore";
@@ -114,7 +114,7 @@ export async function runInlineGraphJob(
 
   let auth_token = "local_token";
   let user_id = "1";
-  if (!isLocalhost) {
+  if (isAuthRequired()) {
     const {
       data: { session }
     } = await supabase.auth.getSession();

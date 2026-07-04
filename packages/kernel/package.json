@@ -4,7 +4,7 @@
   "engines": {
     "node": ">=22.0.0 <23.0.0"
   },
-  "version": "0.7.0-rc.26",
+  "version": "0.7.0-rc.29",
   "description": "Workflow kernel: Graph model, NodeInbox, and Actor runtime",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -51,5 +51,17 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "workflow-engine",
+    "actor-model",
+    "dag",
+    "graph",
+    "workflow-runner"
   ]
 }

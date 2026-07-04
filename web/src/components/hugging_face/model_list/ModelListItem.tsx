@@ -39,11 +39,9 @@ const ModelListItem: React.FC<
   compatibility,
   isCheckingCache = false
 }) => {
-  const downloads = useModelDownloadStore((state) => state.downloads);
-  const downloadId = useMemo(() => {
-    const baseId = model.repo_id || model.id;
-    return model.path ? `${baseId}/${model.path}` : baseId;
-  }, [model.id, model.path, model.repo_id]);
+  const baseId = model.repo_id || model.id;
+  const downloadId = model.path ? `${baseId}/${model.path}` : baseId;
+  const download = useModelDownloadStore((state) => state.downloads[downloadId]);
   const theme = useTheme();
   const cssStyles = useMemo(() => modelListItemStyles(theme), [theme]);
   const tags = useMemo(
@@ -79,7 +77,7 @@ const ModelListItem: React.FC<
     };
   }, [compatibility]);
 
-  if (downloadId && downloads[downloadId]) {
+  if (downloadId && download) {
     return (
       <Box
         css={cssStyles}

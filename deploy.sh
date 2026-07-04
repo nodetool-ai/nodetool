@@ -8,10 +8,24 @@ set -euo pipefail
 # and runs it with zero-downtime rolling deploys. Cloudflare terminates public
 # TLS — origin runs plain HTTP by default.
 #
+# What actually gets deployed:
+#   The deploy unit is the GHCR image. All backend code is baked into it, so a
+#   backend change needs a new image (rebuilt by .github/workflows/docker.yml).
+#   Only web/dist is mounted from the host (read-only), so a frontend change
+#   needs `npm run build:web` here — no new image. A host `npm run build:packages`
+#   does not touch the running container; it rebuilds local packages the image
+#   never reads.
+#
 # TLS modes:
 #   (default)       Bring cert.pem + key.pem — Cloudflare "Full (Strict)"
 #   --self-signed   Auto-generated cert — Cloudflare "Full" SSL
 #   --no-tls        Plain HTTP origin — Cloudflare "Flexible" SSL
+#
+# Redeploying current main:
+#   For the common "pull main and roll it out" flow, prefer `npm run redeploy`
+#   (scripts/redeploy.sh): it fetches main, rebuilds web/dist, calls this script
+#   with the restored prod config, and verifies health + revision-vs-HEAD. This
+#   script is the lower-level primitive it builds on.
 #
 # Usage:
 #   ./deploy.sh                  # Pull + deploy (HTTPS, requires cert.pem + key.pem)
@@ -44,8 +58,8 @@ IMAGE_TAG_PREV="rollback"
 PULL_TAG="${NODETOOL_IMAGE_TAG:-}"   # empty → derive from git HEAD
 CONTAINER_NAME="nodetool-server"
 SLUG="${NODETOOL_SLUG:-}"   # empty = production container; non-empty = preview instance
-PORT="${NODETOOL_PORT:-443}"
-BIND_ADDR="${NODETOOL_BIND:-}"   # empty = bind 0.0.0.0; set to 127.0.0.1 for loopback-only (e.g. behind a Cloudflare Tunnel)
+PORT="${NODETOOL_PORT:-}"        # env override; else restored from file / slug-derived / 443 below
+BIND_ADDR="${NODETOOL_BIND:-}"   # env override; empty = bind 0.0.0.0 (set 127.0.0.1 for loopback-only, e.g. behind a Cloudflare Tunnel). Restored from file below if unset.
 HEALTH_TIMEOUT=60
 HEALTH_INTERVAL=2
 # How long to wait for the CI-built image to appear in the registry
@@ -55,7 +69,8 @@ IMAGE_WAIT_INTERVAL=15
 # Parse flags
 NO_PULL=0
 NO_WAIT=0
-TLS_MODE="certs"  # none | self-signed | certs (default: certs for Cloudflare Full Strict)
+TLS_MODE=""       # set by --self-signed/--certs/--no-tls; else restored from file / defaults to "certs" below
+BIND_FROM_CLI=0   # 1 once --bind is seen, so a restored/env BIND can't clobber it
 ACTION=""  # deferred so --logs/--status/--stop/--rollback can honor --slug regardless of arg order
 
 while (( $# )); do
@@ -79,6 +94,7 @@ while (( $# )); do
     --bind)
       shift
       BIND_ADDR="${1:?--bind requires an address (e.g. 127.0.0.1 or 0.0.0.0)}"
+      BIND_FROM_CLI=1
       ;;
     --slug)
       shift
@@ -91,6 +107,45 @@ while (( $# )); do
   esac
   shift
 done
+
+# ── Restore last-deploy config as defaults ───────────────────────────
+#
+# Each deploy records its effective PORT / TLS_MODE / BIND to
+# .deploy/ports${SLUG:+-<slug>}.env. Read those back as the *defaults* so a
+# bare `./deploy.sh` reproduces the running config instead of the built-in
+# port 443 + certs. Precedence stays: CLI flag > env var > recorded file >
+# built-in default. We parse the file by key (rather than `source`-ing it) so
+# its PORT/TLS_MODE lines can't silently clobber CLI/env choices.
+
+PORTS_FILE="$SCRIPT_DIR/.deploy/ports${SLUG:+-${SLUG}}.env"
+REC_PORT=""; REC_TLS_MODE=""; REC_BIND=""
+if [[ -f "$PORTS_FILE" ]]; then
+  while IFS='=' read -r _key _val; do
+    case "$_key" in
+      PORT)     REC_PORT="$_val" ;;
+      TLS_MODE) REC_TLS_MODE="$_val" ;;
+      BIND)     REC_BIND="$_val" ;;
+    esac
+  done < "$PORTS_FILE"
+  echo "Restored config from ${PORTS_FILE#"$SCRIPT_DIR"/}: PORT=${REC_PORT:-<default>} TLS=${REC_TLS_MODE:-<default>}${REC_BIND:+ BIND=${REC_BIND}}"
+fi
+
+# Resolve TLS_MODE: CLI flag (already set) > recorded file > built-in "certs".
+if [[ -z "$TLS_MODE" ]]; then
+  TLS_MODE="${REC_TLS_MODE:-certs}"
+fi
+
+# Resolve BIND_ADDR: --bind > NODETOOL_BIND (already in BIND_ADDR) > file > "".
+if (( ! BIND_FROM_CLI )) && [[ -z "$BIND_ADDR" ]]; then
+  BIND_ADDR="${REC_BIND:-}"
+fi
+
+# Resolve PORT: NODETOOL_PORT (already in PORT) > recorded file > slug-derived
+# (below) > built-in 443 (below). Leave PORT empty here if only the last two
+# apply, so the slug block and the final default can fill it in.
+if [[ -z "$PORT" && -n "$REC_PORT" ]]; then
+  PORT="$REC_PORT"
+fi
 
 # ── Apply --slug (preview instance mode) ─────────────────────────────
 #
@@ -111,9 +166,10 @@ if [[ -n "$SLUG" ]]; then
     exit 1
   fi
   CONTAINER_NAME="${CONTAINER_NAME}-${SLUG}"
-  if [[ -z "${NODETOOL_PORT:-}" ]]; then
-    # Deterministic port: hash(slug) -> 8500..8999. Keeps previews predictable
-    # across redeploys of the same branch without a central allocator.
+  if [[ -z "$PORT" ]]; then
+    # No env var and no recorded port: derive a deterministic port
+    # hash(slug) -> 8500..8999. Keeps previews predictable across redeploys of
+    # the same branch without a central allocator.
     SLUG_HASH=$(printf '%s' "$SLUG" | cksum | awk '{ print $1 }')
     PORT=$(( 8500 + (SLUG_HASH % 500) ))
   fi
@@ -121,6 +177,9 @@ if [[ -n "$SLUG" ]]; then
   # branch image is ready.
   NO_WAIT=1
 fi
+
+# Built-in default (production, no slug, no env/recorded port).
+PORT="${PORT:-443}"
 
 # ── Deferred actions (honor --slug regardless of arg order) ──────────
 
@@ -363,8 +422,12 @@ echo "  Stop:      $0 --stop"
 echo "  Rollback:  $0 --rollback"
 echo ""
 
+# Record the effective config so the next bare `./deploy.sh` restores it
+# (PORTS_FILE was resolved up top from the same SLUG).
 mkdir -p "$SCRIPT_DIR/.deploy"
-PORTS_FILE="$SCRIPT_DIR/.deploy/ports${SLUG:+-${SLUG}}.env"
-echo "PORT=${PORT}" > "$PORTS_FILE"
-echo "TLS_MODE=${TLS_MODE}" >> "$PORTS_FILE"
-echo "CONTAINER=${CONTAINER_NAME}" >> "$PORTS_FILE"
+{
+  echo "PORT=${PORT}"
+  echo "TLS_MODE=${TLS_MODE}"
+  echo "BIND=${BIND_ADDR}"
+  echo "CONTAINER=${CONTAINER_NAME}"
+} > "$PORTS_FILE"

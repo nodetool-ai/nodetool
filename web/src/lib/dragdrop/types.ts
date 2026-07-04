@@ -5,7 +5,13 @@
  * Maps to existing dataTransfer keys for backward compatibility.
  */
 
-import type { Asset, NodeMetadata } from "../../stores/ApiTypes";
+import type {
+  Asset,
+  NodeMetadata,
+  MessageImageContent,
+  MessageVideoContent,
+  MessageAudioContent
+} from "../../stores/ApiTypes";
 
 /**
  * Supported drag data types in the application.
@@ -19,7 +25,14 @@ export type DragDataType =
   | "timeline" // Persisted timeline sequence from timeline panel
   | "file" // External file from OS
   | "tab" // Editor tab reordering
-  | "collection-file"; // File being added to collection
+  | "collection-file" // File being added to collection
+  | "chat-media"; // Generated media block dragged out of the chat view
+
+/** A single image/video/audio block from a chat message, draggable to canvas. */
+export type ChatMediaDragPayload =
+  | MessageImageContent
+  | MessageVideoContent
+  | MessageAudioContent;
 
 /**
  * Type-safe payload definitions for each drag type
@@ -45,6 +58,7 @@ export interface DragPayloadMap {
   file: File;
   tab: string; // Workflow ID
   "collection-file": File;
+  "chat-media": ChatMediaDragPayload;
 }
 
 /**
@@ -61,6 +75,14 @@ export interface DragMetadata {
   sourceName?: string;
   count?: number;
   thumbnailUrl?: string;
+  /**
+   * Full Asset objects for an "assets-multiple" drag, captured at drag-start
+   * time. Consumers should prefer this over looking assets up by id in an
+   * AssetGridStore, since the store that produced the drag (a scoped
+   * sidebar panel) may not be the same store instance the drop target reads
+   * from.
+   */
+  assets?: Asset[];
 }
 
 /**

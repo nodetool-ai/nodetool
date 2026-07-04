@@ -90,6 +90,15 @@ export interface TransformGizmoOverlayProps {
   frameHeight: number;
   /** Commit a new transform for the clip. */
   onChange: (clipId: string, transform: ClipTransform) => void;
+  /**
+   * Fired once when any gizmo gesture begins (pointerdown on the body, a
+   * scale/rotate/pivot handle). Always paired with exactly one
+   * {@link onDragEnd} call. Lets the caller batch the gesture's `onChange`
+   * calls into a single undo entry.
+   */
+  onDragStart?: () => void;
+  /** Fired once when the active gesture ends (pointerup or pointercancel). */
+  onDragEnd?: () => void;
 }
 
 /** clip space [-1,1]² → frame CSS pixels (clip Y up → screen Y down). */
@@ -231,9 +240,17 @@ export function TransformGizmoOverlay({
   sequenceHeight,
   frameWidth,
   frameHeight,
-  onChange
+  onChange,
+  onDragStart,
+  onDragEnd
 }: TransformGizmoOverlayProps): React.ReactElement | null {
   const dragRef = useRef<DragSession | null>(null);
+  // Frame rect at gesture start. The frame cannot move while a drag holds
+  // pointer capture, so caching it here avoids a `getBoundingClientRect`
+  // (forced layout) on every pointermove. Cleared on drag end; non-drag
+  // geometry reads (resize) go through the frame-size ResizeObserver in
+  // PreviewCompositor, which is untouched by this cache.
+  const dragRectRef = useRef<DOMRect | null>(null);
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
 
   if (
@@ -328,7 +345,7 @@ export function TransformGizmoOverlay({
   };
 
   const pointerInFrame = (e: React.PointerEvent): Point => {
-    const rect = svgOf(e).getBoundingClientRect();
+    const rect = dragRectRef.current ?? svgOf(e).getBoundingClientRect();
     return { x: e.clientX - rect.left, y: e.clientY - rect.top };
   };
 
@@ -341,6 +358,9 @@ export function TransformGizmoOverlay({
     const svg = svgOf(e);
     svg.setPointerCapture?.(e.pointerId);
     svg.focus?.({ preventScroll: true });
+    // Cache once per gesture — read by `pointerInFrame` for every subsequent
+    // pointermove instead of re-querying layout each time.
+    dragRectRef.current = svg.getBoundingClientRect();
     const axisU = norm(sub(tr, tl));
     const axisV = norm(sub(bl, tl));
     const pointer = pointerInFrame(e);
@@ -375,6 +395,7 @@ export function TransformGizmoOverlay({
       widthU: len(sub(tr, tl)),
       heightV: len(sub(bl, tl))
     };
+    onDragStart?.();
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
@@ -471,6 +492,8 @@ export function TransformGizmoOverlay({
         svg.releasePointerCapture(e.pointerId);
       }
       dragRef.current = null;
+      dragRectRef.current = null;
+      onDragEnd?.();
     }
   };
 

@@ -3,10 +3,20 @@ import { css } from "@emotion/react";
 import React, { memo, useCallback, useMemo, useState } from "react";
 import { IconForType } from "../../config/IconForType";
 import {
-  Autocomplete,
-  TextField
-} from "@mui/material";
-import { Tooltip, Text, Chip, EditorButton, Box, EditorMenu, MOTION, BORDER_RADIUS, FONT_WEIGHT, SPACING, getSpacingPx } from "../ui_primitives";
+  Tooltip,
+  Text,
+  Chip,
+  EditorButton,
+  Box,
+  EditorMenu,
+  MOTION,
+  BORDER_RADIUS,
+  FONT_WEIGHT,
+  SPACING,
+  getSpacingPx,
+  TextField,
+  MuiAutocomplete as Autocomplete
+} from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import FilterListIcon from "@mui/icons-material/FilterList";

@@ -86,6 +86,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
   const assetItemSize = useSettingsStore(
     (state) => state.settings.assetItemSize
   );
+  const workflowFilter = useAssetGridStore((state) => state.workflowFilter);
 
   // Base asset list (without dividers)
   const assets = useMemo(() => {
@@ -363,8 +364,16 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
       >
         <EmptyState
           variant="no-data"
-          title="This folder is empty"
-          description="Drop files here or use the upload button to add assets"
+          title={
+            workflowFilter
+              ? "No outputs from this workflow yet"
+              : "This folder is empty"
+          }
+          description={
+            workflowFilter
+              ? "Run the workflow to generate assets, or drop files here to add inputs."
+              : "Drop files here or use the upload button to add assets"
+          }
           size="small"
         />
       </div>

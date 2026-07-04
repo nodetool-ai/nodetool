@@ -36,7 +36,8 @@ import {
   loadImageModels,
   loadMusicModels,
   loadTTSModels,
-  loadVideoModels
+  loadVideoModels,
+  sizeEnumToAspect
 } from "./manifest-models.js";
 import { sniffAudioMime } from "./audio-mime.js";
 import { safeFetch } from "./safe-url.js";
@@ -287,6 +288,13 @@ class FalArgsBuilder {
     return enumValues.includes(value) ? value : undefined;
   }
 
+  /** Declared enum vocabulary for an enum-typed field, or undefined. */
+  private enumValuesOf(apiName: string): string[] | undefined {
+    const field = this.accepted.get(apiName);
+    if (!field || field.propType.toLowerCase() !== "enum") return undefined;
+    return (field as FalManifestField & { enumValues?: string[] }).enumValues;
+  }
+
   /**
    * Route an aspect ratio + resolution pair to whichever of the endpoint's
    * size-shaping enum fields it actually declares: `aspect_ratio`,
@@ -303,15 +311,20 @@ class FalArgsBuilder {
     const res = this.acceptedEnumValue("resolution", resolution);
     if (res) this.args.resolution = res;
 
-    // `video_size` / `image_size` enums share the orientation_NxM vocabulary
-    // (square_hd, square, portrait_4_3, portrait_16_9, landscape_4_3, ...).
-    // Derive from aspectRatio rather than asking the caller for yet another
-    // distinct knob.
-    const sized = aspectRatioToSizeEnum(aspectRatio);
+    // `video_size` / `image_size` are enums whose vocabulary varies per endpoint
+    // (square_hd, landscape_16_9, landscape_3_2, 1536x1024, ...). Pick the value
+    // the endpoint ITSELF declares whose ratio matches `aspectRatio`, using the
+    // same size→aspect map the model picker derives its options from — so any
+    // ratio the picker offers round-trips to a value fal accepts. Unknown
+    // endpoints (no declared enum) fall back to the canonical short list.
     for (const apiName of ["video_size", "image_size"] as const) {
       // Only set if not already set (e.g. setImageSize() may have written
       // image_size as a dict for endpoints that accept that shape).
       if (apiName in this.args) continue;
+      const declared = this.enumValuesOf(apiName);
+      const sized = declared
+        ? pickSizeEnumForAspect(declared, aspectRatio)
+        : aspectRatioToSizeEnum(aspectRatio);
       const v = this.acceptedEnumValue(apiName, sized);
       if (v) this.args[apiName] = v;
     }
@@ -342,6 +355,34 @@ function aspectRatioToSizeEnum(aspectRatio?: string | null): string | undefined 
     default:
       return undefined;
   }
+}
+
+/**
+ * Given the size-enum values an endpoint declares, pick the one whose aspect
+ * ratio matches `aspectRatio` (via {@link sizeEnumToAspect} — the same map the
+ * model picker uses to build its option list, so extraction and request-shaping
+ * agree). When several declared values share the ratio (e.g. `square` and
+ * `square_hd`), prefer the higher-resolution variant. Returns undefined when
+ * the endpoint declares no value for that ratio.
+ */
+function pickSizeEnumForAspect(
+  declared: string[],
+  aspectRatio?: string | null
+): string | undefined {
+  if (!aspectRatio) return undefined;
+  const matches = declared.filter((v) => sizeEnumToAspect(v) === aspectRatio);
+  if (matches.length === 0) return undefined;
+  return matches.sort((a, b) => sizeEnumRank(b) - sizeEnumRank(a))[0];
+}
+
+/** Rough quality ordering so "square_hd" beats "square", "…_uhd" beats both. */
+function sizeEnumRank(value: string): number {
+  const v = value.toLowerCase();
+  if (v.includes("uhd")) return 3;
+  if (v.includes("hd")) return 2;
+  const dims = v.match(/(\d+)x(\d+)/);
+  if (dims) return 1 + (Number(dims[1]) * Number(dims[2])) / 1e9;
+  return 1;
 }
 
 export class FalProvider extends BaseProvider {
@@ -426,6 +467,7 @@ if (update.status === "IN_PROGRESS") {
     const client = await this.getClient();
     const modelId = params.model.id;
     const input = this.buildTextToMusicArgs(modelId, params);
+    this.recordRequestPayload(input);
     log.debug("FAL textToMusic", { model: modelId });
     const result = await client.subscribe(modelId, {
       input,
@@ -629,6 +671,7 @@ if (update.status === "IN_PROGRESS") {
     const client = await this.getClient();
     const modelId = params.model.id;
     const args = this.buildTextToImageArgs(modelId, params);
+    this.recordRequestPayload(args);
     log.debug("FAL textToImage", { model: modelId });
     const result = await client.subscribe(modelId, {
       input: args,
@@ -646,6 +689,7 @@ if (update.status === "IN_PROGRESS") {
     const client = await this.getClient();
     const modelId = params.model.id;
     const args = await this.buildImageToImageArgs(modelId, images, params);
+    this.recordRequestPayload(args);
     log.debug("FAL imageToImage", { model: modelId });
     const result = await client.subscribe(modelId, {
       input: args,
@@ -663,6 +707,7 @@ if (update.status === "IN_PROGRESS") {
     const client = await this.getClient();
     const modelId = params.model.id;
     const args = await this.buildInpaintArgs(modelId, images, params);
+    this.recordRequestPayload(args);
     log.debug("FAL inpaint", { model: modelId });
     const result = await client.subscribe(modelId, {
       input: args,
@@ -687,6 +732,7 @@ if (update.status === "IN_PROGRESS") {
     if (new FalArgsBuilder(modelId).has("num_images")) {
       args.num_images = numImages;
     }
+    this.recordRequestPayload(args);
     log.debug("FAL inpaintImages", { model: modelId, numImages });
     const result = await client.subscribe(modelId, {
       input: args,
@@ -702,6 +748,7 @@ if (update.status === "IN_PROGRESS") {
     const client = await this.getClient();
     const modelId = params.model.id;
     const args = this.buildTextToVideoArgs(modelId, params);
+    this.recordRequestPayload(args);
     log.debug("FAL textToVideo", { model: modelId });
     const result = await client.subscribe(modelId, {
       input: args,
@@ -726,6 +773,7 @@ if (update.status === "IN_PROGRESS") {
     if (new FalArgsBuilder(modelId).has("num_images")) {
       args.num_images = numImages;
     }
+    this.recordRequestPayload(args);
     log.debug("FAL imageToImages", { model: modelId, numImages });
     const result = await client.subscribe(modelId, {
       input: args,
@@ -750,6 +798,7 @@ if (update.status === "IN_PROGRESS") {
     if (new FalArgsBuilder(modelId).has("num_images")) {
       args.num_images = numImages;
     }
+    this.recordRequestPayload(args);
     log.debug("FAL textToImages", { model: modelId, numImages });
     const result = await client.subscribe(modelId, {
       input: args,
@@ -768,6 +817,7 @@ if (update.status === "IN_PROGRESS") {
     const client = await this.getClient();
     const modelId = params.model.id;
     const args = await this.buildImageToVideoArgs(modelId, images, params);
+    this.recordRequestPayload(args);
     log.debug("FAL imageToVideo", { model: modelId });
     const result = await client.subscribe(modelId, {
       input: args,
@@ -800,6 +850,7 @@ if (update.status === "IN_PROGRESS") {
     args: Record<string, unknown>
   ): Promise<Uint8Array> {
     const client = await this.getClient();
+    this.recordRequestPayload(args);
     const result = await client.subscribe(modelId, {
       input: args,
       logs: true,
@@ -815,6 +866,7 @@ if (update.status === "IN_PROGRESS") {
     args: Record<string, unknown>
   ): Promise<Uint8Array> {
     const client = await this.getClient();
+    this.recordRequestPayload(args);
     const result = await client.subscribe(modelId, {
       input: args,
       logs: true,

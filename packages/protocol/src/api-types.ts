@@ -465,6 +465,8 @@ export interface WorkflowToolList {
 export interface Thread {
   id: string;
   user_id: string;
+  /** Workflow this conversation belongs to, or null for global chat. */
+  workflow_id?: string | null;
   title: string | null;
   created_at: string;
   updated_at: string;
@@ -478,6 +480,7 @@ export interface ThreadList {
 
 export interface ThreadCreateRequest {
   title?: string;
+  workflow_id?: string | null;
 }
 
 export interface ThreadUpdateRequest {
@@ -1010,6 +1013,9 @@ export interface ImageModel {
   provider: Provider;
   path?: string | null;
   supported_tasks?: string[];
+  /** Per-model option constraints derived from the provider manifest. */
+  resolutions?: string[] | null;
+  aspect_ratios?: string[] | null;
 }
 
 export interface TTSModel {

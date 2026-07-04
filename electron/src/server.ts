@@ -29,7 +29,7 @@ function isDevMode(): boolean {
 import { emitBootMessage, emitServerError, emitServerStarted, emitServerLog } from "./events";
 import { serverState } from "./state";
 import type { ServerState } from "./state";
-import { getServerUrl } from "./utils";
+import { getServerUrl, errorMessage, isErrnoException } from "./utils";
 import fs from "fs/promises";
 import net from "net";
 import path from "path";
@@ -88,7 +88,7 @@ function isProcessRunning(pid: number): boolean {
     process.kill(pid, 0);
     return true;
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ESRCH") {
+    if (isErrnoException(error) && error.code === "ESRCH") {
       return false;
     }
     throw error;
@@ -116,11 +116,11 @@ async function findExistingServerPid(): Promise<number | null> {
     logMessage(`PID file exists but process ${pid} is not running, will clean up`);
     return null;
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+    if (isErrnoException(error) && error.code === "ENOENT") {
       logMessage("No PID file found, no existing server process");
       return null;
     }
-    logMessage(`Error reading PID file: ${(error as Error).message}`, "warn");
+    logMessage(`Error reading PID file: ${errorMessage(error)}`, "warn");
     return null;
   }
 }
@@ -230,7 +230,7 @@ async function startLlamaServer(): Promise<void> {
     logMessage(`llama-server started on port ${selectedPort}`);
   } catch (error) {
     logMessage(
-      `Failed to start llama-server watchdog: ${(error as Error).message}`,
+      `Failed to start llama-server watchdog: ${errorMessage(error)}`,
       "error"
     );
     llamaWatchdog = null;
@@ -251,7 +251,7 @@ async function restartLlamaServer(): Promise<void> {
       logMessage("Stopped existing llama-server");
     } catch (error) {
       logMessage(
-        `Error stopping llama-server: ${(error as Error).message}`,
+        `Error stopping llama-server: ${errorMessage(error)}`,
         "warn"
       );
     }
@@ -284,7 +284,7 @@ async function killExistingServer(): Promise<void> {
             try {
               process.kill(pid, 0);
             } catch (e) {
-              if ((e as NodeJS.ErrnoException).code === "ESRCH") {
+              if (isErrnoException(e) && e.code === "ESRCH") {
                 clearInterval(checkInterval);
                 resolve();
               }
@@ -299,18 +299,18 @@ async function killExistingServer(): Promise<void> {
 
         logMessage(`Killed existing server process ${pid}`);
       } catch (error) {
-        if ((error as NodeJS.ErrnoException).code !== "ESRCH") {
+        if (!isErrnoException(error) || error.code !== "ESRCH") {
           logMessage(
-            `Error killing process ${pid}: ${(error as Error).message}`,
+            `Error killing process ${pid}: ${errorMessage(error)}`,
             "error"
           );
         }
       }
     }
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+    if (!isErrnoException(error) || error.code !== "ENOENT") {
       logMessage(
-        `Error reading PID file: ${(error as Error).message}`,
+        `Error reading PID file: ${errorMessage(error)}`,
         "error"
       );
     }
@@ -371,7 +371,7 @@ async function startServer(): Promise<void> {
         .then(() => logMessage("llama-server started successfully"))
         .catch((error) => {
           logMessage(
-            `Failed to start llama-server: ${(error as Error).message}. Continuing without llama-server.`,
+            `Failed to start llama-server: ${errorMessage(error)}. Continuing without llama-server.`,
             "warn"
           );
         })
@@ -460,7 +460,7 @@ async function startServer(): Promise<void> {
       );
     } catch (error) {
       logMessage(
-        `Failed to apply active vault environment, using default database: ${(error as Error).message}`,
+        `Failed to apply active vault environment, using default database: ${errorMessage(error)}`,
         "warn"
       );
     }
@@ -526,12 +526,12 @@ async function startServer(): Promise<void> {
     await backendWatchdog.start();
     logMessage("Watchdog.start() completed - server is healthy");
   } catch (error) {
-    const errorMessage = (error as Error).message;
+    const errMsg = errorMessage(error);
     logMessage(
-      `Watchdog failed to start server: ${errorMessage}`,
+      `Watchdog failed to start server: ${errMsg}`,
       "error"
     );
-    logMessage(`Error stack: ${(error as Error).stack}`, "error");
+    logMessage(`Error stack: ${error instanceof Error ? error.stack : undefined}`, "error");
 
     backendWatchdog = null;
     throw error;
@@ -644,19 +644,19 @@ async function initializeBackendServer(): Promise<void> {
                   try {
                     process.kill(existingPid, 0);
                   } catch (e) {
-                    if ((e as NodeJS.ErrnoException).code === "ESRCH") {
+                    if (isErrnoException(e) && e.code === "ESRCH") {
                       clearInterval(checkInterval);
                       resolve();
                     }
                   }
                 }, 100);
-                
+
                 setTimeout(() => {
                   clearInterval(checkInterval);
                   resolve();
                 }, 3000);
               });
-              
+
               logMessage(`Successfully killed process ${existingPid}`);
               
               // Clean up the PID file
@@ -664,14 +664,14 @@ async function initializeBackendServer(): Promise<void> {
                 await fs.unlink(PID_FILE_PATH);
                 logMessage("Removed stale PID file");
               } catch (error) {
-                logMessage(`Failed to remove PID file: ${(error as Error).message}`, "warn");
+                logMessage(`Failed to remove PID file: ${errorMessage(error)}`, "warn");
               }
-              
+
               // Small delay to ensure port is released
               await new Promise((resolve) => setTimeout(resolve, 500));
             } catch (error) {
               logMessage(
-                `Failed to kill process ${existingPid}: ${(error as Error).message}`,
+                `Failed to kill process ${existingPid}: ${errorMessage(error)}`,
                 "error"
               );
             }
@@ -698,31 +698,31 @@ async function initializeBackendServer(): Promise<void> {
               try {
                 process.kill(existingPid, 0);
               } catch (e) {
-                if ((e as NodeJS.ErrnoException).code === "ESRCH") {
+                if (isErrnoException(e) && e.code === "ESRCH") {
                   clearInterval(checkInterval);
                   resolve();
                 }
               }
             }, 100);
-            
+
             setTimeout(() => {
               clearInterval(checkInterval);
               resolve();
             }, 3000);
           });
-          
+
           // Clean up the PID file
           try {
             await fs.unlink(PID_FILE_PATH);
             logMessage("Removed stale PID file");
           } catch (error) {
-            logMessage(`Failed to remove PID file: ${(error as Error).message}`, "warn");
+            logMessage(`Failed to remove PID file: ${errorMessage(error)}`, "warn");
           }
           
           await new Promise((resolve) => setTimeout(resolve, 500));
         } catch (error) {
           logMessage(
-            `Failed to kill unresponsive process ${existingPid}: ${(error as Error).message}`,
+            `Failed to kill unresponsive process ${existingPid}: ${errorMessage(error)}`,
             "warn"
           );
         }
@@ -745,14 +745,14 @@ async function initializeBackendServer(): Promise<void> {
     logMessage("Backend server initialization complete");
   } catch (error) {
     logMessage(
-      `Critical error starting server: ${(error as Error).message}`,
+      `Critical error starting server: ${errorMessage(error)}`,
       "error"
     );
-    logMessage(`Error stack: ${(error as Error).stack}`, "error");
-    const errorMessage = (error as Error).message ?? "Unknown server error";
+    logMessage(`Error stack: ${error instanceof Error ? error.stack : undefined}`, "error");
+    const errMsg = errorMessage(error) || "Unknown server error";
     serverState.status = "error";
-    serverState.error = errorMessage;
-    emitServerError(`Critical error starting server: ${errorMessage}`);
+    serverState.error = errMsg;
+    emitServerError(`Critical error starting server: ${errMsg}`);
     throw error;
   }
 }
@@ -793,7 +793,7 @@ async function stopServer(): Promise<void> {
       llamaWatchdog = null;
     }
   } catch (error) {
-    logMessage(`Error during shutdown: ${(error as Error).message}`, "error");
+    logMessage(`Error during shutdown: ${errorMessage(error)}`, "error");
   }
 
   serverState.isStarted = false;

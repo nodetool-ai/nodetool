@@ -18,6 +18,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { BORDER_RADIUS, MOTION } from "../../ui_primitives";
+import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 
 export const TIMELINE_SCROLLBAR_HEIGHT_PX = 14;
 const MIN_THUMB_PX = 28;
@@ -107,8 +108,6 @@ export interface TimelineScrollbarProps {
   contentWidthPx: number;
   /** Visible viewport width of the lanes area (px). */
   viewportWidthPx: number;
-  /** Current horizontal scroll offset (px). */
-  scrollLeftPx: number;
   /** Left inset so the bar lines up with the lanes (track-header width). */
   leftInsetPx: number;
   /** Scroll the lanes to an absolute offset; the caller clamps via the DOM. */
@@ -116,8 +115,11 @@ export interface TimelineScrollbarProps {
 }
 
 export const TimelineScrollbar: React.FC<TimelineScrollbarProps> = memo(
-  ({ contentWidthPx, viewportWidthPx, scrollLeftPx, leftInsetPx, onScrollTo }) => {
+  ({ contentWidthPx, viewportWidthPx, leftInsetPx, onScrollTo }) => {
     const theme = useTheme();
+    // Subscribed here (rather than passed as a prop) so a pan frame only
+    // re-renders this scrollbar, not the whole TracksRegion.
+    const scrollLeftPx = useTimelineUIStore((s) => s.scrollLeftPx);
     const troughRef = useRef<HTMLDivElement>(null);
     const dragRef = useRef<{ startX: number; startScroll: number } | null>(null);
 

@@ -493,11 +493,11 @@
   }
 
   .mobile .chat-messages-list .tool-call-card {
-    padding: var(--spacing-micro) var(--spacing-sm) !important;
     font-size: 0.875em !important;
   }
 
   .mobile .chat-messages-list .tool-call-header {
+    padding: var(--spacing-micro) var(--spacing-sm) !important;
     gap: var(--spacing-xs) !important;
   }
 

@@ -25,7 +25,10 @@ import {
   TodoItem,
   PermissionMode
 } from "./ApiTypes";
-import { sendToolApprovalResponse } from "../core/chat/chatProtocol";
+import {
+  sendPlanApprovalResponse,
+  sendToolApprovalResponse
+} from "../core/chat/chatProtocol";
 import { isLocalhost } from "../lib/env";
 import { trpcClient } from "../trpc/client";
 import {
@@ -39,7 +42,6 @@ import { FrontendToolRegistry } from "../lib/tools/frontendTools";
 import { createChatPiSlice, type ChatPiSlice } from "./chatPi";
 import {
   handleChatWebSocketMessage,
-  MsgpackData,
   WorkflowCreatedUpdate,
   WorkflowUpdatedUpdate
 } from "../core/chat/chatProtocol";
@@ -103,6 +105,48 @@ interface ToolApprovalRequest {
   args: Record<string, unknown>;
 }
 
+/** A step of a proposed agent plan, as serialized on the wire. */
+export interface ProposedPlanStep {
+  id: string;
+  instructions: string;
+}
+
+/** A task of a proposed agent plan, as serialized on the wire. */
+export interface ProposedPlanTask {
+  id: string;
+  title: string;
+  depends_on: string[];
+  steps: ProposedPlanStep[];
+}
+
+/** The plan an agent proposes before executing. */
+export interface ProposedPlan {
+  title: string;
+  tasks: ProposedPlanTask[];
+}
+
+/** Decision a user can make on a proposed agent plan. */
+export type PlanDecision = "approve" | "reject";
+
+/**
+ * A pending plan-approval request awaiting a user decision. Keyed by
+ * `approval_id` in `pendingPlanApprovals`. `thread_id` is null when the plan
+ * comes from a run not bound to a thread (e.g. an editor workflow run) — the
+ * card then shows on the active thread.
+ */
+export interface PendingPlanApproval {
+  thread_id: string | null;
+  plan: ProposedPlan;
+}
+
+/** Server → client plan-approval request payload. */
+interface PlanApprovalRequest {
+  type: "plan_approval_request";
+  thread_id: string | null;
+  approval_id: string;
+  plan: ProposedPlan;
+}
+
 export interface GlobalChatState extends ChatPiSlice {
   // Connection state
   status: ChatStatus;
@@ -120,7 +164,10 @@ export interface GlobalChatState extends ChatPiSlice {
   // Per-workflow thread binding for the editor side panel: each workflow gets
   // its own conversation. workflowId -> threadId.
   workflowThreadId: Record<string, string>;
-  /** Bind the chat to a workflow's thread, creating one if needed. */
+  /**
+   * Bind the editor chat to a workflow: switch to its most recent conversation,
+   * or create a fresh one if the workflow has none yet. Returns the thread id.
+   */
   openWorkflowThread: (workflowId: string) => Promise<string>;
   /** Start a fresh thread bound to the workflow, replacing the prior binding. */
   newWorkflowThread: (workflowId: string) => Promise<string>;
@@ -176,6 +223,15 @@ export interface GlobalChatState extends ChatPiSlice {
   addPendingApproval: (req: ToolApprovalRequest) => void;
   resolveApproval: (approvalId: string, decision: ApprovalDecision) => void;
 
+  // Inline plan-approval prompts awaiting a user decision, keyed by approval_id.
+  pendingPlanApprovals: Record<string, PendingPlanApproval>;
+  addPendingPlanApproval: (req: PlanApprovalRequest) => void;
+  resolvePlanApproval: (
+    approvalId: string,
+    decision: PlanDecision,
+    feedback?: string
+  ) => void;
+
   // Planning updates
   currentPlanningUpdate: PlanningUpdate | null;
   setPlanningUpdate: (update: PlanningUpdate | null) => void;
@@ -207,7 +263,10 @@ export interface GlobalChatState extends ChatPiSlice {
   // Thread actions
   fetchThreads: () => Promise<void>;
   fetchThread: (threadId: string) => Promise<Thread | null>;
-  createNewThread: (title?: string) => Promise<string>;
+  createNewThread: (
+    title?: string,
+    workflowId?: string | null
+  ) => Promise<string>;
   switchThread: (threadId: string) => void;
   deleteThread: (threadId: string) => Promise<void>;
   getCurrentMessages: () => Message[];
@@ -293,23 +352,44 @@ const useGlobalChatStore = create<GlobalChatState>()(
       workflowThreadId: {},
       openWorkflowThread: async (workflowId: string) => {
         set({ workflowId });
-        const existing = get().workflowThreadId[workflowId];
-        if (existing && get().threads[existing]) {
-          if (get().currentThreadId !== existing) {
-            get().switchThread(existing);
+        const state = get();
+
+        // A thread belongs to this workflow if the server bound it
+        // (`workflow_id`) or the client did before it was persisted
+        // (`threadWorkflowId`).
+        const belongsToWorkflow = (thread: Thread) =>
+          (thread.workflow_id ?? state.threadWorkflowId[thread.id] ?? null) ===
+          workflowId;
+
+        // Load the most recent conversation for this workflow.
+        const lastThread = Object.values(state.threads)
+          .filter(belongsToWorkflow)
+          .sort((a, b) =>
+            (b.updated_at ?? "").localeCompare(a.updated_at ?? "")
+          )[0];
+
+        if (lastThread) {
+          set((s) => ({
+            workflowThreadId: {
+              ...s.workflowThreadId,
+              [workflowId]: lastThread.id
+            },
+            threadWorkflowId: {
+              ...s.threadWorkflowId,
+              [lastThread.id]: workflowId
+            }
+          }));
+          if (state.currentThreadId !== lastThread.id) {
+            get().switchThread(lastThread.id);
           }
-          return existing;
+          return lastThread.id;
         }
-        // Reuse a persisted-but-not-yet-loaded thread id if we have one;
-        // otherwise create a fresh thread bound to this workflow.
-        const threadId = existing ?? (await get().createNewThread());
-        set((state) => ({
-          workflowThreadId: { ...state.workflowThreadId, [workflowId]: threadId },
-          threadWorkflowId: { ...state.threadWorkflowId, [threadId]: workflowId }
+
+        // No conversation yet — start a fresh thread bound to this workflow.
+        const threadId = await get().createNewThread(undefined, workflowId);
+        set((s) => ({
+          workflowThreadId: { ...s.workflowThreadId, [workflowId]: threadId }
         }));
-        if (get().threads[threadId] && get().currentThreadId !== threadId) {
-          get().switchThread(threadId);
-        }
         return threadId;
       },
 
@@ -383,6 +463,32 @@ const useGlobalChatStore = create<GlobalChatState>()(
         set((state) => {
           const { [approvalId]: _resolved, ...rest } = state.pendingApprovals;
           return { pendingApprovals: rest };
+        });
+      },
+
+      // Inline plan-approval prompts
+      pendingPlanApprovals: {},
+      addPendingPlanApproval: (req: PlanApprovalRequest) =>
+        set((state) => ({
+          pendingPlanApprovals: {
+            ...state.pendingPlanApprovals,
+            [req.approval_id]: {
+              thread_id: req.thread_id ?? null,
+              plan: req.plan
+            }
+          }
+        })),
+      resolvePlanApproval: (
+        approvalId: string,
+        decision: PlanDecision,
+        feedback?: string
+      ) => {
+        if (!get().pendingPlanApprovals[approvalId]) return;
+        void sendPlanApprovalResponse(approvalId, decision, feedback);
+        set((state) => {
+          const { [approvalId]: _resolved, ...rest } =
+            state.pendingPlanApprovals;
+          return { pendingPlanApprovals: rest };
         });
       },
 
@@ -502,7 +608,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           threadSubscriptions[threadId] = globalWebSocketManager.subscribe(
             threadId,
             (data) => {
-              handleChatWebSocketMessage(data as MsgpackData, set, get);
+              handleChatWebSocketMessage(data, set, get);
             }
           );
         });
@@ -663,7 +769,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           const unsub = globalWebSocketManager.subscribe(
             threadId as string,
             (data) => {
-              handleChatWebSocketMessage(data as MsgpackData, set, get);
+              handleChatWebSocketMessage(data, set, get);
             }
           );
           set((state) => {
@@ -800,12 +906,23 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
           // Merge with existing threads so locally-created/optimistic threads
           // that haven't reached the server yet don't get wiped (the server
-          // response wins for ids present in both).
-          set((state) => ({
-            threads: { ...state.threads, ...threadsRecord },
-            threadsLoaded: true,
-            error: null
-          }));
+          // response wins for ids present in both). Also hydrate the
+          // thread→workflow map from the server so the editor can scope its
+          // thread list after a fresh load (before any message is sent).
+          set((state) => {
+            const threadWorkflowId = { ...state.threadWorkflowId };
+            for (const thread of data.threads) {
+              if (thread.workflow_id != null) {
+                threadWorkflowId[thread.id] = thread.workflow_id;
+              }
+            }
+            return {
+              threads: { ...state.threads, ...threadsRecord },
+              threadWorkflowId,
+              threadsLoaded: true,
+              error: null
+            };
+          });
         } catch (error) {
           console.error("Failed to fetch threads:", error);
           set({
@@ -846,18 +963,26 @@ const useGlobalChatStore = create<GlobalChatState>()(
         }
       },
 
-      createNewThread: async (title?: string) => {
+      createNewThread: async (title?: string, workflowId?: string | null) => {
         const safeTitle = typeof title === "string" ? title : undefined;
+
+        // Bind to the passed workflow, or the currently open one. `undefined`
+        // means "use current"; an explicit `null` forces a workflow-agnostic
+        // thread.
+        const boundWorkflowId =
+          workflowId !== undefined ? workflowId : get().workflowId ?? null;
 
         // Create thread locally; server will auto-create on first message
         const id = crypto.randomUUID();
         const now = new Date().toISOString();
         const localThread: Thread = {
           id,
+          user_id: "",
+          workflow_id: boundWorkflowId,
           title: safeTitle || "New conversation",
           created_at: now,
           updated_at: now
-        } as Thread;
+        };
 
         // Subscribe first, then atomically store the unsubscribe handle.
         // This avoids the closure being created inside set() where a stale
@@ -869,7 +994,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
         const newUnsub = globalWebSocketManager.subscribe(
           id,
           (data) => {
-            handleChatWebSocketMessage(data as MsgpackData, set, get);
+            handleChatWebSocketMessage(data, set, get);
           }
         );
 
@@ -882,8 +1007,11 @@ const useGlobalChatStore = create<GlobalChatState>()(
           lastUsedThreadId: id,
           threadWorkflowId: {
             ...state.threadWorkflowId,
-            [id]: state.workflowId ?? null
+            [id]: boundWorkflowId
           },
+          workflowThreadId: boundWorkflowId
+            ? { ...state.workflowThreadId, [boundWorkflowId]: id }
+            : state.workflowThreadId,
           messageCache: {
             ...state.messageCache,
             [id]: []
@@ -907,7 +1035,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           const unsub = globalWebSocketManager.subscribe(
             threadId,
             (data) => {
-              handleChatWebSocketMessage(data as MsgpackData, set, get);
+              handleChatWebSocketMessage(data, set, get);
             }
           );
           set((state) => {
@@ -928,7 +1056,10 @@ const useGlobalChatStore = create<GlobalChatState>()(
         set((state) => ({
           currentThreadId: threadId,
           lastUsedThreadId: threadId,
-          workflowId: state.threadWorkflowId[threadId] ?? state.workflowId
+          workflowId:
+            state.threads[threadId]?.workflow_id ??
+            state.threadWorkflowId[threadId] ??
+            state.workflowId
         }));
         get().loadMessages(threadId);
       },
@@ -1218,8 +1349,13 @@ const useGlobalChatStore = create<GlobalChatState>()(
         // Abort any active frontend tools
         FrontendToolRegistry.abortAll();
 
-        // Stopping cancels the run, so drop any pending tool-approval prompts
-        // for the current thread — they belong to the now-cancelled run.
+        // Stopping cancels the run, so drop any pending tool/plan-approval
+        // prompts for the current thread — they belong to the cancelled run.
+        // Null-thread plan approvals go too: the server's stop command calls
+        // approvalBridge.cancelAll(), which cancels every waiter on this
+        // socket (including ones from non-thread-bound workflow runs), so
+        // keeping their cards would leave orphaned prompts whose responses
+        // resolve nothing.
         if (currentThreadId) {
           set((state) => {
             const remaining = Object.fromEntries(
@@ -1227,7 +1363,17 @@ const useGlobalChatStore = create<GlobalChatState>()(
                 ([, approval]) => approval.thread_id !== currentThreadId
               )
             );
-            return { pendingApprovals: remaining };
+            const remainingPlans = Object.fromEntries(
+              Object.entries(state.pendingPlanApprovals).filter(
+                ([, approval]) =>
+                  approval.thread_id !== null &&
+                  approval.thread_id !== currentThreadId
+              )
+            );
+            return {
+              pendingApprovals: remaining,
+              pendingPlanApprovals: remainingPlans
+            };
           });
         }
 
@@ -1399,6 +1545,9 @@ const useGlobalChatStore = create<GlobalChatState>()(
           if (!state.pendingApprovals) {
             state.pendingApprovals = {};
           }
+          if (!state.pendingPlanApprovals) {
+            state.pendingPlanApprovals = {};
+          }
           if (!state.selectedModel) {
             state.selectedModel = buildDefaultLanguageModel();
           }
@@ -1492,12 +1641,22 @@ export const useThreadsQuery = () => {
       });
 
       // Merge with existing threads so locally-created/optimistic threads
-      // that haven't reached the server yet don't get wiped on refetch.
-      useGlobalChatStore.setState((state) => ({
-        threads: { ...state.threads, ...threadsRecord },
-        threadsLoaded: true,
-        isLoadingThreads: false
-      }));
+      // that haven't reached the server yet don't get wiped on refetch, and
+      // hydrate the thread→workflow map from the server (see fetchThreads).
+      useGlobalChatStore.setState((state) => {
+        const threadWorkflowId = { ...state.threadWorkflowId };
+        for (const thread of query.data.threads) {
+          if (thread.workflow_id != null) {
+            threadWorkflowId[thread.id] = thread.workflow_id;
+          }
+        }
+        return {
+          threads: { ...state.threads, ...threadsRecord },
+          threadWorkflowId,
+          threadsLoaded: true,
+          isLoadingThreads: false
+        };
+      });
     }
   }, [query.isSuccess, query.data]);
 

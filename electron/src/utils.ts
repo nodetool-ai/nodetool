@@ -29,13 +29,12 @@ async function checkPermissions(
     return { accessible: true, error: null };
   } catch (error: unknown) {
     let errorMsg = `Cannot access ${path}: `;
-    const code = error instanceof Error && "code" in error ? (error as NodeJS.ErrnoException).code : undefined;
-    if (code === "ENOENT") {
+    if (isErrnoException(error) && error.code === "ENOENT") {
       errorMsg += "File/directory does not exist";
-    } else if (code === "EACCES") {
+    } else if (isErrnoException(error) && error.code === "EACCES") {
       errorMsg += "Permission denied";
     } else {
-      errorMsg += error instanceof Error ? error.message : String(error);
+      errorMsg += errorMessage(error);
     }
     return { accessible: false, error: errorMsg };
   }
@@ -167,11 +166,23 @@ function assertSafeReadablePath(filePath: unknown): string {
   return resolved;
 }
 
+/** Type guard for Node.js errno exceptions (ENOENT, ESRCH, EACCES, etc.). */
+function isErrnoException(error: unknown): error is NodeJS.ErrnoException {
+  return error instanceof Error && "code" in error;
+}
+
+/** Safely extract a message from an unknown catch value. */
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 export {
   assertSafeReadablePath,
   checkPermissions,
+  errorMessage,
   fileExists,
   getServerPort,
   getServerUrl,
   getServerWebSocketUrl,
+  isErrnoException,
 };

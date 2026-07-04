@@ -47,10 +47,24 @@ jobs:
   deploy:
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deployment.outputs.page_url || steps.deployment-retry.outputs.page_url }}
     runs-on: ubuntu-latest
     needs: build
     steps:
+      # The Pages "syncing_files" backend step fails intermittently with a
+      # generic "Deployment failed, try again later." GitHub offers no
+      # server-side retry, so the first attempt is allowed to fail and a second
+      # attempt runs only when it does. Each call creates a fresh deployment.
       - name: Deploy to GitHub Pages
         id: deployment
+        continue-on-error: true
+        uses: actions/deploy-pages@v5
+
+      - name: Wait before retry
+        if: steps.deployment.outcome == 'failure'
+        run: sleep 30
+
+      - name: Deploy to GitHub Pages (retry)
+        id: deployment-retry
+        if: steps.deployment.outcome == 'failure'
         uses: actions/deploy-pages@v5

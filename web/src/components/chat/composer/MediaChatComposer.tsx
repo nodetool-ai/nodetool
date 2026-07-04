@@ -33,8 +33,6 @@ import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import { FlexRow, Text } from "../../ui_primitives";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import useMediaGenerationStore, {
-  IMAGE_ASPECT_RATIOS,
-  IMAGE_RESOLUTIONS,
   IMAGE_VARIATIONS,
   AUDIO_FORMATS,
   AUDIO_SPEEDS,
@@ -45,7 +43,6 @@ import useMediaGenerationStore, {
 } from "../../../stores/MediaGenerationStore";
 import type {
   MediaMode,
-  ImageResolution,
   AudioFormat
 } from "../../../stores/MediaGenerationStore";
 import MediaControlChip from "./MediaControlChip";
@@ -59,11 +56,16 @@ import {
   clampToAllowed,
   videoModelConstraints
 } from "./videoModelOptions";
+import {
+  buildImageModelOptions,
+  imageModelConstraints
+} from "./imageModelOptions";
 import ImageModelMenuDialog from "../../model_menu/ImageModelMenuDialog";
 import VideoModelMenuDialog from "../../model_menu/VideoModelMenuDialog";
 import LanguageModelMenuDialog from "../../model_menu/LanguageModelMenuDialog";
 import TTSModelMenuDialog from "../../model_menu/TTSModelMenuDialog";
 import type {
+  Asset,
   ImageModel,
   LanguageModel,
   MessageContent,
@@ -71,6 +73,8 @@ import type {
   VideoModel
 } from "../../../stores/ApiTypes";
 import type { MediaGenerationRequest } from "../types/media.types";
+import { assetToUri } from "../../node_types/editing/promptComposer/promptTokens";
+import { useTextareaAssetMention } from "./useTextareaAssetMention";
 import { FilePreview } from "./FilePreview";
 import { useFileHandling } from "../hooks/useFileHandling";
 import { useDragAndDrop } from "../hooks/useDragAndDrop";
@@ -111,10 +115,6 @@ export interface MediaChatComposerProps {
   requireToolSupport?: boolean;
   /** Focus the prompt textarea on mount. Defaults to true (chat panel). */
   autoFocus?: boolean;
-  /** When true, the composer minimizes to just the input (+ leading Run
-   *  button) while unfocused and empty, expanding to the full chip row on
-   *  focus. Used by the canvas composer; off in the chat panel. */
-  collapsible?: boolean;
   /** Extra actions rendered at the end of the footer chip row (e.g. the
    *  canvas Run button + workflow menu). Empty in the chat panel. */
   trailingActions?: React.ReactNode;
@@ -162,15 +162,12 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   trailingActions,
   leadingActions,
   placeholder: placeholderOverride,
-  collapsible = false,
   hideModePicker = false
 }) => {
   const theme = useTheme();
   const styles = useMemo(() => createMediaComposerStyles(theme), [theme]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [prompt, setPrompt] = useState("");
-  const [focused, setFocused] = useState(false);
-  const blurTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // Mode + media params from persistent store
   const storeMode = useMediaGenerationStore((s) => s.mode);
@@ -241,6 +238,32 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       altKeyPressed: state.isKeyPressed("alt")
     })
   );
+
+  // Typing `@` opens the asset picker; a picked asset is attached as an
+  // `asset://` reference (like a drag from the asset library) rather than
+  // inlined into the prompt text.
+  const handleSelectAsset = useCallback(
+    (asset: Asset) => {
+      addDroppedFiles([
+        {
+          id: "",
+          dataUri: asset.thumb_url || asset.get_url || "",
+          type: asset.content_type || "application/octet-stream",
+          name: asset.name || asset.id,
+          assetUri: assetToUri(asset)
+        }
+      ]);
+    },
+    [addDroppedFiles]
+  );
+
+  const { mentionMenu, handleKeyDown: handleMentionKeyDown } =
+    useTextareaAssetMention({
+      textareaRef,
+      value: prompt,
+      setValue: setPrompt,
+      onSelectAsset: handleSelectAsset
+    });
 
   // Adjust textarea height based on content
   const adjustHeight = useCallback(() => {
@@ -430,7 +453,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     if (mode === "motion_control") {
       return "Describe the motion…";
     }
-    return "Continue the thread — or @ a node to compose with the canvas…";
+    return "Continue the thread — or type @ to add an asset…";
   }, [mode, isPi, placeholderOverride]);
 
   const isMediaMode =
@@ -486,6 +509,10 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      // Let the asset-mention picker consume nav / select / dismiss keys first.
+      if (handleMentionKeyDown(e)) {
+        return;
+      }
       if (e.key === "Enter") {
         if (shiftKeyPressed) {
           return;
@@ -496,7 +523,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
         }
       }
     },
-    [shiftKeyPressed, metaKeyPressed, altKeyPressed, handleSend]
+    [handleMentionKeyDown, shiftKeyPressed, metaKeyPressed, altKeyPressed, handleSend]
   );
 
   // Mode icon for the mode chip
@@ -528,14 +555,24 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   // Model dialog selection callbacks
   const handlePickImageModel = useCallback(
     (model: ImageModel) => {
+      const constraints = imageModelConstraints(model);
       setImageParams({
         model: {
           type: "image_model",
           id: model.id,
           provider: model.provider,
           name: model.name || "",
-          path: model.path || ""
-        }
+          path: model.path || "",
+          ...constraints
+        },
+        resolution: clampToAllowed(
+          imageParams.resolution,
+          constraints.resolutions
+        ),
+        aspectRatio: clampToAllowed(
+          imageParams.aspectRatio,
+          constraints.aspectRatios
+        )
       });
       addRecentModel({
         provider: model.provider || "",
@@ -544,7 +581,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       });
       setImageModelOpen(false);
     },
-    [setImageParams, addRecentModel]
+    [setImageParams, addRecentModel, imageParams.resolution, imageParams.aspectRatio]
   );
 
   const handlePickVideoModel = useCallback(
@@ -580,14 +617,24 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
 
   const handlePickImageEditModel = useCallback(
     (model: ImageModel) => {
+      const constraints = imageModelConstraints(model);
       setImageEditParams({
         model: {
           type: "image_model",
           id: model.id,
           provider: model.provider,
           name: model.name || "",
-          path: model.path || ""
-        }
+          path: model.path || "",
+          ...constraints
+        },
+        resolution: clampToAllowed(
+          imageEditParams.resolution,
+          constraints.resolutions
+        ),
+        aspectRatio: clampToAllowed(
+          imageEditParams.aspectRatio,
+          constraints.aspectRatios
+        )
       });
       addRecentModel({
         provider: model.provider || "",
@@ -596,7 +643,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       });
       setImageModelOpen(false);
     },
-    [setImageEditParams, addRecentModel]
+    [setImageEditParams, addRecentModel, imageEditParams.resolution, imageEditParams.aspectRatio]
   );
 
   const handlePickImageToVideoModel = useCallback(
@@ -675,14 +722,24 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     aspectOptions: videoAspectOptions
   } = useMemo(() => buildVideoModelOptions(activeVideoModel), [activeVideoModel]);
 
-  const imageResolutionOptions = useMemo<MediaOption<ImageResolution>[]>(
-    () =>
-      IMAGE_RESOLUTIONS.map((r) => ({
-        id: r,
-        label: r,
-        icon: <DisplaySettingsIcon fontSize="small" />
-      })),
-    []
+  // Image option lists — derived from the selected model's manifest (shared
+  // with the sketch connected-mode prompt bar via buildImageModelOptions),
+  // falling back to the full sets when the model declares no constraints. The
+  // image-edit chip cluster has its own model, so it gets a parallel set.
+  const {
+    aspectOptions: imageAspectOptions,
+    resolutionOptions: imageResolutionOptions
+  } = useMemo(
+    () => buildImageModelOptions(imageParams.model),
+    [imageParams.model]
+  );
+
+  const {
+    aspectOptions: imageEditAspectOptions,
+    resolutionOptions: imageEditResolutionOptions
+  } = useMemo(
+    () => buildImageModelOptions(imageEditParams.model),
+    [imageEditParams.model]
   );
 
   const variationsOptions = useMemo<MediaOption<number>[]>(
@@ -767,41 +824,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   const isDisabled = disabled || isBusy;
   const elapsed = useElapsedTime(isBusy);
 
-  // When `collapsible`, the composer dims its border + footer controls while
-  // unfocused and idle, brightening on focus (or pending content / open menu /
-  // active generation). Blur is delayed so clicking a chip — which momentarily
-  // blurs the textarea before its menu opens — doesn't flash the dim state.
-  const anyMenuOpen =
-    !!modeAnchor ||
-    !!durationAnchor ||
-    !!resolutionAnchor ||
-    !!aspectAnchor ||
-    !!variationsAnchor ||
-    !!voiceAnchor ||
-    !!speedAnchor ||
-    !!audioFormatAnchor ||
-    !!strengthAnchor ||
-    !!stepsAnchor ||
-    imageModelOpen ||
-    videoModelOpen ||
-    languageModelOpen ||
-    ttsModelOpen;
-  const hasContent = prompt.trim().length > 0 || droppedFiles.length > 0;
-  const dimmed =
-    collapsible && !focused && !hasContent && !anyMenuOpen && !isBusy;
-
-  const handleFocus = useCallback(() => {
-    if (blurTimer.current) clearTimeout(blurTimer.current);
-    setFocused(true);
-  }, []);
-  const handleBlur = useCallback(() => {
-    if (blurTimer.current) clearTimeout(blurTimer.current);
-    blurTimer.current = setTimeout(() => setFocused(false), 150);
-  }, []);
-  useEffect(() => () => {
-    if (blurTimer.current) clearTimeout(blurTimer.current);
-  }, []);
-
   const removeCallbacks = useMemo(
     () => new Map(droppedFiles.map((f) => [f.id, () => removeFile(f.id)])),
     [droppedFiles, removeFile]
@@ -810,9 +832,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   return (
     <div css={styles} className="media-chat-composer">
       <div
-        className={`media-compose-card${isDragging ? " dragging" : ""}${
-          dimmed ? " dimmed" : ""
-        }`}
+        className={`media-compose-card${isDragging ? " dragging" : ""}`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -838,13 +858,12 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
           onInput={adjustHeight}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
           placeholder={placeholder}
           rows={1}
           spellCheck={false}
           autoComplete="off"
         />
+        {mentionMenu}
 
         {queuedMessage && (
           <FlexRow
@@ -870,12 +889,9 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
         )}
 
         <div className="media-chip-row">
-          {/* Leading actions (e.g. the canvas dock drag handle). Stays visible
-              even while the composer is minimized. */}
+          {/* Leading actions (e.g. the canvas dock drag handle). */}
           {leadingActions}
-          {/* Collapsible cluster: mode/model chips + primary action. Hidden
-              while the composer is minimized (idle + empty); the trailing
-              run actions below stay visible so the workflow can still run. */}
+          {/* Chip cluster: mode/model chips + primary action. */}
           <div className="media-chip-main">
           {/* Mode selector chip */}
           {!hideModePicker && (
@@ -995,7 +1011,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 open={!!aspectAnchor}
                 onClose={() => setAspectAnchor(null)}
                 value={imageParams.aspectRatio}
-                options={IMAGE_ASPECT_RATIOS}
+                options={imageAspectOptions}
                 onChange={(v) => setImageParams({ aspectRatio: v })}
               />
 
@@ -1127,7 +1143,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 onClose={() => setResolutionAnchor(null)}
                 header="Image Resolution"
                 value={imageEditParams.resolution}
-                options={imageResolutionOptions}
+                options={imageEditResolutionOptions}
                 onChange={(r) => setImageEditParams({ resolution: r })}
               />
 
@@ -1143,7 +1159,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 open={!!aspectAnchor}
                 onClose={() => setAspectAnchor(null)}
                 value={imageEditParams.aspectRatio}
-                options={IMAGE_ASPECT_RATIOS}
+                options={imageEditAspectOptions}
                 onChange={(v) => setImageEditParams({ aspectRatio: v })}
               />
 
@@ -1402,8 +1418,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
           </div>
 
           {/* Host-supplied actions at the end of the footer (e.g. the canvas
-              Run button + workflow menu). Empty in the chat panel. Stays
-              visible even while the composer is minimized. */}
+              Run button + workflow menu). Empty in the chat panel. */}
           {trailingActions}
         </div>
       </div>

@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/image-nodes",
-  "version": "0.7.0-rc.26",
+  "version": "0.7.0-rc.29",
   "description": "NodeTool image nodes — sharp-based + WebGPU shader pool (image, lib-image-*, lib-shader-utils, lib-grid)",
   "type": "module",
   "engines": {
@@ -51,5 +51,33 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/image-nodes"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "ai-nodes",
+    "no-code",
+    "visual-programming",
+    "workflow-nodes",
+    "image",
+    "image-processing",
+    "sharp",
+    "webgpu",
+    "shaders"
   ]
 }

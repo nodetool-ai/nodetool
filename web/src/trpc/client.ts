@@ -7,13 +7,13 @@ import {
 } from "@trpc/client";
 import type { AppRouter } from "@nodetool-ai/websocket/trpc";
 import { BASE_URL } from "../stores/BASE_URL";
-import { isLocalhost } from "../lib/env";
+import { isAuthRequired } from "../lib/runtimeConfig";
 import { supabase } from "../lib/supabaseClient";
 
 export const trpc = createTRPCReact<AppRouter>();
 
 async function authHeaders(): Promise<Record<string, string>> {
-  if (isLocalhost) return {};
+  if (!isAuthRequired()) return {};
   const {
     data: { session }
   } = await supabase.auth.getSession();
@@ -32,6 +32,12 @@ export function createTRPCHttpClient(): Readonly<TRPCClient<AppRouter>> {
       }),
       httpBatchLink({
         url: `${BASE_URL}/trpc`,
+        // Force batches to POST so the (potentially long) batched input rides
+        // in the request body instead of the URL. GET batches encode every
+        // procedure's input into the query string, which reverse proxies
+        // (e.g. Tailscale Serve) reject once the URL grows too long, returning
+        // 502 and leaving panels empty. See issue #3979.
+        methodOverride: "POST",
         async headers() {
           return authHeaders();
         }

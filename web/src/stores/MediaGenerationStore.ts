@@ -290,6 +290,17 @@ const useMediaGenerationStore = create<MediaGenerationState>()(
   )
 );
 
+/** Parse an aspect-ratio id ("16:9") into positive width/height, or null. */
+function parseAspectRatioId(
+  aspectRatio: string
+): { width: number; height: number } | null {
+  const m = aspectRatio.match(/^(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/);
+  if (!m) return null;
+  const width = Number(m[1]);
+  const height = Number(m[2]);
+  return width > 0 && height > 0 ? { width, height } : null;
+}
+
 /**
  * Compute width/height pixel pair for the named image resolution + aspect.
  * The shorter edge equals the resolution's base pixels.
@@ -300,10 +311,16 @@ export function resolveImageSize(
 ): { width: number; height: number } {
   const base = IMAGE_RESOLUTION_TO_PIXELS[resolution];
   const preset = IMAGE_ASPECT_RATIOS.find((a) => a.id === aspectRatio);
-  if (!preset) {
+  // A model may report a ratio outside the static preset list (e.g. a
+  // provider-specific "5:12"); parse "W:H" so the canvas still matches instead
+  // of falling back to a square.
+  const parsed = preset
+    ? { width: preset.width, height: preset.height }
+    : parseAspectRatioId(aspectRatio);
+  if (!parsed) {
     return { width: base, height: base };
   }
-  const { width: aw, height: ah } = preset;
+  const { width: aw, height: ah } = parsed;
   if (aw >= ah) {
     const height = base;
     const width = Math.round((height * aw) / ah);

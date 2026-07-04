@@ -1,8 +1,20 @@
-name: Marketing CI
+name: Marketing CI/CD
 
-# Quality gate for the marketing site (Next.js, deployed via @opennextjs/cloudflare).
-# The marketing package has its own lockfile and is installed independently of the
-# root workspace, so this runs in marketing/ directly.
+# Quality gate + deploy for the marketing site (Next.js, deployed via
+# @opennextjs/cloudflare to Cloudflare Workers). The marketing package has its
+# own lockfile and is installed independently of the root workspace, so this runs
+# in marketing/ directly.
+#
+# Deployment is driven from here (the `deploy` job) rather than Cloudflare's git
+# integration: a push to main only ships after typecheck/lint/build and the
+# Playwright smoke tests pass, which makes releases predictable instead of
+# firing on every push regardless of state. Disconnect the repo from Cloudflare
+# Workers Builds / Pages git integration so the site is only deployed from here.
+#
+# Required secrets (repo or `marketing-production` environment):
+#   CLOUDFLARE_API_TOKEN   — token with "Edit Cloudflare Workers" + Workers R2
+#                            Storage permissions for the account below
+#   CLOUDFLARE_ACCOUNT_ID  — the Cloudflare account that owns the Worker
 
 on:
   push:
@@ -16,7 +28,8 @@ on:
       - "marketing/**"
       - ".github/workflows/marketing-ci.yml"
 
-# Least-privilege token: this workflow only reads the repo to build/lint.
+# Least-privilege token: this workflow only reads the repo to build/lint/deploy
+# (the Cloudflare deploy authenticates with its own API token, not GITHUB_TOKEN).
 permissions:
   contents: read
 
@@ -40,6 +53,15 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Check generated template entries are up to date
+        run: |
+          npm run gen:templates
+          if ! git diff --quiet -- src/data/templateEntries.generated.ts public/templates; then
+            echo "::error::templateEntries.generated.ts / public/templates is stale. Run 'npm run gen:templates' in marketing/ and commit the result."
+            git diff --stat -- src/data/templateEntries.generated.ts public/templates
+            exit 1
+          fi
 
       - name: Type check
         run: npx tsc --noEmit
@@ -111,3 +133,41 @@ jobs:
 
       - name: Run Lighthouse CI
         run: npx --yes @lhci/cli@0.14.x autorun
+
+  deploy:
+    name: Deploy to Cloudflare
+    # Only ship from pushes to main, and only once the quality gates are green —
+    # this is the reliability win over the fire-on-every-push git integration.
+    needs: [build, e2e]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: marketing-production
+      url: https://nodetool.ai
+    # Never run two deploys at once; let an in-flight one finish rather than
+    # cancelling it mid-upload.
+    concurrency:
+      group: marketing-deploy
+      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: marketing
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+          cache-dependency-path: marketing/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build & deploy (OpenNext → Cloudflare Workers)
+        run: npm run deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

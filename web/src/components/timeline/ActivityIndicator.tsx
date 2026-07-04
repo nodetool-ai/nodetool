@@ -13,6 +13,7 @@
  */
 
 import React, { memo, useCallback, useMemo, useRef, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -29,6 +30,7 @@ import {
   useFailedClipIds
 } from "../../stores/timeline/TimelineGenerationStore";
 import { useTimelineStore } from "../../stores/timeline/TimelineStore";
+import { clipsById } from "../../stores/timeline/clipLookup";
 import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
 
 // ── Styles ─────────────────────────────────────────────────────────────────
@@ -77,10 +79,16 @@ interface ClipListPopoverProps {
   onClose: () => void;
 }
 
+const EMPTY_AFFECTED_ENTRIES: readonly string[] = [];
+// Encodes id + SEP + name as one primitive per affected clip so the array
+// compares element-wise under useShallow instead of subscribing to the
+// entire `clips` array (only `id`/`name` for the handful of affected ids are
+// actually rendered).
+const AFFECTED_ENTRY_SEP = "\u0000";
+
 const ClipListPopover: React.FC<ClipListPopoverProps> = memo(
   ({ clipIds, title, anchorEl, onClose }) => {
     const theme = useTheme();
-    const clips = useTimelineStore((s) => s.clips);
     const selectClip = useTimelineUIStore((s) => s.selectClip);
 
     const handleSelectClip = useCallback(
@@ -91,10 +99,30 @@ const ClipListPopover: React.FC<ClipListPopoverProps> = memo(
       [selectClip, onClose]
     );
 
-    const affectedClips = useMemo(() => {
-      const idSet = new Set(clipIds);
-      return clips.filter((c) => idSet.has(c.id));
-    }, [clips, clipIds]);
+    const affectedEntries = useTimelineStore(
+      useShallow((s) => {
+        if (clipIds.length === 0) return EMPTY_AFFECTED_ENTRIES;
+        const byId = clipsById(s.clips);
+        const entries: string[] = [];
+        for (const id of clipIds) {
+          const c = byId.get(id);
+          if (c) entries.push(`${c.id}${AFFECTED_ENTRY_SEP}${c.name}`);
+        }
+        return entries;
+      })
+    );
+
+    const affectedClips = useMemo(
+      () =>
+        affectedEntries.map((entry) => {
+          const sepIndex = entry.indexOf(AFFECTED_ENTRY_SEP);
+          return {
+            id: entry.slice(0, sepIndex),
+            name: entry.slice(sepIndex + 1)
+          };
+        }),
+      [affectedEntries]
+    );
 
     return (
       <Popover
@@ -202,12 +230,14 @@ export const ActivityIndicator: React.FC = memo(() => {
             </Caption>
           </button>
 
-          <ClipListPopover
-            clipIds={generatingIds}
-            title={`${generatingCount} clip${generatingCount !== 1 ? "s" : ""} generating`}
-            anchorEl={generatingPopoverEl}
-            onClose={handleGeneratingClose}
-          />
+          {generatingPopoverEl && (
+            <ClipListPopover
+              clipIds={generatingIds}
+              title={`${generatingCount} clip${generatingCount !== 1 ? "s" : ""} generating`}
+              anchorEl={generatingPopoverEl}
+              onClose={handleGeneratingClose}
+            />
+          )}
         </>
       )}
 
@@ -231,12 +261,14 @@ export const ActivityIndicator: React.FC = memo(() => {
             </Caption>
           </button>
 
-          <ClipListPopover
-            clipIds={failedIds}
-            title={`${failedCount} clip${failedCount !== 1 ? "s" : ""} failed`}
-            anchorEl={failedPopoverEl}
-            onClose={handleFailedClose}
-          />
+          {failedPopoverEl && (
+            <ClipListPopover
+              clipIds={failedIds}
+              title={`${failedCount} clip${failedCount !== 1 ? "s" : ""} failed`}
+              anchorEl={failedPopoverEl}
+              onClose={handleFailedClose}
+            />
+          )}
         </>
       )}
     </FlexRow>

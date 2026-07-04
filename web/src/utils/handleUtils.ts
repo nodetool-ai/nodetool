@@ -11,7 +11,7 @@ import { inferOutputType } from "./outputTypeInference";
 /**
  * Represents an output handle (either static or dynamic)
  */
-interface OutputHandle {
+export interface OutputHandle {
   name: string;
   type: TypeMetadata;
   stream: boolean;
@@ -21,7 +21,7 @@ interface OutputHandle {
 /**
  * Represents an input handle (either static or dynamic)
  */
-interface InputHandle {
+export interface InputHandle {
   name: string;
   type: TypeMetadata;
   isDynamic: boolean;

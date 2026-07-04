@@ -22,10 +22,19 @@ import useStatusStore from "../stores/StatusStore";
 import useWorkflowRunsStore from "../stores/WorkflowRunsStore";
 import { useNotificationStore, type Notification } from "../stores/NotificationStore";
 import useAuth from "../stores/useAuth";
+import useSecretsStore from "../stores/SecretsStore";
 import { createNodeStore, type NodeStore } from "../stores/NodeStore";
-import { handleUpdate, type MsgpackData } from "../stores/workflowUpdates";
+import {
+  handleUpdate,
+  flushPendingNodeStreams,
+  type MsgpackData
+} from "../stores/workflowUpdates";
 import type { WorkflowRunner, WorkflowRunnerStore } from "../stores/WorkflowRunner";
-import type { NodeMetadata, WorkflowAttributes } from "../stores/ApiTypes";
+import type {
+  NodeMetadata,
+  SecretResponse,
+  WorkflowAttributes,
+} from "../stores/ApiTypes";
 
 import type { CastEvent, DemoCast } from "./castTypes";
 import { resolveAssetUrls } from "./assetSubstitution";
@@ -72,6 +81,42 @@ function seedDemoAuth(): void {
   }
 }
 
+/**
+ * Provider keys the replayed nodes might require (utils/nodeProvider.ts maps
+ * node namespaces to these). Seeded as present-and-configured so provider
+ * nodes never flash their "API key is missing" banner mid-replay — with no
+ * backend, the real secrets query settles empty at a nondeterministic frame.
+ */
+const DEMO_SECRET_KEYS = [
+  "OPENAI_API_KEY",
+  "ANTHROPIC_API_KEY",
+  "GEMINI_API_KEY",
+  "FAL_API_KEY",
+  "KIE_API_KEY",
+  "REPLICATE_API_TOKEN",
+  "ELEVENLABS_API_KEY",
+  "HF_TOKEN",
+] as const;
+
+function seedDemoSecrets(): void {
+  const seeded: SecretResponse[] = DEMO_SECRET_KEYS.map((key) => ({
+    id: `demo-${key}`,
+    user_id: "demo",
+    key,
+    description: null,
+    created_at: null,
+    updated_at: null,
+    is_configured: true,
+  }));
+  useSecretsStore.setState({
+    secrets: seeded,
+    isLoading: false,
+    // `useSecrets` goes through a react-query queryFn that calls this action;
+    // resolve from the seeds so nothing hits the (absent) backend.
+    fetchSecrets: async () => seeded,
+  });
+}
+
 /** Count of events whose timestamp is `<= timeMs` (events are sorted by `t`). */
 function countAppliedAt(events: CastEvent[], timeMs: number): number {
   // Linear scan is fine at demo scale (hundreds–low thousands of events) and
@@ -109,6 +154,7 @@ export class DemoEngine {
     // sanitization sees the real node shapes.
     seedCastMetadata(cast.metadata);
     seedDemoAuth();
+    seedDemoSecrets();
     this.nodeStore = createNodeStore(cast.workflow);
     this.pristineNodes = clone(this.nodeStore.getState().nodes);
     this.pristineEdges = clone(this.nodeStore.getState().edges);
@@ -136,6 +182,9 @@ export class DemoEngine {
       this.applyEvent(this.events[i]);
     }
     this.appliedIndex = target;
+    // handleUpdate coalesces stream chunks on a timer; a seek must leave the
+    // stores fully settled (Remotion frames never yield to timers).
+    flushPendingNodeStreams();
   }
 
   private applyEvent(event: CastEvent): void {

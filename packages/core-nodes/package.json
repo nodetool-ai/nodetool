@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/core-nodes",
-  "version": "0.7.0-rc.26",
+  "version": "0.7.0-rc.29",
   "description": "Core NodeTool nodes — pure-JS logic, control flow, constants, list, input, subgraph",
   "type": "module",
   "engines": {
@@ -49,5 +49,33 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/core-nodes"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "ai-nodes",
+    "no-code",
+    "visual-programming",
+    "workflow-nodes",
+    "control-flow",
+    "logic",
+    "constants",
+    "list",
+    "input"
   ]
 }

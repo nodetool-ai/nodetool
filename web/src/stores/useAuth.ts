@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { createErrorMessage } from "../utils/errorHandling";
 import { supabase } from "../lib/supabaseClient"; // Import Supabase client
 import type { Session, User, Provider } from "@supabase/supabase-js"; // Import Supabase types
-import { isLocalhost } from "../lib/env"; // Keep isLocalhost for potential dev bypass
+import { getRuntimeConfig, isAuthRequired } from "../lib/runtimeConfig";
 
 type OAuthProviderSupabase = Extract<Provider, "google" | "facebook">;
 
@@ -22,6 +22,11 @@ type OAuthProviderSupabase = Extract<Provider, "google" | "facebook">;
  *   2. `window.location.origin + "/"` at runtime.
  */
 export const getAuthRedirectUrl = (): string => {
+  // Runtime config from the backend wins when present.
+  const fromRuntime = getRuntimeConfig().authRedirectUrl;
+  if (fromRuntime) {
+    return fromRuntime;
+  }
   // Try to use process.env first (for Jest tests) to avoid SyntaxError with import.meta outside a module
   let configured;
   if (typeof process !== "undefined" && process.env && process.env.VITE_AUTH_REDIRECT_URL) {
@@ -111,7 +116,8 @@ export const useAuth = create<LoginStore>((set, get) => ({
    * Initializes the authentication state.
    * - Checks for an existing Supabase session on load.
    * - Sets up `onAuthStateChange` listener to react to login/logout events.
-   * - Bypasses Supabase check if `isLocalhost` is true for development convenience.
+   * - Skips the Supabase check when the backend does not enforce auth
+   *   (Local mode), auto-logging in as the single local user.
    */
   initialize: async () => {
     console.info("Auth: Initializing...");
@@ -119,9 +125,9 @@ export const useAuth = create<LoginStore>((set, get) => ({
     // Clean up any existing subscription before initializing
     get().cleanup();
 
-    if (isLocalhost) {
-      // Provide a predictable state for local development without requiring login
-      console.info("Auth: Running in localhost mode, setting state to logged_in.");
+    if (!isAuthRequired()) {
+      // Backend runs in Local mode — no login screen, single local user.
+      console.info("Auth: Local mode, setting state to logged_in.");
       set({
         state: "logged_in", // Assume logged in for local dev
         session: null,

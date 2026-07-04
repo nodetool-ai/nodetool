@@ -97,9 +97,12 @@ export default function NodeToolHero() {
             <img
               src="/screen_canvas.png"
               alt="NodeTool canvas: nodes for image, video, and text models wired together"
-              className="block w-full rounded-xl"
+              width={2000}
+              height={1320}
+              className="block h-auto w-full rounded-xl"
               loading="eager"
               decoding="async"
+              fetchPriority="high"
             />
           </div>
         </motion.div>

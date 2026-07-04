@@ -1,13 +1,17 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+
 import {
+  FlexRow,
+  EditorButton,
+  Dialog,
+  BORDER_RADIUS,
   TextField,
   DialogTitle,
   DialogContent,
   DialogActions
-} from "@mui/material";
-import { FlexRow, EditorButton, Dialog, BORDER_RADIUS } from "../ui_primitives";
-import { Add } from "@mui/icons-material";
+} from "../ui_primitives";
+import Add from "@mui/icons-material/Add";
 import { useState, useCallback, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import isEqual from "fast-deep-equal";

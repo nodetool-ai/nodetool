@@ -25,11 +25,13 @@ import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "
 import { css } from "@emotion/react";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
+import AddPhotoAlternateOutlinedIcon from "@mui/icons-material/AddPhotoAlternateOutlined";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 import { EmptyState, EditorButton, FlexColumn, FlexRow, LoadingSpinner } from "../ui_primitives";
 import SketchEditor, { type SketchEditorHandle } from "./SketchEditor";
+import SaveToFolderMenu from "../assets/SaveToFolderMenu";
 import { trpc } from "../../trpc/client";
 import type { SketchDocument } from "./types";
 import { useStandaloneSketchDocument } from "../../stores/sketch/SketchSessionStore";
@@ -42,6 +44,7 @@ import {
   tabId
 } from "../../stores/WorkspaceTabsStore";
 import { useSaveSketchDocument } from "../../hooks/sketch/useSaveSketchDocument";
+import { useSaveSketchAsAsset } from "../../hooks/sketch/useSaveSketchAsAsset";
 
 const containerStyles = (theme: Theme) =>
   css({
@@ -73,6 +76,9 @@ const StandaloneSketchEditorBody: React.FC<
     const styles = useMemo(() => containerStyles(theme), [theme]);
     const editorRef = useRef<SketchEditorHandle | null>(null);
     const { save, saving } = useSaveSketchDocument();
+    const { saveAsAsset, saving: savingAsAsset } = useSaveSketchAsAsset();
+    const [saveAsAssetAnchor, setSaveAsAssetAnchor] =
+      useState<HTMLElement | null>(null);
 
     const documentQuery = trpc.sketch.get.useQuery(
       { id: documentId },
@@ -159,6 +165,17 @@ const StandaloneSketchEditorBody: React.FC<
         <EditorButton
           size="small"
           variant="outlined"
+          onClick={(e) => setSaveAsAssetAnchor(e.currentTarget)}
+          disabled={savingAsAsset}
+          startIcon={<AddPhotoAlternateOutlinedIcon fontSize="small" />}
+          data-testid="sketch-save-as-asset"
+          sx={{ height: 34 }}
+        >
+          {savingAsAsset ? "Saving…" : "Save as Asset"}
+        </EditorButton>
+        <EditorButton
+          size="small"
+          variant="outlined"
           onClick={handleExportPng}
           startIcon={<FileDownloadOutlinedIcon fontSize="small" />}
           data-testid="sketch-export-png"
@@ -208,6 +225,12 @@ const StandaloneSketchEditorBody: React.FC<
               documentActions
             )
           }
+        />
+        <SaveToFolderMenu
+          anchorEl={saveAsAssetAnchor}
+          open={!!saveAsAssetAnchor}
+          onClose={() => setSaveAsAssetAnchor(null)}
+          onSelectFolder={(folderId) => void saveAsAsset(folderId)}
         />
       </div>
     );

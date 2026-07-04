@@ -1,7 +1,7 @@
 /**
  * Dynamic Kie.ai node that creates inputs/outputs from pasted API documentation.
  */
-import yaml from "js-yaml";
+import * as yaml from "js-yaml";
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import {
   getApiKey,

@@ -24,7 +24,7 @@ const gridStyles = (theme: Theme) =>
     }
   });
 
-/** Dashboard section: the three beginner tutorials, opening the Tutorials page. */
+/** Dashboard section: the beginner tutorials, opening the Tutorials page. */
 const DashboardTutorials: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();

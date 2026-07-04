@@ -41,6 +41,7 @@ import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 import { TopBar } from "./TopBar";
 import { BottomStatusBar } from "./BottomStatusBar";
 import { ProjectSettingsDialog } from "./ProjectSettingsDialog";
+import SaveToFolderMenu from "../assets/SaveToFolderMenu";
 import {
   useCreateTimeline,
   useTimeline,
@@ -159,7 +160,7 @@ const PreviewRegion: React.FC<{
   onCreateNewSequence?: () => void;
   createSequencePending?: boolean;
   createSequenceErrorMessage?: string | null;
-}> = ({
+}> = memo(({
   isLoading,
   sequenceUnavailable,
   onRetryFetch,
@@ -233,13 +234,22 @@ const PreviewRegion: React.FC<{
       )}
     </FlexColumn>
   );
-};
+});
+PreviewRegion.displayName = "PreviewRegion";
 
 type InspectorTab = "inspector" | "agent";
 
-const InspectorRegion: React.FC = () => {
+const InspectorRegion: React.FC = memo(() => {
   const theme = useTheme();
   const [tab, setTab] = useState<InspectorTab>("inspector");
+
+  const tabs = useMemo(
+    () => [
+      { value: "inspector", label: "Inspector", icon: <TuneOutlinedIcon /> },
+      { value: "agent", label: "Assistant", icon: <AutoAwesomeIcon /> }
+    ],
+    []
+  );
 
   return (
     <FlexColumn
@@ -248,10 +258,7 @@ const InspectorRegion: React.FC = () => {
       sx={{ flex: "0 1 45%", minWidth: 0, minHeight: 0, width: 0 }}
     >
       <TabGroup
-        tabs={[
-          { value: "inspector", label: "Inspector", icon: <TuneOutlinedIcon /> },
-          { value: "agent", label: "Assistant", icon: <AutoAwesomeIcon /> }
-        ]}
+        tabs={tabs}
         value={tab}
         onChange={(value) => setTab(value as InspectorTab)}
         size="small"
@@ -266,9 +273,10 @@ const InspectorRegion: React.FC = () => {
       </FlexColumn>
     </FlexColumn>
   );
-};
+});
+InspectorRegion.displayName = "InspectorRegion";
 
-const TranscriptRegion: React.FC = () => {
+const TranscriptRegion: React.FC = memo(() => {
   const theme = useTheme();
   const hasScript = useHasScript();
 
@@ -283,7 +291,40 @@ const TranscriptRegion: React.FC = () => {
       <TranscriptPanel />
     </FlexColumn>
   );
-};
+});
+TranscriptRegion.displayName = "TranscriptRegion";
+
+/**
+ * Zoom + generation-count status bar, isolated from the editor shell.
+ *
+ * Subscribes to `msPerPx` (changes per zoom tick) and the generation counts
+ * (change per WebSocket progress message) itself, so those high-frequency
+ * updates re-render only this leaf instead of the whole `TimelineEditorBody`.
+ */
+const TimelineStatusBar: React.FC = memo(() => {
+  const msPerPx = useTimelineUIStore((s) => s.msPerPx);
+  const setZoom = useTimelineUIStore((s) => s.setZoom);
+  // Convert msPerPx to a dimensionless ratio for ZoomControls (1 = default zoom)
+  const zoom = DEFAULT_MS_PER_PX / msPerPx;
+  const handleZoomChange = useCallback(
+    (nextZoom: number) => setZoom(DEFAULT_MS_PER_PX / nextZoom),
+    [setZoom]
+  );
+
+  const generatingCount = useGeneratingCount();
+  const failedCount = useFailedCount();
+
+  return (
+    <BottomStatusBar
+      mode="local"
+      zoom={zoom}
+      onZoomChange={handleZoomChange}
+      generatingCount={generatingCount}
+      failedCount={failedCount}
+    />
+  );
+});
+TimelineStatusBar.displayName = "TimelineStatusBar";
 
 // ── Main component ─────────────────────────────────────────────────────────
 
@@ -334,23 +375,14 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
   useWorkflowFreshnessCheck(sequenceId ?? null);
   useTimelineGenerationSubscriptions();
 
-  // Zoom ← wired to TimelineUIStore so TracksRegion + BottomStatusBar stay in sync
-  const msPerPx = useTimelineUIStore((s) => s.msPerPx);
-  const setZoom = useTimelineUIStore((s) => s.setZoom);
-  // Convert msPerPx to a dimensionless ratio for ZoomControls (1 = default zoom)
-  const zoom = DEFAULT_MS_PER_PX / msPerPx;
-  const handleZoomChange = useCallback(
-    (nextZoom: number) => setZoom(DEFAULT_MS_PER_PX / nextZoom),
-    [setZoom]
-  );
-
-  // Activity counts for BottomStatusBar
-  const generatingCount = useGeneratingCount();
-  const failedCount = useFailedCount();
+  // Zoom and generation counts moved to `TimelineStatusBar` (below): both
+  // change at high frequency (per zoom tick / per progress message) and
+  // previously re-rendered this whole shell via subscriptions hosted here.
 
   // Offline video export (frame-by-frame, 1:1 with the live preview).
   const {
     exportVideo,
+    saveAsAsset,
     cancel: cancelExport,
     clearError: clearExportError,
     isExporting,
@@ -361,8 +393,22 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
     void exportVideo(sequence?.name);
   }, [exportVideo, sequence?.name]);
 
+  // "Save as Asset" — anchor the folder chooser to the TopBar button, then
+  // render the timeline into a new asset in the chosen folder.
+  const [saveAssetAnchor, setSaveAssetAnchor] = useState<HTMLElement | null>(
+    null
+  );
+  const handleSaveToAssets = useCallback(
+    (anchorEl: HTMLElement) => setSaveAssetAnchor(anchorEl),
+    []
+  );
+
   // Project settings dialog (canvas size + fps) ────────────────────────────
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const handleOpenSettings = useCallback(() => setSettingsOpen(true), []);
+  const handleCloseSettings = useCallback(() => setSettingsOpen(false), []);
+  // Stable element so `activitySlot` doesn't defeat TopBar's memo every render.
+  const activitySlot = useMemo(() => <ActivityIndicator />, []);
 
   // Tracks resize ─────────────────────────────────────────────────────────
   const [tracksHeight, setTracksHeight] = useState(DEFAULT_TRACKS_HEIGHT_PX);
@@ -370,6 +416,9 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
   const dragStartYRef = useRef(0);
   const dragStartHeightRef = useRef(DEFAULT_TRACKS_HEIGHT_PX);
   const handleRef = useRef<HTMLDivElement>(null);
+  // Latest computed height + pending rAF id for the throttled resize below.
+  const pendingHeightRef = useRef<number | null>(null);
+  const resizeRafIdRef = useRef<number | null>(null);
 
   /** Begin mouse drag — capture start position and activate drag state. */
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
@@ -383,6 +432,11 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
    * Register / unregister window-level mouse listeners for the duration of a
    * drag. Cleanup runs on unmount, preventing listener leaks if the user
    * navigates away mid-drag.
+   *
+   * `onMouseMove` fires far more often than the display refreshes, so it only
+   * records the latest height in a ref and schedules at most one
+   * `setTracksHeight` per animation frame — otherwise every mousemove tick
+   * re-rendered the whole shell.
    */
   useEffect(() => {
     if (!isDragging) {
@@ -394,17 +448,35 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
     const handleEl = handleRef.current;
     handleEl?.classList.add("dragging");
 
+    const flushPendingHeight = () => {
+      resizeRafIdRef.current = null;
+      if (pendingHeightRef.current !== null) {
+        setTracksHeight(pendingHeightRef.current);
+      }
+    };
+
     const onMouseMove = (ev: MouseEvent) => {
       const deltaY = dragStartYRef.current - ev.clientY; // drag up → taller
-      setTracksHeight(
-        Math.min(
-          MAX_TRACKS_HEIGHT_PX,
-          Math.max(MIN_TRACKS_HEIGHT_PX, dragStartHeightRef.current + deltaY)
-        )
+      pendingHeightRef.current = Math.min(
+        MAX_TRACKS_HEIGHT_PX,
+        Math.max(MIN_TRACKS_HEIGHT_PX, dragStartHeightRef.current + deltaY)
       );
+      if (resizeRafIdRef.current === null) {
+        resizeRafIdRef.current = requestAnimationFrame(flushPendingHeight);
+      }
     };
 
     const onMouseUp = () => {
+      if (resizeRafIdRef.current !== null) {
+        cancelAnimationFrame(resizeRafIdRef.current);
+        resizeRafIdRef.current = null;
+      }
+      // Flush the final position synchronously so a mouseup landing between
+      // animation frames doesn't leave the panel at a stale height.
+      if (pendingHeightRef.current !== null) {
+        setTracksHeight(pendingHeightRef.current);
+        pendingHeightRef.current = null;
+      }
       setIsDragging(false);
     };
 
@@ -412,6 +484,10 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
     window.addEventListener("mouseup", onMouseUp);
 
     return () => {
+      if (resizeRafIdRef.current !== null) {
+        cancelAnimationFrame(resizeRafIdRef.current);
+        resizeRafIdRef.current = null;
+      }
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onMouseUp);
       document.body.style.userSelect = "";
@@ -484,6 +560,23 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
       ? createTimeline.error.message || "Could not create sequence."
       : null;
 
+  // Export dialog action button — memoized so re-renders unrelated to export
+  // state (e.g. the tracks-resize drag) don't allocate a fresh element that
+  // would defeat Dialog's memo.
+  const hasExportError = exportError != null;
+  const exportDialogActions = useMemo(
+    () => (
+      <EditorButton
+        variant={isExporting ? "outlined" : "contained"}
+        size="small"
+        onClick={isExporting ? cancelExport : clearExportError}
+      >
+        {isExporting ? "Cancel" : "Close"}
+      </EditorButton>
+    ),
+    [isExporting, hasExportError, cancelExport, clearExportError]
+  );
+
   return (
     <FlexColumn fullWidth fullHeight css={editorStyles(theme)}>
       {/* ── Top bar ───────────────────────────────────────────────── */}
@@ -492,10 +585,15 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
         isExporting={isExporting}
         onSave={sequenceUnavailable ? undefined : handleSave}
         isSaving={isSaving}
-        onOpenSettings={
-          sequenceUnavailable ? undefined : () => setSettingsOpen(true)
-        }
-        activitySlot={<ActivityIndicator />}
+        onSaveToAssets={sequenceUnavailable ? undefined : handleSaveToAssets}
+        onOpenSettings={sequenceUnavailable ? undefined : handleOpenSettings}
+        activitySlot={activitySlot}
+      />
+      <SaveToFolderMenu
+        anchorEl={saveAssetAnchor}
+        open={!!saveAssetAnchor}
+        onClose={() => setSaveAssetAnchor(null)}
+        onSelectFolder={(folderId) => void saveAsAsset(folderId, sequence?.name)}
       />
 
       {/* ── Middle: assets + preview + inspector ──────────────────── */}
@@ -542,34 +640,20 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
       <TracksRegion heightPx={tracksHeight} />
 
       {/* ── Bottom status bar ─────────────────────────────────────── */}
-      <BottomStatusBar
-        mode="local"
-        zoom={zoom}
-        onZoomChange={handleZoomChange}
-        generatingCount={generatingCount}
-        failedCount={failedCount}
-      />
+      <TimelineStatusBar />
 
       {/* ── Project settings dialog (canvas size + fps) ───────────── */}
       <ProjectSettingsDialog
         open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
+        onClose={handleCloseSettings}
       />
 
       {/* ── Export progress / error dialog ────────────────────────── */}
       <Dialog
-        open={isExporting || exportError != null}
+        open={isExporting || hasExportError}
         onClose={isExporting ? undefined : clearExportError}
-        title={exportError != null ? "Export failed" : "Exporting video"}
-        actions={
-          <EditorButton
-            variant={isExporting ? "outlined" : "contained"}
-            size="small"
-            onClick={isExporting ? cancelExport : clearExportError}
-          >
-            {isExporting ? "Cancel" : "Close"}
-          </EditorButton>
-        }
+        title={hasExportError ? "Export failed" : "Exporting video"}
+        actions={exportDialogActions}
       >
         {exportError != null ? (
           <Text size="small" sx={{ color: "error.main" }}>

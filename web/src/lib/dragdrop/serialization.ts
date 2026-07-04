@@ -19,7 +19,8 @@ const VALID_DRAG_TYPES: ReadonlySet<string> = new Set<DragDataType>([
   "timeline",
   "file",
   "tab",
-  "collection-file"
+  "collection-file",
+  "chat-media"
 ]);
 
 function isDragData(value: unknown): value is DragData {
@@ -72,7 +73,8 @@ const LEGACY_KEY_MAP: Record<DragDataType, string> = {
   timeline: "timeline",
   file: "", // External files don't use custom keys
   tab: "text/plain",
-  "collection-file": ""
+  "collection-file": "",
+  "chat-media": "" // Only carried in the unified format
 };
 
 /**
@@ -191,6 +193,39 @@ export function deserializeDragData(dataTransfer: DataTransfer): DragData | null
   }
 
   return null;
+}
+
+/**
+ * Resolve the full Asset objects for an "assets-multiple" drag.
+ *
+ * Prefers the assets captured on `dragData.metadata.assets` at drag-start
+ * time, since the AssetGridStore instance that produced the drag (a scoped
+ * sidebar panel) may not be the store instance the drop target reads from.
+ * Falls back to looking the ids up in `fallbackAssets` (e.g. a singleton
+ * store's cached assets) for drags that predate the metadata field.
+ */
+export function resolveAssetsMultiple(
+  ids: string[],
+  metadataAssets: Asset[] | undefined,
+  fallbackAssets: Asset[]
+): Asset[] {
+  const idOrder = new Map(ids.map((id, index) => [id, index]));
+  const byId = new Map<string, Asset>();
+
+  for (const asset of metadataAssets ?? []) {
+    if (idOrder.has(asset.id)) byId.set(asset.id, asset);
+  }
+  if (byId.size < idOrder.size) {
+    for (const asset of fallbackAssets) {
+      if (idOrder.has(asset.id) && !byId.has(asset.id)) {
+        byId.set(asset.id, asset);
+      }
+    }
+  }
+
+  return ids
+    .map((id) => byId.get(id))
+    .filter((asset): asset is Asset => asset !== undefined);
 }
 
 /**

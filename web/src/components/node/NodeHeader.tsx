@@ -10,7 +10,7 @@ import { getCollapseTogglePatches } from "../../stores/collapseNodeLayout";
 import { useNodes } from "../../contexts/NodeContext";
 import { IconForType } from "../../config/IconForType";
 import ListAltIcon from "@mui/icons-material/ListAlt";
-import { OpenInNew } from "@mui/icons-material";
+import OpenInNew from "@mui/icons-material/OpenInNew";
 import { NodeLogsDialog } from "./NodeLogs";
 import { BORDER_RADIUS, FlexRow, Tooltip, ToolbarIconButton, MOTION, SPACING, getSpacingPx } from "../ui_primitives";
 
@@ -35,15 +35,9 @@ export interface NodeHeaderProps {
   codeBadgeTooltip?: string;
 }
 
-// Stable empty array reference — prevents creating a new array instance each
-// render when a node has no logs, keeping Zustand's reference-equality check
-// from triggering unnecessary re-renders.
-const EMPTY_NODE_LOGS: ReturnType<typeof useLogsStore.getState>["logsByNode"][string] =
-  [];
-
 const ICON_BACKGROUND_STYLE = { background: "transparent" };
 
-export const NodeHeader: React.FC<NodeHeaderProps> = ({
+const NodeHeaderImpl: React.FC<NodeHeaderProps> = ({
   id,
   metadataTitle,
   title,
@@ -74,16 +68,15 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
       shallow
     );
   const targetWorkflowId = workflowId || nodeWorkflowId || "";
-  // O(1) lookup via pre-keyed map — avoids filtering the full logs array on
-  // every store update (which previously ran for every NodeHeader in the graph).
-  const logs = useLogsStore(
-    (state) => state.logsByNode[nodeLogKey(targetWorkflowId, id)] ?? EMPTY_NODE_LOGS
+  // O(1) lookup via pre-keyed map, and a primitive (number) selector — avoids
+  // re-rendering the header on every appended log line (which previously
+  // subscribed to the log array itself, a new reference on every append).
+  const logCount = useLogsStore(
+    (state) => state.logsByNode[nodeLogKey(targetWorkflowId, id)]?.length ?? 0
   );
   const [logsDialogOpen, setLogsDialogOpen] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [draftTitle, setDraftTitle] = useState(title ?? metadataTitle);
-
-  const logCount = logs?.length || 0;
 
   useEffect(() => {
     if (!isEditingTitle) {
@@ -381,14 +374,18 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         )}
       </FlexRow>
 
-      <NodeLogsDialog
-        id={id}
-        workflowId={workflowId || nodeWorkflowId || ""}
-        open={logsDialogOpen}
-        onClose={handleCloseLogsDialog}
-      />
+      {logsDialogOpen && (
+        <NodeLogsDialog
+          id={id}
+          workflowId={workflowId || nodeWorkflowId || ""}
+          open={logsDialogOpen}
+          onClose={handleCloseLogsDialog}
+        />
+      )}
     </FlexRow>
   );
 };
 
-export default memo(NodeHeader, isEqual);
+export const NodeHeader = memo(NodeHeaderImpl, isEqual);
+NodeHeader.displayName = "NodeHeader";
+export default NodeHeader;

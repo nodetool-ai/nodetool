@@ -238,6 +238,6 @@ Press `Alt/⌘ + K` to open the command menu – the fastest way to:
 ## Next Steps
 
 - **[Workflow Editor](workflow-editor.md)** – Full editor documentation
-- **[Image Editor](image-editor.md)** – Image editing guide
+- **[Sketch Editor](sketch-editor.md)** – Image editing guide
 - **[Cookbook](cookbook.md)** – Workflow patterns
 - **[Keyboard Shortcuts](user-interface.md#keyboard-shortcuts)** – Complete list

@@ -20,6 +20,7 @@ import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 
 import type { ClipVersion, TimelineClip } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import { findClipById } from "../../../stores/timeline/clipLookup";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { getAssetUrl } from "../../../utils/assetHelpers";
 import { relativeTime } from "../../../utils/formatDateAndTime";
@@ -196,7 +197,7 @@ export interface ClipVersionHistoryProps {
 export const ClipVersionHistory: React.FC<ClipVersionHistoryProps> = memo(
   ({ clipId }) => {
     const theme = useTheme();
-    const clip = useTimelineStore((s) => s.clips.find((c) => c.id === clipId));
+    const clip = useTimelineStore((s) => findClipById(s.clips, clipId));
     const restoreVersion = useTimelineStore((s) => s.restoreVersion);
 
     const handleSelect = useCallback(

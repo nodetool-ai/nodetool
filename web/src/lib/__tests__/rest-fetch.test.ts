@@ -5,16 +5,14 @@
 const mockFetch = jest.fn();
 (global as any).fetch = mockFetch;
 
-let mockIsLocalhost = false;
+let mockAuthRequired = true;
 
 jest.mock("../auth", () => ({
   authHeader: jest.fn()
 }));
 
-jest.mock("../env", () => ({
-  get isLocalhost() {
-    return mockIsLocalhost;
-  }
+jest.mock("../runtimeConfig", () => ({
+  isAuthRequired: () => mockAuthRequired
 }));
 
 jest.mock("../../stores/BASE_URL", () => ({
@@ -30,7 +28,7 @@ describe("restFetch", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockFetch.mockResolvedValue(new Response("ok"));
-    mockIsLocalhost = false;
+    mockAuthRequired = true;
   });
 
   describe("URL construction", () => {
@@ -54,8 +52,8 @@ describe("restFetch", () => {
   });
 
   describe("auth headers", () => {
-    it("includes auth headers when not localhost", async () => {
-      mockIsLocalhost = false;
+    it("includes auth headers when auth is required", async () => {
+      mockAuthRequired = true;
       mockAuthHeader.mockResolvedValue({
         Authorization: "Bearer test-token"
       });
@@ -68,8 +66,8 @@ describe("restFetch", () => {
       expect(headers.get("Authorization")).toBe("Bearer test-token");
     });
 
-    it("skips auth headers when in localhost mode", async () => {
-      mockIsLocalhost = true;
+    it("skips auth headers when auth is not required", async () => {
+      mockAuthRequired = false;
 
       await restFetch("/api/data");
 
@@ -91,7 +89,7 @@ describe("restFetch", () => {
     });
 
     it("merges custom headers with auth headers", async () => {
-      mockIsLocalhost = false;
+      mockAuthRequired = true;
       mockAuthHeader.mockResolvedValue({
         Authorization: "Bearer token"
       });

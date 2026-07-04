@@ -1411,29 +1411,6 @@ export async function handleWorkflowImportBundle(
   });
 }
 
-// ── Workflow Gradio export (stub) ──────────────────────────────────────
-
-export async function handleWorkflowGradioExport(
-  request: Request,
-  workflowId: string,
-  options: HttpApiOptions
-): Promise<Response> {
-  if (request.method !== "POST") {
-    return errorResponse(405, "Method not allowed");
-  }
-  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
-  const workflow = (await Workflow.get(workflowId)) as Workflow | null;
-  if (!workflow) return errorResponse(404, "Workflow not found");
-  if (workflow.user_id !== userId) {
-    return errorResponse(404, "Workflow not found");
-  }
-  // Gradio export requires the Python Gradio library; return 501 in standalone TS mode.
-  return errorResponse(
-    501,
-    "Workflow Gradio export is not available in standalone mode"
-  );
-}
-
 // ── Workflow versions ──────────────────────────────────────────────────
 
 function toVersionResponse(v: WorkflowVersion): JsonObject {
@@ -2125,9 +2102,6 @@ export async function handleApiRequest(
       }
       if (subPath === "export-bundle") {
         return handleWorkflowExportBundle(request, workflowId, options);
-      }
-      if (subPath === "gradio-export") {
-        return handleWorkflowGradioExport(request, workflowId, options);
       }
       if (subPath === "versions") {
         return handleWorkflowVersions(request, workflowId, options);

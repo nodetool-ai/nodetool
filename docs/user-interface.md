@@ -4,7 +4,7 @@ title: "NodeTool User Interface"
 description: "Tour of the NodeTool interface."
 ---
 
-Tour of the interface — Dashboard, Canvas, Global Chat, Mini-Apps, Assets. Same on desktop and in the browser.
+Tour of the interface — Dashboard, Canvas, Chat, Mini-Apps, Assets. Same on desktop and in the browser.
 
 > New here? Start with [Getting Started](getting-started.md), then come back.
 
@@ -38,13 +38,13 @@ A linear, card-based alternative to the node graph. Better for simple pipelines 
 
 Docs: [Chain Editor](chain-editor.md)
 
-### Global Chat — `/chat/:thread_id?`
+### Chat — `/chat/:thread_id?`
 
-Conversational AI with multi-thread history, agent mode, tools, and workflow integration.
+Conversational AI with multi-thread history, an always-on agent loop, tools, and workflow integration.
 
-![Global Chat](assets/screenshots/global-chat-interface.png)
+![Chat](assets/screenshots/global-chat-interface.png)
 
-Docs: [Global Chat](global-chat.md)
+Docs: [Chat](global-chat.md)
 
 ### Mini-Apps — `/apps/:workflowId?`
 
@@ -56,11 +56,11 @@ Docs: [Mini-Apps](mobile-app.md#mini-apps) · [Electron Mini-App Window](electro
 
 ### Asset Explorer — `/assets`
 
-Browse, search, organize, and tag every file used in your workflows. Opens the full-featured Image Editor for image assets.
+Browse, search, organize, and tag every file used in your workflows. Opens the full-featured Sketch Editor for image assets.
 
 ![Asset Explorer](assets/screenshots/asset-explorer.png)
 
-Docs: [Asset Management](asset-management.md) · [Image Editor](image-editor.md)
+Docs: [Asset Management](asset-management.md) · [Sketch Editor](sketch-editor.md)
 
 ### Video Editor — `/timeline/:sequenceId`
 
@@ -120,7 +120,7 @@ Five workspaces:
 |-----------|---------|
 | **Dashboard** | Home, templates, recent projects |
 | **Canvas** | Build and run workflows |
-| **Global Chat** | Chat with models, run agents |
+| **Chat** | Chat with models, run agents |
 | **Mini-Apps** | Run workflows behind a simple UI |
 | **Assets** | Files and media |
 
@@ -215,17 +215,17 @@ When you select a node, the right panel shows its **configuration**:
 
 ---
 
-## Global Chat
+## Chat
 
 AI assistant built into NodeTool.
 
-![Global Chat Interface](assets/screenshots/global-chat-interface.png)
+![Chat Interface](assets/screenshots/global-chat-interface.png)
 
 ### Features
 
 - **Chat** with AI models
 - **Run workflows** from conversation
-- **Agent Mode** for autonomous task execution
+- **Agent loop** for autonomous, multi-step task execution
 - **File sharing** – images, audio, documents
 
 ### Chat Features
@@ -235,7 +235,7 @@ AI assistant built into NodeTool.
 | **Threads** | Multiple conversations, each with its own history |
 | **Model Selector** | Choose which AI model to chat with |
 | **Workflow Menu** | Attach and run your saved workflows |
-| **Agent Mode** | Let the AI use tools and modify your canvas |
+| **Agent Loop** | The AI uses tools and modifies your canvas as each task needs |
 
 ### Standalone Chat Window
 
@@ -351,7 +351,7 @@ Your layout is saved automatically. To reset:
 
 Press `Ctrl+K` (Windows/Linux) or `⌘+K` (Mac) to open the **Command Menu**.
 
-![Command Menu](assets/screenshots/screenshot-placeholder.svg)
+![Command Menu](assets/screenshots/editor-command-menu.png)
 
 This is the fastest way to:
 - Open any workflow

@@ -25,6 +25,7 @@ import type { UnifiedModel } from "../../../stores/ApiTypes";
 import { useModelCompatibility } from "./useModelCompatibility";
 import { isElectron } from "../../../lib/env";
 import { useHfCacheStatusStore } from "../../../stores/HfCacheStatusStore";
+import { useShallow } from "zustand/react/shallow";
 import {
   buildHfCacheRequest,
   canCheckHfCache,
@@ -132,25 +133,35 @@ const ModelListIndex: React.FC = () => {
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const [modelToDelete, setModelToDelete] = useState<string | null>(null);
-  const selectedModelType = useModelManagerStore((state) => state.selectedModelType);
-  const setSelectedModelType = useModelManagerStore(
-    (state) => state.setSelectedModelType
+  const {
+    selectedModelType, setSelectedModelType,
+    modelSearchTerm, setModelSearchTerm,
+    scope, setScope,
+    source, setSource
+  } = useModelManagerStore(
+    useShallow((state) => ({
+      selectedModelType: state.selectedModelType,
+      setSelectedModelType: state.setSelectedModelType,
+      modelSearchTerm: state.modelSearchTerm,
+      setModelSearchTerm: state.setModelSearchTerm,
+      scope: state.scope,
+      setScope: state.setScope,
+      source: state.source,
+      setSource: state.setSource
+    }))
   );
-  const modelSearchTerm = useModelManagerStore((state) => state.modelSearchTerm);
-  const setModelSearchTerm = useModelManagerStore(
-    (state) => state.setModelSearchTerm
-  );
-  const scope = useModelManagerStore((state) => state.scope);
-  const setScope = useModelManagerStore((state) => state.setScope);
-  const source = useModelManagerStore((state) => state.source);
-  const setSource = useModelManagerStore((state) => state.setSource);
   const { activeWorker } = useWorkers();
   const workerName = activeWorker?.profile_name ?? activeWorker?.id ?? null;
   const [visibleRange, setVisibleRange] = useState({ start: 0, stop: -1 });
-  const cacheStatuses = useHfCacheStatusStore((state) => state.statuses);
-  const cachePending = useHfCacheStatusStore((state) => state.pending);
-  const cacheVersion = useHfCacheStatusStore((state) => state.version);
-  const ensureStatuses = useHfCacheStatusStore((state) => state.ensureStatuses);
+  const { cacheStatuses, cachePending, cacheVersion, ensureStatuses } =
+    useHfCacheStatusStore(
+      useShallow((state) => ({
+        cacheStatuses: state.statuses,
+        cachePending: state.pending,
+        cacheVersion: state.version,
+        ensureStatuses: state.ensureStatuses
+      }))
+    );
 
   const {
     modelTypes,
@@ -234,17 +245,27 @@ const ModelListIndex: React.FC = () => {
       );
     }
 
-    const items: ListItem[] = [];
-    modelTypes.slice(1).forEach((modelType) => {
-      const models = filteredModels.filter((m) => m.type === modelType);
-      // Only add header if there are models in this section
-      if (models.length > 0) {
-        items.push({ type: "header", modelType });
-        models.forEach((model) => {
-          items.push({ type: "model", model });
-        });
+    const grouped = new Map<string, UnifiedModel[]>();
+    for (const model of filteredModels) {
+      const key = model.type ?? "";
+      const list = grouped.get(key);
+      if (list) {
+        list.push(model);
+      } else {
+        grouped.set(key, [model]);
       }
-    });
+    }
+
+    const items: ListItem[] = [];
+    for (const modelType of modelTypes.slice(1)) {
+      const models = grouped.get(modelType);
+      if (models && models.length > 0) {
+        items.push({ type: "header", modelType });
+        for (const model of models) {
+          items.push({ type: "model", model });
+        }
+      }
+    }
     return items;
   }, [selectedModelType, modelTypes, filteredModels]);
 

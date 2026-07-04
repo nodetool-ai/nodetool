@@ -81,53 +81,21 @@ export const createMediaComposerStyles = (theme: Theme) =>
       width: "100%",
       padding: `0 ${theme.spacing(2)}`,
       boxSizing: "border-box",
-      // Trailing run actions must stay pinned to the right even when the
-      // collapsible cluster below shrinks to zero height, so the row itself
-      // does not wrap. The chip cluster wraps internally instead.
+      // Trailing run actions stay pinned to the right, so the row itself does
+      // not wrap. The chip cluster wraps internally instead.
       flexWrap: "nowrap"
     },
 
-    // The collapsible cluster of mode/model chips + primary action. Fills the
-    // row horizontally (flex:1) so the trailing actions stay right-aligned,
-    // and wraps its own chips when they overflow.
+    // The cluster of mode/model chips + primary action. Fills the row
+    // horizontally (flex:1) so the trailing actions stay right-aligned, and
+    // wraps its own chips when they overflow.
     ".media-chip-main": {
       flex: 1,
       minWidth: 0,
       display: "flex",
       alignItems: "center",
       gap: theme.spacing(1),
-      flexWrap: "wrap",
-      // Generous cap so an expanded multi-row chip cluster is never clipped;
-      // animates down to 0 when minimized.
-      maxHeight: 200,
-      opacity: 1,
-      overflow: "hidden",
-      transition: `max-height ${MOTION.normal}, opacity ${MOTION.normal}`
-    },
-
-    // Minimized state: the composer collapses to just the textarea + trailing
-    // run actions while unfocused and empty, expanding to the full chip row on
-    // focus. The border dims and the chip cluster animates away to zero height.
-    ".media-compose-card.dimmed": {
-      borderColor:
-        theme.palette.mode === "light"
-          ? theme.vars.palette.grey[800]
-          : theme.vars.palette.grey[900],
-      gap: theme.spacing(0.5)
-    },
-    ".media-compose-card.dimmed .media-chip-main": {
-      maxHeight: 0,
-      opacity: 0,
-      pointerEvents: "none"
-    },
-    // Tighten the textarea to a slim single line while minimized.
-    ".media-compose-card.dimmed textarea.media-compose-input": {
-      paddingTop: theme.spacing(1.5),
-      paddingBottom: theme.spacing(1.5)
-    },
-    // Collapse the (empty) file-preview row so it adds no height when minimized.
-    ".media-compose-card.dimmed .media-file-preview-row:empty": {
-      display: "none"
+      flexWrap: "wrap"
     },
 
     ".media-chip-row .divider-dot": {

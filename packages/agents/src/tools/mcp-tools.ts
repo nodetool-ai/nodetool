@@ -9,6 +9,7 @@
 
 import type { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+import { validateGraph } from "@nodetool-ai/node-sdk";
 import { Tool } from "./base-tool.js";
 import { LocalListNodesTool } from "./local-list-nodes-tool.js";
 import { LocalSearchNodesTool } from "./local-search-nodes-tool.js";
@@ -352,28 +353,74 @@ export class DebugWorkflowTool extends Tool {
 export class ValidateWorkflowTool extends Tool {
   readonly name = "validate_workflow";
   readonly description =
-    "Validate a workflow's structure, connectivity, and type compatibility.";
+    "Statically validate a workflow against the node registry WITHOUT running " +
+    "it: unknown node types, missing required properties, unselected models, " +
+    "and dangling or mis-typed edges. Pass an inline `graph` to check a graph " +
+    "you are building, or `workflow_id` to validate a saved one. Run this " +
+    "before saving or running to catch breakage in milliseconds.";
   readonly jsonSchema = {
     type: "object" as const,
     properties: {
       workflow_id: {
         type: "string" as const,
-        description: "The ID of the workflow to validate"
+        description: "The ID of a saved workflow to validate (fetched from the API)"
+      },
+      graph: {
+        type: "object" as const,
+        description:
+          "Inline graph to validate ({ nodes, edges }). Takes precedence over workflow_id."
       }
-    },
-    required: ["workflow_id"]
+    }
   };
+
+  // When a registry is available the tool validates locally; without one it
+  // falls back to fetching the workflow so the tool still returns something
+  // useful in registry-free contexts (e.g. the multi-task planner).
+  constructor(private readonly registry?: NodeRegistry) {
+    super();
+  }
 
   async process(
     context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
-    // Validate by fetching the workflow and checking its structure
-    return apiGet(context, `/api/workflows/${params["workflow_id"]}`);
+    let graph = params["graph"] as
+      | { nodes?: unknown[]; edges?: unknown[] }
+      | undefined;
+    const workflowId = params["workflow_id"] as string | undefined;
+
+    if (!graph && workflowId) {
+      const wf = (await apiGet(context, `/api/workflows/${workflowId}`)) as
+        | Record<string, unknown>
+        | undefined;
+      if (wf && "error" in wf) return wf;
+      graph = (wf?.["graph"] ?? wf) as typeof graph;
+    }
+
+    if (!graph || !Array.isArray(graph.nodes)) {
+      return {
+        error:
+          "No graph to validate — pass an inline `graph` ({nodes, edges}) or a valid `workflow_id`."
+      };
+    }
+
+    if (!this.registry) {
+      return {
+        note: "No in-process node registry available; returning the graph unvalidated. Run `nodetool validate` from the CLI for a full static check.",
+        graph
+      };
+    }
+
+    return validateGraph(
+      { nodes: graph.nodes as never[], edges: (graph.edges ?? []) as never[] },
+      this.registry
+    );
   }
 
   userMessage(params: Record<string, unknown>): string {
-    return `Validating workflow ${params["workflow_id"]}`;
+    return params["workflow_id"]
+      ? `Validating workflow ${params["workflow_id"]}`
+      : "Validating workflow graph";
   }
 }
 
@@ -871,7 +918,7 @@ export function getAllMcpTools(options: GetAllMcpToolsOptions = {}): Tool[] {
     new CreateWorkflowTool(),
     new RunWorkflowTool(),
     new DebugWorkflowTool(),
-    new ValidateWorkflowTool(),
+    new ValidateWorkflowTool(options.registry),
     new GetExampleWorkflowTool(),
     new ExportWorkflowDigraphTool(),
     new ListJobsTool(),

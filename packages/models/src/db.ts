@@ -305,6 +305,7 @@ const TABLE_COLUMNS: Record<string, Record<string, string>> = {
   nodetool_threads: {
     id: "text",
     user_id: "text",
+    workflow_id: "text",
     title: "text",
     created_at: "text",
     updated_at: "text"
@@ -595,11 +596,13 @@ function getCreateSchemaSql(): string {
     CREATE TABLE IF NOT EXISTS "nodetool_threads" (
       "id" text PRIMARY KEY NOT NULL,
       "user_id" text NOT NULL,
+      "workflow_id" text,
       "title" text NOT NULL DEFAULT '',
       "created_at" text NOT NULL,
       "updated_at" text NOT NULL
     );
     CREATE INDEX IF NOT EXISTS "idx_threads_user_id" ON "nodetool_threads" ("user_id");
+    CREATE INDEX IF NOT EXISTS "idx_threads_user_workflow" ON "nodetool_threads" ("user_id", "workflow_id");
 
     CREATE TABLE IF NOT EXISTS "nodetool_assets" (
       "id" text PRIMARY KEY NOT NULL,

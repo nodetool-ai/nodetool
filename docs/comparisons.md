@@ -1,12 +1,23 @@
 ---
 layout: page
-title: "Why NodeTool"
-description: "The problems NodeTool solves for creative teams working with AI models."
+title: "Why NodeTool: Comparisons vs ComfyUI, n8n & More"
+description: "The problems NodeTool solves for creative teams, plus head-to-head comparisons: NodeTool vs ComfyUI, Dify, Flowise, Langflow, n8n, and Weavy."
 ---
 
 > NodeTool is the open creative AI workspace — every major model, your keys, one canvas.
 
 NodeTool replaces the chatbox with a node canvas where image, video, audio, and LLM models run side by side. Bring your keys, or run everything locally. Open source, AGPL-3.0.
+
+## Head-to-head comparisons
+
+Full write-ups against six specific tools:
+
+- [NodeTool vs ComfyUI](https://nodetool.ai/vs/comfyui) — a diffusion-only node editor vs one canvas for image, video, audio, and text, with editing tools built in.
+- [NodeTool vs Dify](https://nodetool.ai/vs/dify) — a text-first LLM app platform vs the same agent and RAG ground plus native image, video, and music generation.
+- [NodeTool vs Flowise](https://nodetool.ai/vs/flowise) — the fastest path to a LangChain RAG chatbot vs that chatbot plus native media generation on the same canvas.
+- [NodeTool vs Langflow](https://nodetool.ai/vs/langflow) — a low-code builder for chat, RAG, and agents vs the same ground plus native image, video, and music generation.
+- [NodeTool vs n8n](https://nodetool.ai/vs/n8n) — app-to-app automation vs workflows built to generate media and run agents.
+- [NodeTool vs Weavy](https://nodetool.ai/vs/weavy) — SaaS credits and a curated model roster vs open source, BYOK, no lock-in.
 
 ## The problem
 

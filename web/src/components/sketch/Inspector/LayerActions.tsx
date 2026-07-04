@@ -6,7 +6,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useNavigate } from "react-router-dom";
-import { Fab } from "@mui/material";
+
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import LockIcon from "@mui/icons-material/Lock";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
@@ -22,7 +22,17 @@ import {
 } from "../../../stores/sketch/SketchSessionStore";
 import { useSketchStore } from "../state/useSketchStore";
 import { useGenerateLayer } from "../../../hooks/sketch/useGenerateLayer";
-import { ToolbarIconButton, FlexRow, Toast, Tooltip, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
+import {
+  ToolbarIconButton,
+  FlexRow,
+  Toast,
+  Tooltip,
+  MOTION,
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx,
+  Fab
+} from "../../ui_primitives";
 import { cn } from "../../editor_ui/editorUtils";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 

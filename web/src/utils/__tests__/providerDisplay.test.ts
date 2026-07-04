@@ -141,6 +141,36 @@ describe("providerDisplay", () => {
       expect(formatGenericProviderName("kimi")).toBe("Moonshot AI");
     });
 
+    it("should handle Llama.cpp variants", () => {
+      expect(formatGenericProviderName("llama_cpp")).toBe("Llama.cpp");
+      expect(formatGenericProviderName("llama-cpp")).toBe("Llama.cpp");
+      expect(formatGenericProviderName("llamacpp")).toBe("Llama.cpp");
+    });
+
+    it("should handle FAL AI variants", () => {
+      expect(formatGenericProviderName("fal_ai")).toBe("FAL AI");
+      expect(formatGenericProviderName("fal-ai")).toBe("FAL AI");
+      expect(formatGenericProviderName("falai")).toBe("FAL AI");
+    });
+
+    it("should handle ElevenLabs variants", () => {
+      expect(formatGenericProviderName("elevenlabs")).toBe("ElevenLabs");
+      expect(formatGenericProviderName("eleven_labs")).toBe("ElevenLabs");
+      expect(formatGenericProviderName("eleven-labs")).toBe("ElevenLabs");
+    });
+
+    it("should handle other provider aliases", () => {
+      expect(formatGenericProviderName("minimax")).toBe("MiniMax");
+      expect(formatGenericProviderName("gmi")).toBe("GMI Cloud");
+      expect(formatGenericProviderName("cohere")).toBe("Cohere");
+      expect(formatGenericProviderName("voyage")).toBe("Voyage AI");
+      expect(formatGenericProviderName("voyage-ai")).toBe("Voyage AI");
+      expect(formatGenericProviderName("voyageai")).toBe("Voyage AI");
+      expect(formatGenericProviderName("jina")).toBe("Jina AI");
+      expect(formatGenericProviderName("jina-ai")).toBe("Jina AI");
+      expect(formatGenericProviderName("jinaai")).toBe("Jina AI");
+    });
+
     it("should add spaces before capitals", () => {
       expect(formatGenericProviderName("OpenAI")).toBe("OpenAI");
       expect(formatGenericProviderName("BlackForestLabs")).toBe("Black Forest Labs");
@@ -201,6 +231,22 @@ describe("providerDisplay", () => {
       expect(getProviderUrl("Z.AI")).toBe("https://z.ai");
       expect(getProviderUrl("moonshot")).toBe("https://platform.moonshot.ai");
       expect(getProviderUrl("kimi")).toBe("https://platform.moonshot.ai");
+    });
+
+    it("should return URLs for additional known providers", () => {
+      expect(getProviderUrl("elevenlabs")).toBe("https://elevenlabs.io");
+      expect(getProviderUrl("ElevenLabs")).toBe("https://elevenlabs.io");
+      expect(getProviderUrl("fal")).toBe("https://fal.ai");
+      expect(getProviderUrl("fal_ai")).toBe("https://fal.ai");
+      expect(getProviderUrl("llama_cpp")).toBe("https://github.com/ggerganov/llama.cpp");
+      expect(getProviderUrl("llama-cpp")).toBe("https://github.com/ggerganov/llama.cpp");
+      expect(getProviderUrl("minimax")).toBe("https://platform.minimax.io");
+      expect(getProviderUrl("gmi")).toBe("https://www.gmicloud.ai");
+      expect(getProviderUrl("cohere")).toBe("https://cohere.com");
+      expect(getProviderUrl("voyage")).toBe("https://www.voyageai.com");
+      expect(getProviderUrl("voyage-ai")).toBe("https://www.voyageai.com");
+      expect(getProviderUrl("jina")).toBe("https://jina.ai");
+      expect(getProviderUrl("jina-ai")).toBe("https://jina.ai");
     });
 
     it("should return null for unknown providers", () => {
@@ -278,6 +324,14 @@ describe("providerDisplay", () => {
       expect(isLocalProvider("mlx")).toBe(true);
     });
 
+    it("is case-insensitive", () => {
+      expect(isLocalProvider("Ollama")).toBe(true);
+      expect(isLocalProvider("OLLAMA")).toBe(true);
+      expect(isLocalProvider("MLX")).toBe(true);
+      expect(isLocalProvider("HuggingFace")).toBe(true);
+      expect(isLocalProvider("LLAMA_CPP")).toBe(true);
+    });
+
     it("returns false for cloud providers", () => {
       expect(isLocalProvider("openai")).toBe(false);
       expect(isLocalProvider("anthropic")).toBe(false);
@@ -344,6 +398,15 @@ describe("providerDisplay", () => {
 
     it("uses modelType hint for llama_model", () => {
       expect(getModelUrl("", "some-model", "llama_model")).toBe("https://ollama.com/library/some-model");
+    });
+
+    it("returns Mistral docs URL", () => {
+      expect(getModelUrl("mistral", "mistral-large")).toBe("https://docs.mistral.ai/getting-started/models/");
+    });
+
+    it("returns HuggingFace URL for HF sub-providers", () => {
+      expect(getModelUrl("hf_inference", "user/repo")).toBe("https://huggingface.co/user/repo");
+      expect(getModelUrl("huggingface_cerebras", "user/repo")).toBe("https://huggingface.co/user/repo");
     });
 
     it("returns null for unknown provider", () => {

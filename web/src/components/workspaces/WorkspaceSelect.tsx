@@ -1,11 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo, useCallback, useMemo } from "react";
-import {
-  FormControl,
-  Select,
-  MenuItem
-} from "@mui/material";
+
 import {
   Text,
   Caption,
@@ -13,7 +9,14 @@ import {
   Box,
   Divider,
   LoadingSpinner,
-  MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+  MOTION,
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx,
+  FormControl,
+  Select,
+  MenuItem
+} from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";

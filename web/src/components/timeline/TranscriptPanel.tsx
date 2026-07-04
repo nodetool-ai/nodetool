@@ -15,6 +15,7 @@ import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import GraphicEqIcon from "@mui/icons-material/GraphicEq";
 import CleaningServicesIcon from "@mui/icons-material/CleaningServices";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
+import { useShallow } from "zustand/react/shallow";
 
 import {
   Panel,
@@ -30,7 +31,7 @@ import {
 
 import { useTimelineStore } from "../../stores/timeline/TimelineStore";
 import { useTimelineTranscriptStore } from "../../stores/timeline/TimelineTranscriptStore";
-import { buildTranscriptDoc } from "../../stores/timeline/transcriptOps";
+import { buildTranscriptDoc, isTranscriptClip } from "../../stores/timeline/transcriptOps";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useAssetStore } from "../../stores/AssetStore";
 import { TranscriptEditor } from "./transcript/TranscriptEditor";
@@ -38,9 +39,11 @@ import { TranscriptEditor } from "./transcript/TranscriptEditor";
 // ── Panel ────────────────────────────────────────────────────────────────────
 
 export const TranscriptPanel: React.FC = memo(() => {
-  const clips = useTimelineStore((s) => s.clips);
-  const doc = useMemo(() => buildTranscriptDoc(clips), [clips]);
-  const segments = doc.segments;
+  // Only the transcript/caption-bearing subset — untouched clips (B-roll,
+  // music) keep their identity across store publishes, so `useShallow`
+  // returns the SAME array reference for those publishes and the memo below
+  // skips recomputing the doc and filler count for a B-roll drag.
+  const clips = useTimelineStore(useShallow((s) => s.clips.filter(isTranscriptClip)));
 
   const removeFillers = useTimelineTranscriptStore((s) => s.removeFillers);
   const importMedia = useTimelineTranscriptStore((s) => s.importMedia);
@@ -50,14 +53,14 @@ export const TranscriptPanel: React.FC = memo(() => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
 
-  const fillerCount = useMemo(
-    () =>
-      doc.segments.reduce(
-        (n, s) => n + s.tokens.filter((t) => t.kind === "filler").length,
-        0
-      ),
-    [doc]
-  );
+  const { segments, fillerCount } = useMemo(() => {
+    const doc = buildTranscriptDoc(clips);
+    const fillerCount = doc.segments.reduce(
+      (n, s) => n + s.tokens.filter((t) => t.kind === "filler").length,
+      0
+    );
+    return { segments: doc.segments, fillerCount };
+  }, [clips]);
 
   const onImportFile = useCallback(
     async (file: File) => {

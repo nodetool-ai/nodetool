@@ -1,5 +1,4 @@
 /** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
 import React, {
   useRef,
   useEffect,
@@ -21,7 +20,10 @@ import {
 import { LoadingIndicator } from "../feedback/LoadingIndicator";
 import { Progress } from "../feedback/Progress";
 import { MessageView } from "../message/MessageView";
+import MediaOutputGroup from "../message/MediaOutputGroup";
+import type { MediaGenerationRequest } from "../../../stores/MediaGenerationStore";
 import ToolApprovalCard from "../message/ToolApprovalCard";
+import PlanApprovalCard from "../message/PlanApprovalCard";
 import { ScrollToBottomButton } from "../controls/ScrollToBottomButton";
 import { createStyles } from "./ChatThreadView.styles";
 import PlanningUpdateDisplay from "../../node/PlanningUpdateDisplay";
@@ -93,6 +95,10 @@ interface StatusFooterProps {
   currentTaskUpdate?: TaskUpdate | null;
   currentLogUpdate?: LogUpdate | null;
   hasAgentExecutionMessages: boolean;
+  /** The still-sending user message for an in-flight media generation turn,
+   *  when one is active. Swaps the plain busy row for a shimmering preview of
+   *  the eventual output grid instead. */
+  pendingMediaMessage: Message | null;
   theme: Theme;
 }
 
@@ -107,13 +113,19 @@ const StatusFooter = memo<StatusFooterProps>(
     currentTaskUpdate,
     currentLogUpdate,
     hasAgentExecutionMessages,
+    pendingMediaMessage,
     theme
   }) => {
     const isBusy = status === "loading" || status === "streaming";
     const elapsed = useElapsedTime(isBusy);
     return (
       <>
-        {isBusy && !hasAgentExecutionMessages && (
+        {isBusy && !hasAgentExecutionMessages && pendingMediaMessage && (
+          <div className="chat-message-list-item">
+            <MediaOutputGroup message={pendingMediaMessage} mediaContents={[]} isPending />
+          </div>
+        )}
+        {isBusy && !hasAgentExecutionMessages && !pendingMediaMessage && (
           <div className="chat-message-list-item">
             <div
               style={{
@@ -250,6 +262,38 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
       ),
     [pendingApprovals, currentThreadId]
   );
+
+  // Pending plan-approval prompts. Plans from runs not bound to a thread
+  // (thread_id null, e.g. editor workflow runs) show on the active thread.
+  const pendingPlanApprovals = useGlobalChatStore(
+    (s) => s.pendingPlanApprovals
+  );
+  const resolvePlanApproval = useGlobalChatStore((s) => s.resolvePlanApproval);
+  const threadPlanApprovals = useMemo(
+    () =>
+      Object.entries(pendingPlanApprovals).filter(
+        ([, approval]) =>
+          approval.thread_id === null ||
+          approval.thread_id === currentThreadId
+      ),
+    [pendingPlanApprovals, currentThreadId]
+  );
+
+  // The generating turn's own outgoing message carries `media_generation` —
+  // keying off it (rather than the transient global status text) means the
+  // placeholder box shows for every media turn, not just the thread's first.
+  const isBusy = status === "loading" || status === "streaming";
+  const pendingMediaMessage = useMemo(() => {
+    if (!isBusy) return null;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i];
+      if (msg.role !== "user") continue;
+      const gen = (msg as Message & { media_generation?: MediaGenerationRequest | null })
+        .media_generation;
+      return gen && gen.mode !== "chat" ? msg : null;
+    }
+    return null;
+  }, [isBusy, messages]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrollHost, setScrollHost] = useState<HTMLDivElement | null>(null);
@@ -634,6 +678,27 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
             </div>
           )}
 
+          {threadPlanApprovals.length > 0 && (
+            <div className="chat-message-list-item">
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: getSpacingPx(SPACING.md)
+                }}
+              >
+                {threadPlanApprovals.map(([approvalId, approval]) => (
+                  <PlanApprovalCard
+                    key={approvalId}
+                    approvalId={approvalId}
+                    approval={approval}
+                    onResolve={resolvePlanApproval}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
           <StatusFooter
             status={status}
             progress={progress}
@@ -644,6 +709,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
             currentTaskUpdate={currentTaskUpdate}
             currentLogUpdate={currentLogUpdate}
             hasAgentExecutionMessages={hasAgentExecutionMessages}
+            pendingMediaMessage={pendingMediaMessage}
             theme={theme}
           />
         </div>

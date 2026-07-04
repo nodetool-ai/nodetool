@@ -37,30 +37,17 @@ import { useWorkflowAssetStore } from "./WorkflowAssetStore";
 import { useSubgraphTabsStore } from "./SubgraphTabsStore";
 import { useCurrentWorkspaceStore } from "./CurrentWorkspaceStore";
 
+const isRecord = (v: unknown): v is Record<string, unknown> =>
+  typeof v === "object" && v !== null;
+
 const isWorkflowNotFoundError = (err: unknown): boolean => {
-  if (!err || typeof err !== "object") return false;
-  if ("data" in err) {
-    const { data } = err as { data: unknown };
-    if (data && typeof data === "object") {
-      if (
-        "code" in data &&
-        (data as { code: unknown }).code === "NOT_FOUND"
-      ) {
-        return true;
-      }
-      if (
-        "apiCode" in data &&
-        (data as { apiCode: unknown }).apiCode === "WORKFLOW_NOT_FOUND"
-      ) {
-        return true;
-      }
-    }
+  if (!isRecord(err)) return false;
+  if (isRecord(err.data)) {
+    if (err.data.code === "NOT_FOUND") return true;
+    if (err.data.apiCode === "WORKFLOW_NOT_FOUND") return true;
   }
-  if ("message" in err) {
-    const { message } = err as { message: unknown };
-    if (typeof message === "string") {
-      return /not found/i.test(message);
-    }
+  if (typeof err.message === "string") {
+    return /not found/i.test(err.message);
   }
   return false;
 };

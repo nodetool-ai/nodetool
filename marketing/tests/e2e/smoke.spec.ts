@@ -1,16 +1,14 @@
 import { test, expect } from "@playwright/test";
+import { registryModules } from "../../src/data/registry";
 
-const ROUTES = [
-  "/",
-  "/studio",
-  "/cloud",
-  "/agents",
-  "/developers",
-  "/creatives",
-  "/pricing",
-  "/vs/comfyui",
-  "/vs/weavy",
-];
+// Coverage is derived from the page-data registry: every indexable route is
+// smoke-tested, except that engines flagged with `sample` (hundreds of pages)
+// contribute only their first N indexable entries — hub pages first.
+const ROUTES = registryModules.flatMap((m) => {
+  const indexable = m.entries.filter((e) => e.indexable);
+  const sampled = m.sample ? indexable.slice(0, m.sample) : indexable;
+  return sampled.map((e) => e.route);
+});
 
 test.describe("marketing smoke", () => {
   for (const path of ROUTES) {

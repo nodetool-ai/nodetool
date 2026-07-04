@@ -176,3 +176,83 @@ describe("PanelStore actions", () => {
     });
   });
 });
+
+describe("PanelStore — merge migration", () => {
+  const initialState = usePanelStore.getState();
+  const getMerge = () => {
+    const opts = usePanelStore.persist.getOptions();
+    return opts.merge as (p: unknown, c: typeof initialState) => typeof initialState;
+  };
+
+  afterEach(() => {
+    usePanelStore.setState(initialState, true);
+  });
+
+  it("migrates workflowGrid to workflows", () => {
+    const merged = getMerge()(
+      { panel: { panelSize: 500, isVisible: true, activeView: "workflowGrid", activeNodeCategory: "all" } },
+      initialState
+    );
+    expect(merged.panel.activeView).toBe("workflows");
+  });
+
+  it("migrates search to nodes/all", () => {
+    const merged = getMerge()(
+      { panel: { panelSize: 500, isVisible: true, activeView: "search", activeNodeCategory: "all" } },
+      initialState
+    );
+    expect(merged.panel.activeView).toBe("nodes");
+    expect(merged.panel.activeNodeCategory).toBe("all");
+  });
+
+  it("migrates legacy node category alias in activeView", () => {
+    const merged = getMerge()(
+      { panel: { panelSize: 500, isVisible: true, activeView: "image-models" } },
+      initialState
+    );
+    expect(merged.panel.activeView).toBe("nodes");
+    expect(merged.panel.activeNodeCategory).toBe("image-ai");
+  });
+
+  it("migrates legacy alias in activeNodeCategory field", () => {
+    const merged = getMerge()(
+      { panel: { panelSize: 600, isVisible: true, activeView: "nodes", activeNodeCategory: "tools" } },
+      initialState
+    );
+    expect(merged.panel.activeNodeCategory).toBe("image");
+  });
+
+  it("clamps persisted panelSize to max", () => {
+    const merged = getMerge()(
+      { panel: { panelSize: 9999, isVisible: false, activeView: "workflows", activeNodeCategory: "all" } },
+      initialState
+    );
+    expect(merged.panel.panelSize).toBe(800);
+  });
+
+  it("clamps persisted panelSize to min", () => {
+    const merged = getMerge()(
+      { panel: { panelSize: 5, isVisible: false, activeView: "workflows", activeNodeCategory: "all" } },
+      initialState
+    );
+    expect(merged.panel.panelSize).toBe(60);
+  });
+
+  it("returns currentState for null persisted data", () => {
+    const merged = getMerge()(null, initialState);
+    expect(merged).toEqual(initialState);
+  });
+
+  it("returns currentState for invalid panel shape", () => {
+    const merged = getMerge()({ panel: "bad" }, initialState);
+    expect(merged).toEqual(initialState);
+  });
+
+  it("preserves valid current view names", () => {
+    const merged = getMerge()(
+      { panel: { panelSize: 500, isVisible: true, activeView: "assets", activeNodeCategory: "all" } },
+      initialState
+    );
+    expect(merged.panel.activeView).toBe("assets");
+  });
+});

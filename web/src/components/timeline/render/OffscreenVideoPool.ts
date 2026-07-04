@@ -142,6 +142,23 @@ export class OffscreenVideoPool {
     });
   }
 
+  /**
+   * Tear down the element held for `clipId` immediately, ahead of `dispose()`.
+   * The render loop calls this once a clip's fixed time range has fully
+   * passed — each clip occupies a single contiguous span, so a released clip
+   * can never be seeked again. Without this, a many-clip export pins one live
+   * `<video>` element (and hardware decoder) per clip for the whole render,
+   * well past what browsers/decoders allow concurrently.
+   */
+  release(clipId: string): void {
+    const entry = this.entries.get(clipId);
+    if (!entry) return;
+    entry.el.pause();
+    entry.el.removeAttribute("src");
+    entry.el.load();
+    this.entries.delete(clipId);
+  }
+
   dispose(): void {
     for (const { el } of this.entries.values()) {
       el.pause();

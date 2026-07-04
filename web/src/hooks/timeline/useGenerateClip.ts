@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect } from "react";
 import { trpcClient } from "../../trpc/client";
 import { queryClient } from "../../queryClient";
 import { fetchWorkflowById, workflowQueryKey } from "../../serverState/useWorkflow";
 import { useTimelineStore } from "../../stores/timeline/TimelineStore";
 import { useTimelineGenerationStore } from "../../stores/timeline/TimelineGenerationStore";
+import { findClipById } from "../../stores/timeline/clipLookup";
 import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
 import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode";
 import { graphEdgeToReactFlowEdge } from "../../stores/graphEdgeToReactFlowEdge";
@@ -274,9 +275,10 @@ export const handleJobMessage = async (jobId: string, message: WebSocketMessage)
 
   if (status === "cancelled") {
     generationStore.clearJob(context.clipId);
-    const clip = useTimelineStore
-      .getState()
-      .clips.find((candidate) => candidate.id === context.clipId);
+    const clip = findClipById(
+      useTimelineStore.getState().clips,
+      context.clipId
+    );
     if (clip) {
       useTimelineStore
         .getState()
@@ -316,22 +318,32 @@ const subscribeJob = async (
 };
 
 export const useTimelineGenerationSubscriptions = (): void => {
-  const clipJobs = useTimelineGenerationStore((state) => state.clipJobs);
+  // A sorted, comma-joined string of active job ids — a primitive, so it only
+  // changes identity when a job *enters or leaves* the active set, never on
+  // the progress-only updates `updateJobProgress` publishes per WebSocket
+  // message. That keeps this subscribe/unsubscribe effect from re-running
+  // (and re-rendering the shell that hosts this hook) per progress tick.
+  const activeJobIdsKey = useTimelineGenerationStore((state) =>
+    Object.values(state.clipJobs)
+      .filter((job) => isActiveStatus(job.status))
+      .map((job) => job.jobId)
+      .sort()
+      .join(",")
+  );
 
-  const activeJobs = useMemo(() => {
+  useEffect(() => {
+    const clipJobs = useTimelineGenerationStore.getState().clipJobs;
     const clips = useTimelineStore.getState().clips;
-    return Object.values(clipJobs)
+    const activeJobs = Object.values(clipJobs)
       .filter((job) => isActiveStatus(job.status))
       .map((job) => ({
         clipId: job.clipId,
         jobId: job.jobId,
         workflowId: job.workflowId,
-        selectedOutputNodeId: clips.find((c) => c.id === job.clipId)
+        selectedOutputNodeId: findClipById(clips, job.clipId)
           ?.selectedOutputNodeId
       }));
-  }, [clipJobs]);
 
-  useEffect(() => {
     const activeJobIdSet = new Set(activeJobs.map((job) => job.jobId));
 
     for (const [jobId] of jobSubscriptions) {
@@ -351,7 +363,7 @@ export const useTimelineGenerationSubscriptions = (): void => {
         true
       );
     }
-  }, [activeJobs]);
+  }, [activeJobIdsKey]);
 };
 
 interface UseGenerateClipResult {
@@ -372,9 +384,7 @@ interface UseGenerateClipResult {
 }
 
 export const useGenerateClip = (clipId: string): UseGenerateClipResult => {
-  const clip = useTimelineStore((state) =>
-    state.clips.find((candidate) => candidate.id === clipId)
-  );
+  const clip = useTimelineStore((state) => findClipById(state.clips, clipId));
   const patchClip = useTimelineStore((state) => state.patchClip);
   const jobState = useTimelineGenerationStore((state) => state.clipJobs[clipId]);
 
@@ -494,9 +504,7 @@ export const useGenerateClip = (clipId: string): UseGenerateClipResult => {
     unsubscribeJob(jobState.jobId);
     clearJob(clipId);
 
-    const currentClip = useTimelineStore
-      .getState()
-      .clips.find((candidate) => candidate.id === clipId);
+    const currentClip = findClipById(useTimelineStore.getState().clips, clipId);
     if (currentClip) {
       patchClip(clipId, { status: deriveIdleClipStatus(currentClip) });
     }

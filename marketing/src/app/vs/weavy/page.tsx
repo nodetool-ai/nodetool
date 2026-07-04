@@ -211,11 +211,10 @@ export default function VsWeavyPage() {
             <p className="mt-4 leading-relaxed text-slate-300">
               Credit systems and curated rosters decide which models you can use
               and what each call costs. NodeTool flips that: you add your own API
-              keys and pay each provider their published list price — no credits,
-              no markup, no curated roster. The whole workspace is open source
-              under AGPL-3.0, so you can run it as a desktop app or self-host it,
-              and your workflows and files stay yours. NodeTool Cloud is simply
-              managed hosting of that same open-source code.
+              keys and pay each provider their published list price. The whole
+              workspace is open source under AGPL-3.0, so you can run it as a
+              desktop app or self-host it, and your workflows and files stay
+              yours. NodeTool Cloud is managed hosting of the same code.
             </p>
           </div>
         </section>

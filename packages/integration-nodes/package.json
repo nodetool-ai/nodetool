@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/integration-nodes",
-  "version": "0.7.0-rc.26",
+  "version": "0.7.0-rc.29",
   "description": "NodeTool external-API integration nodes — HTTP, GraphQL, S3, Supabase, Notion, Twilio, Apify, mail, secrets, messaging, search",
   "type": "module",
   "engines": {
@@ -23,8 +23,8 @@
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/runtime": "*",
     "@supabase/supabase-js": "^2.98.0",
-    "nodemailer": "^8.0.7",
-    "js-yaml": "^4.1.0"
+    "nodemailer": "^9.0.3",
+    "js-yaml": "^5.2.1"
   },
   "devDependencies": {
     "@nodetool-ai/core-nodes": "*",
@@ -57,5 +57,36 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/integration-nodes"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "ai-nodes",
+    "no-code",
+    "visual-programming",
+    "workflow-nodes",
+    "http",
+    "graphql",
+    "s3",
+    "notion",
+    "twilio",
+    "apify",
+    "integrations",
+    "api"
   ]
 }

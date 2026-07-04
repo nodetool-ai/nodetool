@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/image-editor",
-  "version": "0.7.0-rc.26",
+  "version": "0.7.0-rc.29",
   "description": "Shared image-editor types, dependency hashing, and seeded layer templates",
   "type": "module",
   "engines": {
@@ -49,5 +49,16 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "image-editor",
+    "layers",
+    "canvas",
+    "editor"
   ]
 }

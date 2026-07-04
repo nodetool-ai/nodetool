@@ -1,11 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback } from "react";
-import {
-  List,
-  ListItemButton,
-  ListItemText
-} from "@mui/material";
+
 import {
   Caption,
   Checkbox,
@@ -18,7 +14,10 @@ import {
   LoadingSpinner,
   Tooltip,
   Box,
-  BORDER_RADIUS
+  BORDER_RADIUS,
+  List,
+  ListItemButton,
+  ListItemText
 } from "../ui_primitives";
 import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
@@ -30,7 +29,6 @@ import {
 } from "../../config/constants";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import { useNavigate } from "react-router-dom";
-
 
 import {
   isHuggingFaceProvider,
@@ -593,7 +591,6 @@ const ProviderList: React.FC<ProviderListProps> = ({
     setMenuAnchor(null);
     setMenuProvider(null);
   }, []);
-
 
   const handleStopPropagation = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();

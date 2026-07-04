@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/config",
-  "version": "0.7.0-rc.26",
+  "version": "0.7.0-rc.29",
   "type": "module",
   "engines": {
     "node": ">=22.0.0 <23.0.0"
@@ -46,5 +46,17 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "description": "Configuration and environment loading for NodeTool — settings, paths, logging, byte limits, and cross-runtime module loading",
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "configuration",
+    "settings",
+    "environment",
+    "logging"
   ]
 }

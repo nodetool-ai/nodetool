@@ -28,7 +28,9 @@ import { zipExtensionDist } from "./lib/extension-dist.js";
 import {
   resolveTrustLocalhost,
   isLoopbackAddress,
-  parseTrustedProxies
+  parseTrustedProxies,
+  parseTrustedLocalNetworks,
+  isTrustedLocalAddress
 } from "./lib/localhost-trust.js";
 import {
   initTelemetry,
@@ -78,6 +80,7 @@ import {
 
 import websocketPlugin from "./plugins/websocket.js";
 import healthRoute from "./routes/health.js";
+import configRoute from "./routes/config.js";
 import assetsRoutes from "./routes/assets.js";
 import workflowsRoutes from "./routes/workflows.js";
 import jobsRoutes from "./routes/jobs.js";
@@ -642,7 +645,7 @@ const trustedProxies = parseTrustedProxies(
 // Fastify app
 // ---------------------------------------------------------------------------
 
-const app: FastifyInstance = (Fastify as any)({
+const app: FastifyInstance = (Fastify as (...args: unknown[]) => FastifyInstance)({
   ...(httpsOptions ? { https: httpsOptions } : {}),
   // Only trust X-Forwarded-For from explicitly configured proxies. With no
   // proxies configured this is `false`, so req.ip is the unspoofable socket
@@ -739,6 +742,28 @@ if (enforceAuth && trustLocalhost) {
   );
 }
 
+// Source networks trusted to run as the local user "1" without a token. Needed
+// for containerized self-hosting: Docker NATs a published-port connection to
+// the bridge gateway (e.g. 172.17.0.1), so it never arrives from loopback and
+// the isLoopbackAddress bypass can't fire. Honored ONLY in Local mode — when
+// auth is enforced a CIDR must never bypass a real login, so the list is empty.
+const trustLocalNetworks = enforceAuth
+  ? []
+  : parseTrustedLocalNetworks(process.env["NODETOOL_TRUST_LOCAL_NETWORKS"]);
+
+if (enforceAuth && process.env["NODETOOL_TRUST_LOCAL_NETWORKS"]) {
+  log.warn(
+    "NODETOOL_TRUST_LOCAL_NETWORKS is set while auth is enforced (Supabase " +
+      "mode); it is ignored so every request must present a valid token."
+  );
+} else if (trustLocalNetworks.length > 0) {
+  log.warn(
+    `Local mode: trusting connections from ${trustLocalNetworks.join(", ")} ` +
+      "as user \"1\" without authentication. Only expose this instance to " +
+      "networks you trust."
+  );
+}
+
 app.decorateRequest("userId", null);
 
 app.addHook("onRequest", async (req, reply) => {
@@ -751,6 +776,7 @@ app.addHook("onRequest", async (req, reply) => {
     pathname === "/health" ||
     pathname === "/ready" ||
     pathname === "/api/health" ||
+    pathname === "/api/config" ||
     pathname.startsWith("/api/oauth/") ||
     pathname === "/api/assets/packages" ||
     pathname.startsWith("/api/assets/packages/") ||
@@ -781,8 +807,13 @@ app.addHook("onRequest", async (req, reply) => {
   // Loopback connections bypass auth as user "1" only when explicitly trusted.
   // Behind a reverse proxy/container/SSH tunnel the proxy itself connects from
   // loopback, so this is gated by NODETOOL_TRUST_LOCALHOST (off by default when
-  // auth is enforced).
-  if (trustLocalhost && isLoopbackAddress(clientIp)) {
+  // auth is enforced). Docker's bridge NAT means the peer is the gateway rather
+  // than loopback, so NODETOOL_TRUST_LOCAL_NETWORKS additionally trusts that
+  // source range (Local mode only).
+  if (
+    (trustLocalhost && isLoopbackAddress(clientIp)) ||
+    isTrustedLocalAddress(clientIp, trustLocalNetworks)
+  ) {
     req.userId = "1";
     return;
   }
@@ -931,6 +962,12 @@ await app.register(fastifyTRPCPlugin, {
   trpcOptions: {
     router: appRouter,
     createContext,
+    // The web client forces all batches to POST (httpBatchLink
+    // `methodOverride: "POST"`) so long batched inputs ride in the body instead
+    // of the URL, which reverse proxies reject once the query string grows too
+    // large (see web/src/trpc/client.ts and issues #3979/#3981). Without this
+    // flag the server rejects POST-to-query with 405, leaving panels empty.
+    allowMethodOverride: true,
     onError({ path, error }) {
       log.error(
         `tRPC error on ${path}`,
@@ -1044,6 +1081,7 @@ await app.register(websocketPlugin, {
 });
 
 await app.register(healthRoute);
+await app.register(configRoute);
 
 // All HTTP API routes receive apiOptions
 const routeOpts = { apiOptions };

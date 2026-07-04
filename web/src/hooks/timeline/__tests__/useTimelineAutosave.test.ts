@@ -3,7 +3,10 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 
 import { makeTrack } from "@nodetool-ai/timeline";
 
-import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import {
+  useTimelineStore,
+  getTimelineTemporal
+} from "../../../stores/timeline/TimelineStore";
 import {
   useTimelineAutosave,
   markTimelineLoadMigrated
@@ -437,5 +440,36 @@ describe("useTimelineAutosave", () => {
         notifications.some((n) => n.content.includes("autosave"))
       ).toBe(true);
     });
+  });
+
+  it("defers the flush while a gesture batch is open, then saves once it ends", async () => {
+    seedSequence();
+    renderHook(() => useTimelineAutosave({ debounceMs: 50 }));
+
+    // Simulate a drag/trim/slider gesture: useTimelineHistoryBatch pauses the
+    // temporal store for its duration.
+    act(() => {
+      getTimelineTemporal().pause();
+      useTimelineStore.getState().addTrack("video");
+    });
+    act(() => {
+      jest.advanceTimersByTime(60);
+    });
+    // The debounce elapsed, but the gesture is still open: the flush must
+    // re-arm instead of PATCHing the mid-gesture state.
+    expect(updateMutate).not.toHaveBeenCalled();
+
+    // Gesture ends (pointerup resumes tracking) with no further store write.
+    act(() => {
+      getTimelineTemporal().resume();
+    });
+    act(() => {
+      jest.advanceTimersByTime(60);
+    });
+    await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(1));
+    const arg = updateMutate.mock.calls[0][0] as {
+      document: { tracks: unknown[] };
+    };
+    expect(arg.document.tracks).toHaveLength(1);
   });
 });

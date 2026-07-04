@@ -206,6 +206,18 @@ function buildSegment(key: string, members: TimelineClip[]): TranscriptSegment {
 }
 
 /**
+ * `buildTranscriptDoc` runs per store publish from three consumers
+ * (`ScriptLane`, `TranscriptPanel`, `TranscriptEditor`'s `SyncPlugin`) and its
+ * own recursive callers (`fillerRanges`, `reconcileTranscript`). Clips arrays
+ * are never mutated in place (every mutation in this module and in
+ * `TimelineStore` replaces the array), so the same array reference always
+ * projects to the same doc — safe to memoize by identity. A `WeakMap` lets
+ * both the array and its cached doc be collected together once the array is
+ * no longer referenced.
+ */
+const transcriptDocCache = new WeakMap<readonly TimelineClip[], TranscriptDoc>();
+
+/**
  * Project the editable transcript from the timeline's clips. Consecutive clips
  * sharing a `paragraphId` collapse into one paragraph (segment); each word
  * becomes an absolute-timed token tagged with its source clip. The result is
@@ -213,6 +225,9 @@ function buildSegment(key: string, members: TimelineClip[]): TranscriptSegment {
  * delete uses to translate text positions back to the timeline.
  */
 export function buildTranscriptDoc(clips: TimelineClip[]): TranscriptDoc {
+  const cached = transcriptDocCache.get(clips);
+  if (cached) return cached;
+
   const sorted = clips.filter(isTranscriptClip).sort(byTimeline);
   const segments: TranscriptSegment[] = [];
 
@@ -227,7 +242,9 @@ export function buildTranscriptDoc(clips: TimelineClip[]): TranscriptDoc {
     segments.push(buildSegment(key, members));
   }
 
-  return { segments, durationMs: maxEnd(sorted) };
+  const doc: TranscriptDoc = { segments, durationMs: maxEnd(sorted) };
+  transcriptDocCache.set(clips, doc);
+  return doc;
 }
 
 // ── Layout ───────────────────────────────────────────────────────────────────
@@ -436,11 +453,6 @@ function fillerRanges(clips: TimelineClip[]): Array<{ startMs: number; endMs: nu
     .segments.flatMap((s) => s.tokens)
     .filter((t) => t.kind === "filler")
     .map((t) => ({ startMs: t.startMs, endMs: t.endMs }));
-}
-
-/** How many filler words the transcript currently contains. */
-export function countFillers(clips: TimelineClip[]): number {
-  return fillerRanges(clips).length;
 }
 
 /**
@@ -677,26 +689,6 @@ export function pasteClipsAt(
   }
 
   return { clips: next, durationMs: maxEnd(next) };
-}
-
-/**
- * Move the word span [startMs, endMs) to `targetMs` (a word boundary): cut it
- * out, close the gap, then paste it at the target — "cut a paragraph and paste
- * it earlier, the media follows the text". The target is taken in the original
- * coordinate space and adjusted for the gap the cut closes.
- */
-export function moveWordRange(
-  clips: TimelineClip[],
-  startMs: number,
-  endMs: number,
-  targetMs: number
-): ReflowedClips {
-  if (targetMs >= startMs && targetMs <= endMs) {
-    return { clips, durationMs: maxEnd(clips) }; // dropping inside the cut → no-op
-  }
-  const cut = cutWordRange(clips, startMs, endMs);
-  const adjustedTarget = targetMs > endMs ? targetMs - (endMs - startMs) : targetMs;
-  return pasteClipsAt(cut.clips, adjustedTarget, cut.extracted);
 }
 
 // ── Migration: legacy line/caption-clip model → clip-sourced captions ─────────

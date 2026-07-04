@@ -9,8 +9,15 @@ import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import TableRowsIcon from "@mui/icons-material/TableRows";
 import SearchIcon from "@mui/icons-material/Search";
-import { InputAdornment } from "@mui/material";
-import { Tooltip, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+
+import {
+  Tooltip,
+  MOTION,
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx,
+  InputAdornment
+} from "../ui_primitives";
 import isEqual from "fast-deep-equal";
 import Markdown from "react-markdown";
 

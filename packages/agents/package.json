@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/agents",
-  "version": "0.7.0-rc.26",
+  "version": "0.7.0-rc.29",
   "description": "Agent system for planning and executing multi-step LLM tasks",
   "type": "module",
   "engines": {
@@ -81,5 +81,18 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "ai-agents",
+    "agent",
+    "planning",
+    "task-planner",
+    "autonomous-agents",
+    "llm-agents"
   ]
 }

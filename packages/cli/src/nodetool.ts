@@ -51,6 +51,10 @@ import { registerRecommendedCommand } from "./commands/models-recommended.js";
 import { registerAgentCommands } from "./commands/agent.js";
 import { registerDbCommands } from "./commands/db.js";
 import { registerDebugCommands } from "./commands/debug.js";
+import { registerValidateCommand } from "./commands/validate.js";
+import { registerNodeCommands } from "./commands/node.js";
+import { registerGenerateCommand } from "./commands/generate.js";
+import { registerAffectedCommand } from "./commands/affected.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -85,7 +89,10 @@ function createApiClient(apiUrl: string) {
   return createTRPCClient<AppRouter>({
     links: [
       httpBatchLink({
-        url: `${apiUrl}/trpc`
+        url: `${apiUrl}/trpc`,
+        // POST keeps the batched input in the request body instead of the URL,
+        // so large batches stay under reverse-proxy URL-length limits. See #3979.
+        methodOverride: "POST"
       })
     ]
   });
@@ -1799,6 +1806,10 @@ registerDeployCommands(program);
 registerAgentCommands(program);
 registerDbCommands(program);
 registerDebugCommands(program);
+registerValidateCommand(program);
+registerNodeCommands(program);
+registerGenerateCommand(program);
+registerAffectedCommand(program);
 
 // ---------------------------------------------------------------------------
 

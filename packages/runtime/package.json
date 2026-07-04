@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/runtime",
-  "version": "0.7.0-rc.26",
+  "version": "0.7.0-rc.29",
   "description": "Processing context, message queue, and output normalization",
   "type": "module",
   "engines": {
@@ -25,7 +25,7 @@
     "@opentelemetry/sdk-node": "^0.218.0",
     "@opentelemetry/sdk-trace-base": "^2.6.0",
     "@opentelemetry/semantic-conventions": "^1.40.0",
-    "@pydantic/genai-prices": "^0.0.62",
+    "@pydantic/genai-prices": "^0.0.69",
     "js-tiktoken": "^1.0.21",
     "openai": "^6.35.0",
     "replicate": "^1.4.0",
@@ -109,5 +109,19 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "llm",
+    "llm-providers",
+    "openai",
+    "anthropic",
+    "gemini",
+    "ollama",
+    "inference"
   ]
 }

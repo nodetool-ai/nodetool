@@ -155,34 +155,5 @@ graph = create_graph(output)
 
 
 if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser(description="Language Practice Coach DSL example")
-    parser.add_argument(
-        "--gradio",
-        action="store_true",
-        help="Launch a Gradio UI for this workflow",
-    )
-    args = parser.parse_args()
-
-    if args.gradio:
-        try:
-            from nodetool.ui.gradio_auto import build_gradio_app
-        except Exception:
-            print(
-                "Gradio UI requires the optional dependency 'gradio'.\n"
-                "Install it with: pip install gradio",
-            )
-            raise
-
-        app = build_gradio_app(
-            graph,
-            title="Language Practice Coach (DSL)",
-            description=(
-                "Record yourself speaking in a foreign language and get instant AI coaching feedback on pronunciation, grammar, and fluency."
-            ),
-        )
-        app.launch()
-    else:
-        result = run_graph(graph)
-        print(result["coaching_report"])
+    result = run_graph(graph)
+    print(result["coaching_report"])

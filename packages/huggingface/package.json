@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/huggingface",
-  "version": "0.7.0-rc.26",
+  "version": "0.7.0-rc.29",
   "type": "module",
   "engines": {
     "node": ">=22.0.0 <23.0.0"
@@ -46,5 +46,17 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "huggingface",
+    "models",
+    "model-discovery",
+    "downloads",
+    "hub"
   ]
 }

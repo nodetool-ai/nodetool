@@ -53,7 +53,7 @@ export default function NodeMenuSection({
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            Hundreds of ready-to-use components for AI models, data processing, and file operations—plus auto-generated nodes for every Replicate, Fal, and Kie.ai model.
+            Hundreds of nodes for models, data, and files — plus auto-generated nodes for every Replicate, FAL, and Kie.ai model.
           </motion.p>
         </div>
 

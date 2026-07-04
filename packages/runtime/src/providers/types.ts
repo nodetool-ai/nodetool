@@ -22,6 +22,14 @@ export interface ImageModel {
   name: string;
   provider: ProviderId;
   supportedTasks?: string[];
+  /**
+   * Per-model output-size constraints derived from the provider manifest's
+   * enum fields (e.g. FAL's image_size / aspect_ratio). When present the
+   * picker offers only these values so users can't request a ratio the
+   * endpoint will silently ignore.
+   */
+  aspectRatios?: string[];
+  resolutions?: string[];
 }
 
 export interface VideoModel {

@@ -689,7 +689,9 @@ async function fetchJob(
     const { createTRPCClient, httpBatchLink } = await import("@trpc/client");
     type Router = import("@nodetool-ai/websocket/trpc").AppRouter;
     const client = createTRPCClient<Router>({
-      links: [httpBatchLink({ url: `${apiUrl}/trpc` })]
+      // methodOverride POST keeps batched input in the body, not the URL, so
+      // large batches stay under reverse-proxy URL-length limits. See #3979.
+      links: [httpBatchLink({ url: `${apiUrl}/trpc`, methodOverride: "POST" })]
     });
     const data = (await client.jobs.get.query({ id: jobId })) as Record<
       string,

@@ -11,6 +11,7 @@ import {
   EdgeChange,
   Node,
   NodeChange,
+  NodeTypes,
   XYPosition,
   addEdge,
   OnNodesChange,
@@ -22,6 +23,7 @@ import {
   Viewport
 } from "@xyflow/react";
 import { customEquality } from "./customEquality";
+import isEqual from "fast-deep-equal";
 
 import { Node as GraphNode, Edge as GraphEdge } from "./ApiTypes";
 import { migrateGraphNodeTypes } from "@nodetool-ai/protocol";
@@ -55,14 +57,33 @@ import { DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
 import { applyDefaultModels } from "../utils/applyDefaultModels";
 import { reactFlowNodeChromeClassName } from "../utils/reactFlowNodeChromeClassName";
 
-const syncReactFlowNodeChromeClass = (node: Node<NodeData>): Node<NodeData> => ({
-  ...node,
-  className: reactFlowNodeChromeClassName(node.data)
-});
+// Preserve node object identity when the class doesn't actually change.
+// React Flow skips re-adopting a node whose object identity is unchanged
+// (see internal drag/measure paths), so handing back the same reference
+// on every unrelated change batch (e.g. drag pointermove) is critical for
+// avoiding O(N) re-renders of the whole canvas.
+const syncReactFlowNodeChromeClass = (node: Node<NodeData>): Node<NodeData> => {
+  const className = reactFlowNodeChromeClassName(node.data);
+  return className === node.className ? node : { ...node, className };
+};
 
 const syncAllReactFlowNodeChromeClass = (
   nodes: Node<NodeData>[]
-): Node<NodeData>[] => nodes.map(syncReactFlowNodeChromeClass);
+): Node<NodeData>[] => {
+  let changed = false;
+  const next = nodes.map((node) => {
+    const synced = syncReactFlowNodeChromeClass(node);
+    if (synced !== node) {
+      changed = true;
+    }
+    return synced;
+  });
+  return changed ? next : nodes;
+};
+
+// Keys that only carry ReactFlow measurement state; an update setting all of
+// them to `undefined` is a re-measure request, not a user edit.
+const MEASUREMENT_RESET_KEYS = new Set(["height", "width", "measured"]);
 
 /**
  * Generates a default name for input nodes based on their type.
@@ -156,7 +177,11 @@ export interface NodeStoreState {
   addNode: (node: Node<NodeData>) => void;
   findNode: (id: string) => Node<NodeData> | undefined;
   updateNode: (id: string, node: Partial<Node<NodeData>>) => void;
-  updateNodeData: (id: string, data: Partial<NodeData>) => void;
+  updateNodeData: (
+    id: string,
+    data: Partial<NodeData>,
+    options?: { quiet?: boolean }
+  ) => void;
   updateNodeProperties: (
     id: string,
     properties: Record<string, unknown>
@@ -228,7 +253,7 @@ export const createNodeStore = (
       (set, get) => {
         const metadata = useMetadataStore.getState().metadata;
         const nodeTypes = useMetadataStore.getState().nodeTypes;
-        const addNodeType = useMetadataStore.getState().addNodeType;
+        const addNodeTypes = useMetadataStore.getState().addNodeTypes;
 
         // Rewrite removed node types (e.g. FormatText -> Prompt) so legacy
         // workflows load into the editor as their replacements.
@@ -254,10 +279,19 @@ export const createNodeStore = (
           metadata
         );
 
+        // Collect missing node types into a single record so we only touch
+        // MetadataStore's `nodeTypes` once — each `addNodeType` call replaces
+        // the map identity, and `ReactFlowWrapper` memoizes the ReactFlow
+        // `nodeTypes` prop on that identity, so k separate calls would
+        // remount the whole canvas k times.
+        const missingNodeTypes: NodeTypes = {};
         for (const node of sanitizedNodes) {
           if (node.type && !nodeTypes[node.type]) {
-            addNodeType(node.type, PlaceholderNode);
+            missingNodeTypes[node.type] = PlaceholderNode;
           }
+        }
+        if (Object.keys(missingNodeTypes).length > 0) {
+          addNodeTypes(missingNodeTypes);
         }
 
         // Store the unsubscribe function for cleanup
@@ -276,9 +310,23 @@ export const createNodeStore = (
               currentState.edges,
               state.metadata
             );
-            set({ edges: sanitizedEdges });
+            // Sanitizing is a non-trivial structural pass; avoid replacing
+            // the edges array identity (and invalidating memoized consumers)
+            // when nothing actually changed.
+            const changed =
+              sanitizedEdges.length !== currentState.edges.length ||
+              sanitizedEdges.some(
+                (e, i) =>
+                  e !== currentState.edges[i] && !isEqual(e, currentState.edges[i])
+              );
+            if (changed) {
+              set({ edges: sanitizedEdges });
+            }
           }
         });
+
+        let lastNodesForById: Node<NodeData>[] | null = null;
+        let nodesById: Map<string, Node<NodeData>> = new Map();
 
         let lastNodesForSelectionCount: Node<NodeData>[] | null = null;
         let lastSelectionCount = 0;
@@ -721,8 +769,14 @@ export const createNodeStore = (
 
             get().setWorkflowDirty(true);
           },
-          findNode: (id: string): Node<NodeData> | undefined =>
-            get().nodes.find((n) => n.id === id),
+          findNode: (id: string): Node<NodeData> | undefined => {
+            const nodes = get().nodes;
+            if (nodes !== lastNodesForById) {
+              lastNodesForById = nodes;
+              nodesById = new Map(nodes.map((n) => [n.id, n]));
+            }
+            return nodesById.get(id);
+          },
           findEdge: (id: string): Edge | undefined =>
             get().edges.find((e) => e.id === id),
           addNode: (node: Node<NodeData>): void => {
@@ -747,6 +801,16 @@ export const createNodeStore = (
             // Check if this is only a selection change
             const isOnlySelectionChange =
               Object.keys(nodeUpdate).length === 1 && "selected" in nodeUpdate;
+
+            // Check if this is only a measurement reset (e.g. BaseNode forcing
+            // a re-measure via `{ height: undefined, measured: undefined }`
+            // when a result overlay appears) — never a user edit, so it
+            // shouldn't dirty the workflow / trigger autosave.
+            const isOnlyMeasurementReset = Object.keys(nodeUpdate).every(
+              (key) =>
+                MEASUREMENT_RESET_KEYS.has(key) &&
+                (nodeUpdate as Record<string, unknown>)[key] === undefined
+            );
 
             set((state) => {
               const nodeIndex = state.nodes.findIndex((n) => n.id === id);
@@ -791,12 +855,17 @@ export const createNodeStore = (
               return { ...state, nodes: newNodes };
             });
 
-            // Only mark as dirty if this is not just a selection change
-            if (!isOnlySelectionChange) {
+            // Only mark as dirty if this is not just a selection change or a
+            // measurement reset
+            if (!isOnlySelectionChange && !isOnlyMeasurementReset) {
               get().setWorkflowDirty(true);
             }
           },
-          updateNodeData: (id: string, data: Partial<NodeData>): void => {
+          updateNodeData: (
+            id: string,
+            data: Partial<NodeData>,
+            options?: { quiet?: boolean }
+          ): void => {
             set((state) => {
               const index = state.nodes.findIndex((n) => n.id === id);
               if (index === -1) {
@@ -812,7 +881,9 @@ export const createNodeStore = (
               };
               return { ...state, nodes };
             });
-            get().setWorkflowDirty(true);
+            if (!options?.quiet) {
+              get().setWorkflowDirty(true);
+            }
           },
           updateNodeProperties: (
             id: string,
@@ -1004,6 +1075,9 @@ export const createNodeStore = (
             };
           },
           setWorkflowDirty: (dirty: boolean): void => {
+            if (get().workflowIsDirty === dirty) {
+              return;
+            }
             set({ workflowIsDirty: dirty });
           },
           autoLayout: async (): Promise<void> => {

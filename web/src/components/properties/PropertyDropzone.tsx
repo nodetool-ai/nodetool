@@ -200,10 +200,6 @@ const PropertyDropzone = ({
     setOpenViewer(false);
   }, []);
 
-  const _handleUrlChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange({ uri: e.target.value, type: contentType });
-  }, [onChange, contentType]);
-
   const handleVolumeChange = useCallback((e: React.SyntheticEvent<HTMLAudioElement>) => {
     e.currentTarget.volume = 1;
   }, []);

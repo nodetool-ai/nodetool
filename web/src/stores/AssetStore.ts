@@ -7,7 +7,7 @@ import { BASE_URL } from "./BASE_URL";
 import { trpcClient } from "../trpc/client";
 import { Asset, AssetList, AssetSearchResult } from "./ApiTypes";
 import { QueryClient, QueryKey } from "@tanstack/react-query";
-import { useAssetGridStore } from "./AssetGridStore";
+import type { AssetGridStoreApi } from "./AssetGridStore";
 import { AppError, createErrorMessage } from "../utils/errorHandling";
 import {
   prepareUploadFile,
@@ -130,6 +130,7 @@ export type AssetUpdate = {
   content_type?: string;
   metadata?: Record<string, unknown>;
   sketch_document_id?: string | null;
+  timeline_id?: string | null;
   data?: string;
   data_encoding?: "base64";
 };
@@ -151,7 +152,7 @@ export interface AssetStore {
   ) => Promise<Asset>;
   load: (query: AssetQuery) => Promise<AssetList>;
   loadFolderTree: (sortBy?: string) => Promise<FolderTree>;
-  loadCurrentFolder: () => Promise<AssetList>;
+  loadCurrentFolder: (gridStore: AssetGridStoreApi) => Promise<AssetList>;
   search: (query: AssetSearchQuery) => Promise<AssetSearchResult>;
   update: (asset: AssetUpdate) => Promise<Asset>;
   delete: (id: string) => Promise<string[]>;
@@ -311,15 +312,15 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
   /**
    * Load the current folder and its parent folder.
    */
-  loadCurrentFolder: async () => {
-    const currentFolderId = useAssetGridStore.getState().currentFolderId;
-    const setCurrentFolder = useAssetGridStore.getState().setCurrentFolder;
-    const setParentFolder = useAssetGridStore.getState().setParentFolder;
+  loadCurrentFolder: async (gridStore: AssetGridStoreApi) => {
+    const currentFolderId = gridStore.getState().currentFolderId;
+    const setCurrentFolder = gridStore.getState().setCurrentFolder;
+    const setParentFolder = gridStore.getState().setParentFolder;
     // Capture id at call time so a folder switch mid-flight doesn't write
     // stale header/breadcrumb data into the new folder's view.
     const requestedFolderId = currentFolderId;
     const isStillActive = () =>
-      useAssetGridStore.getState().currentFolderId === requestedFolderId;
+      gridStore.getState().currentFolderId === requestedFolderId;
 
     if (requestedFolderId) {
       const asset = await get().get(requestedFolderId);
@@ -572,6 +573,9 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       ...(req.metadata !== undefined ? { metadata: req.metadata } : {}),
       ...(req.sketch_document_id !== undefined
         ? { sketch_document_id: req.sketch_document_id }
+        : {}),
+      ...(req.timeline_id !== undefined
+        ? { timeline_id: req.timeline_id }
         : {}),
       ...(req.data !== undefined ? { data: req.data } : {}),
       ...(req.data_encoding !== undefined

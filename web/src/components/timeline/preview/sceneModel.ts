@@ -207,9 +207,30 @@ export interface ComputeActiveLayersOptions {
 }
 
 /**
+ * Result of {@link computeActiveLayersWithHorizon}: the resolved layers plus
+ * the change horizon (see that function for what the horizon means).
+ */
+export interface ActiveLayersResult {
+  layers: ActiveLayer[];
+  /**
+   * The minimum time (ms), strictly greater than the query `currentTimeMs`,
+   * at which the resolved layer set OR any layer's active caption word could
+   * change. `Number.POSITIVE_INFINITY` when nothing upcoming would change it.
+   * Callers may treat `layers` as valid for any query time in
+   * `[currentTimeMs, nextChangeMs)` without recomputing.
+   */
+  nextChangeMs: number;
+}
+
+/**
  * Resolve every layer active at `currentTimeMs`, in the order the compositor
  * should blend them: media layers first (bottom track first, top track last),
- * then caption layers appended on top.
+ * then caption layers appended on top. Also computes the change horizon (see
+ * {@link ActiveLayersResult}), so a caller driving a per-frame loop (the live
+ * preview's rAF tick) can skip recomputation while the query time stays below
+ * it and the input arrays are unchanged — steady-state playback inside a
+ * clip's middle (no boundary crossed, no caption word transition) becomes a
+ * single float compare instead of re-deriving the whole scene.
  *
  * Captions are sourced from any active clip that carries word-level
  * `caption.words` — the voiceover audio clip or an imported audio/video clip —
@@ -223,12 +244,12 @@ export interface ComputeActiveLayersOptions {
  * the cap is applied in composite order (top tracks win, matching the preview
  * which fills slots while iterating top-to-bottom).
  */
-export function computeActiveLayers(
+export function computeActiveLayersWithHorizon(
   tracks: TimelineTrack[],
   clips: TimelineClip[],
   currentTimeMs: number,
   options: ComputeActiveLayersOptions = {}
-): ActiveLayer[] {
+): ActiveLayersResult {
   const maxVideoLayers = options.maxVideoLayers ?? MAX_VIDEO_LAYERS;
 
   const sortedTracks = [...tracks].sort((a, b) => a.index - b.index);
@@ -243,15 +264,35 @@ export function computeActiveLayers(
   const captionLayers: ActiveLayer[] = [];
   let videoCount = 0;
 
+  // Change horizon: the smallest upcoming time at which `isClipActive`,
+  // `resolveCaptionAtTime`'s active-word index, or the active-layer set could
+  // flip for ANY input considered below. Tracked alongside the existing scan
+  // so steady-state callers pay nothing extra beyond a few comparisons.
+  let nextChangeMs = Number.POSITIVE_INFINITY;
+  const considerBoundary = (ms: number): void => {
+    if (ms > currentTimeMs && ms < nextChangeMs) nextChangeMs = ms;
+  };
+
   for (const track of sortedTracks) {
     if (!track.visible) continue;
     const isVisual = track.type === "video" || track.type === "overlay";
+    const trackClips = clipsByTrackId.get(track.id) ?? [];
 
-    const activeClips = (clipsByTrackId.get(track.id) ?? [])
+    // Any clip starting on this track (active or not) can add a layer —
+    // mirrors `isClipActive`'s `>=` boundary at `startMs`.
+    for (const c of trackClips) {
+      considerBoundary(c.startMs);
+    }
+
+    const activeClips = trackClips
       .filter((c) => isClipActive(c, currentTimeMs))
       .sort((a, b) => a.startMs - b.startMs);
 
     for (const clip of activeClips) {
+      // Mirrors `isClipActive`'s `<` boundary: the clip stops being active
+      // (and its layer disappears) exactly at its end.
+      considerBoundary(clip.startMs + clip.durationMs);
+
       const baseOpacity = clip.opacity ?? 1;
       // During an overlap both clips are active, so `activeClips` already holds
       // the preceding clip the auto-crossfade ramps against.
@@ -261,6 +302,20 @@ export function computeActiveLayers(
       // Captions ride on their media clip and always render on top.
       const caption = resolveCaptionAtTime(clip, currentTimeMs);
       if (caption) {
+        if (clip.caption) {
+          // Mirrors `resolveCaptionAtTime`'s word boundaries: the active
+          // word's end and the next word's start each flip which word index
+          // is reported active.
+          const local = currentTimeMs - clip.startMs;
+          for (const w of clip.caption.words) {
+            if (local >= w.startMs && local < w.endMs) {
+              considerBoundary(clip.startMs + w.endMs);
+            } else if (w.startMs > local) {
+              considerBoundary(clip.startMs + w.startMs);
+            }
+          }
+        }
+
         captionLayers.push({
           kind: "caption",
           clip,
@@ -308,5 +363,21 @@ export function computeActiveLayers(
     }
   }
 
-  return [...mediaLayers, ...captionLayers];
+  return { layers: [...mediaLayers, ...captionLayers], nextChangeMs };
+}
+
+/**
+ * {@link computeActiveLayersWithHorizon}, discarding the change horizon. Kept
+ * as the stable entry point for callers that only need the layer set (the
+ * offline renderer, tests) — its signature must stay a plain `ActiveLayer[]`
+ * return.
+ */
+export function computeActiveLayers(
+  tracks: TimelineTrack[],
+  clips: TimelineClip[],
+  currentTimeMs: number,
+  options: ComputeActiveLayersOptions = {}
+): ActiveLayer[] {
+  return computeActiveLayersWithHorizon(tracks, clips, currentTimeMs, options)
+    .layers;
 }

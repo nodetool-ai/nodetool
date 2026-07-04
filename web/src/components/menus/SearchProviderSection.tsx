@@ -1,12 +1,17 @@
 /** @jsxImportSource @emotion/react */
 import { useMemo, useCallback, memo } from "react";
+
 import {
+  FlexRow,
+  Box,
+  Chip,
+  Stack,
+  BORDER_RADIUS,
   Select,
   MenuItem,
   FormControl,
   InputLabel
-} from "@mui/material";
-import { FlexRow, Box, Chip, Stack, BORDER_RADIUS } from "../ui_primitives";
+} from "../ui_primitives";
 import { formatSettingLabel } from "./settingsLabel";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorIcon from "@mui/icons-material/Error";

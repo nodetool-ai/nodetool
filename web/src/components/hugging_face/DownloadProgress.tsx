@@ -7,6 +7,7 @@ import { Tooltip, Text, Caption, EditorButton, LoadingSpinner, Chip, CloseButton
 import { ProgressBar } from "../ui_primitives/ProgressBar";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
+import { useShallow } from "zustand/react/shallow";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -108,16 +109,16 @@ export const DownloadProgress: React.FC<{
   name: string;
   minimal?: boolean;
 }> = memo(({ name, minimal }) => {
-  const downloads = useModelDownloadStore((state) => state.downloads);
-  const cancelDownload = useModelDownloadStore((state) => state.cancelDownload);
-  const removeDownload = useModelDownloadStore((state) => state.removeDownload);
-  const wsConnectionState = useModelDownloadStore(
-    (state) => state.wsConnectionState
-  );
-  const reconnectWebSocket = useModelDownloadStore(
-    (state) => state.reconnectWebSocket
-  );
-  const download = downloads[name];
+  const download = useModelDownloadStore((state) => state.downloads[name]);
+  const { cancelDownload, removeDownload, wsConnectionState, reconnectWebSocket } =
+    useModelDownloadStore(
+      useShallow((state) => ({
+        cancelDownload: state.cancelDownload,
+        removeDownload: state.removeDownload,
+        wsConnectionState: state.wsConnectionState,
+        reconnectWebSocket: state.reconnectWebSocket
+      }))
+    );
   const isDisconnected = wsConnectionState === "disconnected";
   const isReconnecting = wsConnectionState === "connecting";
 
@@ -128,16 +129,20 @@ export const DownloadProgress: React.FC<{
     cancelDownload(name);
   }, [name, cancelDownload]);
 
-  // Track current time for stall detection
   const [now, setNow] = useState(Date.now());
 
-  // Update current time every 5 seconds to check for stalls
+  const isActive =
+    download.status === "running" ||
+    download.status === "progress" ||
+    download.status === "start";
+
   useEffect(() => {
+    if (!isActive) return;
     const interval = setInterval(() => {
       setNow(Date.now());
     }, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [isActive]);
 
   const handleRemove = useCallback(() => {
     removeDownload(name);
@@ -150,27 +155,12 @@ export const DownloadProgress: React.FC<{
       ? Math.min(100, Math.max(0, (downloadedBytes / totalBytes) * 100))
       : 0;
 
-  // Detect if download is stalled (no updates for STALL_THRESHOLD_MS or disconnected)
   const isStalled = useMemo(() => {
-    const isActive =
-      download.status === "running" ||
-      download.status === "progress" ||
-      download.status === "start";
-    if (!isActive) {
-      return false;
-    }
-
-    // If WebSocket is disconnected, consider it stalled
-    if (isDisconnected) {
-      return true;
-    }
-
-    // Check for time-based stall
-    if (!download.lastUpdated) {
-      return false;
-    }
+    if (!isActive) return false;
+    if (isDisconnected) return true;
+    if (!download.lastUpdated) return false;
     return now - download.lastUpdated > STALL_THRESHOLD_MS;
-  }, [download.lastUpdated, download.status, now, isDisconnected]);
+  }, [isActive, download.lastUpdated, now, isDisconnected]);
 
   // Calculate time since last update for display
   const timeSinceUpdate = useMemo(() => {

@@ -185,16 +185,22 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     setLocalValue(value);
   }, [value]);
 
+  const dataRef = useRef(data);
+  dataRef.current = data;
+
   const debouncedSave = useMemo(
     () =>
       debounce((newVal: string) => {
+        const d = dataRef.current;
         updateNodeData(id, {
-          ...data,
-          properties: { ...data.properties, value: newVal }
+          ...d,
+          properties: { ...d.properties, value: newVal }
         });
       }, 300),
-    [id, data, updateNodeData]
+    [id, updateNodeData]
   );
+
+  useEffect(() => () => debouncedSave.cancel(), [debouncedSave]);
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {

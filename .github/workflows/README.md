@@ -23,12 +23,14 @@
 | **release.yaml** | Git tags `v*` + manual | Build and sign cross-platform release artifacts |
 | **flatpak-ci.yml** | Push to main + manual | Build Flatpak desktop package |
 | **jekyll.yml** | Push to main + manual | Build and deploy docs site to GitHub Pages |
+| **marketing-ci.yml** | Push/PR touching `marketing/**` | Typecheck, lint, build & Playwright smoke tests for the marketing site; on push to main, deploys it to Cloudflare Workers (OpenNext) after the gates pass |
+| **web-deploy.yml** | Push to main (+ manual) | Build the web app (Vite) and deploy it to Cloudflare Pages |
 
 ## Reusable Workflows
 
 | Workflow | Purpose |
 |----------|---------|
-| **quality-checks.yml** | Shared quality matrix (deps/typecheck/lint/package+app tests run as parallel legs) + an aggregating `quality` gate job |
+| **quality-checks.yml** | Shared quality gate: no-build `static` legs (deps/lint), a single `build` job that publishes package dist as an artifact, `built` legs (typecheck/parity/package+app tests) that consume it instead of rebuilding, and an aggregating `quality` gate job |
 | **quality-guard.yml** | Pre/post quality gate wrapper |
 | **copilot-setup-steps.yml** | Environment setup for Copilot agents |
 

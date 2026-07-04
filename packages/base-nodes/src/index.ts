@@ -697,6 +697,7 @@ export { GEMINI_NODES } from "@nodetool-ai/llm-nodes/nodes/gemini";
 export { APIFY_NODES } from "@nodetool-ai/integration-nodes/nodes/apify";
 export {
   ComfyWorkflowNode,
+  ComfyWorkerWorkflowNode,
   COMFY_NODES
 } from "@nodetool-ai/integration-nodes/nodes/comfy";
 export { MESSAGING_NODES } from "@nodetool-ai/integration-nodes/nodes/messaging";

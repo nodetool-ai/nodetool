@@ -5,11 +5,11 @@ import * as https from "https";
 import { app, dialog } from "electron";
 import {
   getDefaultInstallLocation,
-  installRequiredPythonPackages,
 } from "./python";
 import { getCondaEnvPath } from "./config";
 
 import { logMessage } from "./logger";
+import { isErrnoException, errorMessage } from "./utils";
 import path from "path";
 import {
   readSettings,
@@ -91,7 +91,7 @@ function persistInstallationPreferences(
   } catch (error) {
     logMessage(
       `Failed to persist installer preferences: ${
-        error instanceof Error ? error.message : String(error)
+        errorMessage(error)
       }`,
       "error"
     );
@@ -207,13 +207,11 @@ async function removeStaleMicromambaLock(
   try {
     stats = await fs.stat(lockPath);
   } catch (error: unknown) {
-    if (error instanceof Error && "code" in error && (error as NodeJS.ErrnoException).code === "ENOENT") {
+    if (isErrnoException(error) && error.code === "ENOENT") {
       return;
     }
     logMessage(
-      `Failed to inspect micromamba lock at ${lockPath}: ${
-        error instanceof Error ? error.message : String(error)
-      }`,
+      `Failed to inspect micromamba lock at ${lockPath}: ${errorMessage(error)}`,
       "warn"
     );
     if (!options?.force) {
@@ -249,7 +247,7 @@ async function removeStaleMicromambaLock(
   } catch (error) {
     logMessage(
       `Failed to remove micromamba lock at ${lockPath}: ${
-        error instanceof Error ? error.message : String(error)
+        errorMessage(error)
       }`,
       "warn"
     );
@@ -675,45 +673,6 @@ async function createEnvironmentWithMicromamba(
   );
 }
 
-async function provisionCondaEnvironment(
-  location: string,
-  modelBackend: ModelBackend,
-  options?: {
-    bootMessage?: string;
-    installLlamaCpp?: boolean;
-  }
-): Promise<void> {
-  const bootMessage =
-    options?.bootMessage ?? "Setting up conda environment...";
-
-  emitBootMessage(bootMessage);
-  logMessage(`Setting up conda environment at: ${location} (Backend: ${modelBackend})`);
-
-  const micromambaExecutable = await ensureMicromambaAvailable();
-
-  await createEnvironmentWithMicromamba(
-    micromambaExecutable,
-    location,
-    BOOTSTRAP_CONDA_PACKAGES,
-  );
-
-  const condaEnvPath = location;
-  await installCondaPackages(micromambaExecutable, condaEnvPath, modelBackend, {
-    installLlamaCpp: options?.installLlamaCpp,
-  });
-
-  await installRequiredPythonPackages();
-
-  const shouldInstallLlamaCpp =
-    options?.installLlamaCpp ?? modelBackend === "llama_cpp";
-  if (shouldInstallLlamaCpp) {
-    await ensureLlamaCppInstalled(condaEnvPath);
-  }
-
-  logMessage("Conda environment installation completed successfully");
-  emitBootMessage("Conda environment is ready");
-}
-
 /**
  * Conda Environment Installer Module
  *
@@ -730,7 +689,6 @@ async function provisionCondaEnvironment(
  * Installation Process:
  * 1. `ensureCondaEnvironment()` creates a minimal env if none exists
  * 2. `installCondaPackageBySpec()` installs runtime-specific packages on demand
- * 3. `provisionCondaEnvironment()` (legacy) creates env with backend packages
  */
 
 createIpcMainHandler(IpcChannels.SELECT_CUSTOM_LOCATION, async (_event) => {

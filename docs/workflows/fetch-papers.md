@@ -7,6 +7,12 @@ title: "Fetch Papers"
 
 Fetches and downloads research papers from the Awesome Transformers GitHub repository. Extracts paper links from the README, filters for actual papers, and downloads them to a specified folder.
 
+## Demo
+
+<video controls preload="metadata" poster="{{ '/assets/workflows/fetch-papers.jpg' | relative_url }}">
+  <source src="{{ '/assets/workflows/fetch-papers.mp4' | relative_url }}" type="video/mp4">
+</video>
+
 ## Tags
 
 automation

@@ -9,7 +9,6 @@ import { Property } from "../../stores/ApiTypes";
 import PropertyInput from "./PropertyInput";
 import PropertyLabel from "./PropertyLabel";
 import { Slugify, isCollectType } from "../../utils/TypeHandler";
-import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import isEqual from "fast-deep-equal";
 import { isFieldRelevantDataEqual } from "./propertyFieldEquality";
@@ -91,13 +90,6 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   isConnected = false,
   onValueChange
 }) => {
-  const controlKeyPressed = useKeyPressedStore((state) =>
-    state.isKeyPressed("Control")
-  );
-  const metaKeyPressed = useKeyPressedStore((state) =>
-    state.isKeyPressed("Meta")
-  );
-
   const { connectType, connectDirection, connectNodeId } = useConnectionStore(
     useShallow((state) => ({
       connectType: state.connectType,
@@ -230,7 +222,6 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
             value={value}
             nodeType={nodeType}
             property={property}
-            controlKeyPressed={controlKeyPressed || metaKeyPressed}
             isInspector={isInspector}
             tabIndex={tabIndex}
             isDynamicProperty={isDynamicProperty}

@@ -9,10 +9,9 @@
 import type {
   NodeMetadata,
   Property,
-  OutputSlot,
 } from "../../stores/ApiTypes";
 import type { TypeMetadata } from "../../stores/ApiTypes";
-import type { Node, Edge, Workflow } from "../../stores/ApiTypes";
+import type { Node, Edge } from "../../stores/ApiTypes";
 
 // ── Input source mapping ─────────────────────────────────────────────
 

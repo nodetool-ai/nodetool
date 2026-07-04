@@ -3,7 +3,6 @@
  *
  * Retained on REST (file downloads):
  *   - GET  /api/workflows/:id/dsl-export   (text/plain file download)
- *   - POST /api/workflows/:id/gradio-export (501 stub, kept for API compat)
  *
  * Everything else is served via tRPC:
  *   - list, names, get, create, update, delete

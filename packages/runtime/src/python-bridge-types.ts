@@ -82,6 +82,116 @@ export interface ModelDownloadUpdate {
   error?: string;
 }
 
+// ── ComfyUI proxy (bridge protocol v3+) ───────────────────────────────────
+//
+// The worker can front a co-located, loopback-only ComfyUI server and proxy it
+// over the bridge as `comfy.*` messages. All shapes below mirror the worker's
+// `comfy_handler.py`; the authoritative field-level reference is
+// `docs/comfy-proxy.md` in nodetool-core. Events and results carry an index
+// signature so worker-side additions pass through untyped rather than being
+// dropped.
+
+/**
+ * The `comfy` block on `worker.status` (protocol v3+). Present only when the
+ * worker fronts a ComfyUI server; `enabled` is the routing signal — only send
+ * `comfy.*` to a worker whose last status reported `enabled: true`.
+ */
+export interface ComfyStatusInfo {
+  enabled: boolean;
+  /** Loopback URL the worker proxies to (e.g. http://127.0.0.1:8188). */
+  url?: string;
+  /** Whether the worker could reach ComfyUI at last check (comfy.status only). */
+  reachable?: boolean;
+}
+
+/**
+ * A `comfy.event` frame's `data`. `comfy.execute` streams its lifecycle as
+ * these dedicated frames — NOT as `progress` — because ComfyUI's events don't
+ * fit the `{progress,total,message}` shape. `event` is the discriminator, in
+ * emission order: queued → queue → started/cached → executing → progress →
+ * node_output → preview → completed/cancelled.
+ */
+export interface ComfyEvent {
+  event:
+    | "queued"
+    | "queue"
+    | "started"
+    | "cached"
+    | "executing"
+    | "progress"
+    | "node_output"
+    | "preview"
+    | "completed"
+    | "cancelled";
+  prompt_id?: string;
+  /** `executing`/`progress`/`node_output`/`preview`: the ComfyUI node id. */
+  node?: string | null;
+  /** `progress`: current step and total for the running node. */
+  value?: number;
+  max?: number;
+  /** `queue`: remaining queued prompts. */
+  queue_remaining?: number;
+  /** `cached`: node ids served from cache. */
+  nodes?: string[];
+  /** `node_output`: the raw ComfyUI output payload for that node. */
+  output?: Record<string, unknown>;
+  /** `preview`: raw preview image bytes (only when `previews: true`). */
+  blob?: Uint8Array;
+  mime_type?: string;
+  [key: string]: unknown;
+}
+
+/** Options for a {@link PythonBridge.comfyExecute} call. */
+export interface ComfyExecuteOptions {
+  /**
+   * Input files referenced from the workflow JSON via `"blob:<key>"`
+   * placeholders. The worker uploads them to ComfyUI and splices in the real
+   * filename before submitting.
+   */
+  blobs?: Record<string, Uint8Array>;
+  /** Request `preview` events (extra bandwidth); off by default. */
+  previews?: boolean;
+  /** Max seconds to wait for the ComfyUI run before the worker gives up. */
+  timeout?: number;
+}
+
+/** Terminal `result.data` of a {@link PythonBridge.comfyExecute} call. */
+export interface ComfyExecuteResult {
+  prompt_id?: string;
+  outputs?: Record<string, unknown>;
+  blobs?: Record<string, Uint8Array>;
+  [key: string]: unknown;
+}
+
+/** Request payload for {@link PythonBridge.comfyModelsDownload}. */
+export interface ComfyModelDownloadRequest {
+  /** Raw ComfyUI folder ("checkpoints", "loras", …) or a nodetool type string. */
+  folder: string;
+  /** Direct download URL, mutually exclusive with `repo_id`. */
+  url?: string;
+  /** HuggingFace repo id, mutually exclusive with `url`. */
+  repo_id?: string;
+  filename?: string;
+  [key: string]: unknown;
+}
+
+/** A `progress` frame from {@link PythonBridge.comfyModelsDownload}. */
+export interface ComfyModelDownloadUpdate {
+  status: "start" | "progress" | "completed" | "error" | "cancelled";
+  downloaded_bytes: number;
+  total_bytes: number;
+  error?: string;
+  [key: string]: unknown;
+}
+
+/** One file entry from {@link PythonBridge.comfyModelsList}. */
+export interface ComfyModelInfo {
+  folder: string;
+  filename: string;
+  size?: number;
+  [key: string]: unknown;
+}
+
 export interface PythonBridgeOptions {
   wsUrl?: string;
   /**
@@ -146,6 +256,11 @@ export interface PythonWorkerStatus {
   load_errors: PythonWorkerLoadError[];
   transport: string;
   max_frame_size: number;
+  /**
+   * ComfyUI proxy status (protocol v3+). Present only when the worker fronts a
+   * ComfyUI server; used to route `comfy.*` requests (see {@link ComfyStatusInfo}).
+   */
+  comfy?: ComfyStatusInfo;
 }
 
 /**
@@ -228,6 +343,69 @@ export interface PythonBridge extends EventEmitter {
   cancelModelDownload(requestId: string): void;
   deleteCachedModel(repoId: string): Promise<boolean>;
   supportsModelManagement(): boolean;
+
+  // ── ComfyUI proxy (protocol v3+, gated by supportsComfy) ─────────────────
+  /**
+   * Whether the attached worker fronts a ComfyUI server and speaks the
+   * `comfy.*` family (protocol v3+ AND `worker.status.comfy.enabled`). Route
+   * ComfyUI jobs only to workers where this is true.
+   */
+  supportsComfy(): boolean;
+  /** The last-known `comfy` block from `worker.status`, or null. */
+  getComfyStatus(): ComfyStatusInfo | null;
+  /**
+   * Submit a ComfyUI workflow (API-format prompt JSON) and drain its
+   * `comfy.event` lifecycle via `onEvent`. Resolves on the terminal `result`,
+   * rejects on `error`. Cancellable through the standard {@link cancel} with the
+   * returned/passed `requestId`.
+   */
+  comfyExecute(
+    prompt: Record<string, unknown>,
+    options?: ComfyExecuteOptions,
+    onEvent?: (event: ComfyEvent) => void,
+    requestId?: string
+  ): Promise<ComfyExecuteResult>;
+  /**
+   * Cancel an in-flight {@link comfyExecute} by request id, settling its promise
+   * locally (does not rely on a terminal frame from the worker).
+   */
+  cancelComfyExecute(requestId: string): void;
+  /** `{queue_running, queue_pending}` — for a queue-position/ETA UI. */
+  comfyQueue(): Promise<Record<string, unknown>>;
+  /** Global interrupt: stops whatever ComfyUI is running. Admin-only. */
+  comfyInterrupt(): Promise<void>;
+  /** Best-effort per-prompt cancel — the safe user-facing cancel. */
+  comfyCancelPrompt(promptId: string): Promise<void>;
+  /** Stage a file into ComfyUI's input dir; returns the stored filename. */
+  comfyUpload(
+    filename: string,
+    bytes: Uint8Array,
+    options?: Record<string, unknown>
+  ): Promise<Record<string, unknown>>;
+  /** Fetch a file from ComfyUI by name. */
+  comfyView(
+    filename: string,
+    options?: Record<string, unknown>
+  ): Promise<Record<string, unknown>>;
+  /** Full ComfyUI node catalog. */
+  comfyObjectInfo(): Promise<Record<string, unknown>>;
+  /** ComfyUI system/VRAM stats. */
+  comfySystemStats(): Promise<Record<string, unknown>>;
+  /** Worker-level ComfyUI health: `{enabled, url, reachable}`. */
+  comfyStatus(): Promise<ComfyStatusInfo>;
+  /** Unload models from VRAM without a cold restart. */
+  comfyFree(options?: Record<string, unknown>): Promise<void>;
+  /** List model files on the worker's persistent volume. */
+  comfyModelsList(folder?: string): Promise<ComfyModelInfo[]>;
+  /** Download a model file onto the worker's volume, streaming progress. */
+  comfyModelsDownload(
+    req: ComfyModelDownloadRequest,
+    onProgress: (update: ComfyModelDownloadUpdate) => void,
+    requestId?: string
+  ): Promise<void>;
+  /** Remove a model file from the worker's volume. */
+  comfyModelsDelete(folder: string, filename: string): Promise<boolean>;
+
   getRecentStderrSummary(limit?: number): string | null;
   close(): void;
 }

@@ -328,7 +328,7 @@ system_prompt: |
 ### Model Selection
 
 - **Planning model**: Use a fast, cost-effective model (`gpt-4o-mini`, a small Claude model)
-- **Main model**: Use a powerful model for complex reasoning
+- **Main model**: Use a stronger model for the actual reasoning
 - **Code tasks**: Models with large context windows
 
 ### Tool Configuration
@@ -373,7 +373,7 @@ model:
 
 ## Related Documentation
 
-- [Global Chat & Agents](global-chat-agents.md) — Agent system overview
+- [Chat & Agents](global-chat-agents.md) — Agent system overview
 - [Chat CLI](chat-cli.md) — Interactive chat interface
 - [NodeTool CLI](cli.md) — Complete CLI reference
 - [Agent Configuration Schema](agent-config-schema.md) — YAML configuration reference

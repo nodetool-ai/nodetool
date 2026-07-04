@@ -53,8 +53,7 @@ export default function ProvidersSection({
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            Bring your own API keys—no markup, no middleman. OpenAI, Anthropic, Gemini, Fal AI,
-            Replicate, HuggingFace, OpenRouter, MiniMax, and Kie.ai supported.
+            Bring your own API keys — no markup, no middleman.
           </motion.p>
         </div>
 

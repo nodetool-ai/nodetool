@@ -13,14 +13,20 @@ import {
   useRef,
   useState
 } from "react";
-import type { DragEvent, KeyboardEvent } from "react";
+import type { DragEvent, FocusEvent, KeyboardEvent, MouseEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { usePanelStore } from "../../stores/PanelStore";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { serializeDragData, useDragDropStore } from "../../lib/dragdrop";
+import useContextMenuStore from "../../stores/ContextMenuStore";
+import {
+  useSidebarDocumentActionsStore,
+  type SidebarDocumentItem
+} from "../../stores/SidebarDocumentActionsStore";
 import { trpc } from "../../trpc/client";
 import { groupByDate } from "../../utils/groupByDate";
+import ConfirmDialog from "../dialogs/ConfirmDialog";
 import CategorySearchBar from "../node_menu/CategorySearchBar";
 import {
   EmptyState,
@@ -73,6 +79,17 @@ const styles = (theme: Theme) =>
       flexShrink: 0,
       color: theme.vars.palette.text.secondary,
       fontSize: 20
+    },
+    ".rename-input": {
+      width: "100%",
+      background: "transparent",
+      border: `1px solid ${theme.vars.palette.primary.main}`,
+      borderRadius: theme.rounded.sm,
+      color: "inherit",
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
+      fontSize: "var(--fontSizeSmall)",
+      fontWeight: 600,
+      outline: "none"
     },
     ".date-header-row": {
       width: "100%",
@@ -154,7 +171,11 @@ interface SketchListItemProps {
   name: string;
   updatedAt: string;
   active: boolean;
+  editing: boolean;
   onOpen: (id: string, name: string) => void;
+  onContextMenu: (event: MouseEvent<HTMLButtonElement>, id: string, name: string) => void;
+  onCommitRename: (id: string, newName: string) => void;
+  onCancelRename: () => void;
 }
 
 const SketchListItem = memo(function SketchListItem({
@@ -162,11 +183,36 @@ const SketchListItem = memo(function SketchListItem({
   name,
   updatedAt,
   active,
-  onOpen
+  editing,
+  onOpen,
+  onContextMenu,
+  onCommitRename,
+  onCancelRename
 }: SketchListItemProps) {
   const setActiveDrag = useDragDropStore((state) => state.setActiveDrag);
   const clearDrag = useDragDropStore((state) => state.clearDrag);
   const handleClick = useCallback(() => onOpen(id, name), [id, name, onOpen]);
+  const handleContextMenu = useCallback(
+    (event: MouseEvent<HTMLButtonElement>) => onContextMenu(event, id, name),
+    [id, name, onContextMenu]
+  );
+  const handleRenameKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLInputElement>) => {
+      event.stopPropagation();
+      if (event.key === "Enter") {
+        onCommitRename(id, event.currentTarget.value);
+      } else if (event.key === "Escape") {
+        onCancelRename();
+      }
+    },
+    [id, onCommitRename, onCancelRename]
+  );
+  const handleRenameBlur = useCallback(
+    (event: FocusEvent<HTMLInputElement>) => {
+      onCommitRename(id, event.currentTarget.value);
+    },
+    [id, onCommitRename]
+  );
   const handleKeyDown = useCallback(
     (event: KeyboardEvent<HTMLButtonElement>) => {
       if (event.key === "Enter" || event.key === " ") {
@@ -204,12 +250,35 @@ const SketchListItem = memo(function SketchListItem({
     clearDrag();
   }, [clearDrag]);
 
+  if (editing) {
+    return (
+      <div className={`sketch-item ${active ? "active" : ""}`}>
+        <FlexRow align="center" gap={1} fullWidth>
+          <BrushOutlinedIcon className="sketch-icon" />
+          <FlexColumn gap={0.5} sx={{ minWidth: 0, flex: 1 }}>
+            <input
+              className="rename-input"
+              type="text"
+              defaultValue={name}
+              aria-label="Sketch name"
+              autoFocus
+              onFocus={(event) => event.currentTarget.select()}
+              onKeyDown={handleRenameKeyDown}
+              onBlur={handleRenameBlur}
+            />
+          </FlexColumn>
+        </FlexRow>
+      </div>
+    );
+  }
+
   return (
     <button
       type="button"
       className={`sketch-item ${active ? "active" : ""}`}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
+      onContextMenu={handleContextMenu}
       draggable
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
@@ -331,8 +400,116 @@ const SketchListPanel = () => {
     [location.pathname, navigate, openTab, setVisibility]
   );
 
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<SidebarDocumentItem | null>(
+    null
+  );
+  const utils = trpc.useUtils();
+  const createSketch = trpc.sketch.create.useMutation({
+    onSuccess: () => {
+      void utils.sketch.list.invalidate();
+    }
+  });
+  const updateSketch = trpc.sketch.update.useMutation({
+    onSuccess: () => {
+      void utils.sketch.list.invalidate();
+    }
+  });
+  const deleteSketch = trpc.sketch.delete.useMutation({
+    onSuccess: () => {
+      void utils.sketch.list.invalidate();
+    }
+  });
+  const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
+  const setActions = useSidebarDocumentActionsStore((state) => state.setActions);
+  const clearActions = useSidebarDocumentActionsStore(
+    (state) => state.clearActions
+  );
+
+  const handleContextMenu = useCallback(
+    (event: MouseEvent<HTMLButtonElement>, id: string, name: string) => {
+      event.preventDefault();
+      event.stopPropagation();
+      openContextMenu(
+        "sidebar-document-context-menu",
+        id,
+        event.clientX,
+        event.clientY,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        { id, name }
+      );
+    },
+    [openContextMenu]
+  );
+
+  const handleCommitRename = useCallback(
+    (id: string, newName: string) => {
+      const trimmed = newName.trim();
+      const current = (data ?? []).find((s) => s.id === id);
+      setEditingId(null);
+      if (trimmed && current && trimmed !== current.name) {
+        updateSketch.mutate({ id, name: trimmed });
+      }
+    },
+    [data, updateSketch]
+  );
+
+  const handleDuplicate = useCallback(
+    async (item: SidebarDocumentItem) => {
+      try {
+        const source = await utils.sketch.get.fetch({ id: item.id });
+        const copy = await createSketch.mutateAsync({
+          name: `${source.name} (copy)`.substring(0, 200),
+          projectId: source.projectId,
+          width: source.width,
+          height: source.height,
+          backgroundColor: source.backgroundColor
+        });
+        await updateSketch.mutateAsync({
+          id: copy.id,
+          document: source.document
+        });
+      } catch (error) {
+        console.error("Failed to duplicate sketch", error);
+      }
+    },
+    [utils, createSketch, updateSketch]
+  );
+
+  const handleRequestDelete = useCallback((item: SidebarDocumentItem) => {
+    setItemToDelete(item);
+  }, []);
+
+  const handleConfirmDelete = useCallback(() => {
+    if (itemToDelete) {
+      deleteSketch.mutate({ id: itemToDelete.id });
+    }
+  }, [itemToDelete, deleteSketch]);
+
+  useEffect(() => {
+    setActions({
+      onRename: (item) => setEditingId(item.id),
+      onDuplicate: (item) => void handleDuplicate(item),
+      onDelete: handleRequestDelete
+    });
+    return () => clearActions();
+  }, [setActions, clearActions, handleDuplicate, handleRequestDelete]);
+
   return (
     <FlexColumn fullHeight fullWidth gap={0} css={styles(theme)}>
+      <ConfirmDialog
+        open={itemToDelete !== null}
+        onClose={() => setItemToDelete(null)}
+        onConfirm={handleConfirmDelete}
+        title="Delete sketch"
+        content={`Delete "${itemToDelete?.name ?? ""}"? This cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+      />
       <div className="sketch-search">
         <CategorySearchBar
           ref={searchRef}
@@ -392,7 +569,11 @@ const SketchListPanel = () => {
                     name={sketch.name}
                     updatedAt={sketch.updatedAt}
                     active={sketch.id === activeSketchId}
+                    editing={sketch.id === editingId}
                     onOpen={handleOpen}
+                    onContextMenu={handleContextMenu}
+                    onCommitRename={handleCommitRename}
+                    onCancelRename={() => setEditingId(null)}
                   />
                 </Fragment>
               );

@@ -1,18 +1,31 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo, useMemo } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import AspectRatioIcon from "@mui/icons-material/CropOriginal";
 import AppsIcon from "@mui/icons-material/Apps";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import TvIcon from "@mui/icons-material/Tv";
 import RecordVoiceOverIcon from "@mui/icons-material/RecordVoiceOver";
 import SpeedIcon from "@mui/icons-material/Speed";
 import TuneIcon from "@mui/icons-material/Tune";
 import LayersIcon from "@mui/icons-material/Layers";
-import { BORDER_RADIUS, FlexColumn, FlexRow, Text, FONT_SIZE_SANS, SPACING, getSpacingPx } from "../../ui_primitives";
+import AddToCanvasIcon from "@mui/icons-material/AddPhotoAlternate";
+import {
+  BORDER_RADIUS,
+  FlexColumn,
+  FlexRow,
+  MagicGenerationFill,
+  MOTION,
+  Text,
+  ToolbarIconButton,
+  FONT_SIZE_SANS,
+  SPACING,
+  Z_INDEX,
+  getSpacingPx
+} from "../../ui_primitives";
 import ImageView from "../../node/ImageView";
 import type {
   Message,
@@ -24,6 +37,14 @@ import {
   isImageContent,
   isVideoContent
 } from "./MediaOutputGroup.helpers";
+import {
+  useAddMediaToCanvas,
+  type MediaContentBlock
+} from "../../../hooks/handlers/useGenerationToCanvas";
+import { serializeDragData } from "../../../lib/dragdrop";
+
+/** Edge length of a generated-media thumbnail tile (px). */
+const THUMBNAIL_SIZE = 120;
 
 const VIDEO_STYLE: React.CSSProperties = { width: "100%", height: "100%" };
 const AUDIO_STYLE: React.CSSProperties = { width: "100%", padding: getSpacingPx(SPACING.lg) };
@@ -35,7 +56,45 @@ type ChatMessageWithMedia = Message & {
 interface MediaOutputGroupProps {
   message: ChatMessageWithMedia;
   mediaContents: MessageContent[];
+  /**
+   * True while this turn's media is still being generated: renders the same
+   * header + grid shell as a finished turn, but with shimmering tiles in
+   * place of `mediaContents` (which is empty at this point).
+   */
+  isPending?: boolean;
 }
+
+/** `"16:9"` → `"16 / 9"` for the CSS `aspect-ratio` property. */
+function cssAspectRatio(aspectRatio: string | null | undefined): string | undefined {
+  if (!aspectRatio) return undefined;
+  const [w, h] = aspectRatio.split(":");
+  const wNum = Number(w);
+  const hNum = Number(h);
+  if (!wNum || !hNum) return undefined;
+  return `${wNum} / ${hNum}`;
+}
+
+/** How many shimmering placeholder tiles to show, and their shape, for a
+ * pending `media_generation` request — mirrors what the finished grid will
+ * actually contain (one tile per variation for images, one for video/audio). */
+function pendingTiles(gen: MediaGenerationRequest | null): {
+  count: number;
+  aspectRatio: string | undefined;
+  kind: "image" | "video" | "audio";
+} {
+  if (gen?.mode === "image" || gen?.mode === "image_edit") {
+    return {
+      count: Math.max(1, gen.variations ?? 1),
+      aspectRatio: cssAspectRatio(gen.aspect_ratio),
+      kind: "image"
+    };
+  }
+  if (gen?.mode === "video" || gen?.mode === "image_to_video") {
+    return { count: 1, aspectRatio: cssAspectRatio(gen.aspect_ratio), kind: "video" };
+  }
+  return { count: 1, aspectRatio: undefined, kind: "audio" };
+}
+
 
 const styles = (theme: Theme) =>
   css({
@@ -80,24 +139,29 @@ const styles = (theme: Theme) =>
       display: "grid",
       gap: 8,
       width: "100%",
-      "&.count-1": { gridTemplateColumns: "1fr" },
-      "&.count-2": { gridTemplateColumns: "1fr 1fr" },
-      "&.count-3": {
-        gridTemplateColumns: "1fr 1fr",
-        "& > :nth-of-type(1)": { gridColumn: "1 / span 2" }
-      },
-      "&.count-4": { gridTemplateColumns: "1fr 1fr" },
-      "&.count-many": {
-        gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))"
-      }
+      gridTemplateColumns: `repeat(auto-fill, ${THUMBNAIL_SIZE}px)`,
+      justifyContent: "start"
     },
 
     ".media-grid > *": {
-      width: "100%",
-      aspectRatio: "auto",
+      position: "relative",
+      width: THUMBNAIL_SIZE,
+      height: THUMBNAIL_SIZE,
       borderRadius: BORDER_RADIUS.lg,
       overflow: "hidden",
-      background: theme.vars.palette.grey[900]
+      background: theme.vars.palette.grey[900],
+      cursor: "grab"
+    },
+
+    ".media-grid > *:active": {
+      cursor: "grabbing"
+    },
+
+    // Audio has no meaningful thumbnail — let its player span the full row.
+    ".media-grid > .audio-tile": {
+      gridColumn: "1 / -1",
+      width: "100%",
+      height: "auto"
     },
 
     ".media-grid img, .media-grid video": {
@@ -105,6 +169,55 @@ const styles = (theme: Theme) =>
       height: "100%",
       display: "block",
       objectFit: "cover"
+    },
+
+    // Same shell every generating surface uses to host `MagicGenerationFill`
+    // (sketch canvas/layers panel, timeline clips + preview compositor): a
+    // positioned, clipped box the wash + shimmer sweep fills edge to edge.
+    ".media-tile-shimmer": {
+      position: "relative",
+      minHeight: 96,
+      overflow: "hidden",
+      backgroundColor: theme.vars.palette.c_overlay_subtle
+    },
+
+    ".media-tile-shimmer.audio-shimmer": {
+      minHeight: 54,
+      borderRadius: BORDER_RADIUS.lg
+    },
+
+    ".add-to-canvas-button": {
+      position: "absolute",
+      top: getSpacingPx(SPACING.xs),
+      left: getSpacingPx(SPACING.xs),
+      zIndex: Z_INDEX.dropdown,
+      opacity: 0,
+      transition: `opacity ${MOTION.normal}`,
+      backgroundColor: "var(--palette-c_scrim)",
+      color: "var(--palette-grey-0)",
+      borderRadius: BORDER_RADIUS.sm,
+      width: 24,
+      height: 24,
+      padding: getSpacingPx(SPACING.xs),
+      "&:hover": {
+        backgroundColor: "var(--palette-c_scrim_strong)"
+      },
+      "& svg": {
+        fontSize: 14
+      }
+    },
+
+    ".media-grid > *:hover .add-to-canvas-button": {
+      opacity: 1
+    },
+
+    ".media-output-header:hover .add-all-button, .media-output-group:hover .add-all-button": {
+      opacity: 1
+    },
+
+    ".add-all-button": {
+      opacity: 0.6,
+      transition: `opacity ${MOTION.normal}`
     }
   });
 
@@ -121,11 +234,35 @@ function titleFromPrompt(prompt: string | null | undefined): string {
  */
 const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
   message,
-  mediaContents
+  mediaContents,
+  isPending = false
 }) => {
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const gen = message.media_generation ?? null;
+  const { isCanvasAvailable, addBlocksToCanvas } = useAddMediaToCanvas();
+
+  const addOne = useCallback(
+    (block: MediaContentBlock) => addBlocksToCanvas([block]),
+    [addBlocksToCanvas]
+  );
+  const handleDragStart = useCallback(
+    (e: React.DragEvent, block: MediaContentBlock) => {
+      serializeDragData({ type: "chat-media", payload: block }, e.dataTransfer);
+      e.dataTransfer.effectAllowed = "copy";
+    },
+    []
+  );
+  const addAll = useCallback(
+    () =>
+      addBlocksToCanvas(
+        mediaContents.filter(
+          (c): c is MediaContentBlock =>
+            isImageContent(c) || isVideoContent(c) || isAudioContent(c)
+        )
+      ),
+    [addBlocksToCanvas, mediaContents]
+  );
 
   // Derive a title from the message prompt when possible
   const prompt = useMemo(() => {
@@ -142,17 +279,7 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
 
   const title = titleFromPrompt(prompt);
 
-  const count = mediaContents.length;
-  const gridClass =
-    count === 1
-      ? "count-1"
-      : count === 2
-        ? "count-2"
-        : count === 3
-          ? "count-3"
-          : count === 4
-            ? "count-4"
-            : "count-many";
+  const pending = useMemo(() => pendingTiles(gen), [gen]);
 
   return (
     <div css={cssStyles} className="media-output-group">
@@ -227,18 +354,59 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
               {gen.speed}x
             </span>
           )}
+          {!isPending && isCanvasAvailable && mediaContents.length > 1 && (
+            <ToolbarIconButton
+              className="add-all-button"
+              tooltip="Add all to canvas"
+              size="small"
+              onClick={addAll}
+            >
+              <AddToCanvasIcon fontSize="small" />
+            </ToolbarIconButton>
+          )}
         </FlexRow>
       </div>
 
-      <div className={`media-grid ${gridClass}`}>
-        {mediaContents.map((c, i) => {
+      <div className="media-grid">
+        {isPending
+          ? Array.from({ length: pending.count }, (_, i) => (
+              <div
+                key={`pending-${i}`}
+                className={`media-tile-shimmer${
+                  pending.kind === "audio" ? " audio-shimmer audio-tile" : ""
+                }`}
+                style={
+                  pending.kind !== "audio" && pending.aspectRatio
+                    ? { aspectRatio: pending.aspectRatio }
+                    : undefined
+                }
+                aria-hidden="true"
+              >
+                <MagicGenerationFill />
+              </div>
+            ))
+          : mediaContents.map((c, i) => {
           if (isImageContent(c)) {
             const src =
               c.image?.uri || (c.image?.data as string | undefined) || "";
             const key = c.image?.asset_id || c.image?.uri || `media-${i}`;
             return (
-              <div key={key}>
+              <div
+                key={key}
+                draggable
+                onDragStart={(e) => handleDragStart(e, c)}
+              >
                 <ImageView source={src} />
+                {isCanvasAvailable && (
+                  <ToolbarIconButton
+                    className="add-to-canvas-button"
+                    tooltip="Add to canvas"
+                    size="small"
+                    onClick={() => addOne(c)}
+                  >
+                    <AddToCanvasIcon />
+                  </ToolbarIconButton>
+                )}
               </div>
             );
           }
@@ -246,7 +414,11 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
             const src = c.video?.uri || "";
             const key = c.video?.asset_id || c.video?.uri || `media-${i}`;
             return (
-              <div key={key}>
+              <div
+                key={key}
+                draggable
+                onDragStart={(e) => handleDragStart(e, c)}
+              >
                 <video
                   src={src}
                   controls
@@ -255,6 +427,16 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
                   aria-label="Generated video"
                   style={VIDEO_STYLE}
                 />
+                {isCanvasAvailable && (
+                  <ToolbarIconButton
+                    className="add-to-canvas-button"
+                    tooltip="Add to canvas"
+                    size="small"
+                    onClick={() => addOne(c)}
+                  >
+                    <AddToCanvasIcon />
+                  </ToolbarIconButton>
+                )}
               </div>
             );
           }
@@ -262,7 +444,12 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
             const src = c.audio?.uri || "";
             const key = c.audio?.asset_id || c.audio?.uri || `media-${i}`;
             return (
-              <div key={key}>
+              <div
+                key={key}
+                className="audio-tile"
+                draggable
+                onDragStart={(e) => handleDragStart(e, c)}
+              >
                 <audio
                   src={src}
                   controls
@@ -270,6 +457,16 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
                   aria-label="Generated audio"
                   style={AUDIO_STYLE}
                 />
+                {isCanvasAvailable && (
+                  <ToolbarIconButton
+                    className="add-to-canvas-button"
+                    tooltip="Add to canvas"
+                    size="small"
+                    onClick={() => addOne(c)}
+                  >
+                    <AddToCanvasIcon />
+                  </ToolbarIconButton>
+                )}
               </div>
             );
           }

@@ -20,12 +20,12 @@ export type PopoverPlacement =
   | "top-right"
   | "top-center";
 
-export interface PopoverProps
-  extends Omit<
-    MuiPopoverProps,
-    "anchorOrigin" | "transformOrigin"
-  > {
-  /** Simplified placement relative to anchor element */
+export interface PopoverProps extends MuiPopoverProps {
+  /**
+   * Simplified placement relative to anchor element. Ignored when explicit
+   * `anchorOrigin` / `transformOrigin` are provided (those win), so this stays
+   * a non-lossy superset of MUI Popover.
+   */
   placement?: PopoverPlacement;
   /** Max width of the popover content */
   maxWidth?: number | string;
@@ -96,32 +96,50 @@ const PopoverInternal: React.FC<PopoverProps> = ({
   maxHeight,
   paperSx,
   slotProps,
+  anchorOrigin,
+  transformOrigin,
   children,
   ...props
 }) => {
   const theme = useTheme();
-  const { anchorOrigin, transformOrigin } = PLACEMENT_MAP[placement];
+  const placed = PLACEMENT_MAP[placement];
 
   // Compute border radius with type guard since borderRadius can be string | number
   const borderRadiusValue = typeof theme.shape.borderRadius === "number"
     ? theme.shape.borderRadius / 4
     : undefined;
 
+  // Preserve any sx the caller passed on the paper slot instead of clobbering
+  // it. Compose as an array (MUI flattens these) so the primitive's defaults
+  // sit underneath both the caller's slot sx and the `paperSx` convenience prop.
+  const paperSlot = slotProps?.paper;
+  const callerPaperSx =
+    paperSlot && typeof paperSlot === "object" && "sx" in paperSlot
+      ? (paperSlot as { sx?: SxProps<Theme> }).sx
+      : undefined;
+  const asArray = (s: SxProps<Theme> | undefined) =>
+    s === undefined ? [] : Array.isArray(s) ? s : [s];
+
   return (
     <MuiPopover
-      anchorOrigin={anchorOrigin}
-      transformOrigin={transformOrigin}
+      // Explicit origins win; otherwise derive from `placement`. This keeps the
+      // primitive a drop-in for raw MUI Popover usages that position manually.
+      anchorOrigin={anchorOrigin ?? placed.anchorOrigin}
+      transformOrigin={transformOrigin ?? placed.transformOrigin}
       slotProps={{
         ...slotProps,
         paper: {
-          ...slotProps?.paper,
-          sx: {
-            borderRadius: borderRadiusValue,
-            maxWidth,
-            maxHeight,
-            overflow: maxHeight ? "auto" : undefined,
-            ...(paperSx as object)
-          } as SxProps<Theme>
+          ...(typeof paperSlot === "object" ? paperSlot : {}),
+          sx: [
+            {
+              borderRadius: borderRadiusValue,
+              maxWidth,
+              maxHeight,
+              overflow: maxHeight ? "auto" : undefined
+            },
+            ...asArray(callerPaperSx),
+            ...asArray(paperSx)
+          ] as SxProps<Theme>
         }
       }}
       {...props}

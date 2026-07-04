@@ -19,8 +19,7 @@ import { memo } from "react";
 import { useSketchStore } from "./state";
 import { useSketchSessionStore } from "../../stores/sketch/SketchInstance";
 import { computeTransformedCorners } from "./transform/geometry/layerGeometry";
-import MagicGenerationFill from "./MagicGenerationFill";
-import { BORDER_RADIUS, reducedMotion } from "../ui_primitives";
+import { BORDER_RADIUS, MagicGenerationFill, reducedMotion } from "../ui_primitives";
 
 interface Rect {
   x: number;

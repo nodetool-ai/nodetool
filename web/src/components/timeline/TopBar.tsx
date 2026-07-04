@@ -15,6 +15,7 @@ import { FlexRow, EditorButton } from "../ui_primitives";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import SaveIcon from "@mui/icons-material/Save";
 import TuneIcon from "@mui/icons-material/Tune";
+import VideoLibraryOutlinedIcon from "@mui/icons-material/VideoLibraryOutlined";
 
 import { TopBarPrompt } from "./TopBarPrompt";
 
@@ -36,6 +37,12 @@ export interface TopBarProps {
   onSave?: () => void;
   /** True while a manual save is in flight. */
   isSaving?: boolean;
+  /**
+   * Called when the user clicks "Save as Asset" — receives the button element
+   * to anchor the folder-chooser popover to. Renders the timeline to a video
+   * and saves it as an asset in the chosen folder.
+   */
+  onSaveToAssets?: (anchorEl: HTMLElement) => void;
   /** Called when the user opens the project settings (canvas size + fps). */
   onOpenSettings?: () => void;
   /** Optional slot for an activity indicator (NOD-311) */
@@ -48,6 +55,7 @@ export const TopBar: React.FC<TopBarProps> = memo(
     isExporting = false,
     onSave,
     isSaving = false,
+    onSaveToAssets,
     onOpenSettings,
     activitySlot
   }) => {
@@ -82,6 +90,18 @@ export const TopBar: React.FC<TopBarProps> = memo(
             size="small"
           >
             {isSaving ? "Saving…" : "Save"}
+          </EditorButton>
+        )}
+
+        {onSaveToAssets && (
+          <EditorButton
+            variant="outlined"
+            onClick={(e) => onSaveToAssets(e.currentTarget)}
+            disabled={isExporting}
+            startIcon={<VideoLibraryOutlinedIcon />}
+            size="small"
+          >
+            Save as Asset
           </EditorButton>
         )}
 

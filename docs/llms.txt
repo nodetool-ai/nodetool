@@ -32,13 +32,13 @@ NodeTool is an open-source, local-first visual environment for building AI workf
 - [Chain Editor]({{ site.url }}/chain-editor): Linear chain authoring mode.
 - [Graph View]({{ site.url }}/workflow-graph-view): Read-only graph navigation.
 - [Debugging]({{ site.url }}/workflow-debugging): Inspect runs, errors, logs.
-- [Image Editor]({{ site.url }}/image-editor): Mask, paint, layer images inline.
+- [Sketch Editor]({{ site.url }}/sketch-editor): Mask, paint, layer, and generate images inline.
 - [Templates Gallery]({{ site.url }}/templates-gallery): Browse and open starter workflows.
 - [VibeCoding]({{ site.url }}/vibecoding): Generate workflows from natural language.
 
 ## Chat & Agents
 
-- [Global Chat]({{ site.url }}/global-chat): Provider-agnostic chat interface.
+- [Chat]({{ site.url }}/global-chat): Provider-agnostic chat interface.
 - [Chat & Agents]({{ site.url }}/global-chat-agents): Use agents from chat.
 - [Agent Config]({{ site.url }}/agent-config-schema): YAML schema for agent definitions.
 - [Agent Memory]({{ site.url }}/agent-memory): How agents persist context.
@@ -104,7 +104,6 @@ NodeTool is an open-source, local-first visual environment for building AI workf
 - [Node Patterns]({{ site.url }}/developer/node-patterns): process / genProcess / streaming.
 - [Node Reference]({{ site.url }}/developer/node-reference): @prop, types, decorators.
 - [TypeScript DSL]({{ site.url }}/developer/ts-dsl-guide): Define workflows in TS.
-- [Gradio Conversion]({{ site.url }}/developer/gradio-conversion): Convert Gradio apps to nodes.
 - [Node Packs]({{ site.url }}/node-packs): Distribute nodes as installable packs.
 
 ## Apps

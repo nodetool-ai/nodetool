@@ -2,10 +2,8 @@
 import { css } from "@emotion/react";
 import React, { useCallback, memo, useMemo, useRef, useEffect } from "react";
 import { EditorButton, Text, Tooltip, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
-import {
-  Folder as FolderIcon,
-  NavigateNext as NavigateIcon
-} from "@mui/icons-material";
+import FolderIcon from "@mui/icons-material/Folder";
+import NavigateIcon from "@mui/icons-material/NavigateNext";
 import { AssetWithPath } from "../../stores/ApiTypes";
 import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
 import useContextMenuStore from "../../stores/ContextMenuStore";
@@ -289,11 +287,21 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
           e.dataTransfer
         );
       } else {
+        const assetsById = new Map(
+          [...results, ...(selectedAssets || []), asset].map((a) => [a.id, a])
+        );
+        const resolvedAssets = assetIds
+          .map((id) => assetsById.get(id))
+          .filter((a): a is AssetWithPath => a !== undefined);
         serializeDragData(
           {
             type: "assets-multiple",
             payload: assetIds,
-            metadata: { count: assetIds.length, sourceId: asset.id }
+            metadata: {
+              count: assetIds.length,
+              sourceId: asset.id,
+              assets: resolvedAssets
+            }
           },
           e.dataTransfer
         );
@@ -328,7 +336,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
         metadata: { count: assetIds.length, sourceId: asset.id }
       });
     },
-    [selectedAssetIds, handleSelectAsset, setActiveDrag, selectedAssets]
+    [selectedAssetIds, handleSelectAsset, setActiveDrag, selectedAssets, results]
   );
 
   const handleDragEnd = useCallback(() => {

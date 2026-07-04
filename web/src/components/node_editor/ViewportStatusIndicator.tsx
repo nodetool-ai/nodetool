@@ -1,10 +1,21 @@
 import { memo, useCallback, useMemo, useState, useEffect, useRef } from "react";
+
 import {
+  Tooltip,
+  ToolbarIconButton,
+  Text,
+  FlexRow,
+  Box,
+  Popover,
+  ListGroup,
+  MOTION,
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx,
   ListItemButton,
   ListItemText
-} from "@mui/material";
-import { Tooltip, ToolbarIconButton, Text, FlexRow, Box, Popover, ListGroup, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
-import { useViewport, useReactFlow } from "@xyflow/react";
+} from "../ui_primitives";
+import { useStore, useReactFlow } from "@xyflow/react";
 import { useTheme } from "@mui/material/styles";
 import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
 import AddIcon from "@mui/icons-material/Add";
@@ -25,7 +36,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
   visible = true
 }) => {
   const theme = useTheme();
-  const { zoom } = useViewport();
+  const zoom = useStore((s) => s.transform[2]);
   const { zoomTo, fitView } = useReactFlow();
   const [zoomMenuAnchor, setZoomMenuAnchor] = useState<HTMLElement | null>(
     null

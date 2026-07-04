@@ -12,6 +12,10 @@ import isEqual from "fast-deep-equal";
 import { memo, useCallback, useEffect, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import AssetGrid from "../assets/AssetGrid";
+import {
+  AssetGridStoreProvider,
+  LIBRARY_ASSET_GRID_STORE_KEY
+} from "../../stores/AssetGridStore";
 import WorkflowList from "../workflows/WorkflowList";
 import WorkflowForm from "../workflows/WorkflowForm";
 import CreateWorkflowButton from "../workflows/CreateWorkflowButton";
@@ -50,8 +54,9 @@ import { ScrollArea, Tooltip, MobileBottomSheet, MOTION } from "../ui_primitives
 import MenuIcon from "@mui/icons-material/Menu";
 import CodeIcon from "@mui/icons-material/Code";
 import GridViewIcon from "@mui/icons-material/GridView";
+import CollectionsOutlinedIcon from "@mui/icons-material/CollectionsOutlined";
 
-import { Fullscreen } from "@mui/icons-material";
+import Fullscreen from "@mui/icons-material/Fullscreen";
 
 const HEADER_HEIGHT = 77;
 const HEADER_HEIGHT_MOBILE = 40;
@@ -215,6 +220,12 @@ const VerticalToolbar = memo(function VerticalToolbar({
   hiddenViews?: readonly LeftPanelView[];
 }) {
   const panelVisible = usePanelStore((state) => state.panel.isVisible);
+  const currentWorkflow = useWorkflowManager((state) =>
+    state.currentWorkflowId
+      ? state.nodeStores[state.currentWorkflowId]?.getState().getWorkflow() ??
+        null
+      : null
+  );
 
   // Sidebar shows the view as "active" only when the panel is open and
   // that view is selected.
@@ -222,6 +233,11 @@ const VerticalToolbar = memo(function VerticalToolbar({
     panelVisible && LEFT_PANEL_TOP_LEVEL.some((c) => c.id === activeView)
       ? (activeView as LeftPanelView)
       : "";
+
+  const labelOverrides = useMemo(
+    () => (currentWorkflow ? { assets: "Workflow Output" } : undefined),
+    [currentWorkflow]
+  );
 
   return (
     <div className="vertical-toolbar">
@@ -235,6 +251,7 @@ const VerticalToolbar = memo(function VerticalToolbar({
         activeCategory={renderedActive}
         onCategoryClick={onViewChange}
         hiddenViews={hiddenViews}
+        labelOverrides={labelOverrides}
       />
       <div style={{ flexGrow: 1 }} />
       <div className="toolbar-divider" aria-hidden />
@@ -331,9 +348,12 @@ const PanelContent = memo(function PanelContent({
         >
           {!isMobile && (
             <PanelHeadline
-              title="Assets"
+              title={currentWorkflow ? "Workflow Output" : "Assets"}
               actions={
-                <Tooltip title="Fullscreen" placement="right-start">
+                <Tooltip
+                  title="Open the global asset library"
+                  placement="right-start"
+                >
                   <ToolbarIconButton
                     className={`${path === "/assets" ? "active" : ""}`}
                     onClick={handleFullscreenClick}
@@ -344,7 +364,38 @@ const PanelContent = memo(function PanelContent({
               }
             />
           )}
-          <AssetGrid maxItemSize={5} isMobile={isMobile} />
+          <AssetGridStoreProvider persistKey="asset-grid-storage:assets">
+            <AssetGrid maxItemSize={5} isMobile={isMobile} />
+          </AssetGridStoreProvider>
+        </FlexColumn>
+      )}
+      {activeView === "library" && (
+        <FlexColumn
+          className="library-container"
+          fullWidth
+          fullHeight
+          sx={{
+            overflow: "hidden"
+          }}
+        >
+          {!isMobile && (
+            <PanelHeadline
+              title="Library"
+              actions={
+                <Tooltip title="Open in full page" placement="right-start">
+                  <ToolbarIconButton
+                    className={`${path === "/assets" ? "active" : ""}`}
+                    onClick={handleFullscreenClick}
+                    tabIndex={-1}
+                    icon={<Fullscreen />}
+                  />
+                </Tooltip>
+              }
+            />
+          )}
+          <AssetGridStoreProvider persistKey={LIBRARY_ASSET_GRID_STORE_KEY}>
+            <AssetGrid maxItemSize={5} isMobile={isMobile} forceGlobalAssets />
+          </AssetGridStoreProvider>
         </FlexColumn>
       )}
       {activeView === "workflows" && (
@@ -566,6 +617,15 @@ const MobilePanelLeft: React.FC<{
                 ariaLabel="Show assets"
                 tabIndex={-1}
                 icon={<IconForType iconName="asset" showTooltip={false} iconSize="small" />}
+              />
+            </Tooltip>
+            <Tooltip title="Library" placement="bottom" delay={TOOLTIP_ENTER_DELAY}>
+              <ToolbarIconButton
+                className={`tab-button ${activeView === "library" ? "active" : ""}`}
+                onClick={() => handleSheetViewChange("library")}
+                ariaLabel="Show library"
+                tabIndex={-1}
+                icon={<CollectionsOutlinedIcon fontSize="small" />}
               />
             </Tooltip>
 

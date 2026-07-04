@@ -15,6 +15,12 @@ A simple image enhancement pipeline: sharpen for crisp details, then auto-contra
 
 For more options: **Replicate.Image.Upscale** for AI upscaling, **Nodetool.Image.Transform** for color and brightness controls.
 
+## Demo
+
+<video controls preload="metadata" poster="{{ '/assets/cookbook/image-enhancement.jpg' | relative_url }}">
+  <source src="{{ '/assets/cookbook/image-enhancement.mp4' | relative_url }}" type="video/mp4">
+</video>
+
 ## Tags
 
 image, start, photography, enhancement

@@ -24,8 +24,16 @@ import {
 import AudioPlayer from "../audio/AudioPlayer";
 import ThreadMessageList from "./ThreadMessageList";
 import CalendarEventView from "./CalendarEventView";
-import { List, ListItem, ListItemText } from "@mui/material";
-import { Container, EmptyState, LoadingSpinner, BORDER_RADIUS } from "../ui_primitives";
+
+import {
+  Container,
+  EmptyState,
+  LoadingSpinner,
+  BORDER_RADIUS,
+  List,
+  ListItem,
+  ListItemText
+} from "../ui_primitives";
 import ListTable from "./DataTable/ListTable";
 import ImageView from "./ImageView";
 import AssetViewer from "../assets/AssetViewer";
@@ -36,19 +44,12 @@ import { Chunk } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
 import { trpc } from "../../trpc/client";
 import {
-  isRecord,
   getSketchId,
-  isSketchDocumentLike,
-  unwrapSketchDocumentCandidate,
   resolveSketchDocument,
   getTimelineId,
-  isTimelineSequenceLike,
-  unwrapTimelineSequenceCandidate,
   resolveTimelineSequence
 } from "./outputValueResolvers";
 import SketchRenderer from "../sketch/SketchRenderer";
-import type { SketchDocument } from "../sketch/types";
-import type { TimelineSequence } from "@nodetool-ai/timeline";
 
 /** In-flight raw straight-alpha RGBA image format (see protocol RAW_RGBA_MIME). */
 const RAW_RGBA_MIME = "image/x-raw-rgba";
@@ -214,7 +215,6 @@ const stableKeyForOutputValue = (v: unknown): string => {
   }
   return `other:${String(v)}`;
 };
-
 
 const concatTextChunksSafely = (
   chunks: Chunk[]

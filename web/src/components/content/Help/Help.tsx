@@ -1,12 +1,19 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import {
+  CloseButton,
+  Text,
+  Tooltip,
+  Box,
+  MOTION,
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx,
   Tabs,
   Tab
-} from "@mui/material";
-import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import { CloseButton, Text, Tooltip, Box, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
+} from "../../ui_primitives";
 import { useAppHeaderStore } from "../../../stores/AppHeaderStore";
 import DataTypesList from "./DataTypesList";
 import { useTheme } from "@mui/material/styles";
@@ -18,20 +25,6 @@ import { NODE_EDITOR_SHORTCUTS } from "../../../config/shortcuts";
 import ControlsShortcutsTab from "./ControlsShortcutsTab";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { Dialog } from "../../ui_primitives";
-
-interface HelpItem {
-  text: string;
-  buttons?: string[];
-  isButtonBorderless?: boolean[];
-  details?: string;
-}
-
-interface _HelpItemGroup {
-  category?: string;
-  subCategory?: string;
-  explanation?: string;
-  items?: HelpItem[];
-}
 
 interface TabPanelProps {
   children: React.ReactNode;

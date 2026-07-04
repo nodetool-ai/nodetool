@@ -11,12 +11,9 @@ import { DemoPlayer } from "@web-demo";
 import { getCast } from "./casts/registry";
 import { TitleCard } from "./components/TitleCard";
 import { Caption } from "./components/Caption";
+import type { CaptionCue } from "./types";
 
-export interface CaptionCue {
-  fromMs: number;
-  toMs: number;
-  text: string;
-}
+export type { CaptionCue };
 
 // A `type` alias (not an interface) so its implicit index signature satisfies
 // Remotion's `Composition` props constraint (`Record<string, unknown>`).

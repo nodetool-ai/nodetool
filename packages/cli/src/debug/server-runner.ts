@@ -10,22 +10,15 @@
 import { getDefaultAssetsPath } from "@nodetool-ai/config";
 import { getSecret } from "@nodetool-ai/models";
 import { WorkflowRunner } from "@nodetool-ai/kernel";
-import { hydrateGraphNodeFlags, NodeRegistry } from "@nodetool-ai/node-sdk";
+import { hydrateGraphNodeFlags } from "@nodetool-ai/node-sdk";
 import type { GraphData, ProcessingMessage } from "@nodetool-ai/protocol";
-import { registerBaseNodes } from "@nodetool-ai/base-nodes";
-import { registerElevenLabsNodes } from "@nodetool-ai/elevenlabs-nodes";
-import { registerMinimaxNodes } from "@nodetool-ai/minimax-nodes";
-import { registerTransformersJsNodes } from "@nodetool-ai/transformers-js-nodes";
-import { registerFalNodes } from "@nodetool-ai/fal-nodes";
-import { registerReplicateNodes } from "@nodetool-ai/replicate-nodes";
-import { registerReveNodes } from "@nodetool-ai/reve-nodes";
-import { registerHuggingFaceNodes } from "@nodetool-ai/huggingface-nodes";
 import {
   ProcessingContext,
   FileStorageAdapter,
   connectPythonBridgeForGraph,
   resolvePythonNodeExecutor
 } from "@nodetool-ai/runtime";
+import { buildFullRegistry } from "../node-registry.js";
 import { collectExecutionSummary } from "./collector.js";
 import { readTraceSummary } from "./trace.js";
 import type { DebugGraph, ServerRunReport } from "./types.js";
@@ -43,19 +36,6 @@ export interface ServerRunOutcome {
   report: ServerRunReport;
   /** The full message stream, for writing the raw bundle artifact. */
   rawMessages: ProcessingMessage[];
-}
-
-function buildRegistry(): NodeRegistry {
-  const registry = new NodeRegistry();
-  registerBaseNodes(registry);
-  registerElevenLabsNodes(registry);
-  registerMinimaxNodes(registry);
-  registerTransformersJsNodes(registry);
-  registerFalNodes(registry);
-  registerReplicateNodes(registry);
-  registerReveNodes(registry);
-  registerHuggingFaceNodes(registry);
-  return registry;
 }
 
 /** Settle to a synthetic failed result if the run exceeds `timeoutMs`. */
@@ -84,7 +64,7 @@ export async function runOnServer(input: ServerRunInput): Promise<ServerRunOutco
   const { graph, workflowId, params } = input;
   const startedAt = Date.now();
 
-  const registry = buildRegistry();
+  const registry = buildFullRegistry();
   const jobId = `debug-${Date.now()}`;
 
   // Match a server run's workspace assignment so file/workspace nodes land in

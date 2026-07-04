@@ -5,7 +5,9 @@ title: "Workflow Gallery"
 
 Ready-to-use workflow examples. Each includes explanations and visual diagrams.
 
-See [Workflow Patterns]({{ '/cookbook/patterns' | relative_url }}) for reusable techniques.
+For the flagship, end-to-end showcases, see
+[Use Cases]({{ '/use-cases' | relative_url }}). See
+[Workflow Patterns]({{ '/cookbook/patterns' | relative_url }}) for reusable techniques.
 
 ## 🎨 Start Here: Beginner-Friendly Workflows
 
@@ -50,8 +52,6 @@ Generate and transform written content:
 Work with documents and knowledge:
 
 - [Chat with Docs](chat-with-docs.md) - Ask questions about your documents with AI
-- [Index PDFs](index-pdfs.md) - Make documents searchable
-- [Summarize Paper](summarize-paper.md) - Quick summaries of research papers
 - [Fetch Papers](fetch-papers.md) - Retrieve and process academic papers
 
 ## 🤖 Productivity & Automation
@@ -61,14 +61,12 @@ Save time with these workflows:
 - [Meeting Transcript Summarizer](meeting-transcript-summarizer.md) - Auto-summarize meetings
 - [Categorize Mails](categorize-mails.md) - Organize emails automatically
 - [Summarize RSS](summarize-rss.md) - Stay updated with feed summaries
-- [Realtime Agent](realtime-agent.md) - Real-time AI assistance
 
 ## 📊 Data & Visualization
 
 Generate and visualize data:
 
 - [Data Generator](data-generator.md) - Create synthetic datasets
-- [Data Visualization Pipeline](data-visualization-pipeline.md) - Turn data into visuals
 
 ---
 

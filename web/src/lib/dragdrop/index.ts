@@ -8,6 +8,7 @@
 export type {
   DragDataType,
   DragPayloadMap,
+  ChatMediaDragPayload,
   SketchDragPayload,
   TimelineDragPayload,
   DragData,
@@ -32,6 +33,7 @@ export {
   hasExternalFiles,
   extractFiles,
   createDragCountBadge,
+  resolveAssetsMultiple,
   DRAG_DATA_MIME
 } from "./serialization";
 

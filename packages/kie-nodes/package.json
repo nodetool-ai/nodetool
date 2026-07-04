@@ -4,7 +4,7 @@
   "engines": {
     "node": ">=22.0.0 <23.0.0"
   },
-  "version": "0.7.0-rc.26",
+  "version": "0.7.0-rc.29",
   "description": "Kie.ai model nodes for the TS workflow runner",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -52,5 +52,19 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "ai-nodes",
+    "no-code",
+    "visual-programming",
+    "workflow-nodes",
+    "kie",
+    "kie-ai",
+    "model-nodes"
   ]
 }

@@ -4,7 +4,7 @@
  * Port of Python's `nodetool.models.thread`.
  */
 
-import { eq, desc, asc } from "drizzle-orm";
+import { eq, and, desc, asc } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
 import { threads } from "./schema/threads.js";
@@ -14,6 +14,7 @@ export class Thread extends DBModel {
 
   declare id: string;
   declare user_id: string;
+  declare workflow_id: string | null;
   declare title: string;
   declare created_at: string;
   declare updated_at: string;
@@ -22,6 +23,7 @@ export class Thread extends DBModel {
     super(data);
     const now = new Date().toISOString();
     this.id ??= createTimeOrderedUuid();
+    this.workflow_id ??= null;
     this.title ??= "";
     this.created_at ??= now;
     this.updated_at ??= now;
@@ -39,17 +41,33 @@ export class Thread extends DBModel {
     return null;
   }
 
-  /** Paginate threads for a user. */
+  /**
+   * Paginate threads for a user. When `workflowId` is provided, only threads
+   * bound to that workflow are returned (used by the node editor to scope its
+   * thread list to the open workflow).
+   */
   static async paginate(
     userId: string,
-    opts: { limit?: number; startKey?: string; reverse?: boolean } = {}
+    opts: {
+      limit?: number;
+      startKey?: string;
+      reverse?: boolean;
+      workflowId?: string;
+    } = {}
   ): Promise<[Thread[], string]> {
-    const { limit = 50, reverse = true } = opts;
+    const { limit = 50, reverse = true, workflowId } = opts;
     const db = getDb();
+    const where =
+      workflowId === undefined
+        ? eq(threads.user_id, userId)
+        : and(
+            eq(threads.user_id, userId),
+            eq(threads.workflow_id, workflowId)
+          );
     const rows = await db
       .select()
       .from(threads)
-      .where(eq(threads.user_id, userId))
+      .where(where)
       .orderBy(reverse ? desc(threads.updated_at) : asc(threads.updated_at))
       .limit(limit + 1)
 

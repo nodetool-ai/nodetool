@@ -146,6 +146,10 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
   const rbLastAppliedRef = useRef<{ startMs: number; endMs: number } | null>(
     null
   );
+  /** Lane's bounding rect, captured once at pointerdown. The lane can't move
+   *  during a captured rubber-band gesture, so pointermove reuses this instead
+   *  of calling getBoundingClientRect() (forces layout) on every move. */
+  const rbLaneRectRef = useRef<DOMRect | null>(null);
   const [rubberBand, setRubberBand] = React.useState<RubberBandRect | null>(
     null
   );
@@ -344,6 +348,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
 
       e.currentTarget.setPointerCapture(e.pointerId);
       const rect = e.currentTarget.getBoundingClientRect();
+      rbLaneRectRef.current = rect;
       const localX = e.clientX - rect.left;
       rbStartRef.current = {
         x: localX,
@@ -391,7 +396,10 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
       if (!isRubberBandingRef.current || e.buttons !== 1) {
         return;
       }
-      const rect = e.currentTarget.getBoundingClientRect();
+      const rect = rbLaneRectRef.current;
+      if (!rect) {
+        return;
+      }
       const curX = e.clientX - rect.left;
       const curY = e.clientY - rect.top;
 
@@ -416,6 +424,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
     rbBaseSelectionRef.current = null;
     rbLastAppliedRef.current = null;
     rbTrackClipsRef.current = [];
+    rbLaneRectRef.current = null;
     setRubberBand(null);
   }, []);
 

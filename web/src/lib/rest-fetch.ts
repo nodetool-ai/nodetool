@@ -1,5 +1,5 @@
 import { authHeader } from "./auth";
-import { isLocalhost } from "./env";
+import { isAuthRequired } from "./runtimeConfig";
 import { BASE_URL } from "../stores/BASE_URL";
 
 export async function restFetch(
@@ -8,7 +8,7 @@ export async function restFetch(
 ): Promise<Response> {
   const headers = new Headers(init.headers);
 
-  if (!isLocalhost) {
+  if (isAuthRequired()) {
     const authHeaders = await authHeader();
     Object.entries(authHeaders).forEach(([key, value]) => {
       headers.set(key, value);

@@ -1,11 +1,34 @@
 import { defineConfig, loadEnv, type Plugin, type ProxyOptions, type UserConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import svgr from "vite-plugin-svgr";
+import { execSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const configDir = dirname(fileURLToPath(import.meta.url));
 const rootNodeModules = resolve(configDir, "../node_modules");
+
+// Build-time provenance injected into the app (shown in the About dialog).
+// Both are derived from git so no manual bookkeeping is needed:
+//  - commit hash: the short SHA of the checked-out commit
+//  - build number: the total commit count on the current history, which is
+//    monotonic and sequential
+// A CI env override (GIT_COMMIT_HASH / BUILD_NUMBER) wins when set, and both
+// fall back gracefully when git is unavailable (e.g. building from a tarball).
+function runGit(command: string): string | null {
+  try {
+    return execSync(command, { cwd: configDir, stdio: ["ignore", "pipe", "ignore"] })
+      .toString()
+      .trim();
+  } catch {
+    return null;
+  }
+}
+
+const GIT_COMMIT_HASH =
+  process.env.GIT_COMMIT_HASH ?? runGit("git rev-parse --short HEAD") ?? "unknown";
+const BUILD_NUMBER =
+  process.env.BUILD_NUMBER ?? runGit("git rev-list --count HEAD") ?? "0";
 
 // The in-browser workflow runner (web/src/lib/workflow/browserWorkflowRunner.ts)
 // lazily imports @nodetool-ai/workflow-runner + @nodetool-ai/base-nodes so a
@@ -150,7 +173,11 @@ export default defineConfig(async ({ mode }) => {
     "/ws": {
       target: apiTarget,
       ws: true,
-      changeOrigin: true
+      changeOrigin: true,
+      // Match the other proxy entries: tolerate a self-signed backend cert
+      // (the dev server enables TLS whenever a cert.pem is found). Without this
+      // the WebSocket upgrade fails with "unable to verify the first certificate".
+      secure: false
     },
     "/trpc": {
       target: apiTarget,
@@ -165,9 +192,18 @@ export default defineConfig(async ({ mode }) => {
     }
   };
 
+  const extraAllowedHosts = (env.VITE_ALLOWED_HOSTS || "")
+    .split(",")
+    .map((h) => h.trim())
+    .filter(Boolean);
+
   return {
+    define: {
+      __GIT_COMMIT_HASH__: JSON.stringify(GIT_COMMIT_HASH),
+      __BUILD_NUMBER__: JSON.stringify(BUILD_NUMBER)
+    },
     server: {
-      allowedHosts: [".nodetool.ai", "localhost"],
+      allowedHosts: [".nodetool.ai", "localhost", ...extraAllowedHosts],
       port: 3000,
       proxy: proxyConfig
     },

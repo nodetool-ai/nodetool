@@ -11,3 +11,9 @@ Config.setOverwriteOutput(true);
 // player drives global Zustand stores, so one composition instance per browser.
 Config.setConcurrency(1);
 Config.overrideWebpackConfig(webpackOverride);
+
+// Reuse a system browser instead of downloading Remotion's headless shell —
+// same override the batch scripts (scripts/render-*.ts) honor.
+if (process.env.CHROMIUM_PATH) {
+  Config.setBrowserExecutable(process.env.CHROMIUM_PATH);
+}

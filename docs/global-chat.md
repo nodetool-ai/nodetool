@@ -1,10 +1,10 @@
 ---
 layout: page
-title: "Global Chat"
+title: "Chat"
 description: "Chat with models, run agents, trigger workflows."
 ---
 
-Global Chat is the always-on chat surface inside NodeTool. It talks to any provider, runs tools, kicks off agents, and triggers your saved workflows.
+Chat is the always-on chat surface inside NodeTool. It talks to any provider, runs tools, kicks off agents, and triggers your saved workflows.
 
 ---
 
@@ -12,7 +12,7 @@ Global Chat is the always-on chat surface inside NodeTool. It talks to any provi
 
 - 20+ providers (OpenAI, Anthropic, Gemini, Ollama, …)
 - Tools: web search, files, code execution
-- Agent mode for multi-step planning
+- Every turn runs the agent loop — the assistant plans and calls tools on its own as a task needs it
 - Run saved workflows from the composer
 - Multiple threads, persistent history
 - Standalone tray window
@@ -21,11 +21,11 @@ Persistent WebSocket connection — reconnects after reloads.
 
 ---
 
-![Global Chat Interface](assets/screenshots/global-chat-interface.png)
+![Chat Interface](assets/screenshots/global-chat-interface.png)
 
 ## Getting Started
 
-### Opening Global Chat
+### Opening Chat
 
 - **From the App**: Click **Chat** in the navigation menu
 - **Standalone Window**: Click the NodeTool system tray icon and select **Chat** for a dedicated, focused window
@@ -45,9 +45,9 @@ Configure providers in **Settings > Providers**. See [Models & Providers](models
 
 ## Conversation Threads
 
-![Chat Thread List](assets/screenshots/screenshot-placeholder.svg)
+![Chat Thread List](assets/screenshots/global-chat-interface.png)
 
-Global Chat organizes conversations into threads:
+Chat organizes conversations into threads:
 
 - **Create threads** -- Click the **New Chat** button to start a fresh conversation
 - **Switch threads** -- Use the sidebar to navigate between conversations
@@ -63,9 +63,7 @@ Global Chat organizes conversations into threads:
 
 ![Agent Mode Enabled](assets/screenshots/screenshot-placeholder.svg)
 
-Agent Mode enables autonomous task execution. When enabled, the AI can break down complex requests into steps, select appropriate tools, and execute multi-step plans without manual intervention.
-
-Toggle Agent Mode using the switch in the chat controls.
+Every turn in Chat runs the same agent loop — there's no separate mode to turn on. The assistant decides for itself, per request, whether to break a task down into steps, select tools, and execute a multi-step plan, or just answer directly.
 
 ### How Agents Work
 
@@ -77,7 +75,7 @@ Toggle Agent Mode using the switch in the chat controls.
 
 ### Agent Capabilities
 
-With Agent Mode enabled, the assistant can:
+When a request calls for it, the assistant can:
 
 | Capability | Examples |
 |------------|---------|
@@ -110,19 +108,19 @@ When an agent is executing tasks, you'll see:
 ![Workflow Attached to Chat](assets/screenshots/screenshot-placeholder.svg)
 
 1. Save a workflow in the workflow editor
-2. Open Global Chat
+2. Open Chat
 3. Select a **workflow** in the composer dropdown
 4. Provide inputs and run -- results stream back into the chat
 
 ### Creating Workflows from Chat
 
-In Agent Mode, you can ask the agent to create or modify workflows. The agent uses workspace tools to build workflow configurations programmatically.
+You can ask the agent to create or modify workflows. It uses workspace tools to build workflow configurations programmatically.
 
 ---
 
 ## Available Tools
 
-Global Chat agents have access to these tools:
+Chat agents have access to these tools:
 
 ### Built-in Tools
 
@@ -166,7 +164,7 @@ The standalone window is useful for:
 
 ## Next Steps
 
-- [Global Chat & Agents](global-chat-agents.md) -- Agent CLI and API integration
+- [Chat & Agents](global-chat-agents.md) -- Agent CLI and API integration
 - [Chat API](chat-api.md) -- Programmatic access for running chats
 - [Chat CLI](chat-cli.md) -- Command-line chat interface
 - [Agent CLI](agent-cli.md) -- Run autonomous agents from the terminal

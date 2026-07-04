@@ -318,6 +318,38 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         clearChatError: state.clearError
       }))
     );
+
+  // Bind the canvas chat to the open workflow: chat threads are scoped per
+  // workflow, so switching workflows switches to that workflow's most recent
+  // conversation (or starts a fresh one). Waits for the thread list to load so
+  // an existing conversation is reused instead of creating a duplicate.
+  const { openWorkflowThread, threadsLoaded, fetchThreads } =
+    useGlobalChatStore(
+      useShallow((state) => ({
+        openWorkflowThread: state.openWorkflowThread,
+        threadsLoaded: state.threadsLoaded,
+        fetchThreads: state.fetchThreads
+      }))
+    );
+  const workflowId = workflow?.id ?? null;
+  useEffect(() => {
+    if (!workflowId) {
+      return;
+    }
+    if (!threadsLoaded) {
+      void fetchThreads();
+      return;
+    }
+    void openWorkflowThread(workflowId);
+  }, [workflowId, threadsLoaded, openWorkflowThread, fetchThreads]);
+
+  // Leaving the editor clears the workflow binding so the full-page chat starts
+  // workflow-agnostic (it lists every thread, not just the last workflow's).
+  useEffect(() => {
+    return () => {
+      useGlobalChatStore.setState({ workflowId: null });
+    };
+  }, []);
   // Start collapsed so opening a workflow with existing conversation history
   // doesn't pop the overlay. It auto-reveals only when chat becomes busy in
   // this session (the user sent a message / a generation is streaming). The

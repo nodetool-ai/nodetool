@@ -28,7 +28,10 @@ jest.mock("../../stores/AssetGridStore", () => ({
   __esModule: true,
   useAssetGridStore: {
     getState: jest.fn(() => ({ currentFolderId: "folder-1" }))
-  }
+  },
+  useAssetGridStoreApi: jest.fn(() => ({
+    getState: jest.fn(() => ({ currentFolderId: "folder-1" }))
+  }))
 }));
 
 jest.mock("@tanstack/react-query", () => ({

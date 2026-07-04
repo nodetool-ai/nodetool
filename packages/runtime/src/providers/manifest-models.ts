@@ -99,6 +99,50 @@ export function videoConstraints(n: ManifestNode): {
   };
 }
 
+// FAL image endpoints usually declare an `image_size` enum instead of an
+// `aspect_ratio`. This maps its named / explicit sizes onto the aspect-ratio
+// vocabulary the picker uses; `auto*` sizes have no fixed ratio and are dropped.
+const SIZE_ENUM_TO_ASPECT: Record<string, string> = {
+  square: "1:1",
+  square_hd: "1:1",
+  square_uhd: "1:1",
+  "1024x1024": "1:1",
+  landscape_4_3: "4:3",
+  portrait_4_3: "3:4",
+  landscape_16_9: "16:9",
+  landscape_hd: "16:9",
+  portrait_16_9: "9:16",
+  portrait_hd: "9:16",
+  landscape_3_2: "3:2",
+  "1536x1024": "3:2",
+  portrait_3_2: "2:3",
+  "1024x1536": "2:3"
+};
+
+/** Map a FAL `image_size` enum value onto an aspect ratio, or undefined. */
+export function sizeEnumToAspect(value: string): string | undefined {
+  return SIZE_ENUM_TO_ASPECT[value];
+}
+
+/** Option constraints (aspect/resolution) for an image endpoint. */
+export function imageConstraints(n: ManifestNode): {
+  aspectRatios?: string[];
+  resolutions?: string[];
+} {
+  // FAL splits size across `aspect_ratio` and `image_size`; union both into one
+  // aspect-ratio list, preserving first-seen order and dropping duplicates.
+  const fromAspect = enumValuesFor(n, "aspect_ratio") ?? [];
+  const fromSize = (enumValuesFor(n, "image_size") ?? [])
+    .map(sizeEnumToAspect)
+    .filter((v): v is string => Boolean(v));
+  const aspectRatios = [...new Set([...fromAspect, ...fromSize])];
+  return {
+    aspectRatios: aspectRatios.length > 0 ? aspectRatios : undefined,
+    // Resolution is its own enum — never derived from image_size.
+    resolutions: enumValuesFor(n, "resolution")
+  };
+}
+
 export function nodeId(n: ManifestNode): string {
   return n.modelId ?? n.endpointId ?? "";
 }
@@ -161,7 +205,9 @@ export function inferImageTasks(name: string, id: string): string[] {
   if (matchesAny(hay, "background/remove", "remove-background", "remove background", "removebackground", "rembg", "bg-remove", "/remove-bg", "background-removal", "bria/background")) {
     return ["remove_background"];
   }
-  if (matchesAny(hay, "relight", "relighting", "re-light")) {
+  // IC-Light (fal-ai/iclight-v2, zsxkib/ic-light-background, …) is a relighting
+  // model but never spells out "relight" in its id/name, so match it explicitly.
+  if (matchesAny(hay, "relight", "relighting", "re-light", "iclight", "ic-light", "ic_light")) {
     return ["relight"];
   }
   if (matchesAny(hay, "vectorize", "vectorization", "/vectorize", "to-svg", "image-to-svg")) {
@@ -411,7 +457,13 @@ export function buildImageModels(
       // Stryker disable next-line ConditionalExpression,EqualityOperator: tasks is always non-empty (infer* returns >=1, explicit is non-empty), so `tasks.length > 0` is invariantly true here.
       (n.outputType === "dict" && tasks.length > 0);
     if (!qualifies) continue;
-    seen.set(id, { id, name, provider, supportedTasks: tasks });
+    seen.set(id, {
+      id,
+      name,
+      provider,
+      supportedTasks: tasks,
+      ...imageConstraints(n)
+    });
   }
 
   return [...seen.values()];

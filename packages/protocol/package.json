@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/protocol",
-  "version": "0.7.0-rc.26",
+  "version": "0.7.0-rc.29",
   "description": "Shared message types and protocol definitions for the NodeTool workflow runtime",
   "type": "module",
   "engines": {
@@ -70,5 +70,16 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "message-types",
+    "msgpack",
+    "protocol",
+    "websocket"
   ]
 }

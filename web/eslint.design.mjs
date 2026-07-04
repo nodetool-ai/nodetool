@@ -19,6 +19,9 @@ export const designTokenIgnores = [
   // they define the tokens and wrap raw MUI.
   "src/components/ui_primitives/**",
   "src/components/editor_ui/**",
+  // Ambient type-augmentation declarations (e.g. material-ui.d.ts) necessarily
+  // import MUI internals to augment them, and carry no runtime styling.
+  "**/*.d.ts",
   // Design tokens govern shipped UI, not test fixtures, mocks, or harnesses.
   "**/__tests__/**",
   "**/*.test.{ts,tsx}",
@@ -101,25 +104,62 @@ const restrictedMuiNames = [
   "Checkbox",
   "Card",
   "Drawer",
+  // Structural / control building blocks now re-exported from the primitives
+  // barrel (see ui_primitives/muiReexports.ts). Import these from
+  // `ui_primitives`, never `@mui/material`, so the design system stays the
+  // single seam over MUI.
+  "List",
+  "ListItem",
+  "ListItemButton",
+  "ListItemIcon",
+  "ListItemText",
+  "ListItemAvatar",
+  "ListItemSecondaryAction",
+  "ListSubheader",
+  "DialogTitle",
+  "DialogContent",
+  "DialogContentText",
+  "DialogActions",
+  "FormControl",
+  "FormGroup",
+  "FormHelperText",
+  "FormControlLabel",
+  "InputLabel",
+  "InputAdornment",
+  "OutlinedInput",
+  "MenuItem",
+  "MenuList",
+  "TextField",
+  "ButtonBase",
+  "Fab",
+  "Accordion",
+  "AccordionSummary",
+  "AccordionDetails",
+  "Tabs",
+  "Tab",
+  "ToggleButton",
+  "ToggleButtonGroup",
+  "Modal",
+  "Fade",
+  "Toolbar",
+  "LinearProgress",
+  "Slider",
+  "Collapse",
+  "Autocomplete",
 ];
 
-// Primitives-first guardrail: discourage importing raw MUI components outside
-// the primitive layer. See web/src/components/ui_primitives/STRATEGY.md.
+// Barrel-import guardrail: deep imports into the primitive layer
+// (`.../ui_primitives/Foo`) bypass jest.mock of the barrel, so route them
+// through the barrel index. Kept at `warn` because a backlog still exists.
+//
+// The raw-MUI-component guard used to live here too, but it is fully migrated
+// (zero violations) and now runs at `error` as the dedicated
+// `design-tokens/no-raw-mui` rule — see `noRawMuiRule` below. Splitting them
+// lets MUI be an error without promoting the unfinished barrel-import backlog.
 export const noRestrictedImports = [
   "warn",
   {
-    paths: [
-      {
-        name: "@mui/material",
-        importNames: restrictedMuiNames,
-        message: muiPrimitiveMessage,
-      },
-    ],
     patterns: [
-      {
-        group: restrictedMuiNames.map((n) => `@mui/material/${n}`),
-        message: muiPrimitiveMessage,
-      },
       {
         // Deep imports into the primitive layer. The barrel itself
         // (.../ui_primitives, .../ui_primitives/index) is allowed.
@@ -474,11 +514,60 @@ export const colorTokensRule = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// Raw-MUI guard (DESIGN.md — primitives-first).
+//
+// Split out of `no-restricted-imports` so it can run at `error` (the raw-MUI
+// component imports are fully migrated, zero violations) while the unrelated
+// "import from the ui_primitives barrel, not a deep path" guard stays a `warn`
+// on the same core rule. Catches both `@mui/material` named imports and
+// `@mui/material/<Component>` deep imports of a restricted name; type-only
+// imports are allowed (hooks/types like `useTheme`, `SxProps`, `Theme`,
+// `SelectChangeEvent` are not components).
+const restrictedMuiNameSet = new Set(restrictedMuiNames);
+
+export const noRawMuiRule = {
+  meta: {
+    type: "problem",
+    docs: { description: "Disallow raw @mui/material component imports outside the primitive layer." },
+    messages: { raw: muiPrimitiveMessage },
+    schema: [],
+  },
+  create(context) {
+    return {
+      ImportDeclaration(node) {
+        const src = node.source.value;
+        if (typeof src !== "string") return;
+        if (node.importKind === "type") return;
+        const deep = /^@mui\/material\/([A-Za-z]+)$/.exec(src);
+        if (deep) {
+          if (restrictedMuiNameSet.has(deep[1])) {
+            context.report({ node, messageId: "raw" });
+          }
+          return;
+        }
+        if (src !== "@mui/material") return;
+        for (const spec of node.specifiers) {
+          if (
+            spec.type === "ImportSpecifier" &&
+            spec.importKind !== "type" &&
+            spec.imported.type === "Identifier" &&
+            restrictedMuiNameSet.has(spec.imported.name)
+          ) {
+            context.report({ node: spec, messageId: "raw" });
+          }
+        }
+      },
+    };
+  },
+};
+
 // Local plugin exposing the design-token rules for the gate config.
 export const designTokensPlugin = {
   rules: {
     "spacing-tokens": spacingTokensRule,
     "font-size-tokens": fontSizeTokensRule,
     "color-tokens": colorTokensRule,
+    "no-raw-mui": noRawMuiRule,
   },
 };

@@ -208,7 +208,7 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
   // edits) before the autosave round-trips.
   const workflowId = workflow?.id;
   useEffect(() => {
-    setLocalWorkflow(workflow || ({} as Workflow));
+    setLocalWorkflow(workflow);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workflowId]);
 

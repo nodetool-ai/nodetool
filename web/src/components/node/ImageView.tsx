@@ -7,7 +7,7 @@ import DownloadIcon from "@mui/icons-material/Download";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import AssetViewer from "../assets/AssetViewer";
 import { createImageUrl } from "../../utils/imageUtils";
-import { useFileUriDataUrl } from "../../utils/localFile";
+import { fileUriToHttpUrl } from "../../utils/localFile";
 import BitmapCanvas from "./BitmapCanvas";
 import ImageDimensions from "./ImageDimensions";
 import { CopyAssetButton } from "../common/CopyAssetButton";
@@ -59,12 +59,13 @@ const ImageView: React.FC<ImageViewProps> = ({ source, bitmap }) => {
   const [displayedUrl, setDisplayedUrl] = useState<string>();
 
   // Local-mode `file://` sources can't be loaded by the renderer directly;
-  // resolve them to a data URL via the Electron bridge. Returns null for any
-  // other source, in which case the original `source` is used unchanged.
-  const fileDataUrl = useFileUriDataUrl(
+  // point them at the backend's `/api/files/local` streaming endpoint. Returns
+  // null for any other source, in which case the original `source` is used
+  // unchanged.
+  const fileHttpUrl = fileUriToHttpUrl(
     typeof source === "string" ? source : null
   );
-  const effectiveSource = fileDataUrl !== null ? fileDataUrl : source;
+  const effectiveSource = fileHttpUrl !== null ? fileHttpUrl : source;
 
   const nextUrl = useMemo(() => {
     // A newer source arrived before the previous preload committed — drop the

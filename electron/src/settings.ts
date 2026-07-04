@@ -1,7 +1,7 @@
 import path from "path";
 import os from "os";
 import fs from "fs";
-import yaml from "js-yaml";
+import * as yaml from "js-yaml";
 import { logMessage } from "./logger";
 
 /**
@@ -167,7 +167,7 @@ function readSettings(): SettingsRecord {
     logMessage(`Reading settings from ${settingsPath}`);
     const fileContents = fs.readFileSync(settingsPath, "utf8");
 
-    const loaded = yaml.load(fileContents);
+    const loaded = fileContents.trim() === "" ? undefined : yaml.load(fileContents);
     settingsCache = isSettingsRecord(loaded) ? loaded : {};
     logMessage(`Loaded ${Object.keys(settingsCache).length} settings`);
 
@@ -207,7 +207,7 @@ async function readSettingsAsync(): Promise<SettingsRecord> {
     logMessage(`Reading settings from ${settingsPath}`);
     const fileContents = await fs.promises.readFile(settingsPath, "utf8");
 
-    const loaded = yaml.load(fileContents);
+    const loaded = fileContents.trim() === "" ? undefined : yaml.load(fileContents);
     settingsCache = isSettingsRecord(loaded) ? loaded : {};
     logMessage(`Loaded ${Object.keys(settingsCache).length} settings`);
 

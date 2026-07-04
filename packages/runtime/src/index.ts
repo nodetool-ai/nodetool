@@ -75,7 +75,14 @@ export { PythonBridgeBase };
 export type {
   UnifiedModelLike,
   ModelDownloadRequest,
-  ModelDownloadUpdate
+  ModelDownloadUpdate,
+  ComfyStatusInfo,
+  ComfyEvent,
+  ComfyExecuteOptions,
+  ComfyExecuteResult,
+  ComfyModelDownloadRequest,
+  ComfyModelDownloadUpdate,
+  ComfyModelInfo
 } from "./python-bridge-types.js";
 export {
   WebsocketPythonBridge,
@@ -113,6 +120,7 @@ export { loadMediaRefBytes, type MediaRefValue } from "./media-ref-bytes.js";
 export {
   classifyAssetToken,
   classifyTextToken,
+  expandAssetReferences,
   findAssetRefs,
   findImageAssetRefs,
   findTextAssetRefs,

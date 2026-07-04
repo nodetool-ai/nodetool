@@ -4,7 +4,6 @@ import {
   darken,
   brighten,
   setHslSaturationMultiplier,
-  mix,
   rgba,
   toHex
 } from "./colorMath";

@@ -4,7 +4,14 @@ import { Composition } from "remotion";
 import { WorkflowDemo, type WorkflowDemoProps } from "./WorkflowDemo";
 import { Tutorial } from "./Tutorial";
 import { TUTORIALS, tutorialFrames } from "./tutorials";
+import { COOKBOOK } from "./cookbook";
+import { WORKFLOWS } from "./workflows";
 import { DEFAULT_CAST, listCasts } from "./casts/registry";
+import { ChatTutorial } from "./ChatTutorial";
+import { CHAT_TUTORIALS, chatTutorialFrames } from "./chatTutorials";
+import { TimelineTutorial } from "./TimelineTutorial";
+import { TIMELINE_TUTORIALS, timelineTutorialFrames } from "./timelineTutorials";
+import { PROMO_DURATION_FRAMES, PROMO_FPS, Promo } from "./promo/Promo";
 import type { DemoCast } from "@web-demo";
 
 const WIDTH = 1920;
@@ -40,7 +47,7 @@ export const Root: React.FC = () => {
 
   return (
     <>
-      {TUTORIALS.map((tut) => (
+      {[...TUTORIALS, ...COOKBOOK, ...WORKFLOWS].map((tut) => (
         <Composition
           key={tut.compositionId}
           id={tut.compositionId}
@@ -75,6 +82,52 @@ export const Root: React.FC = () => {
           durationInFrames={framesFor(cast, 0)}
         />
       ))}
+
+      {CHAT_TUTORIALS.map((tut) => (
+        <Composition
+          key={tut.compositionId}
+          id={tut.compositionId}
+          component={ChatTutorial}
+          defaultProps={tut.props}
+          fps={tut.fps}
+          width={WIDTH}
+          height={HEIGHT}
+          durationInFrames={chatTutorialFrames(tut)}
+        />
+      ))}
+
+      {TIMELINE_TUTORIALS.map((tut) => (
+        <Composition
+          key={tut.compositionId}
+          id={tut.compositionId}
+          component={TimelineTutorial}
+          defaultProps={tut.props}
+          fps={tut.fps}
+          width={WIDTH}
+          height={HEIGHT}
+          durationInFrames={timelineTutorialFrames(tut)}
+        />
+      ))}
+
+      {/* The landing-page / social product video (marketing/VIDEO_SCRIPT.md).
+          Same component at two sizes: 16:9 for social/YouTube, 3:2 for the
+          landing page's /demo.mp4 slot. */}
+      <Composition
+        id="Promo-Master"
+        component={Promo}
+        fps={PROMO_FPS}
+        width={WIDTH}
+        height={HEIGHT}
+        durationInFrames={PROMO_DURATION_FRAMES}
+      />
+      <Composition
+        id="Promo-Landing"
+        component={Promo}
+        fps={PROMO_FPS}
+        width={2250}
+        height={1500}
+        durationInFrames={PROMO_DURATION_FRAMES}
+      />
     </>
   );
 };

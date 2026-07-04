@@ -30,7 +30,11 @@ export default defineConfig({
         "../runtime/src/prompt-asset-refs.ts"
       ),
       "@nodetool-ai/runtime": resolve(__dirname, "../runtime/src/index.ts")
-    }
+    },
+    // integration-nodes nests its own nodemailer (imapflow/mailparser pin it
+    // to v8, integration-nodes needs v9); dedupe so vi.mock("nodemailer")
+    // intercepts the same instance the mail node actually imports.
+    dedupe: ["nodemailer"]
   },
   test: {
     include: ["tests/**/*.test.ts"],

@@ -16,4 +16,5 @@ export {
 } from "./trace.js";
 export { buildVerdict } from "./verdict.js";
 export { renderReportMarkdown } from "./markdown.js";
+export { diffReports, diffIsEmpty, formatDiff, type DebugDiff } from "./diff.js";
 export type * from "./types.js";

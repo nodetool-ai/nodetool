@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { VERSION } from "../../config/constants";
+import { VERSION, GIT_COMMIT_HASH, BUILD_NUMBER } from "../../config/constants";
 import { isElectron, isProduction } from "../../lib/env";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { FlexRow, FlexColumn, Text, Caption, LoadingSpinner, Chip, Box } from "../ui_primitives";
@@ -210,6 +210,8 @@ const AboutMenu: React.FC = memo(() => {
     const text = `NodeTool System Information
 =============================
 Version: ${VERSION}
+Git Commit: ${GIT_COMMIT_HASH}
+Build: ${BUILD_NUMBER}
 ${systemInfo.electronVersion ? `Electron: ${systemInfo.electronVersion}` : ""}
 ${systemInfo.chromeVersion ? `Chrome: ${systemInfo.chromeVersion}` : ""}
 ${systemInfo.nodeVersion ? `Node.js: ${systemInfo.nodeVersion}` : ""}
@@ -283,6 +285,13 @@ Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion 
       </Text>
       <div className="settings-section">
         <InfoRow label="Version" value={VERSION} />
+        <InfoRow
+          label="Git Commit"
+          value={GIT_COMMIT_HASH}
+          copyable
+          onCopy={handleCopy}
+        />
+        <InfoRow label="Build" value={BUILD_NUMBER} />
         {systemInfo && (
           <>
             <InfoRow label="Electron" value={systemInfo.electronVersion} />

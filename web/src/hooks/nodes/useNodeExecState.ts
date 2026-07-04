@@ -14,6 +14,7 @@
  * `undefined`/`false`/empty.
  */
 
+import { useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import useStatusStore from "../../stores/StatusStore";
 import useErrorStore, { hasNodeError } from "../../stores/ErrorStore";
@@ -231,7 +232,6 @@ export function useNodeActiveRunCount(
  * Fields:
  *  - `result`         — the current generation's resolved value (same as `useNodeResultValue`)
  *  - `output`         — the current generation's full `outputs` record
- *  - `chunk`          — accumulated text chunks
  *  - `terminal`       — accumulated raw terminal stream (for xterm node bodies)
  *  - `task`           — latest Task object from the agent planner
  *  - `toolCall`       — latest ToolCallUpdate
@@ -243,7 +243,6 @@ export function useNodeArtifacts(
 ): {
   result: unknown;
   output: unknown;
-  chunk: string | undefined;
   terminal: TerminalBuffer | undefined;
   task: Task | undefined;
   toolCall: ToolCallUpdate | undefined;
@@ -253,14 +252,13 @@ export function useNodeArtifacts(
   // assets merged with the live buffer, honoring its selection) so previews
   // don't blank when focus moves to a per-node run.
   const { current } = useNodeGenerations(workflowId, nodeId);
-  // The live signals (chunk/task/toolCall/planning) stay scoped to the focused
+  // The live signals (task/toolCall/planning) stay scoped to the focused
   // run — they only mean something for the run in progress.
   const jobId = useWorkflowRunsStore((s) => s.focusedJob[workflowId]);
   const transient = useResultsStore(
     useShallow((s) => {
       const key = jobId ? nodeKey(workflowId, jobId, nodeId) : undefined;
       return {
-        chunk: key ? (s.chunks[key] as string | undefined) : undefined,
         terminal: key ? s.terminals[key] : undefined,
         task: key ? s.tasks[key] : undefined,
         toolCall: key ? s.toolCalls[key] : undefined,
@@ -268,9 +266,13 @@ export function useNodeArtifacts(
       };
     })
   );
-  return {
-    result: current ? outputOf(current) : undefined,
-    output: current?.outputs,
-    ...transient
-  };
+  const result = useMemo(
+    () => (current ? outputOf(current) : undefined),
+    [current]
+  );
+  const output = current?.outputs;
+  return useMemo(
+    () => ({ result, output, ...transient }),
+    [result, output, transient]
+  );
 }

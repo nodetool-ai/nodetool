@@ -2,15 +2,24 @@ import { useTheme } from "@mui/material/styles";
 
 import React, { useCallback, useMemo, useState } from "react";
 import { isProduction } from "../../../lib/env";
+import type { PopoverOrigin } from "@mui/material";
 import {
-  Popover,
-  PopoverOrigin,
+  Tooltip,
+  Caption,
+  Divider,
+  LoadingSpinner,
+  ToolbarIconButton,
+  FlexRow,
+  FlexColumn,
+  Box,
+  Collapse,
+  BORDER_RADIUS,
   ListItemText,
   ListItemIcon,
   List,
-  ListItemButton
-} from "@mui/material";
-import { Tooltip, Caption, Divider, LoadingSpinner, ToolbarIconButton, FlexRow, FlexColumn, Box, Collapse, BORDER_RADIUS } from "../../ui_primitives";
+  ListItemButton,
+  Popover
+} from "../../ui_primitives";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import RefreshIcon from "@mui/icons-material/Refresh";
 
@@ -153,13 +162,15 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   // shape before handing it to onModelChange.
   const handleSelectRecommended = useCallback(
     (model: UnifiedModel) => {
-      onModelChange?.({
+      if (!model.provider) return;
+      const selected: ModelSelectorModel = {
         type: model.type ?? "",
         id: model.id,
         name: model.name,
         provider: model.provider,
         path: model.path ?? undefined
-      } as unknown as TModel);
+      };
+      onModelChange?.(selected as TModel);
     },
     [onModelChange]
   );

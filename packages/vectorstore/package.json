@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/vectorstore",
-  "version": "0.7.0-rc.26",
+  "version": "0.7.0-rc.29",
   "type": "module",
   "engines": {
     "node": ">=22.0.0 <23.0.0"
@@ -51,5 +51,17 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "vector-store",
+    "rag",
+    "embeddings",
+    "sqlite-vec",
+    "semantic-search"
   ]
 }

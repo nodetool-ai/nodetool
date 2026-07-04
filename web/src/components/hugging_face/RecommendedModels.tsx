@@ -12,6 +12,7 @@ import {
 } from "../../utils/fileExplorer";
 import { isLocalhost } from "../../lib/env";
 import { useHfCacheStatusStore } from "../../stores/HfCacheStatusStore";
+import { useShallow } from "zustand/react/shallow";
 import {
   buildHfCacheRequest,
   canCheckHfCache,
@@ -29,12 +30,15 @@ const RecommendedModelsInner: React.FC<RecommendedModelsProps> = ({
 }) => {
   const theme = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
-  const cacheStatuses = useHfCacheStatusStore((state) => state.statuses);
-  const cachePending = useHfCacheStatusStore((state) => state.pending);
-  const cacheVersion = useHfCacheStatusStore((state) => state.version);
-  const ensureStatuses = useHfCacheStatusStore(
-    (state) => state.ensureStatuses
-  );
+  const { cacheStatuses, cachePending, cacheVersion, ensureStatuses } =
+    useHfCacheStatusStore(
+      useShallow((state) => ({
+        cacheStatuses: state.statuses,
+        cachePending: state.pending,
+        cacheVersion: state.version,
+        ensureStatuses: state.ensureStatuses
+      }))
+    );
 
   const filteredModels = useMemo(() => {
     if (!searchQuery) {return recommendedModels;}

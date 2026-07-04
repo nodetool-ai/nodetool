@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/compute",
-  "version": "0.7.0-rc.26",
+  "version": "0.7.0-rc.29",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -43,5 +43,19 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "description": "Remote compute orchestration for NodeTool — provisions and reaps GPU workers on RunPod and Vast.ai",
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "gpu",
+    "runpod",
+    "vast-ai",
+    "compute",
+    "gpu-workers",
+    "orchestration"
   ]
 }

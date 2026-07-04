@@ -17,7 +17,46 @@ description: "NodeTool — the open creative AI workspace. One node canvas for i
   </div>
 </section>
 
-## Use cases
+## Featured use cases
+
+Three flagship workflows, end to end. Each starts from a few inputs and builds a
+finished result on one canvas you can re-run, restyle, and re-point at your own
+story. [See all use cases →]({{ '/use-cases' | relative_url }})
+
+<div class="usecase-grid">
+  <article class="usecase-card">
+    <a href="{{ '/use-cases/movie-trailer' | relative_url }}" class="usecase-media">
+      <img src="{{ '/assets/use-cases/trailer-shot-1.png' | relative_url }}" alt="Movie Trailer Generator key art">
+    </a>
+    <div class="usecase-body">
+      <span class="usecase-tag">Film</span>
+      <h3><a href="{{ '/use-cases/movie-trailer' | relative_url }}">Movie Trailer Generator</a></h3>
+      <p>One logline becomes a treatment, a shot list, key art, and a cut teaser.</p>
+    </div>
+  </article>
+  <article class="usecase-card">
+    <a href="{{ '/use-cases/product-video' | relative_url }}" class="usecase-media">
+      <img src="{{ '/assets/use-cases/smartwatch.png' | relative_url }}" alt="Product Video Generator hero photo">
+    </a>
+    <div class="usecase-body">
+      <span class="usecase-tag">Marketing</span>
+      <h3><a href="{{ '/use-cases/product-video' | relative_url }}">Product Video Generator</a></h3>
+      <p>A brief and one product photo become a cinematic 16:9 clip.</p>
+    </div>
+  </article>
+  <article class="usecase-card">
+    <a href="{{ '/use-cases/movie-poster' | relative_url }}" class="usecase-media">
+      <img src="{{ '/assets/use-cases/poster-singularity-1.png' | relative_url }}" alt="Movie Poster Generator concept">
+    </a>
+    <div class="usecase-body">
+      <span class="usecase-tag">Design</span>
+      <h3><a href="{{ '/use-cases/movie-poster' | relative_url }}">Movie Poster Generator</a></h3>
+      <p>Title, genre, and audience become a batch of theatrical poster concepts.</p>
+    </div>
+  </article>
+</div>
+
+## What you can do
 
 * **Mix models from every vendor** — Wire Flux next to GPT-5 next to ElevenLabs in one graph. Pick the best model per step, not per project.
 * **Run frontier models locally** — Ollama, MLX, and GGUF on your hardware. Works offline. Files never leave your disk.
@@ -71,7 +110,7 @@ Same code, same workflows. Both AGPL-3.0.
   <article class="pattern-card">
     <h5>Agents</h5>
     <p>Multi-step agents that plan, call tools, and drive pipelines.</p>
-    <a href="{{ '/workflows/realtime-agent' | relative_url }}">Realtime Agent →</a>
+    <a href="{{ '/workflows/fetch-papers' | relative_url }}">Fetch Papers →</a>
   </article>
 </div>
 

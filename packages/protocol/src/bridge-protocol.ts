@@ -20,7 +20,7 @@
  *     genuinely backward-incompatible changes (framing changes, schema breaks,
  *     a removed/changed message). Additive changes (new message types the old
  *     worker simply never receives) MUST NOT move this floor — they are gated
- *     per-feature instead (see `supportsModelManagement`).
+ *     per-feature instead (see `supportsModelManagement`, `supportsComfy`).
  *
  * Coupling rules:
  *
@@ -46,14 +46,15 @@
  *   3. Update `MIN_NODETOOL_CORE_VERSION` to that new release.
  */
 
-export const BRIDGE_PROTOCOL_VERSION = 2;
+export const BRIDGE_PROTOCOL_VERSION = 3;
 
 /**
  * Hard floor: the JS runtime rejects (at `discover`) any worker reporting a
  * protocol below this. Stays at 1 because every protocol change so far has
- * been additive — `models.*` (v2) is negotiated via `supportsModelManagement`,
- * so a v1 worker still connects and runs every pre-v2 feature; it just doesn't
- * expose worker model management. Move this only for a real wire break.
+ * been additive — `models.*` (v2) is negotiated via `supportsModelManagement`
+ * and `comfy.*` (v3) via `supportsComfy`, so a v1 worker still connects and
+ * runs every pre-v2 feature; it just doesn't expose the newer families. Move
+ * this only for a real wire break.
  */
 export const MIN_BRIDGE_PROTOCOL_VERSION = 1;
 

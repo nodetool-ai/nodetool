@@ -1,3 +1,4 @@
+/** @jsxImportSource @emotion/react */
 /**
  * DemoPlayer — renders the real NodeTool graph UI for a cast at a given time.
  *
@@ -30,9 +31,15 @@ import InitColorSchemeScript from "@mui/material/InitColorSchemeScript";
 import { MemoryRouter } from "react-router-dom";
 import { TRPCProvider } from "../trpc/Provider";
 import { queryClient } from "../queryClient";
+import { useMediaReadiness, type PendingMediaHandler } from "./mediaReadiness";
 
 // Global side-effect styles so the graph renders identically to the editor.
+// vars.css must come first: it defines --handle_width / --handle_height (used
+// in handle_edge_tooltip.css) and the --c_* tokens base.css/nodes.css read.
+// Without it handles render at zero size (the "thin" look) and the editor
+// background falls back to transparent.
 import "@xyflow/react/dist/style.css";
+import "../styles/vars.css";
 import "../styles/base.css";
 import "../styles/nodes.css";
 import "../styles/properties.css";
@@ -41,6 +48,7 @@ import "../styles/special_nodes.css";
 import "../styles/handle_edge_tooltip.css";
 
 import ThemeNodetool from "../components/themes/ThemeNodetool";
+import { generateCSS } from "../components/themes/GenerateCSS";
 import useMetadataStore from "../stores/MetadataStore";
 
 // Real node + edge components (registered so the canvas matches production).
@@ -179,6 +187,9 @@ export interface DemoPlayerProps {
   /** Controlled camera; when set, overrides the cast's recorded viewport so a
    *  host can animate zoom/pan (e.g. a Remotion composition driving the clock). */
   viewport?: { x: number; y: number; zoom: number };
+  /** Called with a promise per not-yet-decoded video so a frame renderer can
+   *  block the capture until media is paintable (see mediaReadiness.ts). */
+  onPendingMedia?: PendingMediaHandler;
 }
 
 /**
@@ -191,9 +202,12 @@ export function DemoPlayer({
   resolveAssetUrl,
   style,
   viewport,
+  onPendingMedia,
 }: DemoPlayerProps): React.JSX.Element {
   const resolveRef = useRef(resolveAssetUrl);
   resolveRef.current = resolveAssetUrl;
+  const rootRef = useRef<HTMLDivElement>(null);
+  useMediaReadiness(rootRef, timeMs, onPendingMedia);
 
   const engine = useMemo(
     () => new DemoEngine(cast, { resolveAssetUrl: (f) => resolveRef.current(f) }),
@@ -216,8 +230,14 @@ export function DemoPlayer({
               <ContextMenuProvider active={false}>
                 <NodeContext.Provider value={engine.nodeStore as NodeStore}>
                   <ReactFlowProvider>
+                    {/* `node-editor` class + generateCSS mirror NodeEditor's
+                        wrapper so per-data-type handle/edge colors resolve
+                        the same way they do in the live editor. */}
                     <div
+                      ref={rootRef}
                       data-demo-player
+                      className="node-editor"
+                      css={generateCSS}
                       style={{ width: "100%", height: "100%", ...style }}
                     >
                       <DemoCanvas

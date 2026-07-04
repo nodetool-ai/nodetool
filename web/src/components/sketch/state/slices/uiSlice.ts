@@ -141,5 +141,14 @@ export const createUiSlice: StateCreator<SketchStore, [], [], UiSlice> = (
   setCropPreviewBounds: (bounds) => set({ cropPreviewBounds: bounds }),
 
   cursorDocPos: null,
-  setCursorDocPos: (pos) => set({ cursorDocPos: pos })
+  setCursorDocPos: (pos) =>
+    set((state) => {
+      // Written on every pointer move — skip the notify when the integer
+      // position is unchanged so subscribers don't re-render per event.
+      const prev = state.cursorDocPos;
+      if (prev === pos || (prev && pos && prev.x === pos.x && prev.y === pos.y)) {
+        return state;
+      }
+      return { ...state, cursorDocPos: pos };
+    })
 });

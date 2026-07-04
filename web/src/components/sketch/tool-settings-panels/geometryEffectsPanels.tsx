@@ -1,10 +1,14 @@
 import React, { memo, useState } from "react";
+
 import {
+  Box,
+  Text,
+  SPACING,
+  getSpacingPx,
   Checkbox,
   FormControlLabel,
   Slider
-} from "@mui/material";
-import { Box, Text, SPACING, getSpacingPx } from "../../ui_primitives";
+} from "../../ui_primitives";
 import {
   BlurSettings,
   CloneStampSampling,

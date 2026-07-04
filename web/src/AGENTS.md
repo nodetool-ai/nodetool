@@ -21,7 +21,13 @@ npm run test:watch       # Watch mode
 npm run test:coverage    # Coverage report
 npm run test:e2e         # E2E tests (requires backend on port 7777)
 npm run test:e2e-runner  # In-browser workflow harness (boots backend + Vite, runs the suite)
+npm run test:debug-harness  # Browser surface of `nodetool debug` (Chromium canvas; env: NODETOOL_DEBUG_GRAPH/_OUT/_PARAMS)
 ```
+
+For the full agent harness loop — `nodetool validate` (static pre-flight),
+`nodetool debug` (run + inspect, server + this browser surface), `nodetool node run`
+(single node), deploy, and tracing — see the
+[root harness index](../../AGENTS.md#agent-harnesses--tooling).
 
 ## Directory Structure
 

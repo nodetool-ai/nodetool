@@ -22,7 +22,7 @@
   background-color: transparent;
   transform-origin: center center;
   transition: background-color 0.08s ease, box-shadow 0.18s ease-in-out,
-    filter 0.2s ease-in-out, outline-color 0.18s ease;
+    outline-color 0.18s ease;
 }
 
 /* Tween the node's `transform` only when the user is NOT actively
@@ -32,7 +32,7 @@
    the drag gesture, so the selector below stops matching mid-drag). */
 .react-flow__node:not(.dragging) {
   transition: background-color 0.08s ease, box-shadow 0.18s ease-in-out,
-    filter 0.2s ease-in-out, transform 0.18s ease, outline-color 0.18s ease;
+    transform 0.18s ease, outline-color 0.18s ease;
 }
 
 /* When a NodesSelection rectangle is being dragged, ReactFlow moves all selected
@@ -42,7 +42,7 @@
    `nodesselection-dragging` class on the .react-flow container to signal this. */
 .react-flow.nodesselection-dragging .react-flow__node.selected {
   transition: background-color 0.08s ease, box-shadow 0.18s ease-in-out,
-    filter 0.2s ease-in-out, outline-color 0.18s ease;
+    outline-color 0.18s ease;
 }
 
 /* A corner resize that repositions the node (every corner but bottom-right)
@@ -52,7 +52,7 @@
    release. The media-aspect resize handle adds `node-resizing` for the gesture. */
 .react-flow.node-resizing .react-flow__node {
   transition: background-color 0.08s ease, box-shadow 0.18s ease-in-out,
-    filter 0.2s ease-in-out, outline-color 0.18s ease;
+    outline-color 0.18s ease;
 }
 
 .node-drag-handle {

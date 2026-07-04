@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sdk",
-  "version": "0.7.0-rc.26",
+  "version": "0.7.0-rc.29",
   "type": "module",
   "engines": {
     "node": ">=22.0.0 <23.0.0"
@@ -53,5 +53,21 @@
   },
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "sdk",
+    "trpc",
+    "client",
+    "websocket",
+    "api-client"
+  ]
 }

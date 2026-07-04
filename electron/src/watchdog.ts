@@ -5,6 +5,7 @@ import path from "path";
 import net from "net";
 import { logMessage } from "./logger";
 import { probeHttpOk } from "./httpProbe";
+import { errorMessage } from "./utils";
 
 interface WatchdogOptionsBase {
   name: string;
@@ -123,13 +124,12 @@ export class Watchdog {
       }
     } catch (error) {
       logMessage(
-        `${this.opts.name} watchdog: error sending SIGTERM: ${(error as Error).message
-        }`
+        `${this.opts.name} watchdog: error sending SIGTERM: ${errorMessage(error)}`
       );
     }
     // Wait until the process exits, but don't wait longer than the graceful timeout
     const start = Date.now();
-    const timeoutMs = this.opts.gracefulStopTimeoutMs as number;
+    const timeoutMs = this.opts.gracefulStopTimeoutMs ?? 30000;
     while (Date.now() - start < timeoutMs) {
       const stillAlive = await this.isPidAlive();
       if (!stillAlive) break;
@@ -141,8 +141,7 @@ export class Watchdog {
         this.childProcess.kill("SIGKILL");
       } catch (error) {
         logMessage(
-          `${this.opts.name} watchdog: error sending SIGKILL: ${(error as Error).message
-          }`
+          `${this.opts.name} watchdog: error sending SIGKILL: ${errorMessage(error)}`
         );
       }
     }
@@ -261,7 +260,10 @@ export class Watchdog {
 
   /** Fork the backend via Electron's utilityProcess (uses Electron's Node.js). */
   private async forkUtilityProcess(): Promise<void> {
-    const opts = this.opts as ForkWatchdogOptions;
+    if (!("modulePath" in this.opts) || !this.opts.modulePath) {
+      throw new Error("forkUtilityProcess requires modulePath");
+    }
+    const opts = this.opts;
     logMessage(
       `${opts.name} watchdog: forking utilityProcess: ${opts.modulePath} ${(opts.args ?? []).join(" ")}`
     );
@@ -272,19 +274,25 @@ export class Watchdog {
     );
 
     try {
+      const env: Record<string, string> = {};
+      if (opts.env) {
+        for (const [k, v] of Object.entries(opts.env)) {
+          if (v !== undefined) env[k] = v;
+        }
+      }
       this.utilProcess = utilityProcess.fork(opts.modulePath, opts.args ?? [], {
         stdio: "pipe",
-        env: opts.env as Record<string, string>,
+        env,
         cwd: opts.cwd,
         serviceName: opts.name,
       });
     } catch (error) {
       logMessage(
-        `${opts.name} watchdog: fork failed with error: ${(error as Error).message}`,
+        `${opts.name} watchdog: fork failed with error: ${errorMessage(error)}`,
         "error"
       );
       throw new Error(
-        `${opts.name} watchdog: failed to fork: ${(error as Error).message}`
+        `${opts.name} watchdog: failed to fork: ${errorMessage(error)}`
       );
     }
 
@@ -306,7 +314,7 @@ export class Watchdog {
         if (this.utilProcess?.pid) {
           this.writePidFile(this.utilProcess.pid).catch((err) => {
             logMessage(
-              `${opts.name} watchdog: failed to write PID file during spawn: ${(err as Error).message}`,
+              `${opts.name} watchdog: failed to write PID file during spawn: ${errorMessage(err)}`,
               "error"
             );
           });
@@ -327,7 +335,10 @@ export class Watchdog {
 
   /** Spawn an external command via child_process (e.g. ollama, llama-server). */
   private async spawnChildProcess(): Promise<void> {
-    const opts = this.opts as SpawnWatchdogOptions;
+    if (!("command" in this.opts) || !this.opts.command) {
+      throw new Error("spawnChildProcess requires command");
+    }
+    const opts = this.opts;
     logMessage(
       `${opts.name} watchdog: starting: ${opts.command} ${opts.args.join(" ")}`
     );
@@ -348,11 +359,11 @@ export class Watchdog {
       });
     } catch (error) {
       logMessage(
-        `${opts.name} watchdog: spawn failed with error: ${(error as Error).message}`,
+        `${opts.name} watchdog: spawn failed with error: ${errorMessage(error)}`,
         "error"
       );
       throw new Error(
-        `${opts.name} watchdog: failed to spawn: ${(error as Error).message}`
+        `${opts.name} watchdog: failed to spawn: ${errorMessage(error)}`
       );
     }
 
@@ -374,7 +385,7 @@ export class Watchdog {
         if (this.childProcess?.pid) {
           this.writePidFile(this.childProcess.pid).catch((err) => {
             logMessage(
-              `${opts.name} watchdog: failed to write PID file during spawn: ${(err as Error).message}`,
+              `${opts.name} watchdog: failed to write PID file during spawn: ${errorMessage(err)}`,
               "error"
             );
           });
@@ -458,8 +469,7 @@ export class Watchdog {
             await this.restart();
           } catch (error) {
             logMessage(
-              `${this.opts.name} watchdog: restart failed: ${(error as Error).message
-              }`,
+              `${this.opts.name} watchdog: restart failed: ${errorMessage(error)}`,
               "error"
             );
           }
@@ -536,8 +546,7 @@ export class Watchdog {
       );
     } catch (error) {
       logMessage(
-        `${this.opts.name} watchdog: failed to write PID file: ${(error as Error).message
-        }`,
+        `${this.opts.name} watchdog: failed to write PID file: ${errorMessage(error)}`,
         "error"
       );
     }

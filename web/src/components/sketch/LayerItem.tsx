@@ -8,7 +8,7 @@
  */
 
 import React, { memo } from "react";
-import { IconButton } from "@mui/material";
+
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
@@ -36,11 +36,12 @@ import {
   Box,
   BORDER_RADIUS,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  IconButton,
+  MagicGenerationFill
 } from "../ui_primitives";
 import type { LayerStatus } from "@nodetool-ai/image-editor";
 import { LAYER_STATUS_MAP } from "./Inspector/layerStatusMapping";
-import MagicGenerationFill from "./MagicGenerationFill";
 
 /** Base left padding for the layer row (px). 0 so the thumbnail sits flush
  *  with the row's left edge — the row background should not stick out past it. */
@@ -70,7 +71,9 @@ export interface LayerItemProps {
   isMask: boolean;
   isIsolated: boolean;
   dropPosition: DropPosition;
-  editingLayerId: string | null;
+  /** True only for the row being renamed — keeps other rows' memo stable while typing. */
+  isEditing: boolean;
+  /** Live rename input value; empty string for rows not being edited. */
   editName: string;
   onLayerRowPointerDown: (e: React.PointerEvent, layerId: string) => void;
   onLayerRowClick: (e: React.MouseEvent, layerId: string) => void;
@@ -121,7 +124,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
   isMask,
   isIsolated,
   dropPosition,
-  editingLayerId,
+  isEditing,
   editName,
   onLayerRowPointerDown,
   onLayerRowClick,
@@ -326,7 +329,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
           </Tooltip>
         )}
 
-        {editingLayerId === layer.id ? (
+        {isEditing ? (
           <input
             aria-label="Layer name"
             value={editName}

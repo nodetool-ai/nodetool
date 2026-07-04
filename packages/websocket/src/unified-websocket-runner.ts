@@ -91,9 +91,13 @@ import {
   QueryCollectionTool,
   gateTools,
   extractInjectableImages,
+  PLAN_APPROVAL_CONTEXT_KEY,
   type PermissionMode,
   type ApprovalDecision,
-  type ApprovalRequest
+  type ApprovalRequest,
+  type PlanApprovalDecision,
+  type RequestPlanApproval,
+  type TaskPlan
 } from "@nodetool-ai/agents";
 import {
   createDefaultLongTermMemory,
@@ -1982,6 +1986,9 @@ export class UnifiedWebSocketRunner {
       workspaceDir,
       assetOutputMode: this.mode === "text" ? "data_uri" : "temp_url"
     });
+    // Agents planning inside this run pause for user approval over this
+    // socket before executing their plan.
+    this.attachPlanApproval(context, null);
 
     // Expose executor/node-type resolution on the context so that
     // sub-workflow nodes (WorkflowNode) can create child runners.
@@ -2546,10 +2553,17 @@ export class UnifiedWebSocketRunner {
     };
   }
 
-  private async ensureThreadExists(threadId?: string): Promise<string> {
+  private async ensureThreadExists(
+    threadId?: string,
+    workflowId?: string | null
+  ): Promise<string> {
     const userId = this.userId ?? "1";
     if (!threadId) {
-      const thread = await Thread.create({ user_id: userId, title: "" });
+      const thread = await Thread.create({
+        user_id: userId,
+        workflow_id: workflowId ?? null,
+        title: ""
+      });
       return thread.id;
     }
     const existing = await Thread.find(userId, threadId);
@@ -2557,6 +2571,7 @@ export class UnifiedWebSocketRunner {
     const thread = await Thread.create({
       id: threadId,
       user_id: userId,
+      workflow_id: workflowId ?? null,
       title: ""
     });
     return thread.id;
@@ -2855,6 +2870,67 @@ export class UnifiedWebSocketRunner {
   }
 
   /**
+   * Round-trip a plan approval to the client and resolve with the user's
+   * decision. Emits a `plan_approval_request` carrying the serialized plan,
+   * then waits for the matching `plan_approval_response` (resolved via
+   * {@link approvalBridge}). A cancelled wait (stop) is treated as a
+   * rejection without feedback, which aborts the agent run.
+   */
+  private async requestPlanApproval(
+    threadId: string | null,
+    plan: TaskPlan
+  ): Promise<PlanApprovalDecision> {
+    const approvalId = `plan_${randomUUID()}`;
+    await this.sendMessage({
+      type: "plan_approval_request",
+      thread_id: threadId,
+      approval_id: approvalId,
+      plan: {
+        title: plan.title,
+        tasks: plan.tasks.map((t) => ({
+          id: t.id,
+          title: t.title,
+          depends_on: t.dependsOn ?? [],
+          steps: t.steps.map((s) => ({
+            id: s.id,
+            instructions: s.instructions
+          }))
+        }))
+      }
+    });
+    try {
+      // No timeout — the user may take a while; `stop` cancels via cancelAll.
+      const response = await this.approvalBridge.createWaiter(approvalId, 0);
+      if (response.decision === "approve") {
+        return { decision: "approve" };
+      }
+      const feedback =
+        typeof response.feedback === "string" && response.feedback.trim()
+          ? response.feedback.trim()
+          : undefined;
+      return { decision: "reject", feedback };
+    } catch {
+      // Cancelled (generation stopped) — treat as a rejection.
+      return { decision: "reject" };
+    }
+  }
+
+  /**
+   * Expose the plan-approval round-trip on a processing context so any Agent
+   * that plans inside this run (e.g. an Agent node in plan mode) pauses for
+   * user approval before executing. See PLAN_APPROVAL_CONTEXT_KEY in
+   * `@nodetool-ai/agents`.
+   */
+  private attachPlanApproval(
+    context: RuntimeProcessingContext,
+    threadId: string | null
+  ): void {
+    const request: RequestPlanApproval = (plan) =>
+      this.requestPlanApproval(threadId, plan);
+    context.set(PLAN_APPROVAL_CONTEXT_KEY, request);
+  }
+
+  /**
    * Execute a single node by type and return its output. Builds a one-node
    * graph and runs it through a fresh {@link WorkflowRunner}, then returns the
    * node's completed result. Backs the `run_node` chat tool.
@@ -2862,7 +2938,8 @@ export class UnifiedWebSocketRunner {
   private async runSingleNode(
     nodeType: string,
     inputs: Record<string, unknown>,
-    userId: string
+    userId: string,
+    threadId: string | null = null
   ): Promise<unknown> {
     const jobId = randomUUID();
     const nodeId = "node_0";
@@ -2901,6 +2978,7 @@ export class UnifiedWebSocketRunner {
       workspaceDir: tmpdir(),
       assetOutputMode: this.mode === "text" ? "data_uri" : "temp_url"
     });
+    this.attachPlanApproval(context, threadId);
     context.setResolveExecutor((node) => this.resolveExecutor(node));
     if (this.resolveNodeType) {
       const resolverObj =
@@ -2979,8 +3057,11 @@ export class UnifiedWebSocketRunner {
     data: Record<string, unknown>,
     requestSeq?: number
   ): Promise<void> {
+    const messageWorkflowId =
+      typeof data.workflow_id === "string" ? data.workflow_id : null;
     const threadId = await this.ensureThreadExists(
-      typeof data.thread_id === "string" ? data.thread_id : undefined
+      typeof data.thread_id === "string" ? data.thread_id : undefined,
+      messageWorkflowId
     );
     data.thread_id = threadId;
 
@@ -2990,8 +3071,7 @@ export class UnifiedWebSocketRunner {
 
     const providerId = data.provider as string;
     const model = data.model as string;
-    const workflowId =
-      typeof data.workflow_id === "string" ? data.workflow_id : null;
+    const workflowId = messageWorkflowId;
     const userId = this.userId ?? "1";
     log.debug("Chat message", { threadId, model, provider: providerId });
 
@@ -3180,7 +3260,7 @@ export class UnifiedWebSocketRunner {
       new ListCollectionsTool(),
       new QueryCollectionTool(),
       new RunNodeTool((nodeType, inputs) =>
-        this.runSingleNode(nodeType, inputs, userId)
+        this.runSingleNode(nodeType, inputs, userId, threadId)
       )
     ];
     // De-duplicate by name (builtins / mcp / extras may overlap); first wins.
@@ -3355,6 +3435,9 @@ export class UnifiedWebSocketRunner {
       userId,
       workspaceDir: chatWorkspaceDir
     });
+    // Any agent planning inside this turn (e.g. via run_node spawning an
+    // Agent node in plan mode) pauses for user plan approval.
+    this.attachPlanApproval(ctx, threadId || null);
 
     // Prepend system prompt if first message isn't system role — matches Python
     if (chatHistory.length === 0 || chatHistory[0].role !== "system") {
@@ -3438,6 +3521,16 @@ export class UnifiedWebSocketRunner {
       messagesToSend = this.addCollectionContext(messagesToSend, memoryContext);
       memoryContext = "";
     }
+
+    // Expand any `asset://<id>.<ext>` references the composer or a prior turn
+    // attached and dereference the URIs to data the provider can consume.
+    // Image / audio mentions typed inline in a text part get split into proper
+    // blocks first (mirroring what the workflow agent node does in
+    // `buildUserMessage`), then every block with an `asset://` / storage URI is
+    // resolved to a data URI. Text-document mentions are inlined as their
+    // decoded contents. Without this step the provider would see literal
+    // `asset://…` text and never look at the referenced media.
+    messagesToSend = await ctx.resolveMessageMediaUris(messagesToSend);
 
     // Run one tool call and return the result to feed back to the model. Owns
     // server/client tool routing, side effects (client round-trips via the
@@ -3669,7 +3762,8 @@ export class UnifiedWebSocketRunner {
         let bodyMsg: string | null = null;
         try {
           if ("body" in err || "response" in err) {
-            const body = (err as any).body ?? (err as any).response;
+            const errObj = err as Record<string, unknown>;
+            const body = errObj.body ?? errObj.response;
             if (body && typeof body === "object" && "error" in body) {
               const errorDetail = body.error;
               if (
@@ -4195,13 +4289,6 @@ export class UnifiedWebSocketRunner {
           name: modelId,
           provider: providerId
         };
-        const params: TextToVideoParams = {
-          model: videoModel,
-          prompt,
-          aspectRatio,
-          resolution,
-          durationSeconds: duration
-        };
 
         await this.sendMessage({
           type: "chunk",
@@ -4212,7 +4299,36 @@ export class UnifiedWebSocketRunner {
           done: false
         });
 
-        const bytes = await provider.textToVideo(params);
+        // If the user referenced/attached an image, they want it animated:
+        // route to image-to-video so the image actually reaches the provider.
+        // Many "video" models (e.g. fal-ai/stable-video) in fact require an
+        // image and reject a text-only request with an opaque 422.
+        const sourceBytes = await this.resolveSourceImageBytes(
+          data,
+          mediaGeneration,
+          userId
+        );
+        let bytes: Uint8Array;
+        if (sourceBytes && sourceBytes.length > 0) {
+          const i2vParams: ImageToVideoParams = {
+            model: videoModel,
+            prompt,
+            aspectRatio,
+            resolution,
+            durationSeconds: duration,
+            numInferenceSteps: null
+          };
+          bytes = await provider.imageToVideo([sourceBytes], i2vParams);
+        } else {
+          const params: TextToVideoParams = {
+            model: videoModel,
+            prompt,
+            aspectRatio,
+            resolution,
+            durationSeconds: duration
+          };
+          bytes = await provider.textToVideo(params);
+        }
         const assetId = await storeMediaAsset(bytes, "video/mp4", "mp4");
 
         await this.sendMessage({
@@ -4442,7 +4558,12 @@ export class UnifiedWebSocketRunner {
           mediaGeneration,
           userId
         );
-        if (!sourceBytes) {
+        // A zero-length buffer (e.g. a storage read that resolved but came
+        // back empty) is truthy — without the length check it sails past this
+        // guard, then silently drops out of `attachAssets`'s image field
+        // downstream, so fal gets a request with no image at all and rejects
+        // it with an opaque 422 instead of the friendly error below.
+        if (!sourceBytes || sourceBytes.length === 0) {
           await this.sendMessage({
             type: "error",
             message:
@@ -4654,7 +4775,7 @@ export class UnifiedWebSocketRunner {
         : null;
     if (explicitId) {
       const fromAsset = await tryLoadAsset(explicitId);
-      if (fromAsset) return fromAsset;
+      if (fromAsset && fromAsset.length > 0) return fromAsset;
     }
 
     const content = data.content;
@@ -4670,12 +4791,20 @@ export class UnifiedWebSocketRunner {
             : null;
         if (assetId) {
           const bytes = await tryLoadAsset(assetId);
-          if (bytes) return bytes;
+          if (bytes && bytes.length > 0) return bytes;
         }
         const uri =
           typeof image.uri === "string" ? (image.uri as string) : null;
         if (uri) {
-          if (uri.startsWith("data:")) {
+          if (uri.startsWith("asset://")) {
+            // `@`-mentioned or library-dragged asset: `asset://<id>.<ext>`.
+            const withoutScheme = uri.slice("asset://".length);
+            const dotIdx = withoutScheme.lastIndexOf(".");
+            const mentionedId =
+              dotIdx > -1 ? withoutScheme.slice(0, dotIdx) : withoutScheme;
+            const bytes = await tryLoadAsset(mentionedId);
+            if (bytes && bytes.length > 0) return bytes;
+          } else if (uri.startsWith("data:")) {
             const commaIdx = uri.indexOf(",");
             if (commaIdx > -1) {
               const b64 = uri.slice(commaIdx + 1);
@@ -5219,6 +5348,8 @@ export class UnifiedWebSocketRunner {
       maskAssetId?: string;
       width?: number;
       height?: number;
+      aspectRatio?: string;
+      resolution?: string;
       strength?: number;
       numInferenceSteps?: number;
       variations?: number;
@@ -5393,7 +5524,9 @@ export class UnifiedWebSocketRunner {
         model: imageModel,
         prompt: req.prompt,
         width: req.width,
-        height: req.height
+        height: req.height,
+        aspectRatio: req.aspectRatio ?? null,
+        resolution: req.resolution ?? null
       };
       images = await provider.textToImages(params, variations);
     } else if (req.mode === "inpaint") {
@@ -5423,6 +5556,8 @@ export class UnifiedWebSocketRunner {
         prompt: req.prompt,
         targetWidth: req.width ?? null,
         targetHeight: req.height ?? null,
+        aspectRatio: req.aspectRatio ?? null,
+        resolution: req.resolution ?? null,
         strength: req.strength ?? null,
         numInferenceSteps: req.numInferenceSteps ?? null,
         mask: maskBytes
@@ -5450,6 +5585,8 @@ export class UnifiedWebSocketRunner {
         prompt: req.prompt,
         targetWidth: req.width ?? null,
         targetHeight: req.height ?? null,
+        aspectRatio: req.aspectRatio ?? null,
+        resolution: req.resolution ?? null,
         strength: req.strength ?? null,
         numInferenceSteps: req.numInferenceSteps ?? null
       };
@@ -5839,6 +5976,14 @@ export class UnifiedWebSocketRunner {
           typeof data.width === "number" ? (data.width as number) : undefined;
         const height =
           typeof data.height === "number" ? (data.height as number) : undefined;
+        const aspectRatio =
+          typeof data.aspect_ratio === "string"
+            ? (data.aspect_ratio as string)
+            : undefined;
+        const resolution =
+          typeof data.resolution === "string"
+            ? (data.resolution as string)
+            : undefined;
         const strength =
           typeof data.strength === "number"
             ? (data.strength as number)
@@ -5869,6 +6014,8 @@ export class UnifiedWebSocketRunner {
             maskAssetId,
             width,
             height,
+            aspectRatio,
+            resolution,
             strength,
             numInferenceSteps,
             variations,
@@ -6038,6 +6185,15 @@ export class UnifiedWebSocketRunner {
       }
 
       if (msgType === "tool_approval_response") {
+        const approvalId =
+          typeof data.approval_id === "string" ? data.approval_id : null;
+        if (approvalId) {
+          this.approvalBridge.resolveResult(approvalId, data);
+        }
+        continue;
+      }
+
+      if (msgType === "plan_approval_response") {
         const approvalId =
           typeof data.approval_id === "string" ? data.approval_id : null;
         if (approvalId) {

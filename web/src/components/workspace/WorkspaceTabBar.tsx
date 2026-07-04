@@ -35,7 +35,8 @@ const SUPPORTS_BOTH_MODES: Record<WorkspaceTabType, boolean> = {
   timeline: true,
   model3d: true,
   text: true,
-  audio: true
+  audio: true,
+  page: false
 };
 
 /** Tab types whose title can be renamed in place by double-clicking. */
@@ -53,7 +54,8 @@ const TYPE_GLYPH: Record<WorkspaceTabType, string> = {
   timeline: "▤",
   model3d: "◈",
   audio: "♪",
-  text: "¶"
+  text: "¶",
+  page: "☰"
 };
 
 /** Pin color per tab type, reusing the app's canonical data-type palette. */
@@ -64,7 +66,8 @@ const TYPE_COLOR: Record<WorkspaceTabType, string> = {
   timeline: colorForType("video"),
   model3d: colorForType("model_3d"),
   audio: colorForType("audio"),
-  text: colorForType("text")
+  text: colorForType("text"),
+  page: colorForType("any")
 };
 
 const styles = (theme: Theme) =>

@@ -98,6 +98,16 @@ const NodeLibraryRow = memo<NodeLibraryRowProps>(
       [onDragStart, node]
     );
 
+    const handleKeyDown = useCallback(
+      (e: React.KeyboardEvent) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick(node);
+        }
+      },
+      [onClick, node]
+    );
+
     const tileColor = typeColor ?? theme.vars.palette.text.secondary;
     const tileBg = typeColor
       ? `color-mix(in srgb, ${typeColor} 8%, transparent)`
@@ -109,6 +119,8 @@ const NodeLibraryRow = memo<NodeLibraryRowProps>(
     const replacementTitle = node.replaced_by
       ? nodeTypeDisplayName(node.replaced_by)
       : null;
+
+    const cssStyles = useMemo(() => rowStyles(theme), [theme]);
 
     const containerStyle = useMemo(
       () => ({
@@ -132,7 +144,7 @@ const NodeLibraryRow = memo<NodeLibraryRowProps>(
 
     return (
       <div
-        css={rowStyles(theme)}
+        css={cssStyles}
         className={`nl-row ${isFavorite ? "is-favorite" : ""}`}
         role="button"
         tabIndex={0}
@@ -142,12 +154,7 @@ const NodeLibraryRow = memo<NodeLibraryRowProps>(
         onFocus={handleHover}
         onDragStart={handleDragStart}
         onDragEnd={onDragEnd}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            handleClick();
-          }
-        }}
+        onKeyDown={handleKeyDown}
         title={
           node.deprecated
             ? `${node.title}${replacementTitle ? ` — use ${replacementTitle}` : ""}`

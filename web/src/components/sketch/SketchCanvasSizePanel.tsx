@@ -9,16 +9,56 @@ import React, {
   useMemo,
   useState
 } from "react";
+
+import CheckIcon from "@mui/icons-material/Check";
+import AspectRatioIcon from "@mui/icons-material/CropOriginal";
+import ResolutionIcon from "@mui/icons-material/Tv";
+import { CANVAS_PRESETS } from "./types";
+import { SKETCH_COLORS, SKETCH_FONT, SKETCH_SPACING, SKETCH_TOOLTIP_DELAY_MS } from "./sketchStyles";
 import {
+  FlexColumn,
+  FlexRow,
+  StateIconButton,
+  Text,
+  Tooltip,
   MenuItem,
   Select,
   Switch,
   TextField
-} from "@mui/material";
-import CheckIcon from "@mui/icons-material/Check";
-import { CANVAS_PRESETS } from "./types";
-import { SKETCH_COLORS, SKETCH_FONT, SKETCH_SPACING, SKETCH_TOOLTIP_DELAY_MS } from "./sketchStyles";
-import { FlexColumn, FlexRow, StateIconButton, Text, Tooltip } from "../ui_primitives";
+} from "../ui_primitives";
+import MediaControlChip from "../chat/composer/MediaControlChip";
+import MediaOptionMenu, {
+  type MediaOption
+} from "../chat/composer/MediaOptionMenu";
+import MediaAspectRatioMenu from "../chat/composer/MediaAspectRatioMenu";
+import {
+  IMAGE_ASPECT_RATIOS,
+  IMAGE_RESOLUTIONS,
+  resolveImageSize,
+  type ImageResolution
+} from "../../stores/MediaGenerationStore";
+
+/** Nearest aspect-ratio preset for the current canvas, so the control reflects
+ *  the artboard even when it's a custom size. */
+function nearestAspectId(width: number, height: number): string {
+  const ratio = width / height;
+  let id = IMAGE_ASPECT_RATIOS[0].id;
+  let bestDiff = Infinity;
+  for (const a of IMAGE_ASPECT_RATIOS) {
+    const diff = Math.abs(a.width / a.height - ratio);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      id = a.id;
+    }
+  }
+  return id;
+}
+
+/** Nearest named resolution for the current canvas (by its shorter edge). */
+function nearestResolution(width: number, height: number): ImageResolution {
+  const shortEdge = Math.min(width, height);
+  return shortEdge >= 3072 ? "4K" : shortEdge >= 1536 ? "2K" : "1K";
+}
 
 function cycleArrayValue<T>(
   values: readonly T[],
@@ -104,6 +144,45 @@ const SketchCanvasSizePanel: React.FC<SketchCanvasSizePanelProps> = ({
     }
     onCanvasResize(w, h);
   }, [canvasCustomSizeApply, onCanvasResize]);
+
+  // Aspect ratio + resolution → canvas size. Derived from the current canvas so
+  // the controls reflect the artboard; picking either resizes it. Presented with
+  // the same chip + menu the generation header uses, for a consistent look.
+  const aspectId = useMemo(
+    () => nearestAspectId(canvasWidth, canvasHeight),
+    [canvasWidth, canvasHeight]
+  );
+  const resolutionId = useMemo(
+    () => nearestResolution(canvasWidth, canvasHeight),
+    [canvasWidth, canvasHeight]
+  );
+  const resolutionOptions = useMemo<MediaOption<ImageResolution>[]>(
+    () => IMAGE_RESOLUTIONS.map((r) => ({ id: r, label: r })),
+    []
+  );
+
+  const [aspectAnchor, setAspectAnchor] = useState<HTMLElement | null>(null);
+  const [resolutionAnchor, setResolutionAnchor] = useState<HTMLElement | null>(
+    null
+  );
+
+  const handleAspectResize = useCallback(
+    (aspect: string) => {
+      const { width, height } = resolveImageSize(resolutionId, aspect);
+      onCanvasResize(width, height);
+      setAspectAnchor(null);
+    },
+    [resolutionId, onCanvasResize]
+  );
+
+  const handleResolutionResize = useCallback(
+    (resolution: ImageResolution) => {
+      const { width, height } = resolveImageSize(resolution, aspectId);
+      onCanvasResize(width, height);
+      setResolutionAnchor(null);
+    },
+    [aspectId, onCanvasResize]
+  );
 
   const cycleCanvasPreset = useCallback(
     (direction: -1 | 1) => {
@@ -220,6 +299,45 @@ const SketchCanvasSizePanel: React.FC<SketchCanvasSizePanelProps> = ({
           </MenuItem>
         ))}
       </Select>
+
+      <FlexColumn gap={0.5} sx={{ mt: 2 }}>
+        <Text sx={{ fontSize: SKETCH_FONT.sm, color: SKETCH_COLORS.textMuted }}>
+          Aspect &amp; resolution
+        </Text>
+        <FlexRow align="center" gap={0.5}>
+          <MediaControlChip
+            icon={<AspectRatioIcon fontSize="small" />}
+            label={aspectId}
+            active={!!aspectAnchor}
+            onClick={(e) => setAspectAnchor(e.currentTarget)}
+            showChevron={false}
+          />
+          <MediaControlChip
+            icon={<ResolutionIcon fontSize="small" />}
+            label={resolutionId}
+            active={!!resolutionAnchor}
+            onClick={(e) => setResolutionAnchor(e.currentTarget)}
+            showChevron={false}
+          />
+        </FlexRow>
+        <MediaAspectRatioMenu
+          anchorEl={aspectAnchor}
+          open={!!aspectAnchor}
+          onClose={() => setAspectAnchor(null)}
+          value={aspectId}
+          options={IMAGE_ASPECT_RATIOS}
+          onChange={handleAspectResize}
+        />
+        <MediaOptionMenu
+          anchorEl={resolutionAnchor}
+          open={!!resolutionAnchor}
+          onClose={() => setResolutionAnchor(null)}
+          header="Resolution"
+          value={resolutionId}
+          options={resolutionOptions}
+          onChange={handleResolutionResize}
+        />
+      </FlexColumn>
 
       <FlexRow align="center" gap={0.5} sx={{ mt: 4 }}>
         <TextField

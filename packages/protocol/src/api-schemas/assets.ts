@@ -78,6 +78,7 @@ export const updateInput = z.object({
   parent_id: z.string().optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
   sketch_document_id: z.string().nullable().optional(),
+  timeline_id: z.string().nullable().optional(),
   size: z.number().optional(),
   data: z.string().nullable().optional(),
   data_encoding: z.enum(["base64", "utf-8"]).nullable().optional()

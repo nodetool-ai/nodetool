@@ -1,5 +1,15 @@
 // APP
-export const VERSION = "0.7.0-rc.26";
+export const VERSION = "0.7.0-rc.29";
+
+// Build provenance injected by Vite at build time (see web/vite.config.ts).
+// In non-Vite contexts (e.g. Jest), the defines are absent — fall back to a
+// stable placeholder so the About dialog still renders.
+declare const __GIT_COMMIT_HASH__: string;
+declare const __BUILD_NUMBER__: string;
+export const GIT_COMMIT_HASH =
+  typeof __GIT_COMMIT_HASH__ !== "undefined" ? __GIT_COMMIT_HASH__ : "dev";
+export const BUILD_NUMBER =
+  typeof __BUILD_NUMBER__ !== "undefined" ? __BUILD_NUMBER__ : "0";
 
 // TOOLTIPS
 export const TOOLTIP_ENTER_DELAY = 700;

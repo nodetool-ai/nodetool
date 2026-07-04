@@ -5,16 +5,17 @@
  * by a `file://` URI instead of being uploaded to the asset store. The backend
  * already resolves `file://` URIs from disk when a workflow runs; these helpers
  * cover the renderer side: getting a dropped file's path, building the URI, and
- * resolving the URI back to a previewable data URL (the renderer can't load a
- * raw `file://` URL under `webSecurity`, so previews go through the Electron
- * `readFileAsDataURL` bridge).
+ * resolving the URI to a previewable URL. The renderer can't load a raw
+ * `file://` URL under `webSecurity`, so previews point at the backend's
+ * `/api/files/local` endpoint, which streams the bytes off disk with HTTP Range
+ * support — no reading in Electron, no data URIs.
  *
  * None of this applies in a plain browser: a dropped `File` never exposes its
  * disk path there, so `getLocalFilePath` returns `null` and callers fall back
  * to uploading.
  */
 import { isElectron } from "./browser";
-import { useEffect, useState } from "react";
+import { BASE_URL } from "../stores/BASE_URL";
 
 /**
  * Resolve the absolute disk path of a dropped/selected file. Returns `null` in
@@ -70,72 +71,19 @@ export const fileUriToPath = (uri: string): string => {
 export const isFileUri = (uri: string | null | undefined): uri is string =>
   typeof uri === "string" && uri.startsWith("file://");
 
-// Cache resolved data URLs so a reloaded workflow doesn't re-read the same file
-// off disk on every render / for every node referencing it.
-const dataUrlCache = new Map<string, string>();
-const inflight = new Map<string, Promise<string>>();
-
 /**
- * Read a `file://` URI off disk (via the Electron bridge) and return it as a
- * data URL suitable for `<img>` / `<audio>` / `<iframe>`. Returns "" when not
- * in Electron or when the read fails. Results are cached per URI.
+ * Map a local `file://` URI to the backend endpoint that streams it over HTTP.
+ * Returns `null` for any non-`file://` URI, signalling callers to use their
+ * normal resolver. The backend reads the file off disk (with Range support for
+ * audio/video seeking), so the renderer never loads a raw `file://` URL and no
+ * bytes pass through Electron.
  */
-export const loadFileUriDataUrl = async (uri: string): Promise<string> => {
-  const cached = dataUrlCache.get(uri);
-  if (cached !== undefined) {
-    return cached;
-  }
-  const existing = inflight.get(uri);
-  if (existing) {
-    return existing;
-  }
-  const read = window.api?.clipboard?.readFileAsDataURL;
-  if (!read) {
-    return "";
-  }
-  const promise = (async () => {
-    try {
-      const dataUrl = (await read(fileUriToPath(uri))) ?? "";
-      dataUrlCache.set(uri, dataUrl);
-      return dataUrl;
-    } catch {
-      dataUrlCache.set(uri, "");
-      return "";
-    } finally {
-      inflight.delete(uri);
-    }
-  })();
-  inflight.set(uri, promise);
-  return promise;
-};
-
-/**
- * Resolve a `file://` URI to a previewable data URL. Returns `null` when the
- * URI is not a `file://` URI (signalling callers to use their normal resolver),
- * or the data URL string (empty while the async read is in flight).
- */
-export const useFileUriDataUrl = (
+export const fileUriToHttpUrl = (
   uri: string | null | undefined
 ): string | null => {
-  const applicable = isFileUri(uri);
-  const [dataUrl, setDataUrl] = useState<string>(() =>
-    applicable ? dataUrlCache.get(uri) ?? "" : ""
-  );
-
-  useEffect(() => {
-    if (!applicable) {
-      return;
-    }
-    let cancelled = false;
-    void loadFileUriDataUrl(uri).then((resolved) => {
-      if (!cancelled) {
-        setDataUrl(resolved);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [applicable, uri]);
-
-  return applicable ? dataUrl : null;
+  if (!isFileUri(uri)) {
+    return null;
+  }
+  const encodedPath = encodeURIComponent(fileUriToPath(uri));
+  return `${BASE_URL}/api/files/local?path=${encodedPath}`;
 };

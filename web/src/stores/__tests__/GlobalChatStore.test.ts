@@ -739,6 +739,86 @@ describe("GlobalChatStore", () => {
     });
   });
 
+  describe("Workflow scoping", () => {
+    it("createNewThread binds the thread to the active workflow", async () => {
+      store.setState({ workflowId: "wf-1" });
+      const id = await store.getState().createNewThread();
+      const state = store.getState();
+      expect(state.threads[id].workflow_id).toBe("wf-1");
+      expect(state.threadWorkflowId[id]).toBe("wf-1");
+      expect(state.workflowThreadId["wf-1"]).toBe(id);
+    });
+
+    it("createNewThread(undefined, null) creates a workflow-agnostic thread", async () => {
+      store.setState({ workflowId: "wf-1" });
+      const id = await store.getState().createNewThread(undefined, null);
+      expect(store.getState().threads[id].workflow_id).toBeNull();
+      expect(store.getState().threadWorkflowId[id]).toBeNull();
+    });
+
+    it("openWorkflowThread creates a fresh thread when the workflow has none", async () => {
+      const id = await store.getState().openWorkflowThread("wf-new");
+      const state = store.getState();
+      expect(state.workflowId).toBe("wf-new");
+      expect(state.currentThreadId).toBe(id);
+      expect(state.threads[id].workflow_id).toBe("wf-new");
+      expect(state.workflowThreadId["wf-new"]).toBe(id);
+    });
+
+    it("openWorkflowThread switches to the workflow's most recent conversation", async () => {
+      store.setState({
+        threads: {
+          old: {
+            id: "old",
+            title: "old",
+            workflow_id: "wf-1",
+            created_at: "2026-01-01T00:00:00Z",
+            updated_at: "2026-01-01T00:00:00Z"
+          },
+          recent: {
+            id: "recent",
+            title: "recent",
+            workflow_id: "wf-1",
+            created_at: "2026-02-01T00:00:00Z",
+            updated_at: "2026-02-01T00:00:00Z"
+          },
+          other: {
+            id: "other",
+            title: "other",
+            workflow_id: "wf-2",
+            created_at: "2026-03-01T00:00:00Z",
+            updated_at: "2026-03-01T00:00:00Z"
+          }
+        },
+        threadsLoaded: true
+      } as any);
+
+      const id = await store.getState().openWorkflowThread("wf-1");
+      expect(id).toBe("recent");
+      expect(store.getState().currentThreadId).toBe("recent");
+      expect(store.getState().workflowId).toBe("wf-1");
+    });
+
+    it("openWorkflowThread reuses the client-side binding for unpersisted threads", async () => {
+      store.setState({
+        threads: {
+          local: {
+            id: "local",
+            title: "local",
+            created_at: "2026-01-01T00:00:00Z",
+            updated_at: "2026-01-01T00:00:00Z"
+          }
+        },
+        threadWorkflowId: { local: "wf-1" },
+        threadsLoaded: true
+      } as any);
+
+      const id = await store.getState().openWorkflowThread("wf-1");
+      expect(id).toBe("local");
+      expect(store.getState().currentThreadId).toBe("local");
+    });
+  });
+
   describe("sendMessage Advanced Cases", () => {
     let sentData: any;
 

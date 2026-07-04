@@ -17,6 +17,29 @@ export interface AudioSample {
   readonly channels: Float32Array[];
 }
 
+/**
+ * Build an AudioSample with `channels` non-enumerable. Samples are passed as
+ * React props, and React 19's dev-mode performance instrumentation deep-walks
+ * the enumerable properties of any prop whose identity changed — a Float32Array
+ * exposes every frame as an enumerable index, which freezes the tab for tens of
+ * seconds per edit on long files. Hiding the frames from enumeration keeps dev
+ * edits instant; direct `.channels` access is unaffected.
+ */
+export const makeAudioSample = (
+  sampleRate: number,
+  channels: Float32Array[]
+): AudioSample => {
+  const sample = { sampleRate } as {
+    sampleRate: number;
+    channels: Float32Array[];
+  };
+  Object.defineProperty(sample, "channels", {
+    value: channels,
+    enumerable: false
+  });
+  return sample;
+};
+
 export type FadeDirection = "in" | "out";
 
 export const numFrames = (sample: AudioSample): number =>
@@ -64,10 +87,7 @@ const resolveRange = (
 const mapChannels = (
   sample: AudioSample,
   fn: (channel: Float32Array) => Float32Array
-): AudioSample => ({
-  sampleRate: sample.sampleRate,
-  channels: sample.channels.map(fn)
-});
+): AudioSample => makeAudioSample(sample.sampleRate, sample.channels.map(fn));
 
 /** Keep only the selected range (trim/crop). */
 export const cropToRange = (
@@ -267,12 +287,13 @@ export const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
 export const audioBufferToSample = (buffer: AudioBuffer): AudioSample => {
   const channels: Float32Array[] = [];
   for (let c = 0; c < buffer.numberOfChannels; c += 1) {
-    channels.push(Float32Array.from(buffer.getChannelData(c)));
+    // slice() is a memcpy; Float32Array.from() iterates element by element.
+    channels.push(buffer.getChannelData(c).slice());
   }
   if (channels.length === 0) {
     channels.push(new Float32Array(buffer.length));
   }
-  return { sampleRate: buffer.sampleRate, channels };
+  return makeAudioSample(buffer.sampleRate, channels);
 };
 
 /** Build a playable AudioBuffer from a sample (length forced to at least 1). */

@@ -59,12 +59,12 @@ const proPoints = [
   {
     icon: WifiOff,
     title: "Works fully offline",
-    body: "Once your local models are downloaded, you can disconnect the internet and keep building. Perfect for travel, secure environments, or air-gapped machines.",
+    body: "Once your local models are downloaded, disconnect the internet and keep building — travel, secure environments, air-gapped machines.",
   },
   {
     icon: Shield,
     title: "Your data never leaves the device",
-    body: "Workflows, assets, prompts, and model outputs stay on your disk. No telemetry, no opt-out — there is no cloud round-trip unless you explicitly call a remote API.",
+    body: "Workflows, assets, prompts, and model outputs stay on your disk. No telemetry — and no cloud round-trip unless you explicitly call a remote API.",
   },
   {
     icon: Cpu,
@@ -84,7 +84,7 @@ const proPoints = [
   {
     icon: Code2,
     title: "Custom Python and TypeScript nodes",
-    body: "Drop in your own code, install Python packages in the bundled environment, or sandbox untrusted code in Docker. Studio is your full local AI lab.",
+    body: "Drop in your own code, install Python packages in the bundled environment, or sandbox untrusted code in Docker.",
   },
 ];
 

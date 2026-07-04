@@ -337,12 +337,130 @@ export const createStyles = (theme: Theme) => ({
       overflowWrap: "anywhere"
     },
 
-    ".tool-call-card": {
-      border: "none",
+    // ── Tool execution chain ────────────────────────────────────────────────
+    // A message's tool calls render as a chain: tiny uppercase section label
+    // with a hairline rule, one bordered card per call, and a summary bar.
+    ".tool-call-group": {
+      width: "100%",
+      margin: theme.spacing(0.5, 0)
+    },
+
+    ".tool-call-group-header": {
+      cursor: "pointer",
+      userSelect: "none",
       borderRadius: BORDER_RADIUS.sm,
+      padding: theme.spacing(0.25, 0),
+      "&:focus-visible": {
+        outline: `2px solid ${theme.vars.palette.primary.main}`,
+        outlineOffset: 1
+      }
+    },
+
+    ".tool-call-group-label": {
+      color: theme.vars.palette.text.secondary,
+      textTransform: "uppercase",
+      letterSpacing: "0.08em",
+      whiteSpace: "nowrap"
+    },
+
+    ".tool-call-group-rule": {
+      height: 1,
+      flex: 1,
+      background: theme.vars.palette.divider
+    },
+
+    ".tool-call-chain": {
+      marginTop: theme.spacing(1)
+    },
+
+    ".tool-call-summary": {
+      background: theme.vars.palette.action.hover,
+      borderRadius: BORDER_RADIUS.sm,
+      padding: theme.spacing(0.5, 1.5),
+      color: theme.vars.palette.text.secondary,
+      fontSize: "var(--fontSizeSmaller)"
+    },
+
+    ".tool-call-summary-divider": {
+      opacity: 0.3
+    },
+
+    ".tool-call-summary-duration": {
+      fontFamily: theme.fontFamily2,
+      fontVariantNumeric: "tabular-nums"
+    },
+
+    ".tool-call-card": {
+      border: `1px solid ${theme.vars.palette.divider}`,
+      borderRadius: BORDER_RADIUS.md,
       background: "transparent",
-      padding: "0",
+      overflow: "hidden",
       marginBottom: 0
+    },
+
+    ".tool-icon-tile": {
+      width: 24,
+      height: 24,
+      borderRadius: BORDER_RADIUS.sm,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      flexShrink: 0,
+      color: theme.vars.palette.text.secondary,
+      background: theme.vars.palette.action.hover,
+      "& svg": { fontSize: 15 }
+    },
+
+    ".tool-icon-tile.accent-info": {
+      color: theme.vars.palette.info.main,
+      background: `rgb(${theme.vars.palette.info.mainChannel} / 0.12)`
+    },
+    ".tool-icon-tile.accent-warning": {
+      color: theme.vars.palette.warning.main,
+      background: `rgb(${theme.vars.palette.warning.mainChannel} / 0.12)`
+    },
+    ".tool-icon-tile.accent-success": {
+      color: theme.vars.palette.success.main,
+      background: `rgb(${theme.vars.palette.success.mainChannel} / 0.12)`
+    },
+    ".tool-icon-tile.accent-primary": {
+      color: theme.vars.palette.primary.main,
+      background: `rgb(${theme.vars.palette.primary.mainChannel} / 0.12)`
+    },
+    ".tool-icon-tile.accent-secondary": {
+      color: theme.vars.palette.secondary.main,
+      background: `rgb(${theme.vars.palette.secondary.mainChannel} / 0.12)`
+    },
+
+    ".tool-call-id": {
+      fontFamily: theme.fontFamily2,
+      fontSize: "var(--fontSizeSmaller)",
+      color: theme.vars.palette.text.disabled,
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    },
+
+    ".tool-call-duration": {
+      fontFamily: theme.fontFamily2,
+      fontSize: "var(--fontSizeSmaller)",
+      color: theme.vars.palette.text.secondary,
+      fontVariantNumeric: "tabular-nums",
+      whiteSpace: "nowrap"
+    },
+
+    ".tool-status-icon": {
+      fontSize: 15,
+      flexShrink: 0
+    },
+
+    ".tool-status-icon.done": {
+      color: theme.vars.palette.success.main
+    },
+
+    ".tool-call-details": {
+      padding: theme.spacing(1, 1.5, 1.25),
+      borderTop: `1px solid ${theme.vars.palette.divider}`
     },
 
     ".tool-call-card.running .tool-call-name": {
@@ -352,18 +470,9 @@ export const createStyles = (theme: Theme) => ({
     // `run_subtask` cards stand apart from generic tool calls — a light
     // accent border + soft background marks them as a deeper sub-execution.
     ".tool-call-card.run-subtask": {
-      border: `1px solid ${theme.vars.palette.divider}`,
       borderLeft: `2px solid ${theme.vars.palette.primary.main}`,
-      borderRadius: BORDER_RADIUS.md,
-      padding: theme.spacing(0.5, 1),
-      background: `${theme.vars.palette.primary.main}0a`,
+      background: `rgb(${theme.vars.palette.primary.mainChannel} / 0.04)`,
       marginBottom: theme.spacing(0.5)
-    },
-
-    ".tool-call-card.run-subtask .subtask-icon": {
-      fontSize: 14,
-      color: theme.vars.palette.primary.main,
-      flexShrink: 0
     },
 
     ".tool-call-card.run-subtask .tool-call-badge": {
@@ -414,7 +523,7 @@ export const createStyles = (theme: Theme) => ({
     },
 
     ".chat-message.has-tool-calls .tool-call-card + .tool-call-card": {
-      marginTop: "0.05em"
+      marginTop: theme.spacing(1)
     },
 
     ".chat-message.has-tool-calls .markdown": {
@@ -447,12 +556,26 @@ export const createStyles = (theme: Theme) => ({
       display: "flex",
       alignItems: "center",
       gap: theme.spacing(1),
-      lineHeight: 1.25
+      lineHeight: 1.25,
+      padding: theme.spacing(1.25, 1.5)
+    },
+
+    ".tool-call-header.expandable": {
+      cursor: "pointer",
+      userSelect: "none",
+      transition: MOTION.background,
+      "&:hover": {
+        background: theme.vars.palette.action.hover
+      },
+      "&:focus-visible": {
+        outline: `2px solid ${theme.vars.palette.primary.main}`,
+        outlineOffset: -2
+      }
     },
 
     ".tool-call-name": {
       fontSize: "var(--fontSizeSmall)",
-      fontWeight: 600,
+      fontWeight: 500,
       color: theme.vars.palette.text.primary,
       whiteSpace: "nowrap"
     },
@@ -460,11 +583,6 @@ export const createStyles = (theme: Theme) => ({
     ".tool-message": {
       fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary
-    },
-
-    ".tool-expand-button": {
-      padding: theme.spacing(0.5),
-      marginRight: -2
     },
 
     ".expand-icon": {

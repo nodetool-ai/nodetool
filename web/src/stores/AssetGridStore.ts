@@ -1,9 +1,15 @@
-import { create } from "zustand";
+import { createStore, useStore, type StoreApi } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
+import {
+  createContext,
+  createElement,
+  useContext,
+  type ReactNode
+} from "react";
 import { Asset, AssetWithPath } from "./ApiTypes";
 import { SizeFilterKey, TypeFilterKey } from "../utils/formatUtils";
 
-interface AssetGridState {
+export interface AssetGridState {
   assetItemSize: number;
   assetSearchTerm: string | null;
   sizeFilter: SizeFilterKey;
@@ -78,9 +84,22 @@ interface AssetGridState {
   setWorkflowFilter: (workflowId: string | null) => void;
 }
 
-export const useAssetGridStore = create<AssetGridState>()(
-  persist(
-    (set, get) => ({
+export type AssetGridStoreApi = StoreApi<AssetGridState>;
+
+const PERSIST_VERSION = 1;
+
+/**
+ * Build a fresh AssetGrid store bound to its own persistence key. Each surface
+ * that wants independent state (folder navigation, selection, filters, view
+ * mode) gets its own instance; `persistName` keeps their persisted display
+ * prefs from colliding in localStorage.
+ */
+export const createAssetGridStore = (
+  persistName: string
+): AssetGridStoreApi =>
+  createStore<AssetGridState>()(
+    persist(
+      (set, get) => ({
   assetItemSize: 2,
   sizeFilter: "all",
   typeFilter: "all",
@@ -194,18 +213,95 @@ export const useAssetGridStore = create<AssetGridState>()(
   workflowFilter: null,
   setWorkflowFilter: (workflowId) => set({ workflowFilter: workflowId })
 }),
-    {
-      name: "asset-grid-storage",
-      version: 1,
-      storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({
-        foldersVisible: state.foldersVisible,
-        viewMode: state.viewMode,
-        typeFilter: state.typeFilter,
-        sizeFilter: state.sizeFilter,
-        assetItemSize: state.assetItemSize,
-        isHorizontal: state.isHorizontal
-      })
-    }
-  )
-);
+      {
+        name: persistName,
+        version: PERSIST_VERSION,
+        storage: createJSONStorage(() => localStorage),
+        partialize: (state) => ({
+          foldersVisible: state.foldersVisible,
+          viewMode: state.viewMode,
+          typeFilter: state.typeFilter,
+          sizeFilter: state.sizeFilter,
+          assetItemSize: state.assetItemSize,
+          isHorizontal: state.isHorizontal
+        })
+      }
+    )
+  );
+
+// Stores are cached by key at module scope so each surface keeps a stable,
+// independent instance across mounts — switching left-panel tabs unmounts and
+// remounts the panel, and we don't want that to reset folder navigation.
+const storeCache = new Map<string, AssetGridStoreApi>();
+const getOrCreateStore = (key: string): AssetGridStoreApi => {
+  let store = storeCache.get(key);
+  if (!store) {
+    store = createAssetGridStore(key);
+    storeCache.set(key, store);
+  }
+  return store;
+};
+
+// The app-wide singleton. Cross-cutting consumers (property widgets, clipboard
+// and drag handlers, output renderer, the fullscreen assets page) and every
+// static `useAssetGridStore.getState()` caller resolve to this instance. The
+// scoped left-panel surfaces override it via AssetGridStoreProvider.
+export const SINGLETON_ASSET_GRID_STORE_KEY = "asset-grid-storage";
+const singletonStore = getOrCreateStore(SINGLETON_ASSET_GRID_STORE_KEY);
+
+// The sidebar Library panel (PanelLeft) is the surface users browse folders
+// in day-to-day; canvas drop/paste uploads should land in whatever folder is
+// open there, not just the rarely-visited fullscreen assets page (which reads
+// the singleton above).
+export const LIBRARY_ASSET_GRID_STORE_KEY = "asset-grid-storage:library";
+
+const libraryStore = getOrCreateStore(LIBRARY_ASSET_GRID_STORE_KEY);
+
+/** Reactive access to the Library panel's current folder, for cross-cutting
+ * callers (e.g. canvas file-drop/paste) that need it without being inside
+ * the panel's provider subtree. */
+export const useLibraryCurrentFolderId = (): string | null =>
+  useStore(libraryStore, (state) => state.currentFolderId);
+
+const AssetGridStoreContext =
+  createContext<AssetGridStoreApi>(singletonStore);
+
+/**
+ * Provide a scoped AssetGrid store to a subtree. Everything below that reads via
+ * the `useAssetGridStore` hook or `useAssetGridStoreApi()` gets this instance
+ * instead of the singleton, so sibling surfaces stay independent.
+ */
+export const AssetGridStoreProvider = ({
+  persistKey,
+  children
+}: {
+  persistKey: string;
+  children: ReactNode;
+}): ReactNode =>
+  createElement(
+    AssetGridStoreContext.Provider,
+    { value: getOrCreateStore(persistKey) },
+    children
+  );
+
+/** The store API for the nearest provider (or the singleton). Use when you need
+ * imperative `getState()` access rather than a reactive selector. */
+export const useAssetGridStoreApi = (): AssetGridStoreApi =>
+  useContext(AssetGridStoreContext);
+
+function useAssetGridStoreHook<T>(selector: (state: AssetGridState) => T): T {
+  return useStore(useContext(AssetGridStoreContext), selector);
+}
+
+/**
+ * Reactive selector hook, context-aware: resolves to the nearest
+ * AssetGridStoreProvider's store, or the singleton when there is none. The
+ * static `getState`/`setState`/`subscribe` always target the singleton (for
+ * cross-cutting imperative callers and tests).
+ */
+export const useAssetGridStore = Object.assign(useAssetGridStoreHook, {
+  getState: singletonStore.getState,
+  setState: singletonStore.setState,
+  subscribe: singletonStore.subscribe,
+  getInitialState: singletonStore.getInitialState
+});

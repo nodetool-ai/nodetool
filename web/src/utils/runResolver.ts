@@ -20,7 +20,7 @@ import {
 type GetMetadata = (_nodeType: string) => NodeMetadata | undefined;
 type GetGenerations = (_workflowId: string, _nodeId: string) => Generation[];
 
-export interface RunResolverParams {
+interface RunResolverParams {
   nodes: Node<NodeData>[];
   edges: Edge[];
   workflowId: string;
@@ -39,7 +39,7 @@ export interface RunResolverParams {
  * identically — built on a single hasher + generation cache so signatures and
  * decisions stay consistent across calls.
  */
-export interface RunResolver {
+interface RunResolver {
   /**
    * Classify a source: constant | generative | computed (see nodeHash). Used to
    * tell a generative "block" (record it for the user) apart from a computed

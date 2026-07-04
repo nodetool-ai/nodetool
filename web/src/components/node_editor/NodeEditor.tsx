@@ -1,9 +1,14 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useState, useRef, useEffect } from "react";
+
 import {
+  LoadingSpinner,
+  Dialog,
+  Box,
+  TextInput,
+  BORDER_RADIUS,
   Modal
-} from "@mui/material";
-import { LoadingSpinner, Dialog, Box, TextInput, BORDER_RADIUS } from "../ui_primitives";
+} from "../ui_primitives";
 // store
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 //css
@@ -178,7 +183,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
               <LoadingSpinner variant="circular" size="medium" /> Uploading assets…
             </div>
           )}
-          <ReactFlowWrapper workflowId={workflowId} active={active} />
+          <ReactFlowWrapper workflowId={workflowId} />
           {active && (
             <>
               <SelectionActionToolbar

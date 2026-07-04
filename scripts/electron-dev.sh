@@ -13,11 +13,12 @@ cleanup() {
 
 trap cleanup EXIT INT TERM
 
-# better-sqlite3 (the only non-N-API native module) is compiled from source against
-# Electron's ABI by electron/'s postinstall hook (scripts/rebuild-native.mjs).
-# If you hit NODE_MODULE_VERSION errors, run: npm --prefix electron run postinstall
-# Note: that build targets Electron's ABI (140), so the system-Node backend
-# (make dev-server / tsx) won't open a DB until you `npm rebuild better-sqlite3`.
+# better-sqlite3 (the only source-built native module) is compiled from source
+# against the Node ABI by electron/scripts/rebuild-native.mjs, run from the repo
+# root postinstall (after npm finishes reifying the tree). The backend runs on
+# vanilla Node, so this same build serves both the Electron main process and the
+# system-Node backend (dev-server / tsx). If you hit NODE_MODULE_VERSION errors,
+# run: npm run rebuild:native
 
 # Start web Vite server
 echo "Starting web Vite server on ${WEB_DEV_SERVER_URL}..."

@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { Asset, Video, Audio, Image, Document, Model3DRef } from "../stores/ApiTypes";
 import { useAssetStore } from "../stores/AssetStore";
 import { useQuery } from "@tanstack/react-query";
+import { fileUriToHttpUrl } from "../utils/localFile";
 
 type UseAssetProps = {
   audio?: Audio;
@@ -49,10 +50,16 @@ export function useAsset(props: UseAssetProps): {
   });
 
   const resourceUri = assetResource?.uri;
+  // `file://` URIs (local-mode drops in Electron) can't be loaded directly by
+  // the renderer under webSecurity — point them at the backend's
+  // `/api/files/local` streaming endpoint, same as the output-rendering path's
+  // `useSignedUrl`.
+  const fileHttpUrl = fileUriToHttpUrl(resourceUri);
   const uri =
-    !resourceUri || resourceUri.startsWith("asset://")
+    fileHttpUrl ??
+    (!resourceUri || resourceUri.startsWith("asset://")
       ? asset?.get_url || resourceUri || undefined
-      : resourceUri;
+      : resourceUri);
 
   return { asset, uri };
 }

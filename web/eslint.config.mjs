@@ -6,6 +6,7 @@ import js from "@eslint/js";
 import { FlatCompat } from "@eslint/eslintrc";
 import {
   designTokenIgnores,
+  designTokensPlugin,
   noRestrictedImports,
   noRestrictedSyntax,
 } from "./eslint.design.mjs";
@@ -73,9 +74,11 @@ export default [
   {
     files: ["src/**/*.{ts,tsx}"],
     ignores: designTokenIgnores,
+    plugins: { "design-tokens": designTokensPlugin },
     rules: {
       "no-restricted-imports": noRestrictedImports,
       "no-restricted-syntax": noRestrictedSyntax,
+      "design-tokens/no-raw-mui": "error",
     },
   },
 ];
