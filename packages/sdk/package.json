@@ -53,5 +53,21 @@
   },
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "sdk",
+    "trpc",
+    "client",
+    "websocket",
+    "api-client"
+  ]
 }

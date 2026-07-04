@@ -56,5 +56,18 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "description": "NodeTool deployment toolkit — Docker image builds, SSH/compose provisioning, and self-hosted server management",
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "deployment",
+    "docker",
+    "ssh",
+    "self-hosted",
+    "devops"
   ]
 }

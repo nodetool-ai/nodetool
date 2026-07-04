@@ -81,5 +81,18 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "ai-agents",
+    "agent",
+    "planning",
+    "task-planner",
+    "autonomous-agents",
+    "llm-agents"
   ]
 }

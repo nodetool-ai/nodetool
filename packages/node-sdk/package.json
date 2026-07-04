@@ -52,5 +52,17 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "sdk",
+    "node-sdk",
+    "basenode",
+    "node-registry",
+    "type-system"
   ]
 }
