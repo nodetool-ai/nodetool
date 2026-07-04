@@ -224,7 +224,7 @@ export class NodeRegistry {
     instance.__node_name = descriptor.name ?? descriptor.type;
     // Stryker disable next-line ConditionalExpression: forcing this true assigns _dynamic_outputs = undefined, which reads back identically to leaving it unset (equivalent).
     if (descriptor.dynamic_outputs) {
-      (instance as any)._dynamic_outputs = descriptor.dynamic_outputs;
+      (instance as unknown as Record<string, unknown>)._dynamic_outputs = descriptor.dynamic_outputs;
     }
     return instance.toExecutor();
   }

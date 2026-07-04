@@ -645,7 +645,7 @@ const trustedProxies = parseTrustedProxies(
 // Fastify app
 // ---------------------------------------------------------------------------
 
-const app: FastifyInstance = (Fastify as any)({
+const app: FastifyInstance = (Fastify as (...args: unknown[]) => FastifyInstance)({
   ...(httpsOptions ? { https: httpsOptions } : {}),
   // Only trust X-Forwarded-For from explicitly configured proxies. With no
   // proxies configured this is `false`, so req.ip is the unspoofable socket
