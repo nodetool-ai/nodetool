@@ -169,6 +169,8 @@ export interface GlobalChatState extends ChatPiSlice {
    * or create a fresh one if the workflow has none yet. Returns the thread id.
    */
   openWorkflowThread: (workflowId: string) => Promise<string>;
+  /** Start a fresh thread bound to the workflow, replacing the prior binding. */
+  newWorkflowThread: (workflowId: string) => Promise<string>;
   // Tool call runtime UI state
   currentRunningToolCallId: string | null;
   currentToolMessage: string | null;
@@ -387,6 +389,18 @@ const useGlobalChatStore = create<GlobalChatState>()(
         const threadId = await get().createNewThread(undefined, workflowId);
         set((s) => ({
           workflowThreadId: { ...s.workflowThreadId, [workflowId]: threadId }
+        }));
+        return threadId;
+      },
+
+      newWorkflowThread: async (workflowId: string) => {
+        set({ workflowId });
+        // createNewThread sets currentThreadId to the new thread; rebind the
+        // workflow to it so openWorkflowThread won't pull the old one back.
+        const threadId = await get().createNewThread();
+        set((state) => ({
+          workflowThreadId: { ...state.workflowThreadId, [workflowId]: threadId },
+          threadWorkflowId: { ...state.threadWorkflowId, [threadId]: workflowId }
         }));
         return threadId;
       },

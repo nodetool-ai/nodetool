@@ -73,6 +73,11 @@ describe("NodeSearchIndex", () => {
     [
       { name: "single term", terms: ["image"] },
       { name: "multiple terms", terms: ["text", "split"] },
+      // Agents often pass a whole phrase as one term. The index must split it
+      // on whitespace and match per-word, like rankNodeMetadata — not probe the
+      // phrase as a single substring (which collapses to zero results).
+      { name: "multi-word phrase term", terms: ["split text into lines"] },
+      { name: "phrase term list", terms: ["generate image", "text to image"] },
       { name: "title vs description weighting", terms: ["text"] },
       { name: "no matches", terms: ["nonexistent"] },
       { name: "empty terms", terms: [] },

@@ -108,8 +108,9 @@ type ChatViewProps = {
   onNewChat?: () => void;
   memoryEnabled?: boolean;
   onMemoryToggle?: (enabled: boolean) => void;
-  helpMode?: boolean;
   workflowAssistant?: boolean;
+  /** Context-specific system-prompt addendum appended to the base chat prompt. */
+  systemPrompt?: string;
   currentPlanningUpdate?: PlanningUpdate | null;
   currentTaskUpdate?: TaskUpdate | null;
   currentLogUpdate?: LogUpdate | null;
@@ -140,6 +141,8 @@ type ChatViewProps = {
   composerToolbar?: React.ReactNode;
   /** Override the composer's textarea placeholder. */
   composerPlaceholder?: string;
+  /** Pure chat panel: hide the media mode picker and force chat mode. */
+  hideModePicker?: boolean;
   /**
    * When true, ChatView does not render its own composer. Instead it renders a
    * bottom ComposerSlot wired to its send handler, and the shared
@@ -176,7 +179,7 @@ const ChatView = ({
   onNewChat,
   memoryEnabled,
   onMemoryToggle,
-  helpMode = false,
+  systemPrompt,
   currentPlanningUpdate,
   currentTaskUpdate,
   currentLogUpdate,
@@ -191,6 +194,7 @@ const ChatView = ({
   composerVariant,
   composerToolbar,
   composerPlaceholder,
+  hideModePicker,
   useExternalComposer = false,
   showConversationHeader = false
 }: ChatViewProps) => {
@@ -217,7 +221,7 @@ const ChatView = ({
               ? mediaGeneration.model ?? model?.id
               : model?.id,
           content: content,
-          help_mode: helpMode,
+          system_prompt: systemPrompt,
           graph: graph,
           workflow_id: workflowId ?? undefined,
           workflow_target: graph ? "workflow" : undefined,
@@ -231,7 +235,7 @@ const ChatView = ({
         console.error("Error sending message:", error);
       }
     },
-    [sendMessage, model, helpMode, graph, workflowId]
+    [sendMessage, model, systemPrompt, graph, workflowId]
   );
 
   const todos = useGlobalChatStore((state) => {
@@ -287,6 +291,7 @@ const ChatView = ({
             variant={composerVariant}
             composerToolbar={composerToolbar}
             placeholder={composerPlaceholder}
+            hideModePicker={hideModePicker}
           />
         )}
       </div>

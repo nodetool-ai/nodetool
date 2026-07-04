@@ -2,7 +2,7 @@
  * Tests for SERP tool factory.
  *
  * Verifies:
- *  - createSearchTool creates GoogleSearchTool with resolved provider
+ *  - createSearchTool creates WebSearchTool with resolved provider
  *  - getConfiguredSerpProvider reads SERP_PROVIDER setting
  *  - resolveSerpProvider instantiates correct provider based on setting
  */
@@ -114,20 +114,20 @@ describe("SERP tool factory", () => {
   });
 
   describe("createSearchTool", () => {
-    it("creates GoogleSearchTool with resolved provider", async () => {
+    it("creates WebSearchTool with resolved provider", async () => {
       const ctx = makeContext({
         SERP_PROVIDER: "brave",
         BRAVE_API_KEY: "key123"
       });
       const tool = await createSearchTool(ctx);
-      expect(tool.name).toBe("google_search");
-      expect(tool.constructor.name).toBe("GoogleSearchTool");
+      expect(tool.name).toBe("web_search");
+      expect(tool.constructor.name).toBe("WebSearchTool");
     });
 
     it("uses default SerpAPI when provider not set", async () => {
       const ctx = makeContext({ SERPAPI_API_KEY: "key123" });
       const tool = await createSearchTool(ctx);
-      expect(tool.name).toBe("google_search");
+      expect(tool.name).toBe("web_search");
     });
 
     it("throws when required credentials missing", async () => {
