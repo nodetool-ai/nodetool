@@ -25,6 +25,20 @@ primary_region = "fra"   # next to the Supabase DB (aws eu-central-1 / Frankfurt
   PORT = "7777"
   NODETOOL_ENV = "production"
   STATIC_FOLDER = "/app/web/dist"
+  # Migrations run once per release in the release_command VM below, not on
+  # every app-machine boot. Without this, each machine started during a rolling
+  # deploy (or a scale-up) would re-enter the migrator and contend on the
+  # migration lock — a slow migration could time the lock out and crash-loop a
+  # second machine. One release-phase run avoids that entirely.
+  NODETOOL_MIGRATE_ON_BOOT = "0"
+
+# Fly runs release_command once, in a temporary machine on the new image,
+# BEFORE any app machine is updated — and aborts the deploy if it exits
+# non-zero. So a bad migration blocks the release instead of shipping code that
+# 500s against an un-migrated schema. Uses the same image + DATABASE_URL secret;
+# db-migrate.mjs takes the migration lock, so it's safe regardless.
+[deploy]
+  release_command = "node /app/scripts/db-migrate.mjs"
 
 [http_service]
   internal_port = 7777
