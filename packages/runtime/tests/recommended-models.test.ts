@@ -67,7 +67,7 @@ describe("RECOMMENDED_MODELS catalog invariants", () => {
 
   it("includes the expected anchor models", () => {
     const ids = RECOMMENDED_MODELS.map((m) => m.id);
-    expect(ids).toContain("gpt-4o-mini");
+    expect(ids).toContain("gpt-5-mini");
     expect(ids).toContain("claude-3-5-sonnet-latest");
     expect(ids).toContain("whisper-1");
   });

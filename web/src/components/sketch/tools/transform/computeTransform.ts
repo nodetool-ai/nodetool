@@ -18,8 +18,7 @@ import type {
   TransformMode,
   Quad,
   SingleQuadMode,
-  SingleQuadTransform,
-  AffineTransform
+  SingleQuadTransform
 } from "../../types";
 import {
   cloneTransform,

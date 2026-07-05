@@ -1,0 +1,67 @@
+name: Deploy to Fly
+
+# Auto-deploy the NodeTool server to Fly.io (https://nodetool.fly.dev).
+#
+# The deploy unit is the GHCR image published by the "Docker" workflow
+# (.github/workflows/docker.yml). We therefore trigger on that workflow's
+# COMPLETION rather than on push, so we never release an image before it has
+# been built + pushed. On success we release the image tag that corresponds to
+# the exact triggering commit — `main-<shortsha>`, which "Docker" publishes via
+# `type=sha,prefix={{branch}}-`. We deliberately do NOT deploy `:latest` on
+# workflow_run: if two main builds finish out of order, `:latest` may point at a
+# newer commit and we'd deploy the wrong image. `:latest` is used only for a
+# manual re-deploy (workflow_dispatch).
+#
+# Requires a repo secret FLY_API_TOKEN scoped to the `nodetool` app:
+#   fly tokens create deploy -a nodetool --expiry 8760h
+on:
+  workflow_run:
+    workflows: ["Docker"]
+    types: [completed]
+    branches: [main]
+  # Manual re-deploy of the current :latest image.
+  workflow_dispatch:
+
+# Least privilege: this job only reads the repo to check out fly.toml. The Fly
+# release is authorized by FLY_API_TOKEN, not the GITHUB_TOKEN.
+permissions:
+  contents: read
+
+concurrency:
+  group: fly-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy server
+    runs-on: ubuntu-latest
+    # Skip when the image build failed/was cancelled (workflow_dispatch always runs).
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Deploy the fly.toml as it was at the built commit (falls back to the
+          # dispatch ref for manual runs).
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Resolve image tag
+        id: img
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            # Pin to the exact commit that was just built (main-<7-char-sha>),
+            # matching docker.yml's `type=sha,prefix={{branch}}-`.
+            sha="${{ github.event.workflow_run.head_sha }}"
+            echo "ref=ghcr.io/nodetool-ai/nodetool:main-${sha:0:7}" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=ghcr.io/nodetool-ai/nodetool:latest" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: superfly/flyctl-actions/setup-flyctl@v1.4
+
+      - name: fly deploy (server)
+        run: flyctl deploy --config fly.toml --image "${{ steps.img.outputs.ref }}" --ha=false
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

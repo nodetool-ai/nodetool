@@ -405,9 +405,15 @@ describe("OpenAIProvider – convertSystemToUserForOModels", () => {
     ]);
     const create = vi.fn().mockResolvedValue(stream);
 
+    // The o-model system→user conversion is a Chat Completions concern. On the
+    // `openai` provider o-models route to the Responses API, so exercise the
+    // chat path via a compatible subclass provider id.
     const provider = new OpenAIProvider(
       { OPENAI_API_KEY: "k" },
-      { client: { chat: { completions: { create } } } as any }
+      {
+        client: { chat: { completions: { create } } } as any,
+        providerId: "openrouter"
+      }
     );
 
     const out: unknown[] = [];
@@ -483,7 +489,7 @@ describe("OpenAIProvider – generateMessage with options", () => {
     );
 
     await provider.generateMessage({
-      model: "gpt-4o",
+      model: "gpt-3.5-turbo",
       messages: [{ role: "user", content: "hi" }],
       temperature: 0.5,
       topP: 0.9,
@@ -508,7 +514,7 @@ describe("OpenAIProvider – generateMessage with options", () => {
 
     await expect(
       provider.generateMessage({
-        model: "gpt-4o",
+        model: "gpt-3.5-turbo",
         messages: [{ role: "user", content: "hi" }]
       })
     ).rejects.toThrow("no choices");
@@ -915,11 +921,11 @@ describe("OpenAIProvider – generateEmbedding", () => {
 });
 
 describe("OpenAIProvider – getAvailableLanguageModels", () => {
-  it("fetches and maps models", async () => {
+  it("keeps only the supported gpt-5 family and drops older models", async () => {
     const fetchFn = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
-        data: [{ id: "gpt-4o" }, { id: "gpt-3.5-turbo" }, {}]
+        data: [{ id: "gpt-5.4" }, { id: "gpt-4o" }, { id: "gpt-3.5-turbo" }, {}]
       })
     });
 
@@ -930,12 +936,11 @@ describe("OpenAIProvider – getAvailableLanguageModels", () => {
 
     const models = await provider.getAvailableLanguageModels();
     expect(models).toEqual([
-      { id: "gpt-4o", name: "gpt-4o", provider: "openai" },
-      { id: "gpt-3.5-turbo", name: "gpt-3.5-turbo", provider: "openai" }
+      { id: "gpt-5.4", name: "gpt-5.4", provider: "openai" }
     ]);
   });
 
-  it("returns empty array on API failure", async () => {
+  it("falls back to the gpt-5 model list on API failure", async () => {
     const fetchFn = vi.fn().mockResolvedValue({ ok: false, status: 401 });
 
     const provider = new OpenAIProvider(
@@ -944,7 +949,15 @@ describe("OpenAIProvider – getAvailableLanguageModels", () => {
     );
 
     const models = await provider.getAvailableLanguageModels();
-    expect(models).toEqual([]);
+    expect(models.map((m) => m.id)).toEqual([
+      "gpt-5.5",
+      "gpt-5.4",
+      "gpt-5.4-mini",
+      "gpt-5",
+      "gpt-5-mini",
+      "gpt-5-nano"
+    ]);
+    expect(models.every((m) => m.provider === "openai")).toBe(true);
   });
 });
 
@@ -1369,7 +1382,7 @@ describe("OpenAIProvider – generateMessages with tools", () => {
 
     const out: unknown[] = [];
     for await (const item of provider.generateMessages({
-      model: "gpt-4o",
+      model: "gpt-3.5-turbo",
       messages: [{ role: "user", content: "search" }],
       tools: [{ name: "search", description: "Search" }]
     })) {
@@ -1392,7 +1405,7 @@ describe("OpenAIProvider – generateMessages with tools", () => {
     );
 
     for await (const _ of provider.generateMessages({
-      model: "gpt-4o",
+      model: "gpt-3.5-turbo",
       messages: [{ role: "user", content: "hi" }],
       temperature: 0.5,
       topP: 0.9,

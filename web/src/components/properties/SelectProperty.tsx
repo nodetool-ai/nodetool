@@ -10,7 +10,7 @@ import { useNodes } from "../../contexts/NodeContext";
  * Unlike EnumProperty, it reads the options from the node's "options" property
  * rather than from the property type metadata.
  */
-const SelectProperty: React.FC<PropertyProps> = ({
+const SelectProperty: React.FC<PropertyProps<string>> = ({
   property,
   propertyIndex,
   nodeId,

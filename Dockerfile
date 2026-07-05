@@ -119,6 +119,12 @@ COPY --from=build --chown=node:node /runtime/ ./
 
 # Startup migration runner (Postgres). Depends only on @nodetool-ai/models +
 # postgres, both already present above — no CLI bundle needed.
+#
+# By default the entrypoint applies migrations on every boot (the migration
+# lock keeps concurrent boots safe). Orchestrators that migrate once per
+# release in a dedicated step — e.g. Fly's release_command — should set
+# NODETOOL_MIGRATE_ON_BOOT=0 so the long-lived app machines don't each re-run
+# the migrator on startup. See fly.toml.
 COPY --chown=node:node scripts/db-migrate.mjs ./scripts/db-migrate.mjs
 
 # If neither a master key nor AWS Secrets Manager is configured, persist a
@@ -141,7 +147,7 @@ RUN printf '%s\n' \
     '  fi' \
     '  export SECRETS_MASTER_KEY="$(cat "$KEY_FILE")"' \
     'fi' \
-    'if [ -n "${DATABASE_URL:-}" ]; then' \
+    'if [ -n "${DATABASE_URL:-}" ] && [ "${NODETOOL_MIGRATE_ON_BOOT:-1}" != "0" ]; then' \
     '  echo "Applying database migrations..."' \
     '  node /app/scripts/db-migrate.mjs' \
     'fi' \

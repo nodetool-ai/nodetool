@@ -442,7 +442,7 @@ export class AudioGraph {
     }
     const bufferMap = new Map(loadedBuffers.map((b) => [b.clipId, b.buffer]));
 
-    for (const { clip, assetUrl } of clips) {
+    for (const { clip } of clips) {
       if (this.clipSources.has(clip.id)) {
         continue;
       }
