@@ -64,7 +64,8 @@ import {
   assetToGeneration,
   getCurrentGeneration,
   mergeGenerations,
-  outputOf
+  outputOf,
+  type Generation
 } from "../../../utils/nodeGenerations";
 import type { Asset } from "../../../stores/ApiTypes";
 import { useShallow } from "zustand/react/shallow";
@@ -646,8 +647,18 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
       (s) => s.assetsByWorkflow[props.data.workflow_id] ?? EMPTY_ASSETS
     )
   );
-  const liveGenerations = useResultsStore(
-    useShallow((s) => s.liveGenerations)
+  // Subscribe only to connected source nodes' live generations, not the
+  // whole map — avoids re-renders when unrelated nodes produce output.
+  const scopedLiveGens = useResultsStore(
+    useShallow((s) => {
+      const result: Record<string, Generation[]> = {};
+      for (const connection of Object.values(layerInputConnections)) {
+        const key = `${props.data.workflow_id}:${connection.sourceId}`;
+        const val = s.liveGenerations[key];
+        if (val) result[key] = val;
+      }
+      return result;
+    })
   );
   const layerInputResults = useMemo(() => {
     const out: Record<string, unknown> = {};
@@ -658,7 +669,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
         .filter((a) => a.node_id === connection.sourceId)
         .map(assetToGeneration);
       const live =
-        liveGenerations[
+        scopedLiveGens[
           `${props.data.workflow_id}:${connection.sourceId}`
         ] ?? [];
       const generations = mergeGenerations(persisted, live);
@@ -678,7 +689,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
   }, [
     layerInputConnections,
     workflowAssets,
-    liveGenerations,
+    scopedLiveGens,
     props.data.workflow_id,
     findNode
   ]);
