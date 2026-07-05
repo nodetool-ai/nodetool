@@ -2,8 +2,7 @@ name: Docker
 
 on:
   push:
-    # Build images for main and any `preview/**` branch. Preview branches can be
-    # deployed as a preview instance via `deploy.sh --slug`. The metadata-action
+    # Build images for main and any `preview/**` branch. The metadata-action
     # step below tags non-tag refs as `{branch}-{shortsha}` (and `latest` only on
     # main). `pull_request` is intentionally not used to avoid duplicate builds
     # for in-repo PRs (which would fire both events). Fork PRs cannot push to
