@@ -58,8 +58,9 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
               color="primary"
               startIcon={<AutoAwesomeIcon sx={{ fontSize: 16 }} />}
               onClick={onToggleAgent}
+              aria-pressed={agentOpen}
             >
-              Agent
+              Ask Agent
             </EditorButton>
           )}
           <EditorButton
@@ -68,7 +69,7 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
             startIcon={<CloseIcon sx={{ fontSize: 16 }} />}
             onClick={onClose}
           >
-            Close
+            Back
           </EditorButton>
           {children}
         </>

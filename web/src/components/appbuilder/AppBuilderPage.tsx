@@ -4,7 +4,17 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Data } from "@puckeditor/core";
 
-import { Box, FlexRow, FlexColumn, LoadingSpinner, Text } from "../ui_primitives";
+import {
+  Box,
+  FlexRow,
+  FlexColumn,
+  LoadingSpinner,
+  Text,
+  Caption,
+  AlertBanner,
+  BORDER_RADIUS,
+  SPACING
+} from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -102,13 +112,12 @@ const AppBuilderPage: React.FC = () => {
       <FlexColumn
         align="center"
         justify="center"
-        gap={1}
+        gap={SPACING.md}
         sx={{ width: "100%", height: "100%" }}
       >
-        <Text color="error" weight={600}>
-          Error Loading Workflow
-        </Text>
-        {error && <Text color="error">{error.message}</Text>}
+        <AlertBanner severity="error" title="Error loading workflow">
+          {error?.message ?? "The workflow could not be loaded."}
+        </AlertBanner>
       </FlexColumn>
     );
   }
@@ -117,24 +126,51 @@ const AppBuilderPage: React.FC = () => {
     <FlexRow gap={0} sx={{ width: "100%", height: "100%", minHeight: 0 }}>
       {/* Syncs workflow tools to this workflow so the agent can edit the graph. */}
       <FrontendToolRuntimeSync />
-      <Box sx={{ flex: 1, minWidth: 0, height: "100%" }}>
-        <PuckAppEditor
-          workflow={workflow}
-          data={data}
-          onPublish={handlePublish}
-          onClose={handleClose}
-          agentOpen={agentOpen}
-          onToggleAgent={toggleAgent}
-        />
-      </Box>
+      <FlexColumn sx={{ flex: 1, minWidth: 0, height: "100%", minHeight: 0 }}>
+        <FlexRow
+          align="center"
+          justify="space-between"
+          sx={{
+            px: SPACING.lg,
+            py: SPACING.md,
+            borderBottom: "1px solid",
+            borderColor: "divider",
+            backgroundColor: "background.paper"
+          }}
+        >
+          <Box sx={{ minWidth: 0 }}>
+            <Text size="small" weight={500} truncate>
+              {workflow.name}
+            </Text>
+            <Caption color="secondary" sx={{ display: "block" }}>
+              App Builder
+            </Caption>
+          </Box>
+          <Caption color="secondary">
+            Bind widgets to workflow inputs and outputs, then publish.
+          </Caption>
+        </FlexRow>
+        <Box sx={{ flex: 1, minHeight: 0 }}>
+          <PuckAppEditor
+            workflow={workflow}
+            data={data}
+            onPublish={handlePublish}
+            onClose={handleClose}
+            agentOpen={agentOpen}
+            onToggleAgent={toggleAgent}
+          />
+        </Box>
+      </FlexColumn>
       {agentOpen && (
         <Box
           sx={{
-            width: 400,
+            width: { xs: "min(100vw, 360px)", lg: 420 },
             flexShrink: 0,
             height: "100%",
             borderLeft: "1px solid",
-            borderColor: "divider"
+            borderColor: "divider",
+            overflow: "hidden",
+            borderTopLeftRadius: BORDER_RADIUS.lg
           }}
         >
           <AppBuilderAgentPanel workflowId={workflow.id} />

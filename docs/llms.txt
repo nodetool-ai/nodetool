@@ -34,7 +34,7 @@ NodeTool is an open-source, local-first visual environment for building AI workf
 - [Debugging]({{ site.url }}/workflow-debugging): Inspect runs, errors, logs.
 - [Sketch Editor]({{ site.url }}/sketch-editor): Mask, paint, layer, and generate images inline.
 - [Templates Gallery]({{ site.url }}/templates-gallery): Browse and open starter workflows.
-- [VibeCoding]({{ site.url }}/vibecoding): Generate workflows from natural language.
+- [App Builder]({{ site.url }}/app-builder): Design Mini App interfaces for workflows.
 
 ## Chat & Agents
 

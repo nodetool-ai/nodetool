@@ -25,7 +25,6 @@ import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode"
 import { graphEdgeToReactFlowEdge } from "../../stores/graphEdgeToReactFlowEdge";
 import MiniAppResults from "./components/MiniAppResults";
 import MiniAppInputsForm from "./components/MiniAppInputsForm";
-import VibeCodingPreview from "../vibecoding/VibeCodingPreview";
 import AppRuntimeView from "../appbuilder/AppRuntimeView";
 import { loadAppData } from "../appbuilder/persistence";
 import { isRenderableData } from "../appbuilder/appData";
@@ -186,12 +185,9 @@ const MiniAppPage: React.FC<MiniAppPageProps> = ({
   const panelSize = usePanelStore((state) => state.panel.panelSize);
   const leftOffset = embedded ? 0 : isVisible ? panelSize : TOOLBAR_WIDTH;
 
-  // Check for a WYSIWYG app spec (takes priority over the default form UI).
+  // Check for an App Builder document. Without one, render the generated form.
   const appData = useMemo(() => loadAppData(workflow), [workflow]);
   const hasAppSpec = isRenderableData(appData);
-
-  // Check for custom HTML app
-  const hasCustomApp = Boolean(workflow?.html_app);
 
   const isRunning = runnerState === "running" || runnerState === "connecting";
 
@@ -241,25 +237,15 @@ const MiniAppPage: React.FC<MiniAppPageProps> = ({
           transition: `margin-left ${MOTION.normal}`
         }}
       >
-        {/* WYSIWYG App - reactive, event-driven UI built in the App Builder */}
+        {/* App Builder document: reactive, event-driven UI. */}
         {hasAppSpec && appData && workflow && (
           <Box sx={{ height: "100%", width: "100%", flex: 1 }}>
             <AppRuntimeView workflow={workflow} data={appData} />
           </Box>
         )}
 
-        {/* Custom HTML App - Full Width */}
-        {!hasAppSpec && hasCustomApp && workflow && (
-          <Box sx={{ height: "100%", width: "100%", flex: 1 }}>
-            <VibeCodingPreview
-              html={workflow.html_app!}
-              workflowId={workflow.id}
-            />
-          </Box>
-        )}
-
         {/* Default UI - Centered Container */}
-        {!hasAppSpec && !hasCustomApp && (
+        {!hasAppSpec && (
           <div className="layout-container">
             {/* Loading State */}
             {isLoading && (

@@ -50,9 +50,6 @@ const DownloadManagerDialog = React.lazy(
   () => import("../hugging_face/DownloadManagerDialog")
 );
 const NodeInfo = React.lazy(() => import("../node_menu/NodeInfo"));
-const VibeCodingModal = React.lazy(
-  () => import("../vibecoding/VibeCodingModal")
-);
 const WorkflowFormModal = React.lazy(
   () => import("../workflows/WorkflowFormModal")
 );
@@ -152,11 +149,6 @@ const PREVIEWS: PreviewEntry[] = [
     id: "workflow-delete",
     label: "Workflow Delete Confirmation",
     description: "Safe-delete prompt for workflows"
-  },
-  {
-    id: "vibecoding-modal",
-    label: "VibeCoding Modal",
-    description: "AI-assisted custom UI generator"
   }
 ];
 
@@ -554,31 +546,6 @@ const PreviewWorkflowDelete: React.FC = () => (
   </Box>
 );
 
-const PreviewVibeCodingModal: React.FC = () => {
-  // Seed an html_app so the preview pane has content instead of a blank state.
-  const seeded: Workflow = {
-    ...SAMPLE_WORKFLOW,
-    html_app:
-      "<!doctype html><html><head><title>Story</title>" +
-      "<style>body{font-family:system-ui;margin:0;padding:24px;background:#0e0e10;color:#eee}" +
-      "h1{color:#7c5cff;margin:0 0 12px}.card{background:#1a1a1d;padding:16px;border-radius:8px;max-width:520px}</style>" +
-      "</head><body><h1>Story Generator</h1><div class=\"card\"><p>Topic</p>" +
-      "<input style=\"width:100%;padding:8px;background:#0e0e10;color:#eee;border:1px solid #333;border-radius:4px\" value=\"Two robots discover they can dream\"/>" +
-      "<button style=\"margin-top:12px;padding:8px 16px;background:#7c5cff;color:#fff;border:0;border-radius:4px\">Generate</button></div></body></html>"
-  };
-  return (
-    <Box data-preview="vibecoding-modal" sx={{ width: "100%", height: "100vh" }}>
-      <Suspense fallback={null}>
-        <VibeCodingModal
-          open
-          workflow={seeded}
-          onClose={() => undefined}
-        />
-      </Suspense>
-    </Box>
-  );
-};
-
 // ─── Preview index page ────────────────────────────────────────────────────────
 
 const PreviewIndex: React.FC = () => {
@@ -671,8 +638,7 @@ const COMPONENT_MAP: Record<string, React.FC> = {
   "download-manager": PreviewDownloadManager,
   "node-readme": PreviewNodeReadme,
   "workflow-form": PreviewWorkflowForm,
-  "workflow-delete": PreviewWorkflowDelete,
-  "vibecoding-modal": PreviewVibeCodingModal
+  "workflow-delete": PreviewWorkflowDelete
 };
 
 const ComponentPreview: React.FC = () => {

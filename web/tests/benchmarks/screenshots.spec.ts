@@ -1101,18 +1101,6 @@ if (process.env.JEST_WORKER_ID) {
             .waitFor({ state: "visible", timeout: 8000 })
             .catch(() => {});
         }
-      },
-      {
-        preview: "vibecoding-modal",
-        filename: "vibecoding-modal.png",
-        ready: async (p) => {
-          await p
-            .getByText(/VibeCoding|Story Generator/i)
-            .first()
-            .waitFor({ state: "visible", timeout: 8000 })
-            .catch(() => {});
-          await waitForAnimation(p, 600);
-        }
       }
     ];
 

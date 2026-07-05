@@ -1,8 +1,8 @@
 # App Builder
 
 A WYSIWYG builder (powered by [Puck](https://puckeditor.com)) that turns a
-workflow into a reactive, interactive app. It is the structured successor to the
-basic inputs-form app mode and the freeform `html_app` (VibeCoding) UI.
+workflow into a reactive, interactive app. It is the structured custom-app path
+for Mini App mode.
 
 ## Model
 
@@ -69,6 +69,6 @@ Variable node and wire app state to it.
 
 ## Where it shows up
 
-`MiniAppPage` renders `AppRuntimeView` when the workflow has a document
-(priority: app document → `html_app` → default form). The builder lives at
-`/app-builder/:workflowId`; open it from the app-mode side panel ("App Builder").
+`MiniAppPage` renders `AppRuntimeView` when the workflow has an app document.
+Without one, Mini App mode renders the generated input/output form. The builder
+lives at `/app-builder/:workflowId`; open it from App mode with **App Builder**.
