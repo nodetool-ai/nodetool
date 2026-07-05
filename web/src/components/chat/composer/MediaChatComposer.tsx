@@ -37,8 +37,6 @@ import useMediaGenerationStore, {
   AUDIO_FORMATS,
   AUDIO_SPEEDS,
   DEFAULT_TTS_VOICES,
-  IMAGE_EDIT_STRENGTHS,
-  INFERENCE_STEPS,
   resolveImageSize
 } from "../../../stores/MediaGenerationStore";
 import type {
@@ -57,6 +55,7 @@ import {
   videoModelConstraints
 } from "./videoModelOptions";
 import {
+  buildImageEditOptions,
   buildImageModelOptions,
   imageModelConstraints
 } from "./imageModelOptions";
@@ -785,28 +784,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     []
   );
 
-  const strengthOptions = useMemo<MediaOption<number>[]>(
-    () =>
-      IMAGE_EDIT_STRENGTHS.map((s) => ({
-        id: s,
-        label: s.toFixed(2),
-        description:
-          s <= 0.35 ? "subtle" : s >= 0.85 ? "strong" : "balanced",
-        icon: <TuneIcon fontSize="small" />
-      })),
-    []
-  );
-
-  const stepsOptions = useMemo<MediaOption<number>[]>(
-    () =>
-      INFERENCE_STEPS.map((n) => ({
-        id: n,
-        label: `${n}`,
-        description: n <= 15 ? "fast" : n >= 40 ? "high quality" : "balanced",
-        icon: <LayersIcon fontSize="small" />
-      })),
-    []
-  );
+  const { strengthOptions, stepsOptions } = useMemo(buildImageEditOptions, []);
 
   const chatProviderLabel = useMemo(() => {
     const m = selectedModel ?? languageModel;

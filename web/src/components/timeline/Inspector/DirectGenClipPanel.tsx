@@ -32,6 +32,28 @@ import type {
 } from "../../../stores/ApiTypes";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import StopRoundedIcon from "@mui/icons-material/StopRounded";
+import TvIcon from "@mui/icons-material/Tv";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import TuneIcon from "@mui/icons-material/Tune";
+import LayersIcon from "@mui/icons-material/Layers";
+
+import {
+  MediaAspectChip,
+  MediaOptionChip
+} from "../../chat/composer/MediaSettingChips";
+import {
+  buildImageEditOptions,
+  buildImageModelOptions
+} from "../../chat/composer/imageModelOptions";
+import { buildVideoModelOptions } from "../../chat/composer/videoModelOptions";
+import {
+  deriveImageSizePreset,
+  resolveImageSize,
+  type ImageResolution,
+  type VideoModelSelection,
+  type VideoResolution
+} from "../../../stores/MediaGenerationStore";
+import { useMediaOptions } from "../../../hooks/useModelsByProvider";
 
 import {
   Caption,
@@ -83,6 +105,13 @@ const EMPTY_SOURCE_ENTRIES: readonly string[] = [];
 // this separator, so splitting on its first occurrence is unambiguous.
 const SOURCE_ENTRY_SEP = "\u0000";
 
+// Defaults for the setting chips when the clip has no explicit value yet —
+// same as the media chat composer's per-mode defaults.
+const DEFAULT_STRENGTH = 0.65;
+const DEFAULT_STEPS = 30;
+const DEFAULT_VIDEO_RESOLUTION: VideoResolution = "720p";
+const DEFAULT_VIDEO_ASPECT = "16:9";
+
 const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
   clipId
 }) => {
@@ -94,6 +123,7 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
     (s) => s.setClipDirectGenModel
   );
   const patchClipBinding = useTimelineStore((s) => s.patchClipBinding);
+  const patchClip = useTimelineStore((s) => s.patchClip);
   const addNotification = useNotificationStore((s) => s.addNotification);
 
   const {
@@ -111,6 +141,82 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
         ? "audio"
         : "image";
   const isImageToImage = clip?.bindingKind === "image-to-image";
+
+  // Per-model option constraints from the provider manifest — the same source
+  // the media chat composer uses, so both surfaces offer identical choices.
+  // Audio clips have no size/duration options, so their query stays disabled.
+  const mediaOptions = useMediaOptions({
+    provider: clip?.provider,
+    model: kind === "audio" ? null : clip?.model,
+    task: kind === "video" ? "video" : "image"
+  });
+
+  const { aspectOptions: imageAspectOptions, resolutionOptions } = useMemo(
+    () =>
+      buildImageModelOptions({
+        aspectRatios: mediaOptions.data?.aspectRatios,
+        resolutions: mediaOptions.data?.resolutions
+      }),
+    [mediaOptions.data]
+  );
+  const { strengthOptions, stepsOptions } = useMemo(buildImageEditOptions, []);
+  const videoSelection = useMemo<VideoModelSelection | null>(
+    () =>
+      kind === "video" && clip?.model
+        ? {
+            type: "video_model",
+            id: clip.model,
+            provider: clip.provider ?? "",
+            name: clip.model,
+            durations: mediaOptions.data?.durations ?? undefined,
+            resolutions: mediaOptions.data?.resolutions ?? undefined,
+            aspectRatios: mediaOptions.data?.aspectRatios ?? undefined
+          }
+        : null,
+    [kind, clip?.model, clip?.provider, mediaOptions.data]
+  );
+  const {
+    durationOptions,
+    resolutionOptions: videoResolutionOptions,
+    aspectOptions: videoAspectOptions
+  } = useMemo(() => buildVideoModelOptions(videoSelection), [videoSelection]);
+
+  // Image size chips: derive the nearest preset from width/height for clips
+  // created before aspect/resolution were stored on the binding.
+  const imageSizeSeed = useMemo(
+    () => deriveImageSizePreset(clip?.width ?? 1024, clip?.height ?? 1024),
+    [clip?.width, clip?.height]
+  );
+  const imageResolution =
+    (clip?.resolution as ImageResolution | undefined) ??
+    imageSizeSeed.resolution;
+  const imageAspect = clip?.aspectRatio ?? imageSizeSeed.aspectRatio;
+
+  const applyImageSize = useCallback(
+    (nextResolution: ImageResolution, nextAspect: string) => {
+      const { width, height } = resolveImageSize(nextResolution, nextAspect);
+      patchClipBinding(clipId, {
+        resolution: nextResolution,
+        aspectRatio: nextAspect,
+        width,
+        height
+      });
+    },
+    [clipId, patchClipBinding]
+  );
+
+  // The direct-gen job derives the requested video duration from the clip's
+  // timeline length, so the duration chip resizes the clip itself.
+  const videoDuration = Math.max(
+    1,
+    Math.round((clip?.durationMs ?? 4000) / 1000)
+  );
+  const handleDurationChange = useCallback(
+    (seconds: number) => {
+      patchClip(clipId, { durationMs: seconds * 1000 });
+    },
+    [clipId, patchClip]
+  );
 
   // Eligible image-to-image source clips: any other image/overlay clip with
   // a rendered asset in the sequence. Gated on `isImageToImage` so clips in
@@ -342,6 +448,80 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
                   size="small"
                 />
               )
+            )}
+
+            {/* Output settings — the same fields as the header generation
+                panel (media chat composer) for the matching mode. */}
+            {kind === "image" && (
+              <FlexRow gap={0.5} align="center" sx={{ flexWrap: "wrap" }}>
+                <MediaOptionChip
+                  icon={<TvIcon fontSize="small" />}
+                  header="Resolution"
+                  value={imageResolution}
+                  options={resolutionOptions}
+                  onChange={(r) => applyImageSize(r, imageAspect)}
+                />
+                <MediaAspectChip
+                  value={imageAspect}
+                  options={imageAspectOptions}
+                  onChange={(a) => applyImageSize(imageResolution, a)}
+                />
+                {isImageToImage && (
+                  <>
+                    <MediaOptionChip
+                      icon={<TuneIcon fontSize="small" />}
+                      label={`Strength ${(clip.strength ?? DEFAULT_STRENGTH).toFixed(2)}`}
+                      header="Edit Strength"
+                      value={clip.strength ?? DEFAULT_STRENGTH}
+                      options={strengthOptions}
+                      onChange={(s) =>
+                        patchClipBinding(clipId, { strength: s })
+                      }
+                    />
+                    <MediaOptionChip
+                      icon={<LayersIcon fontSize="small" />}
+                      label={`${clip.numInferenceSteps ?? DEFAULT_STEPS} steps`}
+                      header="Inference Steps"
+                      value={clip.numInferenceSteps ?? DEFAULT_STEPS}
+                      options={stepsOptions}
+                      onChange={(n) =>
+                        patchClipBinding(clipId, { numInferenceSteps: n })
+                      }
+                    />
+                  </>
+                )}
+              </FlexRow>
+            )}
+            {kind === "video" && (
+              <FlexRow gap={0.5} align="center" sx={{ flexWrap: "wrap" }}>
+                <MediaOptionChip
+                  icon={<AccessTimeIcon fontSize="small" />}
+                  label={`${videoDuration} Sec`}
+                  header="Duration"
+                  value={videoDuration}
+                  options={durationOptions}
+                  onChange={handleDurationChange}
+                />
+                <MediaOptionChip
+                  icon={<TvIcon fontSize="small" />}
+                  header="Video Resolution"
+                  value={
+                    (clip.resolution as VideoResolution | undefined) ??
+                    DEFAULT_VIDEO_RESOLUTION
+                  }
+                  options={videoResolutionOptions}
+                  onChange={(r) =>
+                    patchClipBinding(clipId, { resolution: r })
+                  }
+                />
+                <MediaAspectChip
+                  value={clip.aspectRatio ?? DEFAULT_VIDEO_ASPECT}
+                  options={videoAspectOptions}
+                  onChange={(a) =>
+                    patchClipBinding(clipId, { aspectRatio: a })
+                  }
+                />
+              </FlexRow>
             )}
 
             <EditorButton

@@ -331,4 +331,29 @@ export function resolveImageSize(
   return { width, height };
 }
 
+/**
+ * Nearest aspect-ratio + resolution preset for a concrete pixel size — the
+ * inverse of {@link resolveImageSize}. Used to seed the size controls from an
+ * existing canvas or binding instead of a fixed default.
+ */
+export function deriveImageSizePreset(
+  width: number,
+  height: number
+): { aspectRatio: string; resolution: ImageResolution } {
+  const ratio = width / height;
+  let aspectRatio = IMAGE_ASPECT_RATIOS[0].id;
+  let bestDiff = Infinity;
+  for (const a of IMAGE_ASPECT_RATIOS) {
+    const diff = Math.abs(a.width / a.height - ratio);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      aspectRatio = a.id;
+    }
+  }
+  const shortEdge = Math.min(width, height);
+  const resolution: ImageResolution =
+    shortEdge >= 3072 ? "4K" : shortEdge >= 1536 ? "2K" : "1K";
+  return { aspectRatio, resolution };
+}
+
 export default useMediaGenerationStore;

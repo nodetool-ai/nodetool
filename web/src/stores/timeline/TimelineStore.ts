@@ -363,6 +363,8 @@ export interface TimelineStoreState {
         | "sourceClipId"
         | "width"
         | "height"
+        | "aspectRatio"
+        | "resolution"
         | "strength"
         | "numInferenceSteps"
         | "seed"

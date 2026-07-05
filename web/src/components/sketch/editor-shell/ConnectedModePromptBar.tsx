@@ -41,7 +41,7 @@ import { clampToAllowed } from "../../chat/composer/videoModelOptions";
 import ImageModelMenuDialog from "../../model_menu/ImageModelMenuDialog";
 import type { ImageModel } from "../../../stores/ApiTypes";
 import {
-  IMAGE_ASPECT_RATIOS,
+  deriveImageSizePreset,
   resolveImageSize,
   type ImageResolution
 } from "../../../stores/MediaGenerationStore";
@@ -50,28 +50,6 @@ import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore
 import { useDirectGenJob } from "../../../hooks/sketch/useDirectGenJob";
 import { useMediaOptions } from "../../../hooks/useModelsByProvider";
 import { SKETCH_SPACING } from "../sketchStyles";
-
-/** Nearest aspect-ratio + resolution preset for an existing canvas size, so the
- *  controls reflect the artboard on open instead of a fixed default. */
-function deriveSizePreset(
-  width: number,
-  height: number
-): { aspectRatio: string; resolution: ImageResolution } {
-  const ratio = width / height;
-  let aspectRatio = IMAGE_ASPECT_RATIOS[0].id;
-  let bestDiff = Infinity;
-  for (const a of IMAGE_ASPECT_RATIOS) {
-    const diff = Math.abs(a.width / a.height - ratio);
-    if (diff < bestDiff) {
-      bestDiff = diff;
-      aspectRatio = a.id;
-    }
-  }
-  const shortEdge = Math.min(width, height);
-  const resolution: ImageResolution =
-    shortEdge >= 3072 ? "4K" : shortEdge >= 1536 ? "2K" : "1K";
-  return { aspectRatio, resolution };
-}
 
 /** Most recent direct-gen binding's model, to seed the bar's picker. */
 function seedModelFromBindings(): { model: string; provider: string } {
@@ -135,7 +113,7 @@ const ConnectedModePromptBarInner: React.FC<ConnectedModePromptBarProps> = ({
   // composer. These shape the generation output only; the artboard size is
   // controlled separately in the canvas panel. Seeded from the current canvas
   // so the first generation defaults to the artboard's shape.
-  const [sizeSeed] = useState(() => deriveSizePreset(docW, docH));
+  const [sizeSeed] = useState(() => deriveImageSizePreset(docW, docH));
   const [aspectRatio, setAspectRatio] = useState(sizeSeed.aspectRatio);
   const [resolution, setResolution] = useState<ImageResolution>(
     sizeSeed.resolution
