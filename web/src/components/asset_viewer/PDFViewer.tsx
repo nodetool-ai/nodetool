@@ -22,7 +22,7 @@ import {
   ZoomOut,
   RestartAlt
 } from "@mui/icons-material";
-import { ActionButtonGroup } from "../ui_primitives/ActionButtonGroup";
+import { ActionButtonGroup } from "../ui_primitives";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.min.mjs",

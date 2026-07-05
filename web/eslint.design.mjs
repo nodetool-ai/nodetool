@@ -150,14 +150,14 @@ const restrictedMuiNames = [
 
 // Barrel-import guardrail: deep imports into the primitive layer
 // (`.../ui_primitives/Foo`) bypass jest.mock of the barrel, so route them
-// through the barrel index. Kept at `warn` because a backlog still exists.
+// through the barrel index. At `error`: the backlog is fully migrated (zero
+// violations), so this locks barrel-only imports in.
 //
-// The raw-MUI-component guard used to live here too, but it is fully migrated
-// (zero violations) and now runs at `error` as the dedicated
-// `design-tokens/no-raw-mui` rule — see `noRawMuiRule` below. Splitting them
-// lets MUI be an error without promoting the unfinished barrel-import backlog.
+// The raw-MUI-component guard used to live here too, but it now runs at `error`
+// as the dedicated `design-tokens/no-raw-mui` rule — see `noRawMuiRule` below.
+// The two guards stay split so each can be reasoned about independently.
 export const noRestrictedImports = [
-  "warn",
+  "error",
   {
     patterns: [
       {

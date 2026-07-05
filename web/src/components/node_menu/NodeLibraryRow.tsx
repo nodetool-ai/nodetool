@@ -5,7 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
 
 import { Caption, Text, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
-import FavoriteButton from "../ui_primitives/FavoriteButton";
+import { FavoriteButton } from "../ui_primitives";
 import { IconForType } from "../../config/IconForType";
 import { colorForType } from "../../config/data_types";
 import { useFavoriteNodesStore } from "../../stores/FavoriteNodesStore";

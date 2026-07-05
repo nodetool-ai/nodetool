@@ -4,7 +4,7 @@ import { keyframes } from "@emotion/react";
 
 import React, { useCallback, useMemo, useState, useEffect, memo } from "react";
 import { Tooltip, Text, Caption, EditorButton, LoadingSpinner, Chip, CloseButton, FlexRow, FlexColumn, CopyButton, Box, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
-import { ProgressBar } from "../ui_primitives/ProgressBar";
+import { ProgressBar } from "../ui_primitives";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { useShallow } from "zustand/react/shallow";

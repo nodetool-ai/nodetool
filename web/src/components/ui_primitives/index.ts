@@ -96,6 +96,8 @@ export type { ExternalLinkProps } from "./ExternalLink";
 export { StatusIndicator } from "./StatusIndicator";
 export type { StatusIndicatorProps, StatusType } from "./StatusIndicator";
 
+export { HighlightText } from "./HighlightText";
+
 export { TagButton } from "./TagButton";
 export type { TagButtonProps } from "./TagButton";
 

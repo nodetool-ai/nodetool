@@ -7,11 +7,11 @@ import { Text, ToolbarIconButton, MOTION } from "../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import SliderBasic from "../inputs/SliderBasic";
 import LoopIcon from "@mui/icons-material/Loop";
-import { PlaybackButton } from "../ui_primitives/PlaybackButton";
+import { PlaybackButton } from "../ui_primitives";
 import OffIcon from "@mui/icons-material/VolumeOff";
 import UpIcon from "@mui/icons-material/VolumeUp";
 import DownloadIcon from "@mui/icons-material/Download";
-import { ActionButtonGroup } from "../ui_primitives/ActionButtonGroup";
+import { ActionButtonGroup } from "../ui_primitives";
 import type { Theme } from "@mui/material/styles";
 
 interface AudioControlsProps {

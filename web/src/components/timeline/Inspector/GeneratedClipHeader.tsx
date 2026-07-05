@@ -12,7 +12,7 @@
 import React, { memo } from "react";
 import type { ClipStatus, TimelineClip } from "@nodetool-ai/timeline";
 
-import type { StatusType } from "../../ui_primitives/StatusIndicator";
+import type { StatusType } from "../../ui_primitives";
 import {
   FlexColumn,
   FlexRow,

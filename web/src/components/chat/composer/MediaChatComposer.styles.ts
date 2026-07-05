@@ -1,6 +1,6 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { MOTION, BORDER_RADIUS } from "../../ui_primitives/tokens";
+import { MOTION, BORDER_RADIUS } from "../../ui_primitives";
 
 /**
  * Slick media-generation composer styles — a rounded glass surface with a

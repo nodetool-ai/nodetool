@@ -33,7 +33,7 @@ import MobilePaneMenu from "../menus/MobilePaneMenu";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { getShortcutTooltip } from "../../config/shortcuts";
 import { cn } from "../editor_ui/editorUtils";
-import { MenuItemPrimitive } from "../ui_primitives/MenuItemPrimitive";
+import { MenuItemPrimitive } from "../ui_primitives";
 import { useDraggable } from "../../hooks/useDraggable";
 import { useFloatingToolbarState } from "../../hooks/useFloatingToolbarState";
 import { useFloatingToolbarActions } from "../../hooks/useFloatingToolbarActions";

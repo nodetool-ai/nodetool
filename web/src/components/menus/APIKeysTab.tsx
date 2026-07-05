@@ -32,7 +32,7 @@ import {
   SPACING,
   getSpacingPx
 } from "../ui_primitives";
-import { ToolbarIconButton } from "../ui_primitives/ToolbarIconButton";
+import { ToolbarIconButton } from "../ui_primitives";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
 
 // Provider icons from @lobehub/icons-static-svg

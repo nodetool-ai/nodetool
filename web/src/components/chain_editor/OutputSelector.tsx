@@ -14,7 +14,7 @@ import {
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import CheckIcon from "@mui/icons-material/Check";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { Text } from "../ui_primitives/Text";
+import { Text } from "../ui_primitives";
 import type { OutputSlot } from "../../stores/ApiTypes";
 
 interface OutputSelectorProps {

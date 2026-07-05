@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import { EditorButton } from "../editor_ui";
 import { ToolbarIconButton, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import AddIcon from "@mui/icons-material/Add";
-import { FlexColumn } from "../ui_primitives/FlexColumn";
+import { FlexColumn } from "../ui_primitives";
 
 interface AddNodeButtonProps {
   onClick: () => void;

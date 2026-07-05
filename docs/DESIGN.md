@@ -25,11 +25,14 @@ the root `npm run lint`. `lint:design` also runs `web/scripts/lint-spacing-css.m
 and `web/scripts/lint-font-color-css.mjs`, which extend the spacing, font-size,
 and color rules to plain `.css` files (ESLint only parses `.ts`/`.tsx`).
 **Spacing** (`padding`/`margin`/`gap`), **`fontWeight`**, **font size**
-(`design-tokens/font-size-tokens`), and **color** (`design-tokens/color-tokens`)
-have reached zero violations and are promoted to **`error`** to lock them in —
-new raw px/rem font sizes or raw hex/rgb colors fail the gate. The remaining
-categories (`borderRadius`, `zIndex`, `transition`/`MOTION`, raw-MUI imports) are
-still **warnings**; promote each to `error` the same way as it reaches zero.
+(`design-tokens/font-size-tokens`), **color** (`design-tokens/color-tokens`),
+raw-MUI imports (`design-tokens/no-raw-mui`), and **ui_primitives barrel imports**
+(`no-restricted-imports` — deep `.../ui_primitives/Foo` paths must go through the
+barrel) have reached zero violations and are promoted to **`error`** to lock them
+in — a new raw px/rem font size, raw hex/rgb color, or deep primitive import fails
+the gate. The remaining categories (`borderRadius`, `zIndex`,
+`transition`/`MOTION`) are still **warnings**; promote each to `error` the same
+way as it reaches zero.
 
 The font-size and color rules are custom (like spacing) so they catch raw values
 inside `styled`/`css` template literals, not just object literals. The color rule
@@ -614,7 +617,7 @@ Pre-computed overscan counts for TanStack Virtual. Access via `theme.virtualScro
 Two helpers in `tokens.ts`. Use them instead of writing raw `::-webkit-scrollbar` CSS.
 
 ```tsx
-import { scrollbarStyles, thinScrollbarStyles } from "../ui_primitives/tokens";
+import { scrollbarStyles, thinScrollbarStyles } from "../ui_primitives";
 
 // Standard app scrollbar (10px wide, theme palette colors)
 css({

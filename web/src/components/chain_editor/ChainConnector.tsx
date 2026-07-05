@@ -4,9 +4,9 @@ import { useTheme } from "@mui/material/styles";
 import { Box, BORDER_RADIUS } from "../ui_primitives";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
-import { FlexRow } from "../ui_primitives/FlexRow";
-import { FlexColumn } from "../ui_primitives/FlexColumn";
-import { Text } from "../ui_primitives/Text";
+import { FlexRow } from "../ui_primitives";
+import { FlexColumn } from "../ui_primitives";
+import { Text } from "../ui_primitives";
 
 interface ChainConnectorProps {
   sourceOutput: string;

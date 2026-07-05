@@ -1,7 +1,7 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { MOTION, BORDER_RADIUS } from "../../ui_primitives/tokens";
-import { SPACING, getSpacingPx } from "../../ui_primitives/spacing";
+import { MOTION, BORDER_RADIUS } from "../../ui_primitives";
+import { SPACING, getSpacingPx } from "../../ui_primitives";
 
 export const createStyles = (theme: Theme) =>
   css({
