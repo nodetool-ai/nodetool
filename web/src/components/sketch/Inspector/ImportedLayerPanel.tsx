@@ -32,14 +32,7 @@ export const ImportedLayerPanel: React.FC<ImportedLayerPanelProps> = memo(
         <FlexColumn gap={0}>
           <FlexColumn gap={0.5} sx={{ px: 1, pt: 0.5, pb: 0.5 }}>
             <FlexRow align="center" gap={1}>
-              <Label
-                sx={{
-                  flex: 1,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap"
-                }}
-              >
+              <Label noWrap sx={{ flex: 1 }}>
                 {layer.name}
               </Label>
             </FlexRow>
