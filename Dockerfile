@@ -105,11 +105,42 @@ ENV NODE_ENV=production \
 
 # Runtime-only OS packages. Key management is provided through
 # SECRETS_MASTER_KEY, not a system keychain inside the container.
+#
+# Beyond ca-certificates/curl (health check, downloads), this bakes in the
+# CLIs that agent skill nodes (execute_bash) and document/video nodes shell
+# out to at runtime, so containers don't fail or install tools on every run:
+#   ffmpeg            — FFmpeg + yt-dlp downloader agents, video nodes
+#   git               — Git agent
+#   poppler-utils     — PDF agents, pdf-to-image nodes (pdftoppm/pdftotext)
+#   qpdf              — PDF agents (split/merge/optimize/check)
+#   pandoc            — document conversion nodes
+#   postgresql-client — psql/pg_dump for DATABASE_URL deployments
+#   jq/zip/unzip      — everyday shell plumbing for agents
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates curl \
+    ffmpeg git jq zip unzip \
+    poppler-utils qpdf pandoc \
+    postgresql-client \
+    python3 python3-venv \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /workspace \
     && chown node:node /workspace
+
+# Python tool venv on PATH for every execute_bash call: yt-dlp for the
+# downloader agent plus the PDF stack the PDF agent's prompt references.
+RUN python3 -m venv /opt/venv \
+    && /opt/venv/bin/pip install --no-cache-dir \
+       yt-dlp pypdf pdfplumber pypdfium2 reportlab \
+    && rm -rf /root/.cache
+ENV PATH="/opt/venv/bin:$PATH"
+
+# JS document libraries the DOCX/PDF agents import from ad-hoc Node scripts.
+# Installed globally with NODE_PATH set so require('pdf-lib') resolves from
+# any workspace directory without a per-run npm install. NODE_PATH only
+# affects CommonJS resolution as a last-resort fallback; the ESM server
+# ignores it, so /app/node_modules resolution is unchanged.
+RUN npm install -g pdf-lib docx && npm cache clean --force
+ENV NODE_PATH=/usr/local/lib/node_modules
 
 WORKDIR /app
 
