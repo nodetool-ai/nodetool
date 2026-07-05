@@ -24,7 +24,6 @@ import {
   TOOLTIP_ENTER_NEXT_DELAY
 } from "../../config/constants";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
-import { MOTION } from "./tokens";
 
 const FEEDBACK_TIMEOUT = 2000;
 

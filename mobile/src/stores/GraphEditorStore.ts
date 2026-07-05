@@ -98,7 +98,6 @@ interface GraphEditorState {
   /** Remove a dynamic input from a dynamic node. */
   removeDynamicInput: (nodeId: string, inputName: string) => void;
   toggleExpanded: (nodeId: string) => void;
-  collapseAll: () => void;
 
   // ---- Actions: UI ----
   showNodePicker: (insertAt?: number) => void;
@@ -108,7 +107,6 @@ interface GraphEditorState {
   loadWorkflow: (workflow: Workflow, metadata: NodeMetadata[]) => void;
   saveWorkflow: () => Promise<Workflow | null>;
   newWorkflow: (name?: string) => void;
-  setWorkflowName: (name: string) => void;
 
 }
 
@@ -360,12 +358,6 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
     }));
   },
 
-  collapseAll: () => {
-    set((state) => ({
-      chain: state.chain.map((n) => ({ ...n, expanded: false })),
-    }));
-  },
-
   // ── UI ─────────────────────────────────────────────────────────────
 
   showNodePicker: (insertAt) => {
@@ -519,7 +511,4 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
     });
   },
 
-  setWorkflowName: (name) => {
-    set({ workflowName: name, isDirty: true });
-  },
 }));

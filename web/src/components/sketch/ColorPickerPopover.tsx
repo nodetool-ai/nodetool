@@ -39,7 +39,7 @@ import {
   rgbToHsv,
   hsvToRgb
 } from "./types";
-import { SKETCH_FONT, SKETCH_SPACING, SKETCH_SIZE, SKETCH_Z_INDEX, SKETCH_COLORS, SKETCH_TOOLTIP_DELAY_MS, toggleButtonSmallSx, colorPickerSliderThumbSx } from "./sketchStyles";
+import { SKETCH_FONT, SKETCH_SPACING, SKETCH_Z_INDEX, SKETCH_COLORS, SKETCH_TOOLTIP_DELAY_MS, toggleButtonSmallSx, colorPickerSliderThumbSx } from "./sketchStyles";
 
 const SV_SIZE = 160;
 const HUE_HEIGHT = 12;

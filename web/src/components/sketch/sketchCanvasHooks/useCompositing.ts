@@ -242,7 +242,6 @@ export function useCompositing({
 
   // ─── 5. Layer hydration (doc → layer canvas sync) ──────────────────
   const {
-    layerHydrationSignature,
     layerDisplayStackSignature,
     hydratedLayerStateRef,
     layerStableRasterSizeRef
