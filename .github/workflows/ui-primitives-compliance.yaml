@@ -1,0 +1,165 @@
+name: UI Primitives & Design Tokens
+
+# Enforces the two MANDATORY frontend rules from CLAUDE.md that no generic
+# linter covers:
+#   1. Never import raw MUI components outside ui_primitives/ or editor_ui/
+#      (use the primitives in web/src/components/ui_primitives/ instead).
+#   2. Never hardcode design tokens — border radii, transition strings, font
+#      sizes, or off-grid spacing. Use SPACING / TYPOGRAPHY / BORDER_RADIUS /
+#      MOTION / Z_INDEX.
+#
+# There is a large existing backlog, so this migrates a small, verified batch
+# per run rather than trying to fix everything at once. Reporting + a focused
+# PR — it never auto-merges.
+
+on:
+  schedule:
+    - cron: "0 3 * * 2" # Tuesdays at 03:00 UTC
+  workflow_dispatch:
+
+jobs:
+  ui-primitives-compliance:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install all workspace dependencies
+        run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+
+      - name: Scan for design-system violations
+        id: ds-scan
+        continue-on-error: true
+        run: |
+          echo "## UI Primitives & Design Token Scan" >> $GITHUB_STEP_SUMMARY
+          ISSUES=0
+
+          # Raw MUI imports outside the allowed directories.
+          RAW_MUI=$(grep -rlE "from ['\"]@mui/material" web/src --include="*.tsx" --include="*.ts" 2>/dev/null \
+            | grep -v "ui_primitives/" | grep -v "editor_ui/" | wc -l || echo 0)
+          echo "- Files with raw @mui/material imports (outside ui_primitives/editor_ui): $RAW_MUI" >> $GITHUB_STEP_SUMMARY
+          if [ "$RAW_MUI" -gt 0 ]; then ISSUES=1; fi
+
+          # Hardcoded transition strings.
+          RAW_TRANSITION=$(grep -rlE "transition:\s*['\"][^'\"]*[0-9]+m?s" web/src --include="*.tsx" --include="*.ts" 2>/dev/null \
+            | grep -v "ui_primitives/" | wc -l || echo 0)
+          echo "- Files with hardcoded transition strings: $RAW_TRANSITION" >> $GITHUB_STEP_SUMMARY
+          if [ "$RAW_TRANSITION" -gt 0 ]; then ISSUES=1; fi
+
+          # Hardcoded px font sizes.
+          RAW_FONT=$(grep -rlE "fontSize:\s*['\"][0-9.]+(px|rem)['\"]" web/src --include="*.tsx" --include="*.ts" 2>/dev/null \
+            | grep -v "ui_primitives/" | wc -l || echo 0)
+          echo "- Files with hardcoded fontSize values: $RAW_FONT" >> $GITHUB_STEP_SUMMARY
+          if [ "$RAW_FONT" -gt 0 ]; then ISSUES=1; fi
+
+          echo "DS_ISSUES=$ISSUES" >> $GITHUB_ENV
+
+      - name: Run quality checks baseline
+        id: pre-check
+        continue-on-error: true
+        run: |
+          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
+          npm run typecheck 2>&1 || TYPECHECK_EXIT=1
+          npm run lint 2>&1 || LINT_EXIT=1
+          npm run test 2>&1 || TEST_EXIT=1
+          echo "TYPECHECK_PRE_EXIT=$TYPECHECK_EXIT" >> $GITHUB_ENV
+          echo "LINT_PRE_EXIT=$LINT_EXIT" >> $GITHUB_ENV
+          echo "TEST_PRE_EXIT=$TEST_EXIT" >> $GITHUB_ENV
+
+      - name: Run Claude Code
+        if: env.DS_ISSUES == '1'
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          additional_permissions: |
+            actions: read
+          claude_args: |
+            --model claude-opus-4-6
+            --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
+            --append-system-prompt "Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff. Strip speculative abstractions, narrating comments, defensive try/catch on trusted paths, useEffect-for-derived-data, raw MUI imports outside ui_primitives/, whole-store Zustand subscriptions, useEffect+fetch instead of useQuery, and prose throat-clearing."
+          prompt: |
+            # Migrate to UI Primitives & Design Tokens
+
+            Enforce NodeTool's two MANDATORY frontend rules in `web/src`. Read the
+            policy first — do not guess the mapping:
+            - `web/src/components/ui_primitives/STRATEGY.md` — decision tree,
+              migration rules, and the full catalog of 90+ primitives.
+            - `docs/DESIGN.md` — the token systems (SPACING, TYPOGRAPHY,
+              BORDER_RADIUS, MOTION, Z_INDEX).
+
+            ## What to fix
+
+            **Raw MUI imports**: Files importing components from `@mui/material`
+            (`Typography`, `Button`, `IconButton`, `Tooltip`, `CircularProgress`,
+            `Chip`, `Dialog`, `Alert`, `Divider`, `Paper`, etc.) outside
+            `ui_primitives/` and `editor_ui/`. Replace each with the matching
+            primitive from `web/src/components/ui_primitives/`. If a primitive
+            does not exist for a component you need, leave that file alone and note
+            it in the PR body — do NOT invent a new primitive in this PR.
+
+            **Hardcoded design tokens**: Replace hardcoded border radii (`4`,
+            `10`, `"18px"`), transition strings (`"all 200ms ease"`), font sizes
+            (`"14px"`, `"0.85rem"`), and off-grid spacing (`5px`, `10px`, `13px`)
+            with the named constants (`BORDER_RADIUS`, `MOTION`, `TYPOGRAPHY`,
+            `SPACING`) from `ui_primitives`.
+
+            ## Rules
+            - Verify every mapping against STRATEGY.md and DESIGN.md. When a raw
+              component has no clean primitive equivalent, skip it.
+            - Do not change runtime behavior or visual appearance — swap the import
+              and token, keep the same rendered result.
+            - Do not touch `ui_primitives/` or `editor_ui/` internals (they are
+              allowed to use raw MUI).
+            - Do not touch CI workflow files.
+            - Keep changes focused — maximum 10 files per PR. Pick a coherent
+              batch (e.g. one feature directory) so review is easy.
+
+            ## Before starting
+            - Run `gh pr list --state open --limit 20` — skip if a primitives/design
+              PR is already open.
+            - Pick 5-10 files with the most violations or in one area.
+
+            ## Verification
+            After changes, all checks must still pass:
+            ```bash
+            npm run typecheck && npm run lint && npm run test
+            ```
+
+            ## Submit
+            Create a PR titled "ui: migrate <area> to primitives/design tokens"
+            listing each file changed, the raw components/tokens removed, and any
+            files skipped for lack of a primitive.
+
+      - name: Post-change verification
+        if: always() && env.DS_ISSUES == '1'
+        run: |
+          TYPECHECK_EXIT=0; LINT_EXIT=0; TEST_EXIT=0
+          npm run typecheck 2>&1 || TYPECHECK_EXIT=1
+          npm run lint 2>&1 || LINT_EXIT=1
+          npm run test 2>&1 || TEST_EXIT=1
+
+          if [ "$TYPECHECK_PRE_EXIT" -eq 0 ] && [ $TYPECHECK_EXIT -ne 0 ]; then
+            echo "New TypeScript errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi
+          if [ "$LINT_PRE_EXIT" -eq 0 ] && [ $LINT_EXIT -ne 0 ]; then
+            echo "New lint errors introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi
+          if [ "$TEST_PRE_EXIT" -eq 0 ] && [ $TEST_EXIT -ne 0 ]; then
+            echo "New test failures introduced" >> $GITHUB_STEP_SUMMARY; exit 1
+          fi

@@ -1,0 +1,124 @@
+name: Workflow Example Validation
+
+# Guards the shipped example workflows against registry drift. Nodes get
+# renamed, properties change, models get deprecated — and a shipped example that
+# references a now-unknown node type or a missing required property is broken for
+# every new install. `nodetool validate` catches this statically (unknown node
+# types, missing required props, unselected models, dangling/mis-typed edges)
+# without running the workflow.
+#
+# The scan runs `validate` over every example JSON. If any fail, Claude repairs
+# them against the current node registry and opens a PR. Never auto-merges.
+
+on:
+  schedule:
+    - cron: "0 3 * * 4" # Thursdays at 03:00 UTC
+  workflow_dispatch:
+
+jobs:
+  workflow-example-validation:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install all workspace dependencies
+        run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+
+      # validate loads the node registry, which the decorator packages
+      # (base-nodes, node-sdk, ...) expose from dist/.
+      - name: Build packages
+        run: npm run build:packages
+
+      - name: Validate shipped examples
+        id: validate
+        continue-on-error: true
+        run: |
+          echo "## Workflow Example Validation" >> $GITHUB_STEP_SUMMARY
+          BROKEN=0
+          : > validation-failures.log
+
+          while IFS= read -r -d '' example; do
+            if npm run dev:nodetool -- validate "$example" --json > /tmp/v.json 2>/tmp/v.err; then
+              echo "- OK: $example" >> $GITHUB_STEP_SUMMARY
+            else
+              BROKEN=1
+              echo "- FAIL: $example" >> $GITHUB_STEP_SUMMARY
+              {
+                echo "### $example"
+                cat /tmp/v.json 2>/dev/null || cat /tmp/v.err
+                echo
+              } >> validation-failures.log
+            fi
+          done < <(find packages -path '*examples*' -name '*.json' -print0)
+
+          echo "EXAMPLES_BROKEN=$BROKEN" >> $GITHUB_ENV
+
+      - name: Run Claude Code
+        if: env.EXAMPLES_BROKEN == '1'
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          additional_permissions: |
+            actions: read
+          claude_args: |
+            --model claude-opus-4-6
+            --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
+            --append-system-prompt "Before finalizing any code change or PR, invoke the unslop skill (.claude/skills/unslop/SKILL.md) and apply its checklist to your diff."
+          prompt: |
+            # Repair Broken Shipped Workflow Examples
+
+            Some shipped example workflows no longer validate against the current
+            node registry. `validation-failures.log` lists each broken example
+            with its validation report (unknown node types, missing required
+            properties, unselected models, dangling or mis-typed edges).
+
+            ## How to fix
+            For each broken example JSON:
+            - Read the validation report to see exactly what's wrong.
+            - Re-validate a single file with:
+              `npm run dev:nodetool -- validate "<path>" --json`
+            - Fix the graph to match the current registry:
+              - Unknown node type → find the renamed/replacement node type and
+                update it (search the codebase for the node's `@node`/type).
+              - Missing required property → add it with a sensible default.
+              - Unselected model → pick a currently-available model of the right
+                kind for that provider.
+              - Dangling/mis-typed edge → repair or remove the edge so source and
+                target handles exist and their types are compatible.
+            - Preserve the example's intent. These are user-facing templates —
+              keep them meaningful, do not gut them to make validation pass.
+
+            ## Rules
+            - Only edit example JSON files under `packages/**/examples/`.
+            - Do not change node source code to fit a broken example — fix the
+              example to match the code.
+            - Do not touch CI workflow files.
+
+            ## Verification
+            Re-run validate on every file you touched and confirm it passes:
+            ```bash
+            npm run dev:nodetool -- validate "<path>"
+            ```
+
+            ## Submit
+            Create a PR titled "examples: repair workflows broken by registry drift"
+            listing each example fixed and what changed (node renamed, property
+            added, model reselected, edge repaired). If every example already
+            validates, do nothing.

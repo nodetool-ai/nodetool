@@ -1,0 +1,78 @@
+name: Issue Triage
+
+# When a new issue is opened, Claude triages it: applies labels, checks for
+# likely duplicates, and — for bug reports missing a reproduction — asks for the
+# specifics needed to act. Read-only on code; it only comments and labels.
+#
+# Skips issues that tagged @claude (claude.yml handles those) and issues opened
+# by the automation itself.
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  triage:
+    if: |
+      !contains(github.event.issue.body, '@claude') &&
+      !contains(github.event.issue.title, '@claude')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: |
+            --model claude-opus-4-6
+            --allowedTools "Bash,Read,Grep,Glob"
+          prompt: |
+            # Triage a New Issue
+
+            A new issue was opened in ${{ github.repository }}:
+            - Number: #${{ github.event.issue.number }}
+            - Title: ${{ github.event.issue.title }}
+
+            Read the full issue with `gh issue view ${{ github.event.issue.number }}`.
+
+            Do the following, using the `gh` CLI:
+
+            ## 1. Label it
+            - Run `gh label list` to see available labels. Only apply labels that
+              already exist — do not create new ones.
+            - Apply the labels that fit: kind (`bug`, `enhancement`, `question`,
+              `documentation`), and area if the labels support it (e.g. web,
+              electron, mobile, backend/packages, a specific provider or node).
+            - Infer area from the codebase: search `packages/`, `web/src`,
+              `electron/`, `mobile/` for the files, nodes, or providers the issue
+              names.
+            - Apply with `gh issue edit ${{ github.event.issue.number }} --add-label "<label>"`.
+
+            ## 2. Check for duplicates
+            - Search existing issues:
+              `gh issue list --search "<keywords>" --state all --limit 20`.
+            - If you find a clear duplicate or strongly-related issue, post ONE
+              comment linking it (`Possible duplicate of #NNN — ...`). Do not close
+              the issue; leave that to a maintainer.
+
+            ## 3. Request missing repro (bugs only)
+            - If it's a bug report missing what's needed to reproduce (version /
+              platform, exact steps, expected vs actual, the workflow or node
+              involved, logs), post ONE friendly comment asking for the specific
+              missing items. Be concrete — list exactly what you need.
+
+            ## Rules
+            - Read-only on code. Never edit files, never push, never open a PR.
+            - Post at most ONE comment total. If nothing needs a comment (clear,
+              complete, non-duplicate), just label and stop.
+            - Do not restate the issue back to the author or add filler. No comment
+              is better than a low-value one.
+            - Do not @-mention maintainers or assign anyone.

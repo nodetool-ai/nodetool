@@ -12,6 +12,9 @@
 | **performance-optimization.yaml** | Daily 3am + manual | Fixes React performance issues: missing memo, useMemo/useCallback, inefficient selectors |
 | **dependency-cleanup.yaml** | Daily 3am + manual | Removes unused dependencies, aligns versions, updates minor/patch versions |
 | **test-coverage.yaml** | Daily 3am + manual | Adds tests for uncovered utility functions, store actions, hooks, and components |
+| **ui-primitives-compliance.yaml** | Weekly (Tue 3am) + manual | Migrates raw `@mui/material` imports to `ui_primitives/` and replaces hardcoded design tokens (radii, transitions, font sizes, off-grid spacing) with the named constants — a small verified batch per run |
+| **workflow-example-validation.yaml** | Weekly (Thu 3am) + manual | Runs `nodetool validate` over every shipped example workflow and repairs graphs broken by registry drift (unknown node types, missing required props, unselected models, dangling edges) |
+| **issue-triage.yml** | Issue opened | Labels new issues, flags likely duplicates, and requests missing reproduction details for bug reports (comment/label only — read-only on code) |
 
 ## Standard CI Workflows
 
@@ -44,4 +47,6 @@ gh workflow run type-safety.yaml
 gh workflow run performance-optimization.yaml
 gh workflow run dependency-cleanup.yaml
 gh workflow run test-coverage.yaml
+gh workflow run ui-primitives-compliance.yaml
+gh workflow run workflow-example-validation.yaml
 ```
