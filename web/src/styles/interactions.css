@@ -26,7 +26,7 @@
   outline: none;
   border: 1px solid var(--palette-grey-100) !important;
   background-color: var(--palette-c_selection_rect) !important;
-  border-radius: 0.25em;
+  border-radius: var(--rounded-sm);
 }
 
 .react-flow .react-flow__pane.dragging {

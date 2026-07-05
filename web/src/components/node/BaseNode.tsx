@@ -193,7 +193,7 @@ const getAmbientRingCss = (color: string) =>
   css({
     position: "absolute",
     inset: 0,
-    borderRadius: "var(--rounded-node)",
+    borderRadius: BORDER_RADIUS.lg,
     pointerEvents: "none",
     // Pure box-shadow halo (no fill), so it only paints outside the node body
     // regardless of stacking order — robust to whether the container is a
@@ -252,7 +252,7 @@ const getNodeStyles = (colors: string[]) =>
         ${colors[4]},
         ${colors[0]}
       )`,
-        borderRadius: "var(--rounded-node)",
+        borderRadius: BORDER_RADIUS.lg,
         zIndex: -20,
         pointerEvents: "none",
         // Show only a thin ring (border area), not full fill

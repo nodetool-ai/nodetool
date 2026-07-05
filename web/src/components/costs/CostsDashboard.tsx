@@ -64,7 +64,7 @@ const segmentedSx = (theme: Theme): SxProps<Theme> => ({
   gap: getSpacingPx(SPACING.micro),
   "& .MuiToggleButton-root": {
     border: "none",
-    borderRadius: "var(--rounded-md) !important",
+    borderRadius: `${BORDER_RADIUS.md} !important`,
     color: theme.vars.palette.text.secondary,
     textTransform: "none",
     fontSize: "var(--fontSizeSmall)",

@@ -1,6 +1,6 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { scrollbarStyles, MOTION } from "../../ui_primitives";
+import { scrollbarStyles, MOTION, BORDER_RADIUS } from "../../ui_primitives";
 import { SPACING, getSpacingPx } from "../../ui_primitives";
 
 export const createStyles = (theme: Theme) =>
@@ -50,7 +50,7 @@ export const createStyles = (theme: Theme) =>
       width: "100%",
       cursor: "pointer",
       transition: `${MOTION.background}, opacity ${MOTION.normal}, transform ${MOTION.normal}, max-height ${MOTION.normal}`,
-      borderRadius: 5,
+      borderRadius: BORDER_RADIUS.sm,
       overflow: "hidden",
       outline: "none",
       backgroundColor: "transparent",

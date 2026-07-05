@@ -7,7 +7,7 @@ import { useShallow } from "zustand/react/shallow";
 import DownloadingIcon from "@mui/icons-material/Downloading";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { wrapStyles } from "./dashboardChrome";
-import { MOTION, SPACING, getSpacingPx } from "../ui_primitives";
+import { MOTION, SPACING, getSpacingPx, BORDER_RADIUS } from "../ui_primitives";
 
 const ACTIVE_STATUSES = new Set(["pending", "running", "start", "progress"]);
 
@@ -32,7 +32,7 @@ const styles = (theme: Theme) =>
     ".downloads-bar": {
       width: 90,
       height: 4,
-      borderRadius: 2,
+      borderRadius: BORDER_RADIUS.xs,
       overflow: "hidden",
       background: theme.vars.palette.action.selected
     },

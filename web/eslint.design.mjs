@@ -180,28 +180,12 @@ export const noRestrictedSyntax = [
     message:
       "Use a MOTION token (MOTION.fast/normal/slow/all/…) instead of a hardcoded transition string. See ui_primitives/tokens.ts.",
   },
-  {
-    // borderRadius: "8px" → use a BORDER_RADIUS token (var(--rounded-*)).
-    selector:
-      "Property[key.name='borderRadius'] > Literal[value=/[1-9][0-9]*px$/]",
-    message:
-      "Use a BORDER_RADIUS token (xs/sm/md/lg/xl/xxl/pill/circle) instead of a hardcoded px radius. See ui_primitives/tokens.ts.",
-  },
-  {
-    // borderRadius: 8 (magic number) → use a BORDER_RADIUS token. The px-string
-    // rule above misses numeric literals; 0 (flush) is allowed.
-    selector: "Property[key.name='borderRadius'] > Literal[value>0]",
-    message:
-      "Use a BORDER_RADIUS token (xs/sm/md/lg/xl/xxl/pill/circle) instead of a magic-number radius. See ui_primitives/tokens.ts and docs/DESIGN.md §4.",
-  },
-  {
-    // borderRadius: "var(--rounded-lg)" raw string → use the BORDER_RADIUS
-    // constant (or theme.rounded.* for semantic aliases) in TSX.
-    selector:
-      "Property[key.name='borderRadius'] > Literal[value=/var\\(--rounded/]",
-    message:
-      "Use a BORDER_RADIUS constant (or theme.rounded.*) instead of a raw var(--rounded-*) string in TSX. See docs/DESIGN.md §4.",
-  },
+  // NOTE: borderRadius is NOT handled here. It graduated to the dedicated
+  // `design-tokens/border-radius-tokens` custom rule (at `error`, fully
+  // migrated) so it can lock in while the transition/zIndex selectors below
+  // remain `warn`. A single `no-restricted-syntax` rule can only carry one
+  // severity, so a category that reaches zero moves to its own rule. See
+  // eslint.design.mjs → borderRadiusTokensRule and docs/DESIGN.md §4.
   // NOTE: Font size is NOT handled here. The `design-tokens/font-size-tokens`
   // custom rule below covers object props AND px/rem inside `styled`/`css`
   // template literals, and (per DESIGN.md §1) deliberately allows `em` for icon
@@ -562,12 +546,68 @@ export const noRawMuiRule = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// Border-radius custom rule (DESIGN.md §4 — BORDER_RADIUS / theme.rounded.*).
+//
+// Graduated out of `no-restricted-syntax` (where it lived as three warn-level
+// selectors) into a dedicated rule so it can run at `error` while the still-
+// migrating transition/zIndex selectors stay `warn` on the shared rule. The
+// matching mirrors the original selectors exactly — object-literal `borderRadius`
+// properties only, not `border-radius` inside `styled`/`css` template literals
+// (those are unmigrated backlog, tracked separately). `0` (flush) is allowed.
+// ---------------------------------------------------------------------------
+
+const BORDER_RADIUS_MESSAGE =
+  "Use a BORDER_RADIUS token (xs/sm/md/lg/xl/xxl/pill/circle) or theme.rounded.* instead of a hardcoded/magic-number/raw var(--rounded-*) radius. See ui_primitives/tokens.ts and docs/DESIGN.md §4.";
+
+// A raw px radius as a string value (e.g. "8px", "1.5px"); matches anywhere in
+// the string, mirroring the original esquery `/[1-9][0-9]*px$/` selector.
+const BORDER_RADIUS_PX = /[1-9][0-9]*px$/;
+
+export const borderRadiusTokensRule = {
+  meta: {
+    type: "problem",
+    docs: {
+      description:
+        "Enforce BORDER_RADIUS / theme.rounded.* tokens for borderRadius (DESIGN.md §4).",
+    },
+    schema: [],
+    messages: { raw: BORDER_RADIUS_MESSAGE },
+  },
+  create(context) {
+    const keyName = (key) => {
+      if (!key) return null;
+      if (key.type === "Identifier") return key.name;
+      if (key.type === "Literal") return String(key.value);
+      return null;
+    };
+    return {
+      Property(node) {
+        if (keyName(node.key) !== "borderRadius") return;
+        const value = node.value;
+        if (value.type !== "Literal") return;
+        const v = value.value;
+        if (typeof v === "number") {
+          if (v > 0) context.report({ node: value, messageId: "raw" });
+          return;
+        }
+        if (typeof v === "string") {
+          if (BORDER_RADIUS_PX.test(v) || /var\(--rounded/.test(v)) {
+            context.report({ node: value, messageId: "raw" });
+          }
+        }
+      },
+    };
+  },
+};
+
 // Local plugin exposing the design-token rules for the gate config.
 export const designTokensPlugin = {
   rules: {
     "spacing-tokens": spacingTokensRule,
     "font-size-tokens": fontSizeTokensRule,
     "color-tokens": colorTokensRule,
+    "border-radius-tokens": borderRadiusTokensRule,
     "no-raw-mui": noRawMuiRule,
   },
 };

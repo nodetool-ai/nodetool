@@ -3,7 +3,7 @@ import type { SxProps, Theme } from "@mui/material";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useEditorScope } from "../../editor_ui";
-import { FlexColumn, FlexRow, Text, Caption, Tooltip, EditorButton, MOTION, SPACING, getSpacingPx } from "../../ui_primitives";
+import { FlexColumn, FlexRow, Text, Caption, Tooltip, EditorButton, MOTION, SPACING, getSpacingPx, BORDER_RADIUS } from "../../ui_primitives";
 
 interface ModelSelectButtonProps {
   label: React.ReactNode;
@@ -67,7 +67,7 @@ const ModelSelectButton = memo(forwardRef<HTMLButtonElement, ModelSelectButtonPr
             backgroundColor: active
               ? "var(--palette-action-selected)"
               : "var(--palette-Paper-overlay)",
-            borderRadius: "var(--rounded-buttonSmall, 4px)",
+            borderRadius: BORDER_RADIUS.sm,
             color: "var(--palette-text-primary)",
             textTransform: "none",
             display: "flex",

@@ -75,7 +75,7 @@ export const assetGridStyles = (theme: Theme) => {
       alignItems: "center",
       padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`,
       marginLeft: 0,
-      borderRadius: 5
+      borderRadius: BORDER_RADIUS.sm
     },
     ".folder-icon": {
       marginRight: "0.1em",
@@ -170,7 +170,7 @@ export const assetGridStyles = (theme: Theme) => {
         height: "30%",
         maxHeight: "100px",
         backgroundColor: theme.vars.palette.grey[300],
-        borderRadius: "1px",
+        borderRadius: BORDER_RADIUS.xs,
         opacity: 0.6,
         transition: `${MOTION.background}, ${MOTION.opacity}`
       },
@@ -190,7 +190,7 @@ export const assetGridStyles = (theme: Theme) => {
         maxWidth: "100px",
         height: "2px",
         backgroundColor: theme.vars.palette.grey[300],
-        borderRadius: "1px",
+        borderRadius: BORDER_RADIUS.xs,
         opacity: 0.6,
         transition: `${MOTION.background}, ${MOTION.opacity}`
       },

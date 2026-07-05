@@ -64,6 +64,10 @@ export default [
       // errors. See docs/DESIGN.md §1 (font size) and §3 (color).
       "design-tokens/font-size-tokens": "error",
       "design-tokens/color-tokens": "error",
+      // Border radius is fully migrated (zero violations) — locked in as an
+      // error so any new raw/magic/var(--rounded-*) radius fails the gate. See
+      // docs/DESIGN.md §4.
+      "design-tokens/border-radius-tokens": "error",
     },
   },
 ];

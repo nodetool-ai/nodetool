@@ -16,7 +16,7 @@ import { isConnectableCached } from "../node_menu/typeFilterUtils";
 import HandleTooltip from "../HandleTooltip";
 import { NodeData } from "../../stores/NodeData";
 import usePropertyValidationStore from "../../stores/PropertyValidationStore";
-import { Tooltip } from "../ui_primitives";
+import { Tooltip, BORDER_RADIUS } from "../ui_primitives";
 import useModelCalloutStore from "../../stores/ModelCalloutStore";
 import { isModelEmpty } from "../../utils/findMissingModelNodes";
 import ModelSetupCallout from "./ModelSetupCallout";
@@ -33,7 +33,7 @@ const highlightBlink = keyframes({
 });
 
 const highlightStyle = css({
-  borderRadius: "var(--rounded-buttonSmall)",
+  borderRadius: BORDER_RADIUS.sm,
   outline: "2px solid var(--palette-primary-light)",
   outlineOffset: 2,
   // Blink the outline + glow fully on and off to draw the eye to an unset

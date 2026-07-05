@@ -92,6 +92,11 @@ const ThemeNodetool = createTheme({
   },
   spacing: 4,
   shape: {
+    // MUI's base shape multiplier (unitless px) — the fallback radius for any
+    // MUI component that reads `theme.shape.borderRadius`. Not a BORDER_RADIUS
+    // token: component code uses BORDER_RADIUS.* / theme.rounded.*, this is the
+    // theme-level default those tokens are defined alongside.
+    // eslint-disable-next-line design-tokens/border-radius-tokens
     borderRadius: 6
   },
   zIndex: {

@@ -22,7 +22,7 @@
     right: 0 !important;
     height: 96dvh !important;
     max-height: 96dvh !important;
-    border-radius: 12px 12px 0 0 !important;
+    border-radius: var(--rounded-xl) var(--rounded-xl) 0 0 !important;
   }
 
   /* Ensure the inner container scroll area fills available height */
@@ -632,7 +632,7 @@
   .mobile .chat-composer .compose-message {
     padding: var(--spacing-sm) var(--spacing-md) !important;
     margin-top: var(--spacing-md) !important;
-    border-radius: 20px !important;
+    border-radius: var(--rounded-dialog) !important;
     min-height: 88px !important;
   }
 
@@ -649,7 +649,7 @@
 
   .mobile .chat-composer .button-container button {
     padding: var(--spacing-xs) !important;
-    border-radius: 10px !important;
+    border-radius: var(--rounded-lg) !important;
   }
 
   .mobile .chat-composer .file-preview-container {

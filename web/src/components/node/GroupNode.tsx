@@ -172,7 +172,7 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
       ".bypass-button, .menu-button": {
         border: "none !important",
         backgroundColor: `${theme.vars.palette.c_overlay} !important`,
-        borderRadius: "var(--rounded-circle) !important",
+        borderRadius: `${BORDER_RADIUS.circle} !important`,
         color: `${theme.vars.palette.c_white} !important`,
         width: "28px !important",
         height: "28px !important",
