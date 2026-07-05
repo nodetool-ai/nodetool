@@ -82,8 +82,8 @@ seo/
 
 ### Seed
 
-For each `template × model`, an LLM (OpenAI) writes `--count` prompt variants in
-the template's domain, then the render provider (fal.ai) renders each. Every
+For each `template × model`, an LLM (Claude Code) writes `--count` prompt variants
+in the template's domain, then the render provider (fal.ai) renders each. Every
 render appends one row to `out/<batch>/manifest.jsonl`.
 
 ```bash
@@ -99,8 +99,11 @@ re-running the same command is idempotent), `--provider` (default `fal_ai`),
 `--dry-run` (no network — deterministic fake prompts + 1×1 PNGs, for offline
 checks).
 
-Requires `OPENAI_API_KEY` and `FAL_API_KEY` in the local secret store (the same
-store `nodetool serve` uses) or the environment.
+Prompt writing goes through Claude Code (the Claude Agent SDK): no API key — it
+spawns the `claude` CLI, which authenticates from the logged-in subscription
+(`~/.claude`) locally, or from `CLAUDE_CODE_OAUTH_TOKEN` in CI. Rendering
+requires `FAL_API_KEY` in the local secret store (the same store `nodetool serve`
+uses) or the environment.
 
 #### Budget
 
@@ -131,7 +134,7 @@ npx tsx seo/seed.ts --template product-trailers --duel kling,hailuo --dry-run
   is rendered by both models; the two rows share `params.duelId` (the join key)
   and `params.duelPair` (the canonical, sorted pair slug).
 - Prompts come from `prompts/duels/<pair>.md`, not the LLM — so `--count` and the
-  prompt-writer are bypassed, and no `OPENAI_API_KEY` is needed. `--template`
+  prompt-writer are bypassed, so no Claude Code auth is needed. `--template`
   still supplies render settings (aspect ratio, media type) + categorization.
 - The budget cap still applies (a killed duel is a valid partial batch).
 - Idempotent: re-running adds zero rows. Dedup is namespaced by the canonical

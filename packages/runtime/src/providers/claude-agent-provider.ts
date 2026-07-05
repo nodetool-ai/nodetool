@@ -685,17 +685,25 @@ function num(value: unknown): number {
 }
 
 /**
+ * `CLAUDE_CODE_OAUTH_TOKEN` matches {@link NESTED_SESSION_ENV} but is the CLI's
+ * credential, not session leakage: on a headless host (CI) with no interactive
+ * `~/.claude` login it is the *only* way the child authenticates. Keep it.
+ */
+const CHILD_ENV_ALLOWLIST = /^CLAUDE_CODE_OAUTH_TOKEN$/;
+
+/**
  * A copy of the current environment with nested-session leakage stripped, for
  * the SDK's `options.env`. `ANTHROPIC_BASE_URL` and the `HTTP(S)_PROXY` vars are
  * preserved (they are not matched by {@link NESTED_SESSION_ENV}) so API routing
- * keeps working.
+ * keeps working; `CLAUDE_CODE_OAUTH_TOKEN` is explicitly allowlisted so
+ * token-based auth survives on headless hosts.
  */
 function buildChildEnv(): Record<string, string> {
   const env: Record<string, string> = {};
   const source = typeof process !== "undefined" ? process.env : {};
   for (const [key, value] of Object.entries(source)) {
     if (value === undefined) continue;
-    if (NESTED_SESSION_ENV.test(key)) continue;
+    if (NESTED_SESSION_ENV.test(key) && !CHILD_ENV_ALLOWLIST.test(key)) continue;
     env[key] = value;
   }
   return env;
