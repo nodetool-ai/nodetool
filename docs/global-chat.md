@@ -79,7 +79,7 @@ Each thread keeps its own model, permission mode, and history.
 
 ---
 
-## Agents
+## Agents {#agent-mode}
 
 ### The Agent Loop
 

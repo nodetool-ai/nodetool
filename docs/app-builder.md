@@ -65,6 +65,6 @@ no app document, NodeTool renders the generated input/output form.
 ## Related topics
 
 - [Workflow Editor](workflow-editor.md)
-- [Mini Apps](getting-started.md#step-4--ship-as-a-mini-app)
+- [Mini Apps](getting-started.md#step-4--build-an-app)
 - [Chat & Agents](global-chat-agents.md)
 - [Key Concepts](key-concepts.md)
