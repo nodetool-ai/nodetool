@@ -347,7 +347,6 @@ const filmstripCellStyles = css({
 });
 
 const trimHandleStyles = (
-  theme: Theme,
   edge: "start" | "end",
   locked: boolean
 ) =>
@@ -392,8 +391,6 @@ export interface ClipProps {
 }
 
 export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
-  const theme = useTheme();
-
   // Selector: only this clip's fields. findClipById is O(1) via a WeakMap
   // index keyed on `clips` identity, shared across every mounted Clip — vs.
   // O(n) per clip per store publish (O(n²) aggregate during a drag).
@@ -1125,7 +1122,7 @@ const ClipBody: React.FC<ClipBodyProps> = memo(({
       </div>
 
       <div
-        css={trimHandleStyles(theme, "start", clip.locked)}
+        css={trimHandleStyles("start", clip.locked)}
         onPointerDown={handleTrimStartPointerDown}
         onPointerMove={handleTrimStartPointerMove}
         onPointerUp={handleTrimPointerEnd}
@@ -1135,7 +1132,7 @@ const ClipBody: React.FC<ClipBodyProps> = memo(({
       />
 
       <div
-        css={trimHandleStyles(theme, "end", clip.locked)}
+        css={trimHandleStyles("end", clip.locked)}
         onPointerDown={handleTrimEndPointerDown}
         onPointerMove={handleTrimEndPointerMove}
         onPointerUp={handleTrimPointerEnd}

@@ -59,10 +59,8 @@ interface ChatState {
   sendMessage: (content: MessageContent[], text: string, mediaGeneration?: MediaGenerationRequest) => Promise<void>;
   stopGeneration: () => void;
   createNewThread: (title?: string) => Promise<string>;
-  switchThread: (threadId: string) => void;
   loadThreadFromServer: (threadId: string) => Promise<void>;
   getCurrentMessages: () => Message[];
-  resetMessages: () => void;
   setSelectedModel: (model: LanguageModel) => void;
   setAgentMode: (enabled: boolean) => void;
   setHelpMode: (enabled: boolean) => void;
@@ -71,7 +69,6 @@ interface ChatState {
 
   // Internal actions
   addMessageToCache: (threadId: string, message: Message) => void;
-  setStatus: (status: ChatStatus) => void;
   setError: (error: string | null) => void;
   clearError: () => void;
 }
@@ -534,13 +531,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
     return id;
   },
 
-  switchThread: (threadId: string) => {
-    const exists = !!get().threads[threadId];
-    if (!exists) {return;}
-
-    set({ currentThreadId: threadId });
-  },
-
   /**
    * Loads a thread from the server (e.g. after the user picks one from the
    * Threads screen). Falls back to creating a stub local thread entry if the
@@ -588,22 +578,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
     return messageCache[currentThreadId] || [];
   },
 
-  /**
-   * Clears all messages in the current thread.
-   * Reserved for future use (e.g., reset conversation feature).
-   */
-  resetMessages: () => {
-    const threadId = get().currentThreadId;
-    if (threadId) {
-      set((state) => ({
-        messageCache: {
-          ...state.messageCache,
-          [threadId]: [],
-        },
-      }));
-    }
-  },
-
   addMessageToCache: (threadId: string, message: Message) => {
     set((state) => {
       const existingMessages = state.messageCache[threadId] || [];
@@ -614,10 +588,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
         },
       };
     });
-  },
-
-  setStatus: (status: ChatStatus) => {
-    set({ status });
   },
 
   setError: (error: string | null) => {

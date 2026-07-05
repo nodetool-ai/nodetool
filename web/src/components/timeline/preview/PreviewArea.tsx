@@ -24,7 +24,6 @@ import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 
 import {
-  FlexRow,
   Text,
   Caption,
   Slider,
@@ -193,7 +192,7 @@ export interface PreviewAreaProps {
 }
 
 export const PreviewArea: React.FC<PreviewAreaProps> = memo(
-  ({ fps = 30, sequenceWidth = 1920, sequenceHeight = 1080 }) => {
+  ({ fps = 30 }) => {
     const theme = useTheme();
 
     const {
