@@ -49,6 +49,17 @@
           "className": "str"
         },
         "edge_type": "data"
+      },
+      {
+        "id": "e_ideas_output",
+        "source": "list_generator",
+        "sourceHandle": "item",
+        "target": "ideas_output",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
       }
     ],
     "nodes": [
@@ -171,6 +182,26 @@
           "character": "Reluctant Hero"
         },
         "dynamic_outputs": {}
+      },
+      {
+        "id": "ideas_output",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "Ideas"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1200,
+            "y": 65
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "Ideas",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
       }
     ]
   },
@@ -184,5 +215,98 @@
   "required_providers": null,
   "required_models": null,
   "html_app": null,
-  "etag": "7257ac13540fb7071a32ea91226d7c8e"
+  "etag": "7257ac13540fb7071a32ea91226d7c8e",
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Creative Story Ideas"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-17",
+            "text": "✨ Creative Story Ideas",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-18",
+            "text": "Generate creative story ideas from a genre and character type."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "c-22",
+            "title": "Inputs",
+            "content": [
+              {
+                "type": "TextInput",
+                "props": {
+                  "id": "in-19",
+                  "binding": "Genre",
+                  "label": "Genre",
+                  "placeholder": "e.g. Fantasy",
+                  "multiline": false,
+                  "events": []
+                }
+              },
+              {
+                "type": "TextInput",
+                "props": {
+                  "id": "in-20",
+                  "binding": "Character Type",
+                  "label": "Main Character Type",
+                  "placeholder": "e.g. Reluctant Hero",
+                  "multiline": false,
+                  "events": []
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "id": "b-21",
+                  "label": "Generate Story Ideas",
+                  "variant": "contained",
+                  "color": "primary",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "key": "",
+                      "value": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "c-24",
+            "title": "Generated Ideas",
+            "content": [
+              {
+                "type": "Markdown",
+                "props": {
+                  "id": "md-23",
+                  "binding": "Ideas",
+                  "text": ""
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
 }

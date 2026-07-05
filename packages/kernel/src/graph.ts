@@ -170,16 +170,17 @@ export class Graph {
   private _streamingUpstream: Set<string> | null = null;
 
   constructor(data: GraphData) {
-    this.nodes = data.nodes;
+    // Auto-detect is_controlled from incoming control edges (Python parity:
+    // BaseNode.is_controlled() checks graph edges at runtime). Affected nodes
+    // are replaced with shallow copies rather than mutated in place, so a
+    // WorkflowRunner.run() never writes back onto the caller's graph data.
+    this.nodes = Graph._withControlledFlags(data.nodes, data.edges);
     this.edges = data.edges;
     this._nodeIndex = new Map();
     this._incomingEdges = new Map();
     this._outgoingEdges = new Map();
     this._outgoingByHandle = new Map();
     this._buildIndices();
-    // Auto-detect is_controlled from incoming control edges (Python parity:
-    // BaseNode.is_controlled() checks graph edges at runtime).
-    this._detectControlledNodes();
   }
 
   /**
@@ -432,15 +433,18 @@ export class Graph {
           ...(node.outputs ?? {})
         },
         // Streaming/control flags: registry metadata (descriptorDefaults) is
-        // the source of truth.  Saved graph data may have stale or missing
-        // values, so always prefer the registry if it declares true.
+        // authoritative when it speaks. An explicit registry boolean — true OR
+        // false — wins; the saved value applies only when the resolver omits
+        // the flag (undefined), e.g. for unresolved/dynamic types. OR-ing here
+        // would let a stale saved `true` survive a registry that migrated the
+        // type to buffered/uncontrolled, silently running the wrong mode.
         is_streaming_input:
-          descriptorDefaults.is_streaming_input ||
-          node.is_streaming_input ||
+          descriptorDefaults.is_streaming_input ??
+          node.is_streaming_input ??
           false,
         is_streaming_output:
-          descriptorDefaults.is_streaming_output ||
-          node.is_streaming_output ||
+          descriptorDefaults.is_streaming_output ??
+          node.is_streaming_output ??
           false,
         // Correlation metadata is authoritative from the registry. Saved JSON
         // is treated as a cache and overwritten — including when the resolver
@@ -449,12 +453,9 @@ export class Graph {
         input_mode: descriptorDefaults.input_mode,
         output_correlation: descriptorDefaults.output_correlation,
         is_controlled:
-          descriptorDefaults.is_controlled || node.is_controlled || false,
-        // Correlation metadata is registry-authoritative; saved JSON is a
-        // cache that gets overwritten — matching `input_mode` /
-        // `output_correlation` above. See docs/correlation-design.md §1.
+          descriptorDefaults.is_controlled ?? node.is_controlled ?? false,
         is_join_node:
-          descriptorDefaults.is_join_node || node.is_join_node || false
+          descriptorDefaults.is_join_node ?? node.is_join_node ?? false
       };
 
       resolvedNodes.push(hydratedNode);
@@ -507,21 +508,29 @@ export class Graph {
   }
 
   /**
-   * Auto-detect is_controlled from incoming control edges.
-   * In Python, BaseNode.is_controlled() is a runtime method that checks
-   * the graph context. In TS, we set the flag on the descriptor so that
-   * the actor knows to use _runControlled().
+   * Return the node list with is_controlled set on every control-edge target.
+   * In Python, BaseNode.is_controlled() is a runtime method that checks the
+   * graph context; in TS we set the flag on the descriptor so the actor knows
+   * to use _runControlled(). Node objects are caller-owned (the runner passes
+   * `graphData.nodes` straight through), so a target lacking the flag is
+   * replaced with a shallow copy — the original is left untouched. Every other
+   * node keeps its identity.
    */
-  private _detectControlledNodes(): void {
-    for (const edge of this.edges) {
-      if (!isControlEdge(edge)) continue;
-      const target = this._nodeIndex.get(edge.target);
-      // Stryker disable next-line ConditionalExpression,LogicalOperator,BooleanLiteral: equivalent — control edges always have a known target here, and re-setting an already-true flag is a no-op; the guard is a micro-optimization
-      if (target && !target.is_controlled) {
-        // NodeDescriptor is readonly in the type, but we own the instances
-        (target as { is_controlled?: boolean }).is_controlled = true;
-      }
+  private static _withControlledFlags(
+    nodes: ReadonlyArray<NodeDescriptor>,
+    edges: ReadonlyArray<Edge>
+  ): ReadonlyArray<NodeDescriptor> {
+    const controlledIds = new Set<string>();
+    for (const edge of edges) {
+      if (isControlEdge(edge)) controlledIds.add(edge.target);
     }
+    if (controlledIds.size === 0) return nodes;
+    return nodes.map((node) =>
+      // Stryker disable next-line ConditionalExpression,LogicalOperator,BooleanLiteral: equivalent — re-copying an already-controlled node yields the same is_controlled value; the guard only preserves object identity (a micro-optimization)
+      controlledIds.has(node.id) && !node.is_controlled
+        ? { ...node, is_controlled: true }
+        : node
+    );
   }
 
   // -----------------------------------------------------------------------

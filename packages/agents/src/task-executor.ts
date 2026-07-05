@@ -442,28 +442,37 @@ async function* mergeAsyncGenerators<T>(
     }
   });
 
-  // Yield items as they arrive
-  while (activeCount > 0 || queue.length > 0) {
-    if (queue.length > 0) {
-      yield queue.shift()!;
-    } else if (activeCount > 0) {
-      // Set resolve BEFORE checking queue again to avoid race condition
-      // where an item is pushed between the check and the await.
-      const waitPromise = new Promise<void>((r) => {
-        resolve = r;
-      });
-      // Re-check after setting resolve — item may have arrived between
-      // the outer check and setting resolve.
+  // Yield items as they arrive. The try/finally guarantees that if the
+  // downstream consumer stops early (its `for await` breaks or throws, which
+  // injects `.return()` into this merge generator), we terminate the child
+  // generators instead of leaving the producer tasks driving them to
+  // completion in the background (e.g. LLM calls firing after cancellation).
+  try {
+    while (activeCount > 0 || queue.length > 0) {
       if (queue.length > 0) {
-        resolve = null;
-        continue;
+        yield queue.shift()!;
+      } else if (activeCount > 0) {
+        // Set resolve BEFORE checking queue again to avoid race condition
+        // where an item is pushed between the check and the await.
+        const waitPromise = new Promise<void>((r) => {
+          resolve = r;
+        });
+        // Re-check after setting resolve — item may have arrived between
+        // the outer check and setting resolve.
+        if (queue.length > 0) {
+          resolve = null;
+          continue;
+        }
+        await waitPromise;
       }
-      await waitPromise;
     }
+  } finally {
+    // Stop every child generator so its producer `for await` loop terminates
+    // (a generator may already be done — allSettled swallows those). Then wait
+    // for all producer promises to settle before returning.
+    await Promise.allSettled(generators.map((gen) => gen.return(undefined)));
+    await Promise.allSettled(tasks);
   }
-
-  // Wait for all producer promises to settle
-  await Promise.allSettled(tasks);
 
   if (hasError) {
     throw firstError instanceof Error

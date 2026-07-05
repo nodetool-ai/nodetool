@@ -20,7 +20,7 @@ type ImageSizeValue = {
   preset?: string;
 };
 
-const ImageSizeProperty = (props: PropertyProps) => {
+const ImageSizeProperty = (props: PropertyProps<ImageSizeValue>) => {
   const { property, nodeId, value, onChange, tabIndex } = props;
 
   // Check if connected

@@ -14,6 +14,14 @@ export { PLAN_APPROVAL_CONTEXT_KEY } from "./types.js";
 
 // Tools
 export { Tool } from "./tools/base-tool.js";
+export {
+  ToolSearchTool,
+  searchTools,
+  formatToolSearchResult,
+  formatDeferredToolsReminder,
+  TOOL_SEARCH_DESCRIPTION
+} from "./tools/tool-search.js";
+export type { ToolSearchEntry } from "./tools/tool-search.js";
 export { FinishStepTool } from "./tools/finish-step-tool.js";
 export { CalculatorTool } from "./tools/calculator-tool.js";
 export {
@@ -57,7 +65,7 @@ export type {
   ExtractedImages
 } from "./tools/image-injection.js";
 export {
-  GoogleSearchTool,
+  WebSearchTool,
   GoogleNewsTool,
   GoogleImagesTool
 } from "./tools/search-tools.js";
@@ -198,6 +206,7 @@ export {
   TranscribeAudioTool,
   EmbedTextTool
 } from "./tools/media-tools.js";
+export { ImageGenerationTool } from "./tools/image-generation-tool.js";
 export {
   persistOutput,
   workspaceDir as workspaceDirFromContext,

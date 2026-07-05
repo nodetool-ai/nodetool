@@ -78,4 +78,65 @@ describe("hydrateGraphNodeFlags", () => {
 
     expect(hydrated.nodes[0].is_streaming_output).toBe(true);
   });
+
+  it("corrects a stale saved true when the registered class declares false", () => {
+    // A node type that migrated away from streaming: the class statics say
+    // false, but a workflow saved before the migration still carries
+    // is_streaming_input: true. The registry must win (?? precedence), or the
+    // kernel actor keeps picking run() for a node that no longer streams.
+    class BufferedNode extends BaseNode {
+      static readonly nodeType = "test.MigratedBuffered";
+      static readonly title = "Migrated Buffered";
+      static readonly description = "";
+
+      async process() {
+        return {};
+      }
+    }
+    const registry = new NodeRegistry();
+    registry.register(BufferedNode);
+
+    const hydrated = hydrateGraphNodeFlags(
+      {
+        nodes: [
+          {
+            id: "n1",
+            type: "test.MigratedBuffered",
+            properties: {},
+            is_streaming_input: true,
+            is_streaming_output: true,
+            is_controlled: true,
+            is_join_node: true
+          }
+        ],
+        edges: []
+      } as never,
+      registry
+    );
+
+    expect(hydrated.nodes[0].is_streaming_input).toBe(false);
+    expect(hydrated.nodes[0].is_streaming_output).toBe(false);
+    expect(hydrated.nodes[0].is_controlled).toBe(false);
+    expect(hydrated.nodes[0].is_join_node).toBe(false);
+  });
+
+  it("keeps saved flags for node types the registry does not know", () => {
+    const registry = new NodeRegistry();
+    const hydrated = hydrateGraphNodeFlags(
+      {
+        nodes: [
+          {
+            id: "n1",
+            type: "unknown.pkg.Node",
+            properties: {},
+            is_streaming_input: true
+          }
+        ],
+        edges: []
+      } as never,
+      registry
+    );
+
+    expect(hydrated.nodes[0].is_streaming_input).toBe(true);
+  });
 });

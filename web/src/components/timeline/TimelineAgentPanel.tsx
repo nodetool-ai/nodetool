@@ -9,6 +9,7 @@ import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 
 import { FlexColumn, Text, SPACING, getSpacingPx } from "../ui_primitives";
 import ChatView from "../chat/containers/ChatView";
+import ChatPanelHeader from "../chat/containers/ChatPanelHeader";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { useTimelineStore } from "../../stores/timeline/TimelineStore";
 
@@ -143,21 +144,25 @@ const TimelineAgentPanel = () => {
 
   return (
     <div css={cssStyles}>
-      <ChatView
-        status={chatStatus}
-        messages={messages}
-        workflowId={sequenceId}
-        sendMessage={sendMessage}
-        progress={progress.current}
-        total={progress.total}
-        progressMessage={statusMessage}
-        model={selectedModel}
-        onModelChange={setSelectedModel}
-        onStop={stopGeneration}
-        onNewChat={handleNewChat}
-        requireToolSupport
-        noMessagesPlaceholder={welcomePlaceholder}
-      />
+      <ChatPanelHeader onNewChat={handleNewChat} />
+      <div style={{ flex: 1, minHeight: 0 }}>
+        <ChatView
+          status={chatStatus}
+          messages={messages}
+          workflowId={sequenceId}
+          sendMessage={sendMessage}
+          progress={progress.current}
+          total={progress.total}
+          progressMessage={statusMessage}
+          model={selectedModel}
+          onModelChange={setSelectedModel}
+          onStop={stopGeneration}
+          onNewChat={handleNewChat}
+          requireToolSupport
+          hideModePicker
+          noMessagesPlaceholder={welcomePlaceholder}
+        />
+      </div>
     </div>
   );
 };

@@ -46,5 +46,17 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "huggingface",
+    "models",
+    "model-discovery",
+    "downloads",
+    "hub"
   ]
 }

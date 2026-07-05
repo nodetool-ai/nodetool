@@ -108,8 +108,9 @@ type ChatViewProps = {
   onNewChat?: () => void;
   memoryEnabled?: boolean;
   onMemoryToggle?: (enabled: boolean) => void;
-  helpMode?: boolean;
   workflowAssistant?: boolean;
+  /** Context-specific system-prompt addendum appended to the base chat prompt. */
+  systemPrompt?: string;
   currentPlanningUpdate?: PlanningUpdate | null;
   currentTaskUpdate?: TaskUpdate | null;
   currentLogUpdate?: LogUpdate | null;
@@ -140,6 +141,8 @@ type ChatViewProps = {
   composerToolbar?: React.ReactNode;
   /** Override the composer's textarea placeholder. */
   composerPlaceholder?: string;
+  /** Pure chat panel: hide the media mode picker and force chat mode. */
+  hideModePicker?: boolean;
   /**
    * When true, ChatView does not render its own composer. Instead it renders a
    * bottom ComposerSlot wired to its send handler, and the shared
@@ -155,6 +158,12 @@ type ChatViewProps = {
    * so the title would not match. Defaults to off.
    */
   showConversationHeader?: boolean;
+  /**
+   * Bind thread-scoped store reads (todos) to this thread instead of the
+   * store's current one. Pass it when the surface renders a specific thread
+   * (e.g. a workspace chat tab) that may not be `currentThreadId`.
+   */
+  threadId?: string | null;
 };
 
 // Stable empty-array sentinel so the Zustand selector below returns the same
@@ -176,7 +185,7 @@ const ChatView = ({
   onNewChat,
   memoryEnabled,
   onMemoryToggle,
-  helpMode = false,
+  systemPrompt,
   currentPlanningUpdate,
   currentTaskUpdate,
   currentLogUpdate,
@@ -191,8 +200,10 @@ const ChatView = ({
   composerVariant,
   composerToolbar,
   composerPlaceholder,
+  hideModePicker,
   useExternalComposer = false,
-  showConversationHeader = false
+  showConversationHeader = false,
+  threadId
 }: ChatViewProps) => {
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
@@ -217,7 +228,7 @@ const ChatView = ({
               ? mediaGeneration.model ?? model?.id
               : model?.id,
           content: content,
-          help_mode: helpMode,
+          system_prompt: systemPrompt,
           graph: graph,
           workflow_id: workflowId ?? undefined,
           workflow_target: graph ? "workflow" : undefined,
@@ -231,11 +242,11 @@ const ChatView = ({
         console.error("Error sending message:", error);
       }
     },
-    [sendMessage, model, helpMode, graph, workflowId]
+    [sendMessage, model, systemPrompt, graph, workflowId]
   );
 
   const todos = useGlobalChatStore((state) => {
-    const id = state.currentThreadId;
+    const id = threadId ?? state.currentThreadId;
     return (id && state.todosByThread[id]) || NO_TODOS;
   });
   const showTodoSidebar = todos.length > 0;
@@ -287,6 +298,7 @@ const ChatView = ({
             variant={composerVariant}
             composerToolbar={composerToolbar}
             placeholder={composerPlaceholder}
+            hideModePicker={hideModePicker}
           />
         )}
       </div>

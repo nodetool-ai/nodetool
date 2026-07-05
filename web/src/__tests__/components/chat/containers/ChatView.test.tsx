@@ -293,7 +293,7 @@ describe("ChatView", () => {
           provider: "openai",
           model: "gpt-4",
           content: [{ type: "text", text: "Test message" }],
-          help_mode: false,
+          system_prompt: undefined,
           graph: undefined,
           workflow_id: undefined,
           workflow_target: undefined,

@@ -50,7 +50,7 @@ async function createGmailConnection(
       user: emailAddress,
       pass: appPassword
     },
-    logger: false as any
+    logger: false
   });
 
   await client.connect();

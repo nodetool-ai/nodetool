@@ -1205,13 +1205,26 @@ export const createTimelineStore = (
               }
             }
             let clips = state.clips.filter((c) => !selectedIds.has(c.id));
-            for (const linkId of affectedLinkIds) {
-              if (clips.filter((c) => c.linkId === linkId).length < 2) {
-                clips = clips.map((c) =>
-                  c.linkId === linkId ? { ...c, linkId: undefined } : c
-                );
+
+            if (affectedLinkIds.size > 0) {
+              const linkCounts = new Map<string, number>();
+              for (const c of clips) {
+                if (c.linkId !== undefined && affectedLinkIds.has(c.linkId)) {
+                  linkCounts.set(c.linkId, (linkCounts.get(c.linkId) ?? 0) + 1);
+                }
               }
+              clips = clips.map((c) => {
+                if (
+                  c.linkId !== undefined &&
+                  affectedLinkIds.has(c.linkId) &&
+                  (linkCounts.get(c.linkId) ?? 0) < 2
+                ) {
+                  return { ...c, linkId: undefined };
+                }
+                return c;
+              });
             }
+
             return { clips };
           }),
 

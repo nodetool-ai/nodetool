@@ -49,7 +49,8 @@ Open a template from the Dashboard.
    - **Title**: Ocean Depths
    - **Genre**: Sci-Fi Thriller
    - **Audience**: Adults who love mystery
-4. Press <kbd>Ctrl/⌘ + Enter</kbd>.
+4. Select a model for the Agent and List Generator. (requires provider setup)
+5. Press <kbd>Ctrl/⌘ + Enter</kbd>.
 
 ### Creative Story Ideas
 
@@ -60,7 +61,8 @@ Open a template from the Dashboard.
    - **Genre**: Cyberpunk
    - **Character**: Rogue AI detective
    - **Setting**: Neon-lit underwater city
-3. Run.
+3. Select a model for the Agent and List Generator (requires provider setup)
+4. Run.
 
 ---
 
@@ -85,14 +87,14 @@ Opening a workflow that uses a node from a disabled pack enables that pack for y
 
 ---
 
-## Step 4 — Ship as a Mini-App
+## Step 4 — Build an app
 
 A Mini-App hides the graph and exposes inputs and outputs only.
 
 1. Open the workflow.
 2. Click **Mini-App** in the toolbar.
 
-Custom UI? See [VibeCoding](vibecoding.md).
+Custom UI? See [App Builder](app-builder.md).
 
 ---
 

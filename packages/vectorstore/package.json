@@ -51,5 +51,17 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "vector-store",
+    "rag",
+    "embeddings",
+    "sqlite-vec",
+    "semantic-search"
   ]
 }

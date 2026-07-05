@@ -352,10 +352,34 @@ export function usePackageManager(params: {
       list: T[],
       defs: { id: string; label: string; pred: (item: T) => boolean }[]
     ) => {
-      for (const d of defs)
-        chips.push({ id: d.id, label: d.label, count: list.filter(d.pred).length });
-      const active = defs.find((d) => d.id === filter) ?? defs[0];
-      return list.filter(active.pred);
+      const counts = new Map<string, number>();
+      for (const d of defs) {
+        counts.set(d.id, 0);
+      }
+
+      const activeDef = defs.find((d) => d.id === filter) ?? defs[0];
+      const filtered: T[] = [];
+
+      for (const item of list) {
+        let isActiveMatch = false;
+        for (const d of defs) {
+          if (d.pred(item)) {
+            counts.set(d.id, (counts.get(d.id) ?? 0) + 1);
+            if (d.id === activeDef.id) {
+              isActiveMatch = true;
+            }
+          }
+        }
+        if (isActiveMatch) {
+          filtered.push(item);
+        }
+      }
+
+      for (const d of defs) {
+        chips.push({ id: d.id, label: d.label, count: counts.get(d.id) ?? 0 });
+      }
+
+      return filtered;
     };
 
     if (isSoftware) {

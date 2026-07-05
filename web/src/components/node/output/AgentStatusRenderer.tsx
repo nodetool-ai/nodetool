@@ -1,14 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo } from "react";
 import { useTheme, type Theme } from "@mui/material/styles";
-import {
-  AutoAwesome as PlanIcon,
-  Assignment as TaskIcon,
-  Build as ToolIcon,
-  Info as LogIcon,
-  Warning as WarningIcon,
-  ErrorOutline as ErrorIcon
-} from "@mui/icons-material";
+import PlanIcon from "@mui/icons-material/AutoAwesome";
+import TaskIcon from "@mui/icons-material/Assignment";
+import ToolIcon from "@mui/icons-material/Build";
+import LogIcon from "@mui/icons-material/Info";
+import WarningIcon from "@mui/icons-material/Warning";
+import ErrorIcon from "@mui/icons-material/ErrorOutline";
 import { Chunk } from "../../../stores/ApiTypes";
 
 import { BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";

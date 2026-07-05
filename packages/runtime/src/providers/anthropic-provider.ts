@@ -18,6 +18,7 @@ import type {
   ProviderTool,
   ToolCall
 } from "./types.js";
+import { WEB_SEARCH_TOOL_NAME } from "./types.js";
 
 interface AnthropicProviderOptions {
   client?: Anthropic;
@@ -64,6 +65,11 @@ function parseDataUri(uri: string): { mime: string; base64: string } {
 }
 
 export class AnthropicProvider extends BaseProvider {
+  /** Anthropic runs web search server-side via the `web_search` server tool. */
+  override get supportsNativeWebSearch(): boolean {
+    return true;
+  }
+
   static requiredSecrets(): string[] {
     return ["ANTHROPIC_API_KEY"];
   }
@@ -462,13 +468,26 @@ export class AnthropicProvider extends BaseProvider {
   }
 
   formatTools(tools: ProviderTool[]): Array<Record<string, unknown>> {
-    return tools.map((tool) => ({
-      name: tool.name,
-      description: tool.description ?? "",
-      input_schema: this.prepareJsonSchema(
-        tool.inputSchema ?? { type: "object", properties: {} }
-      )
-    }));
+    return tools.map((tool) => {
+      // The canonical web-search tool is rendered as Anthropic's built-in
+      // server tool — the search runs server-side and its result blocks stream
+      // back within the same turn (our stream parser ignores them), so the
+      // model answers from live web data without a client round-trip.
+      if (tool.name === WEB_SEARCH_TOOL_NAME) {
+        return {
+          type: "web_search_20250305",
+          name: WEB_SEARCH_TOOL_NAME,
+          max_uses: 5
+        };
+      }
+      return {
+        name: tool.name,
+        description: tool.description ?? "",
+        input_schema: this.prepareJsonSchema(
+          tool.inputSchema ?? { type: "object", properties: {} }
+        )
+      };
+    });
   }
 
 

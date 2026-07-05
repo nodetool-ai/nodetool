@@ -52,7 +52,7 @@ export default function VideoGenerationSection({
             className="text-lg text-slate-300 leading-relaxed"
           >
             Generate video from text or images with Google Veo, Kling, Hailuo,
-            and Wan — or run open-weight models on your own hardware.
+            and Wan — or run open models on your own hardware.
           </motion.p>
 
           <motion.div

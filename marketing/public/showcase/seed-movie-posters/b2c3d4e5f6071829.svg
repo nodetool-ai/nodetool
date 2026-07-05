@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1200" viewBox="0 0 800 1200" role="img" aria-label="Seed movie poster">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#111827"/>
+      <stop offset="0.5" stop-color="#be185d"/>
+      <stop offset="1" stop-color="#0b1020"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.4" r="0.6">
+      <stop offset="0" stop-color="#f472b6" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#f472b6" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="800" height="1200" fill="url(#g)"/>
+  <rect x="0" y="480" width="800" height="8" fill="#fb7185" opacity="0.7"/>
+  <circle cx="400" cy="420" r="240" fill="url(#glow)"/>
+  <text x="400" y="1000" fill="#fdf2f8" font-family="Georgia, serif" font-size="66" font-weight="700" text-anchor="middle">NEON</text>
+  <text x="400" y="1078" fill="#f9a8d4" font-family="Georgia, serif" font-size="66" font-weight="700" text-anchor="middle">PRECINCT</text>
+  <text x="400" y="1150" fill="#94a3b8" font-family="Arial, sans-serif" font-size="26" letter-spacing="6" text-anchor="middle">SEED · MOVIE POSTER</text>
+</svg>

@@ -1123,6 +1123,7 @@ export const migrations: MigrationDef[] = [
           run_mode: "TEXT",
           workspace_id: "TEXT",
           html_app: "TEXT",
+          app_doc: "TEXT",
           receive_clipboard: "INTEGER",
           access: "TEXT",
           created_at: "TEXT",
@@ -1663,7 +1664,7 @@ export const migrations: MigrationDef[] = [
   // the conversations for the open workflow and reopen the last one. Null
   // means workflow-agnostic (e.g. the global chat).
   {
-    version: "20260701_000000",
+    version: "20260701_000001",
     name: "add_workflow_id_to_threads",
     createsTables: [],
     modifiesTables: ["nodetool_threads"],
@@ -1681,6 +1682,36 @@ export const migrations: MigrationDef[] = [
     },
     async down(db) {
       await db.execute("DROP INDEX IF EXISTS idx_threads_user_workflow");
+    }
+  },
+
+  // ── Add app_doc to workflows ───────────────────────────────────────
+  // First-class storage for the app-builder document (Puck layout + bindings),
+  // replacing the legacy `settings.__appbuilder__` JSON string.
+  // Dialect-agnostic: runs for both SQLite and Postgres via the runner.
+  //
+  // Version note: this migration originally shipped as `20260701_000000`,
+  // which collided with `add_workflow_id_to_threads` — that version had
+  // already been recorded as applied on existing databases, so the runner
+  // (which tracks by version string) silently skipped app_doc and the column
+  // was never created. Renumbered to a unique, never-applied version so the
+  // migration runs everywhere; the `columnExists` guard keeps it idempotent
+  // on databases where the column was already added out of band.
+  {
+    version: "20260705_000000",
+    name: "add_app_doc_to_workflows",
+    createsTables: [],
+    modifiesTables: ["nodetool_workflows"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_workflows"))) return;
+      if (!(await db.columnExists("nodetool_workflows", "app_doc"))) {
+        await db.execute(
+          "ALTER TABLE nodetool_workflows ADD COLUMN app_doc TEXT"
+        );
+      }
+    },
+    async down() {
+      // no-op: dropping columns is unsafe across dialects and versions
     }
   }
 ];

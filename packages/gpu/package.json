@@ -67,5 +67,18 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "gpu",
+    "webgpu",
+    "wgsl",
+    "blend-modes",
+    "compositor",
+    "shaders"
   ]
 }

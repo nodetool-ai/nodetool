@@ -9,7 +9,15 @@ import { SPACING, getSpacingPx } from "../../ui_primitives/spacing";
 import { CodeBlock } from "./markdown_elements/CodeBlock";
 import { PreRenderer } from "./markdown_elements/PreRenderer";
 import { BORDER_RADIUS } from "../../ui_primitives";
+import { resolveUri } from "../../../utils/imageUtils";
 import "../../../styles/markdown/github-markdown.css";
+
+const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".avif"];
+
+const isImageHref = (href: string): boolean => {
+  const lower = href.toLowerCase().split(/[?#]/)[0];
+  return IMAGE_EXTENSIONS.some((ext) => lower.endsWith(ext));
+};
 
 interface ChatMarkdownProps {
   content: string;
@@ -51,6 +59,7 @@ const REHYPE_PLUGINS: Options["rehypePlugins"] = [rehypeRaw];
 
 const audioSpanCss = css({ display: "inline-flex", alignItems: "center", gap: getSpacingPx(SPACING.md), verticalAlign: "middle" });
 const audioCss = css({ height: "32px" });
+const imageCss = css({ maxWidth: "100%", height: "auto", borderRadius: BORDER_RADIUS.md });
 
 const ChatMarkdown: React.FC<ChatMarkdownProps> = React.memo(({
   content,
@@ -60,8 +69,24 @@ const ChatMarkdown: React.FC<ChatMarkdownProps> = React.memo(({
     () => ({
       code: (props: React.ComponentPropsWithoutRef<"code">) => <CodeBlock {...props} onInsert={onInsertCode} />,
       pre: (props: React.ComponentPropsWithoutRef<"pre">) => <PreRenderer {...props} onInsert={onInsertCode} />,
+      img: ({ node: _node, src, alt, ...props }: { node?: unknown } & React.ComponentPropsWithoutRef<"img">) => (
+        <img
+          {...props}
+          src={typeof src === "string" ? resolveUri(src) : src}
+          alt={alt ?? ""}
+          css={imageCss}
+          loading="lazy"
+        />
+      ),
       a: ({ node: _node, ...props }: { node?: unknown } & React.ComponentPropsWithoutRef<"a">) => {
         const { href, children } = props;
+        if (href && isImageHref(href)) {
+          return (
+            <a href={resolveUri(href)} target="_blank" rel="noopener noreferrer">
+              <img src={resolveUri(href)} alt={String(children ?? "")} css={imageCss} loading="lazy" />
+            </a>
+          );
+        }
         const isAudio =
           href &&
           (href.toLowerCase().endsWith(".mp3") ||

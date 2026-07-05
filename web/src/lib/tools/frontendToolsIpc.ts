@@ -26,6 +26,7 @@ import "./builtin/deleteEdge";
 import "./builtin/uiActions";
 import "./builtin/model3d";
 import "./builtin/timeline";
+import "./builtin/puck";
 import { getAgentSocketClient } from "../agent/AgentSocketClient";
 import type {
   ToolCallRequestEvent,

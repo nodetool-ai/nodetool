@@ -89,4 +89,3 @@ export const getProviderKindForNamespace = (namespace: string): ProviderKind => 
     ? "api"
     : "local";
 };
-

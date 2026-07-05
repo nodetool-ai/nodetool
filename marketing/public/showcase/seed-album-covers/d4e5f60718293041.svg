@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="Seed album cover">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0ea5e9"/>
+      <stop offset="0.5" stop-color="#7c3aed"/>
+      <stop offset="1" stop-color="#db2777"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="#0b1020"/>
+  <circle cx="512" cy="440" r="300" fill="url(#g)" opacity="0.9"/>
+  <circle cx="512" cy="440" r="300" fill="none" stroke="#f8fafc" stroke-width="4" opacity="0.4"/>
+  <rect x="212" y="740" width="600" height="4" fill="#f8fafc" opacity="0.6"/>
+  <text x="512" y="850" fill="#f8fafc" font-family="Helvetica, Arial, sans-serif" font-size="60" font-weight="800" letter-spacing="8" text-anchor="middle">MIDNIGHT</text>
+  <text x="512" y="920" fill="#c4b5fd" font-family="Helvetica, Arial, sans-serif" font-size="34" letter-spacing="12" text-anchor="middle">TAPE DECK</text>
+  <text x="512" y="972" fill="#64748b" font-family="Arial, sans-serif" font-size="20" letter-spacing="6" text-anchor="middle">SEED · ALBUM COVER</text>
+</svg>

@@ -109,9 +109,10 @@ export default function ModelSupportSection({
                         transition={{ duration: 0.5, delay: 0.1 }}
                         className="text-lg text-slate-400 leading-relaxed"
                     >
-                        Frontier models from every major provider, called with
-                        the keys you already pay for. Swap models the day they
-                        launch. Run inference locally when you want to.
+                        The newest models from every major provider, called
+                        with the keys you already pay for. Swap models the day
+                        they launch. Run them on your own machine when you
+                        want to.
                     </motion.p>
                 </div>
 
@@ -119,7 +120,7 @@ export default function ModelSupportSection({
                 <div className="mb-10">
                     <div className="flex items-center justify-center gap-3 mb-4">
                         <Sparkles className="w-5 h-5 text-violet-400" />
-                        <span className="text-sm font-medium text-slate-400">Frontier Models</span>
+                        <span className="text-sm font-medium text-slate-400">Latest Models</span>
                     </div>
 
                     <div className="relative overflow-hidden">
@@ -175,7 +176,7 @@ export default function ModelSupportSection({
                 <div>
                     <div className="flex items-center gap-3 mb-4">
                         <Cpu className="w-5 h-5 text-emerald-400" />
-                        <span className="text-sm font-medium text-slate-400">Local Inference</span>
+                        <span className="text-sm font-medium text-slate-400">Runs on Your Machine</span>
                     </div>
 
                     <div className="relative overflow-hidden">

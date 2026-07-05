@@ -109,5 +109,19 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "llm",
+    "llm-providers",
+    "openai",
+    "anthropic",
+    "gemini",
+    "ollama",
+    "inference"
   ]
 }

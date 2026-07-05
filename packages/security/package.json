@@ -48,5 +48,18 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "description": "Secret storage and encryption for NodeTool — master-key management, crypto helpers, and startup security checks",
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "encryption",
+    "secrets",
+    "secret-storage",
+    "crypto",
+    "security"
   ]
 }

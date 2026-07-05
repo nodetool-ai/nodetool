@@ -63,7 +63,7 @@ import { Graph, GraphValidationError } from "./graph.js";
 import { rewriteBypassedNodes } from "./graph-utils.js";
 import { NodeInbox } from "./inbox.js";
 import { NodeActor, type NodeExecutor } from "./actor.js";
-import { externalEdgeId, syntheticEdgeId } from "./edge-ids.js";
+import { syntheticEdgeId } from "./edge-ids.js";
 import type { CorrelationLineage } from "@nodetool-ai/protocol";
 import {
   analyzeCorrelation,
@@ -260,6 +260,29 @@ export class WorkflowRunner {
   /** Cancellation flag. */
   private _cancelled = false;
 
+  /**
+   * Latch set by `cancel()` and never cleared by `_resetRunState`. A cancel
+   * that lands between construction and `run()` would otherwise be dropped —
+   * the reset clears `_cancelled` and swaps the AbortController. `_runImpl`
+   * re-applies this latch after the reset so such a run terminates as
+   * "cancelled". §17.
+   */
+  private _cancelRequested = false;
+
+  /**
+   * True while a run is in flight. A second concurrent `run()` on the same
+   * instance would clobber all shared run state, so `_runImpl` rejects it. §17.
+   */
+  private _running = false;
+
+  /**
+   * Job id used for `edge_update` emissions during a run. Captured from
+   * `request.job_id` at the start of `_runImpl` so edge updates and
+   * `job_update` messages carry the same id; before a run starts it defaults
+   * to the constructor id. §16.
+   */
+  private _effectiveJobId: string;
+
   /** Run-level cancellation signal source; aborted by `cancel()`. */
   private _abortController = new AbortController();
 
@@ -323,6 +346,7 @@ export class WorkflowRunner {
 
   constructor(jobId: string, options: WorkflowRunnerOptions) {
     this.jobId = jobId;
+    this._effectiveJobId = jobId;
     this._options = options;
   }
 
@@ -349,6 +373,34 @@ export class WorkflowRunner {
     }
 
     for (const node of inputNodes) {
+      // Run the node's own process() so streamed values transform exactly like
+      // start params do in _dispatchInputs (StringInput max_length,
+      // DocumentFileInput building a DocumentRef, MessageDeconstructor
+      // splitting). Otherwise the same input node behaves differently depending
+      // on whether the value arrived as a param or was streamed in. This is a
+      // live-stream path, so a process() failure throws rather than silently
+      // dropping the value.
+      const executor = this._resolveExecutor(node);
+      let nodeOutputs: Record<string, unknown>;
+      try {
+        nodeOutputs = await executor.process(
+          { value },
+          this._options.executionContext
+        );
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        throw new Error(
+          `Input node "${node.name ?? node.id}" (${node.type}) failed: ${message}`
+        );
+      }
+
+      // Same fallback semantics as _dispatchInputs: raw-value dispatch only
+      // when process() produced no defined output at all (the test-double
+      // case). Once the record carries any real output, a handle it omits
+      // stays silent rather than leaking the raw input value onto it.
+      const outputsEmpty = !Object.values(nodeOutputs).some(
+        (v) => v !== undefined
+      );
       const outgoing = this._graph
         .findOutgoingEdges(node.id)
         .filter(isDataEdge);
@@ -356,10 +408,22 @@ export class WorkflowRunner {
         if (sourceHandle && edge.sourceHandle !== sourceHandle) {
           continue;
         }
+        const hasHandleValue = nodeOutputs[edge.sourceHandle] !== undefined;
+        if (!outputsEmpty && !hasHandleValue) continue;
         const targetInbox = this._inboxes.get(edge.target);
         if (!targetInbox) continue;
-        await targetInbox.put(edge.targetHandle, value, {
-          source_edge_id: externalEdgeId(inputName, edge.sourceHandle)
+        const handleValue = hasHandleValue
+          ? nodeOutputs[edge.sourceHandle]
+          : value;
+        await targetInbox.put(edge.targetHandle, handleValue, {
+          source_edge_id:
+            edge.id ??
+            syntheticEdgeId(
+              edge.source,
+              edge.sourceHandle,
+              edge.target,
+              edge.targetHandle
+            )
         });
         this._incrementEdgeCounter(edge);
       }
@@ -422,7 +486,27 @@ export class WorkflowRunner {
     request: RunJobRequest,
     graphData: HydratedGraphData
   ): Promise<RunResult> {
+    // Reject a second concurrent run before touching any shared state — a reset
+    // here would wipe the in-flight run's inboxes/outputs/messages. §17.
+    if (this._running) {
+      throw new Error(
+        `WorkflowRunner "${this.jobId}" is already running; ` +
+          "create a new runner instance per job"
+      );
+    }
+    this._running = true;
+
     this._resetRunState();
+    this._effectiveJobId = request.job_id ?? this.jobId;
+
+    // A cancel() that landed before this run started set the latch but was
+    // undone by _resetRunState (fresh controller, _cancelled cleared). Re-apply
+    // it so the run terminates as "cancelled" rather than silently ignoring the
+    // request. §17.
+    if (this._cancelRequested) {
+      this._cancelled = true;
+      this._abortController.abort();
+    }
 
     try {
       log.info("Workflow started", {
@@ -602,6 +686,8 @@ export class WorkflowRunner {
         status: "failed",
         error: message
       };
+    } finally {
+      this._running = false;
     }
   }
 
@@ -646,6 +732,8 @@ export class WorkflowRunner {
 
   cancel(): void {
     log.info("Job cancelled", { jobId: this.jobId });
+    // Latch the request so a cancel before run() survives _resetRunState. §17.
+    this._cancelRequested = true;
     this._cancelled = true;
     // Stop producing loops (generators, pacers) that never wait on inputs —
     // closing inboxes only unblocks consumers. Nodes observe this via
@@ -949,16 +1037,27 @@ export class WorkflowRunner {
         );
       }
 
+      // Raw-value fallback only when process() produced no defined output at
+      // all (the documented test-double case, incl. `{}`). Once the record
+      // carries any real output, a handle it legitimately omits (e.g. an input
+      // with no attachments) stays silent instead of leaking the raw input
+      // value onto that edge. §6. Keyed on `!== undefined` to match the
+      // per-handle check below. The EOS pass below still closes every edge so
+      // downstream nodes complete.
+      const outputsEmpty = !Object.values(nodeOutputs).some(
+        (v) => v !== undefined
+      );
       const outgoing = this._graph
         .findOutgoingEdges(node.id)
         .filter(isDataEdge);
       for (const edge of outgoing) {
+        const hasHandleValue = nodeOutputs[edge.sourceHandle] !== undefined;
+        if (!outputsEmpty && !hasHandleValue) continue;
         const targetInbox = this._inboxes.get(edge.target);
         if (targetInbox) {
-          const handleValue =
-            nodeOutputs[edge.sourceHandle] !== undefined
-              ? nodeOutputs[edge.sourceHandle]
-              : value;
+          const handleValue = hasHandleValue
+            ? nodeOutputs[edge.sourceHandle]
+            : value;
           await targetInbox.put(edge.targetHandle, handleValue, {
             source_edge_id:
               edge.id ??
@@ -1470,9 +1569,14 @@ export class WorkflowRunner {
         }
       }
 
+      // This terminal update carries the exact final counter, so clear any
+      // dirty mark: otherwise _flushEdgeCounters at run end would re-emit
+      // status "active" after "completed" for an edge whose counter advanced
+      // within the throttle window just before its source finished. §1.
+      this._edgeCounterDirty.delete(edgeId);
       this._emit({
         type: "edge_update",
-        job_id: this.jobId,
+        job_id: this._effectiveJobId,
         edge_id: edgeId,
         status: "completed",
         counter: this._edgeCounters.get(edgeId) ?? null
@@ -1628,7 +1732,7 @@ export class WorkflowRunner {
     this._edgeCounterDirty.delete(id);
     this._emit({
       type: "edge_update",
-      job_id: this.jobId,
+      job_id: this._effectiveJobId,
       edge_id: id,
       status: "active",
       counter
@@ -1644,7 +1748,7 @@ export class WorkflowRunner {
     for (const id of this._edgeCounterDirty) {
       this._emit({
         type: "edge_update",
-        job_id: this.jobId,
+        job_id: this._effectiveJobId,
         edge_id: id,
         status: "active",
         counter: this._edgeCounters.get(id) ?? null
@@ -1686,7 +1790,7 @@ export class WorkflowRunner {
         ) {
           this._emit({
             type: "edge_update",
-            job_id: this.jobId,
+            job_id: this._effectiveJobId,
             edge_id: edgeId,
             status: "drained",
             counter: this._edgeCounters.get(edgeId) ?? null

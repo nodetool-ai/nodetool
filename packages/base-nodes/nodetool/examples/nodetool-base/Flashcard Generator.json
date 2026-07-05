@@ -211,6 +211,26 @@
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
+      },
+      {
+        "id": "flashcards_output",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "Flashcards"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1140,
+            "y": 65
+          },
+          "zIndex": 0,
+          "width": 260,
+          "title": "Flashcards",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
       }
     ],
     "edges": [
@@ -287,6 +307,17 @@
         "ui_properties": {
           "className": "record_type"
         }
+      },
+      {
+        "id": "e_flashcards_out",
+        "source": "generate_flashcards",
+        "sourceHandle": "dataframe",
+        "target": "flashcards_output",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "dataframe"
+        },
+        "edge_type": "data"
       }
     ]
   },
@@ -297,5 +328,86 @@
   "path": null,
   "run_mode": null,
   "required_providers": null,
-  "required_models": null
+  "required_models": null,
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Flashcard Generator"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-10",
+            "text": "🃏 Flashcard Generator",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-11",
+            "text": "Enter any topic and generate study flashcards."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "c-14",
+            "title": "Topic",
+            "content": [
+              {
+                "type": "TextInput",
+                "props": {
+                  "id": "in-12",
+                  "binding": "topic",
+                  "label": "Topic",
+                  "placeholder": "e.g. Python Programming",
+                  "multiline": false,
+                  "events": []
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "id": "b-13",
+                  "label": "Generate Flashcards",
+                  "variant": "contained",
+                  "color": "primary",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "key": "",
+                      "value": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "c-16",
+            "title": "Flashcards",
+            "content": [
+              {
+                "type": "Json",
+                "props": {
+                  "id": "j-15",
+                  "binding": "Flashcards"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
 }

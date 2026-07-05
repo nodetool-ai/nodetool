@@ -18,14 +18,11 @@ import type {
   TransformMode,
   Quad,
   SingleQuadMode,
-  SingleQuadTransform,
-  AffineTransform
+  SingleQuadTransform
 } from "../../types";
 import {
-  IDENTITY_AFFINE,
   cloneTransform,
   isAffineTransform,
-  isQuadTransform,
   makeAffineTransform,
   makeSingleQuadTransform
 } from "../../types";

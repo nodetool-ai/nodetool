@@ -11,7 +11,7 @@ import {
   DialogContent,
   DialogActions
 } from "../ui_primitives";
-import { Add } from "@mui/icons-material";
+import Add from "@mui/icons-material/Add";
 import { useState, useCallback, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import isEqual from "fast-deep-equal";

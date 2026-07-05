@@ -64,14 +64,6 @@ interface WorkflowRunnerState {
   run: (workflow: Workflow, params: Record<string, unknown>) => Promise<void>;
 
   /**
-   * Resumes a suspended or failed job
-   * @param jobId The ID of the job to resume
-   * @param workflowId Optional workflow ID
-   * @returns Promise that resolves when the resume command is sent
-   */
-  resume: (jobId: string, workflowId?: string) => Promise<void>;
-
-  /**
    * Closes the WebSocket connection and resets state
    */
   disconnect: () => void;
@@ -87,11 +79,6 @@ interface WorkflowRunnerState {
     content: string;
   }) => void;
 
-  /**
-   * Removes a notification from state by its ID
-   * @param id Unique identifier of the notification to remove
-   */
-  removeNotification: (id: string) => void;
 }
 
 export const createWorkflowRunner = () =>
@@ -275,43 +262,6 @@ export const createWorkflowRunner = () =>
       });
     },
 
-    resume: async (jobId: string, workflowId?: string) => {
-      if (!get().socket || get().state !== "connected") {
-        await get().connect();
-      }
-
-      set({
-        chunks: [],
-        results: [],
-        progress: null,
-        statusMessage: null,
-        notifications: [],
-        jobId: jobId,
-      });
-
-      set({ state: "running" });
-
-      const socket = get().socket;
-      if (!socket) {
-        throw new Error("WebSocket not connected");
-      }
-
-      socket.send(
-        pack({
-          command: "resume_job",
-          data: {
-            job_id: jobId,
-            workflow_id: workflowId,
-          },
-        })
-      );
-
-      get().addNotification({
-        type: "info",
-        content: `Resuming job ${jobId}`,
-      });
-    },
-
     addNotification: (notification) => {
       const id = Math.random().toString(36).substr(2, 9);
       const notificationWithId = { ...notification, id };
@@ -327,9 +277,4 @@ export const createWorkflowRunner = () =>
       set({ notifications: [...get().notifications, notificationWithId] });
     },
 
-    removeNotification: (id) => {
-      set({
-        notifications: get().notifications.filter((n) => n.id !== id),
-      });
-    },
   }));

@@ -3,6 +3,10 @@ import { OpenAIProvider } from "./openai-provider.js";
 import { LMSTUDIO_DEFAULT_URL } from "./defaults.js";
 import type { LanguageModel } from "./types.js";
 
+/** Cap on the local LM Studio model-list probe so a down/unreachable host
+ * can't stall the model menu's parallel provider load. */
+const MODEL_LIST_TIMEOUT_MS = 2500;
+
 interface LMStudioProviderOptions {
   client?: OpenAI;
   clientFactory?: (apiKey: string) => OpenAI;
@@ -76,7 +80,12 @@ export class LMStudioProvider extends OpenAIProvider {
         {
           headers: {
             Authorization: `Bearer ${this.apiKey}`
-          }
+          },
+          // LM Studio is a local, optional server. Without a timeout a
+          // non-responsive host (proxy swallowing localhost, port open but
+          // silent) hangs this call indefinitely and stalls the whole model
+          // menu's parallel provider load. Bail fast to an empty list instead.
+          signal: AbortSignal.timeout(MODEL_LIST_TIMEOUT_MS)
         }
       );
 

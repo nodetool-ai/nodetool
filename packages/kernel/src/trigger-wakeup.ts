@@ -36,9 +36,28 @@ export class TriggerWakeupService {
   // Stryker disable next-line ArrayDeclaration: a non-empty seed is equivalent — a bogus entry matches no runId/nodeId/inputId and is excluded by every query/filter
   private _inputs: TriggerInput[] = [];
   private _inboxStore: DurableInboxStore;
+  /**
+   * One DurableInbox per (runId, nodeId). DurableInbox.append() serializes its
+   * read-modify-write (getMaxSeq → save) per *instance* via a promise chain, so
+   * concurrent deliveries for the same (run, node) must share one instance or
+   * they each read the same maxSeq and persist duplicate seq values. The key is
+   * `JSON.stringify([runId, nodeId])` because runId/nodeId are arbitrary
+   * strings — a plain `:` join would let ("a:b","c") collide with ("a","b:c").
+   */
+  private _inboxes = new Map<string, DurableInbox>();
 
   constructor(inboxStore?: DurableInboxStore) {
     this._inboxStore = inboxStore ?? new MemoryDurableInboxStore();
+  }
+
+  private _inboxFor(runId: string, nodeId: string): DurableInbox {
+    const key = JSON.stringify([runId, nodeId]);
+    let inbox = this._inboxes.get(key);
+    if (!inbox) {
+      inbox = new DurableInbox(runId, nodeId, this._inboxStore);
+      this._inboxes.set(key, inbox);
+    }
+    return inbox;
   }
 
   /**
@@ -84,8 +103,10 @@ export class TriggerWakeupService {
       ...(opts.cursor ? { cursor: opts.cursor } : {})
     });
 
-    // Also append as inbox message
-    const inbox = new DurableInbox(opts.runId, opts.nodeId, this._inboxStore);
+    // Also append as inbox message. Reuse a cached DurableInbox per (run, node)
+    // so its per-instance append serialization applies across concurrent
+    // deliveries — a fresh instance per call would defeat it (see finding #9).
+    const inbox = this._inboxFor(opts.runId, opts.nodeId);
     await inbox.append("trigger", opts.payload, `trigger-${opts.inputId}`);
 
     return true;

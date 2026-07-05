@@ -20,6 +20,8 @@ const COLUMNS: Col[] = [
     links: [
       { name: "Studio", href: "/studio" },
       { name: "Cloud", href: "/cloud" },
+      { name: "Templates", href: "/templates" },
+      { name: "Tasks", href: "/tasks" },
       { name: "Pricing", href: "/pricing" },
     ],
   },
@@ -30,6 +32,9 @@ const COLUMNS: Col[] = [
       { name: "Agents", href: "/agents" },
       { name: "Developers", href: "/developers" },
       { name: "Marketing", href: "/marketing" },
+      { name: "Local-first", href: "/solutions/local-first" },
+      { name: "Researchers", href: "/solutions/researchers" },
+      { name: "All solutions", href: "/solutions" },
     ],
   },
   {

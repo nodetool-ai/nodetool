@@ -10,7 +10,6 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
-import type { Chunk } from "@nodetool-ai/protocol";
 import { BaseProvider } from "./base-provider.js";
 import { safeFetch } from "./safe-url.js";
 import { createLogger } from "@nodetool-ai/config";
@@ -22,16 +21,11 @@ import type {
   ImageToVideoParams,
   LanguageModel,
   Message,
-  MessageContent,
-  MessageImageContent,
-  MessageTextContent,
   MusicModel,
   ProviderStreamItem,
-  ProviderTool,
   TextToImageParams,
   TextToMusicParams,
   TextToVideoParams,
-  ToolCall,
   TTSModel,
   VideoModel
 } from "./types.js";
@@ -47,6 +41,15 @@ import {
 import { sniffAudioMime } from "./audio-mime.js";
 import { OpenAIProvider } from "./openai-provider.js";
 import { AnthropicProvider } from "./anthropic-provider.js";
+import {
+  extractResponsesText,
+  extractResponsesToolCalls,
+  messagesToResponsesInput,
+  responseToolChoice,
+  responseTools,
+  responseUsage,
+  streamResponsesEvents
+} from "./responses-api.js";
 
 const log = createLogger("nodetool.runtime.providers.kie");
 
@@ -215,23 +218,6 @@ async function downloadResultBytes(
   return new Uint8Array(await dlRes.arrayBuffer());
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
-
-function stringifyContent(value: unknown): string {
-  if (typeof value === "string") return value;
-  if (value == null) return "";
-  return JSON.stringify(value);
-}
-
-function dataUri(mimeType: string, data: Uint8Array | string): string {
-  if (typeof data === "string" && data.startsWith("data:")) return data;
-  const base64 =
-    typeof data === "string" ? data : Buffer.from(data).toString("base64");
-  return `data:${mimeType};base64,${base64}`;
-}
-
 const KIE_MANIFEST_PKG = "@nodetool-ai/kie-nodes";
 const KIE_MANIFEST_PATH = "kie-manifest.json";
 
@@ -343,100 +329,6 @@ export class KieProvider extends BaseProvider {
     yield* this.generateResponseMessages(args, model.basePath);
   }
 
-  private async responseInputContent(
-    content: MessageContent
-  ): Promise<Record<string, unknown> | null> {
-    if (content.type === "text") {
-      return { type: "input_text", text: (content as MessageTextContent).text };
-    }
-
-    if (content.type === "image_url") {
-      const image = (content as MessageImageContent).image;
-      if (image.uri) {
-        const resolved = await this.resolveUri(image.uri);
-        return { type: "input_image", image_url: resolved };
-      }
-      if (image.data) {
-        return {
-          type: "input_image",
-          image_url: dataUri(image.mimeType ?? "image/jpeg", image.data)
-        };
-      }
-    }
-
-    return null;
-  }
-
-  private async messagesToResponsesInput(
-    messages: Message[]
-  ): Promise<Array<Record<string, unknown>>> {
-    const input: Array<Record<string, unknown>> = [];
-
-    for (const message of messages) {
-      if (message.role === "tool") {
-        input.push({
-          type: "function_call_output",
-          call_id: message.toolCallId ?? "",
-          output: stringifyContent(message.content)
-        });
-        continue;
-      }
-
-      if (message.role === "assistant") {
-        const text = stringifyContent(message.content);
-        if (text) {
-          input.push({
-            type: "message",
-            role: "assistant",
-            content: [{ type: "output_text", text }]
-          });
-        }
-        for (const toolCall of message.toolCalls ?? []) {
-          input.push({
-            type: "function_call",
-            id: toolCall.id,
-            call_id: toolCall.id,
-            name: toolCall.name,
-            arguments: JSON.stringify(toolCall.args ?? {})
-          });
-        }
-        continue;
-      }
-
-      const content: Array<Record<string, unknown>> = [];
-      if (typeof message.content === "string") {
-        content.push({ type: "input_text", text: message.content });
-      } else if (Array.isArray(message.content)) {
-        for (const part of message.content) {
-          const converted = await this.responseInputContent(part);
-          if (converted) content.push(converted);
-        }
-      }
-
-      if (content.length === 0) continue;
-      input.push({ role: message.role, content });
-    }
-
-    return input;
-  }
-
-  private responseTools(tools: ProviderTool[] = []): Array<Record<string, unknown>> {
-    return tools.map((tool) => ({
-      type: "function",
-      name: tool.name,
-      description: tool.description ?? "",
-      parameters: tool.inputSchema ?? { type: "object", properties: {} }
-    }));
-  }
-
-  private responseToolChoice(
-    toolChoice: string | "any" | undefined
-  ): unknown {
-    if (!toolChoice) return undefined;
-    if (toolChoice === "any") return "auto";
-    return { type: "function", name: toolChoice };
-  }
-
   private async generateResponseMessage(
     args: Parameters<BaseProvider["generateMessage"]>[0],
     basePath: string
@@ -444,7 +336,9 @@ export class KieProvider extends BaseProvider {
     const client = this.makeResponsesClient(basePath);
     const request: Record<string, unknown> = {
       model: args.model,
-      input: await this.messagesToResponsesInput(args.messages),
+      input: await messagesToResponsesInput(args.messages, (uri) =>
+        this.resolveUri(uri)
+      ),
       stream: false
     };
 
@@ -452,10 +346,10 @@ export class KieProvider extends BaseProvider {
     if (args.temperature != null) request.temperature = args.temperature;
     if (args.topP != null) request.top_p = args.topP;
 
-    const tools = this.responseTools(args.tools);
+    const tools = responseTools(args.tools);
     if (tools.length > 0) {
       request.tools = tools;
-      request.tool_choice = this.responseToolChoice(args.toolChoice) ?? "auto";
+      request.tool_choice = responseToolChoice(args.toolChoice) ?? "auto";
     }
 
     this.recordRequestPayload(request);
@@ -466,13 +360,16 @@ export class KieProvider extends BaseProvider {
       signal: args.signal
     })) as Record<string, unknown>;
 
-    this.trackResponseUsage(args.model, response);
+    this.trackUsage(args.model, responseUsage(response));
 
     const outputText =
       typeof response.output_text === "string"
         ? response.output_text
-        : this.extractResponsesText(response.output);
-    const toolCalls = this.extractResponsesToolCalls(response.output);
+        : extractResponsesText(response.output);
+    const toolCalls = extractResponsesToolCalls(
+      response.output,
+      this.buildToolCall.bind(this)
+    );
 
     return {
       role: "assistant",
@@ -488,7 +385,9 @@ export class KieProvider extends BaseProvider {
     const client = this.makeResponsesClient(basePath);
     const request: Record<string, unknown> = {
       model: args.model,
-      input: await this.messagesToResponsesInput(args.messages),
+      input: await messagesToResponsesInput(args.messages, (uri) =>
+        this.resolveUri(uri)
+      ),
       stream: true
     };
 
@@ -496,10 +395,10 @@ export class KieProvider extends BaseProvider {
     if (args.temperature != null) request.temperature = args.temperature;
     if (args.topP != null) request.top_p = args.topP;
 
-    const tools = this.responseTools(args.tools);
+    const tools = responseTools(args.tools);
     if (tools.length > 0) {
       request.tools = tools;
-      request.tool_choice = this.responseToolChoice(args.toolChoice) ?? "auto";
+      request.tool_choice = responseToolChoice(args.toolChoice) ?? "auto";
     }
 
     this.recordRequestPayload(request);
@@ -511,91 +410,10 @@ export class KieProvider extends BaseProvider {
       request,
       { signal: args.signal }
     )) as AsyncIterable<Record<string, unknown>>;
-    const pendingArgs = new Map<string, string>();
-
-    for await (const event of stream) {
-      const type = event.type;
-      if (type === "response.output_text.delta") {
-        const chunk: Chunk = {
-          type: "chunk",
-          content: String(event.delta ?? ""),
-          done: false
-        };
-        yield chunk;
-        continue;
-      }
-
-      if (type === "response.function_call_arguments.delta") {
-        const itemId = String(event.item_id ?? "");
-        pendingArgs.set(itemId, (pendingArgs.get(itemId) ?? "") + String(event.delta ?? ""));
-        continue;
-      }
-
-      if (type === "response.function_call_arguments.done") {
-        const itemId = String(event.item_id ?? "");
-        const argsText = String(event.arguments ?? pendingArgs.get(itemId) ?? "{}");
-        pendingArgs.delete(itemId);
-        yield this.buildToolCall(itemId, String(event.name ?? ""), argsText);
-        continue;
-      }
-
-      if (type === "response.completed") {
-        const response = event.response;
-        if (isRecord(response)) this.trackResponseUsage(args.model, response);
-        const chunk: Chunk = { type: "chunk", content: "", done: true };
-        yield chunk;
-        continue;
-      }
-
-      if (type === "response.failed" || type === "response.error") {
-        throw new Error(`Kie responses stream failed: ${JSON.stringify(event)}`);
-      }
-    }
-  }
-
-  private extractResponsesText(output: unknown): string {
-    if (!Array.isArray(output)) return "";
-    const parts: string[] = [];
-    for (const item of output) {
-      if (!isRecord(item) || item.type !== "message" || !Array.isArray(item.content)) {
-        continue;
-      }
-      for (const content of item.content) {
-        if (isRecord(content) && content.type === "output_text") {
-          parts.push(String(content.text ?? ""));
-        }
-      }
-    }
-    return parts.join("");
-  }
-
-  private extractResponsesToolCalls(output: unknown): ToolCall[] {
-    if (!Array.isArray(output)) return [];
-    const toolCalls: ToolCall[] = [];
-    for (const item of output) {
-      if (!isRecord(item) || item.type !== "function_call") continue;
-      toolCalls.push(
-        this.buildToolCall(
-          String(item.call_id ?? item.id ?? ""),
-          String(item.name ?? ""),
-          item.arguments
-        )
-      );
-    }
-    return toolCalls;
-  }
-
-  private trackResponseUsage(model: string, response: Record<string, unknown>): void {
-    const usage = response.usage;
-    if (!isRecord(usage)) return;
-    const inputTokens = Number(usage.input_tokens ?? 0);
-    const outputTokens = Number(usage.output_tokens ?? 0);
-    const details = usage.input_tokens_details;
-    const cachedTokens = isRecord(details) ? Number(details.cached_tokens ?? 0) : 0;
-    this.trackUsage(model, {
-      inputTokens: Number.isFinite(inputTokens) ? inputTokens : 0,
-      outputTokens: Number.isFinite(outputTokens) ? outputTokens : 0,
-      cachedTokens: Number.isFinite(cachedTokens) ? cachedTokens : 0
+    yield* streamResponsesEvents(stream, {
+      model: args.model,
+      buildToolCall: this.buildToolCall.bind(this),
+      onUsage: (model, usage) => this.trackUsage(model, usage)
     });
   }
 

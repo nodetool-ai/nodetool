@@ -130,7 +130,7 @@ export default function AgentsGraphHero() {
                         <div className="mt-8 flex items-center justify-center gap-6 text-sm text-slate-400 font-medium">
                             <span className="flex items-center gap-2"><Command className="w-4 h-4" /> Open Source</span>
                             <span className="w-1 h-1 rounded-full bg-slate-700" />
-                            <span>BYOK — pay providers direct</span>
+                            <span>Your own keys — pay providers direct</span>
                             <span className="w-1 h-1 rounded-full bg-slate-700" />
                             <span>Watch every step</span>
                         </div>

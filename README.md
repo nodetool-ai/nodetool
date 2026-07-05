@@ -13,6 +13,7 @@
 [![Platform: macOS](https://img.shields.io/badge/platform-macOS-lightgrey)](https://nodetool.ai)
 [![Platform: Windows](https://img.shields.io/badge/platform-Windows-blue)](https://nodetool.ai)
 [![Platform: Linux](https://img.shields.io/badge/platform-Linux-orange)](https://nodetool.ai)
+[![Powered by Atlas Cloud](https://www.atlascloud.ai/oss-program/powered-by-atlas-cloud.svg)](https://www.atlascloud.ai/?ref=PW9AD2)
 
 NodeTool is an open-source creative AI suite that runs on your machine. A node-based canvas, a multi-track video timeline, and a layered sketch editor share one workspace, and every major AI model, cloud or local, wires into all three.
 

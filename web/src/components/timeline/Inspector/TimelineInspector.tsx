@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useCallback, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { css } from "@emotion/react";
 import { useTheme, type Theme } from "@mui/material/styles";
 import ContentCutOutlinedIcon from "@mui/icons-material/ContentCutOutlined";
@@ -61,7 +60,7 @@ const sectionContentStyles = (theme: Theme) =>
     display: "flex",
     flexDirection: "column",
     gap: 2,
-    padding: theme.spacing(1, 0, 3)
+    padding: theme.spacing(0.5, 0, 2)
   });
 
 const inspectorPanelSx = {
@@ -97,7 +96,6 @@ const clamp = (value: number, min: number, max: number) =>
 
 export const TimelineInspector: React.FC = memo(() => {
   const theme = useTheme();
-  const navigate = useNavigate();
 
   const selectedClipIds = useTimelineUIStore((s) => s.selectedClipIds);
   const clipId = selectedClipIds.size === 1 ? [...selectedClipIds][0] : null;
@@ -136,9 +134,6 @@ export const TimelineInspector: React.FC = memo(() => {
     },
     [clipId, patchClip]
   );
-
-  const isAudio = clip?.mediaType === "audio";
-  const isOverlay = track?.type === "overlay";
 
   // ── Header action handlers ──────────────────────────────────────────────
 
@@ -309,6 +304,7 @@ export const TimelineInspector: React.FC = memo(() => {
             <InspectorPillInput
               value={(clip.durationMs / 1000).toFixed(2)}
               unit="s"
+              scrub={{ step: 0.02, min: 0.01 }}
               onCommit={(raw) => {
                 const ms = parseSeconds(raw);
                 if (ms == null || ms < 1) return;
@@ -321,6 +317,7 @@ export const TimelineInspector: React.FC = memo(() => {
             <InspectorPillInput
               value={(clip.speedMultiplier ?? 1).toFixed(2)}
               unit="×"
+              scrub={{ step: 0.01, min: 0.1, max: 8 }}
               onCommit={(raw) =>
                 onPatchNumber("speedMultiplier", raw, 0.1, 8)
               }

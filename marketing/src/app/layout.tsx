@@ -18,7 +18,7 @@ const jetBrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "NodeTool — The open creative AI workspace",
   description:
-    "NodeTool is the open-source creative AI workspace — every major model from every major provider, called with your own keys, wired into one node-based canvas you run on your machine or in the browser. Pay providers directly. No credits, no markup, no vendor lock-in.",
+    "NodeTool is the open-source creative AI workspace — every major model from every major provider, called with your own keys, wired into one node-based canvas you run on your machine or in the browser. Pay providers directly. No credits, no markup, no lock-in.",
   metadataBase: new URL("https://nodetool.ai"),
   alternates: {
     canonical: "/",
@@ -49,7 +49,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "NodeTool — The open creative AI workspace",
     description:
-      "Every major model from every major provider, called with your own keys, wired into one node-based canvas. Image, video, audio, and text on one surface. Open source. BYOK. Provider prices.",
+      "Every major model from every major provider, called with your own keys, wired into one node-based canvas. Image, video, audio, and text in one place. Open source. Your own keys. Provider prices.",
     url: "https://nodetool.ai",
     siteName: "NodeTool",
     images: [
@@ -65,7 +65,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "NodeTool — The open creative AI workspace",
     description:
-      "Every model. Your keys. Your canvas. The open-source creative AI workspace, with BYOK to every major provider and provider-price billing.",
+      "Every model. Your keys. Your canvas. The open-source creative AI workspace — bring your own keys to every major provider and pay provider prices.",
     images: ["/preview.png"],
   },
 };
@@ -112,11 +112,11 @@ export default function RootLayout({
               "screenshot": "https://nodetool.ai/preview.png",
               "featureList": [
                 "Node-based creative canvas for image, video, audio, and text",
-                "BYOK to every major provider: FAL, KIE, OpenAI, Anthropic, Gemini, Replicate, Together, Groq, Mistral, OpenRouter, HuggingFace",
+                "Bring your own keys to every major provider: FAL, KIE, OpenAI, Anthropic, Gemini, Replicate, Together, Groq, Mistral, OpenRouter, HuggingFace",
                 "Pay providers directly at provider prices, no credits, no markup",
                 "Editing tools built in: masks, inpaint, outpaint, relight, upscale, layers, compositing",
-                "Frontier models named by their real names: Flux, Seedance, Wan, Veo, Kling, Hailuo, Whisper, ElevenLabs, Suno",
-                "Local inference via MLX, Ollama, llama.cpp, vLLM, and LM Studio",
+                "The latest models under their real names: Flux, Seedance, Wan, Veo, Kling, Hailuo, Whisper, ElevenLabs, Suno",
+                "Run models locally via MLX, Ollama, llama.cpp, vLLM, and LM Studio",
                 "Two editions on one open-source codebase: Studio (desktop) and Cloud (browser)",
                 "Streaming execution with live output as nodes finish",
                 "Workflows, files, and keys belong to you — runs on your machine or browser",
@@ -172,7 +172,7 @@ export default function RootLayout({
                   "name": "How is NodeTool different from ComfyUI?",
                   "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "ComfyUI is a Stable Diffusion power tool with engineer-first UX. NodeTool is the full creative workspace — every modality on one canvas, with the editing tools creatives actually use. NodeTool also supports a much wider model roster across providers and modalities, called with your own keys at provider prices."
+                    "text": "ComfyUI is a Stable Diffusion power tool built for engineers. NodeTool is the full creative workspace — image, video, audio, and text on one canvas, with the editing tools creatives actually use. NodeTool also supports far more models across providers and media types, called with your own keys at provider prices."
                   }
                 },
                 {
@@ -180,7 +180,7 @@ export default function RootLayout({
                   "name": "How is NodeTool different from Weavy or other closed SaaS canvases?",
                   "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "Closed canvases lock you into a credit system and a curated model roster. NodeTool is open source and BYOK. You bring your own API keys to every provider, pay providers directly at provider prices, and own your workflows and files. Cloud is just our managed hosting of the same open-source code you can run yourself."
+                    "text": "Closed canvases lock you into a credit system and a hand-picked list of models. NodeTool is open source. You bring your own API keys to every provider, pay providers directly at provider prices, and own your workflows and files. Cloud is just our managed hosting of the same open-source code you can run yourself."
                   }
                 },
                 {
@@ -188,7 +188,7 @@ export default function RootLayout({
                   "name": "How does pricing work?",
                   "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "NodeTool Studio is free to download and use. NodeTool Cloud is a subscription for managed hosting. In both editions, you bring your own API keys to every provider and pay those providers directly at their list prices. NodeTool does not run model inference for you on its own servers, does not issue proprietary credits, and does not mark up model calls."
+                    "text": "NodeTool Studio is free to download and use. NodeTool Cloud is a subscription for managed hosting. In both editions, you bring your own API keys to every provider and pay those providers directly at their list prices. NodeTool does not run models for you on its own servers, does not issue its own credits, and does not mark up model calls."
                   }
                 },
                 {
@@ -196,7 +196,7 @@ export default function RootLayout({
                   "name": "What models does NodeTool support?",
                   "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "Frontier models including Flux, Seedance, Wan, Veo, Kling, Hailuo, Qwen Image, Whisper, ElevenLabs, and Suno, called through providers like FAL, KIE, OpenAI, Anthropic, Gemini, Replicate, Together, Groq, Mistral, OpenRouter, and HuggingFace. Local inference is supported via MLX, Ollama, llama.cpp, vLLM, and LM Studio."
+                    "text": "The latest models, including Flux, Seedance, Wan, Veo, Kling, Hailuo, Qwen Image, Whisper, ElevenLabs, and Suno, called through providers like FAL, KIE, OpenAI, Anthropic, Gemini, Replicate, Together, Groq, Mistral, OpenRouter, and HuggingFace. Models can also run on your own machine via MLX, Ollama, llama.cpp, vLLM, and LM Studio."
                   }
                 },
                 {

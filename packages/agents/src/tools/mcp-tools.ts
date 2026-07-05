@@ -85,10 +85,35 @@ async function apiPost(
 // Workflow Tools
 // ============================================================================
 
+/** Project a workflow record to a light summary — never the full graph. */
+function lightWorkflow(w: unknown): unknown {
+  if (!w || typeof w !== "object") return w;
+  const r = w as Record<string, unknown>;
+  return {
+    id: r["id"],
+    name: r["name"],
+    description: r["description"] ?? null,
+    tags: r["tags"] ?? null
+  };
+}
+
+/** Strip embedded graphs from a `/api/workflows` list response (array or
+ *  `{ workflows: [...] }`), keeping pagination fields intact. */
+function lightWorkflowList(resp: unknown): unknown {
+  if (Array.isArray(resp)) return resp.map(lightWorkflow);
+  if (resp && typeof resp === "object") {
+    const r = resp as Record<string, unknown>;
+    if (Array.isArray(r["workflows"])) {
+      return { ...r, workflows: r["workflows"].map(lightWorkflow) };
+    }
+  }
+  return resp;
+}
+
 export class ListWorkflowsTool extends Tool {
   readonly name = "list_workflows";
   readonly description =
-    "List workflows with flexible filtering and search options. Returns user workflows, example workflows, or both.";
+    "List workflows (id, name, description, tags only — no graph). Returns user workflows, example workflows, or both. Use get_workflow for the full graph of a specific workflow.";
   readonly jsonSchema = {
     type: "object" as const,
     properties: {
@@ -120,15 +145,16 @@ export class ListWorkflowsTool extends Tool {
     const limit = Number(params["limit"] ?? 100);
 
     if (workflowType === "example" || workflowType === "all") {
-      const examples = await apiGet(context, "/api/workflows/examples", {
-        limit,
-        query
-      });
+      const examples = lightWorkflowList(
+        await apiGet(context, "/api/workflows/examples", { limit, query })
+      );
       if (workflowType === "example") return examples;
-      const user = await apiGet(context, "/api/workflows/", { limit });
+      const user = lightWorkflowList(
+        await apiGet(context, "/api/workflows/", { limit })
+      );
       return { examples, user };
     }
-    return apiGet(context, "/api/workflows/", { limit });
+    return lightWorkflowList(await apiGet(context, "/api/workflows/", { limit }));
   }
 
   userMessage(params: Record<string, unknown>): string {

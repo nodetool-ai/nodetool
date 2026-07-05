@@ -573,6 +573,17 @@ export class NodeInbox {
   }
 
   /**
+   * Resolve when the inbox is next notified of activity — a `put`, `prepend`,
+   * lineage signal, `markSourceDone`, or `closeAll`. Yields nothing: unlike the
+   * iterators, a close that produces no envelope still wakes the caller. Used by
+   * consumers that manage their own draining (the controlled-node wait) and must
+   * re-check handle state after an upstream close arrives while blocked.
+   */
+  async waitForActivity(): Promise<void> {
+    await this._waitForData();
+  }
+
+  /**
    * Remove the first occurrence of `handle` from the arrival queue.
    * Called after consuming from a specific handle.
    */

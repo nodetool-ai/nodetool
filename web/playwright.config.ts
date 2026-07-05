@@ -73,6 +73,12 @@ export default defineConfig({
         // no physical GPU.  SwiftShader is bundled with Chromium so no extra
         // system packages are required.
         launchOptions: {
+          // Allow pointing at a pre-installed Chromium when the environment
+          // ships one that doesn't match Playwright's bundled build (e.g. CI
+          // images with a system Chromium). Ignored when unset.
+          ...(process.env.PLAYWRIGHT_CHROMIUM_PATH
+            ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH }
+            : {}),
           args: [
             "--enable-features=Vulkan,UseSkiaRenderer",
             "--use-gl=angle",

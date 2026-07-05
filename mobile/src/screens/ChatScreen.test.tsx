@@ -41,6 +41,7 @@ describe('ChatScreen', () => {
     error: null,
     statusMessage: null,
     currentThreadId: 'thread-1',
+    messageCache: { 'thread-1': [] } as Record<string, any[]>,
     connect: jest.fn().mockResolvedValue(undefined),
     disconnect: jest.fn(),
     sendMessage: jest.fn().mockResolvedValue(undefined),
@@ -219,13 +220,13 @@ describe('ChatScreen', () => {
     });
 
     it('passes messages to ChatView', () => {
-      mockStore.getCurrentMessages.mockReturnValue([
+      mockStore.messageCache['thread-1'] = [
         { id: '1', type: 'message', role: 'user', content: 'Hello' },
         { id: '2', type: 'message', role: 'assistant', content: 'Hi' },
-      ]);
-      
+      ];
+
       render(<ChatScreen navigation={mockNavigation as any} route={{} as any} />);
-      
+
       expect(screen.getByTestId('message-count')).toHaveTextContent('2');
     });
 

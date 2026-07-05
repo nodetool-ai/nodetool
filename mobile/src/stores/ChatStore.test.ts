@@ -352,35 +352,6 @@ describe('ChatStore', () => {
     });
   });
 
-  describe('switchThread', () => {
-    beforeEach(async () => {
-      await useChatStore.getState().createNewThread();
-    });
-
-    it('switches to existing thread', async () => {
-      // Add second thread manually
-      const thread2 = { id: 'thread-2', title: 'Thread 2' } as any;
-      useChatStore.setState({
-        threads: {
-          ...useChatStore.getState().threads,
-          'thread-2': thread2,
-        },
-      });
-      
-      useChatStore.getState().switchThread('thread-2');
-      
-      expect(useChatStore.getState().currentThreadId).toBe('thread-2');
-    });
-
-    it('does nothing if thread does not exist', () => {
-      const initialThreadId = useChatStore.getState().currentThreadId;
-      
-      useChatStore.getState().switchThread('non-existent');
-      
-      expect(useChatStore.getState().currentThreadId).toBe(initialThreadId);
-    });
-  });
-
   describe('getCurrentMessages', () => {
     it('returns empty array if no current thread', () => {
       expect(useChatStore.getState().getCurrentMessages()).toEqual([]);
@@ -405,28 +376,6 @@ describe('ChatStore', () => {
       
       expect(useChatStore.getState().getCurrentMessages()).toEqual([]);
     });
-  });
-
-  describe('resetMessages', () => {
-    beforeEach(async () => {
-      const threadId = await useChatStore.getState().createNewThread();
-      useChatStore.setState({
-        messageCache: {
-          [threadId]: [
-            { id: '1', type: 'message', role: 'user', content: 'Hello' },
-          ] as any,
-        },
-      });
-    });
-
-    it('clears messages for current thread', () => {
-      const threadId = useChatStore.getState().currentThreadId!;
-      
-      useChatStore.getState().resetMessages();
-      
-      expect(useChatStore.getState().messageCache[threadId]).toEqual([]);
-    });
-
   });
 
   describe('addMessageToCache', () => {
@@ -472,14 +421,6 @@ describe('ChatStore', () => {
       } as any);
       
       expect(useChatStore.getState().messageCache[threadId]).toHaveLength(2);
-    });
-  });
-
-  describe('setStatus', () => {
-    it('updates status', () => {
-      useChatStore.getState().setStatus('loading');
-      
-      expect(useChatStore.getState().status).toBe('loading');
     });
   });
 

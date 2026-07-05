@@ -25,8 +25,9 @@ import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode"
 import { graphEdgeToReactFlowEdge } from "../../stores/graphEdgeToReactFlowEdge";
 import MiniAppResults from "./components/MiniAppResults";
 import MiniAppInputsForm from "./components/MiniAppInputsForm";
-import MiniAppSidePanel from "./components/MiniAppSidePanel";
-import VibeCodingPreview from "../vibecoding/VibeCodingPreview";
+import AppRuntimeView from "../appbuilder/AppRuntimeView";
+import { loadAppData } from "../appbuilder/persistence";
+import { isRenderableData } from "../appbuilder/appData";
 import { useMiniAppInputs } from "./hooks/useMiniAppInputs";
 import { useMiniAppRunner } from "./hooks/useMiniAppRunner";
 import { clampNumber } from "./utils";
@@ -184,8 +185,9 @@ const MiniAppPage: React.FC<MiniAppPageProps> = ({
   const panelSize = usePanelStore((state) => state.panel.panelSize);
   const leftOffset = embedded ? 0 : isVisible ? panelSize : TOOLBAR_WIDTH;
 
-  // Check for custom HTML app
-  const hasCustomApp = Boolean(workflow?.html_app);
+  // Check for an App Builder document. Without one, render the generated form.
+  const appData = useMemo(() => loadAppData(workflow), [workflow]);
+  const hasAppSpec = isRenderableData(appData);
 
   const isRunning = runnerState === "running" || runnerState === "connecting";
 
@@ -235,25 +237,15 @@ const MiniAppPage: React.FC<MiniAppPageProps> = ({
           transition: `margin-left ${MOTION.normal}`
         }}
       >
-        {workflow && (
-          <MiniAppSidePanel
-            workflow={workflow}
-            isRunning={runnerState === "running"}
-          />
-        )}
-
-        {/* Custom HTML App - Full Width */}
-        {hasCustomApp && workflow && (
+        {/* App Builder document: reactive, event-driven UI. */}
+        {hasAppSpec && appData && workflow && (
           <Box sx={{ height: "100%", width: "100%", flex: 1 }}>
-            <VibeCodingPreview
-              html={workflow.html_app!}
-              workflowId={workflow.id}
-            />
+            <AppRuntimeView workflow={workflow} data={appData} />
           </Box>
         )}
 
         {/* Default UI - Centered Container */}
-        {!hasCustomApp && (
+        {!hasAppSpec && (
           <div className="layout-container">
             {/* Loading State */}
             {isLoading && (

@@ -115,20 +115,18 @@ describe("ACTOR-003: Streaming output node yields multiple values", () => {
     );
 
     expect(result.status).toBe("completed");
-    // 3 values emitted from counter. edge_update is throttled (first
-    // message immediately, then at most one per interval, exact final
-    // counter flushed at run end) — assert the final counter, not the
-    // message count.
+    // 3 values emitted from counter. edge_update is throttled (first message
+    // immediately, then coalesced). The terminal "completed" update carries
+    // the exact final counter; §1 guarantees no "active" update trails it.
     const edgeUpdates = result.messages.filter(
       (m) =>
         m.type === "edge_update" &&
-        (m as { edge_id: string }).edge_id === "e-counter-sink" &&
-        (m as { status: string }).status === "active"
-    );
-    expect(edgeUpdates.length).toBeGreaterThanOrEqual(1);
-    expect(
-      (edgeUpdates[edgeUpdates.length - 1] as { counter?: number }).counter
-    ).toBe(3);
+        (m as { edge_id: string }).edge_id === "e-counter-sink"
+    ) as Array<{ status: string; counter?: number }>;
+    const completed = edgeUpdates.filter((m) => m.status === "completed");
+    expect(completed.length).toBeGreaterThanOrEqual(1);
+    expect(completed[completed.length - 1].counter).toBe(3);
+    expect(edgeUpdates[edgeUpdates.length - 1].status).toBe("completed");
   });
 });
 
@@ -267,17 +265,17 @@ describe("ACTOR-007: Sticky input semantics with streaming upstream", () => {
 
     expect(result.status).toBe("completed");
     // 3 values from counter (1,2,3) + sticky b=10 → 3 executions: 11, 12, 13.
-    // edge_update is throttled; the last active update carries the total.
+    // edge_update is throttled; the terminal "completed" update carries the
+    // total, with no trailing "active" (§1).
     const edgeUpdates = result.messages.filter(
       (m) =>
         m.type === "edge_update" &&
-        (m as { edge_id: string }).edge_id === "e-add" &&
-        (m as { status: string }).status === "active"
-    );
-    expect(edgeUpdates.length).toBeGreaterThanOrEqual(1);
-    expect(
-      (edgeUpdates[edgeUpdates.length - 1] as { counter?: number }).counter
-    ).toBe(3);
+        (m as { edge_id: string }).edge_id === "e-add"
+    ) as Array<{ status: string; counter?: number }>;
+    const completed = edgeUpdates.filter((m) => m.status === "completed");
+    expect(completed.length).toBeGreaterThanOrEqual(1);
+    expect(completed[completed.length - 1].counter).toBe(3);
+    expect(edgeUpdates[edgeUpdates.length - 1].status).toBe("completed");
   });
 });
 

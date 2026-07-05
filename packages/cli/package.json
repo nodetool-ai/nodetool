@@ -88,5 +88,17 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "cli",
+    "command-line",
+    "terminal",
+    "agent-mode",
+    "chat-cli"
   ]
 }
