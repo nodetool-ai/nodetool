@@ -298,14 +298,7 @@ const CreateGeneratedLayerDialogBody: React.FC<{
                     >
                       <FlexColumn gap={0.5}>
                         <FlexRow align="center" gap={1}>
-                          <Label
-                            sx={{
-                              flex: 1,
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap"
-                            }}
-                          >
+                          <Label noWrap sx={{ flex: 1 }}>
                             {w.name}
                           </Label>
                           <Caption color="secondary">
@@ -314,14 +307,7 @@ const CreateGeneratedLayerDialogBody: React.FC<{
                           </Caption>
                         </FlexRow>
                         {w.description && (
-                          <Caption
-                            color="secondary"
-                            sx={{
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap"
-                            }}
-                          >
+                          <Caption color="secondary" noWrap>
                             {w.description}
                           </Caption>
                         )}

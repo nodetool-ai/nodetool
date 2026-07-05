@@ -18,7 +18,7 @@ import { useTheme } from "@mui/material/styles";
 import { useSketchStore } from "../state/useSketchStore";
 import { useLayerBinding } from "../../../stores/sketch/SketchSessionStore";
 import { SKETCH_SIZE } from "../sketchStyles";
-import { EmptyState, Box } from "../../ui_primitives";
+import { EmptyState, ScrollArea } from "../../ui_primitives";
 import { GeneratedLayerPanel } from "./GeneratedLayerPanel";
 import { ImportedLayerPanel } from "./ImportedLayerPanel";
 import { PaintedLayerPanel } from "./PaintedLayerPanel";
@@ -71,7 +71,7 @@ const SketchInspectorInner: React.FC = () => {
   }
 
   return (
-    <Box
+    <ScrollArea
       className="sketch-inspector"
       sx={{
         width: SKETCH_SIZE.panelWidth,
@@ -79,7 +79,6 @@ const SketchInspectorInner: React.FC = () => {
         maxWidth: SKETCH_SIZE.panelWidth,
         flex: 1,
         minHeight: 0,
-        overflowY: "auto",
         // Recessed, darker well for the generate/inspect content so previews
         // and generated output read against a near-black surface (darker than
         // the surrounding `paper` panel).
@@ -89,7 +88,7 @@ const SketchInspectorInner: React.FC = () => {
       }}
     >
       {body}
-    </Box>
+    </ScrollArea>
   );
 };
 
