@@ -302,7 +302,20 @@ describe("chatProtocol", () => {
     let capturedState: any = {
       status: "loading",
       currentThreadId: "thread-1",
-      sendMessageTimeoutId: timeoutId,
+      threadRuntime: {
+        "thread-1": {
+          status: "loading",
+          statusMessage: "Thinking...",
+          progress: { current: 1, total: 2 },
+          error: null,
+          planningUpdate: { planning_status: "in_progress" },
+          taskUpdate: { execution_status: "running" },
+          logUpdate: { message: "step started" },
+          runningToolCallId: null,
+          toolMessage: null,
+          sendMessageTimeoutId: timeoutId
+        }
+      },
       progress: { current: 1, total: 2 },
       statusMessage: "Thinking...",
       currentPlanningUpdate: { planning_status: "in_progress" },
@@ -346,7 +359,10 @@ describe("chatProtocol", () => {
 
     expect(capturedState.status).toBe("connected");
     expect(clearTimeoutSpy).toHaveBeenCalledWith(timeoutId);
-    expect(capturedState.sendMessageTimeoutId).toBeNull();
+    expect(
+      capturedState.threadRuntime["thread-1"].sendMessageTimeoutId
+    ).toBeNull();
+    expect(capturedState.threadRuntime["thread-1"].status).toBe("idle");
     expect(capturedState.progress).toEqual({ current: 0, total: 0 });
     expect(capturedState.statusMessage).toBeNull();
     expect(capturedState.currentPlanningUpdate).toBeNull();

@@ -14,6 +14,7 @@
  * `undefined`/`false`/empty.
  */
 
+import { useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import useStatusStore from "../../stores/StatusStore";
 import useErrorStore, { hasNodeError } from "../../stores/ErrorStore";
@@ -265,9 +266,13 @@ export function useNodeArtifacts(
       };
     })
   );
-  return {
-    result: current ? outputOf(current) : undefined,
-    output: current?.outputs,
-    ...transient
-  };
+  const result = useMemo(
+    () => (current ? outputOf(current) : undefined),
+    [current]
+  );
+  const output = current?.outputs;
+  return useMemo(
+    () => ({ result, output, ...transient }),
+    [result, output, transient]
+  );
 }

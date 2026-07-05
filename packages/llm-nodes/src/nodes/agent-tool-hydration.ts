@@ -27,7 +27,7 @@ import {
   GoogleImageGenerationTool,
   GoogleImagesTool,
   GoogleNewsTool,
-  GoogleSearchTool,
+  WebSearchTool,
   HttpRequestTool,
   OpenAIImageGenerationTool,
   OpenAITextToSpeechTool,
@@ -47,7 +47,7 @@ type MaybeTool = {
 };
 
 const STATIC_TOOL_CLASSES: ToolCtor[] = [
-  GoogleSearchTool,
+  WebSearchTool,
   GoogleNewsTool,
   GoogleImagesTool,
   GoogleGroundedSearchTool,

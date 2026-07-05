@@ -6,14 +6,14 @@ import JsonLd from "../../../components/JsonLd";
 import { SmartDownloadButton } from "../../SmartDownloadButton";
 
 export const metadata: Metadata = {
-  title: "NodeTool vs Weavy — open source, BYOK, no credits",
+  title: "NodeTool vs Weavy — open source, your own keys, no credits",
   description:
-    "Weavy and similar closed SaaS canvases lock you into credits and a curated model roster. NodeTool is open source (AGPL-3.0) and BYOK: every provider, your keys, provider prices, and you own your workflows and files. Cloud is just managed hosting of the same self-hostable code.",
+    "Weavy and similar closed SaaS canvases lock you into credits and a hand-picked model list. NodeTool is open source (AGPL-3.0): every provider, your own keys, provider prices, and you own your workflows and files. Cloud is just managed hosting of the same self-hostable code.",
   alternates: { canonical: "/vs/weavy" },
   openGraph: {
-    title: "NodeTool vs Weavy — open source, BYOK, no credits",
+    title: "NodeTool vs Weavy — open source, your own keys, no credits",
     description:
-      "No credits, no curated roster, no lock-in. NodeTool is open source and BYOK: every provider at provider prices, with workflows and files you own.",
+      "No credits, no hand-picked model list, no lock-in. NodeTool is open source, and you bring your own keys: every provider at provider prices, with workflows and files you own.",
     url: "https://nodetool.ai/vs/weavy",
     type: "website",
   },
@@ -42,7 +42,7 @@ const faq = {
       name: "How is NodeTool different from Weavy?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Weavy and similar closed SaaS canvases lock you into a credit system and a curated model roster. NodeTool is open source and BYOK: every provider, your keys, provider prices, and you own your workflows and files. NodeTool Cloud is just managed hosting of the same open-source code you can self-host.",
+        text: "Weavy and similar closed SaaS canvases lock you into a credit system and a hand-picked model list. NodeTool is open source: every provider, your own keys, provider prices, and you own your workflows and files. NodeTool Cloud is just managed hosting of the same open-source code you can self-host.",
       },
     },
     {
@@ -50,7 +50,7 @@ const faq = {
       name: "Does NodeTool use credits?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "No. NodeTool is BYOK — you bring your own API keys and pay each provider their list price directly. There are no credits, no markup, and no curated roster of models.",
+        text: "No. With NodeTool, you bring your own API keys and pay each provider their list price directly. There are no credits, no markup, and no hand-picked list of models.",
       },
     },
     {
@@ -76,11 +76,11 @@ const rows: { label: string; weavy: string | boolean; nodetool: string | boolean
   {
     label: "Pricing model",
     weavy: "Credits",
-    nodetool: "BYOK / provider prices",
+    nodetool: "Your own keys / provider prices",
   },
   {
-    label: "Model roster",
-    weavy: "Curated roster",
+    label: "Model lineup",
+    weavy: "Hand-picked list",
     nodetool: "Every provider",
   },
   { label: "Source", weavy: "Closed", nodetool: "AGPL-3.0" },
@@ -121,11 +121,11 @@ export default function VsWeavyPage() {
             id="vs-title"
             className="mt-6 text-4xl font-bold tracking-tight text-white md:text-5xl"
           >
-            Open source and BYOK. No credits, no lock-in.
+            Open source, your own keys. No credits, no lock-in.
           </h1>
           <p className="mt-5 text-lg leading-relaxed text-slate-300">
             Weavy and similar closed SaaS canvases lock you into a credit system
-            and a curated model roster. NodeTool is open source and BYOK: every
+            and a hand-picked model list. NodeTool is open source: every
             provider, your keys, provider prices, and you own your workflows and
             files. Cloud is just managed hosting of the same open-source code you
             can self-host.
@@ -142,7 +142,7 @@ export default function VsWeavyPage() {
               <ul className="mt-6 space-y-3 text-sm text-slate-300">
                 {[
                   "Credit system you top up and burn",
-                  "Curated roster of supported models",
+                  "Hand-picked list of supported models",
                   "Closed source, hosted only",
                   "Work lives on their platform",
                 ].map((f) => (
@@ -157,10 +157,10 @@ export default function VsWeavyPage() {
             {/* NodeTool */}
             <div className="relative flex flex-col rounded-2xl border border-slate-800/70 bg-slate-900/60 p-8 ring-1 ring-white/5 backdrop-blur-md">
               <h2 className="text-xl font-semibold text-white">NodeTool</h2>
-              <p className="mt-1 text-sm text-slate-400">Open source · BYOK</p>
+              <p className="mt-1 text-sm text-slate-400">Open source · your own keys</p>
               <ul className="mt-6 space-y-3 text-sm text-slate-300">
                 {[
-                  "BYOK — pay providers directly at list prices",
+                  "Your own keys — pay providers directly at list prices",
                   "Every major model from every major provider",
                   "Open source under AGPL-3.0, self-hostable",
                   "You own your workflows and files",
@@ -209,7 +209,7 @@ export default function VsWeavyPage() {
               Pay providers, not credits — and keep your work
             </h2>
             <p className="mt-4 leading-relaxed text-slate-300">
-              Credit systems and curated rosters decide which models you can use
+              Credit systems and hand-picked model lists decide which models you can use
               and what each call costs. NodeTool flips that: you add your own API
               keys and pay each provider their published list price. The whole
               workspace is open source under AGPL-3.0, so you can run it as a

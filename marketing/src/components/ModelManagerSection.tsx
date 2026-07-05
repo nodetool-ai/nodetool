@@ -47,7 +47,7 @@ export default function ModelManagerSection() {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            Search, download, and manage model weights directly from the Hub.
+            Search, download, and manage models straight from Hugging Face.
             <br />
             Organize your local library without leaving the app.
           </motion.p>

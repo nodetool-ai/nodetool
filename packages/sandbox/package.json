@@ -56,5 +56,18 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "sandbox",
+    "docker",
+    "isolation",
+    "agent-tools",
+    "browser-automation",
+    "desktop"
   ]
 }

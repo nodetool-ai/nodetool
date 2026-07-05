@@ -19,7 +19,7 @@ export interface ImageSource {
  * - `/api/...` → prefixed with `BASE_URL`.
  * - Other absolute URIs (`data:`, `blob:`, `http:`, `https:`) returned as-is.
  */
-const resolveUri = (uri: string): string => {
+export const resolveUri = (uri: string): string => {
   if (uri.startsWith("asset://")) {
     const assetId = uri.slice("asset://".length);
     return `${BASE_URL}/api/storage/${assetId}`;

@@ -2,9 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { memo, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
+import React, { memo } from "react";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { Box, EditorButton, FlexColumn, FlexRow, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 
@@ -43,9 +41,6 @@ const styles = (theme: Theme) =>
       padding: theme.spacing(2.5, 4),
       borderBottom: `1px solid ${theme.vars.palette.divider}`,
       background: `linear-gradient(180deg, ${theme.vars.palette.background.paper} 0%, ${theme.vars.palette.background.default} 100%)`
-    },
-    ".manager-page-back": {
-      flexShrink: 0
     },
     ".manager-page-icon": {
       display: "inline-flex",
@@ -99,8 +94,8 @@ const styles = (theme: Theme) =>
 
 /**
  * Full-screen page chrome for the global managers (Models, Collections,
- * Workspaces). Renders a hero strip with a back button, icon, title/subtitle,
- * and optional actions, then hands the rest of the viewport to its children.
+ * Workspaces). Renders a hero strip with an icon, title/subtitle, and
+ * optional actions, then hands the rest of the viewport to its children.
  */
 const ManagerPageLayout: React.FC<ManagerPageLayoutProps> = ({
   icon,
@@ -113,28 +108,10 @@ const ManagerPageLayout: React.FC<ManagerPageLayoutProps> = ({
   children
 }) => {
   const theme = useTheme();
-  const navigate = useNavigate();
-
-  const handleBack = useCallback(() => {
-    if (window.history.length > 1) {
-      navigate(-1);
-    } else {
-      navigate("/dashboard");
-    }
-  }, [navigate]);
 
   return (
     <Box css={styles(theme)} className="manager-page">
       <header className="manager-page-hero">
-        <EditorButton
-          className="manager-page-back"
-          density="normal"
-          onClick={handleBack}
-          startIcon={<ArrowBackRoundedIcon sx={{ fontSize: 16 }} />}
-          aria-label="Go back"
-        >
-          Back
-        </EditorButton>
         {icon && <span className="manager-page-icon">{icon}</span>}
         <FlexColumn className="manager-page-titles" gap={0}>
           <h1 className="manager-page-title">{title}</h1>

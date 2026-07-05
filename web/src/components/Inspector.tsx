@@ -510,9 +510,8 @@ const TypeLabel: React.FC<{ type?: TypeMetadata | null }> = ({ type }) => {
 };
 
 const Inspector: React.FC = () => {
-  // Use selector directly instead of calling getSelectedNodes() to avoid filtering on every store update
   const selectedNodes = useNodes(
-    (state) => state.nodes.filter((node) => node.selected),
+    (state) => state.getSelectedNodes(),
     areNodesEqualIgnoringPosition
   );
   const findNode = useNodes((state) => state.findNode);

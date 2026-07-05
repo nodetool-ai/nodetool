@@ -1610,7 +1610,6 @@ const TextEditorModal = ({
                         }
                       }
                       onModelChange={setSelectedModel}
-                      helpMode={false}
                       workflowAssistant={true}
                       onStop={stopGeneration}
                       onNewChat={() => void createNewThread()}

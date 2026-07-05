@@ -8,12 +8,12 @@ import { SmartDownloadButton } from "../../SmartDownloadButton";
 export const metadata: Metadata = {
   title: "NodeTool vs Langflow — agents plus native media generation",
   description:
-    "Langflow is a low-code builder for LLM apps: chatbots, RAG, agents. NodeTool covers the same agent and RAG ground and adds what Langflow leaves to external APIs: native image, video, and music generation with editing tools on the same canvas — open source, BYOK, local models included.",
+    "Langflow is a low-code builder for LLM apps: chatbots, RAG, agents. NodeTool covers the same agent and RAG ground and adds what Langflow leaves to external APIs: native image, video, and music generation with editing tools on the same canvas — open source, your own keys, local models included.",
   alternates: { canonical: "/vs/langflow" },
   openGraph: {
     title: "NodeTool vs Langflow — agents plus native media generation",
     description:
-      "Both build agents and RAG pipelines. Only one renders image, video, and music natively on the same canvas. Open source, BYOK, local models.",
+      "Both build agents and RAG workflows. Only one renders image, video, and music natively on the same canvas. Open source, your own keys, local models.",
     url: "https://nodetool.ai/vs/langflow",
     type: "website",
   },
@@ -66,7 +66,7 @@ const faq = {
       name: "Can I run local models in NodeTool?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Yes. NodeTool runs local models via Ollama, MLX, and llama.cpp in the desktop app, and connects to every major cloud provider BYOK — your keys, provider list prices, no credits or markup.",
+        text: "Yes. NodeTool runs local models via Ollama, MLX, and llama.cpp in the desktop app, and connects to every major cloud provider with your own keys — provider list prices, no credits or markup.",
       },
     },
   ],
@@ -90,7 +90,7 @@ const rows: { label: string; langflow: string | boolean; nodetool: string | bool
   },
   { label: "Agents & RAG", langflow: true, nodetool: true },
   { label: "Local models", langflow: "LLMs via Ollama", nodetool: "Ollama, MLX, llama.cpp" },
-  { label: "BYOK / provider billing", langflow: true, nodetool: true },
+  { label: "Your own keys / provider billing", langflow: true, nodetool: true },
   { label: "Open source", langflow: "MIT", nodetool: "AGPL-3.0" },
   {
     label: "Desktop app",
@@ -138,7 +138,7 @@ export default function VsLangflowPage() {
             rooted in Python and LangChain. NodeTool covers that same ground and
             adds what Langflow leaves to external APIs: native image, video, and
             music generation with editing tools on the same canvas. Open source,
-            BYOK at provider prices, local models included.
+            your own keys at provider prices, local models included.
           </p>
         </section>
 
@@ -177,7 +177,7 @@ export default function VsLangflowPage() {
                   "Agents, RAG, and chat on the same canvas",
                   "Native image, video, and music generation nodes",
                   "Editing tools: masks, inpaint, relight, layers",
-                  "BYOK at provider prices — local models via Ollama, MLX, llama.cpp",
+                  "Your own keys at provider prices — local models via Ollama, MLX, llama.cpp",
                 ].map((f) => (
                   <li key={f} className="flex items-start gap-2">
                     <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />

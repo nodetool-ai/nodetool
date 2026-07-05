@@ -6,7 +6,7 @@ import { Shield, Cpu, Globe, Lock } from "lucide-react";
 
 const features = [
   {
-    title: "BYOK, every provider",
+    title: "Your keys, every provider",
     body: "Bring your own keys to FAL, KIE, OpenAI, Anthropic, Gemini, Replicate, and more. Keys stay on your disk in Studio, encrypted in Cloud. We never mark up model calls.",
     icon: Lock,
   },
@@ -21,7 +21,7 @@ const features = [
     icon: Globe,
   },
   {
-    title: "Local inference when you want it",
+    title: "Run models on your own machine",
     body: "MLX, Ollama, llama.cpp, vLLM, LM Studio — fully supported. Runs offline once models are downloaded. Local is a feature, not a religion.",
     icon: Cpu,
   },
@@ -57,8 +57,8 @@ export default function OwnershipSection({
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            Every closed AI tool ends the same way: a price hike, a worse
-            roster, or an acquisition that quietly rewrites the roadmap.
+            Every closed AI tool ends the same way: a price hike, fewer
+            models, or an acquisition that quietly rewrites the roadmap.
             NodeTool calls whatever models you choose, charges you what the
             providers charge, and ships under a license that outlives whoever
             built it.

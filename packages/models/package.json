@@ -58,5 +58,17 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "database",
+    "sqlite",
+    "drizzle",
+    "orm",
+    "data-models"
   ]
 }

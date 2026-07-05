@@ -252,22 +252,38 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
   // Register the in-process channel factory so the browser action loop running
   // in this server rides the bridge instead of opening its own client WS. The
   // dependency points websocket → automation-nodes (no cycle).
-  setExtensionChannelProvider(() => extensionBridge.getChannel());
+  //
+  // This is an unauthenticated, single-connection side channel: whoever connects
+  // to /ws/extension becomes THE extension socket and can proxy CDP through this
+  // server. It is disabled in production by default; set
+  // NODETOOL_ENABLE_EXTENSION_BRIDGE=1 to opt back in for deployments that
+  // actually use the browser extension.
+  const extensionBridgeEnabled =
+    !isProduction ||
+    process.env["NODETOOL_ENABLE_EXTENSION_BRIDGE"] === "1";
 
-  app.get("/ws/extension", { websocket: true }, (socket, _req) => {
-    // The @fastify/websocket socket satisfies the ExtensionSocket surface
-    // (send(string) / close() / on("message"|"close"|"error")).
-    const extSocket = socket as unknown as ExtensionSocket;
-    socket.on("error", (error: Error) => {
-      log.error("Extension WebSocket error", error);
+  if (extensionBridgeEnabled) {
+    setExtensionChannelProvider(() => extensionBridge.getChannel());
+
+    app.get("/ws/extension", { websocket: true }, (socket, _req) => {
+      // The @fastify/websocket socket satisfies the ExtensionSocket surface
+      // (send(string) / close() / on("message"|"close"|"error")).
+      const extSocket = socket as unknown as ExtensionSocket;
+      socket.on("error", (error: Error) => {
+        log.error("Extension WebSocket error", error);
+      });
+      log.info("Extension WebSocket client connected");
+      extensionBridge.registerSocket(extSocket);
+      socket.on("close", () => {
+        extensionBridge.clear(extSocket);
+        log.info("Extension WebSocket client disconnected");
+      });
     });
-    log.info("Extension WebSocket client connected");
-    extensionBridge.registerSocket(extSocket);
-    socket.on("close", () => {
-      extensionBridge.clear(extSocket);
-      log.info("Extension WebSocket client disconnected");
-    });
-  });
+  } else {
+    log.info(
+      "Extension CDP bridge (/ws/extension) disabled in production; set NODETOOL_ENABLE_EXTENSION_BRIDGE=1 to enable"
+    );
+  }
 
   // Download WebSocket endpoint — local development only
   if (!isProduction) {

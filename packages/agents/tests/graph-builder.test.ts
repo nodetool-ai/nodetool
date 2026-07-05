@@ -39,16 +39,17 @@ describe("GraphBuilder", () => {
     expect(errors[0]).toContain("Self-loops");
   });
 
-  it("detects cycles", () => {
+  it("rejects an edge that would close a cycle", () => {
     const builder = new GraphBuilder();
     builder.addNode("a", "test.Node");
     builder.addNode("b", "test.Node");
     builder.addNode("c", "test.Node");
-    builder.addEdge("a", "out", "b", "in");
-    builder.addEdge("b", "out", "c", "in");
-    builder.addEdge("c", "out", "a", "in");
+    expect(builder.addEdge("a", "out", "b", "in")).toHaveLength(0);
+    expect(builder.addEdge("b", "out", "c", "in")).toHaveLength(0);
 
-    const errors = builder.validate();
+    // The closing edge c→a is rejected at add time (a is reachable from c),
+    // so the cycle never enters the graph.
+    const errors = builder.addEdge("c", "out", "a", "in");
     expect(errors.some((e) => e.includes("cycle"))).toBe(true);
   });
 

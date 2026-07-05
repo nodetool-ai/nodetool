@@ -39,7 +39,7 @@ const marketingBenefits = [
   {
     title: "Brand consistency, built in",
     description:
-      "Lock a palette, a voice, or a product shot into the workflow once. Every asset the pipeline produces inherits it — no manual re-briefing per output.",
+      "Lock a palette, a voice, or a product shot into the workflow once. Every asset it produces inherits it — no manual re-briefing per output.",
     icon: Palette,
   },
 ];
@@ -139,8 +139,8 @@ export default function MarketingSegmentPage() {
                 <p className="text-lg md:text-xl text-slate-400 mb-12 max-w-3xl mx-auto leading-relaxed">
                   Product videos, ad creative, social calendars, and brand
                   assets from every major model, called with your own keys,
-                  on one node-based canvas. No credit markup, no vendor
-                  lock-in, built for output volume, not one-off polish.
+                  on one node-based canvas. No marked-up credits, no lock-in
+                  — built for output volume, not one-off polish.
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14">
@@ -168,13 +168,13 @@ export default function MarketingSegmentPage() {
                     <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/10">
                       <Shield className="w-4 h-4 text-emerald-300" />
                     </span>
-                    BYOK, no markup
+                    Your keys, no markup
                   </li>
                   <li className="flex items-center gap-2.5">
                     <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-cyan-500/30 bg-cyan-500/10">
                       <ImageIcon className="w-4 h-4 text-cyan-300" />
                     </span>
-                    Every modality, one canvas
+                    Every format, one canvas
                   </li>
                 </ul>
               </motion.div>
@@ -198,10 +198,10 @@ export default function MarketingSegmentPage() {
                 </span>
               </h2>
               <p className="text-lg text-slate-400 leading-relaxed">
-                Automation tools sell on connector count and throughput.
-                Creative tools sell on per-asset polish. Campaigns need both:
-                a pipeline that runs at volume and still looks on-brand every
-                time.
+                Automation tools compete on integrations and speed. Creative
+                tools compete on the polish of a single asset. Campaigns need
+                both: a workflow that runs at volume and still looks on-brand
+                every time.
               </p>
             </motion.div>
 
@@ -259,7 +259,7 @@ export default function MarketingSegmentPage() {
                   it, ready to re-run across every SKU in the line.
                 </p>
                 <ul className="space-y-3 mb-8">
-                  {["Brief → Prompt → Agent → Text-to-Video", "Re-runnable per SKU or market", "BYOK across every model in the pipeline"].map(
+                  {["Brief → Prompt → Agent → Text-to-Video", "Re-runnable per SKU or market", "Your own keys for every model in the workflow"].map(
                     (item) => (
                       <li key={item} className="flex items-center gap-3 text-slate-300">
                         <Check className="w-5 h-5 text-emerald-400" />
@@ -311,11 +311,11 @@ export default function MarketingSegmentPage() {
               className="text-center mb-12 max-w-2xl mx-auto"
             >
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-                More marketing-ops workflows on the way
+                More marketing workflows on the way
               </h2>
               <p className="text-lg text-slate-400 leading-relaxed">
-                The Product Video Generator ships today. These are next on
-                the backlog — same pattern: brief in, campaign out.
+                The Product Video Generator ships today. These are next up —
+                same pattern: brief in, campaign out.
               </p>
             </motion.div>
 
@@ -365,7 +365,7 @@ export default function MarketingSegmentPage() {
               </h2>
               <p className="text-xl text-slate-400 mb-10 max-w-2xl mx-auto">
                 Download NodeTool, plug in the providers you already pay for,
-                and build the pipeline that produces your next campaign.
+                and build the workflow that produces your next campaign.
               </p>
               <SmartDownloadButton
                 icon={<Download className="w-6 h-6" />}

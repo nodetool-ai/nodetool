@@ -54,6 +54,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Check generated template entries are up to date
+        run: |
+          npm run gen:templates
+          if ! git diff --quiet -- src/data/templateEntries.generated.ts public/templates; then
+            echo "::error::templateEntries.generated.ts / public/templates is stale. Run 'npm run gen:templates' in marketing/ and commit the result."
+            git diff --stat -- src/data/templateEntries.generated.ts public/templates
+            exit 1
+          fi
+
       - name: Type check
         run: npx tsc --noEmit
 

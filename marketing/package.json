@@ -12,6 +12,7 @@
     "seo:seed": "tsx seo/seed.ts",
     "seo:ingest": "node scripts/ingest-showcase.mjs",
     "seo:model-coverage": "node scripts/generate-model-coverage.mjs",
+    "gen:templates": "node scripts/generate-template-entries.mjs",
     "seo:typecheck": "tsc -p seo/tsconfig.json --noEmit",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",

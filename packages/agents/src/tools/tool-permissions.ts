@@ -55,7 +55,7 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   workspace_read: "read",
   workspace_list: "read",
   // --- read: web & document reads ---
-  google_search: "read",
+  web_search: "read",
   google_news: "read",
   google_images: "read",
   google_grounded_search: "read",
@@ -67,6 +67,8 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   extract_pdf_text: "read",
   extract_pdf_tables: "read",
   convert_pdf_to_markdown: "read",
+  view_image: "read",
+  list_images: "read",
   // --- read: nodetool inspection (REST + local) ---
   list_workflows: "read",
   get_workflow: "read",

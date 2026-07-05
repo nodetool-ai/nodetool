@@ -454,8 +454,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
   onRotate180,
   onMergeDown,
   onFlattenVisible,
-  onTrimLayerToBounds,
-  onCropCanvasToActiveLayerVisiblePixels,
   onCropCanvasToActiveLayerExtents,
   onAddGroup,
   onToggleGroupCollapsed,
@@ -890,8 +888,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
     () => layers.find((l) => l.id === activeLayerId),
     [layers, activeLayerId]
   );
-  const activeLayerFlatIndex = activeLayer ? layers.indexOf(activeLayer) : -1;
-
   const hasMultiLayerSelection = selectedLayerIds.length >= 2;
   const layerIdsInDoc = useMemo(
     () => new Set(layers.map((l) => l.id)),

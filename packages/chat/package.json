@@ -45,5 +45,18 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "description": "Chat message processing for NodeTool — tool-call orchestration, streaming responses, and token counting",
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "chat",
+    "llm-chat",
+    "streaming",
+    "token-counting",
+    "tool-calls"
   ]
 }

@@ -39,7 +39,7 @@ const rows: Row[] = [
     cloud: { value: "Not available — cloud APIs only", ok: false },
   },
   {
-    label: "Bring your own API keys (BYOK)",
+    label: "Bring your own API keys",
     studio: { value: "All providers — keys stored locally", ok: true },
     cloud: { value: "All providers — keys stored encrypted", ok: true },
   },
@@ -71,7 +71,7 @@ const rows: Row[] = [
   {
     label: "Cost",
     studio: { value: "Free — pay only for the cloud APIs you use", ok: true },
-    cloud: { value: "Free during alpha — you pay only your own API spend (BYOK)", ok: true },
+    cloud: { value: "Free during alpha — you pay only your own API costs", ok: true },
   },
 ];
 
