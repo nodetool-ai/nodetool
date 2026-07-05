@@ -8,7 +8,13 @@ import {
   Collapse,
   MOTION,
   BORDER_RADIUS,
-  LinearProgress
+  LinearProgress,
+  FlexRow,
+  FlexColumn,
+  Text,
+  Divider,
+  ToolbarIconButton,
+  Box
 } from "../ui_primitives";
 import { PREVIEW_NODE_TYPE } from "../../constants/nodeTypes";
 import { getOutputFromResult } from "../node/outputResult";
@@ -20,11 +26,6 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
-import { FlexRow } from "../ui_primitives";
-import { FlexColumn } from "../ui_primitives";
-import { Text } from "../ui_primitives";
-import { Divider } from "../ui_primitives";
-import { ToolbarIconButton, Box } from "../ui_primitives";
 import { ChainNodeProperties } from "./ChainNodeProperties";
 import { OutputSelector } from "./OutputSelector";
 import { InputMappingSelector } from "./InputMappingSelector";

@@ -6,9 +6,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { LoadingSpinner } from "../ui_primitives";
-import { Text } from "../ui_primitives";
-import { FlexColumn } from "../ui_primitives";
+import { LoadingSpinner, Text, FlexColumn } from "../ui_primitives";
 import { ChainEditor } from "./ChainEditor";
 import { useChainEditorStore } from "./useChainEditorStore";
 import { trpcClient } from "../../trpc/client";

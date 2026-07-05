@@ -76,7 +76,9 @@ export type { SettingsButtonProps } from "./SettingsButton";
 export { ZoomControls } from "./ZoomControls";
 export type { ZoomControlsProps } from "./ZoomControls";
 
-export { FavoriteButton } from "./FavoriteButton";
+// Re-export the memoized default (not the raw named export) so barrel
+// consumers keep memoization.
+export { default as FavoriteButton } from "./FavoriteButton";
 export type { FavoriteButtonProps } from "./FavoriteButton";
 
 export { EmptyState } from "./EmptyState";
