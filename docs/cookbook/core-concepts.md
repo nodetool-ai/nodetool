@@ -4,14 +4,11 @@ title: Core Concepts & Architecture
 parent: NodeTool Workflow Cookbook
 nav_order: 1
 ---
-
-# Core Concepts & Architecture
-
 ## Core Concepts
 
 ### What is a NodeTool Workflow?
 
-A NodeTool workflow is a **Directed Acyclic Graph (DAG)** where:
+A NodeTool workflow is a **Graph** where:
 
 - **Nodes** represent operations (processing, generation, transformation)
 - **Edges** represent data flow between nodes
