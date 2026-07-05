@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from "vitest";
 import { PROVIDER_IDS } from "@nodetool-ai/protocol";
 import type OpenAI from "openai";
 import { OpenAIProvider } from "../../src/providers/openai-provider.js";
-import { OpenAIResponsesProvider } from "../../src/providers/openai-responses-provider.js";
 import {
   extractResponsesImages,
   messagesToResponsesInput
@@ -35,8 +34,12 @@ async function collect(
   return items;
 }
 
+// The merged OpenAIProvider routes Responses-capable models (gpt-5*, gpt-4.1*,
+// gpt-4o*, o<n>*) through the Responses API. These tests exercise that path by
+// constructing the provider with a mocked `responses.create` and a Responses
+// model id.
 function providerWithCreate(create: ReturnType<typeof vi.fn>) {
-  return new OpenAIResponsesProvider(
+  return new OpenAIProvider(
     { OPENAI_API_KEY: "k" },
     {
       client: {
@@ -46,48 +49,16 @@ function providerWithCreate(create: ReturnType<typeof vi.fn>) {
   );
 }
 
-describe("OpenAIResponsesProvider", () => {
-  it("reports its provider id, secret, native search support, and tool support", async () => {
+describe("OpenAIProvider Responses path", () => {
+  it("reports native search/image support and Responses tool support", async () => {
     const provider = providerWithCreate(vi.fn());
 
-    expect(OpenAIResponsesProvider.requiredSecrets()).toEqual(["OPENAI_API_KEY"]);
-    expect(provider.provider).toBe(PROVIDER_IDS.OPENAI_RESPONSES);
+    expect(provider.provider).toBe(PROVIDER_IDS.OPENAI);
     expect(provider.getContainerEnv()).toEqual({ OPENAI_API_KEY: "k" });
     expect(provider.supportsNativeWebSearch).toBe(true);
-    expect(new OpenAIProvider({ OPENAI_API_KEY: "k" }).supportsNativeWebSearch).toBe(
-      false
-    );
     expect(provider.supportsNativeImageGeneration).toBe(true);
-    expect(
-      new OpenAIProvider({ OPENAI_API_KEY: "k" }).supportsNativeImageGeneration
-    ).toBe(false);
-    await expect(provider.hasToolSupport("o3-mini")).resolves.toBe(true);
-    await expect(provider.hasToolSupport("text-embedding-3-small")).resolves.toBe(
-      false
-    );
-  });
-
-  it("formats web_search as a hosted Responses tool and functions as flat tools", () => {
-    const provider = providerWithCreate(vi.fn());
-
-    expect(
-      provider.formatTools([
-        { name: "web_search", description: "Search" },
-        {
-          name: "lookup",
-          description: "Lookup",
-          inputSchema: { type: "object", properties: { q: { type: "string" } } }
-        }
-      ])
-    ).toEqual([
-      { type: "web_search" },
-      {
-        type: "function",
-        name: "lookup",
-        description: "Lookup",
-        parameters: { type: "object", properties: { q: { type: "string" } } }
-      }
-    ]);
+    await expect(provider.hasToolSupport("gpt-5")).resolves.toBe(true);
+    await expect(provider.hasToolSupport("gpt-5.4")).resolves.toBe(true);
   });
 
   it("does not force hosted web_search through function tool_choice", async () => {
@@ -111,30 +82,31 @@ describe("OpenAIResponsesProvider", () => {
     });
   });
 
-  it("filters live OpenAI models into the Responses provider list", async () => {
+  it("filters the live model list to the supported gpt-5 family", async () => {
     const fetchFn = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
           data: [
             { id: "gpt-5.4" },
             { id: "gpt-4.1-mini" },
+            { id: "gpt-4o" },
+            { id: "o3-mini" },
             { id: "text-embedding-3-small" }
           ]
         }),
         { status: 200, headers: { "content-type": "application/json" } }
       )
     );
-    const provider = new OpenAIResponsesProvider(
+    const provider = new OpenAIProvider(
       { OPENAI_API_KEY: "k" },
       { client: { responses: { create: vi.fn() } } as unknown as OpenAI, fetchFn }
     );
 
     const models = await provider.getAvailableLanguageModels();
 
-    expect(models.map((m) => m.id)).toEqual(["gpt-5.4", "gpt-4.1-mini"]);
-    expect(
-      models.every((m) => m.provider === PROVIDER_IDS.OPENAI_RESPONSES)
-    ).toBe(true);
+    // Everything before gpt-5 is retired.
+    expect(models.map((m) => m.id)).toEqual(["gpt-5.4"]);
+    expect(models.every((m) => m.provider === PROVIDER_IDS.OPENAI)).toBe(true);
   });
 
   it("generates a non-streaming Responses message", async () => {
@@ -206,39 +178,60 @@ describe("OpenAIResponsesProvider", () => {
     expect(create.mock.calls[0][0].tools).toEqual([{ type: "web_search" }]);
   });
 
-  it("resumes with previous_response_id and chains tool outputs", async () => {
-    const requests: Array<Record<string, unknown>> = [];
-    const create = vi.fn(
-      async (body: Record<string, unknown>) => {
-        requests.push(body);
-        if (requests.length === 1) {
-          return makeAsyncIterable([
-            { type: "response.created", response: { id: "resp_2" } },
-            {
-              type: "response.output_item.added",
-              item: {
-                type: "function_call",
-                id: "fc_1",
-                call_id: "call_1",
-                name: "lookup"
-              }
-            },
-            {
-              type: "response.function_call_arguments.done",
-              item_id: "fc_1",
-              name: "lookup",
-              arguments: '{"q":"x"}'
-            },
-            { type: "response.completed", response: { id: "resp_2" } }
-          ]);
-        }
-        return makeAsyncIterable([
-          { type: "response.created", response: { id: "resp_3" } },
-          { type: "response.output_text.delta", delta: "final" },
-          { type: "response.completed", response: { id: "resp_3" } }
-        ]);
+  it("routes non-Responses models through Chat Completions", async () => {
+    const chatCreate = vi.fn().mockResolvedValue({
+      choices: [{ message: { content: "hi", tool_calls: [] } }],
+      usage: { prompt_tokens: 1, completion_tokens: 1 }
+    });
+    const provider = new OpenAIProvider(
+      { OPENAI_API_KEY: "k" },
+      {
+        client: {
+          responses: { create: vi.fn() },
+          chat: { completions: { create: chatCreate } }
+        } as unknown as OpenAI
       }
     );
+
+    await provider.generateMessage({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: "hi" }]
+    });
+
+    expect(chatCreate).toHaveBeenCalledTimes(1);
+  });
+
+  it("resumes with previous_response_id and chains tool outputs", async () => {
+    const requests: Array<Record<string, unknown>> = [];
+    const create = vi.fn(async (body: Record<string, unknown>) => {
+      requests.push(body);
+      if (requests.length === 1) {
+        return makeAsyncIterable([
+          { type: "response.created", response: { id: "resp_2" } },
+          {
+            type: "response.output_item.added",
+            item: {
+              type: "function_call",
+              id: "fc_1",
+              call_id: "call_1",
+              name: "lookup"
+            }
+          },
+          {
+            type: "response.function_call_arguments.done",
+            item_id: "fc_1",
+            name: "lookup",
+            arguments: '{"q":"x"}'
+          },
+          { type: "response.completed", response: { id: "resp_2" } }
+        ]);
+      }
+      return makeAsyncIterable([
+        { type: "response.created", response: { id: "resp_3" } },
+        { type: "response.output_text.delta", delta: "final" },
+        { type: "response.completed", response: { id: "resp_3" } }
+      ]);
+    });
     const provider = providerWithCreate(create);
     const messages: Message[] = [
       { role: "system", content: "Be terse." },
@@ -250,7 +243,7 @@ describe("OpenAIResponsesProvider", () => {
         model: "gpt-5",
         messages,
         providerSession: {
-          providerId: PROVIDER_IDS.OPENAI_RESPONSES,
+          providerId: PROVIDER_IDS.OPENAI,
           model: "gpt-5",
           token: "resp_1",
           checkpoint: 1
@@ -288,9 +281,9 @@ describe("OpenAIResponsesProvider", () => {
       "resp_2",
       "resp_3"
     ]);
-    expect(sessions.every((item) => item.session.checkpoint === messages.length)).toBe(
-      true
-    );
+    expect(
+      sessions.every((item) => item.session.checkpoint === messages.length)
+    ).toBe(true);
     const persistedMessages = items.filter(
       (item): item is Extract<ProviderStreamItem, { type: "message" }> =>
         "type" in item && item.type === "message"
@@ -300,14 +293,6 @@ describe("OpenAIResponsesProvider", () => {
       "tool",
       "assistant"
     ]);
-  });
-
-  it("maps the image_generation tool to a hosted Responses tool", () => {
-    const provider = providerWithCreate(vi.fn());
-
-    expect(
-      provider.formatTools([{ name: IMAGE_GENERATION_TOOL_NAME }])
-    ).toEqual([{ type: "image_generation" }]);
   });
 
   it("surfaces a native image_generation_call as assistant image content", async () => {

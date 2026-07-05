@@ -104,6 +104,20 @@ module.
 - Any external code importing `OpenAIResponsesProvider` breaks by design (hard
   remove). Grep confirms usage is limited to `index.ts` and tests.
 
+## Model pruning (added during implementation)
+
+The `openai` provider now supports only the **gpt-5 family**. Everything before
+gpt-5 (gpt-4o, gpt-4.1, the o-series) is retired:
+
+- `isOpenAIResponsesModel` matches `gpt-5*` only (audio/realtime/transcribe
+  variants still excluded → Chat Completions).
+- `getAvailableLanguageModels` filters the live list to gpt-5 models for the
+  `openai` provider; the fallback list is the gpt-5 family.
+- `RECOMMENDED_MODELS` OpenAI anchor is now `gpt-5-mini`.
+- Non-LLM OpenAI model families (TTS, Whisper/transcription, realtime audio,
+  gpt-image, embeddings) and other providers hosting OpenAI models (Replicate,
+  OpenRouter) are left untouched.
+
 ## Out of scope
 
 - No changes to `responses-api.ts` internals.
