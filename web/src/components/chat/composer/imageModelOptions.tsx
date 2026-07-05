@@ -9,10 +9,14 @@
  */
 
 import DisplaySettingsIcon from "@mui/icons-material/DisplaySettings";
+import TuneIcon from "@mui/icons-material/Tune";
+import LayersIcon from "@mui/icons-material/Layers";
 import type { ImageModel } from "../../../stores/ApiTypes";
 import {
   IMAGE_ASPECT_RATIOS,
+  IMAGE_EDIT_STRENGTHS,
   IMAGE_RESOLUTIONS,
+  INFERENCE_STEPS,
   type AspectRatioOption,
   type ImageResolution
 } from "../../../stores/MediaGenerationStore";
@@ -69,6 +73,30 @@ export function buildImageModelOptions(
       id: r,
       label: r,
       icon: <DisplaySettingsIcon fontSize="small" />
+    }))
+  };
+}
+
+/**
+ * Menu options for the image-to-image edit controls (strength + inference
+ * steps), shared by the media chat composer and the editor prompt panels.
+ */
+export function buildImageEditOptions(): {
+  strengthOptions: MediaOption<number>[];
+  stepsOptions: MediaOption<number>[];
+} {
+  return {
+    strengthOptions: IMAGE_EDIT_STRENGTHS.map((s) => ({
+      id: s,
+      label: s.toFixed(2),
+      description: s <= 0.35 ? "subtle" : s >= 0.85 ? "strong" : "balanced",
+      icon: <TuneIcon fontSize="small" />
+    })),
+    stepsOptions: INFERENCE_STEPS.map((n) => ({
+      id: n,
+      label: `${n}`,
+      description: n <= 15 ? "fast" : n >= 40 ? "high quality" : "balanced",
+      icon: <LayersIcon fontSize="small" />
     }))
   };
 }

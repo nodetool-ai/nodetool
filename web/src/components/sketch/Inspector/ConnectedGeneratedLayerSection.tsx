@@ -27,9 +27,10 @@ const ConnectedGeneratedLayerSectionInner: React.FC = () => {
   }
 
   const isWorkflowBound = !binding.kind || binding.kind === "workflow";
-  // Direct-gen layers (text-to-image / image-to-image) share the "GENERATE"
-  // section of the mockup; workflow-bound layers keep their own label.
-  const titleText = isWorkflowBound ? "Generated Layer" : "GENERATE";
+  // Direct-gen layers (text-to-image / image-to-image) share the "Prompt"
+  // section, matching the timeline inspector; workflow-bound layers keep
+  // their own label.
+  const titleText = isWorkflowBound ? "Generated Layer" : "Prompt";
 
   return (
     <CollapsibleSection

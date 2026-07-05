@@ -202,12 +202,18 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
           num_inference_steps: clip.numInferenceSteps,
           variations: 1,
           voice: kind === "text-to-audio" ? clip.voice : undefined,
-          // Video models take aspect ratio / resolution / duration natively
-          // (width & height are ignored for video); pass them through when set.
-          ...(kind === "text-to-video"
+          // Image and video models take aspect ratio / resolution natively;
+          // pass them through when set. Video additionally derives its
+          // requested duration from the clip's timeline length (width &
+          // height are ignored for video).
+          ...(kind !== "text-to-audio"
             ? {
                 aspect_ratio: clip.aspectRatio,
-                resolution: clip.resolution,
+                resolution: clip.resolution
+              }
+            : {}),
+          ...(kind === "text-to-video"
+            ? {
                 duration: clip.durationMs
                   ? Math.round(clip.durationMs / 1000)
                   : undefined
