@@ -183,8 +183,12 @@ export function parseVerdict(text: string): SecurityVerdict | null {
   if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
     const obj = parsed as Record<string, unknown>;
     if ("block" in obj || "tier" in obj) {
-      const block = coerceBlock(obj["block"]);
       const tier = coerceTier(obj["tier"]);
+      // `block` is authoritative when present. When the judge omits it but
+      // gives a tier, a non-"none" tier implies a block — otherwise a
+      // `{tier:"hard"}` verdict would silently fail open (see module header).
+      const block =
+        "block" in obj ? coerceBlock(obj["block"]) : tier !== "none";
       return {
         block,
         tier,
@@ -196,10 +200,12 @@ export function parseVerdict(text: string): SecurityVerdict | null {
 
   // Strategy 2: tag form, e.g. <block>yes</block><reason>…</reason>.
   const blockTag = tagBody(trimmed, "block");
-  if (blockTag !== null) {
+  const tierTag = tagBody(trimmed, "tier");
+  if (blockTag !== null || tierTag !== null) {
+    const tier = coerceTier(tierTag);
     return {
-      block: coerceBlock(blockTag),
-      tier: coerceTier(tagBody(trimmed, "tier")),
+      block: blockTag !== null ? coerceBlock(blockTag) : tier !== "none",
+      tier,
       severity: coerceSeverity(tagBody(trimmed, "severity")),
       reason: tagBody(trimmed, "reason") ?? ""
     };

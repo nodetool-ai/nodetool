@@ -8,7 +8,7 @@
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { SerpProvider } from "./serp-providers/index.js";
 import { createSerpProvider } from "./serp-providers/index.js";
-import { GoogleSearchTool } from "./search-tools.js";
+import { WebSearchTool } from "./search-tools.js";
 import { DataForSEOSearchTool } from "./dataseo-tools.js";
 
 // ---------------------------------------------------------------------------
@@ -38,10 +38,10 @@ async function getSerpProviderSetting(
  */
 export async function createSearchTool(
   context: ProcessingContext
-): Promise<GoogleSearchTool> {
+): Promise<WebSearchTool> {
   const providerType = await getSerpProviderSetting(context);
   const provider = await resolveSerpProvider(context);
-  return new GoogleSearchTool(provider);
+  return new WebSearchTool(provider);
 }
 
 /**

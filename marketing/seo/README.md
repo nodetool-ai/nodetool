@@ -116,6 +116,40 @@ existing manifest under `out/`, skips prompts whose key already exists, and —
 per `template × model` — only generates the shortfall below `--count`. Re-running
 the same command adds zero rows.
 
+### Model Duel
+
+A thin wrapper over the seeder: render one **curated** prompt set through **two**
+models and stamp both rows with a shared `params.duelId`, so PR-4's pair pages
+can line up matched same-prompt outputs.
+
+```bash
+npx tsx seo/seed.ts --template movie-posters --duel flux-schnell,flux-dev
+npx tsx seo/seed.ts --template product-trailers --duel kling,hailuo --dry-run
+```
+
+- `--duel <a>,<b>` replaces `--models` (they're mutually exclusive). Every prompt
+  is rendered by both models; the two rows share `params.duelId` (the join key)
+  and `params.duelPair` (the canonical, sorted pair slug).
+- Prompts come from `prompts/duels/<pair>.md`, not the LLM — so `--count` and the
+  prompt-writer are bypassed, and no `OPENAI_API_KEY` is needed. `--template`
+  still supplies render settings (aspect ratio, media type) + categorization.
+- The budget cap still applies (a killed duel is a valid partial batch).
+- Idempotent: re-running adds zero rows. Dedup is namespaced by the canonical
+  pair, so the argument order doesn't matter and duel rows are never suppressed
+  by an unrelated single-model render of the same prompt (a pair page needs both
+  halves).
+
+#### Curated prompt sets
+
+`prompts/duels/<pair>.md` holds the prompts, one per line — full render prompts,
+not a prompt-writer system prompt. Markdown list markers (`- `, `* `, `1. `),
+blank lines, `#` headings and `<!-- comments -->` are ignored, so the file can
+carry a human-readable intro. Name the file with either argument order or the
+sorted slug (`flux-dev-vs-flux-schnell.md`); the loader tries all three. Keep
+5–8 prompts per pair, chosen to expose real differences (text rendering,
+physics, motion). Shipped examples: `flux-schnell-vs-flux-dev.md` (image),
+`kling-vs-hailuo.md` (video).
+
 ### Ingest
 
 ```bash

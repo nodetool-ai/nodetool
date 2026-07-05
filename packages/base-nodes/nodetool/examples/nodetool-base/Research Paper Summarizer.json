@@ -200,6 +200,26 @@
           "paper": "Attention Is All You Need — proposes the Transformer, a sequence model based solely on attention, achieving state-of-the-art machine translation with faster training."
         },
         "dynamic_outputs": {}
+      },
+      {
+        "id": "summary_output",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "Summary"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1560,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "Summary",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
       }
     ],
     "edges": [
@@ -250,6 +270,17 @@
         "target": "2",
         "targetHandle": "technical",
         "ui_properties": null
+      },
+      {
+        "id": "e_summary_output",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "summary_output",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
       }
     ]
   },
@@ -260,5 +291,87 @@
   "path": null,
   "run_mode": null,
   "required_providers": null,
-  "required_models": null
+  "required_models": null,
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Research Paper Summarizer"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-34",
+            "text": "📄 Research Paper Summarizer",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-35",
+            "text": "Paste a paper or abstract and extract the key findings."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "c-38",
+            "title": "Paper",
+            "content": [
+              {
+                "type": "TextInput",
+                "props": {
+                  "id": "in-36",
+                  "binding": "paper",
+                  "label": "Paper Text",
+                  "placeholder": "Paste the abstract or full text…",
+                  "multiline": true,
+                  "events": []
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "id": "b-37",
+                  "label": "Summarize",
+                  "variant": "contained",
+                  "color": "primary",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "key": "",
+                      "value": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "c-40",
+            "title": "Summary",
+            "content": [
+              {
+                "type": "Markdown",
+                "props": {
+                  "id": "md-39",
+                  "binding": "Summary",
+                  "text": ""
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
 }

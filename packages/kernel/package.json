@@ -51,5 +51,17 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "workflow-engine",
+    "actor-model",
+    "dag",
+    "graph",
+    "workflow-runner"
   ]
 }

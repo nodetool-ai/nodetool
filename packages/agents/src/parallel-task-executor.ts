@@ -80,6 +80,14 @@ export class ParallelTaskExecutor {
   private readonly checkpointStore?: CheckpointStore;
   private readonly runId?: string;
   private readonly planTools?: string[];
+  /**
+   * IDs of tasks that ran but did not genuinely succeed (budget exhausted,
+   * unsatisfiable dependency, or an error result). Tracked separately from
+   * `task.completed` so a failed task is never checkpointed as success nor
+   * counted as a satisfied dependency, while still terminating the scheduler
+   * loop instead of being re-dispatched forever.
+   */
+  private readonly failedTaskIds = new Set<string>();
 
   constructor(opts: ParallelTaskExecutorOptions) {
     this.provider = opts.provider;
@@ -332,6 +340,28 @@ export class ParallelTaskExecutor {
       }
     }
 
+    // A TaskExecutor returns without throwing even when its steps failed
+    // (StepExecutor writes an `{ error }` result and emits an error
+    // step_result rather than raising). Decide whether the task actually
+    // succeeded before recording it as complete or checkpointing it.
+    const failureReason = this.detectTaskFailure(task, taskResult);
+    if (failureReason) {
+      this.failedTaskIds.add(task.id);
+      log.warn("Task failed", {
+        taskId: task.id,
+        title: task.title,
+        reason: failureReason
+      });
+      yield {
+        type: "log_update",
+        node_id: "parallel_task_executor",
+        node_name: "ParallelTaskExecutor",
+        content: `Task "${task.title}" (${task.id}) failed: ${failureReason}`,
+        severity: "error"
+      } satisfies LogUpdate;
+      return;
+    }
+
     if (taskResult !== null && taskResult !== undefined) {
       // Idempotent: only write if StepExecutor didn't already persist it.
       if (!this.context.memory.has(memoryKeys.task(task.id))) {
@@ -369,10 +399,41 @@ export class ParallelTaskExecutor {
   }
 
   /**
-   * Check if all tasks have been completed.
+   * Decide whether a task that just returned actually failed. Detects:
+   *  - steps that never completed (round/step budget exhausted, or an
+   *    unsatisfiable dependency left executable steps at zero), and
+   *  - steps (or the resolved task result) whose value is an `{ error }`
+   *    payload written by StepExecutor's failure path.
+   * Returns a human-readable reason on failure, or `null` on success.
+   */
+  private detectTaskFailure(task: Task, taskResult: unknown): string | null {
+    const incomplete = task.steps.filter((s) => !s.completed);
+    if (incomplete.length > 0) {
+      return `${incomplete.length} of ${task.steps.length} step(s) did not complete (budget exhausted or unsatisfiable dependency)`;
+    }
+    for (const step of task.steps) {
+      const value = this.context.memory.getValue(memoryKeys.step(step.id));
+      if (isErrorResult(value)) {
+        return `step ${step.id}: ${value.error}`;
+      }
+    }
+    if (isErrorResult(taskResult)) {
+      return taskResult.error;
+    }
+    return null;
+  }
+
+  /**
+   * Check if the scheduler is done: every task has either completed
+   * successfully or been recorded as failed. A failed task blocks its
+   * dependents (their deps are never satisfied), so those remain pending and
+   * the scheduler exits via the "no executable tasks" path rather than
+   * spinning until the iteration cap.
    */
   private allTasksComplete(): boolean {
-    return this.taskPlan.tasks.every((task) => task.completed);
+    return this.taskPlan.tasks.every(
+      (task) => task.completed || this.failedTaskIds.has(task.id)
+    );
   }
 
   /**
@@ -392,6 +453,7 @@ export class ParallelTaskExecutor {
     return this.taskPlan.tasks.filter(
       (task) =>
         !task.completed &&
+        !this.failedTaskIds.has(task.id) &&
         (task.dependsOn ?? []).every((dep) => completedIds.has(dep))
     );
   }
@@ -419,6 +481,21 @@ export class ParallelTaskExecutor {
     const lastTask = this.taskPlan.tasks[this.taskPlan.tasks.length - 1];
     return this.context.memory.getValue(memoryKeys.task(lastTask.id)) ?? null;
   }
+}
+
+/**
+ * A value is treated as a failure marker when it is a plain object carrying a
+ * non-empty string `error` field — the shape StepExecutor writes on its failure
+ * path (`{ error: "Step failed: ..." }`).
+ */
+function isErrorResult(value: unknown): value is { error: string } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    typeof (value as Record<string, unknown>).error === "string" &&
+    ((value as Record<string, unknown>).error as string).length > 0
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -459,22 +536,33 @@ async function* mergeAsyncGenerators<T>(
     }
   });
 
-  while (activeCount > 0 || queue.length > 0) {
-    if (queue.length > 0) {
-      yield queue.shift()!;
-    } else if (activeCount > 0) {
-      const waitPromise = new Promise<void>((r) => {
-        resolve = r;
-      });
+  // The try/finally guarantees that if the downstream consumer stops early
+  // (its `for await` breaks or throws, injecting `.return()` into this merge
+  // generator), we terminate the child generators instead of leaving the
+  // producer tasks driving them to completion in the background (e.g. LLM
+  // calls firing after cancellation).
+  try {
+    while (activeCount > 0 || queue.length > 0) {
       if (queue.length > 0) {
-        resolve = null;
-        continue;
+        yield queue.shift()!;
+      } else if (activeCount > 0) {
+        const waitPromise = new Promise<void>((r) => {
+          resolve = r;
+        });
+        if (queue.length > 0) {
+          resolve = null;
+          continue;
+        }
+        await waitPromise;
       }
-      await waitPromise;
     }
+  } finally {
+    // Stop every child generator so its producer `for await` loop terminates
+    // (a generator may already be done — allSettled swallows those). Then wait
+    // for all producer promises to settle before returning.
+    await Promise.allSettled(generators.map((gen) => gen.return(undefined)));
+    await Promise.allSettled(tasks);
   }
-
-  await Promise.allSettled(tasks);
 
   if (hasError) {
     throw firstError instanceof Error

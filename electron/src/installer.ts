@@ -5,7 +5,6 @@ import * as https from "https";
 import { app, dialog } from "electron";
 import {
   getDefaultInstallLocation,
-  installRequiredPythonPackages,
 } from "./python";
 import { getCondaEnvPath } from "./config";
 
@@ -674,45 +673,6 @@ async function createEnvironmentWithMicromamba(
   );
 }
 
-async function provisionCondaEnvironment(
-  location: string,
-  modelBackend: ModelBackend,
-  options?: {
-    bootMessage?: string;
-    installLlamaCpp?: boolean;
-  }
-): Promise<void> {
-  const bootMessage =
-    options?.bootMessage ?? "Setting up conda environment...";
-
-  emitBootMessage(bootMessage);
-  logMessage(`Setting up conda environment at: ${location} (Backend: ${modelBackend})`);
-
-  const micromambaExecutable = await ensureMicromambaAvailable();
-
-  await createEnvironmentWithMicromamba(
-    micromambaExecutable,
-    location,
-    BOOTSTRAP_CONDA_PACKAGES,
-  );
-
-  const condaEnvPath = location;
-  await installCondaPackages(micromambaExecutable, condaEnvPath, modelBackend, {
-    installLlamaCpp: options?.installLlamaCpp,
-  });
-
-  await installRequiredPythonPackages();
-
-  const shouldInstallLlamaCpp =
-    options?.installLlamaCpp ?? modelBackend === "llama_cpp";
-  if (shouldInstallLlamaCpp) {
-    await ensureLlamaCppInstalled(condaEnvPath);
-  }
-
-  logMessage("Conda environment installation completed successfully");
-  emitBootMessage("Conda environment is ready");
-}
-
 /**
  * Conda Environment Installer Module
  *
@@ -729,7 +689,6 @@ async function provisionCondaEnvironment(
  * Installation Process:
  * 1. `ensureCondaEnvironment()` creates a minimal env if none exists
  * 2. `installCondaPackageBySpec()` installs runtime-specific packages on demand
- * 3. `provisionCondaEnvironment()` (legacy) creates env with backend packages
  */
 
 createIpcMainHandler(IpcChannels.SELECT_CUSTOM_LOCATION, async (_event) => {

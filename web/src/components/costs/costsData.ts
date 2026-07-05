@@ -54,6 +54,7 @@ export interface Execution {
  */
 const PROVIDER_PRESET: Record<string, { label: string; color: string }> = {
   openai: { label: "OpenAI", color: "#4FD18B" },
+  openai_responses: { label: "OpenAI Responses", color: "#4FD18B" },
   anthropic: { label: "Anthropic", color: "#F2A65A" },
   replicate: { label: "Replicate", color: "#E85FB0" },
   fal: { label: "fal.ai", color: "#85A9F4" },

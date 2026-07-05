@@ -49,6 +49,17 @@
         "sourceHandle": "modules",
         "target": "2",
         "targetHandle": "modules"
+      },
+      {
+        "id": "e_learning_path_output",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "learning_path_output",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
       }
     ],
     "nodes": [
@@ -220,6 +231,26 @@
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
+      },
+      {
+        "id": "learning_path_output",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "Learning Path"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1680,
+            "y": 465
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "Learning Path",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
       }
     ]
   },
@@ -253,5 +284,87 @@
   "path": null,
   "run_mode": null,
   "required_providers": null,
-  "required_models": null
+  "required_models": null,
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Learning Path Generator"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-41",
+            "text": "🎓 Learning Path Generator",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-42",
+            "text": "Enter a topic and get a structured learning path."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "c-45",
+            "title": "Topic",
+            "content": [
+              {
+                "type": "TextInput",
+                "props": {
+                  "id": "in-43",
+                  "binding": "topic",
+                  "label": "Topic",
+                  "placeholder": "e.g. Machine Learning",
+                  "multiline": false,
+                  "events": []
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "id": "b-44",
+                  "label": "Generate Learning Path",
+                  "variant": "contained",
+                  "color": "primary",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "key": "",
+                      "value": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "c-47",
+            "title": "Learning Path",
+            "content": [
+              {
+                "type": "Markdown",
+                "props": {
+                  "id": "md-46",
+                  "binding": "Learning Path",
+                  "text": ""
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
 }

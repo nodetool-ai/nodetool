@@ -5,6 +5,7 @@ import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import MovieOutlinedIcon from "@mui/icons-material/MovieOutlined";
 import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
+import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 
 import {
@@ -21,12 +22,17 @@ import { useAssetSearch } from "../../serverState/useAssetSearch";
 import { useCreateTimeline } from "../../hooks/useTimelineSequence";
 import { useAssetStore } from "../../stores/AssetStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import useGlobalChatStore from "../../stores/GlobalChatStore";
 import {
   useWorkspaceTabsStore,
   type WorkspaceTabType
 } from "../../stores/WorkspaceTabsStore";
 import { assetTabType } from "./assetTabType";
-import type { WorkflowList, AssetWithPath } from "../../stores/ApiTypes";
+import type {
+  WorkflowList,
+  AssetWithPath,
+  Thread
+} from "../../stores/ApiTypes";
 
 /** Render a blank white PNG to seed a "New image" canvas asset. */
 const createBlankImageFile = (): Promise<File> =>
@@ -75,7 +81,7 @@ interface OpenMenuProps {
   onClose: () => void;
 }
 
-type MenuView = "root" | "texts" | "workflows" | "assets";
+type MenuView = "root" | "texts" | "workflows" | "assets" | "chats";
 
 interface TextFileTemplate {
   label: string;
@@ -132,9 +138,11 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
   const [view, setView] = useState<MenuView>("root");
   const [assetQuery, setAssetQuery] = useState("");
   const [wfFilter, setWfFilter] = useState("");
+  const [chatFilter, setChatFilter] = useState("");
 
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const createNew = useWorkflowManager((state) => state.createNew);
+  const createNewThread = useGlobalChatStore((state) => state.createNewThread);
   const createAsset = useAssetStore((state) => state.createAsset);
   const createTimeline = useCreateTimeline();
   const { searchAssets } = useAssetSearch();
@@ -143,6 +151,7 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
     setView("root");
     setAssetQuery("");
     setWfFilter("");
+    setChatFilter("");
     onClose();
   }, [onClose]);
 
@@ -212,6 +221,21 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
     }
   }, [createTimeline, openTab, close]);
 
+  const handleNewChat = useCallback(async () => {
+    try {
+      const threadId = await createNewThread();
+      openTab({
+        type: "chat",
+        ref: threadId,
+        mode: "view",
+        title: "New chat"
+      });
+      close();
+    } catch (error) {
+      console.error("Failed to create chat", error);
+    }
+  }, [createNewThread, openTab, close]);
+
   const handleNewModel = useCallback(async () => {
     try {
       const asset = await createAsset(await createBlankModelFile());
@@ -245,6 +269,37 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
     if (!needle) return all;
     return all.filter((w) => w.name.toLowerCase().includes(needle));
   }, [workflowList, wfFilter]);
+
+  const { data: threadList, isLoading: threadsLoading } = useQuery({
+    queryKey: ["open-menu", "threads"],
+    queryFn: () => trpcClient.threads.list.query({ limit: 100 }),
+    enabled: open && view === "chats",
+    staleTime: 30_000
+  });
+
+  const chatThreads = useMemo(() => {
+    const all: Thread[] = threadList?.threads ?? [];
+    const needle = chatFilter.trim().toLowerCase();
+    const filtered = needle
+      ? all.filter((t) => (t.title ?? "").toLowerCase().includes(needle))
+      : all;
+    return [...filtered].sort((a, b) =>
+      (b.updated_at ?? "").localeCompare(a.updated_at ?? "")
+    );
+  }, [threadList, chatFilter]);
+
+  const openChat = useCallback(
+    (thread: Thread) => {
+      openTab({
+        type: "chat",
+        ref: thread.id,
+        mode: "view",
+        title: thread.title || "Untitled chat"
+      });
+      close();
+    },
+    [openTab, close]
+  );
 
   const trimmedAssetQuery = assetQuery.trim();
   const { data: assetResult, isFetching: assetsFetching } = useQuery({
@@ -322,6 +377,11 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
               label="New 3D model"
               icon={<ViewInArOutlinedIcon fontSize="small" />}
               onClick={() => void handleNewModel()}
+            />
+            <MenuItemPrimitive
+              label="New chat"
+              icon={<ForumOutlinedIcon fontSize="small" />}
+              onClick={() => void handleNewChat()}
               dividerAfter
             />
             <MenuItemPrimitive
@@ -333,6 +393,11 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
               label="Open asset…"
               hasSubmenu
               onClick={() => setView("assets")}
+            />
+            <MenuItemPrimitive
+              label="Open chat…"
+              hasSubmenu
+              onClick={() => setView("chats")}
             />
           </>
         )}
@@ -387,6 +452,43 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
                 key={w.id}
                 label={w.name || "Untitled"}
                 onClick={() => openWorkflow(w.id, w.name || "Untitled")}
+              />
+            ))}
+          </>
+        )}
+
+        {view === "chats" && (
+          <>
+            <MenuItemPrimitive
+              label="Back"
+              icon={<ArrowBackRoundedIcon fontSize="small" />}
+              onClick={() => setView("root")}
+              dividerAfter
+            />
+            <FlexRow sx={{ px: 1, py: 0.5 }}>
+              <TextInput
+                autoFocus
+                fullWidth
+                placeholder="Filter chats"
+                value={chatFilter}
+                onChange={(e) => setChatFilter(e.target.value)}
+              />
+            </FlexRow>
+            {threadsLoading && (
+              <FlexRow justify="center" sx={{ py: 2 }}>
+                <LoadingSpinner />
+              </FlexRow>
+            )}
+            {!threadsLoading && chatThreads.length === 0 && (
+              <Caption color="secondary" sx={{ px: 2, py: 1.5 }}>
+                No chats found.
+              </Caption>
+            )}
+            {chatThreads.map((thread) => (
+              <MenuItemPrimitive
+                key={thread.id}
+                label={thread.title || "Untitled chat"}
+                onClick={() => openChat(thread)}
               />
             ))}
           </>

@@ -33,8 +33,6 @@ import elevenlabsIcon from "@lobehub/icons-static-svg/icons/elevenlabs.svg";
 import { useIsDarkMode } from "../../hooks/useIsDarkMode";
 import { MOTION, BORDER_RADIUS } from "../ui_primitives";
 
-type IconKind = "svg" | "mui";
-
 type SvgEntry = {
   kind: "svg";
   src: string;

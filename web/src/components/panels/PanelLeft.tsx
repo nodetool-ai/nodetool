@@ -56,7 +56,7 @@ import CodeIcon from "@mui/icons-material/Code";
 import GridViewIcon from "@mui/icons-material/GridView";
 import CollectionsOutlinedIcon from "@mui/icons-material/CollectionsOutlined";
 
-import { Fullscreen } from "@mui/icons-material";
+import Fullscreen from "@mui/icons-material/Fullscreen";
 
 const HEADER_HEIGHT = 77;
 const HEADER_HEIGHT_MOBILE = 40;

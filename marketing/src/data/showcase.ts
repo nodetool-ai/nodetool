@@ -43,6 +43,15 @@ export interface ShowcaseEntry extends PageEntry {
    * false`. The near-duplicate rule is enforced at ingest, not render.
    */
   canonicalOf?: string;
+  /**
+   * Present only on duel rows (seeded via `--duel <modelA>,<modelB>`). Pair
+   * pages group entries by `duelPair`, then join the two model rows sharing a
+   * `duelId` into one same-prompt comparison.
+   */
+  params?: {
+    duelId: string;
+    duelPair: string;
+  };
 }
 
 /**

@@ -13,7 +13,8 @@ import {
   ListItemIcon,
   ListItemText
 } from "../ui_primitives";
-import { ExpandLess, ExpandMore } from "@mui/icons-material";
+import ExpandLess from "@mui/icons-material/ExpandLess";
+import ExpandMore from "@mui/icons-material/ExpandMore";
 import { useAssetStore } from "../../stores/AssetStore";
 import { Asset } from "../../stores/ApiTypes";
 import { IconForType } from "../../config/IconForType";

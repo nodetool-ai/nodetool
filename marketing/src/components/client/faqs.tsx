@@ -10,9 +10,9 @@ const faqs = [
       "NodeTool is the open creative AI workspace. Every major model from every major provider — FAL, KIE, OpenAI, Anthropic, Gemini, Replicate, and more — wired into one node-based canvas you run on your machine or in the browser.",
   },
   {
-    question: "What does BYOK mean for me?",
+    question: "What does \"bring your own keys\" mean for me?",
     answer:
-      "Bring your own keys. You connect your own provider accounts and pay providers directly at provider prices. NodeTool never marks up model calls and never issues proprietary credits.",
+      "You connect your own provider accounts and pay providers directly at provider prices. NodeTool never marks up model calls and never issues its own credits.",
   },
   {
     question: "Is NodeTool open source?",
@@ -22,22 +22,22 @@ const faqs = [
   {
     question: "How is this different from ComfyUI?",
     answer:
-      "ComfyUI is a node editor for diffusion models. NodeTool is the studio around it: image, video, music, and words on one canvas, every major model a click away.",
+      "ComfyUI is a node editor for image-generation models. NodeTool is the studio around it: image, video, music, and words on one canvas, every major model a click away.",
   },
   {
     question: "How is this different from Weavy and other closed canvases?",
     answer:
-      "Closed canvases lock you into a credit system and a curated model roster. NodeTool is open source and BYOK. Your workflows, files, and keys belong to you. Switch providers the moment a better model ships.",
+      "Closed canvases lock you into a credit system and a hand-picked list of models. NodeTool is open source and you bring your own keys. Your workflows, files, and keys belong to you. Switch providers the moment a better model ships.",
   },
   {
     question: "Studio or Cloud — which should I use?",
     answer:
-      "Studio is the desktop app: free, open source, runs on your machine, supports local models via MLX, Ollama, and GGUF. Cloud is the same workspace in the browser — zero setup, no GPU required, your keys still go to providers directly. Same workflows either way.",
+      "Studio is the desktop app: free, open source, runs on your machine, and supports local models via MLX and Ollama. Cloud is the same workspace in the browser — zero setup, no GPU required, your keys still go to providers directly. Same workflows either way.",
   },
   {
     question: "Which models are supported?",
     answer:
-      "Frontier models including Flux, Seedance, Wan, Veo, Kling, Hailuo, Qwen Image, Whisper, ElevenLabs, and Suno — called through providers like FAL, KIE, OpenAI, Anthropic, Gemini, Replicate, Together, Groq, Mistral, OpenRouter, and HuggingFace. Local inference via MLX, Ollama, llama.cpp, vLLM, and LM Studio.",
+      "The latest models, including Flux, Seedance, Wan, Veo, Kling, Hailuo, Qwen Image, Whisper, ElevenLabs, and Suno — called through providers like FAL, KIE, OpenAI, Anthropic, Gemini, Replicate, Together, Groq, Mistral, OpenRouter, and HuggingFace. Run models on your own machine via MLX, Ollama, llama.cpp, vLLM, and LM Studio.",
   },
 ];
 

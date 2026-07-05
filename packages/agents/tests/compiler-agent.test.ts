@@ -250,7 +250,7 @@ describe("CompilerAgent", () => {
             steps: [
               {
                 id: "research_search",
-                instructions: "Use google_search to find top 3 competitors.",
+                instructions: "Use web_search to find top 3 competitors.",
                 completed: true,
                 dependsOn: [],
                 logs: []

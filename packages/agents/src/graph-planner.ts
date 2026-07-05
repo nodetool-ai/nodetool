@@ -294,10 +294,15 @@ export class GraphPlanner {
 
     // The provider drives the tool loop, so backends that run their own agent
     // loop (e.g. the Claude Agent SDK) work. Each graph tool carries its own
-    // `execute` closure that mutates the shared builder; `finish_graph` is
-    // `terminal`, so the loop ends once it runs. The AbortController only
-    // short-circuits the loop when the per-turn tool-call budget is spent (an
-    // early-stop that is not a terminal tool).
+    // `execute` closure that mutates the shared builder.
+    //
+    // `finish_graph` is only *conditionally* terminal: on a valid graph it
+    // finalizes and aborts the loop; on a validation failure it returns the
+    // errors as the tool result and does NOT abort, so the model iterates and
+    // fixes the graph within the tool-call budget. The static `terminal` flag
+    // can't express that, so the AbortController stops the loop on a successful
+    // finish. It also short-circuits when the per-turn tool-call budget is
+    // spent (an early-stop that is not a terminal tool).
     const abort = new AbortController();
     let exhausted = false;
 
@@ -334,6 +339,10 @@ export class GraphPlanner {
             nodes: finishGraphTool.graph.nodes.length,
             edges: finishGraphTool.graph.edges.length
           });
+          // Valid graph captured — end the loop promptly. A failed finish_graph
+          // returns its errors as the tool result (no abort) so the model can
+          // fix and call finish_graph again within the budget.
+          abort.abort();
         } else if (totalToolCalls >= MAX_TOOL_CALLS_PER_TURN) {
           exhausted = true;
           abort.abort();
@@ -342,16 +351,10 @@ export class GraphPlanner {
         return resultStr;
       };
 
-    const providerTools = allTools.map((tool) => {
-      if (tool === finishGraphTool) {
-        return {
-          ...tool.toProviderTool(),
-          execute: makeExecute(tool),
-          terminal: true
-        };
-      }
-      return { ...tool.toProviderTool(), execute: makeExecute(tool) };
-    });
+    const providerTools = allTools.map((tool) => ({
+      ...tool.toProviderTool(),
+      execute: makeExecute(tool)
+    }));
 
     const stream = this.provider.generateLoop({
       messages,

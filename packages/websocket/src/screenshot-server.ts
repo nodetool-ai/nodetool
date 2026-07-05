@@ -69,7 +69,8 @@ function makeWorkflow(
     path: null,
     run_mode: "workflow",
     workspace_id: null,
-    html_app: null
+    html_app: null,
+    app_doc: null
   };
 }
 

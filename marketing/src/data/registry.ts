@@ -1,5 +1,6 @@
 import type { PageEntry } from "./types";
 import { staticEntries } from "./staticEntries";
+import { templateEntries } from "./templates";
 import { showcasePageEntries } from "./showcasePages";
 
 /**
@@ -21,6 +22,7 @@ export type RegistryModule = {
  */
 export const registryModules: RegistryModule[] = [
   { name: "static", entries: staticEntries },
+  { name: "templates", entries: templateEntries },
   // Showcase pages can grow into the hundreds once W-1 seeds real batches, so
   // the smoke suite samples the first 12 — hub + filter pages are ordered first.
   { name: "showcase", entries: showcasePageEntries, sample: 12 },

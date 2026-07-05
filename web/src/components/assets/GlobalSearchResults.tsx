@@ -2,10 +2,8 @@
 import { css } from "@emotion/react";
 import React, { useCallback, memo, useMemo, useRef, useEffect } from "react";
 import { EditorButton, Text, Tooltip, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
-import {
-  Folder as FolderIcon,
-  NavigateNext as NavigateIcon
-} from "@mui/icons-material";
+import FolderIcon from "@mui/icons-material/Folder";
+import NavigateIcon from "@mui/icons-material/NavigateNext";
 import { AssetWithPath } from "../../stores/ApiTypes";
 import { useAssetSelection } from "../../hooks/assets/useAssetSelection";
 import useContextMenuStore from "../../stores/ContextMenuStore";

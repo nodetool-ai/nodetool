@@ -30,7 +30,7 @@ export default function ComparisonSection({
             transition={{ duration: 0.5 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white"
           >
-            Where NodeTool fits in your stack
+            Where NodeTool fits among your tools
           </motion.h2>
           <motion.p
             initial={reducedMotion ? {} : { opacity: 0, y: 16 }}
@@ -47,13 +47,13 @@ export default function ComparisonSection({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-slate-800/60 border border-slate-800/80 rounded-2xl overflow-hidden">
           <ComparisonCard
             competitor="ComfyUI"
-            sentence="ComfyUI is a node editor for diffusion models. NodeTool is the studio around it: image, video, music, and words on one canvas, every major model a click away."
+            sentence="ComfyUI is a node editor for image-generation models. NodeTool is the studio around it: image, video, music, and words on one canvas, every major model a click away."
             reducedMotion={reducedMotion}
             delay={0}
           />
           <ComparisonCard
             competitor="Weavy / closed canvases"
-            sentence="Closed canvases lock you into a credit system and a curated model roster. NodeTool is open source and BYOK — every provider, your keys, provider prices."
+            sentence="Closed canvases lock you into a credit system and a hand-picked list of models. NodeTool is open source — every provider, your own keys, provider prices."
             reducedMotion={reducedMotion}
             delay={0.05}
           />
@@ -109,9 +109,9 @@ export default function ComparisonSection({
                 Kling ships, it&apos;s one node swap away.
               </p>
               <p className="text-slate-400 leading-relaxed text-[1.025rem]">
-                That&apos;s what vendor neutrality buys you: the best model at
-                the best price, every week — and no roadmap risk if your
-                favorite tool gets acquired.
+                That&apos;s what not being tied to one vendor buys you: the
+                best model at the best price, every week — and nothing to lose
+                if your favorite tool gets acquired.
               </p>
             </div>
           </div>
