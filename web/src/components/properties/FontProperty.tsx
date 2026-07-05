@@ -11,7 +11,12 @@ const fetchFonts = async (): Promise<string[]> => {
   return fonts;
 };
 
-const FontProperty: React.FC<PropertyProps> = ({
+interface FontValue {
+  type: "font";
+  name: string;
+}
+
+const FontProperty: React.FC<PropertyProps<FontValue | null>> = ({
   property,
   propertyIndex,
   value,
