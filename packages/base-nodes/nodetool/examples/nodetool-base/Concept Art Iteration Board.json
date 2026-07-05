@@ -99,6 +99,17 @@
           "className": "str"
         },
         "edge_type": "data"
+      },
+      {
+        "id": "e_concept_art_output",
+        "source": "4",
+        "sourceHandle": "output",
+        "target": "concept_art_output",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        },
+        "edge_type": "data"
       }
     ],
     "nodes": [
@@ -345,6 +356,26 @@
           "mood": "mysterious, ancient, powerful, serene, magical"
         },
         "dynamic_outputs": {}
+      },
+      {
+        "id": "concept_art_output",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "Concept Art"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2440,
+            "y": 95
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "Concept Art",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
       }
     ]
   },
@@ -358,5 +389,111 @@
   "required_providers": null,
   "required_models": null,
   "html_app": null,
-  "etag": "f0822a809691b6862751bcf5c4642e57"
+  "etag": "f0822a809691b6862751bcf5c4642e57",
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Concept Art Board"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-44",
+            "text": "🎨 Concept Art Board",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-45",
+            "text": "Generate concept art from a brief, style, and mood."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "c-50",
+            "title": "Brief",
+            "content": [
+              {
+                "type": "TextInput",
+                "props": {
+                  "id": "in-46",
+                  "binding": "creative_brief",
+                  "label": "Creative Brief",
+                  "placeholder": "e.g. a floating desert city",
+                  "multiline": true,
+                  "events": []
+                }
+              },
+              {
+                "type": "TextInput",
+                "props": {
+                  "id": "in-47",
+                  "binding": "art_style",
+                  "label": "Art Style",
+                  "placeholder": "e.g. painterly, cinematic",
+                  "multiline": false,
+                  "events": []
+                }
+              },
+              {
+                "type": "TextInput",
+                "props": {
+                  "id": "in-48",
+                  "binding": "mood_keywords",
+                  "label": "Mood Keywords",
+                  "placeholder": "e.g. serene, golden hour",
+                  "multiline": false,
+                  "events": []
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "id": "b-49",
+                  "label": "Generate Concept Art",
+                  "variant": "contained",
+                  "color": "primary",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "key": "",
+                      "value": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "c-52",
+            "title": "Concept Art",
+            "content": [
+              {
+                "type": "Image",
+                "props": {
+                  "id": "img-51",
+                  "binding": "Concept Art",
+                  "fit": "contain",
+                  "height": 520,
+                  "placeholder": "Your concept art will appear here"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
 }

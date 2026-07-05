@@ -41,7 +41,7 @@ export default function NodeToolHero() {
           <p className="mt-6 max-w-xl text-base leading-relaxed text-slate-300 md:text-lg">
             One canvas. Every major model from every major provider, called
             with your own keys. Pay providers what they charge — no credits, no
-            markup, no curated roster. When the next model ships, swap one node
+            markup, no locked-down model list. When the next model ships, swap one node
             and you&apos;re on it the same day.
           </p>
 

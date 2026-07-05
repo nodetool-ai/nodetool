@@ -5,7 +5,6 @@ import * as https from "https";
 import { app, dialog } from "electron";
 import {
   getDefaultInstallLocation,
-  installRequiredPythonPackages,
 } from "./python";
 import { getCondaEnvPath } from "./config";
 

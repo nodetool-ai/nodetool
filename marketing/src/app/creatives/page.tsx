@@ -28,13 +28,13 @@ const creativeFeatures = [
   {
     title: "Visual Workflow Canvas",
     description:
-      "Snap nodes into full creative pipelines — the whole process on one screen, from brief to render.",
+      "Snap nodes into complete creative workflows — the whole process on one screen, from brief to render.",
     icon: Layers,
     image: "/screen_canvas.png",
     features: [
       "Infinite canvas",
-      "Real-time execution graph",
-      "Custom sub-graphs",
+      "Watch every node run live",
+      "Reusable node groups",
     ],
   },
   {
@@ -46,15 +46,15 @@ const creativeFeatures = [
     features: ["Masks, inpaint, outpaint", "Multi-model support", "Batch processing"],
   },
   {
-    title: "Video pipelines",
+    title: "Video workflows",
     description:
       "Wire Seedance, Kling, Veo, Runway, and Sora alongside your edit nodes. Generate, transform, and stitch — without exporting between tools.",
     icon: Video,
     image: "/sora.mp4",
     features: [
       "Frame-accurate edits",
-      "Temporal smoothing",
-      "Format transcoding",
+      "Motion smoothing",
+      "Convert between formats",
     ],
   },
   {
@@ -139,7 +139,7 @@ export default function CreativesPage() {
 
                 <p className="text-lg md:text-xl text-slate-400 mb-12 max-w-3xl mx-auto leading-relaxed">
                   Every model. Your keys. Your canvas. Wire Seedance, Kling, Veo, Runway,
-                  Luma, Suno, and Flux on one open-source surface — no credit markup, no vendor lock-in.
+                  Luma, Suno, and Flux on one open-source canvas — no marked-up credits, no lock-in.
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14">
@@ -401,7 +401,7 @@ export default function CreativesPage() {
               <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
                 One canvas for <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-cyan-400">
-                  every modality
+                  every medium
                 </span>
               </h2>
               <p className="text-lg text-slate-400 max-w-2xl mx-auto">

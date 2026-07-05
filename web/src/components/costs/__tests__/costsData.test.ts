@@ -34,6 +34,7 @@ describe("provider presentation", () => {
   it("uses preset labels and colours for known providers", () => {
     expect(providerLabel("openai")).toBe("OpenAI");
     expect(providerColor("openai")).toBe("#4FD18B");
+    expect(providerLabel("openai_responses")).toBe("OpenAI Responses");
     expect(providerLabel("fal")).toBe("fal.ai");
   });
 

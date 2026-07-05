@@ -124,13 +124,16 @@ async function loadSkillFromFile(
 
   if (!content.startsWith("---")) return null;
 
-  const parts = content.split("---", 3);
+  // Frontmatter is delimited by the first two `---` fences. Rejoin everything
+  // after the second fence so a `---` horizontal rule inside the skill body is
+  // preserved rather than truncated (a limited `split` would discard the tail).
+  const parts = content.split("---");
   if (parts.length < 3) return null;
 
   const metadata = parseFrontmatter(parts[1]);
   const name = (metadata["name"] ?? "").trim();
   const description = (metadata["description"] ?? "").trim();
-  const instructions = parts[2].trim();
+  const instructions = parts.slice(2).join("---").trim();
 
   if (!isValidSkillName(name)) return null;
   if (!isValidSkillDescription(description)) return null;

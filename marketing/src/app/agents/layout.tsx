@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 
 const TITLE = "AI Agent Workflow Builder — Visual Canvas | NodeTool";
 const DESCRIPTION =
-  "Build and run AI agents visually — plan-act agents on a node canvas that plan the steps, pick the model, and execute, no code required. Wire image, video, music, and voice models — Flux, Seedance, Veo, Kling, Suno, ElevenLabs — into agents that ship the work. Open source, BYOK, runs on your machine.";
+  "Build and run AI agents visually — agents on a node canvas that plan the steps, pick the model, and do the work, no code required. Wire image, video, music, and voice models — Flux, Seedance, Veo, Kling, Suno, ElevenLabs — into agents that ship the work. Open source, your own keys, runs on your machine.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -58,7 +58,7 @@ export default function AgentsLayout({
           "@type": "SoftwareApplication",
           name: "NodeTool Agents",
           description:
-            "Plan-act AI agents built visually on NodeTool's node canvas: give an agent a goal and it plans the steps, picks the model, and executes across image, video, music, and voice models — Flux, Seedance, Veo, Kling, Suno, ElevenLabs. Open source, BYOK, runs on your machine.",
+            "AI agents built visually on NodeTool's node canvas: give an agent a goal and it plans the steps, picks the model, and does the work across image, video, music, and voice models — Flux, Seedance, Veo, Kling, Suno, ElevenLabs. Open source, your own keys, runs on your machine.",
           applicationCategory: "MultimediaApplication",
           operatingSystem: "macOS, Windows, Linux, Web browser",
           url: "https://nodetool.ai/agents",

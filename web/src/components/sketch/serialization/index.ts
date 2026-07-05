@@ -8,8 +8,6 @@
 import {
   SketchDocument,
   Layer,
-  LayerContentBounds,
-  LayerTransform,
   SegmentationSourceMetadata,
   cloneTransform,
   getAncestorGroupOpacityProduct,

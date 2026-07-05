@@ -253,7 +253,26 @@ export class CompilerAgent {
     const finishStepExecute = async (
       args: Record<string, unknown>
     ): Promise<string> => {
-      const resultPayload = (args?.["result"] as unknown) ?? args;
+      const rawResult = args?.["result"] as unknown;
+      // Fall back to the whole args object when `result` is absent, but strip
+      // the injected `_message` protocol field so it can't leak into the result.
+      let resultPayload: unknown =
+        rawResult !== undefined && rawResult !== null
+          ? rawResult
+          : Tool.stripMessage(args ?? {});
+      // Array-output schemas are wrapped as `{ result: { items: <array> } }`
+      // for the tool parameter schema; unwrap `{ items: [...] }` back to the
+      // array. Gate on the declared schema type so a legitimate object result
+      // with an `items` key is not misinterpreted.
+      if (
+        this.outputSchema?.["type"] === "array" &&
+        resultPayload !== null &&
+        typeof resultPayload === "object" &&
+        !Array.isArray(resultPayload) &&
+        Array.isArray((resultPayload as Record<string, unknown>)["items"])
+      ) {
+        resultPayload = (resultPayload as Record<string, unknown>)["items"];
+      }
       if (resultPayload === undefined || resultPayload === null) {
         return '{"error": "Missing result in finish_step call"}';
       }

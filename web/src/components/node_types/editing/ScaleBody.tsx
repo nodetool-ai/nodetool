@@ -15,7 +15,6 @@ import ImageIcon from "@mui/icons-material/Image";
 
 import { CheckerDropzone, NodeSlider, BORDER_RADIUS } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
-import ImageView from "../../node/ImageView";
 import ImageRefPreview from "../../node/ImageRefPreview";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";

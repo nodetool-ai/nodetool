@@ -883,7 +883,7 @@ export class OpenAIProvider extends BaseProvider {
       throw new Error("OpenAI returned no choices");
     }
 
-    const usage = (completion as any).usage;
+    const usage = completion.usage;
     if (usage) {
       this.trackUsage(model, {
         inputTokens: usage.prompt_tokens ?? 0,

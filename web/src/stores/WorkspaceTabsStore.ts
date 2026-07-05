@@ -22,6 +22,8 @@ export type WorkspaceTabType =
   | "model3d"
   | "audio"
   | "text"
+  // Chat conversations. `ref` is a chat thread id (GlobalChatStore).
+  | "chat"
   // App pages (Settings, Costs, Model Manager, …) opened from the logo menu.
   // `ref` is a PageTabKey; these have no edit mode.
   | "page";

@@ -48,5 +48,19 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "transformers-js",
+    "local-models",
+    "onnx",
+    "tts",
+    "asr",
+    "embeddings",
+    "kokoro"
   ]
 }

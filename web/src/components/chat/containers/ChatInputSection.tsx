@@ -66,6 +66,8 @@ type ChatInputSectionProps = {
   composerToolbar?: React.ReactNode;
   /** Override the composer's textarea placeholder. */
   placeholder?: string;
+  /** Pure chat panel: hide the media mode picker, force chat mode. */
+  hideModePicker?: boolean;
 };
 
 const ChatInputSection = ({
@@ -81,7 +83,8 @@ const ChatInputSection = ({
   requireToolSupport,
   variant = "media",
   composerToolbar,
-  placeholder
+  placeholder,
+  hideModePicker
 }: ChatInputSectionProps) => {
   const isLoading = status === "loading";
   const isStreaming = status === "streaming";
@@ -113,6 +116,7 @@ const ChatInputSection = ({
             allowedProviders={allowedProviders}
             requireToolSupport={requireToolSupport}
             placeholder={placeholder}
+            hideModePicker={hideModePicker}
           />
         )}
       </div>

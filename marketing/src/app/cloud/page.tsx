@@ -55,7 +55,7 @@ const proPoints = [
   {
     icon: Zap,
     title: "Start in 30 seconds",
-    body: "Sign in, open a workflow, hit run. No installer, no native dependencies, no GPU drivers — just a browser tab.",
+    body: "Sign in, open a workflow, hit run. No installer, no drivers, nothing to set up — just a browser tab.",
   },
   {
     icon: Globe,
@@ -69,7 +69,7 @@ const proPoints = [
   },
   {
     icon: KeyRound,
-    title: "Bring your own keys (BYOK)",
+    title: "Bring your own keys",
     body: "OpenAI, Anthropic, Gemini, Mistral, Groq, Replicate, FAL, ElevenLabs, HuggingFace — every cloud provider, billed to your account, not ours.",
   },
   {
@@ -80,18 +80,18 @@ const proPoints = [
   {
     icon: Cloud,
     title: "No GPU required",
-    body: "We run the runtime, the websocket server, the queues, and the storage. Heavy generative jobs go to your chosen cloud APIs.",
+    body: "We run the servers and the storage. Heavy image and video jobs run at the providers you choose.",
   },
 ];
 
 const consPoints = [
   {
-    title: "Alpha — not yet GA",
-    body: "Cloud is in active alpha. Expect breaking changes, missing polish, and occasional downtime. SLAs and production guarantees come with general availability.",
+    title: "Alpha — still early",
+    body: "Cloud is in active alpha. Expect breaking changes, missing polish, and occasional downtime. Uptime and support guarantees come with the full release.",
   },
   {
-    title: "No local LLMs",
-    body: "Cloud doesn't run Ollama, MLX, or GGUF models — those need access to your hardware. Use Studio if you need open-weight models running locally.",
+    title: "No local models",
+    body: "Cloud doesn't run Ollama or MLX models — those need access to your hardware. Use Studio if you want open models running on your own machine.",
   },
   {
     title: "Needs an internet connection",
@@ -227,8 +227,8 @@ export default function CloudPage() {
                   <strong className="text-amber-200">Heads up:</strong> Cloud is
                   in <strong className="text-amber-200">alpha</strong> and not
                   yet generally available. Expect rough edges, breaking changes,
-                  and occasional downtime while we harden it. For production
-                  workloads today, use{" "}
+                  and occasional downtime while we make it solid. For real
+                  work today, use{" "}
                   <a
                     href="/studio"
                     className="underline underline-offset-2 hover:text-amber-50"
@@ -246,8 +246,8 @@ export default function CloudPage() {
                     <ArrowRight className="h-4 w-4" />
                   </a>
                   <p className="text-xs text-slate-400">
-                    Alpha preview · AGPL-3.0 source · BYOK for every provider ·
-                    Self-host any time
+                    Alpha preview · AGPL-3.0 source · Your own keys for every
+                    provider · Self-host any time
                   </p>
                   <div className="mt-5 max-w-md">
                     <p className="mb-2 text-sm text-slate-300">
@@ -345,13 +345,12 @@ export default function CloudPage() {
                     Bring your own keys
                   </div>
                   <h2 className="text-2xl md:text-3xl font-bold text-white">
-                    You pay providers directly. We never mark up tokens.
+                    You pay providers directly. We never add a markup.
                   </h2>
                   <p className="mt-3 text-slate-300 max-w-2xl">
                     Cloud connects to OpenAI, Anthropic, Gemini, Mistral, Groq,
                     Replicate, FAL, ElevenLabs, HuggingFace, and more — using
-                    keys you provide. No hidden inference fees, no resold
-                    credits.
+                    keys you provide. No hidden fees, no resold credits.
                   </p>
                 </div>
               </div>
@@ -428,11 +427,10 @@ export default function CloudPage() {
                 Cloud is just our hosting of open-source code.
               </h2>
               <p className="mt-4 text-slate-400 leading-relaxed">
-                Every node, every provider, every line of the runtime that
-                powers Cloud is on GitHub under AGPL-3.0. If you ever want to
-                self-host, the same Docker images, CLI, and websocket server
-                are yours to run — no vendor lock-in, no &ldquo;cloud-only&rdquo;
-                features, no closed source layer.
+                Every node, every provider, every line of code that powers
+                Cloud is on GitHub under AGPL-3.0. If you ever want to run it
+                yourself, everything we run is yours to run too — no lock-in,
+                no &ldquo;cloud-only&rdquo; features, no closed source layer.
               </p>
               <a
                 href="https://github.com/nodetool-ai/nodetool"

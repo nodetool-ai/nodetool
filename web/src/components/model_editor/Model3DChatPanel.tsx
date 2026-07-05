@@ -145,6 +145,7 @@ const Model3DChatPanel = () => {
         onStop={stopGeneration}
         onNewChat={handleNewChat}
         requireToolSupport
+        hideModePicker
         noMessagesPlaceholder={welcomePlaceholder}
       />
     </div>

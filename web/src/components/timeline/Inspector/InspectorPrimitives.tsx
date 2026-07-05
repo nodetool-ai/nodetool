@@ -21,6 +21,7 @@ import React, {
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import { NodeSlider, Tooltip, MOTION, BORDER_RADIUS, FONT_SIZE_SANS, FONT_SIZE_MONO, FONT_WEIGHT, SPACING, getSpacingPx, reducedMotion, Switch } from "../../ui_primitives";
 import { useTimelineHistoryBatch } from "../../../stores/timeline/useTimelineHistoryBatch";
 
@@ -30,7 +31,7 @@ const headerStyles = css({
   display: "flex",
   alignItems: "center",
   gap: 8,
-  height: 36,
+  height: 32,
   padding: `0 ${getSpacingPx(SPACING.xs)} 0 ${getSpacingPx(SPACING.xs)}`
 });
 
@@ -53,8 +54,8 @@ const headerActionsStyles = css({
 
 const headerIconButtonStyles = (theme: Theme) =>
   css({
-    width: 28,
-    height: 26,
+    width: 24,
+    height: 20,
     background: "transparent",
     border: "1px solid transparent",
     color: theme.vars.palette.text.secondary,
@@ -74,7 +75,7 @@ const headerIconButtonStyles = (theme: Theme) =>
       borderColor: theme.vars.palette.primary.main
     },
     "& svg": {
-      fontSize: 16
+      fontSize: 14
     }
   });
 
@@ -132,8 +133,8 @@ const identityWrapStyles = (theme: Theme) =>
   css({
     display: "flex",
     flexDirection: "column",
-    gap: theme.spacing(1.5),
-    padding: theme.spacing(3, 1, 4)
+    gap: theme.spacing(1),
+    padding: theme.spacing(2, 1, 2.5)
   });
 
 const identityNameStyles = (theme: Theme) =>
@@ -165,7 +166,7 @@ const identitySwatchStyles = (color: string) =>
 const identityMetaStyles = (theme: Theme) =>
   css({
     color: theme.vars.palette.text.secondary,
-    fontSize: FONT_SIZE_MONO.code,
+    fontSize: FONT_SIZE_MONO.caption,
     lineHeight: 1.3
   });
 
@@ -203,8 +204,8 @@ ClipIdentityCard.displayName = "ClipIdentityCard";
 const rowStyles = css({
   display: "flex",
   alignItems: "center",
-  gap: 8,
-  minHeight: 32,
+  gap: 6,
+  minHeight: 24,
   padding: `0 ${getSpacingPx(SPACING.xs)}`
 });
 
@@ -213,7 +214,7 @@ const rowLabelStyles = (theme: Theme) =>
     flex: "1 1 auto",
     minWidth: 0,
     color: theme.vars.palette.text.secondary,
-    fontSize: FONT_SIZE_SANS.label,
+    fontSize: FONT_SIZE_SANS.caption,
     fontWeight: FONT_WEIGHT.normal,
     lineHeight: 1.3
   });
@@ -223,8 +224,8 @@ const rowControlStyles = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "flex-end",
-  gap: 6,
-  minWidth: 120
+  gap: 4,
+  minWidth: 110
 });
 
 export interface InspectorRowProps {
@@ -258,7 +259,7 @@ const staticValueStyles = (theme: Theme) =>
   css({
     fontFamily:
       "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
-    fontSize: FONT_SIZE_MONO.code,
+    fontSize: FONT_SIZE_MONO.caption,
     fontWeight: FONT_WEIGHT.medium,
     color: theme.vars.palette.text.secondary,
     maxWidth: 160,
@@ -282,22 +283,31 @@ InspectorStaticValue.displayName = "InspectorStaticValue";
 
 // ── Pill input ─────────────────────────────────────────────────────────────
 
-const pillWrapStyles = (theme: Theme, disabled: boolean, focused: boolean) =>
+const pillWrapStyles = (
+  theme: Theme,
+  disabled: boolean,
+  focused: boolean,
+  scrubbable: boolean
+) =>
   css({
     display: "inline-flex",
     alignItems: "center",
-    gap: 4,
-    height: 28,
-    padding: theme.spacing(0, 3),
+    gap: 3,
+    height: 20,
+    padding: theme.spacing(0, 2),
     backgroundColor: theme.vars.palette.background.default,
     border: `1px solid ${
       focused ? theme.vars.palette.primary.main : theme.vars.palette.c_overlay
     }`,
-    borderRadius: BORDER_RADIUS.md,
-    minWidth: 92,
+    borderRadius: BORDER_RADIUS.sm,
+    minWidth: 64,
     justifyContent: "flex-end",
     opacity: disabled ? 0.5 : 1,
     transition: `border-color ${MOTION.fast}`,
+    // Value scrubbing (drag left/right) — the horizontal-resize cursor is the
+    // affordance, matching FCP/AE numeric fields.
+    cursor: scrubbable && !focused && !disabled ? "ew-resize" : undefined,
+    touchAction: scrubbable ? "none" : undefined,
     "&:hover": {
       borderColor: focused
         ? theme.vars.palette.primary.main
@@ -305,7 +315,7 @@ const pillWrapStyles = (theme: Theme, disabled: boolean, focused: boolean) =>
     }
   });
 
-const pillInputStyles = (theme: Theme) =>
+const pillInputStyles = (theme: Theme, scrubbable: boolean, focused: boolean) =>
   css({
     flex: "1 1 auto",
     minWidth: 0,
@@ -315,12 +325,13 @@ const pillInputStyles = (theme: Theme) =>
     color: theme.vars.palette.text.primary,
     fontFamily:
       "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
-    fontSize: FONT_SIZE_MONO.code,
+    fontSize: FONT_SIZE_MONO.caption,
     fontWeight: FONT_WEIGHT.medium,
     letterSpacing: "0",
     textAlign: "right",
     padding: 0,
-    width: "100%"
+    width: "100%",
+    cursor: scrubbable && !focused ? "ew-resize" : undefined
   });
 
 const pillUnitStyles = (theme: Theme) =>
@@ -333,6 +344,13 @@ const pillUnitStyles = (theme: Theme) =>
     flexShrink: 0
   });
 
+export interface InspectorPillScrub {
+  /** Value change per horizontal pixel dragged. Shift ×10, Alt ×0.1. */
+  step: number;
+  min?: number;
+  max?: number;
+}
+
 export interface InspectorPillInputProps {
   value: string;
   onCommit: (raw: string) => void;
@@ -344,6 +362,12 @@ export interface InspectorPillInputProps {
   id?: string;
   /** Optional minWidth override for the pill (for long timecodes etc.). */
   minWidth?: number;
+  /**
+   * FCP-style value scrubbing: drag horizontally on the field to change the
+   * value; a plain click still focuses it for typing. Only for fields whose
+   * `value` parses as a plain number (not timecodes).
+   */
+  scrub?: InspectorPillScrub;
 }
 
 export const InspectorPillInput = memo(
@@ -357,13 +381,27 @@ export const InspectorPillInput = memo(
         disabled = false,
         ariaLabel,
         id,
-        minWidth
+        minWidth,
+        scrub
       },
       ref
     ) {
       const theme = useTheme();
       const [draft, setDraft] = useState(value);
       const [focused, setFocused] = useState(false);
+
+      const inputRef = useRef<HTMLInputElement | null>(null);
+      const setRefs = useCallback(
+        (node: HTMLInputElement | null) => {
+          inputRef.current = node;
+          if (typeof ref === "function") {
+            ref(node);
+          } else if (ref) {
+            ref.current = node;
+          }
+        },
+        [ref]
+      );
 
       useEffect(() => {
         if (!focused) {
@@ -389,16 +427,128 @@ export const InspectorPillInput = memo(
         [value]
       );
 
+      // ── Scrub gesture ────────────────────────────────────────────────────
+      // Drag scrubs; a click without movement focuses the input for typing.
+      // pointerdown preventDefault stops the native focus so the drag doesn't
+      // enter edit mode; store writes are rAF-coalesced and wrapped in one
+      // undo batch, same as InspectorSliderRow.
+
+      const history = useTimelineHistoryBatch();
+      const onCommitRef = useRef(onCommit);
+      onCommitRef.current = onCommit;
+      const gestureRef = useRef<{
+        pointerId: number;
+        startX: number;
+        startValue: number;
+        moved: boolean;
+      } | null>(null);
+      const pendingRef = useRef<string | null>(null);
+      const rafIdRef = useRef<number | null>(null);
+
+      const scrubDecimals = useMemo(() => {
+        if (!scrub) return 0;
+        return (String(scrub.step).split(".")[1] ?? "").length;
+      }, [scrub]);
+
+      const flushScrub = useCallback(() => {
+        rafIdRef.current = null;
+        if (pendingRef.current === null) return;
+        const next = pendingRef.current;
+        pendingRef.current = null;
+        onCommitRef.current(next);
+        history.mark();
+      }, [history]);
+
+      const handlePointerDown = useCallback(
+        (e: React.PointerEvent<HTMLDivElement>) => {
+          if (!scrub || disabled || focused || e.button !== 0) return;
+          const start = parseFloat(value);
+          if (!Number.isFinite(start)) return;
+          e.preventDefault();
+          e.currentTarget.setPointerCapture(e.pointerId);
+          gestureRef.current = {
+            pointerId: e.pointerId,
+            startX: e.clientX,
+            startValue: start,
+            moved: false
+          };
+        },
+        [scrub, disabled, focused, value]
+      );
+
+      const handlePointerMove = useCallback(
+        (e: React.PointerEvent<HTMLDivElement>) => {
+          const gesture = gestureRef.current;
+          if (!gesture || !scrub) return;
+          const dx = e.clientX - gesture.startX;
+          if (!gesture.moved) {
+            if (Math.abs(dx) < 3) return;
+            gesture.moved = true;
+            history.begin();
+          }
+          const multiplier = e.shiftKey ? 10 : e.altKey ? 0.1 : 1;
+          let next = gesture.startValue + dx * scrub.step * multiplier;
+          if (scrub.min != null) next = Math.max(scrub.min, next);
+          if (scrub.max != null) next = Math.min(scrub.max, next);
+          const formatted = next.toFixed(scrubDecimals);
+          setDraft(formatted);
+          pendingRef.current = formatted;
+          if (rafIdRef.current === null) {
+            rafIdRef.current = requestAnimationFrame(flushScrub);
+          }
+        },
+        [scrub, scrubDecimals, history, flushScrub]
+      );
+
+      const handlePointerUp = useCallback(
+        (e: React.PointerEvent<HTMLDivElement>) => {
+          const gesture = gestureRef.current;
+          if (!gesture || gesture.pointerId !== e.pointerId) return;
+          gestureRef.current = null;
+          if (gesture.moved) {
+            if (rafIdRef.current !== null) {
+              cancelAnimationFrame(rafIdRef.current);
+              rafIdRef.current = null;
+            }
+            if (pendingRef.current !== null) {
+              const next = pendingRef.current;
+              pendingRef.current = null;
+              onCommitRef.current(next);
+              history.mark();
+            }
+            history.end();
+          } else {
+            inputRef.current?.focus();
+            inputRef.current?.select();
+          }
+        },
+        [history]
+      );
+
+      useEffect(() => {
+        return () => {
+          if (rafIdRef.current !== null) {
+            cancelAnimationFrame(rafIdRef.current);
+          }
+        };
+      }, []);
+
       return (
         <div
-          css={pillWrapStyles(theme, disabled, focused)}
+          css={pillWrapStyles(theme, disabled, focused, !!scrub)}
           style={minWidth ? { minWidth } : undefined}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
         >
           <input
             id={id}
-            ref={ref}
+            ref={setRefs}
             type="text"
-            css={pillInputStyles(theme)}
+            // size=1 kills the input's ~20-char intrinsic width so the pill
+            // sizes from minWidth instead of overflowing narrow panels.
+            size={1}
+            css={pillInputStyles(theme, !!scrub, focused)}
             value={draft}
             placeholder={placeholder}
             disabled={disabled}
@@ -421,15 +571,15 @@ export const InspectorPillInput = memo(
 // ── Toggle row ─────────────────────────────────────────────────────────────
 
 const toggleSwitchSx = {
-  width: 36,
-  height: 20,
+  width: 28,
+  height: 16,
   padding: 0,
   "& .MuiSwitch-switchBase": {
     padding: 0,
     margin: getSpacingPx(SPACING.micro),
     transitionDuration: "180ms",
     "&.Mui-checked": {
-      transform: "translateX(16px)",
+      transform: "translateX(12px)",
       color: "var(--palette-primary-contrastText)",
       "& + .MuiSwitch-track": {
         backgroundColor: "var(--palette-primary-main)",
@@ -440,8 +590,8 @@ const toggleSwitchSx = {
   },
   "& .MuiSwitch-thumb": {
     boxSizing: "border-box",
-    width: 16,
-    height: 16,
+    width: 12,
+    height: 12,
     boxShadow: "0 1px 2px var(--palette-c_scrim)"
   },
   "& .MuiSwitch-track": {
@@ -483,17 +633,17 @@ const sliderRowStyles = (theme: Theme) =>
   css({
     display: "flex",
     alignItems: "center",
-    gap: theme.spacing(3),
-    minHeight: 32,
+    gap: theme.spacing(2),
+    minHeight: 24,
     padding: `0 ${getSpacingPx(SPACING.xs)}`
   });
 
 const sliderLabelStyles = (theme: Theme) =>
   css({
     flex: "0 1 auto",
-    minWidth: 56,
+    minWidth: 60,
     color: theme.vars.palette.text.secondary,
-    fontSize: FONT_SIZE_SANS.label,
+    fontSize: FONT_SIZE_SANS.caption,
     fontWeight: FONT_WEIGHT.normal,
     lineHeight: 1.3,
     overflow: "hidden",
@@ -510,7 +660,7 @@ const sliderTrackStyles = css({
 
 const sliderValueStyles = (theme: Theme) =>
   css({
-    flex: "0 0 48px",
+    flex: "0 0 44px",
     fontFamily:
       "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
     fontSize: FONT_SIZE_MONO.caption,
@@ -534,11 +684,11 @@ const precisionSliderSx = (theme: Theme) => {
   const ring = theme.vars.palette.primary.mainChannel;
   return {
     marginTop: 0,
-    padding: `${getSpacingPx(SPACING.md)} 0`,
-    height: 16,
+    padding: `${getSpacingPx(SPACING.sm)} 0`,
+    height: 12,
     "&.Mui-disabled": { opacity: 0.45 },
     "& .MuiSlider-rail": {
-      height: 3,
+      height: 2,
       borderRadius: BORDER_RADIUS.pill,
       opacity: 1,
       background: `linear-gradient(to right, ${rail} 0, ${rail} var(--fill-lo, 0%), ${accent} var(--fill-lo, 0%), ${accent} var(--fill-hi, 0%), ${rail} var(--fill-hi, 0%), ${rail} 100%)`,
@@ -549,7 +699,7 @@ const precisionSliderSx = (theme: Theme) => {
         left: "var(--fill-origin, 0%)",
         top: "50%",
         width: 2,
-        height: 8,
+        height: 6,
         transform: "translate(-50%, -50%)",
         borderRadius: BORDER_RADIUS.pill,
         backgroundColor: theme.vars.palette.text.disabled,
@@ -558,8 +708,8 @@ const precisionSliderSx = (theme: Theme) => {
       }
     },
     "& .MuiSlider-thumb": {
-      width: 12,
-      height: 12,
+      width: 10,
+      height: 10,
       borderRadius: BORDER_RADIUS.circle,
       backgroundColor: theme.vars.palette.text.primary,
       border: `1px solid rgba(${theme.vars.palette.common.blackChannel} / 0.28)`,
@@ -716,36 +866,184 @@ InspectorSliderRow.displayName = "InspectorSliderRow";
 
 // ── Section title (for CollapsibleSection title prop) ──────────────────────
 
-const sectionTitleStyles = (theme: Theme) =>
+const sectionTitleStyles = (theme: Theme, dimmed: boolean) =>
   css({
-    display: "inline-flex",
+    display: "flex",
     alignItems: "center",
-    gap: 8,
-    color: theme.vars.palette.text.primary,
-    fontSize: FONT_SIZE_SANS.body,
-    fontWeight: FONT_WEIGHT.medium,
-    letterSpacing: "-0.005em"
+    width: "100%",
+    minWidth: 0,
+    gap: 6,
+    color: dimmed
+      ? theme.vars.palette.text.disabled
+      : theme.vars.palette.text.primary,
+    fontSize: FONT_SIZE_SANS.caption,
+    fontWeight: FONT_WEIGHT.semibold,
+    letterSpacing: "0.06em",
+    textTransform: "uppercase",
+    transition: `color ${MOTION.fast}`,
+    // Reset action stays hidden until the header is hovered or the button
+    // itself is keyboard-focused (FCP reveals per-section controls on hover).
+    "& .inspector-section-action": {
+      opacity: 0,
+      transition: `opacity ${MOTION.fast}`
+    },
+    "&:hover .inspector-section-action, & .inspector-section-action:focus-visible":
+      {
+        opacity: 1
+      }
   });
 
 const sectionTitleIconStyles = (theme: Theme) =>
   css({
     color: theme.vars.palette.text.secondary,
     display: "inline-flex",
-    "& svg": { fontSize: 14 }
+    "& svg": { fontSize: 12 }
   });
+
+const sectionCheckboxStyles = (theme: Theme, checked: boolean) =>
+  css({
+    width: 13,
+    height: 13,
+    flexShrink: 0,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 0,
+    cursor: "pointer",
+    borderRadius: BORDER_RADIUS.xs,
+    border: `1px solid ${
+      checked
+        ? theme.vars.palette.primary.main
+        : theme.vars.palette.c_overlay_strong
+    }`,
+    backgroundColor: checked ? theme.vars.palette.primary.main : "transparent",
+    color: theme.vars.palette.primary.contrastText,
+    transition: `background-color ${MOTION.fast}, border-color ${MOTION.fast}`,
+    "&:hover": {
+      borderColor: theme.vars.palette.primary.main
+    },
+    "&:focus-visible": {
+      outline: "none",
+      boxShadow: `0 0 0 2px rgba(${theme.vars.palette.primary.mainChannel} / 0.35)`
+    },
+    "& svg": { fontSize: 11 }
+  });
+
+const sectionActionStyles = (theme: Theme) =>
+  css({
+    width: 22,
+    height: 18,
+    flexShrink: 0,
+    background: "transparent",
+    border: "1px solid transparent",
+    color: theme.vars.palette.text.secondary,
+    cursor: "pointer",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: BORDER_RADIUS.sm,
+    transition: `background-color ${MOTION.fast}, color ${MOTION.fast}`,
+    "&:hover": {
+      backgroundColor: theme.vars.palette.action.hover,
+      color: theme.vars.palette.text.primary
+    },
+    "&:focus-visible": {
+      outline: "none",
+      borderColor: theme.vars.palette.primary.main
+    },
+    "&:disabled": {
+      opacity: 0.4,
+      cursor: "default"
+    },
+    "& svg": { fontSize: 13 }
+  });
+
+export interface InspectorSectionAction {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+}
 
 export interface InspectorSectionTitleProps {
   title: string;
   icon?: React.ReactNode;
+  /**
+   * FCP-style activation checkbox before the title: checking it toggles the
+   * whole section's effect on/off without expanding the fold. The title dims
+   * while unchecked.
+   */
+  checked?: boolean;
+  onCheckedChange?: (next: boolean) => void;
+  /** Hover-revealed trailing action, e.g. reset-to-defaults. */
+  action?: InspectorSectionAction;
 }
 
 export const InspectorSectionTitle: React.FC<InspectorSectionTitleProps> = memo(
-  ({ title, icon }) => {
+  ({ title, icon, checked, onCheckedChange, action }) => {
     const theme = useTheme();
+    const hasCheckbox = onCheckedChange !== undefined;
+    const dimmed = hasCheckbox && !checked;
+
+    // The whole CollapsibleSection header toggles the fold on click and on
+    // Enter/Space, so inner controls must stop those events from bubbling.
+    const stopKeyToggle = (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.stopPropagation();
+      }
+    };
+
     return (
-      <span css={sectionTitleStyles(theme)}>
+      <span css={sectionTitleStyles(theme, dimmed)}>
+        {hasCheckbox && (
+          <button
+            type="button"
+            role="checkbox"
+            aria-checked={!!checked}
+            aria-label={`${title} enabled`}
+            css={sectionCheckboxStyles(theme, !!checked)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onCheckedChange(!checked);
+            }}
+            onKeyDown={stopKeyToggle}
+          >
+            {checked && <CheckRoundedIcon />}
+          </button>
+        )}
         {icon && <span css={sectionTitleIconStyles(theme)}>{icon}</span>}
-        {title}
+        <span
+          style={{
+            minWidth: 0,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap"
+          }}
+        >
+          {title}
+        </span>
+        <span style={{ flex: "1 1 auto" }} />
+        {action && (
+          <Tooltip title={action.label}>
+            {/* span keeps the tooltip working while the button is disabled */}
+            <span style={{ display: "inline-flex" }}>
+              <button
+                type="button"
+                className="inspector-section-action"
+                css={sectionActionStyles(theme)}
+                aria-label={action.label}
+                disabled={action.disabled}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  action.onClick();
+                }}
+                onKeyDown={stopKeyToggle}
+              >
+                {action.icon}
+              </button>
+            </span>
+          </Tooltip>
+        )}
       </span>
     );
   }

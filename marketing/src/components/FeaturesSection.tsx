@@ -114,7 +114,7 @@ export default function FeaturesSection({
             {
               title: "Edit where you generate",
               description:
-                "Masks, inpaint, outpaint, relight, upscale, layers, compositing. The post tools you reach for, wired into the same canvas as the model calls.",
+                "Mask, retouch, extend, relight, upscale, layer, and composite. The editing tools you reach for, wired into the same canvas as the model calls.",
               icon: MousePointer2,
               color: "text-blue-400",
               bg: "bg-blue-500/10",
@@ -141,7 +141,7 @@ export default function FeaturesSection({
             {
               title: "Image, video, audio, text",
               description:
-                "Flux, Seedance, Wan, ControlNet, Whisper, ElevenLabs, Suno — every modality on one canvas, under their real names. No white-label mystery models.",
+                "Flux, Seedance, Wan, ControlNet, Whisper, ElevenLabs, Suno — all of it on one canvas, under their real names. No renamed mystery models.",
               icon: Layers,
               color: "text-orange-400",
               bg: "bg-orange-500/10",

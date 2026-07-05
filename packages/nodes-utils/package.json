@@ -43,5 +43,19 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "utilities",
+    "helpers",
+    "platform"
   ]
 }

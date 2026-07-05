@@ -51,5 +51,21 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "ai-nodes",
+    "no-code",
+    "visual-programming",
+    "workflow-nodes",
+    "transformers-js",
+    "onnx",
+    "local-inference",
+    "nlp",
+    "vision"
   ]
 }

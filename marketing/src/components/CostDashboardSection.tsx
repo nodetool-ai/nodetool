@@ -102,9 +102,9 @@ export default function CostDashboardSection() {
             See what every run actually costs
           </h3>
           <p className="mt-4 text-lg leading-relaxed text-slate-300">
-            NodeTool prices every node execution and rolls it up by workflow,
-            provider, or model. You bring your own keys and pay providers
-            directly, so the numbers are the real ones.
+            NodeTool tracks the cost of every node run and totals it by
+            workflow, provider, or model. You bring your own keys and pay
+            providers directly, so the numbers are the real ones.
           </p>
         </div>
 
@@ -370,8 +370,8 @@ export default function CostDashboardSection() {
         <div className="mx-auto mt-12 grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-3">
           {[
             {
-              title: "Per-node accounting",
-              body: "Every execution priced on its own, grouped by node, workflow, provider, or model.",
+              title: "Cost per node",
+              body: "Every run priced on its own, grouped by node, workflow, provider, or model.",
             },
             {
               title: "No markup",

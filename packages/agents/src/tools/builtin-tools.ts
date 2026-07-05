@@ -36,13 +36,14 @@ import {
   GoogleGroundedSearchTool,
   GoogleImageGenerationTool
 } from "./google-tools.js";
+import { ImageGenerationTool } from "./image-generation-tool.js";
 import {
   DataForSEOSearchTool,
   DataForSEONewsTool,
   DataForSEOImagesTool
 } from "./dataseo-tools.js";
 import {
-  GoogleSearchTool,
+  WebSearchTool,
   GoogleNewsTool,
   GoogleImagesTool
 } from "./search-tools.js";
@@ -94,46 +95,47 @@ export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   ViewImageTool,
 
   // Search
-  // GoogleSearchTool,
-  // GoogleNewsTool,
-  // GoogleImagesTool,
-  // GoogleGroundedSearchTool,
-  // OpenAIWebSearchTool,
-  // DataForSEOSearchTool,
-  // DataForSEONewsTool,
-  // DataForSEOImagesTool,
+  WebSearchTool,
+  GoogleNewsTool,
+  GoogleImagesTool,
+  GoogleGroundedSearchTool,
+  OpenAIWebSearchTool,
+  DataForSEOSearchTool,
+  DataForSEONewsTool,
+  DataForSEOImagesTool,
 
   // Generation
-  // GoogleImageGenerationTool,
-  // OpenAIImageGenerationTool,
-  // OpenAITextToSpeechTool,
+  ImageGenerationTool,
+  GoogleImageGenerationTool,
+  OpenAIImageGenerationTool,
+  OpenAITextToSpeechTool,
 
   // Web
-  // BrowserTool,
-  // ScreenshotTool,
-  // DownloadFileTool,
-  // HttpRequestTool,
+  BrowserTool,
+  ScreenshotTool,
+  DownloadFileTool,
+  HttpRequestTool,
 
   // Email
-  // SearchEmailTool,
-  // ArchiveEmailTool,
-  // AddLabelToEmailTool,
+  SearchEmailTool,
+  ArchiveEmailTool,
+  AddLabelToEmailTool,
 
   // Compute
-  // CalculatorTool,
-  // RunCodeTool,
-  // MiniJSAgentTool,
-  // StatisticsTool,
-  // GeometryTool,
-  // TrigonometryTool,
-  // ConversionTool,
+  CalculatorTool,
+  RunCodeTool,
+  MiniJSAgentTool,
+  StatisticsTool,
+  GeometryTool,
+  TrigonometryTool,
+  ConversionTool,
 
   // Documents
-  // ExtractPDFTextTool,
-  // ExtractPDFTablesTool,
-  // ConvertPDFToMarkdownTool,
-  // ConvertMarkdownToPDFTool,
-  // ConvertDocumentTool
+  ExtractPDFTextTool,
+  ExtractPDFTablesTool,
+  ConvertPDFToMarkdownTool,
+  ConvertMarkdownToPDFTool,
+  ConvertDocumentTool
 ];
 
 /**

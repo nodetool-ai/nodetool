@@ -88,6 +88,9 @@ export const formatGenericProviderName = (provider?: string): string => {
   // Normalize common aliases for display
   const providerLower = provider.toLowerCase();
   const providerAliasNames: Record<string, string> = {
+    openai: "OpenAI",
+    openai_responses: "OpenAI Responses",
+    "openai-responses": "OpenAI Responses",
     hunyuan3d: "Hunyuan3D",
     hunyuan3d_v2: "Hunyuan3D V2",
     hunyuan3d_v3: "Hunyuan3D 3.0",
