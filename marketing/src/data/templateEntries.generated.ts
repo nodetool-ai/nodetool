@@ -1108,12 +1108,17 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
         "type": "nodetool.image.TextToImage",
         "label": "Text To Image",
         "count": 1
       }
     ],
-    "nodeCount": 8,
+    "nodeCount": 9,
     "thumbnail": "/templates/concept-art-iteration-board.jpg",
     "graph": {
       "nodes": [
@@ -1194,6 +1199,14 @@ export const templateEntries: TemplateEntry[] = [
           "y": 297,
           "width": 377,
           "subtitle": "You are a creative director for concept art. Creative Brief: {{ brief }} Art Style: {{ style }} Mood: {{ mood }} Expand this brief into det…"
+        },
+        {
+          "id": "concept_art_output",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2440,
+          "y": 95,
+          "width": 280
         }
       ],
       "edges": [
@@ -1252,6 +1265,13 @@ export const templateEntries: TemplateEntry[] = [
           "target": "8",
           "targetHandle": "prompt",
           "color": "string"
+        },
+        {
+          "source": "4",
+          "sourceHandle": "output",
+          "target": "concept_art_output",
+          "targetHandle": "value",
+          "color": "image"
         }
       ]
     }
@@ -1295,9 +1315,14 @@ export const templateEntries: TemplateEntry[] = [
         "type": "nodetool.boolean.LogicalOperator",
         "label": "Logical Operator",
         "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
       }
     ],
-    "nodeCount": 12,
+    "nodeCount": 13,
     "thumbnail": "/templates/conditional-logic-engine.jpg",
     "graph": {
       "nodes": [
@@ -1410,6 +1435,14 @@ export const templateEntries: TemplateEntry[] = [
           "y": 0,
           "width": 280,
           "subtitle": "🟡 MEDIUM VALUE: {{ value }} is between 50 and 100. Balanced processing selected."
+        },
+        {
+          "id": "result_output",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2110,
+          "y": 401,
+          "width": 280
         }
       ],
       "edges": [
@@ -1559,6 +1592,13 @@ export const templateEntries: TemplateEntry[] = [
           "target": "2",
           "targetHandle": "processing",
           "color": "any"
+        },
+        {
+          "source": "2",
+          "sourceHandle": "output",
+          "target": "result_output",
+          "targetHandle": "value",
+          "color": "string"
         }
       ]
     }
@@ -1593,12 +1633,17 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
         "type": "nodetool.text.Prompt",
         "label": "Prompt",
         "count": 1
       }
     ],
-    "nodeCount": 4,
+    "nodeCount": 5,
     "thumbnail": "/templates/creative-story-ideas.jpg",
     "graph": {
       "nodes": [
@@ -1645,6 +1690,14 @@ export const templateEntries: TemplateEntry[] = [
           "y": 50,
           "width": 320,
           "subtitle": "Generate 5 creative story ideas with the following criteria: Genre: {{ genre }} Main Character: {{ character }} For each story idea, provid…"
+        },
+        {
+          "id": "ideas_output",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1200,
+          "y": 65,
+          "width": 280
         }
       ],
       "edges": [
@@ -1667,6 +1720,13 @@ export const templateEntries: TemplateEntry[] = [
           "sourceHandle": "output",
           "target": "8132bc91-b872-4976-8bbf-b3548eff3b06",
           "targetHandle": "genre",
+          "color": "string"
+        },
+        {
+          "source": "list_generator",
+          "sourceHandle": "item",
+          "target": "ideas_output",
+          "targetHandle": "value",
           "color": "string"
         }
       ]
@@ -1982,6 +2042,11 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
         "type": "nodetool.text.Prompt",
         "label": "Prompt",
         "count": 1
@@ -1997,7 +2062,7 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       }
     ],
-    "nodeCount": 6,
+    "nodeCount": 7,
     "thumbnail": "/templates/flashcard-generator.jpg",
     "graph": {
       "nodes": [
@@ -2059,6 +2124,14 @@ export const templateEntries: TemplateEntry[] = [
           "y": 0,
           "width": 460,
           "isComment": true
+        },
+        {
+          "id": "flashcards_output",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1140,
+          "y": 65,
+          "width": 260
         }
       ],
       "edges": [
@@ -2116,6 +2189,13 @@ export const templateEntries: TemplateEntry[] = [
           "sourceHandle": "columns",
           "target": "query_all",
           "targetHandle": "columns",
+          "color": "any"
+        },
+        {
+          "source": "generate_flashcards",
+          "sourceHandle": "dataframe",
+          "target": "flashcards_output",
+          "targetHandle": "value",
           "color": "any"
         }
       ]
@@ -2774,12 +2854,17 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
         "type": "nodetool.input.StringInput",
         "label": "String Input",
         "count": 1
       }
     ],
-    "nodeCount": 4,
+    "nodeCount": 5,
     "thumbnail": "/templates/learning-path-generator.jpg",
     "graph": {
       "nodes": [
@@ -2826,6 +2911,14 @@ export const templateEntries: TemplateEntry[] = [
           "y": 554,
           "width": 280,
           "subtitle": "Getting Started with Docker"
+        },
+        {
+          "id": "learning_path_output",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1680,
+          "y": 465,
+          "width": 280
         }
       ],
       "edges": [
@@ -2863,6 +2956,13 @@ export const templateEntries: TemplateEntry[] = [
           "target": "2",
           "targetHandle": "modules",
           "color": "any"
+        },
+        {
+          "source": "2",
+          "sourceHandle": "output",
+          "target": "learning_path_output",
+          "targetHandle": "value",
+          "color": "string"
         }
       ]
     }
@@ -2884,8 +2984,13 @@ export const templateEntries: TemplateEntry[] = [
     "category": "Audio & Music",
     "nodeTypes": [
       {
-        "type": "nodetool.constant.Audio",
-        "label": "Audio",
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 2
+      },
+      {
+        "type": "nodetool.input.AudioInput",
+        "label": "Audio Input",
         "count": 1
       },
       {
@@ -2899,14 +3004,14 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       }
     ],
-    "nodeCount": 3,
+    "nodeCount": 5,
     "thumbnail": "/templates/meeting-transcript-summarizer.jpg",
     "graph": {
       "nodes": [
         {
           "id": "1",
-          "type": "nodetool.constant.Audio",
-          "title": "Audio",
+          "type": "nodetool.input.AudioInput",
+          "title": "Audio Input",
           "x": 50,
           "y": 120,
           "width": 280
@@ -2935,6 +3040,22 @@ export const templateEntries: TemplateEntry[] = [
           "x": 367,
           "y": 113,
           "width": 280
+        },
+        {
+          "id": "summary_output",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1040,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "transcript_output",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 720,
+          "y": 420,
+          "width": 280
         }
       ],
       "edges": [
@@ -2951,6 +3072,20 @@ export const templateEntries: TemplateEntry[] = [
           "target": "a2e09377-c0e4-4f7e-8cf0-dbbc5a8ff94c",
           "targetHandle": "audio",
           "color": "audio"
+        },
+        {
+          "source": "3",
+          "sourceHandle": "text",
+          "target": "summary_output",
+          "targetHandle": "value",
+          "color": "string"
+        },
+        {
+          "source": "a2e09377-c0e4-4f7e-8cf0-dbbc5a8ff94c",
+          "sourceHandle": "text",
+          "target": "transcript_output",
+          "targetHandle": "value",
+          "color": "string"
         }
       ]
     }
@@ -2993,6 +3128,11 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
         "type": "nodetool.generators.StructuredOutputGenerator",
         "label": "Structured Output Generator",
         "count": 1
@@ -3003,7 +3143,7 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       }
     ],
-    "nodeCount": 11,
+    "nodeCount": 12,
     "thumbnail": "/templates/movie-posters.jpg",
     "graph": {
       "nodes": [
@@ -3111,6 +3251,14 @@ export const templateEntries: TemplateEntry[] = [
           "x": 1210,
           "y": 591,
           "width": 280
+        },
+        {
+          "id": "poster_output",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 3200,
+          "y": 187,
+          "width": 320
         }
       ],
       "edges": [
@@ -3232,6 +3380,13 @@ export const templateEntries: TemplateEntry[] = [
           "target": "68bb0948-5e25-485e-81e1-9a1a7f2c1e92",
           "targetHandle": "core_visual_concept",
           "color": "string"
+        },
+        {
+          "source": "0276f606-d899-4487-be65-4615564507cc",
+          "sourceHandle": "output",
+          "target": "poster_output",
+          "targetHandle": "value",
+          "color": "image"
         }
       ]
     }
@@ -5060,12 +5215,17 @@ export const templateEntries: TemplateEntry[] = [
         "count": 2
       },
       {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
         "type": "nodetool.input.StringInput",
         "label": "String Input",
         "count": 1
       }
     ],
-    "nodeCount": 6,
+    "nodeCount": 7,
     "thumbnail": "/templates/research-paper-summarizer.jpg",
     "graph": {
       "nodes": [
@@ -5129,6 +5289,14 @@ export const templateEntries: TemplateEntry[] = [
           "y": 300,
           "width": 280,
           "subtitle": "Provide a technical summary of the methodology described in this paper: {{ paper }} Focus on: Architecture, algorithms, and technical innov…"
+        },
+        {
+          "id": "summary_output",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1560,
+          "y": 80,
+          "width": 280
         }
       ],
       "edges": [
@@ -5173,6 +5341,13 @@ export const templateEntries: TemplateEntry[] = [
           "target": "2",
           "targetHandle": "technical",
           "color": "any"
+        },
+        {
+          "source": "2",
+          "sourceHandle": "output",
+          "target": "summary_output",
+          "targetHandle": "value",
+          "color": "string"
         }
       ]
     }
@@ -6202,12 +6377,17 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
         "type": "nodetool.text.Prompt",
         "label": "Prompt",
         "count": 1
       }
     ],
-    "nodeCount": 4,
+    "nodeCount": 5,
     "thumbnail": "/templates/wikipedia-agent.jpg",
     "graph": {
       "nodes": [
@@ -6254,6 +6434,14 @@ export const templateEntries: TemplateEntry[] = [
           "y": 300,
           "width": 280,
           "subtitle": "LLM fine tuning"
+        },
+        {
+          "id": "findings_output",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1180,
+          "y": 80,
+          "width": 280
         }
       ],
       "edges": [
@@ -6277,6 +6465,13 @@ export const templateEntries: TemplateEntry[] = [
           "target": "2",
           "targetHandle": "prompt",
           "color": "any"
+        },
+        {
+          "source": "2",
+          "sourceHandle": "text",
+          "target": "findings_output",
+          "targetHandle": "value",
+          "color": "string"
         }
       ]
     }

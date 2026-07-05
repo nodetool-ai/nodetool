@@ -11,6 +11,7 @@
     "test:e2e": "playwright test",
     "seo:seed": "tsx seo/seed.ts",
     "seo:ingest": "node scripts/ingest-showcase.mjs",
+    "seo:model-coverage": "node scripts/generate-model-coverage.mjs",
     "seo:catalog": "node scripts/generate-template-catalog.mjs",
     "seo:llms": "tsx scripts/generate-llms-txt.mjs",
     "seo:generate": "npm run seo:catalog && npm run seo:llms",

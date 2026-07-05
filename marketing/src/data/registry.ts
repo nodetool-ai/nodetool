@@ -1,5 +1,7 @@
 import type { PageEntry } from "./types";
 import { staticEntries } from "./staticEntries";
+import { entries as modelEntries } from "./modelEntries";
+import { entries as modelComparisonEntries } from "./modelComparisonEntries";
 import { faqPageEntries } from "./faqEntries";
 import { ideasPageEntries } from "./ideasEntries";
 import { templateEntries } from "./templates";
@@ -26,6 +28,8 @@ export type RegistryModule = {
  */
 export const registryModules: RegistryModule[] = [
   { name: "static", entries: staticEntries },
+  { name: "models", entries: modelEntries },
+  { name: "model-comparisons", entries: modelComparisonEntries },
   { name: "faq", entries: faqPageEntries },
   { name: "ideas", entries: ideasPageEntries },
   { name: "templates", entries: templateEntries },

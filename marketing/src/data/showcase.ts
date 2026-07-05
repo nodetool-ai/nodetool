@@ -46,7 +46,7 @@ export interface ShowcaseEntry extends PageEntry {
   /**
    * Present only on duel rows (seeded via `--duel <modelA>,<modelB>`). Pair
    * pages group entries by `duelPair`, then join the two model rows sharing a
-   * `duelId` into one same-prompt comparison.
+   * `duelId` into one same-prompt comparison. Matches the W-2 schema.
    */
   params?: {
     duelId: string;
