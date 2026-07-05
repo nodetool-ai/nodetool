@@ -1,0 +1,197 @@
+name: SEO Showcase Seed
+
+# Layer-3 CI glue for the programmatic-SEO showcase pages: generate → guard →
+# upload videos to R2 → ingest → open a review PR. Merging the PR is the index
+# gate; NOTHING here auto-merges.
+#
+# Two triggers:
+#   - workflow_dispatch: a maintainer seeds a specific batch on demand.
+#   - schedule (weekly): a small default batch keeps the corpus growing. With no
+#     inputs, "Resolve run parameters" rotates one image template by ISO week.
+#
+# Required repo secrets:
+#   OPENAI_API_KEY         prompt writing (seed.ts)
+#   FAL_API_KEY            image/video rendering (seed.ts)
+#   CLOUDFLARE_API_TOKEN   R2 upload (wrangler) — same token marketing-ci uses
+#   CLOUDFLARE_ACCOUNT_ID  R2 account (wrangler)
+# The repo/org setting "Allow GitHub Actions to create and approve pull
+# requests" must be ON for the PR step to post with GITHUB_TOKEN.
+
+on:
+  workflow_dispatch:
+    inputs:
+      templates:
+        description: "Comma-separated template slugs (movie-posters, product-shots, album-covers, product-trailers)"
+        required: false
+        type: string
+      models:
+        description: "Comma-separated model slugs, e.g. flux-schnell,flux-dev"
+        required: false
+        type: string
+      count:
+        description: "Assets per template×model"
+        required: false
+        default: "5"
+        type: string
+      budget_usd:
+        description: "Hard USD cap per template batch"
+        required: false
+        default: "10"
+        type: string
+      duel:
+        description: "Duel two models over a curated prompt set, e.g. flux-schnell,flux-dev (overrides models)"
+        required: false
+        type: string
+  schedule:
+    # Weekly, Monday 07:00 UTC — a small default batch.
+    - cron: "0 7 * * 1"
+
+# Least-privilege: the job reads the repo, then peter-evans opens the PR with the
+# default GITHUB_TOKEN (needs write + PR create).
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: seo-seed
+  cancel-in-progress: false
+
+jobs:
+  seed:
+    name: Seed, guard, ingest, open PR
+    runs-on: ubuntu-latest
+    env:
+      # R2 target for video assets. Override here if the bucket / media domain
+      # differ from the defaults baked into upload-videos-r2.mjs.
+      R2_BUCKET: nodetool-media
+      R2_PUBLIC_BASE: https://media.nodetool.ai
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Resolve run parameters
+        id: params
+        env:
+          IN_TEMPLATES: ${{ github.event.inputs.templates }}
+          IN_MODELS: ${{ github.event.inputs.models }}
+          IN_COUNT: ${{ github.event.inputs.count }}
+          IN_BUDGET: ${{ github.event.inputs.budget_usd }}
+          IN_DUEL: ${{ github.event.inputs.duel }}
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          set -euo pipefail
+          # Scheduled runs carry no inputs → rotate one image template by ISO
+          # week so the weekly batch varies. flux-schnell is the cheap default.
+          WEEK=$(date -u +%V)
+          ROTATION=(movie-posters product-shots album-covers)
+          DEFAULT_TEMPLATE=${ROTATION[$((10#$WEEK % 3))]}
+
+          TEMPLATES="${IN_TEMPLATES:-$DEFAULT_TEMPLATE}"
+          MODELS="${IN_MODELS:-flux-schnell}"
+          COUNT="${IN_COUNT:-5}"
+          BUDGET="${IN_BUDGET:-10}"
+          DUEL="${IN_DUEL:-}"
+          BATCH_DATE=$(date -u +%Y%m%d)
+
+          {
+            echo "templates=$TEMPLATES"
+            echo "models=$MODELS"
+            echo "count=$COUNT"
+            echo "budget=$BUDGET"
+            echo "duel=$DUEL"
+            echo "batch_suffix=$BATCH_DATE-$RUN_NUMBER"
+          } >> "$GITHUB_OUTPUT"
+          echo "Resolved: templates=$TEMPLATES models=$MODELS count=$COUNT budget=$BUDGET duel=${DUEL:-<none>}"
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Build backend packages
+        # seed.ts imports @nodetool-ai/* from dist/.
+        run: npm run build:packages
+
+      - name: Install marketing dependencies
+        working-directory: marketing
+        run: npm ci
+
+      - name: Seed batches
+        working-directory: marketing
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          FAL_API_KEY: ${{ secrets.FAL_API_KEY }}
+          TEMPLATES: ${{ steps.params.outputs.templates }}
+          MODELS: ${{ steps.params.outputs.models }}
+          COUNT: ${{ steps.params.outputs.count }}
+          BUDGET: ${{ steps.params.outputs.budget }}
+          DUEL: ${{ steps.params.outputs.duel }}
+          BATCH_SUFFIX: ${{ steps.params.outputs.batch_suffix }}
+        run: |
+          set -euo pipefail
+          IFS=',' read -ra TPL <<< "$TEMPLATES"
+          for t in "${TPL[@]}"; do
+            t=$(echo "$t" | xargs)  # trim
+            [ -z "$t" ] && continue
+            BATCH="$t-$BATCH_SUFFIX"
+            if [ -n "$DUEL" ]; then
+              echo "::group::seed $t (duel $DUEL)"
+              npm run seo:seed -- --template "$t" --duel "$DUEL" \
+                --budget-usd "$BUDGET" --batch "$BATCH"
+            else
+              echo "::group::seed $t (models $MODELS)"
+              npm run seo:seed -- --template "$t" --models "$MODELS" \
+                --count "$COUNT" --budget-usd "$BUDGET" --batch "$BATCH"
+            fi
+            echo "::endgroup::"
+          done
+
+      - name: Guard manifest (row count + spend vs cap)
+        working-directory: marketing
+        run: npm run seo:guard -- --budget-usd "${{ steps.params.outputs.budget }}"
+
+      - name: Upload videos to R2
+        working-directory: marketing
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npm run seo:upload-videos
+
+      - name: Ingest into page data
+        working-directory: marketing
+        run: npm run seo:ingest
+
+      - name: Open review PR
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: seo/seed-${{ steps.params.outputs.batch_suffix }}
+          base: main
+          # Commit ONLY the ingested page data + published images. Raw batches
+          # (marketing/seo/out) and R2-hosted videos are deliberately excluded.
+          add-paths: |
+            marketing/src/data/showcaseEntries.generated.ts
+            marketing/public/showcase/**
+          commit-message: "chore(seo): seed showcase batch ${{ steps.params.outputs.batch_suffix }}"
+          title: "SEO showcase seed: ${{ steps.params.outputs.templates }} (${{ steps.params.outputs.batch_suffix }})"
+          body: |
+            Automated showcase seed batch. **Review is the index gate — this does not auto-merge.**
+
+            Run parameters:
+            - Templates: `${{ steps.params.outputs.templates }}`
+            - Models: `${{ steps.params.outputs.models }}`
+            - Duel: `${{ steps.params.outputs.duel }}`
+            - Count: `${{ steps.params.outputs.count }}`
+            - Budget cap (per batch): `$${{ steps.params.outputs.budget }}`
+
+            Review checklist before merging:
+            - [ ] Outputs eyeballed — no broken, blank, or off-brand assets
+            - [ ] Prompts read as human-written, not templated boilerplate
+            - [ ] No duplicate slugs / near-duplicate prompts slipped the gate
+            - [ ] Committed image weight is within budget (each `<= 300KB`)
+            - [ ] Total spend is at or under the cap (see the guard step log)
+            - [ ] Every video `src` resolves from R2 (not a local path)
+          delete-branch: true
