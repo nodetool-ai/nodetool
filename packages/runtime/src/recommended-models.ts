@@ -24,9 +24,9 @@ export interface RecommendedUnifiedModel extends UnifiedModel {
 
 export const RECOMMENDED_MODELS: RecommendedUnifiedModel[] = [
   {
-    id: "gpt-4o-mini",
+    id: "gpt-5-mini",
     type: "language_model",
-    name: "GPT-4o mini",
+    name: "GPT-5 mini",
     repo_id: null,
     path: null,
     downloaded: false,
