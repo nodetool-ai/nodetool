@@ -1,0 +1,43 @@
+name: Deploy to Fly
+
+# Auto-deploy the NodeTool server to Fly.io (https://nodetool.fly.dev).
+#
+# The deploy unit is the GHCR image published by the "Docker" workflow
+# (.github/workflows/docker.yml). We therefore trigger on that workflow's
+# COMPLETION rather than on push, so we never release an image before it has
+# been built + pushed. On success we release ghcr.io/nodetool-ai/nodetool:latest
+# (which "Docker" tags for the just-built main commit) onto the Fly app — no
+# build happens here, Fly just pulls + rolls the image.
+#
+# Requires a repo secret FLY_API_TOKEN scoped to the `nodetool` app:
+#   fly tokens create deploy -a nodetool --expiry 8760h
+on:
+  workflow_run:
+    workflows: ["Docker"]
+    types: [completed]
+    branches: [main]
+  # Manual re-deploy of the current :latest image.
+  workflow_dispatch:
+
+concurrency:
+  group: fly-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy server
+    runs-on: ubuntu-latest
+    # Skip when the image build failed/was cancelled (workflow_dispatch always runs).
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Deploy the fly.toml as it was at the built commit (no-op for dispatch).
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: fly deploy (server)
+        run: flyctl deploy --config fly.toml --image ghcr.io/nodetool-ai/nodetool:latest --ha=false
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
