@@ -5,6 +5,7 @@ import { useShallow } from "zustand/react/shallow";
 import AddIcon from "@mui/icons-material/Add";
 import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import {
   FlexRow,
   Text,
@@ -113,6 +114,11 @@ const ChatPanelHeader: React.FC<ChatPanelHeaderProps> = ({
     navigate(currentThreadId ? `/chat/${currentThreadId}` : "/chat");
   }, [navigate, currentThreadId]);
 
+  const handleOpenInNewTab = useCallback(() => {
+    const path = currentThreadId ? `/chat/${currentThreadId}` : "/chat";
+    window.open(path, "_blank", "noopener,noreferrer");
+  }, [currentThreadId]);
+
   return (
     <FlexRow
       align="center"
@@ -148,6 +154,11 @@ const ChatPanelHeader: React.FC<ChatPanelHeaderProps> = ({
           onClick={handleOpenFullscreen}
           tooltip="Open fullscreen chat"
           icon={<OpenInFullIcon fontSize="small" />}
+        />
+        <ToolbarIconButton
+          onClick={handleOpenInNewTab}
+          tooltip="Open in new tab"
+          icon={<OpenInNewIcon fontSize="small" />}
         />
       </FlexRow>
 
