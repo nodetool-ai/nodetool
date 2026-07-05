@@ -2105,7 +2105,7 @@ export class AgentNode extends BaseNode {
   static readonly autoSaveAsset = true;
   static readonly title: string = "Agent";
   static readonly description: string =
-    "Generate natural language responses using LLM providers and streams output.\n    llm, text-generation, chatbot, question-answering, streaming";
+    "Chat with an LLM: send a prompt (plus optional images or audio), call tools, and stream back the response.\n    agent, llm, chat, text-generation, tools, streaming";
   static readonly metadataOutputTypes = {
     text: "str",
     chunk: "chunk",
