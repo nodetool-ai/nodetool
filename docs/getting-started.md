@@ -94,7 +94,7 @@ A Mini-App hides the graph and exposes inputs and outputs only.
 1. Open the workflow.
 2. Click **Mini-App** in the toolbar.
 
-Custom UI? See [VibeCoding](vibecoding.md).
+Custom UI? See [App Builder](app-builder.md).
 
 ---
 

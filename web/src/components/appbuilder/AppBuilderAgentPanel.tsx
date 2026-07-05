@@ -5,7 +5,7 @@ import { useShallow } from "zustand/react/shallow";
 import ChatView from "../chat/containers/ChatView";
 import ChatPanelHeader from "../chat/containers/ChatPanelHeader";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
-import { Box } from "../ui_primitives";
+import { Box, Caption, FlexColumn, Text } from "../ui_primitives";
 
 type ChatViewStatus = React.ComponentProps<typeof ChatView>["status"];
 
@@ -131,14 +131,28 @@ const AppBuilderAgentPanel: React.FC<AppBuilderAgentPanelProps> = ({
     status === "stopping" ? "loading" : (status as ChatViewStatus);
 
   return (
-    <Box
+    <FlexColumn
+      fullHeight
       sx={{
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        minHeight: 0
+        minHeight: 0,
+        backgroundColor: "background.paper"
       }}
     >
+      <Box
+        sx={{
+          px: 3,
+          py: 2,
+          borderBottom: "1px solid",
+          borderColor: "divider"
+        }}
+      >
+        <Text size="small" weight={500}>
+          App Builder Agent
+        </Text>
+        <Caption color="secondary" sx={{ display: "block", mt: 0.5 }}>
+          Build the app layout and bind widgets to workflow inputs and outputs.
+        </Caption>
+      </Box>
       <ChatPanelHeader onNewChat={handleNewChat} />
       <Box sx={{ flex: 1, minHeight: 0 }}>
         <ChatView
@@ -166,7 +180,7 @@ const AppBuilderAgentPanel: React.FC<AppBuilderAgentPanelProps> = ({
           key={currentThreadId ?? "no-thread"}
         />
       </Box>
-    </Box>
+    </FlexColumn>
   );
 };
 
