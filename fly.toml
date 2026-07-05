@@ -1,13 +1,12 @@
-# Fly.io config for the NodeTool server.
-#
-# This mirrors the Docker production deploy (deploy.sh) but on Fly.io:
-#   - Runs the SAME published image: ghcr.io/nodetool-ai/nodetool:latest
+# Fly.io config for the NodeTool server — the production deploy target
+# (replaced the old self-hosted Docker box).
+#   - Runs the published image: ghcr.io/nodetool-ai/nodetool:latest
 #     (self-contained — web/dist + workflow examples are baked in).
 #   - All state lives in Supabase: Postgres DB (DATABASE_URL), asset storage
 #     (NODETOOL_STORAGE_BACKEND=supabase), and auth (AUTH_PROVIDER=supabase).
 #     So the container is stateless and needs no volume.
-#   - Fly terminates TLS at the edge (like Cloudflare did for the Docker box),
-#     so the origin runs plain HTTP on 7777 (no TLS_CERT/TLS_KEY set).
+#   - Fly terminates TLS at the edge, so the origin runs plain HTTP on 7777
+#     (no TLS_CERT/TLS_KEY set).
 #
 # Secrets (DATABASE_URL, SUPABASE_URL/KEY, SECRETS_MASTER_KEY, SERPAPI_API_KEY,
 # provider keys, …) are set with `fly secrets set`, NOT baked here.
