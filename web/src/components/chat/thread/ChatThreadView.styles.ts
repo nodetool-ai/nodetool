@@ -9,7 +9,7 @@ export const createStyles = (theme: Theme) => ({
     position: "relative",
     display: "flex",
     flexDirection: "column",
-    padding: "2em 0",
+    padding: "1.5em 0 0.75em",
     minHeight: 0,
   }),
   messageWrapper: css({
@@ -73,7 +73,7 @@ export const createStyles = (theme: Theme) => ({
       width: "fit-content",
       maxWidth: "75%",
       minWidth: "2em",
-      margin: "1.25em 0 0.6em auto",
+      margin: "1em 0 0.5em auto",
       padding: "0",
       border: "none",
       background: "transparent",
@@ -393,9 +393,10 @@ export const createStyles = (theme: Theme) => ({
     },
 
     ".tool-call-card": {
+      width: "100%",
       border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: BORDER_RADIUS.md,
-      background: "transparent",
+      background: theme.vars.palette.action.hover,
       overflow: "hidden",
       marginBottom: 0
     },
@@ -449,15 +450,6 @@ export const createStyles = (theme: Theme) => ({
       color: theme.vars.palette.text.secondary,
       fontVariantNumeric: "tabular-nums",
       whiteSpace: "nowrap"
-    },
-
-    ".tool-status-icon": {
-      fontSize: 15,
-      flexShrink: 0
-    },
-
-    ".tool-status-icon.done": {
-      color: theme.vars.palette.success.main
     },
 
     ".tool-call-details": {
@@ -559,7 +551,7 @@ export const createStyles = (theme: Theme) => ({
       alignItems: "center",
       gap: theme.spacing(1),
       lineHeight: 1.25,
-      padding: theme.spacing(1.25, 1.5)
+      padding: theme.spacing(1, 1.5)
     },
 
     ".tool-call-header.expandable": {
@@ -567,7 +559,7 @@ export const createStyles = (theme: Theme) => ({
       userSelect: "none",
       transition: MOTION.background,
       "&:hover": {
-        background: theme.vars.palette.action.hover
+        background: theme.vars.palette.action.selected
       },
       "&:focus-visible": {
         outline: `2px solid ${theme.vars.palette.primary.main}`,
