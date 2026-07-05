@@ -114,6 +114,7 @@ exclude:
   - timeline-editor-prd.md
   - correlation-design.md
   # Internal implementation plans & specs (agentic-worker instructions).
+  - COMPONENT_STREAMLINE_PLAN.md
   - superpowers/
 
 # Custom theme settings
