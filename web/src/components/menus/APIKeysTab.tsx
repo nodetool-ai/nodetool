@@ -4,6 +4,8 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import DeleteIcon from "@mui/icons-material/Delete";
 import LockIcon from "@mui/icons-material/Lock";
+import LoginIcon from "@mui/icons-material/Login";
+import LinkOffIcon from "@mui/icons-material/LinkOff";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import ModelTrainingIcon from "@mui/icons-material/ModelTraining";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
@@ -13,6 +15,7 @@ import ShieldIcon from "@mui/icons-material/Shield";
 
 import useSecretsStore from "../../stores/SecretsStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import { useOAuthConnection } from "../../hooks/useOAuthConnection";
 import type { SecretResponse } from "../../stores/ApiTypes";
 import {
   FlexColumn,
@@ -74,6 +77,8 @@ interface ProviderMeta {
   mono?: boolean;
   /** Extra hint rendered under the description (e.g. required key scope). */
   note?: string;
+  /** Provider supports OAuth sign-in in place of (or alongside) an API key. */
+  oauth?: "openai" | "hf";
 }
 
 const PROVIDER_META: ProviderMeta[] = [
@@ -85,7 +90,8 @@ const PROVIDER_META: ProviderMeta[] = [
     tag: "Popular",
     docsUrl: "https://platform.openai.com/docs",
     icon: openaiIcon,
-    mono: true
+    mono: true,
+    oauth: "openai"
   },
   {
     key: "ANTHROPIC_API_KEY",
@@ -185,7 +191,8 @@ const PROVIDER_META: ProviderMeta[] = [
     description: "Inference providers and model hub access.",
     category: "other",
     docsUrl: "https://huggingface.co/docs",
-    icon: huggingfaceColorIcon
+    icon: huggingfaceColorIcon,
+    oauth: "hf"
   },
   {
     key: "REPLICATE_API_TOKEN",
@@ -427,7 +434,7 @@ interface ProviderCardProps {
   onDelete: (secret: SecretResponse) => void;
 }
 
-const ProviderCard = memo(function ProviderCard({
+export const ProviderCard = memo(function ProviderCard({
   secret,
   meta,
   onConnect,
@@ -435,6 +442,7 @@ const ProviderCard = memo(function ProviderCard({
   onDelete
 }: ProviderCardProps) {
   const theme = useTheme();
+  const oauth = useOAuthConnection(meta.oauth ?? null);
   const isConnected = secret.is_configured;
 
   const handleConnect = useCallback(() => {
@@ -576,6 +584,29 @@ const ProviderCard = memo(function ProviderCard({
               {isConnected ? "Connected" : "Not connected"}
             </Caption>
           </FlexRow>
+          {oauth.isConnected && (
+            <FlexRow
+              align="center"
+              gap={1}
+              sx={{
+                padding: theme.spacing(0.5, 2),
+                borderRadius: BORDER_RADIUS.pill,
+                backgroundColor: `rgba(${theme.vars.palette.success.mainChannel} / 0.1)`
+              }}
+            >
+              <Caption
+                size="smaller"
+                color="success"
+                sx={{
+                  fontWeight: 500,
+                  lineHeight: 1.6,
+                  whiteSpace: "nowrap"
+                }}
+              >
+                Connected via OAuth
+              </Caption>
+            </FlexRow>
+          )}
           {isConnected && secret.updated_at && (
             <Caption size="tiny" sx={{ opacity: 0.45, whiteSpace: "nowrap" }}>
               Last used{" "}
@@ -599,6 +630,34 @@ const ProviderCard = memo(function ProviderCard({
           >
             Docs
           </EditorButton>
+
+          {meta.oauth &&
+            (oauth.isConnected
+              ? oauth.canDisconnect && (
+                  <EditorButton
+                    density="compact"
+                    variant="text"
+                    size="small"
+                    startIcon={<LinkOffIcon sx={{ fontSize: 14 }} />}
+                    onClick={oauth.disconnect}
+                  >
+                    Disconnect
+                  </EditorButton>
+                )
+              : (
+                  <EditorButton
+                    density="compact"
+                    variant="outlined"
+                    size="small"
+                    startIcon={<LoginIcon sx={{ fontSize: 14 }} />}
+                    onClick={oauth.connect}
+                    disabled={oauth.isConnecting}
+                  >
+                    {oauth.isConnecting
+                      ? "Connecting…"
+                      : `Sign in with ${meta.name}`}
+                  </EditorButton>
+                ))}
 
           {isConnected ? (
             <>
