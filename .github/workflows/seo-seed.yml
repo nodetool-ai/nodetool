@@ -10,8 +10,8 @@ name: SEO Showcase Seed
 #     inputs, "Resolve run parameters" rotates one image template by ISO week.
 #
 # Required repo secrets:
-#   OPENAI_API_KEY         prompt writing (seed.ts)
-#   FAL_API_KEY            image/video rendering (seed.ts)
+#   CLAUDE_CODE_OAUTH_TOKEN  prompt writing (seed.ts, via the Claude Agent SDK)
+#   FAL_API_KEY              image/video rendering (seed.ts)
 #   CLOUDFLARE_API_TOKEN   R2 upload (wrangler) — same token marketing-ci uses
 #   CLOUDFLARE_ACCOUNT_ID  R2 account (wrangler)
 # The repo/org setting "Allow GitHub Actions to create and approve pull
@@ -123,7 +123,7 @@ jobs:
       - name: Seed batches
         working-directory: marketing
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           FAL_API_KEY: ${{ secrets.FAL_API_KEY }}
           TEMPLATES: ${{ steps.params.outputs.templates }}
           MODELS: ${{ steps.params.outputs.models }}
