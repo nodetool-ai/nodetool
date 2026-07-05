@@ -3,6 +3,8 @@ import { staticEntries } from "./staticEntries";
 import { faqPageEntries } from "./faqEntries";
 import { ideasPageEntries } from "./ideasEntries";
 import { templateEntries } from "./templates";
+import { solutionRegistryEntries } from "./landingEntries";
+import { taskRegistryEntries } from "./taskEntries";
 import { showcasePageEntries } from "./showcasePages";
 
 /**
@@ -27,6 +29,8 @@ export const registryModules: RegistryModule[] = [
   { name: "faq", entries: faqPageEntries },
   { name: "ideas", entries: ideasPageEntries },
   { name: "templates", entries: templateEntries },
+  { name: "solutions", entries: solutionRegistryEntries },
+  { name: "tasks", entries: taskRegistryEntries },
   // Showcase pages can grow into the hundreds once W-1 seeds real batches, so
   // the smoke suite samples the first 12 — hub + filter pages are ordered first.
   { name: "showcase", entries: showcasePageEntries, sample: 12 },
