@@ -31,14 +31,41 @@
 ## Comparisons
 
 - [NodeTool vs ComfyUI](https://nodetool.ai/vs/comfyui)
-- [NodeTool vs Dify](https://nodetool.ai/vs/dify)
-- [NodeTool vs Flowise](https://nodetool.ai/vs/flowise)
+- [NodeTool vs Weavy](https://nodetool.ai/vs/weavy)
 - [NodeTool vs Langflow](https://nodetool.ai/vs/langflow)
 - [NodeTool vs n8n](https://nodetool.ai/vs/n8n)
-- [NodeTool vs Weavy](https://nodetool.ai/vs/weavy)
+- [NodeTool vs Flowise](https://nodetool.ai/vs/flowise)
+- [NodeTool vs Dify](https://nodetool.ai/vs/dify)
 
 ## Use cases
 
-- [Movie poster](https://nodetool.ai/use-cases/movie-poster): generate a poster campaign from a brief.
-- [Movie trailer](https://nodetool.ai/use-cases/movie-trailer): cut a trailer from generated and edited shots.
-- [Product video](https://nodetool.ai/use-cases/product-video): produce product video variants for a campaign.
+- [Product Video](https://nodetool.ai/use-cases/product-video): Make product videos with AI workflows.
+- [Movie Poster](https://nodetool.ai/use-cases/movie-poster): Generate movie posters with AI workflows.
+- [Movie Trailer](https://nodetool.ai/use-cases/movie-trailer): Cut movie trailers with AI workflows.
+
+## FAQ
+
+- [FAQ hub](https://nodetool.ai/faq): all questions, grouped by category.
+- [What is NodeTool?](https://nodetool.ai/faq/what-is-nodetool)
+- [Is NodeTool open source?](https://nodetool.ai/faq/is-nodetool-open-source)
+- [What is BYOK, and what does it mean for me?](https://nodetool.ai/faq/what-is-byok)
+- [Does NodeTool mark up model pricing?](https://nodetool.ai/faq/does-nodetool-mark-up-model-pricing)
+- [Studio or Cloud — which should I use?](https://nodetool.ai/faq/studio-or-cloud)
+- [Which models are supported?](https://nodetool.ai/faq/which-models-are-supported)
+- [Can I run models locally?](https://nodetool.ai/faq/can-i-run-models-locally)
+- [How is NodeTool different from ComfyUI?](https://nodetool.ai/faq/how-is-nodetool-different-from-comfyui)
+- [How is NodeTool different from Weavy and other closed canvases?](https://nodetool.ai/faq/how-is-nodetool-different-from-closed-canvases)
+- [What is a node-based workflow?](https://nodetool.ai/faq/what-is-a-node-based-workflow)
+- [What is a diffusion model?](https://nodetool.ai/faq/what-is-a-diffusion-model)
+- [What is RAG (retrieval-augmented generation)?](https://nodetool.ai/faq/what-is-rag)
+- [What is a planning agent?](https://nodetool.ai/faq/what-is-a-planning-agent)
+
+## Ideas
+
+- [Ideas hub](https://nodetool.ai/ideas): workflow ideas grouped by category.
+- [Image Generation ideas](https://nodetool.ai/ideas/image-generation): Generate and edit images on the canvas — concept art, product shots, posters, and batch pipelines.
+- [Video Generation ideas](https://nodetool.ai/ideas/video-generation): Turn prompts, images, and briefs into video — trailers, product spots, animations, and music visuals.
+- [Audio & Voice ideas](https://nodetool.ai/ideas/audio-and-voice): Transcribe, summarize, and generate audio — podcasts, voiceovers, and music-driven pipelines.
+- [Agents & Research ideas](https://nodetool.ai/ideas/agents-and-research): Planning agents that search, gather, and synthesize — news, papers, and web research on the canvas.
+- [Marketing & Content ideas](https://nodetool.ai/ideas/marketing-and-content): Campaign assets and content at scale — ad creative, social calendars, SEO copy, and outreach.
+- [Learning & Data ideas](https://nodetool.ai/ideas/learning-and-data): Study aids and data workflows — flashcards, learning paths, summaries, and structured generation.

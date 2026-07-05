@@ -3,6 +3,7 @@ import { Check, Minus, Download } from "lucide-react";
 import SiteHeader from "../../../components/SiteHeader";
 import SiteFooter from "../../../components/SiteFooter";
 import JsonLd from "../../../components/JsonLd";
+import FaqBlock from "../../../components/FaqBlock";
 import { SmartDownloadButton } from "../../SmartDownloadButton";
 
 export const metadata: Metadata = {
@@ -229,6 +230,11 @@ export default function VsComfyUIPage() {
             </p>
           </div>
         </section>
+
+        {/* FAQ — shared rows from faqEntries.ts, pinned to the comparison surface */}
+        <div className="mt-24">
+          <FaqBlock surface="comparison" linkToStandalone />
+        </div>
 
         {/* Closing CTA */}
         <section className="mx-auto my-24 max-w-2xl px-6 text-center">
