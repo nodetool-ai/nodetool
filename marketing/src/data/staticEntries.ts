@@ -21,12 +21,7 @@ export const staticEntries: PageEntry[] = [
   { route: "/creatives", title: "For Creatives", description: "A node-based canvas for creative AI work.", priority: 0.8, changeFrequency: "monthly", indexable: true },
   { route: "/developers", title: "For Developers", description: "Wire every major model into one canvas.", priority: 0.8, changeFrequency: "monthly", indexable: true },
   { route: "/marketing", title: "For Marketing", description: "Produce campaign assets with AI workflows.", priority: 0.8, changeFrequency: "monthly", indexable: true },
-  { route: "/vs/comfyui", title: "NodeTool vs ComfyUI", description: "How NodeTool compares to ComfyUI.", priority: 0.7, changeFrequency: "monthly", indexable: true },
-  { route: "/vs/weavy", title: "NodeTool vs Weavy", description: "How NodeTool compares to Weavy.", priority: 0.7, changeFrequency: "monthly", indexable: true },
-  { route: "/vs/langflow", title: "NodeTool vs Langflow", description: "How NodeTool compares to Langflow.", priority: 0.7, changeFrequency: "monthly", indexable: true },
-  { route: "/vs/n8n", title: "NodeTool vs n8n", description: "How NodeTool compares to n8n.", priority: 0.7, changeFrequency: "monthly", indexable: true },
-  { route: "/vs/flowise", title: "NodeTool vs Flowise", description: "How NodeTool compares to Flowise.", priority: 0.7, changeFrequency: "monthly", indexable: true },
-  { route: "/vs/dify", title: "NodeTool vs Dify", description: "How NodeTool compares to Dify.", priority: 0.7, changeFrequency: "monthly", indexable: true },
+  // /vs/* and /alternatives/* come from the competitorEntries engine module.
   { route: "/templates", title: "AI Workflow Templates", description: "Browse ready-to-run NodeTool workflow templates by category.", priority: 0.8, changeFrequency: "weekly", indexable: true },
   { route: "/use-cases/product-video", title: "Product Video", description: "Make product videos with AI workflows.", priority: 0.6, changeFrequency: "monthly", indexable: true },
   { route: "/use-cases/movie-poster", title: "Movie Poster", description: "Generate movie posters with AI workflows.", priority: 0.6, changeFrequency: "monthly", indexable: true },
