@@ -12,6 +12,8 @@
     "seo:seed": "tsx seo/seed.ts",
     "seo:ingest": "node scripts/ingest-showcase.mjs",
     "seo:model-coverage": "node scripts/generate-model-coverage.mjs",
+    "seo:model-watch": "node scripts/model-watch.mjs",
+    "test:model-watch": "node --test scripts/__tests__/model-watch.test.mjs",
     "seo:catalog": "node scripts/generate-template-catalog.mjs",
     "seo:llms": "tsx scripts/generate-llms-txt.mjs",
     "seo:generate": "npm run seo:catalog && npm run seo:llms",
