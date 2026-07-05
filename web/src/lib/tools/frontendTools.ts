@@ -7,7 +7,7 @@ import {
 import { NodeMetadata, Workflow, WorkflowList } from "../../stores/ApiTypes";
 import { NodeStore } from "../../stores/NodeStore";
 
-export interface FrontendToolDefinition<Result = unknown> {
+export interface FrontendToolDefinition<Result = unknown, Args = any> {
   name: `ui_${string}`;
   description: string;
   parameters: ZodOrJsonSchema;
@@ -17,7 +17,7 @@ export interface FrontendToolDefinition<Result = unknown> {
    */
   hidden?: boolean;
   requireUserConsent?: boolean;
-  execute: (args: any, ctx: FrontendToolContext) => Promise<Result>;
+  execute: (args: Args, ctx: FrontendToolContext) => Promise<Result>;
 }
 
 export interface FrontendToolState {
