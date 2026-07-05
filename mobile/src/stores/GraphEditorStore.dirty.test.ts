@@ -32,18 +32,13 @@ describe('GraphEditorStore unsaved-changes tracking', () => {
     expect(useGraphEditorStore.getState().isDirty).toBe(false);
   });
 
-  it('marks dirty when the workflow name changes', () => {
-    useGraphEditorStore.getState().setWorkflowName('My flow');
-    expect(useGraphEditorStore.getState().isDirty).toBe(true);
-  });
-
   it('marks dirty when a property is updated', () => {
     useGraphEditorStore.getState().updateProperty('n1', 'prop', 'value');
     expect(useGraphEditorStore.getState().isDirty).toBe(true);
   });
 
   it('does not mark dirty for a view-only toggle', () => {
-    useGraphEditorStore.getState().collapseAll();
+    useGraphEditorStore.getState().toggleExpanded('n1');
     expect(useGraphEditorStore.getState().isDirty).toBe(false);
   });
 

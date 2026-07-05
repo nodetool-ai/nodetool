@@ -87,11 +87,12 @@ jest.mock("../../../stores/WorkflowAssetStore", () => ({
     selector({ assetsByWorkflow: {} })
 }));
 
-jest.mock("../../../stores/ResultsStore", () => ({
-  __esModule: true,
-  default: (selector: (state: unknown) => unknown) =>
-    selector({ liveGenerations: mockLiveGenerations })
-}));
+jest.mock("../../../stores/ResultsStore", () => {
+  const getState = () => ({ liveGenerations: mockLiveGenerations });
+  const hook = (selector: (state: unknown) => unknown) => selector(getState());
+  hook.getState = getState;
+  return { __esModule: true, default: hook };
+});
 
 // ---------------------------------------------------------------------------
 // useNodeOutput

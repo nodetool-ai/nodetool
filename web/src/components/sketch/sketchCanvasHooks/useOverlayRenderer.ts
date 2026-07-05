@@ -155,8 +155,6 @@ export function useOverlayRenderer({
   containerRef,
   shiftHeldRef,
   altHeldRef,
-  selectStartRef,
-  lassoPointsRef,
   onScreenCanvasMetricsChange
 }: UseOverlayRendererParams): UseOverlayRendererResult {
   const theme = useTheme();

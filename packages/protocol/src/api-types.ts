@@ -858,8 +858,6 @@ export interface ResourceLimits {
 export const PROVIDER_IDS = {
   // Hosted LLM / multimodal APIs
   OPENAI: "openai",
-  // OpenAI Responses API path with hosted tools such as native web search.
-  OPENAI_RESPONSES: "openai_responses",
   // OpenAI via ChatGPT/Codex OAuth login (no API key — uses the stored
   // Codex OAuth token and the chatgpt.com Codex backend).
   CODEX: "codex",

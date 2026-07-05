@@ -4,7 +4,11 @@ import { memo } from "react";
 import isEqual from "fast-deep-equal";
 import { Text } from "../ui_primitives";
 
-const FileProperty = (props: PropertyProps) => {
+interface FileRef {
+  id?: string;
+}
+
+const FileProperty = (props: PropertyProps<FileRef | null>) => {
   const id = `file-${props.property.name}-${props.propertyIndex}`;
   return (
     <>

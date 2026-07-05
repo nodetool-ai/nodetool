@@ -2,7 +2,6 @@ import { describe, it, expect, afterEach, vi } from "vitest";
 
 const CLOUD = [
   "openai",
-  "openai_responses",
   "anthropic",
   "gemini",
   "groq",

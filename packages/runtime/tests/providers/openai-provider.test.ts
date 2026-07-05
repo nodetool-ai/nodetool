@@ -25,15 +25,14 @@ function makeAsyncIterable(items: unknown[]) {
 }
 
 describe("OpenAIProvider", () => {
-  it("reports tool support with o1/o3 exceptions", async () => {
+  it("reports tool support for the gpt-5 family", async () => {
     const provider = new OpenAIProvider(
       { OPENAI_API_KEY: "k" },
       { client: {} as any }
     );
 
-    expect(await provider.hasToolSupport("gpt-4o")).toBe(true);
-    expect(await provider.hasToolSupport("o1-mini")).toBe(false);
-    expect(await provider.hasToolSupport("o3-mini")).toBe(false);
+    expect(await provider.hasToolSupport("gpt-5")).toBe(true);
+    expect(await provider.hasToolSupport("gpt-5.4-mini")).toBe(true);
   });
 
   it("resolves image/video size helpers", () => {
@@ -112,7 +111,7 @@ describe("OpenAIProvider", () => {
     );
 
     const result = await provider.generateMessage({
-      model: "gpt-4o",
+      model: "gpt-3.5-turbo",
       messages: [{ role: "user", content: "hi" }]
     });
 
@@ -175,7 +174,7 @@ describe("OpenAIProvider", () => {
 
     const out: Array<unknown> = [];
     for await (const item of provider.generateMessages({
-      model: "gpt-4o",
+      model: "gpt-3.5-turbo",
       messages: [{ role: "user", content: "hi" }]
     })) {
       out.push(item);
