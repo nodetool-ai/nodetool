@@ -7,6 +7,8 @@ import type {} from "./window";
 
 // Early polyfills / globals must come before other imports.
 import "./prismGlobal";
+// Auto-reload when a lazy chunk 404s after a deploy (stale-asset recovery).
+import "./lib/preloadErrorReload";
 
 import React, { Suspense, useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
