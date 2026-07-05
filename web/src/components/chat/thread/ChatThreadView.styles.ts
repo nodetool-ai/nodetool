@@ -81,19 +81,21 @@ export const createStyles = (theme: Theme) => ({
       fontWeight: 500
     },
 
-    // User message content gets the colored background
+    // User message content gets the colored background. A soft primary tint
+    // separates the user's voice from the surface — `background.paper` was
+    // nearly invisible against the default background.
     ".user .message-content": {
-      background: theme.vars.palette.background.paper,
+      background: `rgb(${theme.vars.palette.primary.mainChannel} / 0.14)`,
       color: theme.vars.palette.text.primary,
-      borderRadius: ".75em",
+      borderRadius: BORDER_RADIUS.xl,
       padding: "0.2em",
-      textAlign: "right",
+      textAlign: "left",
       border: "1px solid transparent",
       transition: `border-color ${MOTION.fast}`
     },
 
     ".user:hover .message-content": {
-      borderColor: theme.vars.palette.divider
+      borderColor: `rgb(${theme.vars.palette.primary.mainChannel} / 0.35)`
     },
 
     ".chat-message.user .markdown": {
