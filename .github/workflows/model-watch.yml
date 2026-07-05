@@ -1,0 +1,148 @@
+name: Model Watch
+
+# Layer-3 CI glue: weekly, run the model watcher (W-4) and, for every provider
+# that gained models NodeTool has no /models page for, open ONE issue per
+# provider batch with the report + a pre-filled seed command.
+#
+# A new model id is a SIGNAL, not content: this deliberately opens issues, never
+# a PR. A maintainer turns the interesting ones into a modelEntries.ts row + a
+# W-3 copy draft + a seed batch.
+#
+# The watcher calls `nodetool generate <provider> --list-models`, so it needs
+# provider API keys — it runs here with CI secrets. Missing keys just make that
+# provider report an error (recorded, non-fatal); the rest still run.
+#
+# Required repo secrets (any subset — a missing one skips that provider):
+#   FAL_API_KEY, REPLICATE_API_TOKEN, KIE_API_KEY, TOGETHER_API_KEY,
+#   ATLASCLOUD_API_KEY, TOPAZ_API_KEY
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    # Weekly, Monday 08:00 UTC (an hour after seo-seed so they don't contend).
+    - cron: "0 8 * * 1"
+
+# Only needs to read the repo and file issues — never writes code, never a PR.
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: model-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    name: Diff provider manifests, open issues
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Build backend packages
+        # The watcher shells out to the nodetool CLI, which loads providers from dist/.
+        run: npm run build:packages
+
+      - name: Install marketing dependencies
+        working-directory: marketing
+        run: npm ci
+
+      - name: Run model watcher
+        working-directory: marketing
+        # Run from repo root context so the CLI resolves; write the report to a file.
+        env:
+          FAL_API_KEY: ${{ secrets.FAL_API_KEY }}
+          REPLICATE_API_TOKEN: ${{ secrets.REPLICATE_API_TOKEN }}
+          KIE_API_KEY: ${{ secrets.KIE_API_KEY }}
+          TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
+          ATLASCLOUD_API_KEY: ${{ secrets.ATLASCLOUD_API_KEY }}
+          TOPAZ_API_KEY: ${{ secrets.TOPAZ_API_KEY }}
+        # Never fail the job on a provider error — the report records errorCount
+        # and the next step decides what to file.
+        run: npm run seo:model-watch -- --out model-watch-report.json --pretty || true
+
+      - name: Open one issue per provider with new models
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require("fs");
+            const path = "marketing/model-watch-report.json";
+            if (!fs.existsSync(path)) {
+              core.warning("No report produced — watcher did not write a report.");
+              return;
+            }
+            const report = JSON.parse(fs.readFileSync(path, "utf8"));
+            const LABEL = "model-watch";
+
+            // Ensure the dedup label exists.
+            try {
+              await github.rest.issues.getLabel({
+                ...context.repo,
+                name: LABEL,
+              });
+            } catch {
+              await github.rest.issues.createLabel({
+                ...context.repo,
+                name: LABEL,
+                color: "1d76db",
+                description: "New provider models surfaced by model-watch",
+              });
+            }
+
+            const providers = (report.providers || []).filter(
+              (p) => p.ok !== false && (p.newCount || 0) > 0
+            );
+            if (providers.length === 0) {
+              core.info(`No new models across ${report.providers?.length ?? 0} providers.`);
+              return;
+            }
+
+            for (const p of providers) {
+              const title = `model-watch: ${p.newCount} new ${p.provider} model(s)`;
+
+              // Dedup: skip if an open issue with this exact title already exists.
+              const existing = await github.rest.search.issuesAndPullRequests({
+                q: `repo:${context.repo.owner}/${context.repo.repo} is:issue is:open in:title "${title}"`,
+              });
+              if (existing.data.total_count > 0) {
+                core.info(`Issue already open for ${p.provider}; skipping.`);
+                continue;
+              }
+
+              const rows = (p.new || [])
+                .map(
+                  (m) =>
+                    `### \`${m.id}\`\n` +
+                    (m.name ? `${m.name}\n\n` : "") +
+                    "```bash\n" +
+                    `${m.seedCommand}\n` +
+                    "```"
+                )
+                .join("\n\n");
+
+              const body =
+                `The weekly model-watch found **${p.newCount}** ${p.provider} model(s) ` +
+                `with no \`/models\` page (out of ${p.totalModels} enumerated: ` +
+                `${p.covered} covered, ${p.ignored} ignored).\n\n` +
+                `A new model id is a signal, not content. Turn the interesting ones into a ` +
+                `\`modelEntries.ts\` row + a W-3 copy draft + a seed batch. To silence a false ` +
+                `positive, add its id to \`marketing/scripts/model-watch.watchlist.json\`.\n\n` +
+                `---\n\n${rows}`;
+
+              await github.rest.issues.create({
+                ...context.repo,
+                title,
+                body,
+                labels: [LABEL],
+              });
+              core.info(`Opened issue for ${p.provider} (${p.newCount} new).`);
+            }
