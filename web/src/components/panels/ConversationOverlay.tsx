@@ -11,6 +11,7 @@ import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import CloseIcon from "@mui/icons-material/Close";
+import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 
 import {
   Text,
@@ -64,12 +65,20 @@ const styles = (theme: Theme) =>
     ".convo-overlay-header": {
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(0.5),
-      padding: `${theme.spacing(0.75)} ${theme.spacing(1.5)}`,
+      gap: theme.spacing(0.75),
+      padding: `${theme.spacing(1)} ${theme.spacing(1.5)}`,
       borderBottom: `1px solid ${theme.vars.palette.divider}`,
       flexShrink: 0,
       cursor: "grab",
       "&:active": { cursor: "grabbing" }
+    },
+
+    // The thread view paints `background.default` for the full-page chat;
+    // inside the glass overlay that reads as a mismatched slab of black, so
+    // let the overlay surface show through and tighten the vertical padding.
+    ".chat-thread-view-root": {
+      background: "transparent",
+      padding: theme.spacing(1, 0)
     },
 
     ".convo-drag-grip": {
@@ -85,6 +94,24 @@ const styles = (theme: Theme) =>
       position: "relative",
       display: "flex",
       flexDirection: "column"
+    },
+
+    // Friendly hint shown while the thread has no messages yet.
+    ".convo-empty": {
+      flex: 1,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: theme.spacing(0.5),
+      padding: theme.spacing(4),
+      textAlign: "center",
+      color: theme.vars.palette.grey[500],
+      "& > svg": {
+        fontSize: 28,
+        opacity: 0.4,
+        marginBottom: theme.spacing(1)
+      }
     },
 
     ".convo-icon-btn": {
@@ -414,7 +441,7 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
         <Text
           size="small"
           sx={{
-            color: theme.vars.palette.grey[300],
+            color: theme.vars.palette.grey[100],
             fontWeight: 600,
             overflow: "hidden",
             textOverflow: "ellipsis",
@@ -468,18 +495,35 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
         </FlexRow>
       </div>
       <div className="convo-overlay-body">
-        <ChatThreadView
-          messages={messages}
-          status={status}
-          progress={current}
-          total={total}
-          progressMessage={statusMessage}
-          runningToolCallId={runningToolCallId}
-          runningToolMessage={runningToolMessage}
-          currentPlanningUpdate={currentPlanningUpdate}
-          currentTaskUpdate={currentTaskUpdate}
-          currentLogUpdate={currentLogUpdate}
-        />
+        {messages.length === 0 &&
+        status !== "loading" &&
+        status !== "streaming" ? (
+          <div className="convo-empty">
+            <ForumOutlinedIcon />
+            <Text
+              size="small"
+              sx={{ color: theme.vars.palette.grey[200], fontWeight: 600 }}
+            >
+              Start a conversation
+            </Text>
+            <Text size="small" sx={{ color: "inherit" }}>
+              Ask about this workflow, or type @ to reference an asset.
+            </Text>
+          </div>
+        ) : (
+          <ChatThreadView
+            messages={messages}
+            status={status}
+            progress={current}
+            total={total}
+            progressMessage={statusMessage}
+            runningToolCallId={runningToolCallId}
+            runningToolMessage={runningToolMessage}
+            currentPlanningUpdate={currentPlanningUpdate}
+            currentTaskUpdate={currentTaskUpdate}
+            currentLogUpdate={currentLogUpdate}
+          />
+        )}
         {threadsOpen && (
           <div className="convo-threads-panel">
             <div className="convo-threads-head">

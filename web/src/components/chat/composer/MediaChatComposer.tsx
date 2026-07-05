@@ -837,7 +837,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-        {(droppedFiles.length > 0 || !isMediaMode) && (
+        {droppedFiles.length > 0 && (
           <div className="media-file-preview-row">
             {droppedFiles.map((file) => (
               <FilePreview

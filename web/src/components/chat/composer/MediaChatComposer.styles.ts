@@ -15,7 +15,9 @@ export const createMediaComposerStyles = (theme: Theme) =>
 
     ".media-compose-card": {
       width: "100%",
-      borderRadius: 28,
+      // Match the conversation overlay stacked above it in the canvas dock so
+      // the two cards read as one system.
+      borderRadius: BORDER_RADIUS.xxl,
       padding: `${theme.spacing(2)} ${theme.spacing(2)} ${theme.spacing(1.5)}`,
       background:
         theme.palette.mode === "light"
@@ -33,17 +35,14 @@ export const createMediaComposerStyles = (theme: Theme) =>
           : `0 10px 40px ${theme.vars.palette.c_scrim}`,
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(2),
+      gap: theme.spacing(1.5),
       transition: `${MOTION.border}, ${MOTION.shadow}`,
       "&:focus-within": {
-        borderColor:
-          theme.palette.mode === "light"
-            ? theme.vars.palette.grey[400]
-            : theme.vars.palette.action.focus,
+        borderColor: `rgb(${theme.vars.palette.primary.mainChannel} / 0.5)`,
         boxShadow:
           theme.palette.mode === "light"
-            ? `0 1px 2px ${theme.vars.palette.c_scrim_soft}, 0 8px 24px ${theme.vars.palette.c_scrim_soft}`
-            : `0 10px 40px ${theme.vars.palette.c_scrim}`
+            ? `0 0 0 3px rgb(${theme.vars.palette.primary.mainChannel} / 0.1), 0 8px 24px ${theme.vars.palette.c_scrim_soft}`
+            : `0 0 0 3px rgb(${theme.vars.palette.primary.mainChannel} / 0.12), 0 10px 40px ${theme.vars.palette.c_scrim}`
       },
       "&.dragging": {
         borderColor: theme.vars.palette.primary.main
@@ -55,7 +54,9 @@ export const createMediaComposerStyles = (theme: Theme) =>
       minHeight: 36,
       maxHeight: 220,
       margin: 0,
-      padding: theme.spacing(3),
+      // Align the text with the chip row below (card padding + row padding)
+      // instead of floating it in its own 24px inset.
+      padding: `${theme.spacing(1)} ${theme.spacing(2)}`,
       resize: "none",
       background: "transparent",
       color: theme.vars.palette.grey[50],
@@ -169,19 +170,23 @@ export const createMediaComposerStyles = (theme: Theme) =>
       }
     },
 
+    // Send is the composer's primary action — give it the accent color when
+    // enabled (the shared `:disabled` rule keeps it grey until there's input).
     ".media-generate-btn.chat-send": {
-      width: 44,
-      height: 44,
+      width: 40,
+      height: 40,
       padding: 0,
       borderRadius: BORDER_RADIUS.circle,
-      background: theme.vars.palette.grey[700],
-      color: theme.vars.palette.grey[50],
+      background: theme.vars.palette.primary.main,
+      color: theme.vars.palette.primary.contrastText,
       boxShadow: "none",
       "& svg": {
-        fontSize: 26
+        fontSize: 24
       },
       "&:hover:not(:disabled)": {
-        background: theme.vars.palette.grey[600]
+        background: theme.vars.palette.primary.light,
+        transform: "none",
+        boxShadow: "none"
       }
     },
 
