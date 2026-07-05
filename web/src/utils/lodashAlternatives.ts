@@ -22,22 +22,26 @@ export function debounce<T extends (...args: any[]) => void>(
   ms: number
 ): DebouncedFunction<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
-  const debounced = (...args: Parameters<T>) => {
-    if (timer !== undefined) {
-      clearTimeout(timer);
+  const debounced: DebouncedFunction<T> = Object.assign(
+    (...args: Parameters<T>) => {
+      if (timer !== undefined) {
+        clearTimeout(timer);
+      }
+      timer = setTimeout(() => {
+        timer = undefined;
+        fn(...args);
+      }, ms);
+    },
+    {
+      cancel: () => {
+        if (timer !== undefined) {
+          clearTimeout(timer);
+          timer = undefined;
+        }
+      }
     }
-    timer = setTimeout(() => {
-      timer = undefined;
-      fn(...args);
-    }, ms);
-  };
-  debounced.cancel = () => {
-    if (timer !== undefined) {
-      clearTimeout(timer);
-      timer = undefined;
-    }
-  };
-  return debounced as DebouncedFunction<T>;
+  );
+  return debounced;
 }
 
 // ---- throttle ----
@@ -60,36 +64,35 @@ export function throttle<T extends (...args: any[]) => void>(
   let timer: ReturnType<typeof setTimeout> | undefined;
   let lastArgs: Parameters<T> | undefined;
 
-  const throttled = (...args: Parameters<T>) => {
-    if (timer !== undefined) {
-      // Inside a throttle window — remember the latest args for trailing call.
-      lastArgs = args;
-      return;
-    }
-    // Fire immediately.
-    fn(...args);
-    timer = setTimeout(() => {
-      timer = undefined;
-      if (lastArgs !== undefined) {
-        fn(...lastArgs);
-        lastArgs = undefined;
-        // Start a new throttle window for the trailing call.
-        timer = setTimeout(() => {
-          timer = undefined;
-        }, ms);
+  const throttled: ThrottledFunction<T> = Object.assign(
+    (...args: Parameters<T>) => {
+      if (timer !== undefined) {
+        lastArgs = args;
+        return;
       }
-    }, ms);
-  };
-
-  throttled.cancel = () => {
-    if (timer !== undefined) {
-      clearTimeout(timer);
-      timer = undefined;
+      fn(...args);
+      timer = setTimeout(() => {
+        timer = undefined;
+        if (lastArgs !== undefined) {
+          fn(...lastArgs);
+          lastArgs = undefined;
+          timer = setTimeout(() => {
+            timer = undefined;
+          }, ms);
+        }
+      }, ms);
+    },
+    {
+      cancel: () => {
+        if (timer !== undefined) {
+          clearTimeout(timer);
+          timer = undefined;
+        }
+        lastArgs = undefined;
+      }
     }
-    lastArgs = undefined;
-  };
-
-  return throttled as ThrottledFunction<T>;
+  );
+  return throttled;
 }
 
 // ---- omit ----

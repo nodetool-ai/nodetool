@@ -107,9 +107,6 @@ describe("providerDisplay", () => {
   describe("formatGenericProviderName", () => {
     it("should format generic provider names", () => {
       expect(formatGenericProviderName("openai")).toBe("OpenAI");
-      expect(formatGenericProviderName("openai_responses")).toBe(
-        "OpenAI Responses"
-      );
       expect(formatGenericProviderName("anthropic")).toBe("Anthropic");
       expect(formatGenericProviderName("test_provider")).toBe("Test Provider");
       expect(formatGenericProviderName("test-provider")).toBe("Test Provider");
@@ -207,9 +204,6 @@ describe("providerDisplay", () => {
       expect(getProviderUrl("lmstudio")).toBe("https://lmstudio.ai");
       expect(getProviderUrl("LMStudio")).toBe("https://lmstudio.ai");
       expect(getProviderUrl("openai")).toBe("https://platform.openai.com");
-      expect(getProviderUrl("openai_responses")).toBe(
-        "https://platform.openai.com"
-      );
       expect(getProviderUrl("OpenAI")).toBe("https://platform.openai.com");
       expect(getProviderUrl("anthropic")).toBe("https://console.anthropic.com");
       expect(getProviderUrl("Anthropic")).toBe("https://console.anthropic.com");

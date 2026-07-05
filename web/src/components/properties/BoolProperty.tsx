@@ -4,7 +4,7 @@ import { memo, useCallback } from "react";
 import isEqual from "fast-deep-equal";
 import { NodeSwitch } from "../editor_ui";
 
-const BoolProperty = (props: PropertyProps) => {
+const BoolProperty = (props: PropertyProps<boolean>) => {
   const { property, value, changed, onChange } = props;
   const id = `switch-${property.name}-${props.propertyIndex}`;
 

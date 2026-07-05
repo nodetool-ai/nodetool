@@ -163,7 +163,6 @@ export const CLOUD_NODE_DENYLIST: readonly string[] = [
  */
 export const CLOUD_PROVIDER_IDS: readonly string[] = [
   "openai",
-  "openai_responses",
   "anthropic",
   "gemini",
   "groq",

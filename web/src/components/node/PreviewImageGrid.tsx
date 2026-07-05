@@ -32,7 +32,6 @@ interface ImageTileProps {
 }
 
 const ImageTile = memo<ImageTileProps>(({
-  img,
   idx,
   url,
   isSelected,
