@@ -13,6 +13,7 @@ import SpeedIcon from "@mui/icons-material/Speed";
 import TuneIcon from "@mui/icons-material/Tune";
 import LayersIcon from "@mui/icons-material/Layers";
 import AddToCanvasIcon from "@mui/icons-material/AddPhotoAlternate";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import {
   BORDER_RADIUS,
   FlexColumn,
@@ -208,6 +209,31 @@ const styles = (theme: Theme) =>
     },
 
     ".media-grid > *:hover .add-to-canvas-button": {
+      opacity: 1
+    },
+
+    ".open-in-new-tab-button": {
+      position: "absolute",
+      top: getSpacingPx(SPACING.xs),
+      right: getSpacingPx(SPACING.xs),
+      zIndex: Z_INDEX.dropdown,
+      opacity: 0,
+      transition: `opacity ${MOTION.normal}`,
+      backgroundColor: "var(--palette-c_scrim)",
+      color: "var(--palette-grey-0)",
+      borderRadius: BORDER_RADIUS.sm,
+      width: 24,
+      height: 24,
+      padding: getSpacingPx(SPACING.xs),
+      "&:hover": {
+        backgroundColor: "var(--palette-c_scrim_strong)"
+      },
+      "& svg": {
+        fontSize: 14
+      }
+    },
+
+    ".media-grid > *:hover .open-in-new-tab-button": {
       opacity: 1
     },
 
@@ -437,6 +463,18 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
                     <AddToCanvasIcon />
                   </ToolbarIconButton>
                 )}
+                {src && (
+                  <ToolbarIconButton
+                    className="open-in-new-tab-button"
+                    tooltip="Open in new tab"
+                    size="small"
+                    onClick={() =>
+                      window.open(src, "_blank", "noopener,noreferrer")
+                    }
+                  >
+                    <OpenInNewIcon />
+                  </ToolbarIconButton>
+                )}
               </div>
             );
           }
@@ -465,6 +503,18 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
                     onClick={() => addOne(c)}
                   >
                     <AddToCanvasIcon />
+                  </ToolbarIconButton>
+                )}
+                {src && (
+                  <ToolbarIconButton
+                    className="open-in-new-tab-button"
+                    tooltip="Open in new tab"
+                    size="small"
+                    onClick={() =>
+                      window.open(src, "_blank", "noopener,noreferrer")
+                    }
+                  >
+                    <OpenInNewIcon />
                   </ToolbarIconButton>
                 )}
               </div>

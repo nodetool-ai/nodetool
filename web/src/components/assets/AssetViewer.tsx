@@ -26,6 +26,7 @@ import CheckIcon from "@mui/icons-material/Check";
 import CompareIcon from "@mui/icons-material/Compare";
 import EditIcon from "@mui/icons-material/Edit";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import AssetItem from "./AssetItem";
 import AssetInfoPanel from "../context_menus/AssetInfoPanel";
 import { ImageComparer } from "../widgets";
@@ -341,6 +342,11 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   );
 
   const { handleDownload } = useAssetDownload({ currentAsset, url });
+
+  const handleOpenInNewTab = useCallback(() => {
+    const assetSrc = currentAsset?.get_url || url;
+    if (assetSrc) window.open(assetSrc, "_blank", "noopener,noreferrer");
+  }, [currentAsset?.get_url, url]);
 
   // Check if current asset is an image
   const isImage = useMemo(() => {
@@ -823,6 +829,14 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
           <DownloadButton
             onClick={handleDownload}
             className="button download"
+            nodrag={false}
+            sx={viewerActionButtonSx}
+          />
+          <ToolbarIconButton
+            icon={<OpenInNewIcon />}
+            tooltip="Open in new tab"
+            onClick={handleOpenInNewTab}
+            className="button open-new-tab"
             nodrag={false}
             sx={viewerActionButtonSx}
           />

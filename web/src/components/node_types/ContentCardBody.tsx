@@ -33,6 +33,7 @@ import ViewInArIcon from "@mui/icons-material/ViewInAr";
 import LayersIcon from "@mui/icons-material/Layers";
 import DownloadIcon from "@mui/icons-material/Download";
 import AddIcon from "@mui/icons-material/Add";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import {
   CheckerDropzone,
   DynamicInputButton,
@@ -491,6 +492,10 @@ const VideoPreview: React.FC<{ value: unknown; nodeId: string }> = ({
     }
   }, [value, nodeId, createAsset, addNotification]);
 
+  const handleOpenInNewTab = useCallback(() => {
+    if (src) window.open(src, "_blank", "noopener,noreferrer");
+  }, [src]);
+
   if (!src) {
     return <OutputRenderer value={value} showTextActions={false} />;
   }
@@ -515,6 +520,14 @@ const VideoPreview: React.FC<{ value: unknown; nodeId: string }> = ({
             aria-label="Save video to assets"
           >
             <AddIcon />
+          </ToolbarIconButton>
+          <ToolbarIconButton
+            title="Open in new tab"
+            size="small"
+            onClick={handleOpenInNewTab}
+            aria-label="Open video in new tab"
+          >
+            <OpenInNewIcon />
           </ToolbarIconButton>
         </div>
       )}

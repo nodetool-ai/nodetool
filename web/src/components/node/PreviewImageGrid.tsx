@@ -9,6 +9,7 @@ import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import DownloadIcon from "@mui/icons-material/Download";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import LaunchIcon from "@mui/icons-material/Launch";
 import { ImageComparer } from "../widgets";
 import AssetViewer from "../assets/AssetViewer";
 import { CopyAssetButton } from "../common/CopyAssetButton";
@@ -46,6 +47,13 @@ const ImageTile = memo<ImageTileProps>(({
   const handleDownloadClick = useCallback((e: React.MouseEvent) => onDownload(idx, e), [onDownload, idx]);
   const handleOpenClick = useCallback((e: React.MouseEvent) => onOpenInViewer(idx, e), [onOpenInViewer, idx]);
   const handleCheckboxClick = useCallback((e: React.MouseEvent) => onToggleSelect(idx, e), [onToggleSelect, idx]);
+  const handleOpenInNewTabClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (url) window.open(url, "_blank", "noopener,noreferrer");
+    },
+    [url]
+  );
 
   return (
     <div
@@ -115,6 +123,15 @@ const ImageTile = memo<ImageTileProps>(({
             size="small"
             onClick={handleOpenClick}
             ariaLabel={`Open image ${idx + 1} in viewer`}
+          />
+          <ToolbarIconButton
+            tooltip="Open in new tab"
+            tooltipPlacement="top"
+            icon={<LaunchIcon />}
+            className="tile-action-btn"
+            size="small"
+            onClick={handleOpenInNewTabClick}
+            ariaLabel={`Open image ${idx + 1} in new tab`}
           />
         </div>
       )}

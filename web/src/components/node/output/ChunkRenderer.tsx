@@ -9,6 +9,8 @@ import ImageView from "../ImageView";
 import StreamPcm16Player from "./StreamPcm16Player";
 import { ToolCallRenderer } from "./ToolCallRenderer";
 import { AgentStatusRenderer } from "./AgentStatusRenderer";
+import { ToolbarIconButton } from "../../ui_primitives";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 
 type Props = {
   chunk: Chunk;
@@ -51,18 +53,33 @@ export const ChunkRenderer: React.FC<Props> = memo(({ chunk }) => {
         />
       );
     }
-    case "video":
+    case "video": {
+      const videoSrc = chunk.content as string;
       return (
-        <video
-          src={chunk.content as string}
-          controls
-          // nodrag/nopan stop ReactFlow's drag from capturing the pointer so
-          // the native controls (scrub, volume) get the mouse events.
-          className="nodrag nopan"
-          aria-label="Video output"
-          style={{ width: "100%" }}
-        />
+        <div className="video-chunk-output" css={{ position: "relative" }}>
+          <video
+            src={videoSrc}
+            controls
+            // nodrag/nopan stop ReactFlow's drag from capturing the pointer so
+            // the native controls (scrub, volume) get the mouse events.
+            className="nodrag nopan"
+            aria-label="Video output"
+            style={{ width: "100%" }}
+          />
+          <ToolbarIconButton
+            title="Open in new tab"
+            size="small"
+            onClick={() => {
+              if (videoSrc) window.open(videoSrc, "_blank", "noopener,noreferrer");
+            }}
+            aria-label="Open video in new tab"
+            sx={{ position: "absolute", top: 4, right: 4, zIndex: 10 }}
+          >
+            <OpenInNewIcon />
+          </ToolbarIconButton>
+        </div>
       );
+    }
     case "document":
       return (
         <div className="output value" css={outputStyles(theme)}>

@@ -11,6 +11,7 @@ import { PlaybackButton } from "../ui_primitives/PlaybackButton";
 import OffIcon from "@mui/icons-material/VolumeOff";
 import UpIcon from "@mui/icons-material/VolumeUp";
 import DownloadIcon from "@mui/icons-material/Download";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { ActionButtonGroup } from "../ui_primitives/ActionButtonGroup";
 import type { Theme } from "@mui/material/styles";
 
@@ -200,6 +201,12 @@ const AudioControls: React.FC<AudioControlsProps> = memo(({
     }
   }, [assetUrl, filename]);
 
+  const handleOpenInNewTab = useCallback(() => {
+    if (assetUrl) {
+      window.open(assetUrl, "_blank", "noopener,noreferrer");
+    }
+  }, [assetUrl]);
+
   return (
     <div
       css={cssStyles}
@@ -252,6 +259,15 @@ const AudioControls: React.FC<AudioControlsProps> = memo(({
               size="small"
               onClick={handleDownload}
               icon={<DownloadIcon />}
+              nodrag={false}
+            />
+            <ToolbarIconButton
+              tooltip="Open in new tab"
+              delay={TOOLTIP_ENTER_DELAY}
+              className="open-in-new-tab-button"
+              size="small"
+              onClick={handleOpenInNewTab}
+              icon={<OpenInNewIcon />}
               nodrag={false}
             />
           </ActionButtonGroup>

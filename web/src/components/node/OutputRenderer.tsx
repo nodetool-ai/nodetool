@@ -1,4 +1,5 @@
 /** @jsxImportSource @emotion/react */
+import { css } from "@emotion/react";
 import React, {
   useMemo,
   useCallback,
@@ -7,6 +8,7 @@ import React, {
   useRef,
   useEffect
 } from "react";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 
 import {
   Asset,
@@ -32,7 +34,8 @@ import {
   BORDER_RADIUS,
   List,
   ListItem,
-  ListItemText
+  ListItemText,
+  ToolbarIconButton
 } from "../ui_primitives";
 import ListTable from "./DataTable/ListTable";
 import ImageView from "./ImageView";
@@ -53,6 +56,19 @@ import SketchRenderer from "../sketch/SketchRenderer";
 
 /** In-flight raw straight-alpha RGBA image format (see protocol RAW_RGBA_MIME). */
 const RAW_RGBA_MIME = "image/x-raw-rgba";
+
+const videoOutputHoverStyles = css({
+  position: "relative",
+  width: "100%",
+  height: "100%",
+  ".video-output-actions": {
+    opacity: 0,
+    transition: "opacity 0.2s ease"
+  },
+  "&:hover .video-output-actions": {
+    opacity: 1
+  }
+});
 
 const FULL_SIZE_STYLE: React.CSSProperties = { width: "100%", height: "100%" };
 const AUDIO_WRAPPER_STYLE: React.CSSProperties = { padding: "1em" };
@@ -662,15 +678,34 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
       }
       case "video":
         return (
-          <video
-            ref={videoRef}
-            controls
-            // nodrag/nopan stop ReactFlow's drag from capturing the pointer so
-            // the native controls (scrub, volume) get the mouse events.
-            className="nodrag nopan"
-            aria-label="Video output"
-            style={FULL_SIZE_STYLE}
-          />
+          <div css={videoOutputHoverStyles}>
+            <video
+              ref={videoRef}
+              controls
+              // nodrag/nopan stop ReactFlow's drag from capturing the pointer so
+              // the native controls (scrub, volume) get the mouse events.
+              className="nodrag nopan"
+              aria-label="Video output"
+              style={FULL_SIZE_STYLE}
+            />
+            <div
+              className="video-output-actions"
+              style={{ position: "absolute", top: 4, right: 4, zIndex: 10 }}
+            >
+              <ToolbarIconButton
+                title="Open in new tab"
+                size="small"
+                onClick={() => {
+                  const src =
+                    videoRef.current?.currentSrc || videoRef.current?.src;
+                  if (src) window.open(src, "_blank", "noopener,noreferrer");
+                }}
+                aria-label="Open video in new tab"
+              >
+                <OpenInNewIcon />
+              </ToolbarIconButton>
+            </div>
+          </div>
         );
       case "model_3d": {
         const rawUri: string =

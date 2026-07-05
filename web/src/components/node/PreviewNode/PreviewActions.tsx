@@ -3,6 +3,7 @@ import type { Theme } from "@mui/material/styles";
 import { Tooltip, EditorButton, FlexRow } from "../../ui_primitives";
 import AddIcon from "@mui/icons-material/Add";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { CopyButton } from "../../ui_primitives";
 import { CopyAssetButton } from "../../common/CopyAssetButton";
 import { useNotificationStore } from "../../../stores/NotificationStore";
@@ -84,6 +85,12 @@ const PreviewActions: React.FC<PreviewActionsProps> = memo(({
     });
   }, [addNotification]);
 
+  const handleOpenInNewTab = useCallback(() => {
+    if (assetInfo?.url) {
+      window.open(assetInfo.url, "_blank", "noopener,noreferrer");
+    }
+  }, [assetInfo]);
+
   return (
     <FlexRow
       className="actions"
@@ -128,6 +135,17 @@ const PreviewActions: React.FC<PreviewActionsProps> = memo(({
           sx={COPY_BUTTON_SX}
           aria-label="Copy to clipboard"
         />
+      )}
+      {assetInfo && (
+        <Tooltip title="Open in new tab">
+          <EditorButton
+            onClick={handleOpenInNewTab}
+            className="action-button open-new-tab"
+            aria-label="Open in new tab"
+          >
+            <OpenInNewIcon />
+          </EditorButton>
+        </Tooltip>
       )}
     </FlexRow>
   );

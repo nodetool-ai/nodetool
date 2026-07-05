@@ -5,6 +5,7 @@ import React, { useMemo, useRef, useCallback, useState, useEffect } from "react"
 import { Text, ToolbarIconButton, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import DownloadIcon from "@mui/icons-material/Download";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import LaunchIcon from "@mui/icons-material/Launch";
 import AssetViewer from "../assets/AssetViewer";
 import { createImageUrl } from "../../utils/imageUtils";
 import { fileUriToHttpUrl } from "../../utils/localFile";
@@ -322,6 +323,10 @@ const ImageView: React.FC<ImageViewProps> = ({ source, bitmap }) => {
     setOpenViewer(true);
   }, []);
 
+  const handleOpenInNewTab = useCallback(() => {
+    if (imageUrl) window.open(imageUrl, "_blank", "noopener,noreferrer");
+  }, [imageUrl]);
+
   if (!imageUrl && !bitmap) {
     return <Text>No Image found</Text>;
   }
@@ -364,6 +369,14 @@ const ImageView: React.FC<ImageViewProps> = ({ source, bitmap }) => {
             sx={iconButtonStyle}
           >
             <OpenInNewIcon />
+          </ToolbarIconButton>
+          <ToolbarIconButton
+            title="Open in new tab"
+            size="small"
+            onClick={handleOpenInNewTab}
+            sx={iconButtonStyle}
+          >
+            <LaunchIcon />
           </ToolbarIconButton>
         </div>
       )}
