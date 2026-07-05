@@ -1271,6 +1271,11 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
   });
   const trpcHandler = createHTTPHandler({
     router: appRouter,
+    // Match the production server (see server.ts): the web client forces all
+    // batches to POST via httpBatchLink `methodOverride: "POST"`. Without this
+    // flag the handler rejects POST-to-query, leaving the chat/threads panels
+    // empty behind a "threads.list" error.
+    allowMethodOverride: true,
     createContext: ({ req }) => {
       (req as IncomingMessage & { userId?: string }).userId = "1";
       return trpcContextFactory({
