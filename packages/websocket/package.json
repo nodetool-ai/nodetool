@@ -102,5 +102,17 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "websocket",
+    "fastify",
+    "server",
+    "api",
+    "realtime"
   ]
 }

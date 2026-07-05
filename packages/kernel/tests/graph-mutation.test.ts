@@ -241,6 +241,42 @@ describe("Graph.loadFromDict – hydration", () => {
     expect(node.is_controlled).toBe(true);
   });
 
+  it("lets an explicit registry false override a stale saved true flag", async () => {
+    // A node type migrated from streaming to buffered: the registry now
+    // declares is_streaming_input false, so the stale saved true must lose.
+    const resolver = resolverFor({
+      descriptorDefaults: { is_streaming_input: false }
+    });
+    const g = await Graph.loadFromDict(
+      {
+        nodes: [{ id: "a", type: "t", is_streaming_input: true }],
+        edges: []
+      },
+      { resolver }
+    );
+    expect(g.findNode("a")!.is_streaming_input).toBe(false);
+  });
+
+  it("keeps the saved flag when the registry omits it", async () => {
+    // Resolver returns no behavior flag (undefined) — the saved value survives.
+    const g = await Graph.loadFromDict(
+      {
+        nodes: [{ id: "a", type: "t", is_streaming_output: true }],
+        edges: []
+      },
+      { resolver: resolverFor({ descriptorDefaults: { name: "T" } }) }
+    );
+    expect(g.findNode("a")!.is_streaming_output).toBe(true);
+  });
+
+  it("uses the registry flag when the saved node omits it", async () => {
+    const g = await Graph.loadFromDict(
+      { nodes: [{ id: "a", type: "t" }], edges: [] },
+      { resolver: resolverFor({ descriptorDefaults: { is_streaming_input: true } }) }
+    );
+    expect(g.findNode("a")!.is_streaming_input).toBe(true);
+  });
+
   it("falls back to saved node flags, then to false", async () => {
     const fromNode = await Graph.loadFromDict(
       { nodes: [{ id: "a", type: "t", is_streaming_output: true }], edges: [] },
@@ -329,6 +365,19 @@ describe("Graph – control detection & lookups", () => {
     const g = new Graph({ nodes, edges: [ctrl("a", "b")] });
     expect(g.findNode("b")!.is_controlled).toBe(true);
     expect(g.findNode("a")!.is_controlled).toBeFalsy();
+  });
+
+  it("does not mutate the caller's node objects when marking controlled", () => {
+    const target = n("b", "t");
+    const nodes = [n("a", "t"), target];
+    const g = new Graph({ nodes, edges: [ctrl("a", "b")] });
+    // The Graph carries a copy with the flag set...
+    expect(g.findNode("b")!.is_controlled).toBe(true);
+    expect(g.findNode("b")).not.toBe(target);
+    // ...while the caller-owned original is left untouched.
+    expect(target.is_controlled).toBeUndefined();
+    // Unaffected nodes keep their identity (no whole-graph copy).
+    expect(g.findNode("a")).toBe(nodes[0]);
   });
 
   it("findEdges / findDataEdges narrow by handle and edge type", () => {

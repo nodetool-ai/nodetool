@@ -94,6 +94,26 @@ export interface ToolCall {
   _rawGeminiParts?: unknown[];
 }
 
+/**
+ * Canonical name for the web-search tool. Providers with a built-in web search
+ * (`supportsNativeWebSearch`) render a tool with this name as their native
+ * server-side search instead of a function call; everyone else falls back to
+ * the SerpAPI-backed `WebSearchTool`.
+ */
+export const WEB_SEARCH_TOOL_NAME = "web_search";
+
+/**
+ * Canonical name for the image-generation tool. Providers with a built-in,
+ * server-side image generator (`supportsNativeImageGeneration`, e.g. the
+ * OpenAI Responses `image_generation` tool) render a tool with this name as
+ * their native tool: the generated image arrives inside the model turn as an
+ * `image_generation_call` output item — there is no function-call round-trip —
+ * and the provider surfaces it as image content on the assistant message.
+ * Providers without native support fall back to a function tool that calls
+ * `textToImage`/`imageToImage`.
+ */
+export const IMAGE_GENERATION_TOOL_NAME = "image_generation";
+
 export interface ProviderTool {
   name: string;
   description?: string;

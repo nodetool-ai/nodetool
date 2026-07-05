@@ -94,7 +94,7 @@ export default function DeveloperIntegrationsSection({
             transition={{ duration: 0.5, delay: 0.2 }}
             className="mt-4 text-lg text-slate-400 max-w-2xl mx-auto"
           >
-            340+ built-in nodes spanning every major provider and modality. BYOK across the board.
+            340+ built-in nodes covering every major provider and media type. Bring your own keys across the board.
           </motion.p>
         </div>
 
@@ -163,7 +163,7 @@ export default function DeveloperIntegrationsSection({
             100% open source
           </h3>
           <p className="text-slate-400 max-w-xl mx-auto mb-6">
-            NodeTool is AGPL-3.0. Fork it, audit it, self-host it. No vendor lock-in,
+            NodeTool is AGPL-3.0. Fork it, audit it, self-host it. No lock-in,
             no usage limits — bring your own keys to every provider and pay providers directly.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

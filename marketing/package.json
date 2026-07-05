@@ -15,6 +15,7 @@
     "seo:llms": "tsx scripts/generate-llms-txt.mjs",
     "seo:generate": "npm run seo:catalog && npm run seo:llms",
     "seo:check": "node scripts/generate-template-catalog.mjs --check && tsx scripts/generate-llms-txt.mjs --check",
+    "gen:templates": "node scripts/generate-template-entries.mjs",
     "seo:typecheck": "tsc -p seo/tsconfig.json --noEmit",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",

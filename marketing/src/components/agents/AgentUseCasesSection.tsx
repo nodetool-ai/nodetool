@@ -48,7 +48,7 @@ const useCases: UseCase[] = [
     example: "Direct a 9:16 sneaker ad, neon noir, ending on the logo",
   },
   {
-    name: "Music Video Pipeline",
+    name: "Music Video Workflow",
     description:
       "Drop in a track, let the agent pace cuts to the beat, pick scenes that match the lyrics, generate visuals across Flux and Veo, and stitch the final video. You direct, it edits.",
     icon: Music,

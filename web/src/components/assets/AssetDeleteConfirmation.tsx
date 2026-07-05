@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 
 import React, { useState, useCallback, useEffect } from "react";
-import { InsertDriveFile } from "@mui/icons-material";
+import InsertDriveFile from "@mui/icons-material/InsertDriveFile";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetDeletion } from "../../serverState/useAssetDeletion";

@@ -107,6 +107,11 @@ import { globalWebSocketManager, type WebSocketMessage } from "../../lib/websock
 import useResultsStore from "../../stores/ResultsStore";
 import useStatusStore from "../../stores/StatusStore";
 import type { Graph } from "../../stores/ApiTypes";
+import {
+  getThreadRuntime,
+  threadRuntimeUpdate,
+  type ThreadRuntime
+} from "./threadRuntime";
 
 export interface WorkflowCreatedUpdate {
   type: "workflow_created";
@@ -287,25 +292,29 @@ const generateTitleFromFirstUserMessage = (
 
 const applyJobUpdate = (
   state: GlobalChatState,
-  update: JobUpdate
+  update: JobUpdate,
+  threadId: string | null
 ): ReducerResult => {
+  if (!threadId) {
+    return noopUpdate;
+  }
   if (update.status === "completed") {
     return {
-      update: {
-        status: "connected",
+      update: threadRuntimeUpdate(state, threadId, {
+        status: "idle",
         progress: { current: 0, total: 0 },
         statusMessage: null
-      }
+      })
     };
   }
   if (update.status === "failed" || update.status === "error") {
     return {
-      update: {
+      update: threadRuntimeUpdate(state, threadId, {
         status: "error",
-        error: update.error,
+        error: update.error ?? null,
         progress: { current: 0, total: 0 },
         statusMessage: update.error || null
-      }
+      })
     };
   }
   return noopUpdate;
@@ -313,10 +322,12 @@ const applyJobUpdate = (
 
 const applyEdgeUpdate = (
   state: GlobalChatState,
-  update: EdgeUpdate
+  update: EdgeUpdate,
+  threadId: string | null
 ): ReducerResult => {
   const workflowId = update.workflow_id ?? undefined;
-  const effectiveWorkflowId = workflowId ?? state.threadWorkflowId[state.currentThreadId ?? ""];
+  const effectiveWorkflowId =
+    workflowId ?? state.threadWorkflowId[threadId ?? ""];
   // Edges are scoped by the producing run's job_id so concurrent same-workflow
   // runs stay isolated. Skip the write if job_id is absent.
   const jobId = (update as { job_id?: string | null }).job_id ?? undefined;
@@ -336,10 +347,12 @@ const applyEdgeUpdate = (
 
 const applyNodeUpdate = (
   state: GlobalChatState,
-  update: NodeUpdate
+  update: NodeUpdate,
+  threadId: string | null
 ): ReducerResult => {
   const workflowId = update.workflow_id ?? undefined;
-  const effectiveWorkflowId = workflowId ?? state.threadWorkflowId[state.currentThreadId ?? ""];
+  const effectiveWorkflowId =
+    workflowId ?? state.threadWorkflowId[threadId ?? ""];
 
   if (effectiveWorkflowId) {
     // Sync with ResultsStore
@@ -356,20 +369,31 @@ const applyNodeUpdate = (
     }
   }
 
+  if (!threadId) {
+    return noopUpdate;
+  }
   if (update.status === "completed") {
     return {
-      update: {
-        status: "connected",
+      update: threadRuntimeUpdate(state, threadId, {
+        status: "idle",
         progress: { current: 0, total: 0 },
         statusMessage: null
-      }
+      })
     };
   }
-  return { update: { statusMessage: update.node_name } };
+  return {
+    update: threadRuntimeUpdate(state, threadId, {
+      statusMessage: update.node_name ?? null
+    })
+  };
 };
 
-const applyChunk = (state: GlobalChatState, chunk: Chunk): ReducerResult => {
-  const threadId = chunk.thread_id ?? state.currentThreadId;
+const applyChunk = (
+  state: GlobalChatState,
+  chunk: Chunk,
+  routedThreadId: string | null
+): ReducerResult => {
+  const threadId = chunk.thread_id ?? routedThreadId ?? state.currentThreadId;
   if (!threadId) {
     console.warn("applyChunk: No thread_id or currentThreadId, dropping chunk");
     return noopUpdate;
@@ -400,13 +424,12 @@ const applyChunk = (state: GlobalChatState, chunk: Chunk): ReducerResult => {
     if (chunk.done) {
       clearChunkCache(threadId);
       return {
-        update: {
-          status: "connected",
-          currentPlanningUpdate: null,
-          currentTaskUpdate: null,
-          currentTaskUpdateThreadId: null,
-          currentLogUpdate: null
-        }
+        update: threadRuntimeUpdate(state, threadId, {
+          status: "idle",
+          planningUpdate: null,
+          taskUpdate: null,
+          logUpdate: null
+        })
       };
     }
     return noopUpdate;
@@ -444,12 +467,22 @@ const applyChunk = (state: GlobalChatState, chunk: Chunk): ReducerResult => {
   // content_metadata.media_generation in the chunk handler above).
   // Only clear it when the stream finishes (done=true) or when the
   // chunk carries actual text content (regular LLM streaming).
+  const runtime = getThreadRuntime(state, threadId);
   const keepStatusMessage =
-    !chunk.done && !chunk.content && state.statusMessage;
+    !chunk.done && !chunk.content && runtime.statusMessage;
+
+  const runtimePatch: Partial<ThreadRuntime> = {
+    status: chunk.done ? "idle" : "streaming",
+    statusMessage: keepStatusMessage ? runtime.statusMessage : null
+  };
+  if (chunk.done) {
+    runtimePatch.planningUpdate = null;
+    runtimePatch.taskUpdate = null;
+    runtimePatch.logUpdate = null;
+  }
 
   const baseUpdate: Partial<GlobalChatState> = {
-    status: chunk.done ? "connected" : "streaming",
-    statusMessage: keepStatusMessage ? state.statusMessage : null,
+    ...threadRuntimeUpdate(state, threadId, runtimePatch),
     messageCache: {
       ...state.messageCache,
       [threadId]: updatedMessages
@@ -492,22 +525,17 @@ const applyChunk = (state: GlobalChatState, chunk: Chunk): ReducerResult => {
   };
 
   return {
-    update: {
-      ...baseUpdate,
-      currentPlanningUpdate: null,
-      currentTaskUpdate: null,
-      currentTaskUpdateThreadId: null,
-      currentLogUpdate: null
-    },
+    update: baseUpdate,
     postAction
   };
 };
 
 const applyOutputUpdate = (
   state: GlobalChatState,
-  update: OutputUpdate
+  update: OutputUpdate,
+  routedThreadId: string | null
 ): ReducerResult => {
-  const threadId = state.currentThreadId;
+  const threadId = routedThreadId ?? state.currentThreadId;
   if (!threadId) {
     return noopUpdate;
   }
@@ -548,8 +576,10 @@ const applyOutputUpdate = (
       };
       return {
         update: {
-          status: "streaming",
-          statusMessage: undefined,
+          ...threadRuntimeUpdate(state, threadId, {
+            status: "streaming",
+            statusMessage: null
+          }),
           messageCache: {
             ...state.messageCache,
             [threadId]: [...messages.slice(0, -1), updatedMessage]
@@ -566,7 +596,7 @@ const applyOutputUpdate = (
     };
     return {
       update: {
-        status: "streaming",
+        ...threadRuntimeUpdate(state, threadId, { status: "streaming" }),
         messageCache: {
           ...state.messageCache,
           [threadId]: [...messages, message]
@@ -591,7 +621,7 @@ const applyOutputUpdate = (
     const messages = state.messageCache[threadId] || [];
     return {
       update: {
-        statusMessage: null,
+        ...threadRuntimeUpdate(state, threadId, { statusMessage: null }),
         messageCache: {
           ...state.messageCache,
           [threadId]: [...messages, message]
@@ -606,7 +636,8 @@ const applyOutputUpdate = (
 
 const applyToolCallUpdate = (
   state: GlobalChatState,
-  update: ToolCallUpdate
+  update: ToolCallUpdate,
+  threadId: string | null
 ): ReducerResult => {
   const toolCallId =
     update.tool_call_id != null
@@ -657,9 +688,13 @@ const applyToolCallUpdate = (
 
   return {
     update: {
-      statusMessage: update.message,
-      currentRunningToolCallId: toolCallId || null,
-      currentToolMessage: update.message || null,
+      ...(threadId
+        ? threadRuntimeUpdate(state, threadId, {
+            statusMessage: update.message ?? null,
+            runningToolCallId: toolCallId || null,
+            toolMessage: update.message || null
+          })
+        : {}),
       ...(agentExecutionToolCalls ? { agentExecutionToolCalls } : {})
     }
   };
@@ -731,15 +766,19 @@ const applyAgentExecutionMessage = (
   if (msg.execution_event_type === "planning_update") {
     console.debug("PlanningUpdate content:", content);
     if (isPlanningUpdateContent(content)) {
-      update.currentPlanningUpdate = content;
-      console.info("Set currentPlanningUpdate:", content);
+      Object.assign(
+        update,
+        threadRuntimeUpdate(state, threadId, { planningUpdate: content })
+      );
     } else {
       console.warn("PlanningUpdate content is invalid:", content);
     }
   } else if (msg.execution_event_type === "task_update") {
     if (isTaskUpdateContent(content)) {
-      update.currentTaskUpdate = content;
-      update.currentTaskUpdateThreadId = threadId;
+      Object.assign(
+        update,
+        threadRuntimeUpdate(state, threadId, { taskUpdate: content })
+      );
       update.lastTaskUpdatesByThread = {
         ...state.lastTaskUpdatesByThread,
         [threadId]: content
@@ -747,7 +786,10 @@ const applyAgentExecutionMessage = (
     }
   } else if (msg.execution_event_type === "log_update") {
     if (isLogUpdateContent(content)) {
-      update.currentLogUpdate = content;
+      Object.assign(
+        update,
+        threadRuntimeUpdate(state, threadId, { logUpdate: content })
+      );
     }
   }
 
@@ -913,11 +955,11 @@ const applyToolMessage = (
         ? updateThreadTimestamp(threadId, state.threads)
         : state.threads,
       ...(msg.role === "tool"
-        ? {
-            currentRunningToolCallId: null,
-            currentToolMessage: null,
+        ? threadRuntimeUpdate(state, threadId, {
+            runningToolCallId: null,
+            toolMessage: null,
             statusMessage: null
-          }
+          })
         : {})
     }
   };
@@ -929,12 +971,11 @@ const applyAssistantMessage = (
   messages: Message[],
   msg: Message
 ) => {
-  const isCurrentThreadMessage = threadId === state.currentThreadId;
+  const runtimeStatus = getThreadRuntime(state, threadId).status;
   const shouldResetStatusOnAssistantMessage =
-    isCurrentThreadMessage &&
-    (state.status === "loading" ||
-      state.status === "streaming" ||
-      state.status === "stopping");
+    runtimeStatus === "loading" ||
+    runtimeStatus === "streaming" ||
+    runtimeStatus === "stopping";
 
   const incomingNormalized = normalizeTextForComparison(
     extractTextContent(msg)
@@ -998,23 +1039,26 @@ const applyAssistantMessage = (
         ? updateThreadTimestamp(threadId, state.threads)
         : state.threads,
       ...(shouldResetStatusOnAssistantMessage
-        ? {
-            status: "connected" as const,
+        ? threadRuntimeUpdate(state, threadId, {
+            status: "idle",
             progress: { current: 0, total: 0 },
             statusMessage: null,
-            currentPlanningUpdate: null,
-            currentTaskUpdate: null,
-            currentTaskUpdateThreadId: null,
-            currentLogUpdate: null
-          }
+            planningUpdate: null,
+            taskUpdate: null,
+            logUpdate: null
+          })
         : {})
     },
     postAction
   };
 };
 
-const applyMessage = (state: GlobalChatState, msg: Message): ReducerResult => {
-  const threadId = msg.thread_id ?? state.currentThreadId;
+const applyMessage = (
+  state: GlobalChatState,
+  msg: Message,
+  routedThreadId: string | null
+): ReducerResult => {
+  const threadId = msg.thread_id ?? routedThreadId ?? state.currentThreadId;
   if (!threadId) {
     return noopUpdate;
   }
@@ -1049,10 +1093,12 @@ const applyMessage = (state: GlobalChatState, msg: Message): ReducerResult => {
 
 const applyNodeProgress = (
   state: GlobalChatState,
-  progress: NodeProgress
+  progress: NodeProgress,
+  threadId: string | null
 ): ReducerResult => {
   const workflowId = progress.workflow_id ?? undefined;
-  const effectiveWorkflowId = workflowId ?? state.threadWorkflowId[state.currentThreadId ?? ""];
+  const effectiveWorkflowId =
+    workflowId ?? state.threadWorkflowId[threadId ?? ""];
   // Progress is scoped by the producing run's job_id so concurrent same-workflow
   // runs stay isolated. Skip the write if job_id is absent.
   const jobId = (progress as { job_id?: string | null }).job_id ?? undefined;
@@ -1068,38 +1114,57 @@ const applyNodeProgress = (
       );
   }
 
+  if (!threadId) {
+    return noopUpdate;
+  }
   // Keep the existing statusMessage for heartbeat ticks (empty chunk, total=0)
   // so the "Generating image…" label set from the chunk metadata stays visible.
-  const statusMessage =
-    progress.chunk
-      ? progress.chunk
-      : state.statusMessage;
+  const statusMessage = progress.chunk
+    ? progress.chunk
+    : getThreadRuntime(state, threadId).statusMessage;
   return {
-    update: {
+    update: threadRuntimeUpdate(state, threadId, {
       status: "loading",
       progress: { current: progress.progress, total: progress.total },
       statusMessage
-    }
+    })
   };
 };
 
-const applyGenerationStopped = (): ReducerResult => ({
-  update: {
-    status: "connected",
-    progress: { current: 0, total: 0 },
-    statusMessage: null,
-    currentPlanningUpdate: null,
-    currentTaskUpdate: null,
-    currentTaskUpdateThreadId: null,
-    currentLogUpdate: null
+const applyGenerationStopped = (
+  state: GlobalChatState,
+  threadId: string | null
+): ReducerResult => {
+  if (!threadId) {
+    return noopUpdate;
   }
-});
+  return {
+    update: threadRuntimeUpdate(state, threadId, {
+      status: "idle",
+      progress: { current: 0, total: 0 },
+      statusMessage: null,
+      planningUpdate: null,
+      taskUpdate: null,
+      logUpdate: null
+    })
+  };
+};
 
-const applyError = (message: string): ReducerResult => ({
+const applyError = (
+  state: GlobalChatState,
+  message: string,
+  threadId: string | null
+): ReducerResult => ({
   update: {
+    // The top-level error banner also covers thread-less protocol errors.
     error: message || "An error occurred",
-    status: "error",
-    statusMessage: message
+    ...(threadId
+      ? threadRuntimeUpdate(state, threadId, {
+          error: message || "An error occurred",
+          status: "error",
+          statusMessage: message
+        })
+      : { status: "error" as const, statusMessage: message })
   }
 });
 
@@ -1112,11 +1177,13 @@ async function executeToolCall(
   const { tool_call_id, name, args, thread_id } = toolCallData;
 
   // Update UI immediately
-  set({
-    currentRunningToolCallId: tool_call_id,
-    currentToolMessage: `Executing ${name}`,
-    statusMessage: `Executing ${name}`
-  });
+  set((state) =>
+    threadRuntimeUpdate(state, thread_id, {
+      runningToolCallId: tool_call_id,
+      toolMessage: `Executing ${name}`,
+      statusMessage: `Executing ${name}`
+    })
+  );
 
   if (!FrontendToolRegistry.has(name)) {
     console.warn(`Unknown tool: ${name}`);
@@ -1256,24 +1323,58 @@ export async function sendPlanApprovalResponse(
 export async function handleChatWebSocketMessage(
   msg: WebSocketMessage,
   set: ChatStateSetter,
-  get: ChatStateGetter
+  get: ChatStateGetter,
+  routedThreadId: string | null = null
 ) {
   const data = msg as MsgpackData;
   const currentState = get();
 
-  if (currentState.status === "stopping") {
+  // The thread this message belongs to: an explicit thread_id on the payload
+  // wins, else the subscription key it was routed under (every chat handler
+  // is registered per thread), else the current thread.
+  const tid: string | null =
+    (data as { thread_id?: string | null }).thread_id ??
+    routedThreadId ??
+    currentState.currentThreadId ??
+    null;
+
+  // Swallow stragglers for a thread the user is stopping. The top-level
+  // status check covers the pi transport, which drives the mirror directly.
+  const isStopping =
+    getThreadRuntime(currentState, tid).status === "stopping" ||
+    (currentState.status === "stopping" &&
+      (tid === null || tid === currentState.currentThreadId));
+  if (isStopping) {
     if (!["generation_stopped", "error", "job_update"].includes(data.type ?? "")) {
       return;
     }
   }
 
+  // Clear the owning thread's safety timeout (generation produced a signal).
+  const clearSendTimeout = () => {
+    if (!tid) {
+      return;
+    }
+    const timeoutId = getThreadRuntime(get(), tid).sendMessageTimeoutId;
+    if (timeoutId !== null) {
+      clearTimeout(timeoutId);
+      set((state) =>
+        threadRuntimeUpdate(state, tid, { sendMessageTimeoutId: null })
+      );
+    }
+  };
+
   const applyReducer = <T>(
-    fn: (state: GlobalChatState, payload: T) => ReducerResult,
+    fn: (
+      state: GlobalChatState,
+      payload: T,
+      threadId: string | null
+    ) => ReducerResult,
     payload: T
   ) => {
     let postAction: ReducerResult["postAction"];
     set((state) => {
-      const result = fn(state, payload);
+      const result = fn(state, payload, tid);
       postAction = result.postAction;
       return result.update;
     });
@@ -1289,11 +1390,7 @@ export async function handleChatWebSocketMessage(
       data.status === "failed" ||
       data.status === "cancelled"
     ) {
-      const timeoutId = get().sendMessageTimeoutId;
-      if (timeoutId !== null) {
-        clearTimeout(timeoutId);
-        set({ sendMessageTimeoutId: null });
-      }
+      clearSendTimeout();
     }
     applyReducer(applyJobUpdate, data);
   } else if (data.type === "node_update") {
@@ -1304,11 +1401,7 @@ export async function handleChatWebSocketMessage(
     if (data.done) {
       console.info("Received final chunk (done=true), clearing timeout");
       // Clear the safety timeout when generation completes
-      const timeoutId = get().sendMessageTimeoutId;
-      if (timeoutId !== null) {
-        clearTimeout(timeoutId);
-        set({ sendMessageTimeoutId: null });
-      }
+      clearSendTimeout();
     }
     // Surface a progress message for media generation chunks so the UI shows
     // "Conjuring image…" / "Conjuring video…" instead of "Thinking…". The
@@ -1317,7 +1410,7 @@ export async function handleChatWebSocketMessage(
     const mediaMeta = data.content_metadata?.media_generation as
       | Record<string, unknown>
       | undefined;
-    if (mediaMeta && !data.done) {
+    if (mediaMeta && !data.done && tid) {
       const mode = String(mediaMeta.mode ?? "");
       const model = mediaMeta.model ? String(mediaMeta.model) : "";
       const label =
@@ -1328,7 +1421,11 @@ export async function handleChatWebSocketMessage(
             : mode === "audio"
               ? "Conjuring sound"
               : "Conjuring";
-      set({ statusMessage: model ? `${label} with ${model}…` : `${label}…` });
+      set((state) =>
+        threadRuntimeUpdate(state, tid, {
+          statusMessage: model ? `${label} with ${model}…` : `${label}…`
+        })
+      );
     }
     applyReducer(applyChunk, data);
   } else if (data.type === "output_update") {
@@ -1336,27 +1433,17 @@ export async function handleChatWebSocketMessage(
   } else if (data.type === "tool_call_update") {
     applyReducer(applyToolCallUpdate, data);
   } else if (data.type === "todo_update") {
-    const threadId = data.thread_id ?? get().currentThreadId;
-    if (threadId) {
+    if (tid) {
       set((state) => ({
         todosByThread: {
           ...state.todosByThread,
-          [threadId]: data.todos ?? []
+          [tid]: data.todos ?? []
         }
       }));
     }
   } else if (data.type === "message") {
-    const currentThreadId = get().currentThreadId;
-    const messageThreadId = data.thread_id ?? currentThreadId;
-    if (
-      data.role === "assistant" &&
-      messageThreadId === currentThreadId
-    ) {
-      const timeoutId = get().sendMessageTimeoutId;
-      if (timeoutId !== null) {
-        clearTimeout(timeoutId);
-        set({ sendMessageTimeoutId: null });
-      }
+    if (data.role === "assistant") {
+      clearSendTimeout();
     }
     applyReducer(applyMessage, data);
   } else if (data.type === "node_progress") {
@@ -1369,34 +1456,22 @@ export async function handleChatWebSocketMessage(
     get().addPendingPlanApproval(data);
   } else if (data.type === "generation_stopped") {
     // Clear the safety timeout when generation is stopped
-    const timeoutId = get().sendMessageTimeoutId;
-    if (timeoutId !== null) {
-      clearTimeout(timeoutId);
-      set({ sendMessageTimeoutId: null });
-    }
-    applyReducer(
-      (_state) => applyGenerationStopped(),
-      data
-    );
+    clearSendTimeout();
+    applyReducer((state) => applyGenerationStopped(state, tid), data);
     console.info("Generation stopped:", data.message);
   } else if (data.type === "workflow_created" || data.type === "workflow_updated") {
-    const threadId = get().currentThreadId;
-    if (threadId && data.workflow_id) {
+    if (tid && data.workflow_id) {
       set((state) => ({
         threadWorkflowId: {
           ...state.threadWorkflowId,
-          [threadId]: data.workflow_id
+          [tid]: data.workflow_id
         }
       }));
     }
     console.debug(`${data.type}:`, data.workflow_id);
   } else if (data.type === "error") {
     // Clear the safety timeout on error
-    const timeoutId = get().sendMessageTimeoutId;
-    if (timeoutId !== null) {
-      clearTimeout(timeoutId);
-      set({ sendMessageTimeoutId: null });
-    }
-    applyReducer((_state) => applyError(data.message), data);
+    clearSendTimeout();
+    applyReducer((state) => applyError(state, data.message, tid), data);
   }
 }

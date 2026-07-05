@@ -124,7 +124,6 @@ const IS_APPLE_PLATFORM = /Mac|iPhone|iPad/.test(navigator.platform);
 
 interface ReactFlowWrapperProps {
   workflowId: string;
-  active: boolean;
 }
 
 import GhostNode from "./GhostNode";
@@ -159,8 +158,7 @@ function withEdgeNeighborNodeIds(
 }
 
 const ReactFlowWrapper = ({
-  workflowId,
-  active
+  workflowId
 }: ReactFlowWrapperProps) => {
   const workflowManagerStore = useWorkflowManagerStore();
   const isDarkMode = useIsDarkMode();

@@ -137,6 +137,7 @@ export const workflowResponse = z.object({
   required_providers: z.unknown().nullable(),
   required_models: z.unknown().nullable(),
   html_app: z.string().nullable(),
+  app_doc: z.record(z.string(), z.unknown()).nullable().optional(),
   etag: z.string().nullable()
 });
 export type WorkflowResponse = z.infer<typeof workflowResponse>;
@@ -192,7 +193,8 @@ export const workflowBody = z.object({
   settings: z.record(z.string(), z.unknown()).nullable().optional(),
   run_mode: z.string().nullable().optional(),
   workspace_id: z.string().nullable().optional(),
-  html_app: z.string().nullable().optional()
+  html_app: z.string().nullable().optional(),
+  app_doc: z.record(z.string(), z.unknown()).nullable().optional()
 });
 export type WorkflowBody = z.infer<typeof workflowBody>;
 

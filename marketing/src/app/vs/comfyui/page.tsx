@@ -9,12 +9,12 @@ import { SmartDownloadButton } from "../../SmartDownloadButton";
 export const metadata: Metadata = {
   title: "NodeTool vs ComfyUI — the open creative AI workspace",
   description:
-    "ComfyUI is an engineer-first node editor for Stable Diffusion. NodeTool is the studio around it: image, video, music, and text on one node-based canvas, a far wider model roster across providers, and built-in editing tools — all BYOK at provider prices. Both are open source.",
+    "ComfyUI is an engineer-first node editor for Stable Diffusion. NodeTool is the studio around it: image, video, music, and text on one node-based canvas, far more models across providers, and built-in editing tools — all called with your own keys at provider prices. Both are open source.",
   alternates: { canonical: "/vs/comfyui" },
   openGraph: {
     title: "NodeTool vs ComfyUI — the open creative AI workspace",
     description:
-      "Beyond diffusion images: NodeTool puts image, video, audio, and text on one node-based canvas with editing tools built in. Open source, BYOK, provider prices.",
+      "Beyond Stable Diffusion images: NodeTool puts image, video, audio, and text on one node-based canvas with editing tools built in. Open source, your own keys, provider prices.",
     url: "https://nodetool.ai/vs/comfyui",
     type: "website",
   },
@@ -43,7 +43,7 @@ const faq = {
       name: "What is the difference between NodeTool and ComfyUI?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "ComfyUI is a node editor focused on Stable Diffusion and diffusion image generation with an engineer-first UX. NodeTool is the studio around it: image, video, music, and text on one node-based canvas, a much wider model roster across providers and modalities, and editing tools creatives actually use — called with your own keys at provider prices. Both are node-based and open source.",
+        text: "ComfyUI is a node editor focused on Stable Diffusion image generation, built for engineers. NodeTool is the studio around it: image, video, music, and text on one node-based canvas, far more models across providers and media types, and editing tools creatives actually use — called with your own keys at provider prices. Both are node-based and open source.",
       },
     },
     {
@@ -59,7 +59,7 @@ const faq = {
       name: "Can NodeTool do more than image generation?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Yes. NodeTool works across image, video, audio, and text on one canvas, with editing tools built in — masks, inpaint, outpaint, relight, upscale, layers, and compositing. ComfyUI is centered on diffusion image generation.",
+        text: "Yes. NodeTool works across image, video, audio, and text on one canvas, with editing tools built in — masks, inpaint, outpaint, relight, upscale, layers, and compositing. ComfyUI is centered on image generation.",
       },
     },
     {
@@ -67,7 +67,7 @@ const faq = {
       name: "How does NodeTool handle model pricing?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "NodeTool is BYOK — you bring your own API keys and pay each provider their list price. There are no credits, no markup, and no curated roster. You can also run local models with Ollama, MLX, or llama.cpp in the desktop app.",
+        text: "With NodeTool, you bring your own API keys and pay each provider their list price. There are no credits, no markup, and no hand-picked model list. You can also run local models with Ollama, MLX, or llama.cpp in the desktop app.",
       },
     },
   ],
@@ -75,16 +75,16 @@ const faq = {
 
 const rows: { label: string; comfyui: string | boolean; nodetool: string | boolean }[] = [
   {
-    label: "Modalities",
-    comfyui: "Diffusion images",
+    label: "Media types",
+    comfyui: "Stable Diffusion images",
     nodetool: "Image, video, audio, text",
   },
   {
-    label: "Model roster",
-    comfyui: "Stable Diffusion / diffusion",
-    nodetool: "Every major provider & modality",
+    label: "Model lineup",
+    comfyui: "Stable Diffusion",
+    nodetool: "Every major provider & media type",
   },
-  { label: "BYOK / provider billing", comfyui: false, nodetool: true },
+  { label: "Your own keys / provider billing", comfyui: false, nodetool: true },
   {
     label: "Editing tools (masks, inpaint, relight, layers)",
     comfyui: false,
@@ -127,12 +127,12 @@ export default function VsComfyUIPage() {
             id="vs-title"
             className="mt-6 text-4xl font-bold tracking-tight text-white md:text-5xl"
           >
-            The open creative AI workspace, not just a diffusion editor.
+            The open creative AI workspace, not just a Stable Diffusion editor.
           </h1>
           <p className="mt-5 text-lg leading-relaxed text-slate-300">
             ComfyUI is a node editor for Stable Diffusion, built with an
             engineer-first UX. NodeTool is the studio around it: image, video,
-            music, and words on one canvas, a far wider model roster, and the
+            music, and words on one canvas, far more models, and the
             editing tools creatives reach for — called with your own keys at
             provider prices. Both are node-based and open source.
           </p>
@@ -145,11 +145,11 @@ export default function VsComfyUIPage() {
             <div className="relative flex flex-col rounded-2xl border border-slate-800/70 bg-slate-900/60 p-8 ring-1 ring-white/5 backdrop-blur-md">
               <h2 className="text-xl font-semibold text-white">ComfyUI</h2>
               <p className="mt-1 text-sm text-slate-400">
-                Node editor for diffusion images
+                Node editor for Stable Diffusion images
               </p>
               <ul className="mt-6 space-y-3 text-sm text-slate-300">
                 {[
-                  "Deep control over Stable Diffusion pipelines",
+                  "Deep control over Stable Diffusion workflows",
                   "Engineer-first, graph-based UX",
                   "Local model focused",
                   "Open source community",
@@ -173,7 +173,7 @@ export default function VsComfyUIPage() {
                   "Image, video, audio, and text on one canvas",
                   "Every major model from every major provider",
                   "Editing tools: masks, inpaint, relight, layers",
-                  "BYOK at provider prices — no credits, no markup",
+                  "Your own keys at provider prices — no credits, no markup",
                 ].map((f) => (
                   <li key={f} className="flex items-start gap-2">
                     <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
@@ -220,8 +220,8 @@ export default function VsComfyUIPage() {
             </h2>
             <p className="mt-4 leading-relaxed text-slate-300">
               If your work starts and ends with Stable Diffusion images, ComfyUI
-              gives you fine-grained control. But most creative projects span
-              modalities — image into video, voice and music into a cut, words
+              gives you fine-grained control. But most creative projects cross
+              media — image into video, voice and music into a cut, words
               into everything. NodeTool keeps all of it on one node-based canvas
               with masks, inpaint, outpaint, relight, upscale, layers, and
               compositing built in. You call every major model with your own
@@ -239,7 +239,7 @@ export default function VsComfyUIPage() {
         {/* Closing CTA */}
         <section className="mx-auto my-24 max-w-2xl px-6 text-center">
           <h2 className="text-3xl font-bold tracking-tight text-white md:text-4xl">
-            Open, multimodal, and yours.
+            Open, built for every medium, and yours.
           </h2>
           <p className="mt-4 text-lg text-slate-300">
             Download Studio and build across image, video, audio, and text in one

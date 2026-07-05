@@ -112,6 +112,17 @@ export class GraphBuilder {
     }
     if (errors.length > 0) return errors;
 
+    // Reject an edge that would introduce a cycle: if `source` is already
+    // reachable from `target`, adding source→target closes a loop
+    // (target→…→source→target). Caught here so the model gets an actionable
+    // error at the moment it adds the edge, not only at finish_graph.
+    if (this.isReachable(target, source)) {
+      errors.push(
+        `Edge ${source}.${sourceHandle} → ${target}.${targetHandle} would create a cycle: '${source}' is already reachable from '${target}'.`
+      );
+      return errors;
+    }
+
     // Check for duplicate edge
     const isDuplicate = this._edges.some(
       (e) =>
@@ -129,6 +140,27 @@ export class GraphBuilder {
 
     this._edges.push({ source, sourceHandle, target, targetHandle });
     return errors;
+  }
+
+  /**
+   * Whether `to` is reachable from `from` following the current directed edges.
+   * A node is trivially reachable from itself. Used by {@link addEdge} for a
+   * cheap incremental cycle check.
+   */
+  private isReachable(from: string, to: string): boolean {
+    if (from === to) return true;
+    const visited = new Set<string>([from]);
+    const stack = [from];
+    while (stack.length > 0) {
+      const current = stack.pop()!;
+      for (const edge of this._edges) {
+        if (edge.source !== current || visited.has(edge.target)) continue;
+        if (edge.target === to) return true;
+        visited.add(edge.target);
+        stack.push(edge.target);
+      }
+    }
+    return false;
   }
 
   /**

@@ -17,7 +17,6 @@ export interface FrontendToolDefinition<Result = unknown> {
    */
   hidden?: boolean;
   requireUserConsent?: boolean;
-  // Use `any` here to allow destructured parameters in tool implementations
   execute: (args: any, ctx: FrontendToolContext) => Promise<Result>;
 }
 

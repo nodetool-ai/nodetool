@@ -45,6 +45,7 @@ export class Workflow extends DBModel {
   declare run_mode: string | null;
   declare workspace_id: string | null;
   declare html_app: string | null;
+  declare app_doc: Record<string, unknown> | null;
   declare receive_clipboard: boolean | null;
   declare access: AccessLevel;
   declare created_at: string;
@@ -67,6 +68,7 @@ export class Workflow extends DBModel {
     this.run_mode ??= "workflow";
     this.workspace_id ??= null;
     this.html_app ??= null;
+    this.app_doc ??= null;
     this.access ??= "private";
     this.created_at ??= now;
     this.updated_at ??= now;
@@ -278,7 +280,8 @@ export class Workflow extends DBModel {
       },
       run_mode: (data.run_mode as string) ?? null,
       workspace_id: (data.workspace_id as string) ?? null,
-      html_app: (data.html_app as string) ?? null
+      html_app: (data.html_app as string) ?? null,
+      app_doc: (data.app_doc as Record<string, unknown>) ?? null
     });
   }
 

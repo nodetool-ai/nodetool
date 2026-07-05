@@ -35,9 +35,11 @@ interface MediaControlChipProps {
   emphasis?: "default" | "primary";
   /** Allow this chip to shrink and truncate its label. */
   truncate?: boolean;
+  /** Max width in px when truncating. Defaults to 200. */
+  maxWidth?: number;
 }
 
-const createStyles = (theme: Theme, size: "sm" | "md", emphasis: "default" | "primary", active: boolean, truncate: boolean, iconOnly: boolean) =>
+const createStyles = (theme: Theme, size: "sm" | "md", emphasis: "default" | "primary", active: boolean, truncate: boolean, iconOnly: boolean, maxWidth: number) =>
   css({
     display: "inline-flex",
     alignItems: "center",
@@ -67,7 +69,7 @@ const createStyles = (theme: Theme, size: "sm" | "md", emphasis: "default" | "pr
     whiteSpace: "nowrap",
     flexShrink: truncate ? 1 : 0,
     minWidth: truncate ? 0 : undefined,
-    maxWidth: truncate ? 200 : undefined,
+    maxWidth: truncate ? maxWidth : undefined,
     overflow: truncate ? "hidden" : undefined,
     "&:hover:not(:disabled)": {
       backgroundColor: theme.vars.palette.c_overlay
@@ -113,7 +115,8 @@ const MediaControlChip = memo(
         size = "md",
         className,
         emphasis = "default",
-        truncate = false
+        truncate = false,
+        maxWidth = 200
       },
       ref
     ) => {
@@ -127,7 +130,7 @@ const MediaControlChip = memo(
           title={title}
           aria-label={!hasLabel ? title : undefined}
           className={`media-control-chip${className ? ` ${className}` : ""}${active ? " active" : ""}`}
-          css={createStyles(theme, size, emphasis, active, truncate, !hasLabel)}
+          css={createStyles(theme, size, emphasis, active, truncate, !hasLabel, maxWidth)}
           onClick={onClick}
           disabled={disabled}
           aria-pressed={active || undefined}

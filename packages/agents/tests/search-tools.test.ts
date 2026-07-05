@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
-  GoogleSearchTool,
+  WebSearchTool,
   GoogleNewsTool,
   GoogleImagesTool
 } from "../src/tools/search-tools.js";
@@ -27,11 +27,11 @@ function stubFetch(body: unknown, status = 200) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  GoogleSearchTool                                                  */
+/*  WebSearchTool                                                  */
 /* ------------------------------------------------------------------ */
 
-describe("GoogleSearchTool", () => {
-  const tool = new GoogleSearchTool();
+describe("WebSearchTool", () => {
+  const tool = new WebSearchTool();
   let fetchSpy: ReturnType<typeof vi.spyOn>;
 
   afterEach(() => {
@@ -110,13 +110,13 @@ describe("GoogleSearchTool", () => {
 
   it("userMessage returns search description", () => {
     expect(tool.userMessage({ query: "cats" })).toBe(
-      "Searching Google for 'cats'"
+      "Searching the web for 'cats'"
     );
   });
 
   it("userMessage truncates long queries", () => {
     const longQuery = "a".repeat(200);
-    expect(tool.userMessage({ query: longQuery })).toBe("Searching Google");
+    expect(tool.userMessage({ query: longQuery })).toBe("Searching the web");
   });
 
   it("throws when SerpAPI returns non-OK response", async () => {
@@ -130,7 +130,7 @@ describe("GoogleSearchTool", () => {
 
   it("has correct provider tool shape", () => {
     const pt = tool.toProviderTool();
-    expect(pt.name).toBe("google_search");
+    expect(pt.name).toBe("web_search");
     expect(pt.description).toBeTruthy();
     expect(pt.inputSchema).toBeDefined();
   });

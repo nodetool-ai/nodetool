@@ -9,6 +9,8 @@ import React, {
 } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { useNavigate } from "react-router-dom";
+import DashboardCustomizeIcon from "@mui/icons-material/DashboardCustomize";
 
 import {
   useWorkspaceTabsStore,
@@ -17,6 +19,7 @@ import {
 } from "../../stores/WorkspaceTabsStore";
 import { useWorkflowManager, useWorkflowManagerStore } from "../../contexts/WorkflowManagerContext";
 import { useAssetStore } from "../../stores/AssetStore";
+import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { trpcClient } from "../../trpc/client";
 import { colorForType } from "../../config/data_types";
 import { TOOLBAR_WIDTH } from "../../config/constants";
@@ -34,6 +37,7 @@ const SUPPORTS_BOTH_MODES: Record<WorkspaceTabType, boolean> = {
   model3d: true,
   text: true,
   audio: true,
+  chat: false,
   page: false
 };
 
@@ -42,7 +46,8 @@ const RENAMEABLE_TYPES = new Set<WorkspaceTabType>([
   "workflow",
   "sketch",
   "timeline",
-  "model3d"
+  "model3d",
+  "chat"
 ]);
 
 const TYPE_GLYPH: Record<WorkspaceTabType, string> = {
@@ -53,6 +58,7 @@ const TYPE_GLYPH: Record<WorkspaceTabType, string> = {
   model3d: "◈",
   audio: "♪",
   text: "¶",
+  chat: "❝",
   page: "☰"
 };
 
@@ -65,6 +71,7 @@ const TYPE_COLOR: Record<WorkspaceTabType, string> = {
   model3d: colorForType("model_3d"),
   audio: colorForType("audio"),
   text: colorForType("text"),
+  chat: colorForType("str"),
   page: colorForType("any")
 };
 
@@ -224,6 +231,26 @@ const styles = (theme: Theme) =>
       }
     },
 
+    "& .app-builder-button": {
+      WebkitAppRegion: "no-drag",
+      display: "flex",
+      alignItems: "center",
+      gap: getSpacingPx(SPACING.xs),
+      flexShrink: 0,
+      border: `1px solid ${theme.vars.palette.divider}`,
+      borderRadius: BORDER_RADIUS.sm,
+      background: "transparent",
+      color: theme.vars.palette.text.secondary,
+      cursor: "pointer",
+      fontSize: "var(--fontSizeSmaller)",
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.lg)}`,
+      "& svg": { width: "16px", height: "16px" },
+      "&:hover": {
+        color: theme.vars.palette.text.primary,
+        backgroundColor: theme.vars.palette.action.hover
+      }
+    },
+
     "& .right-actions": {
       WebkitAppRegion: "no-drag",
       display: "flex",
@@ -252,6 +279,7 @@ const styles = (theme: Theme) =>
 
 const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
   const theme = useTheme();
+  const navigate = useNavigate();
   const tabBarStyles = useMemo(() => styles(theme), [theme]);
   const tabs = useWorkspaceTabsStore((state) => state.tabs);
   const activeTabId = useWorkspaceTabsStore((state) => state.activeTabId);
@@ -402,6 +430,11 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
           case "model3d":
             await useAssetStore.getState().update({ id: tab.ref, name: trimmed });
             break;
+          case "chat":
+            await useGlobalChatStore
+              .getState()
+              .updateThreadTitle(tab.ref, trimmed);
+            break;
           default:
             break;
         }
@@ -523,6 +556,19 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
           </button>
         </div>
       )}
+
+      {activeTab &&
+        activeTab.type === "workflow" &&
+        activeTab.mode === "view" && (
+          <button
+            type="button"
+            className="app-builder-button"
+            onClick={() => navigate(`/app-builder/${activeTab.ref}`)}
+          >
+            <DashboardCustomizeIcon />
+            App Builder
+          </button>
+        )}
 
       <div className="right-actions">
         <NotificationButton />

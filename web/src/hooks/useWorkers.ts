@@ -29,10 +29,10 @@ export type WorkerStatus =
 export interface WorkerProfile {
   id: string;
   name: string;
-  target: string;
+  target: WorkerTarget;
   image: string;
   spec: Record<string, unknown>;
-  token_policy: string;
+  token_policy: TokenPolicy;
   idle_timeout_minutes: number | null;
   max_lifetime_minutes: number | null;
   created_at: string;
@@ -42,11 +42,11 @@ export interface WorkerProfile {
 export interface WorkerInstance {
   id: string;
   profile_name: string;
-  target: string;
+  target: WorkerTarget;
   provider_ref: string;
   ws_url: string;
   token: string | null;
-  status: string;
+  status: WorkerStatus;
   attached_to: string | null;
   created_at: string;
   last_activity_at: string;
@@ -114,8 +114,8 @@ export const useWorkerHealth = (
 ): UseQueryResult<WorkerHealth, Error> =>
   useQuery<WorkerHealth, Error>({
     queryKey: workerQueryKeys.health(id),
-    queryFn: () =>
-      trpcClient.worker.health.query({ id }) as Promise<WorkerHealth>,
+    queryFn: async () =>
+      (await trpcClient.worker.health.query({ id })) as WorkerHealth,
     enabled,
     refetchInterval: enabled ? HEALTH_REFETCH_INTERVAL_MS : false,
     refetchOnWindowFocus: false,
@@ -153,22 +153,23 @@ export const useWorkers = (): UseWorkersResult => {
 
   const profilesQuery = useQuery<WorkerProfile[], Error>({
     queryKey: workerQueryKeys.profiles,
-    queryFn: () =>
-      trpcClient.worker.profiles.list.query() as Promise<WorkerProfile[]>
+    queryFn: async () =>
+      (await trpcClient.worker.profiles.list.query()) as WorkerProfile[]
   });
 
   const instancesQuery = useQuery<WorkerInstance[], Error>({
     queryKey: workerQueryKeys.instances,
-    queryFn: () =>
-      trpcClient.worker.instances.list.query() as Promise<WorkerInstance[]>,
+    queryFn: async () =>
+      (await trpcClient.worker.instances.list.query()) as WorkerInstance[],
     refetchInterval: INSTANCES_REFETCH_INTERVAL_MS
   });
 
   const apiKeyStatusQuery = useQuery<Record<WorkerTarget, boolean>, Error>({
     queryKey: workerQueryKeys.apiKeyStatus,
-    queryFn: () =>
-      trpcClient.worker.apiKeyStatus.query() as Promise<
-        Record<WorkerTarget, boolean>
+    queryFn: async () =>
+      (await trpcClient.worker.apiKeyStatus.query()) as Record<
+        WorkerTarget,
+        boolean
       >
   });
 

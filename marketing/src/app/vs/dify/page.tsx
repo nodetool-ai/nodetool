@@ -8,12 +8,12 @@ import { SmartDownloadButton } from "../../SmartDownloadButton";
 export const metadata: Metadata = {
   title: "NodeTool vs Dify — an LLM app platform vs a media-generation canvas",
   description:
-    "Dify is a strong LLM app platform: prompt orchestration, knowledge bases, and agent debugging for text-first products. NodeTool starts from the same agent and RAG ground, then puts native image, video, and music generation and editing tools on the same canvas — BYOK at provider prices, no vendor-hosted markup.",
+    "Dify is a strong LLM app platform: prompt orchestration, knowledge bases, and agent debugging for text-first products. NodeTool starts from the same agent and RAG ground, then puts native image, video, and music generation and editing tools on the same canvas — your own keys at provider prices, no markup.",
   alternates: { canonical: "/vs/dify" },
   openGraph: {
     title: "NodeTool vs Dify — an LLM app platform vs a media-generation canvas",
     description:
-      "Dify is built for text-first LLM apps. NodeTool adds native image, video, and music generation on the same canvas as agents and RAG — BYOK.",
+      "Dify is built for text-first LLM apps. NodeTool adds native image, video, and music generation on the same canvas as agents and RAG — with your own keys.",
     url: "https://nodetool.ai/vs/dify",
     type: "website",
   },
@@ -50,7 +50,7 @@ const faq = {
       name: "Is Dify open source?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Dify's source is published under a modified Apache 2.0 license that adds commercial-use conditions above certain usage thresholds — check Dify's own license file for the current terms before relying on it for a commercial deployment. NodeTool is open source under AGPL-3.0, an OSI-approved license, and is fully BYOK on both self-hosted and NodeTool Cloud deployments.",
+        text: "Dify's source is published under a modified Apache 2.0 license that adds commercial-use conditions above certain usage thresholds — check Dify's own license file for the current terms before relying on it for a commercial deployment. NodeTool is open source under AGPL-3.0, an OSI-approved license, and lets you bring your own keys on both self-hosted and NodeTool Cloud deployments.",
       },
     },
     {
@@ -66,7 +66,7 @@ const faq = {
       name: "When should I pick Dify instead of NodeTool?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "When the product is a text-first LLM app — a support chatbot, an internal copilot, a knowledge-base assistant — and you want Dify's prompt-orchestration UI, built-in observability, and app-store-style deployment. NodeTool is the better fit when the workflow needs to produce image, video, or audio alongside the agent and RAG work, or when you want a desktop app with local-model support and BYOK pricing throughout.",
+        text: "When the product is a text-first LLM app — a support chatbot, an internal copilot, a knowledge-base assistant — and you want Dify's prompt-orchestration UI, built-in observability, and app-store-style deployment. NodeTool is the better fit when the workflow needs to produce image, video, or audio alongside the agent and RAG work, or when you want a desktop app with local-model support and your own keys throughout.",
       },
     },
   ],
@@ -102,7 +102,7 @@ const rows: { label: string; dify: string | boolean; nodetool: string | boolean 
   {
     label: "Pricing model",
     dify: "Seat/usage plans (cloud)",
-    nodetool: "BYOK / provider prices",
+    nodetool: "Your own keys / provider prices",
   },
   { label: "Desktop app", dify: false, nodetool: true },
 ];
@@ -146,7 +146,7 @@ export default function VsDifyPage() {
             orchestration, knowledge bases, agent debugging. NodeTool starts
             from the same agent and RAG ground, then puts native image,
             video, and music generation and editing tools on the same canvas
-            — open source under AGPL-3.0, BYOK at provider prices, with a
+            — open source under AGPL-3.0, your own keys at provider prices, with a
             desktop app and local models.
           </p>
         </section>
@@ -186,7 +186,7 @@ export default function VsDifyPage() {
                   "Agents, RAG, and native image/video/music generation",
                   "Built-in editing tools — masks, inpaint, relight, layers",
                   "Open source under AGPL-3.0, desktop app included",
-                  "BYOK at provider prices — no credits, no markup",
+                  "Your own keys at provider prices — no credits, no markup",
                 ].map((f) => (
                   <li key={f} className="flex items-start gap-2">
                     <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />

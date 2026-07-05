@@ -2,6 +2,8 @@ import type { PageEntry } from "./types";
 import { staticEntries } from "./staticEntries";
 import { faqPageEntries } from "./faqEntries";
 import { ideasPageEntries } from "./ideasEntries";
+import { templateEntries } from "./templates";
+import { showcasePageEntries } from "./showcasePages";
 
 /**
  * A page engine's contribution to the registry. `sample`, when set, tells the
@@ -24,6 +26,10 @@ export const registryModules: RegistryModule[] = [
   { name: "static", entries: staticEntries },
   { name: "faq", entries: faqPageEntries },
   { name: "ideas", entries: ideasPageEntries },
+  { name: "templates", entries: templateEntries },
+  // Showcase pages can grow into the hundreds once W-1 seeds real batches, so
+  // the smoke suite samples the first 12 — hub + filter pages are ordered first.
+  { name: "showcase", entries: showcasePageEntries, sample: 12 },
 ];
 
 /** Flat list of every page entry across all modules. */

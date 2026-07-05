@@ -47,19 +47,16 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = memo(
 
     // Subscribe to runner store state without conditional hooks
     const [runState, setRunState] = useState<RunnerState>("idle");
-    const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
     useEffect(() => {
       if (!effectiveWorkflowId) {
         setRunState("idle");
-        setStatusMessage(null);
         return;
       }
       const store = getWorkflowRunnerStore(effectiveWorkflowId);
       const update = () => {
         const s = store.getState();
         setRunState(s.state);
-        setStatusMessage(s.statusMessage);
       };
       update();
       return store.subscribe(update);

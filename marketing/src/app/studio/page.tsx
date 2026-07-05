@@ -68,18 +68,18 @@ const proPoints = [
   },
   {
     icon: Cpu,
-    title: "Run open-weight models locally",
-    body: "Ollama, MLX (Apple Silicon), GGUF/GGML, HuggingFace Transformers — all wired into the same nodes. Pick any open model with zero API cost.",
+    title: "Run open models on your machine",
+    body: "Ollama, MLX (Apple Silicon), llama.cpp, Hugging Face — all wired into the same nodes. Pick any open model and pay no API fees.",
   },
   {
     icon: Zap,
     title: "Use your GPU to the fullest",
-    body: "NVIDIA CUDA on Windows/Linux, Metal on Apple Silicon. Image, video, and audio nodes go straight to the metal.",
+    body: "NVIDIA GPUs on Windows and Linux, Apple Silicon on macOS. Image, video, and audio nodes use your hardware directly.",
   },
   {
     icon: HardDrive,
     title: "Own your model library",
-    body: "Built-in Model Manager downloads, organizes, and shares model files across workflows. Curate the exact stack you want.",
+    body: "Built-in Model Manager downloads, organizes, and shares model files across workflows. Keep exactly the models you want.",
   },
   {
     icon: Code2,
@@ -91,7 +91,7 @@ const proPoints = [
 const consPoints = [
   {
     title: "Hardware matters",
-    body: "Local LLMs need RAM and ideally a GPU. We recommend 16GB+ RAM and 4GB+ VRAM for serious local-model work.",
+    body: "Local models need RAM and ideally a GPU. We recommend 16GB+ RAM and 4GB+ of GPU memory for serious local-model work.",
   },
   {
     title: "You manage updates",
@@ -99,7 +99,7 @@ const consPoints = [
   },
   {
     title: "Disk space",
-    body: "Local models are large — plan ~20GB for a small starter set, much more for video/image weights.",
+    body: "Local models are large — plan ~20GB for a small starter set, much more for video and image models.",
   },
 ];
 
@@ -212,10 +212,10 @@ export default function StudioPage() {
                   </span>
                 </h1>
                 <p className="mt-6 text-lg text-slate-300 leading-relaxed max-w-xl">
-                  NodeTool Studio is the desktop app for builders who want their
-                  models, data, and outputs to stay local. Use Ollama, MLX, and
-                  GGUF models with zero per-token cost — and bring your own keys
-                  for any cloud provider when you need them.
+                  NodeTool Studio is the desktop app for builders who want
+                  their models, data, and outputs to stay on their own machine.
+                  Run free local models with Ollama and MLX — and bring your
+                  own keys for any cloud provider when you need them.
                 </p>
                 <div className="mt-8 flex flex-col gap-3">
                   <SmartDownloadButton
@@ -281,7 +281,7 @@ export default function StudioPage() {
                 id="why-studio-title"
                 className="text-3xl md:text-5xl font-bold tracking-tight text-white"
               >
-                Privacy, speed, and zero per-token cost.
+                Privacy, speed, and no usage fees.
               </h2>
               <p className="mt-4 text-lg text-slate-400 leading-relaxed max-w-2xl">
                 Everything Studio does, it can do without a network connection.
@@ -328,8 +328,8 @@ export default function StudioPage() {
                 What Studio asks of you.
               </h2>
               <p className="mt-4 text-base text-slate-400 leading-relaxed max-w-2xl">
-                Local-first means you take on a few things the cloud would
-                otherwise handle. If any of these feel heavy,{" "}
+                Running everything on your own machine means you take on a few
+                things the cloud would otherwise handle. If any of these feel heavy,{" "}
                 <a
                   href="/cloud"
                   className="text-blue-300 hover:text-blue-200 underline underline-offset-2"

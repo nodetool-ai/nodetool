@@ -1123,6 +1123,7 @@ export const migrations: MigrationDef[] = [
           run_mode: "TEXT",
           workspace_id: "TEXT",
           html_app: "TEXT",
+          app_doc: "TEXT",
           receive_clipboard: "INTEGER",
           access: "TEXT",
           created_at: "TEXT",
@@ -1658,12 +1659,34 @@ export const migrations: MigrationDef[] = [
     }
   },
 
+  // ── Add app_doc to workflows ───────────────────────────────────────
+  // First-class storage for the app-builder document (Puck layout + bindings),
+  // replacing the legacy `settings.__appbuilder__` JSON string.
+  // Dialect-agnostic: runs for both SQLite and Postgres via the runner.
+  {
+    version: "20260701_000000",
+    name: "add_app_doc_to_workflows",
+    createsTables: [],
+    modifiesTables: ["nodetool_workflows"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_workflows"))) return;
+      if (!(await db.columnExists("nodetool_workflows", "app_doc"))) {
+        await db.execute(
+          "ALTER TABLE nodetool_workflows ADD COLUMN app_doc TEXT"
+        );
+      }
+    },
+    async down() {
+      // no-op: dropping columns is unsafe across dialects and versions
+    }
+  },
+
   // ── Scope chat threads to a workflow ───────────────────────────────
   // Threads gain a nullable `workflow_id` so the node editor can list only
   // the conversations for the open workflow and reopen the last one. Null
   // means workflow-agnostic (e.g. the global chat).
   {
-    version: "20260701_000000",
+    version: "20260701_000001",
     name: "add_workflow_id_to_threads",
     createsTables: [],
     modifiesTables: ["nodetool_threads"],

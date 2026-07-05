@@ -12,6 +12,9 @@ describe("ModelMenuStore", () => {
     it("returns OPENAI_API_KEY for OpenAI provider", () => {
       expect(requiredSecretForProvider("openai")).toBe("OPENAI_API_KEY");
       expect(requiredSecretForProvider("OpenAI")).toBe("OPENAI_API_KEY");
+      expect(requiredSecretForProvider("openai_responses")).toBe(
+        "OPENAI_API_KEY"
+      );
     });
 
     it("returns ANTHROPIC_API_KEY for Anthropic provider", () => {

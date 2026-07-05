@@ -256,10 +256,15 @@ export class NodeSearchIndex<T extends NodeMetadata = NodeMetadata> {
    */
   rank(terms: readonly string[], options: ScoreOptions = {}): ScoredNode<T>[] {
     if (terms.length === 0) return [];
+    // Mirror scoreNodeMetadata: each term may be a multi-word phrase (agents
+    // often pass ["text input string"]). Split on whitespace and match on
+    // individual words, else a phrase collapses to a single substring probe
+    // that almost never hits — the difference between 0 and many results.
     const lowered: string[] = [];
     for (const term of terms) {
-      const lower = term.toLowerCase();
-      if (lower) lowered.push(lower);
+      for (const word of term.toLowerCase().split(/\s+/)) {
+        if (word) lowered.push(word);
+      }
     }
     if (lowered.length === 0) return [];
 

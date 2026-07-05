@@ -1,7 +1,8 @@
 # @nodetool-ai/together-nodes
 
-Together AI media nodes for NodeTool — one workflow node per Together
-[serverless model](https://docs.together.ai/docs/serverless/models), covering:
+Together AI media nodes for [NodeTool](https://nodetool.ai) — one workflow node
+per Together [serverless model](https://docs.together.ai/docs/serverless/models),
+covering:
 
 | Modality | Models | Nodes |
 | --- | --- | --- |
@@ -15,6 +16,17 @@ Together AI media nodes for NodeTool — one workflow node per Together
 **56 nodes total.** Chat / LLM and embedding capabilities are not surfaced as
 per-model nodes here — they are served by the generic Agent / Embedding nodes
 through `TogetherProvider` in `@nodetool-ai/runtime`.
+
+## Install
+
+```bash
+npm install @nodetool-ai/together-nodes
+```
+
+## Configuration
+
+Set `TOGETHER_API_KEY` in NodeTool's secret store (Settings → API Keys) or as an
+environment variable.
 
 ## Architecture
 
@@ -51,3 +63,8 @@ npm test
 
 Edit the catalog (model ids / names / supported tasks) or the per-modality field
 templates in that script, then re-run `gen:manifest`.
+
+## Links
+
+- [NodeTool](https://nodetool.ai)
+- [GitHub](https://github.com/nodetool-ai/nodetool)

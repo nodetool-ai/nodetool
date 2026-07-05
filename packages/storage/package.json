@@ -50,5 +50,17 @@
   "files": [
     "dist",
     "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "storage",
+    "s3",
+    "file-storage",
+    "supabase",
+    "object-storage"
   ]
 }
