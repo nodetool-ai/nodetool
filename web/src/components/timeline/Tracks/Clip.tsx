@@ -43,7 +43,7 @@ import {
   getSpacingPx,
   MagicGenerationFill
 } from "../../ui_primitives";
-import type { StatusType } from "../../ui_primitives/StatusIndicator";
+import type { StatusType } from "../../ui_primitives";
 import { deriveClipStatus } from "../status/clipStatusReducer";
 import type { ClipErrorState } from "../status/clipStatusReducer";
 import { useClipThumbnails } from "./useClipThumbnails";

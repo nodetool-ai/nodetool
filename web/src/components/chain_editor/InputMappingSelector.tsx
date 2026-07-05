@@ -17,7 +17,10 @@ import {
   MOTION,
   BORDER_RADIUS,
   ListItemText,
-  ListItemIcon
+  ListItemIcon,
+  FlexRow,
+  FlexColumn,
+  Text
 } from "../ui_primitives";
 import InputOutlinedIcon from "@mui/icons-material/InputOutlined";
 import CheckIcon from "@mui/icons-material/Check";
@@ -25,9 +28,6 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import CloseIcon from "@mui/icons-material/Close";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import { FlexRow } from "../ui_primitives/FlexRow";
-import { FlexColumn } from "../ui_primitives/FlexColumn";
-import { Text } from "../ui_primitives/Text";
 import type { Property, TypeMetadata } from "../../stores/ApiTypes";
 import type { ChainNode, InputMappings, InputSource } from "./chainTypes";
 import { areTypesCompatible } from "./chainTypes";

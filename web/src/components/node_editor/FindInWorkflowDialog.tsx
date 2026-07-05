@@ -20,7 +20,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ClearIcon from "@mui/icons-material/Clear";
-import { CloseButton } from "../ui_primitives/CloseButton";
+import { CloseButton } from "../ui_primitives";
 import { useFindInWorkflow } from "../../hooks/useFindInWorkflow";
 
 const styles = (theme: Theme) =>

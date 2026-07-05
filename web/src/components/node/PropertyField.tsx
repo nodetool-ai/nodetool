@@ -16,7 +16,7 @@ import { isConnectableCached } from "../node_menu/typeFilterUtils";
 import HandleTooltip from "../HandleTooltip";
 import { NodeData } from "../../stores/NodeData";
 import usePropertyValidationStore from "../../stores/PropertyValidationStore";
-import { Tooltip } from "../ui_primitives/Tooltip";
+import { Tooltip } from "../ui_primitives";
 import useModelCalloutStore from "../../stores/ModelCalloutStore";
 import { isModelEmpty } from "../../utils/findMissingModelNodes";
 import ModelSetupCallout from "./ModelSetupCallout";

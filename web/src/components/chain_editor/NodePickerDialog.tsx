@@ -14,16 +14,16 @@ import {
   BORDER_RADIUS,
   SPACING,
   getSpacingPx,
-  InputAdornment
+  InputAdornment,
+  Box,
+  Dialog,
+  FlexColumn,
+  Text,
+  TextInput,
+  HighlightText
 } from "../ui_primitives";
-import { Box } from "../ui_primitives";
 import SearchIcon from "@mui/icons-material/Search";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Dialog } from "../ui_primitives/Dialog";
-import { FlexColumn } from "../ui_primitives/FlexColumn";
-import { Text } from "../ui_primitives/Text";
-import { TextInput } from "../ui_primitives/TextInput";
-import { HighlightText } from "../ui_primitives/HighlightText";
 import useMetadataStore from "../../stores/MetadataStore";
 import { computeSearchResults } from "../../utils/nodeSearch";
 import {

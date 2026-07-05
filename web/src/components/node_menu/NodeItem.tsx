@@ -8,7 +8,7 @@ import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useShallow } from "zustand/react/shallow";
 import { IconForType } from "../../config/IconForType";
-import { HighlightText } from "../ui_primitives/HighlightText";
+import { HighlightText } from "../ui_primitives";
 import { useFavoriteNodesStore } from "../../stores/FavoriteNodesStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_SHORT } from "../../config/constants";

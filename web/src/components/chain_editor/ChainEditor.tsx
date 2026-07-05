@@ -9,10 +9,14 @@ import React, { useCallback, useMemo, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
-import { FlexRow } from "../ui_primitives/FlexRow";
-import { FlexColumn } from "../ui_primitives/FlexColumn";
-import { EmptyState } from "../ui_primitives/EmptyState";
-import { ToolbarIconButton, Box, TextInput } from "../ui_primitives";
+import {
+  FlexRow,
+  FlexColumn,
+  EmptyState,
+  ToolbarIconButton,
+  Box,
+  TextInput
+} from "../ui_primitives";
 import { useChainEditorStore } from "./useChainEditorStore";
 import { ChainNodeCard } from "./ChainNodeCard";
 import { ChainConnector } from "./ChainConnector";

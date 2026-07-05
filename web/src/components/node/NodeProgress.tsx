@@ -2,7 +2,7 @@
 import { memo, useCallback, useRef } from "react";
 import isEqual from "fast-deep-equal";
 import { useNodeProgress } from "../../hooks/nodes/useNodeExecState";
-import { ProgressBar } from "../ui_primitives/ProgressBar";
+import { ProgressBar } from "../ui_primitives";
 
 const PROGRESS_STYLE: React.CSSProperties = { margin: "0.75em 0 0.5em 0" };
 

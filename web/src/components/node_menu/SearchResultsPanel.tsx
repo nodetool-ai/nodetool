@@ -8,7 +8,7 @@ import SearchResultItem from "./SearchResultItem";
 import usePendingNodeCreateStore from "../../stores/PendingNodeCreateStore";
 import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
-import { EmptyState } from "../ui_primitives/EmptyState";
+import { EmptyState } from "../ui_primitives";
 
 interface SearchResultsPanelProps {
   searchNodes: NodeMetadata[];

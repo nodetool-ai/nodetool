@@ -11,7 +11,7 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { titleizeString } from "../../utils/titleizeString";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
-import { HighlightText } from "../ui_primitives/HighlightText";
+import { HighlightText } from "../ui_primitives";
 import {
   formatFalUnitPricingShort,
   formatFalUnitPricingTooltip,

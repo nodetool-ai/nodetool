@@ -14,7 +14,7 @@ import {
   removeClassNamesFromElement
 } from "@lexical/utils";
 import { $patchStyleText } from "@lexical/selection";
-import { getSpacingPx, SPACING } from "../ui_primitives/spacing";
+import { getSpacingPx, SPACING } from "../ui_primitives";
 import { copyAsMarkdown } from "./exportMarkdown";
 import { INSERT_HORIZONTAL_RULE_COMMAND } from "./horizontalRuleCommand";
 

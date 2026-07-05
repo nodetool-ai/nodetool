@@ -10,11 +10,11 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { formatNodeDocumentation } from "../../stores/formatNodeDocumentation";
 import { colorForType } from "../../config/data_types";
 import { IconForType } from "../../config/IconForType";
-import { HighlightText } from "../ui_primitives/HighlightText";
+import { HighlightText } from "../ui_primitives";
 import { getProviderKindForNamespace } from "../../utils/nodeProvider";
 import { useFavoriteNodesStore } from "../../stores/FavoriteNodesStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import FavoriteButton from "../ui_primitives/FavoriteButton";
+import { FavoriteButton } from "../ui_primitives";
 import { NOTIFICATION_TIMEOUT_SHORT } from "../../config/constants";
 
 const COMPACT_SVG_PROPS = { width: "14px", height: "14px" } as const;

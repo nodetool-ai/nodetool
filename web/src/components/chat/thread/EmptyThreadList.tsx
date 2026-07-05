@@ -2,7 +2,7 @@
 import React from "react";
 import { useTheme } from "@mui/material/styles";
 import { createStyles } from "./EmptyThreadList.styles";
-import { EmptyState } from "../../ui_primitives/EmptyState";
+import { EmptyState } from "../../ui_primitives";
 
 export const EmptyThreadList: React.FC = () => {
   const theme = useTheme();

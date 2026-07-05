@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { LinearProgressProps } from "@mui/material";
-import { ProgressBar } from "../ui_primitives/ProgressBar";
+import { ProgressBar } from "../ui_primitives";
 
 type LinearProgressWithLabelProps = LinearProgressProps & {
     filename?: string,
