@@ -1,19 +1,21 @@
 ---
 layout: page
 title: "Chat"
-description: "Chat with models, run agents, trigger workflows."
+description: "Chat with models, run agents, generate media, and trigger workflows."
 ---
 
-Chat is the always-on chat surface inside NodeTool. It talks to any provider, runs tools, kicks off agents, and triggers your saved workflows.
+Chat is the always-on chat surface inside NodeTool. It talks to any provider, runs tools, kicks off agents, generates images, video, and speech, and triggers your saved workflows — all from one composer.
 
 ---
 
 ## Overview
 
 - 20+ providers (OpenAI, Anthropic, Gemini, Ollama, …)
-- Tools: web search, files, code execution
+- One composer for chat, image, video, and speech generation
+- Tools: web search, files, code execution, HTTP, and more
 - Every turn runs the agent loop — the assistant plans and calls tools on its own as a task needs it
-- Run saved workflows from the composer
+- Permission modes (Plan / Default / Auto) set how much the agent may do without asking
+- Run saved workflows from chat
 - Multiple threads, persistent history
 - Standalone tray window
 
@@ -32,9 +34,9 @@ Persistent WebSocket connection — reconnects after reloads.
 
 ### Choosing a Model
 
-![Chat Model Selector](assets/screenshots/screenshot-placeholder.svg)
+![Chat Model Selector](assets/screenshots/chat-model-selector.png)
 
-Select your preferred AI model from the model picker at the top of the chat. Available models depend on your configured providers:
+Click the model chip in the composer to open the model picker. Available models depend on your configured providers:
 
 - **Cloud models** -- OpenAI GPT, Anthropic Claude, Google Gemini (requires API keys)
 - **Local models** -- Ollama, LM Studio models (requires local installation)
@@ -43,9 +45,27 @@ Configure providers in **Settings > Providers**. See [Models & Providers](models
 
 ---
 
-## Conversation Threads
+## Composer Modes
 
-![Chat Thread List](assets/screenshots/global-chat-interface.png)
+![Composer Modes](assets/screenshots/chat-composer-modes.png)
+
+The same composer generates more than text. Click the mode chip to switch between:
+
+| Mode | What it does |
+|------|--------------|
+| **Chat** | Talk to the model, run tools, and drive agents |
+| **Generate Images** | Text-to-image with your chosen image model |
+| **Edit Images** | Image-to-image edits on a dropped image |
+| **Generate Videos** | Text-to-video |
+| **Animate Image** | Turn a still image into a clip |
+| **Generate Speech** | Text-to-speech with a voice picker |
+| **Pi Agent** | The workspace-aware agent that works over your files |
+
+Each mode swaps in its own controls — resolution, aspect ratio, duration, voice — and attaches them to the message so the server routes to the right provider call.
+
+---
+
+## Conversation Threads
 
 Chat organizes conversations into threads:
 
@@ -55,23 +75,33 @@ Chat organizes conversations into threads:
 - **Message history** -- Scroll through past messages with cursor-based pagination
 - **Message caching** -- Recent messages are cached locally for fast loading
 
+Each thread keeps its own model, permission mode, and history.
+
 ---
 
-## Agent Mode
+## Agents {#agent-mode}
 
-### What is Agent Mode?
+### The Agent Loop
 
-![Agent Mode Enabled](assets/screenshots/screenshot-placeholder.svg)
+Every turn in Chat runs the same agent loop — there's no separate mode to turn on. The assistant decides for itself, per request, whether to break a task into steps, select tools, and execute a multi-step plan, or just answer directly.
 
-Every turn in Chat runs the same agent loop — there's no separate mode to turn on. The assistant decides for itself, per request, whether to break a task down into steps, select tools, and execute a multi-step plan, or just answer directly.
-
-### How Agents Work
-
-1. **Planning** -- The agent analyzes your request and creates a task plan with ordered steps
-2. **Tool selection** -- For each step, the agent chooses from 20+ available tools
-3. **Execution** -- Steps run sequentially, with results feeding into subsequent steps
+1. **Planning** -- The agent analyzes your request and, when the task warrants it, creates a plan with ordered steps
+2. **Tool selection** -- For each step, the agent chooses from the available tools
+3. **Execution** -- Steps run in sequence, with results feeding the next step
 4. **Adaptation** -- The agent adjusts its plan based on intermediate results
-5. **Reporting** -- Progress updates stream in real-time as tasks complete
+5. **Reporting** -- Progress, tool calls, and reasoning stream in real time
+
+### Permission Modes
+
+![Permission Modes](assets/screenshots/chat-permission-modes.png)
+
+The permission chip sets how far the agent may act on its own. It's per-thread, so a scratch thread can run wide open while a production one stays cautious:
+
+| Mode | Behavior |
+|------|----------|
+| **Plan** | Read and propose only. No actions taken. |
+| **Default** | Reads run automatically; actions ask first. |
+| **Auto** | Everything runs, no prompts. |
 
 ### Agent Capabilities
 
@@ -88,43 +118,23 @@ When a request calls for it, the assistant can:
 | **HTTP requests** | Call external APIs and process responses |
 | **Workflow execution** | Run saved NodeTool workflows with custom inputs |
 
-### Viewing Agent Progress
+### Watching an Agent Work
 
-![Agent Planning](assets/screenshots/screenshot-placeholder.svg)
-
-When an agent is executing tasks, you'll see:
-
-- **Task plan** -- The breakdown of steps the agent will execute
-- **Step status** -- Real-time updates as each step starts, completes, or fails
-- **Tool calls** -- Which tools the agent is using and their results
-- **Thinking process** -- The agent's reasoning (when supported by the model)
+As the agent runs, the thread shows the task plan, each step's status as it starts, completes, or fails, the tools it calls and their results, and — on models that support it — its reasoning.
 
 ---
 
 ## Workflow Integration
 
-### Running Workflows from Chat
+You can ask the agent to run a saved workflow as part of a turn: it calls the workflow with your inputs and streams the results back into the chat. You can also ask it to build or modify workflows — it uses workspace tools to write the workflow configuration for you.
 
-![Workflow Attached to Chat](assets/screenshots/screenshot-placeholder.svg)
-
-1. Save a workflow in the workflow editor
-2. Open Chat
-3. Select a **workflow** in the composer dropdown
-4. Provide inputs and run -- results stream back into the chat
-
-### Creating Workflows from Chat
-
-You can ask the agent to create or modify workflows. It uses workspace tools to build workflow configurations programmatically.
+Save a workflow in the [workflow editor](workflow-editor.md) first, then reference it from chat.
 
 ---
 
 ## Available Tools
 
 Chat agents have access to these tools:
-
-### Built-in Tools
-
-![Chat Tools Menu](assets/screenshots/screenshot-placeholder.svg)
 
 | Tool Category | What It Does |
 |--------------|--------------|
@@ -143,7 +153,7 @@ Chat agents have access to these tools:
 
 ### MCP Tools (Model Context Protocol)
 
-NodeTool supports MCP for connecting to external tool servers. This enables integrating custom tools and services beyond the built-in set. See the [MCP documentation](https://modelcontextprotocol.io/) for details on available MCP servers.
+NodeTool supports MCP for connecting to external tool servers, so you can integrate custom tools and services beyond the built-in set. See the [MCP documentation](https://modelcontextprotocol.io/) for available MCP servers.
 
 ---
 

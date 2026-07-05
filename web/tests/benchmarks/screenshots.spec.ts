@@ -70,6 +70,35 @@ async function saveElementScreenshot(
   }
 }
 
+/**
+ * Open the chat composer's control-chip popovers by index. The chat-mode
+ * footer renders its chips in a stable order inside `.media-chip-main`:
+ *   0 → mode (Chat / Generate Images / …)
+ *   1 → language model
+ *   2 → permission mode (Plan / Default / Auto)
+ * Returns false if the requested chip never appears (composer not mounted).
+ */
+async function openComposerChip(
+  page: Page,
+  which: "mode" | "model" | "permission"
+): Promise<boolean> {
+  const selector =
+    which === "permission"
+      ? ".permission-selector-trigger"
+      : ".media-chip-main .media-control-chip";
+  const index = which === "mode" ? 0 : which === "model" ? 1 : 0;
+  const chip = page.locator(selector).nth(index);
+  try {
+    await chip.waitFor({ state: "visible", timeout: 15000 });
+    await chip.click();
+    await waitForAnimation(page, 500);
+    return true;
+  } catch {
+    console.warn(`  ⚠ Composer chip not found: ${which}`);
+    return false;
+  }
+}
+
 /** Skip a test if the screenshot already exists and FORCE_SCREENSHOTS is not set */
 function shouldSkip(filename: string): boolean {
   if (process.env.FORCE_SCREENSHOTS === "true") return false;
@@ -476,6 +505,53 @@ if (process.env.JEST_WORKER_ID) {
       await gotoPage(page, "/chat/thread-story");
       await waitForScreenshotReady(page, "chat-mobile.png");
       await saveScreenshot(page, "chat-mobile.png");
+    });
+
+    // The model picker opened from the composer's model chip.
+    test("Chat – model selector", async ({ page }) => {
+      test.skip(shouldSkip("chat-model-selector.png"), "Already captured");
+      await gotoPage(page, "/chat/thread-story");
+      await waitForScreenshotReady(page, "global-chat-interface.png");
+      if (await openComposerChip(page, "model")) {
+        await page
+          .getByText(/select language model/i)
+          .first()
+          .waitFor({ state: "visible", timeout: 8000 })
+          .catch(() => {});
+      }
+      await saveScreenshot(page, "chat-model-selector.png");
+    });
+
+    // The composer mode menu — chat, image, video, and speech generation all
+    // run from the same box.
+    test("Chat – composer modes", async ({ page }) => {
+      test.skip(shouldSkip("chat-composer-modes.png"), "Already captured");
+      await gotoPage(page, "/chat/thread-story");
+      await waitForScreenshotReady(page, "global-chat-interface.png");
+      if (await openComposerChip(page, "mode")) {
+        await page
+          .getByRole("menu", { name: /generation mode/i })
+          .first()
+          .waitFor({ state: "visible", timeout: 8000 })
+          .catch(() => {});
+      }
+      await saveScreenshot(page, "chat-composer-modes.png");
+    });
+
+    // The permission menu — Plan / Default / Auto controls how much the agent
+    // may do on its own.
+    test("Chat – permission modes", async ({ page }) => {
+      test.skip(shouldSkip("chat-permission-modes.png"), "Already captured");
+      await gotoPage(page, "/chat/thread-story");
+      await waitForScreenshotReady(page, "global-chat-interface.png");
+      if (await openComposerChip(page, "permission")) {
+        await page
+          .getByRole("menu", { name: /permission mode/i })
+          .first()
+          .waitFor({ state: "visible", timeout: 8000 })
+          .catch(() => {});
+      }
+      await saveScreenshot(page, "chat-permission-modes.png");
     });
 
     test("Login", async ({ page }) => {
