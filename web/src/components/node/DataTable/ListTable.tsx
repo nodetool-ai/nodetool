@@ -49,10 +49,10 @@ const coerceValue = (value: unknown, type: ListDataType): ListCellValue => {
 
   switch (type) {
     case "int":
-      intValue = parseInt(value as string);
+      intValue = parseInt(String(value));
       return isNaN(intValue) ? 0 : intValue;
     case "float":
-      floatValue = parseFloat(value as string);
+      floatValue = parseFloat(String(value));
       return isNaN(floatValue) ? 0.0 : floatValue;
     case "datetime":
       return new Date(value as string);

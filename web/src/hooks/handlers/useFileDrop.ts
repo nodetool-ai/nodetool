@@ -164,8 +164,12 @@ export function useFileDrop(props: FileDropProps): FileDropResult {
               });
             } else {
               reader.onload = function (event) {
-                if (event.target?.result && props.onChange) {
-                  props.onChange(event.target.result as string);
+                if (
+                  event.target?.result &&
+                  typeof event.target.result === "string" &&
+                  props.onChange
+                ) {
+                  props.onChange(event.target.result);
                 }
               };
               reader.readAsDataURL(file);
