@@ -614,7 +614,18 @@ export const borderRadiusTokensRule = {
 //
 //   1. Object props   { transition: "0.2s ease", animation: "spin 1s linear …" }
 //   2. Duration/delay { animationDelay: "0.08s", transitionDuration: "200ms" }
-//   3. Template CSS    css`transition: color 0.2s;`  animation: name 1.6s …
+//   3. Interpolated   { animation: `${keyframe} 1.6s ease-in-out infinite` }
+//   4. Template CSS   css`transition: color 0.2s;`  animation: name 1.6s …
+//
+// Form 3 is the dominant backlog shape: a keyframe name interpolated ahead of a
+// raw duration. It escapes the object-prop Literal check (the value is a
+// TemplateLiteral) *and* the CSS-decl check (there's no `animation:` text inside
+// the quasi to anchor on — the key lives in the object, not the template). The
+// Property handler therefore also scans TemplateLiteral values: the key already
+// proves it's a timing prop, so any raw non-zero `s`/`ms` in the quasis is a
+// violation. Values built purely from MOTION.* tokens keep the token in a
+// placeholder (`${MOTION.slow}`), leaving no raw timing in the quasis, so
+// `animation: `${activePop} ${MOTION.slow}`` stays unflagged.
 //
 // Any non-zero timing (`s` or `ms`) is reported. `0`/`0s` (no delay) is allowed;
 // values built from MOTION.* tokens (MemberExpressions / template placeholders)
@@ -679,6 +690,16 @@ export const motionTokensRule = {
           value.type === "Literal" &&
           typeof value.value === "string" &&
           hasNonZeroTime(value.value)
+        ) {
+          context.report({ node: value, messageId: "raw" });
+        } else if (
+          // Interpolated keyframe form: `animation: `${keyframe} 1.6s …``.
+          // The key already proves this is a timing prop, so any raw non-zero
+          // s/ms in the quasis is a violation. MOTION.*-composed values place
+          // the token in a placeholder (Expression), leaving no raw timing in
+          // the quasis, so they stay unflagged.
+          value.type === "TemplateLiteral" &&
+          value.quasis.some((q) => hasNonZeroTime(q.value.raw))
         ) {
           context.report({ node: value, messageId: "raw" });
         }
