@@ -124,7 +124,7 @@ import WebSocket from "ws";
  * process and the privileged main process, following Electron's security best practices.
  */
 
-export type IpcMainHandler<T extends keyof IpcRequest & keyof IpcResponse> = (
+type IpcMainHandler<T extends keyof IpcRequest & keyof IpcResponse> = (
   event: Electron.IpcMainInvokeEvent,
   data: IpcRequest[T],
 ) => Promise<IpcResponse[T]>;

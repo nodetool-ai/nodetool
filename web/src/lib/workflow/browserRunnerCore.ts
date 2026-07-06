@@ -15,11 +15,11 @@ import type { WorkflowGraph } from "../../stores/ApiTypes";
 // Narrow `/browser` subpath (not the package index) so neither the worker nor
 // the main bundle pulls `handler.js` → providers/tracing (@opentelemetry /
 // @grpc) — only `createBrowserRegistry` + `runBrowserWorkflow` are needed here.
-export type WorkflowRunnerModule =
+type WorkflowRunnerModule =
   typeof import("@nodetool-ai/workflow-runner/browser");
 
 /** Graph in the kernel's `NodeDescriptor` shape (properties, not `data`). */
-export type KernelGraph = {
+type KernelGraph = {
   nodes: Array<Record<string, unknown>>;
   edges: Array<Record<string, unknown>>;
 };

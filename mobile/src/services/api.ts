@@ -1,11 +1,5 @@
 import { components } from '../api';
 import type {
-  ASRModel as AppASRModel,
-  ImageModel as AppImageModel,
-  LanguageModel as AppLanguageModel,
-  ProviderInfo as AppProviderInfo,
-  TTSModel as AppTTSModel,
-  VideoModel as AppVideoModel,
   Workflow as AppWorkflow,
 } from '../types/ApiTypes';
 import { useAuthStore } from '../stores/AuthStore';
@@ -253,76 +247,6 @@ class ApiService {
     };
   }
 
-  async getWorkflow(id: string) {
-    const trpc = createMobileTRPCClient();
-    const workflow = await trpc.workflows.get.query({ id });
-    return normalizeWorkflow(workflow as unknown as Record<string, unknown>);
-  }
-
-  async runWorkflow(id: string, params: Record<string, unknown>) {
-    const trpc = createMobileTRPCClient();
-    return trpc.workflows.run.mutate({ id, params });
-  }
-
-  async getProviders(): Promise<AppProviderInfo[]> {
-    const trpc = createMobileTRPCClient();
-    return trpc.models.providers.query() as Promise<AppProviderInfo[]>;
-  }
-
-  async getProvidersByCapability(capability: string) {
-    const all = await this.getProviders();
-    return all.filter((p) => p.capabilities?.includes(capability));
-  }
-
-  async getLanguageModelProviders() {
-    return this.getProvidersByCapability('generate_message');
-  }
-
-  async getLanguageModels(provider: string): Promise<AppLanguageModel[]> {
-    const trpc = createMobileTRPCClient();
-    const models = await trpc.models.llmByProvider.query({ provider });
-    return normalizeModels<AppLanguageModel>(
-      models as unknown as Array<Record<string, unknown>>,
-      provider
-    );
-  }
-
-  async getImageModels(provider: string): Promise<AppImageModel[]> {
-    const trpc = createMobileTRPCClient();
-    const models = await trpc.models.imageByProvider.query({ provider });
-    return normalizeModels<AppImageModel>(
-      models as unknown as Array<Record<string, unknown>>,
-      provider
-    );
-  }
-
-  async getTTSModels(provider: string): Promise<AppTTSModel[]> {
-    const trpc = createMobileTRPCClient();
-    const models = await trpc.models.ttsByProvider.query({ provider });
-    return normalizeModels<AppTTSModel>(
-      models as unknown as Array<Record<string, unknown>>,
-      provider
-    );
-  }
-
-  async getASRModels(provider: string): Promise<AppASRModel[]> {
-    const trpc = createMobileTRPCClient();
-    const models = await trpc.models.asrByProvider.query({ provider });
-    return normalizeModels<AppASRModel>(
-      models as unknown as Array<Record<string, unknown>>,
-      provider
-    );
-  }
-
-  async getVideoModels(provider: string): Promise<AppVideoModel[]> {
-    const trpc = createMobileTRPCClient();
-    const models = await trpc.models.videoByProvider.query({ provider });
-    return normalizeModels<AppVideoModel>(
-      models as unknown as Array<Record<string, unknown>>,
-      provider
-    );
-  }
-
   async getNodeMetadata() {
     return this.request<components["schemas"]["NodeMetadata"][]>('/api/nodes/metadata');
   }
@@ -357,58 +281,6 @@ class ApiService {
       graph: workflow.graph,
       ...(workflow.access ? { access: workflow.access } : {}),
     });
-  }
-
-  async listAssets(params: {
-    parent_id?: string | null;
-    content_type?: string | null;
-    cursor?: string | null;
-    page_size?: number | null;
-  } = {}): Promise<AssetList> {
-    const trpc = createMobileTRPCClient();
-    return trpc.assets.list.query({
-      ...(params.parent_id != null ? { parent_id: params.parent_id } : {}),
-      ...(params.content_type != null ? { content_type: params.content_type } : {}),
-      ...(params.cursor ? { cursor: params.cursor } : {}),
-      ...(params.page_size !== undefined && params.page_size !== null
-        ? { page_size: params.page_size }
-        : {}),
-    }) as Promise<AssetList>;
-  }
-
-  async getAsset(id: string): Promise<Asset> {
-    const trpc = createMobileTRPCClient();
-    return trpc.assets.get.query({ id }) as Promise<Asset>;
-  }
-
-  async searchAssets(params: {
-    query: string;
-    content_type?: string | null;
-    page_size?: number | null;
-    cursor?: string | null;
-  }): Promise<AssetSearchResult> {
-    const trpc = createMobileTRPCClient();
-    return trpc.assets.search.query({
-      query: params.query,
-      ...(params.content_type != null ? { content_type: params.content_type } : {}),
-      ...(params.page_size !== undefined && params.page_size !== null
-        ? { page_size: params.page_size }
-        : {}),
-      ...(params.cursor ? { cursor: params.cursor } : {}),
-    }) as unknown as Promise<AssetSearchResult>;
-  }
-
-  async updateAsset(id: string, update: AssetUpdateRequest): Promise<Asset> {
-    const trpc = createMobileTRPCClient();
-    return trpc.assets.update.mutate({
-      id,
-      ...(update.name != null ? { name: update.name } : {}),
-      ...(update.parent_id != null ? { parent_id: update.parent_id } : {}),
-      ...(update.content_type != null ? { content_type: update.content_type } : {}),
-      ...(update.data !== undefined ? { data: update.data } : {}),
-      ...(update.metadata != null ? { metadata: update.metadata } : {}),
-      ...(update.size != null ? { size: update.size } : {}),
-    }) as Promise<Asset>;
   }
 
   async uploadAsset(params: {
@@ -446,11 +318,6 @@ class ApiService {
     return (await response.json()) as Asset;
   }
 
-  async deleteAsset(id: string): Promise<void> {
-    const trpc = createMobileTRPCClient();
-    await trpc.assets.delete.mutate({ id });
-  }
-
   resolveUrl(urlOrPath: string | null | undefined): string | null {
     if (!urlOrPath) {return null;}
     if (urlOrPath.startsWith('http://') || urlOrPath.startsWith('https://')) {
@@ -465,106 +332,9 @@ class ApiService {
     return `${url}${path}`;
   }
 
-  // ---------------------- Secrets (tRPC) ----------------------
-
-  async listSecrets(): Promise<SecretsListResponse> {
-    const trpc = createMobileTRPCClient();
-    return trpc.settings.secrets.list.query();
-  }
-
-  async getSecret(key: string, decrypt = false): Promise<SecretResponse> {
-    const trpc = createMobileTRPCClient();
-    return trpc.settings.secrets.get.query({ key, decrypt });
-  }
-
-  async updateSecret(key: string, update: SecretUpdateRequest): Promise<SecretResponse> {
-    const trpc = createMobileTRPCClient();
-    return trpc.settings.secrets.upsert.mutate({
-      key,
-      value: update.value,
-      ...(update.description !== undefined ? { description: update.description ?? undefined } : {}),
-    });
-  }
-
-  async deleteSecret(key: string): Promise<void> {
-    const trpc = createMobileTRPCClient();
-    await trpc.settings.secrets.delete.mutate({ key });
-  }
-
-  // ---------------------- Collections (tRPC) ----------------------
-
-  async listCollections(): Promise<CollectionList> {
-    const trpc = createMobileTRPCClient();
-    return trpc.collections.list.query();
-  }
-
-  async getCollection(name: string): Promise<CollectionResponse> {
-    const trpc = createMobileTRPCClient();
-    return trpc.collections.get.query({ name });
-  }
-
-  async createCollection(body: CollectionCreate): Promise<CollectionResponse> {
-    const trpc = createMobileTRPCClient();
-    return trpc.collections.create.mutate({
-      name: body.name,
-      ...(body.embedding_model ? { embedding_model: body.embedding_model } : {}),
-      ...(body.embedding_provider ? { embedding_provider: body.embedding_provider } : {}),
-    });
-  }
-
-  async deleteCollection(name: string): Promise<void> {
-    const trpc = createMobileTRPCClient();
-    await trpc.collections.delete.mutate({ name });
-  }
-
-  // ---------------------- Jobs ----------------------
-
-  async listJobs(params: {
-    workflow_id?: string | null;
-    limit?: number;
-    start_key?: string | null;
-  } = {}): Promise<JobListResponse> {
-    const trpc = createMobileTRPCClient();
-    return trpc.jobs.list.query({
-      ...(params.workflow_id ? { workflow_id: params.workflow_id } : {}),
-      ...(params.limit !== undefined ? { limit: params.limit } : {}),
-      ...(params.start_key ? { start_key: params.start_key } : {}),
-    }) as Promise<JobListResponse>;
-  }
-
-  async getJob(jobId: string): Promise<JobResponse> {
-    const trpc = createMobileTRPCClient();
-    return trpc.jobs.get.query({ id: jobId }) as Promise<JobResponse>;
-  }
-
-  async cancelJob(jobId: string): Promise<void> {
-    const trpc = createMobileTRPCClient();
-    await trpc.jobs.cancel.mutate({ id: jobId });
-  }
-
-  // ---------------------- Threads (tRPC) ----------------------
-
-  async listThreads(params: {
-    cursor?: string | null;
-    limit?: number;
-    reverse?: boolean;
-  } = {}): Promise<ThreadList> {
-    const trpc = createMobileTRPCClient();
-    return trpc.threads.list.query({
-      ...(params.cursor ? { cursor: params.cursor } : {}),
-      ...(params.limit !== undefined ? { limit: params.limit } : {}),
-      ...(params.reverse !== undefined ? { reverse: params.reverse } : {}),
-    });
-  }
-
   async getThread(threadId: string): Promise<Thread> {
     const trpc = createMobileTRPCClient();
     return trpc.threads.get.query({ id: threadId });
-  }
-
-  async deleteThread(threadId: string): Promise<void> {
-    const trpc = createMobileTRPCClient();
-    await trpc.threads.delete.mutate({ id: threadId });
   }
 }
 
