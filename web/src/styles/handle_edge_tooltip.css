@@ -39,12 +39,12 @@
 }
 
 .MuiTooltip-tooltipPlacementLeft span {
-  border-radius: 4px 0 0 4px;
+  border-radius: var(--rounded-sm) 0 0 var(--rounded-sm);
   padding-right: var(--spacing-md);
 }
 
 .MuiTooltip-tooltipPlacementRight span {
-  border-radius: 0 4px 4px 0;
+  border-radius: 0 var(--rounded-sm) var(--rounded-sm) 0;
   padding-left: var(--spacing-md);
 }
 
@@ -264,12 +264,12 @@
 
 .react-flow__node .react-flow__handle.control-handle-top {
   top: -6px;
-  border-radius: 4px 4px 0 0;
+  border-radius: var(--rounded-sm) var(--rounded-sm) 0 0;
 }
 
 .react-flow__node .react-flow__handle.control-handle-bottom {
   bottom: -6px;
-  border-radius: 0 0 4px 4px;
+  border-radius: 0 0 var(--rounded-sm) var(--rounded-sm);
 }
 
 /* Control handle visibility */
@@ -313,7 +313,7 @@
   border-left: 1px solid var(--palette-grey-700);
   border-top: 1px solid var(--palette-grey-700);
   border-bottom: 1px solid var(--palette-grey-700);
-  border-radius: 2px 0 0 2px;
+  border-radius: var(--rounded-xs) 0 0 var(--rounded-xs);
 }
 .react-flow__node .react-flow__handle-right {
   transform-origin: left center;
@@ -322,7 +322,7 @@
   border-bottom: 1px solid var(--palette-grey-700);
   right: calc(-6px - var(--node-body-padding, 0px));
   top: 5px;
-  border-radius: 0 2px 2px 0;
+  border-radius: 0 var(--rounded-xs) var(--rounded-xs) 0;
 }
 
 /* handle hover */
@@ -364,7 +364,7 @@
 .react-flow__node .react-flow__handle-left.collect-handle {
   /* Wider handle to signify multiple inputs */
   height: calc(var(--handle_height) * 1.6);
-  border-radius: 3px 0 0 3px;
+  border-radius: var(--rounded-sm) 0 0 var(--rounded-sm);
   /* Double border effect for visual distinction */
   border-left-width: 3px;
   border-left-style: double;
@@ -402,7 +402,7 @@
 .react-flow__node .react-flow__handle-right.streaming-handle {
   /* Wider handle to signify streaming */
   height: calc(var(--handle_height) * 1.25);
-  border-radius: 0 4px 4px 0;
+  border-radius: 0 var(--rounded-sm) var(--rounded-sm) 0;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   position: relative;
   overflow: visible;

@@ -71,7 +71,7 @@
   width: 3px;
   height: 20px;
   background: var(--palette-primary-main);
-  border-radius: 0 3px 3px 0;
+  border-radius: 0 var(--rounded-sm) var(--rounded-sm) 0;
   transition: all 150ms ease;
 }
 
@@ -102,7 +102,7 @@
 
 [cmdk-list]::-webkit-scrollbar-thumb {
   background-color: var(--palette-grey-100);
-  border-radius: 3px;
+  border-radius: var(--rounded-sm);
 }
 
 [cmdk-group-heading] {

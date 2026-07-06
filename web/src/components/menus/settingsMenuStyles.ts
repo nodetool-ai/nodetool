@@ -16,7 +16,7 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     "& .MuiTabs-indicator": {
       backgroundColor: "var(--palette-primary-main)",
       height: "3px",
-      borderRadius: "1.5px"
+      borderRadius: BORDER_RADIUS.xs
     },
     "& .MuiTab-root": {
       color: theme.vars.palette.grey[200],

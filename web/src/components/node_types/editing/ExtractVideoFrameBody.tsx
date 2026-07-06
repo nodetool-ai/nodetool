@@ -36,7 +36,11 @@ import SkipNextIcon from "@mui/icons-material/SkipNext";
 import VolumeUpIcon from "@mui/icons-material/VolumeUp";
 import VolumeOffIcon from "@mui/icons-material/VolumeOff";
 
-import { CheckerDropzone, ToolbarIconButton } from "../../ui_primitives";
+import {
+  CheckerDropzone,
+  ToolbarIconButton,
+  BORDER_RADIUS
+} from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import NumberInput from "../../inputs/NumberInput";
 import { NodeOutputs } from "../../node/NodeOutputs";
@@ -109,7 +113,7 @@ const styles = (theme: Theme) =>
       position: "relative",
       flex: "1 1 auto",
       minHeight: 140,
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       overflow: "hidden",
       backgroundColor: theme.vars.palette.common.black,
       display: "flex",
@@ -129,7 +133,7 @@ const styles = (theme: Theme) =>
       height: 4,
       appearance: "none",
       background: theme.vars.palette.grey[700],
-      borderRadius: 2,
+      borderRadius: BORDER_RADIUS.xs,
       cursor: "pointer",
       margin: `${theme.spacing(0.25)} 0`,
       "&::-webkit-slider-thumb": {
@@ -197,7 +201,7 @@ const styles = (theme: Theme) =>
       fontVariantNumeric: "tabular-nums",
       color: theme.vars.palette.grey[100],
       padding: `${theme.spacing(0.25)} ${theme.spacing(0.75)}`,
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       backgroundColor: theme.vars.palette.grey[800]
     },
     ".outputs-row": {

@@ -21,16 +21,18 @@ Single reference for every design token and visual rule in NodeTool. All fronten
 (oxlint) can't express the design-token AST checks, so they run through ESLint
 as a dedicated gate: `web/eslint.design.config.mjs` (rules shared from
 `web/eslint.design.mjs`) is invoked by `npm run lint:design` and chained into
-the root `npm run lint`. `lint:design` also runs `web/scripts/lint-spacing-css.mjs`
-and `web/scripts/lint-font-color-css.mjs`, which extend the spacing, font-size,
-and color rules to plain `.css` files (ESLint only parses `.ts`/`.tsx`).
+the root `npm run lint`. `lint:design` also runs `web/scripts/lint-spacing-css.mjs`,
+`web/scripts/lint-font-color-css.mjs`, and `web/scripts/lint-radius-css.mjs`, which
+extend the spacing, font-size, color, and border-radius rules to plain `.css` files
+(ESLint only parses `.ts`/`.tsx`).
 **Spacing** (`padding`/`margin`/`gap`), **`fontWeight`**, **font size**
 (`design-tokens/font-size-tokens`), **color** (`design-tokens/color-tokens`),
-raw-MUI imports (`design-tokens/no-raw-mui`), and **ui_primitives barrel imports**
+**border radius** (`design-tokens/border-radius-tokens`), raw-MUI imports
+(`design-tokens/no-raw-mui`), and **ui_primitives barrel imports**
 (`no-restricted-imports` — deep `.../ui_primitives/Foo` paths must go through the
 barrel) have reached zero violations and are promoted to **`error`** to lock them
-in — a new raw px/rem font size, raw hex/rgb color, or deep primitive import fails
-the gate. The remaining categories (`borderRadius`, `zIndex`,
+in — a new raw px/rem font size, raw hex/rgb color, magic/`var(--rounded-*)` radius,
+or deep primitive import fails the gate. The remaining categories (`zIndex`,
 `transition`/`MOTION`) are still **warnings**; promote each to `error` the same
 way as it reaches zero.
 
@@ -435,6 +437,10 @@ borderRadius: `${BORDER_RADIUS.sm} ${BORDER_RADIUS.sm} 0 0`
 ### Forbidden
 
 Magic numbers: `1`, `3`, `4`, `7`, `10`, `18`, `20`. Raw `"var(--rounded-*)"` string literals in TSX where a `BORDER_RADIUS` constant or `theme.rounded.*` key exists (plain `.css` files use the vars — that's what they're for). For circles, use `BORDER_RADIUS.circle` not `"50%"`.
+
+### Enforcement (border radius is fully linted)
+
+Zero violations — locked in at **`error`**. In TSX, `design-tokens/border-radius-tokens` flags any object-literal `borderRadius` that is a magic number, a raw `Npx` string, or a raw `var(--rounded-*)` string; `0` (flush) is allowed. In plain `.css`, `scripts/lint-radius-css.mjs` flags any `border-radius` with a raw px/em/rem/% value (use `var(--rounded-*)`; `0` allowed). The one sanctioned raw value is `theme.shape.borderRadius` in `ThemeNodetool.tsx` — MUI's base multiplier, carrying a scoped `eslint-disable`.
 
 ---
 

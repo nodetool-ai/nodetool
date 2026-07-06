@@ -93,8 +93,7 @@ const NodeHeaderImpl: React.FC<NodeHeaderProps> = ({
         color: "var(--palette-text-secondary)",
         margin: 0,
         padding: 0,
-        borderRadius:
-          "calc(var(--rounded-node) - 1px) calc(var(--rounded-node) - 1px) 0 0",
+        borderRadius: `calc(${BORDER_RADIUS.lg} - 1px) calc(${BORDER_RADIUS.lg} - 1px) 0 0`,
         borderBottom: "none",
         transition: `background-color ${MOTION.normal}, opacity ${MOTION.fast}`,
         ".header-left": {
