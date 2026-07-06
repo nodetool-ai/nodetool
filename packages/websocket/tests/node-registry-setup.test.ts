@@ -165,10 +165,14 @@ describe("applyCloudNodePolicy", () => {
     expect(remaining).toContain("nodetool.code.Code");
     expect(remaining).not.toContain("nodetool.code.ExecutePython");
     expect(remaining).not.toContain("nodetool.code.RunShellCommandDocker");
-    // …text is trimmed to the curated set…
+    // …the text namespace stays whole (toolkit + ASR + utilities)…
     expect(remaining).toContain("nodetool.text.Prompt");
-    expect(remaining).not.toContain("nodetool.text.RegexMatch");
-    expect(remaining).not.toContain("nodetool.text.CountTokens");
+    expect(remaining).toContain("nodetool.text.RegexMatch");
+    expect(remaining).toContain("nodetool.text.CountTokens");
+    expect(remaining).toContain("nodetool.text.AutomaticSpeechRecognition");
+    // …except the host-filesystem text nodes, which are denied…
+    expect(remaining).not.toContain("nodetool.text.LoadTextFolder");
+    expect(remaining).not.toContain("nodetool.text.SaveTextFile");
     // …while the creative media core stays.
     expect(remaining.some((t) => t.startsWith("nodetool.image."))).toBe(true);
     expect(remaining.some((t) => t.startsWith("nodetool.audio."))).toBe(true);
