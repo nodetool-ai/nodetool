@@ -16,7 +16,8 @@ import {
   BORDER_RADIUS,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
+  Z_INDEX
 } from "../ui_primitives";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import LogsTable, { LogRow, Severity } from "../common/LogsTable";
@@ -36,7 +37,7 @@ type NodeLogsDialogProps = {
 const styles = (theme: Theme) =>
   css({
     width: "100%",
-    zIndex: 100,
+    zIndex: Z_INDEX.overlay,
     ".logs-button": {
       width: "100%",
       justifyContent: "space-between",

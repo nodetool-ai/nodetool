@@ -25,7 +25,7 @@ import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "./NodeHeader";
 import { NodeOutputs } from "./NodeOutputs";
 import NodeResizeHandle from "./NodeResizeHandle";
-import { CopyButton, ToolbarIconButton, Container, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { CopyButton, ToolbarIconButton, Container, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../ui_primitives";
 import TextEditorModal from "../properties/TextEditorModal";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
@@ -70,7 +70,7 @@ const styles = (theme: Theme) =>
       left: "-8px",
       top: "50%",
       transform: "translateY(-50%)",
-      zIndex: 11
+      zIndex: Z_INDEX.dropdown + 1
     },
     ".header-wrapper .input-handle-wrapper .react-flow__handle-left": {
       top: "50%",
@@ -85,7 +85,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       gap: getSpacingPx(SPACING.micro),
-      zIndex: 10
+      zIndex: Z_INDEX.dropdown
     },
     ".header-actions .MuiIconButton-root": {
       padding: getSpacingPx(SPACING.xs)

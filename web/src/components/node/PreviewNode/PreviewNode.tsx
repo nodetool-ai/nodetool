@@ -10,7 +10,8 @@ import {
   MOTION,
   BORDER_RADIUS,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  Z_INDEX
 } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -135,7 +136,7 @@ const styles = (theme: Theme) =>
       // top-left where the corner curve cuts into the glyphs.
       ".node-header": {
         position: "relative",
-        zIndex: 4,
+        zIndex: Z_INDEX.raised,
         width: "100%",
         minHeight: "unset",
         top: 0,
@@ -166,7 +167,7 @@ const styles = (theme: Theme) =>
         bottom: ".1em",
         left: "1em",
         width: "calc(100% - 2em)",
-        zIndex: 10,
+        zIndex: Z_INDEX.dropdown,
         transition: `opacity ${MOTION.normal}`
       },
       ".actions .action-button.copy": {

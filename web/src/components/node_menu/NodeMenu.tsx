@@ -30,6 +30,7 @@ import {
   BORDER_RADIUS,
   MOTION,
   SPACING,
+  Z_INDEX,
   getSpacingPx
 } from "../ui_primitives";
 import { useShallow } from "zustand/react/shallow";
@@ -44,7 +45,7 @@ const treeStyles = (theme: Theme) =>
       left: 0,
       position: "absolute",
       overflow: "hidden",
-      zIndex: 20000,
+      zIndex: theme.zIndex.floatingPanel,
       // Glassmorphism container
       border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: BORDER_RADIUS.xxl,
@@ -72,7 +73,7 @@ const treeStyles = (theme: Theme) =>
     // Resize handles (top-left anchored): right edge, bottom edge, corner.
     ".nm-resize": {
       position: "absolute",
-      zIndex: 30,
+      zIndex: Z_INDEX.sticky,
       touchAction: "none"
     },
     ".nm-resize-right": {

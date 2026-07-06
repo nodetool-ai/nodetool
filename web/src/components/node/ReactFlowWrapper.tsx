@@ -228,9 +228,11 @@ const ReactFlowWrapper = ({
       labelBackground: isDark
         ? "rgba(8, 47, 73, 0.75)"
         : "rgba(255, 255, 255, 0.95)",
-      hintColor: isDark ? "rgba(148, 163, 184, 0.9)" : "rgba(71, 85, 105, 0.9)"
+      hintColor: isDark ? "rgba(148, 163, 184, 0.9)" : "rgba(71, 85, 105, 0.9)",
+      // Fixed drag preview: above canvas/panels, below the node menu.
+      zIndex: theme.zIndex.floating
     };
-  }, [theme.palette.mode, theme.vars.palette.primary.main]);
+  }, [theme.palette.mode, theme.vars.palette.primary.main, theme.zIndex.floating]);
 
   const backgroundStyle = useMemo(
     () => ({

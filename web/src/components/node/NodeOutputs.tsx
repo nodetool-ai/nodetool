@@ -9,6 +9,7 @@ import NodeOutput from "./NodeOutput";
 import { OutputSlot } from "../../stores/ApiTypes";
 import { useNodes } from "../../contexts/NodeContext";
 import { shallow } from "zustand/shallow";
+import { Z_INDEX } from "../ui_primitives";
 
 const HANDLE_ROW_HEIGHT = 18;
 
@@ -20,7 +21,7 @@ const styles = (theme: Theme) =>
       right: 0,
       width: 0,
       pointerEvents: "none",
-      zIndex: 3,
+      zIndex: Z_INDEX.raised,
       display: "flex",
       flexDirection: "column",
       justifyContent: "flex-start",

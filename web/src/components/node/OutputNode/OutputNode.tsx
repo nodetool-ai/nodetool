@@ -4,7 +4,7 @@ import { css } from "@emotion/react";
 import React, { memo, useCallback, useMemo, useState } from "react";
 import { NodeProps } from "@xyflow/react";
 import { getCopySource, getOutputFromResult } from "../outputResult";
-import { Text, Container, MOTION, BORDER_RADIUS } from "../../ui_primitives";
+import { Text, Container, MOTION, BORDER_RADIUS, Z_INDEX } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import isEqual from "fast-deep-equal";
@@ -133,7 +133,7 @@ const styles = (theme: Theme) =>
         bottom: ".1em",
         left: "1em",
         width: "calc(100% - 2em)",
-        zIndex: 10,
+        zIndex: Z_INDEX.dropdown,
         transition: `opacity ${MOTION.normal}`
       },
       ".actions .action-button.copy": {

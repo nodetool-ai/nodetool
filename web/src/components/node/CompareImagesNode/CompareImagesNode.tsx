@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 
 import React, { memo, useMemo, useRef } from "react";
 import { Handle, NodeProps, Position } from "@xyflow/react";
-import { Text, Box } from "../../ui_primitives";
+import { Text, Box, Z_INDEX } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import isEqual from "fast-deep-equal";
@@ -67,7 +67,7 @@ const styles = (theme: Theme) =>
       position: "absolute",
       right: 0,
       bottom: 0,
-      zIndex: 100
+      zIndex: Z_INDEX.overlay
     },
     ".hint": {
       position: "absolute",
@@ -78,7 +78,7 @@ const styles = (theme: Theme) =>
       fontSize: "var(--fontSizeSmaller)",
       fontWeight: 400,
       transform: "translate(-50%, -50%)",
-      zIndex: 1,
+      zIndex: Z_INDEX.raised,
       color: theme.vars.palette.grey[400],
       opacity: 0.8,
       pointerEvents: "none"

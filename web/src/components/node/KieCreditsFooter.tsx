@@ -26,6 +26,7 @@ import {
   ExternalLink,
   MenuItemPrimitive,
   BORDER_RADIUS,
+  Z_INDEX,
 } from "../ui_primitives";
 import { EditorButton } from "../editor_ui";
 import type { NodeMetadata, ProviderCost } from "../../stores/ApiTypes";
@@ -171,7 +172,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
             right: 4,
             left: "auto",
             flexShrink: 0,
-            zIndex: 1000,
+            zIndex: Z_INDEX.toast,
           }
         : {
             position: "static" as const,

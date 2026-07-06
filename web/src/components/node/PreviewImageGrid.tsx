@@ -12,7 +12,7 @@ import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { ImageComparer } from "../widgets";
 import AssetViewer from "../assets/AssetViewer";
 import { CopyAssetButton } from "../common/CopyAssetButton";
-import { Checkbox, Dialog, Tooltip, EditorButton, ToolbarIconButton, Box, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { Checkbox, Dialog, Tooltip, EditorButton, ToolbarIconButton, Box, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../ui_primitives";
 import { alphaSurfaceBg } from "../../styles/AlphaSurface";
 
 export type ImageSource = Uint8Array | string;
@@ -227,7 +227,7 @@ const styles = (theme: Theme, gap: number) =>
       right: 4,
       display: "flex",
       gap: 2,
-      zIndex: 5,
+      zIndex: Z_INDEX.raised,
       opacity: 0,
       transition: MOTION.opacity
     },
@@ -252,7 +252,7 @@ const styles = (theme: Theme, gap: number) =>
       position: "absolute",
       top: 4,
       right: 4,
-      zIndex: 5,
+      zIndex: Z_INDEX.raised,
       padding: 2,
       backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.5)`,
       borderRadius: BORDER_RADIUS.sm,
@@ -271,7 +271,7 @@ const styles = (theme: Theme, gap: number) =>
       padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)}`,
       backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.85)`,
       borderRadius: BORDER_RADIUS.lg,
-      zIndex: 100,
+      zIndex: Z_INDEX.overlay,
       alignItems: "center"
     },
     ".action-bar .action-button": {
@@ -283,7 +283,7 @@ const styles = (theme: Theme, gap: number) =>
       position: "absolute",
       top: 2,
       right: 4,
-      zIndex: 50,
+      zIndex: Z_INDEX.sticky,
       backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.6)`,
       color: theme.vars.palette.common.white,
       fontSize: "var(--fontSizeSmaller)",
@@ -592,7 +592,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
                 position: "absolute",
                 top: 8,
                 right: 8,
-                zIndex: 10,
+                zIndex: Z_INDEX.dropdown,
                 backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.6)`,
                 color: theme.vars.palette.common.white,
                 "&:hover": { backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.8)` }

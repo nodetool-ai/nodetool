@@ -45,7 +45,7 @@ import { useKeyPressed } from "../../stores/KeyPressedStore";
 import RunGroupButton from "./RunGroupButton";
 import BypassGroupButton from "./BypassGroupButton";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
-import { Tooltip, ToolbarIconButton, Popover, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { Tooltip, ToolbarIconButton, Popover, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../ui_primitives";
 
 // constants
 const MIN_WIDTH = 200;
@@ -108,7 +108,7 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
       left: 0,
       right: 0,
       pointerEvents: "auto",
-      zIndex: 10
+      zIndex: Z_INDEX.dropdown
     },
     // Header label — flush at the top-left edge, not rounded, uses darkened group color.
     // Scales inversely with zoom so it appears the same size on screen.
@@ -132,7 +132,7 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
         letterSpacing: "0.02em"
       },
       transformOrigin: "bottom left",
-      zIndex: 10,
+      zIndex: Z_INDEX.dropdown,
       cursor: "move",
       userSelect: "none",
       pointerEvents: "auto",
@@ -167,7 +167,7 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
       gap: getSpacingPx(SPACING.sm),
       padding: `0 ${getSpacingPx(SPACING.sm)}`,
       transformOrigin: "bottom right",
-      zIndex: 10,
+      zIndex: Z_INDEX.dropdown,
       pointerEvents: "auto",
       ".bypass-button, .menu-button": {
         border: "none !important",
@@ -208,7 +208,7 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
       borderRadius: BORDER_RADIUS.sm,
       fontSize: theme.fontSizeSmall,
       whiteSpace: "nowrap",
-      zIndex: 100,
+      zIndex: Z_INDEX.overlay,
       opacity: 0,
       visibility: "hidden",
       transition: `opacity ${MOTION.normal} ${2000}ms, visibility ${MOTION.normal} ${2000}ms`

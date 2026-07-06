@@ -22,7 +22,7 @@ import React, {
   useEffect
 } from "react";
 import { Handle, NodeProps, NodeToolbar, Position } from "@xyflow/react";
-import { Box, Text, MOTION, SPACING, getSpacingPx } from "../../ui_primitives";
+import { Box, Text, MOTION, SPACING, getSpacingPx, Z_INDEX } from "../../ui_primitives";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -160,7 +160,7 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
       position: "absolute",
       left: 0,
       top: "1em",
-      zIndex: 2,
+      zIndex: Z_INDEX.raised,
       display: "flex",
       flexDirection: "column",
       alignItems: "flex-start",
@@ -170,7 +170,7 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
       position: "absolute",
       right: 0,
       top: "1em",
-      zIndex: 2,
+      zIndex: Z_INDEX.raised,
       display: "flex",
       flexDirection: "column",
       alignItems: "flex-end",
@@ -235,7 +235,7 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
       fontSize: "var(--fontSizeSmaller)",
       fontWeight: 400,
       transform: "translate(-50%, -50%)",
-      zIndex: 1,
+      zIndex: Z_INDEX.raised,
       color: theme.vars.palette.grey[400],
       opacity: 0.8,
       pointerEvents: "none"

@@ -6,7 +6,8 @@ import {
   Box,
   BORDER_RADIUS,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  Z_INDEX
 } from "../ui_primitives";
 import isEqual from "fast-deep-equal";
 import { useNodeExecutionDuration } from "../../hooks/nodes/useNodeExecState";
@@ -49,7 +50,7 @@ const ROW_SX_BASE = {
   right: 4,
   padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
   borderRadius: BORDER_RADIUS.xs,
-  zIndex: 1000,
+  zIndex: Z_INDEX.toast,
   boxShadow: 1
 };
 
