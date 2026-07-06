@@ -32,9 +32,11 @@ extend the spacing, font-size, color, and border-radius rules to plain `.css` fi
 (`no-restricted-imports` — deep `.../ui_primitives/Foo` paths must go through the
 barrel) have reached zero violations and are promoted to **`error`** to lock them
 in — a new raw px/rem font size, raw hex/rgb color, magic/`var(--rounded-*)` radius,
-or deep primitive import fails the gate. The remaining categories (`zIndex`,
-`transition`/`MOTION`) are still **warnings**; promote each to `error` the same
-way as it reaches zero.
+or deep primitive import fails the gate. **Motion** (`transition`/`animation`
+timing, via `design-tokens/motion-tokens` in TSX and `scripts/lint-motion-css.mjs`
+in `.css`) is also migrated and locked at **`error`**. The remaining category
+(`zIndex`) is still a **warning**; promote it to `error` the same way once it
+reaches zero.
 
 The font-size and color rules are custom (like spacing) so they catch raw values
 inside `styled`/`css` template literals, not just object literals. The color rule
@@ -549,9 +551,25 @@ Existing components that write `@media (prefers-reduced-motion: reduce)` raw sho
 
 Raw timing strings of any kind: `"200ms"`, `"0.2s ease-in-out"`, `"all 150ms linear"`. Compose from `MOTION.*` tokens. Raw `@media (prefers-reduced-motion: reduce) { … }` blocks in new code — use `reducedMotion()` instead.
 
-### Enforcement (motion is linted at `warn` — migration in progress)
+### Delays and staggers — the one carve-out
 
-In TSX, `design-tokens/motion-tokens` flags any object-literal `transition` / `animation` / `transitionDuration` / `transitionDelay` / `animationDuration` / `animationDelay` whose value carries a non-zero `s`/`ms` timing, and any raw `transition` / `animation` timing inside `styled` / `css` template-literal CSS. In plain `.css`, `scripts/lint-motion-css.mjs` flags the same properties (and their `-duration` / `-delay` longhands). `0` / `0s` (no delay), keyword-only values (`none`), and values built from `MOTION.*` tokens are allowed. Both stay at **`warn`** while the backlog (~41 TSX timings + ~26 `.css` timings) is migrated; WS4b migrates them and promotes the rule + the CSS script to **`error`**.
+The five MOTION tokens describe a *duration + easing* vocabulary; they cannot
+express a per-item **delay** or **stagger** offset. So functional delays — a
+`transitionDelay`, an `animationDelay`, or the delay slot of an `animation`
+shorthand (`${kf} ${MOTION.slow} 80ms backwards`) — are **not** tokenized. Keep
+the real millisecond value, but write it as an explicit numeric expression (a
+local const or an inline `` `${80}ms` ``) so it reads as data, not a magic
+timing string. The lint rule only governs the duration/easing vocabulary, so a
+delay expressed this way passes.
+
+A **bare** duration prop that has no easing to bundle (`transitionDuration`,
+`animationDuration`) can't take a `MOTION.*` token either (those include the
+easing). Use the matching `--motion-*` custom property instead —
+`transitionDuration: "var(--motion-normal)"`.
+
+### Enforcement (motion is fully linted at `error`)
+
+In TSX, `design-tokens/motion-tokens` flags any object-literal `transition` / `animation` / `transitionDuration` / `transitionDelay` / `animationDuration` / `animationDelay` whose value carries a non-zero `s`/`ms` timing, and any raw `transition` / `animation` timing inside `styled` / `css` template-literal CSS. In plain `.css`, `scripts/lint-motion-css.mjs` flags the same properties (and their `-duration` / `-delay` longhands); `.css` files use the `--motion-*` custom properties from `vars.css` (mirrors of the `MOTION.*` tiers). `0` / `0s` (no delay), keyword-only values (`none`), delays written as numeric expressions (see above), and values built from `MOTION.*` tokens / `var(--motion-*)` are allowed. Both are locked in at **`error`** (zero violations) — a new raw `s`/`ms` timing fails the gate. The `ui_primitives/` layer is exempt (it defines the tokens). Template-literal `@media (prefers-reduced-motion)` blocks (in `css\`\`` styled templates and plain `.css`) stay raw, since `reducedMotion()` is a JS object helper; object-css blocks use `reducedMotion()`.
 
 ---
 

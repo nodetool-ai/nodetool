@@ -33,6 +33,7 @@ import {
   EditorButton,
   FlexRow,
   LoadingSpinner,
+  MOTION,
   reducedMotion,
   TextInput,
   Toast,
@@ -349,7 +350,7 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
     borderRadius: "inherit",
     border: `1.5px solid rgba(${ch} / 0.9)`,
     boxShadow: `0 0 12px rgba(${ch} / 0.5)`,
-    animation: `${generatingPulse} 1.6s ease-in-out infinite`,
+    animation: `${generatingPulse} ${MOTION.pulse} infinite`,
     pointerEvents: "none",
     ...reducedMotion({ animation: "none", opacity: 0.7 })
   };

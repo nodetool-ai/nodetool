@@ -666,7 +666,7 @@ const EditorSurface = styled("div")(({ theme }) => ({
     borderRadius: BORDER_RADIUS.xs,
     pointerEvents: "none",
     zIndex: 1,
-    animation: "transcript-caret-blink 1.1s step-end infinite"
+    animation: `transcript-caret-blink ${MOTION.pulse} infinite`
   },
   "@keyframes transcript-caret-blink": {
     "0%, 100%": { opacity: 1 },

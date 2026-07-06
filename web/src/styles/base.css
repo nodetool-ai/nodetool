@@ -180,5 +180,6 @@ kbd {
 }
 
 .status-message.animating {
-  animation: status-color-cycle 3s linear infinite, status-slide-in 0.3s ease-out;
+  animation: status-color-cycle var(--motion-spin) linear infinite,
+    status-slide-in var(--motion-slow) ease-out;
 }

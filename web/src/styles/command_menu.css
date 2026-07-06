@@ -28,7 +28,7 @@
   background: var(--palette-grey-800);
   color: var(--palette-grey-0);
   border-radius: var(--rounded-lg);
-  transition: all 0.2s ease;
+  transition: all var(--motion-normal) ease;
 }
 
 [cmdk-input]:hover,
@@ -54,7 +54,7 @@
   color: var(--palette-grey-100);
   user-select: none;
   will-change: background, color;
-  transition: all 150ms ease;
+  transition: all var(--motion-fast) ease;
   border-radius: var(--rounded-lg);
   margin: 0 var(--spacing-md);
 }
@@ -72,7 +72,7 @@
   height: 20px;
   background: var(--palette-primary-main);
   border-radius: 0 var(--rounded-sm) var(--rounded-sm) 0;
-  transition: all 150ms ease;
+  transition: all var(--motion-fast) ease;
 }
 
 [cmdk-item]:active {
@@ -90,7 +90,7 @@
   max-height: 400px;
   overflow: auto;
   overscroll-behavior: contain;
-  transition: 100ms ease;
+  transition: var(--motion-fast) ease;
   transition-property: height;
   scrollbar-width: thin;
   scrollbar-color: var(--palette-grey-100) transparent;

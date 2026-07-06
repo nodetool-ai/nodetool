@@ -47,7 +47,7 @@
       rgba(244, 67, 54, 0.06) 0%,
       rgba(244, 67, 54, 0) 60%
     );
-  transition: background-color 200ms ease-out;
+  transition: background-color var(--motion-normal) ease-out;
 }
 .node-property.has-validation-error::before {
   content: "";

@@ -201,7 +201,7 @@ const styles = (theme: Theme) =>
         transform: "translate(-50%, -50%)",
         zIndex: 0,
         color: theme.vars.palette.grey[200],
-        transition: `opacity ${MOTION.normal} 1s`
+        transition: `opacity ${MOTION.normal} ${1000}ms`
       },
       "&:hover .hint": {
         opacity: 0.7

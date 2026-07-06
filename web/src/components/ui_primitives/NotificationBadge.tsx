@@ -3,6 +3,7 @@ import React, { memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { MOTION } from "./tokens";
 import { Badge, BadgeProps, Tooltip } from "@mui/material";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
@@ -42,7 +43,7 @@ const styles = (theme: Theme, animate: boolean) => css`
       height: 18px;
       padding: 0 4px;
       ${animate ? css`
-        transition: transform 0.2s ease, opacity 0.2s ease;
+        transition: transform ${MOTION.normal}, opacity ${MOTION.normal};
         
         &.MuiBadge-invisible {
           transform: scale(0);

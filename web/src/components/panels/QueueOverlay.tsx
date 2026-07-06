@@ -2,7 +2,16 @@
 import { css, keyframes } from "@emotion/react";
 import { useTheme, type Theme } from "@mui/material/styles";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Box, FlexColumn, FlexRow, Text, Tooltip, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import {
+  Box,
+  FlexColumn,
+  FlexRow,
+  Text,
+  Tooltip,
+  MOTION,
+  reducedMotion,
+  BORDER_RADIUS
+} from "../ui_primitives";
 import type { SxProps } from "@mui/material/styles";
 import LayersIcon from "@mui/icons-material/Layers";
 import PlayArrowOutlinedIcon from "@mui/icons-material/PlayArrowOutlined";
@@ -64,11 +73,11 @@ const progressStyles = (theme: Theme) =>
       width: "35%",
       borderRadius: "inherit",
       background: `linear-gradient(90deg, ${theme.vars.palette.primary.main}, ${theme.vars.palette.secondary.main})`,
-      animation: `${sweep} 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite`
+      animation: `${sweep} ${MOTION.pulse} infinite`
     },
-    "@media (prefers-reduced-motion: reduce)": {
+    ...reducedMotion({
       "&::after": { animation: "none", width: "100%", opacity: 0.5 }
-    }
+    })
   });
 
 /** Indeterminate gradient progress bar shown under a running job. */
@@ -362,11 +371,11 @@ const overlayStyles = (theme: Theme) =>
     '&[data-state="closed"]': {
       animation: `${panelExit} ${MOTION.normal} both`
     },
-    "@media (prefers-reduced-motion: reduce)": {
+    ...reducedMotion({
       animation: "none",
       opacity: 1,
       transform: "none"
-    }
+    })
   });
 
 const SingleName = memo(function SingleName({ job }: { job: Job }) {

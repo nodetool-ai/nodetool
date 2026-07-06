@@ -35,7 +35,7 @@ const styles = (theme: Theme) =>
   css({
     "& .compatibility-section": {
       marginBottom: theme.spacing(3),
-      animation: `${fadeIn} 0.5s ease-out forwards`
+      animation: `${fadeIn} ${MOTION.slow} forwards`
     },
     "& .section-header": {
       justifyContent: "space-between",

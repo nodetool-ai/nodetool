@@ -73,7 +73,7 @@ const styles = (theme: Theme, variant: BannerVariant, animate: boolean) => {
     border-radius: 8px;
     background-color: ${c.bg};
     border: 1px solid ${c.border}40;
-    animation: ${animate ? css`${pulseAnimation} 2s ease-in-out infinite` : "none"};
+    animation: ${animate ? css`${pulseAnimation} ${MOTION.pulse} infinite` : "none"};
 
     @media (prefers-reduced-motion: reduce) {
       animation: none;

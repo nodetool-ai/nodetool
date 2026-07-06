@@ -17,7 +17,14 @@ const EASE_OUT_QUINT = "cubic-bezier(0.22, 1, 0.36, 1)";
 
 import { useEffect, useState, useRef, useCallback, useMemo, memo } from "react";
 //mui
-import { EditorButton, Dialog, Text, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import {
+  EditorButton,
+  Dialog,
+  Text,
+  MOTION,
+  reducedMotion,
+  BORDER_RADIUS
+} from "../ui_primitives";
 //icons
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
@@ -145,7 +152,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.grey[200],
       backgroundColor: theme.vars.palette.background.paper,
       border: `2px solid ${theme.vars.palette.action.disabledBackground}`,
-      transition: `transform 140ms ${EASE_OUT_QUINT}, ${MOTION.background}, ${MOTION.opacity}`
+      transition: `transform var(--motion-fast) ${EASE_OUT_QUINT}, ${MOTION.background}, ${MOTION.opacity}`
     },
     ".prev-next-button:active": {
       transform: "scale(0.88)"
@@ -200,7 +207,7 @@ const styles = (theme: Theme) =>
       borderRadius: BORDER_RADIUS.md,
       cursor: "pointer !important",
       willChange: "transform",
-      transition: `transform 200ms ${EASE_OUT_QUINT}, ${MOTION.shadow}`,
+      transition: `transform var(--motion-normal) ${EASE_OUT_QUINT}, ${MOTION.shadow}`,
       // `backwards` keeps the from-state during the stagger delay but releases
       // the element afterward, so the hover transition below still applies.
       animation: `${thumbReveal} ${MOTION.slow} backwards`
@@ -216,18 +223,20 @@ const styles = (theme: Theme) =>
       transition: MOTION.transform,
       zIndex: 5
     },
-    // Cascade from the center outward: nearest-to-center frame leads.
-    ".prev-next-items.left .item:nth-last-child(1)": { animationDelay: "20ms" },
-    ".prev-next-items.left .item:nth-last-child(2)": { animationDelay: "60ms" },
-    ".prev-next-items.left .item:nth-last-child(3)": { animationDelay: "100ms" },
-    ".prev-next-items.left .item:nth-last-child(4)": { animationDelay: "140ms" },
-    ".prev-next-items.left .item:nth-last-child(5)": { animationDelay: "180ms" },
-    ".prev-next-items.right .item:nth-child(1)": { animationDelay: "20ms" },
-    ".prev-next-items.right .item:nth-child(2)": { animationDelay: "60ms" },
-    ".prev-next-items.right .item:nth-child(3)": { animationDelay: "100ms" },
-    ".prev-next-items.right .item:nth-child(4)": { animationDelay: "140ms" },
-    ".prev-next-items.right .item:nth-child(5)": { animationDelay: "180ms" },
-    "@media (prefers-reduced-motion: reduce)": {
+    // Cascade from the center outward: nearest-to-center frame leads. These
+    // per-item stagger delays are functional offsets, not a motion-design tier,
+    // so they stay as explicit ms values (see DESIGN.md §5).
+    ".prev-next-items.left .item:nth-last-child(1)": { animationDelay: `${20}ms` },
+    ".prev-next-items.left .item:nth-last-child(2)": { animationDelay: `${60}ms` },
+    ".prev-next-items.left .item:nth-last-child(3)": { animationDelay: `${100}ms` },
+    ".prev-next-items.left .item:nth-last-child(4)": { animationDelay: `${140}ms` },
+    ".prev-next-items.left .item:nth-last-child(5)": { animationDelay: `${180}ms` },
+    ".prev-next-items.right .item:nth-child(1)": { animationDelay: `${20}ms` },
+    ".prev-next-items.right .item:nth-child(2)": { animationDelay: `${60}ms` },
+    ".prev-next-items.right .item:nth-child(3)": { animationDelay: `${100}ms` },
+    ".prev-next-items.right .item:nth-child(4)": { animationDelay: `${140}ms` },
+    ".prev-next-items.right .item:nth-child(5)": { animationDelay: `${180}ms` },
+    ...reducedMotion({
       ".prev-next-items .item, .prev-next-items.current": {
         animation: "none",
         transition: "none"
@@ -235,7 +244,7 @@ const styles = (theme: Theme) =>
       ".prev-next-items .item:hover, .prev-next-items .item:active, .prev-next-button:active": {
         transform: "none"
       }
-    },
+    }),
     ".prev-next-items .item .asset-item": {
       cursor: "pointer"
     },

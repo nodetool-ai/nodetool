@@ -11,7 +11,8 @@ import {
   MOTION,
   BORDER_RADIUS,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  reducedMotion
 } from "../ui_primitives";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import RadioButtonUncheckedRoundedIcon from "@mui/icons-material/RadioButtonUncheckedRounded";
@@ -80,7 +81,8 @@ const styles = (theme: Theme) =>
       backgroundClip: "text",
       WebkitBackgroundClip: "text",
       WebkitTextFillColor: "transparent",
-      animation: "shine 3s linear infinite",
+      animation: `shine ${MOTION.spin} infinite`,
+      ...reducedMotion({ animation: "none" }),
       fontWeight: 500
     }
   });

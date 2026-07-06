@@ -6,7 +6,7 @@ import { memo, useMemo } from "react";
 import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import AutorenewIcon from "@mui/icons-material/Autorenew";
-import { FlexColumn, FlexRow, Text, ScrollArea, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
+import { FlexColumn, FlexRow, Text, ScrollArea, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, reducedMotion } from "../../ui_primitives";
 import type { TodoItem } from "../../../stores/ApiTypes";
 
 export const TODO_SIDEBAR_WIDTH = 280;
@@ -59,7 +59,8 @@ const styles = (theme: Theme) =>
     ".todo-icon.pending": { color: `rgb(${theme.vars.palette.common.whiteChannel} / 0.45)` },
     ".todo-icon.in_progress": {
       color: theme.vars.palette.primary.main,
-      animation: "spin 1.8s linear infinite"
+      animation: `spin ${MOTION.spin} infinite`,
+      ...reducedMotion({ animation: "none" })
     },
     ".todo-icon.completed": { color: theme.vars.palette.success.main },
     ".todo-text": {

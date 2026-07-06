@@ -43,14 +43,14 @@ const styles = (theme: Theme, fullWidth: boolean) =>
       fontSize: "var(--fontSizeSmaller)",
       fontWeight: 500,
       color: theme.vars.palette.text.secondary,
-      animation: `${rise} 500ms 80ms backwards`
+      animation: `${rise} ${MOTION.slow} ${80}ms backwards`
     },
     ".welcome-eyebrow-dot": {
       width: 6,
       height: 6,
       borderRadius: BORDER_RADIUS.circle,
       background: theme.vars.palette.success.main,
-      animation: `${pulse} 2.4s ease-in-out infinite`
+      animation: `${pulse} ${MOTION.pulse} infinite`
     },
     ".welcome-heading": {
       margin: `${getSpacingPx(SPACING.sm)} 0 ${getSpacingPx(SPACING.lg)}`,
@@ -60,7 +60,7 @@ const styles = (theme: Theme, fullWidth: boolean) =>
       lineHeight: 1.15,
       letterSpacing: "-0.02em",
       color: theme.vars.palette.text.primary,
-      animation: `${rise} 600ms 160ms backwards`
+      animation: `${rise} ${MOTION.slow} ${160}ms backwards`
     },
     ".welcome-sub": {
       color: theme.vars.palette.text.secondary,
@@ -68,14 +68,14 @@ const styles = (theme: Theme, fullWidth: boolean) =>
       margin: `0 0 ${getSpacingPx(SPACING.xxxl)}`,
       fontSize: 15,
       lineHeight: 1.45,
-      animation: `${rise} 600ms 240ms backwards`
+      animation: `${rise} ${MOTION.slow} ${240}ms backwards`
     },
 
     ".welcome-grid": {
       display: "grid",
       gridTemplateColumns: "repeat(4, 1fr)",
       gap: 8,
-      animation: `${rise} 700ms 320ms backwards`,
+      animation: `${rise} ${MOTION.slow} ${320}ms backwards`,
       [theme.breakpoints.down("md")]: {
         gridTemplateColumns: "repeat(2, 1fr)"
       },
@@ -140,7 +140,7 @@ const styles = (theme: Theme, fullWidth: boolean) =>
       alignItems: "center",
       gap: `${theme.spacing(1)}`,
       marginTop: `${theme.spacing(1)}`,
-      animation: `${rise} 700ms 480ms backwards`
+      animation: `${rise} ${MOTION.slow} ${480}ms backwards`
     },
     ".welcome-skip": {
       background: "none",

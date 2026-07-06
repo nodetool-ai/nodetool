@@ -211,7 +211,7 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
       zIndex: 100,
       opacity: 0,
       visibility: "hidden",
-      transition: `opacity ${MOTION.normal} 2s, visibility ${MOTION.normal} 2s`
+      transition: `opacity ${MOTION.normal} ${2000}ms, visibility ${MOTION.normal} ${2000}ms`
     },
     ".help-text ul": {
       listStyleType: "square",

@@ -14,7 +14,8 @@ import {
   Text,
   Divider,
   ToolbarIconButton,
-  Box
+  Box,
+  reducedMotion
 } from "../ui_primitives";
 import { PREVIEW_NODE_TYPE } from "../../constants/nodeTypes";
 import { getOutputFromResult } from "../node/outputResult";
@@ -76,7 +77,8 @@ const pulseGlow = keyframes`
 const runningCardStyles = (nsColor: string) =>
   css({
     borderColor: `${nsColor}80 !important`,
-    animation: `${pulseGlow} 2s ease-in-out infinite`,
+    animation: `${pulseGlow} ${MOTION.pulse} infinite`,
+    ...reducedMotion({ animation: "none" }),
     color: `${nsColor}60`,
   });
 

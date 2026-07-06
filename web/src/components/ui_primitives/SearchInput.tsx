@@ -3,6 +3,7 @@ import React, { useCallback, useRef, useState, memo, forwardRef } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { SxProps, Theme } from "@mui/material/styles";
+import { MOTION } from "./tokens";
 import { IconButton, Tooltip, InputAdornment, TextField } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
@@ -46,7 +47,7 @@ const styles = (theme: Theme) => css`
     .MuiInputBase-root {
       border-radius: 8px;
       background-color: ${theme.vars.palette.action.hover};
-      transition: all 0.2s ease;
+      transition: ${MOTION.all};
 
       &:hover {
         background-color: ${theme.vars.palette.action.selected};
@@ -69,7 +70,7 @@ const styles = (theme: Theme) => css`
     
     .MuiOutlinedInput-notchedOutline {
       border-color: ${theme.vars.palette.divider};
-      transition: border-color 0.2s ease;
+      transition: ${MOTION.border};
     }
     
     &:hover .MuiOutlinedInput-notchedOutline {
@@ -88,7 +89,7 @@ const styles = (theme: Theme) => css`
   .clear-button {
     padding: 4px;
     color: ${theme.vars.palette.text.disabled};
-    transition: color 0.2s ease;
+    transition: color ${MOTION.normal};
     
     &:hover {
       color: ${theme.vars.palette.text.primary};

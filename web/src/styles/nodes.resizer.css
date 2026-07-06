@@ -16,7 +16,7 @@
   opacity: 0;
   border-width: 1px;
   border-color: var(--c-gray2);
-  transition: all 0.15s ease-in-out;
+  transition: all var(--motion-fast) ease-in-out;
 }
 
 .base-node .node-resizer .react-flow__resize-control.line:hover {

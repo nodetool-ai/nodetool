@@ -101,7 +101,7 @@ const namespaceStyles = (theme: Theme) =>
       gap: "1em",
       opacity: 0,
       animation: `fadeIn ${MOTION.slow} forwards`,
-      animationDelay: ".5s",
+      animationDelay: `${500}ms`,
       visibility: "hidden",
       overflow: "hidden"
     },
