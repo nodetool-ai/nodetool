@@ -614,18 +614,30 @@ export const borderRadiusTokensRule = {
 //
 //   1. Object props   { transition: "0.2s ease", animation: "spin 1s linear …" }
 //   2. Duration/delay { animationDelay: "0.08s", transitionDuration: "200ms" }
-//   3. Interpolated   { animation: `${keyframe} 1.6s ease-in-out infinite` }
-//   4. Template CSS   css`transition: color 0.2s;`  animation: name 1.6s …
+//   3. Interpolated prop  { animation: `${keyframe} 1.6s ease-in-out infinite` }
+//   4. Interpolated CSS   css`animation: ${keyframe} 1.9s linear infinite;`
+//   5. Template CSS       css`transition: color 0.2s;`
 //
-// Form 3 is the dominant backlog shape: a keyframe name interpolated ahead of a
-// raw duration. It escapes the object-prop Literal check (the value is a
-// TemplateLiteral) *and* the CSS-decl check (there's no `animation:` text inside
-// the quasi to anchor on — the key lives in the object, not the template). The
-// Property handler therefore also scans TemplateLiteral values: the key already
-// proves it's a timing prop, so any raw non-zero `s`/`ms` in the quasis is a
-// violation. Values built purely from MOTION.* tokens keep the token in a
-// placeholder (`${MOTION.slow}`), leaving no raw timing in the quasis, so
-// `animation: `${activePop} ${MOTION.slow}`` stays unflagged.
+// Forms 3 and 4 are the dominant backlog shape: a keyframe name interpolated
+// ahead of a raw duration.
+//
+// Form 3 escapes the object-prop Literal check (the value is a TemplateLiteral)
+// *and* the CSS-decl check (no `animation:` text in the quasi — the key lives in
+// the object). The Property handler therefore also scans TemplateLiteral values:
+// the key already proves it's a timing prop, so any raw non-zero `s`/`ms` in the
+// quasis is a violation.
+//
+// Form 4 escapes both too: `animation:` sits in one quasi (empty value) while
+// the `1.9s` is in the quasi AFTER `${keyframe}`, which has no `animation:` to
+// anchor on. The TemplateLiteral handler walks quasis in order carrying an
+// "open motion decl" flag: an unterminated `transition`/`animation:` decl in one
+// quasi means the leading portion of the next quasi continues its value, so it
+// is checked for raw timing.
+//
+// Values built purely from MOTION.* tokens keep the token in a placeholder
+// (`${MOTION.slow}` / `${MOTION.spin}`), leaving no raw timing in the quasis, so
+// `animation: `${activePop} ${MOTION.slow}`` and
+// `css`animation: ${kf} ${MOTION.spin};`` stay unflagged.
 //
 // Any non-zero timing (`s` or `ms`) is reported. `0`/`0s` (no delay) is allowed;
 // values built from MOTION.* tokens (MemberExpressions / template placeholders)
@@ -649,6 +661,14 @@ const MOTION_PROP_KEYS = new Set([
 // (no numeric timing) never match.
 const CSS_MOTION_DECL =
   /(?:^|[;{}\n])\s*(?:transition|animation)(?:-(?:duration|delay))?\s*:\s*([^;{}]*)/gi;
+
+// A `transition`/`animation` timing declaration whose value runs to the END of
+// the string with no `;`/`{`/`}` to close it — i.e. a `${…}` placeholder
+// interrupts it (`css`animation: ${kf} 1.9s …``). Used to carry a "decl still
+// open" flag across quasis, so the leading portion of the next quasi can be
+// checked as the continuation of this decl's value.
+const MOTION_DECL_OPEN_AT_END =
+  /(?:^|[;{}\n])\s*(?:transition|animation)(?:-(?:duration|delay))?\s*:\s*[^;{}]*$/i;
 
 // True when the string carries at least one non-zero `s`/`ms` duration. `0`/`0s`
 // (no delay) is allowed. `ms` is tried before `s` so "200ms" reads as one token.
@@ -704,15 +724,47 @@ export const motionTokensRule = {
           context.report({ node: value, messageId: "raw" });
         }
       },
-      TemplateElement(node) {
-        const raw = node.value.raw;
-        CSS_MOTION_DECL.lastIndex = 0;
-        let m;
-        while ((m = CSS_MOTION_DECL.exec(raw)) !== null) {
-          if (hasNonZeroTime(m[1])) {
-            context.report({ node, messageId: "raw" });
-            return;
+      // Tagged/styled template CSS: `css`animation: ${kf} 1.9s …``. A CSS decl
+      // can be split across quasis by a `${…}` placeholder (a keyframe name), so
+      // `animation:` sits in one quasi (empty value) while the `1.9s` lands in
+      // the quasi AFTER the placeholder — with no `animation:` prefix for
+      // CSS_MOTION_DECL to anchor on, and it's not an object Property either.
+      // Walk the whole literal carrying an "open motion decl" flag: when an
+      // earlier quasi leaves a transition/animation timing decl unterminated,
+      // the leading portion of the next quasi (up to the next `;{}`) continues
+      // its value and is checked for raw timing. Fully-contained decls are still
+      // matched within a single quasi.
+      TemplateLiteral(node) {
+        let open = false;
+        for (const quasi of node.quasis) {
+          const raw = quasi.value.raw;
+          let reported = false;
+          // Continuation of a decl left open by the previous quasi: its value
+          // resumes here, up to the next `;{}`.
+          if (open) {
+            const head = raw.split(/[;{}]/, 1)[0];
+            if (hasNonZeroTime(head)) {
+              context.report({ node: quasi, messageId: "raw" });
+              reported = true;
+            }
           }
+          // Fully-contained `transition`/`animation` timing decls in this quasi.
+          if (!reported) {
+            CSS_MOTION_DECL.lastIndex = 0;
+            let m;
+            while ((m = CSS_MOTION_DECL.exec(raw)) !== null) {
+              if (hasNonZeroTime(m[1])) {
+                context.report({ node: quasi, messageId: "raw" });
+                break;
+              }
+            }
+          }
+          // Does a timing decl run unterminated to the end of this quasi (about
+          // to be interrupted by the next `${…}`)? If so its value continues
+          // into the following quasi. A decl already open with no terminator in
+          // this quasi stays open across an empty/placeholder-only gap.
+          open =
+            MOTION_DECL_OPEN_AT_END.test(raw) || (open && !/[;{}]/.test(raw));
         }
       },
     };
