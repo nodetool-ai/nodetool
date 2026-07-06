@@ -318,7 +318,7 @@ const NodeItem = memo(
                 placement="right"
                 delay={TOOLTIP_ENTER_DELAY}
                 slotProps={{
-                  popper: { sx: { zIndex: 9999 } },
+                  popper: { sx: { zIndex: theme.zIndex.commandMenu } },
                   tooltip: { sx: { bgcolor: "grey.800", color: "grey.100", maxWidth: 350, padding: getSpacingPx(SPACING.xl) } }
                 }}
               >
@@ -337,7 +337,7 @@ const NodeItem = memo(
                 placement="top"
                 delay={TOOLTIP_ENTER_DELAY}
                 slotProps={{
-                  popper: { sx: { zIndex: 2000 } },
+                  popper: { sx: { zIndex: theme.zIndex.tooltip } },
                   tooltip: { sx: { bgcolor: "grey.800", color: "grey.100", fontSize: "var(--fontSizeSmaller)" } }
                 }}
               >

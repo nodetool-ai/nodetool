@@ -118,6 +118,9 @@ const ThemeNodetool = createTheme({
     popover2: 99990,
     autocomplete: 10002,
     floating: 10003,
+    // Draggable floating panels that must sit above editor content and popovers
+    // (node menu, asset viewer, find-in-workflow dialog).
+    floatingPanel: 20000,
     highest: 100000
   },
   components: {

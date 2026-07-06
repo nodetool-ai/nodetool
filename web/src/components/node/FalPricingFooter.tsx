@@ -32,7 +32,8 @@ import {
   LoadingSpinner,
   ExternalLink,
   MenuItemPrimitive,
-  BORDER_RADIUS
+  BORDER_RADIUS,
+  Z_INDEX
 } from "../ui_primitives";
 import { EditorButton } from "../editor_ui";
 import type { NodeMetadata } from "../../stores/ApiTypes";
@@ -171,7 +172,7 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
             right: 4,
             left: "auto",
             flexShrink: 0,
-            zIndex: 1000
+            zIndex: Z_INDEX.toast
           }
         : {
             position: "static" as const,

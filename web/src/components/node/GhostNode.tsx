@@ -14,6 +14,7 @@ interface GhostNodeProps {
     badgeShadow: string;
     labelBackground: string;
     hintColor: string;
+    zIndex: number;
   };
 }
 
@@ -35,7 +36,7 @@ const GhostNode = memo(function GhostNode({
         flexDirection: "column" as const,
         alignItems: "center",
         gap: getSpacingPx(SPACING.sm),
-        zIndex: 4000,
+        zIndex: theme.zIndex,
         color: theme.textColor,
         textShadow: "0 6px 20px rgba(15, 23, 42, 0.35)"
       },

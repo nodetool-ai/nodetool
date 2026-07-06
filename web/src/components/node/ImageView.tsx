@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 
 import React, { useMemo, useRef, useCallback, useState, useEffect } from "react";
-import { Text, ToolbarIconButton, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { Text, ToolbarIconButton, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../ui_primitives";
 import DownloadIcon from "@mui/icons-material/Download";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import AssetViewer from "../assets/AssetViewer";
@@ -225,7 +225,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source, bitmap }) => {
     position: "absolute" as const,
     top: 4,
     right: 40, // Leave space for history button in parent ResultOverlay
-    zIndex: 10,
+    zIndex: Z_INDEX.dropdown,
     display: "flex",
     gap: getSpacingPx(SPACING.xs),
     opacity: 0,

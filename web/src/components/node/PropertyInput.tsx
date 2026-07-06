@@ -18,7 +18,8 @@ import {
   MOTION,
   BORDER_RADIUS,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  Z_INDEX
 } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -84,7 +85,7 @@ const propertyInputContainerStyles = (theme: Theme) =>
       gap: 4,
       opacity: 0,
       transition: MOTION.opacity,
-      zIndex: 1,
+      zIndex: Z_INDEX.raised,
       background: theme.vars.palette.background.paper,
       borderRadius: BORDER_RADIUS.sm,
       padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.sm)}`,
@@ -123,7 +124,7 @@ const propertyInputContainerStyles = (theme: Theme) =>
       alignItems: "center",
       opacity: 0,
       transition: MOTION.opacity,
-      zIndex: 2,
+      zIndex: Z_INDEX.raised,
       cursor: "pointer",
       padding: getSpacingPx(SPACING.micro), // was 1px
       borderRadius: BORDER_RADIUS.sm,

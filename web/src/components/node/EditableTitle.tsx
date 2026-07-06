@@ -9,7 +9,8 @@ import {
   BORDER_RADIUS,
   reducedMotion,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  Z_INDEX
 } from "../ui_primitives";
 
 interface EditableTitleProps {
@@ -87,7 +88,7 @@ const EditableTitle = memo(function EditableTitle({
     gap: 0,
     border: `1px solid ${theme.vars.palette.divider}`,
     boxShadow: `0 1px 2px ${theme.vars.palette.c_black}33`,
-    zIndex: 10,
+    zIndex: Z_INDEX.dropdown,
     animation: `${fadeIn} ${MOTION.normal}`,
     transition: MOTION.border,
     cursor: "text",

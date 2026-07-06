@@ -9,7 +9,7 @@ import DOMPurify from "dompurify";
 import isEqual from "fast-deep-equal";
 import Actions from "./Actions";
 
-import { BORDER_RADIUS } from "../../ui_primitives";
+import { BORDER_RADIUS, Z_INDEX } from "../../ui_primitives";
 const jsonStyles = (theme: Theme) =>
   css({
     "&": {
@@ -44,7 +44,7 @@ const jsonStyles = (theme: Theme) =>
       display: "flex",
       flexDirection: "row",
       gap: "0.5em",
-      zIndex: 10
+      zIndex: Z_INDEX.dropdown
     },
     ".actions button": {
       minWidth: "unset",

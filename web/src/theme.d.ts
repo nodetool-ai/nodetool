@@ -288,6 +288,7 @@ declare module "@mui/material/styles" {
     autocomplete: number;
     popover2: number;
     floating: number;
+    floatingPanel: number;
     highest: number;
   }
 }

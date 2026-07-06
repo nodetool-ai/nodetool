@@ -106,7 +106,7 @@ const styles = (theme: Theme) =>
     },
     ".node-history-overlay": {
       position: "absolute",
-      zIndex: 10,
+      zIndex: Z_INDEX.dropdown,
       pointerEvents: "none",
       opacity: 0,
       transition: `opacity ${MOTION.normal}`
@@ -269,7 +269,7 @@ const styles = (theme: Theme) =>
     },
     ".downstream-caption": {
       position: "absolute",
-      zIndex: 10,
+      zIndex: Z_INDEX.dropdown,
       pointerEvents: "none",
       bottom: 6,
       right: 6,

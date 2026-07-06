@@ -4,7 +4,7 @@ import { memo, useState, useCallback, useRef, useMemo } from "react";
 import { NodeProps, Node } from "@xyflow/react";
 import { debounce } from "../../utils/lodashAlternatives";
 import isEqual from "fast-deep-equal";
-import { Container, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { Container, MOTION, BORDER_RADIUS, Z_INDEX } from "../ui_primitives";
 import { NodeData } from "../../stores/NodeData";
 import { hexToRgba } from "../../utils/ColorUtils";
 import { useTheme } from "@mui/material/styles";
@@ -99,7 +99,7 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.c_overlay_strong,
       borderRadius: BORDER_RADIUS.sm,
       padding: "0.25em 0.5em",
-      zIndex: 1,
+      zIndex: Z_INDEX.raised,
       opacity: 0,
       transition: `opacity ${MOTION.normal} ${200}ms`
     },

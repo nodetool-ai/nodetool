@@ -23,7 +23,8 @@ import {
   MOTION,
   SPACING,
   getSpacingPx,
-  reducedMotion
+  reducedMotion,
+  Z_INDEX
 } from "../ui_primitives";
 import FalPricingFooter from "./FalPricingFooter";
 import KieCreditsFooter from "./KieCreditsFooter";
@@ -222,7 +223,7 @@ const getAmbientBadgeStyle = (theme: Theme): React.CSSProperties => ({
   fontSize: "var(--fontSizeSmaller)",
   fontWeight: 600,
   lineHeight: 1,
-  zIndex: 20,
+  zIndex: Z_INDEX.sticky,
   pointerEvents: "none"
 });
 
@@ -427,7 +428,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       borderRadius: BORDER_RADIUS.sm,
       fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
-      zIndex: 1000
+      zIndex: Z_INDEX.toast
     }),
     [theme.vars.palette.warning.main, theme.vars.palette.warning.contrastText]
   );

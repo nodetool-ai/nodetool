@@ -22,7 +22,8 @@ import {
   ListItem,
   ListItemButton,
   ListItemText,
-  ListItemIcon
+  ListItemIcon,
+  Z_INDEX
 } from "../ui_primitives";
 import PaletteIcon from "@mui/icons-material/Palette";
 import LegendToggleIcon from "@mui/icons-material/LegendToggle";
@@ -32,7 +33,7 @@ const minimapStyle = {
   position: "absolute" as const,
   bottom: "70px",
   right: "20px",
-  zIndex: 10
+  zIndex: Z_INDEX.dropdown
 };
 
 const MiniMapNavigator: React.FC = () => {

@@ -7,7 +7,7 @@ import { Message, ToolCall } from "../../stores/ApiTypes";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import ImageView from "./ImageView";
 import isEqual from "fast-deep-equal";
-import { BORDER_RADIUS } from "../ui_primitives";
+import { BORDER_RADIUS, Z_INDEX } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
@@ -65,7 +65,7 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeSmall,
       lineHeight: 1.6,
       position: "relative",
-      zIndex: 1
+      zIndex: Z_INDEX.raised
     },
     ".messages li .tool-call__message pre": {
       backgroundColor: theme.vars.palette.c_scrim_soft,

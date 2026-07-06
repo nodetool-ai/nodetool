@@ -5,7 +5,7 @@ import type { OnResize } from "@xyflow/system";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box, MOTION } from "../ui_primitives";
+import { Box, MOTION, Z_INDEX } from "../ui_primitives";
 import { memo, useMemo } from "react";
 import MediaAspectResizeControl, {
   type ResizeCorner
@@ -41,7 +41,7 @@ interface NodeResizeHandleProps {
 const styles = (theme: Theme) =>
   css({
     position: "absolute",
-    zIndex: 100,
+    zIndex: Z_INDEX.overlay,
     right: "0",
     bottom: "0",
     width: "25px",
