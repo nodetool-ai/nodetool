@@ -113,10 +113,11 @@ export const CLOUD_NODE_ALLOWLIST: readonly string[] = [
  * Node types removed even though their namespace is allowed. Two groups:
  *
  * - `nodetool.text.*` file I/O — `nodetool.text` is whole-listed for its
- *   creative-text toolkit and ASR, but the folder/asset loaders and
- *   filesystem writer are dropped: arbitrary host-filesystem access isn't
- *   appropriate for a managed multi-tenant cloud (same reason the shell/Docker
- *   code runners stay out).
+ *   creative-text toolkit and ASR, but the folder/asset loaders and the two
+ *   filesystem writers (`SaveText`, `SaveTextFile` — both call fs.writeFile on
+ *   an unsandboxed host path) are dropped: arbitrary host-filesystem access
+ *   isn't appropriate for a managed multi-tenant cloud (same reason the
+ *   shell/Docker code runners stay out).
  * - `nodetool.agents.*` — the developer/automation-flavored agents that wrap
  *   the very integrations the cloud profile drops (shell, git, sqlite,
  *   supabase, http, filesystem, browser, office docs). Kept agents: Agent,
@@ -126,6 +127,7 @@ export const CLOUD_NODE_ALLOWLIST: readonly string[] = [
 export const CLOUD_NODE_DENYLIST: readonly string[] = [
   "nodetool.text.LoadTextFolder",
   "nodetool.text.LoadTextAssets",
+  "nodetool.text.SaveText",
   "nodetool.text.SaveTextFile",
   "nodetool.agents.BrowserAgent",
   "nodetool.agents.LiveBrowserAgent",

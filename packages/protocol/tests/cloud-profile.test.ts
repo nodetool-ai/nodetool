@@ -130,6 +130,7 @@ describe("code is node-level trimmed; text is whole-listed minus file I/O", () =
     for (const nodeType of [
       "nodetool.text.LoadTextFolder",
       "nodetool.text.LoadTextAssets",
+      "nodetool.text.SaveText",
       "nodetool.text.SaveTextFile"
     ]) {
       expect(isCloudNodeType(nodeType)).toBe(false);

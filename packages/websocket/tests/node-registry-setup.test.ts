@@ -172,6 +172,7 @@ describe("applyCloudNodePolicy", () => {
     expect(remaining).toContain("nodetool.text.AutomaticSpeechRecognition");
     // …except the host-filesystem text nodes, which are denied…
     expect(remaining).not.toContain("nodetool.text.LoadTextFolder");
+    expect(remaining).not.toContain("nodetool.text.SaveText");
     expect(remaining).not.toContain("nodetool.text.SaveTextFile");
     // …while the creative media core stays.
     expect(remaining.some((t) => t.startsWith("nodetool.image."))).toBe(true);
