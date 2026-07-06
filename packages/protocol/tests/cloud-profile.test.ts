@@ -114,7 +114,8 @@ describe("code + text are node-level trimmed", () => {
       "nodetool.text.Prompt",
       "nodetool.text.Template",
       "nodetool.text.Concat",
-      "nodetool.text.ExtractJSON"
+      "nodetool.text.ExtractJSON",
+      "nodetool.text.AutomaticSpeechRecognition"
     ]) {
       expect(isCloudNodeType(nodeType)).toBe(true);
     }

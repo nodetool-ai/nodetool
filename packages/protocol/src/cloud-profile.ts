@@ -103,9 +103,9 @@ export const CLOUD_NODE_NAMESPACES: readonly string[] = [
  *   stays out: arbitrary process/Docker execution isn't appropriate for a
  *   managed multi-tenant cloud.
  * - `nodetool.text.*` — a creative-text toolkit (prompt building, formatting,
- *   templating, joining, light parsing/splitting). The low-level string/regex/
- *   token/whitespace utilities and file I/O are dropped — they're programmer
- *   plumbing, not creative tools.
+ *   templating, joining, light parsing/splitting) plus speech-to-text
+ *   transcription. The low-level string/regex/token/whitespace utilities and
+ *   file I/O are dropped — they're programmer plumbing, not creative tools.
  */
 export const CLOUD_NODE_ALLOWLIST: readonly string[] = [
   // Sandboxed code only.
@@ -124,7 +124,11 @@ export const CLOUD_NODE_ALLOWLIST: readonly string[] = [
   "nodetool.text.Chunk",
   "nodetool.text.Extract",
   "nodetool.text.ParseJSON",
-  "nodetool.text.ExtractJSON"
+  "nodetool.text.ExtractJSON",
+  // Speech-to-text: the transcription entry point for audio workflows
+  // (Transcribe Audio, Summarize Audio, Audio To Image, …). Runs on the
+  // cloud OpenAI/Gemini ASR models.
+  "nodetool.text.AutomaticSpeechRecognition"
 ];
 
 /**
