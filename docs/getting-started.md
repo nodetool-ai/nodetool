@@ -4,7 +4,7 @@ title: "Quick Start"
 description: "Install NodeTool, run a template, ship a Mini-App."
 ---
 
-Install, open a template, run it, edit it, ship it.
+Install, open a template, run it, edit it, ship it. About 10 minutes, no account required.
 
 Prefer to watch first? Here's a full workflow running on the canvas — see the
 [Tutorials](tutorials.md) page for all of them.
@@ -32,8 +32,7 @@ No GPU? Use cloud providers with your keys. See [hardware notes](installation.md
 2. Run the installer.
 3. Launch. No setup wizard.
 
-
-Providers: open **Settings → Providers** and paste a key from [OpenAI](https://platform.openai.com), [Anthropic](https://www.anthropic.com), or [Google](https://ai.google.dev). Skip the download.
+Providers: open **Settings → Providers** and paste a key from [OpenAI](https://platform.openai.com), [Anthropic](https://www.anthropic.com), or [Google](https://ai.google.dev). One key is enough to run the templates below.
 
 ---
 
@@ -49,8 +48,10 @@ Open a template from the Dashboard.
    - **Title**: Ocean Depths
    - **Genre**: Sci-Fi Thriller
    - **Audience**: Adults who love mystery
-4. Select a model for the Agent and List Generator. (requires provider setup)
-5. Press <kbd>Ctrl/⌘ + Enter</kbd>.
+4. Select a model for the Agent and List Generator (requires provider setup).
+5. Press <kbd>Ctrl/⌘ + Enter</kbd> to run.
+
+Nodes light up as they process. Outputs stream into the Preview node on the right — that's your finished poster.
 
 ### Creative Story Ideas
 
@@ -61,16 +62,18 @@ Open a template from the Dashboard.
    - **Genre**: Cyberpunk
    - **Character**: Rogue AI detective
    - **Setting**: Neon-lit underwater city
-3. Select a model for the Agent and List Generator (requires provider setup)
-4. Run.
+3. Select a model for the Agent and List Generator (requires provider setup).
+4. Press <kbd>Ctrl/⌘ + Enter</kbd> to run.
 
 ---
 
 ## Step 3 — Edit
 
-1. Save with <kbd>Ctrl/⌘ + S</kbd>.
-2. Change inputs, re-run.
-3. Click a node to inspect it. Hover an edge to see the data flowing through. Press `Space`, search "Preview", drop one anywhere on the canvas.
+The graph is yours to change. Edit, re-run, repeat — every run reflects the current graph.
+
+1. Change an input or swap a model, then press <kbd>Ctrl/⌘ + Enter</kbd> to re-run.
+2. Save your version with <kbd>Ctrl/⌘ + S</kbd>.
+3. Click a node to inspect it. Hover an edge to see the data flowing through. Press `Space`, search "Preview", drop one anywhere on the canvas to watch any value.
 
 ### Optional node packs
 
@@ -89,10 +92,11 @@ Opening a workflow that uses a node from a disabled pack enables that pack for y
 
 ## Step 4 — Build an app
 
-A Mini-App hides the graph and exposes inputs and outputs only.
+A Mini-App hides the graph and exposes inputs and outputs only — a form anyone can use without touching the canvas.
 
 1. Open the workflow.
 2. Click **Mini-App** in the toolbar.
+3. Fill the inputs and run. Same workflow, no graph.
 
 Custom UI? See [App Builder](app-builder.md).
 
