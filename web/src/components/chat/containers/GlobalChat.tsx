@@ -20,7 +20,8 @@ import {
   BORDER_RADIUS,
   MOTION,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  Z_INDEX
 } from "../../ui_primitives";
 import ForumIcon from "@mui/icons-material/Forum";
 import AddIcon from "@mui/icons-material/Add";
@@ -40,6 +41,10 @@ import { usePanelStore } from "../../../stores/PanelStore";
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
 import { ChatSidebar, SIDEBAR_WIDTH } from "../sidebar/ChatSidebar";
 import { useShallow } from "zustand/react/shallow";
+
+// The connection-error banner floats above the whole chat surface (sidebar,
+// back-to-editor button, mobile controls), so it sits above the Z_INDEX scale.
+const ERROR_BANNER_Z_INDEX = 1001;
 
 const GlobalChat: React.FC = () => {
   const { thread_id } = useParams<{ thread_id?: string }>();
@@ -514,7 +519,7 @@ const GlobalChat: React.FC = () => {
           position: "absolute",
           top: 28,
           right: 16,
-          zIndex: 200,
+          zIndex: Z_INDEX.modal,
           whiteSpace: "nowrap",
           fontSize: "var(--fontSizeNormal)"
         }}
@@ -544,7 +549,7 @@ const GlobalChat: React.FC = () => {
               transform: "translateX(-50%)",
               maxWidth: "600px",
               width: "100%",
-              zIndex: 1001,
+              zIndex: ERROR_BANNER_Z_INDEX,
               flexShrink: 0
             }}
           />
@@ -585,7 +590,7 @@ const GlobalChat: React.FC = () => {
                   position: "absolute",
                   top: 8,
                   left: 8,
-                  zIndex: 100,
+                  zIndex: Z_INDEX.overlay,
                   backgroundColor: `rgb(${theme.vars.palette.background.paperChannel} / 0.9)`,
                   backdropFilter: "blur(14px)",
                   border: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.08)`,

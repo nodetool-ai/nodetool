@@ -15,17 +15,17 @@ import {
 } from "../../config/constants";
 import WorkspaceTabBar from "./WorkspaceTabBar";
 import TabContent from "./TabContent";
-import { Caption } from "../ui_primitives";
+import { Caption, Z_INDEX } from "../ui_primitives";
 
 const ACTIVE_TAB_STYLE: React.CSSProperties = {
   opacity: 1,
   pointerEvents: "auto",
-  zIndex: 1
+  zIndex: Z_INDEX.raised
 };
 const INACTIVE_TAB_STYLE: React.CSSProperties = {
   opacity: 0,
   pointerEvents: "none",
-  zIndex: 0
+  zIndex: Z_INDEX.base
 };
 
 const PanelLeft = React.lazy(() => import("../panels/PanelLeft"));

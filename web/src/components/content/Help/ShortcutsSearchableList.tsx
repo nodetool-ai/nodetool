@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import type { SxProps, Theme } from "@mui/material/styles";
-import { FlexColumn, FlexRow, Text, TextInput, Box } from "../../ui_primitives";
+import { FlexColumn, FlexRow, Text, TextInput, Box, Z_INDEX } from "../../ui_primitives";
 import {
   getShortcutTooltip,
   SHORTCUT_CATEGORIES,
@@ -71,7 +71,7 @@ export const ShortcutsSearchableList: React.FC<ShortcutsSearchableListProps> = (
         sx={{
           position: "sticky",
           top: 0,
-          zIndex: 10,
+          zIndex: Z_INDEX.dropdown,
           mb: 2,
           backgroundColor: "background.paper",
           flexShrink: 0

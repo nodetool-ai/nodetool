@@ -68,6 +68,9 @@ export default [
       // error so any new raw/magic/var(--rounded-*) radius fails the gate. See
       // docs/DESIGN.md §4.
       "design-tokens/border-radius-tokens": "error",
+      // Z-index is fully migrated (zero violations) — locked in as an error so
+      // any new magic z-index integer fails the gate. See docs/DESIGN.md §6.
+      "design-tokens/zindex-tokens": "error",
       // Motion (transition/animation timing) is fully migrated (zero
       // violations) — locked in as an error so any new raw s/ms timing fails the
       // gate. See docs/DESIGN.md §5.

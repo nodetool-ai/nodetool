@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
-import { FlexColumn, FlexRow, Box, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
+import { FlexColumn, FlexRow, Box, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../../ui_primitives";
 import { LoadingSpinner, Text } from "../../ui_primitives";
 import SearchOffIcon from "@mui/icons-material/SearchOff";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -71,7 +71,7 @@ const styles = (theme: Theme) =>
       padding: "1em 1.5em",
       position: "sticky",
       top: 0,
-      zIndex: 2,
+      zIndex: Z_INDEX.raised + 1,
       width: "100%",
       backdropFilter: theme.vars.palette.glass.blur,
       background: theme.vars.palette.background.paper,
@@ -438,7 +438,7 @@ const ModelListIndex: React.FC = () => {
         <Box className="content">
           <LocalModelsHero models={allModels ?? []} />
           {isFetching && (
-            <Box sx={{ position: "absolute", top: "1em", right: "1em", zIndex: 1 }}>
+            <Box sx={{ position: "absolute", top: "1em", right: "1em", zIndex: Z_INDEX.raised }}>
               <LoadingSpinner size="small" />
             </Box>
           )}

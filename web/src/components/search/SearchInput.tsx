@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useCallback, useRef, useState } from "react";
-import { MOTION, Tooltip, BORDER_RADIUS } from "../ui_primitives";
+import { MOTION, Tooltip, BORDER_RADIUS, Z_INDEX } from "../ui_primitives";
 import BackspaceIcon from "@mui/icons-material/Backspace";
 import SearchIcon from "@mui/icons-material/Search";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
@@ -31,7 +31,7 @@ const styles = (theme: Theme) =>
       transform: "translateY(-50%)",
       color: theme.vars.palette.text.disabled,
       pointerEvents: "none",
-      zIndex: 1
+      zIndex: Z_INDEX.raised
     },
     ".search-box": {
       position: "relative"

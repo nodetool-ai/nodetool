@@ -4,7 +4,7 @@ import { css } from "@emotion/react";
 import React, { useState } from "react";
 import { useRouteError } from "react-router-dom";
 import { ThemeProvider } from "@mui/material";
-import { CopyButton, Text, EditorButton, Box, MOTION, BORDER_RADIUS } from "./components/ui_primitives";
+import { CopyButton, Text, EditorButton, Box, MOTION, BORDER_RADIUS, Z_INDEX } from "./components/ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -258,7 +258,7 @@ const ErrorBoundary: React.FC = () => {
                   value={stackTrace}
                   tooltipPlacement="top"
                   buttonSize="medium"
-                  sx={{ position: "absolute", top: 6, right: 6, zIndex: 1 }}
+                  sx={{ position: "absolute", top: 6, right: 6, zIndex: Z_INDEX.raised }}
                 />
                 <Text component="pre" className="error-stack-trace">
                   {stackTrace}

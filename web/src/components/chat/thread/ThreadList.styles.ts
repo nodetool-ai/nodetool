@@ -1,7 +1,7 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { scrollbarStyles, MOTION, BORDER_RADIUS } from "../../ui_primitives";
-import { SPACING, getSpacingPx } from "../../ui_primitives";
+import { SPACING, getSpacingPx, Z_INDEX } from "../../ui_primitives";
 
 export const createStyles = (theme: Theme) =>
   css({
@@ -116,7 +116,7 @@ export const createStyles = (theme: Theme) =>
       right: "0.35em",
       top: "50%",
       transform: "translateY(-50%)",
-      zIndex: 1
+      zIndex: Z_INDEX.raised
     },
 
     ".delete-button": {

@@ -16,6 +16,10 @@ interface Box {
 
 const NOOP = () => {};
 
+// Floats over the app at MUI's drawer layer (theme.zIndex.drawer = 1200) so the
+// composer stays above page content; beyond the shared Z_INDEX scale.
+const COMPOSER_Z_INDEX = 1200;
+
 type InputStatus =
   | "disconnected"
   | "connecting"
@@ -87,7 +91,7 @@ const PositionedComposer: React.FC<PositionedComposerProps> = ({
         height: box.height || undefined,
         visibility: visible ? "visible" : "hidden",
         pointerEvents: visible ? "auto" : "none",
-        zIndex: 1200
+        zIndex: COMPOSER_Z_INDEX
       }}
     >
       <ChatInputSection

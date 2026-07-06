@@ -10,7 +10,7 @@ import React, {
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { BORDER_RADIUS, FONT_SIZE_SANS, SPACING, getSpacingPx } from "../../ui_primitives";
+import { BORDER_RADIUS, FONT_SIZE_SANS, SPACING, getSpacingPx, Z_INDEX } from "../../ui_primitives";
 import {
   Message,
   PlanningUpdate,
@@ -204,7 +204,7 @@ const StatusFooter = memo<StatusFooterProps>(
                   backgroundColor: theme.vars.palette.primary.main,
                   border: `2px solid ${theme.vars.palette.background.default}`,
                   boxShadow: `0 0 10px ${theme.vars.palette.primary.main}aa`,
-                  zIndex: 2
+                  zIndex: Z_INDEX.raised + 1
                 }}
               />
               <div

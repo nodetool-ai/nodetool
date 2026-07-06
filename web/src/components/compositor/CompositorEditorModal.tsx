@@ -23,11 +23,15 @@ export interface CompositorEditorModalProps extends CompositorEditorProps {
   onClose: () => void;
 }
 
+// Fullscreen portal modal: sits above MUI's modal layer (theme.zIndex.modal =
+// 1300) so it covers any open dialog. Beyond the shared Z_INDEX scale.
+const COMPOSITOR_MODAL_Z_INDEX = 1400;
+
 const styles = (theme: Theme) =>
   css({
     position: "fixed",
     inset: 0,
-    zIndex: 1400,
+    zIndex: COMPOSITOR_MODAL_Z_INDEX,
     display: "flex",
     flexDirection: "column",
     background: theme.vars.palette.grey[900],

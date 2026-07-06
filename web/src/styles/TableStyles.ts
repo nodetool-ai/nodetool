@@ -1,6 +1,6 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../components/ui_primitives";
+import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../components/ui_primitives";
 
 export const tableStyles = (theme: Theme) =>
   css({
@@ -50,7 +50,7 @@ export const tableStyles = (theme: Theme) =>
       right: "5em",
       width: "6px",
       margin: `0 -${getSpacingPx(SPACING.xs)}`, // was 0 -3px
-      zIndex: 11,
+      zIndex: Z_INDEX.dropdown + 1,
       verticalAlign: "middle"
     },
 

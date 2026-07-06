@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import { EditorButton, Text, LoadingSpinner, Box, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { EditorButton, Text, LoadingSpinner, Box, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../ui_primitives";
 import SettingsInputComponentIcon from "@mui/icons-material/SettingsInputComponent";
 import {
   VideoRecorderProps,
@@ -232,7 +232,7 @@ const VideoRecorder = (props: VideoRecorderProps) => {
                 color: "var(--palette-grey-900)",
                 padding: ".2em 0.5em",
                 borderRadius: "0.2em",
-                zIndex: 100,
+                zIndex: Z_INDEX.overlay,
                 top: "0.5em",
                 left: "0.5em"
               }}
