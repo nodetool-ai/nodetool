@@ -25,6 +25,7 @@ import {
   FONT_SIZE_SANS,
   FONT_WEIGHT,
   BORDER_RADIUS,
+  Z_INDEX,
   MagicGenerationFill
 } from "../../ui_primitives";
 
@@ -42,6 +43,7 @@ import {
   effectiveAssetId,
   isClipActive,
   trackZ,
+  PREVIEW_OVERLAY_Z,
   MAX_VIDEO_LAYERS
 } from "./sceneModel";
 import type { ResolvedCaption } from "./sceneModel";
@@ -95,7 +97,7 @@ const overlayBadgeStyles = (theme: Theme, color: string) =>
     position: "absolute",
     top: 4,
     left: 4,
-    zIndex: 9999,
+    zIndex: PREVIEW_OVERLAY_Z.badge,
     fontSize: FONT_SIZE_SANS.caption,
     lineHeight: 1,
     padding: theme.spacing(0.5, 1.5),
@@ -126,11 +128,11 @@ const placeholderLayerStyles = (theme: Theme) =>
 // The shared "magic" wash + shimmer, reused from the sketch editor, washed
 // over the whole preview frame while a generating clip is live at the
 // playhead — so the preview animates in lockstep with its track clip. Sits
-// below the corner status badges (zIndex 9999).
+// below the corner status badges (PREVIEW_OVERLAY_Z.badge).
 const previewMagicOverlayStyles = css({
   position: "absolute",
   inset: 0,
-  zIndex: 9998,
+  zIndex: PREVIEW_OVERLAY_Z.magicWash,
   overflow: "hidden",
   pointerEvents: "none"
 });
@@ -1055,7 +1057,7 @@ export const PreviewCompositor: React.FC = memo(() => {
           <div
             key={`stale-${c.id}`}
             css={overlayBadgeStyles(theme, "#c08000")}
-            style={{ zIndex: 9999 }}
+            style={{ zIndex: PREVIEW_OVERLAY_Z.badge }}
           >
             stale
           </div>
@@ -1071,7 +1073,7 @@ export const PreviewCompositor: React.FC = memo(() => {
           <div
             key={`gen-${c.id}`}
             css={overlayBadgeStyles(theme, "#0055aa")}
-            style={{ zIndex: 9999 }}
+            style={{ zIndex: PREVIEW_OVERLAY_Z.badge }}
           >
             generating…
           </div>
@@ -1080,7 +1082,7 @@ export const PreviewCompositor: React.FC = memo(() => {
         {gpuFailed && (
           <div
             css={placeholderLayerStyles(theme)}
-            style={{ zIndex: 1, color: "#c08000" }}
+            style={{ zIndex: Z_INDEX.raised, color: "#c08000" }}
           >
             <span style={{ fontSize: theme.fontSizeSmall }}>
               Preview rendering unavailable
@@ -1089,7 +1091,7 @@ export const PreviewCompositor: React.FC = memo(() => {
         )}
 
         {!hasAnything && !gpuFailed && (
-          <div css={placeholderLayerStyles(theme)} style={{ zIndex: 1 }}>
+          <div css={placeholderLayerStyles(theme)} style={{ zIndex: Z_INDEX.raised }}>
             <span style={{ fontSize: 32, opacity: 0.15 }}>▶</span>
             <span style={{ fontSize: theme.fontSizeSmall, opacity: 0.25 }}>
               No media at {Math.round(currentTimeMs / 1000)}s

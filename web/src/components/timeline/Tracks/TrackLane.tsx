@@ -30,7 +30,7 @@ import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { Clip } from "./Clip";
-import { ContextMenu, WarningBanner, MOTION, MenuItemPrimitive } from "../../ui_primitives";
+import { ContextMenu, WarningBanner, MOTION, MenuItemPrimitive, Z_INDEX } from "../../ui_primitives";
 import { AddClipMenu } from "../AddClipMenu";
 import { deserializeDragData } from "../../../lib/dragdrop";
 import type { Asset } from "../../../stores/ApiTypes";
@@ -87,7 +87,7 @@ const rubberBandStyles = (theme: Theme) =>
     border: `1px solid ${theme.vars.palette.secondary.main}`,
     backgroundColor: `${theme.vars.palette.secondary.main}22`,
     pointerEvents: "none",
-    zIndex: 20
+    zIndex: Z_INDEX.sticky
   });
 
 // ── Rubber-band selection helper ───────────────────────────────────────────
@@ -554,7 +554,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
             bottom: 4,
             left: 4,
             right: 4,
-            zIndex: 30,
+            zIndex: Z_INDEX.sticky + 10,
             pointerEvents: "none"
           }}
           aria-live="polite"

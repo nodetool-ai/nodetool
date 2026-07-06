@@ -74,6 +74,7 @@ export const SKETCH_TOOLTIP_DELAY_MS = 500;
 // ─── Z-Index Scale ───────────────────────────────────────────────────────────
 
 export const SKETCH_Z_INDEX = {
+  /** Dimension/zoom readout over canvas */ readout: 5,
   /** Resize handles around canvas */    handles: 6,
   /** Cursor overlay, selection ants */  overlay: 10,
   /** Modal covering the editor */       modal: 9999,

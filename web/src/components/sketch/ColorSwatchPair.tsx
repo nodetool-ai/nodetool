@@ -16,7 +16,8 @@ import {
   FlexRow,
   Text,
   Tooltip,
-  BORDER_RADIUS
+  BORDER_RADIUS,
+  Z_INDEX
 } from "../ui_primitives";
 import { colorToHex6 } from "./types";
 import {
@@ -131,7 +132,7 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
               position: "absolute",
               left: 0,
               top: 0,
-              zIndex: 1
+              zIndex: Z_INDEX.raised
             }}
           >
             <Container

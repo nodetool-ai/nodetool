@@ -10,7 +10,8 @@ import {
   Caption,
   FlexColumn,
   PADDING,
-  SPACING
+  SPACING,
+  Z_INDEX
 } from "../ui_primitives";
 import { TimelineProvider } from "../../stores/timeline/TimelineInstance";
 import {
@@ -40,7 +41,7 @@ const rendererStyles = (theme: Theme) =>
       border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: BORDER_RADIUS.sm,
       color: theme.vars.palette.text.secondary,
-      zIndex: 1
+      zIndex: Z_INDEX.raised
     }
   });
 

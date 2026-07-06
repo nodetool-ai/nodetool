@@ -22,6 +22,7 @@ import React, { useRef, useState } from "react";
 import type { ClipTransform } from "@nodetool-ai/timeline";
 
 import { buildTransformMatrix, containBaseScale } from "./gpu/transform";
+import { PREVIEW_OVERLAY_Z } from "./sceneModel";
 import {
   HANDLE_SIZE,
   ROTATION_HANDLE_OFFSET,
@@ -647,7 +648,7 @@ export function TransformGizmoOverlay({
         width: "100%",
         height: "100%",
         overflow: "visible",
-        zIndex: 10000,
+        zIndex: PREVIEW_OVERLAY_Z.gizmo,
         pointerEvents: "none",
         touchAction: "none",
         outline: "none"

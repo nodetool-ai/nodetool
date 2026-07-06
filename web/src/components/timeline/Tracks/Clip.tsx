@@ -41,7 +41,8 @@ import {
   BORDER_RADIUS,
   SPACING,
   getSpacingPx,
-  MagicGenerationFill
+  MagicGenerationFill,
+  Z_INDEX
 } from "../../ui_primitives";
 import type { StatusType } from "../../ui_primitives";
 import { deriveClipStatus } from "../status/clipStatusReducer";
@@ -132,7 +133,7 @@ const clipHeaderRowStyles = css({
   gap: getSpacingPx(SPACING.sm),
   padding: `0 ${getSpacingPx(SPACING.md)}`,
   pointerEvents: "none",
-  zIndex: 4
+  zIndex: Z_INDEX.base + 4
 });
 
 const clipDotStyles = (accent: string) =>
@@ -205,7 +206,7 @@ const generatingOverlayStyles = css({
   position: "absolute",
   inset: 0,
   pointerEvents: "none",
-  zIndex: 3,
+  zIndex: Z_INDEX.base + 3,
   overflow: "hidden",
   borderRadius: CLIP_RADIUS_PX
 });
@@ -361,14 +362,14 @@ const trimHandleStyles = (
     "&:hover": {
       backgroundColor: locked ? undefined : "var(--palette-c_overlay_strong)"
     },
-    zIndex: 2
+    zIndex: Z_INDEX.base + 2
   });
 
 const statusBadgeStyles = css({
   position: "absolute",
   bottom: 4,
   right: 6,
-  zIndex: 3,
+  zIndex: Z_INDEX.base + 3,
   pointerEvents: "none"
 });
 
@@ -376,7 +377,7 @@ const lockIconStyles = css({
   position: "absolute",
   bottom: 4,
   left: 8,
-  zIndex: 3,
+  zIndex: Z_INDEX.base + 3,
   pointerEvents: "none",
   opacity: 0.85,
   fontSize: 12,

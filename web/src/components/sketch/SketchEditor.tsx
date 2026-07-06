@@ -47,7 +47,8 @@ import {
   Container,
   FlexColumn,
   FlexRow,
-  Text
+  Text,
+  Z_INDEX
 } from "../ui_primitives";
 import TransformContextMenu from "./TransformContextMenu";
 import type { SketchDocument } from "./types";
@@ -292,7 +293,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
                 flex: 1,
                 minHeight: 0,
                 position: "relative",
-                zIndex: 1,
+                zIndex: Z_INDEX.raised,
                 overflow: "hidden"
               }}
             >
@@ -350,7 +351,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
                 top: 0,
                 left: 0,
                 right: 0,
-                zIndex: 2,
+                zIndex: Z_INDEX.raised + 1,
                 pointerEvents: "none",
                 "& > *": { pointerEvents: "auto" }
               }}
