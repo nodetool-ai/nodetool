@@ -23,14 +23,12 @@ import {
   AccordionSummary,
   AccordionDetails
 } from "../ui_primitives";
-import {
-  Add as AddIcon,
-  Remove as RemoveIcon,
-  Edit as EditIcon,
-  ExpandMore as ExpandMoreIcon,
-  Timeline as TimelineIcon,
-  LinkOff as LinkOffIcon
-} from "@mui/icons-material";
+import AddIcon from "@mui/icons-material/Add";
+import RemoveIcon from "@mui/icons-material/Remove";
+import EditIcon from "@mui/icons-material/Edit";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import TimelineIcon from "@mui/icons-material/Timeline";
+import LinkOffIcon from "@mui/icons-material/LinkOff";
 import { GraphDiff, NodeChange, PropertyChange } from "../../utils/graphDiff";
 
 interface VersionDiffProps {

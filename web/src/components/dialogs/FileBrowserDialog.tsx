@@ -12,11 +12,9 @@ import {
   useTheme,
   type Theme
 } from "@mui/material/styles";
-import {
-  Folder as FolderIcon,
-  InsertDriveFile as FileIcon,
-  ArrowUpward as ArrowUpwardIcon
-} from "@mui/icons-material";
+import FolderIcon from "@mui/icons-material/Folder";
+import FileIcon from "@mui/icons-material/InsertDriveFile";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
 import { TreeViewBaseItem } from "@mui/x-tree-view/models";
 import { useVirtualizer } from "@tanstack/react-virtual";

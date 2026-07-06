@@ -620,8 +620,8 @@ StepNode.displayName = "StepNode";
 const TaskNode: React.FC<{
   task: TaskState;
   isLast: boolean;
-  onToggle: () => void;
-}> = memo(({ task, isLast, onToggle }) => {
+  onToggleTask: (taskId: string) => void;
+}> = memo(({ task, isLast, onToggleTask }) => {
   const stepCount = task.steps.length;
   const completedSteps = task.steps.filter(
     (s) => s.status === "completed"
@@ -629,6 +629,10 @@ const TaskNode: React.FC<{
   const duration =
     task.duration !== undefined ? formatDuration(task.duration) : "";
   const hasSteps = stepCount > 0;
+
+  const onToggle = useCallback(() => {
+    onToggleTask(task.id);
+  }, [onToggleTask, task.id]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -841,7 +845,7 @@ const ExecutionTree: React.FC<ExecutionTreeProps> = ({ state, onToggleTask }) =>
                 key={task.id}
                 task={task}
                 isLast={i === state.tasks.length - 1}
-                onToggle={() => onToggleTask(task.id)}
+                onToggleTask={onToggleTask}
               />
             ))}
           </FlexColumn>
