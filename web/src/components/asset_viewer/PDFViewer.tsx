@@ -13,7 +13,8 @@ import {
   Text,
   ToolbarIconButton,
   BORDER_RADIUS,
-  getSpacingPx
+  getSpacingPx,
+  Z_INDEX
 } from "../ui_primitives";
 import NavigateBefore from "@mui/icons-material/NavigateBefore";
 import NavigateNext from "@mui/icons-material/NavigateNext";
@@ -65,7 +66,7 @@ const styles = (theme: Theme) =>
         position: "relative",
         "& canvas": {
           position: "relative",
-          zIndex: 1,
+          zIndex: Z_INDEX.raised,
           width: "auto !important",
           height: "auto !important"
         },
@@ -76,7 +77,7 @@ const styles = (theme: Theme) =>
           top: 0,
           right: 0,
           bottom: 0,
-          zIndex: 2
+          zIndex: Z_INDEX.raised + 1
         },
         "& .textLayer": {
           display: "none",
@@ -85,7 +86,7 @@ const styles = (theme: Theme) =>
           color: theme.vars.palette.grey[1000],
           top: 0,
           bottom: 0,
-          zIndex: 3
+          zIndex: Z_INDEX.raised + 2
         }
       },
       "& .react-pdf__Page__canvas": {
@@ -104,7 +105,7 @@ const styles = (theme: Theme) =>
       background: theme.vars.palette.grey[600],
       padding: "0.8em 1em",
       borderRadius: BORDER_RADIUS.sm,
-      zIndex: 1,
+      zIndex: Z_INDEX.sticky,
       alignItems: "center",
       gap: "1em",
       minWidth: "200px",
@@ -117,7 +118,7 @@ const styles = (theme: Theme) =>
       background: theme.vars.palette.background.paper,
       padding: "0.2em",
       borderRadius: BORDER_RADIUS.sm,
-      zIndex: 1
+      zIndex: Z_INDEX.sticky
     },
     ".vertical-slider": {
       position: "absolute",
@@ -231,7 +232,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
         >
           {pageComponent}
         </Document>
-        <FlexRow className="page-controls" align="center" gap={1} sx={{ position: "sticky", bottom: "1em", background: theme.vars.palette.grey[600], padding: "0.8em 1em", borderRadius: BORDER_RADIUS.sm, zIndex: 1, minWidth: "200px", userSelect: "none" }}>
+        <FlexRow className="page-controls" align="center" gap={1} sx={{ position: "sticky", bottom: "1em", background: theme.vars.palette.grey[600], padding: "0.8em 1em", borderRadius: BORDER_RADIUS.sm, zIndex: Z_INDEX.sticky, minWidth: "200px", userSelect: "none" }}>
           <ToolbarIconButton
             icon={<NavigateBefore />}
             tooltip="Previous page"

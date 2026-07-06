@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React from "react";
-import { CloseButton, Dialog, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { CloseButton, Dialog, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -19,7 +19,7 @@ const styles = (theme: Theme) =>
       display: "block"
     },
     ".MuiModal-root": {
-      zIndex: 15000
+      zIndex: theme.zIndex.floating
     },
     ".MuiPaper-root": {
       overflow: "hidden",
@@ -28,7 +28,7 @@ const styles = (theme: Theme) =>
       width: "100%",
       maxWidth: "100%",
       maxHeight: "100%",
-      zIndex: 11000,
+      zIndex: theme.zIndex.floating,
       margin: 0
     },
     ".compare-container": {
@@ -37,7 +37,7 @@ const styles = (theme: Theme) =>
       position: "relative"
     },
     ".actions": {
-      zIndex: 10000,
+      zIndex: Z_INDEX.tooltip,
       position: "absolute",
       display: "flex",
       flexDirection: "row",

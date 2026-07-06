@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState, useEffect, useRef, MouseEventHandler, useCallback, memo, useMemo } from "react";
-import { Text } from "../ui_primitives";
+import { Text, Z_INDEX } from "../ui_primitives";
 import { Asset } from "../../stores/ApiTypes";
 import { getAlphaSurfaceBg } from "../../styles/AlphaSurface";
 
@@ -20,14 +20,14 @@ const styles = (theme: Theme) =>
       overflow: "hidden",
       margin: "0",
       position: "relative",
-      zIndex: 0,
+      zIndex: Z_INDEX.base,
       pointerEvents: "auto"
     },
     ".image-info": {
       position: "absolute",
       bottom: "0",
       right: theme.spacing(2),
-      zIndex: 1000,
+      zIndex: Z_INDEX.overlay,
       color: theme.vars.palette.text.primary,
       textShadow: `${theme.spacing(0, 0, 0.5)} ${theme.vars.palette.background.default}`,
       textAlign: "right"

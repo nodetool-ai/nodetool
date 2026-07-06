@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../ui_primitives";
 
 export const assetGridStyles = (theme: Theme) => {
   return css({
@@ -33,7 +33,7 @@ export const assetGridStyles = (theme: Theme) => {
       display: "flex",
       flexDirection: "column",
       gap: "0.25em",
-      zIndex: 5000,
+      zIndex: Z_INDEX.overlay,
       padding: "0.5em",
       borderTop: `2px solid ${theme.vars.palette.divider}`,
       backgroundColor: theme.vars.palette.grey[800]

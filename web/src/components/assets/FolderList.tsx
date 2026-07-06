@@ -6,7 +6,8 @@ import {
   MOTION,
   Accordion,
   AccordionSummary,
-  AccordionDetails
+  AccordionDetails,
+  Z_INDEX
 } from "../ui_primitives";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import React, { useCallback, useState, memo, useMemo, useEffect } from "react";
@@ -105,7 +106,7 @@ const styles = (theme: Theme) =>
       width: EXPAND_ICON_SIZE_PX + "px",
       height: "100%",
       color: theme.vars.palette.grey[200],
-      zIndex: 2,
+      zIndex: Z_INDEX.raised,
       pointerEvents: "auto"
     },
     ".expand-gutter svg": {
