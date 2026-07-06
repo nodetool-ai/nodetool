@@ -1,9 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import SaveIcon from "@mui/icons-material/Save";
 
-import LoginIcon from "@mui/icons-material/Login";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import LinkOffIcon from "@mui/icons-material/LinkOff";
 import { useMemo, useState, useCallback, useEffect, memo } from "react";
 
 import {
@@ -69,8 +66,6 @@ export const getDisplayedSettingGroups = (
   return groups;
 };
 import ExternalLink from "../common/ExternalLink";
-import { isElectron } from "../../lib/env";
-import { restFetch } from "../../lib/rest-fetch";
 import SearchProviderSection from "./SearchProviderSection";
 
 const SETTING_LINKS: Record<string, string> = {
@@ -218,112 +213,10 @@ const RemoteSettings = () => {
   const settings = useRemoteSettingsStore((state) => state.settings);
   const addNotification = useNotificationStore((state) => state.addNotification);
 
-  // HuggingFace OAuth state
-  const [hfOAuthLoading, setHfOAuthLoading] = useState(false);
-  // OpenAI OAuth state
-  const [openaiOAuthLoading, setOpenaiOAuthLoading] = useState(false);
-
   const { data, isSuccess, isLoading } = useQuery({
     queryKey: ["settings"],
     queryFn: fetchSettings
   });
-
-  // Poll for HuggingFace OAuth completion
-  interface HfTokenResponse {
-    tokens: string[];
-  }
-
-  const { data: hfTokenData, isError: isHfTokenError } = useQuery({
-    queryKey: ["hf-oauth-token"],
-    queryFn: async () => {
-      const response = await restFetch("/api/oauth/hf/tokens");
-      if (!response.ok) {
-        throw new Error("Failed to fetch HuggingFace token");
-      }
-      return (await response.json()) as HfTokenResponse;
-    },
-    refetchInterval: (query) => {
-      const data = query.state.data as HfTokenResponse | undefined;
-      if (hfOAuthLoading && !(data?.tokens && data.tokens.length > 0)) {
-        return 2000;
-      }
-      return false;
-    },
-    retry: true
-  });
-
-  const isConnected = !!(hfTokenData && hfTokenData.tokens && hfTokenData.tokens.length > 0);
-
-  // Handle OAuth completion side effects
-  useEffect(() => {
-    if (hfOAuthLoading) {
-      if (isConnected) {
-        setHfOAuthLoading(false);
-        addNotification({
-          content: "Successfully connected to HuggingFace",
-          type: "success",
-          alert: true
-        });
-      } else if (isHfTokenError) {
-        setHfOAuthLoading(false);
-        addNotification({
-          content: "Failed to check HuggingFace connection",
-          type: "error",
-          alert: true
-        });
-      }
-    }
-  }, [hfOAuthLoading, isConnected, isHfTokenError, addNotification]);
-
-  // Poll for OpenAI OAuth completion
-  interface OpenAITokenResponse {
-    tokens: unknown[];
-  }
-
-  const { data: openaiTokenData, isError: isOpenAITokenError } = useQuery({
-    queryKey: ["openai-oauth-token"],
-    queryFn: async () => {
-      const response = await restFetch("/api/oauth/openai/tokens");
-      if (!response.ok) {
-        throw new Error("Failed to fetch OpenAI token");
-      }
-      return (await response.json()) as OpenAITokenResponse;
-    },
-    refetchInterval: (query) => {
-      const data = query.state.data as OpenAITokenResponse | undefined;
-      if (openaiOAuthLoading && !(data?.tokens && data.tokens.length > 0)) {
-        return 2000;
-      }
-      return false;
-    },
-    retry: true
-  });
-
-  const isOpenAIConnected = !!(
-    openaiTokenData &&
-    openaiTokenData.tokens &&
-    openaiTokenData.tokens.length > 0
-  );
-
-  useEffect(() => {
-    if (openaiOAuthLoading) {
-      if (isOpenAIConnected) {
-        setOpenaiOAuthLoading(false);
-        addNotification({
-          content: "Successfully connected to OpenAI",
-          type: "success",
-          alert: true
-        });
-      } else if (isOpenAITokenError) {
-        setOpenaiOAuthLoading(false);
-        addNotification({
-          content: "Failed to check OpenAI connection",
-          type: "error",
-          alert: true
-        });
-      }
-    }
-  }, [openaiOAuthLoading, isOpenAIConnected, isOpenAITokenError, addNotification]);
 
   const [settingValues, setSettingValues] = useState<Record<string, string>>(
     {}
@@ -425,103 +318,6 @@ const RemoteSettings = () => {
     setSettingValues((prev) => ({ ...prev, [envVar]: value }));
   }, []);
 
-  const handleHuggingFaceOAuth = useCallback(async () => {
-    setHfOAuthLoading(true);
-
-    try {
-      const response = await restFetch("/api/oauth/hf/start");
-      const data = (await response.json().catch(() => null)) as
-        | { auth_url?: string }
-        | null;
-
-      if (!response.ok || !data?.auth_url) {
-        throw new Error("Failed to start OAuth flow");
-      }
-
-      const authUrl = data.auth_url;
-
-      if (isElectron && window.api?.shell?.openExternal) {
-        // Electron environment via IPC
-        await window.api.shell.openExternal(authUrl);
-      } else {
-        // Web environment - open in new window/tab with security attributes
-        window.open(authUrl, "_blank", "noopener,noreferrer,width=600,height=700");
-      }
-    } catch (error) {
-      console.error("OAuth initiation failed:", error);
-      setHfOAuthLoading(false);
-      addNotification({
-        content: "Failed to initiate HuggingFace login",
-        type: "error",
-        alert: true
-      });
-    }
-  }, [addNotification]);
-
-  const handleOpenAIOAuth = useCallback(async () => {
-    setOpenaiOAuthLoading(true);
-
-    try {
-      const response = await restFetch("/api/oauth/openai/start");
-      const data = (await response.json().catch(() => null)) as
-        | { auth_url?: string; detail?: string }
-        | null;
-
-      if (!response.ok || !data?.auth_url) {
-        throw new Error(data?.detail || "Failed to start OAuth flow");
-      }
-
-      const authUrl = data.auth_url;
-
-      if (isElectron && window.api?.shell?.openExternal) {
-        await window.api.shell.openExternal(authUrl);
-      } else {
-        window.open(
-          authUrl,
-          "_blank",
-          "noopener,noreferrer,width=600,height=700"
-        );
-      }
-    } catch (error) {
-      console.error("OpenAI OAuth initiation failed:", error);
-      setOpenaiOAuthLoading(false);
-      addNotification({
-        content:
-          error instanceof Error
-            ? error.message
-            : "Failed to initiate OpenAI login",
-        type: "error",
-        alert: true
-      });
-    }
-  }, [addNotification]);
-
-  const handleOpenAIDisconnect = useCallback(async () => {
-    try {
-      const response = await restFetch("/api/oauth/openai/disconnect", {
-        method: "POST"
-      });
-      if (!response.ok) {
-        throw new Error("Failed to disconnect");
-      }
-      await queryClient.invalidateQueries({
-        queryKey: ["openai-oauth-token"]
-      });
-      addNotification({
-        content: "Disconnected from OpenAI",
-        type: "success",
-        alert: true
-      });
-    } catch (error) {
-      console.error("OpenAI disconnect failed:", error);
-      addNotification({
-        content: "Failed to disconnect from OpenAI",
-        type: "error",
-        alert: true
-      });
-    }
-  }, [addNotification, queryClient]);
-
   const handleSave = useCallback(() => {
     const settings: Record<string, string> = {};
     const secrets: Record<string, string> = {};
@@ -570,97 +366,6 @@ const RemoteSettings = () => {
             css={getSharedSettingsStyles(theme)}
           >
             <div className="settings-main-content">
-              {/* HuggingFace OAuth Section */}
-              <div className="settings-section">
-                <Text
-                  size="big"
-                  id="huggingface-oauth"
-                  className="settings-heading"
-                >
-                  HuggingFace Authentication
-                </Text>
-                <div className="settings-item large">
-                  <Text className="description">
-                    Connect your HuggingFace account to access premium models and features
-                  </Text>
-                  <EditorButton
-                    variant="contained"
-                    color="primary"
-                    onClick={handleHuggingFaceOAuth}
-                    disabled={hfOAuthLoading}
-                    startIcon={
-                      isConnected ? (
-                        <CheckCircleIcon />
-                      ) : hfOAuthLoading ? null : (
-                        <LoginIcon />
-                      )
-                    }
-                    sx={{ marginTop: "1em", alignSelf: "flex-start" }}
-                  >
-                    {isConnected
-                      ? "Connected to HuggingFace"
-                      : hfOAuthLoading
-                        ? "Connecting..."
-                        : "Connect with HuggingFace"}
-                  </EditorButton>
-                </div>
-              </div>
-
-              {/* OpenAI OAuth Section */}
-              <div className="settings-section">
-                <Text
-                  size="big"
-                  id="openai-oauth"
-                  className="settings-heading"
-                >
-                  OpenAI Authentication
-                </Text>
-                <div className="settings-item large">
-                  <Text className="description">
-                    Connect your OpenAI account with OAuth instead of pasting an
-                    API key. Tokens are stored securely and refreshed
-                    automatically.
-                  </Text>
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: "0.5em",
-                      marginTop: "1em",
-                      alignSelf: "flex-start"
-                    }}
-                  >
-                    <EditorButton
-                      variant="contained"
-                      color="primary"
-                      onClick={handleOpenAIOAuth}
-                      disabled={openaiOAuthLoading}
-                      startIcon={
-                        isOpenAIConnected ? (
-                          <CheckCircleIcon />
-                        ) : openaiOAuthLoading ? null : (
-                          <LoginIcon />
-                        )
-                      }
-                    >
-                      {isOpenAIConnected
-                        ? "Connected to OpenAI"
-                        : openaiOAuthLoading
-                          ? "Connecting..."
-                          : "Connect with OpenAI"}
-                    </EditorButton>
-                    {isOpenAIConnected && (
-                      <EditorButton
-                        variant="text"
-                        onClick={handleOpenAIDisconnect}
-                        startIcon={<LinkOffIcon />}
-                      >
-                        Disconnect
-                      </EditorButton>
-                    )}
-                  </div>
-                </div>
-              </div>
-
               {/* Search Provider Section */}
               {data && (
                 <SearchProviderSection

@@ -565,7 +565,6 @@ function SettingsPage() {
   const integrationsSidebarSections = useMemo(() => {
     const configItems = [
       { id: "api-settings", label: "API Settings" },
-      { id: "huggingface-oauth", label: "HuggingFace" },
       { id: "search-provider", label: "Search Provider" },
       ...getDisplayedSettingGroups(remoteSettings ?? []).map((group) => ({
         id: settingGroupSlug(group),
