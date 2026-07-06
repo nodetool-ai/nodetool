@@ -24,7 +24,7 @@ import { useTheme } from "@mui/material/styles";
 import { type Theme } from "@mui/material/styles";
 
 import isEqual from "fast-deep-equal";
-import { FolderOutlined } from "@mui/icons-material";
+import FolderOutlined from "@mui/icons-material/FolderOutlined";
 import DownloadingIcon from "@mui/icons-material/Downloading";
 import {
   isFileExplorerAvailable,

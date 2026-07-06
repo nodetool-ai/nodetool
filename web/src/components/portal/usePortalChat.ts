@@ -1,19 +1,33 @@
 // web/src/components/portal/usePortalChat.ts
 import { useCallback } from "react";
+import { useShallow } from "zustand/react/shallow";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import { LanguageModel, Message } from "../../stores/ApiTypes";
 
 export function usePortalChat() {
-  const status = useGlobalChatStore((s) => s.status);
-  const threads = useGlobalChatStore((s) => s.threads);
-  const currentThreadId = useGlobalChatStore((s) => s.currentThreadId);
-  const progress = useGlobalChatStore((s) => s.progress);
-  const statusMessage = useGlobalChatStore((s) => s.statusMessage);
-  const selectedModel = useGlobalChatStore((s) => s.selectedModel);
-  const currentPlanningUpdate = useGlobalChatStore((s) => s.currentPlanningUpdate);
-  const currentTaskUpdate = useGlobalChatStore((s) => s.currentTaskUpdate);
-  const currentLogUpdate = useGlobalChatStore((s) => s.currentLogUpdate);
-  const messageCache = useGlobalChatStore((s) => s.messageCache);
+  const {
+    status,
+    threads,
+    currentThreadId,
+    progress,
+    statusMessage,
+    selectedModel,
+    currentPlanningUpdate,
+    currentTaskUpdate,
+    currentLogUpdate,
+    messageCache
+  } = useGlobalChatStore(useShallow((s) => ({
+    status: s.status,
+    threads: s.threads,
+    currentThreadId: s.currentThreadId,
+    progress: s.progress,
+    statusMessage: s.statusMessage,
+    selectedModel: s.selectedModel,
+    currentPlanningUpdate: s.currentPlanningUpdate,
+    currentTaskUpdate: s.currentTaskUpdate,
+    currentLogUpdate: s.currentLogUpdate,
+    messageCache: s.messageCache
+  })));
 
   const sendMessage = useCallback(async (message: Message) => {
     const store = useGlobalChatStore.getState();

@@ -15,13 +15,11 @@ import {
   BORDER_RADIUS,
   getSpacingPx
 } from "../ui_primitives";
-import {
-  NavigateBefore,
-  NavigateNext,
-  ZoomIn,
-  ZoomOut,
-  RestartAlt
-} from "@mui/icons-material";
+import NavigateBefore from "@mui/icons-material/NavigateBefore";
+import NavigateNext from "@mui/icons-material/NavigateNext";
+import ZoomIn from "@mui/icons-material/ZoomIn";
+import ZoomOut from "@mui/icons-material/ZoomOut";
+import RestartAlt from "@mui/icons-material/RestartAlt";
 import { ActionButtonGroup } from "../ui_primitives";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(

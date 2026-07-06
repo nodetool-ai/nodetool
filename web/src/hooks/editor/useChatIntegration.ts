@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import type * as monaco from "monaco-editor";
+import { useShallow } from "zustand/react/shallow";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import type {
   MessageContent,
@@ -35,20 +36,27 @@ export function useChatIntegration(params: {
     currentText
   } = params;
 
-  const sendMessageFn = useGlobalChatStore((state) => state.sendMessage);
-  const status = useGlobalChatStore((state) => state.status);
-  const progress = useGlobalChatStore((state) => state.progress);
-  const statusMessage = useGlobalChatStore((state) => state.statusMessage);
-  const getCurrentMessagesSync = useGlobalChatStore(
-    (state) => state.getCurrentMessagesSync
-  );
-  const _currentThreadId = useGlobalChatStore((state) => state.currentThreadId);
-  const selectedModel = useGlobalChatStore((state) => state.selectedModel);
-  const setSelectedModel = useGlobalChatStore(
-    (state) => state.setSelectedModel
-  );
-  const stopGeneration = useGlobalChatStore((state) => state.stopGeneration);
-  const createNewThread = useGlobalChatStore((state) => state.createNewThread);
+  const {
+    sendMessageFn,
+    status,
+    progress,
+    statusMessage,
+    getCurrentMessagesSync,
+    selectedModel,
+    setSelectedModel,
+    stopGeneration,
+    createNewThread
+  } = useGlobalChatStore(useShallow((state) => ({
+    sendMessageFn: state.sendMessage,
+    status: state.status,
+    progress: state.progress,
+    statusMessage: state.statusMessage,
+    getCurrentMessagesSync: state.getCurrentMessagesSync,
+    selectedModel: state.selectedModel,
+    setSelectedModel: state.setSelectedModel,
+    stopGeneration: state.stopGeneration,
+    createNewThread: state.createNewThread
+  })));
 
   // Register editor adapter so frontend tools can read/edit the document
   useEffect(() => {

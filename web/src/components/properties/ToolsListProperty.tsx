@@ -23,15 +23,13 @@ interface Tool {
   type: string;
   name: string;
 }
-import {
-  Search,
-  Language,
-  Add,
-  Description,
-  EditNote,
-  Folder,
-  Lock
-} from "@mui/icons-material";
+import Search from "@mui/icons-material/Search";
+import Language from "@mui/icons-material/Language";
+import Add from "@mui/icons-material/Add";
+import Description from "@mui/icons-material/Description";
+import EditNote from "@mui/icons-material/EditNote";
+import Folder from "@mui/icons-material/Folder";
+import Lock from "@mui/icons-material/Lock";
 
 const BROWSER_TOOL_IDS = [
   "browser_view",
