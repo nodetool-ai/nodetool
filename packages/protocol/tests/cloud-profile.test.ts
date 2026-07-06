@@ -95,7 +95,7 @@ describe("isCloudNodeType", () => {
   });
 });
 
-describe("code + text are node-level trimmed", () => {
+describe("code is node-level trimmed; text is whole-listed minus file I/O", () => {
   it("keeps only the sandboxed Code node", () => {
     expect(isCloudNodeType("nodetool.code.Code")).toBe(true);
     for (const nodeType of [
@@ -109,23 +109,28 @@ describe("code + text are node-level trimmed", () => {
     }
   });
 
-  it("keeps the curated creative-text nodes, drops the utilities", () => {
+  it("keeps the whole text toolkit including ASR and utilities", () => {
     for (const nodeType of [
       "nodetool.text.Prompt",
       "nodetool.text.Template",
       "nodetool.text.Concat",
       "nodetool.text.ExtractJSON",
-      "nodetool.text.AutomaticSpeechRecognition"
-    ]) {
-      expect(isCloudNodeType(nodeType)).toBe(true);
-    }
-    for (const nodeType of [
+      "nodetool.text.AutomaticSpeechRecognition",
       "nodetool.text.RegexMatch",
       "nodetool.text.ToUppercase",
       "nodetool.text.CountTokens",
       "nodetool.text.Slugify",
-      "nodetool.text.SaveTextFile",
       "nodetool.text.Embedding"
+    ]) {
+      expect(isCloudNodeType(nodeType)).toBe(true);
+    }
+  });
+
+  it("drops the text file-I/O nodes from the managed cloud", () => {
+    for (const nodeType of [
+      "nodetool.text.LoadTextFolder",
+      "nodetool.text.LoadTextAssets",
+      "nodetool.text.SaveTextFile"
     ]) {
       expect(isCloudNodeType(nodeType)).toBe(false);
     }
