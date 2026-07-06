@@ -15,6 +15,7 @@ import {
   MOTION,
   BORDER_RADIUS,
   SPACING,
+  Z_INDEX,
   getSpacingPx,
   InputAdornment
 } from "../ui_primitives";
@@ -52,7 +53,7 @@ const styles = (theme: Theme) =>
       padding: ".5em .5em 0 .5em",
       backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.6)`,
       backdropFilter: "blur(8px)",
-      zIndex: 10000,
+      zIndex: theme.zIndex.popover,
       display: "flex",
       justifyContent: "center",
       alignItems: "flex-start",
@@ -105,7 +106,7 @@ const styles = (theme: Theme) =>
         rgba(${theme.vars.palette.background.defaultChannel} / 0.4) 0%, 
         transparent 100%)`,
       borderBottom: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.05)`,
-      zIndex: 5,
+      zIndex: Z_INDEX.raised,
       h4: {
         cursor: "default",
         fontWeight: 600,

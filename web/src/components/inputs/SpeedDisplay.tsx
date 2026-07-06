@@ -1,5 +1,6 @@
 import React, { memo, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { useTheme } from "@mui/material/styles";
 import { MOTION } from "../ui_primitives";
 
 interface SpeedDisplayProps {
@@ -11,6 +12,7 @@ const SpeedDisplay: React.FC<SpeedDisplayProps> = ({
   speedFactor = 1,
   isDragging
 }) => {
+  const theme = useTheme();
   const elRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number>(0);
 
@@ -53,7 +55,7 @@ const SpeedDisplay: React.FC<SpeedDisplayProps> = ({
         borderRadius: ".5em",
         fontSize: "var(--fontSizeSmall)",
         pointerEvents: "none",
-        zIndex: 999999,
+        zIndex: theme.zIndex.highest,
         fontFamily: "var(--fontFamily)",
         textAlign: "center",
         maxWidth: "200px",

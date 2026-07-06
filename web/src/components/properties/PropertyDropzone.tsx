@@ -4,7 +4,7 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo, useState, useRef, ChangeEvent } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
-import { Tooltip, ToolbarIconButton, MOTION, SPACING, BORDER_RADIUS, getSpacingPx } from "../ui_primitives";
+import { Tooltip, ToolbarIconButton, MOTION, SPACING, BORDER_RADIUS, Z_INDEX, getSpacingPx } from "../ui_primitives";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import ImageDimensions from "../node/ImageDimensions";
 import { useTheme } from "@mui/material/styles";
@@ -143,7 +143,7 @@ const PropertyDropzone = ({
         gap: getSpacingPx(SPACING.xs),
         opacity: 0,
         transition: `opacity ${MOTION.normal}`,
-        zIndex: 10
+        zIndex: Z_INDEX.dropdown
       },
       ".dropzone:hover .asset-actions": {
         opacity: 1

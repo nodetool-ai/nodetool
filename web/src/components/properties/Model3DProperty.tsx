@@ -12,7 +12,7 @@ import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
 import ConnectedBadge from "./ConnectedBadge";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
 import { Asset } from "../../stores/ApiTypes";
-import { Tooltip, EditorButton, NodeTextField, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { Tooltip, EditorButton, NodeTextField, MOTION, BORDER_RADIUS, SPACING, Z_INDEX, getSpacingPx } from "../ui_primitives";
 import AssetViewer from "../assets/AssetViewer";
 import LazyModel3DViewer from "../asset_viewer/LazyModel3DViewer";
 import { resolveAssetUri } from "../node/output/hooks";
@@ -43,7 +43,7 @@ const styles = (theme: Theme) =>
       position: "absolute",
       top: "-15px",
       right: "0",
-      zIndex: 2,
+      zIndex: Z_INDEX.raised,
       color: theme.vars.palette.grey[500],
       backgroundColor: "transparent",
       fontSize: "var(--fontSizeSmaller)",
@@ -64,7 +64,7 @@ const styles = (theme: Theme) =>
       height: "1em",
       width: "calc(100% - 24px)",
       maxWidth: "120px",
-      zIndex: 1,
+      zIndex: Z_INDEX.raised,
       bottom: "0em",
       borderRadius: "0",
       backgroundColor: theme.vars.palette.grey[600],

@@ -24,7 +24,7 @@ import TextDecreaseIcon from "@mui/icons-material/TextDecrease";
 import TextIncreaseIcon from "@mui/icons-material/TextIncrease";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import ChatBubbleIcon from "@mui/icons-material/ChatBubble";
-import { Tooltip, LoadingSpinner, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, reducedMotion } from "../ui_primitives";
+import { Tooltip, LoadingSpinner, MOTION, BORDER_RADIUS, SPACING, Z_INDEX, getSpacingPx, reducedMotion } from "../ui_primitives";
 import { CodeHighlightNode, CodeNode } from "@lexical/code";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { ListItemNode, ListNode } from "@lexical/list";
@@ -215,7 +215,7 @@ const styles = (theme: Theme) =>
       backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.6)`,
       backdropFilter: "blur(12px) saturate(150%)",
       WebkitBackdropFilter: "blur(12px) saturate(150%)",
-      zIndex: 10000,
+      zIndex: theme.zIndex.popover,
       display: "flex",
       justifyContent: "center",
       alignItems: "flex-start",
@@ -274,7 +274,7 @@ const styles = (theme: Theme) =>
       background: `linear-gradient(90deg,
         rgba(${theme.vars.palette.background.defaultChannel} / 0.5) 0%,
         rgba(${theme.vars.palette.background.defaultChannel} / 0.15) 100%)`,
-      zIndex: 5,
+      zIndex: Z_INDEX.raised,
       "&::after": {
         content: "''",
         position: "absolute",

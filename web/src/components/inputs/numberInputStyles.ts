@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS, SPACING, Z_INDEX, getSpacingPx } from "../ui_primitives";
 
 /**
  * Styles for the NumberInput component.
@@ -151,7 +151,7 @@ export const numberInputStyles = (theme: Theme) =>
       padding: "0 !important",
       textAlign: "left",
       maxWidth: "100px",
-      zIndex: 10,
+      zIndex: Z_INDEX.dropdown,
       letterSpacing: "normal",
       fontWeight: 400,
       appearance: "none",
