@@ -75,7 +75,7 @@ import {
 } from "./ScriptLane";
 import { FX_PANEL_HEIGHT_PX } from "./trackHeight";
 import { ToolToggle } from "../ToolToggle";
-import { FlexRow, FONT_SIZE_MONO, FONT_WEIGHT, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
+import { FlexRow, FONT_SIZE_MONO, FONT_WEIGHT, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../../ui_primitives";
 import { useHasScript } from "../../../hooks/timeline/useHasScript";
 import { useVideoAudioImport } from "../../../hooks/timeline/useVideoAudioImport";
 import { deserializeDragData } from "../../../lib/dragdrop";
@@ -836,7 +836,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
                         left: 0,
                         width: fxPanelWidth,
                         height: FX_PANEL_HEIGHT_PX,
-                        zIndex: 2
+                        zIndex: Z_INDEX.base + 2
                       }}
                     >
                       <TrackEffectsPanel trackId={track.id} />

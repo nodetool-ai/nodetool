@@ -29,6 +29,20 @@ export const LAYER_Z_BASE = 1000;
 export const trackZ = (uiIndex: number): number => LAYER_Z_BASE - uiIndex;
 
 /**
+ * Stacking order for overlays drawn on top of the whole preview frame, above
+ * every `trackZ` layer. A local scale (not the global `Z_INDEX`/`theme.zIndex`
+ * theme scale, whose `commandMenu` at 9999 means the command palette) — these
+ * are top-of-preview chrome, semantically distinct from app-level stacking.
+ * The magic-generation wash sits below the corner status badges, which sit
+ * below the transform gizmo.
+ */
+export const PREVIEW_OVERLAY_Z = {
+  magicWash: 9998,
+  badge: 9999,
+  gizmo: 10000,
+} as const;
+
+/**
  * Synthetic track index assigned to caption layers so they always composite on
  * top of every real track. Words live on their media clip (an audio voiceover
  * or an imported audio/video clip), which can sit on any track — but the

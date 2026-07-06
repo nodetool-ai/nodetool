@@ -28,7 +28,7 @@ import {
 } from "../../../stores/timeline/TimelineInstance";
 import type { TimelineStoreApi } from "../../../stores/timeline/TimelineStore";
 import type { TimelinePlaybackStoreApi } from "../../../stores/timeline/TimelinePlaybackStore";
-import { FONT_SIZE_SANS, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
+import { FONT_SIZE_SANS, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../../ui_primitives";
 
 // ── Commands ──────────────────────────────────────────────────────────────────
 
@@ -91,7 +91,7 @@ const Host = styled("span")(({ theme }) => ({
     position: "absolute",
     top: "calc(100% + 4px)",
     left: 0,
-    zIndex: 20,
+    zIndex: Z_INDEX.sticky,
     margin: 0,
     padding: getSpacingPx(SPACING.xs),
     listStyle: "none",

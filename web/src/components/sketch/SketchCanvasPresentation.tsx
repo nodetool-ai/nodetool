@@ -326,7 +326,7 @@ const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
               fontSize: SKETCH_FONT.md,
               fontFamily: SKETCH_FONT.familyMono,
               pointerEvents: "none",
-              zIndex: 5,
+              zIndex: SKETCH_Z_INDEX.readout,
               gap: getSpacingPx(SPACING.lg)
             }}
           >
