@@ -3,6 +3,7 @@ import React, { memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { MOTION } from "./tokens";
 import { IconButton, Tooltip } from "@mui/material";
 import CheckIcon from "@mui/icons-material/Check";
 import DoneIcon from "@mui/icons-material/Done";
@@ -35,7 +36,7 @@ export interface ConfirmButtonProps {
 const styles = (theme: Theme) => css`
   .confirm-button {
     color: ${theme.vars.palette.text.secondary};
-    transition: all 0.2s ease;
+    transition: ${MOTION.all};
     
     &:hover {
       color: ${theme.vars.palette.success.main};

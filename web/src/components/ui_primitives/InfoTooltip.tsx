@@ -9,6 +9,7 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import HelpIcon from "@mui/icons-material/Help";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { MOTION } from "./tokens";
 
 export interface InfoTooltipProps {
   /** Content to display (string or React node) */
@@ -37,7 +38,7 @@ const styles = (theme: Theme) => css`
   .info-button {
     color: ${theme.vars.palette.text.secondary};
     padding: 4px;
-    transition: all 0.2s ease;
+    transition: ${MOTION.all};
     
     &:hover {
       color: ${theme.vars.palette.primary.main};

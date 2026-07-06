@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { useMemo } from "react";
 import { css, keyframes } from "@emotion/react";
-import { Caption, Tooltip, Box, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
+import { Caption, Tooltip, Box, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, reducedMotion } from "../../ui_primitives";
 import useStatusStore from "../../../stores/StatusStore";
 import { nodeKey } from "../../../stores/nodeKey";
 import useWorkflowRunsStore from "../../../stores/WorkflowRunsStore";
@@ -95,7 +95,8 @@ const graphStyles = css({
 
   ".mini-node.running": {
     borderColor: "var(--palette-success-main, #4caf50)",
-    animation: `${glowPulse} 1.5s ease-in-out infinite`
+    animation: `${glowPulse} ${MOTION.pulse} infinite`,
+    ...reducedMotion({ animation: "none" })
   },
 
   ".mini-node.completed": {

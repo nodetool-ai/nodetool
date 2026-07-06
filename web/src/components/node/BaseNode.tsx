@@ -22,7 +22,8 @@ import {
   BORDER_RADIUS,
   MOTION,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  reducedMotion
 } from "../ui_primitives";
 import FalPricingFooter from "./FalPricingFooter";
 import KieCreditsFooter from "./KieCreditsFooter";
@@ -200,7 +201,8 @@ const getAmbientRingCss = (color: string) =>
     // positioned ancestor.
     zIndex: 0,
     boxShadow: `0 0 0 2px ${color}, 0 0 16px 2px color-mix(in srgb, ${color} 55%, transparent)`,
-    animation: `${ambientPulseKeyframes} 1.6s ease-in-out infinite`
+    animation: `${ambientPulseKeyframes} ${MOTION.pulse} infinite`,
+    ...reducedMotion({ animation: "none" })
   });
 
 const getAmbientBadgeStyle = (theme: Theme): React.CSSProperties => ({
@@ -263,7 +265,8 @@ const getNodeStyles = (colors: string[]) =>
         maskComposite: "exclude",
         padding: "var(--ring)",
         backgroundClip: "border-box",
-        animation: `${gradientAnimationKeyframes} 5s ease-in-out infinite`,
+        animation: `${gradientAnimationKeyframes} ${MOTION.pulse} infinite`,
+        ...reducedMotion({ animation: "none" }),
         transition: MOTION.opacity
       }
     },

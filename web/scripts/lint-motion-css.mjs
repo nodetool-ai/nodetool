@@ -7,10 +7,9 @@
 // `-delay` longhands) must use a MOTION timing tier, not a raw `s`/`ms` literal.
 // `0` / `0s` (no delay) and keyword-only values (`none`, `ease`) are allowed.
 //
-// Unlike the radius/spacing CSS gates, motion is still MID-MIGRATION, so this
-// script reports the backlog but exits 0 (a `warn`). WS4b migrates the timings
-// (introducing --motion-* custom properties for the .css surface) and flips the
-// final `process.exit(0)` below to `process.exit(1)` to lock it in.
+// Like the radius/spacing CSS gates, this is enforced (exit 1): WS4b migrated
+// the backlog to the --motion-* duration custom properties defined in vars.css.
+// A new raw s/ms timing in a transition/animation prop fails the gate.
 //
 // Run: node scripts/lint-motion-css.mjs  (wired into `npm run lint:design`).
 
@@ -82,12 +81,11 @@ if (violations.length === 0) {
   process.exit(0);
 }
 
-console.warn(
-  `⚠ motion-css: ${violations.length} raw transition/animation timing value(s) in .css files (WS4b backlog — migrate to MOTION tiers / --motion-* custom properties):\n`
+console.error(
+  `✗ motion-css: ${violations.length} raw transition/animation timing value(s) in .css files (use a --motion-* custom property from vars.css):\n`
 );
 for (const v of violations) {
-  console.warn(`  ${v.file}:${v.line}  ${v.prop}: ${v.value}`);
+  console.error(`  ${v.file}:${v.line}  ${v.prop}: ${v.value}`);
 }
-console.warn(`\n${violations.length} warning(s). Not yet enforced — see DESIGN.md §5.`);
-// Stays at warn (exit 0) until WS4b migrates the backlog; then flip to exit 1.
-process.exit(0);
+console.error(`\n${violations.length} error(s). See DESIGN.md §5.`);
+process.exit(1);

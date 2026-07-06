@@ -9,7 +9,7 @@ import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { useDebouncedCallback } from "../../hooks/useDebouncedCallback";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetSearch } from "../../serverState/useAssetSearch";
-import { Tooltip, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { Tooltip, MOTION, BORDER_RADIUS, reducedMotion } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -102,7 +102,8 @@ const styles = (theme: Theme) =>
       border: "2px solid var(--palette-grey-500)",
       borderTop: "2px solid var(--palette-grey-100)",
       borderRadius: BORDER_RADIUS.circle,
-      animation: "spin 1s linear infinite"
+      animation: `spin ${MOTION.spin} infinite`,
+      ...reducedMotion({ animation: "none" })
     },
     "@keyframes spin": {
       "0%": { transform: "rotate(0deg)" },

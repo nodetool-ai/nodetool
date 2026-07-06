@@ -11,7 +11,7 @@ import {
   getBezierPath,
   type EdgeProps
 } from "@xyflow/react";
-import { Tooltip, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { Tooltip, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { memo, useMemo } from "react";
 
 export function CustomEdge({
@@ -98,7 +98,7 @@ export function CustomEdge({
       }),
       ...(isActive && {
         strokeDasharray: "14 10",
-        animation: "edgeFlow 2s linear infinite"
+        animation: `edgeFlow ${MOTION.spin} infinite`
       })
     } as React.CSSProperties;
   }, [style, isActive, selected]);

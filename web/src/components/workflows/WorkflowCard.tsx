@@ -62,7 +62,7 @@ const cardStyles = (theme: Theme) =>
     cursor: "pointer",
     background: theme.vars.palette.grey[900],
     border: `1px solid ${theme.vars.palette.grey[800]}`,
-    transition: `transform 0.2s ease, ${MOTION.border}, ${MOTION.shadow}`,
+    transition: `transform ${MOTION.normal}, ${MOTION.border}, ${MOTION.shadow}`,
     "&:hover": {
       transform: "translateY(-2px)",
       borderColor: theme.vars.palette.primary.main,

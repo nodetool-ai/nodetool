@@ -233,7 +233,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
     border: "2px solid " + "var(--palette-grey-500)",
     borderTop: "2px solid var(--palette-grey-100)",
     borderRadius: BORDER_RADIUS.circle,
-    animation: "spin 1s linear infinite"
+    animation: `spin ${MOTION.spin} infinite`
   }), []);
 
   const handleContextMenu = useCallback(

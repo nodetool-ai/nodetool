@@ -9,6 +9,7 @@ import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import QuestionMarkIcon from "@mui/icons-material/QuestionMark";
 import LiveHelpIcon from "@mui/icons-material/LiveHelp";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { MOTION } from "./tokens";
 
 export type HelpIconVariant = "help" | "helpOutline" | "question" | "liveHelp";
 
@@ -36,7 +37,7 @@ export interface HelpButtonProps {
 const styles = (theme: Theme) => css`
   .help-button {
     color: ${theme.vars.palette.text.secondary};
-    transition: all 0.2s ease;
+    transition: ${MOTION.all};
     border: 1px solid transparent;
     
     &:hover {

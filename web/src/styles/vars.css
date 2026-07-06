@@ -16,6 +16,16 @@
   --spacing-xxl: 24px;
   --spacing-xxxl: 32px;
 
+  /* Motion — timing tiers (duration only; mirrors MOTION in
+     ui_primitives/tokens.ts). Use these for every transition/animation
+     duration in .css files; keep the easing keyword (ease, linear, …) alongside
+     the var. In TSX use the MOTION tokens instead. See docs/DESIGN.md §5. */
+  --motion-fast: 120ms;
+  --motion-normal: 200ms;
+  --motion-slow: 350ms;
+  --motion-spin: 1s;
+  --motion-pulse: 2s;
+
   /* General */
   --c_background: var(--palette-c_background);
   --c_node_menu: var(--palette-c_node_menu);

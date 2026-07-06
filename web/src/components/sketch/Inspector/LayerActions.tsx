@@ -31,7 +31,8 @@ import {
   BORDER_RADIUS,
   SPACING,
   getSpacingPx,
-  Fab
+  Fab,
+  reducedMotion
 } from "../../ui_primitives";
 import { cn } from "../../editor_ui/editorUtils";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
@@ -105,7 +106,8 @@ const runButtonStyles = (theme: Theme) =>
           "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
         WebkitMaskComposite: "xor",
         maskComposite: "exclude",
-        animation: "border-spin 2s linear infinite",
+        animation: `border-spin ${MOTION.spin} infinite`,
+        ...reducedMotion({ animation: "none" }),
         pointerEvents: "none",
         zIndex: -1
       }

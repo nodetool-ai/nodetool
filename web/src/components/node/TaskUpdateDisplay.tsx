@@ -3,7 +3,7 @@ import React, { useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text, Box, BORDER_RADIUS } from "../ui_primitives";
+import { Text, Box, BORDER_RADIUS, MOTION, reducedMotion } from "../ui_primitives";
 import { TaskUpdate } from "../../stores/ApiTypes";
 import StepView from "./StepView";
 
@@ -34,7 +34,8 @@ const styles = (theme: Theme) =>
     },
 
     ".task-animated-heading": {
-      animation: "aiColorShift 4s infinite",
+      animation: `aiColorShift ${MOTION.pulse} infinite`,
+      ...reducedMotion({ animation: "none" }),
       fontFamily: theme.fontFamily1,
       fontSize: "var(--fontSizeSmall)",
       fontWeight: 600,

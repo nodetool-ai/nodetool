@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css, keyframes } from "@emotion/react";
 import React from "react";
-import { SPACING, getSpacingPx } from "../../ui_primitives";
+import { SPACING, getSpacingPx, MOTION } from "../../ui_primitives";
 
 const rotate = keyframes`
   0% { transform: rotate(0deg); }
@@ -46,7 +46,7 @@ const styles = {
   svg: css`
     width: 28px;
     height: 28px;
-    animation: ${rotate} 1.9s linear infinite;
+    animation: ${rotate} ${MOTION.spin} infinite;
     transform-origin: 50% 50%;
     will-change: transform;
   `,
@@ -55,7 +55,7 @@ const styles = {
     stroke: currentColor;
     stroke-width: 2;
     stroke-linecap: round;
-    animation: ${dash} 1.55s cubic-bezier(0.42, 0, 0.28, 1) infinite;
+    animation: ${dash} ${MOTION.pulse} infinite;
     opacity: 0.8;
     will-change: stroke-dasharray, stroke-dashoffset;
   `,
@@ -69,7 +69,7 @@ const styles = {
     margin-top: -${getSpacingPx(SPACING.xs)}; /* was -3px */
     border-radius: 50%;
     background: currentColor;
-    animation: ${pulse} 1.55s cubic-bezier(0.42, 0, 0.28, 1) infinite;
+    animation: ${pulse} ${MOTION.pulse} infinite;
     will-change: transform, opacity;
   `,
   wrapper: css`

@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import { LoadingSpinner, Text, Box, ProgressBar } from "../ui_primitives";
+import { LoadingSpinner, Text, Box, ProgressBar, MOTION } from "../ui_primitives";
 import { useParams } from "react-router-dom";
 
 import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode";
@@ -221,8 +221,8 @@ const StandaloneMiniApp: React.FC = () => {
                                 opacity: 1;
                               }
                             }
-                            animation: statusPulseColor 3s linear infinite,
-                              statusSlideIn 0.25s ease-out;
+                            animation: statusPulseColor ${MOTION.spin} infinite,
+                              statusSlideIn ${MOTION.normal};
                           `
                         : undefined
                     }

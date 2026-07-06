@@ -28,7 +28,7 @@ html, body, #root {
 }
 
 .page-enter {
-  animation: page-enter 300ms ease-out both;
+  animation: page-enter var(--motion-slow) ease-out both;
 }
 
 @property --gradient-angle {
@@ -161,9 +161,10 @@ img::selection {
   padding: 0 var(--spacing-lg);
   position: relative;
   text-align: center;
-  -webkit-transition: background-color 0.218s, border-color 0.218s,
-    box-shadow 0.218s;
-  transition: background-color 0.218s, border-color 0.218s, box-shadow 0.218s;
+  -webkit-transition: background-color var(--motion-normal),
+    border-color var(--motion-normal), box-shadow var(--motion-normal);
+  transition: background-color var(--motion-normal),
+    border-color var(--motion-normal), box-shadow var(--motion-normal);
   vertical-align: middle;
   white-space: nowrap;
   width: auto;
@@ -205,8 +206,8 @@ img::selection {
 }
 
 .gsi-material-button .gsi-material-button-state {
-  -webkit-transition: opacity 0.218s;
-  transition: opacity 0.218s;
+  -webkit-transition: opacity var(--motion-normal);
+  transition: opacity var(--motion-normal);
   bottom: 0;
   left: 0;
   opacity: 0;

@@ -36,7 +36,7 @@ const logoStyles = (
       backgroundColor: "transparent",
       opacity: opacity,
       marginTop: getSpacingPx(SPACING.micro), // was 1px
-      transition: "opacity 1s ease-in-out .2s"
+      transition: `opacity ${MOTION.slow} ${200}ms`
     },
     ".nodetool": {
       display: "flex",

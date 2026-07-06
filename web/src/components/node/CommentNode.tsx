@@ -101,14 +101,14 @@ const styles = (theme: Theme) =>
       padding: "0.25em 0.5em",
       zIndex: 1,
       opacity: 0,
-      transition: `opacity ${MOTION.normal} .2s`
+      transition: `opacity ${MOTION.normal} ${200}ms`
     },
     "&:hover .format-toolbar-container": {
       opacity: 1,
       display: "flex"
     },
     ".format-toolbar-actions": {
-      transition: `opacity ${MOTION.normal} .1s`,
+      transition: `opacity ${MOTION.normal} ${100}ms`,
       opacity: 0
     },
     "&.focused .format-toolbar-actions": {

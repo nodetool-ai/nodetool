@@ -177,7 +177,7 @@ const treeStyles = (theme: Theme) =>
       color: theme.vars.palette.info.contrastText,
       boxShadow: `0 0 0 4px rgb(${theme.vars.palette.info.mainChannel} / 0.2)`,
       "& svg": {
-        animation: "tlSpin 1.4s linear infinite",
+        animation: `tlSpin ${MOTION.spin} infinite`,
         ...reducedMotion({ animation: "none" })
       }
     },
@@ -303,7 +303,7 @@ const treeStyles = (theme: Theme) =>
         height: 6,
         borderRadius: BORDER_RADIUS.circle,
         background: "currentColor",
-        animation: "tlPulse 1.6s ease-in-out infinite",
+        animation: `tlPulse ${MOTION.pulse} infinite`,
         ...reducedMotion({ animation: "none" })
       }
     },

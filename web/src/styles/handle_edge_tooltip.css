@@ -150,7 +150,7 @@
   stroke-linecap: round;
   /* create a repeating dash pattern to simulate flow */
   stroke-dasharray: 14 10;
-  animation: edgeFlow 2s linear infinite;
+  animation: edgeFlow var(--motion-spin) linear infinite;
 }
 
 /* Streaming edges get bigger stroke when animated */
@@ -225,7 +225,7 @@
   visibility: visible !important;
   fill: var(--palette-grey-1000);
   font-size: var(--fontSizeSmaller);
-  transition: all 0.1s;
+  transition: all var(--motion-fast);
 }
 
 /* CONTROL EDGE - dashed edge from Agent nodes to controlled nodes */
@@ -294,8 +294,9 @@
 .react-flow__node .react-flow__handle {
   transform: translate(0, -50%) scale(1, 1);
   transform-origin: right center;
-  transition: transform 0.15s, width 0.15s, height 0.15s, opacity 0.15s,
-    background-color 0.15s, box-shadow 0.15s;
+  transition: transform var(--motion-fast), width var(--motion-fast),
+    height var(--motion-fast), opacity var(--motion-fast),
+    background-color var(--motion-fast), box-shadow var(--motion-fast);
   width: var(--handle_width);
   height: var(--handle_height);
   background-color: var(--palette-grey-700);
@@ -646,7 +647,7 @@ ul.multi-outputs li::marker {
   stroke-opacity: 1;
   stroke-linecap: round;
   stroke-dasharray: 14 10;
-  animation: edgeFlow 2s linear infinite;
+  animation: edgeFlow var(--motion-spin) linear infinite;
   /* Ensure crisp rendering */
   shape-rendering: geometricPrecision;
 }
@@ -697,7 +698,7 @@ ul.multi-outputs li::marker {
   .react-flow__edge.message-sent.streaming-active
   .react-flow__edge-path {
   stroke-dasharray: 8 4;
-  animation: edgeFlow 1s linear infinite;
+  animation: edgeFlow var(--motion-spin) linear infinite;
   stroke-width: 3 !important;
 }
 
@@ -720,7 +721,7 @@ ul.multi-outputs li::marker {
   .react-flow__edge.message-sent.gradient-mode
   .react-flow__edge-path {
   stroke-dasharray: 50 50;
-  animation: gradientFlow 3s linear infinite;
+  animation: gradientFlow var(--motion-spin) linear infinite;
 }
 
 /*

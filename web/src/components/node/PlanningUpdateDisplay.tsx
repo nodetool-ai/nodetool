@@ -6,6 +6,7 @@ import { PlanningUpdate } from "../../stores/ApiTypes";
 import { css } from "@emotion/react";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import AutorenewIcon from "@mui/icons-material/Autorenew";
+import { MOTION, reducedMotion } from "../ui_primitives";
 
 interface PlanningUpdateDisplayProps {
   planningUpdate: PlanningUpdate;
@@ -29,7 +30,8 @@ const styles = (theme: Theme) =>
       "& svg": { fontSize: "var(--fontSizeNormal)" },
       "&.active svg": {
         color: theme.vars.palette.primary.main,
-        animation: "spin 1.5s linear infinite"
+        animation: `spin ${MOTION.spin} infinite`,
+        ...reducedMotion({ animation: "none" })
       }
     },
 

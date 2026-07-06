@@ -577,7 +577,7 @@ const toggleSwitchSx = {
   "& .MuiSwitch-switchBase": {
     padding: 0,
     margin: getSpacingPx(SPACING.micro),
-    transitionDuration: "180ms",
+    transitionDuration: "var(--motion-normal)",
     "&.Mui-checked": {
       transform: "translateX(12px)",
       color: "var(--palette-primary-contrastText)",

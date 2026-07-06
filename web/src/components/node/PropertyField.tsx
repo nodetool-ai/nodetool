@@ -16,7 +16,7 @@ import { isConnectableCached } from "../node_menu/typeFilterUtils";
 import HandleTooltip from "../HandleTooltip";
 import { NodeData } from "../../stores/NodeData";
 import usePropertyValidationStore from "../../stores/PropertyValidationStore";
-import { Tooltip, BORDER_RADIUS } from "../ui_primitives";
+import { Tooltip, BORDER_RADIUS, MOTION, reducedMotion } from "../ui_primitives";
 import useModelCalloutStore from "../../stores/ModelCalloutStore";
 import { isModelEmpty } from "../../utils/findMissingModelNodes";
 import ModelSetupCallout from "./ModelSetupCallout";
@@ -38,7 +38,8 @@ const highlightStyle = css({
   outlineOffset: 2,
   // Blink the outline + glow fully on and off to draw the eye to an unset
   // model. Runs until the highlight store clears it (HIGHLIGHT_DURATION_MS).
-  animation: `${highlightBlink} 0.55s ease-in-out infinite`
+  animation: `${highlightBlink} ${MOTION.pulse} infinite`,
+  ...reducedMotion({ animation: "none" })
 });
 
 const HANDLE_POPUP_STYLE = { position: "absolute" as const, left: "0" };

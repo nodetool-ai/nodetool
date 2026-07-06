@@ -19,7 +19,12 @@ import { memo } from "react";
 import { useSketchStore } from "./state";
 import { useSketchSessionStore } from "../../stores/sketch/SketchInstance";
 import { computeTransformedCorners } from "./transform/geometry/layerGeometry";
-import { BORDER_RADIUS, MagicGenerationFill, reducedMotion } from "../ui_primitives";
+import {
+  BORDER_RADIUS,
+  MagicGenerationFill,
+  MOTION,
+  reducedMotion
+} from "../ui_primitives";
 
 interface Rect {
   x: number;
@@ -83,7 +88,7 @@ const boxCss = css({
   overflow: "hidden",
   pointerEvents: "none",
   willChange: "box-shadow, border-color",
-  animation: `${borderFlow} 3s linear infinite, ${auraPulse} 1.8s ease-in-out infinite`,
+  animation: `${borderFlow} ${MOTION.spin} infinite, ${auraPulse} ${MOTION.pulse} infinite`,
   // The flowing wash + shimmer fill (MagicGenerationFill) is rendered as
   // children below; the box itself contributes the border + aura glow.
   ...reducedMotion({ animation: "none" })
@@ -96,7 +101,7 @@ const sparkleCss = css({
   borderRadius: "50%",
   background:
     "radial-gradient(circle, #fff 0%, rgba(110, 231, 255, 0.9) 40%, transparent 70%)",
-  animation: `${sparkleTwinkle} 1.4s ease-in-out infinite`,
+  animation: `${sparkleTwinkle} ${MOTION.pulse} infinite`,
   ...reducedMotion({ animation: "none", opacity: 0 })
 });
 
