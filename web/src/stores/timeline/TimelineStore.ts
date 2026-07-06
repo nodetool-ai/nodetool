@@ -531,16 +531,18 @@ function splitAllClipsAt(
   clips: TimelineClip[],
   timeMs: number
 ): TimelineClip[] {
-  let next = [...clips];
-  const toSplit = next.filter(
-    (c) => timeMs > c.startMs && timeMs < c.startMs + c.durationMs
-  );
-  for (const clip of toSplit) {
-    try {
-      const [left, right] = splitClip(clip, timeMs);
-      next = next.filter((c) => c.id !== clip.id).concat([left, right]);
-    } catch {
-      // Skip clips where the split is invalid (e.g. boundary mismatch).
+  const next: TimelineClip[] = [];
+  for (const clip of clips) {
+    if (timeMs > clip.startMs && timeMs < clip.startMs + clip.durationMs) {
+      try {
+        const [left, right] = splitClip(clip, timeMs);
+        next.push(left, right);
+      } catch {
+        // Skip clips where the split is invalid (e.g. boundary mismatch).
+        next.push(clip);
+      }
+    } else {
+      next.push(clip);
     }
   }
   return next;
@@ -565,17 +567,29 @@ function splitClipsLinkAware(
 
   // Expand targets to include linked siblings that also contain atMs, deduped.
   const toSplit = new Map<string, TimelineClip>();
-  for (const id of targetIds) {
-    const clip = clips.find((c) => c.id === id);
-    if (!clip || !contains(clip)) {
-      continue;
+  const targetIdSet = new Set(targetIds);
+  const affectedLinkIds = new Set<string>();
+
+  // First pass: find target clips and record their link groups
+  for (const clip of clips) {
+    if (targetIdSet.has(clip.id) && contains(clip)) {
+      toSplit.set(clip.id, clip);
+      if (clip.linkId !== undefined) {
+        affectedLinkIds.add(clip.linkId);
+      }
     }
-    toSplit.set(clip.id, clip);
-    if (clip.linkId !== undefined) {
-      for (const sib of clips) {
-        if (sib.id !== clip.id && sib.linkId === clip.linkId && contains(sib)) {
-          toSplit.set(sib.id, sib);
-        }
+  }
+
+  // Second pass: add linked siblings that also contain atMs
+  if (affectedLinkIds.size > 0) {
+    for (const clip of clips) {
+      if (
+        clip.linkId !== undefined &&
+        affectedLinkIds.has(clip.linkId) &&
+        contains(clip) &&
+        !toSplit.has(clip.id)
+      ) {
+        toSplit.set(clip.id, clip);
       }
     }
   }
@@ -599,20 +613,25 @@ function splitClipsLinkAware(
     return id;
   };
 
-  let next = [...clips];
-  for (const clip of toSplit.values()) {
-    try {
-      const [left, right] = splitClip(clip, atMs);
-      if (clip.linkId !== undefined) {
-        left.linkId = groupLink(leftLinkByGroup, clip.linkId);
-        right.linkId = groupLink(rightLinkByGroup, clip.linkId);
-      } else {
-        delete left.linkId;
-        delete right.linkId;
+  const next: TimelineClip[] = [];
+  for (const clip of clips) {
+    if (toSplit.has(clip.id)) {
+      try {
+        const [left, right] = splitClip(clip, atMs);
+        if (clip.linkId !== undefined) {
+          left.linkId = groupLink(leftLinkByGroup, clip.linkId);
+          right.linkId = groupLink(rightLinkByGroup, clip.linkId);
+        } else {
+          delete left.linkId;
+          delete right.linkId;
+        }
+        next.push(left, right);
+      } catch {
+        // atMs outside this clip's bounds — leave it untouched.
+        next.push(clip);
       }
-      next = next.filter((c) => c.id !== clip.id).concat([left, right]);
-    } catch {
-      // atMs outside this clip's bounds — leave it untouched.
+    } else {
+      next.push(clip);
     }
   }
   return next;
