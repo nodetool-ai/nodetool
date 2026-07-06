@@ -1,7 +1,7 @@
 ---
 layout: page
 title: "Key Concepts"
-description: "Core concepts behind NodeTool workflows."
+description: "Core concepts behind NodeTool workflows, assets, sketches, and timelines."
 ---
 
 The ideas you need to build on the canvas.
@@ -43,9 +43,47 @@ Examples:
 - PDF → chunk → index → search → answer
 - Story → characters → portraits → video
 
+Workflows are the automation layer. Use them when you want a repeatable pipeline: generate media, transform files, call models, index documents, or prepare assets for another editor surface.
+
 ### Connections
 
 Lines between ports. Types are checked — image outputs only connect to image inputs. Drag from an output port to an input port. Hover to inspect data in flight.
+
+### Assets
+
+An **asset** is a stored file: image, video, audio, PDF, text file, 3D model, or any other media a node can read or write. Assets live in the Asset Explorer and can be reused across workflows, sketches, timelines, and chats.
+
+Assets are the shared material between surfaces:
+
+- Drop an image asset onto the workflow canvas to create an image input.
+- Save a workflow output as an asset so you can use it later.
+- Drag video, audio, or image assets onto a timeline as clips.
+- Open an image asset in the Sketch Editor for painting, masking, or layered edits.
+- Put document assets in collections for indexing and RAG.
+
+### Sketches
+
+A **sketch** is a layered image document. It is for painting, masking, retouching, compositing, and generating image layers in place.
+
+Sketches sit between manual editing and workflow automation:
+
+- Start with a blank canvas or open an existing image asset.
+- Paint or build up layers by hand.
+- Bind a layer to an image workflow so it can regenerate when inputs change.
+- Render the sketch back into an image asset.
+- Use the rendered image in a workflow or timeline.
+
+### Timelines
+
+A **timeline** is a multi-track media sequence. It holds clips arranged over time: video, audio, still images, overlays, and generated clips.
+
+Timelines are where outputs become finished media:
+
+- Drag existing assets into tracks as imported clips.
+- Add a generated clip backed by a workflow.
+- Trim, split, reorder, and layer clips.
+- Regenerate stale generated clips when the bound workflow or parameters change.
+- Export the sequence to a video asset.
 
 ### Agents
 
@@ -54,6 +92,40 @@ An agent node takes a natural-language goal, breaks it into steps, and uses tool
 ### Mini-Apps
 
 A workflow with the graph hidden — just inputs and outputs. Share with people who shouldn't have to read a node graph.
+
+---
+
+## How everything fits together
+
+NodeTool has one common loop:
+
+1. **Collect or create assets.** Upload files, generate outputs from workflows, paint sketches, or export timelines.
+2. **Build workflows around them.** Workflows read assets, call models, transform media, and write new assets.
+3. **Edit the result in a surface built for the medium.** Use sketches for layered still images and timelines for time-based media.
+4. **Feed the edited result back into workflows.** A rendered sketch or exported timeline is just another asset.
+5. **Share the workflow or final output.** Keep the graph for repeatable work, expose it as a Mini-App, or publish the exported asset.
+
+The surfaces are separate because they solve different editing problems, but they share the same asset store and model/provider system.
+
+{% mermaid %}
+graph LR
+    A[Assets] --> B[Workflow]
+    B --> C[Generated assets]
+    C --> D[Sketch]
+    C --> E[Timeline]
+    D --> A
+    E --> A
+    B --> F[Mini-App]
+{% endmermaid %}
+
+### Example: make a short product video
+
+1. Upload product photos as assets.
+2. Use a workflow to generate copy, background images, and voiceover.
+3. Open a hero image in a sketch to mask and retouch it.
+4. Drag the image, voiceover, and generated clips into a timeline.
+5. Bind one clip to an image-to-video workflow and regenerate until it fits.
+6. Export the timeline as the final video asset.
 
 ---
 
@@ -90,6 +162,12 @@ Mix freely. Pick the best model for the job per node.
 | **Input / output** | Entry and exit ports |
 | **Preview** | Node that displays intermediate data |
 | **Run** | Execute the graph |
+| **Asset** | Stored file used by workflows, sketches, timelines, chats, or collections |
+| **Sketch** | Layered image document for painting, masking, compositing, and image generation |
+| **Timeline** | Multi-track sequence for arranging video, audio, image, and generated clips |
+| **Clip** | Media item placed on a timeline track |
+| **Generated clip / layer** | Timeline clip or sketch layer backed by a workflow or model call |
+| **Stale** | Generated output whose inputs, prompt, or bound workflow changed since the last generation |
 | **Model** | A trained network you call from a node |
 | **Provider** | Where the model runs (local, OpenAI, FAL, …) |
 
@@ -146,5 +224,8 @@ See the [Developer Guide](developer/) and [Custom Nodes](developer/custom-nodes-
 
 - [Getting Started](getting-started.md)
 - [Workflow Editor](workflow-editor.md)
+- [Asset Management](asset-management.md)
+- [Sketch Editor](sketch-editor.md)
+- [Video Editor](video-editor.md)
 - [Models & Providers](models-and-providers.md)
 - [Cookbook](cookbook.md)
