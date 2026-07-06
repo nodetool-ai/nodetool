@@ -8,7 +8,7 @@ import isEqual from "fast-deep-equal";
 import { useNodes } from "../../contexts/NodeContext";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { CopyButton, ToolbarIconButton, SPACING } from "../ui_primitives";
+import { CopyButton, ToolbarIconButton, SPACING, Z_INDEX } from "../ui_primitives";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { NodeTextField, editorClassNames, cn } from "../editor_ui";
 import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
@@ -35,7 +35,7 @@ const propertyStyles = (theme: Theme) =>
       right: 0,
       top: "-3px",
       opacity: 0.8,
-      zIndex: 10
+      zIndex: Z_INDEX.dropdown
     },
     ".string-action-buttons .MuiIconButton-root": {
       margin: `0 0 0 ${theme.spacing(SPACING.sm)}`,

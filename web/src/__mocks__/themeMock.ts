@@ -184,8 +184,9 @@ const mockTheme = createTheme({
 (mockTheme as any).tooltip = {};
 (mockTheme as any).vars.tooltip = {};
 
-// Add zIndex for MUI components
-(mockTheme as any).zIndex = {
+// Add zIndex for MUI components plus Nodetool's custom scale
+const zIndexScale = {
+  // MUI
   mobileStepper: 1000,
   fab: 1050,
   speedDial: 1050,
@@ -193,18 +194,19 @@ const mockTheme = createTheme({
   drawer: 1200,
   modal: 1300,
   snackbar: 1400,
-  tooltip: 1500
+  tooltip: 1500,
+  // Nodetool
+  behind: -1,
+  base: 0,
+  commandMenu: 9999,
+  popover: 10001,
+  popover2: 99990,
+  autocomplete: 10002,
+  floating: 10003,
+  highest: 100000
 };
-(mockTheme as any).vars.zIndex = {
-  mobileStepper: 1000,
-  fab: 1050,
-  speedDial: 1050,
-  appBar: 1100,
-  drawer: 1200,
-  modal: 1300,
-  snackbar: 1400,
-  tooltip: 1500
-};
+(mockTheme as any).zIndex = { ...zIndexScale };
+(mockTheme as any).vars.zIndex = { ...zIndexScale };
 
 // Add avatar properties for MUI Chip component
 (mockTheme as any).vars.avatar = {

@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState, useCallback, useRef, useMemo } from "react";
-import { ToolbarIconButton, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { ToolbarIconButton, BORDER_RADIUS, SPACING, Z_INDEX, getSpacingPx } from "../ui_primitives";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import SwapVertIcon from "@mui/icons-material/SwapVert";
 import { alphaSurfaceBg } from "../../styles/AlphaSurface";
@@ -65,7 +65,7 @@ const styles = (theme: Theme) =>
       position: "absolute",
       backgroundColor: theme.vars.palette.common.white,
       boxShadow: `0 0 4px ${theme.vars.palette.c_scrim}`,
-      zIndex: 10,
+      zIndex: Z_INDEX.dropdown,
       pointerEvents: "none"
     },
     ".divider-line.horizontal": {
@@ -86,7 +86,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.common.white,
       backgroundColor: theme.vars.palette.c_scrim,
       borderRadius: BORDER_RADIUS.sm,
-      zIndex: 15,
+      zIndex: Z_INDEX.sticky,
       pointerEvents: "none"
     },
     ".label.label-a.horizontal": {
@@ -112,7 +112,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.grey[300],
       backgroundColor: theme.vars.palette.c_scrim,
       borderRadius: BORDER_RADIUS.sm,
-      zIndex: 15,
+      zIndex: Z_INDEX.sticky,
       pointerEvents: "none"
     },
     ".metadata.metadata-a.horizontal": {
@@ -135,7 +135,7 @@ const styles = (theme: Theme) =>
       position: "absolute",
       bottom: "8px",
       right: "24px",
-      zIndex: 50,
+      zIndex: Z_INDEX.overlay,
       backgroundColor: theme.vars.palette.c_scrim,
       color: theme.vars.palette.common.white,
       padding: getSpacingPx(SPACING.xs),

@@ -6,7 +6,7 @@ import PropertyLabel from "../node/PropertyLabel";
 import { Asset } from "../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Tooltip, CloseButton, MOTION, SPACING, BORDER_RADIUS, getSpacingPx } from "../ui_primitives";
+import { Tooltip, CloseButton, MOTION, SPACING, BORDER_RADIUS, Z_INDEX, getSpacingPx } from "../ui_primitives";
 import isEqual from "fast-deep-equal";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import ImageDimensions from "../node/ImageDimensions";
@@ -86,7 +86,7 @@ const styles = (theme: Theme) =>
       padding: getSpacingPx(SPACING.micro),
       width: "20px",
       height: "20px",
-      zIndex: 2,
+      zIndex: Z_INDEX.raised,
       "&:hover": {
         backgroundColor: theme.vars.palette.error.main,
         color: theme.vars.palette.common.white

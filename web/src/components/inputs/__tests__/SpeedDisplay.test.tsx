@@ -9,7 +9,9 @@
 import React from "react";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { createPortal } from "react-dom";
+import { ThemeProvider } from "@mui/material/styles";
 import { SpeedDisplay } from "../SpeedDisplay";
+import mockTheme from "../../../__mocks__/themeMock";
 
 // Mock createPortal to control its behavior
 jest.mock("react-dom", () => ({
@@ -306,14 +308,16 @@ describe("SpeedDisplay", () => {
 
     it("should have high z-index", () => {
       const { container } = render(
-        <SpeedDisplay
-          speedFactor={0.5}
-          isDragging={true}
-        />
+        <ThemeProvider theme={mockTheme}>
+          <SpeedDisplay
+            speedFactor={0.5}
+            isDragging={true}
+          />
+        </ThemeProvider>
       );
 
       const display = container.querySelector("div");
-      expect(display?.style.zIndex).toBe("999999");
+      expect(display?.style.zIndex).toBe(String(mockTheme.zIndex.highest));
     });
 
     it("should disable pointer events", () => {

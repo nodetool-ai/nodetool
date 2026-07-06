@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from "react";
+import { useTheme } from "@mui/material/styles";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFnsV3";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
@@ -12,6 +13,7 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
   value,
   onChange
 }) => {
+  const theme = useTheme();
   const [selectedDate, setSelectedDate] = useState<Date | null>(
     new Date(value)
   );
@@ -41,7 +43,7 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
           onClose={handleDateClose}
           slotProps={{
             popper: {
-              style: { zIndex: 99999 }
+              style: { zIndex: theme.zIndex.popover2 }
             }
           }}
         />
