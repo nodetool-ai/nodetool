@@ -17,6 +17,7 @@ import { useQuery } from "@tanstack/react-query";
 import React from "react";
 import {
   Message,
+  MessageTextContent,
   TaskUpdate,
   PlanningUpdate,
   LogUpdate,
@@ -330,8 +331,8 @@ function extractMessageText(message: Message | ChatOutgoingMessage): string {
   }
   if (Array.isArray(content)) {
     return content
-      .filter((part) => part?.type === "text")
-      .map((part) => (part as { text?: string }).text ?? "")
+      .filter((part): part is MessageTextContent => part?.type === "text")
+      .map((part) => part.text)
       .join("")
       .trim();
   }

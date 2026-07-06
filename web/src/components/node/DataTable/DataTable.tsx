@@ -89,9 +89,9 @@ const datetimeFormatter: Formatter = (cell) => {
  */
 const coerceValue = (value: unknown, column: ColumnDef): DataframeCellValue => {
   if (column.data_type === "int") {
-    return parseInt(value as string) || 0;
+    return parseInt(String(value)) || 0;
   } else if (column.data_type === "float") {
-    return parseFloat(value as string) || 0.0;
+    return parseFloat(String(value)) || 0.0;
   } else if (column.data_type === "datetime") {
     return value as string;
   }
@@ -102,9 +102,9 @@ const coerceValue = (value: unknown, column: ColumnDef): DataframeCellValue => {
  * Coerce a row to the correct types based on column definitions
  */
 const coerceRow = (rownum: number, row: ListTableRow, columns: ColumnDef[]): DictTableRow => {
-  return columns.reduce(
+  return columns.reduce<DictTableRow>(
     (acc, col, index) => {
-      (acc as Record<string, DataframeCellValue>)[col.name] = coerceValue(row[index], col);
+      acc[col.name] = coerceValue(row[index], col);
       return acc;
     },
     { rownum }
@@ -275,7 +275,7 @@ const DataTable: React.FC<DataTableProps> = ({
           if (!row) {return { rownum: index };}
           const newRow = { ...row };
           if (index === rownum) {
-            (newRow as Record<string, DataframeCellValue>)[cell.getField() as string] = cell.getValue();
+            newRow[cell.getField()] = cell.getValue();
           }
           return newRow;
         })

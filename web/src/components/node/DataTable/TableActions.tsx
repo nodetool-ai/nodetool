@@ -342,9 +342,9 @@ const TableActions: React.FC<TableActionsProps> = memo(({
             }
             // Coerce to correct type
             if (col.data_type === "int") {
-              value = parseInt(value as string) || 0;
+              value = parseInt(String(value)) || 0;
             } else if (col.data_type === "float") {
-              value = parseFloat(value as string) || 0.0;
+              value = parseFloat(String(value)) || 0.0;
             }
             newRow[col.name] = value;
           });
