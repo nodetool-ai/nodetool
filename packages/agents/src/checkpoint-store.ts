@@ -251,6 +251,15 @@ export class FilePlanCache implements PlanCache {
   async load(): Promise<void> {
     await this.ensureLoaded();
   }
+
+  /**
+   * Resolve once every persist scheduled so far has flushed to disk. `set()` is
+   * fire-and-forget, so callers that need the file written (e.g. another
+   * instance about to read it) await this instead of guessing a delay.
+   */
+  async flush(): Promise<void> {
+    await this.persistQueue;
+  }
 }
 
 // ---------------------------------------------------------------------------
