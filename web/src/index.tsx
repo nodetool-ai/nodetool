@@ -52,6 +52,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import useAuth from "./stores/useAuth";
 import { isLocalhost } from "./lib/env";
 import { loadRuntimeConfig, isAuthRequired } from "./lib/runtimeConfig";
+import { initAnalytics } from "./lib/analytics";
 import { initSupabaseFromConfig } from "./lib/supabaseClient";
 import { initKeyListeners } from "./stores/KeyPressedStore";
 import useRemoteSettingsStore from "./stores/RemoteSettingStore";
@@ -728,6 +729,9 @@ const initialize = async () => {
 
   useAuth.getState().initialize();
   initKeyListeners();
+
+  // Load Plausible on the production website only (never local/dev/Electron).
+  initAnalytics();
 
   // Render after initialization and prefetching
   root.render(<AppWrapper />);

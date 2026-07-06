@@ -560,6 +560,14 @@ declare global {
     isLocalhost?: boolean;
     isElectron?: boolean;
     setForceLocalhost?: (force: boolean | null) => void;
+    // Plausible analytics (loaded only on the production website).
+    plausible?: {
+      (
+        event: string,
+        options?: { props?: Record<string, string | number | boolean> }
+      ): void;
+      q?: unknown[];
+    };
   }
 }
 
