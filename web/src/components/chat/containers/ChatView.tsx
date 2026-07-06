@@ -59,7 +59,7 @@ const styles = (theme: Theme) =>
       minHeight: 0,
       display: "flex",
       flexDirection: "column",
-      paddingBottom: theme.spacing(6),
+      paddingBottom: theme.spacing(2),
       width: "100%",
       maxWidth: "1180px",
       alignSelf: "center"

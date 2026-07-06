@@ -30,7 +30,6 @@ import {
 } from "../../ui_primitives";
 import ErrorIcon from "@mui/icons-material/Error";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import PersonOutlineRoundedIcon from "@mui/icons-material/PersonOutlineRounded";
 import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
 import { getToolVisual } from "./toolCallIcon";
@@ -129,9 +128,7 @@ const ToolCallCard: React.FC<{
 
   const hasArgs = !!displayArgs && Object.keys(displayArgs).length > 0;
   const resultContent = result?.content;
-  // The call is complete once a result arrived; expandable details only show
-  // when the result actually has content.
-  const isCompleted = result !== undefined;
+  // Expandable details only show when the result actually has content.
   const hasResult =
     resultContent != null &&
     !(typeof resultContent === "string" && resultContent.trim().length === 0);
@@ -208,22 +205,18 @@ const ToolCallCard: React.FC<{
               {liveMessage}
             </Text>
           )}
-          {!isSubtask && <span className="tool-call-id">{tc.name}</span>}
+          {/* Show the raw tool identifier only when the headline is an
+              LLM-authored message — otherwise it would duplicate the
+              formatted tool name sitting right next to it. */}
+          {!isSubtask && !!liveMessage && (
+            <span className="tool-call-id">{tc.name}</span>
+          )}
         </FlexRow>
         <FlexRow align="center" gap={1} sx={{ flexShrink: 0 }}>
           {durationLabel && (
             <span className="tool-call-duration">{durationLabel}</span>
           )}
-          {isRunning ? (
-            <LoadingSpinner size="small" />
-          ) : (
-            isCompleted && (
-              <CheckCircleRoundedIcon
-                className="tool-status-icon done"
-                aria-label="completed"
-              />
-            )
-          )}
+          {isRunning && <LoadingSpinner size="small" />}
           {hasDetails && (
             <ExpandMoreIcon
               className={`expand-icon${open ? " expanded" : ""}`}
