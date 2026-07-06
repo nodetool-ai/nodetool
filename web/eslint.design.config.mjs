@@ -68,6 +68,10 @@ export default [
       // error so any new raw/magic/var(--rounded-*) radius fails the gate. See
       // docs/DESIGN.md §4.
       "design-tokens/border-radius-tokens": "error",
+      // Motion (transition/animation timing) is mid-migration — stays at `warn`
+      // to surface the backlog. Promoted to `error` in WS4b once migrated. See
+      // docs/DESIGN.md §5.
+      "design-tokens/motion-tokens": "warn",
     },
   },
 ];

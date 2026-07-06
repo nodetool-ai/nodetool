@@ -472,6 +472,25 @@ import { MOTION, reducedMotion } from "../ui_primitives";
 | `MOTION.opacity` | `opacity 150ms ease` | Fade in/out |
 | `MOTION.shadow` | `box-shadow 200ms ease` | Elevation changes |
 
+### Keyframe Loops
+
+Infinite `@keyframes` animations (spinners, pulsing indicators) run on their own
+timing — the sub-second `fast`/`normal`/`slow` tiers don't fit a 1–5s loop. Two
+tokens carry the duration + easing; compose them with the keyframe name and
+iteration.
+
+| Token | Value | Use |
+|---|---|---|
+| `MOTION.spin` | `1s linear` | Continuous rotation (loading spinners) |
+| `MOTION.pulse` | `2s ease-in-out` | Breathing / pulsing status indicators |
+
+{% raw %}
+```tsx
+sx={{ animation: `${spin} ${MOTION.spin} infinite` }}
+sx={{ animation: `${pulse} ${MOTION.pulse} infinite` }}
+```
+{% endraw %}
+
 ### Usage
 
 {% raw %}
@@ -529,6 +548,10 @@ Existing components that write `@media (prefers-reduced-motion: reduce)` raw sho
 ### Forbidden
 
 Raw timing strings of any kind: `"200ms"`, `"0.2s ease-in-out"`, `"all 150ms linear"`. Compose from `MOTION.*` tokens. Raw `@media (prefers-reduced-motion: reduce) { … }` blocks in new code — use `reducedMotion()` instead.
+
+### Enforcement (motion is linted at `warn` — migration in progress)
+
+In TSX, `design-tokens/motion-tokens` flags any object-literal `transition` / `animation` / `transitionDuration` / `transitionDelay` / `animationDuration` / `animationDelay` whose value carries a non-zero `s`/`ms` timing, and any raw `transition` / `animation` timing inside `styled` / `css` template-literal CSS. In plain `.css`, `scripts/lint-motion-css.mjs` flags the same properties (and their `-duration` / `-delay` longhands). `0` / `0s` (no delay), keyword-only values (`none`), and values built from `MOTION.*` tokens are allowed. Both stay at **`warn`** while the backlog (~41 TSX timings + ~26 `.css` timings) is migrated; WS4b migrates them and promotes the rule + the CSS script to **`error`**.
 
 ---
 
@@ -689,7 +712,7 @@ When editing any UI file, scan for these violations and fix them in the same PR.
 2. **Typography**: Do not add a ninth type style. Any new text hierarchy must collapse onto one of the eight existing combinations.
 3. **Color**: Add as a `c_*` key in **both** `paletteDark.ts` and `paletteLight.ts`. Document its semantic role in a comment.
 4. **Border radius**: Add a new `BORDER_RADIUS.*` entry in `tokens.ts` and a corresponding `--rounded-*` CSS var in `ThemeNodetool.tsx` `MuiCssBaseline`.
-5. **Motion**: If a new timing is needed, add to `MOTION` in `tokens.ts` as a named constant — never use the value inline. New animated components must also include a `reducedMotion()` override.
+5. **Motion**: If a new timing is needed, add to `MOTION` in `tokens.ts` as a named constant — never use the value inline. Transitions use the `fast`/`normal`/`slow` tiers or a property shorthand; infinite `@keyframes` loops use `MOTION.spin` (1s linear) / `MOTION.pulse` (2s ease-in-out) rather than a sub-second tier. New animated components must also include a `reducedMotion()` override.
 6. **Z-index**: Add to `Z_INDEX` in `tokens.ts` or to `theme.zIndex` in `ThemeNodetool.tsx`. Never use a raw integer.
 
 ---

@@ -174,12 +174,14 @@ export const noRestrictedImports = [
 // See docs/DESIGN.md and ui_primitives/tokens.ts.
 export const noRestrictedSyntax = [
   "warn",
-  {
-    // transition: "200ms ease" → use a MOTION token.
-    selector: "Property[key.name='transition'] > Literal[value=/[0-9]+ms/]",
-    message:
-      "Use a MOTION token (MOTION.fast/normal/slow/all/…) instead of a hardcoded transition string. See ui_primitives/tokens.ts.",
-  },
+  // NOTE: Motion (transition/animation timing) is NOT handled here. It graduated
+  // to the dedicated `design-tokens/motion-tokens` custom rule below, which — like
+  // spacingTokensRule — also covers `animation`/`animationDelay`/`transitionDuration`
+  // properties, seconds (`0.3s`) as well as ms, and raw timing inside
+  // `styled`/`css` template literals. A `no-restricted-syntax` selector can only see
+  // one property key and only `ms` in an object-literal `Property > Literal`, which
+  // reported 0 while ~41 raw animation/animationDelay timings remained. See
+  // eslint.design.mjs → motionTokensRule and docs/DESIGN.md §5.
   // NOTE: borderRadius is NOT handled here. It graduated to the dedicated
   // `design-tokens/border-radius-tokens` custom rule (at `error`, fully
   // migrated) so it can lock in while the transition/zIndex selectors below
@@ -601,6 +603,101 @@ export const borderRadiusTokensRule = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// Motion custom rule (DESIGN.md §5 — MOTION.* timing constants).
+//
+// Graduated out of `no-restricted-syntax`, whose single
+// `Property[key.name='transition'] > Literal[value=/[0-9]+ms/]` selector saw only
+// the `transition` key and only `ms`, so it reported 0 while ~41 raw
+// `animation`/`animationDelay` timings (and ~20 `.css` transition strings) went
+// unlinted. Mirroring spacingTokensRule, this rule covers:
+//
+//   1. Object props   { transition: "0.2s ease", animation: "spin 1s linear …" }
+//   2. Duration/delay { animationDelay: "0.08s", transitionDuration: "200ms" }
+//   3. Template CSS    css`transition: color 0.2s;`  animation: name 1.6s …
+//
+// Any non-zero timing (`s` or `ms`) is reported. `0`/`0s` (no delay) is allowed;
+// values built from MOTION.* tokens (MemberExpressions / template placeholders)
+// carry no raw timing literal and are never flagged. The `.css` file surface is
+// covered separately by scripts/lint-motion-css.mjs.
+// ---------------------------------------------------------------------------
+
+// Object-literal timing property keys (camelCase, MUI sx + emotion objects).
+const MOTION_PROP_KEYS = new Set([
+  "transition",
+  "transitionDuration",
+  "transitionDelay",
+  "animation",
+  "animationDuration",
+  "animationDelay",
+]);
+
+// A `transition`/`animation` (+ `-duration`/`-delay`) declaration inside
+// template-literal CSS, capturing the value for a non-zero-timing check. The
+// optional `-duration`/`-delay` group means `animation-name`/`-timing-function`
+// (no numeric timing) never match.
+const CSS_MOTION_DECL =
+  /(?:^|[;{}\n])\s*(?:transition|animation)(?:-(?:duration|delay))?\s*:\s*([^;{}]*)/gi;
+
+// True when the string carries at least one non-zero `s`/`ms` duration. `0`/`0s`
+// (no delay) is allowed. `ms` is tried before `s` so "200ms" reads as one token.
+const hasNonZeroTime = (value) => {
+  const re = /(\d*\.?\d+)\s*(ms|s)\b/gi;
+  let m;
+  while ((m = re.exec(value)) !== null) {
+    if (parseFloat(m[1]) !== 0) return true;
+  }
+  return false;
+};
+
+const MOTION_MESSAGE =
+  "Use a MOTION token (MOTION.fast/normal/slow or a named MOTION.* shorthand for transitions; MOTION.spin/pulse for keyframe loops) instead of a raw transition/animation timing. See ui_primitives/tokens.ts and docs/DESIGN.md §5.";
+
+export const motionTokensRule = {
+  meta: {
+    type: "problem",
+    docs: {
+      description:
+        "Enforce MOTION.* timing tokens for transition/animation timing (DESIGN.md §5).",
+    },
+    schema: [],
+    messages: { raw: MOTION_MESSAGE },
+  },
+  create(context) {
+    const keyName = (key) => {
+      if (!key) return null;
+      if (key.type === "Identifier") return key.name;
+      if (key.type === "Literal") return String(key.value);
+      return null;
+    };
+    return {
+      Property(node) {
+        const name = keyName(node.key);
+        if (!name || !MOTION_PROP_KEYS.has(name)) return;
+        const value = node.value;
+        if (
+          value.type === "Literal" &&
+          typeof value.value === "string" &&
+          hasNonZeroTime(value.value)
+        ) {
+          context.report({ node: value, messageId: "raw" });
+        }
+      },
+      TemplateElement(node) {
+        const raw = node.value.raw;
+        CSS_MOTION_DECL.lastIndex = 0;
+        let m;
+        while ((m = CSS_MOTION_DECL.exec(raw)) !== null) {
+          if (hasNonZeroTime(m[1])) {
+            context.report({ node, messageId: "raw" });
+            return;
+          }
+        }
+      },
+    };
+  },
+};
+
 // Local plugin exposing the design-token rules for the gate config.
 export const designTokensPlugin = {
   rules: {
@@ -608,6 +705,7 @@ export const designTokensPlugin = {
     "font-size-tokens": fontSizeTokensRule,
     "color-tokens": colorTokensRule,
     "border-radius-tokens": borderRadiusTokensRule,
+    "motion-tokens": motionTokensRule,
     "no-raw-mui": noRawMuiRule,
   },
 };
