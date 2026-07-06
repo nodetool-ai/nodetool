@@ -91,8 +91,8 @@ describe("FilePlanCache", () => {
     const writer = new FilePlanCache(file);
     await writer.load();
     writer.set(key, plan);
-    // Give the fire-and-forget write a tick to flush.
-    await new Promise((r) => setTimeout(r, 20));
+    // Await the fire-and-forget write instead of racing a fixed delay.
+    await writer.flush();
 
     const reader = new FilePlanCache(file);
     await reader.load();
