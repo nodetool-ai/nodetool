@@ -1879,9 +1879,8 @@ export class PdfLibAgentNode extends ToolAgentNode {
     "- CLI tooling for performance/repair: poppler-utils (pdftotext/pdftoppm/pdfimages), qpdf.\n\n" +
     "Execution policy:\n" +
     "1) Use execute_bash for shell commands and script execution.\n" +
-    "2) Before running any Node script that imports pdf-lib, bootstrap dependency availability with:\n" +
-    "   npm -s ls pdf-lib >/dev/null 2>&1 || npm install --no-save pdf-lib\n" +
-    "   Then verify with: node -e \"require.resolve('pdf-lib')\".\n" +
+    "2) pdf-lib is preinstalled in the official container images (resolved via NODE_PATH). Before running any Node script that imports pdf-lib, verify availability with:\n" +
+    "   node -e \"require.resolve('pdf-lib')\" 2>/dev/null || npm install --no-save pdf-lib\n" +
     "3) Keep all outputs workspace-relative.\n" +
     "4) If you produce a final PDF file, call set_output_document with its path.\n" +
     "5) For extraction-only requests, return concise text and artifact locations.\n" +

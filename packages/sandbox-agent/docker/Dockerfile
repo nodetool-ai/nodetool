@@ -18,17 +18,31 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 # System packages. One big apt install to minimize layers.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      ca-certificates curl wget git sudo tmux \
+      ca-certificates curl wget git sudo tmux jq zip unzip \
       python3 python3-pip python3-venv \
       xvfb fluxbox x11vnc websockify novnc xterm \
       xdotool scrot imagemagick tesseract-ocr \
       ffmpeg pandoc weasyprint \
+      poppler-utils qpdf postgresql-client \
       chromium fonts-liberation fonts-noto-color-emoji \
       libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
       libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
       libgbm1 libpango-1.0-0 libcairo2 libasound2 \
       build-essential \
     && rm -rf /var/lib/apt/lists/*
+
+# Python tool venv on PATH: yt-dlp for media downloads plus the PDF stack the
+# PDF agents reference. A venv sidesteps Debian's PEP 668 pip lockout.
+RUN python3 -m venv /opt/venv \
+    && /opt/venv/bin/pip install --no-cache-dir \
+       yt-dlp pypdf pdfplumber pypdfium2 reportlab \
+    && rm -rf /root/.cache
+ENV PATH="/opt/venv/bin:$PATH"
+
+# JS document libraries agents import from ad-hoc Node scripts, preinstalled
+# globally so require('pdf-lib') works without a per-run npm install.
+RUN npm install -g pdf-lib docx && npm cache clean --force
+ENV NODE_PATH=/usr/local/lib/node_modules
 
 # Non-root user for the agent's workload. Passwordless sudo is NOT granted;
 # sudo-gated tools should fail unless the operator explicitly enables it.

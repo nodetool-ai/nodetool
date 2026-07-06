@@ -115,5 +115,34 @@ services:
       # them (e.g. an Ollama container on the same Docker network).
       # OLLAMA_API_URL: "http://ollama:11434"
 
+      # ── PostgreSQL instead of SQLite ────────────────────────────────────────
+      # The default above is SQLite on the /workspace volume (DB_PATH). To use
+      # Postgres instead, uncomment the `postgres` service below, remove
+      # DB_PATH, and set:
+      # DATABASE_URL: "postgres://nodetool:${POSTGRES_PASSWORD:-nodetool}@postgres:5432/nodetool"
+    # depends_on:
+    #   postgres:
+    #     condition: service_healthy
+
+  # Uncomment to run Postgres alongside the server. The image ships psql, so
+  # you can inspect the database with:
+  #   docker compose exec nodetool psql "$DATABASE_URL"
+  # postgres:
+  #   image: postgres:17
+  #   container_name: nodetool-postgres
+  #   restart: unless-stopped
+  #   environment:
+  #     POSTGRES_USER: nodetool
+  #     POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-nodetool}"
+  #     POSTGRES_DB: nodetool
+  #   volumes:
+  #     - nodetool-pgdata:/var/lib/postgresql/data
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U nodetool -d nodetool"]
+  #     interval: 5s
+  #     timeout: 5s
+  #     retries: 10
+
 volumes:
   nodetool-data:
+  # nodetool-pgdata:
