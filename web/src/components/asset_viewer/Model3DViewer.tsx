@@ -28,7 +28,8 @@ import {
   getSpacingPx,
   Select,
   MenuItem,
-  FormControl
+  FormControl,
+  Z_INDEX
 } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -156,7 +157,7 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       top: "50%",
       left: "50%",
       transform: "translate(-50%, -50%)",
-      zIndex: 10,
+      zIndex: Z_INDEX.dropdown,
       pointerEvents: "none"
     },
     ".model-info": {
@@ -171,7 +172,7 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       padding: "0.5em",
       backgroundColor: "rgba(0, 0, 0, 0.7)",
       borderRadius: BORDER_RADIUS.lg,
-      zIndex: 100,
+      zIndex: Z_INDEX.overlay,
       gap: "0.5em",
       alignItems: "center"
     },
@@ -194,7 +195,7 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       top: "50%",
       left: "50%",
       transform: "translate(-50%, -50%)",
-      zIndex: 10,
+      zIndex: Z_INDEX.dropdown,
       padding: "1em 1.5em",
       maxWidth: "90%",
       backgroundColor: "rgba(0, 0, 0, 0.8)",
@@ -204,7 +205,7 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       position: "absolute",
       top: "1em",
       right: "1em",
-      zIndex: 200,
+      zIndex: Z_INDEX.modal,
       backgroundColor: "rgba(0, 0, 0, 0.7)",
       color: theme.vars.palette.grey[100],
       "&:hover": {

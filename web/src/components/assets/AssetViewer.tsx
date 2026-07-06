@@ -23,7 +23,8 @@ import {
   Text,
   MOTION,
   reducedMotion,
-  BORDER_RADIUS
+  BORDER_RADIUS,
+  Z_INDEX
 } from "../ui_primitives";
 //icons
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
@@ -80,7 +81,7 @@ const styles = (theme: Theme) =>
       display: "block"
     },
     ".MuiModal-root": {
-      zIndex: 15000
+      zIndex: theme.zIndex.floating
     },
     ".MuiPaper-root": {
       overflow: "hidden",
@@ -89,7 +90,7 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.grey[900],
       width: "100vw",
       maxWidth: "100vw",
-      zIndex: 11000,
+      zIndex: theme.zIndex.floating,
       margin: 0,
       borderRadius: 0,
       position: "relative"
@@ -111,7 +112,7 @@ const styles = (theme: Theme) =>
       top: "20px"
     },
     ".actions": {
-      zIndex: 10_200,
+      zIndex: Z_INDEX.tooltip,
       position: "absolute",
       top: "1em",
       right: "2em"
@@ -140,14 +141,14 @@ const styles = (theme: Theme) =>
       padding: "0 0 .5em 0",
       backgroundColor: theme.vars.palette.grey[800],
       bottom: 0,
-      zIndex: 200
+      zIndex: Z_INDEX.overlay
     },
     ".prev-next-button": {
       position: "absolute",
       top: "40%",
       width: "2em",
       height: "2em",
-      zIndex: 20000,
+      zIndex: Z_INDEX.toast,
       cursor: "pointer",
       color: theme.vars.palette.grey[200],
       backgroundColor: theme.vars.palette.background.paper,
@@ -215,13 +216,13 @@ const styles = (theme: Theme) =>
     ".prev-next-items .item:hover": {
       transform: "translateY(-6px) scale(1.06)",
       boxShadow: "0 12px 26px rgb(0 0 0 / 0.45)",
-      zIndex: 5
+      zIndex: Z_INDEX.raised
     },
     // Press feedback: quick dip on click before the frame slides to center.
     ".prev-next-items .item:active": {
       transform: "translateY(-1px) scale(0.95)",
       transition: MOTION.transform,
-      zIndex: 5
+      zIndex: Z_INDEX.raised
     },
     // Cascade from the center outward: nearest-to-center frame leads. These
     // per-item stagger delays are functional offsets, not a motion-design tier,
@@ -256,7 +257,7 @@ const styles = (theme: Theme) =>
       padding: theme.spacing(1, 2),
       backgroundColor: theme.vars.palette.background.paper,
       borderRadius: BORDER_RADIUS.md,
-      zIndex: 10001,
+      zIndex: Z_INDEX.modal,
       color: theme.vars.palette.text.primary,
       fontSize: theme.fontSizeSmall
     },
@@ -269,7 +270,7 @@ const styles = (theme: Theme) =>
       bottom: "130px",
       left: "50%",
       transform: "translateX(-50%)",
-      zIndex: 10001,
+      zIndex: Z_INDEX.modal,
       padding: theme.spacing(1, 1.5),
       backgroundColor: theme.vars.palette.background.paper,
       borderRadius: BORDER_RADIUS.md,
@@ -286,7 +287,7 @@ const styles = (theme: Theme) =>
       right: 0,
       height: "calc(100% - 120px)",
       overflowY: "auto",
-      zIndex: 10001,
+      zIndex: Z_INDEX.modal,
       backgroundColor: theme.vars.palette.grey[900],
       boxShadow: "-8px 0 24px rgb(0 0 0 / 0.5)"
     }
@@ -827,7 +828,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
           className="actions"
           gap={1.5}
           align="center"
-          sx={{ zIndex: 10_200 }}
+          sx={{ zIndex: Z_INDEX.tooltip }}
         >
           <DownloadButton
             onClick={handleDownload}

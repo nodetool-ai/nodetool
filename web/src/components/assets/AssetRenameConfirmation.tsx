@@ -141,7 +141,7 @@ const AssetRenameConfirmation: React.FC<AssetRenameConfirmationProps> = (
             right: 0,
             bottom: 0,
             backgroundColor: "transparent",
-            zIndex: 1300
+            zIndex: theme.zIndex.modal
           }}
           onClick={handleBackdropClick}
         >

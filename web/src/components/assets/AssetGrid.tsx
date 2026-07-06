@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useEffect, useMemo, useRef, memo } from "react";
-import { Text, Tooltip, Divider, Box } from "../ui_primitives";
+import { Text, Tooltip, Divider, Box, Z_INDEX } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 
 import AudioPlayer from "../audio/AudioPlayer";
@@ -334,7 +334,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
             top: "1em",
             left: "50%",
             transform: "translateX(-50%)",
-            zIndex: 1000
+            zIndex: Z_INDEX.toast
           }}
         >
           {error.message}

@@ -12,7 +12,7 @@ import { getAssetCategory } from "./assetGridUtils";
 import FolderIcon from "@mui/icons-material/Folder";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { ExpandCollapseButton, EmptyState, Text, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { ExpandCollapseButton, EmptyState, Text, Box, MOTION, BORDER_RADIUS, Z_INDEX } from "../ui_primitives";
 import { useSettingsStore } from "../../stores/SettingsStore";
 
 interface AssetListViewProps {
@@ -63,7 +63,7 @@ const styles = (theme: Theme) =>
       textTransform: "uppercase",
       position: "sticky",
       top: 0,
-      zIndex: 1
+      zIndex: Z_INDEX.sticky
     },
     ".asset-header-icon-space": {
       width: "32px",

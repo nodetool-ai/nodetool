@@ -204,7 +204,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
         right: 0,
         bottom: 0,
         backgroundColor: "transparent",
-        zIndex: 1300
+        zIndex: theme.zIndex.modal
       }}
       onClick={handleBackdropClick}
     >
