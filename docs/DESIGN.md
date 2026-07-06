@@ -34,9 +34,9 @@ barrel) have reached zero violations and are promoted to **`error`** to lock the
 in — a new raw px/rem font size, raw hex/rgb color, magic/`var(--rounded-*)` radius,
 or deep primitive import fails the gate. **Motion** (`transition`/`animation`
 timing, via `design-tokens/motion-tokens` in TSX and `scripts/lint-motion-css.mjs`
-in `.css`) is also migrated and locked at **`error`**. The remaining category
-(`zIndex`) is still a **warning**; promote it to `error` the same way once it
-reaches zero.
+in `.css`) and **`zIndex`** (`design-tokens/zindex-tokens` — object-literal
+`zIndex` magic integers) are also migrated and locked at **`error`**. All design-token
+categories are now at zero violations and enforced.
 
 The font-size and color rules are custom (like spacing) so they catch raw values
 inside `styled`/`css` template literals, not just object literals. The color rule
@@ -613,12 +613,17 @@ Use via `theme.zIndex.*` when you need to co-ordinate with MUI framework compone
 | `theme.zIndex.popover` | 10001 | Primary popovers |
 | `theme.zIndex.autocomplete` | 10002 | Autocomplete menus |
 | `theme.zIndex.floating` | 10003 | Floating panels |
+| `theme.zIndex.floatingPanel` | 20000 | Draggable floating panels above editor content (node menu, asset viewer, find-in-workflow dialog) |
 | `theme.zIndex.popover2` | 99990 | Secondary popovers (above popover) |
 | `theme.zIndex.highest` | 100000 | Emergency top layer |
 
 ### Forbidden
 
 Arbitrary integers (`9999` in new component code, `1000`, `2`, `5`) outside of `Z_INDEX.*` or `theme.zIndex.*`.
+
+### Enforcement (z-index is fully linted at `error`)
+
+Zero violations — locked in at **`error`**. `design-tokens/zindex-tokens` flags any object-literal `zIndex` whose value is a positive number (or numeric string); `0` (normal flow) and negative values are allowed, as are values built from `Z_INDEX.*` / `theme.zIndex.*`. A few surfaces sit above the shared scale and have no matching tier (e.g. a full-screen compositor modal, the node-info panel); these use a documented module-level constant that preserves the exact stacking value — the rule accepts the named reference, and the constant name records intent. The `.css` surface is not linted (z-index rarely appears in the plain `.css` files); the check is TSX-only.
 
 ---
 

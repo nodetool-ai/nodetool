@@ -142,7 +142,7 @@ const styles = (theme: Theme) =>
     // edges resize the whole dock width.
     ".convo-resize": {
       position: "absolute",
-      zIndex: 2,
+      zIndex: Z_INDEX.raised + 1,
       touchAction: "none"
     },
     ".convo-resize-top": {

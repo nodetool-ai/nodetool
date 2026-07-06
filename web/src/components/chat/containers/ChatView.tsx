@@ -14,7 +14,7 @@ import {
   LanguageModel,
   TodoItem
 } from "../../../stores/ApiTypes";
-import { SPACING, getSpacingPx } from "../../ui_primitives";
+import { SPACING, getSpacingPx, Z_INDEX } from "../../ui_primitives";
 import ChatThreadView from "../thread/ChatThreadView";
 import { ConversationHeader } from "./ConversationHeader";
 import ChatInputSection, { type ChatComposerVariant } from "./ChatInputSection";
@@ -67,7 +67,7 @@ const styles = (theme: Theme) =>
     ".chat-controls": {
       padding: `0 ${getSpacingPx(SPACING.xl)} 0 0`,
       marginTop: "auto",
-      zIndex: 10,
+      zIndex: Z_INDEX.dropdown,
       display: "flex",
       alignItems: "center",
       gap: getSpacingPx(SPACING.md)

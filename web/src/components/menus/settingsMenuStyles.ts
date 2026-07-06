@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import type { CSSObject } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS, Z_INDEX } from "../ui_primitives";
 
 export const settingsStyles = (theme: Theme): CSSObject => ({
   display: "flex",
@@ -191,7 +191,7 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
   ".sticky-header": {
     position: "sticky",
     top: 0,
-    zIndex: 100,
+    zIndex: Z_INDEX.overlay,
     padding: "0 1em",
     display: "block",
     backgroundColor: "transparent"

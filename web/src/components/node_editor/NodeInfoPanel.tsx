@@ -59,13 +59,16 @@ const PANEL_WIDTH = 320;
 const PANEL_GAP = 16;
 const VIEWPORT_MARGIN = 16;
 const MIN_PANEL_HEIGHT = 200;
+// Floating node-editor overlay: above the editor status message (10000), below
+// the find dialog (20000), beyond the shared Z_INDEX scale.
+const PANEL_Z_INDEX = 15000;
 
 const styles = (theme: Theme) =>
   css({
     "&.node-info-panel": {
       position: "fixed",
       width: `${PANEL_WIDTH}px`,
-      zIndex: 15000,
+      zIndex: PANEL_Z_INDEX,
       display: "flex",
       flexDirection: "column",
       backgroundColor: theme.vars.palette.background.paper,

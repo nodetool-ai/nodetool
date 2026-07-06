@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from "react";
-import { Text, ToolbarIconButton, LoadingSpinner } from "../../ui_primitives";
+import { Text, ToolbarIconButton, LoadingSpinner, Z_INDEX } from "../../ui_primitives";
 import { Caption } from "../../ui_primitives";
 import { PREVIEW_NODE_TYPE } from "../../../constants/nodeTypes";
 import ClearIcon from "@mui/icons-material/Clear";
@@ -149,7 +149,7 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
             position: "absolute",
             top: 8,
             right: 8,
-            zIndex: 10,
+            zIndex: Z_INDEX.dropdown,
             backgroundColor: "background.paper",
             boxShadow: 1,
             "&:hover": {

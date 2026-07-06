@@ -13,7 +13,8 @@ import {
   SPACING,
   getSpacingPx,
   ListItemButton,
-  ListItemText
+  ListItemText,
+  Z_INDEX
 } from "../ui_primitives";
 import { useStore, useReactFlow } from "@xyflow/react";
 import { useTheme } from "@mui/material/styles";
@@ -167,7 +168,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
       position: "absolute" as const,
       bottom: 16,
       right: 20,
-      zIndex: 10,
+      zIndex: Z_INDEX.dropdown,
       backgroundColor: theme.vars.palette.Paper.paper,
       backdropFilter: "blur(8px)",
       borderRadius: BORDER_RADIUS.lg,

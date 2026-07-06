@@ -52,7 +52,8 @@ import {
   ToggleOption,
   ToolbarIconButton,
   BORDER_RADIUS,
-  MOTION
+  MOTION,
+  Z_INDEX
 } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import { NodeOutputs } from "../../node/NodeOutputs";
@@ -219,7 +220,7 @@ const styles = (theme: Theme) =>
         // `will-change: transform` hints the browser to give this its own
         // GPU layer up front so per-move transform writes don't churn.
         willChange: "transform",
-        zIndex: 2
+        zIndex: Z_INDEX.raised + 1
       }
     },
     /* Two-row weavy-style bottom toolbar:

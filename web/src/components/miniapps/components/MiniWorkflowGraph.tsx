@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { useMemo } from "react";
 import { css, keyframes } from "@emotion/react";
-import { Caption, Tooltip, Box, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, reducedMotion } from "../../ui_primitives";
+import { Caption, Tooltip, Box, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, reducedMotion, Z_INDEX } from "../../ui_primitives";
 import useStatusStore from "../../../stores/StatusStore";
 import { nodeKey } from "../../../stores/nodeKey";
 import useWorkflowRunsStore from "../../../stores/WorkflowRunsStore";
@@ -87,7 +87,7 @@ const graphStyles = css({
     cursor: "default",
 
     "&:hover": {
-      zIndex: 10,
+      zIndex: Z_INDEX.dropdown,
       maxWidth: "none",
       background: "var(--palette-action-hover)"
     }

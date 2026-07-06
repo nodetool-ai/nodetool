@@ -10,7 +10,8 @@ import {
   BORDER_RADIUS,
   SPACING,
   getSpacingPx,
-  Fade
+  Fade,
+  Z_INDEX
 } from "../ui_primitives";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
@@ -84,7 +85,7 @@ const cardStyles = (theme: Theme) =>
       justifyContent: "center",
       backgroundColor: theme.vars.palette.c_scrim_strong,
       backdropFilter: "blur(4px)",
-      zIndex: 10,
+      zIndex: Z_INDEX.dropdown,
       borderRadius: BORDER_RADIUS.lg
     },
     ".loading-text": {
@@ -142,7 +143,7 @@ const cardStyles = (theme: Theme) =>
       flexDirection: "column",
       gap: getSpacingPx(SPACING.xs),
       maxWidth: "calc(100% - 80px)",
-      zIndex: 5
+      zIndex: Z_INDEX.base + 5
     },
     ".matched-item": {
       fontSize: "var(--fontSizeSmaller)",

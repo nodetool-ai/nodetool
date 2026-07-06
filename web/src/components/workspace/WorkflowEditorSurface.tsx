@@ -18,6 +18,11 @@ import StatusMessage from "../panels/StatusMessage";
 import NodeCreateBridge from "../editor/NodeCreateBridge";
 import { FlexColumn, LoadingSpinner } from "../ui_primitives";
 
+// Floating editor status message: sits above the canvas and node overlays but
+// below the node-info panel (15000) and find dialog (20000). Beyond the shared
+// Z_INDEX scale, so it stays a documented local constant.
+const STATUS_MESSAGE_Z_INDEX = 10000;
+
 interface WorkflowEditorSurfaceProps {
   workflowId: string;
   active: boolean;
@@ -86,7 +91,7 @@ const WorkflowEditorSurface = ({
                     position: "absolute",
                     top: 8,
                     right: 16,
-                    zIndex: 10000
+                    zIndex: STATUS_MESSAGE_Z_INDEX
                   }}
                 >
                   <StatusMessage />

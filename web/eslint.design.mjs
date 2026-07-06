@@ -198,13 +198,13 @@ export const noRestrictedSyntax = [
   // (c) raw px inside `styled`/`css` template literals. The richer
   // `design-tokens/spacing-tokens` custom rule below covers all of those. See
   // eslint.design.mjs → spacingTokensRule and docs/DESIGN.md §2.
-  {
-    // zIndex: 9999 (magic integer) → use Z_INDEX.* or theme.zIndex.*.
-    // 0 (normal flow) and negative values (UnaryExpression) are allowed.
-    selector: "Property[key.name='zIndex'] > Literal[value>0]",
-    message:
-      "Use a Z_INDEX token (base/raised/dropdown/sticky/overlay/modal/tooltip/toast) or theme.zIndex.* instead of a magic z-index integer. See ui_primitives/tokens.ts and docs/DESIGN.md §6.",
-  },
+  // NOTE: zIndex is NOT handled here. It graduated to the dedicated
+  // `design-tokens/zindex-tokens` custom rule below (at `error`, fully migrated)
+  // so it can lock in. The rule mirrors the original
+  // `Property[key.name='zIndex'] > Literal[value>0]` selector exactly. A single
+  // `no-restricted-syntax` rule can only carry one severity, so a category that
+  // reaches zero moves to its own rule. See eslint.design.mjs → zIndexTokensRule
+  // and docs/DESIGN.md §6.
   {
     // fontWeight: 700 / "bold" / 300 → only 400/500/600 (FONT_WEIGHT.*).
     selector:
@@ -604,6 +604,52 @@ export const borderRadiusTokensRule = {
 };
 
 // ---------------------------------------------------------------------------
+// Z-index custom rule (DESIGN.md §6 — Z_INDEX / theme.zIndex.*).
+//
+// Graduated out of `no-restricted-syntax` (where it lived as a warn-level
+// selector) into a dedicated rule so it can run at `error` while any still-
+// migrating selectors stay `warn` on the shared rule. The matching mirrors the
+// original `Property[key.name='zIndex'] > Literal[value>0]` selector exactly:
+// object-literal `zIndex` properties with a positive literal value. `0` (normal
+// flow) and negative values (UnaryExpression, not a Literal) are allowed, as are
+// values built from Z_INDEX.* / theme.zIndex.* (MemberExpressions, not Literals).
+// ---------------------------------------------------------------------------
+
+const Z_INDEX_MESSAGE =
+  "Use a Z_INDEX token (base/raised/dropdown/sticky/overlay/modal/tooltip/toast) or theme.zIndex.* instead of a magic z-index integer. See ui_primitives/tokens.ts and docs/DESIGN.md §6.";
+
+export const zIndexTokensRule = {
+  meta: {
+    type: "problem",
+    docs: {
+      description:
+        "Enforce Z_INDEX / theme.zIndex.* tokens for zIndex (DESIGN.md §6).",
+    },
+    schema: [],
+    messages: { raw: Z_INDEX_MESSAGE },
+  },
+  create(context) {
+    const keyName = (key) => {
+      if (!key) return null;
+      if (key.type === "Identifier") return key.name;
+      if (key.type === "Literal") return String(key.value);
+      return null;
+    };
+    return {
+      Property(node) {
+        if (keyName(node.key) !== "zIndex") return;
+        const value = node.value;
+        if (value.type !== "Literal") return;
+        // Mirror esquery's `[value>0]`, which coerces string literals too.
+        if (Number(value.value) > 0) {
+          context.report({ node: value, messageId: "raw" });
+        }
+      },
+    };
+  },
+};
+
+// ---------------------------------------------------------------------------
 // Motion custom rule (DESIGN.md §5 — MOTION.* timing constants).
 //
 // Graduated out of `no-restricted-syntax`, whose single
@@ -778,6 +824,7 @@ export const designTokensPlugin = {
     "font-size-tokens": fontSizeTokensRule,
     "color-tokens": colorTokensRule,
     "border-radius-tokens": borderRadiusTokensRule,
+    "zindex-tokens": zIndexTokensRule,
     "motion-tokens": motionTokensRule,
     "no-raw-mui": noRawMuiRule,
   },

@@ -1,6 +1,6 @@
 import { css } from "@emotion/react";
 import { Theme } from "@mui/material/styles";
-import { MOTION, BORDER_RADIUS, getSpacingPx } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS, getSpacingPx, Z_INDEX } from "../ui_primitives";
 
 export const createStyles = (theme: Theme) => {
   const doubledRadius =
@@ -210,7 +210,7 @@ export const createStyles = (theme: Theme) => {
       gridTemplateColumns: "minmax(0, 1fr)",
       minHeight: 0,
       position: "relative",
-      zIndex: 1,
+      zIndex: Z_INDEX.raised,
       flex: 1,
 
       [theme.breakpoints.up("md")]: {

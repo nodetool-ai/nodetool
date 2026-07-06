@@ -22,7 +22,8 @@ import {
   FlexColumn,
   BORDER_RADIUS,
   MOTION,
-  reducedMotion
+  reducedMotion,
+  Z_INDEX
 } from "../ui_primitives";
 import type {
   ExecutionTreeState,
@@ -156,7 +157,7 @@ const treeStyles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       flexShrink: 0,
-      zIndex: 1,
+      zIndex: Z_INDEX.raised,
       transition: MOTION.all,
       ...reducedMotion({ transition: MOTION.none }),
       "& svg": { fontSize: 14 }

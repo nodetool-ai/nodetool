@@ -31,7 +31,7 @@ const styles = (theme: Theme) =>
       right: "20px",
       width: "300px",
       maxHeight: "400px",
-      zIndex: 20000,
+      zIndex: theme.zIndex.floatingPanel,
       display: "flex",
       flexDirection: "column",
       backgroundColor: theme.vars.palette.background.paper,
