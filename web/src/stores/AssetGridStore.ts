@@ -9,7 +9,7 @@ import {
 import { Asset, AssetWithPath } from "./ApiTypes";
 import { SizeFilterKey, TypeFilterKey } from "../utils/formatUtils";
 
-export interface AssetGridState {
+interface AssetGridState {
   assetItemSize: number;
   assetSearchTerm: string | null;
   sizeFilter: SizeFilterKey;
@@ -94,7 +94,7 @@ const PERSIST_VERSION = 1;
  * mode) gets its own instance; `persistName` keeps their persisted display
  * prefs from colliding in localStorage.
  */
-export const createAssetGridStore = (
+const createAssetGridStore = (
   persistName: string
 ): AssetGridStoreApi =>
   createStore<AssetGridState>()(
@@ -246,7 +246,7 @@ const getOrCreateStore = (key: string): AssetGridStoreApi => {
 // and drag handlers, output renderer, the fullscreen assets page) and every
 // static `useAssetGridStore.getState()` caller resolve to this instance. The
 // scoped left-panel surfaces override it via AssetGridStoreProvider.
-export const SINGLETON_ASSET_GRID_STORE_KEY = "asset-grid-storage";
+const SINGLETON_ASSET_GRID_STORE_KEY = "asset-grid-storage";
 const singletonStore = getOrCreateStore(SINGLETON_ASSET_GRID_STORE_KEY);
 
 // The sidebar Library panel (PanelLeft) is the surface users browse folders

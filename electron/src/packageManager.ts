@@ -1113,7 +1113,7 @@ export async function installPackage(repoId: string): Promise<PackageResponse> {
     );
     // Renderer prepends its own "Failed to install package:" framing, so
     // return just the underlying reason to avoid duplicated prefixes in
-    // user-facing dialogs (see electron/pages/PackageManager.tsx).
+    // user-facing dialogs.
     return {
       success: false,
       message: errorMsg(error),

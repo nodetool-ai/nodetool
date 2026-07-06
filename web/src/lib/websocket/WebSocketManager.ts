@@ -34,7 +34,7 @@ export interface WebSocketMessage {
   [key: string]: unknown;
 }
 
-export interface WebSocketManagerEvents {
+interface WebSocketManagerEvents {
   open: () => void;
   close: (code: number, reason: string, wasClean: boolean) => void;
   error: (error: unknown) => void;
