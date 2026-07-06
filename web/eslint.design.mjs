@@ -174,12 +174,14 @@ export const noRestrictedImports = [
 // See docs/DESIGN.md and ui_primitives/tokens.ts.
 export const noRestrictedSyntax = [
   "warn",
-  {
-    // transition: "200ms ease" → use a MOTION token.
-    selector: "Property[key.name='transition'] > Literal[value=/[0-9]+ms/]",
-    message:
-      "Use a MOTION token (MOTION.fast/normal/slow/all/…) instead of a hardcoded transition string. See ui_primitives/tokens.ts.",
-  },
+  // NOTE: Motion (transition/animation timing) is NOT handled here. It graduated
+  // to the dedicated `design-tokens/motion-tokens` custom rule below, which — like
+  // spacingTokensRule — also covers `animation`/`animationDelay`/`transitionDuration`
+  // properties, seconds (`0.3s`) as well as ms, and raw timing inside
+  // `styled`/`css` template literals. A `no-restricted-syntax` selector can only see
+  // one property key and only `ms` in an object-literal `Property > Literal`, which
+  // reported 0 while ~41 raw animation/animationDelay timings remained. See
+  // eslint.design.mjs → motionTokensRule and docs/DESIGN.md §5.
   // NOTE: borderRadius is NOT handled here. It graduated to the dedicated
   // `design-tokens/border-radius-tokens` custom rule (at `error`, fully
   // migrated) so it can lock in while the transition/zIndex selectors below
@@ -601,6 +603,174 @@ export const borderRadiusTokensRule = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// Motion custom rule (DESIGN.md §5 — MOTION.* timing constants).
+//
+// Graduated out of `no-restricted-syntax`, whose single
+// `Property[key.name='transition'] > Literal[value=/[0-9]+ms/]` selector saw only
+// the `transition` key and only `ms`, so it reported 0 while ~41 raw
+// `animation`/`animationDelay` timings (and ~20 `.css` transition strings) went
+// unlinted. Mirroring spacingTokensRule, this rule covers:
+//
+//   1. Object props   { transition: "0.2s ease", animation: "spin 1s linear …" }
+//   2. Duration/delay { animationDelay: "0.08s", transitionDuration: "200ms" }
+//   3. Interpolated prop  { animation: `${keyframe} 1.6s ease-in-out infinite` }
+//   4. Interpolated CSS   css`animation: ${keyframe} 1.9s linear infinite;`
+//   5. Template CSS       css`transition: color 0.2s;`
+//
+// Forms 3 and 4 are the dominant backlog shape: a keyframe name interpolated
+// ahead of a raw duration.
+//
+// Form 3 escapes the object-prop Literal check (the value is a TemplateLiteral)
+// *and* the CSS-decl check (no `animation:` text in the quasi — the key lives in
+// the object). The Property handler therefore also scans TemplateLiteral values:
+// the key already proves it's a timing prop, so any raw non-zero `s`/`ms` in the
+// quasis is a violation.
+//
+// Form 4 escapes both too: `animation:` sits in one quasi (empty value) while
+// the `1.9s` is in the quasi AFTER `${keyframe}`, which has no `animation:` to
+// anchor on. The TemplateLiteral handler walks quasis in order carrying an
+// "open motion decl" flag: an unterminated `transition`/`animation:` decl in one
+// quasi means the leading portion of the next quasi continues its value, so it
+// is checked for raw timing.
+//
+// Values built purely from MOTION.* tokens keep the token in a placeholder
+// (`${MOTION.slow}` / `${MOTION.spin}`), leaving no raw timing in the quasis, so
+// `animation: `${activePop} ${MOTION.slow}`` and
+// `css`animation: ${kf} ${MOTION.spin};`` stay unflagged.
+//
+// Any non-zero timing (`s` or `ms`) is reported. `0`/`0s` (no delay) is allowed;
+// values built from MOTION.* tokens (MemberExpressions / template placeholders)
+// carry no raw timing literal and are never flagged. The `.css` file surface is
+// covered separately by scripts/lint-motion-css.mjs.
+// ---------------------------------------------------------------------------
+
+// Object-literal timing property keys (camelCase, MUI sx + emotion objects).
+const MOTION_PROP_KEYS = new Set([
+  "transition",
+  "transitionDuration",
+  "transitionDelay",
+  "animation",
+  "animationDuration",
+  "animationDelay",
+]);
+
+// A `transition`/`animation` (+ `-duration`/`-delay`) declaration inside
+// template-literal CSS, capturing the value for a non-zero-timing check. The
+// optional `-duration`/`-delay` group means `animation-name`/`-timing-function`
+// (no numeric timing) never match.
+const CSS_MOTION_DECL =
+  /(?:^|[;{}\n])\s*(?:transition|animation)(?:-(?:duration|delay))?\s*:\s*([^;{}]*)/gi;
+
+// A `transition`/`animation` timing declaration whose value runs to the END of
+// the string with no `;`/`{`/`}` to close it — i.e. a `${…}` placeholder
+// interrupts it (`css`animation: ${kf} 1.9s …``). Used to carry a "decl still
+// open" flag across quasis, so the leading portion of the next quasi can be
+// checked as the continuation of this decl's value.
+const MOTION_DECL_OPEN_AT_END =
+  /(?:^|[;{}\n])\s*(?:transition|animation)(?:-(?:duration|delay))?\s*:\s*[^;{}]*$/i;
+
+// True when the string carries at least one non-zero `s`/`ms` duration. `0`/`0s`
+// (no delay) is allowed. `ms` is tried before `s` so "200ms" reads as one token.
+const hasNonZeroTime = (value) => {
+  const re = /(\d*\.?\d+)\s*(ms|s)\b/gi;
+  let m;
+  while ((m = re.exec(value)) !== null) {
+    if (parseFloat(m[1]) !== 0) return true;
+  }
+  return false;
+};
+
+const MOTION_MESSAGE =
+  "Use a MOTION token (MOTION.fast/normal/slow or a named MOTION.* shorthand for transitions; MOTION.spin/pulse for keyframe loops) instead of a raw transition/animation timing. See ui_primitives/tokens.ts and docs/DESIGN.md §5.";
+
+export const motionTokensRule = {
+  meta: {
+    type: "problem",
+    docs: {
+      description:
+        "Enforce MOTION.* timing tokens for transition/animation timing (DESIGN.md §5).",
+    },
+    schema: [],
+    messages: { raw: MOTION_MESSAGE },
+  },
+  create(context) {
+    const keyName = (key) => {
+      if (!key) return null;
+      if (key.type === "Identifier") return key.name;
+      if (key.type === "Literal") return String(key.value);
+      return null;
+    };
+    return {
+      Property(node) {
+        const name = keyName(node.key);
+        if (!name || !MOTION_PROP_KEYS.has(name)) return;
+        const value = node.value;
+        if (
+          value.type === "Literal" &&
+          typeof value.value === "string" &&
+          hasNonZeroTime(value.value)
+        ) {
+          context.report({ node: value, messageId: "raw" });
+        } else if (
+          // Interpolated keyframe form: `animation: `${keyframe} 1.6s …``.
+          // The key already proves this is a timing prop, so any raw non-zero
+          // s/ms in the quasis is a violation. MOTION.*-composed values place
+          // the token in a placeholder (Expression), leaving no raw timing in
+          // the quasis, so they stay unflagged.
+          value.type === "TemplateLiteral" &&
+          value.quasis.some((q) => hasNonZeroTime(q.value.raw))
+        ) {
+          context.report({ node: value, messageId: "raw" });
+        }
+      },
+      // Tagged/styled template CSS: `css`animation: ${kf} 1.9s …``. A CSS decl
+      // can be split across quasis by a `${…}` placeholder (a keyframe name), so
+      // `animation:` sits in one quasi (empty value) while the `1.9s` lands in
+      // the quasi AFTER the placeholder — with no `animation:` prefix for
+      // CSS_MOTION_DECL to anchor on, and it's not an object Property either.
+      // Walk the whole literal carrying an "open motion decl" flag: when an
+      // earlier quasi leaves a transition/animation timing decl unterminated,
+      // the leading portion of the next quasi (up to the next `;{}`) continues
+      // its value and is checked for raw timing. Fully-contained decls are still
+      // matched within a single quasi.
+      TemplateLiteral(node) {
+        let open = false;
+        for (const quasi of node.quasis) {
+          const raw = quasi.value.raw;
+          let reported = false;
+          // Continuation of a decl left open by the previous quasi: its value
+          // resumes here, up to the next `;{}`.
+          if (open) {
+            const head = raw.split(/[;{}]/, 1)[0];
+            if (hasNonZeroTime(head)) {
+              context.report({ node: quasi, messageId: "raw" });
+              reported = true;
+            }
+          }
+          // Fully-contained `transition`/`animation` timing decls in this quasi.
+          if (!reported) {
+            CSS_MOTION_DECL.lastIndex = 0;
+            let m;
+            while ((m = CSS_MOTION_DECL.exec(raw)) !== null) {
+              if (hasNonZeroTime(m[1])) {
+                context.report({ node: quasi, messageId: "raw" });
+                break;
+              }
+            }
+          }
+          // Does a timing decl run unterminated to the end of this quasi (about
+          // to be interrupted by the next `${…}`)? If so its value continues
+          // into the following quasi. A decl already open with no terminator in
+          // this quasi stays open across an empty/placeholder-only gap.
+          open =
+            MOTION_DECL_OPEN_AT_END.test(raw) || (open && !/[;{}]/.test(raw));
+        }
+      },
+    };
+  },
+};
+
 // Local plugin exposing the design-token rules for the gate config.
 export const designTokensPlugin = {
   rules: {
@@ -608,6 +778,7 @@ export const designTokensPlugin = {
     "font-size-tokens": fontSizeTokensRule,
     "color-tokens": colorTokensRule,
     "border-radius-tokens": borderRadiusTokensRule,
+    "motion-tokens": motionTokensRule,
     "no-raw-mui": noRawMuiRule,
   },
 };

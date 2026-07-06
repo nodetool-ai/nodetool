@@ -149,6 +149,18 @@ export const MOTION = {
   background: "background-color 150ms ease",
   all: "all 200ms ease",
 
+  // Keyframe loop tiers — duration + easing for infinite @keyframes animations.
+  // Compose with the keyframe name and iteration:
+  //   animation: `${spin} ${MOTION.spin} infinite`
+  //   animation: `${pulse} ${MOTION.pulse} infinite`
+  // The fast/normal/slow tiers cover one-shot transitions; looping spinners and
+  // breathing/pulsing indicators run on their own timing and never on those
+  // sub-second tiers (DESIGN.md §11.5).
+  /** 1s linear — continuous rotation (loading spinners) */
+  spin: "1s linear",
+  /** 2s ease-in-out — breathing / pulsing status indicators */
+  pulse: "2s ease-in-out",
+
   /** Disables a transition entirely. Use in prefers-reduced-motion overrides. */
   none: "none",
 } as const;
