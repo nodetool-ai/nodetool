@@ -28,6 +28,14 @@ The Sketch Editor is a layered raster editor with a built-in AI generation pipel
 
 ---
 
+## Where this fits
+
+The Sketch Editor is one of NodeTool's editing surfaces, and it sits between manual editing and workflow automation. It opens an image **asset**, lets you paint or generate layers by hand or bind a layer to an image **workflow**, then renders the result back into an asset. That asset is the same material every other surface reads — drop it back on the canvas, drag it onto a **timeline**, or expose the workflow behind it as a **Mini-App**. Every surface shares one asset store and the same model/provider system.
+
+See [Key Concepts → How everything fits together](key-concepts.md#how-everything-fits-together) for the full loop.
+
+---
+
 ## Opening the Editor
 
 The Sketch Editor runs in three places, all backed by the same document so your work stays in sync.

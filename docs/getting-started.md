@@ -102,6 +102,14 @@ Custom UI? See [App Builder](app-builder.md).
 
 ---
 
+## The bigger picture
+
+You just ran the loop NodeTool is built around: collect assets, build a workflow, generate outputs, and share them as a Mini-App. Two more editing surfaces plug into the same loop — the [Sketch Editor](sketch-editor.md) for layered still images and the [Video Editor](video-editor.md) for timelines — and everything they produce is an **asset** the others can read. All four surfaces share one asset store and the same model/provider system.
+
+See [Key Concepts → How everything fits together](key-concepts.md#how-everything-fits-together) for the full loop and diagram.
+
+---
+
 ## Next
 
 | Goal | Page |
