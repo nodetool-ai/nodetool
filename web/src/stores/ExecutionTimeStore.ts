@@ -24,6 +24,27 @@
 import { create } from "zustand";
 import { nodeKey, type NodeKey } from "./nodeKey";
 
+/**
+ * Clock used to stamp start/end timestamps. Defaults to wall-clock time.
+ *
+ * Deterministic replays (the demo engine) override this so timings come from
+ * the recorded event timeline instead of `Date.now()`. Without that, a replay
+ * that applies a node's start and end events in the same synchronous pass
+ * stamps both from wall-clock time microseconds apart, producing a tiny,
+ * frame-dependent duration that visibly wiggles the "Completed in" badge.
+ */
+let nowFn: () => number = () => Date.now();
+
+/** Override the timing clock (e.g. deterministic replay). */
+export function setExecutionClock(fn: () => number): void {
+  nowFn = fn;
+}
+
+/** Restore the default wall-clock timing clock. */
+export function resetExecutionClock(): void {
+  nowFn = () => Date.now();
+}
+
 interface ExecutionTiming {
   startTime: number;
   endTime?: number;
@@ -54,7 +75,7 @@ const useExecutionTimeStore = create<ExecutionTimeStore>((set, get) => ({
     set((state) => ({
       timings: {
         ...state.timings,
-        [key]: { startTime: Date.now() }
+        [key]: { startTime: nowFn() }
       }
     }));
   },
@@ -67,7 +88,7 @@ const useExecutionTimeStore = create<ExecutionTimeStore>((set, get) => ({
         return {
           timings: {
             ...state.timings,
-            [key]: { ...existing, endTime: Date.now() }
+            [key]: { ...existing, endTime: nowFn() }
           }
         };
       }
