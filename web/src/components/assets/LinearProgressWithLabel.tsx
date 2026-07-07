@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { LinearProgressProps } from "@mui/material";
+import type { LinearProgressProps } from "../ui_primitives";
 import { ProgressBar } from "../ui_primitives";
 
 type LinearProgressWithLabelProps = LinearProgressProps & {

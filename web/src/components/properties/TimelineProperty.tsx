@@ -2,7 +2,7 @@ import { memo, useCallback } from "react";
 import isEqual from "fast-deep-equal";
 import { useLocation, useNavigate } from "react-router-dom";
 import MovieOutlinedIcon from "@mui/icons-material/MovieOutlined";
-import type { SelectChangeEvent } from "@mui/material";
+import type { SelectChangeEvent } from "../ui_primitives";
 
 import PropertyLabel from "../node/PropertyLabel";
 import type { PropertyProps } from "../node/PropertyInput.types";

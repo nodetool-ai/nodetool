@@ -1,9 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import {
-  SliderProps
-} from "@mui/material";
+import type { SliderProps } from "../ui_primitives";
 import {
   Tooltip,
   SPACING,
