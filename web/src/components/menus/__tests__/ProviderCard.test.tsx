@@ -41,7 +41,7 @@ const oauthMeta = {
   key: "OPENAI_API_KEY",
   name: "OpenAI",
   description: "GPT models.",
-  category: "recommended" as const,
+  section: "popular" as const,
   docsUrl: "https://platform.openai.com/docs",
   oauth: "openai" as const
 };
@@ -50,7 +50,7 @@ const plainMeta = {
   key: "GROQ_API_KEY",
   name: "Groq",
   description: "Fast inference.",
-  category: "other" as const,
+  section: "language" as const,
   docsUrl: "https://console.groq.com/docs"
 };
 
