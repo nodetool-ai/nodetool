@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Edge } from "@xyflow/react";
 import { NodeStoreState } from "../../stores/NodeStore";
 
-export const useIsConnectedSelector = (nodeId: string, propertyName: string) => {
+export const useIsConnectedSelector = (nodeId: string, propertyName: string): ((state: NodeStoreState) => boolean) => {
   return useMemo(() => {
     let lastEdges: Edge[] | null = null;
     let lastResult = false;
