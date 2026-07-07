@@ -35,9 +35,8 @@ draft lands in the right place:
    - `slug` → the model's URL slug (kebab-case; becomes the filename).
    - `coverage` → the model's rows from the provider-coverage table.
    - `facts` → the vendor facts, pasted.
-   - the `writer` agent's `model` → any language model you have a key for. The
-     shipped `model: {}` is a placeholder; the default `max_tokens` (16000) fits
-     the common OpenAI and Anthropic models.
+   - the `writer` agent's `model` defaults to OpenAI GPT-5. Change it only if
+     you need a different provider or do not have an OpenAI key configured.
 2. Run it:
 
    ```bash

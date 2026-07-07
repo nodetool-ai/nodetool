@@ -8,9 +8,9 @@
 // This workflow never touches `modelEntries.ts`. See ./README.md.
 //
 // To run: paste your inputs into the three `input.stringInput` values below,
-// pick a language model on the `writer` agent (the shipped `model: {}` is a
-// placeholder), then run this file with `npm run dev:nodetool -- run` from the
-// repo root so the draft lands under `marketing/seo/drafts/models/`.
+// the `writer` agent uses OpenAI GPT-5 by default. Run this file with
+// `npm run dev:nodetool -- run` from the repo root so the draft lands under
+// `marketing/seo/drafts/models/`.
 //
 // The editor-importable graph — with the on-canvas explainer Comment node — is
 // the sibling `model-page-copy-writer.json`. The Comment node is UI-only chrome
@@ -59,7 +59,7 @@ const template = createNode<TemplateNode>("nodetool.text.Template", {
 
 // writer — nodetool.agents.Agent
 const agent = agents.agent({
-  model: {},
+  model: { provider: "openai", id: "gpt-5" },
   system: "You are a technical copywriter for a developer-facing AI product. You write model-page drafts that are accurate, concrete, and free of marketing slop. You never invent capabilities, benchmarks, prices, or dates — you only restate and organize the facts you are given, and you flag your own uncertainty for the human editor.",
   history: [],
   max_tokens: 16000,

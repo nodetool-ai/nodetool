@@ -206,7 +206,7 @@
         "id": "writer",
         "type": "nodetool.agents.Agent",
         "data": {
-          "model": {},
+          "model": { "provider": "openai", "id": "gpt-5" },
           "system": "You are a technical copywriter for a developer-facing AI product. You write model-page drafts that are accurate, concrete, and free of marketing slop. You never invent capabilities, benchmarks, prices, or dates — you only restate and organize the facts you are given, and you flag your own uncertainty for the human editor.",
           "audio": { "type": "audio", "uri": "", "asset_id": null, "data": null },
           "history": [],
