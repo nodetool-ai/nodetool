@@ -242,10 +242,13 @@ describe("RemoteSettingsMenu", () => {
 
       render(<RemoteSettingsMenuComponent />, { wrapper });
 
-      // Component should render successfully
+      // Non-secret setting renders; the save bar stays hidden without edits.
       await waitFor(() => {
-        expect(screen.getByRole("button", { name: /SAVE SETTINGS/i })).toBeInTheDocument();
+        expect(screen.getByDisplayValue("localhost")).toBeInTheDocument();
       });
+      expect(
+        screen.queryByRole("button", { name: /SAVE SETTINGS/i })
+      ).not.toBeInTheDocument();
     });
 
     it("should remove empty groups after filtering secrets", async () => {
@@ -292,7 +295,7 @@ describe("RemoteSettingsMenu", () => {
 
       // Component should render without throwing
       await waitFor(() => {
-        expect(screen.getByRole("button", { name: /SAVE SETTINGS/i })).toBeInTheDocument();
+        expect(screen.getByDisplayValue("30")).toBeInTheDocument();
       });
     });
   });
@@ -313,11 +316,62 @@ describe("RemoteSettingsMenu", () => {
 
       mockRemoteSettingsStore.fetchSettings.mockResolvedValue(mockSettings);
       mockRemoteSettingsStore.updateSettings.mockResolvedValue(undefined);
+      const user = userEvent.setup();
 
       render(<RemoteSettingsMenuComponent />, { wrapper });
 
+      // The save bar only appears once a field is edited.
+      const input = await screen.findByDisplayValue("30");
+      expect(
+        screen.queryByRole("button", { name: /SAVE SETTINGS/i })
+      ).not.toBeInTheDocument();
+
+      await user.clear(input);
+      await user.type(input, "60");
+
       const saveButton = await screen.findByRole("button", { name: /SAVE SETTINGS/i });
-      expect(saveButton).toBeInTheDocument();
+      await user.click(saveButton);
+
+      await waitFor(() => {
+        expect(mockRemoteSettingsStore.updateSettings).toHaveBeenCalledWith(
+          { TIMEOUT: "60" },
+          expect.anything()
+        );
+      });
+    });
+
+    it("hides the save bar until there are unsaved edits", async () => {
+      const mockSettings = [
+        {
+          package_name: "nodetool",
+          env_var: "TIMEOUT",
+          group: "Configuration",
+          description: "Timeout",
+          is_secret: false,
+          value: "30",
+          enum: null
+        }
+      ];
+      mockRemoteSettingsStore.fetchSettings.mockResolvedValue(mockSettings);
+      const user = userEvent.setup();
+
+      render(<RemoteSettingsMenuComponent />, { wrapper });
+
+      // No edits yet — sticky save bar is hidden.
+      await waitFor(() => {
+        expect(screen.getByDisplayValue("30")).toBeInTheDocument();
+      });
+      expect(
+        screen.queryByRole("button", { name: /SAVE SETTINGS/i })
+      ).not.toBeInTheDocument();
+
+      // Edit a field — the bar appears.
+      const input = screen.getByDisplayValue("30");
+      await user.clear(input);
+      await user.type(input, "45");
+      expect(
+        await screen.findByRole("button", { name: /SAVE SETTINGS/i })
+      ).toBeInTheDocument();
     });
   });
 
@@ -348,9 +402,9 @@ describe("RemoteSettingsMenu", () => {
 
       render(<RemoteSettingsMenuComponent />, { wrapper });
 
-      // Component should render the save button
+      // Non-secret setting renders (secret filtered out)
       await waitFor(() => {
-        expect(screen.getByRole("button", { name: /SAVE SETTINGS/i })).toBeInTheDocument();
+        expect(screen.getByDisplayValue("value1")).toBeInTheDocument();
       });
     });
 
