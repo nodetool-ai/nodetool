@@ -40,7 +40,7 @@ export interface WorkspaceTab {
   title: string;
 }
 
-export interface OpenTabInput {
+interface OpenTabInput {
   type: WorkspaceTabType;
   ref: string;
   /**

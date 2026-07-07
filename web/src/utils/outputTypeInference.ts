@@ -25,7 +25,7 @@ import {
 } from "../constants/nodeTypes";
 
 /** The resolved output, ready to merge over the static `OutputSlot`. */
-export interface InferredOutput {
+interface InferredOutput {
   type: TypeMetadata;
   isDynamic: boolean;
   /** Overrides the static `stream` flag when set. */

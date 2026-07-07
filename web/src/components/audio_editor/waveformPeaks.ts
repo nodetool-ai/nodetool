@@ -9,7 +9,7 @@
  * instead of duration.
  */
 
-export const PEAK_BLOCK_SIZE = 256;
+const PEAK_BLOCK_SIZE = 256;
 
 export interface ChannelPeaks {
   readonly blockSize: number;
