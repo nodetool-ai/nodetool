@@ -71,7 +71,7 @@ jobs:
         run: npm run seo:model-watch -- --out model-watch-report.json --pretty || true
 
       - name: Open one issue per provider with new models
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require("fs");
