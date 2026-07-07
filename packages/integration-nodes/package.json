@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/integration-nodes",
-  "version": "0.7.0-rc.29",
+  "version": "0.7.0-rc.31",
   "description": "NodeTool external-API integration nodes — HTTP, GraphQL, S3, Supabase, Notion, Twilio, Apify, mail, secrets, messaging, search",
   "type": "module",
   "engines": {

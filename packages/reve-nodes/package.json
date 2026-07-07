@@ -4,7 +4,7 @@
   "engines": {
     "node": ">=22.0.0 <23.0.0"
   },
-  "version": "0.7.0-rc.29",
+  "version": "0.7.0-rc.31",
   "description": "Reve AI image generation, editing, and remix nodes for nodetool",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

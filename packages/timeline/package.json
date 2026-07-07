@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/timeline",
-  "version": "0.7.0-rc.29",
+  "version": "0.7.0-rc.31",
   "description": "Core timeline types and status models for the NodeTool timeline feature",
   "type": "module",
   "engines": {

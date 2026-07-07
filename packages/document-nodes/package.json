@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/document-nodes",
-  "version": "0.7.0-rc.29",
+  "version": "0.7.0-rc.31",
   "description": "NodeTool document nodes — DOCX, EPUB, PPTX, PDF, generic document I/O",
   "type": "module",
   "engines": {

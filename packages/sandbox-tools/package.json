@@ -4,7 +4,7 @@
   "engines": {
     "node": ">=22.0.0 <23.0.0"
   },
-  "version": "0.7.0-rc.29",
+  "version": "0.7.0-rc.31",
   "description": "Agent tool adapter: exposes a sandbox's ToolClient as a set of @nodetool-ai/agents Tool instances",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
