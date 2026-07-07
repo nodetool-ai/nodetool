@@ -53,7 +53,7 @@ function selectNodeEnumType(node: Node<NodeData>): TypeMetadata {
   const enumTypeName =
     typeof props.enum_type_name === "string" ? props.enum_type_name : null;
   const options = Array.isArray(props.options)
-    ? (props.options as string[])
+    ? props.options.filter((x: unknown): x is string => typeof x === "string")
     : [];
   return {
     type: "enum",

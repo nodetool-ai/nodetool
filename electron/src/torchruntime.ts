@@ -173,8 +173,12 @@ except Exception as e:
       }
 
       try {
-        const result = JSON.parse(stdout.trim());
-        
+        const result = JSON.parse(stdout.trim()) as {
+          platform?: string;
+          gpu_count?: number;
+          error?: string;
+        };
+
         if (result.error) {
           logMessage(`Torchruntime detection error: ${result.error}`, "error");
           reject(new Error(result.error));

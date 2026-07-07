@@ -28,7 +28,7 @@ export const downloadPreviewAssets = async ({
   nodeId,
   previewValue,
   rawResult
-}: DownloadOptions) => {
+}: DownloadOptions): Promise<void> => {
   const payload = getDownloadPayload({ previewValue, rawResult });
   let assetFiles: Awaited<ReturnType<typeof createAssetFile>>;
   try {

@@ -956,7 +956,7 @@ async function runUvCommand(
 async function listPythonInstalledPackages(): Promise<PackageModel[]> {
   try {
     const output = await runUvCommand(["pip", "list", "--format=json"], { silent: true });
-    const parsed = JSON.parse(output);
+    const parsed: unknown = JSON.parse(output);
     const allPackages = isPipPackageArray(parsed) ? parsed : [];
 
     return allPackages

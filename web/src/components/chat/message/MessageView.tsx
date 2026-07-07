@@ -51,7 +51,7 @@ const PrettyJson: React.FC<{ value: unknown }> = React.memo(({ value }) => {
   const text = useMemo(() => {
     try {
       if (typeof value === "string") {
-        const parsed = JSON.parse(value);
+        const parsed: unknown = JSON.parse(value);
         return JSON.stringify(parsed, null, 2);
       }
       return JSON.stringify(value, null, 2);
