@@ -196,6 +196,8 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const contentOnFocusRef = useRef<EditorState | null>(null);
   const [isEditorFocused, setIsEditorFocused] = useState(false);
+  const propsDataRef = useRef(props.data);
+  propsDataRef.current = props.data;
 
   const editorConfig = useMemo((): InitialConfigType => {
     const comment = props.data.properties.comment;
@@ -234,15 +236,16 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const debouncedUpdate = useMemo(
     () =>
       debounce((newEditorState: EditorState) => {
+        const currentData = propsDataRef.current;
         updateNodeData(props.id, {
-          ...props.data,
+          ...currentData,
           properties: {
-            ...props.data.properties,
+            ...currentData.properties,
             comment: newEditorState.toJSON()
           }
         });
       }, 500),
-    [props.id, props.data, updateNodeData]
+    [props.id, updateNodeData]
   );
 
   const handleEditorChange = useCallback(

@@ -492,21 +492,16 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
   const labelMaxCssWidth = Math.max(24, availableLabelWorldWidth / labelScale);
 
-  const effectiveColor = resolveGroupHex(color);
-  // Body tint: only a light touch of darkening before applying the overlay
-  // alpha — heavy desaturation made pastels collapse to indistinguishable
-  // grays once mixed with the dark canvas. Preserve the original hue/chroma
-  // so picker colors still read as themselves on the group.
-  const bodyTintHex = toHex(darken(desaturate(parse(effectiveColor), 1.4), 0.3));
-  const bodyBg = hexToRgba(bodyTintHex, GROUP_BG_OPACITY);
-  const subtleBorder = `1px solid ${hexToRgba(bodyTintHex, GROUP_BORDER_OPACITY)}`;
-  // Label: same hue family as the body tint, with a small saturation +
-  // brightness lift so the header reads as a subtle, related variant rather
-  // than a contrasting pill.
-  const labelBg = toHex(brighten(desaturate(parse(bodyTintHex), 0.4), 0.25));
-  // Pick black or white text based on label background luminance so the title
-  // stays legible whether the group color is dark or near-white.
-  const labelTextColor = luminance(labelBg) > 0.55 ? "#000000" : "#ffffff";
+  const colorTokens = useMemo(() => {
+    const effectiveColor = resolveGroupHex(color);
+    const bodyTintHex = toHex(darken(desaturate(parse(effectiveColor), 1.4), 0.3));
+    const bodyBg = hexToRgba(bodyTintHex, GROUP_BG_OPACITY);
+    const subtleBorder = `1px solid ${hexToRgba(bodyTintHex, GROUP_BORDER_OPACITY)}`;
+    const labelBg = toHex(brighten(desaturate(parse(bodyTintHex), 0.4), 0.25));
+    const labelTextColor = luminance(labelBg) > 0.55 ? "#000000" : "#ffffff";
+    return { bodyBg, subtleBorder, labelBg, labelTextColor };
+  }, [color]);
+  const { bodyBg, subtleBorder, labelBg, labelTextColor } = colorTokens;
 
   return (
     <div
