@@ -6,7 +6,7 @@ import { memo, useCallback } from "react";
 import isEqual from "fast-deep-equal";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { NodeSelect, NodeMenuItem } from "../editor_ui";
-import type { SelectChangeEvent } from "@mui/material";
+import type { SelectChangeEvent } from "../ui_primitives";
 
 const WorkflowProperty = (props: PropertyProps) => {
   const { property, value, onChange } = props;
