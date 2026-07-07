@@ -166,7 +166,7 @@ jobs:
         run: npm run seo:ingest
 
       - name: Open review PR
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           branch: seo/seed-${{ steps.params.outputs.batch_suffix }}
           base: main
