@@ -34,8 +34,7 @@ import {
   SecurityNotice
 } from "./APIKeysTab";
 import {
-  getDisplayedSettingGroups,
-  settingGroupSlug
+  getDisplayedSettingGroups
 } from "./RemoteSettingsMenu";
 import ServerNumberSetting from "./ServerNumberSetting";
 import { getAboutSidebarSections } from "./aboutSidebarUtils";
@@ -560,28 +559,16 @@ function SettingsPage() {
   const secrets = useSecretsStore((state) => state.secrets);
   void secrets;
 
-  // Tab 2: Integrations sidebar folders — Configuration lists every group the
-  // generic settings panel renders, so the sidebar shows all items.
+  // Tab 2: Integrations sidebar folders — Configuration mirrors the panel
+  // top-to-bottom: the registry meta-sections (Local Model Servers, Search
+  // Provider, …) then Folders; Servers (localhost) and the Nodetool API token
+  // (hosted) follow.
   const integrationsSidebarSections = useMemo(() => {
     const configItems = [
-      { id: "api-settings", label: "API Settings" },
-      { id: "search-provider", label: "Search Provider" },
-      ...getDisplayedSettingGroups(remoteSettings ?? []).map((group) => ({
-        id: settingGroupSlug(group),
-        label: group
-      }))
+      ...getDisplayedSettingGroups(remoteSettings ?? []),
+      { id: "folders", label: "Folders" }
     ];
     return [
-      ...(session?.access_token && !isLocalhost
-        ? [
-            {
-              category: "Credentials",
-              items: [
-                { id: "nodetool-api-token", label: "Nodetool API Token" }
-              ]
-            }
-          ]
-        : []),
       { category: "Configuration", items: configItems },
       ...(isLocalhost
         ? [
@@ -594,7 +581,16 @@ function SettingsPage() {
             }
           ]
         : []),
-      { category: "Storage", items: [{ id: "folders", label: "Folders" }] }
+      ...(session?.access_token && !isLocalhost
+        ? [
+            {
+              category: "Credentials",
+              items: [
+                { id: "nodetool-api-token", label: "Nodetool API Token" }
+              ]
+            }
+          ]
+        : [])
     ];
   }, [remoteSettings, session?.access_token]);
 
@@ -1150,6 +1146,39 @@ function SettingsPage() {
                 {/* Tab 2: Integrations (endpoints, MCP, storage, Nodetool API) */}
                 <TabPanel value={settingsTab} index={TAB_INTEGRATIONS}>
                   <div className="integrations-settings">
+                  {/* Meta-sections from the registry + the Web-search picker. */}
+                  <RemoteSettingsMenuComponent />
+
+                  {/* Data & storage: Folders browser. */}
+                  <Text size="big" id="folders" className="settings-heading">
+                    Folders
+                  </Text>
+                  <FoldersSettings />
+
+                  {/* Servers (localhost only): MCP + Browser Extension. */}
+                  {isLocalhost && (
+                    <>
+                      <Text
+                        size="big"
+                        id="mcp-integration"
+                        className="settings-heading"
+                      >
+                        MCP Integration
+                      </Text>
+                      <MCPSettingsMenu />
+
+                      <Text
+                        size="big"
+                        id="browser-extension"
+                        className="settings-heading"
+                      >
+                        Browser Extension
+                      </Text>
+                      <BrowserExtensionSettingsMenu />
+                    </>
+                  )}
+
+                  {/* Nodetool API (hosted only): token copy card. */}
                   {session?.access_token && !isLocalhost && (
                     <>
                       <Text
@@ -1224,42 +1253,6 @@ function SettingsPage() {
                       </div>
                     </>
                   )}
-
-                  <Text
-                    size="big"
-                    id="api-settings"
-                    className="settings-heading"
-                  >
-                    API Settings
-                  </Text>
-                  <RemoteSettingsMenuComponent />
-
-                  {isLocalhost && (
-                    <>
-                      <Text
-                        size="big"
-                        id="mcp-integration"
-                        className="settings-heading"
-                      >
-                        MCP Integration
-                      </Text>
-                      <MCPSettingsMenu />
-
-                      <Text
-                        size="big"
-                        id="browser-extension"
-                        className="settings-heading"
-                      >
-                        Browser Extension
-                      </Text>
-                      <BrowserExtensionSettingsMenu />
-                    </>
-                  )}
-
-                  <Text size="big" id="folders" className="settings-heading">
-                    Folders
-                  </Text>
-                  <FoldersSettings />
                   </div>
                 </TabPanel>
 
