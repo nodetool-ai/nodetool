@@ -240,7 +240,16 @@ export function loadManifest(
   // Stryker restore all
   try {
     const req = _nodeModule.createRequire(import.meta.url);
-    const data = req(`${packageName}/${exportPath}`) as ManifestNode[];
+    let data: ManifestNode[];
+    try {
+      data = req(`${packageName}/${exportPath}`) as ManifestNode[];
+    } catch (packageErr) {
+      try {
+        data = req(`./${exportPath}`) as ManifestNode[];
+      } catch {
+        throw packageErr;
+      }
+    }
     _cache.set(key, data);
     return data;
   } catch (err) {

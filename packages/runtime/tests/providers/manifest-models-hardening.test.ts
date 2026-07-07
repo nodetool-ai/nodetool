@@ -304,6 +304,12 @@ describe("loadManifest IO (via loadImageModels)", () => {
     expect(real.length).toBeGreaterThan(0);
     expect(loadImageModels(uniq(), "x.json", "p")).toEqual([]);
   });
+
+  it("falls back to a manifest colocated with the bundled module", () => {
+    const manifest = loadManifest(uniq(), "aki-manifest.json");
+    expect(manifest.length).toBeGreaterThan(0);
+    expect(manifest[0]).toHaveProperty("endpointId");
+  });
 });
 
 describe("matchesAny", () => {

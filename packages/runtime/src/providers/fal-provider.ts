@@ -6,11 +6,7 @@
  */
 
 import { BaseProvider } from "./base-provider.js";
-import { createLogger, importNodeBuiltin } from "@nodetool-ai/config";
-
-const _nodeModule = await importNodeBuiltin<typeof import("node:module")>(
-  "node:module"
-);
+import { createLogger } from "@nodetool-ai/config";
 import type {
   ImageModel,
   VideoModel,
@@ -34,6 +30,7 @@ import type {
 } from "./types.js";
 import {
   loadImageModels,
+  loadManifest,
   loadMusicModels,
   loadTTSModels,
   loadVideoModels,
@@ -89,20 +86,14 @@ let _falManifestByEndpoint: Map<string, FalManifestEntry> | null = null;
 function getFalManifestEntry(modelId: string): FalManifestEntry | undefined {
   if (!_falManifestByEndpoint) {
     _falManifestByEndpoint = new Map();
-    if (!_nodeModule) {
-      return undefined;
-    }
-    try {
-      const req = _nodeModule.createRequire(import.meta.url);
-      const data = req(
-        `${FAL_MANIFEST_PKG}/${FAL_MANIFEST_PATH}`
-      ) as FalManifestEntry[];
-      for (const entry of data) {
-        if (entry.endpointId)
-          _falManifestByEndpoint.set(entry.endpointId, entry);
+    const data = loadManifest(
+      FAL_MANIFEST_PKG,
+      FAL_MANIFEST_PATH
+    ) as FalManifestEntry[];
+    for (const entry of data) {
+      if (entry.endpointId) {
+        _falManifestByEndpoint.set(entry.endpointId, entry);
       }
-    } catch (err) {
-      log.warn(`Could not load fal manifest for arg shaping: ${err}`);
     }
   }
   return _falManifestByEndpoint.get(modelId);

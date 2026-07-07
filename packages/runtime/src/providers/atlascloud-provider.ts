@@ -21,12 +21,12 @@
  */
 
 import { BaseProvider } from "./base-provider.js";
-import { createLogger, importNodeBuiltin } from "@nodetool-ai/config";
-import { loadImageModels, loadVideoModels } from "./manifest-models.js";
-
-const _nodeModule = await importNodeBuiltin<typeof import("node:module")>(
-  "node:module"
-);
+import { createLogger } from "@nodetool-ai/config";
+import {
+  loadImageModels,
+  loadManifest,
+  loadVideoModels
+} from "./manifest-models.js";
 import type {
   ImageModel,
   ImageToImageParams,
@@ -75,15 +75,10 @@ interface ModelInfo {
 
 function buildModelMap(): Map<string, ModelInfo> {
   const map = new Map<string, ModelInfo>();
-  if (!_nodeModule) return map;
-  let manifest: AtlasManifestEntry[];
-  try {
-    const req = _nodeModule.createRequire(import.meta.url);
-    manifest = req(`${ATLASCLOUD_MANIFEST_PKG}/${ATLASCLOUD_MANIFEST_PATH}`);
-  } catch (err) {
-    log.warn(`Could not load AtlasCloud manifest: ${err}`);
-    return map;
-  }
+  const manifest = loadManifest(
+    ATLASCLOUD_MANIFEST_PKG,
+    ATLASCLOUD_MANIFEST_PATH
+  ) as AtlasManifestEntry[];
   for (const entry of manifest) {
     if (!entry.modelId) continue;
     const modality = entry.modality ?? entry.outputType;

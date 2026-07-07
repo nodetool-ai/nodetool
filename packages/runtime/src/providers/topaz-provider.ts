@@ -17,12 +17,8 @@
  */
 
 import { BaseProvider } from "./base-provider.js";
-import { createLogger, importNodeBuiltin } from "@nodetool-ai/config";
-import { loadImageModels } from "./manifest-models.js";
-
-const _nodeModule = await importNodeBuiltin<typeof import("node:module")>(
-  "node:module"
-);
+import { createLogger } from "@nodetool-ai/config";
+import { loadImageModels, loadManifest } from "./manifest-models.js";
 import type {
   ImageModel,
   Message,
@@ -84,15 +80,10 @@ interface VariantInfo {
  */
 function buildVariantMap(): Map<string, VariantInfo> {
   const map = new Map<string, VariantInfo>();
-  if (!_nodeModule) return map;
-  let manifest: TopazManifestEntry[] = [];
-  try {
-    const req = _nodeModule.createRequire(import.meta.url);
-    manifest = req(`${TOPAZ_MANIFEST_PKG}/${TOPAZ_MANIFEST_PATH}`);
-  } catch (err) {
-    log.warn(`Could not load Topaz manifest: ${err}`);
-    return map;
-  }
+  const manifest = loadManifest(
+    TOPAZ_MANIFEST_PKG,
+    TOPAZ_MANIFEST_PATH
+  ) as TopazManifestEntry[];
   for (const entry of manifest) {
     if (entry.outputType !== "image" || !entry.modelId) continue;
     // Only expose enhance / enhance-gen as upscale models. Sharpen, denoise,
