@@ -3,7 +3,7 @@ import { persist } from "zustand/middleware";
 
 type FavoriteKey = string; // `${provider}:${id}`
 
-export type RecentEntry = {
+type RecentEntry = {
   provider: string;
   id: string;
   name: string;

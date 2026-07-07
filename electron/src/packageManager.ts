@@ -313,7 +313,7 @@ function compareVersions(a: string, b: string): number {
   return 0;
 }
 
-export interface RegistryWheelSelectionOptions {
+interface RegistryWheelSelectionOptions {
   packageName: string;
   pythonTag: string;
   platformTag: string;
@@ -1226,8 +1226,6 @@ export async function updatePackage(repoId: string): Promise<PackageResponse> {
     };
   }
 }
-
-export { PACKAGE_INDEX_URL };
 
 /**
  * Check all expected package versions

@@ -18,7 +18,7 @@ export type SizeBucket =
   | "35-70B"
   | "70B+";
 
-export interface ModelFiltersState {
+interface ModelFiltersState {
   selectedTypes: TypeTag[];
   sizeBucket: SizeBucket | null;
   families: string[]; // e.g., llama, qwen, mistral
