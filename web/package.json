@@ -151,7 +151,7 @@
     "@types/react-plotly.js": "^2.6.4",
     "@types/react-syntax-highlighter": "^15.5.13",
     "@types/tabulator-tables": "^6.3.4",
-    "@types/three": "^0.184.1",
+    "@types/three": "^0.185.0",
     "@typescript-eslint/eslint-plugin": "^8.60.1",
     "@typescript-eslint/parser": "^8.62.0",
     "@vitejs/plugin-react": "^6.0.2",
