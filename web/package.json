@@ -68,7 +68,7 @@
     "rehype-raw": "^7.0.0",
     "remark-gfm": "^4.0.1",
     "tabulator-tables": "^6.4.0",
-    "three": "^0.184.0",
+    "three": "^0.185.1",
     "wavesurfer.js": "^7.12.7",
     "zod": "^4.4.3",
     "zundo": "^2.3.0",
