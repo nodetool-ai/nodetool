@@ -1,6 +1,7 @@
 import React, { memo, useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useReactFlow, Node } from "@xyflow/react";
+import { shallow } from "zustand/shallow";
 
 import {
   Divider,
@@ -41,10 +42,15 @@ interface NodeToolbarProps {
 const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
   const { getNode } = useReactFlow();
   const navigate = useNavigate();
-  const deleteNode = useNodes((state) => state.deleteNode);
-  const updateNodeData = useNodes((state) => state.updateNodeData);
-  const selectNodesByType = useNodes((state) => state.selectNodesByType);
-  const toggleBypass = useNodes((state) => state.toggleBypass);
+  const { deleteNode, updateNodeData, selectNodesByType, toggleBypass } = useNodes(
+    (state) => ({
+      deleteNode: state.deleteNode,
+      updateNodeData: state.updateNodeData,
+      selectNodesByType: state.selectNodesByType,
+      toggleBypass: state.toggleBypass
+    }),
+    shallow
+  );
 
   const node = nodeId !== null ? getNode(nodeId) : null;
   const nodeData = node?.data as NodeData | undefined;

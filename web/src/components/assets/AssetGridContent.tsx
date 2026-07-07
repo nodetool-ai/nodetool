@@ -315,9 +315,12 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
     overscan: theme.virtualScroll.overscan.gridRow,
   });
 
+  const virtualizerRef = useRef(virtualizer);
+  virtualizerRef.current = virtualizer;
+
   useEffect(() => {
-    virtualizer.measure();
-  }, [gridDimensions, assetItemSize, preparedItems, virtualizer]);
+    virtualizerRef.current.measure();
+  }, [gridDimensions, assetItemSize, preparedItems]);
 
   // If list view is selected, render AssetListView instead
   if (viewMode === "list") {
