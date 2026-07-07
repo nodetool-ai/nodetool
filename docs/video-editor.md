@@ -30,6 +30,14 @@ The Video Editor (timeline editor) is a non-linear, multi-track surface for asse
 
 ---
 
+## Where this fits
+
+The Video Editor is the surface where outputs become finished, time-based media. It pulls **assets** in as clips, binds **workflows** to generated clips so footage regenerates when parameters change, and exports the sequence back to a video asset — the same material a sketch, another workflow, or a **Mini-App** can pick up. Every surface shares one asset store and the same model/provider system.
+
+See [Key Concepts → How everything fits together](key-concepts.md#how-everything-fits-together) for the full loop.
+
+---
+
 ## Opening the Video Editor
 
 There are a few ways in:

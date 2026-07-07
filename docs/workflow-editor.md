@@ -12,6 +12,14 @@ The canvas: place nodes, connect ports, run, debug. Covers basic navigation thro
 
 ---
 
+## Where this fits
+
+The workflow editor is NodeTool's automation layer. A workflow reads **assets**, calls models, and writes new assets — which flow on into the **Sketch Editor** and **Video Editor** for hand editing, come back as fresh assets, or ship to non-technical users as a **Mini-App**. Every surface shares this graph's outputs through one asset store and the same model/provider system.
+
+See [Key Concepts → How everything fits together](key-concepts.md#how-everything-fits-together) for the full loop.
+
+---
+
 ## Editor Layout
 
 | Area | Where | What It Does |
