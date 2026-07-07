@@ -139,7 +139,6 @@ const DataframeProperty = ({
   propertyIndex
 }: PropertyProps) => {
   const theme = useTheme();
-  const _id = `${property.name}-${propertyIndex}`;
   const [isExpanded, setIsExpanded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);

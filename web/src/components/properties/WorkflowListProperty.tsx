@@ -1,7 +1,5 @@
 import { memo, useCallback } from "react";
-import {
-  SelectChangeEvent
-} from "@mui/material";
+import type { SelectChangeEvent } from "../ui_primitives";
 import { WorkflowList } from "../../stores/ApiTypes";
 import PropertyLabel from "../node/PropertyLabel";
 import { useQuery } from "@tanstack/react-query";

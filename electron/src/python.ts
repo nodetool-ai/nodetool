@@ -481,5 +481,4 @@ export {
   isCondaEnvironmentInstalled,
   installRequiredPythonPackages,
   getDefaultInstallLocation,
-  runCommand,
 };

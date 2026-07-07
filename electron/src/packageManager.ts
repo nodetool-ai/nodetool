@@ -313,7 +313,7 @@ function compareVersions(a: string, b: string): number {
   return 0;
 }
 
-export interface RegistryWheelSelectionOptions {
+interface RegistryWheelSelectionOptions {
   packageName: string;
   pythonTag: string;
   platformTag: string;
@@ -956,7 +956,7 @@ async function runUvCommand(
 async function listPythonInstalledPackages(): Promise<PackageModel[]> {
   try {
     const output = await runUvCommand(["pip", "list", "--format=json"], { silent: true });
-    const parsed = JSON.parse(output);
+    const parsed: unknown = JSON.parse(output);
     const allPackages = isPipPackageArray(parsed) ? parsed : [];
 
     return allPackages
@@ -1226,8 +1226,6 @@ export async function updatePackage(repoId: string): Promise<PackageResponse> {
     };
   }
 }
-
-export { PACKAGE_INDEX_URL };
 
 /**
  * Check all expected package versions

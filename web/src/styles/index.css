@@ -121,21 +121,6 @@ img::selection {
   background-color: transparent;
 }
 
-/* POPOVER */
-/* .MuiPopover-root {
-  z-index: 100000 !important;
-} */
-
-/* .assistant-editor {
-  width: 100%;
-  height: 100%;
-  padding: 2em;
-} */
-
-/* .assistant-editor .MuiGrid-root {
-  margin-top: 1em;
-} */
-
 .gsi-material-button {
   user-select: none;
   -moz-user-select: none;

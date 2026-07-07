@@ -110,7 +110,6 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
 
   const handleOpenNodeMenu = useCallback(() => {
     if (nodeType) {
-      const _searchTerm = nodeType.replace(/\./g, " ");
       openNodeMenu({
         x: panelSize,
         y: 100

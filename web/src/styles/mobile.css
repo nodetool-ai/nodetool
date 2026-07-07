@@ -356,12 +356,6 @@
     cursor: pointer !important;
   }
 
-  /* .mobile .panel-container .vertical-toolbar .MuiIconButton-root,
-  .mobile .panel-container .vertical-toolbar .MuiButton-root {
-    min-height: 44px !important;
-    min-width: 44px !important;
-  } */
-
   /* Panel Right Mobile Styles - Hide entire right panel container on mobile */
   .mobile .panel-right,
   .mobile .panel-right .panel-container {

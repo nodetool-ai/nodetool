@@ -6,5 +6,7 @@
  * typecheck. This helper centralises the cast so callers stay clean.
  */
 export function getAssetUrl(asset: unknown): string | null {
-  return (asset as { get_url?: string | null })?.get_url ?? null;
+  if (typeof asset !== "object" || asset === null) return null;
+  const url = (asset as Record<string, unknown>)["get_url"];
+  return typeof url === "string" ? url : null;
 }

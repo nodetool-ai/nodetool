@@ -12,9 +12,7 @@ import React, {
   memo
 } from "react";
 import { Asset } from "../../stores/ApiTypes";
-import {
-  SelectChangeEvent
-} from "@mui/material";
+import type { SelectChangeEvent } from "../ui_primitives";
 import {
   Text,
   LoadingSpinner,

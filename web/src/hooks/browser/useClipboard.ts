@@ -35,14 +35,16 @@ export const useClipboard = (): UseClipboardResult => {
 
   const validateData = useCallback((data: string): boolean => {
     try {
-      const parsedData = JSON.parse(data);
+      const parsedData: unknown = JSON.parse(data);
+      if (typeof parsedData !== "object" || parsedData === null) return false;
+      const obj = parsedData as Record<string, unknown>;
       const hasNodes =
-        Object.prototype.hasOwnProperty.call(parsedData, "nodes") &&
-        Array.isArray(parsedData.nodes) &&
-        parsedData.nodes.length > 0;
+        "nodes" in obj &&
+        Array.isArray(obj.nodes) &&
+        obj.nodes.length > 0;
       const hasValidEdges =
-        Object.prototype.hasOwnProperty.call(parsedData, "edges") &&
-        Array.isArray(parsedData.edges);
+        "edges" in obj &&
+        Array.isArray(obj.edges);
       return hasNodes && hasValidEdges;
     } catch {
       return false;

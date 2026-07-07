@@ -16,6 +16,12 @@ onto the workflow.
 - Streams workflow outputs into bound display widgets.
 - Saves the app document with the workflow and serves it in Mini App mode.
 
+## Where this fits
+
+A Mini App is how a **workflow** reaches people who should not have to read a node graph. App Builder wraps the graph in a form: input widgets bind to Input nodes, buttons run the workflow, and display widgets stream Output nodes back. It is the share end of NodeTool's loop — the same **assets** a workflow produces on the canvas, exposed as a usable app.
+
+See [Key Concepts → How everything fits together](key-concepts.md#how-everything-fits-together) for the full loop.
+
 ## Open App Builder
 
 1. Open a workflow.

@@ -115,13 +115,13 @@ interface ToolApprovalRequest {
 }
 
 /** A step of a proposed agent plan, as serialized on the wire. */
-export interface ProposedPlanStep {
+interface ProposedPlanStep {
   id: string;
   instructions: string;
 }
 
 /** A task of a proposed agent plan, as serialized on the wire. */
-export interface ProposedPlanTask {
+interface ProposedPlanTask {
   id: string;
   title: string;
   depends_on: string[];

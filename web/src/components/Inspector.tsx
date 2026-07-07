@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { shallow } from "zustand/shallow";
 import PropertyField from "./node/PropertyField";
 import useMetadataStore from "../stores/MetadataStore";
 import { useNodes } from "../contexts/NodeContext";
@@ -514,9 +515,14 @@ const Inspector: React.FC = () => {
     (state) => state.getSelectedNodes(),
     areNodesEqualIgnoringPosition
   );
-  const findNode = useNodes((state) => state.findNode);
-  const updateNodeProperties = useNodes((state) => state.updateNodeProperties);
-  const setSelectedNodes = useNodes((state) => state.setSelectedNodes);
+  const { findNode, updateNodeProperties, setSelectedNodes } = useNodes(
+    (state) => ({
+      findNode: state.findNode,
+      updateNodeProperties: state.updateNodeProperties,
+      setSelectedNodes: state.setSelectedNodes
+    }),
+    shallow
+  );
   const { cycleExposedInputPlacement, getPlacement } = useExposedInputToggle();
 
   const selectedNodeIds = useMemo(
