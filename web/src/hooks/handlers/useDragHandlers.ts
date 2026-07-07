@@ -19,6 +19,19 @@ import { shallow } from "zustand/shallow";
 // Throttle interval for intersection checks (ms)
 const INTERSECTION_THROTTLE_MS = 50;
 
+type NodeDragEvent = MouseEvent | TouchEvent;
+
+const getNodeDragClientPosition = (event: NodeDragEvent) => {
+  if ("touches" in event) {
+    const touch = event.touches[0] ?? event.changedTouches[0];
+    if (!touch) {
+      return null;
+    }
+    return { x: touch.clientX, y: touch.clientY };
+  }
+  return { x: event.clientX, y: event.clientY };
+};
+
 export default function useDragHandlers() {
   const addToGroup = useAddToGroup();
   const removeFromGroup = useRemoveFromGroup();
@@ -54,7 +67,7 @@ export default function useDragHandlers() {
 
   /* NODE DRAG START */
   const onNodeDragStart = useCallback(
-    (_event: ReactMouseEvent, node: Node<NodeData>) => {
+    (_event: NodeDragEvent, node: Node<NodeData>) => {
       setLastParentNode(undefined);
       resetWiggleDetection();
       setDraggedNodes(new Set([node]));
@@ -66,9 +79,12 @@ export default function useDragHandlers() {
 
   /* NODE DRAG */
   const onNodeDrag = useCallback(
-    (event: ReactMouseEvent, node: Node<NodeData>) => {
+    (event: NodeDragEvent, node: Node<NodeData>) => {
       pause();
-      addWiggleMovement(event.clientX, event.clientY);
+      const position = getNodeDragClientPosition(event);
+      if (position) {
+        addWiggleMovement(position.x, position.y);
+      }
 
       // Wiggle ungrouping (works for both single nodes and selections)
       if (node.parentId && isWiggling()) {
@@ -131,7 +147,7 @@ export default function useDragHandlers() {
 
   /* NODE DRAG STOP */
   const onNodeDragStop = useCallback(
-    (_event: ReactMouseEvent, node: Node<NodeData>) => {
+    (_event: NodeDragEvent, node: Node<NodeData>) => {
       // Only add to group if a valid parent was intersected during drag
       // and the node isn't already in that group
       if (lastParentNode && node.parentId !== lastParentNode.id) {

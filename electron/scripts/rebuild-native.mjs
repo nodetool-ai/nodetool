@@ -31,17 +31,11 @@ try {
   process.exit(0);
 }
 
-// Resolve node-gyp's CLI. During `npm ci`/`npm install`/`npm run`, npm exports
-// its OWN bundled node-gyp via `npm_config_node_gyp` — the only copy guaranteed
-// present during a clean install (project deps don't reliably hoist node-gyp to
-// a resolvable path, and its bundled deps like `tinyglobby` are never touched by
-// the project's reify, so there's no race). Fall back to require.resolve for the
-// case where the script is run directly with plain `node`, not via npm.
+// Resolve node-gyp's CLI. Prefer the workspace copy installed from the lockfile:
+// npm's bundled node-gyp can lag behind new GitHub Windows images and fail to
+// detect their Visual Studio toolchain. Fall back to npm_config_node_gyp for
+// unusual install layouts where only npm's bundled copy is available.
 function resolveNodeGyp() {
-  const fromNpm = process.env.npm_config_node_gyp;
-  if (fromNpm && existsSync(fromNpm)) {
-    return fromNpm;
-  }
   const candidates = [
     () => require.resolve("node-gyp/bin/node-gyp.js"),
     () => createRequire(`${moduleDir}/`).resolve("node-gyp/bin/node-gyp.js"),
@@ -53,6 +47,12 @@ function resolveNodeGyp() {
       // try the next candidate
     }
   }
+
+  const fromNpm = process.env.npm_config_node_gyp;
+  if (fromNpm && existsSync(fromNpm)) {
+    return fromNpm;
+  }
+
   return null;
 }
 
