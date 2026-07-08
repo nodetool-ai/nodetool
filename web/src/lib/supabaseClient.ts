@@ -24,7 +24,11 @@ const buildTimeAnonKey: string | undefined =
 const makeClient = (
   url: string | null | undefined,
   key: string | null | undefined
-): SupabaseClient => {
+): {
+  client: SupabaseClient;
+  anonKey: string;
+  url: string;
+} => {
   const resolvedUrl = url || buildTimeUrl || FALLBACK_URL;
   const resolvedKey = key || buildTimeAnonKey || FALLBACK_ANON_KEY;
   if (!url && !buildTimeUrl) {
@@ -34,17 +38,29 @@ const makeClient = (
         "VITE_SUPABASE_* is set at build time)."
     );
   }
-  return createClient(resolvedUrl, resolvedKey);
+  return {
+    client: createClient(resolvedUrl, resolvedKey),
+    url: resolvedUrl,
+    anonKey: resolvedKey
+  };
 };
 
-let innerClient: SupabaseClient = makeClient(null, null);
+let current = makeClient(null, null);
+let innerClient: SupabaseClient = current.client;
 
 /**
  * Rebuild the Supabase client from runtime config fetched from the backend.
  * Called once at boot after `loadRuntimeConfig()`, before auth initializes.
  */
 export const initSupabaseFromConfig = (config: RuntimeConfig): void => {
-  innerClient = makeClient(config.supabaseUrl, config.supabaseAnonKey);
+  const resolvedUrl = config.supabaseUrl || buildTimeUrl || FALLBACK_URL;
+  const resolvedKey =
+    config.supabaseAnonKey || buildTimeAnonKey || FALLBACK_ANON_KEY;
+  if (current.url === resolvedUrl && current.anonKey === resolvedKey) {
+    return;
+  }
+  current = makeClient(config.supabaseUrl, config.supabaseAnonKey);
+  innerClient = current.client;
 };
 
 export const supabase = new Proxy({} as SupabaseClient, {

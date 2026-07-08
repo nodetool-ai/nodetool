@@ -45,6 +45,7 @@ import NodeInfoPanel from "./NodeInfoPanel";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
 import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowRuntimeCheck } from "../../hooks/useWorkflowRuntimeCheck";
+import RuntimeInstallDialog from "./RuntimeInstallDialog";
 import { useAutoEnableNodePacks } from "../../hooks/useAutoEnableNodePacks";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
 
@@ -78,7 +79,13 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     handleSaveExampleCancel
   } = useNodeEditorShortcuts(active, () => setShowShortcuts((v) => !v));
 
-  useWorkflowRuntimeCheck(workflowId);
+  const { missing: missingRuntimes } = useWorkflowRuntimeCheck(workflowId);
+  // Let the user dismiss the install prompt without acting on it.
+  const [runtimeDialogDismissed, setRuntimeDialogDismissed] = useState(false);
+  // Re-show the prompt when switching to a different workflow.
+  useEffect(() => {
+    setRuntimeDialogDismissed(false);
+  }, [workflowId]);
 
   // Enable provider packs whose API key is set, and packs used by the loaded
   // workflow, so their nodes register without a manual step.
@@ -265,6 +272,12 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
           }}
         />
       </Dialog>
+
+      <RuntimeInstallDialog
+        missing={missingRuntimes}
+        open={missingRuntimes.length > 0 && !runtimeDialogDismissed}
+        onClose={() => setRuntimeDialogDismissed(true)}
+      />
     </>
   );
 };

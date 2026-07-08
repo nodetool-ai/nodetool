@@ -11,6 +11,14 @@
  */
 
 import type { WorkflowGraph } from "../../stores/ApiTypes";
+import { Buffer } from "buffer";
+
+const browserGlobal = globalThis as typeof globalThis & {
+  Buffer?: typeof Buffer;
+};
+if (typeof browserGlobal.Buffer === "undefined") {
+  browserGlobal.Buffer = Buffer;
+}
 
 // Narrow `/browser` subpath (not the package index) so neither the worker nor
 // the main bundle pulls `handler.js` → providers/tracing (@opentelemetry /

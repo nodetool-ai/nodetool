@@ -62,7 +62,7 @@ const NODE_BUILTIN_STUBS: Record<string, string> = {
   "node:stream": `${NODE_STUBS}/empty.js`,
   "node:async_hooks": `${NODE_STUBS}/empty.js`,
   "node:util": `${NODE_STUBS}/empty.js`,
-  "node:buffer": `${NODE_STUBS}/empty.js`,
+  "node:buffer": `${NODE_STUBS}/buffer-stub.js`,
   "node:assert": `${NODE_STUBS}/empty.js`,
   "node:process": `${NODE_STUBS}/empty.js`,
   "node:module": `${NODE_STUBS}/empty.js`
@@ -74,10 +74,9 @@ const NODE_BUILTIN_STUBS: Record<string, string> = {
 // warning), but a Web Worker bundle can't carry external imports, so the worker
 // must stub them — see the `worker` config block.
 const BARE_BUILTIN_STUBS: Record<string, string> = Object.fromEntries(
-  Object.entries(NODE_BUILTIN_STUBS).map(([key, stub]) => [
-    key.replace(/^node:/, ""),
-    stub
-  ])
+  Object.entries(NODE_BUILTIN_STUBS)
+    .filter(([key]) => key !== "node:buffer")
+    .map(([key, stub]) => [key.replace(/^node:/, ""), stub])
 );
 
 // Vite's `resolve.alias` doesn't intercept the `node:` protocol — these imports
