@@ -140,4 +140,61 @@ describe("useOAuthConnection", () => {
       )
     ).toBe(false);
   });
+
+  describe("connect polling", () => {
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it("polls until connected, then fires a success notification", async () => {
+      jest.useFakeTimers();
+      let tokenCalls = 0;
+      mockRestFetch.mockImplementation(async (input) => {
+        const url = String(input);
+        if (url.endsWith("/tokens")) {
+          tokenCalls += 1;
+          // Initial fetch + early polls report no token; a later poll lands
+          // the token once the (simulated) OAuth round-trip completes.
+          return jsonResponse({ tokens: tokenCalls > 2 ? ["token-1"] : [] });
+        }
+        if (url.endsWith("/start"))
+          return jsonResponse({ auth_url: "https://example.com/auth" });
+        return jsonResponse({});
+      });
+
+      const { result } = renderHook(() => useOAuthConnection("openai"), {
+        wrapper: createWrapper()
+      });
+
+      // Let the initial token fetch settle before starting the flow.
+      await act(async () => {
+        jest.advanceTimersByTime(100);
+      });
+      expect(result.current.isConnecting).toBe(false);
+      expect(result.current.isConnected).toBe(false);
+
+      await act(async () => {
+        await result.current.connect();
+      });
+      expect(result.current.isConnecting).toBe(true);
+
+      // Drive the 2s refetchInterval until the backend reports a token. Each
+      // advance lets react-query fire one poll and flush its async result.
+      for (let i = 0; i < 10 && !result.current.isConnected; i += 1) {
+        await act(async () => {
+          jest.advanceTimersByTime(2000);
+        });
+      }
+
+      expect(result.current.isConnected).toBe(true);
+      expect(result.current.isConnecting).toBe(false);
+      expect(mockAddNotification).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: "Successfully connected to OpenAI",
+          type: "success",
+          alert: true
+        })
+      );
+    });
+  });
 });
