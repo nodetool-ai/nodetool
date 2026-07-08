@@ -1,8 +1,215 @@
 /** @jsxImportSource @emotion/react */
 import type { CSSObject } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { MOTION, BORDER_RADIUS, Z_INDEX } from "../ui_primitives";
+import {
+  BORDER_RADIUS,
+  MOTION,
+  SPACING,
+  Z_INDEX,
+  getSpacingPx
+} from "../ui_primitives";
 
+/**
+ * Section rhythm constants — defined once so every settings panel uses the
+ * same vertical cadence. All values resolve to canonical SPACING steps.
+ */
+const SECTION_GAP_PX = getSpacingPx(SPACING.xl); // 16px between sections
+const SECTION_HEADING_TOP_PX = getSpacingPx(SPACING.xxl); // 24px above each new group heading
+
+/**
+ * Readable content column width. The form tabs cap at 760px so labels,
+ * descriptions, and inputs share a single readable measure. The API Keys
+ * card list may grow wider (cards + actions) — see CONTENT_MAX_WIDTH_API_KEYS.
+ */
+const CONTENT_MAX_WIDTH = "760px";
+const CONTENT_MAX_WIDTH_API_KEYS = "880px";
+
+/** Cap form fields to a single readable measure so long URLs don't sprawl. */
+const FIELD_MAX_WIDTH = "34em";
+
+/* ------------------------------------------------------------------ */
+/*  Shared chrome — `.settings-item`, `.settings-section`, `.description`,
+ *  input chrome, headings, dividers. Defined once and imported by every
+ *  settings panel that may render outside the SettingsMenu root (e.g.
+ *  RemoteSettingsMenu renders directly in tests).
+/* ------------------------------------------------------------------ */
+export const getSharedSettingsStyles = (theme: Theme): CSSObject => ({
+  display: "flex",
+  flexDirection: "column",
+  height: "100%",
+  paddingTop: `${SPACING.xl}px`,
+
+  // Every section = heading (divider above, except the first) + optional
+  // description + rows with identical vertical padding.
+  ".settings-section": {
+    backgroundColor: "transparent",
+    borderRadius: 0,
+    padding: 0,
+    margin: `0 0 ${SECTION_GAP_PX}`,
+    boxShadow: "none",
+    border: "0 none",
+    width: "100%",
+    display: "flex",
+    flexDirection: "column",
+    gap: 0
+  },
+  // Divider above every group heading (Execution, Canvas & Navigation, …).
+  // The first heading inside each tab is selected by parent context below so
+  // there is no double border at the top of the page.
+  ".settings-heading": {
+    display: "block",
+    margin: `0 0 ${SECTION_GAP_PX}`,
+    paddingTop: `${SECTION_HEADING_TOP_PX}`,
+    borderTop: `1px solid ${theme.vars.palette.divider}`,
+    fontSize: theme.fontSizeBig,
+    fontWeight: 600,
+    letterSpacing: "0.01em",
+    lineHeight: 1.2,
+    color: theme.vars.palette.grey[0]
+  },
+  ".description": {
+    marginTop: "0.25em",
+    opacity: 0.85,
+    color: theme.vars.palette.grey[100],
+    fontSize: theme.fontSizeSmall,
+    lineHeight: 1.5,
+    maxWidth: "60ch"
+  },
+  "a": {
+    color: theme.vars.palette.primary.main,
+    textDecoration: "none",
+    transition: `color ${MOTION.normal}`,
+    "&:hover": {
+      color: theme.vars.palette.primary.light,
+      textDecoration: "underline"
+    }
+  },
+  // A single, consistent row rhythm for every settings row across every tab.
+  ".settings-item": {
+    padding: `${SECTION_GAP_PX} 0`,
+    "&:last-child": {
+      paddingBottom: 0
+    },
+    "&:first-of-type": {
+      paddingTop: 0
+    },
+    width: "100%",
+    display: "flex",
+    flexDirection: "column",
+    gap: getSpacingPx(SPACING.md),
+    // Cap every MUI input on the form tabs to one readable measure.
+    ".MuiInputBase-root": {
+      maxWidth: FIELD_MAX_WIDTH
+    },
+    ".MuiTextField-root": {
+      width: "100%",
+      maxWidth: FIELD_MAX_WIDTH
+    },
+    ".MuiFormControl-root": {
+      width: "100%",
+      minWidth: "unset",
+      margin: 0,
+      padding: `0 ${getSpacingPx(SPACING.sm)}`,
+      "& .MuiInputLabel-root": {
+        position: "relative",
+        transform: "none",
+        marginBottom: `${getSpacingPx(SPACING.md)}`,
+        fontWeight: 600,
+        letterSpacing: "0.01em",
+        color: theme.vars.palette.grey[0],
+        fontSize: theme.fontSizeNormal
+      },
+      "& .MuiInputBase-root": {
+        maxWidth: FIELD_MAX_WIDTH,
+        backgroundColor: theme.vars.palette.background.paper,
+        border: `1px solid ${theme.vars.palette.divider}`,
+        borderRadius: BORDER_RADIUS.sm,
+        margin: 0,
+        padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.xl)}`,
+        transition: `${MOTION.border}, background-color ${MOTION.normal}`,
+        fontSize: theme.fontSizeNormal,
+        "&:hover": {
+          borderColor: theme.vars.palette.grey[300]
+        },
+        "&.Mui-focused": {
+          borderColor: theme.vars.palette.primary.main
+        },
+        "&::before, &::after": {
+          content: "none"
+        }
+      }
+    },
+    label: {
+      color: theme.vars.palette.grey[0],
+      fontSize: theme.fontSizeNormal,
+      fontWeight: 600,
+      letterSpacing: "0.01em",
+      padding: 0
+    },
+    ".description": {
+      color: theme.vars.palette.grey[100],
+      opacity: 0.85,
+      fontSize: theme.fontSizeSmall,
+      margin: 0,
+      padding: 0,
+      maxWidth: "60ch",
+      lineHeight: 1.5
+    },
+    "ul": {
+      margin: `${getSpacingPx(SPACING.md)} 0 0`,
+      padding: `0 0 0 ${getSpacingPx(SPACING.xl) + 4}px`,
+      listStyleType: "square",
+      "li": {
+        margin: `${getSpacingPx(SPACING.xs)} 0`,
+        color: theme.vars.palette.grey[100]
+      }
+    }
+  },
+  // `.large` items get the wider field width (endpoints, keys) so they don't
+  // span the full content column.
+  ".settings-item.large": {
+    ".MuiInputBase-root": {
+      maxWidth: FIELD_MAX_WIDTH
+    }
+  },
+
+  ".settings-main-content": {
+    padding: `${getSpacingPx(SPACING.md)} 0`,
+    width: "100%"
+  },
+
+  // Save bar for the registry-driven Integrations sections. The save button
+  // sits pinned to the bottom of the viewport so it doesn't get lost in long
+  // settings lists.
+  ".save-button-container": {
+    position: "sticky",
+    bottom: 0,
+    zIndex: Z_INDEX.sticky,
+    padding: `${SPACING.sm + 0.25}em 0`,
+    display: "flex",
+    justifyContent: "flex-end",
+    background: `linear-gradient(transparent, ${theme.vars.palette.background.default} 30%)`
+  },
+
+  ".save-button": {
+    padding: `${SPACING.xs + 0.25}em ${getSpacingPx(SPACING.xl)}`,
+    fontFamily: theme.fontFamily2,
+    color: theme.vars.palette.primary.contrastText,
+    backgroundColor: theme.vars.palette.primary.main,
+    borderRadius: BORDER_RADIUS.sm,
+    textTransform: "none",
+    fontSize: theme.fontSizeSmall,
+    fontWeight: 500,
+    "&:hover": {
+      boxShadow: `0 2px 6px ${theme.vars.palette.grey[900]}33`
+    }
+  }
+});
+
+/* ------------------------------------------------------------------ */
+/*  Main settings page chrome — page header, tabs, sidebar, content area,
+ *  scrollbars. Only rendered at the SettingsMenu root.
+/* ------------------------------------------------------------------ */
 export const settingsStyles = (theme: Theme): CSSObject => ({
   display: "flex",
   flexDirection: "column",
@@ -10,9 +217,9 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
   minHeight: 0,
   width: "100%",
   ".settings-tabs": {
-    marginBottom: "1em",
-    paddingTop: "0em",
-    lineHeight: "1.5",
+    marginBottom: `${getSpacingPx(SPACING.xl)}`,
+    paddingTop: 0,
+    lineHeight: 1.5,
     "& .MuiTabs-indicator": {
       backgroundColor: "var(--palette-primary-main)",
       height: "3px",
@@ -21,7 +228,7 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     "& .MuiTab-root": {
       color: theme.vars.palette.grey[200],
       transition: `color ${MOTION.normal}`,
-      paddingBottom: "0em",
+      paddingBottom: 0,
       "&.Mui-selected": {
         color: theme.vars.palette.grey[0]
       },
@@ -31,20 +238,20 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     }
   },
   ".tab-panel": {
-    padding: "0",
+    padding: 0,
     fontSize: theme.fontSizeNormal
   },
   ".tab-panel-content": {
-    paddingBottom: "1em"
+    paddingBottom: `${getSpacingPx(SPACING.xl)}`
   },
   ".settings": {
     display: "flex",
     flexDirection: "column",
     alignItems: "flex-start",
-    gap: "1em",
+    gap: `${getSpacingPx(SPACING.xl)}`,
     width: "100%",
     height: "100%",
-    padding: ".5em 1em"
+    padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)}`
   },
   ".settings-page-header": {
     display: "flex",
@@ -101,41 +308,46 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     overflow: "hidden"
   },
   ".settings-content--api-keys": {
-    padding: "1.5rem 1rem",
+    padding: `${getSpacingPx(SPACING.xxl)} ${getSpacingPx(SPACING.xl)}`,
     overflowY: "auto",
-    overflowX: "hidden"
+    overflowX: "hidden",
+    // The API Keys card list may stay wider than form tabs so a provider row
+    // (icon + meta + status + actions) doesn't crowd on a typical monitor.
+    maxWidth: CONTENT_MAX_WIDTH_API_KEYS,
+    margin: "0 auto",
+    width: "100%"
   },
   ".settings-sidebar": {
     width: "220px",
     minWidth: "220px",
     backgroundColor: theme.vars.palette.background.default,
-    padding: "1.5em 0",
+    padding: `${SECTION_HEADING_TOP_PX} 0`,
     overflowY: "auto",
     display: "flex",
     flexDirection: "column"
   },
   ".settings-sidebar-footer": {
     marginTop: "auto",
-    padding: "1em 0.75em 0.5em"
+    padding: `${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xs)}`
   },
   ".settings-sidebar-folder": {
     display: "flex",
     flexDirection: "column",
     "& + &": {
-      marginTop: "0.25em"
+      marginTop: `${getSpacingPx(SPACING.xs)}`
     }
   },
   ".settings-sidebar-folder-items": {
     display: "flex",
     flexDirection: "column",
-    paddingBottom: "0.25em"
+    paddingBottom: `${getSpacingPx(SPACING.xs)}`
   },
   ".settings-sidebar-item": {
-    padding: "0.25em 1.5em 0.25em 2.75em",
+    padding: `${getSpacingPx(SPACING.xs)} ${SECTION_HEADING_TOP_PX} ${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.xxl) + 4}px`,
     cursor: "pointer",
     fontSize: theme.fontSizeSmall,
     color: theme.vars.palette.grey[0],
-    opacity: "0.7",
+    opacity: 0.7,
     transition: MOTION.all,
     borderLeft: "2px solid transparent",
     "&:hover": {
@@ -151,14 +363,14 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
   ".settings-sidebar-category": {
     display: "flex",
     alignItems: "center",
-    gap: "0.4em",
-    padding: "0.6em 1em 0.4em 0.75em",
+    gap: `${SPACING.xs + 0.25}em`,
+    padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xs) + 2}px ${getSpacingPx(SPACING.md)}`,
     color: theme.vars.palette.grey[0],
     fontSize: theme.fontSizeSmaller,
     fontWeight: 600,
     letterSpacing: "0.04em",
     textTransform: "uppercase",
-    opacity: "0.85",
+    opacity: 0.85,
     cursor: "pointer",
     userSelect: "none",
     transition: `all ${MOTION.fast}`,
@@ -192,7 +404,7 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     position: "sticky",
     top: 0,
     zIndex: Z_INDEX.overlay,
-    padding: "0 1em",
+    padding: `0 ${getSpacingPx(SPACING.xl)}`,
     display: "block",
     backgroundColor: "transparent"
   },
@@ -200,8 +412,13 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     flex: 1,
     minWidth: 0,
     minHeight: 0,
-    padding: "0 1em",
+    padding: `0 ${getSpacingPx(SPACING.xl)}`,
     overflowY: "auto",
+    // Cap the readable measure on the form tabs (General, Integrations,
+    // About). The API Keys panel overrides this with a wider cap.
+    maxWidth: CONTENT_MAX_WIDTH,
+    margin: "0 auto",
+    width: "100%",
     "&::-webkit-scrollbar": {
       width: "8px"
     },
@@ -223,50 +440,6 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
   ".general-settings > .settings-section:not(:has(.settings-item))": {
     display: "none"
   },
-  ".settings-section": {
-    backgroundColor: "transparent",
-    borderRadius: 0,
-    padding: 0,
-    margin: "0 0 1.5em",
-    boxShadow: "none",
-    border: "0 none",
-
-    width: "100%",
-    display: "flex",
-    flexDirection: "column",
-    gap: 0,
-    "&:first-of-type": {
-      marginTop: "0.25em"
-    },
-    // Extra breathing room before each new group (a section that opens with a
-    // heading). The first section has no heading, so it isn't affected.
-    "&:has(.settings-heading)": {
-      marginTop: "2.5em"
-    }
-  },
-  // Section headers between groups (Execution, Canvas & Navigation, …). Lives as
-  // the first child of its section so an empty (search-filtered) section hides
-  // the heading too via `.settings-section:not(:has(.settings-item))`.
-  ".settings-heading": {
-    display: "block",
-    margin: "0 0 1em",
-    paddingTop: "2em",
-    borderTop: `1px solid ${theme.vars.palette.divider}`,
-    fontSize: theme.fontSizeBig,
-    fontWeight: 600,
-    letterSpacing: "0.01em",
-    lineHeight: 1.2,
-    color: theme.vars.palette.grey[0]
-  },
-  // No divider/extra space above the very first group heading in a tab.
-  ".integrations-settings > .settings-heading:first-child, .general-settings > .settings-section:first-child > .settings-heading":
-    {
-      borderTop: "none",
-      paddingTop: 0
-    },
-  ".general-settings > .settings-section:first-child": {
-    marginTop: "0.25em"
-  },
   // Default Models rows (each: label, model select + clear, provider caption).
   ".default-models-list": {
     display: "flex",
@@ -275,122 +448,23 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
   ".default-model-row": {
     display: "flex",
     flexDirection: "column",
-    gap: "0.6em",
-    padding: "0.9em 0",
+    gap: `${getSpacingPx(SPACING.sm)}`,
+    padding: `${SECTION_GAP_PX} 0`,
     "&:last-child": {
       paddingBottom: 0
     }
   },
-  ".settings-item.large": {
-    ".MuiInputBase-root": {
-      // Cap "large" fields (endpoints, keys) to the same width as other fields
-      // instead of letting them span full width.
-      maxWidth: "34em !important"
-    }
-  },
-  ".settings-item": {
-    padding: "0.9em 0",
-    "&:last-child": {
-      paddingBottom: "0"
-    },
-    "&:first-of-type": {
-      paddingTop: "0"
-    },
-    width: "100%",
-    display: "flex",
-    flexDirection: "column",
-    gap: ".5em",
-    ".MuiInputBase-root": {
-      maxWidth: "200px !important"
-    },
-    ".MuiFormControl-root": {
-      width: "100%",
-      minWidth: "unset",
-      margin: "0",
-      padding: "0 .5em",
-      "& .MuiInputLabel-root": {
-        position: "relative",
-        transform: "none",
-        marginBottom: theme.spacing(2),
-        fontWeight: 600,
-        letterSpacing: "0.01em",
-        color: theme.vars.palette.grey[0],
-        fontSize: theme.fontSizeNormal
-      },
-      "& .MuiInputBase-root": {
-        maxWidth: "34em",
-        backgroundColor: theme.vars.palette.background.paper,
-        border: `1px solid ${theme.vars.palette.divider}`,
-        borderRadius: ".3em",
-        margin: "0",
-        padding: ".3em 1em",
-        transition: `${MOTION.border}, background-color ${MOTION.normal}`,
-        fontSize: theme.fontSizeNormal,
-        "&:hover": {
-          borderColor: theme.vars.palette.grey[300]
-        },
-        "&.Mui-focused": {
-          borderColor: theme.vars.palette.primary.main
-        },
-        "&::before": {
-          content: "none"
-        }
-      }
-    },
-    label: {
-      color: theme.vars.palette.grey[0],
-      fontSize: theme.fontSizeNormal,
-      fontWeight: 600,
-      letterSpacing: "0.01em",
-      padding: "0"
-    },
-    // LabeledSwitch renders its description as MUI body2 (not `.description`).
-    "& .MuiTypography-body2": {
-      color: theme.vars.palette.grey[100],
-      opacity: 0.85,
-      fontSize: theme.fontSizeSmall,
-      lineHeight: "1.5",
-      marginTop: "0.4em",
-      maxWidth: "60ch"
-    },
-    ".description": {
-      color: theme.vars.palette.grey[100],
-      opacity: 0.85,
-      fontSize: theme.fontSizeSmall,
-      margin: "0",
-      padding: "0",
-      maxWidth: "60ch",
-      lineHeight: "1.5",
-      a: {
-        color: "var(--palette-primary-main)",
-        backgroundColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.10)`,
-        padding: ".3em 1em",
-        borderRadius: ".3em",
-        marginTop: ".5em",
-        display: "inline-block",
-        textDecoration: "none",
-        transition: MOTION.all
-      }
-    },
-    ul: {
-      margin: ".5em 0 0",
-      padding: "0 0 0 1.2em",
-      listStyleType: "square",
-      li: {
-        margin: "0.3em 0",
-        color: theme.vars.palette.grey[100]
-      }
-    }
-  },
+  // Merge the shared section/row chrome so it lives once.
+  ...getSharedSettingsStyles(theme),
   ".settings-header": {
     display: "flex",
     alignItems: "center",
-    gap: "0.5em"
+    gap: `${getSpacingPx(SPACING.md)}`
   },
   ".MuiSelect-select": {
     fontSize: theme.fontSizeNormal,
-    padding: "0.4em 0.6em",
-    marginTop: "0",
+    padding: `${SPACING.xs + 0.25}em ${getSpacingPx(SPACING.sm)}`,
+    marginTop: 0,
     backgroundColor: theme.vars.palette.background.paper,
     borderRadius: BORDER_RADIUS.lg,
     transition: `background-color ${MOTION.normal}`,
@@ -399,37 +473,21 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     }
   },
   ".MuiSwitch-root": {
-    margin: "0"
+    margin: 0
   },
   ".secrets": {
     backgroundColor: `rgba(${theme.vars.palette.warning.mainChannel} / 0.12)`,
     backdropFilter: "blur(5px)",
     color: theme.vars.palette.text.primary,
     fontSize: theme.fontSizeBig,
-    marginTop: ".8em",
-    padding: ".8em 1em",
-    borderRadius: ".3em",
+    marginTop: `${SPACING.md + 0.5}em`,
+    padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)}`,
+    borderRadius: BORDER_RADIUS.sm,
     display: "flex",
     alignItems: "center",
-    gap: ".8em",
+    gap: `${getSpacingPx(SPACING.md)}`,
     border: `1px solid ${theme.vars.palette.warning.main}`,
     boxShadow: "0 2px 8px rgba(255, 152, 0, 0.1)"
-  },
-  h2: {
-    fontSize: theme.fontSizeBigger,
-    color: theme.vars.palette.grey[0],
-    margin: "0.5em 0 0.25em 0",
-    padding: "0",
-    fontWeight: 500
-  },
-  h3: {
-    fontSize: theme.fontSizeBigger,
-    margin: "2em 0 0.5em 0",
-    padding: "0.5em 0 0",
-    fontWeight: 500,
-    color: theme.vars.palette.grey[0],
-    borderBottom: `1px solid ${theme.vars.palette.divider}`,
-    paddingBottom: "0.3em"
   },
   ".settings-button": {
     transition: `transform ${MOTION.normal}`,
@@ -438,7 +496,7 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     }
   },
   "button.MuiButton-root": {
-    borderRadius: ".3em",
+    borderRadius: BORDER_RADIUS.sm,
     transition: MOTION.all,
     "&:hover": {
       transform: "translateY(-2px)",

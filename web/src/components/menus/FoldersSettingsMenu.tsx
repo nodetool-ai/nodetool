@@ -8,7 +8,7 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useTheme } from "@mui/material/styles";
-import { getSharedSettingsStyles } from "./sharedSettingsStyles";
+import { getSharedSettingsStyles } from "./settingsMenuStyles";
 import {
   isFileExplorerAvailable,
   isSystemDirectoryAvailable,

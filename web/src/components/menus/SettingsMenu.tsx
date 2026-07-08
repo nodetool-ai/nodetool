@@ -20,7 +20,8 @@ import {
   FlexColumn,
   Box,
   Tabs,
-  Tab
+  Tab,
+  SPACING
 } from "../ui_primitives";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { isLocalhost, isElectron } from "../../lib/env";
@@ -596,6 +597,10 @@ function SettingsPage() {
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  // The right sidebar is wider than the search/cards layout it sits next to;
+  // drop it one breakpoint earlier (`md`, ~900px) so the card list doesn't
+  // compress below the threshold where it becomes unreadable.
+  const isCompact = useMediaQuery(theme.breakpoints.down("md"));
 
   return (
     <FlexColumn
@@ -633,7 +638,7 @@ function SettingsPage() {
               </Tabs>
             </div>
 
-            <div className={`settings-container${settingsTab === TAB_API_KEYS && !isMobile ? " settings-container--api-keys" : ""}`}>
+            <div className={`settings-container${settingsTab === TAB_API_KEYS && !isCompact ? " settings-container--api-keys" : ""}`}>
               {!isMobile &&
                 (settingsTab === TAB_GENERAL ||
                   settingsTab === TAB_INTEGRATIONS ||
@@ -660,7 +665,7 @@ function SettingsPage() {
               >
                 {/* Tab 0: General */}
                 <TabPanel value={settingsTab} index={TAB_GENERAL}>
-                  <div style={{ marginBottom: "1.5em" }}>
+                  <Box sx={{ marginBottom: theme.spacing(SPACING.xxl) }}>
                     <SearchInput
                       placeholder="Search settings..."
                       value={generalSearchTerm}
@@ -668,7 +673,7 @@ function SettingsPage() {
                       size="small"
                       showClear
                     />
-                  </div>
+                  </Box>
                   <div className="general-settings">
                     <div className="settings-section">
                       <Text size="big" id="editor" className="settings-heading">
@@ -1128,7 +1133,7 @@ function SettingsPage() {
 
                 {/* Tab 1: API Keys (provider credentials only) */}
                 <TabPanel value={settingsTab} index={TAB_API_KEYS}>
-                  <div style={{ marginBottom: "1.5em" }}>
+                  <Box sx={{ marginBottom: theme.spacing(SPACING.xxl) }}>
                     <SearchInput
                       placeholder="Search providers..."
                       value={apiSearchTerm}
@@ -1136,9 +1141,9 @@ function SettingsPage() {
                       size="small"
                       showClear
                     />
-                  </div>
+                  </Box>
                   <APIKeysTabContent searchTerm={apiSearchTerm} />
-                  <Box sx={{ marginTop: "1.5em" }}>
+                  <Box sx={{ marginTop: theme.spacing(SPACING.xxl) }}>
                     <SecurityNotice />
                   </Box>
                 </TabPanel>
@@ -1262,7 +1267,7 @@ function SettingsPage() {
                 </TabPanel>
               </div>
 
-              {settingsTab === TAB_API_KEYS && !isMobile && (
+              {settingsTab === TAB_API_KEYS && !isCompact && (
                 <APIKeysRightSidebar />
               )}
             </div>

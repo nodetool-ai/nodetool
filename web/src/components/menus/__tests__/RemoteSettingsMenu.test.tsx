@@ -18,8 +18,10 @@ jest.mock("../../common/ExternalLink", () => {
     );
   };
 });
-jest.mock("../sharedSettingsStyles", () => ({
-  getSharedSettingsStyles: () => ({})
+jest.mock("../settingsMenuStyles", () => ({
+  __esModule: true,
+  getSharedSettingsStyles: () => ({}),
+  settingsStyles: () => ({})
 }));
 
 // Mock MUI components to avoid theme complexity
