@@ -27,7 +27,7 @@ import AppBuilderAgentPanel from "./AppBuilderAgentPanel";
 /**
  * Full-page route for the WYSIWYG app builder (`/app-builder/:workflowId`).
  * Fetches the workflow, hands its Puck document to the editor, and persists
- * edits back onto `workflow.settings` on publish.
+ * edits back onto `workflow.settings` on save.
  */
 const AppBuilderPage: React.FC = () => {
   const { workflowId } = useParams<{ workflowId?: string }>();
@@ -68,7 +68,7 @@ const AppBuilderPage: React.FC = () => {
     navigate(-1);
   }, [navigate]);
 
-  const handlePublish = useCallback(
+  const handleSave = useCallback(
     async (nextData: Data) => {
       if (!workflow) return;
       try {
@@ -147,14 +147,14 @@ const AppBuilderPage: React.FC = () => {
             </Caption>
           </Box>
           <Caption color="secondary">
-            Bind widgets to workflow inputs and outputs, then publish.
+            Bind widgets to workflow inputs and outputs, then save.
           </Caption>
         </FlexRow>
         <Box sx={{ flex: 1, minHeight: 0 }}>
           <PuckAppEditor
             workflow={workflow}
             data={data}
-            onPublish={handlePublish}
+            onPublish={handleSave}
             onClose={handleClose}
             agentOpen={agentOpen}
             onToggleAgent={toggleAgent}

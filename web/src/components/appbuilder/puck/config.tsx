@@ -67,7 +67,6 @@ export const appConfig: Config = {
       <Box
         sx={{
           p: SPACING.xl,
-          width: "100%",
           minHeight: "100%",
           backgroundColor: "background.default",
           color: "text.primary"

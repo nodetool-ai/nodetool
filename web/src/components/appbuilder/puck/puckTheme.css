@@ -1,0 +1,70 @@
+/*
+ * Layout: Puck ships as a full-page editor and sizes its root layout with
+ * `height: 100dvh`. Here the editor is embedded below a header bar inside a
+ * flex column, so 100dvh is ~one header taller than its box. That overflow
+ * forces a vertical scrollbar, which steals ~15-20px of width and (because the
+ * Puck root is `overflow-x: auto`) makes the preview render wider than its
+ * frame. Pin the Puck root and its layout to the host container instead.
+ *
+ * Scoped to `.appbuilder-editor` so it never leaks into other Puck surfaces.
+ * Attribute selectors match Puck's CSS-module classes without depending on the
+ * build hash: `Puck_` (root, direct child) and `PuckLayout_` (layout + inner).
+ */
+.appbuilder-editor > [class*="Puck_"] {
+  height: 100%;
+}
+.appbuilder-editor [class*="PuckLayout_"] {
+  height: 100%;
+}
+
+/*
+ * Preview frame: with `iframe.enabled: false` (set in PuckAppEditor so widgets
+ * share the app runtime) Puck has no viewport to scale, so its auto-zoom logic
+ * sets an inline `height` on the root frame equal to the full canvas height.
+ * The root DropZone is `height: 100%`, so that stretches the empty zone
+ * (`min-height: 128px`) across the whole canvas — the "DropZone too large"
+ * symptom. Let the frame shrink to its content: the empty zone shows its
+ * 128px min-height, filled apps grow naturally, and the canvas itself scrolls
+ * when content is taller than the viewport. `!important` overrides the inline
+ * height Puck sets from JS; `bottom: auto` stops the absolute frame from
+ * stretching back to full height.
+ */
+.appbuilder-editor [class*="PuckCanvas-root"] {
+  bottom: auto;
+  height: auto !important;
+}
+
+/*
+ * Theme overrides for the Puck editor chrome.
+ *
+ * Puck draws its UI from `--puck-color-*` CSS variables. These names are
+ * Puck-specific, so dark-mode overrides live on the document root. This also
+ * covers Puck's body-level portals: dropdowns and modals are not descendants of
+ * the editor wrapper. In light mode, Puck keeps its default light theme.
+ */
+.dark {
+  /* Reversed grey ramp: light text → dark surfaces */
+  --puck-color-grey-01: #fafafa;
+  --puck-color-grey-02: #ededed;
+  --puck-color-grey-03: #d8d8d8;
+  --puck-color-grey-04: #c0c0c0;
+  --puck-color-grey-05: #9a9a9a;
+  --puck-color-grey-06: #7d7d7d;
+  --puck-color-grey-07: #646464;
+  --puck-color-grey-08: #4c4c4c;
+  --puck-color-grey-09: #3a3a3a;
+  --puck-color-grey-10: #2c2c2c;
+  --puck-color-grey-11: #232323;
+  --puck-color-grey-12: #1a1a1a;
+
+  /* Surfaces (Puck uses `white` for sidebars, fields, header). */
+  --puck-color-white: #1e1e1e;
+
+  /* Text: default to light; inverse text (on accent buttons) goes dark. */
+  --puck-color-text: #f3f3f3;
+  --puck-color-text-inverse: #141414;
+
+  /* Borders read from the (now dark) grey ramp; nudge a couple for contrast. */
+  --puck-color-border: var(--puck-color-grey-09);
+  --puck-color-border-muted: var(--puck-color-grey-10);
+}

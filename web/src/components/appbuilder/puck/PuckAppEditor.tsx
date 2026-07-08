@@ -1,10 +1,11 @@
 /** @jsxImportSource @emotion/react */
-import React, { useMemo } from "react";
-import { Puck, type Data, type Overrides } from "@puckeditor/core";
+import React, { useCallback, useMemo } from "react";
+import { Puck, useGetPuck, type Data, type Overrides } from "@puckeditor/core";
 import "@puckeditor/core/puck.css";
-import "./puckDarkTheme.css";
+import "./puckTheme.css";
 import CloseIcon from "@mui/icons-material/Close";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import SaveIcon from "@mui/icons-material/Save";
 
 import { Workflow } from "../../../stores/ApiTypes";
 import { extractWorkflowState } from "../workflowState";
@@ -24,6 +25,29 @@ interface PuckAppEditorProps {
   agentOpen?: boolean;
   onToggleAgent?: () => void;
 }
+
+/**
+ * Replaces Puck's built-in "Publish" button with a "Save" button that reads
+ * the current editor data via Puck's store and forwards it to onPublish.
+ */
+const SaveButton: React.FC<{ onSave: (data: Data) => void }> = ({ onSave }) => {
+  const getPuck = useGetPuck();
+  const handleClick = useCallback(() => {
+    const { appState } = getPuck();
+    onSave(appState.data);
+  }, [getPuck, onSave]);
+  return (
+    <EditorButton
+      size="small"
+      variant="contained"
+      color="primary"
+      startIcon={<SaveIcon sx={{ fontSize: 16 }} />}
+      onClick={handleClick}
+    >
+      Save
+    </EditorButton>
+  );
+};
 
 /**
  * The WYSIWYG editor: Puck draws the editing chrome (component drawer, canvas,
@@ -47,7 +71,7 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
 
   const overrides = useMemo<Partial<Overrides>>(
     () => ({
-      headerActions: ({ children }) => (
+      headerActions: () => (
         <>
           {/* Lets the agent's ui_app_* tools drive this editor. Renders nothing. */}
           <PuckAgentBinder config={appConfig} />
@@ -71,11 +95,11 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
           >
             Back
           </EditorButton>
-          {children}
+          <SaveButton onSave={onPublish} />
         </>
       )
     }),
-    [onClose, onToggleAgent, agentOpen]
+    [onClose, onPublish, onToggleAgent, agentOpen]
   );
 
   return (
