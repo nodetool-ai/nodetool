@@ -486,7 +486,7 @@ ul.multi-outputs li::marker {
   position: absolute;
   pointer-events: none;
   opacity: 0;
-  z-index: 999;
+  z-index: 1001;
   top: 50%;
   white-space: nowrap;
   width: max-content;
@@ -537,12 +537,18 @@ ul.multi-outputs li::marker {
 }
 
 .handle-tooltip-name {
+  color: color-mix(in srgb, currentColor 68%, var(--palette-common-black));
   font-size: var(--fontSizeSmaller);
   font-weight: 600;
   border: 0;
-  text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+  text-shadow: 0 1px 1px var(--palette-background-paper);
   padding: 0.25em 0.5em;
   line-height: 1.2;
+}
+
+.dark .handle-tooltip-name {
+  color: currentColor;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
 }
 
 .handle-tooltip-details {
