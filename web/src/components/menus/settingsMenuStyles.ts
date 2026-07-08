@@ -15,6 +15,7 @@ import {
  */
 const SECTION_GAP_PX = getSpacingPx(SPACING.xl); // 16px between sections
 const SECTION_HEADING_TOP_PX = getSpacingPx(SPACING.xxl); // 24px above each new group heading
+const SIDEBAR_ITEM_LEFT_PADDING_PX = getSpacingPx(SPACING.xxxl);
 
 /**
  * Readable content column width. The form tabs cap at 760px so labels,
@@ -157,7 +158,7 @@ export const getSharedSettingsStyles = (theme: Theme): CSSObject => ({
     },
     "ul": {
       margin: `${getSpacingPx(SPACING.md)} 0 0`,
-      padding: `0 0 0 ${getSpacingPx(SPACING.xl) + 4}px`,
+      padding: `0 0 0 ${getSpacingPx(SPACING.xxl)}`,
       listStyleType: "square",
       "li": {
         margin: `${getSpacingPx(SPACING.xs)} 0`,
@@ -343,9 +344,10 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     paddingBottom: `${getSpacingPx(SPACING.xs)}`
   },
   ".settings-sidebar-item": {
-    padding: `${getSpacingPx(SPACING.xs)} ${SECTION_HEADING_TOP_PX} ${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.xxl) + 4}px`,
+    padding: `${getSpacingPx(SPACING.xs)} ${SECTION_HEADING_TOP_PX} ${getSpacingPx(SPACING.xs)} ${SIDEBAR_ITEM_LEFT_PADDING_PX}`,
     cursor: "pointer",
-    fontSize: theme.fontSizeSmall,
+    fontSize: theme.fontSizeNormal,
+    lineHeight: 1.4,
     color: theme.vars.palette.grey[0],
     opacity: 0.7,
     transition: MOTION.all,
@@ -363,10 +365,11 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
   ".settings-sidebar-category": {
     display: "flex",
     alignItems: "center",
-    gap: `${SPACING.xs + 0.25}em`,
-    padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xs) + 2}px ${getSpacingPx(SPACING.md)}`,
+    gap: getSpacingPx(SPACING.md),
+    padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.md)}`,
     color: theme.vars.palette.grey[0],
-    fontSize: theme.fontSizeSmaller,
+    fontSize: theme.fontSizeSmall,
+    lineHeight: 1.35,
     fontWeight: 600,
     letterSpacing: "0.04em",
     textTransform: "uppercase",
@@ -417,7 +420,7 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     // Cap the readable measure on the form tabs (General, Integrations,
     // About). The API Keys panel overrides this with a wider cap.
     maxWidth: CONTENT_MAX_WIDTH,
-    margin: "0 auto",
+    margin: 0,
     width: "100%",
     "&::-webkit-scrollbar": {
       width: "8px"

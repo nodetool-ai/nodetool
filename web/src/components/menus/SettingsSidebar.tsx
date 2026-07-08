@@ -39,6 +39,20 @@ const SettingsSidebar = ({
     [onSectionClick]
   );
 
+  const handleItemKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (event.key !== "Enter" && event.key !== " ") {
+        return;
+      }
+      event.preventDefault();
+      const sectionId = event.currentTarget.dataset.sectionId;
+      if (sectionId) {
+        onSectionClick(sectionId);
+      }
+    },
+    [onSectionClick]
+  );
+
   // Track open/closed state per folder category
   const [openFolders, setOpenFolders] = useState<Record<string, boolean>>(() =>
     sections.reduce<Record<string, boolean>>((acc, section) => {
@@ -150,7 +164,7 @@ const SettingsSidebar = ({
                     role="button"
                     tabIndex={0}
                     onClick={handleItemClick}
-                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSectionClick(item.id); } }}
+                    onKeyDown={handleItemKeyDown}
                   >
                     {item.label}
                   </div>
