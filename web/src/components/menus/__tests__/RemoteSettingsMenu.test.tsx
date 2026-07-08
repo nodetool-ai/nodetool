@@ -421,4 +421,111 @@ describe("RemoteSettingsMenu", () => {
       });
     });
   });
+
+  describe("OAuth flows removed", () => {
+    // Phase 1 moved the OpenAI / HuggingFace OAuth connect flows to the API
+    // Keys tab. The Integrations panel must never render those affordances.
+    it("renders no OAuth connect affordances", async () => {
+      const mockSettings = [
+        {
+          package_name: "nodetool",
+          env_var: "VLLM_BASE_URL",
+          group: "vLLM",
+          description: "vLLM endpoint",
+          is_secret: false,
+          value: "http://localhost:8000",
+          enum: null
+        }
+      ];
+      mockRemoteSettingsStore.fetchSettings.mockResolvedValue(mockSettings);
+
+      render(<RemoteSettingsMenuComponent />, { wrapper });
+
+      await waitFor(() => {
+        expect(screen.getByDisplayValue("http://localhost:8000")).toBeInTheDocument();
+      });
+
+      // No OAuth sign-in / authentication sections belong here anymore.
+      expect(screen.queryByText(/sign in with/i)).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/openai authentication/i)
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/huggingface authentication/i)
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: /disconnect/i })
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  describe("Meta-section grouping", () => {
+    // Registry groups map onto stable meta-section headings; the panel must
+    // render those headings (not raw backend group names) and keep its order.
+    it("groups registry settings under their meta-section headings", async () => {
+      const mockSettings = [
+        {
+          package_name: "nodetool",
+          env_var: "VLLM_BASE_URL",
+          group: "vLLM",
+          description: "vLLM endpoint",
+          is_secret: false,
+          value: "http://localhost:8000",
+          enum: null
+        },
+        {
+          package_name: "nodetool",
+          env_var: "KIE_API_KEY",
+          group: "KIE",
+          description: "Kie.ai key",
+          is_secret: false,
+          value: "kie-value",
+          enum: null
+        },
+        {
+          package_name: "nodetool",
+          env_var: "NODE_SUPABASE_URL",
+          group: "NodeSupabase",
+          description: "Supabase URL",
+          is_secret: false,
+          value: "https://supabase.co",
+          enum: null
+        }
+      ];
+      mockRemoteSettingsStore.fetchSettings.mockResolvedValue(mockSettings);
+
+      render(<RemoteSettingsMenuComponent />, { wrapper });
+
+      await waitFor(() => {
+        expect(screen.getByDisplayValue("http://localhost:8000")).toBeInTheDocument();
+      });
+
+      // Meta-section headings render in the fixed order (the raw group names
+      // "vLLM", "KIE", "NodeSupabase" must not appear as section headings).
+      expect(screen.getByText("Local Model Servers")).toBeInTheDocument();
+      expect(screen.getByText("Provider Options")).toBeInTheDocument();
+      expect(screen.getByText("Data & Storage")).toBeInTheDocument();
+    });
+
+    it("renders unmapped registry groups under the catch-all Other section", async () => {
+      const mockSettings = [
+        {
+          package_name: "nodetool",
+          env_var: "SOMETHING_NEW",
+          group: "SomethingNew",
+          description: "A future registry group",
+          is_secret: false,
+          value: "value",
+          enum: null
+        }
+      ];
+      mockRemoteSettingsStore.fetchSettings.mockResolvedValue(mockSettings);
+
+      render(<RemoteSettingsMenuComponent />, { wrapper });
+
+      await waitFor(() => {
+        expect(screen.getByText("Other")).toBeInTheDocument();
+      });
+    });
+  });
 });

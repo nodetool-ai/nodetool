@@ -128,4 +128,19 @@ describe("ProviderCard OAuth variant", () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByText(/connected via oauth/i)).not.toBeInTheDocument();
   });
+
+  it("shows a disabled connecting state while an OAuth flow is in progress", () => {
+    mockUseOAuthConnection.mockReturnValue(
+      oauthState({ label: "OpenAI", isConnecting: true })
+    );
+
+    renderCard(oauthMeta);
+
+    const button = screen.getByRole("button", { name: /connecting/i });
+    expect(button).toBeDisabled();
+    // The normal sign-in affordance is replaced while connecting.
+    expect(
+      screen.queryByRole("button", { name: /sign in with openai/i })
+    ).not.toBeInTheDocument();
+  });
 });
