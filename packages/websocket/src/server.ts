@@ -683,6 +683,10 @@ app.addHook("onSend", async (request, reply) => {
   reply.header("X-Request-Id", request.id);
 });
 
+// CORS must be registered before hooks that can short-circuit. Auth failures
+// and rate-limit responses still need ACAO for first-party web deployments.
+await app.register(fastifyCors, { origin: corsOriginDelegate });
+
 // ---------------------------------------------------------------------------
 // Per-IP HTTP rate limiting
 // ---------------------------------------------------------------------------
@@ -845,9 +849,6 @@ app.addHook("onRequest", async (req, reply) => {
 
   reply.status(401).send({ error: "Remote access requires authentication" });
 });
-
-// CORS — restrict to configured origins instead of reflecting any origin.
-await app.register(fastifyCors, { origin: corsOriginDelegate });
 
 // WebSocket support
 await app.register(fastifyWebSocket);

@@ -1,8 +1,8 @@
 {
-  "id": "music_video_visualizer_001",
-  "access": "public",
-  "created_at": "2026-01-09T00:00:00Z",
-  "updated_at": "2026-06-22T12:00:00.000Z",
+  "id": "",
+  "access": "private",
+  "created_at": "2026-07-08T10:44:16.057Z",
+  "updated_at": "2026-07-08T10:44:38.859Z",
   "name": "Music Video Visualizer",
   "tool_name": null,
   "description": "Create reactive visuals from audio tracks with mood-matched imagery. Transcribes audio, analyzes mood/energy, and generates visual frames synced to the music.",
@@ -10,11 +10,142 @@
     "video",
     "audio",
     "music",
-    "visualization"
+    "visualization",
+    "example"
   ],
   "thumbnail": null,
   "thumbnail_url": null,
   "graph": {
+    "edges": [
+      {
+        "id": "e1",
+        "source": "audio_track",
+        "sourceHandle": "output",
+        "target": "transcription",
+        "targetHandle": "audio",
+        "edge_type": "data"
+      },
+      {
+        "id": "e2",
+        "source": "transcription",
+        "sourceHandle": "text",
+        "target": "mood_analyzer",
+        "targetHandle": "transcription",
+        "edge_type": "data"
+      },
+      {
+        "id": "e3",
+        "source": "genre_hint",
+        "sourceHandle": "output",
+        "target": "mood_analyzer",
+        "targetHandle": "genre",
+        "edge_type": "data"
+      },
+      {
+        "id": "e4",
+        "source": "visual_style",
+        "sourceHandle": "output",
+        "target": "mood_analyzer",
+        "targetHandle": "style",
+        "edge_type": "data"
+      },
+      {
+        "id": "e5",
+        "source": "mood_analyzer",
+        "sourceHandle": "output",
+        "target": "mood_analysis",
+        "targetHandle": "prompt",
+        "edge_type": "data"
+      },
+      {
+        "id": "e6",
+        "source": "mood_analysis",
+        "sourceHandle": "text",
+        "target": "frame_prompt_generator",
+        "targetHandle": "analysis",
+        "edge_type": "data"
+      },
+      {
+        "id": "e7",
+        "source": "num_frames",
+        "sourceHandle": "output",
+        "target": "frame_prompt_generator",
+        "targetHandle": "count",
+        "edge_type": "data"
+      },
+      {
+        "id": "e8",
+        "source": "genre_hint",
+        "sourceHandle": "output",
+        "target": "frame_prompt_generator",
+        "targetHandle": "genre",
+        "edge_type": "data"
+      },
+      {
+        "id": "e9",
+        "source": "visual_style",
+        "sourceHandle": "output",
+        "target": "frame_prompt_generator",
+        "targetHandle": "style",
+        "edge_type": "data"
+      },
+      {
+        "id": "e10",
+        "source": "frame_prompt_generator",
+        "sourceHandle": "output",
+        "target": "frame_prompts",
+        "targetHandle": "prompt",
+        "edge_type": "data"
+      },
+      {
+        "id": "e11",
+        "source": "frame_prompts",
+        "sourceHandle": "item",
+        "target": "prompt_iterator",
+        "targetHandle": "input_list",
+        "edge_type": "data"
+      },
+      {
+        "id": "e12",
+        "source": "prompt_iterator",
+        "sourceHandle": "output",
+        "target": "visual_frame",
+        "targetHandle": "prompt",
+        "edge_type": "data"
+      },
+      {
+        "id": "e13",
+        "source": "visual_frame",
+        "sourceHandle": "output",
+        "target": "collected_frames",
+        "targetHandle": "input_item",
+        "edge_type": "data"
+      },
+      {
+        "id": "e14",
+        "source": "visual_frame",
+        "sourceHandle": "output",
+        "target": "video_output",
+        "targetHandle": "frame",
+        "edge_type": "data"
+      },
+      {
+        "id": "e15",
+        "source": "video_output",
+        "sourceHandle": "output",
+        "target": "final_video",
+        "targetHandle": "video",
+        "edge_type": "data"
+      },
+      {
+        "id": "e16",
+        "source": "audio_track",
+        "sourceHandle": "output",
+        "target": "final_video",
+        "targetHandle": "audio",
+        "edge_type": "data"
+      }
+    ],
     "nodes": [
       {
         "id": "comment-intro",
@@ -23,7 +154,6 @@
           "comment": "# 🎵 Music Video Visualizer\n\nTurn a song into a music video. It transcribes the lyrics, reads the mood, generates frame images, and stitches them back to your audio.\n\n**Pipeline:** Audio → Transcribe → Mood agent → Frame prompts → Images → Video + Audio\n\n**Try this:** tweak visual style or genre, or raise the frame count."
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 0,
             "y": -220
@@ -49,8 +179,18 @@
           "description": "The song or audio track to visualize"
         },
         "ui_properties": {
-          "title": "1️⃣ Song audio"
-        }
+          "position": {
+            "x": 50,
+            "y": 104
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "1️⃣ Song audio",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
       },
       {
         "id": "genre_hint",
@@ -61,8 +201,18 @@
           "description": "Musical genre to guide the visual mood"
         },
         "ui_properties": {
-          "title": "Genre hint"
-        }
+          "position": {
+            "x": 50,
+            "y": 396
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "Genre hint",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
       },
       {
         "id": "visual_style",
@@ -73,8 +223,18 @@
           "description": "Visual aesthetic for the generated frames"
         },
         "ui_properties": {
-          "title": "Visual style"
-        }
+          "position": {
+            "x": 50,
+            "y": 642
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "Visual style",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
       },
       {
         "id": "num_frames",
@@ -85,8 +245,18 @@
           "description": "How many visual frames to generate"
         },
         "ui_properties": {
-          "title": "Frame count"
-        }
+          "position": {
+            "x": 50,
+            "y": 888
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "Frame count",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
       },
       {
         "id": "transcription",
@@ -95,21 +265,40 @@
           "model": {}
         },
         "ui_properties": {
-          "title": "2️⃣ Transcribe lyrics"
-        }
+          "position": {
+            "x": 400,
+            "y": 255
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "2️⃣ Transcribe lyrics",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
       },
       {
         "id": "mood_analyzer",
         "type": "nodetool.text.Prompt",
         "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 740,
+            "y": 282
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "Build mood prompt",
+          "selectable": true,
+          "bypassed": false
+        },
         "dynamic_properties": {
           "transcription": "Drifting through the night, lights blur into color, we rise on the wave of sound",
           "genre": "electronic ambient",
           "style": "abstract geometric patterns, neon colors, flowing energy"
         },
-        "ui_properties": {
-          "title": "Build mood prompt"
-        }
+        "dynamic_outputs": {}
       },
       {
         "id": "mood_analysis",
@@ -119,22 +308,41 @@
           "system": "You are a creative director specializing in music visualization."
         },
         "ui_properties": {
-          "title": "3️⃣ Analyze mood"
-        }
+          "position": {
+            "x": 1050,
+            "y": 354
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "3️⃣ Analyze mood",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
       },
       {
         "id": "frame_prompt_generator",
         "type": "nodetool.text.Prompt",
         "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1390,
+            "y": 496
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "Build frame prompt",
+          "selectable": true,
+          "bypassed": false
+        },
         "dynamic_properties": {
           "count": "8",
           "analysis": "Dreamy, weightless energy that builds toward a euphoric, glowing climax",
           "genre": "electronic ambient",
           "style": "abstract geometric patterns, neon colors, flowing energy"
         },
-        "ui_properties": {
-          "title": "Build frame prompt"
-        }
+        "dynamic_outputs": {}
       },
       {
         "id": "frame_prompts",
@@ -144,16 +352,36 @@
           "max_tokens": 100000
         },
         "ui_properties": {
-          "title": "4️⃣ Generate frame prompts"
-        }
+          "position": {
+            "x": 1700,
+            "y": 495
+          },
+          "zIndex": 0,
+          "width": 280,
+          "height": 340,
+          "title": "4️⃣ Generate frame prompts",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
       },
       {
         "id": "prompt_iterator",
         "type": "nodetool.control.ForEach",
-        "data": {
-          "input_list": []
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2010,
+            "y": 613
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
         },
-        "ui_properties": {}
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
       },
       {
         "id": "visual_frame",
@@ -166,174 +394,92 @@
           "num_inference_steps": 30
         },
         "ui_properties": {
+          "position": {
+            "x": 2320,
+            "y": 465
+          },
+          "zIndex": 0,
           "width": 384,
           "height": 400,
-          "title": "5️⃣ Render frames"
-        }
+          "title": "5️⃣ Render frames",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
       },
       {
         "id": "collected_frames",
         "type": "nodetool.control.Collect",
-        "data": {
-          "input_item": []
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 2764,
+            "y": 359
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
         },
-        "ui_properties": {}
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
       },
       {
         "id": "video_output",
         "type": "nodetool.video.FrameToVideo",
         "data": {
-          "fps": 24.0
+          "fps": 24
         },
         "ui_properties": {
+          "position": {
+            "x": 2764,
+            "y": 559
+          },
+          "zIndex": 0,
           "width": 416,
           "height": 360,
-          "title": "6️⃣ Frames to video"
-        }
+          "title": "6️⃣ Frames to video",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
       },
       {
         "id": "final_video",
         "type": "nodetool.video.AddAudio",
         "data": {
-          "volume": 1.0,
+          "volume": 1,
           "mix": false
         },
         "ui_properties": {
+          "position": {
+            "x": 3240,
+            "y": 50
+          },
+          "zIndex": 0,
           "width": 416,
           "height": 360,
-          "title": "7️⃣ Add audio"
-        }
-      }
-    ],
-    "edges": [
-      {
-        "id": "e1",
-        "source": "audio_track",
-        "sourceHandle": "output",
-        "target": "transcription",
-        "targetHandle": "audio"
-      },
-      {
-        "id": "e2",
-        "source": "transcription",
-        "sourceHandle": "text",
-        "target": "mood_analyzer",
-        "targetHandle": "transcription"
-      },
-      {
-        "id": "e3",
-        "source": "genre_hint",
-        "sourceHandle": "output",
-        "target": "mood_analyzer",
-        "targetHandle": "genre"
-      },
-      {
-        "id": "e4",
-        "source": "visual_style",
-        "sourceHandle": "output",
-        "target": "mood_analyzer",
-        "targetHandle": "style"
-      },
-      {
-        "id": "e5",
-        "source": "mood_analyzer",
-        "sourceHandle": "output",
-        "target": "mood_analysis",
-        "targetHandle": "prompt"
-      },
-      {
-        "id": "e6",
-        "source": "mood_analysis",
-        "sourceHandle": "text",
-        "target": "frame_prompt_generator",
-        "targetHandle": "analysis"
-      },
-      {
-        "id": "e7",
-        "source": "num_frames",
-        "sourceHandle": "output",
-        "target": "frame_prompt_generator",
-        "targetHandle": "count"
-      },
-      {
-        "id": "e8",
-        "source": "genre_hint",
-        "sourceHandle": "output",
-        "target": "frame_prompt_generator",
-        "targetHandle": "genre"
-      },
-      {
-        "id": "e9",
-        "source": "visual_style",
-        "sourceHandle": "output",
-        "target": "frame_prompt_generator",
-        "targetHandle": "style"
-      },
-      {
-        "id": "e10",
-        "source": "frame_prompt_generator",
-        "sourceHandle": "output",
-        "target": "frame_prompts",
-        "targetHandle": "prompt"
-      },
-      {
-        "id": "e11",
-        "source": "frame_prompts",
-        "sourceHandle": "item",
-        "target": "prompt_iterator",
-        "targetHandle": "input_list"
-      },
-      {
-        "id": "e12",
-        "source": "prompt_iterator",
-        "sourceHandle": "output",
-        "target": "visual_frame",
-        "targetHandle": "prompt"
-      },
-      {
-        "id": "e13",
-        "source": "visual_frame",
-        "sourceHandle": "output",
-        "target": "collected_frames",
-        "targetHandle": "input_item"
-      },
-      {
-        "id": "e14",
-        "source": "visual_frame",
-        "sourceHandle": "output",
-        "target": "video_output",
-        "targetHandle": "frame"
-      },
-      {
-        "id": "e15",
-        "source": "video_output",
-        "sourceHandle": "output",
-        "target": "final_video",
-        "targetHandle": "video"
-      },
-      {
-        "id": "e16",
-        "source": "audio_track",
-        "sourceHandle": "output",
-        "target": "final_video",
-        "targetHandle": "audio"
+          "title": "7️⃣ Add audio",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
       }
     ]
   },
   "input_schema": null,
   "output_schema": null,
-  "settings": null,
+  "settings": {},
   "package_name": "nodetool-base",
   "path": null,
-  "run_mode": null,
-  "required_providers": [
-    "openai",
-    "falai",
-    "huggingface-falai"
-  ],
-  "required_models": [
-    "gpt-4o-mini",
-    "openai/whisper-large-v3",
-    "fal-ai/flux/schnell"
-  ]
+  "run_mode": "workflow",
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null,
+  "html_app": null,
+  "app_doc": null,
+  "etag": "4d0ea7f6c49c64ed6ac4a8ad2c591032"
 }
