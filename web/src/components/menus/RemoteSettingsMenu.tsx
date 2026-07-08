@@ -22,7 +22,7 @@ import {
   PROVIDER_QUERY_KEYS
 } from "../../stores/resourceChangeHandler";
 import { useTheme } from "@mui/material/styles";
-import { getSharedSettingsStyles } from "./sharedSettingsStyles";
+import { getSharedSettingsStyles } from "./settingsMenuStyles";
 import { formatSettingLabel } from "./settingsLabel";
 import ExternalLink from "../common/ExternalLink";
 import SearchProviderSection from "./SearchProviderSection";

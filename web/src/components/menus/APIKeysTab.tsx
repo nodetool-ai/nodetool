@@ -494,9 +494,9 @@ export const ProviderCard = memo(function ProviderCard({
         align="center"
         justify="center"
         sx={{
-          width: 48,
-          height: 48,
-          minWidth: 48,
+          width: PROVIDER_ICON_CHIP_PX,
+          height: PROVIDER_ICON_CHIP_PX,
+          minWidth: PROVIDER_ICON_CHIP_PX,
           borderRadius: BORDER_RADIUS.lg,
           backgroundColor: theme.vars.palette.background.default,
           overflow: "hidden"
@@ -508,8 +508,8 @@ export const ProviderCard = memo(function ProviderCard({
             src={meta.icon}
             alt={meta.name}
             sx={{
-              width: 28,
-              height: 28,
+              width: PROVIDER_ICON_GLYPH_PX,
+              height: PROVIDER_ICON_GLYPH_PX,
               objectFit: "contain",
               ...(meta.mono && theme.applyStyles("dark", {
                 filter: "invert(1)"
@@ -566,7 +566,7 @@ export const ProviderCard = memo(function ProviderCard({
             align="center"
             gap={1}
             sx={{
-                      padding: theme.spacing(0.5, 2),
+              padding: theme.spacing(0.5, 2),
               borderRadius: BORDER_RADIUS.pill,
               backgroundColor: `rgba(${
                 isConnected
@@ -577,8 +577,8 @@ export const ProviderCard = memo(function ProviderCard({
           >
             <span
               style={{
-                width: 6,
-                height: 6,
+                width: STATUS_DOT_PX,
+                height: STATUS_DOT_PX,
                 borderRadius: BORDER_RADIUS.circle,
                 backgroundColor: isConnected
                   ? theme.vars.palette.success.main
@@ -827,6 +827,13 @@ const SectionTitle = memo(function SectionTitle({
 /* ------------------------------------------------------------------ */
 //  Constants
 /* ------------------------------------------------------------------ */
+
+// Provider card icon sizing. 48px chip + 28px glyph + 18px status dot keep the
+// row visually balanced; previously these were bare numbers sprinkled across
+// the JSX.
+const PROVIDER_ICON_CHIP_PX = 48;
+const PROVIDER_ICON_GLYPH_PX = 28;
+const STATUS_DOT_PX = 6;
 
 const SECTION_ORDER = ["popular", "language", "media", "gateways", "search", "compute", "advanced"] as const;
 const SECTION_TITLES: Record<string, string> = {
@@ -1095,7 +1102,10 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
 
   return (
     <FlexColumn sx={{ gap: "1.5rem" }}>
-      <GetStartedBanner theme={theme} />
+      {/* Show the onboarding banner only until the user connects their first
+          provider — once anything is configured, the Connected Providers
+          section above makes the banner redundant. */}
+      {connected.length === 0 && <GetStartedBanner theme={theme} />}
 
       {!hasContent && lowerSearch && (
         <EmptyState

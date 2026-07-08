@@ -8,7 +8,7 @@ import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import InstallDesktopIcon from "@mui/icons-material/InstallDesktop";
 import { Text, FlexRow, FlexColumn, NavButton } from "../ui_primitives";
-import { getSharedSettingsStyles } from "./sharedSettingsStyles";
+import { getSharedSettingsStyles } from "./settingsMenuStyles";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { trpcClient } from "../../trpc/client";
 
