@@ -1,9 +1,7 @@
 import type { NodeClass } from "@nodetool-ai/node-sdk";
+import { loadPackageAssetJson } from "@nodetool-ai/config";
 import { loadFalNodesFromManifest } from "./fal-factory.js";
 import type { FalManifestEntry } from "./fal-factory.js";
-import { readFileSync } from "node:fs";
-import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { registerFalCostReconciler } from "./fal-billing.js";
 
 export { FalProvider } from "./fal-provider.js";
@@ -18,9 +16,10 @@ export { fetchFalBillingCost, registerFalCostReconciler } from "./fal-billing.js
 registerFalCostReconciler();
 
 function loadManifest(): FalManifestEntry[] {
-  const dir = dirname(fileURLToPath(import.meta.url));
-  const manifestPath = join(dir, "fal-manifest.json");
-  return JSON.parse(readFileSync(manifestPath, "utf8"));
+  return loadPackageAssetJson<FalManifestEntry[]>(
+    { pkg: "@nodetool-ai/fal-nodes", path: "fal-manifest.json" },
+    import.meta.url
+  );
 }
 
 export const FAL_NODES: readonly NodeClass[] = loadFalNodesFromManifest(

@@ -1,19 +1,5 @@
-import { importNodeBuiltin } from "@nodetool-ai/config";
+import { loadPackageAssetJson } from "@nodetool-ai/config";
 import OpenAI from "openai";
-
-const _nodeFs = await importNodeBuiltin<typeof import("node:fs")>("node:fs");
-// Thin Node-fs wrapper, exercised only via loadAkiManifest's IO path (which is
-// itself suppressed); the non-Node guard is unreachable under the test runner.
-// Stryker disable all
-const readFileSync = (
-  ...args: Parameters<typeof import("node:fs").readFileSync>
-): ReturnType<typeof import("node:fs").readFileSync> => {
-  if (!_nodeFs) {
-    throw new Error("node:fs.readFileSync requires Node");
-  }
-  return _nodeFs.readFileSync(...args);
-};
-// Stryker restore all
 import { AkiClient, decodeBinary } from "@aki-io/aki-io";
 import type {
   AkiClientConfig,
@@ -63,8 +49,6 @@ export function isAkiManifestEntry(value: unknown): value is AkiManifestEntry {
   );
 }
 
-const AKI_MANIFEST_URL = new URL("./aki-manifest.json", import.meta.url);
-
 const AKI_FALLBACK_IMAGE_MODELS: ImageModel[] = [
   {
     id: "sdxl_img",
@@ -98,8 +82,10 @@ export function loadAkiManifest(): AkiManifestEntry[] {
     return akiManifestCache;
   }
   try {
-    const raw = Buffer.from(readFileSync(AKI_MANIFEST_URL)).toString("utf8");
-    const parsed = JSON.parse(raw) as unknown;
+    const parsed = loadPackageAssetJson<unknown>(
+      { pkg: "@nodetool-ai/runtime", path: "providers/aki-manifest.json" },
+      import.meta.url
+    );
     if (!Array.isArray(parsed)) {
       akiManifestCache = [];
       return akiManifestCache;

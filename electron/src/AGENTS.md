@@ -28,6 +28,12 @@ npm run test:e2e         # E2E tests (requires built app + Playwright)
 npm run test:e2e:headed  # E2E with visible window
 ```
 
+### Packaged file layout
+
+The packaged backend is one esbuild bundle (`resources/backend/server.mjs`), so every file the backend resolves relative to `import.meta.url` — provider `*-manifest.json` files, example workflows, `package://` assets — must be staged next to it by `scripts/bundle-backend.mjs`. In dev these resolve through normal package resolution, so a staging gap only breaks the packaged app.
+
+Data files a package loads at runtime go through one guarded path: declare the file in `PACKAGE_RUNTIME_ASSETS` (`packages/config/src/package-asset-registry.ts`) and load it with `loadPackageAssetJson` from `@nodetool-ai/config` — never with `readFileSync(new URL(...))` or `createRequire` directly. The accessor resolves both layouts, rejects unregistered files immediately in dev, and records outcomes for diagnostics (`getPackageAssetResolutions`). The registry also drives packaging: `bundle-backend.mjs` stages every entry (and fails on a `dist/*-manifest.json` that isn't registered), and `scripts/verify-backend-bundle.mjs` (run automatically after bundling, also `npm run verify:backend-bundle`) re-checks the final artifact — manifests referenced by `server.mjs`, examples, assets, webgpu dawn binaries.
+
 ### Development Modes
 
 ```bash

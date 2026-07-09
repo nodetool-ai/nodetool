@@ -305,8 +305,19 @@ describe("loadManifest IO (via loadImageModels)", () => {
     expect(loadImageModels(uniq(), "x.json", "p")).toEqual([]);
   });
 
-  it("falls back to a manifest colocated with the bundled module", () => {
-    const manifest = loadManifest(uniq(), "aki-manifest.json");
+  it("rejects an unregistered ref instead of serving a colocated file", () => {
+    // aki-manifest.json sits next to manifest-models in this package, and the
+    // old loader served it for ANY package name via its `./` fallback. The
+    // registry guard closes that hole: a typo'd package yields [] (with a
+    // warning) instead of silently picking up an unrelated colocated manifest.
+    expect(loadManifest(uniq(), "aki-manifest.json")).toEqual([]);
+  });
+
+  it("loads a registered same-package manifest via the colocated fallback", () => {
+    const manifest = loadManifest(
+      "@nodetool-ai/runtime",
+      "providers/aki-manifest.json"
+    );
     expect(manifest.length).toBeGreaterThan(0);
     expect(manifest[0]).toHaveProperty("endpointId");
   });

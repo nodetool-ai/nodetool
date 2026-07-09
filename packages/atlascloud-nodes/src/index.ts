@@ -1,7 +1,5 @@
 import type { NodeClass } from "@nodetool-ai/node-sdk";
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { loadPackageAssetJson } from "@nodetool-ai/config";
 
 import { loadAtlasNodesFromManifest } from "./atlascloud-factory.js";
 import type { AtlasManifestEntry } from "./atlascloud-factory.js";
@@ -30,9 +28,10 @@ export {
 export type { AtlasModality } from "./atlascloud-base.js";
 
 function loadManifest(): AtlasManifestEntry[] {
-  const dir = dirname(fileURLToPath(import.meta.url));
-  const manifestPath = join(dir, "atlascloud-manifest.json");
-  return JSON.parse(readFileSync(manifestPath, "utf8"));
+  return loadPackageAssetJson<AtlasManifestEntry[]>(
+    { pkg: "@nodetool-ai/atlascloud-nodes", path: "atlascloud-manifest.json" },
+    import.meta.url
+  );
 }
 
 export const ATLASCLOUD_NODES: readonly NodeClass[] =
