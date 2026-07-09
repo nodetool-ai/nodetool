@@ -6,7 +6,7 @@
  * JSON link. The other CRUD + query endpoints move here.
  */
 
-import { Workflow, getDb, workflows } from "@nodetool-ai/models";
+import { getDb, workflows } from "@nodetool-ai/models";
 import { inArray } from "drizzle-orm";
 import {
   getDefaultVectorProvider,
