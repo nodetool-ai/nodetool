@@ -27,8 +27,11 @@ import { waitForAnimation } from "../benchmarks/helpers/waitHelpers";
 
 export type Theme = "light" | "dark";
 
-/** localStorage key MUI's CssVarsProvider reads to pick the initial scheme. */
-const MUI_COLOR_SCHEME_KEY = "mui-color-scheme";
+/** localStorage key MUI's CssVarsProvider / InitColorSchemeScript read to pick the
+ *  initial color scheme. MUI's default `modeStorageKey` is the literal string
+ *  `"mode"` (NOT "mui-color-scheme" — that is a common misconception). Verified
+ *  against @mui/system's `InitColorSchemeScript` (DEFAULT_MODE_STORAGE_KEY). */
+const MUI_COLOR_MODE_KEY = "mode";
 
 // ─── Persisted panel store shapes ────────────────────────────────────────────
 // These mirror the zustand persist shapes used by the app (see
@@ -75,9 +78,10 @@ type GotoOptions = {
 export async function pinTheme(page: Page, theme: Theme): Promise<void> {
   await page.addInitScript((mode: string) => {
     try {
-      // MUI's CssVarsProvider (InitColorSchemeScript) reads this key on first
-      // paint to pick the initial light/dark scheme.
-      window.localStorage.setItem(MUI_COLOR_SCHEME_KEY, mode);
+      // MUI's CssVarsProvider + InitColorSchemeScript both read this key on
+      // first paint to pick the initial light/dark scheme (the class added to
+      // <html> selects the palette). Must run before any app script.
+      window.localStorage.setItem(MUI_COLOR_MODE_KEY, mode);
     } catch {
       /* localStorage unavailable */
     }

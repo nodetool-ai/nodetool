@@ -105,7 +105,7 @@ Determinism is enforced in `visualHelpers.ts`:
 
 - **Backend**: the in-memory SQLite screenshot server seeds fixed mock data
   (workflows, threads, assets, secrets). No clock, no network, no real auth.
-- **Theme**: written to `localStorage["mui-color-scheme"]` *before* first paint.
+- **Theme**: written to `localStorage["mode"]` (MUI's `modeStorageKey`) *before* first paint.
 - **Animations**: a global init script zeroes every CSS transition/animation;
   `toHaveScreenshot({ animations: "disabled" })` freezes the rest at capture.
 - **Viewport**: pinned per project.
