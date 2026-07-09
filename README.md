@@ -262,6 +262,7 @@ cd electron && npx playwright install chromium && npm run test:e2e
 ```
 
 For detailed testing documentation, see [web/TESTING.md](web/TESTING.md).
+For visual regression testing and baseline management, see [VISUAL_TESTING.md](VISUAL_TESTING.md).
 
 ______________________________________________________________________
 
