@@ -112,7 +112,7 @@ export function collectNodeClasses(mod: Record<string, unknown>): unknown[] {
 }
 
 /**
- * Import the genuinely browser-portable node groups via per-file subpaths.
+ * The browser-portable node groups, imported via per-file subpaths.
  * We deliberately avoid the package indexes (core-nodes re-exports `vector` →
  * sqlite-vec / better-sqlite3 native bindings; `code-nodes` → code-runners /
  * Docker / ssh2) — neither bundles for the browser. The image node groups run
@@ -120,149 +120,202 @@ export function collectNodeClasses(mod: Record<string, unknown>): unknown[] {
  * lazily, so they bundle cleanly; `createBrowserRegistry` filters by platform
  * tag (e.g. image.ts's Load/Save/AI nodes are tagged server and dropped).
  */
-export async function loadBrowserModules(): Promise<LoadedModules> {
-  const [
-    wf,
-    constant,
-    control,
-    input,
-    list,
-    compare,
-    fakeMedia,
-    datetime,
-    validate,
-    placeholders,
-    subgraph,
-    workflow,
-    codeNode,
-    imageColorGrading,
-    imageColor,
-    imageEffects,
-    imageGenerators,
-    imageKeyer,
-    imageMask,
-    imageWarp,
-    imageChannel,
-    imageFilterExtras,
-    imageFilter,
-    imageEnhance,
-    imageDraw,
-    imageCore,
-    audioPreview,
-    audioCore,
-    audioDsp,
-    audioEffects,
-    audioRealtime,
-    audioSynthesis
-  ] = await Promise.all([
-    import("@nodetool-ai/workflow-runner/browser"),
-    import("@nodetool-ai/core-nodes/nodes/constant"),
-    import("@nodetool-ai/core-nodes/nodes/control"),
-    import("@nodetool-ai/core-nodes/nodes/input"),
-    import("@nodetool-ai/core-nodes/nodes/list"),
-    import("@nodetool-ai/core-nodes/nodes/compare"),
-    import("@nodetool-ai/core-nodes/nodes/fake-media"),
-    import("@nodetool-ai/core-nodes/nodes/lib-datetime"),
-    import("@nodetool-ai/core-nodes/nodes/lib-validate"),
-    import("@nodetool-ai/core-nodes/nodes/extended-placeholders"),
-    import("@nodetool-ai/core-nodes/nodes/subgraph"),
-    import("@nodetool-ai/core-nodes/nodes/workflow"),
-    // The universal Code node (nodetool.code.Code) runs vanilla JS in a QuickJS
-    // WebAssembly sandbox — no Node `vm`, no subprocess — so it runs client-side.
-    // Imported via its own subpath (not the code-nodes index, which pulls
-    // code-runners → Docker/ssh2); its only heavy dep is the QuickJS wasm chunk.
-    import("@nodetool-ai/code-nodes/nodes/code-node"),
-    import("@nodetool-ai/image-nodes/nodes/lib-image-color-grading"),
-    import("@nodetool-ai/image-nodes/nodes/lib-image-color"),
-    import("@nodetool-ai/image-nodes/nodes/lib-image-effects"),
-    import("@nodetool-ai/image-nodes/nodes/lib-image-generators"),
-    import("@nodetool-ai/image-nodes/nodes/lib-image-keyer"),
-    import("@nodetool-ai/image-nodes/nodes/lib-image-mask"),
-    import("@nodetool-ai/image-nodes/nodes/lib-image-warp"),
-    import("@nodetool-ai/image-nodes/nodes/lib-image-channel"),
-    import("@nodetool-ai/image-nodes/nodes/lib-image-filter-extras"),
-    // filter/enhance/draw mix GPU nodes (browser) with sharp/CPU gap nodes
-    // (Canny, histogram enhances, RenderText/Mask) tagged server.
-    import("@nodetool-ai/image-nodes/nodes/lib-image-filter"),
-    import("@nodetool-ai/image-nodes/nodes/lib-image-enhance"),
-    import("@nodetool-ai/image-nodes/nodes/lib-image-draw"),
-    // image.ts mixes GPU transform nodes (browser) with node-only Load/Save/AI
-    // nodes; the latter are tagged server, so createBrowserRegistry keeps only
-    // the transforms. It's sharp-free (lazy) and de-barreled, so it bundles.
-    import("@nodetool-ai/image-nodes/nodes/image"),
-    // Preview is a pure pass-through that renders any value; its own browser-safe
-    // module (no audio-codec deps) lets pass-through graphs ending in a Preview
-    // run client-side instead of forcing a server round-trip.
-    import("@nodetool-ai/audio-nodes/nodes/preview"),
-    // audio.ts mixes pure sample/byte transforms (hybrid) with node-only
-    // Load/Save/TTS nodes tagged server; dsp/effects route WebAudio through
-    // lib/audio-context.ts (global OfflineAudioContext or pure-JS biquad
-    // fallback) and hide node-web-audio-api / rubberband behind importHidden,
-    // so all four modules bundle cleanly.
-    import("@nodetool-ai/audio-nodes/nodes/audio"),
-    import("@nodetool-ai/audio-nodes/nodes/lib-audio-dsp"),
-    import("@nodetool-ai/audio-nodes/nodes/lib-audio-effects"),
-    import("@nodetool-ai/audio-nodes/nodes/realtime-audio"),
-    import("@nodetool-ai/audio-nodes/nodes/synthesis")
-  ]);
+const NODE_MODULE_GROUPS: ReadonlyArray<
+  readonly [name: string, load: () => Promise<unknown>]
+> = [
+  ["constant", () => import("@nodetool-ai/core-nodes/nodes/constant")],
+  ["control", () => import("@nodetool-ai/core-nodes/nodes/control")],
+  ["input", () => import("@nodetool-ai/core-nodes/nodes/input")],
+  ["list", () => import("@nodetool-ai/core-nodes/nodes/list")],
+  ["compare", () => import("@nodetool-ai/core-nodes/nodes/compare")],
+  ["fake-media", () => import("@nodetool-ai/core-nodes/nodes/fake-media")],
+  ["lib-datetime", () => import("@nodetool-ai/core-nodes/nodes/lib-datetime")],
+  ["lib-validate", () => import("@nodetool-ai/core-nodes/nodes/lib-validate")],
+  [
+    "extended-placeholders",
+    () => import("@nodetool-ai/core-nodes/nodes/extended-placeholders")
+  ],
+  ["subgraph", () => import("@nodetool-ai/core-nodes/nodes/subgraph")],
+  ["workflow", () => import("@nodetool-ai/core-nodes/nodes/workflow")],
+  // The universal Code node (nodetool.code.Code) runs vanilla JS in a QuickJS
+  // WebAssembly sandbox — no Node `vm`, no subprocess — so it runs client-side.
+  // Imported via its own subpath (not the code-nodes index, which pulls
+  // code-runners → Docker/ssh2). The sandbox pulls memfs, which needs the real
+  // stream classes from vite's stream-stub (readable-stream) to evaluate.
+  ["code-node", () => import("@nodetool-ai/code-nodes/nodes/code-node")],
+  [
+    "lib-image-color-grading",
+    () => import("@nodetool-ai/image-nodes/nodes/lib-image-color-grading")
+  ],
+  [
+    "lib-image-color",
+    () => import("@nodetool-ai/image-nodes/nodes/lib-image-color")
+  ],
+  [
+    "lib-image-effects",
+    () => import("@nodetool-ai/image-nodes/nodes/lib-image-effects")
+  ],
+  [
+    "lib-image-generators",
+    () => import("@nodetool-ai/image-nodes/nodes/lib-image-generators")
+  ],
+  [
+    "lib-image-keyer",
+    () => import("@nodetool-ai/image-nodes/nodes/lib-image-keyer")
+  ],
+  [
+    "lib-image-mask",
+    () => import("@nodetool-ai/image-nodes/nodes/lib-image-mask")
+  ],
+  [
+    "lib-image-warp",
+    () => import("@nodetool-ai/image-nodes/nodes/lib-image-warp")
+  ],
+  [
+    "lib-image-channel",
+    () => import("@nodetool-ai/image-nodes/nodes/lib-image-channel")
+  ],
+  [
+    "lib-image-filter-extras",
+    () => import("@nodetool-ai/image-nodes/nodes/lib-image-filter-extras")
+  ],
+  // filter/enhance/draw mix GPU nodes (browser) with sharp/CPU gap nodes
+  // (Canny, histogram enhances, RenderText/Mask) tagged server.
+  [
+    "lib-image-filter",
+    () => import("@nodetool-ai/image-nodes/nodes/lib-image-filter")
+  ],
+  [
+    "lib-image-enhance",
+    () => import("@nodetool-ai/image-nodes/nodes/lib-image-enhance")
+  ],
+  [
+    "lib-image-draw",
+    () => import("@nodetool-ai/image-nodes/nodes/lib-image-draw")
+  ],
+  // image.ts mixes GPU transform nodes (browser) with node-only Load/Save/AI
+  // nodes; the latter are tagged server, so createBrowserRegistry keeps only
+  // the transforms. It's sharp-free (lazy) and de-barreled, so it bundles.
+  ["image", () => import("@nodetool-ai/image-nodes/nodes/image")],
+  // Preview is a pure pass-through that renders any value; its own browser-safe
+  // module (no audio-codec deps) lets pass-through graphs ending in a Preview
+  // run client-side instead of forcing a server round-trip.
+  ["preview", () => import("@nodetool-ai/audio-nodes/nodes/preview")],
+  // audio.ts mixes pure sample/byte transforms (hybrid) with node-only
+  // Load/Save/TTS nodes tagged server; dsp/effects route WebAudio through
+  // lib/audio-context.ts (global OfflineAudioContext or pure-JS biquad
+  // fallback) and hide node-web-audio-api / rubberband behind importHidden,
+  // so all four modules bundle cleanly.
+  ["audio", () => import("@nodetool-ai/audio-nodes/nodes/audio")],
+  ["lib-audio-dsp", () => import("@nodetool-ai/audio-nodes/nodes/lib-audio-dsp")],
+  [
+    "lib-audio-effects",
+    () => import("@nodetool-ai/audio-nodes/nodes/lib-audio-effects")
+  ],
+  [
+    "realtime-audio",
+    () => import("@nodetool-ai/audio-nodes/nodes/realtime-audio")
+  ],
+  ["synthesis", () => import("@nodetool-ai/audio-nodes/nodes/synthesis")]
+];
 
-  const groups: Array<[string, unknown]> = [
-    ["constant", constant],
-    ["control", control],
-    ["input", input],
-    ["list", list],
-    ["compare", compare],
-    ["fake-media", fakeMedia],
-    ["lib-datetime", datetime],
-    ["lib-validate", validate],
-    ["extended-placeholders", placeholders],
-    ["subgraph", subgraph],
-    ["workflow", workflow],
-    ["code-node", codeNode],
-    ["lib-image-color-grading", imageColorGrading],
-    ["lib-image-color", imageColor],
-    ["lib-image-effects", imageEffects],
-    ["lib-image-generators", imageGenerators],
-    ["lib-image-keyer", imageKeyer],
-    ["lib-image-mask", imageMask],
-    ["lib-image-warp", imageWarp],
-    ["lib-image-channel", imageChannel],
-    ["lib-image-filter-extras", imageFilterExtras],
-    ["lib-image-filter", imageFilter],
-    ["lib-image-enhance", imageEnhance],
-    ["lib-image-draw", imageDraw],
-    ["image", imageCore],
-    ["preview", audioPreview],
-    ["audio", audioCore],
-    ["lib-audio-dsp", audioDsp],
-    ["lib-audio-effects", audioEffects],
-    ["realtime-audio", audioRealtime],
-    ["synthesis", audioSynthesis]
-  ];
+/**
+ * Import a lazy chunk, tolerating failure. A failed `import()` normally
+ * rejects, but on the main thread the app's `vite:preloadError` listener
+ * (`preloadErrorReload.ts`) suppresses Vite's rethrow, in which case the
+ * import resolves `undefined` instead — treat both as "not available",
+ * keeping the failure for the caller's diagnostics.
+ */
+async function importOptional(
+  load: () => Promise<unknown>
+): Promise<{ mod: unknown; error: unknown }> {
+  try {
+    const mod = (await load()) ?? null;
+    return {
+      mod,
+      error: mod
+        ? null
+        : new Error("import resolved empty (chunk preload failure suppressed)")
+    };
+  } catch (error) {
+    return { mod: null, error };
+  }
+}
+
+export async function loadBrowserModules(): Promise<LoadedModules> {
+  // The runner module is required — without it there is no browser runner and
+  // the caller falls back to the server path.
+  const wfImport = await importOptional(
+    () => import("@nodetool-ai/workflow-runner/browser")
+  );
+  const wf = wfImport.mod as WorkflowRunnerModule | null;
+  if (!wf) {
+    throw new Error(
+      `workflow-runner browser module failed to load: ${String(wfImport.error)}`
+    );
+  }
+
+  // Node groups are independent: one group failing to load or evaluate in this
+  // context (a dep that can't run in the browser, a blocked chunk) must not
+  // take down the whole registry. Skip it — its node types then report as not
+  // browser-capable and route to the server.
+  const loaded = await Promise.all(
+    NODE_MODULE_GROUPS.map(
+      async ([name, load]) => [name, await importOptional(load)] as const
+    )
+  );
+
   const nodeClasses: unknown[] = [];
   const perGroup: Record<string, number> = {};
-  for (const [name, mod] of groups) {
+  let failedGroups = 0;
+  for (const [name, { mod, error }] of loaded) {
+    if (!mod) {
+      failedGroups += 1;
+      console.warn(
+        `[browserRunner] node group "${name}" failed to load — ` +
+          "its nodes will run on the server",
+        error
+      );
+      continue;
+    }
     const classes = collectNodeClasses(mod as Record<string, unknown>);
     perGroup[name] = classes.length;
     nodeClasses.push(...classes);
   }
   console.info(
-    `[browserRunner] loaded ${nodeClasses.length} node class(es) from ${groups.length} group(s)`,
+    `[browserRunner] loaded ${nodeClasses.length} node class(es) from ` +
+      `${loaded.length - failedGroups}/${loaded.length} group(s)`,
     perGroup
   );
 
   // The GPU-texture boundary helpers — read-back at serialize points + run-end
   // texture cleanup. Loaded here so they ride the same lazy chunk as the nodes.
-  const [imageIo, gpuDevice] = await Promise.all([
-    import("@nodetool-ai/image-nodes/nodes/image-io"),
-    import("@nodetool-ai/image-nodes/nodes/gpu-device")
+  // Optional: without them, GPU-node runs lose texture read-back/cleanup, but
+  // those nodes only register when the image groups above loaded.
+  const [imageIoImport, gpuDeviceImport] = await Promise.all([
+    importOptional(() => import("@nodetool-ai/image-nodes/nodes/image-io")),
+    importOptional(() => import("@nodetool-ai/image-nodes/nodes/gpu-device"))
   ]);
+  for (const [name, { mod, error }] of [
+    ["image-io", imageIoImport],
+    ["gpu-device", gpuDeviceImport]
+  ] as const) {
+    if (!mod) {
+      console.warn(`[browserRunner] GPU helper "${name}" failed to load`, error);
+    }
+  }
+  const imageIo = imageIoImport.mod as
+    | typeof import("@nodetool-ai/image-nodes/nodes/image-io")
+    | null;
+  const gpuDevice = gpuDeviceImport.mod as
+    | typeof import("@nodetool-ai/image-nodes/nodes/gpu-device")
+    | null;
 
   return {
     wf,
     nodeClasses,
-    resolveImageRefForTransport: imageIo.resolveImageRefForTransport,
-    releaseRunTextures: gpuDevice.releaseRunTextures
+    resolveImageRefForTransport: imageIo?.resolveImageRefForTransport,
+    releaseRunTextures: gpuDevice?.releaseRunTextures
   };
 }
 

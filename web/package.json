@@ -66,6 +66,7 @@
     "react-simple-keyboard": "^3.8.219",
     "react-syntax-highlighter": "^16.1.1",
     "read-excel-file": "^6.0.3",
+    "readable-stream": "^4.7.0",
     "rehype-raw": "^7.0.0",
     "remark-gfm": "^4.0.1",
     "tabulator-tables": "^6.4.0",

@@ -59,7 +59,9 @@ const NODE_BUILTIN_STUBS: Record<string, string> = {
   "node:http2": `${NODE_STUBS}/empty.js`,
   "node:perf_hooks": `${NODE_STUBS}/empty.js`,
   "node:vm": `${NODE_STUBS}/empty.js`,
-  "node:stream": `${NODE_STUBS}/empty.js`,
+  // Not empty: memfs (QuickJS sandbox → universal Code node) subclasses
+  // stream.Readable/Writable at module scope — see stream-stub.js.
+  "node:stream": `${NODE_STUBS}/stream-stub.js`,
   "node:async_hooks": `${NODE_STUBS}/empty.js`,
   "node:util": `${NODE_STUBS}/empty.js`,
   "node:buffer": `${NODE_STUBS}/buffer-stub.js`,
@@ -124,6 +126,37 @@ function stubServerTelemetryPlugin(): Plugin {
         return EMPTY;
       }
       return null;
+    }
+  };
+}
+
+// Strip remote `@import url(https://…)` statements from emitted CSS chunks.
+// Third-party CSS can smuggle one in (e.g. @measured/puck imports Inter from
+// rsms.me). Chrome treats a failed @import as a failure of the whole
+// stylesheet, so when the CDN is blocked/unreachable the chunk's <link> errors,
+// Vite fires `vite:preloadError`, and preloadErrorReload.ts reloads the page —
+// every affected click becomes a page reload. Fonts are already self-hosted
+// (@fontsource imports in ThemeNodetool), so remote font CSS is redundant;
+// drop it at build time.
+function stripExternalCssImportsPlugin(): Plugin {
+  const EXTERNAL_IMPORT_RE =
+    /@import\s*(?:url\(\s*)?["']?https?:\/\/[^"'()\s;]+["']?\s*\)?[^;]*;/gi;
+  return {
+    name: "strip-external-css-imports",
+    generateBundle(_options, bundle) {
+      for (const asset of Object.values(bundle)) {
+        if (asset.type !== "asset" || !asset.fileName.endsWith(".css")) {
+          continue;
+        }
+        const source =
+          typeof asset.source === "string"
+            ? asset.source
+            : new TextDecoder().decode(asset.source);
+        const stripped = source.replace(EXTERNAL_IMPORT_RE, "");
+        if (stripped !== source) {
+          asset.source = stripped;
+        }
+      }
     }
   };
 }
@@ -258,6 +291,7 @@ export default defineConfig(async ({ mode }) => {
     plugins: [
       perfPageIsolationPlugin(),
       stubNodeProtocolPlugin(),
+      stripExternalCssImportsPlugin(),
       react({
         jsxImportSource: "@emotion/react",
         babel: {
