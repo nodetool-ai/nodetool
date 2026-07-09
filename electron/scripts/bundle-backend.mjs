@@ -14,6 +14,7 @@ import fsp from "fs/promises";
 import Module from "module";
 import path from "path";
 import { fileURLToPath } from "url";
+import { verifyBackendBundle } from "./verify-backend-bundle.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -513,6 +514,17 @@ async function main() {
   console.log(`  External: ${copiedCount} packages copied to _modules/`);
   console.log(`  Output:   ${BUNDLE_DIR}`);
   console.log(`  Entry:    server.mjs`);
+
+  // --- Verify staged layout ---
+  // Cross-check what server.mjs actually references (manifests, examples,
+  // assets, webgpu) against what was staged. Throws on any gap so a staging
+  // regression fails the build here instead of silently shipping an app with
+  // empty model lists.
+  console.log("\nVerifying staged bundle layout...");
+  for (const line of verifyBackendBundle(BUNDLE_DIR)) {
+    console.log(`  ${line}`);
+  }
+
   console.log("\nBackend bundle created successfully!");
 }
 

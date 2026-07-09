@@ -28,6 +28,12 @@ npm run test:e2e         # E2E tests (requires built app + Playwright)
 npm run test:e2e:headed  # E2E with visible window
 ```
 
+### Packaged file layout
+
+The packaged backend is one esbuild bundle (`resources/backend/server.mjs`), so every file the backend resolves relative to `import.meta.url` — provider `*-manifest.json` files, example workflows, `package://` assets — must be staged next to it by `scripts/bundle-backend.mjs`. In dev these resolve through normal package resolution, so a staging gap only breaks the packaged app, and silently (`loadManifest` warns and returns an empty list).
+
+Guard: `scripts/verify-backend-bundle.mjs` runs automatically at the end of `bundle-backend.mjs`. It extracts every manifest reference from the bundled `server.mjs` and fails the build if one isn't staged, and checks examples, assets, and the webgpu dawn binaries (also `npm run verify:backend-bundle`). If you add a file the backend loads relative to its own location, stage it in `bundle-backend.mjs` and extend the verifier in the same PR. New providers that follow the `<name>-manifest.json` convention and ship the file in their package's `dist/` are covered automatically.
+
 ### Development Modes
 
 ```bash
