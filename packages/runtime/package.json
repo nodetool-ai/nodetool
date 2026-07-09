@@ -91,7 +91,8 @@
       "types": "./dist/zod-schema.d.ts",
       "import": "./dist/zod-schema.js",
       "default": "./dist/zod-schema.js"
-    }
+    },
+    "./providers/aki-manifest.json": "./dist/providers/aki-manifest.json"
   },
   "license": "MIT",
   "repository": {

@@ -9,7 +9,7 @@ const SCRIPT = path.join(__dirname, "..", "..", "scripts", "verify-backend-bundl
 
 const SERVER_SOURCE = [
   'const kie = req("kie-manifest.json");',
-  'const aki = new URL("./aki-manifest.json", import.meta.url);',
+  'const aki = load({ pkg: "@nodetool-ai/runtime", path: "providers/aki-manifest.json" });',
   "const fal = loadManifest(pkg, 'fal-manifest.json');",
 ].join("\n");
 

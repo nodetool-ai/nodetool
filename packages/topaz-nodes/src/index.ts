@@ -1,9 +1,7 @@
 import type { NodeClass } from "@nodetool-ai/node-sdk";
+import { loadPackageAssetJson } from "@nodetool-ai/config";
 import { loadTopazNodesFromManifest } from "./topaz-factory.js";
 import type { TopazManifestEntry } from "./topaz-factory.js";
-import { readFileSync } from "node:fs";
-import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 
 export {
   loadTopazNodesFromManifest,
@@ -27,9 +25,10 @@ export type {
 } from "./topaz-base.js";
 
 function loadManifest(): TopazManifestEntry[] {
-  const dir = dirname(fileURLToPath(import.meta.url));
-  const manifestPath = join(dir, "topaz-manifest.json");
-  return JSON.parse(readFileSync(manifestPath, "utf8"));
+  return loadPackageAssetJson<TopazManifestEntry[]>(
+    { pkg: "@nodetool-ai/topaz-nodes", path: "topaz-manifest.json" },
+    import.meta.url
+  );
 }
 
 export const TOPAZ_NODES: readonly NodeClass[] = loadTopazNodesFromManifest(

@@ -13,7 +13,7 @@ import fs from "fs";
 import fsp from "fs/promises";
 import Module from "module";
 import path from "path";
-import { fileURLToPath } from "url";
+import { fileURLToPath, pathToFileURL } from "url";
 import { verifyBackendBundle } from "./verify-backend-bundle.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -386,13 +386,55 @@ async function main() {
   console.log("\nCopying external packages to staged backend modules...");
   const copiedCount = await copyExternalPackages();
 
-  // --- Auto-discover and copy *-manifest.json files next to server.mjs ---
-  // Packages that load `*-manifest.json` relative to their compiled JS (via
-  // `import.meta.url`) need the file staged at the bundle root, because
-  // esbuild flattens all sources into one directory. Walk every package's
-  // dist/ and copy any `*-manifest.json` to BUNDLE_DIR by basename.
-  console.log("\nStaging manifest JSON files next to server.mjs...");
-  const stagedManifests = new Map();
+  // --- Stage registered package runtime assets next to server.mjs ---
+  // The registry in @nodetool-ai/config (package-asset-registry.ts) is the
+  // single source of truth for files packages load at runtime relative to
+  // their compiled code. esbuild flattens all sources into one directory, so
+  // each registered file is staged at the bundle root by basename — the same
+  // place `loadPackageAssetJson` resolves to in the packaged app.
+  console.log("\nStaging registered package runtime assets next to server.mjs...");
+  const registryPath = path.join(
+    ROOT_DIR,
+    "packages",
+    "config",
+    "dist",
+    "package-asset-registry.js"
+  );
+  const { PACKAGE_RUNTIME_ASSETS } = await import(pathToFileURL(registryPath).href);
+
+  const stagedAssets = new Map();
+  for (const asset of PACKAGE_RUNTIME_ASSETS) {
+    const pkgRoot = resolvePackageRoot(asset.pkg);
+    if (!pkgRoot) {
+      throw new Error(
+        `Registered asset package not found: ${asset.pkg}. ` +
+        `Run 'npm install' and 'npm run build:packages' first.`
+      );
+    }
+    const src = path.join(pkgRoot, "dist", asset.path);
+    if (!fs.existsSync(src)) {
+      throw new Error(
+        `Registered asset missing from build output: ${src} ` +
+        `(${asset.pkg}/${asset.path}). Check the package's build copies it into dist/.`
+      );
+    }
+    const basename = path.basename(asset.path);
+    const existing = stagedAssets.get(basename);
+    if (existing && existing !== src) {
+      throw new Error(
+        `Asset basename collision: ${basename} in both ${existing} and ${src}. ` +
+        `Bundle root staging requires unique basenames.`
+      );
+    }
+    await fsp.copyFile(src, path.join(BUNDLE_DIR, basename));
+    stagedAssets.set(basename, src);
+    console.log(`  Staged ${basename} (from ${asset.pkg}/dist/${asset.path})`);
+  }
+  console.log(`  Total: ${stagedAssets.size} registered asset(s) staged`);
+
+  // Cross-check: any *-manifest.json in a package's dist/ that is NOT in the
+  // registry is almost certainly a new provider manifest someone forgot to
+  // register — it would load in dev but not in the packaged app. Fail loudly.
   const packagesDir = path.join(ROOT_DIR, "packages");
 
   async function findManifests(dir, out) {
@@ -417,20 +459,17 @@ async function main() {
   for (const pkg of await fsp.readdir(packagesDir)) {
     await findManifests(path.join(packagesDir, pkg, "dist"), discovered);
   }
-  for (const src of discovered) {
-    const basename = path.basename(src);
-    const existing = stagedManifests.get(basename);
-    if (existing && existing !== src) {
-      throw new Error(
-        `Manifest basename collision: ${basename} in both ${existing} and ${src}. ` +
-        `Bundle root staging requires unique basenames.`
-      );
-    }
-    await fsp.copyFile(src, path.join(BUNDLE_DIR, basename));
-    stagedManifests.set(basename, src);
-    console.log(`  Staged ${basename} (from ${path.relative(ROOT_DIR, src)})`);
+  const unregistered = discovered.filter(
+    (src) => !stagedAssets.has(path.basename(src))
+  );
+  if (unregistered.length > 0) {
+    throw new Error(
+      `Manifest file(s) in dist/ not registered as package runtime assets:\n` +
+      unregistered.map((f) => `  - ${path.relative(ROOT_DIR, f)}`).join("\n") +
+      `\nAdd them to PACKAGE_RUNTIME_ASSETS in ` +
+      `packages/config/src/package-asset-registry.ts so they are staged and verified.`
+    );
   }
-  console.log(`  Total: ${stagedManifests.size} manifest(s) staged`);
 
   // --- Copy example workflows and package assets ---
   // server.ts resolves examples relative to import.meta.url, so in the

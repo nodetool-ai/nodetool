@@ -30,9 +30,9 @@ npm run test:e2e:headed  # E2E with visible window
 
 ### Packaged file layout
 
-The packaged backend is one esbuild bundle (`resources/backend/server.mjs`), so every file the backend resolves relative to `import.meta.url` — provider `*-manifest.json` files, example workflows, `package://` assets — must be staged next to it by `scripts/bundle-backend.mjs`. In dev these resolve through normal package resolution, so a staging gap only breaks the packaged app, and silently (`loadManifest` warns and returns an empty list).
+The packaged backend is one esbuild bundle (`resources/backend/server.mjs`), so every file the backend resolves relative to `import.meta.url` — provider `*-manifest.json` files, example workflows, `package://` assets — must be staged next to it by `scripts/bundle-backend.mjs`. In dev these resolve through normal package resolution, so a staging gap only breaks the packaged app.
 
-Guard: `scripts/verify-backend-bundle.mjs` runs automatically at the end of `bundle-backend.mjs`. It extracts every manifest reference from the bundled `server.mjs` and fails the build if one isn't staged, and checks examples, assets, and the webgpu dawn binaries (also `npm run verify:backend-bundle`). If you add a file the backend loads relative to its own location, stage it in `bundle-backend.mjs` and extend the verifier in the same PR. New providers that follow the `<name>-manifest.json` convention and ship the file in their package's `dist/` are covered automatically.
+Data files a package loads at runtime go through one guarded path: declare the file in `PACKAGE_RUNTIME_ASSETS` (`packages/config/src/package-asset-registry.ts`) and load it with `loadPackageAssetJson` from `@nodetool-ai/config` — never with `readFileSync(new URL(...))` or `createRequire` directly. The accessor resolves both layouts, rejects unregistered files immediately in dev, and records outcomes for diagnostics (`getPackageAssetResolutions`). The registry also drives packaging: `bundle-backend.mjs` stages every entry (and fails on a `dist/*-manifest.json` that isn't registered), and `scripts/verify-backend-bundle.mjs` (run automatically after bundling, also `npm run verify:backend-bundle`) re-checks the final artifact — manifests referenced by `server.mjs`, examples, assets, webgpu dawn binaries.
 
 ### Development Modes
 

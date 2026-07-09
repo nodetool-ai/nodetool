@@ -7,7 +7,7 @@
  * maintain hardcoded model lists.
  */
 
-import { createLogger, importNodeBuiltin } from "@nodetool-ai/config";
+import { createLogger, loadPackageAssetJson } from "@nodetool-ai/config";
 import type {
   ImageModel,
   MusicModel,
@@ -17,10 +17,6 @@ import type {
 
 // Stryker disable next-line StringLiteral: logger name is diagnostic, not asserted.
 const log = createLogger("nodetool.runtime.providers.manifest-models");
-
-const _nodeModule = await importNodeBuiltin<typeof import("node:module")>(
-  "node:module"
-);
 
 // ---------------------------------------------------------------------------
 // Manifest entry shapes — union of Kie / FAL / Replicate conventions
@@ -230,26 +226,11 @@ export function loadManifest(
   // Stryker disable next-line ConditionalExpression: this cache short-circuit is a pure memoization; skipping it just re-resolves the same manifest — behaviour-preserving.
   if (_cache.has(key)) return _cache.get(key)!;
 
-  // _nodeModule is absent only in a non-Node runtime (browser/edge), which the
-  // test environment never is — this fallback is unreachable here.
-  // Stryker disable all
-  if (!_nodeModule) {
-    _cache.set(key, []);
-    return [];
-  }
-  // Stryker restore all
   try {
-    const req = _nodeModule.createRequire(import.meta.url);
-    let data: ManifestNode[];
-    try {
-      data = req(`${packageName}/${exportPath}`) as ManifestNode[];
-    } catch (packageErr) {
-      try {
-        data = req(`./${exportPath}`) as ManifestNode[];
-      } catch {
-        throw packageErr;
-      }
-    }
+    const data = loadPackageAssetJson<ManifestNode[]>(
+      { pkg: packageName, path: exportPath },
+      import.meta.url
+    );
     _cache.set(key, data);
     return data;
   } catch (err) {

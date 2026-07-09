@@ -35,6 +35,19 @@ export {
 export { importOptionalModule } from "./optional-modules.js";
 
 export {
+  PACKAGE_RUNTIME_ASSETS,
+  findPackageAsset,
+  type PackageAssetRef
+} from "./package-asset-registry.js";
+
+export {
+  resolvePackageAssetPath,
+  loadPackageAssetJson,
+  getPackageAssetResolutions,
+  type PackageAssetResolution
+} from "./package-assets.js";
+
+export {
   getNodetoolDataDir,
   getDefaultDbPath,
   getPostgresDatabaseUrl,

@@ -24,11 +24,14 @@ import path from "node:path";
 
 /**
  * Manifest basenames referenced by the bundled server source. Matches quoted
- * string literals like "kie-manifest.json" or "./aki-manifest.json" — the two
- * forms the providers use (createRequire fallback and new URL(import.meta.url)).
+ * string literals like "kie-manifest.json", "./aki-manifest.json", or
+ * "providers/aki-manifest.json" and extracts the basename — the packaged
+ * layout is flat, so the basename is where the file must be staged. The
+ * PACKAGE_RUNTIME_ASSETS registry is itself bundled into server.mjs, so every
+ * registered asset shows up here without importing the registry.
  */
 export function extractManifestReferences(serverSource) {
-  const re = /["'`](?:\.\/)?([A-Za-z0-9_.-]+-manifest\.json)["'`]/g;
+  const re = /["'`][A-Za-z0-9_./-]*?([A-Za-z0-9_.-]+-manifest\.json)["'`]/g;
   const names = new Set();
   for (const match of serverSource.matchAll(re)) {
     names.add(match[1]);
