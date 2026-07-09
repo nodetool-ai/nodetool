@@ -128,6 +128,34 @@ function stubServerTelemetryPlugin(): Plugin {
   };
 }
 
+// Strip remote `@import url(https://…)` statements from emitted CSS chunks.
+// Third-party CSS can smuggle one in (e.g. @measured/puck imports Inter from
+// rsms.me). Chrome treats a failed @import as a failure of the whole
+// stylesheet, so when the CDN is blocked/unreachable the chunk's <link> errors,
+// Vite fires `vite:preloadError`, and preloadErrorReload.ts reloads the page —
+// every affected click becomes a page reload. Fonts are already self-hosted
+// (@fontsource imports in ThemeNodetool), so remote font CSS is redundant;
+// drop it at build time.
+function stripExternalCssImportsPlugin(): Plugin {
+  const EXTERNAL_IMPORT_RE =
+    /@import\s*(?:url\(\s*)?["']?https?:\/\/[^"'()\s;]+["']?\s*\)?[^;]*;/gi;
+  return {
+    name: "strip-external-css-imports",
+    generateBundle(_options, bundle) {
+      for (const asset of Object.values(bundle)) {
+        if (asset.type !== "asset" || !asset.fileName.endsWith(".css")) {
+          continue;
+        }
+        const source = asset.source.toString();
+        const stripped = source.replace(EXTERNAL_IMPORT_RE, "");
+        if (stripped !== source) {
+          asset.source = stripped;
+        }
+      }
+    }
+  };
+}
+
 // Cross-origin isolation for the perf harness page only. crossOriginIsolated
 // unlocks performance.measureUserAgentSpecificMemory(), which attributes JS
 // heap to every realm in the agent cluster — including the browser-runner
@@ -258,6 +286,7 @@ export default defineConfig(async ({ mode }) => {
     plugins: [
       perfPageIsolationPlugin(),
       stubNodeProtocolPlugin(),
+      stripExternalCssImportsPlugin(),
       react({
         jsxImportSource: "@emotion/react",
         babel: {
