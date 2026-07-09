@@ -6,7 +6,8 @@
  * JSON link. The other CRUD + query endpoints move here.
  */
 
-import { Workflow } from "@nodetool-ai/models";
+import { Workflow, getDb, workflows } from "@nodetool-ai/models";
+import { inArray } from "drizzle-orm";
 import {
   getDefaultVectorProvider,
   CollectionNotFoundError,
@@ -44,24 +45,6 @@ function normalizeMetadata(
   return result;
 }
 
-/**
- * Helper: resolve a workflow's name from an id. Returns `null` on any
- * lookup failure. Mirrors the REST handler's forgiving behaviour.
- */
-async function resolveWorkflowName(
-  workflowId: string | undefined
-): Promise<string | null> {
-  if (!workflowId) return null;
-  try {
-    const workflow = (await Workflow.get(workflowId)) as
-      | { name?: string }
-      | null;
-    return workflow?.name ?? null;
-  } catch {
-    return null;
-  }
-}
-
 /** Map CollectionNotFoundError → tRPC NOT_FOUND. Re-throws anything else. */
 function rethrowAsTrpc(err: unknown): never {
   if (err instanceof CollectionNotFoundError) {
@@ -75,14 +58,48 @@ export const collectionsRouter = router({
     const provider = getDefaultVectorProvider();
     const collections = await provider.listCollections();
 
+    // Pre-calculate normalized metadata and gather unique workflow IDs to avoid N+1 queries.
+    const normalizedMetadataMap = new Map<string, Record<string, string | number | boolean>>();
+    const wfIds = new Set<string>();
+
+    for (const info of collections) {
+      const metadata = normalizeMetadata(info.metadata);
+      normalizedMetadataMap.set(info.name, metadata);
+      if (typeof metadata.workflow === "string") {
+        wfIds.add(metadata.workflow);
+      }
+    }
+
+    const workflowNames = new Map<string, string>();
+    if (wfIds.size > 0) {
+      try {
+        const db = getDb();
+        const rows = await db
+          .select({ id: workflows.id, name: workflows.name })
+          .from(workflows)
+          .where(inArray(workflows.id, Array.from(wfIds)));
+        for (const row of rows) {
+          if (row.id && row.name) {
+            workflowNames.set(row.id as string, row.name as string);
+          }
+        }
+      } catch (err) {
+        // Log database resolution failures but proceed without failing entirely.
+        console.error("Failed to bulk resolve workflow names for collections:", err);
+      }
+    }
+
     const results = await Promise.all(
       collections.map(async (info) => {
         const collection = await provider.getCollection({ name: info.name });
         const count = await collection.count();
-        const metadata = normalizeMetadata(info.metadata);
-        const workflowName = await resolveWorkflowName(
-          typeof metadata.workflow === "string" ? metadata.workflow : undefined
-        );
+        const metadata = normalizedMetadataMap.get(info.name) ?? {};
+
+        let workflowName: string | null = null;
+        if (typeof metadata.workflow === "string") {
+          workflowName = workflowNames.get(metadata.workflow) ?? null;
+        }
+
         return {
           name: info.name,
           count,

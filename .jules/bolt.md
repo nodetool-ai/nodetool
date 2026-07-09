@@ -52,3 +52,6 @@
 ## 2026-05-25 - O(N*M) Optimization for record key clearing
 **Learning:** Found an $O(N \times M)$ performance bottleneck in stores (`ResultsStore.ts`, `StatusStore.ts`, `ErrorStore.ts`) where `suffixes.some((suffix) => key.endsWith(suffix))` was called inside a loop over record keys. `suffixes` was previously computed by mapping a Set of IDs, creating unnecessary allocations.
 **Action:** Replace `Array.some(suffix => key.endsWith(suffix))` with extracting the ID from the end of the `key` string using `key.lastIndexOf(':')` and `key.substring()`. This allows a direct $O(1)$ `Set.has(id)` check against the original set of IDs, dropping the complexity to $O(N)$.
+## 2024-05-15 - Collection Router Bulk Workflow Resolution
+**Learning:** Sequential calls to database fetchers like `resolveWorkflowName` across a `Promise.all` inside `.map()` arrays leads to N+1 querying patterns which negatively scales as collection size increases.
+**Action:** Replaced sequential query within the mapping over `collections` with a pre-pass approach. This extracts unique workflow IDs using a `Set`, bulk fetches their mapping via `drizzle-orm`'s `inArray`, and caches these mapping rules inside an O(1) `Map` memory lookup structure before mapping.
