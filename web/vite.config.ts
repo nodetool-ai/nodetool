@@ -59,7 +59,9 @@ const NODE_BUILTIN_STUBS: Record<string, string> = {
   "node:http2": `${NODE_STUBS}/empty.js`,
   "node:perf_hooks": `${NODE_STUBS}/empty.js`,
   "node:vm": `${NODE_STUBS}/empty.js`,
-  "node:stream": `${NODE_STUBS}/empty.js`,
+  // Not empty: memfs (QuickJS sandbox → universal Code node) subclasses
+  // stream.Readable/Writable at module scope — see stream-stub.js.
+  "node:stream": `${NODE_STUBS}/stream-stub.js`,
   "node:async_hooks": `${NODE_STUBS}/empty.js`,
   "node:util": `${NODE_STUBS}/empty.js`,
   "node:buffer": `${NODE_STUBS}/buffer-stub.js`,

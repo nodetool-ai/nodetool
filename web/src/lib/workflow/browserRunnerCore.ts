@@ -138,12 +138,10 @@ const NODE_MODULE_GROUPS: ReadonlyArray<
   ["subgraph", () => import("@nodetool-ai/core-nodes/nodes/subgraph")],
   ["workflow", () => import("@nodetool-ai/core-nodes/nodes/workflow")],
   // The universal Code node (nodetool.code.Code) runs vanilla JS in a QuickJS
-  // WebAssembly sandbox — no Node `vm`, no subprocess. Imported via its own
-  // subpath (not the code-nodes index, which pulls code-runners → Docker/ssh2).
-  // NOTE: currently fails to evaluate in the bundled browser build — the
-  // QuickJS sandbox pulls memfs, whose ReadStream extends `stream.Readable`
-  // from the stubbed-empty `node:stream` — so the group loader below skips it
-  // and Code nodes route to the server.
+  // WebAssembly sandbox — no Node `vm`, no subprocess — so it runs client-side.
+  // Imported via its own subpath (not the code-nodes index, which pulls
+  // code-runners → Docker/ssh2). The sandbox pulls memfs, which needs the real
+  // stream classes from vite's stream-stub (readable-stream) to evaluate.
   ["code-node", () => import("@nodetool-ai/code-nodes/nodes/code-node")],
   [
     "lib-image-color-grading",
