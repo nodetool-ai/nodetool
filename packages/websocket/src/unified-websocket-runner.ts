@@ -2149,6 +2149,19 @@ export class UnifiedWebSocketRunner {
         active.finished = true;
       });
 
+    const baseGraphNodes =
+      (
+        active.graph as {
+          nodes?: Array<{ id?: unknown; type?: unknown }>;
+        }
+      ).nodes ?? [];
+    const graphNodeMap = new Map<string, { id?: unknown; type?: unknown }>();
+    for (const node of baseGraphNodes) {
+      if (node.id != null) {
+        graphNodeMap.set(String(node.id), node);
+      }
+    }
+
     while (!active.finished || active.context.hasMessages()) {
       while (active.context.hasMessages()) {
         const msg = active.context.popMessage();
@@ -2194,13 +2207,7 @@ export class UnifiedWebSocketRunner {
           outbound.type === "generation_complete"
         ) {
           const nodeId = String(outbound.node_id ?? "");
-          const graphNodes =
-            (
-              active.graph as {
-                nodes?: Array<{ id?: unknown; type?: unknown }>;
-              }
-            ).nodes ?? [];
-          const node = graphNodes.find((n) => n.id === nodeId);
+          const node = graphNodeMap.get(nodeId);
           const nodeType = typeof node?.type === "string" ? node.type : "";
 
           // Skip constant and input nodes entirely
@@ -5143,6 +5150,14 @@ export class UnifiedWebSocketRunner {
           active.finished = true;
         });
 
+      const baseGraphNodes = graph.nodes ?? [];
+      const graphNodeMap = new Map<string, { id?: unknown; type?: unknown }>();
+      for (const node of baseGraphNodes) {
+        if (node.id != null) {
+          graphNodeMap.set(String(node.id), node);
+        }
+      }
+
       while (!active.finished || active.context.hasMessages()) {
         while (active.context.hasMessages()) {
           const msg = active.context.popMessage();
@@ -5160,8 +5175,7 @@ export class UnifiedWebSocketRunner {
             outbound.type === "output_update"
           ) {
             const nodeId = String(outbound.node_id ?? "");
-            const graphNodes = graph.nodes ?? [];
-            const node = graphNodes.find((n) => n.id === nodeId);
+            const node = graphNodeMap.get(nodeId);
             const nodeType = typeof node?.type === "string" ? node.type : "";
 
             await this._handleNodeProviderCost(active, outbound, nodeType);
