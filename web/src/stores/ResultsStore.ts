@@ -227,14 +227,17 @@ const filterRecord = <K extends string, T>(
 ): Record<K, T> => {
   const prefix = `${workflowId}:`;
   if (specificIds) {
-    const suffixes = Array.from(specificIds).map((id) => `:${id}`);
     const newRecord = { ...record };
     for (const key in newRecord) {
-      if (
-        key.startsWith(prefix) &&
-        suffixes.some((suffix) => key.endsWith(suffix))
-      ) {
-        delete newRecord[key];
+      if (key.startsWith(prefix)) {
+        // key format is typically wf:job:id or similar. The final segment is the id.
+        const lastColonIndex = key.lastIndexOf(':');
+        if (lastColonIndex !== -1) {
+          const id = key.substring(lastColonIndex + 1);
+          if (specificIds.has(id)) {
+            delete newRecord[key];
+          }
+        }
       }
     }
     return newRecord;

@@ -54,14 +54,16 @@ const useStatusStore = create<StatusStore>((set, get) => ({
     const prefix = `${workflowId}:`;
 
     if (nodeIds) {
-      const suffixes = Array.from(nodeIds).map((id) => `:${id}`);
       for (const key in newStatuses) {
-        if (
-          key.startsWith(prefix) &&
-          suffixes.some((suffix) => key.endsWith(suffix))
-        ) {
-          delete newStatuses[key as NodeKey];
-          changed = true;
+        if (key.startsWith(prefix)) {
+          const lastColonIndex = key.lastIndexOf(':');
+          if (lastColonIndex !== -1) {
+            const id = key.substring(lastColonIndex + 1);
+            if (nodeIds.has(id)) {
+              delete newStatuses[key as NodeKey];
+              changed = true;
+            }
+          }
         }
       }
     } else {
