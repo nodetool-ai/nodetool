@@ -86,14 +86,18 @@ Playwright locally.
 
 ### Bootstrapping baselines for the first time
 
-Playwright defaults to `updateSnapshots: "missing"`: **missing baselines are
-created and the test passes; only an existing baseline that differs fails.**
-So the very first CI run on a PR without baselines will pass and upload the
-generated baselines as a `visual-regression` artifact. Download it, drop the
-`*-snapshots/` folders into `web/tests/visual/`, and commit — or run the
-`update=true` dispatch on the PR branch. Until baselines are committed,
-enforcement is dormant (missing → pass); after they're committed, any
-unexpected change fails the build.
+Playwright defaults to `updateSnapshots: "missing"`: when a baseline is
+**missing** it is written to disk, but the test **fails** with
+`A snapshot doesn't exist ... writing actual.` so the new baseline is
+acknowledged and committed rather than silently accepted. An **existing**
+baseline that differs also fails.
+
+So the first CI run on a PR without baselines will fail while writing them,
+and upload the generated `*-snapshots/` folders as a `visual-regression`
+artifact. Download it, drop the folders into `web/tests/visual/`, commit — or
+run the `update=true` dispatch on the PR branch, which regenerates and commits
+them for you. The initial baselines for this suite are already committed in
+this change, so PRs fail only on genuine diffs.
 
 ## Keeping tests stable (no flaky results)
 
@@ -116,12 +120,17 @@ If a test is genuinely flaky, prefer masking the volatile region
 
 ## CI
 
-- Triggers on PRs touching `web/tests/visual/**`, `web/src/**`, `packages/*/src/**`,
+- Triggers on PRs touching `web/tests/visual/**`, `web/src/**`, `web/package.json`,
   or the config/workflow itself (see `.github/workflows/visual-regression.yml`).
 - Builds packages, installs Chromium + Firefox with deps, runs the suite.
 - Uploads the baselines + HTML report (with side-by-side diffs) as an artifact
   on every run, retained 30 days.
-- Fails the PR on unexpected diffs once baselines are committed.
+- Fails the PR on unexpected diffs (baselines are committed in-tree).
+
+> **Firefox scope.** The `firefox-desktop` project runs the chat + settings
+> `@smoke` tests only. The node-graph editor is Chromium-only — Firefox closes
+> the page when the editor mounts (likely a WebGPU/canvas init crash), so it is
+> excluded from the cross-browser smoke set.
 
 ## Typechecking
 

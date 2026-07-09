@@ -36,7 +36,7 @@ async function waitForNodes(
 }
 
 test.describe("Node Graph Editor", () => {
-  test("empty canvas @smoke", async ({ page }) => {
+  test("empty canvas", async ({ page }) => {
     // wf-image-pipeline is seeded with an empty graph → bare editor chrome +
     // empty ReactFlow grid. The canonical "nothing here yet" editor state.
     await gotoPage(page, "/editor/wf-image-pipeline");
@@ -53,7 +53,7 @@ test.describe("Node Graph Editor", () => {
     );
   });
 
-  test("nodes added and connected @smoke", async ({ page }) => {
+  test("nodes added and connected", async ({ page }) => {
     // wf-story-generator: 2 StringInputs → Agent → Preview + Output, with
     // edges between them. The canonical "populated graph" state.
     await gotoPage(page, "/editor/wf-story-generator");
