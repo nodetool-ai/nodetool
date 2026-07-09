@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sdk",
-  "version": "0.7.0-rc.31",
+  "version": "0.7.0-rc.32",
   "type": "module",
   "engines": {
     "node": ">=22.0.0 <23.0.0"

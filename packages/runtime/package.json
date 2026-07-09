@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/runtime",
-  "version": "0.7.0-rc.31",
+  "version": "0.7.0-rc.32",
   "description": "Processing context, message queue, and output normalization",
   "type": "module",
   "engines": {

@@ -4,7 +4,7 @@
   "engines": {
     "node": ">=22.0.0 <23.0.0"
   },
-  "version": "0.7.0-rc.31",
+  "version": "0.7.0-rc.32",
   "description": "In-container tool server: Fastify HTTP service exposing file, shell, browser, and desktop tools to the host sandbox. Ships baked into the sandbox Docker image.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

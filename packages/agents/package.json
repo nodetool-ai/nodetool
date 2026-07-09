@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/agents",
-  "version": "0.7.0-rc.31",
+  "version": "0.7.0-rc.32",
   "description": "Agent system for planning and executing multi-step LLM tasks",
   "type": "module",
   "engines": {
