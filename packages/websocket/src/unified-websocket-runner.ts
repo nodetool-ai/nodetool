@@ -5143,6 +5143,14 @@ export class UnifiedWebSocketRunner {
           active.finished = true;
         });
 
+      const nodeTypes = new Map<string, string>();
+      const graphNodes = graph.nodes ?? [];
+      for (const n of graphNodes) {
+        if (n.id) {
+          nodeTypes.set(String(n.id), typeof n.type === "string" ? n.type : "");
+        }
+      }
+
       while (!active.finished || active.context.hasMessages()) {
         while (active.context.hasMessages()) {
           const msg = active.context.popMessage();
@@ -5160,9 +5168,7 @@ export class UnifiedWebSocketRunner {
             outbound.type === "output_update"
           ) {
             const nodeId = String(outbound.node_id ?? "");
-            const graphNodes = graph.nodes ?? [];
-            const node = graphNodes.find((n) => n.id === nodeId);
-            const nodeType = typeof node?.type === "string" ? node.type : "";
+            const nodeType = nodeTypes.get(nodeId) ?? "";
 
             await this._handleNodeProviderCost(active, outbound, nodeType);
 
