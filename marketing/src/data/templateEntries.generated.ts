@@ -3685,7 +3685,8 @@ export const templateEntries: TemplateEntry[] = [
       "video",
       "audio",
       "music",
-      "visualization"
+      "visualization",
+      "example"
     ],
     "category": "Video",
     "nodeTypes": [
@@ -3762,16 +3763,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "audio_track",
           "type": "nodetool.input.AudioInput",
           "title": "Audio Input",
-          "x": 0,
-          "y": 0,
+          "x": 50,
+          "y": 104,
           "width": 280
         },
         {
           "id": "genre_hint",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 0,
-          "y": 0,
+          "x": 50,
+          "y": 396,
           "width": 280,
           "subtitle": "electronic ambient"
         },
@@ -3779,8 +3780,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "visual_style",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 0,
-          "y": 0,
+          "x": 50,
+          "y": 642,
           "width": 280,
           "subtitle": "abstract geometric patterns, neon colors, flowing energy"
         },
@@ -3788,8 +3789,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "num_frames",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 0,
-          "y": 0,
+          "x": 50,
+          "y": 888,
           "width": 280,
           "subtitle": "8"
         },
@@ -3797,80 +3798,80 @@ export const templateEntries: TemplateEntry[] = [
           "id": "transcription",
           "type": "nodetool.text.AutomaticSpeechRecognition",
           "title": "Automatic Speech Recognition",
-          "x": 0,
-          "y": 0,
+          "x": 400,
+          "y": 255,
           "width": 280
         },
         {
           "id": "mood_analyzer",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 0,
-          "y": 0,
+          "x": 740,
+          "y": 282,
           "width": 280
         },
         {
           "id": "mood_analysis",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 0,
-          "y": 0,
+          "x": 1050,
+          "y": 354,
           "width": 280
         },
         {
           "id": "frame_prompt_generator",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 0,
-          "y": 0,
+          "x": 1390,
+          "y": 496,
           "width": 280
         },
         {
           "id": "frame_prompts",
           "type": "nodetool.generators.ListGenerator",
           "title": "List Generator",
-          "x": 0,
-          "y": 0,
+          "x": 1700,
+          "y": 495,
           "width": 280
         },
         {
           "id": "prompt_iterator",
           "type": "nodetool.control.ForEach",
           "title": "For Each",
-          "x": 0,
-          "y": 0,
+          "x": 2010,
+          "y": 613,
           "width": 280
         },
         {
           "id": "visual_frame",
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
-          "x": 0,
-          "y": 0,
+          "x": 2320,
+          "y": 465,
           "width": 384
         },
         {
           "id": "collected_frames",
           "type": "nodetool.control.Collect",
           "title": "Collect",
-          "x": 0,
-          "y": 0,
+          "x": 2764,
+          "y": 359,
           "width": 280
         },
         {
           "id": "video_output",
           "type": "nodetool.video.FrameToVideo",
           "title": "Frame To Video",
-          "x": 0,
-          "y": 0,
+          "x": 2764,
+          "y": 559,
           "width": 416
         },
         {
           "id": "final_video",
           "type": "nodetool.video.AddAudio",
           "title": "Add Audio",
-          "x": 0,
-          "y": 0,
+          "x": 3240,
+          "y": 50,
           "width": 416
         }
       ],
