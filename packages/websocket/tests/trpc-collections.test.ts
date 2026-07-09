@@ -17,7 +17,8 @@ vi.mock("@nodetool-ai/models", async (orig) => {
   const actual = await orig<typeof import("@nodetool-ai/models")>();
   return {
     ...actual,
-    Workflow: { ...actual.Workflow, get: vi.fn() }
+    getDb: vi.fn(),
+    workflows: { id: "id", name: "name" }
   };
 });
 
@@ -26,7 +27,7 @@ import {
   CollectionNotFoundError,
   type VectorMatch
 } from "@nodetool-ai/vectorstore";
-import { Workflow } from "@nodetool-ai/models";
+import { getDb } from "@nodetool-ai/models";
 
 const createCaller = createCallerFactory(appRouter);
 
@@ -83,9 +84,12 @@ describe("collections router", () => {
         ]),
         getCollection
       });
-      (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue({
-        name: "My Workflow"
-      });
+      const mockDb = {
+        select: vi.fn().mockReturnThis(),
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockResolvedValue([{ id: "wf-123", name: "My Workflow" }])
+      };
+      (getDb as any).mockReturnValue(mockDb);
 
       const caller = createCaller(makeCtx());
       const result = await caller.collections.list();
@@ -103,7 +107,7 @@ describe("collections router", () => {
         metadata: {},
         workflow_name: null
       });
-      expect(Workflow.get).toHaveBeenCalledWith("wf-123");
+      expect(getDb).toHaveBeenCalled();
     });
 
     it("rejects unauthenticated callers", async () => {
