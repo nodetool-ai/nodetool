@@ -148,7 +148,10 @@ function stripExternalCssImportsPlugin(): Plugin {
         if (asset.type !== "asset" || !asset.fileName.endsWith(".css")) {
           continue;
         }
-        const source = asset.source.toString();
+        const source =
+          typeof asset.source === "string"
+            ? asset.source
+            : new TextDecoder().decode(asset.source);
         const stripped = source.replace(EXTERNAL_IMPORT_RE, "");
         if (stripped !== source) {
           asset.source = stripped;

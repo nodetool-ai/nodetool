@@ -223,24 +223,36 @@ const NODE_MODULE_GROUPS: ReadonlyArray<
  * Import a lazy chunk, tolerating failure. A failed `import()` normally
  * rejects, but on the main thread the app's `vite:preloadError` listener
  * (`preloadErrorReload.ts`) suppresses Vite's rethrow, in which case the
- * import resolves `undefined` instead — treat both as "not available".
+ * import resolves `undefined` instead — treat both as "not available",
+ * keeping the failure for the caller's diagnostics.
  */
-async function importOptional(load: () => Promise<unknown>): Promise<unknown> {
+async function importOptional(
+  load: () => Promise<unknown>
+): Promise<{ mod: unknown; error: unknown }> {
   try {
-    return (await load()) ?? null;
-  } catch {
-    return null;
+    const mod = (await load()) ?? null;
+    return {
+      mod,
+      error: mod
+        ? null
+        : new Error("import resolved empty (chunk preload failure suppressed)")
+    };
+  } catch (error) {
+    return { mod: null, error };
   }
 }
 
 export async function loadBrowserModules(): Promise<LoadedModules> {
   // The runner module is required — without it there is no browser runner and
   // the caller falls back to the server path.
-  const wf = (await importOptional(
+  const wfImport = await importOptional(
     () => import("@nodetool-ai/workflow-runner/browser")
-  )) as WorkflowRunnerModule | null;
+  );
+  const wf = wfImport.mod as WorkflowRunnerModule | null;
   if (!wf) {
-    throw new Error("workflow-runner browser module failed to load");
+    throw new Error(
+      `workflow-runner browser module failed to load: ${String(wfImport.error)}`
+    );
   }
 
   // Node groups are independent: one group failing to load or evaluate in this
@@ -255,10 +267,15 @@ export async function loadBrowserModules(): Promise<LoadedModules> {
 
   const nodeClasses: unknown[] = [];
   const perGroup: Record<string, number> = {};
-  const failedGroups: string[] = [];
-  for (const [name, mod] of loaded) {
+  let failedGroups = 0;
+  for (const [name, { mod, error }] of loaded) {
     if (!mod) {
-      failedGroups.push(name);
+      failedGroups += 1;
+      console.warn(
+        `[browserRunner] node group "${name}" failed to load — ` +
+          "its nodes will run on the server",
+        error
+      );
       continue;
     }
     const classes = collectNodeClasses(mod as Record<string, unknown>);
@@ -267,28 +284,32 @@ export async function loadBrowserModules(): Promise<LoadedModules> {
   }
   console.info(
     `[browserRunner] loaded ${nodeClasses.length} node class(es) from ` +
-      `${loaded.length - failedGroups.length}/${loaded.length} group(s)`,
+      `${loaded.length - failedGroups}/${loaded.length} group(s)`,
     perGroup
   );
-  if (failedGroups.length > 0) {
-    console.warn(
-      `[browserRunner] ${failedGroups.length} node group(s) failed to load — ` +
-        "their nodes will run on the server",
-      failedGroups
-    );
-  }
 
   // The GPU-texture boundary helpers — read-back at serialize points + run-end
   // texture cleanup. Loaded here so they ride the same lazy chunk as the nodes.
   // Optional: without them, GPU-node runs lose texture read-back/cleanup, but
   // those nodes only register when the image groups above loaded.
-  const [imageIo, gpuDevice] = (await Promise.all([
+  const [imageIoImport, gpuDeviceImport] = await Promise.all([
     importOptional(() => import("@nodetool-ai/image-nodes/nodes/image-io")),
     importOptional(() => import("@nodetool-ai/image-nodes/nodes/gpu-device"))
-  ])) as [
-    typeof import("@nodetool-ai/image-nodes/nodes/image-io") | null,
-    typeof import("@nodetool-ai/image-nodes/nodes/gpu-device") | null
-  ];
+  ]);
+  for (const [name, { mod, error }] of [
+    ["image-io", imageIoImport],
+    ["gpu-device", gpuDeviceImport]
+  ] as const) {
+    if (!mod) {
+      console.warn(`[browserRunner] GPU helper "${name}" failed to load`, error);
+    }
+  }
+  const imageIo = imageIoImport.mod as
+    | typeof import("@nodetool-ai/image-nodes/nodes/image-io")
+    | null;
+  const gpuDevice = gpuDeviceImport.mod as
+    | typeof import("@nodetool-ai/image-nodes/nodes/gpu-device")
+    | null;
 
   return {
     wf,
