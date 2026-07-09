@@ -89,18 +89,20 @@ const useErrorStore = create<ErrorStore>((set, get) => ({
   clearErrors: (workflowId: string, nodeIds?: Set<string>) => {
     if (nodeIds) {
       const prefix = `${workflowId}:`;
-      const suffixes = Array.from(nodeIds).map((id) => `:${id}`);
       set((state) => {
         // Keys are `${wf}:${job}:${node}`; the node is the final segment, so
         // match on the wf prefix AND the `:${node}` suffix to clear that node
         // across all of the workflow's jobs.
         const newErrors = { ...state.errors };
         for (const key in newErrors) {
-          if (
-            key.startsWith(prefix) &&
-            suffixes.some((suffix) => key.endsWith(suffix))
-          ) {
-            delete newErrors[key as NodeKey];
+          if (key.startsWith(prefix)) {
+            const lastColonIndex = key.lastIndexOf(':');
+            if (lastColonIndex !== -1) {
+              const id = key.substring(lastColonIndex + 1);
+              if (nodeIds.has(id)) {
+                delete newErrors[key as NodeKey];
+              }
+            }
           }
         }
         return { errors: newErrors };
