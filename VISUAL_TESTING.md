@@ -285,10 +285,11 @@ job that ran it.
 
 ## Team Workflow
 
-1. **PR opens.** Pushing a branch triggers the visual-tests workflow
-   (`.github/workflows/visual-tests.yml`) on the PR. It builds Storybook once
-   and runs both the Chromatic publish and the Playwright visual suite.
-2. **Review changes.** Open the links the workflow leaves on the PR:
+1. **PR opens.** Pushing a branch triggers the two visual workflows on the PR:
+   `.github/workflows/chromatic.yml` builds Storybook and publishes it to
+   Chromatic, and `.github/workflows/visual-regression.yml` runs the Playwright
+   visual suite.
+2. **Review changes.** Open the links the workflows leave on the PR:
    - The **Chromatic** check links to the per-story diff review UI.
    - The **Playwright** report is uploaded as a workflow artifact (expected /
      actual / diff images).
@@ -311,31 +312,51 @@ job that ran it.
 
 ## Configuration Files
 
-### `.chromatic.config.json` (Chromatic)
+### `chromatic.config.json` (Chromatic)
 
-Lives at the repo root. Configures the Chromatic CLI used by CI.
+Lives at the repo root. Configures the Chromatic CLI used by CI and the local
+`npm run chromatic` script.
 
 ```jsonc
 {
-  "projectToken": "REPLACE_WITH_CHROMATIC_PROJECT_TOKEN",
-  "storybookBuildDir": "web/storybook-static",
+  "$schema": "https://www.chromatic.com/config-file.schema.json",
+  "buildScriptName": "build-storybook", // Chromatic builds Storybook (+ TurboSnap stats)
+  "storybookBaseDir": "web", // Storybook project root, relative to the repo (for TurboSnap)
   "onlyChanged": true, // TurboSnap: snapshot only affected stories
   "exitZeroOnChanges": true, // don't fail the build on new diffs (review in UI)
-  "autoAcceptChanges": "main", // accept changes on main so merges update baselines
-  "skip": "@chromatic-com/webpack5" // bail early if the build can't be analyzed
+  "autoAcceptChanges": "main" // accept changes on main so merges update baselines
 }
 ```
 
+- `buildScriptName: "build-storybook"` lets Chromatic build Storybook itself, so
+  it emits the TurboSnap stats file `onlyChanged` needs. No separate build step.
+- `storybookBaseDir: "web"` tells TurboSnap where the Storybook project lives in
+  the monorepo so it can map changed files to stories correctly.
 - `onlyChanged: true` is what keeps Chromatic under the CI budget — it
   re-snapshots only stories reachable from changed files.
 - `autoAcceptChanges: "main"` means pushes to `main` automatically become the
   new baseline (after a human accepted them on the PR). PR branches still
   surface diffs for review.
 - `exitZeroOnChanges: true` keeps the workflow non-blocking while baselines
-  stabilize.
+  stabilize: visual changes exit 0, so the check reports diffs without failing
+  the PR. Build/infra errors still exit non-zero and fail the job.
 
-The project token should come from the `CHROMATIC_PROJECT_TOKEN` secret in CI,
-not be committed.
+The project token is **not** committed. It comes from the
+`CHROMATIC_PROJECT_TOKEN` repository secret in CI (see below); locally, export
+it as an env var before `npm run chromatic`.
+
+#### `CHROMATIC_PROJECT_TOKEN` secret
+
+The Chromatic workflow needs a `CHROMATIC_PROJECT_TOKEN` repository secret:
+
+1. Create/connect the repo in [Chromatic](https://www.chromatic.com/) (via the
+   GitHub App — this is also what posts the per-PR check and diff comment).
+2. Copy the project token from **Manage → Configure** in Chromatic.
+3. Add it under **Settings → Secrets and variables → Actions →
+   `CHROMATIC_PROJECT_TOKEN`**.
+
+Fork PRs can't read the secret, so the `chromatic` job skips on forks rather
+than failing.
 
 ### `playwright.config.ts` (visual settings)
 
@@ -375,25 +396,37 @@ Notes:
   `threshold`) are passed to `toHaveScreenshot()` directly and override the
   config defaults for that one assertion.
 
-### `.github/workflows/visual-tests.yml` (CI)
+### Visual CI workflows
 
-The single workflow that runs both visual layers on PRs and on `main`. It:
+The two visual layers run in **separate** workflows so each only fires when its
+inputs change:
 
-1. Checks out the code and sets up Node via `.github/actions/setup-build`.
-2. Builds the workspace packages (`npm run build:packages`) and the static
-   Storybook (`npm run build-storybook`).
-3. Publishes to Chromatic with `onlyChanged` — leaves the review-UI link on
-   the PR.
-4. Installs the Playwright Chromium browser (cached) and runs
-   `npm run test:visual` from `web/`.
-5. Uploads the Playwright HTML report and any diff images as a workflow
-   artifact on failure, so reviewers can see expected/actual/diff without
-   cloning.
+**`.github/workflows/chromatic.yml`** — component/Storybook layer. On PRs and on
+`push` to `main` (paths: `web/src/**`, `web/.storybook/**`, `web/package.json`,
+`chromatic.config.json`, the workflow itself) it:
 
-The workflow is triggered on `pull_request` and `push: branches: [main]`,
-with `concurrency: cancel-in-progress` so a new push supersedes a stale run.
-It starts non-blocking (visual failures warn but don't fail the gate) until
-baselines are stable.
+1. Checks out with `fetch-depth: 0` (TurboSnap + baseline detection need full
+   git history).
+2. Sets up Node and installs deps via `.github/actions/setup-build`
+   (`build-packages: false` — Storybook resolves `@nodetool-ai/*` to TS
+   sources, so no package dist build is needed).
+3. Runs `chromaui/action`, which builds Storybook (`buildScriptName`) and
+   publishes it to Chromatic. Behaviour comes from `chromatic.config.json`:
+   `onlyChanged` (TurboSnap), `exitZeroOnChanges` (non-blocking), and
+   `autoAcceptChanges: main`.
+
+The Chromatic **check** (and the GitHub App's PR comment) link to the per-story
+diff review UI. `concurrency: cancel-in-progress` supersedes a stale run.
+
+**`.github/workflows/visual-regression.yml`** — E2E/page layer (Playwright). On
+PRs and `push` to `main` it builds the workspace packages, installs the
+Playwright browsers, runs `npm run test:visual`, and uploads the HTML report +
+diff images as an artifact. It also starts non-blocking (`continue-on-error`)
+while baselines mature, and offers a `workflow_dispatch` `update=true` path to
+regenerate and commit baselines in CI.
+
+Both start non-blocking (visual failures warn but don't fail the gate) until
+baselines are stable; only build/infra errors fail the job.
 
 ---
 
@@ -428,7 +461,7 @@ whole suite.
 | Run Playwright visual suite                  | `cd web && npm run test:visual`         |
 | Update Playwright baselines                  | `cd web && npm run test:visual:update`  |
 | Open Playwright UI (local iteration)         | `cd web && npm run test:visual -- --ui` |
-| Run Chromatic locally                        | `cd web && npm run chromatic`           |
+| Run Chromatic locally                        | `CHROMATIC_PROJECT_TOKEN=… npm run chromatic` |
 | Build Storybook locally                      | `cd web && npm run build-storybook`     |
 | Capture **doc** screenshots (not regression) | `npm run screenshots`                   |
 
@@ -439,8 +472,9 @@ whole suite.
 | Playwright baselines    | `web/tests/__snapshots__/` (committed)            |
 | Storybook stories       | `web/src/**/*.stories.tsx`                        |
 | Storybook build output  | `web/storybook-static/`                           |
-| Chromatic config        | `.chromatic.config.json` (repo root)              |
-| Visual CI workflow      | `.github/workflows/visual-tests.yml`              |
+| Chromatic config        | `chromatic.config.json` (repo root)               |
+| Chromatic CI workflow   | `.github/workflows/chromatic.yml`                 |
+| Playwright CI workflow  | `.github/workflows/visual-regression.yml`         |
 | Determinism helpers     | `web/tests/benchmarks/helpers/`                   |
 | Backend test harness    | `web/tests/globalSetup.ts`                        |
 

@@ -1,0 +1,71 @@
+name: Chromatic
+
+# Component-level visual regression for the Storybook design system.
+# Builds Storybook, publishes it to Chromatic, and surfaces per-story visual
+# diffs on the PR via the Chromatic check + GitHub App comment.
+#
+# Behaviour is driven by `chromatic.config.json` at the repo root:
+#   - buildScriptName: build-storybook  → Chromatic builds Storybook (and emits
+#     the TurboSnap stats file it needs) instead of us prebuilding it.
+#   - onlyChanged: true                 → TurboSnap re-snapshots only the stories
+#     reachable from changed files, keeping PR runtime under the 5-minute budget.
+#   - exitZeroOnChanges: true           → visual changes do NOT fail the job
+#     (non-blocking while baselines mature); build/infra errors still exit non-zero.
+#   - autoAcceptChanges: main           → merges to main update the cloud baseline.
+#
+# Required secret: CHROMATIC_PROJECT_TOKEN (Chromatic project → Manage → Configure).
+
+on:
+  pull_request:
+    paths:
+      # The stories, the components they render, Storybook config, and this setup.
+      - "web/src/**"
+      - "web/.storybook/**"
+      - "web/package.json"
+      - "chromatic.config.json"
+      - ".github/workflows/chromatic.yml"
+  push:
+    branches: [main]
+    paths:
+      - "web/src/**"
+      - "web/.storybook/**"
+      - "web/package.json"
+      - "chromatic.config.json"
+      - ".github/workflows/chromatic.yml"
+
+# A newer push to the same branch supersedes an in-flight run.
+concurrency:
+  group: chromatic-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  chromatic:
+    name: Component visual tests
+    runs-on: ubuntu-latest
+    # Fork PRs can't read the project-token secret; skip rather than fail. Runs
+    # on same-repo PRs and on pushes to main.
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          # TurboSnap (onlyChanged) and baseline detection need full git history.
+          fetch-depth: 0
+
+      - name: Set up and install
+        # Storybook resolves @nodetool-ai/* to TS sources via the `nodetool-dev`
+        # condition (see web/.storybook/main.ts), so no package dist build is
+        # needed — skip build:packages to keep the run fast.
+        uses: ./.github/actions/setup-build
+        with:
+          build-packages: "false"
+
+      - name: Publish to Chromatic
+        uses: chromaui/action@latest
+        with:
+          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          # Build settings (buildScriptName, onlyChanged, exitZeroOnChanges,
+          # autoAcceptChanges, storybookBaseDir) come from chromatic.config.json.
