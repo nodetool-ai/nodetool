@@ -27,7 +27,7 @@ import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
 import { useNodes } from "../../contexts/NodeContext";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { shallow } from "zustand/shallow";
 
 interface SelectionContextMenuProps {

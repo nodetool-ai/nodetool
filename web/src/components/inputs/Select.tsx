@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import React, {
   useCallback,
   useMemo,

@@ -19,7 +19,7 @@ import {
   getSpacingPx,
   InputAdornment
 } from "../ui_primitives";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import Markdown from "react-markdown";
 
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";

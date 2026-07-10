@@ -24,7 +24,7 @@ import {
 // store
 import { NodeData } from "../../stores/NodeData";
 import { debounce } from "../../utils/lodashAlternatives";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import {
   parse,
   alpha,

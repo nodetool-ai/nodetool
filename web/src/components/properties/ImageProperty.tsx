@@ -7,7 +7,7 @@ import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import PropertyDropzone from "./PropertyDropzone";
 import { memo } from "react";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { useUpstreamValue } from "../../hooks/nodes/useNodeIO";
 import ImageRefPreview from "../node/ImageRefPreview";
 

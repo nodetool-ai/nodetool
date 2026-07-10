@@ -5,7 +5,7 @@ import { PropertyProps } from "../node/PropertyInput";
 import LlamaModelSelect from "./LlamaModelSelect";
 import HuggingFaceModelSelect from "./HuggingFaceModelSelect";
 import TransformersJsModelSelect from "./TransformersJsModelSelect";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { memo, useMemo } from "react";
 import LanguageModelSelect from "./LanguageModelSelect";
 import EmbeddingModelSelect from "./EmbeddingModelSelect";

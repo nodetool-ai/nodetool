@@ -1,7 +1,7 @@
 import React, { memo, useMemo } from "react";
 import { NPArray } from "../../stores/ApiTypes";
 import { Text, FlexColumn, Surface, BORDER_RADIUS } from "../ui_primitives";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 
 interface ArrayViewProps {
   array: NPArray;

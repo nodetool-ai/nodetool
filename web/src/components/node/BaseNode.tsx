@@ -16,7 +16,7 @@ import {
   Position,
   ResizeParams
 } from "@xyflow/react";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import {
   Container,
   BORDER_RADIUS,

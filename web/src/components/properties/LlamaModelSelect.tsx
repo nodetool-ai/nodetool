@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useRef, memo } from "react";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 
 import {
   Text,

@@ -5,7 +5,7 @@
  * resize) into a SINGLE undo entry.
  *
  * The pattern: let the first store mutation that actually changes the document
- * record the pre-gesture state (zundo pushes it onto the undo stack), then
+ * record the pre-gesture state (the temporal middleware pushes it onto the undo stack), then
  * pause history tracking so the rest of the gesture records nothing, and
  * resume on pointerup.
  *

@@ -3,7 +3,7 @@ import { useTheme } from "@mui/material/styles";
 import { Autocomplete, Chip, Box, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { NodeTextField } from "../ui_primitives";
 
 const StringListProperty = (props: PropertyProps) => {

@@ -11,7 +11,7 @@
  */
 
 import React, { memo, useMemo } from "react";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { Handle, Position } from "@xyflow/react";
 import { useShallow } from "zustand/react/shallow";
 import { css } from "@emotion/react";

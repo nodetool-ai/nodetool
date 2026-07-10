@@ -25,7 +25,7 @@ import React, {
   useEffect,
   useMemo
 } from "react";
-import type { TemporalState } from "zundo";
+import type { TemporalState } from "../temporal";
 
 import { createInstanceHook } from "../instanceStoreHook";
 import {

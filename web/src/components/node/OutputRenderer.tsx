@@ -39,7 +39,7 @@ import ImageView from "./ImageView";
 import AssetViewer from "../assets/AssetViewer";
 import TaskPlanView from "./TaskPlanView";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { Chunk } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
 import { trpc } from "../../trpc/client";

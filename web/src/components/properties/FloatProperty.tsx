@@ -1,7 +1,7 @@
 import { memo, useCallback } from "react";
 import NumberInput from "../inputs/NumberInput";
 import { PropertyProps } from "../node/PropertyInput";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { useInputMinMax } from "../../hooks/useInputMinMax";
 import { useTemporalNodes } from "../../contexts/NodeContext";
 

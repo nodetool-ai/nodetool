@@ -5,7 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import React, { useState, useEffect, useRef, memo, useCallback, useMemo } from "react";
 import { Label, BORDER_RADIUS } from "../ui_primitives";
 import { ColumnDef } from "../../stores/ApiTypes";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import Column from "./Column";
 
 const styles = (theme: Theme) =>

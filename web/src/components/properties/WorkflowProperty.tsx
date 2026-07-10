@@ -3,7 +3,7 @@ import PropertyLabel from "../node/PropertyLabel";
 import { useQuery } from "@tanstack/react-query";
 import { PropertyProps } from "../node/PropertyInput";
 import { memo, useCallback } from "react";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { NodeSelect, NodeMenuItem } from "../editor_ui";
 import type { SelectChangeEvent } from "../ui_primitives";

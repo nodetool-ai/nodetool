@@ -10,7 +10,7 @@ import ColumnsManager from "../node/ColumnsManager";
 import { EditorButton, ButtonGroup, BORDER_RADIUS } from "../ui_primitives";
 // icons
 import TableRowsIcon from "@mui/icons-material/TableRows";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 
 const styles = (theme: Theme) =>
   css({

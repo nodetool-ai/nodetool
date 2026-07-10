@@ -4,7 +4,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Text, Box, BORDER_RADIUS } from "../../ui_primitives";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../../utils/isEqual";
 
 const objectStyles = (theme: Theme) =>
   css({

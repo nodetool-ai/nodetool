@@ -4,7 +4,7 @@ import useContextMenuStore from "../../stores/ContextMenuStore";
 import useLogsStore, { nodeLogKey } from "../../stores/LogStore";
 import { shallow } from "zustand/shallow";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { NodeData } from "../../stores/NodeData";
 import { getCollapseTogglePatches } from "../../stores/collapseNodeLayout";
 import { useNodes } from "../../contexts/NodeContext";

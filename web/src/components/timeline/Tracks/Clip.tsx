@@ -498,7 +498,7 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
   // whole gesture into a single undo entry we begin a batch on pointerdown,
   // mark() after each mutation (which pauses history once the pre-gesture
   // state has actually been checkpointed), and end() on pointerup. While
-  // paused, zundo records nothing — so one undo step reverts the entire drag.
+  // paused, the temporal middleware records nothing — so one undo step reverts the entire drag.
   const history = useTimelineHistoryBatch();
 
   // ── Drag (move) ─────────────────────────────────────────────────────────

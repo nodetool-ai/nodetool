@@ -31,7 +31,7 @@ import { useTheme, type Theme } from "@mui/material/styles";
 import useQuickAddNodeStore from "../../stores/QuickAddNodeStore";
 import { useNodes } from "../../contexts/NodeContext";
 import { useReactFlow } from "@xyflow/react";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/shallow";
 

@@ -5,7 +5,7 @@ import { NodeProps, Handle, Position } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import {
   Tooltip,
   Container,

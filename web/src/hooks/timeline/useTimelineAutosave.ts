@@ -21,7 +21,7 @@
  *     save; the one exception is a load that migrated a legacy transcript,
  *     which is persisted once (see `markTimelineLoadMigrated`).
  *   - Pending edits are flushed on unmount.
- *   - Gesture-aware: a drag/trim/slider gesture pauses the zundo temporal
+ *   - Gesture-aware: a drag/trim/slider gesture pauses the temporal
  *     store for its duration (`useTimelineHistoryBatch`). If the debounce
  *     timer fires while a gesture is still open, the flush re-arms itself
  *     instead of PATCHing the intermediate, mid-gesture state — pointerup

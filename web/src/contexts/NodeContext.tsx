@@ -6,8 +6,8 @@ import {
 } from "../stores/NodeStore";
 import { shallow } from "zustand/shallow";
 import { useStoreWithEqualityFn } from "zustand/traditional";
-import { TemporalState } from "zundo";
-import isEqual from "fast-deep-equal";
+import { TemporalState } from "../stores/temporal";
+import isEqual from "../utils/isEqual";
 
 
 // Extend Window interface for HMR context preservation

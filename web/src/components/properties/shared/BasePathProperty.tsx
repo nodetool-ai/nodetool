@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { memo, useCallback, useState } from "react";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../../utils/isEqual";
 import PropertyLabel from "../../node/PropertyLabel";
 import { PropertyProps } from "../../node/PropertyInput";
 import { useTheme } from "@mui/material/styles";

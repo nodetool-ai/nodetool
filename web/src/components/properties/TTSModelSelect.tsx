@@ -1,5 +1,5 @@
 import React, { memo, useState, useCallback, useMemo, useRef } from "react";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import TTSModelMenuDialog from "../model_menu/TTSModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import type {

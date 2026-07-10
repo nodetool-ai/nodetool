@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useMemo, useRef, useState } from "react";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import AspectRatioIcon from "@mui/icons-material/AspectRatio";
 import DisplaySettingsIcon from "@mui/icons-material/DisplaySettings";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";

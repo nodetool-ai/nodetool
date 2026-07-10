@@ -1,5 +1,5 @@
 import { memo, useCallback } from "react";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { useLocation, useNavigate } from "react-router-dom";
 import MovieOutlinedIcon from "@mui/icons-material/MovieOutlined";
 import type { SelectChangeEvent } from "../ui_primitives";

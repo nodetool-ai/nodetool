@@ -8,7 +8,7 @@ import {
   MuiAutocomplete as Autocomplete
 } from "../../ui_primitives";
 import { useQuery } from "@tanstack/react-query";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../../utils/isEqual";
 import { useNodes } from "../../../contexts/NodeContext";
 import { useWorkflowManager } from "../../../contexts/WorkflowManagerContext";
 import { Workflow, WorkflowList } from "../../../stores/ApiTypes";

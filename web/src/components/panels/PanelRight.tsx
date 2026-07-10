@@ -7,7 +7,7 @@ import Inspector from "../Inspector";
 import { useResizeRightPanel } from "../../hooks/handlers/useResizeRightPanel";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
 import { memo, useCallback, useEffect } from "react";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { NodeContext } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useShallow } from "zustand/react/shallow";

@@ -27,7 +27,7 @@ import { integerEditor, floatEditor, datetimeEditor } from "./DataTableEditors";
 import { format, isValid, parseISO } from "../../../utils/dateFormat";
 import { tableStyles } from "../../../styles/TableStyles";
 import { useTheme } from "@mui/material/styles";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../../utils/isEqual";
 
 /**
  * Union type for all possible cell values in a DataFrame column
