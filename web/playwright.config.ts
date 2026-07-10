@@ -29,8 +29,10 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./tests",
 
-  /* The E2E workflow runner has its own config + backend (e2e-server). */
-  testIgnore: "**/e2e-runner/**",
+  /* The E2E workflow runner and the visual-regression suite each have their
+     own config + project selection; exclude them from this (documentation
+     screenshot) config so `npx playwright test` doesn't pick them up. */
+  testIgnore: ["**/e2e-runner/**", "**/visual/**"],
 
   /* Maximum time one test can run */
   timeout: 60_000,

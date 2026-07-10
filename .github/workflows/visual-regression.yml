@@ -1,0 +1,133 @@
+name: Visual Regression
+
+on:
+  pull_request:
+    paths:
+      # Run when the visual suite, config, or the web UI it screenshots changes.
+      # Backend package-only changes are verified via the dispatch workflow.
+      - "web/tests/visual/**"
+      - "web/playwright.visual.config.ts"
+      - "web/src/**"
+      - "web/package.json"
+      - ".github/workflows/visual-regression.yml"
+  push:
+    branches: [main]
+    paths:
+      - "web/tests/visual/**"
+      - "web/playwright.visual.config.ts"
+      - "web/src/**"
+  workflow_dispatch:
+    inputs:
+      update:
+        description: "Regenerate baselines and commit them to the branch"
+        required: false
+        default: "false"
+        type: choice
+        options: ["false", "true"]
+
+permissions:
+  contents: write # so the update-baselines job can push back to the branch
+
+jobs:
+  visual:
+    name: Playwright visual snapshots
+    runs-on: ubuntu-latest
+    # Don't run the auto-update path on pull_request — only via dispatch or push
+    # with inputs.update=true. The comparison run is skipped when updating.
+    if: ${{ !(github.event.inputs.update == 'true') }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build workspace packages
+        # The seeded screenshot backend (tests/globalSetup.ts) imports
+        # @nodetool-ai/* via the `development` export condition, which resolves
+        # to each package's compiled dist/. Build them first, same as the
+        # documentation-screenshot workflow.
+        run: npm run build:packages
+
+      - name: Install Playwright browsers (chromium + firefox)
+        working-directory: web
+        run: npx playwright install chromium firefox --with-deps
+
+      - name: Run visual regression tests
+        working-directory: web
+        # Report-first phase (per the parent plan): the suite runs on every PR
+        # and uploads side-by-side diffs as an artifact, but does not block the
+        # PR yet. Committed baselines are captured outside CI, so cross-renderer
+        # font anti-aliasing produces diffs until baselines are regenerated in
+        # CI via the `update=true` dispatch. Flip this to blocking (remove
+        # continue-on-error) once CI-generated baselines are committed. See
+        # web/tests/visual/README.md § CI.
+        continue-on-error: true
+        env:
+          # Same deterministic test-only master key committed in
+          # web/tests/globalSetup.ts. Never use in production.
+          SECRETS_MASTER_KEY: "U0NSRUVOU0hPVF9URVNUX0tFWV9ET19OT1RfVVNFISE="
+        run: npm run test:visual
+
+      - name: Upload visual baselines + report
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: visual-regression
+          # Baselines (to download + commit on first run) and the HTML report
+          # with side-by-side diffs for any failures.
+          path: |
+            web/tests/visual/**/*-snapshots/
+            web/playwright-report/
+          retention-days: 30
+
+  update-baselines:
+    name: Update visual baselines
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.update == 'true' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build workspace packages
+        run: npm run build:packages
+
+      - name: Install Playwright browsers
+        working-directory: web
+        run: npx playwright install chromium firefox --with-deps
+
+      - name: Regenerate baselines
+        working-directory: web
+        env:
+          SECRETS_MASTER_KEY: "U0NSRUVOU0hPVF9URVNUX0tFWV9ET19OT1RfVVNFISE="
+        run: npm run test:visual:update
+
+      - name: Commit updated baselines
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add web/tests/visual/**/*-snapshots/
+          if git diff --cached --quiet; then
+            echo "No baseline changes to commit."
+          else
+            git commit -m "chore(visual): update E2E visual baselines [skip ci]"
+            git push
+          fi
