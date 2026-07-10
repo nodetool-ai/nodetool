@@ -329,9 +329,7 @@ export default defineConfig(async ({ mode }) => {
                     return "vendor-mui";
                   if (/[\\/]node_modules[\\/]@mui[\\/]x-/.test(id))
                     return "vendor-mui-x";
-                  if (
-                    /[\\/]node_modules[\\/](react-plotly\.js|plotly\.js)[\\/]/.test(id)
-                  )
+                  if (/[\\/]node_modules[\\/]plotly\.js[\\/]/.test(id))
                     return "vendor-plotly";
                   if (
                     /[\\/]node_modules[\\/](three|@react-three[\\/]fiber|@react-three[\\/]drei)[\\/]/.test(

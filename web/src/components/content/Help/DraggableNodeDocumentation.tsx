@@ -1,8 +1,8 @@
 /** @jsxImportSource @emotion/react */
-import React, { useMemo, useRef, useCallback } from "react";
+import React, { useMemo, useCallback } from "react";
 import NodeInfo from "../../node_menu/NodeInfo";
 import { css } from "@emotion/react";
-import Draggable from "react-draggable";
+import { useDraggable } from "../../../hooks/useDraggable";
 import { EditorButton, SPACING, getSpacingPx } from "../../ui_primitives";
 import { useReactFlow } from "@xyflow/react";
 import useNodeMenuStore from "../../../stores/NodeMenuStore";
@@ -83,7 +83,10 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
   const nodeMetadata = useMetadataStore((state) =>
     state.getMetadata(nodeType ?? "")
   );
-  const nodeRef = useRef<HTMLDivElement>(null);
+  const nodeRef = useDraggable<HTMLDivElement>({
+    handle: ".handle",
+    defaultPosition: position
+  });
   const { createNode, addNode } = useNodes((state) => ({
     createNode: state.createNode,
     addNode: state.addNode
@@ -106,7 +109,7 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
       addNode(newNode);
       onClose();
     }
-  }, [nodeMetadata, createNode, addNode, reactFlowInstance, onClose]);
+  }, [nodeMetadata, nodeRef, createNode, addNode, reactFlowInstance, onClose]);
 
   const handleOpenNodeMenu = useCallback(() => {
     if (nodeType) {
@@ -158,15 +161,13 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
   ]);
 
   return (
-    <Draggable handle=".handle" defaultPosition={position} nodeRef={nodeRef}>
-      <div css={cssStyles} ref={nodeRef}>
-        <div className="handle"></div>
-        <button type="button" className="close-button" onClick={onClose}>
-          ×
-        </button>
-        <div className="content">{content}</div>
-      </div>
-    </Draggable>
+    <div css={cssStyles} ref={nodeRef}>
+      <div className="handle"></div>
+      <button type="button" className="close-button" onClick={onClose}>
+        ×
+      </button>
+      <div className="content">{content}</div>
+    </div>
   );
 };
 

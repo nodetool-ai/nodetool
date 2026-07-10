@@ -1,5 +1,5 @@
 /**
- * Map KeyboardEvent.key values to react-simple-keyboard `data-skbtn` ids (lowercase).
+ * Map KeyboardEvent.key values to on-screen keyboard `data-skbtn` ids (lowercase).
  */
 
 export function physicalKeyToLayoutButtonId(rawKey: string): string {

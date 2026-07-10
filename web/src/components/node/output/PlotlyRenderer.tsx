@@ -4,9 +4,7 @@ import { LoadingSpinner, FlexRow, BORDER_RADIUS } from "../../ui_primitives";
 import type { PlotlyConfig } from "../../../stores/ApiTypes";
 import type { Data, Layout, Config, Frame } from "plotly.js";
 
-const PlotlyPlot = lazy(() => 
-  import("react-plotly.js").then(module => ({ default: module.default }))
-);
+const PlotlyPlot = lazy(() => import("./PlotlyChart"));
 
 const FULL_SIZE_STYLE: React.CSSProperties = { width: "100%", height: "100%" };
 

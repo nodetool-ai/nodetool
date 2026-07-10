@@ -1,5 +1,38 @@
+/*
+ * Styles for the custom on-screen keyboard (OnScreenKeyboard.tsx). The class
+ * names (.hg-theme-default, .hg-row, .hg-button, data-skbtn, hg-pressed) keep
+ * the DOM contract of the replaced react-simple-keyboard package, whose base
+ * layout styles are inlined below.
+ */
 .hg-theme-default {
   background: var(--palette-grey-900);
+  padding: var(--spacing-sm);
+  border-radius: var(--rounded-lg);
+  box-sizing: border-box;
+  width: 100%;
+  user-select: none;
+}
+
+.hg-theme-default .hg-row {
+  display: flex;
+}
+
+.hg-theme-default .hg-row:not(:last-child) {
+  margin-bottom: var(--spacing-sm);
+}
+
+.hg-theme-default .hg-row .hg-button:not(:last-child) {
+  margin-right: var(--spacing-sm);
+}
+
+.hg-theme-default .hg-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-grow: 1;
+  box-sizing: border-box;
+  border-radius: var(--rounded-sm);
+  cursor: pointer;
 }
 
 .keyboard-view {

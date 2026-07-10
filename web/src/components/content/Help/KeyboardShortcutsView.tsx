@@ -5,8 +5,7 @@ import React, {
   useMemo,
   useCallback
 } from "react";
-import Keyboard from "react-simple-keyboard";
-import "react-simple-keyboard/build/css/index.css";
+import OnScreenKeyboard from "./OnScreenKeyboard";
 import { ToggleGroup, ToggleOption } from "../../ui_primitives";
 import { Tooltip } from "../../ui_primitives";
 import {
@@ -37,14 +36,8 @@ interface KeyboardShortcutsViewProps {
 
 /**
  * Renders an on-screen keyboard highlighting all keys involved in the provided shortcuts.
- * When hovering a key, browser-native `title` tooltips show the shortcut names.
+ * Hovering a highlighted key shows a tooltip with the shortcut names.
  */
-interface HoverHandlers {
-  handleEnter: (event: MouseEvent) => void;
-  handleLeave: () => void;
-}
-const hoverHandlerMap = new WeakMap<HTMLElement, HoverHandlers>();
-
 type CategoryFilter =
   | "editor"
   | "panel"
@@ -249,56 +242,22 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
     return m;
   }, [activeShortcuts, os, shortcuts]);
 
-  const handleButtonMouseEnter = (button: string, e: React.MouseEvent) => {
-    if (isKeyPressedRef.current) {return;}
-    const key = button.toLowerCase();
-    if (keySlugMap[key]) {
-      setHoverSlugs(keySlugMap[key]);
-      setTooltipAnchorEl(e.target as HTMLElement);
-    }
-  };
+  const handleButtonMouseEnter = useCallback(
+    (button: string, e: React.MouseEvent<HTMLElement>) => {
+      if (isKeyPressedRef.current) {return;}
+      const key = button.toLowerCase();
+      if (keySlugMap[key]) {
+        setHoverSlugs(keySlugMap[key]);
+        setTooltipAnchorEl(e.currentTarget);
+      }
+    },
+    [keySlugMap]
+  );
 
-  const handleButtonMouseLeave = () => {
+  const handleButtonMouseLeave = useCallback(() => {
     setHoverSlugs(null);
     setTooltipAnchorEl(null);
-  };
-
-  // After render, attach title attributes to every button
-  useEffect(() => {
-    if (!containerRef.current) {return;}
-    const btns =
-      containerRef.current.querySelectorAll<HTMLButtonElement>(".hg-button");
-    btns.forEach((btn) => {
-      const key = btn.getAttribute("data-skbtn")?.toLowerCase();
-      if (key && keyTitleMap[key]) {
-        // add hover listeners once
-        const handleEnter = (event: MouseEvent) => {
-          if (isKeyPressedRef.current) {return;}
-          setHoverSlugs(keySlugMap[key]);
-          setTooltipAnchorEl(event.currentTarget as HTMLElement);
-        };
-        const handleLeave = () => {
-          setHoverSlugs(null);
-          setTooltipAnchorEl(null);
-        };
-        btn.addEventListener("mouseenter", handleEnter);
-        btn.addEventListener("mouseleave", handleLeave);
-        hoverHandlerMap.set(btn, { handleEnter, handleLeave });
-      }
-    });
-
-    // cleanup on dependencies change
-    return () => {
-      btns.forEach((btn) => {
-        const handlers = hoverHandlerMap.get(btn);
-        if (handlers) {
-          btn.removeEventListener("mouseenter", handlers.handleEnter);
-          btn.removeEventListener("mouseleave", handlers.handleLeave);
-          hoverHandlerMap.delete(btn);
-        }
-      });
-    };
-  }, [keyTitleMap, keySlugMap]);
+  }, []);
 
   const display = useMemo(
     () => ({
@@ -431,7 +390,7 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
       </ToggleGroup>
 
       <div ref={containerRef} className="keyboard-view">
-        <Keyboard
+        <OnScreenKeyboard
           layout={layout}
           layoutName={layoutName}
           display={display}
