@@ -1,41 +1,38 @@
 {
-  "name": "@nodetool-ai/storage",
-  "version": "0.7.0-rc.32",
+  "name": "@nodetool-ai/docker",
   "type": "module",
   "engines": {
     "node": ">=22.0.0 <23.0.0"
   },
+  "version": "0.7.0-rc.32",
+  "description": "Minimal typed Docker Engine API client over the unix socket: container lifecycle, attach hijack, stream demux, image pull",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "nodetool-dev": "./src/index.ts",
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    }
-  },
   "scripts": {
     "build": "node ../../scripts/build-typescript-workspace.mjs",
     "test": "vitest run",
-    "test:mutation": "stryker run",
-    "lint": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@nodetool-ai/config": "*",
-    "@openclaw/fs-safe": "^0.1.2"
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@stryker-mutator/core": "^9.6.1",
-    "@stryker-mutator/vitest-runner": "^9.6.1",
     "@types/node": "^22.0.0",
     "typescript": "^5.7.2",
     "vitest": "^4.1.2"
+  },
+  "exports": {
+    ".": {
+      "nodetool-dev": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
   },
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/nodetool-ai/nodetool.git",
-    "directory": "packages/storage"
+    "directory": "packages/docker"
   },
   "homepage": "https://nodetool.ai",
   "bugs": {
@@ -50,14 +47,9 @@
   ],
   "keywords": [
     "nodetool",
-    "ai",
-    "workflow",
-    "workflow-automation",
-    "typescript",
-    "storage",
-    "s3",
-    "file-storage",
-    "supabase",
-    "object-storage"
+    "docker",
+    "docker-engine-api",
+    "container",
+    "typescript"
   ]
 }

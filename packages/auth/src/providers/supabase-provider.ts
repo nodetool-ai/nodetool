@@ -1,20 +1,95 @@
 /**
  * Supabase JWT authentication provider — T-SEC-4.
  *
- * Validates Supabase JWT tokens by calling supabase.auth.getUser(token).
+ * Validates Supabase JWT tokens against the GoTrue REST endpoint
+ * (`GET /auth/v1/user`) with a plain `fetch` call — no supabase-js.
  * Uses an LRU token cache with TTL to avoid repeated API calls.
  *
  * Ported from Python: src/nodetool/security/providers/supabase.py
  */
 
 import { createHash } from "node:crypto";
-import {
-  createClient,
-  type SupabaseClient as SupabaseClientType
-} from "@supabase/supabase-js";
 import { AuthProvider, AuthResult, TokenType } from "../auth-provider.js";
 
-type SupabaseClient = SupabaseClientType;
+/** The slice of the GoTrue user object we consume. */
+interface GoTrueUser {
+  id: string;
+}
+
+interface GetUserResult {
+  data: { user: GoTrueUser | null };
+  error: { message: string } | null;
+}
+
+/**
+ * Minimal client shape kept structurally compatible with the supabase-js
+ * subset previously used (`client.auth.getUser(token)`), so tests can inject
+ * a stub.
+ */
+interface SupabaseAuthClient {
+  auth: {
+    getUser(token: string): Promise<GetUserResult>;
+  };
+}
+
+/** Extract a human-readable message from a GoTrue error body. */
+function readGoTrueErrorMessage(body: unknown, status: number): string {
+  if (body && typeof body === "object") {
+    const obj = body as Record<string, unknown>;
+    for (const field of ["msg", "message", "error_description", "error"]) {
+      const val = obj[field];
+      if (typeof val === "string" && val) return val;
+    }
+  }
+  return `Supabase auth request failed with status ${status}`;
+}
+
+/**
+ * fetch-backed GoTrue client covering exactly the surface we use:
+ * `GET {supabaseUrl}/auth/v1/user` with the token as Bearer auth.
+ */
+function createGoTrueClient(
+  supabaseUrl: string,
+  supabaseKey: string
+): SupabaseAuthClient {
+  let base = supabaseUrl;
+  while (base.endsWith("/")) base = base.slice(0, -1);
+  return {
+    auth: {
+      async getUser(token: string): Promise<GetUserResult> {
+        const response = await fetch(`${base}/auth/v1/user`, {
+          method: "GET",
+          headers: {
+            apikey: supabaseKey,
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        let body: unknown = null;
+        try {
+          body = await response.json();
+        } catch {
+          // Non-JSON body (e.g. empty 5xx) — handled below via status.
+        }
+
+        if (!response.ok) {
+          return {
+            data: { user: null },
+            error: {
+              message: readGoTrueErrorMessage(body, response.status)
+            }
+          };
+        }
+
+        const user =
+          body && typeof body === "object" && "id" in body
+            ? { id: String((body as { id: unknown }).id) }
+            : null;
+        return { data: { user }, error: null };
+      }
+    }
+  };
+}
 
 export interface SupabaseAuthProviderOptions {
   supabaseUrl: string;
@@ -33,7 +108,7 @@ export class SupabaseAuthProvider extends AuthProvider {
   private supabaseKey: string;
   private cacheTtl: number;
   private cacheMax: number;
-  private _client: SupabaseClient | null = null;
+  private _client: SupabaseAuthClient | null = null;
 
   /**
    * LRU cache: Map preserves insertion order; we delete-and-reinsert on access
@@ -52,9 +127,9 @@ export class SupabaseAuthProvider extends AuthProvider {
 
   // ── Client initialisation ────────────────────────────────────────────
 
-  private _getClient(): SupabaseClient {
+  private _getClient(): SupabaseAuthClient {
     if (!this._client) {
-      this._client = createClient(this.supabaseUrl, this.supabaseKey);
+      this._client = createGoTrueClient(this.supabaseUrl, this.supabaseKey);
     }
     return this._client;
   }

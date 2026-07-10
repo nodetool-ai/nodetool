@@ -10,7 +10,7 @@ import RestoreIcon from "@mui/icons-material/Restore";
 import CompareIcon from "@mui/icons-material/Compare";
 import { Caption, Chip, DeleteButton, LoadingSpinner, Text, Tooltip, ToolbarIconButton, MOTION, SPACING, getSpacingPx } from "../ui_primitives";
 import { SaveType } from "../../stores/VersionHistoryStore";
-import { formatDistanceToNow, format } from "date-fns";
+import { formatDistanceToNow, format } from "../../utils/dateFormat";
 import { WorkflowVersion } from "../../stores/ApiTypes";
 import { WorkflowMiniPreview } from "./WorkflowMiniPreview";
 

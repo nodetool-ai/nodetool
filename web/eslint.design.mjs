@@ -56,6 +56,7 @@ export const designTokenIgnores = [
   // same category as textEditor/codeHighlightStyles.ts.
   "src/components/node/output/JSONRenderer.tsx",
   "src/components/node/output/ToolCallRenderer.tsx",
+  "src/components/chat/message/markdown_elements/codeBlockColors.ts",
   // Canvas / WebGL / xterm surfaces consume *literal* colors (a CSS var() can't
   // be read by a 2D/GL/terminal renderer), so their color config stays literal.
   "src/components/node/NodeTerminal.tsx",

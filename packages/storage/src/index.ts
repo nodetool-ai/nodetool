@@ -28,6 +28,12 @@ export {
   SupabaseStorageAdapter,
   type SupabaseStorageAdapterOptions
 } from "./supabase-storage-adapter.js";
+export {
+  createSupabaseStorageClient,
+  type SupabaseStorageApi,
+  type SupabaseBucketApi,
+  type SupabaseObjectEntry
+} from "./supabase-rest.js";
 export { createStorageAdapter, type StorageConfig } from "./factory.js";
 
 // In-house SigV4 S3 client

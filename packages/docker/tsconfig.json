@@ -16,20 +16,6 @@
     "composite": true,
     "incremental": true
   },
-  "include": [
-    "src/**/*.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "**/*.test.ts"
-  ],
-  "references": [
-    {
-      "path": "../config"
-    },
-    {
-      "path": "../docker"
-    }
-  ]
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts"]
 }

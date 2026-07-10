@@ -14,7 +14,7 @@ import { useVersionHistoryStore, SaveType } from "../../stores/VersionHistorySto
 import { useWorkflowVersions } from "../../serverState/useWorkflowVersions";
 import { computeGraphDiff, GraphDiff } from "../../utils/graphDiff";
 import { WorkflowVersion, Graph } from "../../stores/ApiTypes";
-import { formatDistanceToNow, format } from "date-fns";
+import { formatDistanceToNow, format } from "../../utils/dateFormat";
 import PanelToolbar from "../panels/PanelToolbar";
 import {
   Caption,
