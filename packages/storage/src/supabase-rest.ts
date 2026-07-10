@@ -98,7 +98,8 @@ export function createSupabaseStorageClient(
   supabaseUrl: string,
   supabaseKey: string
 ): SupabaseStorageApi {
-  const base = supabaseUrl.replace(/\/+$/, "");
+  let base = supabaseUrl;
+  while (base.endsWith("/")) base = base.slice(0, -1);
   const authHeaders: Record<string, string> = {
     apikey: supabaseKey,
     Authorization: `Bearer ${supabaseKey}`

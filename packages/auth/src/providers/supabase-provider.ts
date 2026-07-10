@@ -52,7 +52,8 @@ function createGoTrueClient(
   supabaseUrl: string,
   supabaseKey: string
 ): SupabaseAuthClient {
-  const base = supabaseUrl.replace(/\/+$/, "");
+  let base = supabaseUrl;
+  while (base.endsWith("/")) base = base.slice(0, -1);
   return {
     auth: {
       async getUser(token: string): Promise<GetUserResult> {

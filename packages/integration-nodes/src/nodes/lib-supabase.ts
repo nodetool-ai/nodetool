@@ -89,7 +89,8 @@ async function postgrestFetch(
   apiKey: string,
   req: PostgrestRequest
 ): Promise<unknown> {
-  const base = supabaseUrl.replace(/\/+$/, "");
+  let base = supabaseUrl;
+  while (base.endsWith("/")) base = base.slice(0, -1);
   const qs = req.params.toString();
   const url = `${base}/rest/v1/${req.path}${qs ? `?${qs}` : ""}`;
 

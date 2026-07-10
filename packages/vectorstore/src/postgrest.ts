@@ -321,7 +321,9 @@ export class PostgrestClient implements PostgrestClientApi {
   private readonly schema: string;
 
   constructor(options: PostgrestClientOptions) {
-    this.base = options.url.replace(/\/+$/, "");
+    let base = options.url;
+    while (base.endsWith("/")) base = base.slice(0, -1);
+    this.base = base;
     this.apiKey = options.apiKey;
     this.schema = options.schema ?? "public";
   }
