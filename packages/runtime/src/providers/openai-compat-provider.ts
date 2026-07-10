@@ -173,7 +173,9 @@ export class OpenAICompatProvider extends OpenAIProvider {
     });
 
     this.recordRequestPayload(request);
-    const stream = this.getCompatClient().chatCompletionsStream(request);
+    const stream = this.getCompatClient().chatCompletionsStream(request, {
+      signal: args.signal
+    });
 
     const deltaToolCalls = new Map<number, MutableToolCall>();
 
@@ -262,7 +264,9 @@ export class OpenAICompatProvider extends OpenAIProvider {
     });
 
     this.recordRequestPayload(request);
-    const completion = await this.getCompatClient().chatCompletions(request);
+    const completion = await this.getCompatClient().chatCompletions(request, {
+      signal: args.signal
+    });
 
     const choice = completion.choices?.[0];
     if (!choice) {

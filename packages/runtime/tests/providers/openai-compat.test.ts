@@ -345,9 +345,9 @@ describe("OpenAICompatClient.chatCompletionsStream", () => {
     expect((error as OpenAICompatError).code).toBe("boom");
   });
 
-  it("throws on a mid-stream error event carrying empty choices", async () => {
+  it("throws on a mid-stream error event carrying a completion choice", async () => {
     const body =
-      'data: {"error":{"message":"stream blew up","code":"boom"},"choices":[]}\n\n';
+      'data: {"error":{"message":"stream blew up","code":429},"choices":[{"index":0,"delta":{"content":""},"finish_reason":"error"}]}\n\n';
     const fetchMock = vi.fn(
       async () =>
         new Response(body, {
@@ -370,7 +370,7 @@ describe("OpenAICompatClient.chatCompletionsStream", () => {
     })();
 
     expect(error).toBeInstanceOf(OpenAICompatError);
-    expect((error as OpenAICompatError).code).toBe("boom");
+    expect((error as OpenAICompatError).code).toBe("429");
   });
 
   it("throws on a non-2xx streaming response with the parsed error message", async () => {

@@ -342,6 +342,7 @@ export class LlamaProvider extends BaseProvider {
     presencePenalty?: number;
     frequencyPenalty?: number;
     audio?: Record<string, unknown>;
+    signal?: AbortSignal;
   }): AsyncGenerator<ProviderStreamItem> {
     const {
       model,
@@ -365,7 +366,9 @@ export class LlamaProvider extends BaseProvider {
     }
 
     this.recordRequestPayload(request);
-    const stream = this.getClient().chatCompletionsStream(request);
+    const stream = this.getClient().chatCompletionsStream(request, {
+      signal: args.signal
+    });
 
     const deltaToolCalls = new Map<number, MutableToolCall>();
     let accumulatedText = "";
@@ -434,6 +437,7 @@ export class LlamaProvider extends BaseProvider {
     topP?: number;
     presencePenalty?: number;
     frequencyPenalty?: number;
+    signal?: AbortSignal;
   }): Promise<Message> {
     const {
       model,
@@ -457,7 +461,9 @@ export class LlamaProvider extends BaseProvider {
     }
 
     this.recordRequestPayload(request);
-    const completion = await this.getClient().chatCompletions(request);
+    const completion = await this.getClient().chatCompletions(request, {
+      signal: args.signal
+    });
     const message = completion.choices?.[0]?.message;
     const content = String(message?.content ?? "");
 

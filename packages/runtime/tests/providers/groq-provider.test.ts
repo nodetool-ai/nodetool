@@ -156,4 +156,29 @@ describe("GroqProvider", () => {
 
     expect(items.length).toBeGreaterThanOrEqual(1);
   });
+
+  it("does not start chat requests when the caller has aborted", async () => {
+    const fetchMock = vi.fn<typeof fetch>();
+    const provider = new GroqProvider(
+      { GROQ_API_KEY: "k" },
+      { fetchFn: fetchMock }
+    );
+    const controller = new AbortController();
+    controller.abort(new Error("cancelled"));
+    const args = {
+      messages: [{ role: "user" as const, content: "hi" }],
+      model: "llama-3.1-70b",
+      signal: controller.signal
+    };
+
+    await expect(provider.generateMessage(args)).rejects.toThrow("cancelled");
+
+    const collect = async () => {
+      for await (const item of provider.generateMessages(args)) {
+        void item;
+      }
+    };
+    await expect(collect()).rejects.toThrow("cancelled");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 });

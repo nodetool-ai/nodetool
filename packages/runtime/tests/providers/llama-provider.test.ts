@@ -153,6 +153,31 @@ describe("LlamaProvider", () => {
     ]);
   });
 
+  it("does not start chat requests when the caller has aborted", async () => {
+    const fetchMock = vi.fn<typeof fetch>();
+    const provider = new LlamaProvider(
+      { LLAMA_CPP_URL: "http://127.0.0.1:8080" },
+      { fetchFn: fetchMock }
+    );
+    const controller = new AbortController();
+    controller.abort(new Error("cancelled"));
+    const args = {
+      messages: [{ role: "user" as const, content: "hi" }],
+      model: "gemma3:4b",
+      signal: controller.signal
+    };
+
+    await expect(provider.generateMessage(args)).rejects.toThrow("cancelled");
+
+    const collect = async () => {
+      for await (const item of provider.generateMessages(args)) {
+        void item;
+      }
+    };
+    await expect(collect()).rejects.toThrow("cancelled");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("detects context-length errors", () => {
     const provider = new LlamaProvider(
       { LLAMA_CPP_URL: "http://127.0.0.1:8080" },
