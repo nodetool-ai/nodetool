@@ -338,6 +338,43 @@ describe("OpenAIProvider – convertMessage edge cases", () => {
     expect((result as any).content[0].input_audio.format).toBe("mp3");
   });
 
+  it("labels WAV audio bytes with format 'wav' by sniffing magic bytes", async () => {
+    // "RIFF....WAVE" header — sniffAudioMime returns audio/wav.
+    const wav = new Uint8Array([
+      0x52, 0x49, 0x46, 0x46, 0x00, 0x00, 0x00, 0x00, 0x57, 0x41, 0x56, 0x45
+    ]);
+    const result = await provider.convertMessage({
+      role: "user",
+      content: [{ type: "audio", audio: { data: wav } }]
+    });
+    expect((result as any).content[0].input_audio.format).toBe("wav");
+  });
+
+  it("honors an explicit audio mimeType hint over sniffing", async () => {
+    const result = await provider.convertMessage({
+      role: "user",
+      content: [
+        {
+          type: "audio",
+          audio: { data: new Uint8Array([1, 2, 3]), mimeType: "audio/wav" }
+        }
+      ]
+    });
+    expect((result as any).content[0].input_audio.format).toBe("wav");
+  });
+
+  it("derives audio format from a data URI mime type", async () => {
+    const b64 = Buffer.from([1, 2, 3]).toString("base64");
+    const result = await provider.convertMessage({
+      role: "user",
+      content: [
+        { type: "audio", audio: { uri: `data:audio/wav;base64,${b64}` } }
+      ]
+    });
+    expect((result as any).content[0].input_audio.format).toBe("wav");
+    expect((result as any).content[0].input_audio.data).toBe(b64);
+  });
+
   it("converts user audio content with URI", async () => {
     const data = Buffer.from("audiodata").toString("base64");
     const fetchFn = vi.fn().mockResolvedValue({

@@ -220,7 +220,8 @@ describe("GeminiProvider – convertMessages with images", () => {
     ]);
 
     expect(result.contents[0].parts[0].inlineData).toBeDefined();
-    expect(result.contents[0].parts[0].inlineData!.mimeType).toBe("audio/mpeg");
+    // audio/mpeg is normalized to Gemini's accepted audio/mp3 label.
+    expect(result.contents[0].parts[0].inlineData!.mimeType).toBe("audio/mp3");
     expect(fetchFn).toHaveBeenCalledWith("https://example.com/audio.mp3");
   });
 
