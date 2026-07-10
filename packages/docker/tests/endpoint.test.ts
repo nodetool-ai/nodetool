@@ -20,6 +20,12 @@ describe("resolveDockerEndpoint", () => {
     });
   });
 
+  it("parses single-slash unix:/ DOCKER_HOST", () => {
+    expect(resolveDockerEndpoint("unix:/var/run/docker.sock")).toEqual({
+      socketPath: "/var/run/docker.sock"
+    });
+  });
+
   it("parses npipe:// DOCKER_HOST", () => {
     expect(resolveDockerEndpoint("npipe:////./pipe/docker_engine")).toEqual({
       socketPath: "//./pipe/docker_engine"

@@ -243,11 +243,15 @@ export class StreamRunnerBase {
     // Force-remove Docker container if active
     const containerId = this._activeContainerId;
     if (containerId) {
-      new DockerClient()
-        .removeContainer(containerId, { force: true })
-        .catch(() => {
-          // Intentional: best-effort container removal during abort
-        });
+      try {
+        new DockerClient()
+          .removeContainer(containerId, { force: true })
+          .catch(() => {
+            // Intentional: best-effort container removal during abort
+          });
+      } catch {
+        // Intentional: an unresolvable DOCKER_HOST must not break abort/cleanup
+      }
     }
   }
 

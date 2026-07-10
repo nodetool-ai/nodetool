@@ -17,9 +17,12 @@ export function resolveDockerEndpoint(
   platform: NodeJS.Platform = process.platform
 ): DockerEndpoint {
   if (dockerHost) {
-    if (dockerHost.startsWith("unix://")) {
-      // Accept both unix:///var/run/docker.sock and unix:/var/run/docker.sock
-      return { socketPath: dockerHost.slice("unix://".length) || "/var/run/docker.sock" };
+    if (dockerHost.startsWith("unix:/")) {
+      // Accept unix:///var/run/docker.sock, unix://var/run/… and unix:/var/run/docker.sock
+      const path = dockerHost.startsWith("unix://")
+        ? dockerHost.slice("unix://".length)
+        : dockerHost.slice("unix:".length);
+      return { socketPath: path || "/var/run/docker.sock" };
     }
     if (dockerHost.startsWith("npipe://")) {
       return { socketPath: dockerHost.slice("npipe://".length) };
