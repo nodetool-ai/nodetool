@@ -1,17 +1,19 @@
 /**
  * SupabaseStorage — T-ST-5.
  *
- * Storage backend for Supabase Storage buckets.
+ * Storage backend for Supabase Storage buckets, on top of the in-house
+ * fetch-backed REST client (see supabase-rest.ts).
  */
 
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { AbstractStorage } from "./abstract-storage.js";
+import {
+  createSupabaseStorageClient,
+  type SupabaseStorageApi
+} from "./supabase-rest.js";
 import { assertUploadWithinLimit } from "./storage-limits.js";
 
-type SupabaseClientLike = SupabaseClient;
-
 export class SupabaseStorage implements AbstractStorage {
-  private client: SupabaseClientLike | null = null;
+  private client: SupabaseStorageApi | null = null;
 
   constructor(
     private readonly supabaseUrl: string,
@@ -19,9 +21,12 @@ export class SupabaseStorage implements AbstractStorage {
     private readonly bucketName: string
   ) {}
 
-  private getClientSync(): SupabaseClientLike {
+  private getClientSync(): SupabaseStorageApi {
     if (!this.client) {
-      this.client = createClient(this.supabaseUrl, this.supabaseKey);
+      this.client = createSupabaseStorageClient(
+        this.supabaseUrl,
+        this.supabaseKey
+      );
     }
     return this.client;
   }
@@ -57,7 +62,6 @@ export class SupabaseStorage implements AbstractStorage {
         `Supabase download failed for key "${key}": ${error?.message ?? "no data returned"}`
       );
     }
-    // Blob → ArrayBuffer → Buffer
     const arrayBuffer = await data.arrayBuffer();
     return Buffer.from(arrayBuffer);
   }
@@ -82,14 +86,12 @@ export class SupabaseStorage implements AbstractStorage {
   }
 
   getUrl(key: string): string {
-    // Construct the public URL without needing the client.
-    // Supabase public URL pattern: {supabaseUrl}/storage/v1/object/public/{bucket}/{key}
-    // But we use the SDK pattern when client is available.
+    // Public URL pattern: {supabaseUrl}/storage/v1/object/public/{bucket}/{key}
     if (this.client) {
       return this.client.storage.from(this.bucketName).getPublicUrl(key).data
         .publicUrl;
     }
-    // Fallback: construct manually
+    // Fallback: construct manually before the client is initialised.
     const base = this.supabaseUrl.replace(/\/+$/, "");
     return `${base}/storage/v1/object/public/${this.bucketName}/${key}`;
   }
