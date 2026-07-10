@@ -39,29 +39,29 @@ import {
 import { ToolbarIconButton } from "../ui_primitives";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
 
-// Provider icons from @lobehub/icons-static-svg
-import openaiIcon from "@lobehub/icons-static-svg/icons/openai.svg";
-import anthropicIcon from "@lobehub/icons-static-svg/icons/anthropic.svg";
-import openrouterIcon from "@lobehub/icons-static-svg/icons/openrouter.svg";
-import cerebrasColorIcon from "@lobehub/icons-static-svg/icons/cerebras-color.svg";
-import togetherColorIcon from "@lobehub/icons-static-svg/icons/together-color.svg";
-import deepseekColorIcon from "@lobehub/icons-static-svg/icons/deepseek-color.svg";
-import groqIcon from "@lobehub/icons-static-svg/icons/groq.svg";
-import mistralColorIcon from "@lobehub/icons-static-svg/icons/mistral-color.svg";
-import geminiColorIcon from "@lobehub/icons-static-svg/icons/gemini-color.svg";
-import xaiIcon from "@lobehub/icons-static-svg/icons/xai.svg";
-import huggingfaceColorIcon from "@lobehub/icons-static-svg/icons/huggingface-color.svg";
-import replicateIcon from "@lobehub/icons-static-svg/icons/replicate.svg";
-import falColorIcon from "@lobehub/icons-static-svg/icons/fal-color.svg";
-import elevenlabsIcon from "@lobehub/icons-static-svg/icons/elevenlabs.svg";
-import moonshotIcon from "@lobehub/icons-static-svg/icons/moonshot.svg";
-import topazlabsIcon from "@lobehub/icons-static-svg/icons/topazlabs.svg";
-import atlascloudIcon from "@lobehub/icons-static-svg/icons/atlascloud.svg";
-import zhipuColorIcon from "@lobehub/icons-static-svg/icons/zhipu-color.svg";
-import minimaxColorIcon from "@lobehub/icons-static-svg/icons/minimax-color.svg";
-import meshyColorIcon from "@lobehub/icons-static-svg/icons/meshy-color.svg";
-import githubIcon from "@lobehub/icons-static-svg/icons/github.svg";
-import googleColorIcon from "@lobehub/icons-static-svg/icons/google-color.svg";
+// Provider icons vendored from @lobehub/icons-static-svg (see src/icons/providers/README.md)
+import openaiIcon from "../../icons/providers/openai.svg";
+import anthropicIcon from "../../icons/providers/anthropic.svg";
+import openrouterIcon from "../../icons/providers/openrouter.svg";
+import cerebrasColorIcon from "../../icons/providers/cerebras-color.svg";
+import togetherColorIcon from "../../icons/providers/together-color.svg";
+import deepseekColorIcon from "../../icons/providers/deepseek-color.svg";
+import groqIcon from "../../icons/providers/groq.svg";
+import mistralColorIcon from "../../icons/providers/mistral-color.svg";
+import geminiColorIcon from "../../icons/providers/gemini-color.svg";
+import xaiIcon from "../../icons/providers/xai.svg";
+import huggingfaceColorIcon from "../../icons/providers/huggingface-color.svg";
+import replicateIcon from "../../icons/providers/replicate.svg";
+import falColorIcon from "../../icons/providers/fal-color.svg";
+import elevenlabsIcon from "../../icons/providers/elevenlabs.svg";
+import moonshotIcon from "../../icons/providers/moonshot.svg";
+import topazlabsIcon from "../../icons/providers/topazlabs.svg";
+import atlascloudIcon from "../../icons/providers/atlascloud.svg";
+import zhipuColorIcon from "../../icons/providers/zhipu-color.svg";
+import minimaxColorIcon from "../../icons/providers/minimax-color.svg";
+import meshyColorIcon from "../../icons/providers/meshy-color.svg";
+import githubIcon from "../../icons/providers/github.svg";
+import googleColorIcon from "../../icons/providers/google-color.svg";
 import evolinkIcon from "../../icons/evolink.svg";
 import gmiIcon from "../../icons/gmi.svg";
 

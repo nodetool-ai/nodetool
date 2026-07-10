@@ -18,9 +18,9 @@ import { memo, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguageModelProviders } from "../../../hooks/useProviders";
 
-import openaiIcon from "@lobehub/icons-static-svg/icons/openai.svg";
-import anthropicIcon from "@lobehub/icons-static-svg/icons/anthropic.svg";
-import geminiColorIcon from "@lobehub/icons-static-svg/icons/gemini-color.svg";
+import openaiIcon from "../../../icons/providers/openai.svg";
+import anthropicIcon from "../../../icons/providers/anthropic.svg";
+import geminiColorIcon from "../../../icons/providers/gemini-color.svg";
 
 const styles = (theme: Theme) =>
   css({
