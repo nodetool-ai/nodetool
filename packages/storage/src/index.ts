@@ -36,6 +36,26 @@ export {
 } from "./supabase-rest.js";
 export { createStorageAdapter, type StorageConfig } from "./factory.js";
 
+// In-house SigV4 S3 client
+export {
+  S3Client,
+  S3Error,
+  type S3Api,
+  type S3ClientOptions,
+  type S3ObjectRef,
+  type S3PutObjectInput,
+  type S3PutObjectResult,
+  type S3GetObjectResult,
+  type S3HeadObjectResult,
+  type S3CopyObjectInput,
+  type S3ListObjectsV2Input,
+  type S3ListObjectsV2Result,
+  type S3ObjectSummary,
+  type S3BucketSummary,
+  type S3PresignGetObjectInput,
+  type SigV4Credentials
+} from "./s3/index.js";
+
 // URL builder
 export { createAssetUrlBuilder } from "./url-builder.js";
 

@@ -1,121 +1,109 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { S3Storage } from "../src/s3-storage.js";
 
-// Mock the AWS SDK
-const mockSend = vi.fn();
+// S3Storage builds its own S3Client, so mock at the HTTP layer (global fetch).
+const mockFetch = vi.fn();
 
-vi.mock("@aws-sdk/client-s3", () => {
-  return {
-    S3Client: vi.fn().mockImplementation(function (this: any) {
-      this.send = mockSend;
-    }),
-    PutObjectCommand: vi.fn().mockImplementation(function (
-      this: any,
-      input: any
-    ) {
-      Object.assign(this, { _type: "put", ...input });
-    }),
-    GetObjectCommand: vi.fn().mockImplementation(function (
-      this: any,
-      input: any
-    ) {
-      Object.assign(this, { _type: "get", ...input });
-    }),
-    DeleteObjectCommand: vi.fn().mockImplementation(function (
-      this: any,
-      input: any
-    ) {
-      Object.assign(this, { _type: "delete", ...input });
-    }),
-    HeadObjectCommand: vi.fn().mockImplementation(function (
-      this: any,
-      input: any
-    ) {
-      Object.assign(this, { _type: "head", ...input });
-    })
-  };
-});
+function respond(
+  status = 200,
+  body: string | Uint8Array | null = null,
+  headers: Record<string, string> = {}
+): void {
+  mockFetch.mockResolvedValueOnce(
+    new Response(
+      body === null ? null : typeof body === "string" ? body : new Uint8Array(body),
+      { status, headers }
+    )
+  );
+}
+
+function requestAt(index: number): { url: string; init: RequestInit } {
+  const [url, init] = mockFetch.mock.calls[index] as [string, RequestInit];
+  return { url, init };
+}
 
 describe("S3Storage", () => {
   let storage: S3Storage;
 
   beforeEach(() => {
-    mockSend.mockReset();
+    mockFetch.mockReset();
+    vi.stubGlobal("fetch", mockFetch);
+    vi.stubEnv("AWS_ACCESS_KEY_ID", "AKIDEXAMPLE");
+    vi.stubEnv("AWS_SECRET_ACCESS_KEY", "secret");
     storage = new S3Storage("my-bucket", "http://localhost:9000", "us-west-2");
   });
 
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
   describe("upload", () => {
-    it("sends a PutObjectCommand", async () => {
-      mockSend.mockResolvedValue({});
-      const data = Buffer.from("hello");
-      await storage.upload("test.txt", data, "text/plain");
-      expect(mockSend).toHaveBeenCalledOnce();
-      const cmd = mockSend.mock.calls[0][0];
-      expect(cmd.Bucket).toBe("my-bucket");
-      expect(cmd.Key).toBe("test.txt");
-      expect(cmd.ContentType).toBe("text/plain");
+    it("PUTs the object with content type", async () => {
+      respond();
+      await storage.upload("test.txt", Buffer.from("hello"), "text/plain");
+      const { url, init } = requestAt(0);
+      expect(url).toBe("http://localhost:9000/my-bucket/test.txt");
+      expect(init.method).toBe("PUT");
+      const headers = init.headers as Record<string, string>;
+      expect(headers["content-type"]).toBe("text/plain");
+      expect(headers.authorization).toContain("AWS4-HMAC-SHA256");
     });
 
-    it("omits ContentType when not provided", async () => {
-      mockSend.mockResolvedValue({});
+    it("omits content-type when not provided", async () => {
+      respond();
       await storage.upload("test.txt", Buffer.from("hello"));
-      const cmd = mockSend.mock.calls[0][0];
-      expect(cmd.ContentType).toBeUndefined();
+      const headers = requestAt(0).init.headers as Record<string, string>;
+      expect(headers["content-type"]).toBeUndefined();
+    });
+
+    it("accepts plain Uint8Array data", async () => {
+      respond();
+      const data = new Uint8Array([72, 101, 108, 108, 111]);
+      await storage.upload("test.bin", data, "application/octet-stream");
+      expect(mockFetch).toHaveBeenCalledOnce();
     });
   });
 
   describe("download", () => {
-    it("returns buffer from transformToByteArray", async () => {
-      const content = Buffer.from("file content");
-      mockSend.mockResolvedValue({
-        Body: {
-          transformToByteArray: async () => new Uint8Array(content)
-        }
-      });
+    it("returns the body as a Buffer", async () => {
+      respond(200, Buffer.from("file content"));
       const result = await storage.download("test.txt");
       expect(Buffer.isBuffer(result)).toBe(true);
       expect(result.toString()).toBe("file content");
+      expect(requestAt(0).init.method).toBe("GET");
     });
 
-    it("throws on empty body", async () => {
-      mockSend.mockResolvedValue({ Body: null });
-      await expect(storage.download("missing.txt")).rejects.toThrow(
-        "Empty response body"
+    it("throws on NoSuchKey", async () => {
+      respond(
+        404,
+        "<Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message></Error>"
       );
-    });
-
-    it("falls back to async iterable when transformToByteArray is missing", async () => {
-      const chunks = [Buffer.from("chunk1"), Buffer.from("chunk2")];
-      const asyncIter = {
-        async *[Symbol.asyncIterator]() {
-          for (const c of chunks) yield c;
-        }
-      };
-      mockSend.mockResolvedValue({ Body: asyncIter });
-      const result = await storage.download("test.txt");
-      expect(result.toString()).toBe("chunk1chunk2");
+      await expect(storage.download("missing.txt")).rejects.toThrow(
+        "The specified key does not exist."
+      );
     });
   });
 
   describe("delete", () => {
-    it("sends a DeleteObjectCommand", async () => {
-      mockSend.mockResolvedValue({});
+    it("sends DELETE for the key", async () => {
+      respond(204);
       await storage.delete("test.txt");
-      expect(mockSend).toHaveBeenCalledOnce();
-      const cmd = mockSend.mock.calls[0][0];
-      expect(cmd.Bucket).toBe("my-bucket");
-      expect(cmd.Key).toBe("test.txt");
+      const { url, init } = requestAt(0);
+      expect(init.method).toBe("DELETE");
+      expect(url).toBe("http://localhost:9000/my-bucket/test.txt");
     });
   });
 
   describe("exists", () => {
-    it("returns true when HeadObject succeeds", async () => {
-      mockSend.mockResolvedValue({});
+    it("returns true when HEAD succeeds", async () => {
+      respond();
       expect(await storage.exists("test.txt")).toBe(true);
+      expect(requestAt(0).init.method).toBe("HEAD");
     });
 
-    it("returns false when HeadObject throws", async () => {
-      mockSend.mockRejectedValue(new Error("NotFound"));
+    it("returns false when HEAD 404s", async () => {
+      respond(404);
       expect(await storage.exists("missing.txt")).toBe(false);
     });
   });
@@ -143,151 +131,32 @@ describe("S3Storage", () => {
     });
   });
 
-  describe("client caching", () => {
-    it("reuses the same S3Client across multiple operations", async () => {
-      const { S3Client } = await import("@aws-sdk/client-s3");
-      (S3Client as any).mockClear();
-
-      const s = new S3Storage("bucket", "http://localhost:9000");
-      mockSend.mockResolvedValue({});
-
-      await s.upload("a.txt", Buffer.from("a"));
-      await s.upload("b.txt", Buffer.from("b"));
-      await s.delete("c.txt");
-
-      // S3Client constructor should have been called only once
-      expect(S3Client).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe("custom endpoint with forcePathStyle", () => {
-    it("configures forcePathStyle when endpointUrl is provided", async () => {
-      const { S3Client } = await import("@aws-sdk/client-s3");
-      (S3Client as any).mockClear();
-
+  describe("addressing", () => {
+    it("uses path-style URLs when an endpoint is configured", async () => {
+      respond();
       const s = new S3Storage("bucket", "http://minio:9000");
-      mockSend.mockResolvedValue({});
       await s.upload("x.txt", Buffer.from("x"));
-
-      expect(S3Client).toHaveBeenCalledWith(
-        expect.objectContaining({
-          endpoint: "http://minio:9000",
-          forcePathStyle: true
-        })
-      );
+      expect(requestAt(0).url).toBe("http://minio:9000/bucket/x.txt");
     });
 
-    it("does not set forcePathStyle when no endpointUrl", async () => {
-      const { S3Client } = await import("@aws-sdk/client-s3");
-      (S3Client as any).mockClear();
-
+    it("uses virtual-hosted URLs without an endpoint", async () => {
+      respond();
       const s = new S3Storage("bucket");
-      mockSend.mockResolvedValue({});
       await s.upload("x.txt", Buffer.from("x"));
-
-      const config = (S3Client as any).mock.calls[0][0];
-      expect(config.forcePathStyle).toBeUndefined();
-      expect(config.endpoint).toBeUndefined();
-    });
-  });
-
-  describe("upload with Uint8Array", () => {
-    it("accepts plain Uint8Array data", async () => {
-      mockSend.mockResolvedValue({});
-      const data = new Uint8Array([72, 101, 108, 108, 111]);
-      await storage.upload("test.bin", data, "application/octet-stream");
-      expect(mockSend).toHaveBeenCalledOnce();
-      const cmd = mockSend.mock.calls[0][0];
-      expect(cmd.Body).toBe(data);
-    });
-  });
-
-  describe("contentType passthrough", () => {
-    it("sets ContentType to the exact string provided", async () => {
-      mockSend.mockResolvedValue({});
-      await storage.upload("img.webp", Buffer.from("img"), "image/webp");
-      const cmd = mockSend.mock.calls[0][0];
-      expect(cmd.ContentType).toBe("image/webp");
-    });
-
-    it("passes custom content types verbatim", async () => {
-      mockSend.mockResolvedValue({});
-      await storage.upload(
-        "data.bin",
-        Buffer.from("x"),
-        "application/x-custom+json"
+      expect(requestAt(0).url).toBe(
+        "https://bucket.s3.us-east-1.amazonaws.com/x.txt"
       );
-      const cmd = mockSend.mock.calls[0][0];
-      expect(cmd.ContentType).toBe("application/x-custom+json");
-    });
-  });
-
-  describe("download with multi-chunk async iterable", () => {
-    it("preserves chunk order across many chunks", async () => {
-      const chunkData = ["alpha", "beta", "gamma", "delta"];
-      const asyncIter = {
-        async *[Symbol.asyncIterator]() {
-          for (const c of chunkData) yield Buffer.from(c);
-        }
-      };
-      mockSend.mockResolvedValue({ Body: asyncIter });
-      const result = await storage.download("multi.txt");
-      expect(result.toString()).toBe("alphabetagammadelta");
-    });
-
-    it("handles single-byte chunks correctly", async () => {
-      const bytes = [0x01, 0x02, 0x03, 0xff];
-      const asyncIter = {
-        async *[Symbol.asyncIterator]() {
-          for (const b of bytes) yield new Uint8Array([b]);
-        }
-      };
-      mockSend.mockResolvedValue({ Body: asyncIter });
-      const result = await storage.download("bytes.bin");
-      expect([...result]).toEqual(bytes);
     });
   });
 
   describe("exists → delete → exists lifecycle", () => {
     it("returns true then false after delete", async () => {
-      // exists returns true
-      mockSend.mockResolvedValueOnce({});
+      respond();
       expect(await storage.exists("lifecycle.txt")).toBe(true);
-
-      // delete succeeds
-      mockSend.mockResolvedValueOnce({});
+      respond(204);
       await storage.delete("lifecycle.txt");
-
-      // exists returns false (HeadObject throws)
-      mockSend.mockRejectedValueOnce(new Error("NotFound"));
+      respond(404);
       expect(await storage.exists("lifecycle.txt")).toBe(false);
-    });
-  });
-
-  describe("SDK loading caching", () => {
-    it("returns the same SDK module reference on repeated loads", async () => {
-      const s1 = new S3Storage("bucket-a");
-      const s2 = new S3Storage("bucket-b");
-
-      mockSend.mockResolvedValue({});
-      await s1.upload("a.txt", Buffer.from("a"));
-      await s2.upload("b.txt", Buffer.from("b"));
-
-      expect(mockSend).toHaveBeenCalledTimes(2);
-    });
-  });
-
-  describe("default region", () => {
-    it("uses us-east-1 when no region is specified", async () => {
-      const { S3Client } = await import("@aws-sdk/client-s3");
-      (S3Client as any).mockClear();
-
-      const s = new S3Storage("bucket");
-      mockSend.mockResolvedValue({});
-      await s.upload("x.txt", Buffer.from("x"));
-
-      const config = (S3Client as any).mock.calls[0][0];
-      expect(config.region).toBe("us-east-1");
     });
   });
 });

@@ -1,24 +1,19 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
+import { S3Client } from "@nodetool-ai/storage";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function getS3Client(
-  region: string,
-  accessKeyId: string,
-  secretAccessKey: string
-): Promise<any> {
-  const { S3Client } = await import("@aws-sdk/client-s3");
-  return new S3Client({
-    region,
-    credentials: { accessKeyId, secretAccessKey }
-  });
-}
-
-function getAwsCredentials(secrets: Record<string, string>): {
+interface AwsCredentials {
   accessKeyId: string;
   secretAccessKey: string;
-} {
+  sessionToken?: string;
+}
+
+function getS3Client(region: string, credentials: AwsCredentials): S3Client {
+  return new S3Client({ region, credentials });
+}
+
+function getAwsCredentials(secrets: Record<string, string>): AwsCredentials {
   const accessKeyId = secrets.AWS_ACCESS_KEY_ID || "";
   const secretAccessKey = secrets.AWS_SECRET_ACCESS_KEY || "";
   if (!accessKeyId || !secretAccessKey) {
@@ -26,7 +21,13 @@ function getAwsCredentials(secrets: Record<string, string>): {
       "AWS credentials are required. Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in secrets."
     );
   }
-  return { accessKeyId, secretAccessKey };
+  // Optional: temporary STS credentials need the session token signed in.
+  const sessionToken = secrets.AWS_SESSION_TOKEN || "";
+  return {
+    accessKeyId,
+    secretAccessKey,
+    ...(sessionToken ? { sessionToken } : {})
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -57,14 +58,12 @@ export class S3ListBucketsLibNode extends BaseNode {
   declare region: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const { accessKeyId, secretAccessKey } = getAwsCredentials(this._secrets);
+    const credentials = getAwsCredentials(this._secrets);
     const region = String(this.region ?? "us-east-1");
-    const client = await getS3Client(region, accessKeyId, secretAccessKey);
-    const { ListBucketsCommand } = await import("@aws-sdk/client-s3");
-    const response = await client.send(new ListBucketsCommand({}));
-    const buckets = (response.Buckets ?? []).map((b: Record<string, unknown>) => ({
-      name: (b.Name as string) ?? "",
-      creation_date: (b.CreationDate as Date)?.toISOString() ?? ""
+    const client = getS3Client(region, credentials);
+    const buckets = (await client.listBuckets()).map((b) => ({
+      name: b.name,
+      creation_date: b.creationDate?.toISOString() ?? ""
     }));
     return { output: buckets };
   }
@@ -128,55 +127,49 @@ export class S3ListObjectsLibNode extends BaseNode {
   declare region: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const { accessKeyId, secretAccessKey } = getAwsCredentials(this._secrets);
+    const credentials = getAwsCredentials(this._secrets);
     const bucket = String(this.bucket ?? "");
     if (!bucket) throw new Error("Bucket name is required");
     const prefix = String(this.prefix ?? "");
     const maxKeys = Number(this.max_keys ?? 100);
     const region = String(this.region ?? "us-east-1");
 
-    const client = await getS3Client(region, accessKeyId, secretAccessKey);
-    const { ListObjectsV2Command } = await import("@aws-sdk/client-s3");
-    const response = await client.send(
-      new ListObjectsV2Command({
-        Bucket: bucket,
-        Prefix: prefix || undefined,
-        MaxKeys: maxKeys
-      })
-    );
-    const objects = (response.Contents ?? []).map((obj: Record<string, unknown>) => ({
-      key: (obj.Key as string) ?? "",
-      size: (obj.Size as number) ?? 0,
-      last_modified: (obj.LastModified as Date)?.toISOString() ?? "",
-      etag: (obj.ETag as string) ?? "",
-      storage_class: (obj.StorageClass as string) ?? ""
+    const client = getS3Client(region, credentials);
+    const response = await client.listObjectsV2({
+      bucket,
+      ...(prefix ? { prefix } : {}),
+      maxKeys
+    });
+    const objects = response.contents.map((obj) => ({
+      key: obj.key,
+      size: obj.size,
+      last_modified: obj.lastModified?.toISOString() ?? "",
+      etag: obj.etag ?? "",
+      storage_class: obj.storageClass ?? ""
     }));
     return { object: objects[0] ?? {}, objects };
   }
 
   async *genProcess(): AsyncGenerator<Record<string, unknown>> {
-    const { accessKeyId, secretAccessKey } = getAwsCredentials(this._secrets);
+    const credentials = getAwsCredentials(this._secrets);
     const bucket = String(this.bucket ?? "");
     if (!bucket) throw new Error("Bucket name is required");
     const prefix = String(this.prefix ?? "");
     const maxKeys = Number(this.max_keys ?? 100);
     const region = String(this.region ?? "us-east-1");
 
-    const client = await getS3Client(region, accessKeyId, secretAccessKey);
-    const { ListObjectsV2Command } = await import("@aws-sdk/client-s3");
-    const response = await client.send(
-      new ListObjectsV2Command({
-        Bucket: bucket,
-        Prefix: prefix || undefined,
-        MaxKeys: maxKeys
-      })
-    );
-    const objects = (response.Contents ?? []).map((obj: Record<string, unknown>) => ({
-      key: (obj.Key as string) ?? "",
-      size: (obj.Size as number) ?? 0,
-      last_modified: (obj.LastModified as Date)?.toISOString() ?? "",
-      etag: (obj.ETag as string) ?? "",
-      storage_class: (obj.StorageClass as string) ?? ""
+    const client = getS3Client(region, credentials);
+    const response = await client.listObjectsV2({
+      bucket,
+      ...(prefix ? { prefix } : {}),
+      maxKeys
+    });
+    const objects = response.contents.map((obj) => ({
+      key: obj.key,
+      size: obj.size,
+      last_modified: obj.lastModified?.toISOString() ?? "",
+      etag: obj.etag ?? "",
+      storage_class: obj.storageClass ?? ""
     }));
 
     for (const obj of objects) {
@@ -233,23 +226,19 @@ export class S3GetObjectLibNode extends BaseNode {
   declare region: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const { accessKeyId, secretAccessKey } = getAwsCredentials(this._secrets);
+    const credentials = getAwsCredentials(this._secrets);
     const bucket = String(this.bucket ?? "");
     const key = String(this.key ?? "");
     if (!bucket) throw new Error("Bucket name is required");
     if (!key) throw new Error("Object key is required");
     const region = String(this.region ?? "us-east-1");
 
-    const client = await getS3Client(region, accessKeyId, secretAccessKey);
-    const { GetObjectCommand } = await import("@aws-sdk/client-s3");
-    const response = await client.send(
-      new GetObjectCommand({ Bucket: bucket, Key: key })
-    );
-    const body = await response.Body?.transformToString();
+    const client = getS3Client(region, credentials);
+    const response = await client.getObject({ bucket, key });
     return {
-      output: body ?? "",
-      content_type: response.ContentType ?? "",
-      size: response.ContentLength ?? 0
+      output: new TextDecoder().decode(response.body),
+      content_type: response.contentType ?? "",
+      size: response.contentLength ?? response.body.byteLength
     };
   }
 }
@@ -315,7 +304,7 @@ export class S3PutObjectLibNode extends BaseNode {
   declare region: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const { accessKeyId, secretAccessKey } = getAwsCredentials(this._secrets);
+    const credentials = getAwsCredentials(this._secrets);
     const bucket = String(this.bucket ?? "");
     const key = String(this.key ?? "");
     if (!bucket) throw new Error("Bucket name is required");
@@ -324,19 +313,16 @@ export class S3PutObjectLibNode extends BaseNode {
     const contentType = String(this.content_type ?? "text/plain");
     const region = String(this.region ?? "us-east-1");
 
-    const client = await getS3Client(region, accessKeyId, secretAccessKey);
-    const { PutObjectCommand } = await import("@aws-sdk/client-s3");
-    const response = await client.send(
-      new PutObjectCommand({
-        Bucket: bucket,
-        Key: key,
-        Body: bodyContent,
-        ContentType: contentType
-      })
-    );
+    const client = getS3Client(region, credentials);
+    const response = await client.putObject({
+      bucket,
+      key,
+      body: new TextEncoder().encode(bodyContent),
+      contentType
+    });
     return {
       output: true,
-      etag: response.ETag ?? ""
+      etag: response.etag ?? ""
     };
   }
 }
@@ -385,18 +371,15 @@ export class S3DeleteObjectLibNode extends BaseNode {
   declare region: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const { accessKeyId, secretAccessKey } = getAwsCredentials(this._secrets);
+    const credentials = getAwsCredentials(this._secrets);
     const bucket = String(this.bucket ?? "");
     const key = String(this.key ?? "");
     if (!bucket) throw new Error("Bucket name is required");
     if (!key) throw new Error("Object key is required");
     const region = String(this.region ?? "us-east-1");
 
-    const client = await getS3Client(region, accessKeyId, secretAccessKey);
-    const { DeleteObjectCommand } = await import("@aws-sdk/client-s3");
-    await client.send(
-      new DeleteObjectCommand({ Bucket: bucket, Key: key })
-    );
+    const client = getS3Client(region, credentials);
+    await client.deleteObject({ bucket, key });
     return { output: true };
   }
 }
@@ -461,7 +444,7 @@ export class S3CopyObjectLibNode extends BaseNode {
   declare region: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const { accessKeyId, secretAccessKey } = getAwsCredentials(this._secrets);
+    const credentials = getAwsCredentials(this._secrets);
     const sourceBucket = String(this.source_bucket ?? "");
     const sourceKey = String(this.source_key ?? "");
     const destBucket = String(this.dest_bucket ?? "");
@@ -472,15 +455,13 @@ export class S3CopyObjectLibNode extends BaseNode {
     if (!destKey) throw new Error("Destination object key is required");
     const region = String(this.region ?? "us-east-1");
 
-    const client = await getS3Client(region, accessKeyId, secretAccessKey);
-    const { CopyObjectCommand } = await import("@aws-sdk/client-s3");
-    await client.send(
-      new CopyObjectCommand({
-        Bucket: destBucket,
-        Key: destKey,
-        CopySource: `${sourceBucket}/${encodeURIComponent(sourceKey)}`
-      })
-    );
+    const client = getS3Client(region, credentials);
+    await client.copyObject({
+      sourceBucket,
+      sourceKey,
+      bucket: destBucket,
+      key: destKey
+    });
     return { output: true };
   }
 }
@@ -495,7 +476,7 @@ export class S3GetPresignedUrlLibNode extends BaseNode {
   static readonly inlineFields = ["bucket", "key"];
   static readonly inputFields = [];
   static readonly description =
-    "Generates a presigned URL for temporary access to an S3 object.\n    aws, s3, presigned, url, share, cloud, storage\n\n    Note: Requires @aws-sdk/s3-request-presigner. If unavailable, falls back to constructing an unsigned URL.";
+    "Generates a presigned URL for temporary access to an S3 object.\n    aws, s3, presigned, url, share, cloud, storage";
   static readonly metadataOutputTypes = {
     output: "str"
   };
@@ -537,7 +518,7 @@ export class S3GetPresignedUrlLibNode extends BaseNode {
   declare region: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const { accessKeyId, secretAccessKey } = getAwsCredentials(this._secrets);
+    const credentials = getAwsCredentials(this._secrets);
     const bucket = String(this.bucket ?? "");
     const key = String(this.key ?? "");
     if (!bucket) throw new Error("Bucket name is required");
@@ -545,19 +526,8 @@ export class S3GetPresignedUrlLibNode extends BaseNode {
     const expiresIn = Number(this.expires_in ?? 3600);
     const region = String(this.region ?? "us-east-1");
 
-    const client = await getS3Client(region, accessKeyId, secretAccessKey);
-    const { GetObjectCommand } = await import("@aws-sdk/client-s3");
-    const command = new GetObjectCommand({ Bucket: bucket, Key: key });
-
-    try {
-      const { getSignedUrl } = await import("@aws-sdk/s3-request-presigner");
-      const url = await getSignedUrl(client, command, { expiresIn });
-      return { output: url };
-    } catch {
-      // Fallback: construct an unsigned S3 URL if presigner is not available
-      const unsignedUrl = `https://${bucket}.s3.${region}.amazonaws.com/${encodeURIComponent(key)}`;
-      return { output: unsignedUrl };
-    }
+    const client = getS3Client(region, credentials);
+    return { output: client.presignGetObject({ bucket, key, expiresIn }) };
   }
 }
 

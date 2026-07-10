@@ -1,25 +1,16 @@
 /**
  * S3Storage — T-ST-4.
  *
- * Storage backend for Amazon S3 and S3-compatible services.
+ * Storage backend for Amazon S3 and S3-compatible services, backed by the
+ * in-house SigV4 client in ./s3/.
  */
 
-import {
-  S3Client,
-  PutObjectCommand,
-  GetObjectCommand,
-  DeleteObjectCommand,
-  HeadObjectCommand
-} from "@aws-sdk/client-s3";
+import { S3Client } from "./s3/client.js";
 import type { AbstractStorage } from "./abstract-storage.js";
 import { assertUploadWithinLimit } from "./storage-limits.js";
 
-interface S3ClientLike {
-  send(command: unknown): Promise<any>;
-}
-
 export class S3Storage implements AbstractStorage {
-  private client: S3ClientLike | null = null;
+  private client: S3Client | null = null;
 
   constructor(
     private readonly bucketName: string,
@@ -27,14 +18,14 @@ export class S3Storage implements AbstractStorage {
     private readonly region: string = "us-east-1"
   ) {}
 
-  private async getClient(): Promise<S3ClientLike> {
+  private getClient(): S3Client {
     if (this.client) return this.client;
-    const config: Record<string, unknown> = { region: this.region };
-    if (this.endpointUrl) {
-      config.endpoint = this.endpointUrl;
-      config.forcePathStyle = true;
-    }
-    this.client = new S3Client(config);
+    this.client = new S3Client({
+      region: this.region,
+      ...(this.endpointUrl
+        ? { endpoint: this.endpointUrl, forcePathStyle: true }
+        : {})
+    });
     return this.client;
   }
 
@@ -44,52 +35,29 @@ export class S3Storage implements AbstractStorage {
     contentType?: string
   ): Promise<void> {
     assertUploadWithinLimit(key, data.byteLength);
-    const client = await this.getClient();
-    await client.send(
-      new PutObjectCommand({
-        Bucket: this.bucketName,
-        Key: key,
-        Body: data,
-        ...(contentType ? { ContentType: contentType } : {})
-      })
-    );
+    await this.getClient().putObject({
+      bucket: this.bucketName,
+      key,
+      body: data,
+      ...(contentType ? { contentType } : {})
+    });
   }
 
   async download(key: string): Promise<Buffer> {
-    const client = await this.getClient();
-    const response = await client.send(
-      new GetObjectCommand({ Bucket: this.bucketName, Key: key })
-    );
-    const body = response.Body;
-    if (!body) {
-      throw new Error(`Empty response body for key: ${key}`);
-    }
-    // body is a Readable stream in Node.js
-    if (typeof body.transformToByteArray === "function") {
-      const bytes: Uint8Array = await body.transformToByteArray();
-      return Buffer.from(bytes);
-    }
-    // Fallback: collect chunks from readable stream
-    const chunks: Buffer[] = [];
-    for await (const chunk of body as AsyncIterable<Uint8Array>) {
-      chunks.push(Buffer.from(chunk));
-    }
-    return Buffer.concat(chunks);
+    const { body } = await this.getClient().getObject({
+      bucket: this.bucketName,
+      key
+    });
+    return Buffer.from(body);
   }
 
   async delete(key: string): Promise<void> {
-    const client = await this.getClient();
-    await client.send(
-      new DeleteObjectCommand({ Bucket: this.bucketName, Key: key })
-    );
+    await this.getClient().deleteObject({ bucket: this.bucketName, key });
   }
 
   async exists(key: string): Promise<boolean> {
-    const client = await this.getClient();
     try {
-      await client.send(
-        new HeadObjectCommand({ Bucket: this.bucketName, Key: key })
-      );
+      await this.getClient().headObject({ bucket: this.bucketName, key });
       return true;
     } catch {
       return false;

@@ -15,13 +15,12 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1029.0",
-    "@aws-sdk/s3-request-presigner": "^3.1029.0",
     "@nodetool-ai/kie-nodes": "*",
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/nodes-utils": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/runtime": "*",
+    "@nodetool-ai/storage": "*",
     "nodemailer": "^9.0.3",
     "js-yaml": "^5.2.1"
   },
