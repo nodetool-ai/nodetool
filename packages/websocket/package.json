@@ -59,6 +59,7 @@
     "@nodetool-ai/timeline": "*",
     "@nodetool-ai/vectorstore": "*",
     "@mariozechner/pi-coding-agent": "^0.73.1",
+    "drizzle-orm": "^0.45.2",
     "fastify": "^5.8.5",
     "fflate": "^0.8.2",
     "@trpc/server": "^11.0.0",
