@@ -30,7 +30,6 @@ function walkAst(
 
   const walkNode = (node: acorn.AnyNode): void => {
     ancestors.push(node);
-    visit(node, ancestors);
     for (const key of Object.keys(node)) {
       if (key === "type" || key === "start" || key === "end") continue;
       const value = (node as unknown as Record<string, unknown>)[key];
@@ -42,6 +41,7 @@ function walkAst(
         walkNode(value);
       }
     }
+    visit(node, ancestors);
     ancestors.pop();
   };
 
