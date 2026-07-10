@@ -1,21 +1,17 @@
-import OpenAI from "openai";
-import { OpenAIProvider } from "./openai-provider.js";
+import {
+  OpenAICompatProvider,
+  type OpenAICompatProviderOptions
+} from "./openai-compat-provider.js";
 import type { LanguageModel } from "./types.js";
 
 const DEEPSEEK_BASE_URL = "https://api.deepseek.com/v1";
 
-interface DeepSeekProviderOptions {
-  client?: OpenAI;
-  clientFactory?: (apiKey: string) => OpenAI;
-  fetchFn?: typeof fetch;
-}
-
 /**
- * DeepSeek provider. Uses the OpenAI SDK against DeepSeek's
- * OpenAI-compatible endpoint at https://api.deepseek.com/v1.
+ * DeepSeek provider. Speaks the OpenAI Chat Completions dialect against
+ * DeepSeek's OpenAI-compatible endpoint at https://api.deepseek.com/v1.
  * Covers DeepSeek-V3 chat and DeepSeek-R1 reasoning models.
  */
-export class DeepSeekProvider extends OpenAIProvider {
+export class DeepSeekProvider extends OpenAICompatProvider {
   static override requiredSecrets(): string[] {
     return ["DEEPSEEK_API_KEY"];
   }
@@ -24,7 +20,7 @@ export class DeepSeekProvider extends OpenAIProvider {
 
   constructor(
     secrets: { DEEPSEEK_API_KEY?: string },
-    options: DeepSeekProviderOptions = {}
+    options: OpenAICompatProviderOptions = {}
   ) {
     const apiKey = secrets.DEEPSEEK_API_KEY;
     if (!apiKey) {
@@ -34,21 +30,10 @@ export class DeepSeekProvider extends OpenAIProvider {
     const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
 
     super(
-      { OPENAI_API_KEY: apiKey },
-      {
-        client: options.client,
-        clientFactory:
-          options.clientFactory ??
-          ((key) =>
-            new OpenAI({
-              apiKey: key,
-              baseURL: DEEPSEEK_BASE_URL
-            })),
-        fetchFn
-      }
+      { providerId: "deepseek", apiKey, baseURL: DEEPSEEK_BASE_URL },
+      { ...options, fetchFn }
     );
 
-    (this as { provider: string }).provider = "deepseek";
     this._deepseekFetch = fetchFn;
   }
 

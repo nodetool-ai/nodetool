@@ -9,8 +9,11 @@
  * Docs: https://platform.minimax.io/docs/api-reference/api-overview
  */
 
-import OpenAI from "openai";
-import { OpenAIProvider } from "./openai-provider.js";
+import {
+  OpenAICompatProvider,
+  type OpenAICompatProviderOptions
+} from "./openai-compat-provider.js";
+import type { OpenAIProvider } from "./openai-provider.js";
 import { createLogger } from "@nodetool-ai/config";
 import type {
   ASRModel,
@@ -137,12 +140,6 @@ function toInt16Samples(bytes: Uint8Array): Int16Array {
   );
 }
 
-interface MinimaxProviderOptions {
-  client?: OpenAI;
-  clientFactory?: (apiKey: string) => OpenAI;
-  fetchFn?: typeof fetch;
-}
-
 interface MinimaxBaseResp {
   status_code?: number;
   status_msg?: string;
@@ -158,7 +155,7 @@ function assertBaseResp(data: Record<string, unknown>, context: string): void {
   }
 }
 
-export class MinimaxProvider extends OpenAIProvider {
+export class MinimaxProvider extends OpenAICompatProvider {
   static override requiredSecrets(): string[] {
     return ["MINIMAX_API_KEY"];
   }
@@ -167,7 +164,7 @@ export class MinimaxProvider extends OpenAIProvider {
 
   constructor(
     secrets: { MINIMAX_API_KEY?: string },
-    options: MinimaxProviderOptions = {}
+    options: OpenAICompatProviderOptions = {}
   ) {
     const apiKey = secrets.MINIMAX_API_KEY;
     if (!apiKey) {
@@ -177,21 +174,14 @@ export class MinimaxProvider extends OpenAIProvider {
     const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
 
     super(
-      { OPENAI_API_KEY: apiKey },
       {
-        client: options.client,
-        clientFactory:
-          options.clientFactory ??
-          ((key) =>
-            new OpenAI({
-              apiKey: key,
-              baseURL: MINIMAX_OPENAI_BASE_URL
-            })),
-        fetchFn
-      }
+        providerId: "minimax",
+        apiKey,
+        baseURL: MINIMAX_OPENAI_BASE_URL
+      },
+      { ...options, fetchFn }
     );
 
-    (this as { provider: string }).provider = "minimax";
     this._minimaxFetch = fetchFn;
   }
 

@@ -1,5 +1,8 @@
-import OpenAI from "openai";
 import { OpenAIProvider } from "./openai-provider.js";
+import {
+  OpenAICompatProvider,
+  type OpenAICompatProviderOptions
+} from "./openai-compat-provider.js";
 import type {
   ImageModel,
   ImageToImageParams,
@@ -45,12 +48,6 @@ function bytesToDataUri(bytes: Uint8Array): string {
   return `data:${detectImageMime(bytes)};base64,${base64}`;
 }
 
-interface XAIProviderOptions {
-  client?: OpenAI;
-  clientFactory?: (apiKey: string) => OpenAI;
-  fetchFn?: typeof fetch;
-}
-
 /** Raw row from xAI's `/v1/models` listing. */
 interface XAIModelRow {
   id: string;
@@ -90,10 +87,10 @@ function classifyModel(row: XAIModelRow): ModelModality {
 }
 
 /**
- * xAI (Grok) provider. Uses the OpenAI SDK against xAI's
- * OpenAI-compatible endpoint at https://api.x.ai/v1.
+ * xAI (Grok) provider. Speaks the OpenAI Chat Completions dialect against
+ * xAI's OpenAI-compatible endpoint at https://api.x.ai/v1.
  */
-export class XAIProvider extends OpenAIProvider {
+export class XAIProvider extends OpenAICompatProvider {
   static override requiredSecrets(): string[] {
     return ["XAI_API_KEY"];
   }
@@ -102,7 +99,7 @@ export class XAIProvider extends OpenAIProvider {
 
   constructor(
     secrets: { XAI_API_KEY?: string },
-    options: XAIProviderOptions = {}
+    options: OpenAICompatProviderOptions = {}
   ) {
     const apiKey = secrets.XAI_API_KEY;
     if (!apiKey) {
@@ -112,21 +109,10 @@ export class XAIProvider extends OpenAIProvider {
     const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
 
     super(
-      { OPENAI_API_KEY: apiKey },
-      {
-        client: options.client,
-        clientFactory:
-          options.clientFactory ??
-          ((key) =>
-            new OpenAI({
-              apiKey: key,
-              baseURL: XAI_BASE_URL
-            })),
-        fetchFn
-      }
+      { providerId: "xai", apiKey, baseURL: XAI_BASE_URL },
+      { ...options, fetchFn }
     );
 
-    (this as { provider: string }).provider = "xai";
     this._xaiFetch = fetchFn;
   }
 

@@ -1,14 +1,10 @@
-import OpenAI from "openai";
-import { OpenAIProvider } from "./openai-provider.js";
+import {
+  OpenAICompatProvider,
+  type OpenAICompatProviderOptions
+} from "./openai-compat-provider.js";
 import type { LanguageModel } from "./types.js";
 
-interface CerebrasProviderOptions {
-  client?: OpenAI;
-  clientFactory?: (apiKey: string) => OpenAI;
-  fetchFn?: typeof fetch;
-}
-
-export class CerebrasProvider extends OpenAIProvider {
+export class CerebrasProvider extends OpenAICompatProvider {
   static override requiredSecrets(): string[] {
     return ["CEREBRAS_API_KEY"];
   }
@@ -17,7 +13,7 @@ export class CerebrasProvider extends OpenAIProvider {
 
   constructor(
     secrets: { CEREBRAS_API_KEY?: string },
-    options: CerebrasProviderOptions = {}
+    options: OpenAICompatProviderOptions = {}
   ) {
     const apiKey = secrets.CEREBRAS_API_KEY;
     if (!apiKey) {
@@ -27,21 +23,14 @@ export class CerebrasProvider extends OpenAIProvider {
     const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
 
     super(
-      { OPENAI_API_KEY: apiKey },
       {
-        client: options.client,
-        clientFactory:
-          options.clientFactory ??
-          ((key) =>
-            new OpenAI({
-              apiKey: key,
-              baseURL: "https://api.cerebras.ai/v1"
-            })),
-        fetchFn
-      }
+        providerId: "cerebras",
+        apiKey,
+        baseURL: "https://api.cerebras.ai/v1"
+      },
+      { ...options, fetchFn }
     );
 
-    (this as { provider: string }).provider = "cerebras";
     this._cerebrasFetch = fetchFn;
   }
 

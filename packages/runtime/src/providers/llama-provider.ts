@@ -1,6 +1,9 @@
-import OpenAI from "openai";
 import type { Chunk } from "@nodetool-ai/protocol";
 import { BaseProvider } from "./base-provider.js";
+import {
+  OpenAICompatClient,
+  type ChatCompletionsRequest
+} from "./openai-compat/index.js";
 import type {
   LanguageModel,
   Message,
@@ -11,8 +14,8 @@ import type {
 } from "./types.js";
 
 interface LlamaProviderOptions {
-  client?: OpenAI;
-  clientFactory?: (baseUrl: string) => OpenAI;
+  compatClient?: OpenAICompatClient;
+  clientFactory?: (baseUrl: string) => OpenAICompatClient;
   fetchFn?: typeof fetch;
 }
 
@@ -20,12 +23,6 @@ interface MutableToolCall {
   id: string;
   name: string;
   arguments: string;
-}
-
-/** Shape of a native OpenAI tool call entry as returned by the SDK. */
-interface NativeToolCall {
-  id?: string | null;
-  function?: { name?: string | null; arguments?: string };
 }
 
 function parseKeywordArgs(raw: string): Record<string, unknown> {
@@ -179,8 +176,8 @@ export class LlamaProvider extends BaseProvider {
   }
 
   readonly baseUrl: string;
-  private _client: OpenAI | null;
-  private _clientFactory: (baseUrl: string) => OpenAI;
+  private _client: OpenAICompatClient | null;
+  private _clientFactory: (baseUrl: string) => OpenAICompatClient;
   private _fetch: typeof fetch;
 
   constructor(
@@ -193,18 +190,22 @@ export class LlamaProvider extends BaseProvider {
     if (!raw || !raw.trim()) {
       throw new Error("LLAMA_CPP_URL is required");
     }
-    const normalized = raw.replace(/\/+$/, "");
+    let end = raw.length;
+    while (end > 0 && raw[end - 1] === "/") end -= 1;
+    const normalized = raw.slice(0, end);
 
+    const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
     this.baseUrl = normalized;
-    this._client = options.client ?? null;
+    this._client = options.compatClient ?? null;
     this._clientFactory =
       options.clientFactory ??
       ((url) =>
-        new OpenAI({
+        new OpenAICompatClient({
           apiKey: "sk-no-key-required",
-          baseURL: `${url}/v1`
+          baseURL: `${url}/v1`,
+          fetchFn
         }));
-    this._fetch = options.fetchFn ?? globalThis.fetch.bind(globalThis);
+    this._fetch = fetchFn;
   }
 
   getContainerEnv(): Record<string, string> {
@@ -212,7 +213,7 @@ export class LlamaProvider extends BaseProvider {
     return {};
   }
 
-  private getClient(): OpenAI {
+  private getClient(): OpenAICompatClient {
     if (!this._client) {
       this._client = this._clientFactory(this.baseUrl);
     }
@@ -353,7 +354,7 @@ export class LlamaProvider extends BaseProvider {
       normalized.map((m) => this.convertMessage(m))
     );
 
-    const request: Record<string, unknown> = {
+    const request: ChatCompletionsRequest = {
       model,
       messages: openaiMessages,
       max_tokens: maxTokens,
@@ -364,70 +365,62 @@ export class LlamaProvider extends BaseProvider {
     }
 
     this.recordRequestPayload(request);
-    const stream = (await this.getClient().chat.completions.create(
-      request as unknown as OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming
-    )) as AsyncIterable<any> & { close?: () => Promise<void> };
+    const stream = this.getClient().chatCompletionsStream(request);
 
     const deltaToolCalls = new Map<number, MutableToolCall>();
     let accumulatedText = "";
 
-    try {
-      for await (const chunk of stream) {
-        const choice = chunk?.choices?.[0];
-        if (!choice) continue;
-        const delta = choice.delta;
+    for await (const chunk of stream) {
+      const choice = chunk.choices?.[0];
+      if (!choice) continue;
+      const delta = choice.delta;
 
-        if (Array.isArray(delta?.tool_calls)) {
-          for (const tc of delta.tool_calls) {
-            const index = Number(tc.index ?? 0);
-            const cur = deltaToolCalls.get(index) ?? {
-              id: String(tc.id ?? ""),
-              name: "",
-              arguments: ""
-            };
-            if (tc.id) cur.id = String(tc.id);
-            if (tc.function?.name) cur.name = String(tc.function.name);
-            if (tc.function?.arguments)
-              cur.arguments += String(tc.function.arguments);
-            deltaToolCalls.set(index, cur);
-          }
-        }
-
-        const content = String(delta?.content ?? "");
-        if (content.length > 0) {
-          accumulatedText += content;
-        }
-
-        if (content.length > 0 || choice.finish_reason === "stop") {
-          const out: Chunk = {
-            type: "chunk",
-            content,
-            done: choice.finish_reason === "stop"
+      if (Array.isArray(delta?.tool_calls)) {
+        for (const tc of delta.tool_calls) {
+          const index = Number(tc.index ?? 0);
+          const cur = deltaToolCalls.get(index) ?? {
+            id: String(tc.id ?? ""),
+            name: "",
+            arguments: ""
           };
-          yield out;
-        }
-
-        if (choice.finish_reason === "tool_calls") {
-          for (const call of deltaToolCalls.values()) {
-            yield this.buildToolCall(call.id, call.name, call.arguments);
-          }
-          deltaToolCalls.clear();
-        }
-
-        if (
-          choice.finish_reason === "stop" &&
-          tools.length > 0 &&
-          !(await this.hasToolSupport(model))
-        ) {
-          const parsed = parseEmulatedToolCalls(accumulatedText, tools);
-          for (const tc of parsed.toolCalls) {
-            yield tc;
-          }
+          if (tc.id) cur.id = String(tc.id);
+          if (tc.function?.name) cur.name = String(tc.function.name);
+          if (tc.function?.arguments)
+            cur.arguments += String(tc.function.arguments);
+          deltaToolCalls.set(index, cur);
         }
       }
-    } finally {
-      if (typeof stream.close === "function") {
-        await stream.close();
+
+      const content = String(delta?.content ?? "");
+      if (content.length > 0) {
+        accumulatedText += content;
+      }
+
+      if (content.length > 0 || choice.finish_reason === "stop") {
+        const out: Chunk = {
+          type: "chunk",
+          content,
+          done: choice.finish_reason === "stop"
+        };
+        yield out;
+      }
+
+      if (choice.finish_reason === "tool_calls") {
+        for (const call of deltaToolCalls.values()) {
+          yield this.buildToolCall(call.id, call.name, call.arguments);
+        }
+        deltaToolCalls.clear();
+      }
+
+      if (
+        choice.finish_reason === "stop" &&
+        tools.length > 0 &&
+        !(await this.hasToolSupport(model))
+      ) {
+        const parsed = parseEmulatedToolCalls(accumulatedText, tools);
+        for (const tc of parsed.toolCalls) {
+          yield tc;
+        }
       }
     }
   }
@@ -453,7 +446,7 @@ export class LlamaProvider extends BaseProvider {
       normalized.map((m) => this.convertMessage(m))
     );
 
-    const request: Record<string, unknown> = {
+    const request: ChatCompletionsRequest = {
       model,
       messages: openaiMessages,
       max_tokens: maxTokens,
@@ -464,20 +457,18 @@ export class LlamaProvider extends BaseProvider {
     }
 
     this.recordRequestPayload(request);
-    const completion = await this.getClient().chat.completions.create(
-      request as unknown as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming
-    );
+    const completion = await this.getClient().chatCompletions(request);
     const message = completion.choices?.[0]?.message;
     const content = String(message?.content ?? "");
 
     let toolCalls: ToolCall[] = [];
-    const nativeToolCalls = (message?.tool_calls ?? []) as NativeToolCall[];
+    const nativeToolCalls = message?.tool_calls ?? [];
     if (nativeToolCalls.length > 0) {
       toolCalls = nativeToolCalls.map((tc) =>
         this.buildToolCall(
           String(tc.id ?? ""),
           String(tc.function?.name ?? ""),
-          tc.function?.arguments
+          tc.function?.arguments ?? undefined
         )
       );
     } else if (tools.length > 0 && !(await this.hasToolSupport(model))) {

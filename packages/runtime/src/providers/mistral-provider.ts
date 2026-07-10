@@ -1,14 +1,10 @@
-import OpenAI from "openai";
-import { OpenAIProvider } from "./openai-provider.js";
+import {
+  OpenAICompatProvider,
+  type OpenAICompatProviderOptions
+} from "./openai-compat-provider.js";
 import type { EmbeddingModel, LanguageModel } from "./types.js";
 
-interface MistralProviderOptions {
-  client?: OpenAI;
-  clientFactory?: (apiKey: string) => OpenAI;
-  fetchFn?: typeof fetch;
-}
-
-export class MistralProvider extends OpenAIProvider {
+export class MistralProvider extends OpenAICompatProvider {
   static override requiredSecrets(): string[] {
     return ["MISTRAL_API_KEY"];
   }
@@ -17,7 +13,7 @@ export class MistralProvider extends OpenAIProvider {
 
   constructor(
     secrets: { MISTRAL_API_KEY?: string },
-    options: MistralProviderOptions = {}
+    options: OpenAICompatProviderOptions = {}
   ) {
     const apiKey = secrets.MISTRAL_API_KEY;
     if (!apiKey) {
@@ -27,21 +23,14 @@ export class MistralProvider extends OpenAIProvider {
     const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
 
     super(
-      { OPENAI_API_KEY: apiKey },
       {
-        client: options.client,
-        clientFactory:
-          options.clientFactory ??
-          ((key) =>
-            new OpenAI({
-              apiKey: key,
-              baseURL: "https://api.mistral.ai/v1"
-            })),
-        fetchFn
-      }
+        providerId: "mistral",
+        apiKey,
+        baseURL: "https://api.mistral.ai/v1"
+      },
+      { ...options, fetchFn }
     );
 
-    (this as { provider: string }).provider = "mistral";
     this._mistralFetch = fetchFn;
   }
 

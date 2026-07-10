@@ -7,19 +7,11 @@ import type {
   TextToImageParams,
   TextToVideoParams
 } from "../../src/providers/types.js";
-
-function makeAsyncIterable(items: unknown[]) {
-  return {
-    async *[Symbol.asyncIterator]() {
-      for (const item of items) {
-        yield item;
-      }
-    },
-    async close() {
-      return;
-    }
-  };
-}
+import {
+  chatJsonResponse,
+  chatSSEResponse,
+  mockChatFetch
+} from "./helpers/compat-fetch.js";
 
 /** Build a minimal valid WAV buffer containing one zero-valued 16-bit sample at 24 kHz. */
 function buildMinimalWav(sampleRate = 24000): Uint8Array {
@@ -170,25 +162,23 @@ describe("TogetherProvider", () => {
 
   // ─── Chat completions (inherited) ───────────────────────────────────────────
 
-  it("generates non-streaming message via inherited OpenAI logic", async () => {
-    const create = vi.fn().mockResolvedValue({
-      choices: [
-        {
-          message: {
-            content: "together response",
-            tool_calls: null
+  it("generates non-streaming message via the compat chat client", async () => {
+    const fetchMock = mockChatFetch(
+      chatJsonResponse({
+        choices: [
+          {
+            message: {
+              content: "together response",
+              tool_calls: null
+            }
           }
-        }
-      ]
-    });
+        ]
+        })
+    );
 
     const provider = new TogetherProvider(
       { TOGETHER_API_KEY: "k" },
-      {
-        client: {
-          chat: { completions: { create } }
-        } as any
-      }
+      { fetchFn: fetchMock as unknown as typeof fetch }
     );
 
     const messages: Message[] = [{ role: "user", content: "hello" }];
@@ -199,10 +189,10 @@ describe("TogetherProvider", () => {
 
     expect(result.role).toBe("assistant");
     expect(result.content).toBe("together response");
-    expect(create).toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalled();
   });
 
-  it("streams messages via inherited OpenAI logic", async () => {
+  it("streams messages via the compat chat client", async () => {
     const chunks = [
       {
         choices: [{ delta: { content: "hello" }, finish_reason: null }]
@@ -212,15 +202,11 @@ describe("TogetherProvider", () => {
       }
     ];
 
-    const create = vi.fn().mockResolvedValue(makeAsyncIterable(chunks));
+    const fetchMock = mockChatFetch(() => chatSSEResponse(chunks));
 
     const provider = new TogetherProvider(
       { TOGETHER_API_KEY: "k" },
-      {
-        client: {
-          chat: { completions: { create } }
-        } as any
-      }
+      { fetchFn: fetchMock as unknown as typeof fetch }
     );
 
     const messages: Message[] = [{ role: "user", content: "hi" }];

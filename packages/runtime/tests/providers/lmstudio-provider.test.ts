@@ -1,6 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
 import { LMStudioProvider } from "../../src/providers/lmstudio-provider.js";
 import type { Message } from "../../src/providers/types.js";
+import {
+  chatJsonResponse,
+  chatSSEResponse,
+  mockChatFetch
+} from "./helpers/compat-fetch.js";
 
 describe("LMStudioProvider", () => {
   it("creates without secrets (no API key required)", () => {
@@ -111,24 +116,22 @@ describe("LMStudioProvider", () => {
   });
 
   it("generates non-streaming message", async () => {
-    const create = vi.fn().mockResolvedValue({
-      choices: [
-        {
-          message: {
-            content: "lmstudio response",
-            tool_calls: null
+    const fetchMock = mockChatFetch(
+      chatJsonResponse({
+        choices: [
+          {
+            message: {
+              content: "lmstudio response",
+              tool_calls: null
+            }
           }
-        }
-      ]
-    });
+        ]
+      })
+    );
 
     const provider = new LMStudioProvider(
       {},
-      {
-        client: {
-          chat: { completions: { create } }
-        } as any
-      }
+      { fetchFn: fetchMock as unknown as typeof fetch }
     );
 
     const messages: Message[] = [{ role: "user", content: "hello" }];
