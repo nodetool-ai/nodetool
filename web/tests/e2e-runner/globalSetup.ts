@@ -29,26 +29,29 @@ const BACKEND_PORT = 7777;
 const STARTUP_TIMEOUT_MS = 120_000;
 const E2E_TEST_MASTER_KEY_B64 = "RTJFX1RFU1RfS0VZX0RPX05PVF9VU0VfSU5fUFJPRCE=";
 
+function checkPortOnce(host: string, port: number, timeoutMs: number): Promise<boolean> {
+  return new Promise<boolean>((res) => {
+    const socket = net.createConnection({ host, port });
+    let done = false;
+    const settle = (value: boolean) => {
+      if (done) return;
+      done = true;
+      socket.destroy();
+      res(value);
+    };
+    // Per-attempt timeout so a filtered/half-open port can't stall past the
+    // overall deadline.
+    socket.setTimeout(timeoutMs);
+    socket.once("connect", () => settle(true));
+    socket.once("timeout", () => settle(false));
+    socket.once("error", () => settle(false));
+  });
+}
+
 async function waitForPort(host: string, port: number, timeoutMs: number): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    const ready = await new Promise<boolean>((res) => {
-      const socket = net.createConnection({ host, port });
-      let done = false;
-      const settle = (value: boolean) => {
-        if (done) return;
-        done = true;
-        socket.destroy();
-        res(value);
-      };
-      // Per-attempt timeout so a filtered/half-open port can't stall past the
-      // overall deadline.
-      socket.setTimeout(2_000);
-      socket.once("connect", () => settle(true));
-      socket.once("timeout", () => settle(false));
-      socket.once("error", () => settle(false));
-    });
-    if (ready) return;
+    if (await checkPortOnce(host, port, 2_000)) return;
     await new Promise((r) => setTimeout(r, 500));
   }
   throw new Error(`[e2e globalSetup] Timed out waiting for backend on ${host}:${port}`);
@@ -56,6 +59,21 @@ async function waitForPort(host: string, port: number, timeoutMs: number): Promi
 
 export default async function globalSetup(): Promise<() => Promise<void>> {
   mkdirSync(ARTIFACT_DIR, { recursive: true });
+
+  // Fail loudly if something already holds the port instead of letting the
+  // suite silently run against whatever backend that is (real providers, real
+  // DB) once the hermetic server we spawn below dies on EADDRINUSE.
+  const portAlreadyOpen = await checkPortOnce(BACKEND_HOST, BACKEND_PORT, 2_000);
+  if (portAlreadyOpen) {
+    throw new Error(
+      `[e2e globalSetup] Port ${BACKEND_PORT} on ${BACKEND_HOST} is already in use. ` +
+        `The e2e suite needs to own this port to run its own hermetic backend ` +
+        `(packages/websocket/src/e2e-server.ts) — if it starts against an already-running ` +
+        `server, that server (likely started with \`npm run dev:server\`) would be exercised ` +
+        `instead, with real providers and the real DB. Stop whatever is listening on ` +
+        `${BACKEND_HOST}:${BACKEND_PORT} and re-run.`
+    );
+  }
 
   const { count } = prepareSuite();
   console.log(`[e2e globalSetup] Prepared suite with ${count} workflows`);
@@ -81,8 +99,28 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
     console.error("[e2e globalSetup] Failed to start backend:", err)
   );
 
+  // Reject as soon as the child dies rather than burning the full startup
+  // deadline waiting for a port that will never open (e.g. EADDRINUSE).
+  const earlyExit = new Promise<never>((_, reject) => {
+    serverProcess.once("exit", (code, signal) => {
+      reject(
+        new Error(
+          `[e2e globalSetup] Backend process exited before it started listening ` +
+            `(code=${code}, signal=${signal})`
+        )
+      );
+    });
+  });
+  // Attach a handler now so that if waitForPort wins the race, this promise's
+  // later rejection (backend dying during teardown) doesn't surface as an
+  // unhandled rejection.
+  earlyExit.catch(() => {});
+
   try {
-    await waitForPort(BACKEND_HOST, BACKEND_PORT, STARTUP_TIMEOUT_MS);
+    await Promise.race([
+      waitForPort(BACKEND_HOST, BACKEND_PORT, STARTUP_TIMEOUT_MS),
+      earlyExit
+    ]);
   } catch (err) {
     serverProcess.kill("SIGKILL");
     throw err;

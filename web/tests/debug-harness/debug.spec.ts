@@ -9,9 +9,12 @@
  * written into NODETOOL_DEBUG_OUT for the CLI to read back.
  *
  * Inputs (env):
- *   NODETOOL_DEBUG_GRAPH   path to a JSON file: either a bare graph or { graph }.
- *   NODETOOL_DEBUG_OUT     directory to write record.json / screenshot.png / stages/.
- *   NODETOOL_DEBUG_PARAMS  optional JSON object of run params.
+ *   NODETOOL_DEBUG_GRAPH    path to a JSON file: either a bare graph or { graph }.
+ *   NODETOOL_DEBUG_OUT      directory to write record.json / screenshot.png / stages/.
+ *   NODETOOL_DEBUG_PARAMS   optional JSON object of run params.
+ *   NODETOOL_DEBUG_TIMEOUT  optional per-run timeout (ms) forwarded to runGraph, so a
+ *                           long `nodetool debug --timeout` run isn't capped by the
+ *                           harness's internal RUN_TIMEOUT_MS.
  */
 import { test, expect, type Page } from "@playwright/test";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -25,12 +28,25 @@ const PARAMS_JSON = process.env.NODETOOL_DEBUG_PARAMS;
 const CAPTURE_STAGES =
   process.env.NODETOOL_DEBUG_STAGES === "1" || process.env.NODETOOL_DEBUG_STAGES === "true";
 
+function parseTimeoutMs(raw: string | undefined): number | undefined {
+  if (!raw) return undefined;
+  const n = Number(raw);
+  return Number.isInteger(n) && n > 0 ? n : undefined;
+}
+const RUN_TIMEOUT_MS = parseTimeoutMs(process.env.NODETOOL_DEBUG_TIMEOUT);
+
 const POLL_MS = 120;
 /** Don't snap more often than this even if stages tick fast. */
 const MIN_INTERVAL_MS = 180;
 /** Cap the number of intermediate stage frames (excludes the final). */
 const MAX_STAGES = 16;
-const MAX_WAIT_MS = 5 * 60_000;
+const DEFAULT_MAX_WAIT_MS = 5 * 60_000;
+/** Margin added on top of an explicit run timeout so polling outlives the in-page run. */
+const WAIT_MARGIN_MS = 30_000;
+const MAX_WAIT_MS =
+  RUN_TIMEOUT_MS !== undefined
+    ? Math.max(RUN_TIMEOUT_MS + WAIT_MARGIN_MS, DEFAULT_MAX_WAIT_MS)
+    : DEFAULT_MAX_WAIT_MS;
 
 interface StageShot {
   index: number;
@@ -114,14 +130,15 @@ test("debug harness runs the target workflow", async ({ page }) => {
     if (CAPTURE_STAGES) {
       // Start the run but DON'T await it here, so we can screenshot mid-flight.
       await page.evaluate(
-        ([g, p]) => {
+        ([g, p, timeoutMs]) => {
           (window as unknown as { __DEBUG_RUN__?: Promise<RunRecord> }).__DEBUG_RUN__ =
             window.__E2E__!.runGraph(
               g as { nodes: unknown[]; edges: unknown[] },
-              p as Record<string, unknown>
+              p as Record<string, unknown>,
+              timeoutMs !== undefined ? { timeoutMs } : undefined
             );
         },
-        [graph, params] as const
+        [graph, params, RUN_TIMEOUT_MS] as const
       );
       stages = await captureStages(page, resolve(OUT_DIR, "stages"));
       record = (await page.evaluate(
@@ -130,12 +147,13 @@ test("debug harness runs the target workflow", async ({ page }) => {
     } else {
       // Cheap default: run to completion, capture only the final frame below.
       record = (await page.evaluate(
-        ([g, p]) =>
+        ([g, p, timeoutMs]) =>
           window.__E2E__!.runGraph(
             g as { nodes: unknown[]; edges: unknown[] },
-            p as Record<string, unknown>
+            p as Record<string, unknown>,
+            timeoutMs !== undefined ? { timeoutMs } : undefined
           ),
-        [graph, params] as const
+        [graph, params, RUN_TIMEOUT_MS] as const
       )) as RunRecord;
     }
   } catch (err) {

@@ -10,7 +10,7 @@
  * It degrades gracefully (an `unavailableReason`) when the web deps or browser
  * binaries aren't installed.
  */
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -60,6 +60,41 @@ interface StageEntry {
   file: string;
 }
 
+/** Grace period between SIGTERM and SIGKILL when tearing down the child's process group. */
+const GROUP_KILL_GRACE_MS = 5_000;
+
+/**
+ * Kill the Playwright child on timeout. Playwright's webServer (Vite) and the
+ * tsx e2e backend spawned by globalSetup are children of this process, not of
+ * `child` itself, so a plain `child.kill()` orphans them holding ports
+ * 3000/7777. On POSIX, `child` is spawned detached (its own process group), so
+ * we can kill the whole group via the negative pid; on win32 (no process
+ * groups, and no `shell: true` here) fall back to killing just the child.
+ */
+function killChild(child: ChildProcess): void {
+  if (process.platform !== "win32" && child.pid !== undefined) {
+    const pgid = child.pid;
+    try {
+      process.kill(-pgid, "SIGTERM");
+    } catch {
+      // Process group may already be gone.
+    }
+    setTimeout(() => {
+      try {
+        process.kill(-pgid, "SIGKILL");
+      } catch {
+        // Process group may already be gone.
+      }
+    }, GROUP_KILL_GRACE_MS).unref();
+    return;
+  }
+  try {
+    child.kill("SIGKILL");
+  } catch {
+    // Already exited.
+  }
+}
+
 function unavailable(reason: string): BrowserRunReport {
   return {
     surface: "browser",
@@ -93,22 +128,38 @@ export async function runInBrowser(input: BrowserRunInput): Promise<BrowserRunRe
     NODETOOL_DEBUG_GRAPH: graphPath,
     NODETOOL_DEBUG_OUT: input.outDir,
     NODETOOL_DEBUG_PARAMS: JSON.stringify(input.params ?? {}),
-    ...(input.captureStages ? { NODETOOL_DEBUG_STAGES: "1" } : {})
+    ...(input.captureStages ? { NODETOOL_DEBUG_STAGES: "1" } : {}),
+    // Read by debug.spec.ts to arm the in-page run's own timeout, so the
+    // Playwright spec doesn't fall back to its internal RUN_TIMEOUT_MS cap.
+    ...(input.timeoutMs ? { NODETOOL_DEBUG_TIMEOUT: String(input.timeoutMs) } : {})
   };
 
+  // The child-kill timer below is the outer backstop; it must stay comfortably
+  // above the in-page timeout the spec applies, or the child gets killed
+  // before the harness can settle and write record.json.
+  const killTimeoutMs =
+    input.timeoutMs !== undefined
+      ? Math.max(input.timeoutMs + 60_000, DEFAULT_TIMEOUT_MS)
+      : DEFAULT_TIMEOUT_MS;
+
+  const isWindows = process.platform === "win32";
   const exitCode = await new Promise<number>((resolvePromise) => {
     const child = spawn(playwrightBin, ["test", "-c", CONFIG_REL], {
       cwd: webDir,
       env,
-      stdio: ["ignore", "pipe", "pipe"]
+      stdio: ["ignore", "pipe", "pipe"],
+      // .bin/playwright is a shell shim on win32 (no .exe), so it needs a
+      // shell to resolve; shell mode has no process groups, so detach only
+      // on POSIX where killChild can use them for whole-tree teardown.
+      ...(isWindows ? { shell: true } : { detached: true })
     });
     const onChunk = (buf: Buffer) => input.onLog?.(buf.toString());
     child.stdout?.on("data", onChunk);
     child.stderr?.on("data", onChunk);
     const timer = setTimeout(() => {
-      child.kill("SIGKILL");
+      killChild(child);
       resolvePromise(124);
-    }, input.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+    }, killTimeoutMs);
     child.on("error", () => {
       clearTimeout(timer);
       resolvePromise(127);

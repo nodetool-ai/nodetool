@@ -13,6 +13,7 @@ export type RunStatus =
   | "cancelled"
   | "error"
   | "timeout"
+  | "suspended"
   | "skipped";
 
 /** A single workflow entry in the suite manifest. */
@@ -38,6 +39,8 @@ export interface WorkflowRef {
   tags?: string[];
   /** Where the graph came from (cli-fixtures | shipped-examples | custom). */
   source?: string;
+  /** Per-run timeout override in ms; defaults to the harness cap. */
+  timeoutMs?: number;
 }
 
 export interface Manifest {
