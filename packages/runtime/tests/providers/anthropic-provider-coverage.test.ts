@@ -129,6 +129,50 @@ describe("AnthropicProvider – convertMessage branches", () => {
     expect((result as any).content[0].source.media_type).toBe("image/jpeg");
   });
 
+  it("normalizes the image/jpg alias to image/jpeg", async () => {
+    const base64 = Buffer.from("test").toString("base64");
+    const result = await provider.convertMessage({
+      role: "user",
+      content: [
+        { type: "image_url", image: { data: base64, mimeType: "image/jpg" } }
+      ]
+    });
+    expect((result as any).content[0].source.media_type).toBe("image/jpeg");
+  });
+
+  it("falls back to image/png for a mime Anthropic does not accept", async () => {
+    const base64 = Buffer.from("test").toString("base64");
+    const result = await provider.convertMessage({
+      role: "user",
+      content: [
+        {
+          type: "image_url",
+          image: { data: base64, mimeType: "application/octet-stream" }
+        }
+      ]
+    });
+    expect((result as any).content[0].source.media_type).toBe("image/png");
+  });
+
+  it("strips Content-Type parameters from a fetched image mime", async () => {
+    const fetchFn = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: { get: () => "image/jpeg; charset=binary" },
+      arrayBuffer: async () => Uint8Array.from([1, 2, 3]).buffer
+    });
+    const p = new AnthropicProvider(
+      { ANTHROPIC_API_KEY: "k" },
+      { fetchFn: fetchFn as any }
+    );
+    const result = await p.convertMessage({
+      role: "user",
+      content: [
+        { type: "image_url", image: { uri: "https://example.com/pic" } }
+      ]
+    });
+    expect((result as any).content[0].source.media_type).toBe("image/jpeg");
+  });
+
   it("throws for image with no uri or data", async () => {
     await expect(
       provider.convertMessage({

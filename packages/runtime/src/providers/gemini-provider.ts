@@ -1,6 +1,7 @@
 import type { Chunk } from "@nodetool-ai/protocol";
 import { createLogger } from "@nodetool-ai/config";
 import { BaseProvider } from "./base-provider.js";
+import { sniffAudioMime } from "./audio-mime.js";
 
 const log = createLogger("nodetool.runtime.providers.gemini");
 import type {
@@ -26,6 +27,24 @@ import type {
 } from "./types.js";
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
+
+/** Drop `; charset=…`/`; codecs=…` parameters from a Content-Type header. */
+function stripMimeParams(value: string | null): string | undefined {
+  const mime = value?.split(";")[0].trim();
+  return mime || undefined;
+}
+
+/**
+ * Normalize an audio mime to one Gemini's `inlineData` accepts. Gemini lists
+ * audio/wav, audio/mp3, audio/aiff, audio/aac, audio/ogg and audio/flac; the
+ * common `audio/mpeg` label is remapped to `audio/mp3`. Falls back to
+ * `audio/mp3` when the type is unknown.
+ */
+function geminiAudioMime(mime: string | undefined): string {
+  if (!mime) return "audio/mp3";
+  if (mime === "audio/mpeg" || mime === "audio/mpga") return "audio/mp3";
+  return mime;
+}
 
 interface GeminiProviderOptions {
   fetchFn?: typeof fetch;
@@ -243,7 +262,7 @@ export class GeminiProvider extends BaseProvider {
           const resp = await this._fetch(img.uri);
           if (!resp.ok)
             throw new Error(`Failed to fetch image: ${resp.status}`);
-          mimeType = resp.headers.get("content-type") ?? mimeType;
+          mimeType = stripMimeParams(resp.headers.get("content-type")) ?? mimeType;
           base64Data = Buffer.from(await resp.arrayBuffer()).toString("base64");
         }
       } else {
@@ -256,32 +275,41 @@ export class GeminiProvider extends BaseProvider {
     if (content.type === "audio") {
       const aud = (content as MessageAudioContent).audio;
       let base64Data: string;
-      let mimeType = aud.mimeType ?? "audio/mp3";
+      let mimeType = aud.mimeType;
 
       if (aud.data) {
         if (typeof aud.data === "string") {
           base64Data = aud.data;
+          mimeType = mimeType ?? sniffAudioMime(Buffer.from(aud.data, "base64"));
         } else {
-          base64Data = Buffer.from(aud.data).toString("base64");
+          const bytes = Buffer.from(aud.data);
+          base64Data = bytes.toString("base64");
+          mimeType = mimeType ?? sniffAudioMime(bytes);
         }
       } else if (aud.uri) {
         if (aud.uri.startsWith("data:")) {
           const idx = aud.uri.indexOf(",");
           const header = aud.uri.slice(5, idx);
-          mimeType = header.split(";")[0] || mimeType;
+          mimeType = mimeType ?? header.split(";")[0];
           base64Data = aud.uri.slice(idx + 1);
         } else {
           const resp = await this._fetch(aud.uri);
           if (!resp.ok)
             throw new Error(`Failed to fetch audio: ${resp.status}`);
-          mimeType = resp.headers.get("content-type") ?? mimeType;
-          base64Data = Buffer.from(await resp.arrayBuffer()).toString("base64");
+          const bytes = Buffer.from(await resp.arrayBuffer());
+          mimeType =
+            stripMimeParams(resp.headers.get("content-type")) ??
+            mimeType ??
+            sniffAudioMime(bytes);
+          base64Data = bytes.toString("base64");
         }
       } else {
         base64Data = "";
       }
 
-      return { inlineData: { mimeType, data: base64Data } };
+      return {
+        inlineData: { mimeType: geminiAudioMime(mimeType), data: base64Data }
+      };
     }
 
     return { text: "[unsupported content type]" };

@@ -8,6 +8,7 @@ import { PROVIDER_IDS } from "@nodetool-ai/protocol";
 import { createLogger, importHidden } from "@nodetool-ai/config";
 import { BaseProvider, splitToolResultImages } from "./base-provider.js";
 import { hashSystemPrompt } from "./provider-session.js";
+import { sniffAudioMime } from "./audio-mime.js";
 import {
   extractResponsesImages,
   extractResponsesText,
@@ -130,6 +131,21 @@ function parseDataUri(uri: string): { mime: string; data: Uint8Array } {
 function makeDataUri(mime: string, data: Uint8Array): string {
   const b64 = Buffer.from(data).toString("base64");
   return `data:${mime};base64,${b64}`;
+}
+
+/**
+ * OpenAI's Chat Completions `input_audio` block accepts only `"wav"` or `"mp3"`
+ * as its `format` — a bare token, not a mime type. Resolve it from the declared
+ * mime when present, otherwise sniff the leading magic bytes. Anything that
+ * isn't WAV is sent as `"mp3"` (the only other format OpenAI decodes).
+ */
+function openAiAudioFormat(
+  mime: string | undefined,
+  bytes: Uint8Array
+): "wav" | "mp3" {
+  const resolved =
+    mime && mime !== "application/octet-stream" ? mime : sniffAudioMime(bytes);
+  return /wave?$/i.test(resolved) ? "wav" : "mp3";
 }
 
 /**
@@ -664,17 +680,21 @@ export class OpenAIProvider extends BaseProvider {
 
     if (content.type === "audio") {
       const c = content as MessageAudioContent;
-      const base64 = c.audio.uri
-        ? (await this.uriToBase64(c.audio.uri)).split(",", 2)[1]
-        : Buffer.from(asUint8Array(c.audio.data ?? new Uint8Array())).toString(
-            "base64"
-          );
+      let bytes: Uint8Array;
+      let mime = c.audio.mimeType;
+      if (c.audio.uri) {
+        const parsed = parseDataUri(await this.uriToBase64(c.audio.uri));
+        bytes = parsed.data;
+        mime = mime ?? parsed.mime;
+      } else {
+        bytes = asUint8Array(c.audio.data ?? new Uint8Array());
+      }
 
       return {
         type: "input_audio",
         input_audio: {
-          format: "mp3",
-          data: base64
+          format: openAiAudioFormat(mime, bytes),
+          data: Buffer.from(bytes).toString("base64")
         }
       };
     }
