@@ -7,7 +7,7 @@ import {
 } from "tabulator-tables";
 import { createRoot } from "react-dom/client";
 import CustomDatePicker from "../../inputs/DatePicker";
-import { isValid, parseISO } from "date-fns";
+import { isValid, parseISO } from "../../../utils/dateFormat";
 
 export const integerEditor: Editor = (
   cell: CellComponent,
