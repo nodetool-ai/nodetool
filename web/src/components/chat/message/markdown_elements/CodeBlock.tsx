@@ -1,11 +1,9 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback, useMemo, memo } from "react";
-import {
-  oneDark,
-  oneLight
-} from "react-syntax-highlighter/dist/esm/styles/prism";
-import SyntaxHighlighter from "react-syntax-highlighter/dist/esm/prism";
+import Prism from "prismjs";
+import "../../../../prismGlobal";
+import DOMPurify from "dompurify";
 import { CopyButton, BORDER_RADIUS, FONT_SIZE_SANS, SPACING, getSpacingPx } from "../../../ui_primitives";
 import { useIsDarkMode } from "../../../../hooks/useIsDarkMode";
 import isEqual from "fast-deep-equal";
@@ -26,18 +24,105 @@ const cssStyles = css({
   }
 });
 
-const customBlockStyle: React.CSSProperties = {
-  fontFamily: '"JetBrains Mono", monospace',
-  marginTop: 0,
-  padding: "1em",
-  margin: 0,
-  border: "2px solid var(--palette-grey-800)",
-  boxSizing: "border-box",
-  borderTopLeftRadius: 0,
-  borderTopRightRadius: 0,
-  borderBottomLeftRadius: BORDER_RADIUS.sm,
-  borderBottomRightRadius: BORDER_RADIUS.sm
+interface CodeThemeColors {
+  background: string;
+  foreground: string;
+  comment: string;
+  keyword: string;
+  tag: string;
+  string: string;
+  number: string;
+  function: string;
+  url: string;
+}
+
+// Palettes matching the One Dark / One Light Prism themes this block used
+// before (react-syntax-highlighter's oneDark/oneLight).
+const oneDarkColors: CodeThemeColors = {
+  background: "#282c34",
+  foreground: "#abb2bf",
+  comment: "#5c6370",
+  keyword: "#c678dd",
+  tag: "#e06c75",
+  string: "#98c379",
+  number: "#d19a66",
+  function: "#61afef",
+  url: "#56b6c2"
 };
+
+const oneLightColors: CodeThemeColors = {
+  background: "#fafafa",
+  foreground: "#383a42",
+  comment: "#a0a1a7",
+  keyword: "#a626a4",
+  tag: "#e45649",
+  string: "#50a14f",
+  number: "#986801",
+  function: "#4078f2",
+  url: "#0184bc"
+};
+
+const contentStyles = (colors: CodeThemeColors) =>
+  css({
+    fontFamily: '"JetBrains Mono", monospace',
+    padding: "1em",
+    margin: 0,
+    border: "2px solid var(--palette-grey-800)",
+    boxSizing: "border-box",
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    borderBottomLeftRadius: BORDER_RADIUS.sm,
+    borderBottomRightRadius: BORDER_RADIUS.sm,
+    backgroundColor: colors.background,
+    color: colors.foreground,
+    whiteSpace: "pre",
+    wordBreak: "normal",
+    overflow: "auto",
+    lineHeight: 1.5,
+    tabSize: 2,
+    code: {
+      fontFamily: "inherit",
+      background: "none",
+      color: "inherit"
+    },
+    ".token.comment, .token.prolog, .token.cdata": {
+      color: colors.comment,
+      fontStyle: "italic"
+    },
+    ".token.doctype, .token.punctuation, .token.entity": {
+      color: colors.foreground
+    },
+    ".token.keyword, .token.atrule": {
+      color: colors.keyword
+    },
+    ".token.property, .token.tag, .token.symbol, .token.deleted, .token.important":
+      {
+        color: colors.tag
+      },
+    ".token.selector, .token.string, .token.char, .token.builtin, .token.inserted, .token.regex, .token.attr-value":
+      {
+        color: colors.string
+      },
+    ".token.attr-name, .token.class-name, .token.boolean, .token.constant, .token.number":
+      {
+        color: colors.number
+      },
+    ".token.variable, .token.operator, .token.function": {
+      color: colors.function
+    },
+    ".token.url": {
+      color: colors.url
+    },
+    ".token.bold": {
+      fontWeight: "bold"
+    },
+    ".token.italic": {
+      fontStyle: "italic"
+    }
+  });
+
+const darkContentStyles = contentStyles(oneDarkColors);
+const lightContentStyles = contentStyles(oneLightColors);
 
 export const CodeBlock: React.FC<CodeBlockProps> = memo(({
   node: _node,
@@ -74,17 +159,24 @@ export const CodeBlock: React.FC<CodeBlockProps> = memo(({
   // If inline === true (Markdown `inline code`), renderAsBlock remains false.
 
   const language = match ? match[1] : "plaintext";
-  const customizedTheme = useMemo(() => {
-    const codeTheme = isDarkMode ? oneDark : oneLight;
-    return {
-      ...codeTheme,
-      'pre[class*="language-"]': {
-        ...codeTheme['pre[class*="language-"]'],
-        margin: 0,
-        borderRadius: 0
-      }
-    };
-  }, [isDarkMode]);
+
+  const highlightedHtml = useMemo(() => {
+    if (!renderAsBlock) {
+      return null;
+    }
+    const grammar = Prism.languages[language];
+    if (!grammar) {
+      return null;
+    }
+    try {
+      return DOMPurify.sanitize(
+        Prism.highlight(codeContent, grammar, language)
+      );
+    } catch {
+      // Prism highlighting failed — fall back to plain text
+      return null;
+    }
+  }, [renderAsBlock, language, codeContent]);
 
   if (renderAsBlock) {
     return (
@@ -114,16 +206,20 @@ export const CodeBlock: React.FC<CodeBlockProps> = memo(({
             <CopyButton value={codeContent} />
           </div>
         </div>
-        <SyntaxHighlighter
+        <div
           className="code-block-content"
-          style={customizedTheme}
-          language={language}
-          PreTag="div"
-          customStyle={customBlockStyle}
+          css={isDarkMode ? darkContentStyles : lightContentStyles}
           {...props}
         >
-          {codeContent}
-        </SyntaxHighlighter>
+          {highlightedHtml !== null ? (
+            <code
+              className={`language-${language}`}
+              dangerouslySetInnerHTML={{ __html: highlightedHtml }}
+            />
+          ) : (
+            <code className={`language-${language}`}>{codeContent}</code>
+          )}
+        </div>
       </div>
     );
   } else {

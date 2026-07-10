@@ -367,7 +367,7 @@ export default defineConfig(async ({ mode }) => {
                   // unified processor state, hast/mdast types, and micromark
                   // extension registry).
                   if (
-                    /[\\/]node_modules[\\/](react-markdown|remark-[^\\/]+|rehype-[^\\/]+|micromark[^\\/]*|mdast-util-[^\\/]+|hast-util-[^\\/]+|unified|unist-util-[^\\/]+|vfile[^\\/]*|bail|trough|is-plain-obj|decode-named-character-reference|character-entities[^\\/]*|html-void-elements|property-information|space-separated-tokens|comma-separated-tokens|web-namespaces|zwitch|longest-streak|parse-entities|ccount|escape-string-regexp|markdown-table|github-slugger|stringify-entities|html-url-attributes|dompurify|prismjs|react-syntax-highlighter|refractor)[\\/]/.test(
+                    /[\\/]node_modules[\\/](react-markdown|remark-[^\\/]+|rehype-[^\\/]+|micromark[^\\/]*|mdast-util-[^\\/]+|hast-util-[^\\/]+|unified|unist-util-[^\\/]+|vfile[^\\/]*|bail|trough|is-plain-obj|decode-named-character-reference|character-entities[^\\/]*|html-void-elements|property-information|space-separated-tokens|comma-separated-tokens|web-namespaces|zwitch|longest-streak|parse-entities|ccount|escape-string-regexp|markdown-table|github-slugger|stringify-entities|html-url-attributes|dompurify|prismjs)[\\/]/.test(
                       id
                     )
                   )

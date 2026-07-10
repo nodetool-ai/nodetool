@@ -66,11 +66,6 @@ export default {
     "^react-markdown$": "<rootDir>/src/__mocks__/reactMarkdownMock.tsx",
     "^remark-gfm$": "<rootDir>/src/__mocks__/emptyModule.ts",
     "^rehype-raw$": "<rootDir>/src/__mocks__/emptyModule.ts",
-    "^react-syntax-highlighter$": "<rootDir>/src/__mocks__/reactSyntaxHighlighterMock.tsx",
-    "^react-syntax-highlighter/dist/esm/styles/prism$": "<rootDir>/src/__mocks__/emptyModule.ts",
-    "^react-syntax-highlighter/dist/esm/styles/hljs$": "<rootDir>/src/__mocks__/emptyModule.ts",
-    "^react-syntax-highlighter/dist/esm/prism$": "<rootDir>/src/__mocks__/emptyModule.ts",
-    "^react-syntax-highlighter/dist/esm/hljs$": "<rootDir>/src/__mocks__/emptyModule.ts",
     "^@xyflow/react$": "<rootDir>/src/__mocks__/xyflowReact.tsx",
     "^.*contexts/WorkflowManagerContext$": "<rootDir>/src/__mocks__/WorkflowManagerContext.tsx",
     "^.*selection/magicWandAsync$": "<rootDir>/src/__mocks__/magicWandAsync.ts",
@@ -95,7 +90,7 @@ export default {
     ]
   },
   transformIgnorePatterns: [
-    "node_modules/(?!(react-markdown|remark-gfm|rehype-raw|react-syntax-highlighter|@nodetool)/)"
+    "node_modules/(?!(react-markdown|remark-gfm|rehype-raw|@nodetool)/)"
   ],
   testRegex: "(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$",
   moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
