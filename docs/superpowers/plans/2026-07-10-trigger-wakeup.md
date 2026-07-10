@@ -1,6 +1,15 @@
 # Triggers as Wake-Up Calls — Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development. Steps use checkbox (`- [ ]`) syntax. Write the failing test before the implementation for every task that touches runtime behavior. Run `npm run check` before each commit.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development. Steps use checkbox (`- [ ]`) syntax. Write the failing test before the implementation for every task that touches runtime behavior. Run `npm run check` before each commit. Each task carries a **Model:** line — spawn its subagent with that model.
+
+**Subagent model assignments.** Rationale: `claude-fable-5` for the two tasks that change kernel execution semantics or refactor `unified-websocket-runner.ts`; `claude-opus-4-8` for concurrency-, idempotency-, and security-sensitive services; `claude-sonnet-5` for well-specified feature work; `claude-haiku-4-5` for transcription-grade tasks. Reviews of fable/opus tasks should not use a smaller model than the author.
+
+| Model | Tasks |
+|---|---|
+| `claude-fable-5` | 6 (kernel trigger entry point), 7 (headless job start) |
+| `claude-opus-4-8` | 3 (store extraction + inbox seq), 8 (dispatcher), 9 (webhook route), 11 (boot wiring + deletion) |
+| `claude-sonnet-5` | 2, 4, 5, 10, 12, 13, 15 |
+| `claude-haiku-4-5` | 1 (schema transcription), 14 (single tRPC endpoint) |
 
 **Goal:** A trigger fires when its workflow is not running: the event is stored durably, a run starts, and the trigger node emits the event payload. Registrations and pending events survive server restarts (cloud) and app downtime (Electron).
 
@@ -53,6 +62,8 @@
 
 ### Task 1: Drizzle schemas and model classes for the migrated tables
 
+**Model:** `claude-haiku-4-5`
+
 **Files:** New: `packages/models/src/schema/trigger-inputs.ts`, `schema/run-inbox-messages.ts`, `src/trigger-input.ts`, `src/run-inbox-message.ts`. Modify: `schema/index.ts`, `src/index.ts`. Test: `packages/models/tests/trigger-input.test.ts`, `run-inbox-message.test.ts`.
 
 - [ ] **Step 1: Write the failing test** — `TriggerInput.create(...)` round-trips all columns of `trigger_inputs` (`input_id` unique, `processed` default 0, `cursor` nullable); `TriggerInput.findUnprocessed(limit)` returns only `processed = 0` rows oldest-first; `markProcessed(inputId)` sets `processed`/`processed_at`. Same shape for `RunInboxMessage` (`message_id` unique, `msg_seq`, `status`).
@@ -62,6 +73,8 @@
 
 ### Task 2: `trigger_registrations` table + model
 
+**Model:** `claude-sonnet-5`
+
 **Files:** New: `schema/trigger-registrations.ts`, `src/trigger-registration.ts`. Modify: `migrations/versions.ts` (append `20260710_000000`), `schema/index.ts`, `src/index.ts`. Test: `packages/models/tests/trigger-registration.test.ts`, extend `migrations.test.ts`.
 
 - [ ] **Step 1: Write the failing test** — create/find/update a registration; `TriggerRegistration.findEnabledByKind("schedule")`; `findByWorkflow(workflowId)`; unique constraint on `(workflow_id, node_id)`.
@@ -70,6 +83,8 @@
 
 ### Task 3: DB-backed stores for kernel primitives
 
+**Model:** `claude-opus-4-8`
+
 **Files:** Modify: `packages/kernel/src/trigger-wakeup.ts`. New: `packages/websocket/src/triggers/stores.ts`. Test: `packages/kernel/tests/trigger-wakeup.test.ts` (extend), `packages/websocket/tests/trigger-stores.test.ts`.
 
 - [ ] **Step 1: Extract `TriggerInputStore`** — interface (`insertIfAbsent`, `findUnprocessed`, `markProcessed`, `cleanupProcessed`) in `trigger-wakeup.ts`; today's in-memory array becomes `MemoryTriggerInputStore`, the default. `TriggerWakeupService` behavior unchanged — existing kernel tests must stay green with no edits.
@@ -77,6 +92,8 @@
 - [ ] **Step 3: Implement** in `websocket/src/triggers/stores.ts` using the Task 1 models. Kernel gains no models dependency (would invert the package order `models → kernel` — kernel stays store-agnostic).
 
 ### Task 4: Registration sync on workflow save + real trigger endpoints
+
+**Model:** `claude-sonnet-5`
 
 **Files:** New: `packages/websocket/src/triggers/registration-sync.ts`. Modify: `trpc/routers/workflows.ts` (:489 `update`, :436 `create`), `http-api.ts` (:1677-1712), `routes/jobs.ts`. Test: `packages/websocket/tests/registration-sync.test.ts`.
 
@@ -91,6 +108,8 @@
 
 ### Task 5: `trigger_event` through protocol, kernel, and context
 
+**Model:** `claude-sonnet-5`
+
 **Files:** Modify: `protocol/src/api-types.ts:818`, `kernel/src/runner.ts:125`, `runtime/src/context.ts:957`. Test: extend `kernel/tests/runner-node-validation.test.ts` neighbors.
 
 - [ ] **Step 1: Failing test** — a `RunJobRequest` with `trigger_event: { node_id, payload, input_id }` reaches the actor: `ProcessingContext` (or the descriptor handed to the actor) exposes it.
@@ -98,6 +117,8 @@
 - [ ] **Step 3: Implement** — optional field, typed `{ node_id: string; payload: unknown; input_id: string }`. `npm run build:packages` after protocol changes (decorator packages load from `dist/`).
 
 ### Task 6: `isTrigger` flag and the `emitTriggerEvent` entry point
+
+**Model:** `claude-fable-5`
 
 **Files:** Modify: `node-sdk/src/base-node.ts`, `node-metadata.ts:285`, `metadata.ts:68`, `kernel/src/actor.ts:309`. Test: `kernel/tests/trigger-event-entry.test.ts` *(new)*, `node-sdk/tests/integration.test.ts` (metadata propagation).
 
@@ -108,6 +129,8 @@
 
 ### Task 7: Headless job start
 
+**Model:** `claude-fable-5`
+
 **Files:** New: `packages/websocket/src/headless-job-runner.ts`. Test: `packages/websocket/tests/headless-job-runner.test.ts`.
 
 - [ ] **Step 1: Failing test** — `startHeadlessJob({ workflowId, userId, triggerEvent })` creates a `Job` row, runs the graph through the kernel `WorkflowRunner`, resolves with the terminal status; the job is visible via `Job.find` while running (shows up in the existing jobs UI/tRPC list).
@@ -115,6 +138,8 @@
 - [ ] **Step 3: Implement** — job start is currently WS-only (`UnifiedWebSocketRunner.runJob`, per-connection). Extract the minimal load-graph → `Job.create` → `new WorkflowRunner` → persist-terminal-status path into a function both the dispatcher and (later) an HTTP run route can call. Follow the CLI's headless run (`packages/cli`, `workflows run`) for graph hydration; reuse the runner's message persistence hooks where they're already factored out. If extraction from `unified-websocket-runner.ts` turns into a large refactor, stop and split it into its own task — do not inline a second job-execution implementation.
 
 ### Task 8: Dispatcher
+
+**Model:** `claude-opus-4-8`
 
 **Files:** New: `packages/websocket/src/triggers/dispatcher.ts`. Test: `packages/websocket/tests/trigger-dispatcher.test.ts`.
 
@@ -124,6 +149,8 @@
 
 ### Task 9: Webhook ingestion route
 
+**Model:** `claude-opus-4-8`
+
 **Files:** New: `packages/websocket/src/triggers/webhook-route.ts`. Modify: `server.ts:779` (public allowlist). Test: `packages/websocket/tests/webhook-route.test.ts`.
 
 - [ ] **Step 1: Failing tests** — `POST /api/webhooks/:token` with the registration's secret header: 200, one `trigger_input` appended with `{body, headers, query, method}` payload, dispatcher notified. Wrong/missing secret: 401, nothing stored. Unknown token: 404. Disabled registration: 410. Duplicate delivery with same idempotency key (`x-webhook-id` header when present, else hash of token+body+minute): one input. Route reachable **without a session** (no `Authorization` header) — this is the regression the allowlist test pins.
@@ -132,6 +159,8 @@
 
 ### Task 10: Scheduler adapter
 
+**Model:** `claude-sonnet-5`
+
 **Files:** New: `packages/websocket/src/triggers/scheduler.ts`. Test: `packages/websocket/tests/trigger-scheduler.test.ts` (fake timers).
 
 - [ ] **Step 1: Failing tests** — enabled `schedule` registration with `interval_seconds: 60`: fires at t+60 with a synthesized tick payload, updates `last_fired_at`; config change picked up on next tick (re-read registrations each sweep, no restart needed); **catch-up**: registration whose `last_fired_at` is 10 intervals ago fires exactly once on scheduler start; disabled registration never fires.
@@ -139,6 +168,8 @@
 - [ ] **Step 3: Implement** — one sweep timer (coarse, e.g. every 5s) computing due registrations from `last_fired_at + interval`, not one `setTimeout` per registration; appends `trigger_inputs` with `input_id = "${registrationId}:${dueTickIndex}"` so a crash between fire and mark cannot double-fire. `emit_on_start`/`initial_delay` honored from `config_json`.
 
 ### Task 11: Boot wiring and cleanup
+
+**Model:** `claude-opus-4-8`
 
 **Files:** Modify: `packages/websocket/src/server.ts` (:1290 boot, :1303 shutdown). Delete: `packages/kernel/src/trigger-manager.ts` + its tests + `index.ts` exports. Test: extend `packages/websocket/tests/child-shutdown.test.ts` pattern.
 
@@ -153,6 +184,8 @@
 
 ### Task 12: File-watch adapter
 
+**Model:** `claude-sonnet-5`
+
 **Files:** New: `packages/websocket/src/triggers/file-watch.ts`. Test: `packages/websocket/tests/trigger-file-watch.test.ts` (tmp dirs).
 
 - [ ] **Step 1: Failing tests** — enabled `file_watch` registration: creating a matching file appends a `trigger_input` with `{event: "created", path}`; ignore patterns and debounce honored (reuse the matching/debounce logic from `FileWatchTriggerNode`, extracted to a shared helper rather than duplicated); registration disabled → watcher closed.
@@ -160,6 +193,8 @@
 - [ ] **Step 3: Implement** — runs in the backend server like every other adapter (the Electron app spawns that server, `electron/src/server.ts:477`, so no electron-main code is needed). Skip registrations whose path doesn't exist; record `last_error`.
 
 ### Task 13: Downtime catch-up
+
+**Model:** `claude-sonnet-5`
 
 **Files:** Modify: `triggers/file-watch.ts`, `triggers/scheduler.ts` (covered by Task 10's catch-up test). Test: extend `trigger-file-watch.test.ts`.
 
@@ -169,12 +204,16 @@
 
 ### Task 14: Manual dispatch API
 
+**Model:** `claude-haiku-4-5`
+
 **Files:** Modify: `trpc/routers/workflows.ts` or new `trpc/routers/triggers.ts`. Test: router test.
 
 - [ ] **Step 1: Failing test** — `triggers.fire({ workflowId, nodeId, payload })` (protectedProcedure, ownership-checked) appends a `trigger_input` and returns the started `job_id`. This is the `manual` kind's only path and doubles as the "Run now" button for any registration.
 - [ ] **Step 2: Verify FAIL, then implement.**
 
 ### Task 15: Web UI — Activate toggle and trigger status
+
+**Model:** `claude-sonnet-5`
 
 **Files:** `web/src` — editor toolbar component, new TanStack Query hooks over the Task 4/14 endpoints. Test: RTL tests per web conventions.
 
