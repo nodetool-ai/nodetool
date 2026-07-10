@@ -9,10 +9,16 @@
  */
 
 import { request as httpRequest } from "node:http";
-import type { IncomingMessage } from "node:http";
+import type {
+  ClientRequest,
+  IncomingMessage,
+  RequestOptions as HttpRequestOptions
+} from "node:http";
+import { request as httpsRequest } from "node:https";
 import type { Duplex } from "node:stream";
 import { createInterface } from "node:readline";
 import { resolveDockerEndpoint, type DockerEndpoint } from "./endpoint.js";
+import { DockerSshAgent } from "./ssh-agent.js";
 import type {
   AttachOptions,
   ContainerCreateOptions,
@@ -119,7 +125,13 @@ export class DockerClient {
       this.endpoint = {
         socketPath: options.socketPath,
         host: options.host,
-        port: options.port
+        port: options.port,
+        protocol: options.protocol,
+        username: options.username,
+        sshAgent: options.sshAgent,
+        ca: options.ca,
+        cert: options.cert,
+        key: options.key
       };
     } else {
       this.endpoint = resolveDockerEndpoint(options.dockerHost);
@@ -265,8 +277,7 @@ export class DockerClient {
       stdin: options.stdin ?? false
     });
     return new Promise<Duplex>((resolve, reject) => {
-      const req = httpRequest({
-        ...this.endpoint,
+      const req = this.createRequest({
         method: "POST",
         path,
         headers: {
@@ -285,7 +296,9 @@ export class DockerClient {
         // The daemon refused to hijack — surface its error message.
         const status = res.statusCode ?? 0;
         void readBody(res).then((body) => {
-          reject(new DockerError(parseDaemonErrorMessage(body, status), status));
+          reject(
+            new DockerError(parseDaemonErrorMessage(body, status), status)
+          );
         });
       });
       req.on("error", reject);
@@ -299,8 +312,7 @@ export class DockerClient {
     return new Promise<IncomingMessage>((resolve, reject) => {
       const payload =
         options.body === undefined ? undefined : JSON.stringify(options.body);
-      const req = httpRequest({
-        ...this.endpoint,
+      const req = this.createRequest({
         method: options.method,
         path: options.path,
         headers:
@@ -315,6 +327,33 @@ export class DockerClient {
       req.on("error", reject);
       req.end(payload);
     });
+  }
+
+  private createRequest(options: HttpRequestOptions): ClientRequest {
+    const requestOptions: HttpRequestOptions = {
+      socketPath: this.endpoint.socketPath,
+      host: this.endpoint.host,
+      port: this.endpoint.port,
+      ...options
+    };
+
+    if (this.endpoint.protocol === "https:") {
+      return httpsRequest({
+        ...requestOptions,
+        ca: this.endpoint.ca,
+        cert: this.endpoint.cert,
+        key: this.endpoint.key
+      });
+    }
+    if (this.endpoint.protocol === "ssh:") {
+      requestOptions.agent = new DockerSshAgent({
+        host: this.endpoint.host,
+        port: this.endpoint.port,
+        username: this.endpoint.username,
+        agent: this.endpoint.sshAgent
+      });
+    }
+    return httpRequest(requestOptions);
   }
 
   private async requestJson(options: JsonRequestOptions): Promise<unknown> {

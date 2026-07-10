@@ -1,9 +1,9 @@
 /**
  * @nodetool-ai/docker — minimal typed Docker Engine API client.
  *
- * Talks to the daemon over the unix socket (or DOCKER_HOST) with Node's
- * `http` module. Covers the surface NodeTool's code runners and sandbox
- * provider use; nothing more.
+ * Talks to the daemon over the local socket, HTTP(S), or SSH according to
+ * DOCKER_HOST. Covers the surface NodeTool's code runners and sandbox provider
+ * use; nothing more.
  */
 
 export {
@@ -15,7 +15,12 @@ export {
   type DockerClientOptions
 } from "./client.js";
 
-export { resolveDockerEndpoint, type DockerEndpoint } from "./endpoint.js";
+export {
+  resolveDockerEndpoint,
+  type DockerEndpoint,
+  type DockerEnvironment,
+  type DockerProtocol
+} from "./endpoint.js";
 
 export {
   DockerStreamDemuxer,
