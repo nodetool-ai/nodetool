@@ -258,6 +258,25 @@ export const createWorkflowRunnerStore = (
 };
 
 /**
+ * Incoming workflow message — discriminated union of all message types the
+ * runner handles. Covers protocol messages (JobUpdate, NodeUpdate,
+ * NodeProgress) plus lightweight wire-only shapes that lack dedicated types.
+ */
+type WorkflowMessage =
+  | JobUpdate
+  | NodeUpdate
+  | NodeProgress
+  | { type: "output_update"; node_id: string; value?: unknown }
+  | { type: "log_update"; message?: string; content?: string }
+  | { type: "notification"; message?: string; content?: string }
+  | { type: "prediction"; node_id: string; node_name?: string }
+  | { type: string; message?: string; [key: string]: unknown };
+
+function isWorkflowMessage(msg: Record<string, unknown>): msg is WorkflowMessage {
+  return typeof msg.type === "string";
+}
+
+/**
  * Central message handler — mirrors web's workflowUpdates.ts handleUpdate().
  */
 function handleMessage(
@@ -265,15 +284,21 @@ function handleMessage(
   get: () => WorkflowRunner,
   message: Record<string, unknown>
 ) {
-  const state = get();
-  const type = message.type as string;
+  if (!isWorkflowMessage(message)) {return;}
 
-  switch (type) {
+  const state = get();
+  const msg = message;
+
+  switch (msg.type) {
     // ── Job-level updates ──────────────────────────────────────────
     case "job_update": {
-      const job = message as unknown as JobUpdate;
-      // Don't overwrite error state with stale "running"
+      const job = msg as JobUpdate;
       if (state.state === "error" && job.status === "running") {return;}
+
+      const errorText =
+        job.error ||
+        (message.error_message as string | undefined) ||
+        "Unknown error";
 
       switch (job.status) {
         case "completed":
@@ -287,7 +312,7 @@ function handleMessage(
         case "timed_out":
           set({
             state: "error",
-            statusMessage: `Failed: ${message.error_message || job.error || "Unknown error"}`,
+            statusMessage: `Failed: ${errorText}`,
           });
           break;
         case "cancelled":
@@ -296,7 +321,7 @@ function handleMessage(
         case "running":
           set({
             state: "running",
-            statusMessage: (message.message as string) || "Running...",
+            statusMessage: job.message || "Running...",
           });
           break;
         case "queued":
@@ -305,12 +330,16 @@ function handleMessage(
             statusMessage: "Queued — worker is booting...",
           });
           break;
-        case "suspended":
+        case "suspended": {
+          const reason =
+            (message.suspension_reason as string | undefined) ||
+            "Waiting for input";
           set({
             state: "suspended",
-            statusMessage: `Suspended: ${message.suspension_reason || "Waiting for input"}`,
+            statusMessage: `Suspended: ${reason}`,
           });
           break;
+        }
         case "paused":
           set({ state: "paused", statusMessage: "Paused" });
           break;
@@ -320,7 +349,7 @@ function handleMessage(
 
     // ── Node progress (progress/total) ─────────────────────────────
     case "node_progress": {
-      const progress = message as unknown as NodeProgress;
+      const progress = msg as NodeProgress;
       set({
         nodeProgress: {
           ...state.nodeProgress,
@@ -335,8 +364,7 @@ function handleMessage(
 
     // ── Node status, results, errors ───────────────────────────────
     case "node_update": {
-      const update = message as unknown as NodeUpdate;
-      // Don't process updates after cancellation
+      const update = msg as NodeUpdate;
       if (state.state === "cancelled") {return;}
 
       const updates: Partial<WorkflowRunner> = {
@@ -347,7 +375,6 @@ function handleMessage(
         statusMessage: `${update.node_name || update.node_id} ${update.status}`,
       };
 
-      // Store per-node result
       if (update.result) {
         updates.nodeResults = {
           ...state.nodeResults,
@@ -355,7 +382,6 @@ function handleMessage(
         };
       }
 
-      // Store per-node error
       if (update.error) {
         updates.nodeErrors = {
           ...state.nodeErrors,
@@ -379,8 +405,8 @@ function handleMessage(
 
     // ── Streaming output values ────────────────────────────────────
     case "output_update": {
-      const nodeId = message.node_id as string;
-      const value = message.value;
+      const nodeId = (msg as { type: "output_update"; node_id: string }).node_id;
+      const value = (msg as { type: "output_update"; value?: unknown }).value;
       if (nodeId && value !== undefined) {
         set({
           nodeResults: {
@@ -394,7 +420,8 @@ function handleMessage(
 
     // ── Structured log entries ─────────────────────────────────────
     case "log_update": {
-      const content = message.message as string || message.content as string;
+      const logMsg = msg as { type: "log_update"; message?: string; content?: string };
+      const content = logMsg.message || logMsg.content;
       if (content) {
         set({ logs: appendLog(state.logs, content) });
       }
@@ -403,7 +430,8 @@ function handleMessage(
 
     // ── Notifications ──────────────────────────────────────────────
     case "notification": {
-      const content = message.content as string || message.message as string;
+      const notif = msg as { type: "notification"; message?: string; content?: string };
+      const content = notif.content || notif.message;
       if (content) {
         set({
           logs: appendLog(state.logs, `[notification] ${content}`),
@@ -414,14 +442,14 @@ function handleMessage(
 
     // ── Model booting / prediction status ──────────────────────────
     case "prediction": {
-      const nodeId = message.node_id as string;
-      if (nodeId) {
+      const pred = msg as { type: "prediction"; node_id: string; node_name?: string };
+      if (pred.node_id) {
         set({
           nodeStatus: {
             ...state.nodeStatus,
-            [nodeId]: "booting",
+            [pred.node_id]: "booting",
           },
-          statusMessage: `${message.node_name || nodeId} booting...`,
+          statusMessage: `${pred.node_name || pred.node_id} booting...`,
         });
       }
       break;
@@ -429,8 +457,9 @@ function handleMessage(
 
     // ── Generic message with text ──────────────────────────────────
     default: {
-      if (message.message && typeof message.message === "string") {
-        set({ logs: appendLog(state.logs, `[${type}] ${message.message}`) });
+      const generic = msg as { type: string; message?: string };
+      if (generic.message && typeof generic.message === "string") {
+        set({ logs: appendLog(state.logs, `[${generic.type}] ${generic.message}`) });
       }
       break;
     }
