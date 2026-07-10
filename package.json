@@ -91,6 +91,8 @@
     "dev": "concurrently --raw --kill-others-on-fail \"node scripts/dev-server.mjs\" \"npm run dev --workspace=web\"",
     "dev:fast": "npm run dev",
     "dev:web": "npm run dev --workspace=web",
+    "storybook": "npm run storybook --workspace=web",
+    "build-storybook": "npm run build-storybook --workspace=web",
     "dev:server": "node scripts/dev-server.mjs",
     "dev:server:fast": "npm run dev:server",
     "dev:dist": "turbo run dev --filter=@nodetool-ai/websocket --filter=nodetool",

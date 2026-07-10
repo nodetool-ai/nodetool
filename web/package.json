@@ -109,7 +109,9 @@
     "lint:font-color-css": "node scripts/lint-font-color-css.mjs",
     "lint:radius-css": "node scripts/lint-radius-css.mjs",
     "lint:motion-css": "node scripts/lint-motion-css.mjs",
-    "lint:motion-rule": "node scripts/test-motion-rule.mjs"
+    "lint:motion-rule": "node scripts/test-motion-rule.mjs",
+    "storybook": "storybook dev -p 6006 --no-open",
+    "build-storybook": "storybook build"
   },
   "browserslist": {
     "production": [
@@ -136,6 +138,9 @@
     "@eslint/js": "^9.39.4",
     "@jest/globals": "^29.7.0",
     "@playwright/test": "^1.60.0",
+    "@storybook/addon-a11y": "^10.4.6",
+    "@storybook/addon-docs": "^10.4.6",
+    "@storybook/react-vite": "^10.4.6",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
@@ -160,6 +165,7 @@
     "jest-axe": "^10.0.0",
     "jest-environment-jsdom": "^30.4.1",
     "mock-socket": "^9.3.1",
+    "storybook": "^10.4.6",
     "ts-jest": "^29.4.11",
     "typescript": "^5.9.3",
     "vite": "^8.0.16",
