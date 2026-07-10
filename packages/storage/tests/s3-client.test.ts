@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { S3Client, S3Error } from "../src/s3/client.js";
+import { decodeXmlEntities } from "../src/s3/xml.js";
 
 const credentials = {
   accessKeyId: "AKIDEXAMPLE",
@@ -279,5 +280,17 @@ describe("S3Client error mapping", () => {
       if (prevKey !== undefined) process.env.AWS_ACCESS_KEY_ID = prevKey;
       if (prevSecret !== undefined) process.env.AWS_SECRET_ACCESS_KEY = prevSecret;
     }
+  });
+});
+
+describe("decodeXmlEntities bounds", () => {
+  it("decodes valid numeric references", () => {
+    expect(decodeXmlEntities("a&#65;&#x1F600;z")).toBe("aA\u{1F600}z");
+  });
+
+  it("leaves out-of-range and surrogate references intact", () => {
+    expect(decodeXmlEntities("&#x110000;")).toBe("&#x110000;");
+    expect(decodeXmlEntities("&#xD800;")).toBe("&#xD800;");
+    expect(decodeXmlEntities("&#-1;")).toBe("&#-1;");
   });
 });

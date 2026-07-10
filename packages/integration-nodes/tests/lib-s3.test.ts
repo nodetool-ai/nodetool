@@ -120,6 +120,16 @@ describe("lib.s3 nodes", () => {
     expect(result).toEqual({ output: true, etag: '"abc"' });
   });
 
+  it("signs with the session token when AWS_SESSION_TOKEN is set", async () => {
+    respond(204);
+    const node = new S3DeleteObjectLibNode({ bucket: "b", key: "k" });
+    node.setDynamic("_secrets", { ...secrets, AWS_SESSION_TOKEN: "tok123" });
+    await node.process();
+    const { init } = requestAt(0);
+    const headers = init.headers as Record<string, string>;
+    expect(headers["x-amz-security-token"]).toBe("tok123");
+  });
+
   it("DeleteObject sends DELETE", async () => {
     respond(204);
     const node = makeNode(new S3DeleteObjectLibNode({ bucket: "b", key: "k" }));

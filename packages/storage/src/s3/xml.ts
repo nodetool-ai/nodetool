@@ -6,6 +6,17 @@
  * without an XML dependency. Deliberately not a general XML parser.
  */
 
+/**
+ * String.fromCodePoint throws on out-of-range values; malformed XML from an
+ * S3-compatible server must not turn into an exception, so invalid references
+ * decode to null and the entity text is left intact.
+ */
+function codePointToString(code: number): string | null {
+  if (!Number.isInteger(code) || code < 0 || code > 0x10ffff) return null;
+  if (code >= 0xd800 && code <= 0xdfff) return null;
+  return String.fromCodePoint(code);
+}
+
 /** Decode the standard named entities plus numeric character references. */
 export function decodeXmlEntities(text: string): string {
   if (!text.includes("&")) return text;
@@ -45,11 +56,9 @@ export function decodeXmlEntities(text: string): string {
         break;
       default:
         if (entity.startsWith("#x") || entity.startsWith("#X")) {
-          const code = Number.parseInt(entity.slice(2), 16);
-          if (Number.isFinite(code)) decoded = String.fromCodePoint(code);
+          decoded = codePointToString(Number.parseInt(entity.slice(2), 16));
         } else if (entity.startsWith("#")) {
-          const code = Number.parseInt(entity.slice(1), 10);
-          if (Number.isFinite(code)) decoded = String.fromCodePoint(code);
+          decoded = codePointToString(Number.parseInt(entity.slice(1), 10));
         }
     }
     if (decoded === null) {
