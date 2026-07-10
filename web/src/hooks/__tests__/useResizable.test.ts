@@ -4,7 +4,7 @@ import type { RefObject } from "react";
 
 describe("useResizable", () => {
   const createMockRef = (
-    element: Partial<HTMLElement> | null = null
+    element: Record<string, unknown> | null = null
   ): RefObject<HTMLElement | null> => ({
     current: element as HTMLElement | null
   });
