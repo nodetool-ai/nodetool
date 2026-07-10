@@ -20,7 +20,7 @@ import {
 } from "../../stores/BottomPanelStore";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import TracePanel from "./TracePanel";
 import LogPanel from "./LogPanel";
 import QueuePanel from "./jobs/QueuePanel";

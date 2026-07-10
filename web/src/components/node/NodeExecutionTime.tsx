@@ -9,7 +9,7 @@ import {
   getSpacingPx,
   Z_INDEX
 } from "../ui_primitives";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { useNodeExecutionDuration } from "../../hooks/nodes/useNodeExecState";
 
 interface NodeExecutionTimeProps {

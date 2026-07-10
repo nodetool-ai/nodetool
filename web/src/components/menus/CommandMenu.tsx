@@ -9,7 +9,7 @@ import useAlignNodes from "../../hooks/useAlignNodes";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import React from "react";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";

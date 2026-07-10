@@ -3,7 +3,7 @@ import { memo, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 
 import NodeOutput from "./NodeOutput";
 import { OutputSlot } from "../../stores/ApiTypes";

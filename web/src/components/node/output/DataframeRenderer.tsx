@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { memo, useCallback, useMemo, useState } from "react";
 import { ToolbarIconButton, MOTION, BORDER_RADIUS, Z_INDEX } from "../../ui_primitives";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../../utils/isEqual";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 

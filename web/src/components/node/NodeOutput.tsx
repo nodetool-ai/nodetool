@@ -5,7 +5,7 @@ import { useShallow } from "zustand/react/shallow";
 import { Slugify } from "../../utils/TypeHandler";
 import { OutputSlot, TypeMetadata } from "../../stores/ApiTypes";
 import useContextMenuStore from "../../stores/ContextMenuStore";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { isConnectableCached } from "../node_menu/typeFilterUtils";
 import HandleTooltip from "../HandleTooltip";
 import { useNodes } from "../../contexts/NodeContext";

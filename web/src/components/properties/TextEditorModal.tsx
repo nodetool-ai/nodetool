@@ -33,7 +33,7 @@ import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import { EditorState, $getRoot } from "lexical";
 import type { editor as MonacoEditorNS } from "monaco-editor";
 import { debounce } from "../../utils/lodashAlternatives";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useCombo } from "../../stores/KeyPressedStore";

@@ -10,7 +10,7 @@ import {
 } from "../../stores/ErrorStore";
 import useLogsStore, { nodeLogKey } from "../../stores/LogStore";
 import { useNodeError } from "../../hooks/nodes/useNodeExecState";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { CopyButton, ExternalLink, Tooltip, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { VERSION } from "../../config/constants";
 import { extractKieTaskId, KIE_LOGS_URL } from "../../utils/kieTaskId";

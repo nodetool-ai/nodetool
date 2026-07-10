@@ -1,7 +1,7 @@
 /**
  * TimelineStore
  *
- * Central Zustand + zundo store for the timeline sequence document.
+ * Central Zustand store (with temporal undo/redo middleware) for the timeline sequence document.
  * Mirrors NodeStore's undo/redo wiring (temporal middleware, partialize).
  *
  * Responsibilities:
@@ -11,7 +11,7 @@
  *     addTrack, removeTrack, reorderTracks, setTrackHeight.
  *   - Undo granularity: the temporal `equality` option dedupes no-op sets so
  *     guard-returns never create history entries, and drag handlers (e.g. in
- *     Clip.tsx) call zundo's `pause()` / `resume()` from the outside so each
+ *     Clip.tsx) call the temporal middleware's `pause()` / `resume()` from the outside so each
  *     drag gesture collapses into a single undo entry.
  *
  * Usage:
@@ -25,8 +25,8 @@
  */
 
 import { create } from "zustand";
-import { temporal } from "zundo";
-import type { TemporalState } from "zundo";
+import { temporal } from "../temporal";
+import type { TemporalState } from "../temporal";
 import {
   splitClip,
   trimClip,
@@ -422,7 +422,7 @@ export interface TimelineStoreState {
   removeScene: (markerId: string) => void;
 }
 
-// ── Partialized type for zundo (only document state is undo-able) ──────────
+// ── Partialized type for the temporal middleware (only document state is undo-able)
 
 type PartializedState = Pick<
   TimelineStoreState,
@@ -464,7 +464,7 @@ function shallowArrayEqual<T>(a: readonly T[], b: readonly T[]): boolean {
 }
 
 /**
- * zundo `equality`: returns true when two partialized snapshots are
+ * temporal `equality`: returns true when two partialized snapshots are
  * equivalent, so no-op sets (guard-returns, `{}` patches, value-identical
  * remaps) don't push duplicate undo entries.
  */
@@ -1692,10 +1692,10 @@ export const createTimelineStore = (
 
 // ── Store handle type ───────────────────────────────────────────────────────
 
-/** A single timeline-document store instance (with its zundo `temporal`). */
+/** A single timeline-document store instance (with its `temporal` sub-store). */
 export type TimelineStoreApi = ReturnType<typeof createTimelineStore>;
 
-/** Read the zundo temporal (undo/redo) state of a given store instance. */
+/** Read the temporal (undo/redo) state of a given store instance. */
 export const timelineTemporalOf = (
   store: TimelineStoreApi
 ): TemporalState<PartializedState> =>

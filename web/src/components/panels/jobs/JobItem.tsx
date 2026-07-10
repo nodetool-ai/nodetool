@@ -24,7 +24,7 @@ import { getWorkflowRunnerStore } from "../../../stores/WorkflowRunner";
 import { useJobAssets } from "../../../serverState/useJobAssets";
 import { trpcClient } from "../../../trpc/client";
 import { useQueryClient } from "@tanstack/react-query";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../../utils/isEqual";
 
 /**
  * Format a duration in milliseconds to a human-readable string

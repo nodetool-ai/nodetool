@@ -14,7 +14,7 @@ import {
 } from "../ui_primitives";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 
 /**
  * Interface for a tool object in the tools list property

@@ -1,7 +1,7 @@
 /** NodeStore manages workflow graph state for a single editor tab. */
 
-import { temporal } from "zundo";
-import type { TemporalState } from "zundo";
+import { temporal } from "./temporal";
+import type { TemporalState } from "./temporal";
 import { create, StoreApi, UseBoundStore } from "zustand";
 import { NodeMetadata, Workflow } from "./ApiTypes";
 import { NodeData } from "./NodeData";
@@ -23,7 +23,7 @@ import {
   Viewport
 } from "@xyflow/react";
 import { customEquality } from "./customEquality";
-import isEqual from "fast-deep-equal";
+import isEqual from "../utils/isEqual";
 
 import { Node as GraphNode, Edge as GraphEdge } from "./ApiTypes";
 import { migrateGraphNodeTypes } from "@nodetool-ai/protocol";

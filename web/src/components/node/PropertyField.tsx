@@ -10,7 +10,7 @@ import PropertyInput from "./PropertyInput";
 import PropertyLabel from "./PropertyLabel";
 import { Slugify, isCollectType } from "../../utils/TypeHandler";
 import useContextMenuStore from "../../stores/ContextMenuStore";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { isFieldRelevantDataEqual } from "./propertyFieldEquality";
 import { isConnectableCached } from "../node_menu/typeFilterUtils";
 import HandleTooltip from "../HandleTooltip";

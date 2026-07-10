@@ -1,7 +1,7 @@
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import { memo } from "react";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { Text } from "../ui_primitives";
 import { useAsset } from "../../serverState/useAsset";
 import PropertyDropzone from "./PropertyDropzone";

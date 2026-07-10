@@ -5,7 +5,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { getIsElectronDetails } from "../../utils/browser";
 import { useOpenPackageManager } from "../../hooks/useOpenPackageManager";
 import {

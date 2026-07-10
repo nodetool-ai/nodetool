@@ -10,7 +10,7 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 import NodeItem from "./NodeItem";
 import SearchResultsPanel from "./SearchResultsPanel";
 import { Text } from "../ui_primitives";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import ApiKeyValidation from "../node/ApiKeyValidation";
 import usePendingNodeCreateStore from "../../stores/PendingNodeCreateStore";
 import { serializeDragData } from "../../lib/dragdrop";

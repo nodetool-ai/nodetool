@@ -2,7 +2,7 @@
 import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import isEqual from "fast-deep-equal";
+import isEqual from "../utils/isEqual";
 import { Tooltip, BORDER_RADIUS } from "../components/ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../config/constants";
 import { datatypeByName, normalizeTypeName } from "./data_types";

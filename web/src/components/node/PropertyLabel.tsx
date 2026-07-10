@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import React, { memo, useContext, useMemo } from "react";
 import { titleizeString } from "../../utils/titleizeString";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { Tooltip, SPACING, getSpacingPx } from "../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { TypeMetadata } from "../../stores/ApiTypes";

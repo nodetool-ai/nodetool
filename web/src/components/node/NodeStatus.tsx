@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import React, { memo } from "react";
 import { Text, SPACING, getSpacingPx } from "../ui_primitives";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 
 const statusCss = css({
   maxWidth: "250px",

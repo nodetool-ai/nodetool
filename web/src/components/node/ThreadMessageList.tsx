@@ -6,7 +6,7 @@ import type { Theme } from "@mui/material/styles";
 import { Message, ToolCall } from "../../stores/ApiTypes";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import ImageView from "./ImageView";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { BORDER_RADIUS, Z_INDEX } from "../ui_primitives";
 
 const styles = (theme: Theme) =>

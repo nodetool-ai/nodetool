@@ -12,7 +12,7 @@ Also see: **[Zustand Best Practices](./ZUSTAND_BEST_PRACTICES.md)**
 - Use `shallow` equality for object selections to prevent unnecessary re-renders.
 - Define actions within the store alongside state.
 - Use `persist` middleware for settings that should survive page refreshes.
-- Use `temporal` (zundo) middleware for stores that need undo/redo.
+- Use the in-repo `temporal` middleware (`stores/temporal.ts`) for stores that need undo/redo.
 - Keep state updates immutable. Use Immer middleware for complex nested updates.
 
 ## Patterns

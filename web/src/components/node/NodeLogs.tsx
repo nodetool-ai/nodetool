@@ -5,7 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useRef, useEffect, useCallback, useState, useMemo } from "react";
 
 import useLogsStore, { nodeLogKey } from "../../stores/LogStore";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import {
   CopyButton,
   Text,

@@ -1,4 +1,4 @@
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { NodeData } from "../../stores/NodeData";
 
 /**

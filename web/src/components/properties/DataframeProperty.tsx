@@ -13,7 +13,7 @@ import { ToolbarIconButton, EditorButton, ButtonGroup, MOTION, SPACING, BORDER_R
 import TableRowsIcon from "@mui/icons-material/TableRows";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import {
   parseDataframeFile,
   isSupportedDataframeFile

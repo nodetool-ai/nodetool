@@ -2,7 +2,7 @@ import { memo, useCallback, useMemo, useState, useEffect, useRef } from "react";
 import NumberInput from "../inputs/NumberInput";
 import { PropertyProps } from "../node/PropertyInput";
 import PropertyLabel from "../node/PropertyLabel";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { FlexColumn, FlexRow, ToolbarIconButton, Box } from "../ui_primitives";
 import { IMAGE_SIZE_PRESETS as PRESETS } from "../../config/constants";
 import Lock from "@mui/icons-material/Lock";

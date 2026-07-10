@@ -7,7 +7,7 @@ import { PropertyHandleTooltipContext } from "../../contexts/PropertyHandleToolt
 import useContextMenu from "../../stores/ContextMenuStore";
 import StringProperty from "../properties/StringProperty";
 import DataframeProperty from "../properties/DataframeProperty";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { isFieldRelevantDataEqual } from "./propertyFieldEquality";
 import Close from "@mui/icons-material/Close";
 import Edit from "@mui/icons-material/Edit";
