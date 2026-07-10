@@ -1,22 +1,19 @@
 {
-  "name": "@nodetool-ai/code-runners",
+  "name": "@nodetool-ai/docker",
   "type": "module",
   "engines": {
     "node": ">=22.0.0 <23.0.0"
   },
   "version": "0.7.0-rc.32",
-  "description": "Streaming code runners: Docker containers and local subprocesses for executing Python, JS, Bash, Ruby, and Lua code",
+  "description": "Minimal typed Docker Engine API client over the unix socket: container lifecycle, attach hijack, stream demux, image pull",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "node ../../scripts/build-typescript-workspace.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@nodetool-ai/config": "*",
-    "@nodetool-ai/docker": "*"
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
@@ -35,7 +32,7 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/nodetool-ai/nodetool.git",
-    "directory": "packages/code-runners"
+    "directory": "packages/docker"
   },
   "homepage": "https://nodetool.ai",
   "bugs": {
@@ -50,15 +47,9 @@
   ],
   "keywords": [
     "nodetool",
-    "ai",
-    "workflow",
-    "workflow-automation",
-    "typescript",
-    "code-execution",
     "docker",
-    "subprocess",
-    "python",
-    "javascript",
-    "sandbox"
+    "docker-engine-api",
+    "container",
+    "typescript"
   ]
 }

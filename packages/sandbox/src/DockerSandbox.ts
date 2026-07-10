@@ -1,5 +1,5 @@
 /**
- * DockerSandbox — Dockerode-backed SandboxProvider.
+ * DockerSandbox — Docker Engine API-backed SandboxProvider.
  *
  * Each acquire() starts a long-running container from the sandbox image,
  * publishes the in-container tool server port (7788) to an ephemeral host
@@ -14,7 +14,7 @@
  *   - network enabled (agents need internet to research)
  */
 
-import Dockerode from "dockerode";
+import { DockerClient } from "@nodetool-ai/docker";
 import { createLogger } from "@nodetool-ai/config";
 import type {
   Sandbox,
@@ -54,7 +54,8 @@ export class DockerSandbox implements Sandbox {
   public readonly endpoint: SandboxEndpoint;
   public readonly client: ToolClient;
 
-  private readonly container: Dockerode.Container;
+  private readonly docker: DockerClient;
+  private readonly containerId: string;
   private released = false;
   private readonly timeoutHandle: ReturnType<typeof setTimeout> | null;
 
@@ -62,13 +63,15 @@ export class DockerSandbox implements Sandbox {
     sessionId: string;
     endpoint: SandboxEndpoint;
     client: ToolClient;
-    container: Dockerode.Container;
+    docker: DockerClient;
+    containerId: string;
     timeoutHandle: ReturnType<typeof setTimeout> | null;
   }) {
     this.sessionId = args.sessionId;
     this.endpoint = args.endpoint;
     this.client = args.client;
-    this.container = args.container;
+    this.docker = args.docker;
+    this.containerId = args.containerId;
     this.timeoutHandle = args.timeoutHandle;
   }
 
@@ -77,28 +80,28 @@ export class DockerSandbox implements Sandbox {
     this.released = true;
     if (this.timeoutHandle !== null) clearTimeout(this.timeoutHandle);
     try {
-      await this.container.remove({ force: true });
+      await this.docker.removeContainer(this.containerId, { force: true });
     } catch (err) {
       // best-effort; container may already be gone (404) — anything else is
       // worth knowing about even if we can't act on it here.
       log.debug(
-        `Failed to remove container ${this.container.id} on release`,
+        `Failed to remove container ${this.containerId} on release`,
         err
       );
     }
   }
 
   async pause(): Promise<void> {
-    await this.container.pause();
+    await this.docker.pauseContainer(this.containerId);
   }
 
   async resume(): Promise<void> {
-    await this.container.unpause();
+    await this.docker.unpauseContainer(this.containerId);
   }
 }
 
 export class DockerSandboxProvider implements SandboxProvider {
-  private readonly docker: Dockerode;
+  private readonly docker: DockerClient;
   private readonly hostIp: string;
   private readonly defaultImage: string;
   private readonly readyTimeoutSeconds: number;
@@ -106,7 +109,7 @@ export class DockerSandboxProvider implements SandboxProvider {
   private readonly userServicePorts: readonly number[];
 
   constructor(options: DockerSandboxProviderOptions = {}) {
-    this.docker = new Dockerode();
+    this.docker = new DockerClient();
     this.hostIp = options.hostIp ?? "127.0.0.1";
     if (this.hostIp !== "127.0.0.1" && this.hostIp !== "::1") {
       throw new Error(
@@ -168,31 +171,39 @@ export class DockerSandboxProvider implements SandboxProvider {
       portBindings[key] = [{ HostIp: this.hostIp, HostPort: "" }];
     }
 
-    const container = await this.docker.createContainer({
-      name: containerName,
-      Image: image,
-      Env: env,
-      Labels: labels,
-      WorkingDir: "/home/ubuntu",
-      OpenStdin: false,
-      Tty: false,
-      ExposedPorts: exposedPorts,
-      HostConfig: {
-        Binds: binds.length > 0 ? binds : undefined,
-        Memory: parseMemLimit(options.memLimit ?? "2g"),
-        NanoCpus: options.nanoCpus ?? 2_000_000_000,
-        SecurityOpt: ["no-new-privileges"],
-        CapDrop: ["ALL"],
-        PortBindings: portBindings
-      }
-    });
+    const containerId = await this.docker.createContainer(
+      {
+        Image: image,
+        Env: env,
+        Labels: labels,
+        WorkingDir: "/home/ubuntu",
+        OpenStdin: false,
+        Tty: false,
+        ExposedPorts: exposedPorts,
+        HostConfig: {
+          Binds: binds.length > 0 ? binds : undefined,
+          Memory: parseMemLimit(options.memLimit ?? "2g"),
+          NanoCpus: options.nanoCpus ?? 2_000_000_000,
+          SecurityOpt: ["no-new-privileges"],
+          CapDrop: ["ALL"],
+          PortBindings: portBindings
+        }
+      },
+      containerName
+    );
 
     try {
-      await container.start();
-      const toolPort = await waitForHostPort(container, toolPortKey);
-      const vncPort = await waitForHostPort(container, vncPortKey).catch(
-        () => null
+      await this.docker.startContainer(containerId);
+      const toolPort = await waitForHostPort(
+        this.docker,
+        containerId,
+        toolPortKey
       );
+      const vncPort = await waitForHostPort(
+        this.docker,
+        containerId,
+        vncPortKey
+      ).catch(() => null);
 
       const toolUrl = `http://${this.hostIp}:${toolPort}`;
       const vncUrl =
@@ -202,9 +213,11 @@ export class DockerSandboxProvider implements SandboxProvider {
       // tool can map container_port → public URL.
       const userServiceMap: Record<string, string> = {};
       for (const p of this.userServicePorts) {
-        const host = await waitForHostPort(container, `${p}/tcp`).catch(
-          () => null
-        );
+        const host = await waitForHostPort(
+          this.docker,
+          containerId,
+          `${p}/tcp`
+        ).catch(() => null);
         if (host !== null) {
           userServiceMap[String(p)] = `http://${this.hostIp}:${host}`;
         }
@@ -239,12 +252,14 @@ export class DockerSandboxProvider implements SandboxProvider {
       const limit = options.timeoutSeconds ?? 3600;
       if (limit > 0) {
         timeoutHandle = setTimeout(() => {
-          container.remove({ force: true }).catch((err) => {
-            log.warn(
-              `Failed to remove sandbox container ${container.id} after ${limit}s timeout`,
-              err
-            );
-          });
+          this.docker
+            .removeContainer(containerId, { force: true })
+            .catch((err) => {
+              log.warn(
+                `Failed to remove sandbox container ${containerId} after ${limit}s timeout`,
+                err
+              );
+            });
         }, limit * 1000);
       }
 
@@ -252,16 +267,19 @@ export class DockerSandboxProvider implements SandboxProvider {
         sessionId: options.sessionId,
         endpoint: { toolUrl, vncUrl },
         client,
-        container,
+        docker: this.docker,
+        containerId,
         timeoutHandle
       });
     } catch (err) {
-      await container.remove({ force: true }).catch((removeErr) => {
-        log.warn(
-          `Failed to remove container ${container.id} during error cleanup`,
-          removeErr
-        );
-      });
+      await this.docker
+        .removeContainer(containerId, { force: true })
+        .catch((removeErr) => {
+          log.warn(
+            `Failed to remove container ${containerId} during error cleanup`,
+            removeErr
+          );
+        });
       throw err;
     }
   }
@@ -277,15 +295,14 @@ export class DockerSandboxProvider implements SandboxProvider {
   }
 
   private async removeExistingContainer(name: string): Promise<void> {
-    const existing = this.docker.getContainer(name);
     try {
-      await existing.inspect();
+      await this.docker.inspectContainer(name);
     } catch {
       // No such container — nothing to clean up.
       return;
     }
     try {
-      await existing.remove({ force: true });
+      await this.docker.removeContainer(name, { force: true });
       log.info(`Removed orphaned sandbox container ${name}`);
     } catch (err) {
       log.warn(
@@ -297,19 +314,14 @@ export class DockerSandboxProvider implements SandboxProvider {
 
   private async ensureImage(image: string): Promise<void> {
     try {
-      await this.docker.getImage(image).inspect();
+      await this.docker.inspectImage(image);
       return;
     } catch {
       if (!this.autoPull) {
         throw new Error(`sandbox image not found locally: ${image}`);
       }
     }
-    const pullStream = await this.docker.pull(image);
-    await new Promise<void>((resolve, reject) => {
-      this.docker.modem.followProgress(pullStream, (err: Error | null) =>
-        err ? reject(err) : resolve()
-      );
-    });
+    await this.docker.pullImage(image);
   }
 }
 
@@ -335,13 +347,14 @@ export function parseMemLimit(mem: string): number {
 }
 
 async function waitForHostPort(
-  container: Dockerode.Container,
+  docker: DockerClient,
+  containerId: string,
   portKey: string,
   timeoutMs = 20_000
 ): Promise<number> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    const info = await container.inspect();
+    const info = await docker.inspectContainer(containerId);
     if (info.State?.Status === "exited") {
       throw new Error("container exited before ports were published");
     }

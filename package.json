@@ -33,6 +33,7 @@
     "packages/cli",
     "packages/storage",
     "packages/config",
+    "packages/docker",
     "packages/deploy",
     "packages/compute",
     "packages/elevenlabs-nodes",
