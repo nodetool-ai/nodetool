@@ -82,10 +82,20 @@ export function splitImageReference(image: string): {
   fromImage: string;
   tag: string;
 } {
+  const digestSeparator = image.indexOf("@");
+  if (digestSeparator !== -1) {
+    return {
+      fromImage: image.slice(0, digestSeparator),
+      tag: image.slice(digestSeparator + 1)
+    };
+  }
   const lastSlash = image.lastIndexOf("/");
   const lastColon = image.lastIndexOf(":");
   if (lastColon > lastSlash) {
-    return { fromImage: image.slice(0, lastColon), tag: image.slice(lastColon + 1) };
+    return {
+      fromImage: image.slice(0, lastColon),
+      tag: image.slice(lastColon + 1)
+    };
   }
   return { fromImage: image, tag: "latest" };
 }

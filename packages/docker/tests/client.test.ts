@@ -165,15 +165,20 @@ describe("DockerClient over a unix socket", () => {
     const err = await client.inspectImage("missing").catch((e: unknown) => e);
     expect(err).toBeInstanceOf(DockerError);
     expect((err as DockerError).statusCode).toBe(404);
-    expect((err as DockerError).message).toBe(
-      "No such image: missing:latest"
-    );
+    expect((err as DockerError).message).toBe("No such image: missing:latest");
   });
 
   it("consumes a pull progress stream to completion", async () => {
     await expect(client.pullImage("bash:5.2")).resolves.toBeUndefined();
+    expect(requests.at(-1)?.url).toBe("/images/create?fromImage=bash&tag=5.2");
+  });
+
+  it("pulls a digest-pinned image using the digest as the tag parameter", async () => {
+    await expect(
+      client.pullImage("ubuntu@sha256:abcdef")
+    ).resolves.toBeUndefined();
     expect(requests.at(-1)?.url).toBe(
-      "/images/create?fromImage=bash&tag=5.2"
+      "/images/create?fromImage=ubuntu&tag=sha256%3Aabcdef"
     );
   });
 
@@ -286,6 +291,19 @@ describe("splitImageReference", () => {
     expect(splitImageReference("localhost:5000/repo:v1")).toEqual({
       fromImage: "localhost:5000/repo",
       tag: "v1"
+    });
+  });
+
+  it("splits a digest-pinned image for the Engine API", () => {
+    expect(splitImageReference("ubuntu@sha256:abcdef")).toEqual({
+      fromImage: "ubuntu",
+      tag: "sha256:abcdef"
+    });
+    expect(
+      splitImageReference("registry.example.com/team/image@sha256:abcdef")
+    ).toEqual({
+      fromImage: "registry.example.com/team/image",
+      tag: "sha256:abcdef"
     });
   });
 });
