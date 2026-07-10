@@ -263,14 +263,13 @@ export const createWorkflowRunnerStore = (
  * NodeProgress) plus lightweight wire-only shapes that lack dedicated types.
  */
 type WorkflowMessage =
-  | JobUpdate
-  | NodeUpdate
-  | NodeProgress
-  | { type: "output_update"; node_id: string; value?: unknown }
-  | { type: "log_update"; message?: string; content?: string }
-  | { type: "notification"; message?: string; content?: string }
-  | { type: "prediction"; node_id: string; node_name?: string }
-  | { type: string; message?: string; [key: string]: unknown };
+  | (JobUpdate & Record<string, unknown>)
+  | (NodeUpdate & Record<string, unknown>)
+  | (NodeProgress & Record<string, unknown>)
+  | { type: "output_update"; node_id: string; value?: unknown; [key: string]: unknown }
+  | { type: "log_update"; message?: string; content?: string; [key: string]: unknown }
+  | { type: "notification"; message?: string; content?: string; [key: string]: unknown }
+  | { type: "prediction"; node_id: string; node_name?: string; [key: string]: unknown };
 
 function isWorkflowMessage(msg: Record<string, unknown>): msg is WorkflowMessage {
   return typeof msg.type === "string";
@@ -292,19 +291,18 @@ function handleMessage(
   switch (msg.type) {
     // ── Job-level updates ──────────────────────────────────────────
     case "job_update": {
-      const job = msg as JobUpdate;
-      if (state.state === "error" && job.status === "running") {return;}
+      if (state.state === "error" && msg.status === "running") {return;}
 
       const errorText =
-        job.error ||
-        (message.error_message as string | undefined) ||
+        msg.error ||
+        (msg.error_message as string | undefined) ||
         "Unknown error";
 
-      switch (job.status) {
+      switch (msg.status) {
         case "completed":
           set({
             state: "completed",
-            results: job.result,
+            results: msg.result,
             statusMessage: "Completed",
           });
           break;
@@ -321,7 +319,7 @@ function handleMessage(
         case "running":
           set({
             state: "running",
-            statusMessage: job.message || "Running...",
+            statusMessage: msg.message || "Running...",
           });
           break;
         case "queued":
@@ -332,7 +330,7 @@ function handleMessage(
           break;
         case "suspended": {
           const reason =
-            (message.suspension_reason as string | undefined) ||
+            (msg.suspension_reason as string | undefined) ||
             "Waiting for input";
           set({
             state: "suspended",
@@ -349,13 +347,12 @@ function handleMessage(
 
     // ── Node progress (progress/total) ─────────────────────────────
     case "node_progress": {
-      const progress = msg as NodeProgress;
       set({
         nodeProgress: {
           ...state.nodeProgress,
-          [progress.node_id]: {
-            progress: progress.progress,
-            total: progress.total,
+          [msg.node_id]: {
+            progress: msg.progress,
+            total: msg.total,
           },
         },
       });
@@ -364,38 +361,37 @@ function handleMessage(
 
     // ── Node status, results, errors ───────────────────────────────
     case "node_update": {
-      const update = msg as NodeUpdate;
       if (state.state === "cancelled") {return;}
 
       const updates: Partial<WorkflowRunner> = {
         nodeStatus: {
           ...state.nodeStatus,
-          [update.node_id]: update.status,
+          [msg.node_id]: msg.status,
         },
-        statusMessage: `${update.node_name || update.node_id} ${update.status}`,
+        statusMessage: `${msg.node_name || msg.node_id} ${msg.status}`,
       };
 
-      if (update.result) {
+      if (msg.result) {
         updates.nodeResults = {
           ...state.nodeResults,
-          [update.node_id]: update.result,
+          [msg.node_id]: msg.result,
         };
       }
 
-      if (update.error) {
+      if (msg.error) {
         updates.nodeErrors = {
           ...state.nodeErrors,
-          [update.node_id]: update.error,
+          [msg.node_id]: msg.error,
         };
         updates.state = "error";
         updates.logs = appendLog(
           state.logs,
-          `Error [${update.node_name || update.node_id}]: ${update.error}`
+          `Error [${msg.node_name || msg.node_id}]: ${msg.error}`
         );
       } else {
         updates.logs = appendLog(
           state.logs,
-          `${update.node_name || update.node_id}: ${update.status}`
+          `${msg.node_name || msg.node_id}: ${msg.status}`
         );
       }
 
@@ -405,13 +401,11 @@ function handleMessage(
 
     // ── Streaming output values ────────────────────────────────────
     case "output_update": {
-      const nodeId = (msg as { type: "output_update"; node_id: string }).node_id;
-      const value = (msg as { type: "output_update"; value?: unknown }).value;
-      if (nodeId && value !== undefined) {
+      if (msg.node_id && msg.value !== undefined) {
         set({
           nodeResults: {
             ...state.nodeResults,
-            [nodeId]: value,
+            [msg.node_id]: msg.value,
           },
         });
       }
@@ -420,8 +414,7 @@ function handleMessage(
 
     // ── Structured log entries ─────────────────────────────────────
     case "log_update": {
-      const logMsg = msg as { type: "log_update"; message?: string; content?: string };
-      const content = logMsg.message || logMsg.content;
+      const content = msg.message || msg.content;
       if (content) {
         set({ logs: appendLog(state.logs, content) });
       }
@@ -430,8 +423,7 @@ function handleMessage(
 
     // ── Notifications ──────────────────────────────────────────────
     case "notification": {
-      const notif = msg as { type: "notification"; message?: string; content?: string };
-      const content = notif.content || notif.message;
+      const content = msg.content || msg.message;
       if (content) {
         set({
           logs: appendLog(state.logs, `[notification] ${content}`),
@@ -442,14 +434,13 @@ function handleMessage(
 
     // ── Model booting / prediction status ──────────────────────────
     case "prediction": {
-      const pred = msg as { type: "prediction"; node_id: string; node_name?: string };
-      if (pred.node_id) {
+      if (msg.node_id) {
         set({
           nodeStatus: {
             ...state.nodeStatus,
-            [pred.node_id]: "booting",
+            [msg.node_id]: "booting",
           },
-          statusMessage: `${pred.node_name || pred.node_id} booting...`,
+          statusMessage: `${msg.node_name || msg.node_id} booting...`,
         });
       }
       break;
