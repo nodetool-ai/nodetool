@@ -419,7 +419,6 @@ The project includes pre-configured mocks in `src/__mocks__/`:
 - `baseUrlMock.ts`: Mock base URL configuration
 - `canvas.ts`: Mock HTML5 Canvas API
 - `chroma-js.ts`: Mock chroma-js color library
-- `fuse.js.ts`: Mock Fuse.js search library
 - `supabaseClientMock.ts`: Mock Supabase client
 - `themeMock.ts`: Mock MUI theme
 - `styleMock.ts`: Mock CSS imports

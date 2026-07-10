@@ -309,7 +309,7 @@ export const createNodeMenuStore = () =>
        * 1. Validates the search request against the current search ID
        * 2. Retrieves metadata
        * 3. Applies type filtering based on selected input/output types
-       * 4. Performs fuzzy search using Fuse.js when a search term is provided
+       * 4. Performs fuzzy search when a search term is provided
        * 5. Filters results based on the selected namespace path
        * 6. Sorts and groups results for display
        * 7. Updates the highlighted namespaces in the UI

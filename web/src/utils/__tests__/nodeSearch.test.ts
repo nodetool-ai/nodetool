@@ -17,21 +17,8 @@ jest.mock("../../stores/formatNodeDocumentation", () => ({
   formatNodeDocumentation: jest.fn((description) => ({
     description: description || "",
     tags: ["tag1", "tag2"],
-    useCases: { raw: ["use case 1", "use case 2"] }
+    useCases: { raw: "use case 1\nuse case 2" }
   }))
-}));
-
-jest.mock("../../stores/fuseOptions", () => ({
-  fuseOptions: {
-    includeScore: true,
-    threshold: 0.3,
-    location: 0,
-    distance: 100,
-    maxPatternLength: 32,
-    minMatchCharLength: 1,
-    shouldSort: true,
-    keys: []
-  }
 }));
 
 // Performance thresholds for regression testing
