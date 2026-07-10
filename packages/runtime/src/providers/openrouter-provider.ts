@@ -1,6 +1,9 @@
-import OpenAI from "openai";
+import type OpenAI from "openai";
 import { createLogger } from "@nodetool-ai/config";
-import { OpenAIProvider } from "./openai-provider.js";
+import {
+  OpenAICompatProvider,
+  type OpenAICompatProviderOptions
+} from "./openai-compat-provider.js";
 import type {
   ImageModel,
   LanguageModel,
@@ -13,12 +16,6 @@ import type {
 // Stryker disable next-line StringLiteral: logger name is diagnostic, not asserted.
 const log = createLogger("nodetool.runtime.providers.openrouter");
 
-interface OpenRouterProviderOptions {
-  client?: OpenAI;
-  clientFactory?: (apiKey: string) => OpenAI;
-  fetchFn?: typeof fetch;
-}
-
 /** Known image-capable models on OpenRouter. */
 const OPENROUTER_IMAGE_MODELS: ImageModel[] = [
   {
@@ -29,7 +26,7 @@ const OPENROUTER_IMAGE_MODELS: ImageModel[] = [
   }
 ];
 
-export class OpenRouterProvider extends OpenAIProvider {
+export class OpenRouterProvider extends OpenAICompatProvider {
   static override requiredSecrets(): string[] {
     return ["OPENROUTER_API_KEY"];
   }
@@ -38,7 +35,7 @@ export class OpenRouterProvider extends OpenAIProvider {
 
   constructor(
     secrets: { OPENROUTER_API_KEY?: string },
-    options: OpenRouterProviderOptions = {}
+    options: OpenAICompatProviderOptions = {}
   ) {
     const apiKey = secrets.OPENROUTER_API_KEY;
     if (!apiKey) {
@@ -48,31 +45,23 @@ export class OpenRouterProvider extends OpenAIProvider {
     const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
 
     super(
-      { OPENAI_API_KEY: apiKey },
       {
-        client: options.client,
-        clientFactory:
-          options.clientFactory ??
-          ((key) =>
-            new OpenAI({
-              apiKey: key,
-              baseURL: "https://openrouter.ai/api/v1",
-              // Default request headers are passed to the OpenAI SDK and only
-              // observable over the wire; the same header values are asserted on
-              // the /models fetch below.
-              // Stryker disable next-line ObjectLiteral
-              defaultHeaders: {
-                // Stryker disable next-line StringLiteral
-                "HTTP-Referer": "https://github.com/nodetool-ai/nodetool-core",
-                // Stryker disable next-line StringLiteral
-                "X-Title": "NodeTool"
-              }
-            })),
-        fetchFn
-      }
+        providerId: "openrouter",
+        apiKey,
+        baseURL: "https://openrouter.ai/api/v1",
+        // Attribution headers ride every chat request (and the SDK fallback);
+        // the same header values are asserted on the /models fetch below.
+        // Stryker disable next-line ObjectLiteral
+        defaultHeaders: {
+          // Stryker disable next-line StringLiteral
+          "HTTP-Referer": "https://github.com/nodetool-ai/nodetool-core",
+          // Stryker disable next-line StringLiteral
+          "X-Title": "NodeTool"
+        }
+      },
+      { ...options, fetchFn }
     );
 
-    (this as { provider: string }).provider = "openrouter";
     this._routerFetch = fetchFn;
   }
 

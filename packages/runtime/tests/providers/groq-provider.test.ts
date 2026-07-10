@@ -1,19 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
 import { GroqProvider } from "../../src/providers/groq-provider.js";
 import type { Message } from "../../src/providers/types.js";
-
-function makeAsyncIterable(items: unknown[]) {
-  return {
-    async *[Symbol.asyncIterator]() {
-      for (const item of items) {
-        yield item;
-      }
-    },
-    async close() {
-      return;
-    }
-  };
-}
+import {
+  chatJsonResponse,
+  chatSSEResponse,
+  mockChatFetch
+} from "./helpers/compat-fetch.js";
 
 describe("GroqProvider", () => {
   it("throws if GROQ_API_KEY is missing", () => {
@@ -90,25 +82,23 @@ describe("GroqProvider", () => {
     expect(models).toEqual([]);
   });
 
-  it("generates non-streaming message via inherited OpenAI logic", async () => {
-    const create = vi.fn().mockResolvedValue({
-      choices: [
-        {
-          message: {
-            content: "fast response",
-            tool_calls: null
+  it("generates non-streaming message via the compat chat client", async () => {
+    const fetchMock = mockChatFetch(
+      chatJsonResponse({
+        choices: [
+          {
+            message: {
+              content: "fast response",
+              tool_calls: null
+            }
           }
-        }
-      ]
-    });
+        ]
+      })
+    );
 
     const provider = new GroqProvider(
       { GROQ_API_KEY: "k" },
-      {
-        client: {
-          chat: { completions: { create } }
-        } as any
-      }
+      { fetchFn: fetchMock as unknown as typeof fetch }
     );
 
     const messages: Message[] = [{ role: "user", content: "hello" }];
@@ -119,10 +109,16 @@ describe("GroqProvider", () => {
 
     expect(result.role).toBe("assistant");
     expect(result.content).toBe("fast response");
-    expect(create).toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.groq.com/openai/v1/chat/completions",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({ Authorization: "Bearer k" })
+      })
+    );
   });
 
-  it("streams messages via inherited OpenAI logic", async () => {
+  it("streams messages via the compat chat client", async () => {
     const chunks = [
       {
         choices: [
@@ -142,15 +138,11 @@ describe("GroqProvider", () => {
       }
     ];
 
-    const create = vi.fn().mockResolvedValue(makeAsyncIterable(chunks));
+    const fetchMock = mockChatFetch(() => chatSSEResponse(chunks));
 
     const provider = new GroqProvider(
       { GROQ_API_KEY: "k" },
-      {
-        client: {
-          chat: { completions: { create } }
-        } as any
-      }
+      { fetchFn: fetchMock as unknown as typeof fetch }
     );
 
     const messages: Message[] = [{ role: "user", content: "hi" }];

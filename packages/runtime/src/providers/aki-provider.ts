@@ -1,5 +1,5 @@
 import { loadPackageAssetJson } from "@nodetool-ai/config";
-import OpenAI from "openai";
+import type OpenAI from "openai";
 import { AkiClient, decodeBinary } from "@aki-io/aki-io";
 import type {
   AkiClientConfig,
@@ -7,7 +7,10 @@ import type {
   ApiResponse
 } from "@aki-io/aki-io";
 import { createLogger } from "@nodetool-ai/config";
-import { OpenAIProvider } from "./openai-provider.js";
+import {
+  OpenAICompatProvider,
+  type OpenAICompatProviderOptions
+} from "./openai-compat-provider.js";
 import type {
   ImageModel,
   ImageToImageParams,
@@ -230,14 +233,13 @@ export function buildAkiImageRequest(
   return request;
 }
 
-interface AkiProviderOptions {
-  client?: OpenAI;
+interface AkiProviderOptions extends OpenAICompatProviderOptions {
+  /** Alias kept for callers that predate {@link OpenAICompatProviderOptions}. */
   openaiClientFactory?: (apiKey: string) => OpenAI;
   akiClientFactory?: (config: AkiClientConfig) => AkiClient;
-  fetchFn?: typeof fetch;
 }
 
-export class AkiProvider extends OpenAIProvider {
+export class AkiProvider extends OpenAICompatProvider {
   static override requiredSecrets(): string[] {
     return ["AKI_API_KEY"];
   }
@@ -257,17 +259,14 @@ export class AkiProvider extends OpenAIProvider {
     const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
 
     super(
-      { OPENAI_API_KEY: apiKey },
+      { providerId: "aki", apiKey, baseURL: AKI_BASE_URL },
       {
-        client: options.client,
-        clientFactory:
-          options.openaiClientFactory ??
-          ((key) => new OpenAI({ apiKey: key, baseURL: AKI_BASE_URL })),
+        ...options,
+        clientFactory: options.openaiClientFactory ?? options.clientFactory,
         fetchFn
       }
     );
 
-    (this as { provider: string }).provider = "aki";
     this._akiClientFactory =
       // Stryker disable next-line ArrowFunction: the default constructs a real AkiClient (network SDK); exercised only outside unit tests, where akiClientFactory is injected.
       options.akiClientFactory ?? ((config) => new AkiClient(config));

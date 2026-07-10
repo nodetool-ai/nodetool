@@ -2,6 +2,11 @@ import { describe, it, expect, vi } from "vitest";
 import { EvolinkProvider } from "../../src/providers/evolink-provider.js";
 import { providerCapabilities } from "../../src/providers/base-provider.js";
 import type { Message } from "../../src/providers/types.js";
+import {
+  chatJsonResponse,
+  chatSSEResponse,
+  mockChatFetch
+} from "./helpers/compat-fetch.js";
 
 /**
  * Route Evolink's media calls (file upload, task submit, task poll, result
@@ -44,19 +49,6 @@ function makeMediaFetch(resultBytes: Uint8Array) {
     }
     throw new Error(`Unexpected fetch: ${url}`);
   });
-}
-
-function makeAsyncIterable(items: unknown[]) {
-  return {
-    async *[Symbol.asyncIterator]() {
-      for (const item of items) {
-        yield item;
-      }
-    },
-    async close() {
-      return;
-    }
-  };
 }
 
 describe("EvolinkProvider", () => {
@@ -147,25 +139,23 @@ describe("EvolinkProvider", () => {
     expect(models).toEqual([]);
   });
 
-  it("generates non-streaming message via inherited OpenAI logic", async () => {
-    const create = vi.fn().mockResolvedValue({
-      choices: [
-        {
-          message: {
-            content: "evolink response",
-            tool_calls: null
+  it("generates non-streaming message via the compat chat client", async () => {
+    const fetchMock = mockChatFetch(
+      chatJsonResponse({
+        choices: [
+          {
+            message: {
+              content: "evolink response",
+              tool_calls: null
+            }
           }
-        }
-      ]
-    });
+        ]
+        })
+    );
 
     const provider = new EvolinkProvider(
       { EVOLINK_API_KEY: "k" },
-      {
-        client: {
-          chat: { completions: { create } }
-        } as any
-      }
+      { fetchFn: fetchMock as unknown as typeof fetch }
     );
 
     const messages: Message[] = [{ role: "user", content: "hello" }];
@@ -178,7 +168,7 @@ describe("EvolinkProvider", () => {
     expect(result.content).toBe("evolink response");
   });
 
-  it("streams messages via inherited OpenAI logic", async () => {
+  it("streams messages via the compat chat client", async () => {
     const chunks = [
       {
         choices: [{ delta: { content: "hello" }, finish_reason: null }]
@@ -188,15 +178,11 @@ describe("EvolinkProvider", () => {
       }
     ];
 
-    const create = vi.fn().mockResolvedValue(makeAsyncIterable(chunks));
+    const fetchMock = mockChatFetch(() => chatSSEResponse(chunks));
 
     const provider = new EvolinkProvider(
       { EVOLINK_API_KEY: "k" },
-      {
-        client: {
-          chat: { completions: { create } }
-        } as any
-      }
+      { fetchFn: fetchMock as unknown as typeof fetch }
     );
 
     const messages: Message[] = [{ role: "user", content: "hi" }];

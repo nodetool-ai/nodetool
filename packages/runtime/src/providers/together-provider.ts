@@ -1,5 +1,7 @@
-import OpenAI from "openai";
-import { OpenAIProvider } from "./openai-provider.js";
+import {
+  OpenAICompatProvider,
+  type OpenAICompatProviderOptions
+} from "./openai-compat-provider.js";
 import { loadImageModels, loadVideoModels } from "./manifest-models.js";
 import type {
   ASRModel,
@@ -15,12 +17,6 @@ import type {
   TTSModel,
   VideoModel
 } from "./types.js";
-
-interface TogetherProviderOptions {
-  client?: OpenAI;
-  clientFactory?: (apiKey: string) => OpenAI;
-  fetchFn?: typeof fetch;
-}
 
 // ─── Model catalogs ───────────────────────────────────────────────────────────
 
@@ -169,7 +165,7 @@ function parseWavPCM(bytes: Uint8Array): {
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
-export class TogetherProvider extends OpenAIProvider {
+export class TogetherProvider extends OpenAICompatProvider {
   static override requiredSecrets(): string[] {
     return ["TOGETHER_API_KEY"];
   }
@@ -178,7 +174,7 @@ export class TogetherProvider extends OpenAIProvider {
 
   constructor(
     secrets: { TOGETHER_API_KEY?: string },
-    options: TogetherProviderOptions = {}
+    options: OpenAICompatProviderOptions = {}
   ) {
     const apiKey = secrets.TOGETHER_API_KEY;
     if (!apiKey) {
@@ -188,21 +184,14 @@ export class TogetherProvider extends OpenAIProvider {
     const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
 
     super(
-      { OPENAI_API_KEY: apiKey },
       {
-        client: options.client,
-        clientFactory:
-          options.clientFactory ??
-          ((key) =>
-            new OpenAI({
-              apiKey: key,
-              baseURL: "https://api.together.xyz/v1"
-            })),
-        fetchFn
-      }
+        providerId: "together",
+        apiKey,
+        baseURL: "https://api.together.xyz/v1"
+      },
+      { ...options, fetchFn }
     );
 
-    (this as { provider: string }).provider = "together";
     this._togetherFetch = fetchFn;
   }
 

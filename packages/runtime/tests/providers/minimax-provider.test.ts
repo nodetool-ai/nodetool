@@ -5,6 +5,10 @@ import type {
   Message,
   VideoModel
 } from "../../src/providers/types.js";
+import {
+  chatJsonResponse,
+  mockChatFetch
+} from "./helpers/compat-fetch.js";
 
 describe("MinimaxProvider", () => {
   it("throws if MINIMAX_API_KEY is missing", () => {
@@ -330,13 +334,15 @@ describe("MinimaxProvider", () => {
     expect(body.lyrics).toBe("[Instrumental]");
   });
 
-  it("generates a chat completion via the inherited OpenAI path", async () => {
-    const create = vi.fn().mockResolvedValue({
-      choices: [{ message: { content: "hi", tool_calls: null } }]
-    });
+  it("generates a chat completion via the compat chat client", async () => {
+    const fetchMock = mockChatFetch(
+      chatJsonResponse({
+        choices: [{ message: { content: "hi", tool_calls: null } }]
+      })
+    );
     const provider = new MinimaxProvider(
       { MINIMAX_API_KEY: "k" },
-      { client: { chat: { completions: { create } } } as any }
+      { fetchFn: fetchMock as unknown as typeof fetch }
     );
     const messages: Message[] = [{ role: "user", content: "hello" }];
     const result = await provider.generateMessage({

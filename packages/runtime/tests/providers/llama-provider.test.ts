@@ -1,19 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
 import { LlamaProvider } from "../../src/providers/llama-provider.js";
 import type { Message } from "../../src/providers/types.js";
-
-function makeAsyncIterable(items: unknown[]) {
-  return {
-    async *[Symbol.asyncIterator]() {
-      for (const item of items) {
-        yield item;
-      }
-    },
-    async close() {
-      return;
-    }
-  };
-}
+import {
+  chatJsonResponse,
+  chatSSEResponse,
+  mockChatFetch
+} from "./helpers/compat-fetch.js";
 
 describe("LlamaProvider", () => {
   it("requires LLAMA_CPP_URL and reports container env behavior", async () => {
@@ -22,7 +14,7 @@ describe("LlamaProvider", () => {
 
     const provider = new LlamaProvider(
       { LLAMA_CPP_URL: "http://127.0.0.1:8080/" },
-      { client: {} as any }
+      {}
     );
     expect(provider.baseUrl).toBe("http://127.0.0.1:8080");
     expect(provider.getContainerEnv()).toEqual({});
@@ -42,7 +34,7 @@ describe("LlamaProvider", () => {
 
     const provider = new LlamaProvider(
       { LLAMA_CPP_URL: "http://127.0.0.1:8080" },
-      { client: {} as any, fetchFn: fetchFn as any }
+      { fetchFn: fetchFn as any }
     );
 
     await expect(provider.getAvailableLanguageModels()).resolves.toEqual([
@@ -58,7 +50,7 @@ describe("LlamaProvider", () => {
   it("converts messages to OpenAI-compatible payloads", async () => {
     const provider = new LlamaProvider(
       { LLAMA_CPP_URL: "http://127.0.0.1:8080" },
-      { client: {} as any }
+      {}
     );
 
     const user: Message = { role: "user", content: "hello" };
@@ -91,24 +83,22 @@ describe("LlamaProvider", () => {
   });
 
   it("generates non-streaming response and parses emulated tool calls", async () => {
-    const create = vi.fn().mockResolvedValue({
-      choices: [
-        {
-          message: {
-            content: "calculator(expression='5 + 3')",
-            tool_calls: []
+    const fetchMock = mockChatFetch(
+      chatJsonResponse({
+        choices: [
+          {
+            message: {
+              content: "calculator(expression='5 + 3')",
+              tool_calls: []
+            }
           }
-        }
-      ]
-    });
+        ]
+      })
+    );
 
     const provider = new LlamaProvider(
       { LLAMA_CPP_URL: "http://127.0.0.1:8080" },
-      {
-        client: {
-          chat: { completions: { create } }
-        } as any
-      }
+      { fetchFn: fetchMock as unknown as typeof fetch }
     );
 
     const result = await provider.generateMessage({
@@ -127,28 +117,24 @@ describe("LlamaProvider", () => {
   });
 
   it("streams chunks and parses emulated tool call on stop", async () => {
-    const stream = makeAsyncIterable([
-      {
-        choices: [
-          {
-            delta: { content: "calculator(expression='9+1')" },
-            finish_reason: null
-          }
-        ]
-      },
-      {
-        choices: [{ delta: { content: "" }, finish_reason: "stop" }]
-      }
-    ]);
-
-    const create = vi.fn().mockResolvedValue(stream);
+    const fetchMock = mockChatFetch(
+      chatSSEResponse([
+        {
+          choices: [
+            {
+              delta: { content: "calculator(expression='9+1')" },
+              finish_reason: null
+            }
+          ]
+        },
+        {
+          choices: [{ delta: { content: "" }, finish_reason: "stop" }]
+        }
+      ])
+    );
     const provider = new LlamaProvider(
       { LLAMA_CPP_URL: "http://127.0.0.1:8080" },
-      {
-        client: {
-          chat: { completions: { create } }
-        } as any
-      }
+      { fetchFn: fetchMock as unknown as typeof fetch }
     );
 
     const out: Array<unknown> = [];
@@ -170,7 +156,7 @@ describe("LlamaProvider", () => {
   it("detects context-length errors", () => {
     const provider = new LlamaProvider(
       { LLAMA_CPP_URL: "http://127.0.0.1:8080" },
-      { client: {} as any }
+      {}
     );
 
     expect(

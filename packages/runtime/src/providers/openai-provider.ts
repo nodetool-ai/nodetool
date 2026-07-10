@@ -794,7 +794,7 @@ export class OpenAIProvider extends BaseProvider {
     });
   }
 
-  private convertSystemToUserForOModels(
+  protected convertSystemToUserForOModels(
     messages: Message[],
     model: string
   ): Message[] {
