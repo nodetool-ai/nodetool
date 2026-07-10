@@ -35,6 +35,7 @@ import SkipPreviousIcon from "@mui/icons-material/SkipPrevious";
 import SkipNextIcon from "@mui/icons-material/SkipNext";
 import VolumeUpIcon from "@mui/icons-material/VolumeUp";
 import VolumeOffIcon from "@mui/icons-material/VolumeOff";
+import DownloadIcon from "@mui/icons-material/Download";
 
 import {
   CheckerDropzone,
@@ -423,6 +424,40 @@ const ExtractVideoFrameBodyInner: React.FC<ExtractVideoFrameBodyProps> = ({
     });
   }, []);
 
+  // Draw the frame currently shown in the `<video>` element to a canvas at its
+  // native resolution and download it as a PNG. This is the same frame the node
+  // extracts, so what you see is what you save.
+  const handleDownloadFrame = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || !video.videoWidth || !video.videoHeight) {
+      return;
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      return;
+    }
+    try {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    } catch {
+      // Cross-origin frames taint the canvas; nothing to download in that case.
+      return;
+    }
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `frame-${frameOf(video.currentTime, fps)}.png`;
+      link.click();
+      URL.revokeObjectURL(url);
+    }, "image/png");
+  }, [fps]);
+
   const isRunning = status === "running";
   const frame = frameOf(currentTime, fps);
   const maxFrame = frameOf(duration, fps);
@@ -441,6 +476,7 @@ const ExtractVideoFrameBodyInner: React.FC<ExtractVideoFrameBodyProps> = ({
             ref={videoRef}
             className="nodrag nopan"
             src={videoSrc}
+            crossOrigin="anonymous"
             muted={muted}
             playsInline
             aria-label="Video frame preview"
@@ -504,6 +540,13 @@ const ExtractVideoFrameBodyInner: React.FC<ExtractVideoFrameBodyProps> = ({
           ariaLabel={muted ? "Unmute" : "Mute"}
           disabled={!videoSrc}
           onClick={handleToggleMute}
+        />
+        <ToolbarIconButton
+          icon={<DownloadIcon />}
+          tooltip="Download frame"
+          ariaLabel="Download frame"
+          disabled={!videoSrc}
+          onClick={handleDownloadFrame}
         />
       </div>
 
