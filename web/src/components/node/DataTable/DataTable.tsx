@@ -24,7 +24,7 @@ import { DataframeRef, ColumnDef } from "../../../stores/ApiTypes";
 import TableActions from "./TableActions";
 import type { TableData } from "./TableActions";
 import { integerEditor, floatEditor, datetimeEditor } from "./DataTableEditors";
-import { format, isValid, parseISO } from "date-fns";
+import { format, isValid, parseISO } from "../../../utils/dateFormat";
 import { tableStyles } from "../../../styles/TableStyles";
 import { useTheme } from "@mui/material/styles";
 import isEqual from "fast-deep-equal";
