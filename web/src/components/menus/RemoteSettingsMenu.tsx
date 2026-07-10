@@ -109,10 +109,6 @@ export interface DisplayedGroup {
   label: string;
 }
 
-/** Anchor id for a settings group heading (e.g. "vLLM" → "vllm"). */
-export const settingGroupSlug = (groupName: string): string =>
-  groupName.toLowerCase().replace(/\s+/g, "-");
-
 /**
  * Partitions visible registry groups into the fixed meta-section order. Shared
  * by the panel (rendering) and getDisplayedSettingGroups (sidebar) so the two
