@@ -188,24 +188,49 @@ export interface RenderGraph {
  */
 export async function buildRenderGraph(raw: RawGraph): Promise<RenderGraph> {
   const workflow = toWorkflow(raw);
-  const metaStore = useMetadataStore.getState();
-  const existing = metaStore.metadata ?? {};
-  const allMetadata: Record<string, NodeMetadata> = { ...existing };
-  const nodeTypesMap: Record<string, unknown> = { ...metaStore.nodeTypes };
   const { default: BaseNode } = await import("../components/node/BaseNode");
 
-  for (const node of workflow.graph?.nodes ?? []) {
+  // Nothing below this point awaits until after the store writes, so the
+  // getState() reads used to compute `newMetadata`/`newNodeTypes` stay valid
+  // through the setMetadata/setNodeTypes calls — no other call can interleave
+  // a write in between and get clobbered.
+  const graphNodes = workflow.graph?.nodes ?? [];
+
+  const currentMetadata = useMetadataStore.getState().metadata;
+  const newMetadata: Record<string, NodeMetadata> = {};
+  for (const node of graphNodes) {
     const nodeType = node.type;
-    if (!allMetadata[nodeType]) {
-      allMetadata[nodeType] = inferMetadata(
+    if (!currentMetadata[nodeType] && !newMetadata[nodeType]) {
+      newMetadata[nodeType] = inferMetadata(
         nodeType,
         (node.data || {}) as Record<string, unknown>
       );
     }
-    nodeTypesMap[nodeType] = BaseNode;
   }
-  metaStore.setMetadata(allMetadata);
-  metaStore.setNodeTypes(nodeTypesMap as Record<string, typeof BaseNode>);
+  const allMetadata: Record<string, NodeMetadata> = {
+    ...currentMetadata,
+    ...newMetadata
+  };
+  if (Object.keys(newMetadata).length > 0) {
+    useMetadataStore.getState().setMetadata(allMetadata);
+  }
+
+  // Only fill in types with no registered component yet — never override one
+  // that's already there.
+  const currentNodeTypes = useMetadataStore.getState().nodeTypes;
+  const newNodeTypes: Record<string, unknown> = {};
+  for (const node of graphNodes) {
+    const nodeType = node.type;
+    if (!currentNodeTypes[nodeType] && !newNodeTypes[nodeType]) {
+      newNodeTypes[nodeType] = BaseNode;
+    }
+  }
+  if (Object.keys(newNodeTypes).length > 0) {
+    useMetadataStore.getState().setNodeTypes({
+      ...useMetadataStore.getState().nodeTypes,
+      ...newNodeTypes
+    } as Record<string, typeof BaseNode>);
+  }
 
   const rfNodes = (workflow.graph?.nodes ?? []).map((n) =>
     graphNodeToReactFlowNode(workflow, n as GraphNode)
