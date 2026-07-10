@@ -26,7 +26,10 @@ jest.mock("../../contexts/NodeContext", () => ({
       getSelectedNodes: jest.fn(() => [])
     };
     return selector(mockState);
-  })
+  }),
+  useNodeStoreRef: jest.fn(() => ({
+    getState: () => ({ nodes: mockNodes })
+  }))
 }));
 
 const createMockNode = (

@@ -2,36 +2,21 @@ import { useCallback } from "react";
 import { Node, Edge, useReactFlow } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
 import { DUPLICATE_SPACING } from "../config/constants";
-import { useNodes } from "../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../contexts/NodeContext";
 import { shallow } from "zustand/shallow";
 
-/**
- * Hook for duplicating selected nodes and their connected edges.
- *
- * @param vertical - If true, duplicates vertically; if false, horizontally
- * @param keepUpstreamConnections - If true (default), preserves incoming edges from non-selected nodes
- *
- * @example
- * const duplicateNodes = useDuplicateNodes();
- * duplicateNodes(); // Duplicate horizontally
- * const duplicateVertical = useDuplicateNodes(true);
- * const duplicateIsolated = useDuplicateNodes(false, false);
- */
 export const useDuplicateNodes = (
   vertical: boolean = false,
   keepUpstreamConnections: boolean = true
 ): (() => void) => {
   const reactFlow = useReactFlow();
+  const store = useNodeStoreRef();
   const {
-    nodes,
-    edges,
     setNodes,
     setEdges,
     generateNodeIds,
     getSelectedNodes
   } = useNodes((state) => ({
-    nodes: state.nodes,
-    edges: state.edges,
     setNodes: state.setNodes,
     setEdges: state.setEdges,
     getSelectedNodes: state.getSelectedNodes,
@@ -97,6 +82,8 @@ export const useDuplicateNodes = (
       newNodes.push(newNode);
     }
 
+    const { nodes, edges } = store.getState();
+
     // Find edges connected to selected nodes
     const selectedNodeIds = selectedNodes.map((node) => node.id);
     const connectedEdges = edges.filter(
@@ -160,7 +147,6 @@ export const useDuplicateNodes = (
     reactFlow.getNodesBounds,
     setNodes,
     setEdges,
-    edges,
-    nodes
+    store
   ]);
 };

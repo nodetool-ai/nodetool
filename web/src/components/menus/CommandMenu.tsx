@@ -18,7 +18,7 @@ import {
   exportWorkflowBundle,
   importWorkflowBundle
 } from "../../utils/workflowBundle";
-import { useNodes } from "../../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 import { create } from "zustand";
 import { shallow } from "zustand/shallow";
 import { isDevelopment } from "../../lib/env";
@@ -108,17 +108,12 @@ const styles = () =>
 
 const WorkflowCommands = memo(function WorkflowCommands() {
   const executeAndClose = useCommandMenu((state) => state.executeAndClose);
-  // Optimization: use shallow equality to prevent the CommandMenu from
-  // re-rendering 60 times a second on unrelated node position updates
+  const store = useNodeStoreRef();
   const {
-    nodes,
-    edges,
     currentWorkflow,
     workflowJSON,
     autoLayout
   } = useNodes((state) => ({
-    nodes: state.nodes,
-    edges: state.edges,
     currentWorkflow: state.workflow,
     workflowJSON: state.workflowJSON,
     autoLayout: state.autoLayout
@@ -143,8 +138,9 @@ const WorkflowCommands = memo(function WorkflowCommands() {
   const bundleInputRef = useRef<HTMLInputElement>(null);
 
   const runWorkflow = useCallback(() => {
+    const { nodes, edges } = store.getState();
     run({}, currentWorkflow, nodes, edges);
-  }, [run, currentWorkflow, nodes, edges]);
+  }, [run, currentWorkflow, store]);
 
   const downloadWorkflow = useCallback(() => {
     const blob = new Blob([workflowJSON()], { type: "application/json" });

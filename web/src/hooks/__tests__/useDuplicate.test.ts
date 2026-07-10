@@ -1,7 +1,7 @@
 import { renderHook, act } from "@testing-library/react";
 import { useDuplicateNodes } from "../useDuplicate";
 import { useReactFlow } from "@xyflow/react";
-import { useNodes } from "../../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 
 jest.mock("@xyflow/react");
 jest.mock("../../contexts/NodeContext");
@@ -40,6 +40,9 @@ describe("useDuplicateNodes", () => {
         return selector(mockUseNodesReturn);
       }
       return mockUseNodesReturn;
+    });
+    (useNodeStoreRef as jest.Mock).mockReturnValue({
+      getState: () => ({ nodes: mockUseNodesReturn.nodes, edges: mockUseNodesReturn.edges })
     });
     (useReactFlow as jest.Mock).mockReturnValue({
       getNodesBounds: mockGetNodesBounds,

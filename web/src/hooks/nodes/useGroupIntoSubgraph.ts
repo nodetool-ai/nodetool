@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { useReactFlow, type Edge as RFEdge, type Node as RFNode } from "@xyflow/react";
 import { shallow } from "zustand/shallow";
-import { useNodes } from "../../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 import useMetadataStore from "../../stores/MetadataStore";
 import { reactFlowNodeToGraphNode } from "../../stores/reactFlowNodeToGraphNode";
 import { reactFlowEdgeToGraphEdge } from "../../stores/reactFlowEdgeToGraphEdge";
@@ -175,15 +175,14 @@ function buildPlan(
 export function useGroupIntoSubgraph() {
   const reactFlowInstance = useReactFlow();
   const getMetadata = useMetadataStore((s) => s.getMetadata);
-  const { createNode, addNode, addEdge, deleteEdges, deleteNodes, nodes, edges } =
+  const store = useNodeStoreRef();
+  const { createNode, addNode, addEdge, deleteEdges, deleteNodes } =
     useNodes((s) => ({
       createNode: s.createNode,
       addNode: s.addNode,
       addEdge: s.addEdge,
       deleteEdges: s.deleteEdges,
-      deleteNodes: s.deleteNodes,
-      nodes: s.nodes,
-      edges: s.edges
+      deleteNodes: s.deleteNodes
     }), shallow);
 
   return useCallback(
@@ -195,6 +194,7 @@ export function useGroupIntoSubgraph() {
         return null;
       }
 
+      const { nodes, edges } = store.getState();
       const idSet = new Set(selectedIds);
       const selectedNodes = nodes.filter((n) => idSet.has(n.id)) as RFNode<NodeData>[];
       if (selectedNodes.length === 0) return null;
@@ -239,8 +239,7 @@ export function useGroupIntoSubgraph() {
       addEdge,
       deleteEdges,
       deleteNodes,
-      nodes,
-      edges
+      store
     ]
   );
 }

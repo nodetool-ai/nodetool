@@ -59,7 +59,7 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     deleteNode,
     getSelectedNodes,
     toggleBypass,
-    nodes,
+    findNode,
     setSelectedNodes
   } = useNodes((state) => ({
     updateNodeData: state.updateNodeData,
@@ -68,11 +68,11 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
     deleteNode: state.deleteNode,
     getSelectedNodes: state.getSelectedNodes,
     toggleBypass: state.toggleBypass,
-    nodes: state.nodes,
+    findNode: state.findNode,
     setSelectedNodes: state.setSelectedNodes
   }), shallow);
 
-  const rawNode = nodeId ? nodes.find((n) => n.id === nodeId) : undefined;
+  const rawNode = nodeId ? findNode(nodeId) : undefined;
   const node = rawNode as Node<NodeData> | null;
   const nodeData = node?.data;
   const { writeClipboard } = useClipboard();

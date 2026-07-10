@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { NodeData } from "../stores/NodeData";
-import { useNodes } from "../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../contexts/NodeContext";
 import { shallow } from "zustand/shallow";
 
 /** Configuration options for aligning nodes. */
@@ -22,8 +22,8 @@ type AlignNodesOptions = {
 const useAlignNodes = () => {
   const VERTICAL_SPACING = 20;
   const HORIZONTAL_SPACING = 40;
-  const { nodes, setNodes, getSelectedNodes } = useNodes((state) => ({
-    nodes: state.nodes,
+  const store = useNodeStoreRef();
+  const { setNodes, getSelectedNodes } = useNodes((state) => ({
     setNodes: state.setNodes,
     getSelectedNodes: state.getSelectedNodes
   }), shallow);
@@ -116,7 +116,7 @@ const useAlignNodes = () => {
         });
       }
 
-      // Update nodes via NodeStore
+      const { nodes } = store.getState();
       setNodes(
         nodes.map((currentNode) => {
           const updatedProps = nodeUpdates.get(currentNode.id);
@@ -131,7 +131,7 @@ const useAlignNodes = () => {
         })
       );
     },
-    [getSelectedNodes, nodes, setNodes]
+    [getSelectedNodes, store, setNodes]
   );
 
   return alignNodes;

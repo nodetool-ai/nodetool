@@ -1,14 +1,16 @@
 import { renderHook, act } from "@testing-library/react";
 import { useSelectConnected } from "../useSelectConnected";
-import { useNodes } from "../../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 import { Node, Edge } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 
 jest.mock("../../contexts/NodeContext", () => ({
-  useNodes: jest.fn()
+  useNodes: jest.fn(),
+  useNodeStoreRef: jest.fn()
 }));
 
 const mockUseNodes = useNodes as jest.MockedFunction<typeof useNodes>;
+const mockUseNodeStoreRef = useNodeStoreRef as jest.MockedFunction<typeof useNodeStoreRef>;
 
 const createMockNodeData = (): NodeData => ({
   properties: {},
@@ -53,6 +55,21 @@ describe("useSelectConnected", () => {
 
   const createMockSetSelectedNodes = () => jest.fn();
 
+  const setupMocks = (
+    nodes: Node<NodeData>[],
+    edges: Edge[],
+    getSelectedNodes: () => Node<NodeData>[],
+    setSelectedNodes: jest.Mock
+  ) => {
+    mockUseNodeStoreRef.mockReturnValue({
+      getState: () => ({ nodes, edges })
+    } as ReturnType<typeof useNodeStoreRef>);
+    mockUseNodes.mockReturnValue({
+      getSelectedNodes,
+      setSelectedNodes
+    });
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -60,17 +77,10 @@ describe("useSelectConnected", () => {
   describe("direction: both", () => {
     it("should select all connected nodes when direction is 'both'", () => {
       const setSelectedNodes = createMockSetSelectedNodes();
-
-      mockUseNodes.mockReturnValue({
-        nodes: mockNodes,
-        edges: mockEdges,
-        getSelectedNodes: () => [mockNodes[1]],
-        setSelectedNodes
-      });
+      setupMocks(mockNodes, mockEdges, () => [mockNodes[1]], setSelectedNodes);
 
       const { result } = renderHook(() => useSelectConnected({ direction: "both" }));
 
-      expect(result.current.connectedNodeCount).toBe(3);
       expect(result.current.getConnectedNodeIds()).toEqual([
         "input-node",
         "process-node-2",
@@ -80,31 +90,19 @@ describe("useSelectConnected", () => {
 
     it("should select connected nodes when multiple nodes are selected", () => {
       const setSelectedNodes = createMockSetSelectedNodes();
-
-      mockUseNodes.mockReturnValue({
-        nodes: mockNodes,
-        edges: mockEdges,
-        getSelectedNodes: () => [mockNodes[1], mockNodes[2]],
-        setSelectedNodes
-      });
+      setupMocks(mockNodes, mockEdges, () => [mockNodes[1], mockNodes[2]], setSelectedNodes);
 
       const { result } = renderHook(() => useSelectConnected({ direction: "both" }));
 
-      expect(result.current.connectedNodeCount).toBe(2);
       const connectedIds = result.current.getConnectedNodeIds();
       expect(connectedIds).toContain("input-node");
       expect(connectedIds).toContain("output-node");
+      expect(connectedIds.length).toBe(2);
     });
 
     it("should call setSelectedNodes with all connected nodes", () => {
       const setSelectedNodes = createMockSetSelectedNodes();
-
-      mockUseNodes.mockReturnValue({
-        nodes: mockNodes,
-        edges: mockEdges,
-        getSelectedNodes: () => [mockNodes[1]],
-        setSelectedNodes
-      });
+      setupMocks(mockNodes, mockEdges, () => [mockNodes[1]], setSelectedNodes);
 
       const { result } = renderHook(() => useSelectConnected({ direction: "both" }));
 
@@ -126,35 +124,22 @@ describe("useSelectConnected", () => {
   describe("direction: upstream", () => {
     it("should only select upstream nodes when direction is 'upstream'", () => {
       const setSelectedNodes = createMockSetSelectedNodes();
-
-      mockUseNodes.mockReturnValue({
-        nodes: mockNodes,
-        edges: mockEdges,
-        getSelectedNodes: () => [mockNodes[2]],
-        setSelectedNodes
-      });
+      setupMocks(mockNodes, mockEdges, () => [mockNodes[2]], setSelectedNodes);
 
       const { result } = renderHook(() => useSelectConnected({ direction: "upstream" }));
 
-      expect(result.current.connectedNodeCount).toBe(2);
       const connectedIds = result.current.getConnectedNodeIds();
       expect(connectedIds).toContain("input-node");
       expect(connectedIds).toContain("process-node-1");
+      expect(connectedIds.length).toBe(2);
     });
 
     it("should not include selected nodes in upstream result", () => {
       const setSelectedNodes = createMockSetSelectedNodes();
-
-      mockUseNodes.mockReturnValue({
-        nodes: mockNodes,
-        edges: mockEdges,
-        getSelectedNodes: () => [mockNodes[0]],
-        setSelectedNodes
-      });
+      setupMocks(mockNodes, mockEdges, () => [mockNodes[0]], setSelectedNodes);
 
       const { result } = renderHook(() => useSelectConnected({ direction: "upstream" }));
 
-      expect(result.current.connectedNodeCount).toBe(0);
       expect(result.current.getConnectedNodeIds()).toEqual([]);
     });
   });
@@ -162,17 +147,10 @@ describe("useSelectConnected", () => {
   describe("direction: downstream", () => {
     it("should only select downstream nodes when direction is 'downstream'", () => {
       const setSelectedNodes = createMockSetSelectedNodes();
-
-      mockUseNodes.mockReturnValue({
-        nodes: mockNodes,
-        edges: mockEdges,
-        getSelectedNodes: () => [mockNodes[1]],
-        setSelectedNodes
-      });
+      setupMocks(mockNodes, mockEdges, () => [mockNodes[1]], setSelectedNodes);
 
       const { result } = renderHook(() => useSelectConnected({ direction: "downstream" }));
 
-      expect(result.current.connectedNodeCount).toBe(2);
       expect(result.current.getConnectedNodeIds()).toEqual([
         "process-node-2",
         "output-node"
@@ -181,17 +159,10 @@ describe("useSelectConnected", () => {
 
     it("should not include selected nodes in downstream result", () => {
       const setSelectedNodes = createMockSetSelectedNodes();
-
-      mockUseNodes.mockReturnValue({
-        nodes: mockNodes,
-        edges: mockEdges,
-        getSelectedNodes: () => [mockNodes[3]],
-        setSelectedNodes
-      });
+      setupMocks(mockNodes, mockEdges, () => [mockNodes[3]], setSelectedNodes);
 
       const { result } = renderHook(() => useSelectConnected({ direction: "downstream" }));
 
-      expect(result.current.connectedNodeCount).toBe(0);
       expect(result.current.getConnectedNodeIds()).toEqual([]);
     });
   });
@@ -199,29 +170,16 @@ describe("useSelectConnected", () => {
   describe("empty selection", () => {
     it("should return empty array when no nodes are selected", () => {
       const setSelectedNodes = createMockSetSelectedNodes();
-
-      mockUseNodes.mockReturnValue({
-        nodes: mockNodes,
-        edges: mockEdges,
-        getSelectedNodes: () => [],
-        setSelectedNodes
-      });
+      setupMocks(mockNodes, mockEdges, () => [], setSelectedNodes);
 
       const { result } = renderHook(() => useSelectConnected({ direction: "both" }));
 
-      expect(result.current.connectedNodeCount).toBe(0);
       expect(result.current.getConnectedNodeIds()).toEqual([]);
     });
 
     it("should not call setSelectedNodes when no nodes are selected", () => {
       const setSelectedNodes = createMockSetSelectedNodes();
-
-      mockUseNodes.mockReturnValue({
-        nodes: mockNodes,
-        edges: mockEdges,
-        getSelectedNodes: () => [],
-        setSelectedNodes
-      });
+      setupMocks(mockNodes, mockEdges, () => [], setSelectedNodes);
 
       const { result } = renderHook(() => useSelectConnected({ direction: "both" }));
 
@@ -236,17 +194,11 @@ describe("useSelectConnected", () => {
   describe("default direction", () => {
     it("should default to 'both' direction", () => {
       const setSelectedNodes = createMockSetSelectedNodes();
-
-      mockUseNodes.mockReturnValue({
-        nodes: mockNodes,
-        edges: mockEdges,
-        getSelectedNodes: () => [mockNodes[1]],
-        setSelectedNodes
-      });
+      setupMocks(mockNodes, mockEdges, () => [mockNodes[1]], setSelectedNodes);
 
       const { result } = renderHook(() => useSelectConnected());
 
-      expect(result.current.connectedNodeCount).toBe(3);
+      expect(result.current.getConnectedNodeIds().length).toBe(3);
     });
   });
 
@@ -269,18 +221,12 @@ describe("useSelectConnected", () => {
       ];
 
       const setSelectedNodes = createMockSetSelectedNodes();
-
-      mockUseNodes.mockReturnValue({
-        nodes: branchedNodes,
-        edges: branchedEdges,
-        getSelectedNodes: () => [branchedNodes[0]],
-        setSelectedNodes
-      });
+      setupMocks(branchedNodes, branchedEdges, () => [branchedNodes[0]], setSelectedNodes);
 
       const { result } = renderHook(() => useSelectConnected({ direction: "downstream" }));
 
-      expect(result.current.connectedNodeCount).toBe(4);
       const connectedIds = result.current.getConnectedNodeIds();
+      expect(connectedIds.length).toBe(4);
       expect(connectedIds).toContain("branch-a");
       expect(connectedIds).toContain("branch-b");
       expect(connectedIds).toContain("merged");
