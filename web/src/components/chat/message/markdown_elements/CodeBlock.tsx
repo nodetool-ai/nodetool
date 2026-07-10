@@ -4,8 +4,13 @@ import React, { useCallback, useMemo, memo } from "react";
 import Prism from "prismjs";
 import "../../../../prismGlobal";
 import DOMPurify from "dompurify";
-import { CopyButton, BORDER_RADIUS, FONT_SIZE_SANS, SPACING, getSpacingPx } from "../../../ui_primitives";
+import { CopyButton, BORDER_RADIUS, FONT_SIZE_SANS, FONT_WEIGHT, SPACING, getSpacingPx } from "../../../ui_primitives";
 import { useIsDarkMode } from "../../../../hooks/useIsDarkMode";
+import {
+  CodeThemeColors,
+  oneDarkColors,
+  oneLightColors
+} from "./codeBlockColors";
 import isEqual from "fast-deep-equal";
 
 interface CodeBlockProps {
@@ -23,44 +28,6 @@ const cssStyles = css({
     padding: ".5em 1em"
   }
 });
-
-interface CodeThemeColors {
-  background: string;
-  foreground: string;
-  comment: string;
-  keyword: string;
-  tag: string;
-  string: string;
-  number: string;
-  function: string;
-  url: string;
-}
-
-// Palettes matching the One Dark / One Light Prism themes this block used
-// before (react-syntax-highlighter's oneDark/oneLight).
-const oneDarkColors: CodeThemeColors = {
-  background: "#282c34",
-  foreground: "#abb2bf",
-  comment: "#5c6370",
-  keyword: "#c678dd",
-  tag: "#e06c75",
-  string: "#98c379",
-  number: "#d19a66",
-  function: "#61afef",
-  url: "#56b6c2"
-};
-
-const oneLightColors: CodeThemeColors = {
-  background: "#fafafa",
-  foreground: "#383a42",
-  comment: "#a0a1a7",
-  keyword: "#a626a4",
-  tag: "#e45649",
-  string: "#50a14f",
-  number: "#986801",
-  function: "#4078f2",
-  url: "#0184bc"
-};
 
 const contentStyles = (colors: CodeThemeColors) =>
   css({
@@ -114,7 +81,7 @@ const contentStyles = (colors: CodeThemeColors) =>
       color: colors.url
     },
     ".token.bold": {
-      fontWeight: "bold"
+      fontWeight: FONT_WEIGHT.semibold
     },
     ".token.italic": {
       fontStyle: "italic"
