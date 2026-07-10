@@ -44,6 +44,32 @@ describe("parseEnvFile", () => {
     });
   });
 
+  it("strips inline comments from unquoted values", () => {
+    expect(parseEnvFile("A=bar # explanation\nB=bar#explanation")).toEqual({
+      A: "bar",
+      B: "bar"
+    });
+  });
+
+  it("preserves hashes inside quoted values before inline comments", () => {
+    expect(
+      parseEnvFile(`A="double # value" # comment\nB='single # value'#comment`)
+    ).toEqual({
+      A: "double # value",
+      B: "single # value"
+    });
+  });
+
+  it("preserves hashes after escaped quotes inside quoted values", () => {
+    expect(parseEnvFile('A="quoted \\"text\\" # value" # comment')).toEqual({
+      A: 'quoted \\"text\\" # value'
+    });
+  });
+
+  it("treats hashes after backslashes in unquoted values as comments", () => {
+    expect(parseEnvFile("A=bar\\#comment")).toEqual({ A: "bar\\" });
+  });
+
   it("ignores lines without = and empty keys", () => {
     expect(parseEnvFile("NOTAKEY\n=value\nA=1")).toEqual({ A: "1" });
   });

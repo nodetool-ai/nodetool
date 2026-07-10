@@ -9,7 +9,8 @@
  * - An optional `export ` prefix on the key is stripped.
  * - Single- or double-quoted values; double-quoted values expand `\n`,
  *   `\r`, and `\t` escapes. Single-quoted values are taken literally.
- * - Unquoted values are trimmed and may contain `=`.
+ * - Unquoted values are trimmed, may contain `=`, and end at `#` comments.
+ *   Hashes inside quoted values are preserved.
  *
  * Not supported (and not needed by callers): `dotenv-expand`-style
  * `${VAR}` interpolation.
@@ -32,10 +33,27 @@ export function parseEnvFile(content: string): Record<string, string> {
     const key = withoutExport.slice(0, eq).trim();
     if (key === "") continue;
 
-    const rawValue = withoutExport.slice(eq + 1).trim();
+    const rawValue = stripInlineComment(withoutExport.slice(eq + 1));
     result[key] = unquoteValue(rawValue);
   }
   return result;
+}
+
+function stripInlineComment(raw: string): string {
+  const value = raw.trim();
+  const quote = value[0];
+
+  if (quote === "'" || quote === '"') {
+    for (let index = 1; index < value.length; index += 1) {
+      if (value[index] === quote && value[index - 1] !== "\\") {
+        const comment = value.indexOf("#", index + 1);
+        return comment === -1 ? value : value.slice(0, comment).trim();
+      }
+    }
+  }
+
+  const comment = value.indexOf("#");
+  return comment === -1 ? value : value.slice(0, comment).trim();
 }
 
 function unquoteValue(raw: string): string {
