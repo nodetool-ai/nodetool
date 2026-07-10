@@ -9,8 +9,8 @@
 
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { createClient } from "@supabase/supabase-js";
 import { SIGNED_URL_TTL } from "@nodetool-ai/config";
+import { createSupabaseStorageClient } from "./supabase-rest.js";
 import type { StorageConfig } from "./factory.js";
 
 export function createAssetUrlBuilder(
@@ -39,7 +39,7 @@ export function createAssetUrlBuilder(
     }
 
     case "supabase": {
-      const supabase = createClient(config.url, config.apiKey);
+      const supabase = createSupabaseStorageClient(config.url, config.apiKey);
       const bucket = config.bucket;
       return async (key: string) => {
         const { data, error } = await supabase.storage

@@ -1,4 +1,7 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import {
+  createSupabaseStorageClient,
+  type SupabaseStorageApi
+} from "./supabase-rest.js";
 import type {
   StorageAdapter,
   StorageEntry,
@@ -13,11 +16,12 @@ export interface SupabaseStorageAdapterOptions {
   apiKey: string;
   bucket: string;
   /** Optional pre-built client (used by tests). */
-  client?: SupabaseClient;
+  client?: SupabaseStorageApi;
 }
 
 /**
- * Supabase Storage adapter using `@supabase/supabase-js`.
+ * Supabase Storage adapter using the in-house fetch-backed REST client
+ * (see supabase-rest.ts).
  *
  * URI scheme: `supabase://<bucket>/<key>`. Use `getPublicUrl(uri)` to obtain a
  * client-facing HTTPS URL (the temp-url resolver in the websocket runner does
@@ -27,7 +31,7 @@ export class SupabaseStorageAdapter implements StorageAdapter {
   readonly bucket: string;
   readonly url: string;
   private readonly apiKey: string;
-  private client: SupabaseClient | null;
+  private client: SupabaseStorageApi | null;
 
   constructor(opts: SupabaseStorageAdapterOptions) {
     if (!opts.url) throw new Error("Supabase URL is required");
@@ -39,9 +43,9 @@ export class SupabaseStorageAdapter implements StorageAdapter {
     this.client = opts.client ?? null;
   }
 
-  private getClient(): SupabaseClient {
+  private getClient(): SupabaseStorageApi {
     if (!this.client) {
-      this.client = createClient(this.url, this.apiKey);
+      this.client = createSupabaseStorageClient(this.url, this.apiKey);
     }
     return this.client;
   }

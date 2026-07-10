@@ -22,7 +22,6 @@
     "@nodetool-ai/nodes-utils": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/runtime": "*",
-    "@supabase/supabase-js": "^2.98.0",
     "nodemailer": "^9.0.3",
     "js-yaml": "^5.2.1"
   },

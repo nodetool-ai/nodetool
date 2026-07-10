@@ -1,4 +1,3 @@
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
@@ -29,51 +28,110 @@ function getSupabaseCredentials(secrets: Record<string, string>): {
   return { url, key };
 }
 
-function getSupabaseClient(url: string, key: string): SupabaseClient {
-  if (!url || !key) {
-    throw new Error(
-      "Supabase URL and key are required. Provide supabase_url and supabase_key."
-    );
-  }
-  return createClient(url, key);
+// ---------------------------------------------------------------------------
+// PostgREST request plumbing — Supabase's data API is plain PostgREST
+// (`/rest/v1/`), driven by query-string operators and Prefer headers.
+// ---------------------------------------------------------------------------
+
+interface PostgrestRequest {
+  method: "GET" | "POST" | "PATCH" | "DELETE";
+  /** Path under /rest/v1/, e.g. "my_table" or "rpc/my_fn". */
+  path: string;
+  params: URLSearchParams;
+  body?: unknown;
+  prefer?: string[];
 }
 
-function applyFilters(query: any, filters: Filter[]): any {
-  let q = query;
+/** Quote one element of an `in.(...)` list per PostgREST rules. */
+function quoteInElement(value: unknown): string {
+  const s = String(value);
+  return `"${s.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+}
+
+function applyFilters(params: URLSearchParams, filters: Filter[]): void {
   for (const [field, op, value] of filters) {
     switch (op) {
       case "eq":
-        q = q.eq(field, value);
+      case "gt":
+      case "gte":
+      case "lt":
+      case "lte":
+        params.append(field, `${op}.${String(value)}`);
         break;
       case "ne":
-        q = q.neq(field, value);
-        break;
-      case "gt":
-        q = q.gt(field, value);
-        break;
-      case "gte":
-        q = q.gte(field, value);
-        break;
-      case "lt":
-        q = q.lt(field, value);
-        break;
-      case "lte":
-        q = q.lte(field, value);
+        params.append(field, `neq.${String(value)}`);
         break;
       case "in":
-        q = q.in(field, value as unknown[]);
+        params.append(
+          field,
+          `in.(${(value as unknown[]).map(quoteInElement).join(",")})`
+        );
         break;
       case "like":
-        q = q.like(field, value as string);
+        params.append(field, `like.${String(value)}`);
         break;
       case "contains":
-        q = q.contains(field, value as Record<string, unknown>);
+        params.append(field, `cs.${JSON.stringify(value)}`);
         break;
       default:
-        throw new Error(`Unsupported filter operator: ${op}`);
+        throw new Error(`Unsupported filter operator: ${String(op)}`);
     }
   }
-  return q;
+}
+
+/**
+ * Execute one PostgREST request. Returns the decoded JSON body (or null for
+ * empty responses). Maps PostgREST error bodies
+ * (`{ message, code, details, hint }`) to thrown Errors.
+ */
+async function postgrestFetch(
+  supabaseUrl: string,
+  apiKey: string,
+  req: PostgrestRequest
+): Promise<unknown> {
+  let base = supabaseUrl;
+  while (base.endsWith("/")) base = base.slice(0, -1);
+  const qs = req.params.toString();
+  const url = `${base}/rest/v1/${req.path}${qs ? `?${qs}` : ""}`;
+
+  const headers: Record<string, string> = {
+    apikey: apiKey,
+    Authorization: `Bearer ${apiKey}`
+  };
+  if (req.body !== undefined) {
+    headers["Content-Type"] = "application/json";
+  }
+  if (req.prefer && req.prefer.length > 0) {
+    headers.Prefer = req.prefer.join(",");
+  }
+
+  const response = await fetch(url, {
+    method: req.method,
+    headers,
+    ...(req.body !== undefined ? { body: JSON.stringify(req.body) } : {})
+  });
+
+  if (!response.ok) {
+    let message = "";
+    let details = "";
+    try {
+      const body = (await response.json()) as Record<string, unknown>;
+      if (typeof body.message === "string") message = body.message;
+      const parts = [body.code, body.details, body.hint]
+        .filter((p): p is string => typeof p === "string" && p.length > 0)
+        .join("; ");
+      details = parts;
+    } catch {
+      // Non-JSON error body — fall back to the status line below.
+    }
+    const suffix = details ? ` (${details})` : "";
+    throw new Error(
+      `${message || `PostgREST request failed with status ${response.status}`}${suffix}`
+    );
+  }
+
+  const text = await response.text();
+  return text ? (JSON.parse(text) as unknown) : null;
 }
 
 export class SelectLibNode extends BaseNode {
@@ -160,26 +218,31 @@ export class SelectLibNode extends BaseNode {
 
     if (!tableName) throw new Error("table_name cannot be empty");
 
-    const client = getSupabaseClient(url, key);
-    const selectColumns =
-      cols.length === 0 ? "*" : cols.map((c) => c.name).join(", ");
-
-    let query = client.from(tableName).select(selectColumns);
-
-    if (filters.length > 0) {
-      query = applyFilters(query, filters);
-    }
+    const params = new URLSearchParams();
+    params.set(
+      "select",
+      cols.length === 0 ? "*" : cols.map((c) => c.name).join(",")
+    );
+    applyFilters(params, filters);
     if (orderBy) {
-      query = query.order(orderBy, { ascending: !descending });
+      params.set("order", `${orderBy}.${descending ? "desc" : "asc"}`);
     }
     if (limit > 0) {
-      query = query.limit(limit);
+      params.set("limit", String(limit));
     }
 
-    const { data, error } = await query;
-    if (error) throw new Error(`Supabase select error: ${error.message}`);
-
-    return { output: data ?? [] };
+    try {
+      const data = await postgrestFetch(url, key, {
+        method: "GET",
+        path: tableName,
+        params
+      });
+      return { output: data ?? [] };
+    } catch (err) {
+      throw new Error(
+        `Supabase select error: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
   }
 }
 
@@ -230,19 +293,25 @@ export class InsertLibNode extends BaseNode {
       ? (recordsInput as Record<string, unknown>[])
       : [recordsInput as Record<string, unknown>];
 
-    const client = getSupabaseClient(url, key);
+    const params = new URLSearchParams();
+    if (returnRows) params.set("select", "*");
 
-    let query: any = client.from(tableName).insert(data);
-    if (returnRows) {
-      query = query.select("*");
+    try {
+      const result = await postgrestFetch(url, key, {
+        method: "POST",
+        path: tableName,
+        params,
+        body: data,
+        prefer: [returnRows ? "return=representation" : "return=minimal"]
+      });
+      return returnRows
+        ? { output: result }
+        : { output: { inserted: data.length } };
+    } catch (err) {
+      throw new Error(
+        `Supabase insert error: ${err instanceof Error ? err.message : String(err)}`
+      );
     }
-
-    const { data: result, error } = await query;
-    if (error) throw new Error(`Supabase insert error: ${error.message}`);
-
-    return returnRows
-      ? { output: result }
-      : { output: { inserted: data.length } };
   }
 }
 
@@ -300,21 +369,24 @@ export class UpdateLibNode extends BaseNode {
     if (Object.keys(values).length === 0)
       throw new Error("values cannot be empty");
 
-    const client = getSupabaseClient(url, key);
+    const params = new URLSearchParams();
+    applyFilters(params, filters);
+    if (returnRows) params.set("select", "*");
 
-    let query: any = client.from(tableName).update(values);
-
-    if (filters.length > 0) {
-      query = applyFilters(query, filters);
+    try {
+      const data = await postgrestFetch(url, key, {
+        method: "PATCH",
+        path: tableName,
+        params,
+        body: values,
+        prefer: [returnRows ? "return=representation" : "return=minimal"]
+      });
+      return returnRows ? { output: data } : { output: { updated: true } };
+    } catch (err) {
+      throw new Error(
+        `Supabase update error: ${err instanceof Error ? err.message : String(err)}`
+      );
     }
-    if (returnRows) {
-      query = query.select("*");
-    }
-
-    const { data, error } = await query;
-    if (error) throw new Error(`Supabase update error: ${error.message}`);
-
-    return returnRows ? { output: data } : { output: { updated: true } };
   }
 }
 
@@ -357,15 +429,22 @@ export class DeleteLibNode extends BaseNode {
       );
     }
 
-    const client = getSupabaseClient(url, key);
+    const params = new URLSearchParams();
+    applyFilters(params, filters);
 
-    let query: any = client.from(tableName).delete();
-    query = applyFilters(query, filters);
-
-    const { error } = await query;
-    if (error) throw new Error(`Supabase delete error: ${error.message}`);
-
-    return { output: { deleted: true } };
+    try {
+      await postgrestFetch(url, key, {
+        method: "DELETE",
+        path: tableName,
+        params,
+        prefer: ["return=minimal"]
+      });
+      return { output: { deleted: true } };
+    } catch (err) {
+      throw new Error(
+        `Supabase delete error: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
   }
 }
 
@@ -416,20 +495,28 @@ export class UpsertLibNode extends BaseNode {
       ? (recordsInput as Record<string, unknown>[])
       : [recordsInput as Record<string, unknown>];
 
-    const client = getSupabaseClient(url, key);
+    const params = new URLSearchParams();
+    if (returnRows) params.set("select", "*");
 
-    let query: any = client.from(tableName).upsert(data);
-
-    if (returnRows) {
-      query = query.select("*");
+    try {
+      const result = await postgrestFetch(url, key, {
+        method: "POST",
+        path: tableName,
+        params,
+        body: data,
+        prefer: [
+          "resolution=merge-duplicates",
+          returnRows ? "return=representation" : "return=minimal"
+        ]
+      });
+      return returnRows
+        ? { output: result }
+        : { output: { upserted: data.length } };
+    } catch (err) {
+      throw new Error(
+        `Supabase upsert error: ${err instanceof Error ? err.message : String(err)}`
+      );
     }
-
-    const { data: result, error } = await query;
-    if (error) throw new Error(`Supabase upsert error: ${error.message}`);
-
-    return returnRows
-      ? { output: result }
-      : { output: { upserted: data.length } };
   }
 }
 
@@ -475,11 +562,19 @@ export class RPCLibNode extends BaseNode {
 
     if (!fnName) throw new Error("function cannot be empty");
 
-    const client = getSupabaseClient(url, key);
-    const { data, error } = await client.rpc(fnName, params);
-    if (error) throw new Error(`Supabase RPC error: ${error.message}`);
-
-    return { output: data };
+    try {
+      const data = await postgrestFetch(url, key, {
+        method: "POST",
+        path: `rpc/${fnName}`,
+        params: new URLSearchParams(),
+        body: params
+      });
+      return { output: data };
+    } catch (err) {
+      throw new Error(
+        `Supabase RPC error: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
   }
 }
 
