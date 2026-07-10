@@ -261,6 +261,21 @@ async function pruneMultiplatformBinaries(bundleNodeModules) {
     } catch {
       continue; // package not staged or different layout — skip
     }
+    // Guard: never prune unless the target platform's binaries are actually
+    // present. A mis-set NODETOOL_BUNDLE_PLATFORM or a changed package layout
+    // would otherwise delete every platform dir and ship a broken artifact.
+    const hasTarget = platforms.some(
+      (p) => p.isDirectory() && p.name === TARGET_PLATFORM
+    );
+    if (!hasTarget) {
+      console.warn(
+        `  Skipped pruning ${name}: no binaries for target platform ` +
+          `"${TARGET_PLATFORM}" under ${binRoot} (found: ` +
+          `${platforms.filter((p) => p.isDirectory()).map((p) => p.name).join(", ") || "none"}). ` +
+          `Keeping all platforms to avoid shipping a broken artifact.`
+      );
+      continue;
+    }
     for (const platform of platforms) {
       if (!platform.isDirectory()) continue;
       const platformDir = path.join(napiDir, platform.name);
