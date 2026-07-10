@@ -55,3 +55,6 @@
 ## 2024-12-05 - Optimize workflow event streaming node lookup
 **Learning:** O(N) array lookups (`Array.find()`) inside a tight loop processing high-frequency streaming events (like LLM output) can cause massive CPU bottlenecks, particularly on large graphs.
 **Action:** Replaced a linear `.find()` in the `output_update` event handler with an O(1) Map pre-computed outside the loop. This change resulted in an 89x speedup in a micro-benchmark processing 50k events.
+## 2026-05-25 - O(N*M) Cycle Detection Bottleneck in Topological Sort
+**Learning:** Found an O(N*M) bottleneck in `packages/kernel/src/correlation-analysis.ts` where `order.includes(n)` was called inside `nodes.filter(...)` to find remaining nodes when a cycle is detected. When N is large, this nested iteration degrades performance.
+**Action:** Replaced `.includes()` with a `Set` for O(1) lookups, reducing the complexity from O(N*M) to O(N+M).
