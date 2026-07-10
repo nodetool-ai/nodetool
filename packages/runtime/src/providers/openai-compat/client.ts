@@ -202,9 +202,11 @@ export class OpenAICompatClient {
       if (typeof parsed !== "object" || parsed === null) continue;
       const event = parsed as Record<string, unknown>;
       const error = errorFromStreamEvent(event);
-      // A chunk that also carries choices is data, not a failure; only pure
-      // error events (no choices) abort the stream.
-      if (error && !Array.isArray(event.choices)) throw error;
+      // A chunk that also carries choice data is data, not a failure; error
+      // events without any choices (absent or empty) abort the stream.
+      const hasChoiceData =
+        Array.isArray(event.choices) && event.choices.length > 0;
+      if (error && !hasChoiceData) throw error;
       yield event as ChatCompletionChunk;
     }
   }

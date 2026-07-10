@@ -3,8 +3,7 @@ import { VLLMProvider } from "../../src/providers/vllm-provider.js";
 import type { Message } from "../../src/providers/types.js";
 import {
   chatJsonResponse,
-  mockChatFetch,
-  requestBodyOf
+  mockChatFetch
 } from "./helpers/compat-fetch.js";
 
 describe("VLLMProvider", () => {

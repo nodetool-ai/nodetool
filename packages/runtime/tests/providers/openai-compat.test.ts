@@ -345,6 +345,34 @@ describe("OpenAICompatClient.chatCompletionsStream", () => {
     expect((error as OpenAICompatError).code).toBe("boom");
   });
 
+  it("throws on a mid-stream error event carrying empty choices", async () => {
+    const body =
+      'data: {"error":{"message":"stream blew up","code":"boom"},"choices":[]}\n\n';
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(body, {
+          status: 200,
+          headers: { "Content-Type": "text/event-stream" }
+        })
+    );
+
+    const error = await (async () => {
+      try {
+        for await (const chunk of clientFor(fetchMock).chatCompletionsStream(
+          request
+        )) {
+          void chunk;
+        }
+        return null;
+      } catch (e) {
+        return e;
+      }
+    })();
+
+    expect(error).toBeInstanceOf(OpenAICompatError);
+    expect((error as OpenAICompatError).code).toBe("boom");
+  });
+
   it("throws on a non-2xx streaming response with the parsed error message", async () => {
     const fetchMock = mockChatFetch(chatErrorResponse(401, "bad key"));
     const error = await (async () => {

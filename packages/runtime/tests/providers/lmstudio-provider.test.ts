@@ -3,7 +3,6 @@ import { LMStudioProvider } from "../../src/providers/lmstudio-provider.js";
 import type { Message } from "../../src/providers/types.js";
 import {
   chatJsonResponse,
-  chatSSEResponse,
   mockChatFetch
 } from "./helpers/compat-fetch.js";
 

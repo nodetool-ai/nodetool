@@ -7,7 +7,6 @@ import type {
 } from "../../src/providers/types.js";
 import {
   chatJsonResponse,
-  chatSSEResponse,
   mockChatFetch
 } from "./helpers/compat-fetch.js";
 
