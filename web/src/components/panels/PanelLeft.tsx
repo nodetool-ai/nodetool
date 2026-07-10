@@ -477,7 +477,8 @@ const PanelContent = memo(function PanelContent({
 // Mobile variant
 // ---------------------------------------------------------------------------
 
-const MOBILE_LAUNCHER_TOP = 48;
+// Clears the mobile tab bar (48px) plus an 8px gap.
+const MOBILE_LAUNCHER_TOP = 56;
 const MOBILE_LAUNCHER_TOP_STANDALONE = 8;
 
 const mobileLauncherStyles = (theme: Theme, hasHeader: boolean) =>

@@ -211,5 +211,35 @@ export const createMediaComposerStyles = (theme: Theme) =>
         objectFit: "cover",
         borderRadius: BORDER_RADIUS.sm
       }
+    },
+
+    // Mobile: the chip cluster plus the trailing workflow actions never fit on
+    // one phone-width line, so the row wraps (actions become their own line)
+    // and the card sheds padding to keep the textarea full-width.
+    [theme.breakpoints.down("sm")]: {
+      ".media-compose-card": {
+        padding: `${theme.spacing(1.5)} ${theme.spacing(1.5)} ${theme.spacing(1)}`,
+        gap: theme.spacing(1)
+      },
+      ".media-compose-card textarea.media-compose-input": {
+        padding: `${theme.spacing(1)} ${theme.spacing(1)}`
+      },
+      ".media-chip-row": {
+        flexWrap: "wrap",
+        rowGap: theme.spacing(1),
+        padding: 0
+      },
+      // Full line for the chip cluster: without this it shrinks (min-width: 0)
+      // to sit beside the action cluster instead of wrapping above it, leaving
+      // the send button stranded mid-row.
+      ".media-chip-main": {
+        minWidth: "100%"
+      },
+      // The zero-basis spacer can land on the previous wrapped line, leaving
+      // the send button left-aligned; margin-left keeps it pinned right on
+      // whichever line it ends up on.
+      ".media-chip-main .media-generate-btn": {
+        marginLeft: "auto"
+      }
     }
   });
