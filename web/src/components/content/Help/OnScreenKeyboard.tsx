@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo } from "react";
 
 export interface KeyboardButtonTheme {
   /** CSS class applied to each button listed in `buttons`. */
@@ -41,6 +41,31 @@ const OnScreenKeyboard: React.FC<OnScreenKeyboardProps> = ({
 }) => {
   const rows = layout[layoutName] ?? [];
 
+  // Route the press to the originating key via pointer capture, so its release
+  // (or cancel) always lands back on the same element — even when the pointer
+  // is lifted outside the key. Without this a drag-off leaves the key stuck
+  // pressed (lingering `hg-pressed`, tooltip, and `isKeyPressedRef`).
+  const handlePointerDown = useCallback(
+    (button: string) => (event: React.PointerEvent<HTMLDivElement>) => {
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        return;
+      }
+      event.currentTarget.setPointerCapture(event.pointerId);
+      onKeyPress?.(button);
+    },
+    [onKeyPress]
+  );
+
+  const handlePointerRelease = useCallback(
+    (button: string) => (event: React.PointerEvent<HTMLDivElement>) => {
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+      onKeyReleased?.(button);
+    },
+    [onKeyReleased]
+  );
+
   const themeClassMap = useMemo(() => {
     const map: Record<string, string[]> = {};
     (buttonTheme ?? []).forEach(({ class: cls, buttons }) => {
@@ -68,8 +93,9 @@ const OnScreenKeyboard: React.FC<OnScreenKeyboardProps> = ({
                 " "
               )}
               data-skbtn={button}
-              onMouseDown={() => onKeyPress?.(button)}
-              onMouseUp={() => onKeyReleased?.(button)}
+              onPointerDown={handlePointerDown(button)}
+              onPointerUp={handlePointerRelease(button)}
+              onPointerCancel={handlePointerRelease(button)}
               onMouseEnter={(event) => onButtonMouseEnter?.(button, event)}
               onMouseLeave={() => onButtonMouseLeave?.()}
             >
