@@ -121,6 +121,23 @@ export interface StreamingOutputs {
 }
 
 // ---------------------------------------------------------------------------
+// Trigger entry point
+// ---------------------------------------------------------------------------
+
+/**
+ * The event that woke a workflow. Delivered to a trigger node's
+ * `emitTriggerEvent` entry point when a run starts because this event fired,
+ * instead of the node running its live-listen loop. `node_id` identifies the
+ * target trigger node in the graph; `input_id` is the durable, idempotent id
+ * of the stored `trigger_input`.
+ */
+export interface TriggerEvent {
+  node_id: string;
+  payload: unknown;
+  input_id: string;
+}
+
+// ---------------------------------------------------------------------------
 // Node execution interface (implemented by actual node classes)
 // ---------------------------------------------------------------------------
 
@@ -148,6 +165,17 @@ export interface NodeExecutor {
    */
   run?(
     inputs: StreamingInputs,
+    outputs: StreamingOutputs,
+    context?: ProcessingContext
+  ): Promise<void>;
+
+  /**
+   * Trigger entry point. Called instead of run()/genProcess()/process() when
+   * the run carries a `trigger_event` targeting this node. The node emits the
+   * event payload on its declared output slots and returns.
+   */
+  emitTriggerEvent?(
+    event: TriggerEvent,
     outputs: StreamingOutputs,
     context?: ProcessingContext
   ): Promise<void>;

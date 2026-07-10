@@ -169,6 +169,13 @@ export interface NodeDescriptor {
   /** Whether this node is controlled via control edges. */
   is_controlled?: boolean;
 
+  /**
+   * Whether this node is a trigger: when a run carries a `trigger_event`
+   * targeting it, the kernel calls the node's `emitTriggerEvent` entry point
+   * (emit the event payload, complete) instead of its live-listen loop.
+   */
+  is_trigger?: boolean;
+
   /** Whether this node accepts user-named dynamic input properties. */
   supports_dynamic_inputs?: boolean;
 

@@ -98,6 +98,11 @@ export interface NodeMetadata {
   is_controlled?: boolean;
   /** §7 — Zip/Cross nodes opt out of the incomparable-scope check. */
   is_join_node?: boolean;
+  /**
+   * Trigger node: a run carrying a `trigger_event` for this node routes to its
+   * `emitTriggerEvent` entry point instead of the live-listen loop.
+   */
+  is_trigger?: boolean;
   /** Emit output_update even for connected handles (UI-monitor nodes). */
   always_emit_output_updates?: boolean;
   supports_dynamic_outputs?: boolean;

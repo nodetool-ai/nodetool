@@ -290,6 +290,64 @@ export class NodeActor {
     );
   }
 
+  /**
+   * Build the NodeOutputs emitter used by streaming-input run() and by the
+   * trigger entry point (emitTriggerEvent). Routes emits through the actor's
+   * lineage machinery so a trigger node's outputs carry correct correlation.
+   */
+  private _buildStreamingOutputs(): NodeOutputs {
+    return new NodeOutputs({
+      sendFn: async (slot: string, value: unknown, opts) => {
+        const hints: OutputRoutingHints = {};
+        const callerSuppliedLineage = opts?.lineage !== undefined;
+        if (callerSuppliedLineage) {
+          hints.perSlotLineage = { [slot]: opts!.lineage! };
+        } else {
+          const inherited = this._computeInvocationLineage();
+          if (inherited !== undefined) {
+            hints.invocationLineage = inherited;
+          }
+          // Iteration outputs declared on this node mint a token per
+          // (group, parent_key) so `outputs.emit()` without explicit
+          // lineage still attaches the new root. Skip when the caller
+          // supplied lineage — they own the lineage shape (e.g.
+          // forward(), or a source seeding its own root).
+          const minted = this._maybeMintForSlot(slot, hints);
+          if (minted) {
+            hints.perSlotLineage = {
+              ...(hints.perSlotLineage ?? {}),
+              [slot]: minted
+            };
+          }
+          // Aggregate outputs collapse a root from the consumed
+          // lineage. The static analyzer drops it from the output
+          // scope; the runtime lineage on each emit must match.
+          const collapsed = this._maybeCollapseForSlot(slot, hints);
+          if (collapsed) {
+            hints.perSlotLineage = {
+              ...(hints.perSlotLineage ?? {}),
+              [slot]: collapsed
+            };
+          }
+        }
+        await this._sendOutputs(this.node.id, { [slot]: value }, hints);
+      },
+      emitGroupFn: async (values, opts) => {
+        await this._emitGroup(values, opts?.lineage);
+      },
+      eosCallback: (slot: string) => {
+        this._signalSlotEos?.(this.node.id, slot || "output");
+      },
+      dropFn: async (slot: string, envelope) => {
+        // outputs.drop(slot, envelope) → send `lineage_done` on every
+        // outgoing edge for `slot` at the envelope's projected key.
+        // §5. The drop signal lets downstream joins move past keys
+        // that were intentionally filtered out.
+        await this._propagateLineageDone(slot, envelope.correlation_lineage);
+      }
+    });
+  }
+
   private async _runImpl(): Promise<ActorResult> {
     let errorMessage: string | undefined;
     let suspend: ActorResult["suspend"] | undefined;
@@ -306,8 +364,27 @@ export class NodeActor {
         await this._executor.preProcess();
       }
 
-      // Determine execution mode
-      if (this.node.is_streaming_input) {
+      // Trigger entry point: when the run was started by a trigger firing and
+      // the event targets this node, emit the payload on the node's outputs
+      // and complete — do NOT enter the streaming/genProcess live-listen loop.
+      // A trigger node without a matching event (in-editor Run, or the event
+      // targets a different node) falls through to today's behavior unchanged.
+      const triggerEvent = this._executionContext?.triggerEvent;
+      if (
+        this.node.is_trigger &&
+        this._executor.emitTriggerEvent &&
+        triggerEvent &&
+        triggerEvent.node_id === this.node.id
+      ) {
+        const nodeOutputs = this._buildStreamingOutputs();
+        await this._executor.emitTriggerEvent(
+          triggerEvent,
+          nodeOutputs,
+          this._executionContext
+        );
+        this._latestResult = nodeOutputs.collected();
+        this._emitGenerationComplete(this._latestResult);
+      } else if (this.node.is_streaming_input) {
         if (this._executor.run) {
           // Streaming input mode with run(): node drains inbox via
           // NodeInputs and pushes outputs via NodeOutputs. Passing
@@ -320,60 +397,7 @@ export class NodeActor {
             this._correlation,
             this._cancelSignal
           );
-          const nodeOutputs = new NodeOutputs({
-            sendFn: async (slot: string, value: unknown, opts) => {
-              const hints: OutputRoutingHints = {};
-              const callerSuppliedLineage = opts?.lineage !== undefined;
-              if (callerSuppliedLineage) {
-                hints.perSlotLineage = { [slot]: opts!.lineage! };
-              } else {
-                const inherited = this._computeInvocationLineage();
-                if (inherited !== undefined) {
-                  hints.invocationLineage = inherited;
-                }
-                // Iteration outputs declared on this node mint a token per
-                // (group, parent_key) so `outputs.emit()` without explicit
-                // lineage still attaches the new root. Skip when the caller
-                // supplied lineage — they own the lineage shape (e.g.
-                // forward(), or a source seeding its own root).
-                const minted = this._maybeMintForSlot(slot, hints);
-                if (minted) {
-                  hints.perSlotLineage = {
-                    ...(hints.perSlotLineage ?? {}),
-                    [slot]: minted
-                  };
-                }
-                // Aggregate outputs collapse a root from the consumed
-                // lineage. The static analyzer drops it from the output
-                // scope; the runtime lineage on each emit must match.
-                const collapsed = this._maybeCollapseForSlot(slot, hints);
-                if (collapsed) {
-                  hints.perSlotLineage = {
-                    ...(hints.perSlotLineage ?? {}),
-                    [slot]: collapsed
-                  };
-                }
-              }
-              await this._sendOutputs(
-                this.node.id,
-                { [slot]: value },
-                hints
-              );
-            },
-            emitGroupFn: async (values, opts) => {
-              await this._emitGroup(values, opts?.lineage);
-            },
-            eosCallback: (slot: string) => {
-              this._signalSlotEos?.(this.node.id, slot || "output");
-            },
-            dropFn: async (slot: string, envelope) => {
-              // outputs.drop(slot, envelope) → send `lineage_done` on every
-              // outgoing edge for `slot` at the envelope's projected key.
-              // §5. The drop signal lets downstream joins move past keys
-              // that were intentionally filtered out.
-              await this._propagateLineageDone(slot, envelope.correlation_lineage);
-            }
-          });
+          const nodeOutputs = this._buildStreamingOutputs();
           await this._executor.run(
             nodeInputs,
             nodeOutputs,

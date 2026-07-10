@@ -134,6 +134,18 @@ export interface RunJobRequest {
 
   /** Optional parent workflow ID for sub-graph execution. */
   parent_id?: string;
+
+  /**
+   * When the run is started by a trigger firing, carries the event payload for
+   * the target trigger node. The runner surfaces it on the execution context;
+   * the target node's actor routes it to `emitTriggerEvent` instead of the
+   * node's live-listen loop. Absent for user-initiated (in-editor Run) runs.
+   */
+  trigger_event?: {
+    node_id: string;
+    payload: unknown;
+    input_id: string;
+  };
 }
 
 export interface WorkflowRunnerOptions {
@@ -572,6 +584,14 @@ export class WorkflowRunner {
 
       // Dispatch input parameters
       await this._dispatchInputs(request.params ?? {});
+
+      // Surface the trigger event (if any) on the execution context. The
+      // target node's actor reads it (matching on node_id) and routes to
+      // emitTriggerEvent instead of its live-listen loop.
+      if (this._options.executionContext) {
+        this._options.executionContext.triggerEvent =
+          request.trigger_event ?? null;
+      }
 
       // Bind sendControlEvent to processing context so agent nodes can dispatch
       // control events to controlled nodes and await their results.

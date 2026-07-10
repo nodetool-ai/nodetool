@@ -455,7 +455,9 @@ export class Graph {
         is_controlled:
           descriptorDefaults.is_controlled ?? node.is_controlled ?? false,
         is_join_node:
-          descriptorDefaults.is_join_node ?? node.is_join_node ?? false
+          descriptorDefaults.is_join_node ?? node.is_join_node ?? false,
+        is_trigger:
+          descriptorDefaults.is_trigger ?? node.is_trigger ?? false
       };
 
       resolvedNodes.push(hydratedNode);

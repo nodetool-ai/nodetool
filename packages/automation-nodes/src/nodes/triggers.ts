@@ -1,5 +1,16 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import type { StreamingInputs, StreamingOutputs } from "@nodetool-ai/node-sdk";
+import type {
+  StreamingInputs,
+  StreamingOutputs,
+  TriggerEvent
+} from "@nodetool-ai/node-sdk";
+
+/** Narrow a trigger payload to a plain object, else an empty record. */
+function asRecord(payload: unknown): Record<string, unknown> {
+  return payload !== null && typeof payload === "object" && !Array.isArray(payload)
+    ? (payload as Record<string, unknown>)
+    : {};
+}
 import * as fs from "fs";
 import * as path from "path";
 import * as http from "http";
@@ -146,6 +157,7 @@ export class ManualTriggerNode extends BaseNode {
   };
 
   static readonly isStreamingInput = true;
+  static readonly isTrigger = true;
 
   @prop({
     type: "int",
@@ -229,6 +241,30 @@ export class ManualTriggerNode extends BaseNode {
       }
     }
   }
+
+  /**
+   * Trigger entry point: map a delivered event onto the declared slots.
+   * `data` is `payload.data` when present, otherwise the whole payload.
+   */
+  async emitTriggerEvent(
+    event: TriggerEvent,
+    outputs: StreamingOutputs
+  ): Promise<void> {
+    const payload = event.payload;
+    const rec = asRecord(payload);
+    const data =
+      "data" in rec ? rec.data : payload;
+    await outputs.emit("data", data);
+    await outputs.emit(
+      "timestamp",
+      rec.timestamp ?? new Date().toISOString()
+    );
+    await outputs.emit(
+      "source",
+      rec.source ?? String(this.name ?? "manual_trigger")
+    );
+    await outputs.emit("event_type", rec.event_type ?? "manual");
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -256,6 +292,7 @@ export class IntervalTriggerNode extends BaseNode {
     event_type: "str"
   };
 
+  static readonly isTrigger = true;
 
   @prop({
     type: "int",
@@ -364,6 +401,30 @@ export class IntervalTriggerNode extends BaseNode {
       event_type: "tick"
     };
   }
+
+  /**
+   * Trigger entry point: synthesize a tick event from the scheduler payload.
+   * `tick` defaults to 1; `source` is always "interval" and `event_type`
+   * "tick".
+   */
+  async emitTriggerEvent(
+    event: TriggerEvent,
+    outputs: StreamingOutputs
+  ): Promise<void> {
+    const rec = asRecord(event.payload);
+    await outputs.emit("tick", Number(rec.tick ?? 1));
+    await outputs.emit("elapsed_seconds", Number(rec.elapsed_seconds ?? 0));
+    await outputs.emit(
+      "interval_seconds",
+      Number(rec.interval_seconds ?? this.interval_seconds ?? 60)
+    );
+    await outputs.emit(
+      "timestamp",
+      rec.timestamp ?? new Date().toISOString()
+    );
+    await outputs.emit("source", "interval");
+    await outputs.emit("event_type", "tick");
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -393,6 +454,7 @@ export class WebhookTriggerNode extends BaseNode {
     event_type: "str"
   };
 
+  static readonly isTrigger = true;
 
   @prop({
     type: "int",
@@ -554,6 +616,30 @@ export class WebhookTriggerNode extends BaseNode {
       });
     }
   }
+
+  /**
+   * Trigger entry point: map the ingested webhook request onto the declared
+   * slots, filling any missing field with a sensible default.
+   */
+  async emitTriggerEvent(
+    event: TriggerEvent,
+    outputs: StreamingOutputs
+  ): Promise<void> {
+    const rec = asRecord(event.payload);
+    // When the payload is not an object, treat it as the request body.
+    const body = "body" in rec ? rec.body : event.payload;
+    await outputs.emit("body", body ?? null);
+    await outputs.emit("headers", rec.headers ?? {});
+    await outputs.emit("query", rec.query ?? {});
+    await outputs.emit("method", rec.method ?? "POST");
+    await outputs.emit("path", rec.path ?? "");
+    await outputs.emit(
+      "timestamp",
+      rec.timestamp ?? new Date().toISOString()
+    );
+    await outputs.emit("source", rec.source ?? "");
+    await outputs.emit("event_type", rec.event_type ?? "webhook");
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -580,6 +666,7 @@ export class FileWatchTriggerNode extends BaseNode {
     timestamp: "str"
   };
 
+  static readonly isTrigger = true;
 
   @prop({
     type: "int",
@@ -786,6 +873,24 @@ export class FileWatchTriggerNode extends BaseNode {
         w.close();
       }
     }
+  }
+
+  /**
+   * Trigger entry point: map a filesystem event onto the declared slots.
+   */
+  async emitTriggerEvent(
+    event: TriggerEvent,
+    outputs: StreamingOutputs
+  ): Promise<void> {
+    const rec = asRecord(event.payload);
+    await outputs.emit("event", rec.event ?? "modified");
+    await outputs.emit("path", rec.path ?? "");
+    await outputs.emit("dest_path", rec.dest_path ?? "");
+    await outputs.emit("is_directory", Boolean(rec.is_directory ?? false));
+    await outputs.emit(
+      "timestamp",
+      rec.timestamp ?? new Date().toISOString()
+    );
   }
 }
 

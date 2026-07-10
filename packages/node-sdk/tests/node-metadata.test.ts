@@ -803,6 +803,36 @@ describe("getNodeMetadata – outputTypes support", () => {
     expect(meta.is_streaming_output).toBe(false);
   });
 
+  it("propagates is_trigger through metadata() and toDescriptor()", () => {
+    class TriggerNode extends BaseNode {
+      static readonly nodeType = "nodetool.test.Trigger";
+      static readonly title = "Trigger";
+      static readonly description = "";
+      static readonly isTrigger = true;
+      static readonly metadataOutputTypes = { value: "int" };
+
+      async process() {
+        return {};
+      }
+    }
+
+    const meta = getNodeMetadata(
+      TriggerNode as unknown as import("../src/base-node.js").NodeClass
+    );
+    expect(meta.is_trigger).toBe(true);
+
+    const desc = TriggerNode.toDescriptor("t1");
+    expect(desc.is_trigger).toBe(true);
+  });
+
+  it("leaves is_trigger unset for a non-trigger node", () => {
+    const meta = getNodeMetadata(Add);
+    expect(meta.is_trigger).toBeUndefined();
+
+    const desc = Add.toDescriptor("a1");
+    expect(desc.is_trigger).toBeUndefined();
+  });
+
   it("flows a 'forever' cacheTtl to metadata.cache_ttl", () => {
     class PureNode extends BaseNode {
       static readonly nodeType = "nodetool.test.Pure";

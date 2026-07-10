@@ -101,7 +101,7 @@ import type {
   MessageContent,
   ProviderStreamItem
 } from "./providers/types.js";
-import type { NodeExecutor } from "./node-executor.js";
+import type { NodeExecutor, TriggerEvent } from "./node-executor.js";
 
 // ---------------------------------------------------------------------------
 // Cache interface
@@ -861,6 +861,14 @@ export class ProcessingContext {
   readonly assetOutputMode: AssetOutputMode;
   readonly environment: Record<string, string>;
 
+  /**
+   * The trigger event that started this run, when it was started by a trigger
+   * firing. The kernel actor for the target node reads it (matching on
+   * `node_id`) and routes to `emitTriggerEvent` instead of the live-listen
+   * loop. Null for user-initiated (in-editor Run) executions.
+   */
+  triggerEvent: TriggerEvent | null = null;
+
   /** Message queue: all emitted processing messages. */
   private _messages: ProcessingMessage[] = [];
   /** Whether emit() feeds the pull queue (see constructor option). */
@@ -983,6 +991,11 @@ export class ProcessingContext {
      * from the queue).
      */
     retainMessageQueue?: boolean;
+    /**
+     * The trigger event that started this run. Routed to the target trigger
+     * node's `emitTriggerEvent` entry point instead of its live-listen loop.
+     */
+    triggerEvent?: TriggerEvent | null;
   }) {
     this.jobId = opts.jobId;
     this.workflowId = opts.workflowId ?? null;
@@ -1009,6 +1022,7 @@ export class ProcessingContext {
     this._tempUrlResolver = opts.tempUrlResolver ?? null;
     this._modelInterfaces = opts.modelInterfaces ?? null;
     this._retainMessageQueue = opts.retainMessageQueue ?? true;
+    this.triggerEvent = opts.triggerEvent ?? null;
   }
 
   copy(): ProcessingContext {
@@ -1028,7 +1042,8 @@ export class ProcessingContext {
       secretResolver: this._secretResolver ?? undefined,
       tempUrlResolver: this._tempUrlResolver ?? undefined,
       modelInterfaces: this._modelInterfaces ?? undefined,
-      retainMessageQueue: this._retainMessageQueue
+      retainMessageQueue: this._retainMessageQueue,
+      triggerEvent: this.triggerEvent
     });
     for (const listener of this._messageListeners) {
       next.addMessageListener(listener);

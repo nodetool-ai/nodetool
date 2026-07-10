@@ -139,6 +139,7 @@ export {
   type NodeExecutor,
   type StreamingInputs,
   type StreamingOutputs,
+  type TriggerEvent,
   type MessageEnvelopeLike
 } from "./node-executor.js";
 export {

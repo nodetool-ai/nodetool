@@ -832,6 +832,16 @@ export interface RunJobRequest {
   graph?: WorkflowGraph;
   explicit_types?: Record<string, string> | boolean;
   resource_limits?: ResourceLimits | null;
+  /**
+   * When a run is started by a trigger firing, carries the event payload for
+   * the target trigger node. The kernel routes it to that node's
+   * `emitTriggerEvent` entry point instead of running its live-listen loop.
+   */
+  trigger_event?: {
+    node_id: string;
+    payload: unknown;
+    input_id: string;
+  };
 }
 
 export interface ResourceLimits {

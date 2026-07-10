@@ -15,7 +15,8 @@ import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import type { ProcessingContext, StreamingOutputs } from "@nodetool-ai/runtime";
+import type { TriggerEvent } from "@nodetool-ai/node-sdk";
 import {
   CreateTableLibNode,
   InsertLibNode,
@@ -25,7 +26,10 @@ import {
   SplitPathLibNode,
   SplitExtensionLibNode,
   WaitNode,
-  IntervalTriggerNode
+  ManualTriggerNode,
+  IntervalTriggerNode,
+  WebhookTriggerNode,
+  FileWatchTriggerNode
 } from "@nodetool-ai/automation-nodes";
 
 type NodeClassLike = {
@@ -159,6 +163,154 @@ describe("WaitNode — timeout 0 passes through without waiting", () => {
     expect(Date.now() - start).toBeLessThan(500);
     expect(result.data).toBe("hello");
     expect(result.waited_seconds as number).toBeLessThan(0.5);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Trigger entry point — emitTriggerEvent maps payload onto declared slots
+// ---------------------------------------------------------------------------
+
+function makeStubOutputs(): {
+  outputs: StreamingOutputs;
+  emitted: Record<string, unknown>;
+} {
+  const emitted: Record<string, unknown> = {};
+  const outputs = {
+    async emit(slot: string, value: unknown): Promise<void> {
+      emitted[slot] = value;
+    },
+    async emitGroup(): Promise<void> {},
+    async forward(): Promise<void> {},
+    async drop(): Promise<void> {},
+    complete(): void {}
+  } as unknown as StreamingOutputs;
+  return { outputs, emitted };
+}
+
+describe("Trigger nodes — isTrigger flag and emitTriggerEvent slot mapping", () => {
+  it("marks the four trigger nodes as triggers (and not WaitNode)", () => {
+    expect(ManualTriggerNode.isTrigger).toBe(true);
+    expect(IntervalTriggerNode.isTrigger).toBe(true);
+    expect(WebhookTriggerNode.isTrigger).toBe(true);
+    expect(FileWatchTriggerNode.isTrigger).toBe(true);
+    expect(WaitNode.isTrigger).toBe(false);
+  });
+
+  it("ManualTrigger maps payload onto declared slots", async () => {
+    const node = new ManualTriggerNode();
+    node.assign({ name: "my_trigger" });
+    const { outputs, emitted } = makeStubOutputs();
+    const event: TriggerEvent = {
+      node_id: "n1",
+      input_id: "i1",
+      payload: { data: { hello: "world" } }
+    };
+    await node.emitTriggerEvent(event, outputs);
+    assertKeysDeclared(ManualTriggerNode, emitted);
+    expect(emitted.data).toEqual({ hello: "world" });
+    expect(emitted.source).toBe("my_trigger");
+    expect(emitted.event_type).toBe("manual");
+    expect(typeof emitted.timestamp).toBe("string");
+  });
+
+  it("ManualTrigger uses the whole payload as data when no data key", async () => {
+    const node = new ManualTriggerNode();
+    const { outputs, emitted } = makeStubOutputs();
+    await node.emitTriggerEvent(
+      { node_id: "n1", input_id: "i1", payload: "raw-value" },
+      outputs
+    );
+    assertKeysDeclared(ManualTriggerNode, emitted);
+    expect(emitted.data).toBe("raw-value");
+  });
+
+  it("IntervalTrigger synthesizes a tick event onto declared slots", async () => {
+    const node = new IntervalTriggerNode();
+    node.assign({ interval_seconds: 30 });
+    const { outputs, emitted } = makeStubOutputs();
+    await node.emitTriggerEvent(
+      { node_id: "n1", input_id: "i1", payload: { tick: 5 } },
+      outputs
+    );
+    assertKeysDeclared(IntervalTriggerNode, emitted);
+    expect(emitted.tick).toBe(5);
+    expect(emitted.interval_seconds).toBe(30);
+    expect(emitted.source).toBe("interval");
+    expect(emitted.event_type).toBe("tick");
+  });
+
+  it("IntervalTrigger defaults tick to 1 with an empty payload", async () => {
+    const node = new IntervalTriggerNode();
+    const { outputs, emitted } = makeStubOutputs();
+    await node.emitTriggerEvent(
+      { node_id: "n1", input_id: "i1", payload: {} },
+      outputs
+    );
+    assertKeysDeclared(IntervalTriggerNode, emitted);
+    expect(emitted.tick).toBe(1);
+  });
+
+  it("WebhookTrigger maps the request onto declared slots", async () => {
+    const node = new WebhookTriggerNode();
+    const { outputs, emitted } = makeStubOutputs();
+    await node.emitTriggerEvent(
+      {
+        node_id: "n1",
+        input_id: "i1",
+        payload: {
+          body: { a: 1 },
+          headers: { "content-type": "application/json" },
+          query: { q: "x" },
+          method: "PUT",
+          path: "/hook"
+        }
+      },
+      outputs
+    );
+    assertKeysDeclared(WebhookTriggerNode, emitted);
+    expect(emitted.body).toEqual({ a: 1 });
+    expect(emitted.method).toBe("PUT");
+    expect(emitted.path).toBe("/hook");
+    expect(emitted.event_type).toBe("webhook");
+    expect(typeof emitted.timestamp).toBe("string");
+  });
+
+  it("WebhookTrigger fills missing fields with defaults", async () => {
+    const node = new WebhookTriggerNode();
+    const { outputs, emitted } = makeStubOutputs();
+    await node.emitTriggerEvent(
+      { node_id: "n1", input_id: "i1", payload: { body: "hi" } },
+      outputs
+    );
+    assertKeysDeclared(WebhookTriggerNode, emitted);
+    expect(emitted.body).toBe("hi");
+    expect(emitted.method).toBe("POST");
+    expect(emitted.headers).toEqual({});
+    expect(emitted.query).toEqual({});
+    expect(emitted.event_type).toBe("webhook");
+  });
+
+  it("FileWatchTrigger maps a filesystem event onto declared slots", async () => {
+    const node = new FileWatchTriggerNode();
+    const { outputs, emitted } = makeStubOutputs();
+    await node.emitTriggerEvent(
+      {
+        node_id: "n1",
+        input_id: "i1",
+        payload: {
+          event: "created",
+          path: "/tmp/x.txt",
+          is_directory: false
+        }
+      },
+      outputs
+    );
+    assertKeysDeclared(FileWatchTriggerNode, emitted);
+    expect(emitted.event).toBe("created");
+    expect(emitted.path).toBe("/tmp/x.txt");
+    expect(emitted.dest_path).toBe("");
+    expect(emitted.is_directory).toBe(false);
+    expect(typeof emitted.timestamp).toBe("string");
   });
 });
 
