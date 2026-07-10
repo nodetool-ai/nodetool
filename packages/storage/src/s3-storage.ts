@@ -65,6 +65,11 @@ export class S3Storage implements AbstractStorage {
   }
 
   getUrl(key: string): string {
+    // Dotted bucket names break the wildcard TLS certificate on the
+    // virtual-hosted form, so they get path-style URLs.
+    if (this.bucketName.includes(".")) {
+      return `https://s3.${this.region}.amazonaws.com/${this.bucketName}/${key}`;
+    }
     return `https://${this.bucketName}.s3.${this.region}.amazonaws.com/${key}`;
   }
 }

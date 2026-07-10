@@ -1,4 +1,4 @@
-import { S3Client, S3Error, type S3Api } from "./s3/client.js";
+import { S3Client, type S3Api } from "./s3/client.js";
 import type {
   StorageAdapter,
   StorageEntry,
@@ -15,28 +15,6 @@ export interface S3StorageAdapterOptions {
   prefix?: string;
   /** Optional pre-built client (used by tests). */
   client?: S3Api;
-}
-
-/** Total upload attempts (1 initial + 2 retries) for transient S3 errors. */
-const UPLOAD_MAX_ATTEMPTS = 3;
-
-const delay = (ms: number): Promise<void> =>
-  new Promise((resolve) => setTimeout(resolve, ms));
-
-/**
- * Whether an S3 error is worth retrying: network/connection errors (no HTTP
- * status), throttling, and 5xx server errors. Client errors (4xx other than
- * 429) are permanent and surfaced immediately.
- */
-function isRetryableS3Error(err: unknown): boolean {
-  if (err instanceof S3Error) {
-    return err.statusCode === 429 || err.statusCode >= 500;
-  }
-  const e = err as { name?: string; message?: string; cause?: { code?: string } };
-  const text = `${e?.name ?? ""} ${e?.message ?? ""} ${e?.cause?.code ?? ""}`;
-  return /Throttl|Timeout|Network|fetch failed|ECONN|EPIPE|ETIMEDOUT|EAI_AGAIN/i.test(
-    text
-  );
 }
 
 /**
@@ -93,34 +71,23 @@ export class S3StorageAdapter implements StorageAdapter {
   ): Promise<string> {
     assertUploadWithinLimit(key, data.byteLength);
     const objectKey = joinStorageKey(this.prefix ?? undefined, key);
-    const client = this.getClient();
-
-    let lastError: unknown;
-    for (let attempt = 1; attempt <= UPLOAD_MAX_ATTEMPTS; attempt++) {
-      try {
-        await client.putObject({
-          bucket: this.bucket,
-          key: objectKey,
-          body: data,
-          ...(contentType ? { contentType } : {})
-        });
-        return `s3://${this.bucket}/${objectKey}`;
-      } catch (err) {
-        lastError = err;
-        if (attempt < UPLOAD_MAX_ATTEMPTS && isRetryableS3Error(err)) {
-          // Exponential backoff: 100ms, 200ms.
-          await delay(100 * 2 ** (attempt - 1));
-          continue;
-        }
-        break;
-      }
+    // Transient-failure retries live in S3Client; no second retry layer here.
+    try {
+      await this.getClient().putObject({
+        bucket: this.bucket,
+        key: objectKey,
+        body: data,
+        ...(contentType ? { contentType } : {})
+      });
+    } catch (err) {
+      throw new Error(
+        `S3 upload failed for s3://${this.bucket}/${objectKey}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+        { cause: err }
+      );
     }
-    throw new Error(
-      `S3 upload failed for s3://${this.bucket}/${objectKey} after ${UPLOAD_MAX_ATTEMPTS} attempt(s): ${
-        lastError instanceof Error ? lastError.message : String(lastError)
-      }`,
-      { cause: lastError }
-    );
+    return `s3://${this.bucket}/${objectKey}`;
   }
 
   uriForKey(key: string): string {
