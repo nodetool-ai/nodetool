@@ -11,7 +11,7 @@ import React, {
 } from "react";
 import ReactDOM from "react-dom";
 import useSelect from "../../hooks/nodes/useSelect";
-import Fuse, { IFuseOptions } from "fuse.js";
+import { fuzzyScore } from "../../utils/fuzzyMatch";
 import { Tooltip } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -30,7 +30,6 @@ interface SelectProps {
   placeholder?: string;
   label?: string;
   tabIndex?: number;
-  fuseOptions?: IFuseOptions<Option>;
   /**
    * Value differs from default — shows visual indicator (right border)
    */
@@ -63,7 +62,6 @@ const Select: React.FC<SelectProps> = ({
   placeholder,
   label,
   tabIndex,
-  fuseOptions,
   changed
 }) => {
   const theme = useTheme();
@@ -171,25 +169,25 @@ const Select: React.FC<SelectProps> = ({
     }
   }, [activeSelect, id]);
 
-  const fuse = useMemo(() => {
-    const defaultOptions: IFuseOptions<Option> = {
-      keys: ["label"],
-      threshold: 0.3,
-      ignoreLocation: true
-    };
-
-    return new Fuse(options, {
-      ...defaultOptions,
-      ...fuseOptions
-    });
-  }, [options, fuseOptions]);
-
-  // Memoize filtered options to avoid recomputation on every render
+  // Memoize filtered options to avoid recomputation on every render.
+  // Fuzzy-match the query against option labels, best matches first.
   const filteredOptions = useMemo(() => {
-    return searchQuery
-      ? fuse.search(searchQuery).map(({ item }) => item)
-      : options;
-  }, [searchQuery, fuse, options]);
+    const query = searchQuery.trim();
+    if (!query) {
+      return options;
+    }
+    return options
+      .map((option) => ({
+        option,
+        score: fuzzyScore(
+          query,
+          typeof option.label === "string" ? option.label : option.value
+        )
+      }))
+      .filter(({ score }) => score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map(({ option }) => option);
+  }, [searchQuery, options]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {

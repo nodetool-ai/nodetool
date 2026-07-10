@@ -180,9 +180,6 @@ const InferenceProviderModelSelect = ({
                     value={value.provider}
                     onChange={handleChangeProvider}
                     placeholder="Select an inference provider"
-                    fuseOptions={{
-                        keys: ["label"]
-                    }}
                 />
             </div>
 
@@ -202,9 +199,6 @@ const InferenceProviderModelSelect = ({
                                     ? "Error loading models"
                                     : "Select a model"
                         }
-                        fuseOptions={{
-                            keys: ["label"]
-                        }}
                     />
                 </div>
             )}

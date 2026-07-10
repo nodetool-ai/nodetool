@@ -387,7 +387,7 @@ export default defineConfig(async ({ mode }) => {
                     return "vendor-supabase";
                   // Search / command palette / small utilities cluster
                   if (
-                    /[\\/]node_modules[\\/](cmdk|fuse\.js|chroma-js|zundo|uuid|zod|fast-deep-equal|acorn-walk)[\\/]/.test(
+                    /[\\/]node_modules[\\/](cmdk|chroma-js|zundo|uuid|zod|fast-deep-equal|acorn-walk)[\\/]/.test(
                       id
                     )
                   )
