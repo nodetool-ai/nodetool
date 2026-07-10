@@ -41,6 +41,15 @@ export {
   buildWorkspaceExecutionContext
 } from "./lib/workflow-workspace.js";
 export {
+  startHeadlessJob,
+  startHeadlessJobDetached,
+  type StartHeadlessJobOptions,
+  type HeadlessTriggerEvent,
+  type HeadlessJobRuntime,
+  type HeadlessJobDeps,
+  type HeadlessJobHandle
+} from "./headless-job-runner.js";
+export {
   materializeWorkflowConstantAssets,
   collectWorkflowAssets,
   transformMediaRefs,

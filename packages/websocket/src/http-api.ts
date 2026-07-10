@@ -138,7 +138,7 @@ function getStorageHandler(
   return _storageHandler;
 }
 
-type WorkflowRuntimeEnvironment = {
+export type WorkflowRuntimeEnvironment = {
   registry: NodeRegistry;
   pythonBridge: PythonBridge;
   ensurePythonBridge: () => Promise<void>;
@@ -149,7 +149,14 @@ type WorkflowRuntimeEnvironment = {
   }) => NodeExecutor;
 };
 
-async function getWorkflowRuntimeEnvironment(
+/**
+ * Build (once, cached) the registry + executor-resolution + Python-bridge
+ * environment shared by every non-streaming run path (REST `handleWorkflowRun`,
+ * headless trigger jobs). Exported so the headless job runner reuses the exact
+ * same node resolution the HTTP run path uses instead of standing up a second
+ * one.
+ */
+export async function getWorkflowRuntimeEnvironment(
   options: HttpApiOptions = {}
 ): Promise<WorkflowRuntimeEnvironment> {
   if (!workflowRuntimePromise) {
