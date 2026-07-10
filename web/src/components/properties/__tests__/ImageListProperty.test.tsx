@@ -16,6 +16,20 @@ jest.mock("../../../contexts/NodeContext", () => {
   };
 });
 
+// Simulate production, where the web app and the API live on different origins.
+// The connected preview must resolve relative `/api/storage/...` URIs against
+// BASE_URL, otherwise the <img> loads from the web origin and 404s.
+jest.mock("../../../stores/BASE_URL", () => ({
+  BASE_URL: "https://api.example.com"
+}));
+
+// The connected branch reads the wired upstream value from this hook.
+let mockUpstreamValue: unknown = undefined;
+jest.mock("../../../hooks/nodes/useNodeIO", () => ({
+  __esModule: true,
+  useUpstreamValue: () => mockUpstreamValue
+}));
+
 // Mock dependencies
 jest.mock("../../../config/data_types", () => ({}));
 jest.mock("../../../serverState/useAssetUpload", () => ({
@@ -44,6 +58,44 @@ const defaultProps = {
 describe("ImageListProperty", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUpstreamValue = undefined;
+  });
+
+  it("resolves connected upstream image URIs against BASE_URL", () => {
+    mockUpstreamValue = { type: "image", uri: "/api/storage/abc.png" };
+
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ImageListProperty {...defaultProps} isConnected workflowId="wf1" />
+      </ThemeProvider>
+    );
+
+    const images = screen.getAllByRole("img");
+    expect(images).toHaveLength(1);
+    // A raw `/api/storage/...` src would resolve against the web origin and 404
+    // when the API is on a different origin; it must be prefixed with BASE_URL.
+    expect(images[0]).toHaveAttribute(
+      "src",
+      "https://api.example.com/api/storage/abc.png"
+    );
+  });
+
+  it("leaves absolute connected upstream URIs untouched", () => {
+    mockUpstreamValue = {
+      type: "image",
+      uri: "https://cdn.example.com/x.png"
+    };
+
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ImageListProperty {...defaultProps} isConnected workflowId="wf1" />
+      </ThemeProvider>
+    );
+
+    expect(screen.getByRole("img")).toHaveAttribute(
+      "src",
+      "https://cdn.example.com/x.png"
+    );
   });
 
   it("renders property label and empty dropzone", () => {

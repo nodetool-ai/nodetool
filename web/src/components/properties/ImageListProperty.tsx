@@ -18,6 +18,7 @@ import {
 } from "../../lib/dragdrop";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useUpstreamValue } from "../../hooks/nodes/useNodeIO";
+import { resolveUri } from "../../utils/imageUtils";
 
 interface ImageItem {
   uri: string;
@@ -474,7 +475,7 @@ const ImageListProperty = (props: PropertyProps) => {
               <div key={image.uri} className="image-item">
                 <div className="image-content">
                   <img
-                    src={image.uri}
+                    src={resolveUri(image.uri)}
                     alt={`Item ${index + 1}`}
                     draggable={false}
                   />
@@ -531,7 +532,7 @@ const ImageListProperty = (props: PropertyProps) => {
                       imageRefs.current[image.uri] = el;
                     }
                   }}
-                  src={image.uri}
+                  src={resolveUri(image.uri)}
                   alt={`Item ${index + 1}`}
                   draggable={false}
                   onLoad={loadHandlers[image.uri]}
