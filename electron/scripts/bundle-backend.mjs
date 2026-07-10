@@ -110,6 +110,19 @@ const ESBUILD_ONLY_EXTERNAL_PACKAGES = [
 ];
 const esbuildOnlyExternalSet = new Set(ESBUILD_ONLY_EXTERNAL_PACKAGES);
 
+// Packages that ship prebuilt binaries for EVERY OS/arch inside one package
+// (unlike sharp/keytar which split them into per-platform optionalDependencies
+// that npm already prunes to the host). Staging all platforms wastes ~150 MB in
+// each single-target artifact. After copying, keep only the target platform's
+// binaries. Layout: <pkg>/bin/napi-v3/<platform>/<arch>/.
+// Target defaults to the host; override with NODETOOL_BUNDLE_PLATFORM / _ARCH
+// for cross-builds.
+const TARGET_PLATFORM = process.env.NODETOOL_BUNDLE_PLATFORM || process.platform;
+const TARGET_ARCH = process.env.NODETOOL_BUNDLE_ARCH || process.arch;
+const MULTIPLATFORM_BINARY_PACKAGES = [
+  { name: "onnxruntime-node", binRoot: path.join("bin", "napi-v3") },
+];
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -230,6 +243,75 @@ function resolveDepFrom(parentDir, depName) {
     }
   }
   return null;
+}
+
+/**
+ * Strip prebuilt binaries for non-target platforms/arches from staged packages
+ * that bundle every platform in one package (e.g. onnxruntime-node ships
+ * darwin+linux+win32 × x64+arm64, ~150 MB of which is dead weight in any single
+ * artifact). Returns bytes reclaimed.
+ */
+async function pruneMultiplatformBinaries(bundleNodeModules) {
+  let reclaimed = 0;
+  for (const { name, binRoot } of MULTIPLATFORM_BINARY_PACKAGES) {
+    const napiDir = path.join(bundleNodeModules, name, binRoot);
+    let platforms;
+    try {
+      platforms = await fsp.readdir(napiDir, { withFileTypes: true });
+    } catch {
+      continue; // package not staged or different layout — skip
+    }
+    for (const platform of platforms) {
+      if (!platform.isDirectory()) continue;
+      const platformDir = path.join(napiDir, platform.name);
+      if (platform.name !== TARGET_PLATFORM) {
+        reclaimed += await dirSize(platformDir);
+        await fsp.rm(platformDir, { recursive: true, force: true });
+        continue;
+      }
+      // Matching platform: drop non-target arch subdirs.
+      let arches;
+      try {
+        arches = await fsp.readdir(platformDir, { withFileTypes: true });
+      } catch {
+        continue;
+      }
+      for (const arch of arches) {
+        if (arch.isDirectory() && arch.name !== TARGET_ARCH) {
+          const archDir = path.join(platformDir, arch.name);
+          reclaimed += await dirSize(archDir);
+          await fsp.rm(archDir, { recursive: true, force: true });
+        }
+      }
+    }
+    console.log(
+      `  Pruned ${name} to ${TARGET_PLATFORM}/${TARGET_ARCH}`
+    );
+  }
+  return reclaimed;
+}
+
+async function dirSize(dir) {
+  let total = 0;
+  let entries;
+  try {
+    entries = await fsp.readdir(dir, { withFileTypes: true });
+  } catch {
+    return 0;
+  }
+  for (const entry of entries) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      total += await dirSize(full);
+    } else {
+      try {
+        total += (await fsp.stat(full)).size;
+      } catch {
+        // vanished mid-walk — ignore
+      }
+    }
+  }
+  return total;
 }
 
 async function copyExternalPackages() {
@@ -385,6 +467,17 @@ async function main() {
   // --- Copy external packages ---
   console.log("\nCopying external packages to staged backend modules...");
   const copiedCount = await copyExternalPackages();
+
+  // Drop prebuilt binaries for other platforms/arches from packages that ship
+  // all of them in one package (onnxruntime-node). ~150 MB off the artifact.
+  const reclaimed = await pruneMultiplatformBinaries(
+    path.join(BUNDLE_DIR, "_modules")
+  );
+  if (reclaimed > 0) {
+    console.log(
+      `  Reclaimed ${(reclaimed / 1024 / 1024).toFixed(0)} MB of non-target platform binaries`
+    );
+  }
 
   // --- Stage registered package runtime assets next to server.mjs ---
   // The registry in @nodetool-ai/config (package-asset-registry.ts) is the
