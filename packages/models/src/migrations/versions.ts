@@ -1713,5 +1713,50 @@ export const migrations: MigrationDef[] = [
     async down() {
       // no-op: dropping columns is unsafe across dialects and versions
     }
+  },
+
+  // ── Create trigger_registrations ───────────────────────────────────
+  {
+    version: "20260710_000000",
+    name: "create_trigger_registrations",
+    createsTables: ["trigger_registrations"],
+    modifiesTables: [],
+    async up(db) {
+      if (await db.tableExists("trigger_registrations")) return;
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS trigger_registrations (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          workflow_id TEXT NOT NULL,
+          node_id TEXT NOT NULL,
+          kind TEXT NOT NULL,
+          config_json TEXT,
+          enabled INTEGER NOT NULL DEFAULT 1,
+          cursor TEXT,
+          last_fired_at TEXT,
+          last_error TEXT,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_trigger_reg_workflow
+        ON trigger_registrations(workflow_id)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_trigger_reg_kind_enabled
+        ON trigger_registrations(kind, enabled)
+      `);
+      await db.execute(`
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_trigger_reg_workflow_node
+        ON trigger_registrations(workflow_id, node_id)
+      `);
+    },
+    async down(db) {
+      await db.execute("DROP INDEX IF EXISTS idx_trigger_reg_workflow");
+      await db.execute("DROP INDEX IF EXISTS idx_trigger_reg_kind_enabled");
+      await db.execute("DROP INDEX IF EXISTS idx_trigger_reg_workflow_node");
+      await db.execute("DROP TABLE IF EXISTS trigger_registrations");
+    }
   }
 ];

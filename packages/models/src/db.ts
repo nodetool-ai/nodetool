@@ -858,6 +858,59 @@ function getCreateSchemaSql(): string {
     );
     CREATE INDEX IF NOT EXISTS "idx_worker_instances_status" ON "worker_instances" ("status");
     CREATE INDEX IF NOT EXISTS "idx_worker_instances_profile_name" ON "worker_instances" ("profile_name");
+
+    CREATE TABLE IF NOT EXISTS "run_inbox_messages" (
+      "id" text PRIMARY KEY NOT NULL,
+      "message_id" text NOT NULL,
+      "run_id" text NOT NULL,
+      "node_id" text NOT NULL,
+      "handle" text NOT NULL,
+      "msg_seq" integer NOT NULL,
+      "payload_json" text,
+      "payload_ref" text,
+      "status" text NOT NULL,
+      "claim_worker_id" text,
+      "claim_expires_at" text,
+      "consumed_at" text,
+      "created_at" text NOT NULL,
+      "updated_at" text NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS "idx_inbox_run_node_handle_seq" ON "run_inbox_messages" ("run_id", "node_id", "handle", "msg_seq");
+    CREATE INDEX IF NOT EXISTS "idx_inbox_run_node_handle_status" ON "run_inbox_messages" ("run_id", "node_id", "handle", "status");
+    CREATE UNIQUE INDEX IF NOT EXISTS "idx_inbox_message_id" ON "run_inbox_messages" ("message_id");
+
+    CREATE TABLE IF NOT EXISTS "trigger_inputs" (
+      "id" text PRIMARY KEY NOT NULL,
+      "input_id" text NOT NULL,
+      "run_id" text NOT NULL,
+      "node_id" text NOT NULL,
+      "payload_json" text,
+      "processed" integer NOT NULL DEFAULT 0,
+      "processed_at" text,
+      "cursor" text,
+      "created_at" text NOT NULL,
+      "updated_at" text NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS "idx_trigger_input_run_node_processed" ON "trigger_inputs" ("run_id", "node_id", "processed");
+    CREATE UNIQUE INDEX IF NOT EXISTS "idx_trigger_input_id" ON "trigger_inputs" ("input_id");
+
+    CREATE TABLE IF NOT EXISTS "trigger_registrations" (
+      "id" text PRIMARY KEY NOT NULL,
+      "user_id" text NOT NULL,
+      "workflow_id" text NOT NULL,
+      "node_id" text NOT NULL,
+      "kind" text NOT NULL,
+      "config_json" text,
+      "enabled" integer NOT NULL DEFAULT 1,
+      "cursor" text,
+      "last_fired_at" text,
+      "last_error" text,
+      "created_at" text NOT NULL,
+      "updated_at" text NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS "idx_trigger_reg_workflow" ON "trigger_registrations" ("workflow_id");
+    CREATE INDEX IF NOT EXISTS "idx_trigger_reg_kind_enabled" ON "trigger_registrations" ("kind", "enabled");
+    CREATE UNIQUE INDEX IF NOT EXISTS "idx_trigger_reg_workflow_node" ON "trigger_registrations" ("workflow_id", "node_id");
   `;
 }
 
