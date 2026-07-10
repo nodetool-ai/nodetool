@@ -29,20 +29,17 @@ interface AbstractStorage {
 }
 ```
 
-## Design: optional SDK dependencies via dynamic imports
+## Design: in-house S3 client, no AWS SDK
 
-`S3Storage` and `SupabaseStorage` do **not** list `@aws-sdk/client-s3` or
-`@supabase/supabase-js` as `dependencies` in `package.json`.  Instead they
-declare minimal inline TypeScript interfaces that mirror the SDK surface
-actually used (`S3ClientLike`, `SupabaseBucket`, etc.) so that the package
-**compiles and type-checks without the SDKs installed**.  At runtime the real
-SDK is loaded once via `await import(moduleName)` and then cached.
-
-This means:
-- Applications that only use `FileStorage` or `MemoryStorage` pay no SDK
-  install cost.
-- Applications that need S3 or Supabase add the SDK to *their own*
-  `dependencies`.  The dynamic import will resolve it at runtime.
+S3 access goes through the in-house SigV4 client in `src/s3/` (`S3Client`,
+also exported from the package root) instead of `@aws-sdk/client-s3`. It signs
+requests with AWS Signature Version 4 over `fetch`, covers exactly the
+operations NodeTool uses (Put/Get/Head/Delete/Copy object, ListObjectsV2,
+ListBuckets, presigned GET), and supports endpoint overrides with path-style
+addressing for MinIO/R2-style services. Credentials come from an explicit
+`credentials` option or the `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`
+(/ `AWS_SESSION_TOKEN`) environment variables — the wider AWS credential
+chain (profiles, IMDS) is not supported.
 
 ## Usage
 
@@ -59,19 +56,17 @@ console.log(store.getUrl("images/photo.jpg")); // file:///var/data/uploads/image
 
 ### S3Storage
 
-Requires `@aws-sdk/client-s3` installed in the consuming application.
-
 ```ts
 import { S3Storage } from "@nodetool-ai/storage";
 
 // Amazon S3
-const s3 = new S3Storage("my-bucket", undefined, "cdn.example.com", "us-east-1");
+const s3 = new S3Storage("my-bucket", undefined, "us-east-1");
 
 // S3-compatible (e.g. MinIO)
 const minio = new S3Storage("my-bucket", "http://localhost:9000");
 
 await s3.upload("assets/logo.png", buffer, "image/png");
-console.log(s3.getUrl("assets/logo.png")); // https://cdn.example.com/assets/logo.png
+console.log(s3.getUrl("assets/logo.png")); // https://my-bucket.s3.us-east-1.amazonaws.com/assets/logo.png
 ```
 
 ### SupabaseStorage
