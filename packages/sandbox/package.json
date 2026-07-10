@@ -17,11 +17,10 @@
   },
   "dependencies": {
     "@nodetool-ai/config": "*",
-    "dockerode": "^4.0.4",
+    "@nodetool-ai/docker": "*",
     "zod": "^4.0.0"
   },
   "devDependencies": {
-    "@types/dockerode": "^3.3.34",
     "@types/node": "^22.0.0",
     "typescript": "^5.7.2",
     "vitest": "^4.1.2"

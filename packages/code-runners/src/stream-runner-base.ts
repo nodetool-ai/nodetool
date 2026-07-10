@@ -10,7 +10,11 @@ import { createInterface } from "node:readline";
 import { resolve as pathResolve } from "node:path";
 import { mkdirSync, existsSync } from "node:fs";
 import { StringDecoder } from "node:string_decoder";
-import Dockerode from "dockerode";
+import {
+  DockerClient,
+  demuxDockerStream,
+  type DockerHostConfig
+} from "@nodetool-ai/docker";
 
 // ---------------------------------------------------------------------------
 // Error type
@@ -240,13 +244,13 @@ export class StreamRunnerBase {
     const containerId = this._activeContainerId;
     if (containerId) {
       try {
-        const docker = new Dockerode();
-        const container = docker.getContainer(containerId);
-        container.remove({ force: true }).catch(() => {
-          // Intentional: best-effort container removal during abort
-        });
+        new DockerClient()
+          .removeContainer(containerId, { force: true })
+          .catch(() => {
+            // Intentional: best-effort container removal during abort
+          });
       } catch {
-        // Intentional: container may already be removed or inaccessible
+        // Intentional: an unresolvable DOCKER_HOST must not break abort/cleanup
       }
     }
   }
@@ -441,7 +445,7 @@ export class StreamRunnerBase {
     const environment = this.buildContainerEnvironment(env);
     const stdinStream = options?.stdinStream ?? null;
 
-    const docker = new Dockerode();
+    const docker = new DockerClient();
 
     // Ensure Docker daemon is reachable
     try {
@@ -455,15 +459,9 @@ export class StreamRunnerBase {
     // Ensure image exists locally; pull if needed
     const imageName = this.image;
     try {
-      await docker.getImage(imageName).inspect();
+      await docker.inspectImage(imageName);
     } catch {
-      const pullStream = await docker.pull(imageName);
-      // Wait for pull to complete
-      await new Promise<void>((resolve, reject) => {
-        docker.modem.followProgress(pullStream, (err: Error | null) =>
-          err ? reject(err) : resolve()
-        );
-      });
+      await docker.pullImage(imageName);
     }
 
     // Resolve workspace volumes
@@ -478,7 +476,7 @@ export class StreamRunnerBase {
     // Create container. Defense-in-depth for untrusted code: drop all Linux
     // capabilities, block privilege escalation, and (optionally) lock down the
     // root and workspace filesystems.
-    const hostConfig: Dockerode.HostConfig = {
+    const hostConfig: DockerHostConfig = {
       Memory: this._parseMemLimit(this.memLimit),
       NanoCpus: this.nanoCpus,
       NetworkMode: this.networkDisabled ? "none" : undefined,
@@ -494,7 +492,7 @@ export class StreamRunnerBase {
       Tmpfs: this.readonlyRootfs ? { "/tmp": "rw,noexec,nosuid,size=64m" } : undefined
     };
 
-    const container = await docker.createContainer({
+    const containerId = await docker.createContainer({
       Image: imageName,
       Cmd: command,
       Env: Object.entries(environment).map(([k, v]) => `${k}=${v}`),
@@ -506,21 +504,20 @@ export class StreamRunnerBase {
       HostConfig: hostConfig
     });
 
-    this._activeContainerId = container.id;
+    this._activeContainerId = containerId;
 
     let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
     let timedOut = false;
 
     try {
       // Attach before start to not miss early output
-      const attachStream = await container.attach({
-        stream: true,
+      const attachStream = await docker.attachContainer(containerId, {
         stdout: true,
         stderr: true,
         stdin: stdinStream !== null
       });
 
-      await container.start();
+      await docker.startContainer(containerId);
 
       // Feed stdin if provided
       if (stdinStream !== null) {
@@ -543,7 +540,7 @@ export class StreamRunnerBase {
       if (this.timeoutSeconds > 0) {
         timeoutHandle = setTimeout(() => {
           timedOut = true;
-          container.remove({ force: true }).catch(() => {
+          docker.removeContainer(containerId, { force: true }).catch(() => {
             // Intentional: best-effort container cleanup on timeout
           });
         }, this.timeoutSeconds * 1000);
@@ -553,13 +550,10 @@ export class StreamRunnerBase {
       yield* this._demuxDockerStream(attachStream);
 
       // Wait for container exit
-      const waitResult = await container.wait().catch(() => ({
+      const waitResult = await docker.waitContainer(containerId).catch(() => ({
         StatusCode: -1
       }));
-      const exitCode =
-        typeof waitResult === "object" && waitResult !== null
-          ? ((waitResult as { StatusCode: number }).StatusCode ?? 0)
-          : 0;
+      const exitCode = waitResult.StatusCode;
 
       if (exitCode !== 0) {
         throw new ContainerFailureError(
@@ -575,7 +569,7 @@ export class StreamRunnerBase {
         clearTimeout(timeoutHandle);
       }
       try {
-        await container.remove({ force: true });
+        await docker.removeContainer(containerId, { force: true });
       } catch {
         // ignore - may already be removed
       }
@@ -584,108 +578,47 @@ export class StreamRunnerBase {
   }
 
   /**
-   * Demultiplex Docker's multiplexed stdout/stderr stream.
+   * Demultiplex Docker's multiplexed stdout/stderr stream into whole lines.
    *
-   * Docker uses an 8-byte header per frame:
-   *   [1 byte stream type][3 bytes padding][4 bytes payload length][payload]
-   * Stream type: 1 = stdout, 2 = stderr
+   * Frame parsing (8-byte header: stream type, padding, payload length) lives
+   * in `@nodetool-ai/docker`; this wrapper splits the payloads into
+   * newline-terminated strings per slot.
    */
   private async *_demuxDockerStream(
-    stream: NodeJS.ReadableStream
+    stream: AsyncIterable<Buffer | string>
   ): AsyncGenerator<[Slot, string], void> {
-    let buffer = Buffer.alloc(0);
     let stdoutBuf = "";
     let stderrBuf = "";
     // Decode each slot with its own incremental decoder so multi-byte UTF-8
     // characters that straddle a frame boundary aren't mangled into U+FFFD.
-    const stdoutDecoder = new StringDecoder("utf8");
-    const stderrDecoder = new StringDecoder("utf8");
+    const decoders: Record<Slot, StringDecoder> = {
+      stdout: new StringDecoder("utf8"),
+      stderr: new StringDecoder("utf8")
+    };
 
-    const chunks: Buffer[] = [];
-    let resolveChunk: (() => void) | null = null;
-    let streamEnded = false;
-
-    stream.on("data", (chunk: Buffer) => {
-      chunks.push(Buffer.from(chunk));
-      if (resolveChunk) {
-        const r = resolveChunk;
-        resolveChunk = null;
-        r();
-      }
-    });
-
-    stream.on("end", () => {
-      streamEnded = true;
-      if (resolveChunk) {
-        const r = resolveChunk;
-        resolveChunk = null;
-        r();
-      }
-    });
-
-    stream.on("error", () => {
-      streamEnded = true;
-      if (resolveChunk) {
-        const r = resolveChunk;
-        resolveChunk = null;
-        r();
-      }
-    });
-
-    while (true) {
-      // Wait for data if none available
-      if (chunks.length === 0 && !streamEnded) {
-        await new Promise<void>((resolve) => {
-          resolveChunk = resolve;
-        });
-      }
-
-      // Drain all pending chunks into buffer
-      if (chunks.length > 0) {
-        buffer = Buffer.concat([buffer, ...chunks.splice(0)]);
-      }
-
-      // Parse frames from buffer
-      while (buffer.length >= 8) {
-        const streamType = buffer[0];
-        const payloadLength = buffer.readUInt32BE(4);
-
-        if (buffer.length < 8 + payloadLength) {
-          break; // need more data
+    for await (const [slot, payload] of demuxDockerStream(stream)) {
+      if (slot === "stdout") {
+        stdoutBuf += decoders.stdout.write(payload);
+        while (stdoutBuf.includes("\n")) {
+          const nlIdx = stdoutBuf.indexOf("\n");
+          const line = stdoutBuf.substring(0, nlIdx);
+          stdoutBuf = stdoutBuf.substring(nlIdx + 1);
+          yield ["stdout", line + "\n"];
         }
-
-        const payload = buffer.subarray(8, 8 + payloadLength);
-        buffer = buffer.subarray(8 + payloadLength);
-
-        if (streamType === 1) {
-          // stdout
-          stdoutBuf += stdoutDecoder.write(payload);
-          while (stdoutBuf.includes("\n")) {
-            const nlIdx = stdoutBuf.indexOf("\n");
-            const line = stdoutBuf.substring(0, nlIdx);
-            stdoutBuf = stdoutBuf.substring(nlIdx + 1);
-            yield ["stdout", line + "\n"];
-          }
-        } else if (streamType === 2) {
-          // stderr
-          stderrBuf += stderrDecoder.write(payload);
-          while (stderrBuf.includes("\n")) {
-            const nlIdx = stderrBuf.indexOf("\n");
-            const line = stderrBuf.substring(0, nlIdx);
-            stderrBuf = stderrBuf.substring(nlIdx + 1);
-            yield ["stderr", line + "\n"];
-          }
+      } else {
+        stderrBuf += decoders.stderr.write(payload);
+        while (stderrBuf.includes("\n")) {
+          const nlIdx = stderrBuf.indexOf("\n");
+          const line = stderrBuf.substring(0, nlIdx);
+          stderrBuf = stderrBuf.substring(nlIdx + 1);
+          yield ["stderr", line + "\n"];
         }
-      }
-
-      if (streamEnded && chunks.length === 0) {
-        break;
       }
     }
 
     // Flush any bytes the decoders are still holding, then the line buffers.
-    stdoutBuf += stdoutDecoder.end();
-    stderrBuf += stderrDecoder.end();
+    stdoutBuf += decoders.stdout.end();
+    stderrBuf += decoders.stderr.end();
     if (stdoutBuf) {
       yield ["stdout", stdoutBuf.endsWith("\n") ? stdoutBuf : stdoutBuf + "\n"];
     }

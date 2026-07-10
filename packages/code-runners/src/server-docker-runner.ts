@@ -10,7 +10,11 @@
 
 import { createConnection, type Socket as NetSocket } from "node:net";
 import { StringDecoder } from "node:string_decoder";
-import Dockerode from "dockerode";
+import {
+  DockerClient,
+  demuxDockerStream,
+  type DockerHostConfig
+} from "@nodetool-ai/docker";
 import {
   StreamRunnerBase,
   type StreamRunnerOptions,
@@ -192,7 +196,7 @@ export class ServerDockerRunner extends StreamRunnerBase {
     const environment = this.buildContainerEnvironment({});
     const stdinStream = options?.stdinStream ?? null;
 
-    const docker = new Dockerode();
+    const docker = new DockerClient();
 
     // Ensure Docker daemon is reachable
     try {
@@ -206,14 +210,9 @@ export class ServerDockerRunner extends StreamRunnerBase {
     // Ensure image is available locally
     const imageName = this.image;
     try {
-      await docker.getImage(imageName).inspect();
+      await docker.inspectImage(imageName);
     } catch {
-      const pullStream = await docker.pull(imageName);
-      await new Promise<void>((resolve, reject) => {
-        docker.modem.followProgress(pullStream, (err: Error | null) =>
-          err ? reject(err) : resolve()
-        );
-      });
+      await docker.pullImage(imageName);
     }
 
     // Resolve workspace volumes. Use the base helper so the host path is made
@@ -227,7 +226,7 @@ export class ServerDockerRunner extends StreamRunnerBase {
 
     // Port binding: container port -> ephemeral host port
     const portKey = `${this.containerPort}/tcp`;
-    const hostConfig: Dockerode.HostConfig = {
+    const hostConfig: DockerHostConfig = {
       Memory: parseMemLimit(this.memLimit),
       NanoCpus: this.nanoCpus,
       Binds: binds.length > 0 ? binds : undefined,
@@ -241,7 +240,7 @@ export class ServerDockerRunner extends StreamRunnerBase {
       }
     };
 
-    const container = await docker.createContainer({
+    const containerId = await docker.createContainer({
       Image: imageName,
       Cmd: command,
       Env: Object.entries(environment).map(([k, v]) => `${k}=${v}`),
@@ -255,20 +254,19 @@ export class ServerDockerRunner extends StreamRunnerBase {
     });
 
     // Register the container so the inherited stop() can force-remove it.
-    this._activeContainerId = container.id;
+    this._activeContainerId = containerId;
 
     let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
 
     try {
       // Attach before start so we don't miss early output
-      const attachStream = await container.attach({
-        stream: true,
+      const attachStream = await docker.attachContainer(containerId, {
         stdout: true,
         stderr: true,
         stdin: stdinStream !== null
       });
 
-      await container.start();
+      await docker.startContainer(containerId);
 
       // Feed stdin if provided (fire-and-forget)
       if (stdinStream !== null) {
@@ -304,10 +302,10 @@ export class ServerDockerRunner extends StreamRunnerBase {
         }
       };
 
-      // Start demuxing in the background
+      // Start demuxing in the background. Frame parsing lives in
+      // `@nodetool-ai/docker`; here the payloads are split into lines.
       void (async () => {
         try {
-          let buffer = Buffer.alloc(0);
           let stdoutBuf = "";
           let stderrBuf = "";
           // Per-slot incremental decoders so multi-byte UTF-8 characters split
@@ -315,76 +313,26 @@ export class ServerDockerRunner extends StreamRunnerBase {
           const stdoutDecoder = new StringDecoder("utf8");
           const stderrDecoder = new StringDecoder("utf8");
 
-          const chunks: Buffer[] = [];
-          let resolveChunk: (() => void) | null = null;
-          let streamEnded = false;
-
-          attachStream.on("data", (chunk: Buffer) => {
-            chunks.push(Buffer.from(chunk));
-            if (resolveChunk) {
-              const r = resolveChunk;
-              resolveChunk = null;
-              r();
-            }
-          });
-
-          attachStream.on("end", () => {
-            streamEnded = true;
-            if (resolveChunk) {
-              const r = resolveChunk;
-              resolveChunk = null;
-              r();
-            }
-          });
-
-          attachStream.on("error", () => {
-            streamEnded = true;
-            if (resolveChunk) {
-              const r = resolveChunk;
-              resolveChunk = null;
-              r();
-            }
-          });
-
-          while (true) {
-            if (chunks.length === 0 && !streamEnded) {
-              await new Promise<void>((resolve) => {
-                resolveChunk = resolve;
-              });
-            }
-
-            if (chunks.length > 0) {
-              buffer = Buffer.concat([buffer, ...chunks.splice(0)]);
-            }
-
-            while (buffer.length >= 8) {
-              const streamType = buffer[0];
-              const payloadLength = buffer.readUInt32BE(4);
-              if (buffer.length < 8 + payloadLength) break;
-
-              const payload = buffer.subarray(8, 8 + payloadLength);
-              buffer = buffer.subarray(8 + payloadLength);
-
-              if (streamType === 1) {
-                stdoutBuf += stdoutDecoder.write(payload);
-                while (stdoutBuf.includes("\n")) {
-                  const nlIdx = stdoutBuf.indexOf("\n");
-                  const line = stdoutBuf.substring(0, nlIdx);
-                  stdoutBuf = stdoutBuf.substring(nlIdx + 1);
-                  pushLog({ type: "line", slot: "stdout", value: line + "\n" });
-                }
-              } else if (streamType === 2) {
-                stderrBuf += stderrDecoder.write(payload);
-                while (stderrBuf.includes("\n")) {
-                  const nlIdx = stderrBuf.indexOf("\n");
-                  const line = stderrBuf.substring(0, nlIdx);
-                  stderrBuf = stderrBuf.substring(nlIdx + 1);
-                  pushLog({ type: "line", slot: "stderr", value: line + "\n" });
-                }
+          for await (const [slot, payload] of demuxDockerStream(
+            attachStream
+          )) {
+            if (slot === "stdout") {
+              stdoutBuf += stdoutDecoder.write(payload);
+              while (stdoutBuf.includes("\n")) {
+                const nlIdx = stdoutBuf.indexOf("\n");
+                const line = stdoutBuf.substring(0, nlIdx);
+                stdoutBuf = stdoutBuf.substring(nlIdx + 1);
+                pushLog({ type: "line", slot: "stdout", value: line + "\n" });
+              }
+            } else {
+              stderrBuf += stderrDecoder.write(payload);
+              while (stderrBuf.includes("\n")) {
+                const nlIdx = stderrBuf.indexOf("\n");
+                const line = stderrBuf.substring(0, nlIdx);
+                stderrBuf = stderrBuf.substring(nlIdx + 1);
+                pushLog({ type: "line", slot: "stderr", value: line + "\n" });
               }
             }
-
-            if (streamEnded && chunks.length === 0) break;
           }
 
           // Flush decoder remainder, then the line buffers.
@@ -413,13 +361,14 @@ export class ServerDockerRunner extends StreamRunnerBase {
       })();
 
       // Resolve the published host port
-      const hostPort = await this._waitForHostPort(container);
+      const hostPort = await this._waitForHostPort(docker, containerId);
 
       // Wait for the server to become TCP-reachable
       const ready = await this._waitForServerReady(
         this.hostIp,
         hostPort,
-        container,
+        docker,
+        containerId,
         this.readyTimeoutSeconds
       );
       if (!ready) {
@@ -435,7 +384,7 @@ export class ServerDockerRunner extends StreamRunnerBase {
       // Start timeout timer
       if (this.timeoutSeconds > 0) {
         timeoutHandle = setTimeout(() => {
-          container.remove({ force: true }).catch(() => {
+          docker.removeContainer(containerId, { force: true }).catch(() => {
             // Intentional: best-effort container cleanup on timeout
           });
         }, this.timeoutSeconds * 1000);
@@ -462,7 +411,7 @@ export class ServerDockerRunner extends StreamRunnerBase {
 
       // Wait for container exit (best-effort)
       try {
-        await container.wait();
+        await docker.waitContainer(containerId);
       } catch {
         // ignore
       }
@@ -471,7 +420,7 @@ export class ServerDockerRunner extends StreamRunnerBase {
         clearTimeout(timeoutHandle);
       }
       try {
-        await container.remove({ force: true });
+        await docker.removeContainer(containerId, { force: true });
       } catch {
         // ignore - may already be removed
       }
@@ -485,7 +434,8 @@ export class ServerDockerRunner extends StreamRunnerBase {
    * Poll Docker for the published host port of the container.
    */
   private async _waitForHostPort(
-    container: Dockerode.Container,
+    docker: DockerClient,
+    containerId: string,
     timeout = 20_000
   ): Promise<number> {
     const deadline = Date.now() + timeout;
@@ -496,7 +446,7 @@ export class ServerDockerRunner extends StreamRunnerBase {
         throw new Error("Server start was stopped before port was published");
       }
       try {
-        const info = await container.inspect();
+        const info = await docker.inspectContainer(containerId);
         const state = info.State;
         if (state && state.Status === "exited") {
           throw new Error("Container exited before port was published");
@@ -533,7 +483,8 @@ export class ServerDockerRunner extends StreamRunnerBase {
   private async _waitForServerReady(
     host: string,
     port: number,
-    container: Dockerode.Container,
+    docker: DockerClient,
+    containerId: string,
     timeoutSeconds: number
   ): Promise<boolean> {
     const deadline = Date.now() + timeoutSeconds * 1000;
@@ -545,7 +496,7 @@ export class ServerDockerRunner extends StreamRunnerBase {
 
       // If the container stopped, abort early
       try {
-        const info = await container.inspect();
+        const info = await docker.inspectContainer(containerId);
         const status = info.State?.Status;
         if (
           status &&
