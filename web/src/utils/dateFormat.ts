@@ -19,8 +19,25 @@ const MONTHS_SHORT = [
   "Dec"
 ] as const;
 
-/** Parse a date string (ISO or datetime-local form). */
 export function parseISO(value: string): Date {
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (dateOnly) {
+    const year = Number(dateOnly[1]);
+    const month = Number(dateOnly[2]) - 1;
+    const day = Number(dateOnly[3]);
+    const date = new Date(0);
+    date.setFullYear(year, month, day);
+    date.setHours(0, 0, 0, 0);
+
+    if (
+      date.getFullYear() !== year ||
+      date.getMonth() !== month ||
+      date.getDate() !== day
+    ) {
+      return new Date(NaN);
+    }
+    return date;
+  }
   return new Date(value);
 }
 
@@ -72,39 +89,49 @@ export function formatDistanceToNow(
   date: Date,
   options?: { addSuffix?: boolean }
 ): string {
-  const diffMs = Date.now() - date.getTime();
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
   const isPast = diffMs >= 0;
-  const seconds = Math.abs(diffMs) / 1000;
-  const minutes = seconds / 60;
-  const hours = minutes / 60;
-  const days = hours / 24;
-  const months = days / 30.44;
+  const start = isPast ? date : now;
+  const end = isPast ? now : date;
+  const seconds = Math.trunc(Math.abs(diffMs) / 1000);
+  const offsetInSeconds =
+    (end.getTimezoneOffset() - start.getTimezoneOffset()) * 60;
+  const minutes = Math.round((seconds - offsetInSeconds) / 60);
+  const minutesInDay = 1440;
+  const minutesInMonth = 43200;
 
   let distance: string;
-  if (minutes < 1) {
+  if (minutes === 0) {
     distance = "less than a minute";
   } else if (minutes < 45) {
-    const m = Math.round(minutes);
-    distance = m === 1 ? "1 minute" : `${m} minutes`;
+    distance = minutes === 1 ? "1 minute" : `${minutes} minutes`;
   } else if (minutes < 90) {
     distance = "about 1 hour";
-  } else if (hours < 24) {
-    distance = `about ${Math.round(hours)} hours`;
-  } else if (days < 30) {
-    const d = Math.round(days);
-    distance = d === 1 ? "1 day" : `${d} days`;
-  } else if (months < 12) {
-    const m = Math.round(months);
-    distance = m === 1 ? "about 1 month" : `${m} months`;
+  } else if (minutes < minutesInDay) {
+    distance = `about ${Math.round(minutes / 60)} hours`;
+  } else if (minutes < 2520) {
+    distance = "1 day";
+  } else if (minutes < minutesInMonth) {
+    distance = `${Math.round(minutes / minutesInDay)} days`;
+  } else if (minutes < minutesInMonth * 2) {
+    const months = Math.round(minutes / minutesInMonth);
+    distance = `about ${months} ${months === 1 ? "month" : "months"}`;
   } else {
-    const years = Math.floor(months / 12);
-    const remainder = months % 12;
-    if (remainder < 3) {
-      distance = years === 1 ? "about 1 year" : `about ${years} years`;
-    } else if (remainder < 9) {
-      distance = years === 1 ? "over 1 year" : `over ${years} years`;
+    const months = differenceInFullMonths(end, start);
+    if (months < 12) {
+      const nearestMonth = Math.round(minutes / minutesInMonth);
+      distance = `${nearestMonth} months`;
     } else {
-      distance = `almost ${years + 1} years`;
+      const years = Math.trunc(months / 12);
+      const remainder = months % 12;
+      if (remainder < 3) {
+        distance = years === 1 ? "about 1 year" : `about ${years} years`;
+      } else if (remainder < 9) {
+        distance = years === 1 ? "over 1 year" : `over ${years} years`;
+      } else {
+        distance = `almost ${years + 1} years`;
+      }
     }
   }
 
@@ -112,4 +139,26 @@ export function formatDistanceToNow(
     return isPast ? `${distance} ago` : `in ${distance}`;
   }
   return distance;
+}
+
+function differenceInFullMonths(later: Date, earlier: Date): number {
+  const difference =
+    (later.getFullYear() - earlier.getFullYear()) * 12 +
+    later.getMonth() -
+    earlier.getMonth();
+  if (difference < 1) {
+    return 0;
+  }
+
+  const adjustedLater = new Date(later);
+  if (adjustedLater.getMonth() === 1 && adjustedLater.getDate() > 27) {
+    adjustedLater.setDate(30);
+  }
+  adjustedLater.setMonth(adjustedLater.getMonth() - difference);
+
+  const lastDayOfMonth =
+    later.getDate() ===
+    new Date(later.getFullYear(), later.getMonth() + 1, 0).getDate();
+  const lastMonthIsFull = lastDayOfMonth && difference === 1;
+  return difference - Number(adjustedLater < earlier && !lastMonthIsFull);
 }

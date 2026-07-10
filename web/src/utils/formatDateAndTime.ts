@@ -7,8 +7,39 @@ const differenceInMinutes = (later: Date, earlier: Date): number =>
 const differenceInHours = (later: Date, earlier: Date): number =>
   Math.trunc((later.getTime() - earlier.getTime()) / 3600000);
 
-const differenceInDays = (later: Date, earlier: Date): number =>
-  Math.trunc((later.getTime() - earlier.getTime()) / 86400000);
+function compareLocal(later: Date, earlier: Date): number {
+  const difference =
+    later.getFullYear() - earlier.getFullYear() ||
+    later.getMonth() - earlier.getMonth() ||
+    later.getDate() - earlier.getDate() ||
+    later.getHours() - earlier.getHours() ||
+    later.getMinutes() - earlier.getMinutes() ||
+    later.getSeconds() - earlier.getSeconds() ||
+    later.getMilliseconds() - earlier.getMilliseconds();
+  return Math.sign(difference);
+}
+
+function localCalendarTimestamp(date: Date): number {
+  const utcDate = new Date(0);
+  utcDate.setUTCHours(0, 0, 0, 0);
+  utcDate.setUTCFullYear(date.getFullYear(), date.getMonth(), date.getDate());
+  return utcDate.getTime();
+}
+
+function differenceInDays(later: Date, earlier: Date): number {
+  const sign = compareLocal(later, earlier);
+  const calendarDays = Math.abs(
+    Math.round(
+      (localCalendarTimestamp(later) - localCalendarTimestamp(earlier)) /
+        86400000
+    )
+  );
+  const adjustedLater = new Date(later);
+  adjustedLater.setDate(adjustedLater.getDate() - sign * calendarDays);
+  const lastDayIsNotFull = Number(compareLocal(adjustedLater, earlier) === -sign);
+  const result = sign * (calendarDays - lastDayIsNotFull);
+  return result === 0 ? 0 : result;
+}
 
 /** `earlier` shifted forward by `months` calendar months, clamped so e.g.
  * Jan 31 + 1 month lands on the last day of February, not March 3. */
@@ -100,4 +131,3 @@ export function relativeTime(date: Date | string): string {
 
   return agoLabel(seconds, "sec", "sec");
 }
-

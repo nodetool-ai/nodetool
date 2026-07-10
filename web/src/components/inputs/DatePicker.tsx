@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { css } from "@emotion/react";
 import { BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
-import { isValid } from "../../utils/dateFormat";
+import { isValid, parseISO } from "../../utils/dateFormat";
 
 interface CustomDatePickerProps {
   value: string;
@@ -14,7 +14,7 @@ interface CustomDatePickerProps {
 /** Convert an ISO/date string to the local "YYYY-MM-DDTHH:mm" form that
  * `<input type="datetime-local">` expects. Returns "" for invalid input. */
 const toLocalInputValue = (value: string): string => {
-  const date = new Date(value);
+  const date = parseISO(value);
   if (!isValid(date)) {
     return "";
   }

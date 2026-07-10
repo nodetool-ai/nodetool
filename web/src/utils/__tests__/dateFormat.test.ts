@@ -13,6 +13,24 @@ describe("parseISO", () => {
     expect(date.getTime()).toBe(Date.UTC(2023, 3, 5, 9, 7, 3));
   });
 
+  it("parses date-only strings at local midnight", () => {
+    const originalTimezone = process.env.TZ;
+    process.env.TZ = "America/Los_Angeles";
+    try {
+      const date = parseISO("2024-01-01");
+      expect(date.getFullYear()).toBe(2024);
+      expect(date.getMonth()).toBe(0);
+      expect(date.getDate()).toBe(1);
+      expect(date.getHours()).toBe(0);
+    } finally {
+      if (originalTimezone === undefined) {
+        delete process.env.TZ;
+      } else {
+        process.env.TZ = originalTimezone;
+      }
+    }
+  });
+
   it("returns an invalid Date for garbage input", () => {
     expect(isValid(parseISO("not-a-date"))).toBe(false);
   });
@@ -95,6 +113,18 @@ describe("formatDistanceToNow", () => {
     expect(formatDistanceToNow(ago(5 * DAY), { addSuffix: true })).toBe(
       "5 days ago"
     );
+  });
+
+  it("uses date-fns distance thresholds", () => {
+    jest.useFakeTimers().setSystemTime(new Date("2024-06-01T12:00:00Z"));
+    try {
+      expect(formatDistanceToNow(ago(30_000))).toBe("1 minute");
+      expect(formatDistanceToNow(ago(41.5 * HOUR))).toBe("1 day");
+      expect(formatDistanceToNow(ago(42 * HOUR))).toBe("2 days");
+      expect(formatDistanceToNow(ago(45 * DAY))).toBe("about 2 months");
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it("formats months", () => {
