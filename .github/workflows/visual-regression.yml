@@ -62,6 +62,14 @@ jobs:
 
       - name: Run visual regression tests
         working-directory: web
+        # Report-first phase (per the parent plan): the suite runs on every PR
+        # and uploads side-by-side diffs as an artifact, but does not block the
+        # PR yet. Committed baselines are captured outside CI, so cross-renderer
+        # font anti-aliasing produces diffs until baselines are regenerated in
+        # CI via the `update=true` dispatch. Flip this to blocking (remove
+        # continue-on-error) once CI-generated baselines are committed. See
+        # web/tests/visual/README.md § CI.
+        continue-on-error: true
         env:
           # Same deterministic test-only master key committed in
           # web/tests/globalSetup.ts. Never use in production.

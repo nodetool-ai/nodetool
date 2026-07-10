@@ -96,8 +96,9 @@ So the first CI run on a PR without baselines will fail while writing them,
 and upload the generated `*-snapshots/` folders as a `visual-regression`
 artifact. Download it, drop the folders into `web/tests/visual/`, commit — or
 run the `update=true` dispatch on the PR branch, which regenerates and commits
-them for you. The initial baselines for this suite are already committed in
-this change, so PRs fail only on genuine diffs.
+them for you. Initial baselines are committed in this change, but they were
+captured outside CI — regenerate them in CI via the `update=true` dispatch
+before enabling enforcement (see [§ CI](#ci)).
 
 ## Keeping tests stable (no flaky results)
 
@@ -125,7 +126,22 @@ If a test is genuinely flaky, prefer masking the volatile region
 - Builds packages, installs Chromium + Firefox with deps, runs the suite.
 - Uploads the baselines + HTML report (with side-by-side diffs) as an artifact
   on every run, retained 30 days.
-- Fails the PR on unexpected diffs (baselines are committed in-tree).
+
+### Report-first, then enforce
+
+The job runs on every PR but is **non-blocking for now** (`continue-on-error`
+on the run step), matching the parent plan: report diffs first, enforce once
+baselines are stable in CI. The committed baselines were captured outside CI,
+so a Linux CI renderer produces font anti-aliasing diffs against them — those
+would red every PR if the job were blocking.
+
+To move to enforcement:
+
+1. Run the **Visual Regression** workflow via `workflow_dispatch` with
+   `update=true` on `main` (or the target branch). The `update-baselines` job
+   regenerates every baseline **in the CI environment** and commits them.
+2. Once CI-generated baselines are in-tree, remove `continue-on-error: true`
+   from the `Run visual regression tests` step so unexpected diffs fail the PR.
 
 > **Firefox scope.** The `firefox-desktop` project runs the chat + settings
 > `@smoke` tests only. The node-graph editor is Chromium-only — Firefox closes
