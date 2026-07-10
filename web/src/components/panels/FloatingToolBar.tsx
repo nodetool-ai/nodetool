@@ -49,6 +49,11 @@ import useCanvasChatDockStore, {
 import CanvasMediaComposer from "./CanvasMediaComposer";
 import ConversationOverlay from "./ConversationOverlay";
 
+const MOBILE_DOCK_POSITION: DockPosition = { x: 0, y: 0 };
+const MOBILE_DOCK_LAYER_STYLE: React.CSSProperties = {
+  bottom: "calc(8px + env(safe-area-inset-bottom, 0px))"
+};
+
 /** Live elapsed-time readout shown inside the Run button while a run is active. */
 const RunningTime: React.FC<{ isRunning: boolean; timerKey?: string }> = memo(
   function RunningTime({ isRunning, timerKey }) {
@@ -133,6 +138,16 @@ const actionStyles = (theme: Theme) =>
     marginLeft: getSpacingPx(SPACING.sm),
     paddingLeft: getSpacingPx(SPACING.md),
     borderLeft: `1px solid ${theme.vars.palette.divider}`,
+
+    // Mobile: the chip row wraps, so the cluster becomes its own right-aligned
+    // line instead of a bordered appendix pinned to the first one.
+    [theme.breakpoints.down("sm")]: {
+      marginLeft: 0,
+      paddingLeft: 0,
+      borderLeft: "none",
+      flex: 1,
+      justifyContent: "flex-end"
+    },
 
     "& button": {
       display: "inline-flex",
@@ -405,16 +420,21 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     []
   );
 
+  // Mobile pins the dock to its default bottom-centre anchor: a drag offset
+  // persisted on desktop would push it off a phone screen.
   const dockRef = useDraggable<HTMLDivElement>({
     handle: ".dock-drag-handle",
     cancel: "button, input, textarea, .dock-no-drag",
-    position: storePosition,
+    position: isMobile ? MOBILE_DOCK_POSITION : storePosition,
+    disabled: isMobile,
     onStop: (pos) => setStorePosition(clampToViewport(dockRef.current, pos))
   });
 
   // Keep the dock on-screen when the viewport shrinks (e.g. window resize).
+  // Skipped on mobile: the dock is pinned there, and re-clamping against the
+  // phone viewport would overwrite the position persisted from desktop.
   useEffect(() => {
-    if (typeof window === "undefined") {
+    if (typeof window === "undefined" || isMobile) {
       return;
     }
     const onResize = () => {
@@ -427,10 +447,13 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     };
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
-  }, [clampToViewport, setStorePosition, dockRef]);
+  }, [clampToViewport, setStorePosition, dockRef, isMobile]);
 
-  const dockWidthCss =
-    dockWidth != null
+  // Mobile ignores the persisted (desktop) width and MIN_DOCK_WIDTH — a phone
+  // viewport can be narrower than both.
+  const dockWidthCss = isMobile
+    ? "calc(100vw - 16px)"
+    : dockWidth != null
       ? `clamp(${MIN_DOCK_WIDTH}px, ${dockWidth}px, min(${MAX_DOCK_WIDTH}px, calc(100vw - 32px)))`
       : "min(820px, calc(100vw - 32px))";
 
@@ -568,7 +591,9 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         </button>
       </Tooltip>
 
-      {editorViewMode === "graph" && (
+      {/* On mobile Auto Layout and Save move into the ⋮ menu to keep the
+          action cluster within a phone-width composer row. */}
+      {editorViewMode === "graph" && !isMobile && (
         <Tooltip title="Auto Layout" placement="top" delay={TOOLTIP_ENTER_DELAY}>
           <button
             type="button"
@@ -581,16 +606,18 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         </Tooltip>
       )}
 
-      <Tooltip title="Save" placement="top" delay={TOOLTIP_ENTER_DELAY}>
-        <button
-          type="button"
-          className="composer-action"
-          onClick={handleSave}
-          aria-label="Save workflow"
-        >
-          <SaveIcon />
-        </button>
-      </Tooltip>
+      {!isMobile && (
+        <Tooltip title="Save" placement="top" delay={TOOLTIP_ENTER_DELAY}>
+          <button
+            type="button"
+            className="composer-action"
+            onClick={handleSave}
+            aria-label="Save workflow"
+          >
+            <SaveIcon />
+          </button>
+        </Tooltip>
+      )}
 
       <Tooltip
         title="Workflow actions"
@@ -613,7 +640,10 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
 
   return (
     <>
-      <div css={dockLayerStyles(theme)} style={toolbarPosition}>
+      <div
+        css={dockLayerStyles(theme)}
+        style={isMobile ? MOBILE_DOCK_LAYER_STYLE : toolbarPosition}
+      >
         <div
           ref={dockRef}
           css={dockStyles(theme)}
@@ -636,7 +666,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
             </AlertBanner>
           )}
           <CanvasMediaComposer
-            leadingActions={dragHandle}
+            leadingActions={isMobile ? undefined : dragHandle}
             trailingActions={workflowActions}
           />
         </div>
@@ -679,6 +709,20 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
             label="Stop"
             icon={<StopIcon fontSize="small" />}
             onClick={runWithClose(handleStop)}
+          />
+        )}
+        {isMobile && editorViewMode === "graph" && (
+          <MenuItemPrimitive
+            label="Auto Layout"
+            icon={<LayoutIcon fontSize="small" />}
+            onClick={runWithClose(handleAutoLayout)}
+          />
+        )}
+        {isMobile && (
+          <MenuItemPrimitive
+            label="Save"
+            icon={<SaveIcon fontSize="small" />}
+            onClick={runWithClose(handleSave)}
           />
         )}
         <MenuItemPrimitive

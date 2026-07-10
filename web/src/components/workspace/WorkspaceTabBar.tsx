@@ -274,6 +274,26 @@ const styles = (theme: Theme) =>
         height: "16px",
         fontSize: "var(--fontSizeNormal)"
       }
+    },
+
+    // Mobile: no left rail to clear, and the bar grows to 48px so the global
+    // 44px touch-target minimum fits inside it. Text labels drop to icons.
+    [theme.breakpoints.down("sm")]: {
+      height: "48px",
+      paddingLeft: 0,
+      "& .tab": {
+        minWidth: "96px",
+        maxWidth: "160px",
+        padding: `0 ${getSpacingPx(SPACING.sm)} 0 ${getSpacingPx(SPACING.md)}`
+      },
+      "& .new-tab": {
+        padding: `0 ${getSpacingPx(SPACING.md)}`
+      },
+      "& .new-tab .new-tab-label": { display: "none" },
+      "& .app-builder-button .app-builder-label": { display: "none" },
+      "& .mode-toggle": {
+        padding: `0 ${getSpacingPx(SPACING.sm)}`
+      }
     }
   });
 
@@ -501,7 +521,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
         <span className="new-tab-plus" aria-hidden>
           +
         </span>
-        New
+        <span className="new-tab-label">New</span>
         <span className="new-tab-caret" aria-hidden>
           ▾
         </span>
@@ -566,7 +586,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
             onClick={() => navigate(`/app-builder/${activeTab.ref}`)}
           >
             <DashboardCustomizeIcon />
-            App Builder
+            <span className="app-builder-label">App Builder</span>
           </button>
         )}
 

@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { Suspense, useEffect, useMemo } from "react";
+import { useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -73,7 +74,12 @@ const styles = (theme: Theme) =>
       minHeight: 0,
       minWidth: 0,
       marginLeft: `${TOOLBAR_WIDTH}px`,
-      marginBottom: `${BOTTOM_STRIP_HEIGHT}px`
+      marginBottom: `${BOTTOM_STRIP_HEIGHT}px`,
+      // On mobile the left rail is a floating hamburger and the bottom panel
+      // is hidden, so neither gutter exists.
+      [theme.breakpoints.down("sm")]: {
+        marginBottom: 0
+      }
     },
     "& .tab-layer": {
       position: "absolute",
@@ -113,6 +119,7 @@ const WorkspaceShell = () => {
   const openWorkflows = useWorkflowManager((state) => state.openWorkflows);
   const panelVisible = usePanelStore((state) => state.panel.isVisible);
   const panelSize = usePanelStore((state) => state.panel.panelSize);
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   // Cmd+W ("Close Tab") closes the active tab for every surface, not just the
   // node editor.
@@ -129,8 +136,11 @@ const WorkspaceShell = () => {
   // active we reserve the drawer's width and let the content sit beside it.
   // Other surfaces (node editor, etc.) keep the overlay so the canvas stays
   // full-bleed. The width here mirrors PanelLeft's drawer sizing.
-  const contentMarginLeft =
-    activeTab?.type === "timeline" && panelVisible
+  // On mobile PanelLeft renders as a floating hamburger + bottom sheet, so
+  // there is no rail to clear — the content runs full-bleed.
+  const contentMarginLeft = isMobile
+    ? 0
+    : activeTab?.type === "timeline" && panelVisible
       ? TOOLBAR_WIDTH +
         Math.max(panelSize - TOOLBAR_WIDTH, LEFT_PANEL_MIN_DRAWER_WIDTH)
       : TOOLBAR_WIDTH;
