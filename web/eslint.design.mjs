@@ -28,6 +28,12 @@ export const designTokenIgnores = [
   "src/__mocks__/**",
   "src/demo/**",
   "src/demo-entry.tsx",
+  // Storybook stories are a component catalog / visual-test harness, not
+  // shipped UI. They deep-import individual primitives on purpose (the barrel
+  // pulls heavy runtime deps into the Storybook bundle) and render raw literals
+  // to showcase the tokens themselves — same category as demo/ and e2e_runner/.
+  "src/stories/**",
+  "**/*.stories.{ts,tsx}",
   "src/e2e_runner/**",
   // Pure color-as-data modules: chart palettes, syntax-highlight themes, and
   // node/type color maps are intrinsically literal colors, not styling.

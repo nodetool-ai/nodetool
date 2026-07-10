@@ -19,6 +19,9 @@ __pycache__
 build/
 coverage/
 dist/
+# Storybook build output
+storybook-static/
+web/storybook-static/
 # Stryker mutation testing
 **/reports/mutation/
 **/.stryker-tmp/
