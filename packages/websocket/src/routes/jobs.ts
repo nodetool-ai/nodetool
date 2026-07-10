@@ -12,26 +12,34 @@ interface RouteOptions {
 }
 
 /**
- * Jobs REST plugin — only the trigger-job stub routes remain here.
+ * Jobs REST plugin — only the trigger-registration routes remain here.
  * CRUD + cancel + running-all moved to the tRPC `jobs` router.
  *
- * Trigger workflows aren't available in standalone mode — these endpoints
- * return empty lists / 501s and are kept on REST to avoid polluting the
- * tRPC type surface with stub-only procedures.
+ * These endpoints list and toggle the durable `trigger_registrations` that
+ * back host-owned ingestion adapters. Kept on REST to avoid polluting the
+ * tRPC type surface.
  */
-const jobsRoutes: FastifyPluginAsync<RouteOptions> = async (app) => {
+const jobsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
+  const { apiOptions } = opts;
+
   app.get("/api/jobs/triggers/running", async (req, reply) => {
-    await bridge(req, reply, (request) => handleTriggersRunning(request));
+    await bridge(req, reply, (request) =>
+      handleTriggersRunning(request, apiOptions)
+    );
   });
 
   app.post("/api/jobs/triggers/:id/start", async (req, reply) => {
     const { id } = req.params as { id: string };
-    await bridge(req, reply, (request) => handleTriggerStart(request, id));
+    await bridge(req, reply, (request) =>
+      handleTriggerStart(request, id, apiOptions)
+    );
   });
 
   app.post("/api/jobs/triggers/:id/stop", async (req, reply) => {
     const { id } = req.params as { id: string };
-    await bridge(req, reply, (request) => handleTriggerStop(request, id));
+    await bridge(req, reply, (request) =>
+      handleTriggerStop(request, id, apiOptions)
+    );
   });
 };
 

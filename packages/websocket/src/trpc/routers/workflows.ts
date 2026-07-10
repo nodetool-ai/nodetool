@@ -49,6 +49,7 @@ import {
   deriveExampleAssetsDir
 } from "../../example-workflows.js";
 import { ApiErrorCode } from "../../error-codes.js";
+import { syncRegistrations } from "../../triggers/registration-sync.js";
 import { router, publicProcedure } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
@@ -93,6 +94,22 @@ import {
 } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 
 const log = createLogger("nodetool.websocket.trpc.workflows");
+
+/**
+ * Sync trigger registrations for a saved workflow. Derived state: a failure
+ * here must never fail the save, so it is logged and swallowed.
+ */
+async function syncTriggerRegistrations(workflow: WorkflowModel): Promise<void> {
+  try {
+    await syncRegistrations(workflow);
+  } catch (error) {
+    log.warn(
+      `Failed to sync trigger registrations for ${workflow.id}: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
+  }
+}
 
 /**
  * Validate a workflow graph against the wire schema. Returns the graph if it
@@ -482,6 +499,7 @@ export const workflowsRouter = router({
         app_doc: appDoc
       })) as WorkflowModel;
 
+      await syncTriggerRegistrations(workflow);
       return toWorkflowResponse(workflow);
     }),
 
@@ -517,6 +535,7 @@ export const workflowsRouter = router({
         // Only touch app_doc when sent, so partial saves don't wipe the app.
         if (input.app_doc !== undefined) existing.app_doc = input.app_doc;
         await existing.save();
+        await syncTriggerRegistrations(existing);
         return toWorkflowResponse(existing);
       }
 
@@ -541,6 +560,7 @@ export const workflowsRouter = router({
         app_doc: input.app_doc ?? null
       })) as WorkflowModel;
 
+      await syncTriggerRegistrations(workflow);
       return toWorkflowResponse(workflow);
     }),
 

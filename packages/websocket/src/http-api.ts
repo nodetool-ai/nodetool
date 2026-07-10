@@ -26,7 +26,9 @@ import {
   Workflow,
   WorkflowVersion,
   Job,
-  Asset
+  Asset,
+  TriggerRegistration,
+  RunEvent
 } from "@nodetool-ai/models";
 import {
   hydrateGraphNodeFlags,
@@ -1674,41 +1676,93 @@ export function toJobResponse(job: Job): JsonObject {
   };
 }
 
-// ── Trigger job stubs ─────────────────────────────────────────────
+// ── Trigger registration endpoints ────────────────────────────────
 
+function triggerSummary(reg: TriggerRegistration): JsonObject {
+  return {
+    id: reg.id,
+    workflow_id: reg.workflow_id,
+    node_id: reg.node_id,
+    kind: reg.kind,
+    enabled: reg.enabled === 1,
+    last_fired_at: reg.last_fired_at ?? null,
+    last_error: reg.last_error ?? null
+  };
+}
+
+/** GET /api/jobs/triggers/running — the caller's enabled registrations. */
 export async function handleTriggersRunning(
-  request: Request
+  request: Request,
+  options: HttpApiOptions
 ): Promise<Response> {
   if (request.method !== "GET") {
     return errorResponse(405, "Method not allowed");
   }
-  return jsonResponse({ workflows: [] });
+  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
+  const regs = await TriggerRegistration.findByUser(userId);
+  const triggers = regs
+    .filter((r) => r.enabled === 1)
+    .map((r) => triggerSummary(r));
+  return jsonResponse({ triggers });
+}
+
+/**
+ * Toggle `enabled` on every registration owned by the caller for a workflow.
+ * Returns 404 when the workflow has no registrations the caller owns.
+ */
+async function setTriggersEnabled(
+  request: Request,
+  workflowId: string,
+  options: HttpApiOptions,
+  enabled: boolean
+): Promise<Response> {
+  if (request.method !== "POST") {
+    return errorResponse(405, "Method not allowed");
+  }
+  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
+  const regs = await TriggerRegistration.findByWorkflow(workflowId);
+  if (regs.length === 0 || regs.some((r) => r.user_id !== userId)) {
+    return errorResponse(404, "Workflow not found");
+  }
+
+  const value = enabled ? 1 : 0;
+  for (const reg of regs) {
+    reg.enabled = value;
+    await reg.save();
+    if (enabled) {
+      try {
+        await RunEvent.appendEvent(
+          reg.workflow_id,
+          "TriggerRegistered",
+          { kind: reg.kind, node_id: reg.node_id },
+          reg.node_id
+        );
+      } catch (error) {
+        log.warn(
+          `Failed to emit TriggerRegistered event: ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        );
+      }
+    }
+  }
+  return jsonResponse({ triggers: regs.map((r) => triggerSummary(r)) });
 }
 
 export async function handleTriggerStart(
   request: Request,
-  _workflowId: string
+  workflowId: string,
+  options: HttpApiOptions
 ): Promise<Response> {
-  if (request.method !== "POST") {
-    return errorResponse(405, "Method not allowed");
-  }
-  return errorResponse(
-    501,
-    "Trigger workflows not available in standalone mode"
-  );
+  return setTriggersEnabled(request, workflowId, options, true);
 }
 
 export async function handleTriggerStop(
   request: Request,
-  _workflowId: string
+  workflowId: string,
+  options: HttpApiOptions
 ): Promise<Response> {
-  if (request.method !== "POST") {
-    return errorResponse(405, "Method not allowed");
-  }
-  return errorResponse(
-    501,
-    "Trigger workflows not available in standalone mode"
-  );
+  return setTriggersEnabled(request, workflowId, options, false);
 }
 
 // ── Nodes dummy ───────────────────────────────────────────────────
