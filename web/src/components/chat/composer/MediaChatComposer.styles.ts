@@ -135,8 +135,12 @@ export const createMediaComposerStyles = (theme: Theme) =>
       }
     },
 
-    ".media-chip-spacer": {
-      flex: 1
+    // The primary send/generate action. A row sibling of the chip cluster so
+    // it can wrap onto the action-button line on mobile.
+    ".media-primary-action": {
+      display: "inline-flex",
+      alignItems: "center",
+      flexShrink: 0
     },
 
     ".media-generate-btn": {
@@ -213,9 +217,9 @@ export const createMediaComposerStyles = (theme: Theme) =>
       }
     },
 
-    // Mobile: the chip cluster plus the trailing workflow actions never fit on
-    // one phone-width line, so the row wraps (actions become their own line)
-    // and the card sheds padding to keep the textarea full-width.
+    // Mobile: the chip cluster plus the buttons never fit on one phone-width
+    // line, so the row wraps and the card sheds padding to keep the textarea
+    // full-width.
     [theme.breakpoints.down("sm")]: {
       ".media-compose-card": {
         padding: `${theme.spacing(1.5)} ${theme.spacing(1.5)} ${theme.spacing(1)}`,
@@ -229,16 +233,24 @@ export const createMediaComposerStyles = (theme: Theme) =>
         rowGap: theme.spacing(1),
         padding: 0
       },
-      // Full line for the chip cluster: without this it shrinks (min-width: 0)
-      // to sit beside the action cluster instead of wrapping above it, leaving
-      // the send button stranded mid-row.
-      ".media-chip-main": {
+      // With host workflow actions (the canvas dock), give the chips their own
+      // full line so every button — send plus the workflow actions — lands
+      // together on the next line instead of the send button stranding on the
+      // chip line. The send button follows the actions and is right-aligned.
+      ".media-chip-row.has-trailing .media-chip-main": {
         minWidth: "100%"
       },
-      // The zero-basis spacer can land on the previous wrapped line, leaving
-      // the send button left-aligned; margin-left keeps it pinned right on
-      // whichever line it ends up on.
-      ".media-chip-main .media-generate-btn": {
+      ".media-chip-row.has-trailing .composer-workflow-actions": {
+        flex: "0 0 auto",
+        order: 1,
+        marginLeft: "auto"
+      },
+      ".media-chip-row.has-trailing .media-primary-action": {
+        order: 2
+      },
+      // No host actions (the chat panel): the lone send button shares the chip
+      // line, pinned to the right.
+      ".media-chip-row:not(.has-trailing) .media-primary-action": {
         marginLeft: "auto"
       }
     }

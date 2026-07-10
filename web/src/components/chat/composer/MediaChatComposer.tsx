@@ -866,10 +866,12 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
           </FlexRow>
         )}
 
-        <div className="media-chip-row">
+        <div
+          className={`media-chip-row${trailingActions ? " has-trailing" : ""}`}
+        >
           {/* Leading actions (e.g. the canvas dock drag handle). */}
           {leadingActions}
-          {/* Chip cluster: mode/model chips + primary action. */}
+          {/* Chip cluster: mode/model chips. */}
           <div className="media-chip-main">
           {/* Mode selector chip */}
           {!hideModePicker && (
@@ -1364,35 +1366,40 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
             </>
           )}
 
-          <div className="media-chip-spacer" />
+          </div>
 
-          {/* Primary Generate/Send button, or timer + stop when busy */}
-          {isBusy ? (
-            <FlexRow gap={1} alignItems="center">
-              <Text
-                size="small"
-                sx={{
-                  color: theme.vars.palette.grey[400],
-                  fontVariantNumeric: "tabular-nums",
-                  minWidth: 48,
-                  textAlign: "right"
-                }}
+          {/* Primary Generate/Send button, or timer + stop when busy. Sits
+              between the chip cluster and the host actions rather than inside
+              the chips: on mobile the row wraps, and this lets the send button
+              join the workflow action buttons on one line instead of being
+              stranded on the chip line. */}
+          <div className="media-primary-action">
+            {isBusy ? (
+              <FlexRow gap={1} alignItems="center">
+                <Text
+                  size="small"
+                  sx={{
+                    color: theme.vars.palette.grey[400],
+                    fontVariantNumeric: "tabular-nums",
+                    minWidth: 48,
+                    textAlign: "right"
+                  }}
+                >
+                  {formatElapsed(elapsed)}
+                </Text>
+                {onStop && <StopGenerationButton onClick={onStop} />}
+              </FlexRow>
+            ) : (
+              <button
+                type="button"
+                className={`media-generate-btn${isMediaMode ? "" : " chat-send"}`}
+                onClick={handleSend}
+                disabled={isDisabled || !canGenerate}
+                aria-label={isMediaMode ? "Generate" : "Send"}
               >
-                {formatElapsed(elapsed)}
-              </Text>
-              {onStop && <StopGenerationButton onClick={onStop} />}
-            </FlexRow>
-          ) : (
-            <button
-              type="button"
-              className={`media-generate-btn${isMediaMode ? "" : " chat-send"}`}
-              onClick={handleSend}
-              disabled={isDisabled || !canGenerate}
-              aria-label={isMediaMode ? "Generate" : "Send"}
-            >
-              {isMediaMode ? "Generate" : <ArrowUpwardIcon fontSize="small" />}
-            </button>
-          )}
+                {isMediaMode ? "Generate" : <ArrowUpwardIcon fontSize="small" />}
+              </button>
+            )}
           </div>
 
           {/* Host-supplied actions at the end of the footer (e.g. the canvas
