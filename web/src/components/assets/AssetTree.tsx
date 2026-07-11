@@ -48,7 +48,6 @@ const AssetTree: React.FC<AssetTreeProps> = ({
   const [closedFolders, setClosedFolders] = useState<string[]>([]);
   const getAssetsRecursive = useAssetStore((state) => state.getAssetsRecursive);
 
-  // Memoize icons to prevent recreation on each render
   const folderIcon = useMemo(() => <IconForType iconName="folder" />, []);
   const imageIcon = useMemo(() => <IconForType iconName="image" />, []);
   const audioIcon = useMemo(() => <IconForType iconName="audio" />, []);
@@ -74,7 +73,6 @@ const AssetTree: React.FC<AssetTreeProps> = ({
     return 1;
   }, []);
 
-  // Sort nodes helper
   const sortNodes = useCallback((nodes: AssetTreeNode[]): AssetTreeNode[] => {
     return [...nodes].sort((a, b) => {
       if (a.content_type === "folder" && b.content_type !== "folder") {
@@ -87,8 +85,6 @@ const AssetTree: React.FC<AssetTreeProps> = ({
     });
   }, []);
 
-  // Memoize the tree processing logic to avoid recreating the function on every render
-  // Process tree AND sort during data processing, not during rendering
   const processAssetTree = useCallback((nodes: Asset[]): AssetTreeNode[] => {
     const processed = nodes.map((node) => {
       const processedChildren = (node as AssetTreeNode).children?.map((child) => ({

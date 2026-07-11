@@ -57,12 +57,8 @@ function pickRulerColors(theme: Theme, mode: "light" | "dark"): RulerColors {
   };
 }
 
-// ── Constants ──────────────────────────────────────────────────────────────
-
 const RULER_HEIGHT_PX = 28;
 const MIN_LABEL_GAP_PX = 60;
-
-// ── Styles ─────────────────────────────────────────────────────────────────
 
 const rulerStyles = (theme: Theme) =>
   css({
@@ -214,8 +210,6 @@ const MarkerOverlayInner: React.FC<MarkerOverlayProps> = ({
 const MarkerOverlay = memo(MarkerOverlayInner);
 MarkerOverlay.displayName = "MarkerOverlay";
 
-// ── Helpers ────────────────────────────────────────────────────────────────
-
 /** Returns the best major/minor tick interval (in ms) given the zoom level. */
 function computeTickIntervals(msPerPx: number): {
   majorMs: number;
@@ -253,8 +247,6 @@ function formatTimecode(ms: number): string {
   return `${min}:${String(sec).padStart(2, "0")}`;
 }
 
-// ── Component ──────────────────────────────────────────────────────────────
-
 export interface TimeRulerProps {
   /** Total width of the scrollable canvas in pixels. */
   totalWidthPx: number;
@@ -276,8 +268,7 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
     const markers = useTimelineStore((s) => s.markers);
     const removeScene = useTimelineStore((s) => s.removeScene);
 
-    // ── Resize → redraw ─────────────────────────────────────────────────────
-    //
+    // Resize → redraw.
     // The canvas backing store is sized from offsetWidth/offsetHeight inside
     // the draw effect; bump a tick on container resize so the effect reruns
     // and the ruler redraws at the new size. Also track the canvas's visible
@@ -299,8 +290,7 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
       return () => ro.disconnect();
     }, []);
 
-    // ── Scrub/playhead aria value ────────────────────────────────────────────
-    //
+    // Scrub/playhead aria value.
     // aria-valuenow only needs to reflect the position for a11y, not track it
     // at full frame rate — subscribing to reactive `currentTimeMs` would
     // re-render this memoized ruler (and redraw its canvas) on every
@@ -324,8 +314,7 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
       return playbackStoreApi.getState().subscribeTime(applyAriaValue);
     }, [playbackStoreApi]);
 
-    // ── Draw ────────────────────────────────────────────────────────────────
-    //
+    // Draw.
     // The draw inputs (scrollLeftPx especially) change on every scroll event,
     // so we coalesce redraws into a single requestAnimationFrame: the effect
     // schedules a draw and dedupes (if one is already pending we don't queue
@@ -470,8 +459,6 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
       resizeTick,
       scheduleDraw
     ]);
-
-    // ── Pointer interaction ─────────────────────────────────────────────────
 
     const pxToMs = useCallback(
       (clientX: number): number => {

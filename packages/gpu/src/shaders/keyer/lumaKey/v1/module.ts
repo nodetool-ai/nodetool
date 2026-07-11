@@ -34,8 +34,8 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 export const keyerLumaKeyV1 = defineModule({
   id: "keyer.lumaKey",
   version: 1,
-  // Promoted in Phase 3 Batch 1: luminance keyer with `(low, high, softness)`
-  // schema is the workhorse op for matte-from-brightness workflows.
+  // Luminance keyer with a stable `(low, high, softness)` schema; the core op
+  // for matte-from-brightness workflows.
   surface: "published",
   category: "keyer",
   linearity: "nonlinear-in-rgb",

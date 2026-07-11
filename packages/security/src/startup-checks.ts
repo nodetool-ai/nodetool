@@ -44,7 +44,6 @@ export async function runStartupChecks(): Promise<StartupCheckResult> {
     errors.push(`Master key initialization failed: ${msg}`);
   }
 
-  // Check optional API keys
   for (const envVar of OPTIONAL_API_KEYS) {
     if (!process.env[envVar]) {
       warnings.push(

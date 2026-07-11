@@ -25,7 +25,6 @@ interface AssetListViewProps {
 const ROW_HEIGHT = 40;
 const TYPE_SECTION_HEIGHT = 36;
 
-// Type for virtual list item data
 type VirtualListItemData =
   | { type: 'header'; key: string; data: { type: string; count: number; isExpanded: boolean } }
   | { type: 'asset'; key: string; data: { asset: Asset } };
@@ -276,15 +275,13 @@ const AssetListView: React.FC<AssetListViewProps> = ({
     
     Object.entries(assetsByType).forEach(([type, typeAssets]) => {
       const isExpanded = expandedTypes.has(type);
-      
-      // Add type header
+
       items.push({
         type: 'header',
         key: `header-${type}`,
         data: { type, count: typeAssets.length, isExpanded }
       });
-      
-      // Add assets if expanded
+
       if (isExpanded) {
         typeAssets.forEach((asset) => {
           items.push({
@@ -357,12 +354,10 @@ const AssetListView: React.FC<AssetListViewProps> = ({
     getItemKey: (index) => virtualListItems[index]?.key ?? index,
   });
 
-  // Recompute sizes when data changes
   useEffect(() => {
     virtualizer.measure();
   }, [virtualListItems.length, expandedTypes, virtualizer]);
 
-  // Render a single row in the virtualized list
   const renderRow = useCallback((index: number, key: React.Key, style: React.CSSProperties) => {
     const item = virtualListItems[index];
 
@@ -413,7 +408,6 @@ const AssetListView: React.FC<AssetListViewProps> = ({
       );
     }
 
-    // Render asset item
     const { asset } = item.data;
     // Use ref to avoid recreating renderRow when selection changes
     const isSelected = selectedAssetIdsRef.current.includes(asset.id);

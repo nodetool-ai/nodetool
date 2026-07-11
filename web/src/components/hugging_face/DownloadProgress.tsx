@@ -162,7 +162,6 @@ export const DownloadProgress: React.FC<{
     return now - download.lastUpdated > STALL_THRESHOLD_MS;
   }, [isActive, download.lastUpdated, now, isDisconnected]);
 
-  // Calculate time since last update for display
   const timeSinceUpdate = useMemo(() => {
     if (!download.lastUpdated || !isStalled) {
       return null;

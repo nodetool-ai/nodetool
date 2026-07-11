@@ -234,7 +234,6 @@ export class GraphPlanner {
         content: errorMsg
       } satisfies PlanningUpdate;
 
-      // Feed error back to LLM for retry
       messages.push({
         role: "user",
         content: `Error: ${errorMsg}. Please fix the issues and call finish_graph again.`

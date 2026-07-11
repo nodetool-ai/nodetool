@@ -2,8 +2,8 @@
 /**
  * KeyboardShortcutCard
  *
- * A card component that displays keyboard shortcuts in an attractive, organized format.
- * Perfect for onboarding, help panels, or quick reference guides.
+ * A card that displays keyboard shortcuts. Used in onboarding, help panels,
+ * and quick reference guides.
  *
  * @example
  * <KeyboardShortcutCard
@@ -43,16 +43,6 @@ export interface KeyboardShortcutCardProps extends Omit<BoxProps, "title"> {
   maxVisible?: number;
 }
 
-/**
- * A card component for displaying keyboard shortcuts in an organized format.
- *
- * This component provides a clean, visually appealing way to present keyboard
- * shortcuts to users, making it ideal for onboarding, help panels, tutorials,
- * and quick reference guides.
- *
- * The card automatically formats keyboard shortcuts using the ShortcutHint
- * component and supports both vertical and horizontal layouts.
- */
 const KeyboardShortcutCardInternal: React.FC<KeyboardShortcutCardProps> = ({
   title,
   shortcuts,
@@ -65,14 +55,12 @@ const KeyboardShortcutCardInternal: React.FC<KeyboardShortcutCardProps> = ({
 }) => {
   const theme = useTheme();
 
-  // Limit visible shortcuts if maxVisible is set
   const visibleShortcuts = maxVisible
     ? shortcuts.slice(0, maxVisible)
     : shortcuts;
   const hasMore = maxVisible && shortcuts.length > maxVisible;
   const remainingCount = maxVisible ? shortcuts.length - maxVisible : 0;
 
-  // Render a single shortcut item
   const renderShortcutItem = (item: ShortcutItem, index: number) => {
     return (
       <Box
@@ -90,7 +78,6 @@ const KeyboardShortcutCardInternal: React.FC<KeyboardShortcutCardProps> = ({
           }),
         }}
       >
-        {/* Action description */}
         <Box
           sx={{
             flex: 1,
@@ -121,7 +108,6 @@ const KeyboardShortcutCardInternal: React.FC<KeyboardShortcutCardProps> = ({
           )}
         </Box>
 
-        {/* Keyboard shortcut hint */}
         <ShortcutHint
           shortcut={item.keys}
           size={shortcutSize}
@@ -144,7 +130,6 @@ const KeyboardShortcutCardInternal: React.FC<KeyboardShortcutCardProps> = ({
       }}
       {...props}
     >
-      {/* Title */}
       {title && (
         <Typography
           variant="subtitle2"
@@ -161,7 +146,6 @@ const KeyboardShortcutCardInternal: React.FC<KeyboardShortcutCardProps> = ({
         </Typography>
       )}
 
-      {/* Shortcuts list */}
       <Box
         sx={{
           display: "flex",
@@ -200,7 +184,6 @@ const KeyboardShortcutCardInternal: React.FC<KeyboardShortcutCardProps> = ({
         })}
       </Box>
 
-      {/* "And X more" indicator */}
       {hasMore && (
         <Box
           sx={{

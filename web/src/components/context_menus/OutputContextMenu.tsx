@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, memo, useRef, useState } from "react";
 import { shallow } from "zustand/shallow";
-//mui
 
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
@@ -17,7 +16,6 @@ import {
 } from "../ui_primitives";
 import { PREVIEW_NODE_TYPE, REROUTE_NODE_TYPE } from "../../constants/nodeTypes";
 import { useTheme } from "@mui/material/styles";
-//icons
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import DataObjectIcon from "@mui/icons-material/DataObject";
 import AltRouteIcon from "@mui/icons-material/AltRoute";
@@ -25,7 +23,6 @@ import SaveAltIcon from "@mui/icons-material/SaveAlt";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-//store
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useDynamicOutput } from "../../hooks/nodes/useDynamicOutput";
 import { useReactFlow } from "@xyflow/react";
@@ -467,7 +464,7 @@ const OutputContextMenu: React.FC = () => {
     gap: "0.5em",
     margin: 0,
     minHeight: "28px",
-    padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`, // was 1px 6px
+    padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`,
     textAlign: "left",
     width: "100%",
     "&:hover": { backgroundColor: theme.vars.palette.action.hover },
@@ -480,7 +477,7 @@ const OutputContextMenu: React.FC = () => {
       flexShrink: 0,
       height: "18px",
       justifyContent: "center",
-      padding: getSpacingPx(SPACING.micro), // was 1px
+      padding: getSpacingPx(SPACING.micro),
       width: "18px"
     },
     ".icon-bg svg": {

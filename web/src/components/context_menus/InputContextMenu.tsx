@@ -7,7 +7,6 @@ import React, {
   useState
 } from "react";
 import { shallow } from "zustand/shallow";
-//mui
 
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
@@ -23,13 +22,11 @@ import {
   TextField
 } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
-//icons
 import PushPinIcon from "@mui/icons-material/PushPin";
 import InputIcon from "@mui/icons-material/Input";
 import EditNoteIcon from "@mui/icons-material/EditNote";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
-//store
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { Edge, useReactFlow } from "@xyflow/react";
 import useMetadataStore from "../../stores/MetadataStore";
@@ -828,7 +825,7 @@ const InputContextMenu: React.FC = () => {
     gap: "0.5em",
     margin: 0,
     minHeight: "28px",
-    padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`, // was 1px 6px
+    padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`,
     textAlign: "left",
     width: "100%",
     "&:hover": { backgroundColor: theme.vars.palette.action.hover },
@@ -841,7 +838,7 @@ const InputContextMenu: React.FC = () => {
       flexShrink: 0,
       height: "18px",
       justifyContent: "center",
-      padding: getSpacingPx(SPACING.micro), // was 1px
+      padding: getSpacingPx(SPACING.micro),
       width: "18px"
     },
     ".icon-bg svg": {

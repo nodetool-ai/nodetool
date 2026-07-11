@@ -1,10 +1,3 @@
-/**
- * Hook for handling file drag-and-drop functionality with optional asset uploading.
- * 
- * This hook provides drag-and-drop handlers for dropping files onto components,
- * with support for various file types and optional automatic asset uploading.
- */
-
 import { Asset } from "../../stores/ApiTypes";
 import { DragEventHandler, useCallback, DragEvent, useState } from "react";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -15,9 +8,6 @@ import {
   extractFiles
 } from "../../lib/dragdrop";
 
-/**
- * Configuration options for file drop handling.
- */
 type FileDropProps = {
   /** The type of files to accept: image, audio, video, document, or all */
   type: "image" | "audio" | "video" | "document" | "all";
@@ -29,9 +19,6 @@ type FileDropProps = {
   onChangeAsset?: (asset: Asset) => void;
 };
 
-/**
- * Result object containing drag-and-drop handlers and upload state.
- */
 type FileDropResult = {
   /** Handler to attach to dragOver events (required to enable dropping) */
   onDragOver: DragEventHandler<HTMLDivElement>;
@@ -43,30 +30,6 @@ type FileDropResult = {
   uploading: boolean;
 };
 
-/**
- * Provides drag-and-drop handlers for file uploads.
- * 
- * Handles dropping files from external sources (file system) and internal
- * asset transfers. Supports type filtering and automatic asset uploading.
- * 
- * @param props - Configuration options for file drop behavior
- * @returns Object containing drag handlers and upload state
- * 
- * @example
- * ```typescript
- * const { onDragOver, onDrop, uploading, filename } = useFileDrop({
- *   type: "image",
- *   uploadAsset: true,
- *   onChangeAsset: (asset) => console.log("Uploaded:", asset),
- * });
- * 
- * return (
- *   <div onDragOver={onDragOver} onDrop={onDrop}>
- *     {uploading ? `Uploading ${filename}...` : "Drop image here"}
- *   </div>
- * );
- * ```
- */
 export function useFileDrop(props: FileDropProps): FileDropResult {
   const [filename, setFilename] = useState("");
   const addNotification = useNotificationStore((state) => state.addNotification);
@@ -80,10 +43,8 @@ export function useFileDrop(props: FileDropProps): FileDropResult {
       event.preventDefault();
       event.stopPropagation();
 
-      // Use unified deserialization
       const dragData = deserializeDragData(event.dataTransfer);
 
-      // Handle asset drops
       if (dragData?.type === "asset") {
         const asset = dragData.payload as Asset;
         const assetType = asset.content_type.split("/")[0];

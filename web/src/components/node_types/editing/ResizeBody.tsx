@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 /**
- * ResizeBody — bespoke body for `nodetool.image.Resize` (plan §9.E8, PR 9).
+ * ResizeBody — bespoke body for `nodetool.image.Resize`.
  *
  * Image preview on top (current result or empty checker), W/H number inputs
  * on the bottom with a chain-lock toggle that constrains H when W changes

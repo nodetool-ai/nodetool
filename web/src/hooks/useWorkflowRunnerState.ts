@@ -4,9 +4,6 @@ import {
   WorkflowRunner
 } from "../stores/WorkflowRunner";
 
-/**
- * Hook to subscribe to a specific workflow's runner state.
- */
 export const useWorkflowRunnerState = (
   workflowId: string | undefined
 ): WorkflowRunner["state"] | null => {
@@ -27,7 +24,6 @@ export const useWorkflowRunnerState = (
   return useSyncExternalStore(subscribe, getSnapshot);
 };
 
-/** Hook to check if a workflow is currently running. */
 export const useIsWorkflowRunning = (
   workflowId: string | undefined
 ): boolean => {

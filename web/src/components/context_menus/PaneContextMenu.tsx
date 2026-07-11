@@ -79,7 +79,6 @@ const PaneContextMenu: React.FC = () => {
 
   const addGroupNode = useCallback(
     (event: React.MouseEvent) => {
-      // Use the imported constant
       const metadata = GROUP_NODE_METADATA;
       const position = reactFlowInstance.screenToFlowPosition({
         x: menuPosition?.x || event.clientX,

@@ -80,11 +80,8 @@ export const nodeErrorToDisplayString = (
 const useErrorStore = create<ErrorStore>((set, get) => ({
   errors: {},
   /**
-   * Clear the errors for a workflow.
-   * If nodeIds is provided, only clears errors for those specific nodes.
-   *
-   * @param workflowId The id of the workflow.
-   * @param nodeIds Optional set of node IDs to clear. If omitted, clears all nodes in the workflow.
+   * Clear the errors for a workflow. If nodeIds is provided, only clears
+   * errors for those specific nodes.
    */
   clearErrors: (workflowId: string, nodeIds?: Set<string>) => {
     if (nodeIds) {
@@ -109,7 +106,6 @@ const useErrorStore = create<ErrorStore>((set, get) => ({
       });
     } else {
       set((state) => {
-        // Optimization: Use for...in loop to avoid intermediate array allocation.
         // Match on the colon boundary to avoid clearing entries for workflows
         // whose IDs happen to share a prefix.
         const prefix = `${workflowId}:`;
@@ -141,15 +137,7 @@ const useErrorStore = create<ErrorStore>((set, get) => ({
       return changed ? { errors: newErrors } : state;
     });
   },
-  /**
-   * Set the error for a node within a specific job.
-   * The error is stored in the errors map.
-   *
-   * @param workflowId The id of the workflow.
-   * @param jobId The id of the run/job.
-   * @param nodeId The id of the node.
-   * @param error The error to set.
-   */
+  /** Set the error for a node within a specific job. */
   setError: (
     workflowId: string,
     jobId: string,
@@ -170,14 +158,7 @@ const useErrorStore = create<ErrorStore>((set, get) => ({
     });
   },
 
-  /**
-   * Get the error for a node within a specific job.
-   *
-   * @param workflowId The id of the workflow.
-   * @param jobId The id of the run/job.
-   * @param nodeId The id of the node.
-   * @returns The error for the node.
-   */
+  /** Get the error for a node within a specific job. */
   getError: (workflowId: string, jobId: string, nodeId: string) => {
     const errors = get().errors;
     const key = nodeKey(workflowId, jobId, nodeId);

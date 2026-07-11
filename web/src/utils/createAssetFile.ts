@@ -10,24 +10,15 @@ interface AssetFileResult {
   type: string;
 }
 
-/**
- * Represents a column in a DataFrame output
- */
 interface DataFrameColumn {
   name: string;
 }
 
-/**
- * Represents a DataFrame output from Python nodes
- */
 interface DataFrame {
   columns: DataFrameColumn[];
   data: unknown[][];
 }
 
-/**
- * Base interface for typed output values
- */
 interface TypedOutput {
   type?: string;
   data?: unknown;
@@ -40,9 +31,6 @@ interface TypedOutput {
   filename?: string;
 }
 
-/**
- * Union type for all possible asset output formats
- */
 type AssetOutput = TypedOutput | string | Uint8Array | unknown[] | null;
 
 type CreateAssetFileOptions = {
@@ -151,9 +139,6 @@ const isUsableBinary = (val: unknown): boolean => {
   return false;
 };
 
-/**
- * Convert various input types to Uint8Array
- */
 const toUint8Array = (input: unknown): Uint8Array => {
   if (!input) {return new Uint8Array();}
   if (input instanceof Uint8Array) {
@@ -258,21 +243,12 @@ const resolveDownloadUri = (uri: string): string => {
 };
 
 const chunkToOutput = (chunk: Chunk) => {
-  if (typeof window !== "undefined") {
-    console.debug("[createAssetFile] chunkToOutput", {
-      type: chunk.content_type,
-      hasContent: typeof chunk.content !== "undefined",
-      contentLength:
-        typeof chunk.content === "string" ? chunk.content.length : undefined
-    });
-  } else {
-    console.debug("[createAssetFile] chunkToOutput", {
-      type: chunk.content_type,
-      hasContent: typeof chunk.content !== "undefined",
-      contentLength:
-        typeof chunk.content === "string" ? chunk.content.length : undefined
-    });
-  }
+  console.debug("[createAssetFile] chunkToOutput", {
+    type: chunk.content_type,
+    hasContent: typeof chunk.content !== "undefined",
+    contentLength:
+      typeof chunk.content === "string" ? chunk.content.length : undefined
+  });
   // Native Float32Array audio payloads aren't a saveable string; the asset
   // path only handles encoded (string) content.
   const content = typeof chunk.content === "string" ? chunk.content : "";

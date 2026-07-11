@@ -36,10 +36,8 @@ import {
 } from "./AdjustmentSlider";
 import ColorPicker from "../../inputs/ColorPicker";
 
-// ---------------------------------------------------------------------------
-// Param overrides for nodes whose metadata lacks min/max on some properties
-// ---------------------------------------------------------------------------
-
+// Min/max for properties whose metadata omits them (e.g. GaussianNoise's
+// mean / stddev).
 const PARAM_OVERRIDES: Record<string, Partial<SliderSpec>> = {
   "lib.image.draw.GaussianNoise::mean": {
     min: -1,
@@ -57,10 +55,6 @@ const PARAM_OVERRIDES: Record<string, Partial<SliderSpec>> = {
   }
 };
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
 const humanize = (name: string): string =>
   name.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
@@ -72,10 +66,6 @@ interface ColorSpec {
   label: string;
   default: string;
 }
-
-// ---------------------------------------------------------------------------
-// Styles
-// ---------------------------------------------------------------------------
 
 const styles = (theme: Theme) =>
   css({
@@ -126,10 +116,6 @@ const styles = (theme: Theme) =>
     }
   });
 
-// ---------------------------------------------------------------------------
-// Exported node types
-// ---------------------------------------------------------------------------
-
 export const GENERATOR_NODE_TYPES = [
   "lib.image.draw.LinearGradient",
   "lib.image.draw.RadialGradient",
@@ -138,10 +124,6 @@ export const GENERATOR_NODE_TYPES = [
   "lib.image.draw.Checkerboard",
   "lib.image.draw.GaussianNoise"
 ] as const;
-
-// ---------------------------------------------------------------------------
-// Props
-// ---------------------------------------------------------------------------
 
 export interface GeneratorBodyProps {
   id: string;
@@ -152,10 +134,6 @@ export interface GeneratorBodyProps {
   status?: string;
   isOutputNode: boolean;
 }
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
 
 const GeneratorBodyInner: React.FC<GeneratorBodyProps> = ({
   id,
@@ -181,7 +159,6 @@ const GeneratorBodyInner: React.FC<GeneratorBodyProps> = ({
     nodeType
   });
 
-  // Derive color specs from metadata
   const colorSpecs = useMemo<ColorSpec[]>(
     () =>
       properties
@@ -198,7 +175,6 @@ const GeneratorBodyInner: React.FC<GeneratorBodyProps> = ({
     [properties]
   );
 
-  // Derive slider specs from metadata, applying overrides where needed
   const sliderSpecs = useMemo<SliderSpec[]>(
     () =>
       properties.reduce<SliderSpec[]>((acc, p) => {
@@ -226,7 +202,6 @@ const GeneratorBodyInner: React.FC<GeneratorBodyProps> = ({
     [properties, nodeType]
   );
 
-  // Color helpers
   const getColor = useCallback(
     (name: string, fallback: string): string =>
       String(
@@ -243,7 +218,6 @@ const GeneratorBodyInner: React.FC<GeneratorBodyProps> = ({
     [setProperty, setPropertyComplete]
   );
 
-  // Slider handler
   const handleSliderChange = useCallback(
     (name: string, v: number) => {
       const spec = sliderSpecs.find((s) => s.name === name);

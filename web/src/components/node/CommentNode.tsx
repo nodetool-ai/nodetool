@@ -28,7 +28,6 @@ import { HorizontalRuleNode } from "../textEditor/HorizontalRuleNode";
 import { $convertFromMarkdownString, TRANSFORMERS } from "@lexical/markdown";
 import { shallow } from "zustand/shallow";
 
-// Function to calculate contrast color (black or white) for a given hex background
 function getContrastTextColor(hexColor: string): string {
   if (!hexColor) {
     return "#000000";
@@ -54,7 +53,6 @@ function getContrastTextColor(hexColor: string): string {
     return "#000000";
   }
 
-  // Calculate luminance
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
 
   return luminance > 0.5 ? "#000000" : "#FFFFFF";

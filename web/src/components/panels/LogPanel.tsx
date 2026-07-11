@@ -57,7 +57,6 @@ const LogPanel: React.FC = memo(function LogPanel() {
 
   const [selectedSeverities, setSelectedSeverities] = useState<Severity[]>([]);
 
-  // Subscribe to logs - this will trigger re-renders when logs change
   const logs = useLogsStore((s) => s.logs);
 
   // Filter by workflow and severity, then shape rows, in a single pass.

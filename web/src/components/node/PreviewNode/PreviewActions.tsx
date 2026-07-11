@@ -24,7 +24,6 @@ const getAssetInfo = (
     return null;
   }
 
-  // Single asset object with type and uri
   const obj = value as Record<string, unknown>;
   if (obj.type && obj.uri && typeof obj.uri === "string") {
     const type = obj.type as string;
@@ -39,7 +38,6 @@ const getAssetInfo = (
     }
   }
 
-  // Array with single asset
   if (Array.isArray(value) && value.length === 1) {
     return getAssetInfo(value[0]);
   }

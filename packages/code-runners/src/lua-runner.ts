@@ -68,10 +68,6 @@ function isLuaIdentifier(s: string): boolean {
   return /^[A-Za-z_][A-Za-z0-9_]*$/.test(s);
 }
 
-// ---------------------------------------------------------------------------
-// LuaRunner
-// ---------------------------------------------------------------------------
-
 export interface LuaRunnerOptions extends StreamRunnerOptions {
   image?: string;
   executable?: string;
@@ -106,7 +102,6 @@ export class LuaRunner extends StreamRunnerBase {
     const injectedLocalsLines: string[] = [];
     for (const [key, val] of Object.entries(envLocals ?? {})) {
       if (typeof key !== "string" || !isLuaIdentifier(key)) {
-        // Skip invalid identifiers
         continue;
       }
       injectedLocalsLines.push(`_ENV[${luaLiteral(key)}] = ${luaLiteral(val)}`);
@@ -135,10 +130,6 @@ export class LuaRunner extends StreamRunnerBase {
     return [this.executable, "-e", luaSnippet];
   }
 }
-
-// ---------------------------------------------------------------------------
-// LuaSubprocessRunner
-// ---------------------------------------------------------------------------
 
 /**
  * Convenience runner that always uses local subprocess mode.

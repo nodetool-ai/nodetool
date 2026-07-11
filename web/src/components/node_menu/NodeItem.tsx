@@ -52,7 +52,6 @@ const NodeItem = memo(
       const hasRuntimeDeps =
         node.required_runtimes && node.required_runtimes.length > 0;
       const isSnippet = !!findSnippetByNodeType(node.node_type);
-      // Combine multiple store selectors into one with shallow comparison to reduce re-renders
       const { searchTerm, hoveredNode, setHoveredNode } = useNodeMenuStore(
         useShallow((state) => ({
           searchTerm: state.searchTerm,
@@ -166,7 +165,6 @@ const NodeItem = memo(
         [showCheckbox, onDragStart, node]
       );
 
-      // Memoize inline styles to prevent recreation on every render
       const nodeButtonStyle = useMemo(
         () => ({
           cursor: "pointer" as const,

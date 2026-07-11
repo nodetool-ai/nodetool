@@ -12,7 +12,7 @@ import WorkflowContextMenu from "./WorkflowContextMenu";
 import SidebarDocumentContextMenu from "./SidebarDocumentContextMenu";
 
 const ContextMenus = memo(function ContextMenus() {
-    const { openMenuType } = useContextMenu();
+    const openMenuType = useContextMenu((state) => state.openMenuType);
 
     return (
         <>
@@ -32,4 +32,4 @@ const ContextMenus = memo(function ContextMenus() {
     );
 });
 
-export default memo(ContextMenus);
+export default ContextMenus;

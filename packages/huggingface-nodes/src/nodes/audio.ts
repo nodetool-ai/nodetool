@@ -16,9 +16,6 @@ const EMPTY_AUDIO = {
   metadata: null
 };
 
-// ---------------------------------------------------------------------------
-// Automatic Speech Recognition (speech-to-text)
-// ---------------------------------------------------------------------------
 export class AutomaticSpeechRecognitionNode extends BaseNode {
   static readonly nodeType = "huggingface.AutomaticSpeechRecognition";
   static readonly title = "Automatic Speech Recognition";
@@ -86,9 +83,6 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Audio Classification
-// ---------------------------------------------------------------------------
 export class AudioClassificationNode extends BaseNode {
   static readonly nodeType = "huggingface.AudioClassification";
   static readonly title = "Audio Classification";

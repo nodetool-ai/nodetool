@@ -342,7 +342,7 @@ export abstract class BaseProvider {
    * Explicit capability declaration. Returns `null` by default, in which case
    * {@link getCapabilities} derives capabilities by reflecting on which
    * optional methods the concrete class overrides. Providers may override this
-   * to declare their capabilities directly — a robust alternative to method
+   * to declare their capabilities directly — an alternative to method
    * reflection when methods are wrapped, bound, or composed via mixins.
    */
   protected declaredCapabilities(): ProviderCapability[] | null {

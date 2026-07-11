@@ -11,13 +11,8 @@ interface PanelErrorBoundaryState {
   error?: Error;
 }
 
-/**
- * Error boundary component for catching and handling rendering errors in panel components.
- * Used to prevent one panel's error from crashing the entire application.
- *
- * Note: React error boundaries require class components as they need lifecycle methods
- * (getDerivedStateFromError and componentDidCatch) that are not available in functional components.
- */
+// React error boundaries must be class components: getDerivedStateFromError and
+// componentDidCatch have no functional-component equivalent.
 export default class PanelErrorBoundary extends React.Component<
   PanelErrorBoundaryProps,
   PanelErrorBoundaryState
@@ -32,7 +27,6 @@ export default class PanelErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    // Log panel errors for debugging while preventing the entire app from crashing
     console.error("Panel crashed:", error, errorInfo);
   }
 
@@ -60,5 +54,3 @@ export default class PanelErrorBoundary extends React.Component<
     return this.props.children;
   }
 }
-
-

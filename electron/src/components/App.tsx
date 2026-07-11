@@ -78,7 +78,6 @@ const App: React.FC = () => {
     }
   }, [loadContentWithNoCaching]);
 
-  // Set up event listeners
   const handleUpdateProgress = useCallback(
     (data: UpdateProgressData) => {
       setProgressData(data);
@@ -178,12 +177,10 @@ const App: React.FC = () => {
 
 
   useEffect(() => {
-    // Initialize platform class
     document.body.classList.add(`platform-${window.api.platform}`);
-    
-    // Register event listeners and collect unsubscribe functions
+
     const unsubs: (() => void)[] = [];
-    
+
     unsubs.push(window.api.installer.onProgress(handleUpdateProgress));
     unsubs.push(window.api.server.onStarted(handleServerStarted));
     unsubs.push(window.api.server.onBootMessage(handleBootMessage));
@@ -193,10 +190,8 @@ const App: React.FC = () => {
     unsubs.push(window.api.packages.onUpdatesAvailable(handlePackageUpdatesAvailable));
     unsubs.push(window.api.menu.onEvent(handleMenuEvent));
 
-    // Initialize app after listeners are in place
     initializeApp();
 
-    // Cleanup on unmount
     return () => {
       unsubs.forEach(unsub => unsub());
     };

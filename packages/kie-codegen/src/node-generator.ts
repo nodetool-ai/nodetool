@@ -8,10 +8,6 @@
 import { classifyFields, classNameToTitle } from "@nodetool-ai/node-sdk";
 import type { NodeConfig, ModuleConfig, FieldDef } from "./types.js";
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
 function castFn(type: string): string {
   switch (type) {
     case "int":
@@ -52,10 +48,6 @@ function isAssetType(type: string): boolean {
   ].includes(type);
 }
 
-// ---------------------------------------------------------------------------
-// Field Classification
-// ---------------------------------------------------------------------------
-
 /**
  * Compute inlineFields and inputFields from a Kie field list.
  * Delegates to the shared `classifyFields` rule in node-sdk after mapping
@@ -67,15 +59,10 @@ function computeFieldClassification(fields: FieldDef[]) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Generator
-// ---------------------------------------------------------------------------
-
 export class KieNodeGenerator {
   generateModule(config: ModuleConfig): string {
     const lines: string[] = [];
 
-    // Imports
     lines.push(
       `import { BaseNode, prop } from "@nodetool-ai/node-sdk";`,
       `import type { NodeClass } from "@nodetool-ai/node-sdk";`,
@@ -97,7 +84,6 @@ export class KieNodeGenerator {
       ``
     );
 
-    // Node classes
     const classNames: string[] = [];
     for (const node of config.nodes) {
       lines.push(this._renderClass(node, config.moduleName, config));
@@ -105,7 +91,6 @@ export class KieNodeGenerator {
       classNames.push(`${node.className}Node`);
     }
 
-    // Export array
     const moduleUpper = config.moduleName.replace(/-/g, "_").toUpperCase();
     lines.push(
       `export const KIE_${moduleUpper}_NODES: readonly NodeClass[] = [`,
@@ -140,20 +125,17 @@ export class KieNodeGenerator {
     );
     lines.push(`  static readonly requiredSettings = ["KIE_API_KEY"];`);
 
-    // Compute and emit field classification
     const { inlineFields, inputFields } = computeFieldClassification(node.fields);
     lines.push(`  static readonly inlineFields = ${JSON.stringify(inlineFields)};`);
     lines.push(`  static readonly inputFields = ${JSON.stringify(inputFields)};`);
     lines.push(``);
 
-    // Custom fields
     for (const field of node.fields) {
       lines.push(this._renderProp(field));
       lines.push(`  declare ${field.name}: any;`);
       lines.push(``);
     }
 
-    // Process method
     lines.push(...this._renderProcess(node, pollInterval, maxAttempts));
 
     lines.push(`}`);
@@ -197,7 +179,6 @@ export class KieNodeGenerator {
     );
     lines.push(`    const apiKey = getApiKey(this._secrets);`);
 
-    // Validation
     if (node.validation) {
       for (const v of node.validation) {
         if (v.rule === "not_empty") {
@@ -209,10 +190,8 @@ export class KieNodeGenerator {
       }
     }
 
-    // Upload assets
     const uploadVars: Record<string, string> = {};
     if (node.uploads) {
-      // Group uploads by groupKey
       const groups = new Map<string, typeof node.uploads>();
       const ungrouped: typeof node.uploads = [];
       for (const upload of node.uploads) {
@@ -279,17 +258,14 @@ export class KieNodeGenerator {
       }
     }
 
-    // Build params
     lines.push(`    const params: Record<string, unknown> = {};`);
 
-    // Scalar fields
     for (const field of node.fields) {
       if (isAssetType(field.type)) continue; // handled by uploads
       const paramName = node.paramNames?.[field.name] ?? field.name;
       const cast = castFn(field.type);
       const defLit = defaultLiteral(field.default, field.type);
 
-      // Check if conditional
       const conditional = node.conditionalFields?.find(
         (c) => c.field === field.name
       );
@@ -313,7 +289,6 @@ export class KieNodeGenerator {
       }
     }
 
-    // Add upload vars to params
     for (const [paramName, varName] of Object.entries(uploadVars)) {
       lines.push(
         `    if (${varName}${varName.endsWith("Urls") ? ".length" : ""}) params[${JSON.stringify(paramName)}] = ${varName};`
@@ -322,7 +297,6 @@ export class KieNodeGenerator {
 
     lines.push(``);
 
-    // Execute
     if (node.useSuno) {
       lines.push(
         `    const result = await kieExecuteSunoTask(apiKey, params, ${pollInterval}, ${maxAttempts});`

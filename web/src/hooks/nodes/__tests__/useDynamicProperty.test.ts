@@ -11,9 +11,9 @@ const mockUpdateNodeData = jest.fn();
 describe("useDynamicProperty", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (useNodes as jest.Mock).mockReturnValue({
-      updateNodeData: mockUpdateNodeData
-    });
+    (useNodes as jest.Mock).mockImplementation((selector: (s: unknown) => unknown) =>
+      selector({ updateNodeData: mockUpdateNodeData })
+    );
   });
 
   it("returns handleDeleteProperty, handleAddProperty, and handleUpdatePropertyName functions", () => {

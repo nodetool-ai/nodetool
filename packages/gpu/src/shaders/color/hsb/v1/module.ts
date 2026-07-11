@@ -34,8 +34,8 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 export const colorHsbV1 = defineModule({
   id: "color.hsb",
   version: 1,
-  // Promoted in Phase 3 Batch 1: HSB shift is the workflow user's mental
-  // model for color adjustment; schema matches that vocabulary exactly.
+  // HSB shift is the workflow user's mental model for color adjustment; the
+  // schema matches that vocabulary exactly.
   surface: "published",
   category: "color",
   linearity: "nonlinear-in-rgb",

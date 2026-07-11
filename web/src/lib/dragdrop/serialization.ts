@@ -78,20 +78,16 @@ const LEGACY_KEY_MAP: Record<DragDataType, string> = {
 };
 
 /**
- * Serialize drag data with backward compatibility
- *
- * Sets both the new unified format and legacy format keys to ensure
- * compatibility with components that haven't been migrated yet.
+ * Serialize drag data, setting both the unified MIME format and the legacy
+ * dataTransfer key so unmigrated components still read the drag.
  */
 export function serializeDragData<T extends DragDataType>(
   data: DragData<T>,
   dataTransfer: DataTransfer
 ): void {
-  // Set new unified format
   const serialized = JSON.stringify(data);
   dataTransfer.setData(DRAG_DATA_MIME, serialized);
 
-  // Also set legacy format for backward compatibility
   const legacyKey = LEGACY_KEY_MAP[data.type];
   if (legacyKey) {
     dataTransfer.setData(legacyKey, JSON.stringify(data.payload));
@@ -99,13 +95,10 @@ export function serializeDragData<T extends DragDataType>(
 }
 
 /**
- * Deserialize drag data with fallback to legacy formats
- *
- * Tries the new unified format first, then falls back to legacy keys
- * if the unified format is not present.
+ * Deserialize drag data, trying the unified MIME format first and falling
+ * back to legacy dataTransfer keys.
  */
 export function deserializeDragData(dataTransfer: DataTransfer): DragData | null {
-  // Try new unified format first
   const unified = dataTransfer.getData(DRAG_DATA_MIME);
   if (unified) {
     try {
@@ -116,7 +109,6 @@ export function deserializeDragData(dataTransfer: DataTransfer): DragData | null
     }
   }
 
-  // Fall back to legacy formats
   const createNode = dataTransfer.getData("create-node");
   if (createNode) {
     try {
@@ -187,11 +179,6 @@ export function deserializeDragData(dataTransfer: DataTransfer): DragData | null
     }
   }
 
-  // Check for external files (will be handled separately in drop zone)
-  if (hasExternalFiles(dataTransfer)) {
-    return null;
-  }
-
   return null;
 }
 
@@ -228,31 +215,18 @@ export function resolveAssetsMultiple(
     .filter((asset): asset is Asset => asset !== undefined);
 }
 
-/**
- * Check if dataTransfer contains external files
- */
 export function hasExternalFiles(dataTransfer: DataTransfer): boolean {
-  // Check items for file kind
   if (dataTransfer.items) {
     return Array.from(dataTransfer.items).some((item) => item.kind === "file");
   }
-  // Fallback to files property
   return dataTransfer.files.length > 0;
 }
 
-/**
- * Extract files from dataTransfer
- */
 export function extractFiles(dataTransfer: DataTransfer): File[] {
   return Array.from(dataTransfer.files);
 }
 
-/**
- * Create a count badge drag image element
- *
- * Creates a styled badge element showing a count, useful for
- * showing the number of selected items during drag.
- */
+/** Build an off-screen badge element showing `count`, for use as a drag image. */
 export function createDragCountBadge(count: number): HTMLElement {
   const dragImage = document.createElement("div");
   dragImage.textContent = count.toString();

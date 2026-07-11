@@ -144,7 +144,6 @@ export class ProgressManager {
       info.description = description;
     }
 
-    // Print current progress
     if (info.total !== null && info.total > 0) {
       this.logger.log(
         `  ${info.description} ${renderBar(info.completed, info.total)}`

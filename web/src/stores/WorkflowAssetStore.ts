@@ -1,15 +1,6 @@
 /**
- * WorkflowAssetStore manages assets scoped to specific workflows.
- *
- * Responsibilities:
- * - Load assets filtered by workflow_id
- * - Cache workflow assets separately from global assets
- * - Provide filtered views of workflow assets
- * - Track loading state per workflow
- *
- * This store complements AssetStore:
- * - AssetStore: Global asset management with folder navigation
- * - WorkflowAssetStore: Workflow-scoped asset views
+ * Assets scoped to a specific workflow (by workflow_id), cached separately from
+ * AssetStore's global, folder-navigable asset management.
  */
 
 import { create } from "zustand";
@@ -20,33 +11,17 @@ import { normalizeAssetList } from "../utils/normalizeAsset";
 const EMPTY_ASSETS: Asset[] = [];
 
 interface WorkflowAssetState {
-  // Assets grouped by workflow ID
   assetsByWorkflow: Record<string, Asset[]>;
-
-  // Loading state per workflow
   loadingByWorkflow: Record<string, boolean>;
-
-  // Error state per workflow
   errorsByWorkflow: Record<string, Error | null>;
 }
 
 interface WorkflowAssetStore extends WorkflowAssetState {
-  // Load assets for a workflow
   loadWorkflowAssets: (workflowId: string) => Promise<Asset[]>;
-
-  // Get assets for a workflow
   getWorkflowAssets: (workflowId: string) => Asset[];
-
-  // Clear assets for a workflow
   clearWorkflowAssets: (workflowId: string) => void;
-
-  // Clear all workflow assets
   clearAllWorkflowAssets: () => void;
-
-  // Check if workflow assets are loading
   isWorkflowLoading: (workflowId: string) => boolean;
-
-  // Get error for a workflow
   getWorkflowError: (workflowId: string) => Error | null;
 }
 
@@ -66,9 +41,6 @@ export const useWorkflowAssetStore = create<WorkflowAssetStore>(
     loadingByWorkflow: {},
     errorsByWorkflow: {},
 
-    /**
-     * Load assets for a specific workflow from the API.
-     */
     loadWorkflowAssets: async (workflowId: string): Promise<Asset[]> => {
       const token = {};
       loadTokens.set(workflowId, token);
@@ -132,16 +104,10 @@ export const useWorkflowAssetStore = create<WorkflowAssetStore>(
       }
     },
 
-    /**
-     * Get cached assets for a workflow.
-     */
     getWorkflowAssets: (workflowId: string) => {
       return get().assetsByWorkflow[workflowId] ?? EMPTY_ASSETS;
     },
 
-    /**
-     * Clear assets for a specific workflow.
-     */
     clearWorkflowAssets: (workflowId: string) => {
       // Drop the in-flight token entirely. Bumping a counter only would
       // leave loadTokens growing unbounded across long sessions, which
@@ -161,9 +127,6 @@ export const useWorkflowAssetStore = create<WorkflowAssetStore>(
       });
     },
 
-    /**
-     * Clear all workflow assets.
-     */
     clearAllWorkflowAssets: () => {
       loadTokens.clear();
       set({
@@ -173,16 +136,10 @@ export const useWorkflowAssetStore = create<WorkflowAssetStore>(
       });
     },
 
-    /**
-     * Check if workflow assets are currently loading.
-     */
     isWorkflowLoading: (workflowId: string) => {
       return get().loadingByWorkflow[workflowId] || false;
     },
 
-    /**
-     * Get error for a workflow.
-     */
     getWorkflowError: (workflowId: string) => {
       return get().errorsByWorkflow[workflowId] || null;
     }

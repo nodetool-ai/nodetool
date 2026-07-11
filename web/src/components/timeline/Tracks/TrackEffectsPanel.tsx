@@ -62,8 +62,6 @@ import {
 } from "../../ui_primitives";
 import { FX_PANEL_HEIGHT_PX } from "./trackHeight";
 
-// ── Styles ──────────────────────────────────────────────────────────────────
-
 const containerStyles = (theme: Theme) =>
   css({
     width: "100%",
@@ -90,8 +88,6 @@ const deviceRackStyles = (theme: Theme) =>
     overflowX: "auto",
     overflowY: "hidden"
   });
-
-// Per-effect-type card width (Ableton-style fixed-width "devices").
 
 const effectCardStyles = (
   theme: Theme,
@@ -210,10 +206,6 @@ const paramValueStyles = (theme: Theme) =>
     color: theme.vars.palette.text.primary
   });
 
-// ── Effect labels ───────────────────────────────────────────────────────────
-
-// ── Parameter row ───────────────────────────────────────────────────────────
-
 interface ParamRowProps {
   label: string;
   value: number;
@@ -312,8 +304,6 @@ const ParamRow: React.FC<ParamRowProps> = memo(
 );
 ParamRow.displayName = "ParamRow";
 
-// ── Per-effect editors ──────────────────────────────────────────────────────
-
 interface EffectEditorProps<E extends TrackEffect> {
   effect: E;
   onPatch: (patch: Partial<E>) => void;
@@ -338,8 +328,7 @@ const GainEditor: React.FC<EffectEditorProps<TrackGainEffect>> = ({
   />
 );
 
-// ── 3-Band EQ visualizer (Logic-style) ──────────────────────────────────────
-
+// 3-Band EQ visualizer (Logic-style)
 const EQ_FS = 48000;
 const EQ_F_MIN = 20;
 const EQ_F_MAX = 20000;
@@ -948,8 +937,7 @@ const FilterEditor: React.FC<EffectEditorProps<TrackFilterEffect>> = ({
   </FlexColumn>
 );
 
-// ── Compressor visualizer (Logic-style transfer curve) ──────────────────────
-
+// Compressor visualizer (Logic-style transfer curve)
 const COMP_DB_MIN = -60;
 const COMP_DB_MAX = 0;
 const COMP_GRAPH_SIZE = 180;
@@ -1506,8 +1494,6 @@ const CompressorEditor: React.FC<EffectEditorProps<TrackCompressorEffect>> = ({
   );
 };
 
-// ── Video effect editors ────────────────────────────────────────────────────
-
 const ColorCorrectionEditor: React.FC<
   EffectEditorProps<TrackColorCorrectionEffect>
 > = ({ effect, onPatch, disabled }) => (
@@ -1808,8 +1794,6 @@ const ChromaKeyEditor: React.FC<
   );
 };
 
-// ── Effect card ─────────────────────────────────────────────────────────────
-
 interface EffectCardProps {
   trackId: string;
   effect: TrackEffect;
@@ -2009,8 +1993,6 @@ const EffectCard: React.FC<EffectCardProps> = memo(
   }
 );
 EffectCard.displayName = "EffectCard";
-
-// ── Panel ───────────────────────────────────────────────────────────────────
 
 export interface TrackEffectsPanelProps {
   trackId: string;

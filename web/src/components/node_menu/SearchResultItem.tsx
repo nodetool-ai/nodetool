@@ -256,7 +256,6 @@ const SearchResultItem = memo(
         [toggleFavorite, addNotification, node.node_type]
       );
 
-      // Parse description and tags - memoize to avoid re-computation on every render
       const { description, tags } = useMemo(
         () =>
           formatNodeDocumentation(
@@ -267,7 +266,6 @@ const SearchResultItem = memo(
         [node.description, searchTerm, node.searchInfo]
       );
 
-      // Find matching tags by comparing with search term - memoize
       const matchingTags = useMemo(() => {
         if (!searchTerm) {
           return [];
@@ -307,14 +305,6 @@ const SearchResultItem = memo(
         },
         []
       );
-
-      const handleMouseEnter = useCallback(() => {
-        // No longer auto-expand on hover
-      }, []);
-
-      const handleMouseLeave = useCallback(() => {
-        // No longer auto-collapse on leave
-      }, []);
 
       const handleDragStart = useCallback(
         (event: React.DragEvent<HTMLDivElement>) => {
@@ -426,8 +416,6 @@ const SearchResultItem = memo(
           draggable
           onClick={handleClick}
           onKeyDown={handleKeyDown}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
           onDragStart={handleDragStart}
           onDragEnd={onDragEnd}
         >

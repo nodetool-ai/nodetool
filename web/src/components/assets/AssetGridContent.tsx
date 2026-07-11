@@ -242,7 +242,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
 
   // Separate stable data from selection state to prevent unnecessary re-renders
   const stableItemData = useMemo(() => {
-    const data = {
+    return {
       getItemsForRow: (index: number) =>
         getItemsForRow(preparedItems, index, gridDimensions.columns),
       gridDimensions,
@@ -255,7 +255,6 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
       expandedTypes,
       toggleExpanded
     };
-    return data;
   }, [
     preparedItems,
     gridDimensions,
@@ -270,20 +269,15 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
     // Note: selectedAssetIds is NOT included here!
   ]);
 
-  // Create a selection context that changes less frequently
-  const selectionData = useMemo(() => {
-    const data = { selectedAssetIds };
-    return data;
-  }, [selectedAssetIds]);
+  const selectionData = useMemo(
+    () => ({ selectedAssetIds }),
+    [selectedAssetIds]
+  );
 
-  // Combine stable and selection data
-  const itemData = useMemo(() => {
-    const data = {
-      ...stableItemData,
-      ...selectionData
-    };
-    return data;
-  }, [stableItemData, selectionData]);
+  const itemData = useMemo(
+    () => ({ ...stableItemData, ...selectionData }),
+    [stableItemData, selectionData]
+  );
 
   useEffect(() => {
     if (containerRef.current) {

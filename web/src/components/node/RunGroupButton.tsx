@@ -57,7 +57,6 @@ const RunGroupButton: React.FC<RunGroupButtonProps> = ({
     }
   }, [isWorkflowRunning, onClick]);
 
-  // Memoize inline styles to avoid recreating on every render
   const tooltipSpanStyle = useMemo(() => ({
     display: "flex",
     flexDirection: "column" as const,

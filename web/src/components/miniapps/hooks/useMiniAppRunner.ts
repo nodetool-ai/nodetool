@@ -30,7 +30,6 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
     return createWorkflowRunnerStore(workflowKey);
   }, [workflowKey]);
 
-  // Combine multiple store subscriptions into one for better performance
   const { run: runWorkflowFromStore, cancel: cancelWorkflowFromStore, state: runnerState, statusMessage, notifications } = useStoreWithEqualityFn(
     runnerStore,
     (state) => ({
@@ -44,7 +43,6 @@ export const useMiniAppRunner = (selectedWorkflow?: Workflow) => {
   );
   const workflowId = selectedWorkflow?.id;
 
-  // Combine multiple MiniAppsStore subscriptions into one for better performance.
   // shallow equality prevents re-renders when unrelated workflows update the store.
   const {
     results,

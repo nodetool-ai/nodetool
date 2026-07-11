@@ -376,7 +376,6 @@ export const LogsTable: React.FC<LogsTableProps> = ({
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
   const columns = showTimestampColumn ? "1fr 80px 60px" : "1fr 60px";
 
-  // Optimization: Memoize filteredRows to prevent recalculation on every render
   const filteredRows = useMemo(() => {
     return Array.isArray(severities) && severities.length > 0
       ? rows.filter((r) => severities.includes(r.severity))

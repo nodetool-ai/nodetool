@@ -7,12 +7,6 @@ type LinearProgressWithLabelProps = LinearProgressProps & {
     value: number
 }
 
-/**
- * Memoized linear progress component with filename and percentage display.
- * Optimized to prevent unnecessary re-renders during file upload operations.
- *
- * Now wraps the ProgressBar UI primitive.
- */
 export const LinearProgressWithLabel = memo(function LinearProgressWithLabel(props: LinearProgressWithLabelProps) {
     const { filename, value, ...rest } = props;
 

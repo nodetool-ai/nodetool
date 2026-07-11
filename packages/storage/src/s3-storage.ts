@@ -1,6 +1,4 @@
 /**
- * S3Storage — T-ST-4.
- *
  * Storage backend for Amazon S3 and S3-compatible services, backed by the
  * in-house SigV4 client in ./s3/.
  */

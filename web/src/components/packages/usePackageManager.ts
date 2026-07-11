@@ -3,10 +3,8 @@
  *
  * Subscribes to the four package stores (runtimes, builtin packs, registry
  * packs, third-party packs), runs their fetch/console effects, and derives the
- * view model the UI renders: left-rail categories with counts, the right-pane
- * title/subtitle/count, status-filter chips with counts, and the filtered row
- * list. Mirrors the claude.ai/design `PackageManager.dc.html` template logic,
- * adapted to live data.
+ * view model the UI renders: left-rail categories with counts, right-pane
+ * title/subtitle/count, status-filter chips, and the filtered row list.
  */
 import { useEffect, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
@@ -343,7 +341,6 @@ export function usePackageManager(params: {
           { id: "thirdparty", label: "Third-party", count: thirdPartyPacks.length }
         ];
 
-    // Build the base list + rows for the active category.
     let rows: PMRow[] = [];
     let baseCount = 0;
     const chips: PMCount[] = [];

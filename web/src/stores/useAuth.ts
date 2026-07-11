@@ -53,14 +53,10 @@ export const getAuthRedirectUrl = (): string => {
   return "/";
 };
 
-// Supabase subscription type from @supabase/supabase-js
 type SupabaseSubscription = {
   unsubscribe: () => void;
 };
 
-/**
- * Interface defining the structure of the authentication Zustand store.
- */
 interface LoginStore {
   /** The current Supabase session object, or null if not logged in. */
   session: Session | null;

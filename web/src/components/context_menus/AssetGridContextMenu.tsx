@@ -1,4 +1,3 @@
-//mui
 import type { MouseEvent } from "react";
 
 import {
@@ -8,12 +7,10 @@ import {
   MenuItem
 } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
-//icons
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import SortByAlphaIcon from "@mui/icons-material/SortByAlpha";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import StorageIcon from "@mui/icons-material/Storage";
-//store
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useSettingsStore } from "../../stores/SettingsStore";

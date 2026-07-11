@@ -144,11 +144,9 @@ export const ActionButtonGroup = memo(
     ) => {
       const theme = useTheme();
 
-      // Convert children to array and filter out falsy values
-      // Use array-based approach that works better in test environments
+      // Array-based flatten works more reliably than Children.toArray in tests.
       const childArray = (Array.isArray(children) ? children : [children]).flat().filter(Boolean);
 
-      // Add dividers between items if requested
       const childrenWithDividers =
         divider && childArray.length > 1
           ? childArray.reduce<React.ReactNode[]>((acc, child, index) => {

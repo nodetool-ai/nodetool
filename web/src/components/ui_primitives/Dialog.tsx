@@ -161,7 +161,6 @@ export const Dialog = memo(
     ) => {
       const theme = useTheme();
 
-      // Show actions if explicitly requested or if onConfirm is provided
       const shouldShowActions = showActions || !!onConfirm;
 
       const handleCancel = () => {

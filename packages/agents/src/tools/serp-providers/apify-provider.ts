@@ -9,16 +9,8 @@
 
 import type { SerpProvider, SearchResult, SearchOptions } from "./index.js";
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
 const APIFY_API_BASE = "https://api.apify.com/v2";
 const GOOGLE_SEARCH_ACTOR_ID = "apify/google-search-scraper";
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 interface ApifyRunResponse {
   id: string;
@@ -40,7 +32,6 @@ async function apifyRequest(
   query: string,
   numResults: number
 ): Promise<SearchResult[] | { error: string }> {
-  // Start an actor run
   const runUrl = `${APIFY_API_BASE}/acts/${GOOGLE_SEARCH_ACTOR_ID}/runs`;
   const runInput = {
     queries: [query],
@@ -50,7 +41,6 @@ async function apifyRequest(
   };
 
   try {
-    // Start the actor run
     const runRes = await fetch(runUrl, {
       method: "POST",
       headers: {
@@ -91,11 +81,9 @@ async function apifyRequest(
         };
       }
 
-      // Wait a bit before polling again
       await new Promise((resolve) => setTimeout(resolve, 1000));
     }
 
-    // Fetch results from the dataset
     const datasetUrl = `${APIFY_API_BASE}/runs/${runId}/dataset/items`;
     const datasetRes = await fetch(datasetUrl, {
       headers: { Authorization: `Bearer ${apiKey}` }
@@ -109,7 +97,6 @@ async function apifyRequest(
 
     const items = (await datasetRes.json()) as ApifyDatasetItem[];
 
-    // Limit to requested number of results
     return items.slice(0, numResults).map((item, i) => ({
       title: String(item.title ?? ""),
       url: String(item.url ?? ""),
@@ -120,10 +107,6 @@ async function apifyRequest(
     return { error: `Apify request failed: ${(e as Error).message}` };
   }
 }
-
-// ---------------------------------------------------------------------------
-// Provider
-// ---------------------------------------------------------------------------
 
 export class ApifyProvider implements SerpProvider {
   private readonly apiKey: string;

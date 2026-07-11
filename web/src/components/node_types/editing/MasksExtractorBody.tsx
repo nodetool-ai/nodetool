@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 /**
- * MasksExtractorBody — bespoke body for mask-extractor model nodes
- * (plan §9.E6, PR 14).
+ * MasksExtractorBody — bespoke body for mask-extractor model nodes.
  *
  * Top: tabbed preview — `Image` shows the source image fed into the node's
  * `image` input, `Mask` shows the node's own output (the extracted mask /
@@ -10,9 +9,8 @@
  * Bottom: `Recalculate` action button (RunModelButton) — triggers a
  * single-node run via `useRunSingleNode`.
  *
- * Registered for the established mask-extractor providers (Bria /
- * BackgroundRemover variants). Additional providers can be added to the
- * registry as their bespoke targets are confirmed.
+ * Registered for the mask-extractor providers (Bria / BackgroundRemover
+ * variants). Additional providers can be added to the registry.
  */
 
 import React, { memo, useCallback, useMemo, useState } from "react";
@@ -42,9 +40,8 @@ import {
 } from "../../../hooks/nodes/useNodeIO";
 import { asImageRef } from "../../../utils/imageRef";
 
-// Node types currently bound to this bespoke body. Mask-extractor / bg-removal
-// providers: per §9.E6 we ship the known Bria + 851-labs variants. Extend as
-// additional providers are confirmed in §9.E11.
+// Node types bound to this bespoke body — the Bria + 851-labs
+// background-removal variants.
 const MASKS_EXTRACTOR_NODE_TYPES = [
   "replicate.image.background.Bria_RemoveBackground",
   "replicate.image.background.BackgroundRemover_851",

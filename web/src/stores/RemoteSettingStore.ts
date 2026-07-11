@@ -31,7 +31,6 @@ const useRemoteSettingsStore = create<RemoteSettingsStore>((set, get) => ({
       const data = await trpcClient.settings.list.query();
       const settings = data.settings as SettingWithValue[];
 
-      // Group settings by their group field
       const settingsByGroup = new Map<string, SettingWithValue[]>();
       settings.forEach((setting) => {
         const group = setting.group;

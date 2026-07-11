@@ -141,7 +141,6 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
         boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
       }}
     >
-      {/* Progress bar */}
       {isRunning && (
         <LinearProgress
           variant={progress ? "determinate" : "indeterminate"}
@@ -156,7 +155,6 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
         />
       )}
 
-      {/* Header */}
       <FlexRow
         gap={1.5}
         align="center"
@@ -184,7 +182,6 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
           )}
         </FlexColumn>
 
-        {/* Status indicator */}
         {isCompleted && (
           <CheckCircleOutlineIcon sx={{ fontSize: 18, color: theme.vars.palette.success.main }} />
         )}
@@ -215,7 +212,6 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
         </Box>
       )}
 
-      {/* Expanded content */}
       <Collapse in={node.expanded} unmountOnExit>
         <FlexColumn gap={1.5} sx={{ px: 2, pb: 2 }}>
           {node.metadata.description && (
@@ -256,7 +252,6 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
 
           <Divider spacing="compact" color="subtle" />
 
-          {/* Actions */}
           <FlexRow gap={0.5} align="center">
             <ToolbarIconButton ariaLabel="Move node up" size="small" onClick={onMoveUp} disabled={index === 0} tooltip="Move up" icon={<ArrowUpwardIcon sx={{ fontSize: 18 }} />} />
             <ToolbarIconButton ariaLabel="Move node down" size="small" onClick={onMoveDown} disabled={index === totalNodes - 1} tooltip="Move down" icon={<ArrowDownwardIcon sx={{ fontSize: 18 }} />} />

@@ -32,11 +32,8 @@ export const MessageInput = memo(forwardRef<HTMLTextAreaElement, MessageInputPro
       // Reset height to auto to get the correct scrollHeight
       textarea.style.height = "auto";
 
-      // Calculate new height, capped at MAX_HEIGHT
       const newHeight = Math.min(textarea.scrollHeight, MAX_HEIGHT);
       textarea.style.height = `${newHeight}px`;
-
-      // Enable scrolling only when content exceeds max height
       textarea.style.overflowY = textarea.scrollHeight > MAX_HEIGHT ? "auto" : "hidden";
     }, [textareaRef]);
 
@@ -44,7 +41,6 @@ export const MessageInput = memo(forwardRef<HTMLTextAreaElement, MessageInputPro
       adjustHeight();
     }, [value, adjustHeight]);
 
-    // Auto-focus on mount
     useLayoutEffect(() => {
       const textarea = textareaRef.current;
       if (textarea && !disabled) {

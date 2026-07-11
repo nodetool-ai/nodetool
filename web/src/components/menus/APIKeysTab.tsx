@@ -418,7 +418,6 @@ const getParentProviderMeta = (key: string): ProviderMeta | undefined => {
   const meta = getProviderMeta(key);
   if (!meta) return undefined;
 
-  // If this key is in a fields array of another provider, return the parent
   for (const provider of PROVIDER_META) {
     if (provider.fields?.some((f) => f.key === key)) {
       return provider;
@@ -428,7 +427,6 @@ const getParentProviderMeta = (key: string): ProviderMeta | undefined => {
   return meta;
 };
 
-// Check if all fields of a multi-field provider are configured
 const areAllFieldsConfigured = (meta: ProviderMeta, configuredKeys: Set<string>): boolean => {
   if (!meta.fields) {
     return configuredKeys.has(meta.key);
@@ -875,7 +873,6 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
 
   const lowerSearch = searchTerm.toLowerCase().trim();
 
-  // Get all configured keys
   const configuredKeys = useMemo(
     () => new Set(safeSecrets.map((s) => s.key)),
     [safeSecrets]
@@ -937,7 +934,6 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
     );
   }, [configuredKeys, lowerSearch]);
 
-  // Group unconfigured by section
   const unconfiguredBySection = useMemo(() => {
     const groups: Record<string, ProviderMeta[]> = {
       popular: [],
@@ -954,7 +950,6 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
     return groups;
   }, [unconfiguredMeta]);
 
-  // Group matched (configured) by section
   const configuredBySection = useMemo(() => {
     const groups: Record<string, Array<{ secret: SecretResponse; meta: ProviderMeta }>> = {
       popular: [],

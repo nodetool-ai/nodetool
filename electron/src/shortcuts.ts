@@ -19,14 +19,12 @@ const registerWorkflowShortcut = async (workflow: Workflow): Promise<boolean> =>
       `Registering shortcut "${shortcut}" for workflow "${workflow.name}" (${workflow.id})`
     );
 
-    // Unregister existing shortcut first
     const wasRegistered = globalShortcut.isRegistered(shortcut);
     if (wasRegistered) {
       logMessage(`Unregistering existing shortcut "${shortcut}" before re-registering`);
       globalShortcut.unregister(shortcut);
     }
 
-    // Attempt to register the new shortcut
     const success = globalShortcut.register(shortcut, () => {
       logMessage(
         `Shortcut "${shortcut}" triggered - executing workflow "${workflow.name}" (${workflow.id})`
@@ -56,7 +54,6 @@ const registerWorkflowShortcut = async (workflow: Workflow): Promise<boolean> =>
   }
 };
 
-// Add new function to set up workflow shortcuts
 async function setupWorkflowShortcuts(): Promise<void> {
   logMessage("Setting up workflow shortcuts...");
   try {

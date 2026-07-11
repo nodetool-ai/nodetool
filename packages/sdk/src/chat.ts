@@ -16,8 +16,6 @@ import type {
   ErrorMessage
 } from "@nodetool-ai/protocol";
 
-/* ─── Types ────────────────────────────────────────────────────────── */
-
 export type WebSocketCtor = typeof WebSocket;
 
 export type ConnectionState =
@@ -108,8 +106,6 @@ export interface ChatSocketOptions {
   maxReconnect?: number;
 }
 
-/* ─── Event-emitter ────────────────────────────────────────────────── */
-
 type EventMap = {
   // Discriminated frame types
   chunk: ChatChunkEvent;
@@ -126,8 +122,6 @@ type EventMap = {
 };
 
 type Listener<K extends keyof EventMap> = (payload: EventMap[K]) => void;
-
-/* ─── Implementation ──────────────────────────────────────────────── */
 
 const DEFAULT_RECONNECT_MS = 1500;
 const DEFAULT_MAX_RECONNECT = 10;
@@ -258,8 +252,6 @@ export class ChatSocket {
     this.sendCommand({ command: "stop", data: { thread_id: threadId } });
   }
 
-  /* ─── internals ───────────────────────────────────────────────── */
-
   private setState(state: ConnectionState): void {
     if (this.state === state) return;
     this.state = state;
@@ -350,8 +342,6 @@ export class ChatSocket {
     this.reconnectTimer = setTimeout(() => this.connect(), delay);
   }
 }
-
-/* ─── helpers ───────────────────────────────────────────────────── */
 
 const KNOWN_TYPES = new Set([
   "chunk",

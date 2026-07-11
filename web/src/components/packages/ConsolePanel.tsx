@@ -1,9 +1,7 @@
 /** @jsxImportSource @emotion/react */
 /**
- * ConsolePanel — collapsible log view shared by the Package Manager sections.
- *
- * Shows the live conda/uv/npm output streamed from the desktop app during
- * install/uninstall, with a show/hide toggle and a clear action.
+ * ConsolePanel — collapsible view of the live conda/uv/npm output streamed from
+ * the desktop app during package install/uninstall.
  */
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";

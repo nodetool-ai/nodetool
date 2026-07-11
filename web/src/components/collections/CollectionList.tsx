@@ -22,7 +22,6 @@ import {
 import { CollectionResponse } from "../../stores/ApiTypes";
 
 const CollectionList = () => {
-  // Group related state to reduce selector calls
   const {
     collections,
     isLoading,
@@ -81,7 +80,6 @@ const CollectionList = () => {
     setIndexErrors([]);
   }, [setIndexErrors]);
 
-  // Memoize drag event handlers to prevent recreating functions on every render
   const handleDragOver = useCallback(
     (e: React.DragEvent<HTMLDivElement>, collectionName: string) => {
       storeHandleDragOver(e, collectionName);
@@ -96,7 +94,6 @@ const CollectionList = () => {
     [storeHandleDragLeave]
   );
 
-  // Create a stable map of drop handlers for each collection
   const dropHandlers = useMemo(() => {
     const handlers: Record<string, (e: React.DragEvent<HTMLDivElement>) => void> = {};
     if (collections?.collections) {

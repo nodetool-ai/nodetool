@@ -4,21 +4,15 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useMemo, useEffect, useState, useCallback } from "react";
 
-// mui
-
-// components
 import TypeFilterChips from "./TypeFilterChips";
 import NamespaceList from "./NamespaceList";
-// store
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import useNodeMenuStore, {
   type NodeMenuStore
 } from "../../stores/NodeMenuStore";
 
-// utils
 import { useDraggable } from "../../hooks/useDraggable";
 import { useResizable } from "../../hooks/useResizable";
-// theme
 import useNamespaceTree from "../../hooks/useNamespaceTree";
 import SearchInput from "../search/SearchInput";
 import { useCombo } from "../../stores/KeyPressedStore";
@@ -46,7 +40,6 @@ const treeStyles = (theme: Theme) =>
       position: "absolute",
       overflow: "hidden",
       zIndex: theme.zIndex.floatingPanel,
-      // Glassmorphism container
       border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: BORDER_RADIUS.xxl,
       boxShadow: "0 24px 48px rgba(0, 0, 0, 0.05), 0 8px 16px rgba(0,0,0,0.02)",
@@ -103,7 +96,6 @@ const treeStyles = (theme: Theme) =>
       width: "100%",
       maxHeight: "77vh",
       flexGrow: 1
-      // Removed inner shadow to keep it clean
     },
     ".search-input-container": {
       minWidth: 0,

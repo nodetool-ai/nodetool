@@ -69,20 +69,16 @@ export function useDropZone<T extends DragDataType = DragDataType>(
 
   const checkCanDrop = useCallback(
     async (data: DragData | null, event: React.DragEvent): Promise<boolean> => {
-      // Check for external files
       if (hasExternalFiles(event.dataTransfer)) {
-        const acceptsFiles = config.accepts.includes("file" as T);
-        return acceptsFiles;
+        return config.accepts.includes("file" as T);
       }
 
       if (!data) {return false;}
 
-      // Type check
       if (!config.accepts.includes(data.type as T)) {
         return false;
       }
 
-      // Custom validation
       if (config.validate) {
         return await config.validate(data as DragData<T>, event);
       }
@@ -140,7 +136,6 @@ export function useDropZone<T extends DragDataType = DragDataType>(
 
       const position = getPosition(event);
 
-      // Handle external files first
       if (
         hasExternalFiles(event.dataTransfer) &&
         config.accepts.includes("file" as T)
@@ -156,13 +151,11 @@ export function useDropZone<T extends DragDataType = DragDataType>(
         return;
       }
 
-      // Handle internal drag data
       const data = deserializeDragData(event.dataTransfer);
       if (!data) {return;}
 
       if (!config.accepts.includes(data.type as T)) {return;}
 
-      // Validate
       if (
         config.validate &&
         !(await config.validate(data as DragData<T>, event))
@@ -175,7 +168,6 @@ export function useDropZone<T extends DragDataType = DragDataType>(
     [config, getPosition]
   );
 
-  // Build className
   const className = useMemo(() => {
     const classes: string[] = [];
     if (isOver && config.activeClassName) {

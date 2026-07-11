@@ -168,11 +168,6 @@ function MediaOptionMenuInternal<T extends string | number>({
   );
 }
 
-/**
- * Generic list-style popover used by several media composer chips
- * (duration, resolution, variations). Pure presentational — the caller
- * provides options + onChange + current value.
- */
 const MediaOptionMenu = memo(MediaOptionMenuInternal) as typeof MediaOptionMenuInternal;
 
 export default MediaOptionMenu;

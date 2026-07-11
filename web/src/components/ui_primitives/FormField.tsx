@@ -2,7 +2,6 @@
  * FormField Component
  *
  * A composite form field wrapping label, input control, and helper/error text.
- * Replaces 97+ instances of manual FormControl/FormLabel/FormHelperText patterns.
  */
 
 import React from "react";

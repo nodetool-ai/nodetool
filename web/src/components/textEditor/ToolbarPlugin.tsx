@@ -56,7 +56,6 @@ const ToolbarPlugin = () => {
   const updateToolbar = useCallback(() => {
     const selection = $getSelection();
     if ($isRangeSelection(selection)) {
-      // Text format
       setIsBold(selection.hasFormat("bold"));
       setIsItalic(selection.hasFormat("italic"));
 
@@ -97,7 +96,6 @@ const ToolbarPlugin = () => {
     editor.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
-        // Check current state by looking for existing data attribute
         const nodes = selection.getNodes();
         const hasAnyLargeFont = nodes.some((node) => {
           if (node.getType() === "text") {
@@ -107,7 +105,6 @@ const ToolbarPlugin = () => {
           return false;
         });
 
-        // Toggle based on current state
         const shouldApplyLarge = !hasAnyLargeFont;
 
         // Use $patchStyleText with a marker property to trigger text node splitting
@@ -116,8 +113,6 @@ const ToolbarPlugin = () => {
           "data-large-font-marker": shouldApplyLarge ? "true" : ""
         });
 
-        // Apply CSS classes and data attributes (without inline font-size)
-        // Clear any existing timeout before setting a new one
         if (fontToggleTimeoutRef.current) {
           clearTimeout(fontToggleTimeoutRef.current);
         }
@@ -131,7 +126,6 @@ const ToolbarPlugin = () => {
                   const dom = editor.getElementByKey(node.getKey());
                   if (dom) {
                     if (shouldApplyLarge) {
-                      // Remove the marker and add our actual data attribute and class
                       dom.removeAttribute("data-large-font-marker");
                       dom.setAttribute("data-large-font", "true");
                       addClassNamesToElement(dom, "font-size-large");
@@ -141,7 +135,6 @@ const ToolbarPlugin = () => {
                         dom.removeAttribute("style");
                       }
                     } else {
-                      // Clean up everything
                       dom.removeAttribute("data-large-font-marker");
                       dom.removeAttribute("data-large-font");
                       removeClassNamesFromElement(dom, "font-size-large");
@@ -165,7 +158,6 @@ const ToolbarPlugin = () => {
     const success = await copyAsMarkdown(editor);
     if (success) {
       setCopied(true);
-      // Clear any existing timeout before setting a new one
       if (copiedTimeoutRef.current) {
         clearTimeout(copiedTimeoutRef.current);
       }

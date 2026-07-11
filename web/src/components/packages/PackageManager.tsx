@@ -188,7 +188,6 @@ function PackageManager() {
       />
 
       <FlexColumn sx={{ flex: 1, minWidth: 0, minHeight: 0 }}>
-        {/* Right header */}
         <FlexColumn gap={0} sx={{ flexShrink: 0, pt: 2.75, px: 3.75 }}>
           {model.isSoftware && (
             <FlexRow
@@ -287,7 +286,6 @@ function PackageManager() {
           />
         </FlexColumn>
 
-        {/* Right scroll */}
         <FlexColumn
           gap={2}
           sx={{ flex: 1, minHeight: 0, overflowY: "auto", pt: 2, px: 3.75, pb: 4 }}

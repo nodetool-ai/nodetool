@@ -62,8 +62,6 @@ const styles = assetGridStyles;
 const FOLDERS_PANEL_HEIGHT = 200;
 const FOLDERS_PANEL_WIDTH = 200;
 
-// Panels are provided via separate components in ./panels
-
 /** Displays count and total size of selected assets */
 const SelectedItemsInfo: React.FC<{
   selectedAssetIds: string[];
@@ -193,8 +191,6 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     hasFolders &&
     (Boolean(isFullscreenAssets) || foldersVisible);
 
-  // Dockview panel components are defined below; handlers for files live inside the Files panel
-
   const user = useAuth((state) => state.user);
 
   // Separate selectors prevent unnecessary re-renders when only one key state changes
@@ -256,8 +252,6 @@ const AssetGrid: React.FC<AssetGridProps> = ({
       console.error("User is not logged in");
     }
   }
-
-  // Dockview panels are defined as top-level components (see above)
 
   const dockviewApiRef = useRef<DockviewApi | null>(null);
 

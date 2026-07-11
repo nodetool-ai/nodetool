@@ -213,10 +213,8 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
   const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
   const clearDrag = useDragDropStore((s) => s.clearDrag);
 
-  // Track drag image removal timeout for cleanup
   const dragImageTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Cleanup drag image timeout on unmount
   useEffect(() => {
     return () => {
       if (dragImageTimeoutRef.current) {
@@ -225,7 +223,6 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
     };
   }, []);
 
-  // Memoize static styles to prevent recreation on every render
   const flexCenterStyle = useMemo(() => ({ display: "flex", alignItems: "center", gap: "0.5em" }), []);
   const spinnerStyle = useMemo(() => ({
     width: "20px",
@@ -276,7 +273,6 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
         handleSelectAsset(asset.id);
       }
 
-      // Use unified drag serialization
       if (assetIds.length === 1) {
         serializeDragData(
           {
@@ -311,25 +307,19 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
       // Note: serializeDragData sets "selectedAssetIds" but some code may only check "asset"
       e.dataTransfer.setData("asset", JSON.stringify(asset));
 
-      // Create and set drag image using the unified utility
-      // For global search, we might not have all selected assets in store correctly or they might be from different queries.
-      // But we can try to use store or just minimal info.
       const dragImage = createAssetDragImage(asset, assetIds.length, selectedAssets || []);
       document.body.appendChild(dragImage);
       e.dataTransfer.setDragImage(dragImage, 10, 10);
 
-      // Clear any existing timeout before setting a new one
       if (dragImageTimeoutRef.current) {
         clearTimeout(dragImageTimeoutRef.current);
       }
 
-      // Store timeout reference for cleanup
       dragImageTimeoutRef.current = setTimeout(() => {
         document.body.removeChild(dragImage);
         dragImageTimeoutRef.current = null;
       }, 0);
 
-      // Update global drag state
       setActiveDrag({
         type: "assets-multiple",
         payload: assetIds,
@@ -343,7 +333,6 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
     clearDrag();
   }, [clearDrag]);
 
-  // Create stable handlers for each asset to prevent inline function recreation
   const createAssetHandlers = useCallback(
     (asset: AssetWithPath) => ({
       onDragStart: (e: React.DragEvent) => handleDragStart(e, asset),
@@ -366,7 +355,6 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
     return getAssetCategory(contentType);
   };
 
-  // Determine which columns to show based on container width
   const showDetails = containerWidth > 600;
 
   if (results.length === 0) {

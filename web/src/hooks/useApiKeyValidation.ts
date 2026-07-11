@@ -15,21 +15,18 @@ export const useApiKeyValidation = (nodeNamespace: string): string | null => {
 
   return useMemo(() => {
     if (isLoading) {
-      return null; // Don't show validation while loading
+      return null;
     }
 
     const requiredSecretKey = getRequiredSecretKeyForNamespace(nodeNamespace);
-    
     if (!requiredSecretKey) {
-      return null; // No API key required for this namespace
+      return null;
     }
 
-    const isSet = isApiKeySet(requiredSecretKey);
-    
-    if (!isSet) {
+    if (!isApiKeySet(requiredSecretKey)) {
       return getSecretDisplayName(requiredSecretKey);
     }
 
-    return null; // API key is set
+    return null;
   }, [nodeNamespace, isApiKeySet, isLoading]);
 };

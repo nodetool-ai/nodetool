@@ -43,11 +43,7 @@ const styles = (theme: Theme) =>
     WebkitBackdropFilter: theme.vars.palette.glass.blur,
     borderRadius: BORDER_RADIUS.circle,
     cursor: "grab",
-    transition: MOTION.all,
-
-    "&:hover": {
-      // transform: "scale(1.05)"
-    }
+    transition: MOTION.all
   });
 
 const titleStyles = (theme: Theme) =>

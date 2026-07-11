@@ -24,7 +24,6 @@ interface RenderNodesProps {
   showFavoriteButton?: boolean;
 }
 
-// Stable utility functions - defined outside component to avoid recreation
 const groupNodes = (nodes: NodeMetadata[]) => {
   const groups: { [key: string]: NodeMetadata[] } = {};
   nodes.forEach((node) => {
@@ -87,14 +86,11 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
   const handleDragStart = useCallback(
     (node: NodeMetadata, event: React.DragEvent<HTMLDivElement>) => {
       setDragToCreate(true);
-      // Use unified drag serialization
       serializeDragData(
         { type: "create-node", payload: node },
         event.dataTransfer
       );
       event.dataTransfer.effectAllowed = "move";
-
-      // Update global drag state
       setActiveDrag({ type: "create-node", payload: node });
     },
     [setDragToCreate, setActiveDrag]
@@ -102,7 +98,6 @@ const RenderNodes: React.FC<RenderNodesProps> = ({
 
   const selectedPath = useNodeMenuStore((state) => state.selectedPath.join("."));
 
-  // Memoize grouped nodes to prevent recalculation on every render
   const groupedNodes = useMemo(() => {
     return groupNodes(nodes);
   }, [nodes]);

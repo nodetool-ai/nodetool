@@ -12,29 +12,8 @@ import {
 } from "../utils/nodeProvider";
 
 /**
- * Represents a hierarchical tree structure for organizing node namespaces.
- * Used to group and display nodes by their namespace (e.g., "openai.chat", "anthropic.completion").
- * 
- * @example
- * ```typescript
- * {
- *   "openai": {
- *     children: {
- *       "chat": { children: {}, disabled: false },
- *       "completion": { children: {}, disabled: false }
- *     },
- *     disabled: false
- *   },
- *   "anthropic": {
- *     children: {
- *       "completion": { children: {}, disabled: true, requiredKey: "Anthropic API Key" }
- *     },
- *     disabled: true,
- *     firstDisabled: true,
- *     requiredKey: "Anthropic API Key"
- *   }
- * }
- * ```
+ * Hierarchical tree of node namespaces (e.g. "openai.chat", "anthropic.completion"),
+ * used to group and display nodes in the node menu by category.
  */
 export interface NamespaceTree {
   [key: string]: {
@@ -47,36 +26,9 @@ export interface NamespaceTree {
 }
 
 /**
- * Hook that builds a hierarchical tree structure from all available node namespaces.
- * This tree is used to organize and display nodes in the node menu by category.
- * 
- * The hook handles:
- * - **Namespace Extraction**: Collects unique namespaces from node metadata
- * - **Tree Construction**: Builds a hierarchical structure from dot-separated namespaces
- * - **API Key Validation**: Marks namespaces as disabled when required API keys are missing
- * - **Sorting**: Sorts namespaces with enabled first, then disabled alphabetically
- * - **First Disabled Tracking**: Marks the first disabled root namespace for UI hints
- * 
- * @returns NamespaceTree hierarchical structure for node organization
- * 
- * @example
- * ```typescript
- * const namespaceTree = useNamespaceTree();
- * 
- * // Render namespace tree in node menu
- * Object.entries(namespaceTree).map(([name, node]) => (
- *   <NamespaceSection key={name} name={name} node={node} />
- * ));
- * ```
- * 
- * @example
- * **Namespace Structure**:
- * - Root namespaces: "openai", "anthropic", "huggingface"
- * - Nested namespaces: "openai.chat", "openai.embedding"
- * - Disabled when API key not set: "anthropic.*" → "Anthropic API Key required"
- * 
- * @see useMetadataStore - Source of node metadata with namespaces
- * @see useSecrets - Used to check API key availability
+ * Builds a hierarchical namespace tree from node metadata. Namespaces from
+ * optional packs the user hasn't enabled are excluded; key-gated provider
+ * namespaces are hidden until their API key is set, and sorted enabled-first.
  */
 const useNamespaceTree = (): NamespaceTree => {
   const metadata = useMetadataStore((state) => state.metadata);
@@ -92,7 +44,6 @@ const useNamespaceTree = (): NamespaceTree => {
     [enabledPackIds]
   );
 
-  // Check if a namespace should be disabled
   const isNamespaceDisabled = useCallback(
     (namespace: string) => {
       if (isProduction) {return false;}
@@ -134,12 +85,10 @@ const useNamespaceTree = (): NamespaceTree => {
     });
   }, [metadata, isNamespaceDisabled, isApiKeySet, enabledPacks]);
 
-  // Build the tree structure
   return useMemo(() => {
     const tree: NamespaceTree = {};
     let foundFirstDisabled = false;
 
-    // Helper function to add a namespace to the tree
     const addNamespaceToTree = (namespace: string) => {
       const parts = namespace.split(".");
       const rootNamespace = parts[0];

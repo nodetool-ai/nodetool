@@ -3,7 +3,6 @@
  *
  * A themed chip/tag for displaying labels, categories, or status.
  * Wraps MUI Chip with consistent styling and semantic variants.
- * Used in 15+ files across the codebase.
  */
 
 import React from "react";

@@ -93,7 +93,6 @@ export function ContextMenuProvider({
         return;
       }
 
-      // Otherwise, close the context menu
       closeContextMenu();
     },
     [closeContextMenu]
@@ -142,7 +141,6 @@ export function ContextMenuProvider({
           payload
         });
 
-        // Clear any existing timeout before setting a new one
         if (clickOutsideTimeoutRef.current) {
           clearTimeout(clickOutsideTimeoutRef.current);
         }

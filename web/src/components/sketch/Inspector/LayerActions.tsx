@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-/** Generated-layer inspector action toolbar — see PR description. */
+/** Generated-layer inspector action toolbar. */
 
 import React, { memo, useCallback, useRef, useState } from "react";
 import { css } from "@emotion/react";
@@ -100,7 +100,7 @@ const runButtonStyles = (theme: Theme) =>
         position: "absolute",
         inset: "-3px",
         borderRadius: "inherit",
-        padding: getSpacingPx(SPACING.xs), // was 3px
+        padding: getSpacingPx(SPACING.xs),
         background: `conic-gradient(from 0deg, transparent 40%, ${theme.vars.palette.primary.main} 95%, ${theme.vars.palette.primary.main})`,
         WebkitMask:
           "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",

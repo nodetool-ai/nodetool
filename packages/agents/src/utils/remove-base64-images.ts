@@ -1,8 +1,3 @@
-/**
- * removeBase64Images — T-AG-7.
- *
- * Strips image content blocks where the data is base64-encoded.
- */
 import type { MessageContent, MessageImageContent } from "@nodetool-ai/runtime";
 
 function isBase64Image(content: MessageImageContent): boolean {

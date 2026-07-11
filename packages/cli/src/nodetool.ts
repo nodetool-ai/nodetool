@@ -491,7 +491,6 @@ workflows
           workflowId = raw.workflow_id ?? raw.id ?? null;
           if (raw.params) Object.assign(params, raw.params);
         } else {
-          // Load from database
           const wf = await Workflow.get(idOrFile);
           if (!wf) throw new Error(`Workflow not found: ${idOrFile}`);
           graph = (wf as any).graph;
@@ -511,7 +510,6 @@ workflows
           return n;
         });
 
-        // Set up node registry
         const registry = new NodeRegistry();
         registerBaseNodes(registry);
         registerElevenLabsNodes(registry);
@@ -522,7 +520,6 @@ workflows
         registerReveNodes(registry);
         registerHuggingFaceNodes(registry);
 
-        // Create processing context with secret resolver
         const jobId = `job-${Date.now()}`;
         // Resolve asset URIs (e.g. /api/storage/<key>) against the local
         // assets directory, so workflows referencing stored assets run the
@@ -555,7 +552,6 @@ workflows
           (t) => registry.has(t)
         );
 
-        // Run workflow
         const runner = new WorkflowRunner(jobId, {
           resolveExecutor: (node: { id: string; type: string }) => {
             if (registry.has(node.type)) return registry.resolve(node);

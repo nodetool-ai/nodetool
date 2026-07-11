@@ -186,12 +186,10 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
   // Debounced search implementation for both local and global search
   const debouncedSetSearchTerm = useDebouncedCallback(async (value: string) => {
     if (isGlobalSearchMode) {
-      // Cancel any previous search
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
 
-      // Handle global search
       if (value.length < 2) {
         setIsGlobalSearchActive(false);
         setGlobalSearchResults([]);
@@ -199,7 +197,6 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
         return;
       }
 
-      // Create new abort controller for this search
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
 
@@ -240,20 +237,16 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
       abortControllerRef.current = null;
     }
 
-    // Clear local input state
     setLocalSearchTerm("");
 
     if (isGlobalSearchMode) {
-      // Reset global search state
       setIsGlobalSearchActive(false);
       setGlobalSearchResults([]);
       setGlobalSearchQuery("");
     } else {
-      // Reset local search state
       onLocalSearchChange("");
     }
 
-    // Cancel any pending debounced searches
     debouncedSetSearchTerm.cancel();
   }, [
     debouncedSetSearchTerm,
@@ -322,7 +315,6 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
       const newValue = event.target.value;
       // Update local state immediately for UI responsiveness
       setLocalSearchTerm(newValue);
-      // Schedule debounced search
       debouncedSetSearchTerm(newValue);
     },
     [debouncedSetSearchTerm]
@@ -388,7 +380,6 @@ const AssetSearchInput: React.FC<AssetSearchInputProps> = ({
     clearSearch
   ]);
 
-  // Dynamic placeholder based on search mode
   const effectivePlaceholder = isGlobalSearchMode
     ? "Search all assets..."
     : "Search current folder...";

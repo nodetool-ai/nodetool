@@ -138,7 +138,6 @@ function parseTraceStdout(v: string | boolean): "pretty" | "json" | false {
   );
 }
 
-// Initialize database
 try {
   initDb(getDefaultDbPath());
 } catch {

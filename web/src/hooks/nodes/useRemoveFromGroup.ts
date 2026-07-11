@@ -16,48 +16,37 @@ export const useRemoveFromGroup = (): ((nodesToRemove?: Node<NodeData>[]) => voi
     (nodesToRemove?: Node<NodeData>[]) => {
       if (!nodesToRemove || nodesToRemove.length === 0) {return;}
 
-      try {
-        // Process nodes grouped by their parent
-        const nodesByParent: Record<string, Node<NodeData>[]> = {};
-        nodesToRemove.forEach((node) => {
-          if (node.parentId) {
-            if (!nodesByParent[node.parentId]) {
-              nodesByParent[node.parentId] = [];
-            }
-            nodesByParent[node.parentId].push(node);
+      const nodesByParent: Record<string, Node<NodeData>[]> = {};
+      nodesToRemove.forEach((node) => {
+        if (node.parentId) {
+          if (!nodesByParent[node.parentId]) {
+            nodesByParent[node.parentId] = [];
           }
-        });
+          nodesByParent[node.parentId].push(node);
+        }
+      });
 
-        // Update nodes for each parent group
-        Object.keys(nodesByParent).forEach((parentId) => {
-          const parentNode = findNode(parentId);
-          // Ensure parent node exists and has a position
-          if (!parentNode || parentNode.position === undefined) {
-            return; // Skip if parent is invalid
-          }
+      Object.keys(nodesByParent).forEach((parentId) => {
+        const parentNode = findNode(parentId);
+        if (!parentNode || parentNode.position === undefined) {
+          return;
+        }
 
-          const children = nodesByParent[parentId];
-          children.forEach((node) => {
-            // Calculate new absolute position
-            const absolutePosition = {
-              x: (parentNode.position.x || 0) + (node.position?.x || 0),
-              y: (parentNode.position.y || 0) + (node.position?.y || 0)
-            };
+        const children = nodesByParent[parentId];
+        children.forEach((node) => {
+          const absolutePosition = {
+            x: (parentNode.position.x || 0) + (node.position?.x || 0),
+            y: (parentNode.position.y || 0) + (node.position?.y || 0)
+          };
 
-            updateNode(node.id, {
-              parentId: undefined,
-              position: absolutePosition,
-              selected: false
-              // expandParent: false
-            });
+          updateNode(node.id, {
+            parentId: undefined,
+            position: absolutePosition,
+            selected: false
           });
         });
-      } finally {
-        // Always resume history tracking
-        // resume(); // HISTORY MANAGEMENT MOVED TO DRAG HANDLERS
-      }
+      });
     },
-    // Add pause and resume to dependencies
     [updateNode, findNode]
   );
 

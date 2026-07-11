@@ -9,10 +9,6 @@ import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { ParseResult } from "@llamaindex/liteparse";
 
-// ---------------------------------------------------------------------------
-// Shared helpers
-// ---------------------------------------------------------------------------
-
 type DocumentRefLike = {
   uri?: string;
   data?: Uint8Array | string;
@@ -77,10 +73,6 @@ const PDF_INPUT = {
   description: "The PDF document to process"
 };
 
-// ---------------------------------------------------------------------------
-// PageCount
-// ---------------------------------------------------------------------------
-
 export class PdfPageCountNode extends BaseNode {
   static readonly nodeType = "lib.pdf.PageCount";
   static readonly title = "PDF Page Count";
@@ -101,10 +93,6 @@ export class PdfPageCountNode extends BaseNode {
     return { output: result.pages.length };
   }
 }
-
-// ---------------------------------------------------------------------------
-// ExtractText
-// ---------------------------------------------------------------------------
 
 export class PdfExtractTextNode extends BaseNode {
   static readonly nodeType = "lib.pdf.ExtractText";
@@ -153,10 +141,6 @@ export class PdfExtractTextNode extends BaseNode {
     return { output: parts.join("\n\n").trim() };
   }
 }
-
-// ---------------------------------------------------------------------------
-// ExtractMarkdown
-// ---------------------------------------------------------------------------
 
 export class PdfExtractMarkdownNode extends BaseNode {
   static readonly nodeType = "lib.pdf.ExtractMarkdown";
@@ -364,10 +348,6 @@ export class PdfExtractMarkdownNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// ExtractTables
-// ---------------------------------------------------------------------------
-
 export class PdfExtractTablesNode extends BaseNode {
   static readonly nodeType = "lib.pdf.ExtractTables";
   static readonly title = "PDF Extract Tables";
@@ -529,10 +509,6 @@ export class PdfExtractTablesNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// ExtractTextBlocks
-// ---------------------------------------------------------------------------
-
 export class PdfExtractTextBlocksNode extends BaseNode {
   static readonly nodeType = "lib.pdf.ExtractTextBlocks";
   static readonly title = "PDF Extract Text Blocks";
@@ -631,10 +607,6 @@ export class PdfExtractTextBlocksNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// ExtractStyledText
-// ---------------------------------------------------------------------------
-
 export class PdfExtractStyledTextNode extends BaseNode {
   static readonly nodeType = "lib.pdf.ExtractStyledText";
   static readonly title = "PDF Extract Styled Text";
@@ -700,10 +672,6 @@ export class PdfExtractStyledTextNode extends BaseNode {
     return { output: spans };
   }
 }
-
-// ---------------------------------------------------------------------------
-// PageMetadata
-// ---------------------------------------------------------------------------
 
 export class PdfPageMetadataNode extends BaseNode {
   static readonly nodeType = "lib.pdf.PageMetadata";
@@ -773,10 +741,6 @@ export class PdfPageMetadataNode extends BaseNode {
     return { output: metadata };
   }
 }
-
-// ---------------------------------------------------------------------------
-// Screenshot
-// ---------------------------------------------------------------------------
 
 export class PdfScreenshotNode extends BaseNode {
   static readonly nodeType = "lib.pdf.Screenshot";
@@ -872,10 +836,6 @@ export class PdfScreenshotNode extends BaseNode {
     return { output: images };
   }
 }
-
-// ---------------------------------------------------------------------------
-// Pdftoppm (poppler CLI rasterization)
-// ---------------------------------------------------------------------------
 
 export class PdfToppmNode extends BaseNode {
   static readonly nodeType = "lib.pdf.Pdftoppm";
@@ -1016,10 +976,6 @@ async function countPdfPages(pdf: Buffer): Promise<number> {
   }
 }
 
-// ---------------------------------------------------------------------------
-// SearchText
-// ---------------------------------------------------------------------------
-
 export class PdfSearchTextNode extends BaseNode {
   static readonly nodeType = "lib.pdf.SearchText";
   static readonly title = "PDF Search Text";
@@ -1114,10 +1070,6 @@ export class PdfSearchTextNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// ExtractOcr
-// ---------------------------------------------------------------------------
-
 export class PdfExtractOcrNode extends BaseNode {
   static readonly nodeType = "lib.pdf.ExtractOcr";
   static readonly title = "PDF Extract Text (OCR)";
@@ -1188,10 +1140,6 @@ export class PdfExtractOcrNode extends BaseNode {
     return { output: parts.join("\n\n").trim() };
   }
 }
-
-// ---------------------------------------------------------------------------
-// Export
-// ---------------------------------------------------------------------------
 
 // Node-only: every node depends on native pdfium (via @llamaindex/liteparse →
 // @hyzyla/pdfium) and sharp, and PdfToppmNode spawns `pdftoppm` via

@@ -53,7 +53,6 @@ const SettingsSidebar = ({
     [onSectionClick]
   );
 
-  // Track open/closed state per folder category
   const [openFolders, setOpenFolders] = useState<Record<string, boolean>>(() =>
     sections.reduce<Record<string, boolean>>((acc, section) => {
       acc[section.category] = !section.defaultCollapsed;

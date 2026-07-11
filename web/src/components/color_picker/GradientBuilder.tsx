@@ -142,11 +142,9 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
   );
 
   const addStop = useCallback(() => {
-    // Find a good position for the new stop
     const positions = gradient.stops.map((s) => s.position).sort((a, b) => a - b);
     let newPosition = 50;
 
-    // Find the largest gap
     let maxGap = 0;
     let gapPosition = 50;
     for (let i = 0; i < positions.length - 1; i++) {
@@ -228,7 +226,6 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
     [handleStopPositionChange]
   );
 
-  // Handle stop color TextField change
   const handleStopColorInputChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       if (selectedStopIndex !== null) {
@@ -238,7 +235,6 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
     [selectedStopIndex, handleStopColorChange]
   );
 
-  // Handle stop position TextField change
   const handleStopPositionInputChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       if (selectedStopIndex !== null) {
@@ -289,10 +285,8 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
 
   return (
     <FlexColumn css={styles(theme)} gap={1.5}>
-      {/* Gradient Preview */}
       <div className="gradient-preview" style={{ background: cssOutput }} />
 
-      {/* Type Selector */}
       <ToggleGroup
         value={gradient.type}
         exclusive
@@ -310,7 +304,6 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
         <ToggleOption value="radial">Radial</ToggleOption>
       </ToggleGroup>
 
-      {/* Angle Control (for linear gradients) */}
       {gradient.type === "linear" && (
         <FlexRow align="center" gap={1}>
           <Caption sx={{ minWidth: "50px" }}>
@@ -327,7 +320,6 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
         </FlexRow>
       )}
 
-      {/* Color Stops */}
       <div>
         <Caption color="secondary">
           Color Stops
@@ -352,7 +344,6 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
         </div>
       </div>
 
-      {/* Selected Stop Controls */}
       {selectedStop && selectedStopIndex !== null && (
         <FlexRow align="center" gap={1} wrap>
           <TextInput
@@ -392,7 +383,6 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
         </FlexRow>
       )}
 
-      {/* Actions */}
       <FlexRow gap={1} wrap>
         <EditorButton
           startIcon={<AddIcon />}
@@ -410,7 +400,6 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
         </EditorButton>
       </FlexRow>
 
-      {/* CSS Output */}
       <div className="css-output">{cssOutput}</div>
     </FlexColumn>
   );

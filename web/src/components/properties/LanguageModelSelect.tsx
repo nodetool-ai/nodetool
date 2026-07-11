@@ -30,7 +30,6 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
   const buttonRef = useRef<HTMLButtonElement>(null);
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
 
-  // Use the same hook as the dialog to fetch models
   const { models: fetchedModels } = useLanguageModelsByProvider({
     allowedProviders
   });

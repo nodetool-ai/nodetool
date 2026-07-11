@@ -96,7 +96,6 @@ export const createWorkflowRunner = () =>
     notifications: [],
     connect: async () => {
       return new Promise((resolve, reject) => {
-        // Use the global WebSocket without any special options
         const socket = new WebSocket(getWorkerUrl());
 
         socket.on("open", () => {
@@ -119,11 +118,9 @@ export const createWorkflowRunner = () =>
           } else if (event instanceof ArrayBuffer) {
             buffer = new Uint8Array(event);
           } else if (typeof event === "string") {
-            // Convert string to Uint8Array
             const encoder = new TextEncoder();
             buffer = encoder.encode(event);
           } else {
-            // Handle other types
             buffer = new Uint8Array(0);
           }
           const decoded = unpack(buffer);
@@ -266,7 +263,6 @@ export const createWorkflowRunner = () =>
       const id = Math.random().toString(36).substr(2, 9);
       const notificationWithId = { ...notification, id };
 
-      // Create native Electron notification with more options
       new Notification({
         title: "Nodetool",
         body: notification.content,

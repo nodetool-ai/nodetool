@@ -96,12 +96,8 @@ const EditorController = ({
   const highlightCurrentName = "findCurrent";
 
   const clearHighlights = useCallback(() => {
-    // Clear both native and polyfilled highlights
     (CSS as CSSWithHighlights)?.highlights?.delete?.(highlightAllName);
     (CSS as CSSWithHighlights)?.highlights?.delete?.(highlightCurrentName);
-
-    // No DOM-wrapper fallback anymore; CSS Highlight API handles highlight
-    // clearing via CSS.highlights.delete above.
   }, [highlightAllName, highlightCurrentName]);
 
   // Given a single match offset, return a DOM Range corresponding to it.
@@ -213,7 +209,6 @@ const EditorController = ({
 
       // Native CSS Highlight API is preferred
       if (hs && typeof hs.set === "function") {
-        // Native API path
         const ranges: Range[] = [];
         for (const start of matchIndexes) {
           const r = createRangeForMatch(start, matchLength);
@@ -289,17 +284,14 @@ const EditorController = ({
     []
   );
 
-  // Set up undo function
   const undoFn = useCallback(() => {
     editor.dispatchCommand(UNDO_COMMAND, undefined);
   }, [editor]);
 
-  // Set up redo function
   const redoFn = useCallback(() => {
     editor.dispatchCommand(REDO_COMMAND, undefined);
   }, [editor]);
 
-  // Set up format code block function
   const formatCodeBlockFn = useCallback(() => {
     editor.update(() => {
       const selection = $getSelection();
@@ -312,7 +304,6 @@ const EditorController = ({
         if ($isCodeNode(element)) {
           $setBlocksType(selection, () => $createParagraphNode());
         } else {
-          // Create a code node with a default language
           $setBlocksType(selection, () => {
             const codeNode = $createCodeNode();
             if (codeNode instanceof CodeNode) {
@@ -325,7 +316,6 @@ const EditorController = ({
     });
   }, [editor]);
 
-  // Set up insert text function
   const insertTextFn = useCallback(
     (text: string) => {
       editor.update(() => {
@@ -344,7 +334,6 @@ const EditorController = ({
     [editor]
   );
 
-  // Replace current selection (or insert at caret)
   const replaceSelectionFn = useCallback(
     (text: string) => {
       editor.update(() => {
@@ -363,7 +352,6 @@ const EditorController = ({
     [editor]
   );
 
-  // Replace entire document text
   const setAllTextFn = useCallback(
     (text: string) => {
       editor.update(() => {
@@ -378,7 +366,6 @@ const EditorController = ({
     [editor]
   );
 
-  // Selected text getter
   const getSelectedTextFn = useCallback((): string => {
     try {
       const editorState = editor.getEditorState();
@@ -442,8 +429,6 @@ const EditorController = ({
         searchTerm = String(searchParam);
       }
 
-      // searchTerm now contains the string to look for
-
       if (!searchTerm || searchTerm.trim() === "") {
         clearHighlights();
         setCurrentSearchTerm("");
@@ -452,18 +437,15 @@ const EditorController = ({
         return { totalMatches: 0, currentMatch: 0 };
       }
 
-      // Get current editor content
       const editorState = editor.getEditorState();
       const text = editorState.read(() => $getRoot().getTextContent());
 
       const matches = findMatches(text, searchTerm);
 
-      // Update local state
       setCurrentSearchTerm(searchTerm);
       setCurrentMatches(matches);
       setCurrentMatchIndex(matches.length > 0 ? 0 : -1);
 
-      // Highlight all matches and scroll to the first one
       applyHighlights(matches, searchTerm.length, 0);
 
       return {
@@ -474,7 +456,6 @@ const EditorController = ({
     [editor, findMatches, applyHighlights, clearHighlights]
   );
 
-  // Set up navigate function
   const navigateFn = useCallback(
     (direction: "next" | "previous") => {
       if (currentMatches.length === 0) {
@@ -504,10 +485,8 @@ const EditorController = ({
     [currentSearchTerm, currentMatches, currentMatchIndex, applyHighlights]
   );
 
-  // Set up replace function
   const replaceFn = useCallback(
     (searchTerm: string, replaceTerm: string, replaceAll?: boolean) => {
-      // Use the provided string parameters directly
       const searchStr = searchTerm;
       const replaceStr = replaceTerm;
 
@@ -515,7 +494,6 @@ const EditorController = ({
         return;
       }
 
-      // Case-insensitive search helper
       const lcSearch = searchStr.toLowerCase();
 
       let anyReplaced = false;
@@ -557,7 +535,6 @@ const EditorController = ({
             }
           } else {
             if (lcText.includes(lcSearch)) {
-              // Global case-insensitive replacement within this node
               try {
                 const escaped = searchStr.replace(
                   /[.*+?^${}()|[\]\\]/g,
@@ -580,15 +557,12 @@ const EditorController = ({
         return;
       }
 
-      // After the editor.update finishes, read the new content and refresh UI-side state/highlights
       const newTextContent = editor
         .getEditorState()
         .read(() => $getRoot().getTextContent());
 
-      // Trigger text change callback for external consumers
       onTextChange?.(newTextContent);
 
-      // Refresh search highlights if a search is currently active
       if (currentSearchTerm) {
         const matches = findMatches(newTextContent, currentSearchTerm);
         setCurrentMatches(matches);
@@ -611,7 +585,6 @@ const EditorController = ({
     ]
   );
 
-  // Set initial content only once
   useEffect(() => {
     if (initialContent && initialContent.trim() && !initialContentSet) {
       const initTimeoutId = setTimeout(() => {
@@ -633,7 +606,6 @@ const EditorController = ({
     }
   }, [editor, initialContent, initialContentSet]);
 
-  // Register core editor functionality
   useEffect(() => {
     const removeCanUndoListener = editor.registerCommand<boolean>(
       CAN_UNDO_COMMAND,
@@ -684,7 +656,6 @@ const EditorController = ({
     onIsCodeBlockChange
   ]);
 
-  // Register command functions
   useEffect(() => {
     onUndoCommand(undoFn);
     onRedoCommand(redoFn);
@@ -727,7 +698,6 @@ const EditorController = ({
     onGetSelectedTextCommand
   ]);
 
-  // Handle search highlighting
   useEffect(() => {
     if (currentSearchTerm && currentMatches.length > 0) {
       applyHighlights(

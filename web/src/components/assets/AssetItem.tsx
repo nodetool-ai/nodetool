@@ -360,7 +360,6 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
   const {
     isDragHovered,
     handleClick,
-    // handleDoubleClick,
     handleDrag,
     handleDragEnd,
     handleDragOver,
@@ -600,7 +599,6 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
               className={`name info ${assetItemSize > 4 ? "large" : ""}`}
             >
               {asset.name}
-              {/* {asset.parent_id} */}
             </Text>
           )}
           {assetsOrder === "date" && asset.created_at && assetItemSize > 2 && (

@@ -393,7 +393,6 @@ const InfoBox = memo(function InfoBox({
   metadata: NodeMetadata[];
   totalNodes: number;
 }) {
-  // Build contextual message
   const buildContextMessage = () => {
     if (searchTerm.length > minSearchTermLength) {
       const matchCount = searchResults.length;
@@ -495,7 +494,6 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
             <ListGroup className={`node-list ${searchTerm ? "expanded" : ""}`}>
               <RenderNodes nodes={searchResults} />
             </ListGroup>
-            {/* Only show NodeInfo when not searching */}
             {!searchTerm && (
               <div className="node-info-container">
                 {hoveredNode && <NodeInfo nodeMetadata={hoveredNode} />}

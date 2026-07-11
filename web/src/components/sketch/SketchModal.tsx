@@ -155,7 +155,6 @@ const SketchModal: React.FC<SketchModalProps> = ({
   );
   const headerPenPressureOn = penPressure.pressureSensitivity !== false;
 
-  // Derive label from mode
   const symmetryLabels: Record<SymmetryMode, string> = {
     off: "Off",
     horizontal: "Horizontal",
@@ -288,7 +287,6 @@ const SketchModal: React.FC<SketchModalProps> = ({
           </FlexRow>
         ) : null}
 
-        {/* ── Actions (right-aligned) ── */}
         <FlexRow align="center" sx={{ gap: getSpacingPx(SPACING.micro) }}>
           <Tooltip title={`Undo (${displayCombo("undo")})`} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <span style={{ display: 'inline-flex' }}>

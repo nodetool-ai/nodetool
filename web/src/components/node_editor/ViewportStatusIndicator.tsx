@@ -51,13 +51,11 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
     // Skip showing on initial render (prevZoomRef is null)
     if (prevZoomRef.current !== null && Math.abs(zoom - prevZoomRef.current) > ZOOM_CHANGE_THRESHOLD) {
       setIsZooming(true);
-      
-      // Clear any existing timeout
+
       if (hideTimeoutRef.current) {
         clearTimeout(hideTimeoutRef.current);
       }
-      
-      // Set a new timeout to hide the panel
+
       hideTimeoutRef.current = setTimeout(() => {
         setIsZooming(false);
       }, HIDE_DELAY_MS);

@@ -99,9 +99,6 @@ async function initializeBackendServerWithKeychainRetry(): Promise<void> {
   }
 }
 
-/**
- * Global application state flags and objects
- */
 let isAppQuitting = false;
 let mainWindow: BrowserWindow | null = null;
 let isShowingUnexpectedError = false;
@@ -199,9 +196,6 @@ async function notifyPackageUpdates(): Promise<void> {
   }
 }
 
-/**
- * Check and install expected package versions on startup
- */
 async function checkAndInstallExpectedPackages(): Promise<boolean> {
   try {
     logMessage("=== Starting Expected Package Version Check ===");
@@ -433,9 +427,6 @@ async function initialize(): Promise<void> {
   }
 }
 
-/**
- * Checks system media permissions and requests access if needed
- */
 async function checkMediaPermissions(): Promise<void> {
   if (process.platform === "win32" || process.platform === "darwin") {
     try {

@@ -279,9 +279,6 @@ const NodeHeaderImpl: React.FC<NodeHeaderProps> = ({
     } as React.CSSProperties;
   }, [backgroundColor]);
 
-  const iconBackgroundStyle = ICON_BACKGROUND_STYLE;
-
-  // Memoize title padding style to prevent recreation on every render
   const titlePaddingStyle = useMemo(() => ({
     paddingLeft: hasIcon ? 0 : undefined
   }), [hasIcon]);
@@ -302,7 +299,7 @@ const NodeHeaderImpl: React.FC<NodeHeaderProps> = ({
         {hasIcon && showIcon && (
           <div
             className="node-icon node-drag-handle"
-            style={iconBackgroundStyle}
+            style={ICON_BACKGROUND_STYLE}
             onDoubleClick={handleIconDoubleClick}
           >
             <IconForType

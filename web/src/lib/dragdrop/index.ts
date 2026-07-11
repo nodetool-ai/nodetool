@@ -1,10 +1,3 @@
-/**
- * Unified Drag & Drop Library
- *
- * Provides type-safe drag and drop operations across the application.
- */
-
-// Types
 export type {
   DragDataType,
   DragPayloadMap,
@@ -18,13 +11,9 @@ export type {
   DragDropState
 } from "./types";
 
-// Store
 export { useDragDropStore } from "./store";
-
-// Hooks
 export { useDropZone } from "./useDropZone";
 
-// Utilities
 export {
   serializeDragData,
   deserializeDragData,

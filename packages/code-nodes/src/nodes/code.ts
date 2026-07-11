@@ -236,13 +236,13 @@ export class ExecutePythonNode extends BaseNode {
   async process(
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const code = String(this.code ?? this.code ?? "");
+    const code = String(this.code ?? "");
     if (!code.trim()) throw new Error("Code is required");
     const mode = String(
-      this.execution_mode ?? this.execution_mode ?? "docker"
+      this.execution_mode ?? "docker"
     ) as "docker" | "subprocess";
-    const image = String(this.image ?? this.image ?? "python:3.11-slim");
-    const stdinStr = String(this.stdin ?? this.stdin ?? "");
+    const image = String(this.image ?? "python:3.11-slim");
+    const stdinStr = String(this.stdin ?? "");
     const runner = new PythonDockerRunner({ image, mode });
     const result = await collectRunnerOutput(
       runner,
@@ -312,13 +312,13 @@ export class ExecuteJavaScriptNode extends BaseNode {
   async process(
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const code = String(this.code ?? this.code ?? "");
+    const code = String(this.code ?? "");
     if (!code.trim()) throw new Error("Code is required");
     const mode = String(
-      this.execution_mode ?? this.execution_mode ?? "docker"
+      this.execution_mode ?? "docker"
     ) as "docker" | "subprocess";
-    const image = String(this.image ?? this.image ?? "node:22-alpine");
-    const stdinStr = String(this.stdin ?? this.stdin ?? "");
+    const image = String(this.image ?? "node:22-alpine");
+    const stdinStr = String(this.stdin ?? "");
     const runner = new JavaScriptDockerRunner({ image, mode });
     const result = await collectRunnerOutput(
       runner,
@@ -394,13 +394,13 @@ export class ExecuteBashNode extends BaseNode {
   async process(
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const code = String(this.code ?? this.code ?? "");
+    const code = String(this.code ?? "");
     if (!code.trim()) throw new Error("Code is required");
     const mode = String(
-      this.execution_mode ?? this.execution_mode ?? "docker"
+      this.execution_mode ?? "docker"
     ) as "docker" | "subprocess";
-    const image = String(this.image ?? this.image ?? "ubuntu:22.04");
-    const stdinStr = String(this.stdin ?? this.stdin ?? "");
+    const image = String(this.image ?? "ubuntu:22.04");
+    const stdinStr = String(this.stdin ?? "");
     const runner = new BashDockerRunner({ image, mode });
     const result = await collectRunnerOutput(
       runner,
@@ -470,13 +470,13 @@ export class ExecuteRubyNode extends BaseNode {
   async process(
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const code = String(this.code ?? this.code ?? "");
+    const code = String(this.code ?? "");
     if (!code.trim()) throw new Error("Code is required");
     const mode = String(
-      this.execution_mode ?? this.execution_mode ?? "docker"
+      this.execution_mode ?? "docker"
     ) as "docker" | "subprocess";
-    const image = String(this.image ?? this.image ?? "ruby:3.3-alpine");
-    const stdinStr = String(this.stdin ?? this.stdin ?? "");
+    const image = String(this.image ?? "ruby:3.3-alpine");
+    const stdinStr = String(this.stdin ?? "");
     const runner = new RubyDockerRunner({ image, mode });
     const result = await collectRunnerOutput(
       runner,
@@ -554,16 +554,14 @@ export class ExecuteLuaNode extends BaseNode {
   async process(
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const code = String(this.code ?? this.code ?? "");
+    const code = String(this.code ?? "");
     if (!code.trim()) throw new Error("Code is required");
     const mode = String(
-      this.execution_mode ?? this.execution_mode ?? "subprocess"
+      this.execution_mode ?? "subprocess"
     ) as "docker" | "subprocess";
-    const executable = String(this.executable ?? this.executable ?? "lua");
-    const timeoutSeconds = Number(
-      this.timeout_seconds ?? this.timeout_seconds ?? 10
-    );
-    const stdinStr = String(this.stdin ?? this.stdin ?? "");
+    const executable = String(this.executable ?? "lua");
+    const timeoutSeconds = Number(this.timeout_seconds ?? 10);
+    const stdinStr = String(this.stdin ?? "");
 
     const runner =
       mode === "subprocess"
@@ -641,13 +639,13 @@ export class ExecuteCommandNode extends BaseNode {
   async process(
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const command = String(this.command ?? this.command ?? "");
+    const command = String(this.command ?? "");
     if (!command.trim()) throw new Error("Command is required");
     const mode = String(
-      this.execution_mode ?? this.execution_mode ?? "docker"
+      this.execution_mode ?? "docker"
     ) as "docker" | "subprocess";
-    const image = String(this.image ?? this.image ?? "bash:5.2");
-    const stdinStr = String(this.stdin ?? this.stdin ?? "");
+    const image = String(this.image ?? "bash:5.2");
+    const stdinStr = String(this.stdin ?? "");
     const runner = new CommandDockerRunner({ image, mode });
     const result = await collectRunnerOutput(
       runner,
@@ -676,30 +674,29 @@ function createRunner(
   mode: "docker" | "subprocess",
   opts?: { image?: string; executable?: string; timeoutSeconds?: number }
 ): StreamRunnerBase {
-  const m = mode;
   switch (lang) {
     case "python":
       return new PythonDockerRunner({
         image: opts?.image ?? "python:3.11-slim",
-        mode: m
+        mode
       });
     case "javascript":
       return new JavaScriptDockerRunner({
         image: opts?.image ?? "node:22-alpine",
-        mode: m
+        mode
       });
     case "bash":
       return new BashDockerRunner({
         image: opts?.image ?? "bash:5.2",
-        mode: m
+        mode
       });
     case "ruby":
       return new RubyDockerRunner({
         image: opts?.image ?? "ruby:3.3-alpine",
-        mode: m
+        mode
       });
     case "lua":
-      if (m === "subprocess")
+      if (mode === "subprocess")
         return new LuaSubprocessRunner({
           executable: opts?.executable ?? "lua",
           timeoutSeconds: opts?.timeoutSeconds ?? 10
@@ -707,13 +704,13 @@ function createRunner(
       return new LuaRunner({
         image: opts?.image ?? "nickblah/lua:5.2.4-luarocks-ubuntu",
         executable: opts?.executable ?? "lua",
-        mode: m,
+        mode,
         timeoutSeconds: opts?.timeoutSeconds ?? 10
       });
     case "command":
       return new CommandDockerRunner({
         image: opts?.image ?? "bash:5.2",
-        mode: m
+        mode
       });
   }
 }

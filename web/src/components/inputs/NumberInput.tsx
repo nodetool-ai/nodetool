@@ -177,7 +177,6 @@ const NumberInput: React.FC<InputProps> = (props) => {
         }));
 
         props.onChange(null, finalValue);
-        // Call onChangeComplete when user finishes editing via text input
         if (props.onChangeComplete) {
           props.onChangeComplete(finalValue);
         }
@@ -199,8 +198,6 @@ const NumberInput: React.FC<InputProps> = (props) => {
     (e: React.MouseEvent<HTMLDivElement>) => {
       if (e.button === 0) {
         setInputIsFocused(false);
-
-        // Reset speed factor to default (no slowdown)
         setSpeedFactorState(1);
 
         // Capture actual slider width at drag start

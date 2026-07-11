@@ -1,9 +1,8 @@
 /**
  * View-model layer for the Costs dashboard.
  *
- * Maps the `costs.dashboard` API response (or the bundled sample data) into the
- * shapes the presentational components consume, so the dashboard renders the
- * same way regardless of source.
+ * Maps the `costs.dashboard` API response into the shapes the presentational
+ * components consume.
  */
 import {
   providerColor,

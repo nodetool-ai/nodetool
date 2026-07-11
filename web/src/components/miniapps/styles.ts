@@ -22,7 +22,7 @@ export const createStyles = (theme: Theme) => {
       maxWidth: "1600px",
       margin: "0 auto",
       padding: theme.spacing(3, 4),
-      paddingTop: getSpacingPx(17.5), // was 70px
+      paddingTop: getSpacingPx(17.5),
       paddingBottom: theme.spacing(6),
       paddingRight: theme.spacing(8), // Make room for the side panel toggle
       display: "flex",
@@ -32,7 +32,7 @@ export const createStyles = (theme: Theme) => {
 
       [theme.breakpoints.down("md")]: {
         padding: theme.spacing(2, 3),
-        paddingTop: getSpacingPx(16.25), // was 65px
+        paddingTop: getSpacingPx(16.25),
         paddingBottom: theme.spacing(4),
         paddingRight: theme.spacing(3) // Reset right padding on smaller screens
       }
@@ -45,7 +45,6 @@ export const createStyles = (theme: Theme) => {
       overflow: "hidden"
     },
 
-    // Header section
     ".page-header": {
       display: "flex",
       flexDirection: "column",
@@ -60,7 +59,6 @@ export const createStyles = (theme: Theme) => {
       maxWidth: "800px"
     },
 
-    // Status bar
     ".status-bar": {
       display: "flex",
       alignItems: "center",

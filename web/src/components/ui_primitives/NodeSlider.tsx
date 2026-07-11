@@ -55,13 +55,11 @@ export const NodeSlider = forwardRef<HTMLSpanElement, NodeSliderProps>(
     const sliderSx = useMemo(() => ({
       marginTop: density === "compact" ? "3px" : "6px",
       padding: 0,
-      // Rail (background track)
       "& .MuiSlider-rail": {
         backgroundColor: theme.vars.palette.grey[500],
         borderRadius: 0,
         height: density === "compact" ? 5 : 6
       },
-      // Track (filled portion)
       "& .MuiSlider-track": {
         height: density === "compact" ? 5 : 6,
         opacity: 1,
@@ -69,7 +67,6 @@ export const NodeSlider = forwardRef<HTMLSpanElement, NodeSliderProps>(
         borderRadius: 0,
         backgroundColor: theme.vars.palette.primary.main
       },
-      // Thumb (draggable handle)
       "& .MuiSlider-thumb": {
         backgroundColor: changed
           ? theme.vars.palette.primary.main

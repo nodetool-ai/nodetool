@@ -234,7 +234,6 @@ export class SQLiteAdapter implements DatabaseAdapter {
     const pk = this.getPrimaryKey();
     const quotedTable = quoteIdentifier(this.tableName);
 
-    // Column selection
     let colsSql: string;
     if (columns && columns.length > 0) {
       const validated = columns.map((c) => validateColumnName(c));
@@ -249,7 +248,6 @@ export class SQLiteAdapter implements DatabaseAdapter {
       colsSql = `${quotedTable}.*`;
     }
 
-    // WHERE clause
     let whereClause = "1=1";
     let params: unknown[] = [];
     if (condition) {
@@ -258,7 +256,6 @@ export class SQLiteAdapter implements DatabaseAdapter {
       params = condParams;
     }
 
-    // ORDER BY
     let orderByCol: string;
     if (orderBy) {
       validateColumnName(orderBy);
@@ -326,7 +323,6 @@ export class SQLiteAdapter implements DatabaseAdapter {
           return ["1=1", []];
       }
     } else {
-      // ConditionGroup
       const subClauses: string[] = [];
       const allParams: unknown[] = [];
 

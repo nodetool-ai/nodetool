@@ -58,13 +58,13 @@ const scrollableContentStyles = (theme: Theme) =>
       padding: "0"
     },
     ".node-item-container": {
-      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}` // was 1px 6px
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`
     },
     ".node": {
       display: "flex",
       alignItems: "center",
       margin: 0,
-      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.sm)}`, // was 3px 6px
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.sm)}`,
       borderRadius: BORDER_RADIUS.md,
       cursor: "pointer",
       transition: MOTION.background,
@@ -165,7 +165,6 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
     [recentNodes]
   );
 
-  // Memoize store selector function to prevent re-renders
   const storeSelector = useCallback(
     (state: ConnectableNodesState) => ({
       connectableNodes: state.getConnectableNodes(),
@@ -314,7 +313,6 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
     hideMenu();
   }, [createConnectableNode, hideMenu]);
 
-  // Empty callback for onDragStart - prevents new function creation on each render
   const handleDragStart = useCallback(
     (_node: NodeMetadata, _event: React.DragEvent<HTMLDivElement>) => {},
     []

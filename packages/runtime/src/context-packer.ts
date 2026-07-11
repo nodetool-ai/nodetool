@@ -15,7 +15,6 @@ const NON_TEXT_BLOCK_TOKENS = 25;
 function estimateMessageTokens(msg: Message): number {
   if (msg.content === null || msg.content === undefined) return 1;
   if (typeof msg.content === "string") return countTokens(msg.content);
-  // MessageContent array
   let tokens = 0;
   for (const part of msg.content as MessageContent[]) {
     if (part.type === "text") {

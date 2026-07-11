@@ -10,9 +10,6 @@ type Props = {
   enableSelection?: boolean;
 };
 
-/**
- * Type guard to check if an AssetRef is an image type with data/uri
- */
 function isImageValue(item: AssetRef): item is AssetRef & { data?: Uint8Array; uri?: string } {
   return (item as { type?: string }).type === "image" &&
     ("uri" in item || "data" in item);

@@ -107,17 +107,15 @@ export class SpeechToTextNode extends BaseNode {
       throw new Error("Audio input is required");
     }
 
-    const modelId = String(this.model_id ?? this.model_id ?? "scribe_v2");
-    const languageCode = String(this.language_code ?? this.language_code ?? "");
-    const tagAudioEvents = Boolean(
-      this.tag_audio_events ?? this.tag_audio_events ?? true
-    );
-    const numSpeakers = Number(this.num_speakers ?? this.num_speakers ?? 0);
+    const modelId = String(this.model_id ?? "scribe_v2");
+    const languageCode = String(this.language_code ?? "");
+    const tagAudioEvents = Boolean(this.tag_audio_events ?? true);
+    const numSpeakers = Number(this.num_speakers ?? 0);
     const timestampsGranularity = String(
-      this.timestamps_granularity ?? this.timestamps_granularity ?? "word"
+      this.timestamps_granularity ?? "word"
     );
-    const diarize = Boolean(this.diarize ?? this.diarize ?? false);
-    const fileFormat = String(this.file_format ?? this.file_format ?? "other");
+    const diarize = Boolean(this.diarize ?? false);
+    const fileFormat = String(this.file_format ?? "other");
 
     // Get audio bytes from inline data, an asset/package ref resolved via the
     // processing context, or a direct HTTP(S) fetch as a fallback.
@@ -149,7 +147,6 @@ export class SpeechToTextNode extends BaseNode {
       throw new Error("Audio must have a data URI or uri field");
     }
 
-    // Build multipart form data matching the Python implementation
     const formData = new FormData();
     formData.append("model_id", modelId);
     formData.append(

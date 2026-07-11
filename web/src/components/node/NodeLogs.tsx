@@ -53,10 +53,6 @@ const styles = (theme: Theme) =>
     }
   });
 
-/**
- * Standalone dialog component for displaying node logs.
- * Can be controlled externally via open/onClose props.
- */
 export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
   ({ id, workflowId, open, onClose }) => {
     const theme = useTheme();

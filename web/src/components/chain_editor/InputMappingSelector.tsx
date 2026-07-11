@@ -222,7 +222,6 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
         })}
       </FlexColumn>
 
-      {/* Source picker menu */}
       <EditorMenu
         anchorEl={anchorEl}
         open={Boolean(anchorEl) && activeInput !== null}
@@ -239,7 +238,6 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
           />
         </EditorMenuItem>
 
-        {/* None option */}
         <EditorMenuItem
           selected={activeInput !== null && !inputMappings[activeInput]}
           onClick={() => handleSelect(null)}
