@@ -33,7 +33,7 @@ export async function runStartupChecks(): Promise<StartupCheckResult> {
 
   // Check master key. initMasterKey() is idempotent (returns the cached key if
   // already resolved) and, unlike the sync getter, resolves from the keychain
-  // and AWS Secrets Manager too — so this check reflects every key source.
+  // too — so this check reflects every key source.
   try {
     const key = await initMasterKey();
     if (!key) {

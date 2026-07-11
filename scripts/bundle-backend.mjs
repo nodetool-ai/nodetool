@@ -145,7 +145,6 @@ const COMMON_EXTERNAL_PACKAGES = [
   "@jitl/quickjs-ng-wasmfile-release-sync",
 
   // Cloud/optional services (dynamic import via variable + webpackIgnore)
-  "@aws-sdk/*",
   "@supabase/supabase-js",
 
   // Telemetry (conditionally loaded)
@@ -649,29 +648,6 @@ async function pruneTargetedPackages(modulesDir) {
       );
     } else {
       await remove(path.join(openaiDir, "src"));
-    }
-  }
-
-  // AWS SDK v3 / smithy packages ship triple output (dist-cjs, dist-es,
-  // dist-types); Node resolves only dist-cjs via "main".
-  for (const scope of ["@aws-sdk", "@smithy"]) {
-    const scopeDir = path.join(modulesDir, scope);
-    if (!fs.existsSync(scopeDir)) continue;
-    for (const name of await fsp.readdir(scopeDir)) {
-      const pkgDir = path.join(scopeDir, name);
-      const pkgJsonPath = path.join(pkgDir, "package.json");
-      if (!fs.existsSync(pkgJsonPath)) continue;
-      const pkg = await readJson(pkgJsonPath);
-      const main = (pkg.main ?? "").replace(/^\.\//, "");
-      if (!main.startsWith("dist-cjs/")) {
-        console.warn(
-          `  Warning: ${scope}/${name} main is "${pkg.main}" (not dist-cjs), ` +
-            "skipping dist-es/dist-types prune"
-        );
-        continue;
-      }
-      await remove(path.join(pkgDir, "dist-es"));
-      await remove(path.join(pkgDir, "dist-types"));
     }
   }
 

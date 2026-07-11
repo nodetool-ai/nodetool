@@ -136,10 +136,10 @@ WORKDIR /app
 COPY --from=build --chown=node:node /app/backend ./backend
 COPY --from=build --chown=node:node /app/web/dist ./web/dist
 
-# If neither a master key nor AWS Secrets Manager is configured, persist a
-# generated 32-byte base64 key next to the SQLite database so encrypted secrets
-# survive restarts when /workspace is mounted as a volume. For production, pass
-# -e SECRETS_MASTER_KEY=$(openssl rand -base64 32) or configure AWS.
+# If no master key is configured, persist a generated 32-byte base64 key next
+# to the SQLite database so encrypted secrets survive restarts when /workspace
+# is mounted as a volume. For production, pass
+# -e SECRETS_MASTER_KEY=$(openssl rand -base64 32).
 RUN printf '%s\n' \
     '#!/bin/sh' \
     'set -eu' \
@@ -148,7 +148,7 @@ RUN printf '%s\n' \
     '  exit 1' \
     'fi' \
     'KEY_FILE="${SECRETS_MASTER_KEY_FILE:-/workspace/.secrets_master_key}"' \
-    'if [ -z "${SECRETS_MASTER_KEY:-}" ] && [ -z "${AWS_SECRETS_MASTER_KEY_NAME:-}" ]; then' \
+    'if [ -z "${SECRETS_MASTER_KEY:-}" ]; then' \
     '  mkdir -p "$(dirname "$KEY_FILE")"' \
     '  if [ ! -s "$KEY_FILE" ]; then' \
     '    umask 077' \

@@ -21,7 +21,6 @@ describe("keychain access errors", () => {
     clearMasterKeyCache();
     resetKeytarLoader();
     delete process.env["SECRETS_MASTER_KEY"];
-    delete process.env["AWS_SECRETS_MASTER_KEY_NAME"];
   });
 
   afterEach(() => {
