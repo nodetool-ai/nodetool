@@ -8,19 +8,13 @@
  *  5. Control-edge EOS must decrement once per controller, not per edge.
  *  6. Runner reuse: _completedNodes must reset between runs.
  *  7. DurableInbox.append must serialize per handle (no duplicate seqs).
- *  8. TriggerManager must dedupe concurrent starts and retry failed restarts.
  * 10. Graph.fromDict/loadFromDict must not prune properties for dropped edges.
  * 11. Legacy streaming-input fallback must receive node properties.
  */
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { WorkflowRunner } from "../src/runner.js";
 import { Graph, GraphValidationError } from "../src/graph.js";
 import { DurableInbox, MemoryDurableInboxStore } from "../src/durable-inbox.js";
-import {
-  TriggerWorkflowManager,
-  type StartJobFn,
-  type HasTriggerNodesFn
-} from "../src/trigger-manager.js";
 import type { NodeDescriptor, Edge } from "@nodetool-ai/protocol";
 
 function ce(source: string, target: string, id?: string): Edge {
@@ -363,72 +357,6 @@ describe("DurableInbox.append concurrency", () => {
     expect(a.seq).toBe(b.seq);
     const pending = await inbox.getPending("in", 100);
     expect(pending).toHaveLength(1);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// 8. TriggerManager start races and watchdog retries
-// ---------------------------------------------------------------------------
-
-describe("TriggerWorkflowManager races", () => {
-  it("dedupes concurrent startTriggerWorkflow calls", async () => {
-    TriggerWorkflowManager.resetInstance();
-    const startJob = vi.fn<StartJobFn>(async () => {
-      await sleep(10);
-      return { jobId: "job-1", completion: new Promise<void>(() => {}) };
-    });
-    const hasTriggerNodes = vi.fn<HasTriggerNodesFn>(async () => true);
-    const mgr = new TriggerWorkflowManager({ startJob, hasTriggerNodes });
-
-    const [a, b] = await Promise.all([
-      mgr.startTriggerWorkflow("wf", "u"),
-      mgr.startTriggerWorkflow("wf", "u")
-    ]);
-
-    expect(startJob).toHaveBeenCalledTimes(1);
-    expect(a).not.toBeNull();
-    expect(b).toBe(a);
-    expect(mgr.listRunningWorkflows().size).toBe(1);
-  });
-
-  it("watchdog keeps retrying after a failed restart attempt", async () => {
-    vi.useFakeTimers();
-    try {
-      TriggerWorkflowManager.resetInstance();
-      let failStarts = false;
-      let counter = 0;
-      const startJob = vi.fn<StartJobFn>(async () => {
-        if (failStarts) throw new Error("transient db error");
-        counter++;
-        return {
-          jobId: `job-${counter}`,
-          completion: new Promise<void>(() => {})
-        };
-      });
-      const hasTriggerNodes = vi.fn<HasTriggerNodesFn>(async () => true);
-      const mgr = new TriggerWorkflowManager({ startJob, hasTriggerNodes });
-
-      const job = await mgr.startTriggerWorkflow("wf", "u");
-      job!.status = "failed";
-
-      // First watchdog tick: restart attempt fails transiently.
-      failStarts = true;
-      mgr.startWatchdog(1000);
-      await vi.advanceTimersByTimeAsync(1000);
-      // The stale entry must survive the failed attempt.
-      expect(mgr.getRunningWorkflow("wf")).toBeDefined();
-
-      // Second tick: restart succeeds.
-      failStarts = false;
-      await vi.advanceTimersByTimeAsync(1000);
-      expect(mgr.isWorkflowRunning("wf")).toBe(true);
-      expect(mgr.getRunningWorkflow("wf")!.jobId).toBe("job-2");
-
-      mgr.stopWatchdog();
-    } finally {
-      vi.useRealTimers();
-      TriggerWorkflowManager.resetInstance();
-    }
   });
 });
 

@@ -10,24 +10,18 @@
  *  - Graph.fromDict deleting defaults for dropped edges
  *  - Graph.topologicalSort ordering on control edges
  *  - getDownstreamSubgraph duplicating edges for shared seed targets
- *  - watchdog dropping a workflow after a failed restart
  *  - runner initializing a different executor instance than the one that runs
  *  - runner reuse rejecting control events for nodes completed in a prior run
  *  - NodeInbox.drainHandle releasing producer backpressure
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import { NodeActor, type NodeExecutor } from "../src/actor.js";
 import { NodeInbox } from "../src/inbox.js";
 import { WorkflowRunner } from "../src/runner.js";
 import { DurableInbox } from "../src/durable-inbox.js";
 import { Graph } from "../src/graph.js";
 import { getDownstreamSubgraph } from "../src/graph-utils.js";
-import {
-  TriggerWorkflowManager,
-  type StartJobFn,
-  type HasTriggerNodesFn
-} from "../src/trigger-manager.js";
 import type { NodeAnalysis } from "../src/correlation-analysis.js";
 import type { NodeDescriptor, Edge } from "@nodetool-ai/protocol";
 
@@ -498,54 +492,6 @@ describe("getDownstreamSubgraph — shared seed target", () => {
     const result = getDownstreamSubgraph(graph, "A", "out");
     const tailEdges = result.edges.filter((e) => e.source === "B");
     expect(tailEdges).toHaveLength(1);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Watchdog: failed restart must keep the workflow tracked for retry
-// ---------------------------------------------------------------------------
-
-describe("TriggerWorkflowManager — watchdog retry after failed restart", () => {
-  let startJob: ReturnType<typeof vi.fn<StartJobFn>>;
-  let hasTriggerNodes: ReturnType<typeof vi.fn<HasTriggerNodesFn>>;
-
-  beforeEach(() => {
-    TriggerWorkflowManager.resetInstance();
-    vi.useFakeTimers();
-    startJob = vi.fn(async () => ({
-      jobId: "job",
-      completion: new Promise<void>(() => {})
-    }));
-    hasTriggerNodes = vi.fn(async () => true);
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-    TriggerWorkflowManager.resetInstance();
-  });
-
-  it("retries on the next tick instead of permanently dropping the workflow", async () => {
-    const mgr = TriggerWorkflowManager.getInstance({
-      startJob,
-      hasTriggerNodes,
-      watchdogInterval: 1000
-    });
-    const job = await mgr.startTriggerWorkflow("wf-1", "u");
-    job!.status = "failed";
-
-    // First restart attempt fails transiently.
-    startJob.mockRejectedValueOnce(new Error("transient"));
-    mgr.startWatchdog();
-    await vi.advanceTimersByTimeAsync(1000);
-    expect(startJob).toHaveBeenCalledTimes(2);
-    expect(mgr.getRunningWorkflow("wf-1")).toBeDefined();
-    expect(mgr.isWorkflowRunning("wf-1")).toBe(false);
-
-    // Next tick succeeds.
-    await vi.advanceTimersByTimeAsync(1000);
-    expect(startJob).toHaveBeenCalledTimes(3);
-    expect(mgr.isWorkflowRunning("wf-1")).toBe(true);
-    mgr.stopWatchdog();
   });
 });
 

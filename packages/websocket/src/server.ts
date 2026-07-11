@@ -97,6 +97,8 @@ import falPricingEstimateRoute from "./routes/fal-pricing-estimate.js";
 import kieCreditsRoute from "./routes/kie-credits.js";
 import kiePricingRoute from "./routes/kie-pricing.js";
 import webhookRoute from "./triggers/webhook-route.js";
+import { startDispatcher, notifyDispatcher } from "./triggers/dispatcher.js";
+import { startTriggerScheduler } from "./triggers/scheduler.js";
 import {
   agentSocketRoute,
   getAgentRuntime,
@@ -1300,6 +1302,31 @@ const stopReaper = startReaper(
 );
 
 // ---------------------------------------------------------------------------
+// Trigger ingestion — dispatcher + host-owned adapters
+//
+// These run inside this server process (Electron spawns the same server, so
+// desktop gets them for free while the app is open). The dispatcher consumes
+// durable `trigger_inputs` and starts one headless run per event; the adapters
+// append those inputs. Restart-safety comes from the database: the initial
+// `notifyDispatcher()` below drains any backlog of unprocessed inputs left by a
+// previous process, and the scheduler re-arms schedules from
+// `trigger_registrations` on its first sweep.
+// ---------------------------------------------------------------------------
+
+const stopDispatcher = startDispatcher();
+const stopScheduler = startTriggerScheduler();
+// Task 12 (file-watch adapter) registers here: `const stopFileWatch = startFileWatch();`
+
+// Boot backlog: dispatch any `trigger_inputs` left unprocessed by a previous
+// process. Fire-and-forget — a boot-time drain failure must not abort startup.
+void notifyDispatcher().catch((err) => {
+  log.warn(
+    "Boot trigger-backlog dispatch failed",
+    err instanceof Error ? err : new Error(String(err))
+  );
+});
+
+// ---------------------------------------------------------------------------
 // Graceful shutdown — ensure child processes (Python worker, etc.) are killed
 // ---------------------------------------------------------------------------
 
@@ -1312,6 +1339,9 @@ async function shutdown(signal: string): Promise<void> {
     // best-effort cleanup
   }
   stopReaper();
+  // Stop producing (scheduler + adapters) before stop consuming (dispatcher).
+  stopScheduler();
+  stopDispatcher();
   localBridge.close();
   workerBridge?.close();
   try {
