@@ -81,8 +81,8 @@ export default function AppsHub() {
             <p className="mt-5 max-w-2xl text-lg leading-relaxed text-slate-400">
               Every NodeTool workflow can become a mini app: a clean screen with
               a few inputs and a Run button. No canvas, no nodes, no jargon —
-              and when you're curious, the full workflow behind it is one click
-              away.
+              and when you&apos;re curious, the full workflow behind it is one
+              click away.
             </p>
             <div className="mt-8">
               <SmartDownloadButton

@@ -271,7 +271,7 @@ export default async function MiniAppPage({
           <div className="mx-auto max-w-6xl px-6 lg:px-8">
             <div className="rounded-2xl border border-sky-500/20 bg-gradient-to-br from-sky-500/10 to-transparent p-8 md:p-10">
               <h2 className="text-2xl font-bold tracking-tight md:text-3xl">
-                It's an app until you want more
+                It&apos;s an app until you want more
               </h2>
               <p className="mt-4 max-w-2xl leading-relaxed text-slate-300">
                 Every mini app is a real NodeTool workflow underneath. Open the

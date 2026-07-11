@@ -17,7 +17,7 @@ import ThemeNodetool from "../components/themes/ThemeNodetool";
 import { createAppRuntimeStore } from "../components/appbuilder/runtime/appRuntimeStore";
 import { AppRuntimeContext } from "../components/appbuilder/runtime/AppRuntimeContext";
 import { appConfig } from "../components/appbuilder/puck/config";
-import { Box } from "../components/ui_primitives";
+import { Box, BORDER_RADIUS } from "../components/ui_primitives";
 import { makeDemoAudio, makeDemoGradient, makeDemoVideo } from "./demoMedia";
 
 interface PreviewBundle {
@@ -162,7 +162,7 @@ const AppPreviewApp: React.FC = () => {
             width: 980,
             mx: "auto",
             my: 4,
-            borderRadius: 3,
+            borderRadius: BORDER_RADIUS.lg,
             overflow: "hidden",
             border: "1px solid",
             borderColor: "divider",
