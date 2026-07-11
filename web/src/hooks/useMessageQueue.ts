@@ -21,16 +21,7 @@ interface UseMessageQueueReturn {
   sendQueuedNow: () => void;
 }
 
-/**
- * Hook for managing message queuing in chat interfaces.
- *
- * @example
- * const { queuedMessage, sendMessage, cancelQueued } = useMessageQueue({
- *   isLoading,
- *   isStreaming,
- *   onSendMessage
- * });
- */
+/** Manage message queuing in chat interfaces. */
 export function useMessageQueue({
   isLoading,
   isStreaming,
@@ -42,7 +33,6 @@ export function useMessageQueue({
   const sendMessageRef = useRef(onSendMessage);
   const pendingSendRef = useRef<QueuedMessage | null>(null);
 
-  // Keep the onSendMessage ref up to date
   useEffect(() => {
     sendMessageRef.current = onSendMessage;
   }, [onSendMessage]);
@@ -62,16 +52,14 @@ export function useMessageQueue({
 
   const sendMessage = useCallback(
     (content: MessageContent[], messagePrompt: string) => {
-      // Don't allow queuing if there's already a queued message
+      // A queued message is already pending; drop this one.
       if (queuedMessage) {
         return;
       }
 
       if (!isLoading && !isStreaming) {
-        // Send immediately
         sendMessageNow(content, messagePrompt);
       } else {
-        // Queue the message
         setQueuedMessage({
           content,
           prompt: messagePrompt

@@ -7,7 +7,6 @@ export function useEditorKeyboardShortcuts(options: {
 }) {
   const { onToggleFullscreen, onToggleAssistant, onToggleEditorMode } = options;
 
-  // Register combos; the hook itself is declarative wrappers around useCombo
   useCombo(["Control", "shift", "f"], onToggleFullscreen, false);
   useCombo(["Meta", "shift", "f"], onToggleFullscreen, false);
   useCombo(["Control", "shift", "a"], onToggleAssistant, false);

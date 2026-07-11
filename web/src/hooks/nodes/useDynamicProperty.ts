@@ -1,14 +1,11 @@
 import { useCallback } from "react";
 import { useNodes } from "../../contexts/NodeContext";
-import { shallow } from "zustand/shallow";
 
 export const useDynamicProperty = (
   nodeId: string,
   dynamicProperties: Record<string, unknown>
 ) => {
-  const { updateNodeData } = useNodes((state) => ({
-    updateNodeData: state.updateNodeData
-  }), shallow);
+  const updateNodeData = useNodes((state) => state.updateNodeData);
 
   const handleDeleteProperty = useCallback(
     (propertyName: string) => {

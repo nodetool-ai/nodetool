@@ -22,12 +22,6 @@ import { usePanelStore } from "../stores/PanelStore";
 import { useMiniMapStore } from "../stores/MiniMapStore";
 import { useNotificationStore } from "../stores/NotificationStore";
 
-/**
- * Hook that provides all action handlers for the floating toolbar.
- * Includes workflow execution, save, download, layout, and panel management.
- *
- * @returns Object containing all toolbar action handlers
- */
 export interface FloatingToolbarActions {
   handleRun: () => Promise<void>;
   handleStop: () => void;

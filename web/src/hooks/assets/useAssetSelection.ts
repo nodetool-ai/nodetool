@@ -30,7 +30,6 @@ export const useAssetSelection = (sortedAssets: Asset[]) => {
     (state) => state.setCurrentAudioAsset
   );
 
-  // Helper function to update both selectedAssetIds and selectedAssets efficiently
   const updateSelection = useCallback(
     (assetIds: string[]) => {
       setSelectedAssetIds(assetIds);

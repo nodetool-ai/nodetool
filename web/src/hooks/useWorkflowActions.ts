@@ -8,26 +8,6 @@ import {
   exampleSeedRef
 } from "../utils/exampleWorkflow";
 
-/**
- * Custom hook for workflow-related actions and navigation.
- * 
- * Provides handlers for creating new workflows, opening existing workflows,
- * and copying example workflows. Integrates with the workflow manager
- * and React Router for navigation.
- * 
- * @returns Object containing workflow action handlers and loading state
- * 
- * @example
- * ```typescript
- * const { handleCreateNewWorkflow, handleWorkflowClick } = useWorkflowActions();
- * 
- * // Create a new workflow
- * await handleCreateNewWorkflow();
- * 
- * // Open an existing workflow
- * handleWorkflowClick(existingWorkflow);
- * ```
- */
 interface WorkflowActions {
   loadingExampleId: string | null;
   handleCreateNewWorkflow: () => Promise<void>;

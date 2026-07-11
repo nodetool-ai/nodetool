@@ -31,39 +31,9 @@ import type { MenuEventData } from "../window";
 import { useSketchCanvasRefStore } from "../stores/sketch/SketchCanvasRefStore";
 
 /**
- * Hook that registers and manages all keyboard shortcuts for the node editor.
- * Provides comprehensive keyboard-based workflow editing including:
- * - Clipboard operations (copy, cut, paste)
- * - Node manipulation (delete, duplicate, align, group)
- * - View navigation (zoom, pan, fit view)
- * - Workflow operations (save, close, create new)
- * - Node search and selection
- * 
- * Shortcuts are registered with KeyPressedStore and respond to configurable
- * keyboard combinations defined in NODE_EDITOR_SHORTCUTS config.
- * 
- * @param active - Whether the hook should register shortcuts (false when editor not active)
- * @param onShowShortcuts - Optional callback to show keyboard shortcuts help dialog
- * 
- * @example
- * ```typescript
- * // Enable shortcuts in active editor
- * useNodeEditorShortcuts(true);
- * 
- * // With shortcuts dialog
- * useNodeEditorShortcuts(true, () => setShowShortcuts(true));
- * ```
- * 
- * @example
- * **Common Shortcuts**:
- * - `Ctrl+C` / `Cmd+C` - Copy selected nodes
- * - `Ctrl+V` / `Cmd+V` - Paste nodes
- * - `Ctrl+S` / `Cmd+S` - Save workflow
- * - `Ctrl+A` / `Cmd+A` - Select all nodes
- * - `Ctrl+F` / `Cmd+F` - Find in workflow
- * - `Ctrl+/-` - Zoom in/out
- * - `Delete/Backspace` - Delete selected nodes
- * - `Alt+Arrows` - Focus navigation
+ * Registers the node editor's keyboard shortcuts with KeyPressedStore, using the
+ * combinations defined in NODE_EDITOR_SHORTCUTS. `active` gates registration;
+ * `onShowShortcuts` opens the shortcuts help dialog.
  */
 const ControlOrMeta = isMac() ? "Meta" : "Control";
 
@@ -82,7 +52,6 @@ export const useNodeEditorShortcuts = (
   const [packageNameDialogOpen, setPackageNameDialogOpen] = useState(false);
   const [packageNameInput, setPackageNameInput] = useState("");
 
-  /* USE STORE */
   // Subscribe to undo/redo functions only (stable) to prevent re-renders on history changes
   const undoHistory = useTemporalNodes((state) => state.undo);
   const redoHistory = useTemporalNodes((state) => state.redo);
@@ -128,7 +97,6 @@ export const useNodeEditorShortcuts = (
   const leftPanelToggle = usePanelStore((state) => state.handleViewChange);
   const openFind = useFindInWorkflowStore((state) => state.openFind);
   const nodeFocus = useNodeFocus();
-  // All hooks above this line
 
   const selectedEdgeCount = useNodes((state) => {
     let count = 0;
@@ -141,7 +109,6 @@ export const useNodeEditorShortcuts = (
   const { handleCopy, handlePaste, handleCut } = copyPaste;
   const { openNodeMenu, closeNodeMenu, isMenuOpen } = nodeMenuStore;
 
-  // All useCallback hooks
   const handleOpenNodeMenu = useCallback(() => {
     // Space toggles: close when already open. (When the menu is open its search
     // input usually has focus, so the close-on-space-in-empty-search path in
@@ -481,12 +448,7 @@ export const useNodeEditorShortcuts = (
     }
   }, [nodeStore]);
 
-  // IPC Menu handler hook
   useMenuHandler(handleMenuEvent);
-
-  // ========================================================================
-  // DERIVED VALUES AND CONSTANTS - AFTER ALL HOOKS
-  // ========================================================================
 
   const electronDetails = getIsElectronDetails();
 
@@ -694,7 +656,6 @@ export const useNodeEditorShortcuts = (
     nodeFocus.focusHistory.length
   ]);
 
-  // useEffect for shortcut registration
   useEffect(() => {
     if (!active) {
       return;
@@ -741,7 +702,6 @@ export const useNodeEditorShortcuts = (
     // selectedNodeCount affects active flags for align shortcuts
   }, [active, selectedNodeCount, electronDetails, shortcutMeta]);
 
-  // Return dialog state and handlers for external use
   return {
     packageNameDialogOpen,
     packageNameInput,

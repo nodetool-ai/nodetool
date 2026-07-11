@@ -128,16 +128,10 @@ export const useAutosave = (options: UseAutosaveOptions): UseAutosaveReturn => {
     [workflowId, autosaveSettings?.maxVersionsPerWorkflow]
   );
 
-  /**
-   * Check if a workflow is empty (has no nodes)
-   */
   const isWorkflowEmpty = useCallback((workflow: Workflow): boolean => {
     return !workflow.graph?.nodes || workflow.graph.nodes.length === 0;
   }, []);
 
-  /**
-   * Perform autosave by calling the backend autosave endpoint
-   */
   const triggerAutosave = useCallback(async () => {
     if (!autosaveSettings?.enabled || isSavingRef.current) {
       return;
@@ -198,14 +192,10 @@ export const useAutosave = (options: UseAutosaveOptions): UseAutosaveReturn => {
     queryClient
   ]);
 
-  // Keep ref updated with latest triggerAutosave function
   useEffect(() => {
     triggerAutosaveRef.current = triggerAutosave;
   }, [triggerAutosave]);
 
-  /**
-   * Save before running workflow (checkpoint)
-   */
   const saveBeforeRun = useCallback(async () => {
     if (!autosaveSettings?.saveBeforeRun || !workflowId) {
       return;

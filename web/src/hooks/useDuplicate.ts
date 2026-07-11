@@ -49,7 +49,6 @@ export const useDuplicateNodes = (
     const offsetX = vertical ? 0 : nodeBounds.width + DUPLICATE_SPACING;
     const offsetY = vertical ? nodeBounds.height + DUPLICATE_SPACING : 0;
 
-    // Generate new sequential IDs for all selected nodes
     const newIds = generateNodeIds(selectedNodes.length);
     const oldToNewIds = new Map<string, string>();
     selectedNodes.forEach((node, index) => {
@@ -70,7 +69,6 @@ export const useDuplicateNodes = (
           : parentId
         : undefined;
 
-      // Apply offset only if the parent is not duplicated
       const positionOffsetX = isParentDuplicated ? 0 : offsetX;
       const positionOffsetY = isParentDuplicated ? 0 : offsetY;
 
@@ -97,7 +95,6 @@ export const useDuplicateNodes = (
       newNodes.push(newNode);
     }
 
-    // Find edges connected to selected nodes
     const selectedNodeIds = selectedNodes.map((node) => node.id);
     const connectedEdges = edges.filter(
       (edge) =>
@@ -138,13 +135,11 @@ export const useDuplicateNodes = (
       }
     }
 
-    // Deselect old nodes and select new duplicated nodes
     const updatedNodes = nodes.map((node) => ({
       ...node,
       selected: false
     }));
 
-    // Deselect old edges
     const updatedEdges = edges.map((edge) => ({
       ...edge,
       selected: false

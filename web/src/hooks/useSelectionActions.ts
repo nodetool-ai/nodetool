@@ -2,38 +2,6 @@ import { useCallback } from "react";
 import { useNodes, useNodeStoreRef } from "../contexts/NodeContext";
 import { useSurroundWithGroup } from "./nodes/useSurroundWithGroup";
 
-/**
- * Custom hook providing batch operations for selected nodes in the workflow editor.
- * 
- * This hook provides a comprehensive set of alignment, distribution, and manipulation
- * actions for multiple selected nodes including:
- * - Alignment: Left, Center, Right, Top, Middle, Bottom
- * - Distribution: Horizontal and vertical spacing
- * - Operations: Delete, Duplicate, Group, Bypass
- * 
- * All operations work with the currently selected nodes retrieved via getSelectedNodes().
- * Actions that require multiple nodes (align, distribute) will silently do nothing if
- * fewer than 2 nodes are selected.
- * 
- * @returns SelectionActionsReturn object containing all batch operation callbacks
- * 
- * @example
- * ```typescript
- * const { alignLeft, distributeHorizontal, deleteSelected } = useSelectionActions();
- * 
- * // Align selected nodes to the left edge
- * alignLeft();
- * 
- * // Distribute selected nodes evenly
- * distributeHorizontal();
- * 
- * // Delete all selected nodes
- * deleteSelected();
- * ```
- * 
- * @see useAlignNodes - For single-node alignment with grid snapping
- * @see useDuplicateNodes - For duplicating individual nodes
- */
 interface SelectionActionsReturn {
   alignLeft: () => void;
   alignCenter: () => void;
@@ -49,24 +17,6 @@ interface SelectionActionsReturn {
   bypassSelected: () => void;
 }
 
-/**
- * Custom hook providing selection-based node actions.
- * 
- * Provides alignment (left, center, right, top, middle, bottom),
- * distribution (horizontal, vertical), and manipulation actions
- * (delete, duplicate, group, bypass) for selected nodes.
- * 
- * @returns Object containing all selection action functions
- * 
- * @example
- * ```typescript
- * const {
- *   alignLeft,
- *   distributeHorizontal,
- *   deleteSelected
- * } = useSelectionActions();
- * ```
- */
 const NODE_WIDTH = 280;
 const HORIZONTAL_SPACING = 40;
 const VERTICAL_SPACING = 20;
@@ -114,7 +64,6 @@ export const useSelectionActions = (): SelectionActionsReturn => {
       return;
     }
 
-    // Calculate the average center X position
     const avgCenterX =
       selectedNodes.reduce((sum, n) => {
         const nodeWidth = n.measured?.width ?? NODE_WIDTH;
@@ -193,7 +142,6 @@ export const useSelectionActions = (): SelectionActionsReturn => {
       return;
     }
 
-    // Calculate the average center Y position
     const avgCenterY =
       selectedNodes.reduce((sum, n) => {
         const nodeHeight = n.measured?.height ?? 0;
@@ -331,7 +279,6 @@ export const useSelectionActions = (): SelectionActionsReturn => {
       return;
     }
 
-    // Use larger offset for better spacing
     const offset = 50;
 
     const nodeIdMap: Record<string, string> = {};
@@ -351,10 +298,9 @@ export const useSelectionActions = (): SelectionActionsReturn => {
       };
     });
 
-    // Get current state from store
     const { nodes, edges } = store.getState();
 
-    // Create new edges for duplicated nodes (only for edges where both nodes are duplicated)
+    // Only duplicate edges where both endpoints are among the duplicated nodes.
     const selectedNodeIds = selectedNodes.map((n) => n.id);
     const newEdges = edges
       .filter(
@@ -370,13 +316,11 @@ export const useSelectionActions = (): SelectionActionsReturn => {
         selected: true
       }));
 
-    // Deselect original nodes and add new duplicated nodes
     const updatedNodes = nodes.map((node) => ({
       ...node,
       selected: false
     }));
 
-    // Update state using NodeStore (not ReactFlow directly)
     setNodes([...updatedNodes, ...newNodes]);
     setEdges([...edges, ...newEdges]);
   }, [getSelectedNodes, setNodes, setEdges, store]);
