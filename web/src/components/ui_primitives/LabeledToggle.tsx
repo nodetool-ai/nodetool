@@ -132,7 +132,6 @@ const LabeledToggleInternal: React.FC<LabeledToggleProps> = ({
 }) => {
   const theme = useTheme();
 
-  // Determine the label text
   const labelText = isOpen
     ? hideLabel || label || "Hide"
     : showLabel || label || "Show";
@@ -145,14 +144,12 @@ const LabeledToggleInternal: React.FC<LabeledToggleProps> = ({
     [onToggle]
   );
 
-  // Memoize expand icon button styles
   const expandButtonSx: SxProps<Theme> = useMemo(() => ({
     transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
     transition: MOTION.transform,
     padding: size === "small" ? 0.5 : 1
   }), [isOpen, size]);
 
-  // Memoize icon box styles
   const iconBoxSx: SxProps<Theme> = useMemo(() => ({
     display: "inline-flex",
     alignItems: "center",
@@ -163,7 +160,6 @@ const LabeledToggleInternal: React.FC<LabeledToggleProps> = ({
     transition: `color ${MOTION.normal}`
   }), [isOpen, theme]);
 
-  // Memoize container styles
   const containerSx: SxProps<Theme> = useMemo(() => ({
     display: "flex",
     alignItems: "center",
@@ -178,7 +174,6 @@ const LabeledToggleInternal: React.FC<LabeledToggleProps> = ({
     ...sx
   }), [disabled, sx]);
 
-  // Render the expand/collapse icon if enabled
   const expandIconNode = showExpandIcon ? (
     <IconButton
       size={size}
@@ -195,7 +190,6 @@ const LabeledToggleInternal: React.FC<LabeledToggleProps> = ({
     </IconButton>
   ) : null;
 
-  // Render the main icon with state-based color
   const iconNode = icon ? (
     <Box
       component="span"

@@ -173,11 +173,9 @@ export const StateIconButton = memo(
         [onClick, isLoading, disabled]
       );
 
-      // Determine loading spinner size based on button size
       const spinnerSize =
         loadingSize || (size === "large" ? 24 : size === "medium" ? 20 : 16);
 
-      // Display the appropriate icon
       const displayIcon = isLoading ? (
         <LoadingSpinner inline size={spinnerSize} color="inherit" />
       ) : isActive && activeIcon ? (
@@ -223,7 +221,6 @@ export const StateIconButton = memo(
         </IconButton>
       );
 
-      // If tooltip is provided, wrap in Tooltip component
       if (tooltip) {
         return (
           <Tooltip

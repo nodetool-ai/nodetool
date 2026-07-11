@@ -33,7 +33,6 @@ export interface ShortcutHintProps extends BoxProps {
 const formatKey = (key: string): string => {
   const normalized = key.toLowerCase();
 
-  // Symbol mappings
   const symbolMap: Record<string, string> = {
     "ctrl": "Ctrl",
     "control": "Ctrl",
@@ -63,7 +62,6 @@ const formatKey = (key: string): string => {
     "right": "→",
   };
 
-  // Return mapped symbol or original (capitalized)
   return symbolMap[normalized] || key.charAt(0).toUpperCase() + key.slice(1);
 };
 
@@ -78,13 +76,11 @@ const formatKey = (key: string): string => {
  */
 export const ShortcutHint: React.FC<ShortcutHintProps> = memo(
   ({ shortcut, size = "small", className, sx, ...props }) => {
-    // Build the display elements
     const elements: React.ReactNode[] = [];
 
     shortcut.forEach((key, index) => {
       const formattedKey = formatKey(key);
 
-      // Add plus separator between keys (except before first key)
       if (index > 0) {
         elements.push(
           <span key={`plus-${key}-${index}`} style={{ margin: "0 1px", opacity: 0.7, fontWeight: 600, transition: MOTION.normal }}>
@@ -93,7 +89,6 @@ export const ShortcutHint: React.FC<ShortcutHintProps> = memo(
         );
       }
 
-      // Add the key badge
       elements.push(
         <span
           key={`key-${key}-${index}`}
@@ -131,8 +126,6 @@ export const ShortcutHint: React.FC<ShortcutHintProps> = memo(
           letterSpacing: "0.5px",
           transition: MOTION.all,
           opacity: 0.8,
-
-          // Hover effect
           "&:hover": {
             opacity: 1,
             backgroundColor: "rgba(0, 0, 0, 0.12)",
