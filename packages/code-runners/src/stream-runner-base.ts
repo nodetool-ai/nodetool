@@ -34,33 +34,38 @@ export class ContainerFailureError extends Error {
 }
 
 /**
- * Environment variables copied through to subprocess-mode children. Untrusted
- * user code must NOT inherit the server's full environment (SECRETS_MASTER_KEY,
- * AWS_*, provider API keys, …), so we allow only a minimal safe base needed for
- * a process to start and resolve binaries. `buildContainerEnvironment` is
- * layered on top of this.
+ * Env var names/patterns scrubbed from subprocess-mode children. Untrusted user
+ * code must NOT read the server's secrets (SECRETS_MASTER_KEY, cloud creds,
+ * provider API keys, …). A denylist — rather than a strict allowlist — keeps the
+ * rest of the environment intact so interpreters/login shells behave exactly as
+ * they do outside the sandbox; only sensitive keys are dropped.
  */
-export const SUBPROCESS_ENV_ALLOWLIST: readonly string[] = [
-  "PATH",
-  "HOME",
-  "LANG",
-  "LC_ALL",
-  "TMPDIR",
-  "TEMP",
-  "TMP",
-  "SYSTEMROOT",
-  "USERPROFILE"
+export const SUBPROCESS_ENV_SECRET_KEYS: readonly string[] = [
+  "SECRETS_MASTER_KEY"
 ];
 
+const SUBPROCESS_ENV_SECRET_RE =
+  /(SECRET|TOKEN|PASSWORD|PASSWD|CREDENTIAL|API[_-]?KEY|APIKEY|ACCESS[_-]?KEY|PRIVATE[_-]?KEY|SESSION[_-]?TOKEN|AUTH)/i;
+
+/** A key is sensitive if it is explicitly listed, an AWS_* var, or matches the pattern. */
+function isSensitiveEnvKey(key: string): boolean {
+  return (
+    SUBPROCESS_ENV_SECRET_KEYS.includes(key) ||
+    /^AWS_/i.test(key) ||
+    SUBPROCESS_ENV_SECRET_RE.test(key)
+  );
+}
+
 /**
- * Build a minimal, secret-free base environment for subprocess-mode children by
- * copying only the allowlisted variables from `process.env`.
+ * Build the base environment for subprocess-mode children: a copy of the
+ * server's environment with sensitive keys scrubbed. `buildContainerEnvironment`
+ * is layered on top of this.
  */
 export function buildSubprocessBaseEnv(): Record<string, string> {
   const out: Record<string, string> = {};
-  for (const key of SUBPROCESS_ENV_ALLOWLIST) {
-    const value = process.env[key];
-    if (value !== undefined) out[key] = value;
+  for (const [key, value] of Object.entries(process.env)) {
+    if (value === undefined || isSensitiveEnvKey(key)) continue;
+    out[key] = value;
   }
   return out;
 }
