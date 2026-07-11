@@ -8,15 +8,12 @@ import { z } from "zod";
 import { FrontendToolRegistry } from "../frontendTools";
 
 export interface EditorAdapter {
-  /** Returns the full document content */
   getContent: () => string;
   /** Returns the currently selected text (empty string if nothing selected) */
   getSelection: () => string;
-  /** Replaces the entire document with new content */
   replaceAll: (text: string) => void;
   /** Replaces the current selection; falls back to replaceAll if no selection */
   replaceSelection: (text: string) => void;
-  /** Inserts text at the current cursor position */
   insert: (text: string) => void;
   /** Human-readable language label, e.g. "javascript" */
   language: string;
@@ -35,8 +32,6 @@ function requireAdapter(): EditorAdapter {
   return activeAdapter;
 }
 
-// ── tool: get the full document ───────────────────────────────────────────────
-
 FrontendToolRegistry.register({
   name: "ui_editor_get_content",
   description:
@@ -49,8 +44,6 @@ FrontendToolRegistry.register({
   }
 });
 
-// ── tool: get selected text ───────────────────────────────────────────────────
-
 FrontendToolRegistry.register({
   name: "ui_editor_get_selection",
   description:
@@ -62,8 +55,6 @@ FrontendToolRegistry.register({
     return { selection: adapter.getSelection() };
   }
 });
-
-// ── tool: replace entire document ─────────────────────────────────────────────
 
 FrontendToolRegistry.register({
   name: "ui_editor_replace_all",
@@ -79,8 +70,6 @@ FrontendToolRegistry.register({
     return { ok: true, chars: content.length };
   }
 });
-
-// ── tool: replace selection ───────────────────────────────────────────────────
 
 FrontendToolRegistry.register({
   name: "ui_editor_replace_selection",
@@ -102,8 +91,6 @@ FrontendToolRegistry.register({
     return { ok: true, replaced_selection: hadSelection };
   }
 });
-
-// ── tool: insert at cursor ────────────────────────────────────────────────────
 
 FrontendToolRegistry.register({
   name: "ui_editor_insert",

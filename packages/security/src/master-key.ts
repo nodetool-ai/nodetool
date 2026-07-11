@@ -190,7 +190,6 @@ export function getMasterKey(): string {
  * @returns The master key as a base64-encoded string.
  */
 export async function initMasterKey(): Promise<string> {
-  // Return cached key if available
   if (cachedMasterKey !== null) {
     return cachedMasterKey;
   }

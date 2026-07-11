@@ -344,6 +344,17 @@ export type { ParallelTaskExecutorOptions } from "./parallel-task-executor.js";
 export { CompilerAgent } from "./compiler-agent.js";
 export type { CompilerAgentOptions } from "./compiler-agent.js";
 
+// Script-mode planning & execution (code-shaped orchestration)
+export { ScriptPlanner, validateScript } from "./script-planner.js";
+export type { ScriptPlannerOptions } from "./script-planner.js";
+export {
+  ScriptRunner,
+  SCRIPT_RESERVED_NAMES,
+  DEFAULT_MAX_CONCURRENT_AGENTS,
+  DEFAULT_MAX_AGENT_CALLS
+} from "./script-runner.js";
+export type { ScriptRunnerOptions } from "./script-runner.js";
+
 // Graph-native planning & execution
 export { GraphBuilder, AGENT_STEP_NODE_TYPE } from "./graph-builder.js";
 export { GraphPlanner } from "./graph-planner.js";

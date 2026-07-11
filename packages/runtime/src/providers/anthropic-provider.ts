@@ -43,6 +43,19 @@ function bytesToBase64(data: Uint8Array | string | undefined): string {
   return Buffer.from(data).toString("base64");
 }
 
+/**
+ * Anthropic's image block accepts only image/jpeg, image/png, image/gif and
+ * image/webp as `media_type`. Strip any Content-Type parameters, normalize the
+ * common `image/jpg` alias, and fall back to image/png for anything else
+ * (including `application/octet-stream` from an unknown file extension).
+ */
+function normalizeAnthropicImageMime(mime: string): string {
+  const base = mime.split(";")[0].trim().toLowerCase();
+  if (base === "image/jpg") return "image/jpeg";
+  const supported = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+  return supported.includes(base) ? base : "image/png";
+}
+
 function parseDataUri(uri: string): { mime: string; base64: string } {
   const idx = uri.indexOf(",");
   if (idx < 0) {
@@ -320,7 +333,7 @@ export class AnthropicProvider extends BaseProvider {
       type: "image",
       source: {
         type: "base64",
-        media_type: mediaType,
+        media_type: normalizeAnthropicImageMime(mediaType),
         data: base64
       }
     };

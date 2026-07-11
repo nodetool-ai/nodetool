@@ -5,7 +5,7 @@ import { PropertyProps } from "../node/PropertyInput";
 import LlamaModelSelect from "./LlamaModelSelect";
 import HuggingFaceModelSelect from "./HuggingFaceModelSelect";
 import TransformersJsModelSelect from "./TransformersJsModelSelect";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { memo, useMemo } from "react";
 import LanguageModelSelect from "./LanguageModelSelect";
 import EmbeddingModelSelect from "./EmbeddingModelSelect";
@@ -93,7 +93,6 @@ const ModelProperty = (props: PropertyProps) => {
     [modelType]
   );
 
-  // Memoize task calculations to avoid recalculation on every render
   const { imageTask, videoTask, model3dTask } = useMemo(() => {
     const imageTaskByNode = {
       "nodetool.image.TextToImage": "text_to_image",
@@ -122,7 +121,6 @@ const ModelProperty = (props: PropertyProps) => {
     return { imageTask, videoTask, model3dTask };
   }, [props.nodeType]);
 
-  // Memoize model select component to avoid recreation on every render
   const modelSelectComponent = useMemo(() => {
     if (modelType === "language_model") {
       return (

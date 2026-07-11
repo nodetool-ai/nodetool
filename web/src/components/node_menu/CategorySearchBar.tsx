@@ -55,7 +55,7 @@ interface CategorySearchBarProps {
 
 /**
  * Slim search input shown at the top of a tile-grid category. Filters the
- * grid below by title/node_type/namespace substring. Plan §7.4.
+ * grid below by title/node_type/namespace substring.
  */
 const CategorySearchBar = memo(
   forwardRef<HTMLInputElement, CategorySearchBarProps>(

@@ -164,7 +164,6 @@ const AboutMenu: React.FC = memo(() => {
   useEffect(() => {
     const fetchSystemInfo = async () => {
       if (!isElectron) {
-        // In web browser, just show basic info
         setSystemInfo(null);
         setLoading(false);
         return;
@@ -279,7 +278,6 @@ Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion 
 
   return (
     <Box>
-      {/* Application Info */}
       <Text size="big" id="application">
         Application
       </Text>
@@ -301,7 +299,6 @@ Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion 
         )}
       </div>
 
-      {/* Operating System */}
       <Text size="big" id="operating-system">
         Operating System
       </Text>
@@ -320,7 +317,6 @@ Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion 
         )}
       </div>
 
-      {/* Installation Paths - hide in production */}
       {systemInfo && !isProduction && (
         <>
           <Text size="big" id="installation-paths">
@@ -361,7 +357,6 @@ Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion 
         </>
       )}
 
-      {/* Features & Versions */}
       {systemInfo && (
         <>
           <Text size="big" id="features">
@@ -388,7 +383,6 @@ Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion 
         </>
       )}
 
-      {/* Copy All Button */}
       {systemInfo && (
         <Box sx={{ marginTop: "1.5em", marginBottom: "1em" }}>
           <Text
@@ -411,7 +405,6 @@ Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion 
         </Box>
       )}
 
-      {/* Links */}
       <Text size="big" id="links">
         Links
       </Text>

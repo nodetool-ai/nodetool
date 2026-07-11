@@ -191,7 +191,6 @@ const MiniAppPage: React.FC<MiniAppPageProps> = ({
 
   const isRunning = runnerState === "running" || runnerState === "connecting";
 
-  // Live timer during execution
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const startTimeRef = useRef<number | null>(null);
 
@@ -230,31 +229,27 @@ const MiniAppPage: React.FC<MiniAppPageProps> = ({
         className="mini-app-page"
         sx={{
           marginLeft: `${leftOffset}px`,
-          width: "auto", // Allow auto width to fill available space
+          width: "auto",
           minHeight: embedded ? "100%" : "100vh",
           height: embedded ? "100%" : undefined,
           overflow: embedded ? "auto" : undefined,
           transition: `margin-left ${MOTION.normal}`
         }}
       >
-        {/* App Builder document: reactive, event-driven UI. */}
         {hasAppSpec && appData && workflow && (
           <Box sx={{ height: "100%", width: "100%", flex: 1 }}>
             <AppRuntimeView workflow={workflow} data={appData} />
           </Box>
         )}
 
-        {/* Default UI - Centered Container */}
         {!hasAppSpec && (
           <div className="layout-container">
-            {/* Loading State */}
             {isLoading && (
               <FlexRow justify="center" fullWidth sx={{ py: 8 }}>
                 <LoadingSpinner />
               </FlexRow>
             )}
 
-            {/* Error State */}
             {error && (
               <Box py={4}>
                 <Text color="error">{error.message}</Text>
@@ -263,7 +258,6 @@ const MiniAppPage: React.FC<MiniAppPageProps> = ({
 
             {workflow && activeNodeStore && (
               <>
-                {/* Header Section */}
                 <div className="page-header">
                   <Text size="bigger" weight={400}>
                     {workflow.name}
@@ -278,7 +272,6 @@ const MiniAppPage: React.FC<MiniAppPageProps> = ({
                   )}
                 </div>
 
-                {/* Progress Bar - Only shown when running with progress */}
                 {isRunning && progress && (
                   <div className="status-bar">
                     <Box className="status-bar-progress" sx={{ width: "100%" }}>
@@ -295,7 +288,6 @@ const MiniAppPage: React.FC<MiniAppPageProps> = ({
                   </div>
                 )}
 
-                {/* Main Content Grid */}
                 <form
                   className="content-grid"
                   onSubmit={(e) => {

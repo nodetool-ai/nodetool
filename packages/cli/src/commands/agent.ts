@@ -420,7 +420,6 @@ async function runAgentCommand(file: string, opts: RunOptions): Promise<void> {
     }
   }
 
-  // Tools
   const { tools, unknown } = resolveTools(cfg.tools, configuredProviders, prefs);
   if (unknown.length > 0) {
     process.stderr.write(
@@ -428,7 +427,6 @@ async function runAgentCommand(file: string, opts: RunOptions): Promise<void> {
     );
   }
 
-  // Workspace
   const workspaceDir = expandTilde(
     opts.workspace ?? cfg.workspace?.path ?? process.cwd()
   );
@@ -442,7 +440,6 @@ async function runAgentCommand(file: string, opts: RunOptions): Promise<void> {
 
   const provider = await createProvider(providerId);
 
-  // Header
   if (!opts.json) {
     process.stderr.write(
       chalk.bold(`\n▸ ${cfg.name ?? path.basename(file)}\n`) +

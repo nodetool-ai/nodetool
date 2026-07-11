@@ -6,8 +6,6 @@
 
 import { Setting } from "@nodetool-ai/models";
 
-// ── Types ──────────────────────────────────────────────────────────
-
 export interface SettingWithValue {
   package_name: string;
   env_var: string;
@@ -26,8 +24,6 @@ export interface SettingDefinition {
   enum?: string[];
   isSecret?: boolean;
 }
-
-// ── Registry ───────────────────────────────────────────────────────
 
 const registry: SettingDefinition[] = [];
 

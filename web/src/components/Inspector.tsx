@@ -10,7 +10,7 @@ import type { Theme } from "@mui/material/styles";
 import { NodeMetadata, TypeMetadata, Property } from "../stores/ApiTypes";
 import { findOutputHandle } from "../utils/handleUtils";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
-import isEqual from "fast-deep-equal";
+import isEqual from "../utils/isEqual";
 import { areNodesEqualIgnoringPosition } from "../utils/nodeEquality";
 import { EditorUiProvider } from "./editor_ui";
 import {
@@ -639,7 +639,6 @@ const Inspector: React.FC = () => {
     ? getMetadata(selectedNode.type)
     : null;
 
-  // --- Header identity (icon + tint) -------------------------------------
   const iconType = useMemo(() => {
     return (
       metadata?.outputs?.[0]?.type?.type ??
@@ -657,7 +656,6 @@ const Inspector: React.FC = () => {
     } as React.CSSProperties;
   }, [metadata, iconType]);
 
-  // --- Tabs --------------------------------------------------------------
   const [activeTab, setActiveTab] = useState<InspectorTab>("params");
 
   // Reset tab when the focused node changes so we don't strand the user

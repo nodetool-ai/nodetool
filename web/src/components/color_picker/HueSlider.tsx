@@ -51,7 +51,6 @@ const HueSlider = memo(function HueSlider({
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
 
-  // Draw the hue gradient
   const drawGradient = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) { return; }
@@ -62,15 +61,12 @@ const HueSlider = memo(function HueSlider({
     const width = canvas.width;
     const height = canvas.height;
 
-    // Clear canvas
     ctx.clearRect(0, 0, width, height);
 
-    // Create hue gradient
     const gradient = orientation === "horizontal"
       ? ctx.createLinearGradient(0, 0, width, 0)
       : ctx.createLinearGradient(0, 0, 0, height);
 
-    // Add color stops for the full hue spectrum
     for (let i = 0; i <= 360; i += 60) {
       const rgb = hsbToRgb({ h: i, s: 100, b: 100 });
       const color = rgbToHex(rgb);
@@ -81,12 +77,10 @@ const HueSlider = memo(function HueSlider({
     ctx.fillRect(0, 0, width, height);
   }, [orientation]);
 
-  // Draw gradient on mount and orientation change
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) { return; }
 
-    // Set canvas size to match display size
     const rect = canvas.getBoundingClientRect();
     canvas.width = rect.width * window.devicePixelRatio;
     canvas.height = rect.height * window.devicePixelRatio;
@@ -94,7 +88,6 @@ const HueSlider = memo(function HueSlider({
     drawGradient();
   }, [orientation, drawGradient]);
 
-  // Handle resize
   useEffect(() => {
     const handleResize = () => {
       const canvas = canvasRef.current;
@@ -125,7 +118,6 @@ const HueSlider = memo(function HueSlider({
         percentage = (clientY - rect.top) / rect.height;
       }
 
-      // Clamp and convert to hue
       percentage = Math.max(0, Math.min(1, percentage));
       const newHue = Math.round(percentage * 360);
 
@@ -154,7 +146,6 @@ const HueSlider = memo(function HueSlider({
     isDragging.current = false;
   }, []);
 
-  // Handle touch events
   const handleTouchStart = useCallback(
     (e: React.TouchEvent) => {
       isDragging.current = true;
@@ -173,7 +164,6 @@ const HueSlider = memo(function HueSlider({
     [updateHue]
   );
 
-  // Global mouse up listener
   useEffect(() => {
     const handleGlobalMouseUp = () => {
       isDragging.current = false;
@@ -188,10 +178,8 @@ const HueSlider = memo(function HueSlider({
     };
   }, []);
 
-  // Calculate cursor position
   const cursorPosition = `${(hue / 360) * 100}%`;
 
-  // Get color at current hue for cursor
   const cursorRgb = hsbToRgb({ h: hue, s: 100, b: 100 });
   const cursorColor = rgbToHex(cursorRgb);
 

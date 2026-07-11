@@ -275,7 +275,6 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
     [recentNodes]
   );
 
-  // Memoize node display names to avoid re-computation on each render
   const nodeDisplayNames = useMemo(
     () => {
       const names = new Map<string, string>();

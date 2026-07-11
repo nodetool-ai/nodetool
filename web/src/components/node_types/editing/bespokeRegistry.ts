@@ -1,13 +1,12 @@
 /**
- * Bespoke editing-node body registry (plan §9, Track E).
+ * Bespoke editing-node body registry.
  *
- * Registry mapping `node_type` → bespoke body component. Resolved before the
- * content-card registry in `NodeContent` body routing (§4.1):
+ * Maps `node_type` → bespoke body component. Resolved before the content-card
+ * registry in `NodeContent` body routing:
  *
  *   bespoke registry → content-card registry → generic body
  *
- * Bespoke bodies ship one at a time as Track E PRs land. Un-registered
- * nodes fall through to the next routing layer.
+ * Un-registered nodes fall through to the next routing layer.
  */
 
 import type React from "react";

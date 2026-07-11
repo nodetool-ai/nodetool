@@ -19,7 +19,7 @@ import {
   getSpacingPx,
   InputAdornment
 } from "../ui_primitives";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import Markdown from "react-markdown";
 
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -435,28 +435,22 @@ const DataframeEditorModal = ({
   const theme = useTheme();
   const modalOverlayRef = useRef<HTMLDivElement>(null);
 
-  // Fullscreen toggle
   const { isFullscreen, toggleFullscreen } = useFullscreenMode({
     storageKey: "dataframeEditorModal_fullscreen"
   });
 
-  // Resizable modal height
   const { modalHeight, handleResizeMouseDown } = useModalResize({
     storageKey: "dataframeEditorModal_height",
     defaultHeight: Math.min(500, window.innerHeight - 200)
   });
 
-  // Local state for the dataframe
   const [localValue, setLocalValue] = useState<DataframeRef>(value);
-  
-  // Search filter state
   const [searchFilter, setSearchFilter] = useState("");
 
   const handleClearSearch = useCallback(() => {
     setSearchFilter("");
   }, []);
 
-  // Sync local state with prop changes
   useEffect(() => {
     setLocalValue(value);
   }, [value]);
@@ -511,7 +505,6 @@ const DataframeEditorModal = ({
     }
   }, [onClose]);
 
-  // Escape key closes modal
   useCombo(["escape"], onClose);
 
   // Close signal from other modals so only one modal is active

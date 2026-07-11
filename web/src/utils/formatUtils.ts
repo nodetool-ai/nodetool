@@ -119,11 +119,8 @@ export function formatToolName(name: string): string {
   // MCP tool names: mcp__<server>__<tool_name>
   const mcpMatch = name.match(/^mcp__[^_]+(?:_[^_]+)*__(.+)$/);
   const rawName = mcpMatch ? mcpMatch[1] : name;
-
-  // Strip common prefixes like "ui_", "tool_"
   const stripped = rawName.replace(/^(ui_|tool_)/, "");
 
-  // Convert snake_case to Title Case
   return stripped
     .split("_")
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))

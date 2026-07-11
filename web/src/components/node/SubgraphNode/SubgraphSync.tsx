@@ -1,5 +1,5 @@
 import { memo, useEffect } from "react";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../../utils/isEqual";
 import { useNodes } from "../../../contexts/NodeContext";
 import { extractDynamicIO } from "../WorkflowNode";
 import type { NodeData } from "../../../stores/NodeData";

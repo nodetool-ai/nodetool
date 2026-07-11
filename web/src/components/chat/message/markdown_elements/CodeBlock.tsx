@@ -11,7 +11,7 @@ import {
   oneDarkColors,
   oneLightColors
 } from "./codeBlockColors";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../../../utils/isEqual";
 
 interface CodeBlockProps {
   node?: unknown;
@@ -47,7 +47,7 @@ const contentStyles = (colors: CodeThemeColors) =>
     overflow: "auto",
     lineHeight: 1.5,
     tabSize: 2,
-    code: {
+    "& code": {
       fontFamily: "inherit",
       background: "none",
       color: "inherit"
@@ -125,7 +125,9 @@ export const CodeBlock: React.FC<CodeBlockProps> = memo(({
   }
   // If inline === true (Markdown `inline code`), renderAsBlock remains false.
 
-  const language = match ? match[1] : "plaintext";
+  // Prism grammar keys are lowercase; normalize so `language-JS` still
+  // highlights. The header keeps displaying the original casing.
+  const language = (match ? match[1] : "plaintext").toLowerCase();
 
   const highlightedHtml = useMemo(() => {
     if (!renderAsBlock) {

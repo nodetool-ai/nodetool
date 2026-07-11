@@ -66,16 +66,13 @@ function isClipCompatibleWithTrack(
   return isCompatibleWithTrack(clipMediaType, trackType);
 }
 
-// ── Constants ──────────────────────────────────────────────────────────────
-
 const TRIM_HANDLE_WIDTH_PX = 8;
 const MIN_CLIP_WIDTH_PX = 4;
 const CLIP_RADIUS_PX = parseFloat(BORDER_RADIUS.md);
 /** Width below which we suppress secondary chrome (duration label). */
 const COMPACT_THRESHOLD_PX = 96;
 
-// ── Status mapping (PRD §5.5) ──────────────────────────────────────────────
-
+// Status mapping (PRD §5.5)
 const CLIP_STATUS_MAP: Record<ClipStatus, { status: StatusType; label: string; pulse: boolean }> = {
   draft: { status: "default", label: "Draft", pulse: false },
   queued: { status: "pending", label: "Queued", pulse: false },
@@ -86,8 +83,6 @@ const CLIP_STATUS_MAP: Record<ClipStatus, { status: StatusType; label: string; p
   locked: { status: "info", label: "Locked", pulse: false },
   missing: { status: "error", label: "Missing", pulse: false }
 };
-
-// ── Styles ─────────────────────────────────────────────────────────────────
 
 const clipStyles = (
   theme: Theme,
@@ -385,8 +380,6 @@ const lockIconStyles = css({
   alignItems: "center"
 });
 
-// ── Component ──────────────────────────────────────────────────────────────
-
 export interface ClipProps {
   clipId: string;
 }
@@ -448,8 +441,7 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       ? decodedAudioDurationMs
       : undefined;
 
-  // ── Derived status (PRD §5.5) ────────────────────────────────────────────
-
+  // Derived status (PRD §5.5).
   // Node-level errors from ErrorStore. Error keys are now scoped per run
   // (`${wf}:${jobId}:${node}`), so restrict the scan to the workflow's focused
   // run; with no focused run there's no error to surface.
@@ -492,16 +484,12 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
     return deriveClipStatus(clip, errorState, true);
   }, [clip, errorState]);
 
-  // ── Undo batching ───────────────────────────────────────────────────────
-  //
-  // Drag/trim gestures mutate the store on every pointermove. To collapse a
+  // Undo batching: drag/trim gestures mutate the store on every pointermove. To collapse a
   // whole gesture into a single undo entry we begin a batch on pointerdown,
   // mark() after each mutation (which pauses history once the pre-gesture
   // state has actually been checkpointed), and end() on pointerup. While
-  // paused, zundo records nothing — so one undo step reverts the entire drag.
+  // paused, the temporal middleware records nothing — so one undo step reverts the entire drag.
   const history = useTimelineHistoryBatch();
-
-  // ── Drag (move) ─────────────────────────────────────────────────────────
 
   const dragStartXRef = useRef(0);
   const dragStartMsRef = useRef(0);
@@ -692,8 +680,6 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
     ]
   );
 
-  // ── Context menu (Delete / Unlink) ──────────────────────────────────────
-
   const [contextMenuPos, setContextMenuPos] = useState<{
     x: number;
     y: number;
@@ -719,8 +705,6 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
     () => deleteSelected(new Set([clipId])),
     [deleteSelected, clipId]
   );
-
-  // ── Click (selection) ───────────────────────────────────────────────────
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -748,8 +732,6 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
     },
     [clipId, selectClip]
   );
-
-  // ── Trim start ──────────────────────────────────────────────────────────
 
   // Gesture-ownership flags: each trim handle's move handler only runs when
   // *its own* pointerdown started the gesture. Without this, dragging another
@@ -806,8 +788,6 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
     },
     [clip, msPerPx, trimClipStart, history]
   );
-
-  // ── Trim end ────────────────────────────────────────────────────────────
 
   const trimEndRef = useRef({ startX: 0, startMs: 0, startDuration: 0 });
 

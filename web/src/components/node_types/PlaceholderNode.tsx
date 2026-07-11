@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useMemo, useCallback, useEffect, useState } from "react";
 import { Node, NodeProps } from "@xyflow/react";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "../node/NodeHeader";
 import { NodeMetadata } from "../../stores/ApiTypes";

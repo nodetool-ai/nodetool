@@ -7,7 +7,7 @@ import { Asset } from "../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Tooltip, CloseButton, MOTION, SPACING, BORDER_RADIUS, Z_INDEX, getSpacingPx } from "../ui_primitives";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { isElectron } from "../../utils/browser";
 import {
@@ -133,7 +133,6 @@ const flattenVideoItems = (items: unknown): VideoItem[] => {
     return [];
   }
   if (!Array.isArray(items)) {
-    // Single item - check if it has the right shape
     if (typeof items === "object" && items !== null && "uri" in items) {
       return [items as VideoItem];
     }
@@ -143,7 +142,6 @@ const flattenVideoItems = (items: unknown): VideoItem[] => {
   const result: VideoItem[] = [];
   for (const item of items) {
     if (Array.isArray(item)) {
-      // Nested array - recursively flatten
       result.push(...flattenVideoItems(item));
     } else if (typeof item === "object" && item !== null && "uri" in item) {
       result.push(item as VideoItem);
@@ -162,7 +160,6 @@ const VideoListProperty = (props: PropertyProps) => {
   const globalSearchResults = useAssetGridStore((state) => state.globalSearchResults);
   const selectedAssets = useAssetGridStore((state) => state.selectedAssets);
 
-  // Convert value to array of VideoItem, flattening nested arrays
   const videos: VideoItem[] = useMemo(
     () => flattenVideoItems(props.value),
     [props.value]
@@ -196,20 +193,17 @@ const VideoListProperty = (props: PropertyProps) => {
     return handlers;
   }, [videos, handleRemoveVideo]);
 
-  // Handle file drops
-  // Handle file drops (both internal nodetool assets and external files)
+  // Handles both internal nodetool asset drops and external files.
   const onDrop = useCallback(
     async (event: React.DragEvent<HTMLDivElement>) => {
       event.preventDefault();
       event.stopPropagation();
       setIsDragOver(false);
 
-      // First, try to handle internal nodetool asset drops
       const dragData = deserializeDragData(event.dataTransfer);
       if (dragData) {
         const droppedVideos: VideoItem[] = [];
 
-        // Handle multiple assets
         if (dragData.type === "assets-multiple") {
           const selectedIds = dragData.payload as string[];
           const uniqueAssets = resolveAssetsMultiple(
@@ -225,7 +219,6 @@ const VideoListProperty = (props: PropertyProps) => {
           });
         }
 
-        // Handle single asset
         if (droppedVideos.length === 0 && dragData.type === "asset") {
           const asset = dragData.payload as Asset;
           if (asset.get_url && asset.content_type?.startsWith("video/")) {
@@ -239,7 +232,6 @@ const VideoListProperty = (props: PropertyProps) => {
         }
       }
 
-      // Fall back to handling external file drops
       if (!hasExternalFiles(event.dataTransfer)) {
         return;
       }
@@ -252,14 +244,12 @@ const VideoListProperty = (props: PropertyProps) => {
         return;
       }
 
-      // Upload all files and collect their assets
       const uploadPromises = files.map(
         (file) =>
           new Promise<VideoItem>((resolve, reject) => {
             uploadAsset({
               file,
               onCompleted: (asset: Asset) => {
-                // Validate asset URL before adding
                 const uri = asset.get_url;
                 if (!uri) {
                   reject(new Error("Asset URL is missing"));
@@ -296,7 +286,6 @@ const VideoListProperty = (props: PropertyProps) => {
     setIsDragOver(false);
   }, []);
 
-  // Native file picker for Electron
   const handleNativeFilePicker = useCallback(async () => {
     if (!window.api?.dialog?.openFile) {
       return;
@@ -351,12 +340,10 @@ const VideoListProperty = (props: PropertyProps) => {
     }
   }, [uploadAsset, handleAddVideos]);
 
-  // Handle files from browser file input
   const handleBrowserFilePicker = useCallback(() => {
     fileInputRef.current?.click();
   }, []);
 
-  // Handle file input change (browser fallback)
   const handleFileInputChange = useCallback(async (e: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []).filter((file) =>
       file.type.startsWith("video/")
@@ -398,7 +385,6 @@ const VideoListProperty = (props: PropertyProps) => {
     }
   }, [uploadAsset, handleAddVideos]);
 
-  // Handle dropzone click - use native dialog in Electron, file input in browser
   const handleDropzoneClick = useCallback(() => {
     if (isElectron && window.api?.dialog?.openFile) {
       handleNativeFilePicker();
@@ -409,7 +395,6 @@ const VideoListProperty = (props: PropertyProps) => {
 
   return (
     <div className="video-list-property" css={styles(theme)}>
-      {/* Hidden file input for browser fallback */}
       <input
         ref={fileInputRef}
         type="file"
@@ -424,8 +409,7 @@ const VideoListProperty = (props: PropertyProps) => {
         description={props.property.description}
         id={id}
       />
-      
-      {/* Video Grid */}
+
       {videos.length > 0 && (
         <div className="video-grid">
           {videos.map((video, index) => (
@@ -450,7 +434,6 @@ const VideoListProperty = (props: PropertyProps) => {
         </div>
       )}
 
-      {/* Dropzone */}
       <Tooltip title="Click to select videos or drag and drop">
         <div
           role="button"

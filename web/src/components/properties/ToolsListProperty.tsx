@@ -14,11 +14,8 @@ import {
 } from "../ui_primitives";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 
-/**
- * Interface for a tool object in the tools list property
- */
 interface Tool {
   type: string;
   name: string;
@@ -136,7 +133,6 @@ const ToolsListProperty = (props: PropertyProps) => {
     [toolNameSet]
   );
 
-  // Anchor element for the add/select menu
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
   const openMenu = useCallback((event: React.MouseEvent<HTMLElement>) => {
     setMenuAnchor(event.currentTarget);
@@ -175,7 +171,6 @@ const ToolsListProperty = (props: PropertyProps) => {
         id={id}
       />
 
-      {/* Selected tools row */}
       <FlexRow
         className="tools-list-items"
         gap={1}
@@ -205,7 +200,6 @@ const ToolsListProperty = (props: PropertyProps) => {
           />
         ))}
 
-        {/* Add (+) icon */}
         <ToolbarIconButton
           tooltip="Add / Remove Tools"
           tooltipPlacement="top"
@@ -226,7 +220,6 @@ const ToolsListProperty = (props: PropertyProps) => {
         />
       </FlexRow>
 
-      {/* Menu for selecting tools */}
       <EditorMenu
         anchorEl={menuAnchor}
         open={Boolean(menuAnchor)}

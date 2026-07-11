@@ -39,7 +39,7 @@ import ImageView from "./ImageView";
 import AssetViewer from "../assets/AssetViewer";
 import TaskPlanView from "./TaskPlanView";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { Chunk } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
 import { trpc } from "../../trpc/client";
@@ -275,7 +275,6 @@ const concatTextChunksSafely = (
   };
 };
 
-// Custom hook for draggable scrolling
 const formatAudioChunkTimestamp = (seconds: number): string => {
   if (!Number.isFinite(seconds) || seconds < 0) {
     return "00:00.000";
@@ -321,7 +320,6 @@ const useDraggableScroll = () => {
     scrollRef.current.style.cursor = "grab";
   });
 
-  // Set up global listeners once
   useEffect(() => {
     const handleGlobalMouseMove = (e: MouseEvent) => handleMouseMoveRef.current(e);
     const handleGlobalMouseUp = () => handleMouseUpRef.current();
@@ -357,8 +355,6 @@ export type OutputRendererProps = {
   value: unknown;
   showTextActions?: boolean;
 };
-
-// all helpers/styles/hooks moved to ./output/*
 
 const OutputRenderer: React.FC<OutputRendererProps> = ({
   value,

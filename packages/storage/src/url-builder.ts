@@ -29,7 +29,7 @@ export function createAssetUrlBuilder(
           : {})
       });
       const bucket = config.bucket;
-      return async (key: string) =>
+      return (key: string) =>
         client.presignGetObject({ bucket, key, expiresIn: SIGNED_URL_TTL });
     }
 

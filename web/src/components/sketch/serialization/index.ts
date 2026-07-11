@@ -108,9 +108,6 @@ export function deserializeLayerData(
   }
 }
 
-/**
- * Serialize a SketchDocument to a JSON string
- */
 export function serializeDocument(doc: SketchDocument): string {
   return JSON.stringify({
     ...doc,
@@ -125,10 +122,6 @@ export function serializeDocument(doc: SketchDocument): string {
   });
 }
 
-/**
- * Deserialize a JSON string into a SketchDocument.
- * Returns a default document if parsing fails.
- */
 export function deserializeDocument(
   json: string | null | undefined
 ): SketchDocument | null {
@@ -154,9 +147,6 @@ export function deserializeDocument(
   }
 }
 
-/**
- * Load a base64 data URL into an HTMLCanvasElement.
- */
 export function dataUrlToCanvas(
   dataUrl: string,
   width: number,
@@ -259,7 +249,6 @@ export async function flattenDocument(
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Composite visible non-mask layers bottom to top
   for (const layer of doc.layers) {
     if (!layer.data || layer.type === "mask" || layer.type === "group") {
       continue;
@@ -367,16 +356,10 @@ export function exportSelectedRasterLayer(
   };
 }
 
-/**
- * Export a canvas as a data URL (PNG).
- */
 export function canvasToDataUrl(canvas: HTMLCanvasElement): string {
   return canvas.toDataURL("image/png");
 }
 
-/**
- * Export a canvas as a Blob (PNG).
- */
 export function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
@@ -389,9 +372,6 @@ export function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   });
 }
 
-/**
- * Result type for loadImageWithDimensions.
- */
 export interface ImageLoadResult {
   data: string;
   naturalWidth: number;

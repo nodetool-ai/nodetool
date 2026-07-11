@@ -116,6 +116,59 @@ describe("fuzzyScore", () => {
     });
   });
 
+  describe("typo tolerance", () => {
+    it("corrects a single-character substitution", () => {
+      const score = fuzzyScore("imagf", "image");
+      expect(score).toBeGreaterThanOrEqual(0.375);
+      expect(score).toBeLessThan(0.5);
+    });
+
+    it("corrects an adjacent transposition", () => {
+      const score = fuzzyScore("iamge", "image");
+      expect(score).toBeGreaterThanOrEqual(0.375);
+      expect(score).toBeLessThan(0.5);
+    });
+
+    it("corrects a typo against a single word of a multi-word text", () => {
+      const score = fuzzyScore("imagf", "Load Image");
+      // Comfortably above the node-search field threshold (0.3).
+      expect(score).toBeGreaterThan(0.3);
+      expect(score).toBeLessThan(0.5);
+    });
+
+    it("keeps typo matches below every contiguous-match tier", () => {
+      const typo = fuzzyScore("imagf", "image");
+      const midWord = fuzzyScore("mag", "image"); // substring, mid-word
+      expect(fuzzyScore("image", "image")).toBeGreaterThan(typo);
+      expect(fuzzyScore("imag", "image")).toBeGreaterThan(typo); // prefix
+      expect(midWord).toBeGreaterThan(typo);
+    });
+
+    it("does not tolerate typos in very short queries", () => {
+      // floor(len / 4) === 0 for 1–3 char queries, so no correction budget.
+      expect(fuzzyScore("cat", "car")).toBe(0);
+      expect(fuzzyScore("dda", "add")).toBe(0);
+    });
+
+    it("ignores distant strings within the correction path", () => {
+      expect(fuzzyScore("imagf", "concatenate")).toBe(0);
+      expect(fuzzyScore("xyzzy", "gradient")).toBe(0);
+    });
+
+    it("keeps every score normalized to [0, 1]", () => {
+      for (const [q, t] of [
+        ["imagf", "image"],
+        ["iamge", "load image"],
+        ["cocat", "concatenate"],
+        ["xyzzy", "gradient"]
+      ] as const) {
+        const score = fuzzyScore(q, t);
+        expect(score).toBeGreaterThanOrEqual(0);
+        expect(score).toBeLessThanOrEqual(1);
+      }
+    });
+  });
+
   describe("ranking sanity on realistic node titles", () => {
     const titles = [
       "Add",

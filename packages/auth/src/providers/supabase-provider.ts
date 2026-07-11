@@ -125,16 +125,12 @@ export class SupabaseAuthProvider extends AuthProvider {
     this.cacheMax = Math.max(options.cacheMax ?? 2000, 0);
   }
 
-  // ── Client initialisation ────────────────────────────────────────────
-
   private _getClient(): SupabaseAuthClient {
     if (!this._client) {
       this._client = createGoTrueClient(this.supabaseUrl, this.supabaseKey);
     }
     return this._client;
   }
-
-  // ── Cache helpers ────────────────────────────────────────────────────
 
   private _makeCacheKey(token: string): string {
     return createHash("sha256").update(token).digest("hex");
@@ -152,7 +148,6 @@ export class SupabaseAuthProvider extends AuthProvider {
 
     const [userId, expiresAt] = entry;
     if (performance.now() >= expiresAt) {
-      // Expired
       this._cache.delete(key);
       return null;
     }
@@ -189,14 +184,11 @@ export class SupabaseAuthProvider extends AuthProvider {
     }
   }
 
-  // ── AuthProvider implementation ──────────────────────────────────────
-
   async verifyToken(token: string): Promise<AuthResult> {
     if (!token) {
       return { ok: false, error: "Missing Supabase token" };
     }
 
-    // Check cache first
     const cachedUserId = this._getCachedUser(token);
     if (cachedUserId) {
       return { ok: true, userId: cachedUserId, tokenType: TokenType.USER };

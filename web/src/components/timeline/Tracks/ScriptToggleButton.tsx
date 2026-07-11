@@ -24,8 +24,6 @@ import { useHasScript } from "../../../hooks/timeline/useHasScript";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { MOTION, BORDER_RADIUS } from "../../ui_primitives";
 
-// ── Styles ─────────────────────────────────────────────────────────────────
-
 const buttonStyles = (theme: Theme) =>
   css({
     display: "inline-flex",
@@ -52,8 +50,6 @@ const buttonStyles = (theme: Theme) =>
       fontSize: 14
     }
   });
-
-// ── Component ──────────────────────────────────────────────────────────────
 
 export const ScriptToggleButton: React.FC = memo(() => {
   const theme = useTheme();

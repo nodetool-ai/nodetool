@@ -131,7 +131,6 @@ export const CopyButton = memo(
           clearTimeout(timeoutRef.current);
         }
 
-        // Serialize value
         const textToCopy =
           typeof value === "string" ? value : JSON.stringify(value, null, 2);
 

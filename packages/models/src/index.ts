@@ -39,7 +39,10 @@ export {
   timelineSequences,
   imageDocuments,
   workerProfiles,
-  workerInstances
+  workerInstances,
+  triggerInputs,
+  runInboxMessages,
+  triggerRegistrations
 } from "./schema/index.js";
 
 // ── Drizzle Schema (PostgreSQL) ─────────────────────────────────────
@@ -151,6 +154,10 @@ export { RunEvent } from "./run-event.js";
 export type { EventType } from "./run-event.js";
 
 export { RunLease } from "./run-lease.js";
+
+export { TriggerInput } from "./trigger-input.js";
+export { RunInboxMessage } from "./run-inbox-message.js";
+export { TriggerRegistration } from "./trigger-registration.js";
 
 // ── Seeds ────────────────────────────────────────────────────────────
 export { runSeeds, seedCostData, COST_SEED_USER_ID } from "./seeds/index.js";

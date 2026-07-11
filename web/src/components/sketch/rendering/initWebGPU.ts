@@ -37,7 +37,6 @@ export async function initWebGPU(): Promise<WebGPUInitResult> {
     throw new Error("Failed to get WebGPU adapter");
   }
   const device = await adapter.requestDevice();
-  // Listen for uncaptured errors
   device.addEventListener("uncapturederror", (event) => {
     console.error("[WebGPU] Uncaptured device error:", event);
   });

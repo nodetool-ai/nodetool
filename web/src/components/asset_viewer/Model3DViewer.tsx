@@ -42,7 +42,6 @@ import {
 } from "@react-three/drei";
 import * as THREE from "three";
 
-// Icons
 import GridOnIcon from "@mui/icons-material/GridOn";
 import ViewInArIcon from "@mui/icons-material/ViewInAr";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
@@ -79,7 +78,6 @@ const LIGHTING_PRESETS: { value: LightingPreset; label: string }[] = [
   { value: "night", label: "Night" }
 ];
 
-// Background colors
 type BackgroundColor =
   | "dark"
   | "light"
@@ -212,7 +210,6 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
     }
   });
 
-// Model component that loads GLTF/GLB files
 interface ModelProps {
   url: string;
   wireframe: boolean;
@@ -237,7 +234,6 @@ function Model({ url, wireframe, onLoad, onClick, onDoubleClick }: ModelProps) {
     clonedScene.updateMatrixWorld(true);
   }, [clonedScene, initialCenter]);
 
-  // Apply wireframe mode to all mesh materials
   useEffect(() => {
     clonedScene.traverse((child) => {
       if (child instanceof THREE.Mesh) {
@@ -245,7 +241,6 @@ function Model({ url, wireframe, onLoad, onClick, onDoubleClick }: ModelProps) {
           ? child.material
           : [child.material];
         materials.forEach((mat) => {
-          // Apply wireframe to any material that supports it
           if (mat && "wireframe" in mat) {
             (mat as THREE.Material & { wireframe: boolean }).wireframe =
               wireframe;
@@ -255,7 +250,6 @@ function Model({ url, wireframe, onLoad, onClick, onDoubleClick }: ModelProps) {
     });
   }, [clonedScene, wireframe]);
 
-  // Signal load complete
   useEffect(() => {
     const bounds = new THREE.Box3().setFromObject(clonedScene);
     onLoad?.(bounds);
@@ -284,7 +278,6 @@ function Model({ url, wireframe, onLoad, onClick, onDoubleClick }: ModelProps) {
   );
 }
 
-// Error boundary for handling model loading errors
 interface ModelErrorBoundaryProps {
   children: React.ReactNode;
   onError: (error: Error) => void;
@@ -322,7 +315,6 @@ class ModelErrorBoundary extends Component<
   }
 }
 
-// Helper grid and axis component
 interface SceneHelpersProps {
   showGrid: boolean;
   showAxes: boolean;
@@ -352,19 +344,16 @@ function SceneHelpers({ showGrid, showAxes }: SceneHelpersProps) {
   );
 }
 
-// Camera reset component
 interface CameraControllerProps {
   resetTrigger: number;
   modelBounds: THREE.Box3 | null;
 }
 
-// Type for OrbitControls-like objects
 interface OrbitControlsLike {
   target: THREE.Vector3;
   update: () => void;
 }
 
-// Type guard for OrbitControls
 function isOrbitControlsLike(obj: unknown): obj is OrbitControlsLike {
   return (
     obj !== null &&
@@ -444,7 +433,6 @@ function CameraController({
   return null;
 }
 
-// Screenshot capture function
 function useScreenshotCapture() {
   const captureScreenshot = useCallback(
     (
@@ -453,13 +441,10 @@ function useScreenshotCapture() {
       camera: THREE.Camera,
       filename: string = "model-screenshot.png"
     ) => {
-      // Render the scene
       gl.render(scene, camera);
 
-      // Get the canvas data
       const dataUrl = gl.domElement.toDataURL("image/png");
 
-      // Create download link
       const link = document.createElement("a");
       link.href = dataUrl;
       link.download = filename;
@@ -473,7 +458,6 @@ function useScreenshotCapture() {
   return { captureScreenshot };
 }
 
-// Screenshot button component (inside Canvas)
 interface ScreenshotHandlerProps {
   onCapture: (
     gl: THREE.WebGLRenderer,
@@ -508,7 +492,6 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
   const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // State
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [showGrid, setShowGrid] = useState(!compact);
@@ -526,7 +509,6 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
   const modelUrl = asset?.get_url || url || "";
   const { captureScreenshot } = useScreenshotCapture();
 
-  // Get background color value
   const bgColorValue = useMemo(
     () =>
       BACKGROUND_COLORS.find((bg) => bg.value === backgroundColor)?.color ||
@@ -534,14 +516,12 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
     [backgroundColor]
   );
 
-  // Handle model load
   const handleModelLoad = useCallback((bounds: THREE.Box3) => {
     setIsLoading(false);
     setLoadError(null);
     setModelBounds(bounds.clone());
   }, []);
 
-  // Handle model error
   const handleModelError = useCallback(
     (error: Error) => {
       setIsLoading(false);
@@ -572,7 +552,6 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
     [asset?.name, modelUrl]
   );
 
-  // Reset loading state when URL changes
   useEffect(() => {
     if (modelUrl) {
       setIsLoading(true);
@@ -580,7 +559,6 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
     }
   }, [modelUrl]);
 
-  // Toggle fullscreen
   const toggleFullscreen = useCallback(() => {
     if (!containerRef.current) {
       return;
@@ -595,7 +573,6 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
     }
   }, []);
 
-  // Listen for fullscreen changes
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
@@ -606,7 +583,6 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
     };
   }, []);
 
-  // Exit fullscreen
   const exitFullscreen = useCallback(() => {
     if (document.fullscreenElement) {
       document.exitFullscreen?.();
@@ -614,7 +590,6 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
     }
   }, []);
 
-  // Handle Escape key to exit fullscreen
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && isFullscreen) {
@@ -627,17 +602,14 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
     };
   }, [isFullscreen, exitFullscreen]);
 
-  // Reset camera
   const handleResetCamera = useCallback(() => {
     setResetCameraTrigger((prev) => prev + 1);
   }, []);
 
-  // Take screenshot
   const handleScreenshot = useCallback(() => {
     setScreenshotTrigger((prev) => prev + 1);
   }, []);
 
-  // Handle screenshot capture
   const handleCaptureScreenshot = useCallback(
     (gl: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.Camera) => {
       const filename = asset?.name
@@ -648,12 +620,10 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
     [asset?.name, captureScreenshot]
   );
 
-  // Lighting preset change
   const handleLightingChange = useCallback((event: SelectChangeEvent) => {
     setLightingPreset(event.target.value as LightingPreset);
   }, []);
 
-  // Background change
   const handleBackgroundChange = useCallback((event: SelectChangeEvent) => {
     setBackgroundColor(event.target.value as BackgroundColor);
   }, []);
@@ -746,14 +716,12 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
                   </Html>
                 }
               >
-                {/* Lighting based on preset */}
                 <ambientLight intensity={0.3} />
                 <Environment
                   preset={lightingPreset}
                   background={backgroundColor === "gradient"}
                 />
 
-                {/* Contact shadows for grounded look */}
                 {!compact && (
                   <ContactShadows
                     position={[0, -0.001, 0]}
@@ -764,7 +732,6 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
                   />
                 )}
 
-                {/* The 3D Model */}
                 <Model
                   url={modelUrl}
                   wireframe={wireframe}
@@ -773,12 +740,10 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
                   onDoubleClick={compact ? onDoubleClick : undefined}
                 />
 
-                {/* Scene helpers */}
                 {!compact && (
                   <SceneHelpers showGrid={showGrid} showAxes={showAxes} />
                 )}
 
-                {/* Orbit controls */}
                 <OrbitControls
                   makeDefault
                   enablePan={!compact}
@@ -788,13 +753,11 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
                   maxDistance={50}
                 />
 
-                {/* Camera controller */}
                 <CameraController
                   resetTrigger={resetCameraTrigger}
                   modelBounds={modelBounds}
                 />
 
-                {/* Screenshot handler */}
                 <ScreenshotHandler
                   onCapture={handleCaptureScreenshot}
                   triggerCapture={screenshotTrigger}
@@ -804,7 +767,6 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
           </Canvas>
         </FlexColumn>
 
-        {/* Fullscreen close button (only visible in fullscreen mode) */}
         {isFullscreen && (
           <ToolbarIconButton
             icon={<CloseIcon />}
@@ -815,10 +777,8 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
           />
         )}
 
-        {/* Controls toolbar (only in non-compact mode) */}
         {!compact && (
           <FlexRow className="controls-toolbar" gap={0.5} align="center">
-            {/* Grid toggle */}
             <ToolbarIconButton
               icon={<GridOnIcon fontSize="small" />}
               tooltip="Toggle Grid"
@@ -827,7 +787,6 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
               size="small"
             />
 
-            {/* Axes toggle */}
             <ToolbarIconButton
               icon={<ViewInArIcon fontSize="small" />}
               tooltip="Toggle Axes"
@@ -836,7 +795,6 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
               size="small"
             />
 
-            {/* Wireframe toggle */}
             <ToggleGroup
               size="small"
               value={wireframe ? "wireframe" : "solid"}
@@ -851,7 +809,6 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
               </ToggleOption>
             </ToggleGroup>
 
-            {/* Lighting preset select */}
             <FormControl size="small" className="controls-select">
               <Select
                 value={lightingPreset}
@@ -867,7 +824,6 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
               </Select>
             </FormControl>
 
-            {/* Background color select */}
             <FormControl size="small" className="controls-select">
               <Select
                 value={backgroundColor}
@@ -882,7 +838,6 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
               </Select>
             </FormControl>
 
-            {/* Reset camera */}
             <ToolbarIconButton
               icon={<RestartAltIcon fontSize="small" />}
               tooltip="Reset Camera"
@@ -890,7 +845,6 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
               size="small"
             />
 
-            {/* Screenshot */}
             <ToolbarIconButton
               icon={<CameraAltIcon fontSize="small" />}
               tooltip="Take Screenshot"
@@ -898,7 +852,6 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
               size="small"
             />
 
-            {/* Fullscreen toggle */}
             <ToolbarIconButton
               icon={
                 isFullscreen ? (
@@ -915,7 +868,6 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
         )}
       </FlexColumn>
 
-      {/* Model info */}
       {!compact && asset?.name && (
         <div className="model-info">
           <Text size="normal" weight={600} color="secondary">

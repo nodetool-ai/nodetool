@@ -7,7 +7,7 @@ import { getCopySource, getOutputFromResult } from "../outputResult";
 import { Text, Container, MOTION, BORDER_RADIUS, Z_INDEX } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../../utils/isEqual";
 
 import { NodeData } from "../../../stores/NodeData";
 import { useNodeGenerations } from "../../../hooks/nodes/useNodeGenerations";
@@ -201,9 +201,6 @@ interface OutputNodeProps extends NodeProps {
   id: string;
 }
 
-/**
- * Memoized style object to prevent recreation on every render
- */
 const CONTENT_DIV_STYLE = {
   width: "100%",
   height: "100%",
@@ -226,7 +223,6 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
   const hasParent = props.parentId !== undefined;
   const [isContentFocused, setIsContentFocused] = useState(false);
 
-  // Get metadata for this node type
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const nodeMetadata = getMetadata(props.type);
 

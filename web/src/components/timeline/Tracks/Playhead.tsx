@@ -35,13 +35,9 @@ import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { formatTimecode } from "../Inspector/InspectorPrimitives.helpers";
 import { MOTION, Z_INDEX, SPACING, getSpacingPx } from "../../ui_primitives";
 
-// ── Constants ──────────────────────────────────────────────────────────────
-
 const LINE_WIDTH_PX = 1.5;
 const HIT_AREA_WIDTH_PX = 16;
 const PILL_HEIGHT_PX = 20;
-
-// ── Styles ─────────────────────────────────────────────────────────────────
 
 /**
  * Outer hit area — invisibly wider than the line so the user can grab the
@@ -109,10 +105,6 @@ const pillStyles = (theme: Theme, dragging: boolean, hovered: boolean) =>
     transition: `box-shadow ${MOTION.fast}`,
     pointerEvents: "none"
   });
-
-// ── Helpers ────────────────────────────────────────────────────────────────
-
-// ── Component ──────────────────────────────────────────────────────────────
 
 export interface PlayheadProps {
   /** Left offset of the scrollable track area (header width). */

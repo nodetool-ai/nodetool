@@ -50,7 +50,6 @@ export const createImageUrl = (
   source: ImageSource | ImageData | null | undefined,
   previousBlobUrl: string | null
 ): { url: string; blobUrl: string | null } => {
-  // Revoke previous blob URL if it exists
   if (previousBlobUrl) {
     URL.revokeObjectURL(previousBlobUrl);
   }
@@ -59,7 +58,6 @@ export const createImageUrl = (
     return { url: "", blobUrl: null };
   }
 
-  // Normalize: if source is an object with uri/data, extract; otherwise treat as raw data
   let uri: string | undefined;
   let data: ImageData | undefined;
 
@@ -74,7 +72,6 @@ export const createImageUrl = (
     data = source;
   }
 
-  // Case 1: URI is provided
   if (uri) {
     return { url: resolveUri(uri), blobUrl: null };
   }
@@ -83,7 +80,6 @@ export const createImageUrl = (
     return { url: "", blobUrl: null };
   }
 
-  // Case 2: Data is a string
   if (typeof data === "string") {
     if (
       data.startsWith("data:") ||
@@ -102,7 +98,6 @@ export const createImageUrl = (
     return { url: `data:image/png;base64,${data}`, blobUrl: null };
   }
 
-  // Case 3: Data is Uint8Array or number array - create blob URL
   let bytes: Uint8Array;
   if (data instanceof Uint8Array) {
     bytes = data;

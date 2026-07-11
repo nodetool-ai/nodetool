@@ -33,8 +33,6 @@ import { useTimelineStore } from "../../stores/timeline/TimelineStore";
 import { clipsById } from "../../stores/timeline/clipLookup";
 import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
 
-// ── Styles ─────────────────────────────────────────────────────────────────
-
 const badgeButtonStyles = (theme: Theme) =>
   css({
     cursor: "pointer",
@@ -69,8 +67,6 @@ const clipRowStyles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.action.hover
     }
   });
-
-// ── Sub-component: popover clip list ───────────────────────────────────────
 
 interface ClipListPopoverProps {
   clipIds: string[];
@@ -167,8 +163,6 @@ const ClipListPopover: React.FC<ClipListPopoverProps> = memo(
 );
 
 ClipListPopover.displayName = "ClipListPopover";
-
-// ── Main component ─────────────────────────────────────────────────────────
 
 export const ActivityIndicator: React.FC = memo(() => {
   const theme = useTheme();

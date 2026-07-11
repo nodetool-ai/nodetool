@@ -6,7 +6,7 @@ import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import PropertyDropzone from "./PropertyDropzone";
 import { memo, useMemo, useState } from "react";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { EditorButton, NodeTextField, MOTION, SPACING, BORDER_RADIUS, getSpacingPx } from "../ui_primitives";
@@ -77,7 +77,6 @@ const AudioProperty = (props: PropertyProps) => {
     props.nodeType === "nodetool.input.AudioInput" ||
     props.nodeType === "nodetool.constant.Audio";
   const isRealtime = props.nodeType === "nodetool.input.RealtimeAudioInput";
-  // Use direct selector instead of object creation to avoid unnecessary re-renders
   const findNode = useNodes((state) => state.findNode);
   const rfNode = findNode(props.nodeId);
   const inputNodeName =

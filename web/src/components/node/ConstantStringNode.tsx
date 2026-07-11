@@ -17,7 +17,7 @@ import {
   Edge
 } from "@xyflow/react";
 import { debounce } from "../../utils/lodashAlternatives";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
@@ -293,7 +293,6 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         } as React.CSSProperties
       }
     >
-      {/* Header with always-visible action buttons */}
       <div className="header-wrapper">
         <NodeHeader
           id={id}

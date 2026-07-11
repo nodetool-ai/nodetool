@@ -264,7 +264,6 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
     [addBlocksToCanvas, mediaContents]
   );
 
-  // Derive a title from the message prompt when possible
   const prompt = useMemo(() => {
     const content = message.content;
     if (typeof content === "string") return content;

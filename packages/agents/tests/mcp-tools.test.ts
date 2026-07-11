@@ -26,6 +26,7 @@ const API_URL = "http://test-api:7777";
 function makeMockContext(): ProcessingContext {
   return {
     userId: "user-1",
+    authToken: "access-token",
     environment: { NODETOOL_API_URL: API_URL }
   } as unknown as ProcessingContext;
 }
@@ -101,16 +102,104 @@ describe("GetWorkflowTool", () => {
 describe("CreateWorkflowTool", () => {
   const tool = new CreateWorkflowTool();
 
-  it("calls POST /api/workflows/ with body", async () => {
+  it("calls POST /api/workflows with body", async () => {
     await tool.process(ctx, {
       name: "Test WF",
       graph: { nodes: [], edges: [] }
     });
-    expect(lastFetchUrl()).toContain("/api/workflows/");
+    expect(lastFetchUrl()).toBe(`${API_URL}/api/workflows`);
     expect(lastFetchOpts().method).toBe("POST");
     const body = JSON.parse(lastFetchOpts().body as string);
     expect(body.name).toBe("Test WF");
     expect(body.graph).toEqual({ nodes: [], edges: [] });
+  });
+
+  it("normalizes an agent-friendly keyed graph", async () => {
+    await tool.process(ctx, {
+      name: "Daily News",
+      graph: {
+        nodes: {
+          search: {
+            node_type: "openai.text.WebSearch",
+            parameters: { query: "current technology news" }
+          },
+          summarize: {
+            node_type: "mistral.text.ChatComplete",
+            parameters: { model: "mistral-large-latest" }
+          }
+        },
+        edges: [
+          { source: "search", target: "summarize", target_input: "prompt" }
+        ]
+      }
+    });
+
+    const body = JSON.parse(lastFetchOpts().body as string);
+    expect(body.graph).toEqual({
+      nodes: [
+        {
+          id: "search",
+          type: "openai.text.WebSearch",
+          properties: { query: "current technology news" }
+        },
+        {
+          id: "summarize",
+          type: "mistral.text.ChatComplete",
+          properties: { model: "mistral-large-latest" }
+        }
+      ],
+      edges: [
+        {
+          id: "edge-0",
+          source: "search",
+          sourceHandle: "output",
+          target: "summarize",
+          targetHandle: "prompt"
+        }
+      ]
+    });
+  });
+
+  it("normalizes node_type in an array graph", async () => {
+    await tool.process(ctx, {
+      name: "News Summarizer",
+      graph: {
+        nodes: [
+          {
+            id: "search_node",
+            node_type: "xai.text.WebSearch",
+            properties: { query: "latest news", search_mode: "on" }
+          },
+          {
+            id: "summarizer_node",
+            node_type: "nodetool.agents.AgentStep",
+            properties: { instructions: "Summarize the news" }
+          }
+        ],
+        edges: [
+          {
+            source: "search_node",
+            sourceHandle: "output",
+            target: "summarizer_node",
+            targetHandle: "input"
+          }
+        ]
+      }
+    });
+
+    const body = JSON.parse(lastFetchOpts().body as string);
+    expect(body.graph.nodes).toEqual([
+      {
+        id: "search_node",
+        type: "xai.text.WebSearch",
+        properties: { query: "latest news", search_mode: "on" }
+      },
+      {
+        id: "summarizer_node",
+        type: "nodetool.agents.AgentStep",
+        properties: { instructions: "Summarize the news" }
+      }
+    ]);
   });
 
   it("userMessage includes name", () => {
@@ -452,6 +541,7 @@ describe("request headers", () => {
     await tool.process(ctx, {});
     const headers = lastFetchOpts().headers as Record<string, string>;
     expect(headers["X-User-Id"]).toBe("user-1");
+    expect(headers["Authorization"]).toBe("Bearer access-token");
     expect(headers["Content-Type"]).toBe("application/json");
   });
 });

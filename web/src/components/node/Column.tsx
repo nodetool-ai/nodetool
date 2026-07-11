@@ -1,5 +1,5 @@
 import { ColumnDef } from "../../stores/ApiTypes";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { memo } from "react";
 import { NodeTextField, NodeSelect, NodeMenuItem, DeleteButton } from "../ui_primitives";
 

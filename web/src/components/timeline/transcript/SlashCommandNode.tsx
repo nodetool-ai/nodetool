@@ -104,7 +104,7 @@ const Host = styled("span")(({ theme }) => ({
   "& .slash-item": {
     display: "flex",
     flexDirection: "column",
-    gap: getSpacingPx(SPACING.micro), // was 1px
+    gap: getSpacingPx(SPACING.micro),
     padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.md)}`,
     borderRadius: BORDER_RADIUS.md,
     cursor: "pointer"

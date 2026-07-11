@@ -29,16 +29,9 @@ const ModelTypeSidebar: React.FC = () => {
   const setSelectedModelType = useModelManagerStore((state) => state.setSelectedModelType);
   const theme = useTheme();
 
-  const onModelTypeChange = useCallback(
-    (type: string) => {
-      setSelectedModelType(type);
-    },
-    [setSelectedModelType]
-  );
-
   const createModelTypeChangeHandler = useCallback((type: string) => {
-    return () => onModelTypeChange(type);
-  }, [onModelTypeChange]);
+    return () => setSelectedModelType(type);
+  }, [setSelectedModelType]);
 
   // Plain-text label for the hover title (prettifyModelType returns JSX with a
   // leading icon, which can't be used as a title attribute).
@@ -126,7 +119,7 @@ const ModelTypeSidebar: React.FC = () => {
               onClick={createModelTypeChangeHandler(type)}
               sx={{
                   borderRadius: BORDER_RADIUS.lg,
-                  padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.lg)}`, // was 5px 10px
+                  padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.lg)}`,
                   minWidth: 0,
                   gap: 1,
                   transition: `${MOTION.background}, color ${MOTION.fast}`,

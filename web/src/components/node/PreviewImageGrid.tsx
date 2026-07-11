@@ -384,7 +384,6 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
     const url = urlMapRef.current.get(img);
     if (!url) { return; }
 
-    // Create a temporary link to download
     const link = document.createElement("a");
     link.href = url;
 
@@ -626,8 +625,6 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
   );
 };
 
-// Memoize component to prevent unnecessary re-renders when parent components update
-// Custom comparison to avoid re-rendering on every prop change
 const arePropsEqual = (prevProps: PreviewImageGridProps, nextProps: PreviewImageGridProps) => {
   return (
     prevProps.images === nextProps.images &&

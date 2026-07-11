@@ -34,6 +34,43 @@ export class ContainerFailureError extends Error {
 }
 
 /**
+ * Env var names/patterns scrubbed from subprocess-mode children. Untrusted user
+ * code must NOT read the server's secrets (SECRETS_MASTER_KEY, cloud creds,
+ * provider API keys, …). A denylist — rather than a strict allowlist — keeps the
+ * rest of the environment intact so interpreters/login shells behave exactly as
+ * they do outside the sandbox; only sensitive keys are dropped.
+ */
+export const SUBPROCESS_ENV_SECRET_KEYS: readonly string[] = [
+  "SECRETS_MASTER_KEY"
+];
+
+const SUBPROCESS_ENV_SECRET_RE =
+  /(SECRET|TOKEN|PASSWORD|PASSWD|CREDENTIAL|API[_-]?KEY|APIKEY|ACCESS[_-]?KEY|PRIVATE[_-]?KEY|SESSION[_-]?TOKEN|AUTH)/i;
+
+/** A key is sensitive if it is explicitly listed, an AWS_* var, or matches the pattern. */
+function isSensitiveEnvKey(key: string): boolean {
+  return (
+    SUBPROCESS_ENV_SECRET_KEYS.includes(key) ||
+    /^AWS_/i.test(key) ||
+    SUBPROCESS_ENV_SECRET_RE.test(key)
+  );
+}
+
+/**
+ * Build the base environment for subprocess-mode children: a copy of the
+ * server's environment with sensitive keys scrubbed. `buildContainerEnvironment`
+ * is layered on top of this.
+ */
+export function buildSubprocessBaseEnv(): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(process.env)) {
+    if (value === undefined || isSensitiveEnvKey(key)) continue;
+    out[key] = value;
+  }
+  return out;
+}
+
+/**
  * Terminate a child process gracefully, then force-kill if it ignores SIGTERM.
  * Without the SIGKILL escalation a runaway/hung subprocess (one that traps or
  * ignores SIGTERM) survives timeouts and stop(), leaking CPU/memory.
@@ -649,9 +686,11 @@ export class StreamRunnerBase {
       cleanupData = wrapped[1];
     }
 
-    // Prepare environment and working directory
+    // Prepare environment and working directory. Untrusted code runs with only
+    // a minimal allowlisted base env — never the server's full environment
+    // (secrets, cloud creds, API keys).
     const procEnv: Record<string, string> = {
-      ...(process.env as Record<string, string>),
+      ...buildSubprocessBaseEnv(),
       ...this.buildContainerEnvironment(env)
     };
     const cwd = options?.workspaceDir ?? process.cwd();

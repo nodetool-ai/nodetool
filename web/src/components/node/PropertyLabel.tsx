@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import React, { memo, useContext, useMemo } from "react";
 import { titleizeString } from "../../utils/titleizeString";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { Tooltip, SPACING, getSpacingPx } from "../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { TypeMetadata } from "../../stores/ApiTypes";
@@ -73,7 +73,7 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
     (headerActions != null ||
       headerReset != null ||
       headerSupplemental != null);
-  const labelFontSize = isInspector ? theme.fontSizeSmall : theme.fontSizeSmall;
+  const labelFontSize = theme.fontSizeSmall;
   const labelMarginBottom = density === "compact" ? 0 : theme.spacing(1);
   // Only show inline descriptions when explicitly requested, not automatically in inspector
   const shouldShowInlineDescription = showDescriptionInline && !isInspector;

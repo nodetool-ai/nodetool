@@ -196,7 +196,6 @@ export function TransformGizmo({
     if (!el) {
       return;
     }
-    // Initial measurement.
     setContainerSize({ w: el.clientWidth, h: el.clientHeight });
     const ro = new ResizeObserver((entries) => {
       const entry = entries[0];

@@ -37,10 +37,10 @@ const styles = (theme: Theme) =>
         display: "flex",
         alignItems: "center",
         gap: theme.spacing(1.5),
-        padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}` // was 10px 14px
+        padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}`
       },
       "&.compact .MuiSelect-select": {
-        padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.lg)}` // was 4px 10px
+        padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.lg)}`
       },
       "& .MuiOutlinedInput-notchedOutline": {
         borderColor: theme.vars.palette.divider,
@@ -317,7 +317,7 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
                     opacity: 0.6
                   },
                   "& .MuiMenuItem-root": {
-                    padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}`, // was 10px 14px
+                    padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}`,
                     borderRadius: BORDER_RADIUS.sm,
                     margin: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xs)}`,
                     "&:hover": {

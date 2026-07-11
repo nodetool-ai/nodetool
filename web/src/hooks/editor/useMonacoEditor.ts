@@ -13,9 +13,6 @@ async function configureMonacoLoader() {
   loaderConfigured = true;
 }
 
-/**
- * Monaco editor component type definition.
- */
 type MonacoComponent = (props: {
   value: string;
   onChange?: (val?: string) => void;
@@ -27,46 +24,18 @@ type MonacoComponent = (props: {
   onMount?: (editor: monaco.editor.IStandaloneCodeEditor, monaco: typeof import("monaco-editor")) => void;
 }) => React.JSX.Element;
 
-/**
- * Result object containing Monaco editor state and functions.
- */
 type MonacoEditorResult = {
-  /** The lazily-loaded Monaco editor component */
   MonacoEditor: MonacoComponent | null;
-  /** Error message if Monaco failed to load */
   monacoLoadError: string | null;
-  /** True while the Monaco bundle is being fetched */
   isMonacoLoading: boolean;
-  /** Function to load Monaco editor if not already loaded */
   loadMonacoIfNeeded: () => Promise<void>;
-  /** Reference to the Monaco editor instance */
   monacoRef: React.MutableRefObject<monaco.editor.IStandaloneCodeEditor | null>;
-  /** Callback called when Monaco editor mounts */
   monacoOnMount: (editor: monaco.editor.IStandaloneCodeEditor) => void;
-  /** Opens the find panel in the editor */
   handleMonacoFind: () => void;
-  /** Formats the document in the editor */
   handleMonacoFormat: () => void;
 };
 
-/**
- * Hook for lazy-loading and managing Monaco editor instance.
- *
- * This hook handles dynamic importing of the Monaco editor library,
- * providing lazy loading to avoid loading the heavy editor until needed.
- *
- * @returns Object containing Monaco editor state and control functions
- *
- * @example
- * ```typescript
- * const { MonacoEditor, loadMonacoIfNeeded, handleMonacoFormat } = useMonacoEditor();
- *
- * useEffect(() => { loadMonacoIfNeeded(); }, [loadMonacoIfNeeded]);
- *
- * if (!MonacoEditor) return <Loading />;
- * return <MonacoEditor value={code} language="typescript" />;
- * ```
- */
+/** Lazy-loads and manages a Monaco editor instance, deferring the heavy bundle until needed. */
 export function useMonacoEditor(): MonacoEditorResult {
   const [MonacoEditor, setMonacoEditor] = useState<MonacoComponent | null>(
     null
@@ -91,7 +60,6 @@ export function useMonacoEditor(): MonacoEditorResult {
     isLoadingRef.current = true;
     setIsMonacoLoading(true);
     try {
-      // Configure loader to use local monaco-editor instead of CDN
       await configureMonacoLoader();
       const mod = await import("@monaco-editor/react");
       setMonacoEditor(() => mod.default as unknown as MonacoComponent);
@@ -102,7 +70,7 @@ export function useMonacoEditor(): MonacoEditorResult {
       isLoadingRef.current = false;
       setIsMonacoLoading(false);
     }
-  }, []); // No dependencies - callback is now stable
+  }, []);
 
   const handleMonacoFind = useCallback(() => {
     try {

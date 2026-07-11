@@ -62,7 +62,6 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
   const open = Boolean(anchorEl);
   const [mode, setMode] = useState<ColorMode>("hex");
 
-  // Parse current color
   const { r, g, b, a } = parseColorToRgba(color);
   const fgHex6 = colorToHex6(color);
   const hsl = rgbToHsl(r, g, b);
@@ -158,7 +157,6 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
     onColorChange(rgbaToCss({ r: nr, g: ng, b: nb, a }));
   };
 
-  // Cursor position in SV square
   const cursorX = hsv.s * SV_SIZE;
   const cursorY = (1 - hsv.v) * SV_SIZE;
 
@@ -211,7 +209,6 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
         </Tooltip>
       </FlexRow>
 
-      {/* SV gradient square */}
       <Box
         className="color-picker__sv-area"
         ref={svBoxRef}
@@ -241,7 +238,6 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
           position: "absolute", inset: 0,
           background: "linear-gradient(to top, #000 0%, transparent 100%)"
         }} />
-        {/* Cursor circle */}
         <Box sx={{
           position: "absolute",
           left: `${cursorX}px`,
@@ -256,7 +252,6 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
         }} />
       </Box>
 
-      {/* Hue slider */}
       <Box className="color-picker__hue" sx={{ px: SKETCH_SPACING.sm }}>
         <Slider
           value={localHue}
@@ -285,7 +280,6 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
         />
       </Box>
 
-      {/* Opacity slider */}
       <Box className="color-picker__opacity" sx={{ px: SKETCH_SPACING.sm }}>
         <FlexRow align="center" sx={{ gap: SKETCH_SPACING.md }}>
           <Text sx={{ fontSize: SKETCH_FONT.xs, color: SKETCH_COLORS.textSecondary, minWidth: "24px" }}>A</Text>
@@ -328,7 +322,6 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
         <Box sx={{ flex: 1, backgroundColor: color, border: "1px solid rgba(255,255,255,0.1)" }} />
       </FlexRow>
 
-      {/* Mode toggle */}
       <ToggleButtonGroup
         value={mode}
         exclusive
@@ -341,7 +334,6 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
         <ToggleButton value="hsl" sx={toggleButtonSmallSx}>HSL</ToggleButton>
       </ToggleButtonGroup>
 
-      {/* Mode inputs */}
       {mode === "hex" && (
         <TextField
           size="small"

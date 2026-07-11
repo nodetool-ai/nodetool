@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useRef } from "react";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import { BASE_URL } from "../../stores/BASE_URL";
 import { Model3DModelValue } from "../../stores/ApiTypes";
@@ -83,7 +83,6 @@ const Model3DModelSelect: React.FC<Model3DModelSelectProps> = ({
     queryFn: async () => await load3DModels()
   });
 
-  // Filter models by task if specified
   const filteredModels = useMemo(() => {
     if (!models) {return [];}
     if (!task) {return models;}
@@ -93,7 +92,6 @@ const Model3DModelSelect: React.FC<Model3DModelSelectProps> = ({
     );
   }, [models, task]);
 
-  // Group models by provider
   const modelsByProvider = useMemo(() => {
     const grouped: Record<string, Model3DModel[]> = {};
     for (const model of filteredModels) {

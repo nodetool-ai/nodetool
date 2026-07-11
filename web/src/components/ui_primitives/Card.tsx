@@ -75,13 +75,6 @@ const CardInternal = forwardRef<HTMLDivElement, CardProps>(({
     ? padding 
     : PADDING_VARIANTS[padding];
 
-  const getBackgroundColor = () => {
-    if (variant === "elevated") {
-      return theme.vars.palette.background.paper;
-    }
-    return theme.vars.palette.background.paper;
-  };
-
   const getBorder = () => {
     if (variant === "outlined") {
       return `1px solid ${theme.vars.palette.divider}`;
@@ -91,7 +84,6 @@ const CardInternal = forwardRef<HTMLDivElement, CardProps>(({
 
   const getBoxShadow = () => {
     if (variant === "elevated" && elevation > 0) {
-      // Simple elevation shadow
       const shadowIntensity = Math.min(elevation / 24, 1);
       return `0 ${elevation}px ${elevation * 2}px rgba(0, 0, 0, ${0.2 * shadowIntensity})`;
     }
@@ -104,7 +96,7 @@ const CardInternal = forwardRef<HTMLDivElement, CardProps>(({
       onClick={clickable ? onClick : undefined}
       sx={{
         padding: theme.spacing(paddingValue),
-        backgroundColor: getBackgroundColor(),
+        backgroundColor: theme.vars.palette.background.paper,
         border: getBorder(),
         borderRadius: theme.shape.borderRadius,
         boxShadow: getBoxShadow(),

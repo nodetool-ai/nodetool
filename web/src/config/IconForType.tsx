@@ -2,12 +2,11 @@
 import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import isEqual from "fast-deep-equal";
+import isEqual from "../utils/isEqual";
 import { Tooltip, BORDER_RADIUS } from "../components/ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../config/constants";
 import { datatypeByName, normalizeTypeName } from "./data_types";
 
-// icons
 import any from "../icons/data_types/nodetool/any.svg?react";
 import notype from "../icons/data_types/nodetool/notype.svg?react";
 import asset from "../icons/data_types/nodetool/asset.svg?react";
@@ -41,7 +40,6 @@ import np_array from "../icons/data_types/nodetool/np_array.svg?react";
 import datetime from "../icons/data_types/nodetool/datetime.svg?react";
 import date from "../icons/data_types/nodetool/date.svg?react";
 
-// Mapping of icon names to their respective imports
 const iconMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
   any,
   notype,

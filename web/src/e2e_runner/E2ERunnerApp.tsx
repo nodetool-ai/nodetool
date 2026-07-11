@@ -53,6 +53,7 @@ const STATUS_COLOR: Record<string, string> = {
   failed: "#EF4444",
   error: "#EF4444",
   cancelled: "#F59E0B",
+  suspended: "#F59E0B",
   timeout: "#F59E0B",
   skipped: "#94A3B8"
 };
@@ -294,10 +295,13 @@ export default function E2ERunnerApp() {
 
   useEffect(() => {
     const unsubscribe = harness.subscribe(setState);
+    // Install the controller before init so the ad-hoc runGraph path (which
+    // needs no manifest) is reachable even when manifest.json is missing —
+    // otherwise the driver's waitForFunction(window.__E2E__) times out.
+    window.__E2E__ = harness.controller();
     (async () => {
       try {
         await harness.init();
-        window.__E2E__ = harness.controller();
         if (!manual) {
           await harness.runAll();
         }
@@ -337,7 +341,7 @@ export default function E2ERunnerApp() {
                   onRunNext={() => void harness.runNext()}
                 />
                 <div style={{ flex: 1, position: "relative" }}>
-                  {error ? (
+                  {error && !state.adHocGraph ? (
                     <div style={{ ...centeredStyle, color: "#EF4444" }}>{error}</div>
                   ) : (
                     <Canvas harness={harness} state={state} />
@@ -352,5 +356,4 @@ export default function E2ERunnerApp() {
   );
 }
 
-// Re-export so callers can find records easily in tests.
 export type { RunRecord };

@@ -83,7 +83,6 @@ export const useResizeBottomPanel = () => {
         }
 
         actions.setIsDragging(false);
-        // Clear any existing timeout before setting a new one
         if (hasDraggedTimeoutRef.current !== null) {
           clearTimeout(hasDraggedTimeoutRef.current);
         }
@@ -104,7 +103,6 @@ export const useResizeBottomPanel = () => {
     [panel.panelSize, panel.activeView, actions]
   );
 
-  // Update lastSizeRef when panel is open
   if (panel.panelSize > MIN_DRAG_SIZE) {
     lastSizeRef.current = panel.panelSize;
   }
@@ -119,7 +117,6 @@ export const useResizeBottomPanel = () => {
       if (handleMouseUp) {
         document.removeEventListener("mouseup", handleMouseUp);
       }
-      // Clear any pending timeout
       if (hasDraggedTimeoutRef.current !== null) {
         clearTimeout(hasDraggedTimeoutRef.current);
       }

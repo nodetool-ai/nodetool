@@ -13,7 +13,7 @@ interface CalendarEventViewProps {
 const formatDatetime = (dt: Datetime | string | null | undefined): string => {
   if (!dt) return "";
   if (typeof dt === "string") return dt;
-  // Construct a date object. Note: Month is 1-indexed in the API but 0-indexed in JS Date
+  // Month is 1-indexed in the API but 0-indexed in JS Date
   const date = new Date(
     dt.year,
     dt.month - 1,

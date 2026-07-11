@@ -100,8 +100,6 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
 
   const isError = !!fetchedError;
   const theme = useTheme();
-  // isSmall logic removed as Popover usually not full screen on mobile, but we can keep it if needed.
-  // Let's assume desktop-centric for "next to trigger".
 
   const setSearch = storeHook((s) => s.setSearch);
   const search = storeHook((s) => s.search);
@@ -126,11 +124,9 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
 
   const providers = modelData.providers ?? providersFromModels;
 
-  // Advanced filters state snapshot
   const selectedTypes = useModelFiltersStore((s) => s.selectedTypes);
   const sizeBucket = useModelFiltersStore((s) => s.sizeBucket);
 
-  // Determine the base list of models to display
   const baseModels = useMemo(() => {
     if (customView === "favorites") {
       return favoriteModels;
@@ -141,14 +137,15 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
     return filteredModels; // Respects provider selection
   }, [customView, favoriteModels, recentModels, filteredModels]);
 
-  const filteredModelsAdvanced = useMemo(() => {
-    const result = applyAdvancedModelFilters<TModel>(baseModels, {
-      selectedTypes,
-      sizeBucket,
-      families: []
-    });
-    return result;
-  }, [baseModels, selectedTypes, sizeBucket]);
+  const filteredModelsAdvanced = useMemo(
+    () =>
+      applyAdvancedModelFilters<TModel>(baseModels, {
+        selectedTypes,
+        sizeBucket,
+        families: []
+      }),
+    [baseModels, selectedTypes, sizeBucket]
+  );
 
   const handleSelectModel = useCallback(
     (model: TModel) => {
@@ -402,7 +399,6 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
         }
       }}
     >
-      {/* Compact Header */}
       <FlexRow
         gap={2}
         align="center"
@@ -411,7 +407,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
           pl: 2,
           borderBottom: `1px solid ${theme.vars.palette.divider}`,
           flexShrink: 0,
-          background: theme.vars.palette.background.paper // No transparency
+          background: theme.vars.palette.background.paper
         }}
       >
         <FlexRow gap={2} align="center" sx={{ flex: 1 }}>
@@ -440,7 +436,6 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
         </FlexRow>
       </FlexRow>
 
-      {/* Status Banner - shows loading progress and errors */}
       <Collapse in={!!(isLoading || isFetching || (providerErrors && providerErrors.length > 0))}>
         <FlexRow
           gap={1}
@@ -491,9 +486,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
         </FlexRow>
       </Collapse>
 
-      {/* Main Content Grid */}
       <FlexRow sx={{ flex: 1, overflow: "hidden" }}>
-        {/* Left Sidebar: Navigation */}
         <FlexColumn
           sx={{
             width: isIconOnly ? 88 : 200,
@@ -705,7 +698,6 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
           </Box>
         </FlexColumn>
 
-        {/* Center: Model List */}
         <FlexColumn
           sx={{
             flex: 1,
@@ -746,7 +738,6 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
               modelType={modelType}
             />
           </Box>
-          {/* Footer removed */}
         </FlexColumn>
       </FlexRow>
     </Popover>

@@ -22,8 +22,6 @@ import type { TimelineTrack } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { Popover, MenuItemPrimitive, MOTION, BORDER_RADIUS } from "../../ui_primitives";
 
-// ── Styles ─────────────────────────────────────────────────────────────────
-
 const buttonStyles = (theme: Theme) =>
   css({
     display: "inline-flex",
@@ -50,8 +48,6 @@ const buttonStyles = (theme: Theme) =>
       fontSize: 14
     }
   });
-
-// ── Track-type options ─────────────────────────────────────────────────────
 
 interface TrackTypeOption {
   type: TimelineTrack["type"];
@@ -81,8 +77,6 @@ const TRACK_TYPES: TrackTypeOption[] = [
     icon: <SubtitlesOutlinedIcon fontSize="small" />
   }
 ];
-
-// ── Component ──────────────────────────────────────────────────────────────
 
 export const AddTrackButton: React.FC = memo(() => {
   const theme = useTheme();

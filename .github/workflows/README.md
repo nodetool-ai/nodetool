@@ -23,6 +23,8 @@
 | **test.yml** | Push/PR to main | Run full test suite (typecheck, lint, tests) across all packages |
 | **e2e.yml** | Push/PR to main | Integration tests for websocket and backend packages |
 | **autofix.yml** | PRs to main | Auto-fix ESLint issues and commit |
+| **chromatic.yml** | PR + push to main (web/Storybook paths) | Component visual regression — builds Storybook, publishes to Chromatic with TurboSnap (`onlyChanged`), surfaces per-story diffs on the PR. Non-blocking (`exitZeroOnChanges`). Needs `CHROMATIC_PROJECT_TOKEN`. |
+| **visual-regression.yml** | PR + push to main (visual suite/web paths) | E2E/page visual regression — Playwright screenshot assertions; uploads HTML report + diffs. Non-blocking while baselines mature. |
 | **release.yaml** | Git tags `v*` + manual | Build and sign cross-platform release artifacts |
 | **flatpak-ci.yml** | Push to main + manual | Build Flatpak desktop package |
 | **jekyll.yml** | Push to main + manual | Build and deploy docs site to GitHub Pages |

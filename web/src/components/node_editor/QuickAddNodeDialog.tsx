@@ -31,7 +31,7 @@ import { useTheme, type Theme } from "@mui/material/styles";
 import useQuickAddNodeStore from "../../stores/QuickAddNodeStore";
 import { useNodes } from "../../contexts/NodeContext";
 import { useReactFlow } from "@xyflow/react";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/shallow";
 
@@ -150,7 +150,6 @@ const QuickAddNodeDialog: React.FC<QuickAddNodeDialogProps> = ({
   const addNode = useNodes((state) => state.addNode);
   const createNode = useNodes((state) => state.createNode);
 
-  // Subscribe to store with selective properties using shallow equality
   const searchTerm = useStoreWithEqualityFn(
     useQuickAddNodeStore,
     (state) => state.searchTerm,
@@ -179,7 +178,6 @@ const QuickAddNodeDialog: React.FC<QuickAddNodeDialogProps> = ({
   const closeDialog = useQuickAddNodeStore((state) => state.closeDialog);
   const resetFilters = useQuickAddNodeStore((state) => state.resetFilters);
 
-  // Define callbacks before useEffect to satisfy dependency requirements
   const handleClose = useCallback(() => {
     setOpen(false);
     closeDialog();
@@ -187,7 +185,6 @@ const QuickAddNodeDialog: React.FC<QuickAddNodeDialogProps> = ({
   }, [setOpen, closeDialog, resetFilters]);
 
   const getNodeInitial = useCallback((title: string): string => {
-    // Extract first letter or first meaningful character
     const match = title.match(/[A-Za-z0-9]/);
     return match ? match[0].toUpperCase() : "#";
   }, []);
@@ -198,20 +195,18 @@ const QuickAddNodeDialog: React.FC<QuickAddNodeDialogProps> = ({
       return;
     }
 
-    // Calculate position - center of viewport
+    // Center the new node in the current viewport.
     const viewport = getViewport();
     const wrapperBounds = reactFlowWrapper.current?.getBoundingClientRect();
-    
+
     let x = 0;
     let y = 0;
 
     if (wrapperBounds) {
-      // Center in viewport
       x = (viewport.x + wrapperBounds.width / 2) / viewport.zoom - 100;
       y = (viewport.y + wrapperBounds.height / 2) / viewport.zoom - 50;
     }
 
-    // Create and add the node
     const newNode = createNode(selectedNode, { x, y });
     addNode(newNode);
 
@@ -220,7 +215,6 @@ const QuickAddNodeDialog: React.FC<QuickAddNodeDialogProps> = ({
 
   const handleValueChange = useCallback((value: string) => {
     setSearchTerm(value);
-    // Reset selection when search changes
     setSelectedIndex(-1);
   }, [setSearchTerm, setSelectedIndex]);
 
@@ -328,7 +322,6 @@ const QuickAddNodeDialog: React.FC<QuickAddNodeDialogProps> = ({
             })}
           </Command.List>
 
-          {/* Footer with keyboard hints */}
           <div className="footer-hints">
             <Caption>
               {searchResults.length} {searchResults.length === 1 ? "node" : "nodes"}

@@ -30,12 +30,10 @@ export const parseHarmonyContent = (content: string): ParsedHarmonyContent => {
       channel: channel as HarmonyMessage['channel'],
       content: messageContent
     });
-    
-    // Remove the parsed message from remaining text
+
     remainingText = remainingText.replace(match[0], '');
   }
 
-  // Clean up extra whitespace and newlines
   remainingText = remainingText.trim();
   
   return {
@@ -53,18 +51,7 @@ export const hasHarmonyTokens = (content: string): boolean => {
   return /<\|start\||<\|end\||<\|message\||<\|channel\|>/.test(content);
 };
 
-/**
- * Get the display content for a Harmony message based on its channel
- * @param message The Harmony message
- * @returns The content to display
- */
+/** Get the display content for a Harmony message. */
 export const getDisplayContent = (message: HarmonyMessage): string => {
-  // For 'final' channel or messages without a channel, show the content
-  if (!message.channel || message.channel === 'final') {
-    return message.content;
-  }
-  
-  // For 'analysis' channel, we might want to show it differently or not at all
-  // For 'commentary' channel, we might want to show it differently or not at all
   return message.content;
 };

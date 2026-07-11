@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import React, {
   useCallback,
   useMemo,
@@ -162,14 +162,12 @@ const Select: React.FC<SelectProps> = ({
     };
   }, [close, activeSelect, id]);
 
-  // Focus search input when dropdown opens
   useEffect(() => {
     if (activeSelect === id && searchInputRef.current) {
       searchInputRef.current.focus();
     }
   }, [activeSelect, id]);
 
-  // Memoize filtered options to avoid recomputation on every render.
   // Fuzzy-match the query against option labels, best matches first.
   const filteredOptions = useMemo(() => {
     const query = searchQuery.trim();
@@ -228,7 +226,6 @@ const Select: React.FC<SelectProps> = ({
     ]
   );
 
-  // Memoize styles to avoid recalculation on each render
   const styles = useMemo(() => selectStyles(theme), [theme]);
 
   // Changed state — inset shadow so box size stays unchanged
@@ -236,7 +233,6 @@ const Select: React.FC<SelectProps> = ({
     ? { boxShadow: `inset -2px 0 0 ${theme.vars.palette.primary.main}` }
     : undefined;
 
-  // Memoize dropdown style object to prevent recreation on every render
   const dropdownStyle = useMemo(() => {
     if (!dropdownPosition) {
       return undefined;
@@ -251,7 +247,7 @@ const Select: React.FC<SelectProps> = ({
     };
   }, [dropdownPosition]);
 
-  // Create stable callbacks for option clicks to prevent re-renders
+  // Stable per-option click callbacks to prevent re-renders.
   const optionClickHandlers = useMemo(() => {
     const handlers = new Map<string, () => void>();
     filteredOptions.forEach((option) => {

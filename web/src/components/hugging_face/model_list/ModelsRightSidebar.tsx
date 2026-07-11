@@ -35,7 +35,6 @@ const ModelsRightSidebar: React.FC = () => {
         overflowX: "hidden"
       }}
     >
-      {/* Supported Formats */}
       <Card
         variant="outlined"
         padding="normal"
@@ -75,7 +74,6 @@ const ModelsRightSidebar: React.FC = () => {
         </FlexRow>
       </Card>
 
-      {/* Need help? */}
       <Card
         variant="outlined"
         padding="normal"

@@ -87,7 +87,6 @@ const tileStyles = (theme: Theme) =>
         position: "absolute",
         inset: 0,
         borderRadius: "inherit",
-        // Soft gradient overlay
         background:
           `linear-gradient(180deg, ${theme.vars.palette.c_overlay}, transparent 80%)`,
         opacity: 0,
@@ -190,14 +189,11 @@ const QuickActionTiles = memo(function QuickActionTiles() {
         return;
       }
       setDragToCreate(true);
-      // Use unified drag serialization
       serializeDragData(
         { type: "create-node", payload: metadata },
         event.dataTransfer
       );
       event.dataTransfer.effectAllowed = "copyMove";
-
-      // Update global drag state
       setActiveDrag({ type: "create-node", payload: metadata });
     },
     [getMetadata, setDragToCreate, setActiveDrag]
@@ -268,7 +264,6 @@ const QuickActionTiles = memo(function QuickActionTiles() {
     [onTileMouseEnter]
   );
 
-  // Memoize tooltip subtitle style to avoid recreating on every render
   const tooltipSubtitleStyle = useMemo(
     () => ({
       fontSize: "var(--fontSizeSmaller)" as const,
@@ -278,7 +273,6 @@ const QuickActionTiles = memo(function QuickActionTiles() {
     []
   );
 
-  // Memoize constants header style
   const constantsHeaderStyle = useMemo(
     () => ({
       marginTop: getSpacingPx(SPACING.xl),

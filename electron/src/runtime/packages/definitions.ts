@@ -5,10 +5,7 @@ import { NpmRuntimePackage } from "./NpmRuntimePackage";
 import { ElectronRuntimePackage } from "./ElectronRuntimePackage";
 import type { RuntimePackage } from "./types";
 
-/**
- * Concrete runtime package definitions. Replaces the previous
- * `RUNTIME_DEFINITIONS` map with instances of the typed base classes.
- */
+/** Concrete runtime package definitions. */
 export const RUNTIME_PACKAGES: Record<RuntimePackageId, RuntimePackage> = {
   python: new CondaRuntimePackage({
     id: "python",

@@ -27,7 +27,7 @@ import { integerEditor, floatEditor, datetimeEditor } from "./DataTableEditors";
 import { format, isValid, parseISO } from "../../../utils/dateFormat";
 import { tableStyles } from "../../../styles/TableStyles";
 import { useTheme } from "@mui/material/styles";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../../utils/isEqual";
 
 /**
  * Union type for all possible cell values in a DataFrame column
@@ -149,7 +149,6 @@ const DataTable: React.FC<DataTableProps> = ({
   // after initial mount (Tabulator already loaded data via constructor)
   const tabulatorDataRef = useRef<DictTableRow[] | null>(null);
   
-  // Update undo/redo availability
   const updateHistoryState = useCallback(() => {
     if (tabulatorRef.current && isModalMode) {
       const undoSize = tabulatorRef.current.getHistoryUndoSize();
@@ -292,7 +291,7 @@ const DataTable: React.FC<DataTableProps> = ({
       }, 100);
     };
 
-    tabulatorDataRef.current = data; // track what data is currently in Tabulator
+    tabulatorDataRef.current = data;
 
     const tabulatorInstance = new Tabulator(tableRef.current, {
       height: isModalMode ? "100%" : 200,

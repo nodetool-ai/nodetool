@@ -886,7 +886,6 @@ export class TranscribeGeminiNode extends BaseNode {
     const model = String(this.model ?? "gemini-2.5-flash");
     const prompt = String(
       this.prompt ??
-        this.prompt ??
         "Transcribe the following audio accurately. Return only the transcription text without any additional commentary."
     );
 

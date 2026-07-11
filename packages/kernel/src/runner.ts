@@ -711,9 +711,6 @@ export class WorkflowRunner {
   }
 
   /**
-   * Cancel the running workflow.
-   */
-  /**
    * Push property updates into a running node's executor instance (live
    * parameter changes — e.g. turning a synth knob while the patch plays).
    * Returns true when the node's executor exists and supports live updates;

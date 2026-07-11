@@ -1,6 +1,6 @@
 import React, { useMemo, useCallback, memo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import Select from "../inputs/Select";
@@ -34,7 +34,6 @@ const FontProperty: React.FC<PropertyProps<FontValue | null>> = ({
     queryFn: fetchFonts
   });
 
-  // Handle value change
   const handleChange = useCallback(
     (fontName: string) => {
       onChange({ type: "font", name: fontName });
@@ -42,13 +41,11 @@ const FontProperty: React.FC<PropertyProps<FontValue | null>> = ({
     [onChange]
   );
 
-  // Current value handling
   const currentValue =
     value && typeof value === "object" && value.type === "font"
       ? value.name
       : "";
 
-  // Prepare options for Select component
   const options = useMemo(() => {
     if (!fonts || isLoading || isError)
       {return [{ value: "", label: "Select a font" }];}

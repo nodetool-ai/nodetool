@@ -1,7 +1,7 @@
 /** NodeStore manages workflow graph state for a single editor tab. */
 
-import { temporal } from "zundo";
-import type { TemporalState } from "zundo";
+import { temporal } from "./temporal";
+import type { TemporalState } from "./temporal";
 import { create, StoreApi, UseBoundStore } from "zustand";
 import { NodeMetadata, Workflow } from "./ApiTypes";
 import { NodeData } from "./NodeData";
@@ -23,7 +23,7 @@ import {
   Viewport
 } from "@xyflow/react";
 import { customEquality } from "./customEquality";
-import isEqual from "fast-deep-equal";
+import isEqual from "../utils/isEqual";
 
 import { Node as GraphNode, Edge as GraphEdge } from "./ApiTypes";
 import { migrateGraphNodeTypes } from "@nodetool-ai/protocol";
@@ -117,16 +117,12 @@ const generateInputNodeName = (
   return `${baseName}_${existingCount + 1}`;
 };
 
-/**
- * Generates a UUID v4 string
- * Falls back to a simple implementation if crypto.randomUUID is not available
- */
+/** UUID v4, falling back to a manual implementation when crypto.randomUUID is absent. */
 const generateUUID = (): string => {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
     return crypto.randomUUID();
   }
 
-  // Fallback implementation for environments without crypto.randomUUID
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
     /[xy]/g,
     function (char) {

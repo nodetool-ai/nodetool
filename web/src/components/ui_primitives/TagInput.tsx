@@ -138,12 +138,6 @@ export interface TagInputProps {
   className?: string;
 }
 
-/**
- * A tag input component for managing tags/chips.
- *
- * Provides an intuitive interface for adding and removing tags with full
- * keyboard support and accessibility features.
- */
 export const TagInput: React.FC<TagInputProps> = memo(
   function TagInput({
     tags,
@@ -183,25 +177,21 @@ export const TagInput: React.FC<TagInputProps> = memo(
       (tag: string): boolean => {
         const trimmedTag = tag.trim();
 
-        // Empty tag check
         if (trimmedTag === "") {
           setValidationError("Tag cannot be empty");
           return false;
         }
 
-        // Duplicate check
         if (!allowDuplicates && tags.includes(trimmedTag)) {
           setValidationError("This tag already exists");
           return false;
         }
 
-        // Max tags check
         if (maxTags !== undefined && tags.length >= maxTags) {
           setValidationError(`Maximum ${maxTags} tags allowed`);
           return false;
         }
 
-        // Custom validation
         if (validateTag) {
           const result = validateTag(trimmedTag);
           if (!result.valid) {

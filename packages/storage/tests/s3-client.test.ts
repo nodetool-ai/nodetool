@@ -1,5 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
+import { createServer, type Server } from "node:http";
+import type { AddressInfo } from "node:net";
 import { S3Client, S3Error } from "../src/s3/client.js";
+import { createDefaultCredentialProvider } from "../src/s3/credentials.js";
 import { decodeXmlEntities } from "../src/s3/xml.js";
 
 const credentials = {
@@ -72,6 +75,32 @@ describe("S3Client addressing", () => {
     });
     const { url } = requestOf(fetchFn);
     expect(url).toBe("http://minio:9000/bucket/dir/file.bin");
+  });
+
+  it("uses path-style URLs for dotted bucket names on AWS (wildcard TLS)", async () => {
+    const fetchFn = mockFetch();
+    await client(fetchFn).getObject({
+      bucket: "bucket.with.dots",
+      key: "dir/file.txt"
+    });
+    const { url, init } = requestOf(fetchFn);
+    expect(url).toBe(
+      "https://s3.us-east-1.amazonaws.com/bucket.with.dots/dir/file.txt"
+    );
+    const headers = init.headers as Record<string, string>;
+    expect(headers.host).toBe("s3.us-east-1.amazonaws.com");
+  });
+
+  it("presigns dotted bucket names path-style", async () => {
+    const url = await client(mockFetch()).presignGetObject({
+      bucket: "bucket.with.dots",
+      key: "k.txt",
+      expiresIn: 900
+    });
+    const parsed = new URL(url);
+    expect(parsed.host).toBe("s3.us-east-1.amazonaws.com");
+    expect(parsed.pathname).toBe("/bucket.with.dots/k.txt");
+    expect(parsed.searchParams.get("X-Amz-Signature")).toMatch(/^[0-9a-f]{64}$/);
   });
 
   it("supports virtual-hosted addressing on custom endpoints when forcePathStyle is false", async () => {
@@ -215,8 +244,8 @@ describe("S3Client operations", () => {
     ]);
   });
 
-  it("presignGetObject builds a presigned URL with the X-Amz-* params", () => {
-    const url = client(mockFetch()).presignGetObject({
+  it("presignGetObject builds a presigned URL with the X-Amz-* params", async () => {
+    const url = await client(mockFetch()).presignGetObject({
       bucket: "b",
       key: "dir/f.txt",
       expiresIn: 900
@@ -266,20 +295,80 @@ describe("S3Client error mapping", () => {
   });
 
   it("throws a clear error when no credentials are available", async () => {
-    const fetchFn = mockFetch();
-    const prevKey = process.env.AWS_ACCESS_KEY_ID;
-    const prevSecret = process.env.AWS_SECRET_ACCESS_KEY;
-    delete process.env.AWS_ACCESS_KEY_ID;
-    delete process.env.AWS_SECRET_ACCESS_KEY;
-    try {
-      const bare = new S3Client({ fetchFn: fetchFn as unknown as typeof fetch });
-      await expect(
-        bare.getObject({ bucket: "b", key: "k" })
-      ).rejects.toThrow(/AWS credentials not found/);
-    } finally {
-      if (prevKey !== undefined) process.env.AWS_ACCESS_KEY_ID = prevKey;
-      if (prevSecret !== undefined) process.env.AWS_SECRET_ACCESS_KEY = prevSecret;
+    // Hermetic default chain: empty env, no shared credentials file.
+    const bare = new S3Client({
+      fetchFn: mockFetch() as unknown as typeof fetch,
+      credentialProvider: createDefaultCredentialProvider({
+        env: {},
+        readFileFn: async () => {
+          throw new Error("ENOENT");
+        }
+      })
+    });
+    await expect(bare.getObject({ bucket: "b", key: "k" })).rejects.toThrow(
+      /AWS credentials not found/
+    );
+  });
+});
+
+describe("S3Client dot-segment keys", () => {
+  // Keys like `a/../b` are valid S3 keys, but WHATWG URL (and thus fetch)
+  // normalizes those path segments away. The client must send the raw path
+  // so the request path matches the SigV4 canonical path.
+  async function withLocalServer(
+    handler: (path: string) => void
+  ): Promise<{ server: Server; endpoint: string }> {
+    const server = createServer((req, res) => {
+      handler(req.url ?? "");
+      res.writeHead(200, { "content-type": "text/plain" });
+      res.end("ok");
+    });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const { port } = server.address() as AddressInfo;
+    return { server, endpoint: `http://127.0.0.1:${port}` };
+  }
+
+  it.each(["a/../b", "a/./b", "..", "trailing/.."])(
+    "sends the raw path for key %j over the real transport",
+    async (key) => {
+      const seen: string[] = [];
+      const { server, endpoint } = await withLocalServer((path) => seen.push(path));
+      try {
+        // No fetchFn injected: exercises the real transport selection.
+        const real = new S3Client({ region: "us-east-1", credentials, endpoint });
+        const result = await real.getObject({ bucket: "bkt", key });
+        expect(Buffer.from(result.body).toString()).toBe("ok");
+        expect(seen).toEqual([`/bkt/${key}`]);
+      } finally {
+        await new Promise<void>((resolve, reject) =>
+          server.close((err) => (err ? reject(err) : resolve()))
+        );
+      }
     }
+  );
+
+  it("still uses fetch for normal keys (no raw-path detour)", async () => {
+    const seen: string[] = [];
+    const { server, endpoint } = await withLocalServer((path) => seen.push(path));
+    try {
+      const real = new S3Client({ region: "us-east-1", credentials, endpoint });
+      await real.getObject({ bucket: "bkt", key: "dir/file.txt" });
+      expect(seen).toEqual(["/bkt/dir/file.txt"]);
+    } finally {
+      await new Promise<void>((resolve, reject) =>
+        server.close((err) => (err ? reject(err) : resolve()))
+      );
+    }
+  });
+
+  it("refuses to presign keys with dot segments", async () => {
+    await expect(
+      client(mockFetch()).presignGetObject({
+        bucket: "b",
+        key: "a/../b",
+        expiresIn: 900
+      })
+    ).rejects.toThrow(/normalized away by URL clients/);
   });
 });
 

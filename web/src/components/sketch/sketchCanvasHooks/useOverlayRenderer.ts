@@ -438,7 +438,6 @@ export function useOverlayRenderer({
       }
       ctx.clearRect(0, 0, overlay.width, overlay.height);
       drawGradient(ctx, start, end, doc.toolSettings.gradient);
-      // Draw guide line
       ctx.save();
       ctx.setLineDash([4, 4]);
       ctx.strokeStyle = "rgba(255,255,255,0.5)";
@@ -533,7 +532,6 @@ export function useOverlayRenderer({
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
 
-      // Only show brush cursor for tools that declare showsBrushCursor capability
       const handler = getToolHandler(interactionTool);
       if (!handler.showsBrushCursor) {
         return;

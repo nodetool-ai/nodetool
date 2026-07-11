@@ -29,7 +29,6 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
       if (copyTimeoutRef.current) {
@@ -38,7 +37,6 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
     };
   }, []);
 
-  // Get set of bypassed node IDs and preview node IDs for filtering results
   const excludedNodeIds = useMemo(() => {
     if (!workflow?.graph?.nodes) {
       return new Set<string>();
@@ -47,31 +45,24 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
       workflow.graph.nodes
         .filter((node: Node) => {
           const uiProps = parseNodeUIProperties(node.ui_properties);
-          return (
-            // Exclude bypassed nodes
-            uiProps?.bypassed ||
-            // Exclude PreviewNode - they shouldn't show in app mode
-            node.type === PREVIEW_NODE_TYPE
-          );
+          // Preview nodes shouldn't show in app mode.
+          return uiProps?.bypassed || node.type === PREVIEW_NODE_TYPE;
         })
         .map((node) => node.id)
     );
   }, [workflow]);
 
-  // Filter out results from bypassed and preview nodes
   const filteredResults = useMemo(() => {
     return results.filter((result) => !excludedNodeIds.has(result.nodeId));
   }, [results, excludedNodeIds]);
 
   const hasResults = filteredResults.length > 0;
 
-  // Check for output nodes and their bypass status (exclude preview nodes)
   const outputNodeStatus = useMemo(() => {
     if (!workflow?.graph?.nodes) {
       return { totalOutputs: 0, activeOutputs: 0, allBypassed: false };
     }
 
-    // Only count actual output nodes, not preview nodes
     const outputNodes = workflow.graph.nodes.filter(
       (node) => node.type?.includes(".output.")
     );
@@ -92,7 +83,6 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
       try {
         let textToCopy: string;
 
-        // Convert result value to string based on type
         if (result.outputType === "string" && typeof result.value === "string") {
           textToCopy = result.value;
         } else if (
@@ -112,12 +102,9 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
         await navigator.clipboard.writeText(textToCopy);
         setCopiedId(result.id);
 
-        // Clear previous timeout if exists
         if (copyTimeoutRef.current) {
           clearTimeout(copyTimeoutRef.current);
         }
-
-        // Set new timeout and store reference
         copyTimeoutRef.current = setTimeout(() => {
           setCopiedId(null);
         }, 2000);
@@ -137,7 +124,6 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
 
   return (
     <section className="results-shell application-card">
-      {/* Clear button - shown only when there are results */}
       {hasResults && onClear && (
         <ToolbarIconButton
           icon={<ClearIcon fontSize="small" />}

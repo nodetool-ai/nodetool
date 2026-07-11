@@ -3,10 +3,6 @@ import { tagAsServer } from "@nodetool-ai/nodes-utils";
 
 const TIMEOUT = 30000;
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
 function parseJsonProp(input: unknown): Record<string, unknown> {
   if (!input) return {};
   if (typeof input === "string" && input.trim()) {
@@ -43,10 +39,6 @@ async function graphqlFetch(
     clearTimeout(timer);
   }
 }
-
-// ---------------------------------------------------------------------------
-// Query
-// ---------------------------------------------------------------------------
 
 export class GraphQLQueryLibNode extends BaseNode {
   static readonly nodeType = "lib.graphql.Query";
@@ -126,10 +118,6 @@ export class GraphQLQueryLibNode extends BaseNode {
     };
   }
 }
-
-// ---------------------------------------------------------------------------
-// Query with Auth
-// ---------------------------------------------------------------------------
 
 export class GraphQLQueryWithAuthLibNode extends BaseNode {
   static readonly nodeType = "lib.graphql.QueryWithAuth";
@@ -228,10 +216,6 @@ export class GraphQLQueryWithAuthLibNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Introspection
-// ---------------------------------------------------------------------------
-
 const INTROSPECTION_QUERY = `{
   __schema {
     types {
@@ -297,10 +281,6 @@ export class GraphQLIntrospectionLibNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Batch Query
-// ---------------------------------------------------------------------------
-
 export class GraphQLBatchQueryLibNode extends BaseNode {
   static readonly nodeType = "lib.graphql.BatchQuery";
   static readonly title = "GraphQL Batch Query";
@@ -359,10 +339,6 @@ export class GraphQLBatchQueryLibNode extends BaseNode {
     return { output, status: res.status };
   }
 }
-
-// ---------------------------------------------------------------------------
-// Export
-// ---------------------------------------------------------------------------
 
 export const LIB_GRAPHQL_NODES = tagAsServer([
   GraphQLQueryLibNode,

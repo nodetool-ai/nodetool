@@ -327,7 +327,6 @@ async function startServer(): Promise<void> {
   serverState.error = undefined;
   serverState.isStarted = false;
 
-  // Resolve Node.js backend entry point
   const backendEntryPoint = getNodeBackendPath();
   logMessage(`Resolved Node.js backend entry point: ${backendEntryPoint}`);
 
@@ -466,7 +465,6 @@ async function startServer(): Promise<void> {
     }
   }
 
-  // Log database configuration for debugging
   const dbConfig = backendEnv.DB_PATH || backendEnv.DATABASE_URL;
   if (dbConfig) {
     logMessage(`Database configuration detected: ${dbConfig}`);

@@ -1,4 +1,3 @@
-// web/src/components/portal/usePortalChat.ts
 import { useCallback } from "react";
 import { useShallow } from "zustand/react/shallow";
 import useGlobalChatStore from "../../stores/GlobalChatStore";

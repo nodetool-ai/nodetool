@@ -21,10 +21,9 @@ import {
   useReactFlow
 } from "@xyflow/react";
 
-// store
 import { NodeData } from "../../stores/NodeData";
 import { debounce } from "../../utils/lodashAlternatives";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import {
   parse,
   alpha,
@@ -47,7 +46,6 @@ import BypassGroupButton from "./BypassGroupButton";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { Tooltip, ToolbarIconButton, Popover, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../ui_primitives";
 
-// constants
 const MIN_WIDTH = 200;
 const MIN_HEIGHT = 200;
 const GROUP_BG_OPACITY = 0.35;
@@ -338,7 +336,6 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     childrenStatusSelector
   );
 
-  // RUN WORKFLOW
   const state = useWebsocketRunner((state) => state.state);
   const isWorkflowRunning = useWebsocketRunner(
     (state) => state.state === "running"
@@ -350,12 +347,10 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     const state = store.getState();
     const { nodes, edges, workflow } = state;
 
-    // Filter nodes that belong to this group
     const groupNodes = nodes.filter(
       (node) => node.id === props.id || node.parentId === props.id
     );
 
-    // Filter edges that connect nodes within this group
     const groupNodeIds = new Set(groupNodes.map((n) => n.id));
     const groupEdges = edges.filter(
       (edge) =>
@@ -366,12 +361,10 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     run({}, workflow, groupNodes, groupEdges);
   }, [run, props.id, store]);
 
-  // Toggle bypass on all child nodes
   const toggleBypassChildren = useCallback(() => {
     const state = store.getState();
     const childNodes = state.nodes.filter((node) => node.parentId === props.id);
 
-    // Check if some child nodes are bypassed (imperatively)
     const isBypassed = childNodes.some((n) => n.data.bypassed);
     const shouldBypass = !isBypassed;
 

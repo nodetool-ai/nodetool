@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useRef, memo } from "react";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 
 import {
   Text,
@@ -15,7 +15,6 @@ import { isElectron } from "../../lib/env";
 import type { LlamaModelValue } from "../../stores/ApiTypes";
 import ModelSelectButton from "./shared/ModelSelectButton";
 import { EditorMenu, EditorMenuItem } from "../editor_ui";
-// no providers here; always Ollama
 
 interface LlamaModelSelectProps {
   onChange: (value: LlamaModelValue) => void;
@@ -72,8 +71,6 @@ const LlamaModelSelect = ({ onChange, value }: LlamaModelSelectProps) => {
     },
     [handleModelSelect]
   );
-
-  // no providers menu; just one list of models
 
   return (
     <>

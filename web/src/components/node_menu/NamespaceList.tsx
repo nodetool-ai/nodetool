@@ -13,7 +13,7 @@ import NodeInfo from "./NodeInfo";
 import QuickActionTiles from "./QuickActionTiles";
 import RecentNodesTiles from "./RecentNodesTiles";
 import FavoritesTiles from "./FavoritesTiles";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import useMetadataStore from "../../stores/MetadataStore";
 import { AddCircleOutline } from "@mui/icons-material";
 import { NamespaceTree } from "../../hooks/useNamespaceTree";
@@ -393,7 +393,6 @@ const InfoBox = memo(function InfoBox({
   metadata: NodeMetadata[];
   totalNodes: number;
 }) {
-  // Build contextual message
   const buildContextMessage = () => {
     if (searchTerm.length > minSearchTermLength) {
       const matchCount = searchResults.length;
@@ -495,7 +494,6 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
             <ListGroup className={`node-list ${searchTerm ? "expanded" : ""}`}>
               <RenderNodes nodes={searchResults} />
             </ListGroup>
-            {/* Only show NodeInfo when not searching */}
             {!searchTerm && (
               <div className="node-info-container">
                 {hoveredNode && <NodeInfo nodeMetadata={hoveredNode} />}

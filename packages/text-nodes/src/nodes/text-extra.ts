@@ -2217,7 +2217,6 @@ export class LoadTextFolderNode extends BaseNode {
       allPaths.push(item.path);
       yield { path: item.path, text: item.text };
     }
-    // Emit collected lists as final output
     yield { texts: allTexts, paths: allPaths };
   }
 }
@@ -2284,7 +2283,6 @@ export class LoadTextAssetsNode extends BaseNode {
       allNames.push(item.path);
       yield { text: item.text, name: item.path };
     }
-    // Emit collected lists as final output
     yield { texts: allTexts, names: allNames };
   }
 }

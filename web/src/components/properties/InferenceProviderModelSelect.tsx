@@ -2,7 +2,7 @@ import { Text, FlexColumn } from "../ui_primitives";
 import { InferenceProvider, InferenceProviderModelValue } from "../../stores/ApiTypes";
 import { memo, useCallback, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import Select from "../inputs/Select";
 import type { PropertyProps } from "../node/PropertyInput";
 
@@ -135,7 +135,6 @@ const InferenceProviderModelSelect = ({
         }
     }, [property.type.type]);
 
-    // Fetch models for the selected provider
     const { data: models, isLoading: isLoadingModels, error: modelsError } = useQuery({
         queryKey: ['inference-models', value.provider, pipelineTag],
         queryFn: () => fetchModelsForProvider(value.provider, pipelineTag),

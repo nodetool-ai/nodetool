@@ -207,7 +207,6 @@ const ImageView: React.FC<ImageViewProps> = ({ source, bitmap }) => {
     ? { width: bitmap.width, height: bitmap.height }
     : imgNaturalDimensions;
 
-  // Memoize style objects to prevent recreation on every render
   const containerStyle = useMemo(() => ({
     position: "relative" as const,
     display: "flex",
@@ -255,7 +254,6 @@ const ImageView: React.FC<ImageViewProps> = ({ source, bitmap }) => {
     cursor: "pointer"
   }), []);
 
-  // Memoize event handlers to prevent recreation on every render
   const handleCloseViewer = useCallback(() => {
     setOpenViewer(false);
   }, []);

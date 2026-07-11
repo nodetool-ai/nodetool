@@ -79,9 +79,6 @@ function mapType(typeStr: string): { tsType: string; propType: string } {
 export class MetadataParser {
   private schemaParser = new SchemaParser();
 
-  /**
-   * Parse a single metadata node entry into a NodeSpec.
-   */
   parseNode(entry: MetadataNodeEntry): NodeSpec {
     const enums: EnumDef[] = [];
     const inputFields = this._parseProperties(entry.properties, enums);
@@ -148,9 +145,6 @@ export class MetadataParser {
     return stripped.replace(/\./g, "-");
   }
 
-  /**
-   * Parse metadata properties into FieldDef[].
-   */
   private _parseProperties(
     properties: MetadataProperty[],
     enums: EnumDef[]
@@ -163,7 +157,6 @@ export class MetadataParser {
       let enumRef: string | undefined;
       let enumValues: string[] | undefined;
 
-      // Handle enum type
       if (typeStr === "enum" && prop.type.values) {
         const enumName = this._generateEnumName(prop.name);
         const rawValues = prop.type.values;
@@ -209,9 +202,6 @@ export class MetadataParser {
     return fields;
   }
 
-  /**
-   * Get a suitable default value.
-   */
   private _getDefault(
     rawDefault: unknown,
     propType: string,

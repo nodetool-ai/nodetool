@@ -13,8 +13,17 @@ export {
   type S3ListObjectsV2Result,
   type S3ObjectSummary,
   type S3BucketSummary,
-  type S3PresignGetObjectInput
+  type S3PresignGetObjectInput,
+  type S3RetryOptions
 } from "./client.js";
+export {
+  cacheCredentials,
+  createDefaultCredentialProvider,
+  parseIniProfiles,
+  type CredentialProvider,
+  type DefaultCredentialProviderOptions,
+  type ResolvedCredentials
+} from "./credentials.js";
 export {
   signRequest,
   presignUrl,

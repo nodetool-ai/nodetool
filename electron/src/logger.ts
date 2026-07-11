@@ -23,7 +23,6 @@ function getLogStream(): WriteStream | null {
   }
   
   try {
-    // Ensure the log directory exists
     const logDir = path.dirname(LOG_FILE);
     if (!existsSync(logDir)) {
       mkdirSync(logDir, { recursive: true });
@@ -51,10 +50,8 @@ export function logMessage(
   const trimmedMessage = message.trim();
   
   try {
-    // Log to electron-log (console + internal)
     log[level](trimmedMessage);
-    
-    // Write to file using persistent stream
+
     const stream = getLogStream();
     if (stream) {
       stream.write(trimmedMessage + "\n");

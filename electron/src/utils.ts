@@ -40,20 +40,12 @@ async function checkPermissions(
   }
 }
 
-/**
- * Check if a file exists
- * @param {string} filePath - Path to check
- * @returns {Promise<boolean>} True if file exists, false otherwise
- */
 async function fileExists(filePath: string): Promise<boolean> {
   const { accessible } = await checkPermissions(filePath, constants.F_OK);
   return accessible;
 }
 
-/**
- * Gets the server port, falling back to default port 7777
- * @returns {number} The server port
- */
+/** Gets the server port, falling back to default port 7777. */
 function getServerPort(): number {
   return serverState.serverPort ?? 7777;
 }

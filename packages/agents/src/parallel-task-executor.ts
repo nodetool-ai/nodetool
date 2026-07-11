@@ -238,13 +238,11 @@ export class ParallelTaskExecutor {
         severity: "info"
       } satisfies LogUpdate;
 
-      // Create task executors — each task runs as its own sub-agent
       const taskGenerators = executableTasks.map((task) => {
         return this.executeTask(task);
       });
 
       if (taskGenerators.length > 1) {
-        // Execute all tasks concurrently, merging yielded messages
         yield* mergeAsyncGenerators(taskGenerators);
       } else {
         // Single task — no need for merge overhead
@@ -274,7 +272,6 @@ export class ParallelTaskExecutor {
    * Injects dependency results into the task's context before execution.
    */
   private async *executeTask(task: Task): AsyncGenerator<ProcessingMessage> {
-    // Mark task as started
     task.completed = false;
 
     yield {

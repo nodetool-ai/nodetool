@@ -6,7 +6,7 @@ import { Handle, NodeProps, Position } from "@xyflow/react";
 import { Text, Box, Z_INDEX } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../../utils/isEqual";
 
 import { NodeData } from "../../../stores/NodeData";
 import { useNodeArtifacts } from "../../../hooks/nodes/useNodeExecState";
@@ -96,7 +96,6 @@ const styles = (theme: Theme) =>
     }
   });
 
-// Type metadata for image handles
 const imageTypeMetadata = {
   type: "image",
   type_args: [],
@@ -183,7 +182,6 @@ const CompareImagesNode: React.FC<CompareImagesNodeProps> = (props) => {
       }`}
     >
       <div className="compare-node-content">
-        {/* Handle for image_a */}
         <div className="handle-popup image_a">
           <HandleTooltip
             typeMetadata={imageTypeMetadata}
@@ -201,7 +199,6 @@ const CompareImagesNode: React.FC<CompareImagesNodeProps> = (props) => {
           </HandleTooltip>
         </div>
 
-        {/* Handle for image_b */}
         <div className="handle-popup image_b">
           <HandleTooltip
             typeMetadata={imageTypeMetadata}

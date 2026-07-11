@@ -423,7 +423,7 @@ describe("MigrationRunner", () => {
 // ── Built-in migrations smoke test ───────────────────────────────────
 
 describe("Built-in migrations", () => {
-  const EXPECTED_BUILT_IN_MIGRATION_COUNT = 44;
+  const EXPECTED_BUILT_IN_MIGRATION_COUNT = 45;
 
   it("should have correct count of migrations", () => {
     expect(migrations.length).toBe(EXPECTED_BUILT_IN_MIGRATION_COUNT);
@@ -462,6 +462,7 @@ describe("Built-in migrations", () => {
     expect(await adapter.tableExists("run_node_state")).toBe(true);
     expect(await adapter.tableExists("run_inbox_messages")).toBe(true);
     expect(await adapter.tableExists("trigger_inputs")).toBe(true);
+    expect(await adapter.tableExists("trigger_registrations")).toBe(true);
     expect(await adapter.tableExists("run_events")).toBe(true);
     expect(await adapter.tableExists("run_leases")).toBe(true);
     expect(await adapter.tableExists("timeline_sequences")).toBe(true);

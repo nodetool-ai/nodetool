@@ -121,15 +121,13 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
       } catch (error: unknown) {
         console.error("Deletion error:", error);
 
-        // Extract error message
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
-        // Check if error is "Not Found" (404)
         const isNotFound =
           errorMessage.includes("Not Found") || errorMessage.includes("404");
 
         if (isNotFound) {
-          // If model is not found, treat as success (already deleted)
+          // Model already gone — treat as success.
           addNotification({
             type: "warning",
             content: `Model ${modelId} not found (may have been already deleted)`,
@@ -140,7 +138,6 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
           queryClient.invalidateQueries({ queryKey: ["allModels", scope] });
           onClose();
         } else {
-          // Show error for other failures
           addNotification({
             type: "error",
             content: errorMessage,

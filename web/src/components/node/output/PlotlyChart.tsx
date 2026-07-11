@@ -24,6 +24,10 @@ const PlotlyChart: React.FC<PlotlyChartProps> = ({
   style
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  // Frames we registered on the last render. `Plotly.react` never clears
+  // frames, so we drop these before adding the next set — otherwise every
+  // update would append, and animations would replay stale keyframes.
+  const registeredFrameCount = useRef(0);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -31,11 +35,27 @@ const PlotlyChart: React.FC<PlotlyChartProps> = ({
       return;
     }
     let cancelled = false;
-    void Plotly.react(el, data, layout ?? {}, config).then(() => {
-      if (!cancelled && frames && frames.length > 0) {
-        return Plotly.addFrames(el, frames);
+    void Plotly.react(el, data, layout ?? {}, config).then(async () => {
+      if (cancelled) {
+        return;
       }
-      return undefined;
+      if (registeredFrameCount.current > 0) {
+        await Plotly.deleteFrames(
+          el,
+          Array.from(
+            { length: registeredFrameCount.current },
+            (_, index) => index
+          )
+        );
+        registeredFrameCount.current = 0;
+        if (cancelled) {
+          return;
+        }
+      }
+      if (frames && frames.length > 0) {
+        await Plotly.addFrames(el, frames);
+        registeredFrameCount.current = frames.length;
+      }
     });
     return () => {
       cancelled = true;

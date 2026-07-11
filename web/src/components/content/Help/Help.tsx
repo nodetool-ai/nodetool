@@ -119,8 +119,7 @@ const helpStyles = (theme: Theme) =>
         fontWeight: 600
       },
       "& svg": {
-        fontSize: "var(--fontSizeBig)",
-        // color: theme.vars.palette.primary.main
+        fontSize: "var(--fontSizeBig)"
       }
     },
     ".tabpanel": {

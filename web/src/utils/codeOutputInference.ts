@@ -7,7 +7,46 @@
  *           and are not sandbox-provided globals
  */
 import * as acorn from "acorn";
-import * as walk from "acorn-walk";
+
+// ---------------------------------------------------------------------------
+// Minimal AST walker (replaces acorn-walk for the node types used below)
+// ---------------------------------------------------------------------------
+
+const isAstNode = (value: unknown): value is acorn.AnyNode =>
+  typeof value === "object" &&
+  value !== null &&
+  typeof (value as { type?: unknown }).type === "string";
+
+/**
+ * Depth-first walk over every ESTree node in the tree, invoking `visit` with
+ * the node and its ancestor chain (root first, the node itself last —
+ * matching acorn-walk's `ancestor` callback contract).
+ */
+function walkAst(
+  root: acorn.Node,
+  visit: (node: acorn.AnyNode, ancestors: acorn.AnyNode[]) => void
+): void {
+  const ancestors: acorn.AnyNode[] = [];
+
+  const walkNode = (node: acorn.AnyNode): void => {
+    ancestors.push(node);
+    for (const key of Object.keys(node)) {
+      if (key === "type" || key === "start" || key === "end") continue;
+      const value = (node as unknown as Record<string, unknown>)[key];
+      if (Array.isArray(value)) {
+        for (const item of value) {
+          if (isAstNode(item)) walkNode(item);
+        }
+      } else if (isAstNode(value)) {
+        walkNode(value);
+      }
+    }
+    visit(node, ancestors);
+    ancestors.pop();
+  };
+
+  walkNode(root as acorn.AnyNode);
+}
 
 // ---------------------------------------------------------------------------
 // Output inference
@@ -25,8 +64,8 @@ export function inferOutputKeysFromCode(code: string): string[] | null {
 
   let lastReturnKeys: string[] | null = null;
 
-  walk.simple(ast, {
-    ReturnStatement(node: acorn.ReturnStatement) {
+  walkAst(ast, (node) => {
+    if (node.type === "ReturnStatement") {
       if (node.argument?.type === "ObjectExpression") {
         const keys = extractObjectKeys(node.argument);
         if (keys.length > 0) {
@@ -94,71 +133,95 @@ export function inferInputKeysFromCode(code: string): string[] | null {
   const referenced = new Set<string>();
 
   // Collect all declarations
-  walk.simple(ast, {
-    VariableDeclarator(node: acorn.VariableDeclarator) {
-      collectBindingNames(node.id, declared);
-    },
-    FunctionDeclaration(node: acorn.FunctionDeclaration | acorn.AnonymousFunctionDeclaration) {
-      if (node.id?.name) declared.add(node.id.name);
-      for (const param of node.params) {
-        collectBindingNames(param, declared);
-      }
-    },
-    FunctionExpression(node: acorn.FunctionExpression) {
-      if (node.id?.name) declared.add(node.id.name);
-      for (const param of node.params) {
-        collectBindingNames(param, declared);
-      }
-    },
-    ArrowFunctionExpression(node: acorn.ArrowFunctionExpression) {
-      for (const param of node.params) {
-        collectBindingNames(param, declared);
-      }
-    },
-    ClassDeclaration(node: acorn.ClassDeclaration | acorn.AnonymousClassDeclaration) {
-      if (node.id?.name) declared.add(node.id.name);
-    },
-    CatchClause(node: acorn.CatchClause) {
-      if (node.param) collectBindingNames(node.param, declared);
-    },
-    ImportDeclaration(node: acorn.ImportDeclaration) {
-      for (const spec of node.specifiers) {
-        if (spec.local.name) declared.add(spec.local.name);
-      }
+  walkAst(ast, (node) => {
+    switch (node.type) {
+      case "VariableDeclarator":
+        collectBindingNames(node.id, declared);
+        break;
+      case "FunctionDeclaration":
+      case "FunctionExpression":
+        if (node.id?.name) declared.add(node.id.name);
+        for (const param of node.params) {
+          collectBindingNames(param, declared);
+        }
+        break;
+      case "ArrowFunctionExpression":
+        for (const param of node.params) {
+          collectBindingNames(param, declared);
+        }
+        break;
+      case "ClassDeclaration":
+        if (node.id?.name) declared.add(node.id.name);
+        break;
+      case "CatchClause":
+        if (node.param) collectBindingNames(node.param, declared);
+        break;
+      case "ImportDeclaration":
+        for (const spec of node.specifiers) {
+          if (spec.local.name) declared.add(spec.local.name);
+        }
+        break;
     }
   });
 
   // Collect all referenced identifiers (excluding property access and object keys)
-  walk.ancestor(ast, {
-    Identifier(node: acorn.Identifier, _state: unknown, ancestors: acorn.AnyNode[]) {
-      const parent = ancestors[ancestors.length - 2];
-      if (!parent) return;
+  walkAst(ast, (node, ancestors) => {
+    if (node.type !== "Identifier") return;
+    const parent = ancestors[ancestors.length - 2];
+    if (!parent) return;
 
-      // Skip if this is a property access (obj.prop — skip prop)
-      if (parent.type === "MemberExpression" && parent.property === node && !parent.computed) {
-        return;
-      }
-      // Skip if this is an object key in an object literal
-      if (parent.type === "Property" && parent.key === node && !parent.computed) {
-        return;
-      }
-      // Skip if this is a label
-      if (parent.type === "LabeledStatement" && parent.label === node) {
-        return;
-      }
-      // Skip declaration sites (already collected)
-      if (parent.type === "VariableDeclarator" && parent.id === node) {
-        return;
-      }
-      if (
-        (parent.type === "FunctionDeclaration" || parent.type === "FunctionExpression" ||
-         parent.type === "ClassDeclaration") && parent.id === node
-      ) {
-        return;
-      }
-
-      referenced.add(node.name);
+    // Skip if this is a property access (obj.prop — skip prop)
+    if (parent.type === "MemberExpression" && parent.property === node && !parent.computed) {
+      return;
     }
+    // Skip if this is an object key in an object literal
+    if (parent.type === "Property" && parent.key === node && !parent.computed) {
+      return;
+    }
+    // Skip if this is a class member key (class A { foo() {} })
+    if (
+      (parent.type === "MethodDefinition" || parent.type === "PropertyDefinition") &&
+      parent.key === node &&
+      !parent.computed
+    ) {
+      return;
+    }
+    // Skip labels (declaration and break/continue references)
+    if (parent.type === "LabeledStatement" && parent.label === node) {
+      return;
+    }
+    if (
+      (parent.type === "BreakStatement" || parent.type === "ContinueStatement") &&
+      parent.label === node
+    ) {
+      return;
+    }
+    // Skip meta properties (import.meta, new.target)
+    if (parent.type === "MetaProperty") {
+      return;
+    }
+    // Skip import/export specifier names (locals are collected as declared)
+    if (
+      parent.type === "ImportSpecifier" ||
+      parent.type === "ImportDefaultSpecifier" ||
+      parent.type === "ImportNamespaceSpecifier" ||
+      parent.type === "ExportSpecifier"
+    ) {
+      return;
+    }
+    // Skip declaration sites (already collected)
+    if (parent.type === "VariableDeclarator" && parent.id === node) {
+      return;
+    }
+    if (
+      (parent.type === "FunctionDeclaration" || parent.type === "FunctionExpression" ||
+       parent.type === "ClassDeclaration" || parent.type === "ClassExpression") &&
+      parent.id === node
+    ) {
+      return;
+    }
+
+    referenced.add(node.name);
   });
 
   const inputs: string[] = [];

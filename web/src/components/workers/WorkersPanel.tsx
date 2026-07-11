@@ -28,7 +28,7 @@ import WorkerProfilesDialog from "./WorkerProfilesDialog";
  * Workers panel — the live GPU-worker surface. Lists provisioned instances with
  * their status, uptime, and estimated cost; lets the user provision a new worker
  * from a profile; and surfaces real teardown (Stop / Stop All) because GPU pods
- * bill continuously. Built entirely on `ui_primitives`.
+ * bill continuously.
  */
 
 const STATUS_TONE: Record<string, StatusType> = {

@@ -9,7 +9,7 @@ import useAlignNodes from "../../hooks/useAlignNodes";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import React from "react";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -634,7 +634,6 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
     [setOpen]
   );
 
-  // Set up command menu context
   useEffect(() => {
     useCommandMenu.setState({
       executeAndClose,
@@ -649,14 +648,12 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
     };
 
     if (open) {
-      // Clear any existing timeout before setting a new one
       if (focusInputTimeoutRef.current) {
         clearTimeout(focusInputTimeoutRef.current);
       }
       focusInputTimeoutRef.current = setTimeout(focusInput, 0);
     }
 
-    // Cleanup: clear timeout when component unmounts or open changes
     return () => {
       if (focusInputTimeoutRef.current) {
         clearTimeout(focusInputTimeoutRef.current);
@@ -664,7 +661,6 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
     };
   }, [open]);
 
-  // Cleanup timeout on component unmount
   useEffect(() => {
     return () => {
       if (focusInputTimeoutRef.current) {

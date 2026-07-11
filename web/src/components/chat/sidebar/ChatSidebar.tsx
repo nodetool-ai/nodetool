@@ -60,7 +60,6 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
         [onSelectThread]
     );
 
-    // Filter threads based on search query
     const filteredThreads = React.useMemo(() => {
         if (!searchQuery.trim()) {
             return threads;

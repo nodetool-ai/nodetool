@@ -16,9 +16,6 @@ export interface AuthResult {
   error?: string;
 }
 
-/**
- * Common interface for all authentication providers.
- */
 export abstract class AuthProvider {
   static preferHeader(): string {
     return "authorization";
@@ -100,14 +97,8 @@ export abstract class AuthProvider {
     return null;
   }
 
-  /**
-   * Validate a token and return the associated authentication result.
-   */
   abstract verifyToken(token: string): Promise<AuthResult>;
 
-  /**
-   * Clear any internal caches held by the provider.
-   */
   clearCaches(): void {
     // No-op by default.
   }

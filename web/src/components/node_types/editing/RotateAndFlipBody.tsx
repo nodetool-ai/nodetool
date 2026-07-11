@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 /**
- * RotateAndFlipBody — bespoke body for `nodetool.image.RotateAndFlip`
- * (plan §9.E7, PR 10).
+ * RotateAndFlipBody — bespoke body for `nodetool.image.RotateAndFlip`.
  *
  * Top: preview of the server output. Bottom: free-rotate slider
  * (0/90/180/270 snap marks), Flip H and Flip V toggles, Reset.

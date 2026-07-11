@@ -15,12 +15,7 @@ export async function restFetch(
     });
   }
 
-  const url =
-    typeof input === "string"
-      ? `${BASE_URL}${input}`
-      : input instanceof URL
-        ? input
-        : input;
+  const url = typeof input === "string" ? `${BASE_URL}${input}` : input;
 
   return fetch(url, {
     ...init,

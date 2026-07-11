@@ -9,8 +9,8 @@ import { Property } from "../../stores/ApiTypes";
 import PropertyInput from "./PropertyInput";
 import PropertyLabel from "./PropertyLabel";
 import { Slugify, isCollectType } from "../../utils/TypeHandler";
-import useContextMenuStore from "../../stores/ContextMenuStore";
-import isEqual from "fast-deep-equal";
+import { useContextMenuActions } from "../../stores/ContextMenuStore";
+import isEqual from "../../utils/isEqual";
 import { isFieldRelevantDataEqual } from "./propertyFieldEquality";
 import { isConnectableCached } from "../node_menu/typeFilterUtils";
 import HandleTooltip from "../HandleTooltip";
@@ -71,9 +71,6 @@ export type PropertyFieldProps = {
   onValueChange?: (value: unknown) => void;
 };
 
-/**
- * PropertyField renders a single property of a node.
- */
 const PropertyField: React.FC<PropertyFieldProps> = ({
   id,
   value,
@@ -98,7 +95,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
       connectNodeId: state.connectNodeId
     }))
   );
-  const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
+  const { openContextMenu } = useContextMenuActions();
 
   // Transient highlight (e.g. guiding the user to set a model). Only in the
   // inspector, where we also scroll the field into view.

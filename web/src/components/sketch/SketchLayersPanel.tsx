@@ -1195,7 +1195,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         gap={0.5}
         sx={{ rowGap: 0.5, minHeight: 30, py: 0.5 }}
       >
-        {/* Mask */}
         <Tooltip
           title={
             maskLayerId === activeLayerId
@@ -1226,7 +1225,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           </IconButton>
         </Tooltip>
 
-        {/* Alpha Lock */}
         <Tooltip
           title={
             activeLayer?.alphaLock ? "Unlock Transparency" : "Lock Transparency"
@@ -1249,7 +1247,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           </IconButton>
         </Tooltip>
 
-        {/* Group selected */}
         <Tooltip
           title="Group selected layers"
           enterDelay={SKETCH_TOOLTIP_DELAY_MS}

@@ -10,7 +10,7 @@ import {
 } from "../../stores/ErrorStore";
 import useLogsStore, { nodeLogKey } from "../../stores/LogStore";
 import { useNodeError } from "../../hooks/nodes/useNodeExecState";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { CopyButton, ExternalLink, Tooltip, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { VERSION } from "../../config/constants";
 import { extractKieTaskId, KIE_LOGS_URL } from "../../utils/kieTaskId";
@@ -114,7 +114,7 @@ const errorStyles = (theme: Theme) =>
     },
     ".error-task-link": {
       marginTop: getSpacingPx(SPACING.sm),
-      paddingRight: getSpacingPx(18), // was 72px
+      paddingRight: getSpacingPx(18),
     },
     ".error-actions": {
       display: "flex",
@@ -158,8 +158,6 @@ const NodeErrorsImpl: React.FC<{
 
   // Computed before the early return so the hook order stays stable
   // (rules-of-hooks). `nodeErrorToDisplayString` tolerates an absent error.
-  // Hoisted into a single value reused below and in `handleReport` — it was
-  // previously recomputed twice per render for the same `error` input.
   const errorDisplay = nodeErrorToDisplayString(error);
 
   const handleReport = useCallback(() => {

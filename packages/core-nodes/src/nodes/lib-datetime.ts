@@ -9,10 +9,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import { tagAsUniversal } from "@nodetool-ai/nodes-utils";
 
-// ---------------------------------------------------------------------------
-// Constants / helpers
-// ---------------------------------------------------------------------------
-
 /** Units supported by DateAdd/DateDiff/DateStartEnd. */
 export type DateUnit =
   | "millisecond"
@@ -261,10 +257,6 @@ export function endOf(date: Date, unit: DateUnit): Date {
   );
   return new Date(next.getTime() - 1);
 }
-
-// ---------------------------------------------------------------------------
-// Nodes
-// ---------------------------------------------------------------------------
 
 export class DateNowNode extends BaseNode {
   static readonly nodeType = "lib.datetime.Now";

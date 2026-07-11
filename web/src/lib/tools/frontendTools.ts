@@ -90,7 +90,6 @@ export const FrontendToolRegistry = {
     const controller = new AbortController();
     active.set(toolCallId, { controller });
     try {
-      // Validate args using Zod if parameters is a Zod schema
       const validatedArgs = isZodSchema(tool.parameters)
         ? parseWithTypeCoercion(tool.parameters, args)
         : args;

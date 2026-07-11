@@ -103,7 +103,6 @@ export const useLanguageModelsByProvider = (options?: {
       : aggregated;
   }, [queries, options?.requireToolSupport]);
 
-  // Track per-provider errors for debugging feedback
   const providerErrors = useMemo(() => {
     const errors: Array<{ provider: string; error: unknown }> = [];
     queries.forEach((q, idx) => {
@@ -117,7 +116,6 @@ export const useLanguageModelsByProvider = (options?: {
     return errors;
   }, [queries, providers]);
 
-  // Track loading progress
   const loadingProgress = useMemo(() => {
     const total = providers.length;
     const loaded = queries.filter((q) => q.data || q.error).length;

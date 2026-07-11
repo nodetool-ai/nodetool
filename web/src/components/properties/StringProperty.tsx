@@ -4,7 +4,7 @@ import { useState, useCallback, memo, useMemo } from "react";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import TextEditorModal from "./TextEditorModal";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { useNodes } from "../../contexts/NodeContext";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";

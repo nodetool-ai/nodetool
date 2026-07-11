@@ -5,7 +5,7 @@ import { NodeProps, Handle, Position } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import {
   Tooltip,
   Container,
@@ -43,11 +43,7 @@ const styles = (theme: Theme) =>
     WebkitBackdropFilter: theme.vars.palette.glass.blur,
     borderRadius: BORDER_RADIUS.circle,
     cursor: "grab",
-    transition: MOTION.all,
-
-    "&:hover": {
-      // transform: "scale(1.05)"
-    }
+    transition: MOTION.all
   });
 
 const titleStyles = (theme: Theme) =>

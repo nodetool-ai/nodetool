@@ -27,7 +27,7 @@ import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
 import { useNodes } from "../../contexts/NodeContext";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { shallow } from "zustand/shallow";
 
 interface SelectionContextMenuProps {
@@ -72,12 +72,10 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
     isEqual
   );
 
-  // any has parent
   const anyHasParent = useMemo(() => {
     return selectedNodes.some((node) => node.parentId);
   }, [selectedNodes]);
 
-  // Check if majority of selected nodes are bypassed
   const majorityBypassed = useMemo(() => {
     if (selectedNodes.length === 0) {
       return false;
@@ -86,18 +84,15 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
     return bypassedCount >= selectedNodes.length / 2;
   }, [selectedNodes]);
 
-  // bypass
   const handleToggleBypass = useCallback(() => {
     toggleBypassSelected();
     closeContextMenu();
   }, [toggleBypassSelected, closeContextMenu]);
 
-  //duplicate
   const handleDuplicateNodes = useCallback(() => {
     duplicateNodes();
   }, [duplicateNodes]);
 
-  //delete
   const handleDelete = useCallback(() => {
     if (selectedNodes?.length) {
       // [PERF] Use batch deletion (deleteNodes) instead of iterating deleteNode(node.id) to avoid O(N) re-renders
@@ -106,7 +101,6 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
     closeContextMenu();
   }, [closeContextMenu, deleteNodes, selectedNodes]);
 
-  //select connected
   const handleSelectConnectedAll = useCallback(() => {
     selectConnectedAll.selectConnected();
     closeContextMenu();

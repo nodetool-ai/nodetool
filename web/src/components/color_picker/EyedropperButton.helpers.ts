@@ -17,7 +17,6 @@ declare global {
   }
 }
 
-// Check if EyeDropper API is supported
 export const isEyeDropperSupported = (): boolean => {
   return typeof window !== "undefined" && "EyeDropper" in window;
 };

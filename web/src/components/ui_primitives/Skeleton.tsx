@@ -52,7 +52,6 @@ const SkeletonInternal: React.FC<SkeletonProps> = ({
   height,
   ...props
 }) => {
-  // Type presetStyles as partial object to handle both preset and non-preset cases
   const presetStyles: Partial<typeof PRESET_STYLES[keyof typeof PRESET_STYLES]> = preset ? PRESET_STYLES[preset] : {};
 
   return (

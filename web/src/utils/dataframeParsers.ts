@@ -13,37 +13,30 @@ function inferDataType(
     return "string";
   }
 
-  // Check for number types
   if (typeof value === "number") {
     return Number.isInteger(value) ? "int" : "float";
   }
 
-  // Check for Date objects
   if (value instanceof Date) {
     return "datetime";
   }
 
-  // Check for string values that might be numbers or dates
   if (typeof value === "string") {
     const trimmed = value.trim();
 
-    // Check for integer
     if (/^-?\d+$/.test(trimmed)) {
       return "int";
     }
 
-    // Check for float (including scientific notation)
     if (/^-?\d*\.?\d+([eE][+-]?\d+)?$/.test(trimmed) && trimmed.includes(".")) {
       return "float";
     }
 
-    // Check for scientific notation without decimal point
     if (/^-?\d+[eE][+-]?\d+$/.test(trimmed)) {
       return "float";
     }
 
-    // Check for ISO date format with basic validation
-    // Validates YYYY-MM-DD with optional time component
+    // YYYY-MM-DD with optional time component
     if (/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])(T([01]\d|2[0-3]):[0-5]\d:[0-5]\d)?/.test(trimmed)) {
       const date = new Date(trimmed);
       if (!isNaN(date.getTime())) {
@@ -52,7 +45,6 @@ function inferDataType(
     }
   }
 
-  // Check for objects
   if (typeof value === "object") {
     return "object";
   }
@@ -73,7 +65,6 @@ function inferColumnType(
   };
 
   for (const value of values) {
-    // Skip empty values
     if (value === null || value === undefined || value === "") {
       continue;
     }
@@ -81,13 +72,11 @@ function inferColumnType(
     typeCounts[type]++;
   }
 
-  // Find the most common type (excluding string as default)
   let maxCount = 0;
   let maxType: "int" | "float" | "datetime" | "string" | "object" = "string";
 
-  // If we have any ints or floats, prefer numeric types
+  // Prefer numeric types when present; float wins over int if any floats.
   if (typeCounts.int > 0 || typeCounts.float > 0) {
-    // If we have both int and float, use float
     if (typeCounts.float > 0) {
       maxType = "float";
       maxCount = typeCounts.int + typeCounts.float;
@@ -97,13 +86,11 @@ function inferColumnType(
     }
   }
 
-  // Check if datetime is more common
   if (typeCounts.datetime > maxCount) {
     maxType = "datetime";
     maxCount = typeCounts.datetime;
   }
 
-  // Check if object is more common
   if (typeCounts.object > maxCount) {
     maxType = "object";
   }
@@ -181,17 +168,14 @@ function parseCSV(csvText: string): DataframeRef {
     };
   }
 
-  // Parse header row
   const headers = parseCSVLine(lines[0]);
 
-  // Parse data rows
   const rawData: unknown[][] = [];
   for (let i = 1; i < lines.length; i++) {
     const values = parseCSVLine(lines[i]);
     rawData.push(values);
   }
 
-  // Infer column types
   const columnTypes: ("int" | "float" | "datetime" | "string" | "object")[] =
     [];
   for (let colIndex = 0; colIndex < headers.length; colIndex++) {
@@ -199,14 +183,12 @@ function parseCSV(csvText: string): DataframeRef {
     columnTypes.push(inferColumnType(columnValues));
   }
 
-  // Create column definitions
   const columns: ColumnDef[] = headers.map((name, index) => ({
     name: name || `Column ${index + 1}`,
     data_type: columnTypes[index],
     description: ""
   }));
 
-  // Convert data with proper types
   const data = rawData.map((row) =>
     row.map((value, colIndex) => convertValue(value, columnTypes[colIndex]))
   );
@@ -240,7 +222,6 @@ function parseCSVLine(line: string): string[] {
           current += '"';
           i++;
         } else {
-          // End of quoted value
           inQuotes = false;
         }
       } else {
@@ -248,10 +229,8 @@ function parseCSVLine(line: string): string[] {
       }
     } else {
       if (char === '"') {
-        // Start of quoted value
         inQuotes = true;
       } else if (char === ",") {
-        // End of value
         values.push(current.trim());
         current = "";
       } else {
@@ -260,7 +239,6 @@ function parseCSVLine(line: string): string[] {
     }
   }
 
-  // Add the last value
   values.push(current.trim());
 
   return values;
@@ -283,16 +261,14 @@ async function parseExcel(file: File): Promise<DataframeRef> {
     };
   }
 
-  // First row is headers
   const headerRow = rows[0];
   const headers = headerRow.map((cell, index) =>
     cell != null ? String(cell) : `Column ${index + 1}`
   );
 
-  // Data rows - cells are returned as-is (Date objects from Excel are preserved)
+  // Cells are returned as-is (Date objects from Excel are preserved).
   const rawData: unknown[][] = rows.slice(1).map((row) => [...row]);
 
-  // Infer column types
   const columnTypes: ("int" | "float" | "datetime" | "string" | "object")[] =
     [];
   for (let colIndex = 0; colIndex < headers.length; colIndex++) {
@@ -300,14 +276,12 @@ async function parseExcel(file: File): Promise<DataframeRef> {
     columnTypes.push(inferColumnType(columnValues));
   }
 
-  // Create column definitions
   const columns: ColumnDef[] = headers.map((name, index) => ({
     name,
     data_type: columnTypes[index],
     description: ""
   }));
 
-  // Convert data with proper types
   const data = rawData.map((row) =>
     row.map((value, colIndex) => convertValue(value, columnTypes[colIndex]))
   );

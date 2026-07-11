@@ -7,7 +7,6 @@ import { create } from "zustand";
 import { UnifiedModel, NodeMetadata, ModelPack } from "./ApiTypes";
 import { NodeTypes } from "@xyflow/react";
 
-// Use the same NodeTypes type from @xyflow/react to ensure compatibility
 type MetadataStore = {
   metadata: Record<string, NodeMetadata>;
   setMetadata: (metadata: Record<string, NodeMetadata>) => void;

@@ -37,7 +37,7 @@ import {
   SPACING
 } from "../ui_primitives";
 import { TYPE_FILTERS, TypeFilterKey } from "../../utils/formatUtils";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 
 const styles = (theme: Theme) =>
   css({

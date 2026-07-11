@@ -155,9 +155,6 @@ const styles = (theme: Theme) =>
     }
   });
 
-/**
- * PDFViewer component, used to display a PDF document for a given asset.
- */
 const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
   const theme = useTheme();
   const [numPages, setNumPages] = useState<number | null>(null);
@@ -167,7 +164,6 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
 
   const pdfUrl = asset?.get_url || url;
 
-  // Memoize callbacks to prevent unnecessary re-renders
   const onDocumentLoadSuccess = React.useCallback(
     ({ numPages }: { numPages: number }) => {
       setNumPages(numPages);
@@ -208,7 +204,6 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
     setScale(1);
   }, []);
 
-  // Memoize the Page component to prevent unnecessary re-renders
   const pageComponent = React.useMemo(
     () => <Page pageNumber={pageNumber} scale={scale} />,
     [pageNumber, scale]

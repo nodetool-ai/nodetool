@@ -65,8 +65,8 @@ const styles = {
     left: 50%;
     width: 6px;
     height: 6px;
-    margin-left: -${getSpacingPx(SPACING.xs)}; /* was -3px */
-    margin-top: -${getSpacingPx(SPACING.xs)}; /* was -3px */
+    margin-left: -${getSpacingPx(SPACING.xs)};
+    margin-top: -${getSpacingPx(SPACING.xs)};
     border-radius: 50%;
     background: currentColor;
     animation: ${pulse} ${MOTION.pulse} infinite;

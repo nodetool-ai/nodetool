@@ -12,7 +12,7 @@ import {
   WorkflowAttributes,
   WorkflowList as WorkflowListType
 } from "../../stores/ApiTypes";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { trpcClient } from "../../trpc/client";
 import { useNavigate, useLocation } from "react-router-dom";

@@ -446,7 +446,6 @@ export const MessageView: React.FC<
     return handler;
   }, []);
 
-  // Handle agent execution messages with consolidation
   if (message.role === "agent_execution") {
     const key = message.agent_execution_id || "__ungrouped__";
     const executionMessages = executionMessagesById?.get(key) ?? [];
@@ -456,7 +455,6 @@ export const MessageView: React.FC<
     return null;
   }
 
-    // Add error class if message has error flag
     const baseClass = getMessageClass(message.role);
     const hasToolCalls =
       message.role === "assistant" &&
@@ -490,11 +488,9 @@ export const MessageView: React.FC<
       .join(" ");
 
     const renderTextContent = (content: string, index: string | number) => {
-      // Check if content contains Harmony format tokens
       if (hasHarmonyTokens(content)) {
         const { messages, rawText } = parseHarmonyContent(content);
 
-        // If we have parsed Harmony messages, render them
         if (messages.length > 0) {
           return (
             <>
@@ -541,7 +537,6 @@ export const MessageView: React.FC<
         }
       }
 
-      // If no Harmony tokens or parsing failed, render as regular text
       const parsedContent = stripContextContent(content);
       const parsedThought = parseThoughtContent(parsedContent);
 
@@ -634,7 +629,6 @@ export const MessageView: React.FC<
           )}
         </div>
         {(message as Message & { error_type?: string }).error_type && <ErrorIcon className="error-icon" />}
-        {/* Message actions: timestamp + copy button */}
         {!Array.isArray(message.tool_calls) && (
           <div className="message-actions">
             {!showRoleMeta && formattedTime && (

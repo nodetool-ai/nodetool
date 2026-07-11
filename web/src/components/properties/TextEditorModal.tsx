@@ -33,7 +33,7 @@ import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import { EditorState, $getRoot } from "lexical";
 import type { editor as MonacoEditorNS } from "monaco-editor";
 import { debounce } from "../../utils/lodashAlternatives";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useCombo } from "../../stores/KeyPressedStore";
@@ -67,7 +67,6 @@ import {
   type VariableSyntax
 } from "../textEditor/templateVariables";
 
-/* code-highlight */
 import { codeHighlightTheme } from "../textEditor/codeHighlightTheme";
 import { codeHighlightTokenStyles } from "../textEditor/codeHighlightStyles";
 
@@ -366,7 +365,6 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       flexWrap: "nowrap"
     },
-    /* ---- unified toolbar ---- */
     ".modal-toolbar": {
       display: "flex",
       alignItems: "center",
@@ -631,7 +629,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".button-close": {
-      marginLeft: getSpacingPx(SPACING.xs), // was 3px
+      marginLeft: getSpacingPx(SPACING.xs),
       border: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.08)`,
       "&:hover": {
         backgroundColor: theme.vars.palette.error.main,
@@ -1196,7 +1194,6 @@ const TextEditorModal = ({
             } as React.CSSProperties
           }
         >
-          {/* ---- header ---- */}
           <div className="modal-header">
             <div className="header-left">
               <div className="editor-icon-badge">
@@ -1315,7 +1312,6 @@ const TextEditorModal = ({
             </div>
           </div>
 
-          {/* ---- toolbar ---- */}
           {showToolbar && (
             <div className="modal-toolbar">
               <div className="toolbar-side">

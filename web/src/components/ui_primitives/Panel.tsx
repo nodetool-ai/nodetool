@@ -120,7 +120,6 @@ export const Panel: React.FC<PanelProps> = ({
 
   const hasHeader = title || subtitle || headerAction;
 
-  // Handle keyboard events for collapsible panel (Enter and Space keys)
   const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
     if (collapsible && (event.key === "Enter" || event.key === " ")) {
       event.preventDefault();
@@ -213,7 +212,6 @@ export const Panel: React.FC<PanelProps> = ({
           <Box
             id={contentId}
             role={collapsible ? "region" : undefined}
-            aria-labelledby={collapsible && hasHeader ? undefined : undefined}
             sx={{ padding: theme.spacing(paddingValue) }}
           >
             {children}

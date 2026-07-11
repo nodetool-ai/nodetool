@@ -56,7 +56,6 @@ const ExternalLinkInternal: React.FC<ExternalLinkProps> = ({
 }) => {
   const theme = useTheme();
 
-  // Use theme typography scale for consistent sizing
   const fontSize =
     size === "small"
       ? theme.fontSizeSmaller

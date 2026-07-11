@@ -33,10 +33,6 @@ import {
   type AssetResolveContext
 } from "./together-base.js";
 
-// ---------------------------------------------------------------------------
-// Manifest types
-// ---------------------------------------------------------------------------
-
 export type TogetherFieldType =
   | "str"
   | "int"
@@ -85,10 +81,6 @@ export interface TogetherManifestEntry {
 const ASSET_TYPES = new Set<TogetherFieldType>(["image", "audio", "video"]);
 
 type ProcessContext = Parameters<BaseNode["process"]>[0] & AssetResolveContext;
-
-// ---------------------------------------------------------------------------
-// Field helpers
-// ---------------------------------------------------------------------------
 
 function coerceScalar(v: unknown, type: TogetherFieldType): unknown {
   switch (type) {
@@ -167,10 +159,6 @@ function promptAssetOverrides(
   return mapPromptAssetsToInputs(textFields, assetFields, context);
 }
 
-// ---------------------------------------------------------------------------
-// Output handling
-// ---------------------------------------------------------------------------
-
 const MEDIA_EXT: Record<string, string> = {
   image: "png",
   video: "mp4",
@@ -194,7 +182,7 @@ async function storeMedia(
 ): Promise<Record<string, unknown>> {
   const mime = mimeOverride ?? MEDIA_MIME[outputType];
   const ext = mime === "audio/wav" ? "wav" : MEDIA_EXT[outputType];
-  const filename = `together-${outputType}-${stamp()}.${ext}`;
+  const filename = `together-${outputType}-${Date.now()}.${ext}`;
 
   const storage = context?.storage as StorageWriter | null | undefined;
   if (storage?.store) {
@@ -213,10 +201,6 @@ async function storeMedia(
     }
   };
 }
-
-// ---------------------------------------------------------------------------
-// Factory
-// ---------------------------------------------------------------------------
 
 export function createTogetherNodeClass(spec: TogetherManifestEntry): NodeClass {
   const nodeType = `together.${spec.moduleName}.${spec.className}`;
@@ -392,14 +376,6 @@ export function loadTogetherNodesFromManifest(
   return manifest.map(createTogetherNodeClass);
 }
 
-// ---------------------------------------------------------------------------
-// Internals
-// ---------------------------------------------------------------------------
-
 function define(target: unknown, key: string, value: unknown): void {
   Object.defineProperty(target, key, { value, configurable: true });
-}
-
-function stamp(): number {
-  return Date.now();
 }

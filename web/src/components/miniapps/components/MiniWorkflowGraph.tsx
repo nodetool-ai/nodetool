@@ -74,7 +74,7 @@ const graphStyles = css({
     display: "flex",
     alignItems: "center",
     gap: getSpacingPx(SPACING.xs),
-    padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`, // was 3px 8px
+    padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
     background: "var(--palette-background-default)",
     border: "1px solid var(--palette-divider)",
     borderRadius: BORDER_RADIUS.sm,
@@ -167,7 +167,6 @@ const MiniWorkflowGraph: React.FC<MiniWorkflowGraphProps> = ({
   const paddingX = 16;
   const paddingY = 32;
 
-  // Extract nodes/edges and compute automatic layout
   const { layoutNodes, edges } = useMemo(() => {
     if (!workflow?.graph?.nodes) {
       return { layoutNodes: [], edges: [] };
@@ -276,7 +275,6 @@ const MiniWorkflowGraph: React.FC<MiniWorkflowGraphProps> = ({
     return { layoutNodes, edges: simpleEdges };
   }, [workflow, containerHeight, containerWidth, nodeHeight, nodeWidth, paddingX, paddingY]);
 
-  // Create nodeMap for edge rendering
   const nodeMap = useMemo(() =>
     new Map(layoutNodes.map((n) => [n.id, n])),
     [layoutNodes]
@@ -299,7 +297,6 @@ const MiniWorkflowGraph: React.FC<MiniWorkflowGraphProps> = ({
       <div className="mini-graph-container">
         <span className="mini-graph-title">Workflow Graph</span>
 
-        {/* SVG for edges */}
         <svg
           style={{
             position: "absolute",
@@ -340,7 +337,6 @@ const MiniWorkflowGraph: React.FC<MiniWorkflowGraphProps> = ({
           })}
         </svg>
 
-        {/* Nodes */}
         {layoutNodes.map((node) => {
           const status = focusedJobId
             ? statuses[nodeKey(workflow.id, focusedJobId, node.id)]

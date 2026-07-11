@@ -4,7 +4,6 @@ import { css } from "@emotion/react";
 import { useColorScheme, useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-// Icons for demos
 import SaveIcon from "@mui/icons-material/Save";
 import DeleteIcon from "@mui/icons-material/Delete";
 import RefreshIcon from "@mui/icons-material/Refresh";
@@ -16,7 +15,6 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import LightModeIcon from "@mui/icons-material/LightMode";
 
-// Import all UI primitives
 import {
   DialogActionButtons,
   ToolbarIconButton,
@@ -73,7 +71,6 @@ import {
   MuiDialog as Dialog
 } from "./ui_primitives";
 
-// Additional icons
 import NotificationsIcon from "@mui/icons-material/Notifications";
 
 const styles = (theme: Theme) => css`
@@ -151,7 +148,7 @@ const styles = (theme: Theme) => css`
   
   .card-header {
     background: ${theme.vars.palette.grey[800]};
-    padding: ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xxl)}; /* was 16px 20px */
+    padding: ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xxl)};
     border-bottom: 1px solid ${theme.vars.palette.divider};
     display: flex;
     justify-content: space-between;
@@ -165,7 +162,7 @@ const styles = (theme: Theme) => css`
   }
   
   .card-body {
-    padding: ${getSpacingPx(SPACING.xxl)}; /* was 20px */
+    padding: ${getSpacingPx(SPACING.xxl)};
     min-height: 120px;
     display: flex;
     flex-direction: column;
@@ -195,7 +192,6 @@ const styles = (theme: Theme) => css`
   }
 `;
 
-// Component categories
 const categories = [
   { id: "action", label: "Action Buttons", count: 11 },
   { id: "control", label: "Control Buttons", count: 5 },
@@ -213,7 +209,6 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
   const [activeTab, setActiveTab] = useState<CategoryId>("action");
   const { mode, setMode } = useColorScheme();
   
-  // Demo states
   const [playbackState, setPlaybackState] = useState<"stopped" | "playing" | "paused">("stopped");
   const [expanded, setExpanded] = useState(false);
   const [viewMode, setViewMode] = useState("grid");
@@ -577,7 +572,6 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
         </div>
       </Surface>
 
-      {/* Dialogs */}
       <Dialog open={showDialog} onClose={() => setShowDialog(false)}>
         <DialogTitle>Confirm Action</DialogTitle>
         <DialogContent>Are you sure you want to proceed with this action?</DialogContent>
@@ -1153,7 +1147,6 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
 
   return (
     <Box css={styles(theme)}>
-      {/* Header */}
       <div className="layout-header">
         <div className="header-content">
           <div className="header-title">
@@ -1183,9 +1176,7 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="main-content">
-        {/* Tabs */}
         <Surface className="tabs-container" elevation={0}>
           <Tabs
             value={activeTab}
@@ -1209,7 +1200,6 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
           </Tabs>
         </Surface>
 
-        {/* Content */}
         {renderContent()}
       </div>
     </Box>

@@ -84,11 +84,9 @@
        scope === "inspector" ? theme.fontSizeSmall : theme.fontSizeTiny;
      const height = density === "compact" ? 24 : 28;
 
-     // Memoize sx prop to prevent unnecessary re-renders
      const selectSx = useMemo(() => ({
        fontSize,
        height,
-       // Semantic: invalid state - shows error border
        ...(invalid && {
          "& .MuiOutlinedInput-notchedOutline": {
            borderColor: theme.vars.palette.error.main

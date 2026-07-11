@@ -8,9 +8,6 @@
  * All functions operate in document-space coordinates and use
  * CoordinateMapper for layers with non-trivial transforms (rotation,
  * scale) to ensure affine-correct results.
- *
- * Phase 1 goal: eyedropper/auto-pick/clone-stamp sampling agree on
- * transformed layers, isolate state, and active stroke state.
  */
 
 import type { Point, Layer } from "../types";

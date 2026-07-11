@@ -175,7 +175,6 @@ const MiniMapNavigator: React.FC = () => {
             }}
           />
 
-          {/* Settings and Legend Buttons */}
           <FlexRow
             gap={0.5}
             sx={{
@@ -222,7 +221,6 @@ const MiniMapNavigator: React.FC = () => {
         </div>
       </div>
 
-      {/* Settings Popover */}
       <Popover
         open={Boolean(settingsAnchor)}
         anchorEl={settingsAnchor}
@@ -287,7 +285,6 @@ const MiniMapNavigator: React.FC = () => {
         </List>
       </Popover>
 
-      {/* Legend Popover */}
       <Popover
         open={Boolean(legendAnchor)}
         anchorEl={legendAnchor}

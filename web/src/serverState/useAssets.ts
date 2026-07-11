@@ -65,7 +65,6 @@ export const useAssets = (_initialFolderId: string | null = null) => {
     throw new Error("User not logged");
   }
 
-  // Fetch assets in the current folder
   const fetchAssets = useCallback(async () => {
     const result = await load({
       parent_id: currentFolderId || currentUser?.id
@@ -116,7 +115,6 @@ export const useAssets = (_initialFolderId: string | null = null) => {
     });
   }, [queryClient, currentFolderId, workflowFilter]);
 
-  // Fetch all folders
   const fetchAllFolders = useCallback(async () => {
     return await loadFolderTree(settings.assetsOrder);
   }, [loadFolderTree, settings.assetsOrder]);
@@ -139,7 +137,6 @@ export const useAssets = (_initialFolderId: string | null = null) => {
     refetchFolders();
   }, [refetchAssets, refetchFolders]);
 
-  // Process assets (sort by type and exclude folders)
   const processedAssets = useMemo(() => {
     // When workflow filter is active, use workflow-filtered assets
     const sourceAssets = workflowFilter
@@ -148,7 +145,6 @@ export const useAssets = (_initialFolderId: string | null = null) => {
 
     if (!sourceAssets) {return [];}
 
-    // Filter out folders
     const nonFolderAssets = sourceAssets.filter(
       (asset) => asset.content_type !== "folder"
     );
@@ -176,7 +172,6 @@ export const useAssets = (_initialFolderId: string | null = null) => {
     });
   }, [currentFolderAssets, workflowFilteredAssets, workflowFilter, settings.assetsOrder]);
 
-  // Filter assets
   const filterAssets = useCallback(
     (assetsToFilter: Asset[], options: FilterOptions) => {
       return assetsToFilter.filter((asset) => {
@@ -241,25 +236,21 @@ export const useAssets = (_initialFolderId: string | null = null) => {
     queryClient.invalidateQueries({ queryKey: ["folderTree"] });
   }, [queryClient, currentFolderId, workflowFilter]);
 
-  // Create folder mutation
   const createFolderMutation = useMutation({
     mutationFn: (name: string) => createFolder(currentFolderId, name),
     onSuccess: invalidateAssetSiblings
   });
 
-  // Delete asset mutation
   const deleteAssetMutation = useMutation({
     mutationFn: (assetId: string) => deleteAsset(assetId),
     onSuccess: invalidateAssetSiblings
   });
 
-  // Update asset mutation
   const updateAssetMutation = useMutation({
     mutationFn: (updateData: AssetUpdate) => update(updateData),
     onSuccess: invalidateAssetSiblings
   });
 
-  // Navigate to folder
   const navigateToFolder = useCallback(
     async (folder: Asset | null) => {
       if (folder) {
@@ -282,7 +273,6 @@ export const useAssets = (_initialFolderId: string | null = null) => {
       gridStore
     ]
   );
-  // Navigate to folder id
   const navigateToFolderId = useCallback(
     async (folderId: string | null) => {
       const getAsset = useAssetStore.getState().get;

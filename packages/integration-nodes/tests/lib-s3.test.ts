@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   S3ListBucketsLibNode,
   S3ListObjectsLibNode,
@@ -120,14 +121,38 @@ describe("lib.s3 nodes", () => {
     expect(result).toEqual({ output: true, etag: '"abc"' });
   });
 
-  it("signs with the session token when AWS_SESSION_TOKEN is set", async () => {
+  // Executor-level: secrets flow through BaseNode's requiredSettings
+  // resolution, and the optional AWS_SESSION_TOKEN is looked up from the
+  // context's secret store (it can't ride requiredSettings — the UI treats
+  // those as mandatory).
+  it("resolves and signs AWS_SESSION_TOKEN through the context secret store", async () => {
     respond(204);
+    const store: Record<string, string> = {
+      ...secrets,
+      AWS_SESSION_TOKEN: "tok123"
+    };
+    const context = {
+      getSecret: async (key: string) => store[key] ?? null
+    } as unknown as ProcessingContext;
     const node = new S3DeleteObjectLibNode({ bucket: "b", key: "k" });
-    node.setDynamic("_secrets", { ...secrets, AWS_SESSION_TOKEN: "tok123" });
-    await node.process();
+    await node.toExecutor().process({}, context);
     const { init } = requestAt(0);
     const headers = init.headers as Record<string, string>;
     expect(headers["x-amz-security-token"]).toBe("tok123");
+    expect(headers.authorization).toContain("x-amz-security-token");
+    expect(headers.authorization).toContain(`Credential=${secrets.AWS_ACCESS_KEY_ID}/`);
+  });
+
+  it("works without AWS_SESSION_TOKEN (long-lived credentials stay optional)", async () => {
+    respond(204);
+    const store: Record<string, string> = { ...secrets };
+    const context = {
+      getSecret: async (key: string) => store[key] ?? null
+    } as unknown as ProcessingContext;
+    const node = new S3DeleteObjectLibNode({ bucket: "b", key: "k" });
+    await node.toExecutor().process({}, context);
+    const headers = requestAt(0).init.headers as Record<string, string>;
+    expect(headers["x-amz-security-token"]).toBeUndefined();
   });
 
   it("DeleteObject sends DELETE", async () => {

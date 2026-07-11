@@ -307,8 +307,6 @@ export class CostCalculator {
   }
 }
 
-// Convenience functions
-
 /** Calculate chat completion cost in USD. */
 export function calculateChatCost(
   modelId: string,

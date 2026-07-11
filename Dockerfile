@@ -29,6 +29,27 @@ FROM deps AS prod-deps
 RUN rm -rf node_modules \
     && npm ci --omit=dev --workspace=@nodetool-ai/websocket --include-workspace-root=false \
     && npm cache clean --force
+# Strip production-dead heavy packages (~700 MB). Each is lazy-imported
+# (`await import()`) or a peerDependency, so none load at server boot, and in
+# production their nodes are unregistered (transformers-js pack skipped,
+# PRODUCTION_SKIPPED_PREFIXES, transformers-js-provider off — see
+# packages/websocket/src/node-registry-setup.ts and server.ts). On the desktop
+# app these ship / install via the Package Manager; the cloud server never
+# runs local ML inference (it delegates to provider APIs). If any of these is
+# ever needed server-side, the lazy loader throws a clear "install the package"
+# error rather than crashing at boot.
+RUN set -eu; \
+    for p in \
+      onnxruntime-node \
+      @huggingface/transformers \
+      @tensorflow tesseract.js tesseract.js-core \
+    ; do \
+      rm -rf "node_modules/$p"; \
+    done; \
+    rm -rf node_modules/@tensorflow-models; \
+    rm -rf node_modules/@anthropic-ai/claude-agent-sdk \
+           node_modules/@anthropic-ai/claude-agent-sdk-*; \
+    true
 
 FROM deps AS build
 

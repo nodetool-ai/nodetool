@@ -13,7 +13,7 @@ import WaveRecorder from "../audio/WaveRecorder";
 import AudioPlayer from "../audio/AudioPlayer";
 import VideoRecorder from "../video/VideoRecorder";
 import { PropertyProps } from "../node/PropertyInput";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { isElectron } from "../../utils/browser";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { CopyAssetButton } from "../common/CopyAssetButton";
@@ -206,7 +206,6 @@ const PropertyDropzone = ({
 
   const { uploadAsset: uploadAssetFn } = useAssetUpload();
 
-  // Get accept attribute for file input based on content type
   const getAcceptAttribute = useCallback(() => {
     const type = contentType.split("/")[0];
     switch (type) {
@@ -223,12 +222,10 @@ const PropertyDropzone = ({
     }
   }, [contentType]);
 
-  // Handle files from browser file input
   const handleBrowserFilePicker = useCallback(() => {
     fileInputRef.current?.click();
   }, []);
 
-  // Handle file input change (browser fallback)
   const handleFileInputChange = useCallback(async (e: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     if (files.length === 0) {
@@ -258,7 +255,6 @@ const PropertyDropzone = ({
     }
 
     try {
-      // Get appropriate file filters based on content type
       const getFilters = () => {
         const type = contentType.split("/")[0];
         switch (type) {
@@ -291,7 +287,6 @@ const PropertyDropzone = ({
       if (!result.canceled && result.filePaths.length > 0) {
         const filePath = result.filePaths[0];
 
-        // Read the file buffer using Electron's IPC
         const fileData = await window.api.clipboard?.readFileBuffer(filePath);
 
         if (!fileData) {
@@ -299,20 +294,16 @@ const PropertyDropzone = ({
           return;
         }
 
-        // Get filename with fallback that includes an extension
         const pathSegments = filePath.split(/[\\/]/);
         let fileName = pathSegments[pathSegments.length - 1];
 
         if (!fileName) {
-          // If we can't get filename, create one based on content type
           const ext = contentType.split("/")[1] || "bin";
           fileName = `file.${ext}`;
         }
 
-        // Use contentType for consistency
         const file = new File([fileData.buffer as BlobPart], fileName, { type: contentType });
 
-        // Upload the file as an asset
         uploadAssetFn({
           file,
           onCompleted: (asset) => {
@@ -328,7 +319,6 @@ const PropertyDropzone = ({
     }
   }, [contentType, onChange, uploadAssetFn]);
 
-  // Handle dropzone click - use native dialog in Electron, file input in browser
   const handleDropzoneClick = useCallback(() => {
     if (isElectron && window.api?.dialog?.openFile) {
       handleNativeFilePicker();
@@ -337,7 +327,6 @@ const PropertyDropzone = ({
     }
   }, [handleNativeFilePicker, handleBrowserFilePicker]);
 
-  // Handle replace button click - prevent event propagation and open file picker
   const handleReplaceClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     handleDropzoneClick();
@@ -459,7 +448,6 @@ const PropertyDropzone = ({
 
   return (
     <div css={styles(theme)}>
-      {/* Hidden file input for browser fallback */}
       <input
         ref={fileInputRef}
         type="file"
@@ -487,7 +475,6 @@ const PropertyDropzone = ({
           {uri || contentType.split("/")[0] === "audio" ? (
             <>
               {renderViewer}
-              {/* Action buttons - appear on hover when asset is present */}
               {uri && (
                 <div className="asset-actions">
                   <CopyAssetButton

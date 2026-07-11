@@ -11,15 +11,10 @@ export interface NodeContentProps {
   workflowId: string;
 }
 
-/**
- * Custom comparison function for NodeContent memo
- * Only compares props that actually affect rendering to avoid unnecessary re-renders
- */
 export const arePropsEqual = (
   prevProps: NodeContentProps,
   nextProps: NodeContentProps
 ): boolean => {
-  // These props should always be the same reference
   if (
     prevProps.id !== nextProps.id ||
     prevProps.nodeType !== nextProps.nodeType ||
@@ -30,7 +25,6 @@ export const arePropsEqual = (
     return false;
   }
 
-  // Check nodeMetadata - only compare fields that affect rendering
   if (
     prevProps.nodeMetadata.title !== nextProps.nodeMetadata.title ||
     prevProps.nodeMetadata.layout !== nextProps.nodeMetadata.layout ||
@@ -48,8 +42,8 @@ export const arePropsEqual = (
     return false;
   }
 
-  // For properties and outputs, use shallow comparison on length
-  // Deep comparison is too expensive for every render
+  // Compare property/output counts only — a deep compare every render is too
+  // expensive.
   const prevPropsLen = prevProps.nodeMetadata.properties?.length ?? 0;
   const nextPropsLen = nextProps.nodeMetadata.properties?.length ?? 0;
   if (prevPropsLen !== nextPropsLen) {
@@ -75,7 +69,6 @@ export const arePropsEqual = (
     return false;
   }
 
-  // Check data.properties - compare both keys and values
   const prevDataProps = prevProps.data.properties || {};
   const nextDataProps = nextProps.data.properties || {};
   const prevDataKeys = Object.keys(prevDataProps);
@@ -121,7 +114,6 @@ export const arePropsEqual = (
     }
   }
 
-  // Check data.dynamic_properties - compare both keys and values
   const prevDynProps = prevProps.data.dynamic_properties || {};
   const nextDynProps = nextProps.data.dynamic_properties || {};
   const prevDynKeys = Object.keys(prevDynProps);
@@ -135,7 +127,6 @@ export const arePropsEqual = (
     }
   }
 
-  // Check dynamic_outputs
   const prevDynamicOutputsKeys = Object.keys(
     prevProps.data.dynamic_outputs || {}
   );

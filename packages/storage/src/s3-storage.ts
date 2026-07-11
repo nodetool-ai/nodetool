@@ -1,6 +1,4 @@
 /**
- * S3Storage — T-ST-4.
- *
  * Storage backend for Amazon S3 and S3-compatible services, backed by the
  * in-house SigV4 client in ./s3/.
  */
@@ -65,6 +63,11 @@ export class S3Storage implements AbstractStorage {
   }
 
   getUrl(key: string): string {
+    // Dotted bucket names break the wildcard TLS certificate on the
+    // virtual-hosted form, so they get path-style URLs.
+    if (this.bucketName.includes(".")) {
+      return `https://s3.${this.region}.amazonaws.com/${this.bucketName}/${key}`;
+    }
     return `https://${this.bucketName}.s3.${this.region}.amazonaws.com/${key}`;
   }
 }

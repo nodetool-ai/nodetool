@@ -24,7 +24,7 @@ import {
   formatKieUnitPricingTooltip,
   isKieVagueBillingSummary,
 } from "../../utils/formatKieUnitPricing";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 
 interface NodeInfoProps {
   nodeMetadata: NodeMetadata;

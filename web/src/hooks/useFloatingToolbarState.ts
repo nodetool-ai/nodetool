@@ -1,17 +1,11 @@
 import { useState, useCallback } from "react";
 
-/**
- * State for managing various menus and dialogs in the floating toolbar.
- */
 interface FloatingToolbarState {
   paneMenuOpen: boolean;
   actionsMenuAnchor: HTMLElement | null;
   advancedMenuAnchor: HTMLElement | null;
 }
 
-/**
- * Actions for managing toolbar state.
- */
 interface FloatingToolbarStateActions {
   handleOpenPaneMenu: () => void;
   handleClosePaneMenu: () => void;
@@ -21,12 +15,6 @@ interface FloatingToolbarStateActions {
   handleCloseAdvancedMenu: () => void;
 }
 
-/**
- * Hook to manage the state of the floating toolbar menus and modals.
- * Returns state and actions for managing menu visibility and anchors.
- *
- * @returns Toolbar state and actions
- */
 export const useFloatingToolbarState = (): FloatingToolbarState &
   FloatingToolbarStateActions => {
   const [paneMenuOpen, setPaneMenuOpen] = useState(false);

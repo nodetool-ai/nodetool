@@ -1,5 +1,5 @@
 import React, { memo, useState, useCallback, useMemo, useRef } from "react";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import TTSModelMenuDialog from "../model_menu/TTSModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import type {
@@ -71,7 +71,6 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({
     return [] as string[];
   }, [currentSelectedModelDetails, value]);
 
-  // Get selected voice from value object
   const selectedVoice = useMemo(() => {
     if (typeof value === "object" && value?.selected_voice) {
       return value.selected_voice;

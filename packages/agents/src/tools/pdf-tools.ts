@@ -13,10 +13,6 @@ import { Tool } from "./base-tool.js";
 
 const execFileAsync = promisify(execFile);
 
-// ---------------------------------------------------------------------------
-// Shared PDF helper using @llamaindex/liteparse
-// ---------------------------------------------------------------------------
-
 interface PdfExtraction {
   /** Per-page text arrays (one entry per page). */
   pages: string[];

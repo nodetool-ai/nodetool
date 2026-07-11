@@ -9,11 +9,10 @@ import DataTable from "../node/DataTable/DataTable";
 import ColumnsManager from "../node/ColumnsManager";
 import DataframeEditorModal from "./DataframeEditorModal";
 import { ToolbarIconButton, EditorButton, ButtonGroup, MOTION, SPACING, BORDER_RADIUS, Z_INDEX, getSpacingPx } from "../ui_primitives";
-// icons
 import TableRowsIcon from "@mui/icons-material/TableRows";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import {
   parseDataframeFile,
   isSupportedDataframeFile
@@ -241,7 +240,6 @@ const DataframeProperty = ({
     [onChange, addNotification]
   );
 
-  // Check if dataframe has data
   const hasData =
     (value.columns && value.columns.length > 0) ||
     (value.data && value.data.length > 0);
@@ -266,7 +264,6 @@ const DataframeProperty = ({
         )}
       </div>
 
-      {/* Drop zone for CSV/Excel files */}
       <div
         className={`dropzone ${isDragOver ? "drag-over" : ""}`}
         onDragOver={handleDragOver}

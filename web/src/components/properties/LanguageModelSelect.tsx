@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useRef } from "react";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import LanguageModelMenuDialog from "../model_menu/LanguageModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import type {
@@ -30,7 +30,6 @@ const LanguageModelSelect: React.FC<LanguageModelSelectProps> = ({
   const buttonRef = useRef<HTMLButtonElement>(null);
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
 
-  // Use the same hook as the dialog to fetch models
   const { models: fetchedModels } = useLanguageModelsByProvider({
     allowedProviders
   });

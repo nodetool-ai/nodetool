@@ -14,7 +14,7 @@ import {
 import Add from "@mui/icons-material/Add";
 import { useState, useCallback, memo } from "react";
 import { useTheme } from "@mui/material/styles";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { useDynamicOutput } from "../../hooks/nodes/useDynamicOutput";
 import { TypeMetadata } from "../../stores/ApiTypes";
 import { validateIdentifierName } from "../../utils/identifierValidation";
@@ -25,7 +25,6 @@ interface NodePropertyFormProps {
   isDynamic: boolean;
   supportsDynamicOutputs: boolean;
   dynamicOutputs: Record<string, TypeMetadata>;
-  // onAddProperty retained for compatibility but unused; dynamic inputs are created via connections
   onAddProperty: (propertyName: string) => void;
   nodeType?: string;
 }
@@ -76,8 +75,6 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
     setShowInputDialog(false);
   }, [newInputName, onAddProperty]);
 
-  // Dynamic property creation is handled by dropping a connection onto the node
-
   return (
     <div
       className="node-property-form"
@@ -86,7 +83,6 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
         position: "relative"
       })}
     >
-      {/* Add dynamic input property (+) when node is dynamic */}
       {isDynamic && (
         <FlexRow
           align="center"

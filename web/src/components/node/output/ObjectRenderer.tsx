@@ -4,7 +4,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Text, Box, BORDER_RADIUS } from "../../ui_primitives";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../../utils/isEqual";
 
 const objectStyles = (theme: Theme) =>
   css({
@@ -42,11 +42,6 @@ interface ObjectRendererProps {
   renderValue: (value: unknown, key: string) => React.ReactNode;
 }
 
-/**
- * ObjectRenderer displays a multi-key object with each value
- * rendered using the provided render function.
- * Provides a clean, organized display of object properties.
- */
 const ObjectRenderer: React.FC<ObjectRendererProps> = ({
   value,
   renderValue

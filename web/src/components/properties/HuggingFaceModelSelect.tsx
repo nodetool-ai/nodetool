@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useRef } from "react";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import HuggingFaceModelMenuDialog from "../model_menu/HuggingFaceModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import type { ImageModel, ModelPack, UnifiedModel, HuggingFaceModelValue, HuggingFaceModelValueInput } from "../../stores/ApiTypes";
@@ -18,7 +18,6 @@ interface HuggingFaceModelSelectProps {
 
 type RecommendedTask = "text_to_image" | "image_to_image" | null;
 
-// Map modelType to tRPC recommended task
 const mapModelTypeToTask = (modelType: string): RecommendedTask => {
   if (modelType.startsWith("hf.text_to_image")) {
     return "text_to_image";
@@ -39,7 +38,6 @@ const HuggingFaceModelSelect: React.FC<HuggingFaceModelSelectProps> = ({
   const buttonRef = useRef<HTMLButtonElement>(null);
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
 
-  // Determine task from modelType
   const task = useMemo(() => {
     if (modelType.startsWith("hf.text_to_image")) {
       return "text_to_image" as const;
@@ -49,7 +47,6 @@ const HuggingFaceModelSelect: React.FC<HuggingFaceModelSelectProps> = ({
     return undefined;
   }, [modelType]);
 
-  // Map to tRPC recommended task
   const recommendedTask = useMemo(
     () => mapModelTypeToTask(modelType),
     [modelType]
@@ -73,23 +70,19 @@ const HuggingFaceModelSelect: React.FC<HuggingFaceModelSelectProps> = ({
 
   const recommendedModels = recommendedModelsFromProps ?? recommendedModelsFallback;
 
-  // Create a set of recommended model IDs for quick lookup
   const recommendedModelIds = useMemo(() => {
     return new Set(recommendedModels.map((m) => m.id));
   }, [recommendedModels]);
 
-  // Use the same hook as the dialog to fetch models
   const { models: fetchedModels } = useHuggingFaceImageModelsByProvider({
     task,
     modelType
   });
 
-  // Sort models: recommended first, then alphabetically
-  // Also deduplicate based on provider:id to avoid showing duplicates
+  // Deduplicate by provider:id, then sort recommended models first, else alphabetical.
   const sortedModels = useMemo(() => {
     if (!fetchedModels) { return fetchedModels; }
 
-    // Deduplicate first using provider:id as key
     const uniqueModelsMap = new Map<string, (typeof fetchedModels)[0]>();
     fetchedModels.forEach((model) => {
       const key = `${model.provider}:${model.id}`;
@@ -98,16 +91,13 @@ const HuggingFaceModelSelect: React.FC<HuggingFaceModelSelectProps> = ({
       }
     });
 
-    // Convert back to array and sort
     return Array.from(uniqueModelsMap.values()).sort((a, b) => {
       const aIsRecommended = recommendedModelIds.has(a.id || "");
       const bIsRecommended = recommendedModelIds.has(b.id || "");
 
-      // Recommended models come first
       if (aIsRecommended && !bIsRecommended) { return -1; }
       if (!aIsRecommended && bIsRecommended) { return 1; }
 
-      // Within same category, sort alphabetically by name
       return (a.name || "").localeCompare(b.name || "");
     });
   }, [fetchedModels, recommendedModelIds]);
@@ -123,11 +113,10 @@ const HuggingFaceModelSelect: React.FC<HuggingFaceModelSelectProps> = ({
     if (!searchId) { return null; }
 
     return sortedModels.find((m) => {
-      // ImageModel.id might be in format "repo_id:path" or just "repo_id"
+      // ImageModel.id might be "repo_id:path" or just "repo_id".
       const modelId = m.id || "";
       const [modelRepoId, modelPathFromId] = modelId.split(":");
 
-      // Check repo_id match
       if (modelRepoId === searchId) {
         // If value has a path, match it against both modelPathFromId and model.path
         if (searchPath) {
@@ -143,7 +132,6 @@ const HuggingFaceModelSelect: React.FC<HuggingFaceModelSelectProps> = ({
 
   // Get display info: repo_id and path separately for two-line display
   const displayInfo = useMemo(() => {
-    // First try to get from model details
     if (currentSelectedModelDetails) {
       const modelId = currentSelectedModelDetails.id || "";
       const [repoId, pathFromId] = modelId.split(":");
@@ -155,7 +143,6 @@ const HuggingFaceModelSelect: React.FC<HuggingFaceModelSelectProps> = ({
       };
     }
 
-    // Fall back to value format
     if (value?.repo_id || value?.id) {
       return {
         repoId: value.repo_id || value.id || "",
@@ -179,9 +166,7 @@ const HuggingFaceModelSelect: React.FC<HuggingFaceModelSelectProps> = ({
 
   const handleDialogModelSelect = useCallback(
     (model: ImageModel) => {
-      // Convert ImageModel to HuggingFace format
-      // ImageModel.id might be "repo_id:path" or just "repo_id"
-      // Also check model.path property directly
+      // ImageModel.id might be "repo_id:path" or just "repo_id".
       const [repo_id, pathFromId] = (model.id || "").split(":");
 
       const modelToPass: HuggingFaceModelValue = {
@@ -192,7 +177,6 @@ const HuggingFaceModelSelect: React.FC<HuggingFaceModelSelectProps> = ({
 
       onChange(modelToPass);
 
-      // Add to recent models
       addRecent({
         provider: model.provider || "huggingface",
         id: model.id || "",

@@ -2,7 +2,7 @@ import { memo, useCallback, useMemo, useState, useEffect, useRef } from "react";
 import NumberInput from "../inputs/NumberInput";
 import { PropertyProps } from "../node/PropertyInput";
 import PropertyLabel from "../node/PropertyLabel";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { FlexColumn, FlexRow, ToolbarIconButton, Box } from "../ui_primitives";
 import { IMAGE_SIZE_PRESETS as PRESETS } from "../../config/constants";
 import Lock from "@mui/icons-material/Lock";
@@ -23,7 +23,6 @@ type ImageSizeValue = {
 const ImageSizeProperty = (props: PropertyProps<ImageSizeValue>) => {
   const { property, nodeId, value, onChange, tabIndex } = props;
 
-  // Check if connected
   const isConnectedSelector = useIsConnectedSelector(nodeId, property.name);
   const isConnected = useNodes(isConnectedSelector);
 
@@ -105,7 +104,6 @@ const ImageSizeProperty = (props: PropertyProps<ImageSizeValue>) => {
     }
   }, [safeValue, locked, onChange]);
 
-  // Find matching preset
   const matchedPreset = useMemo(() => {
     return PRESETS.find(p => p.width === safeValue.width && p.height === safeValue.height);
   }, [safeValue.width, safeValue.height]);

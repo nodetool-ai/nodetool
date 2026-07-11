@@ -4,8 +4,8 @@ import useConnectionStore from "../../stores/ConnectionStore";
 import { useShallow } from "zustand/react/shallow";
 import { Slugify } from "../../utils/TypeHandler";
 import { OutputSlot, TypeMetadata } from "../../stores/ApiTypes";
-import useContextMenuStore from "../../stores/ContextMenuStore";
-import isEqual from "fast-deep-equal";
+import { useContextMenuActions } from "../../stores/ContextMenuStore";
+import isEqual from "../../utils/isEqual";
 import { isConnectableCached } from "../node_menu/typeFilterUtils";
 import HandleTooltip from "../HandleTooltip";
 import { useNodes } from "../../contexts/NodeContext";
@@ -29,11 +29,10 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, displayName }) => {
         connectHandleId: state.connectHandleId
       }))
     );
-  const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
+  const { openContextMenu } = useContextMenuActions();
   const findNode = useNodes((state) => state.findNode);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
 
-  // Track timeout to cleanup on unmount
   const contextMenuTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const effectiveConnectType = useMemo<TypeMetadata | null>(() => {
@@ -67,7 +66,6 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, displayName }) => {
   const outputContextMenu = useCallback(
     (event: React.MouseEvent, id: string, output: OutputSlot) => {
       event.preventDefault();
-      // Clear any pending timeout before scheduling a new one
       if (contextMenuTimeoutRef.current) {
         clearTimeout(contextMenuTimeoutRef.current);
       }
@@ -86,7 +84,6 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, displayName }) => {
     [openContextMenu]
   );
 
-  // Cleanup timeout on unmount
   React.useEffect(() => {
     return () => {
       if (contextMenuTimeoutRef.current) {

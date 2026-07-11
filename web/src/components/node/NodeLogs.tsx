@@ -5,7 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useRef, useEffect, useCallback, useState, useMemo } from "react";
 
 import useLogsStore, { nodeLogKey } from "../../stores/LogStore";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import {
   CopyButton,
   Text,
@@ -53,10 +53,6 @@ const styles = (theme: Theme) =>
     }
   });
 
-/**
- * Standalone dialog component for displaying node logs.
- * Can be controlled externally via open/onClose props.
- */
 export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
   ({ id, workflowId, open, onClose }) => {
     const theme = useTheme();

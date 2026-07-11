@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { Workflow } from "../../stores/ApiTypes";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { WorkflowMiniPreview } from "../version/WorkflowMiniPreview";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useWorkflowActionsStore } from "../../stores/WorkflowActionsStore";

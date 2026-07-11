@@ -36,8 +36,6 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { useAssetStore } from "../../stores/AssetStore";
 import { TranscriptEditor } from "./transcript/TranscriptEditor";
 
-// ── Panel ────────────────────────────────────────────────────────────────────
-
 export const TranscriptPanel: React.FC = memo(() => {
   // Only the transcript/caption-bearing subset — untouched clips (B-roll,
   // music) keep their identity across store publishes, so `useShallow`

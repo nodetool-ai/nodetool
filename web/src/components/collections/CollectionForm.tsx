@@ -174,10 +174,7 @@ const CollectionForm = ({ onClose, onSuccess }: CollectionFormProps) => {
       css={styles(theme)}
       className="collection-form"
     >
-      {/* Compact single-row layout */}
       <FlexRow gap={2} align="center" wrap>
-
-        {/* Collection Name */}
         <FormField label="Collection Name" compact sx={{ flex: 1, minWidth: 180 }}>
           <TextInput
             className="text-input"
@@ -194,7 +191,6 @@ const CollectionForm = ({ onClose, onSuccess }: CollectionFormProps) => {
           />
         </FormField>
 
-        {/* Embedding Model */}
         <FlexColumn sx={{ flex: 1, minWidth: 200 }}>
           <FlexRow className="field-label" align="center" gap={0.5} sx={{ mb: 0.5 }}>
             <AutoAwesomeIcon className="field-icon" />
@@ -208,7 +204,6 @@ const CollectionForm = ({ onClose, onSuccess }: CollectionFormProps) => {
           </Box>
         </FlexColumn>
 
-        {/* Submit Button */}
         <EditorButton
           type="submit"
           variant="contained"
@@ -227,7 +222,6 @@ const CollectionForm = ({ onClose, onSuccess }: CollectionFormProps) => {
         </EditorButton>
       </FlexRow>
 
-      {/* Error Display */}
       {createMutation.isError && (
         <Box className="error-box" sx={{ mt: 2 }}>
           <Text size="small" color="error">

@@ -68,7 +68,7 @@ import { useProcessedEdges } from "../../hooks/useProcessedEdges";
 import { useFitNodeEvent } from "../../hooks/useFitNodeEvent";
 import { MAX_ZOOM, MIN_ZOOM, ZOOMED_OUT } from "../../config/constants";
 import GroupNode from "../node/GroupNode";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import { useTheme } from "@mui/material/styles";
 import AxisMarker from "../node_editor/AxisMarker";
 import ConnectionLine from "../node_editor/ConnectionLine";

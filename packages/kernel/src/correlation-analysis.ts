@@ -197,7 +197,8 @@ function topoSort(
 
   // Stryker disable next-line ConditionalExpression,EqualityOperator: equivalent — the only consumer (analyzeCorrelation) reports a cycle iff `cycle.length > 0`, so taking this branch for an acyclic graph yields an empty `remaining` that is indistinguishable from the `cycle: null` path; only the non-empty (real cycle) contents are observable
   if (order.length < nodes.length || selfLoopNodes.size > 0) {
-    const remaining = nodes.filter((n) => !order.includes(n)).map((n) => n.id);
+    const orderSet = new Set(order);
+    const remaining = nodes.filter((n) => !orderSet.has(n)).map((n) => n.id);
     for (const id of selfLoopNodes) {
       if (!remaining.includes(id)) remaining.push(id);
     }

@@ -1,4 +1,3 @@
-// web/src/components/chat/composer/PersistentComposer.tsx
 import React, { useCallback, useLayoutEffect, useRef, useState } from "react";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import ChatInputSection from "../containers/ChatInputSection";

@@ -27,7 +27,7 @@ import { useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import EditIcon from "@mui/icons-material/Edit";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../../utils/isEqual";
 import { NodeData } from "../../../stores/NodeData";
 import { NodeHeader } from "../NodeHeader";
 import EditableTitle from "../EditableTitle";
@@ -83,8 +83,6 @@ import {
   sketchNodeOutputImageListTypeMetadata,
   sketchNodeOutputImageTypeMetadata
 } from "./sketchNodeIO";
-
-// ─── Styles ──────────────────────────────────────────────────────────────────
 
 type SketchNodeStyleOptions = {
   selected: boolean;
@@ -330,7 +328,6 @@ const Toolbar = memo(function Toolbar({
   );
 });
 
-// Type metadata for handles
 const imageTypeMetadata = {
   type: "image",
   type_args: [],
@@ -371,8 +368,6 @@ function ensureEditableActiveLayer(doc: SketchDocument): SketchDocument {
     activeLayerId: fallbackActiveLayer.id
   };
 }
-
-// ─── Constants ───────────────────────────────────────────────────────────────
 
 export { SKETCH_NODE_TYPE } from "../../../constants/nodeTypes";
 
@@ -471,8 +466,6 @@ function resolveNodePropertyValue(
 
   return undefined;
 }
-
-// ─── Component ───────────────────────────────────────────────────────────────
 
 interface SketchNodeProps extends NodeProps {
   data: NodeData;
@@ -592,7 +585,6 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     return createDefaultDocument();
   }, [props.data.properties?.sketch_data, props.data.properties?.value, loadedSketchValue]);
 
-  // ─── Compute exposed layer handles ────────────────────────────────
   const exposedInputLayers = useMemo(
     () => sketchDoc.layers.filter((l) => l.exposedAsInput),
     [sketchDoc.layers]
@@ -1145,7 +1137,6 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
           outputProps[SKETCH_OUTPUT_LAYERS_HANDLE] =
             collectExposedLayerOutputRefs(outputProps);
 
-          // Single batched update
           updateNodeProperties(props.id, outputProps);
         })
         .catch(() => {

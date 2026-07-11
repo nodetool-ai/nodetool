@@ -9,15 +9,7 @@
 
 import type { SerpProvider, SearchResult, SearchOptions } from "./index.js";
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
 const API_BASE = "https://api.search.brave.com/res/v1";
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 interface BraveResponse {
   web?: {
@@ -64,10 +56,6 @@ async function braveRequest(
     return { error: `Brave Search request failed: ${(e as Error).message}` };
   }
 }
-
-// ---------------------------------------------------------------------------
-// Provider
-// ---------------------------------------------------------------------------
 
 export class BraveProvider implements SerpProvider {
   private readonly apiKey: string;

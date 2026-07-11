@@ -1,6 +1,6 @@
 import React, { memo, useMemo } from "react";
 import { PropertyProps } from "../node/PropertyInput";
-import isEqual from "fast-deep-equal";
+import isEqual from "../../utils/isEqual";
 import Select from "../inputs/Select";
 import PropertyLabel from "../node/PropertyLabel";
 import { useNodes } from "../../contexts/NodeContext";
@@ -24,7 +24,6 @@ const SelectProperty: React.FC<PropertyProps<string>> = ({
     [property.name, propertyIndex]
   );
 
-  // Get the options from the node's properties
   const findNode = useNodes((state) => state.findNode);
   const node = findNode(nodeId);
   const options = useMemo(() => {

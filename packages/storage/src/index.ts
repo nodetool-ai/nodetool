@@ -53,7 +53,11 @@ export {
   type S3ObjectSummary,
   type S3BucketSummary,
   type S3PresignGetObjectInput,
-  type SigV4Credentials
+  type S3RetryOptions,
+  type SigV4Credentials,
+  createDefaultCredentialProvider,
+  type CredentialProvider,
+  type ResolvedCredentials
 } from "./s3/index.js";
 
 // URL builder

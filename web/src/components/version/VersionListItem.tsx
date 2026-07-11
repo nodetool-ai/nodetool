@@ -1,8 +1,6 @@
 /**
- * VersionListItem Component
- *
- * Displays a single version entry in the version history list.
- * Compact row layout (git-log style) with hover-reveal actions.
+ * A single version entry in the version history list — a compact git-log-style
+ * row with hover-reveal actions.
  */
 
 import React, { useCallback } from "react";
@@ -139,7 +137,6 @@ const VersionListItem = React.memo(function VersionListItem({
         }
       }}
     >
-      {/* Mini preview thumbnail */}
       <div style={{ flexShrink: 0 }}>
         <WorkflowMiniPreview
           workflow={version}
@@ -148,7 +145,6 @@ const VersionListItem = React.memo(function VersionListItem({
         />
       </div>
 
-      {/* Version info */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: getSpacingPx(SPACING.sm) }}>
           <Text size="small" weight={600}>
@@ -194,7 +190,6 @@ const VersionListItem = React.memo(function VersionListItem({
         )}
       </div>
 
-      {/* Actions - visible on hover via CSS */}
       <div
         className="version-item-actions"
         style={{
@@ -233,7 +228,6 @@ const VersionListItem = React.memo(function VersionListItem({
         )}
       </div>
 
-      {/* CSS for hover-reveal actions */}
       <style>{`
         .version-list-item .version-item-actions {
           opacity: 0;

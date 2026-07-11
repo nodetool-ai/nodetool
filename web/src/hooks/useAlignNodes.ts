@@ -116,18 +116,17 @@ const useAlignNodes = () => {
         });
       }
 
-      // Update nodes via NodeStore
       setNodes(
         nodes.map((currentNode) => {
           const updatedProps = nodeUpdates.get(currentNode.id);
           if (updatedProps) {
             return {
               ...currentNode,
-              position: { ...updatedProps.position }, // Create a new position object
-              data: { ...currentNode.data, ...updatedProps.data } // Create a new data object, merging existing with updates
+              position: { ...updatedProps.position },
+              data: { ...currentNode.data, ...updatedProps.data }
             };
           }
-          return currentNode; // Not a selected node, return as is
+          return currentNode;
         })
       );
     },

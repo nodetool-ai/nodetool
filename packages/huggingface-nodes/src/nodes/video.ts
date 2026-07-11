@@ -7,10 +7,6 @@ import {
   videoRefFromBytes
 } from "../huggingface-base.js";
 
-
-// ---------------------------------------------------------------------------
-// Text to Video
-// ---------------------------------------------------------------------------
 export class TextToVideoNode extends BaseNode {
   static readonly nodeType = "huggingface.TextToVideo";
   static readonly body = "content_card";

@@ -223,10 +223,17 @@ export class SQLiteAdapter implements DatabaseAdapter {
   ): Promise<[Row[], string]> {
     const { condition, orderBy, limit = 100, reverse = false, columns } = opts;
 
+    // Guard against a non-integer or negative limit reaching the SQL string
+    // below — limit is interpolated directly into LIMIT, so it must be a real
+    // non-negative integer.
+    if (!Number.isInteger(limit) || limit < 0) {
+      throw new Error(`Invalid limit: ${String(limit)}`);
+    }
+    const safeLimit = limit;
+
     const pk = this.getPrimaryKey();
     const quotedTable = quoteIdentifier(this.tableName);
 
-    // Column selection
     let colsSql: string;
     if (columns && columns.length > 0) {
       const validated = columns.map((c) => validateColumnName(c));
@@ -241,7 +248,6 @@ export class SQLiteAdapter implements DatabaseAdapter {
       colsSql = `${quotedTable}.*`;
     }
 
-    // WHERE clause
     let whereClause = "1=1";
     let params: unknown[] = [];
     if (condition) {
@@ -250,7 +256,6 @@ export class SQLiteAdapter implements DatabaseAdapter {
       params = condParams;
     }
 
-    // ORDER BY
     let orderByCol: string;
     if (orderBy) {
       validateColumnName(orderBy);
@@ -260,13 +265,13 @@ export class SQLiteAdapter implements DatabaseAdapter {
     }
     const direction = reverse ? "DESC" : "ASC";
 
-    const fetchLimit = limit + 1;
+    const fetchLimit = safeLimit + 1;
     const sql = `SELECT ${colsSql} FROM ${quotedTable} WHERE ${whereClause} ORDER BY ${orderByCol} ${direction} LIMIT ${fetchLimit}`;
 
     const rows = this.db.prepare(sql).all(...params) as Row[];
     const deserialized = rows.map((r) => deserializeRow(r, this.tableSchema));
 
-    if (deserialized.length <= limit) {
+    if (deserialized.length <= safeLimit) {
       return [deserialized, ""];
     }
 
@@ -318,7 +323,6 @@ export class SQLiteAdapter implements DatabaseAdapter {
           return ["1=1", []];
       }
     } else {
-      // ConditionGroup
       const subClauses: string[] = [];
       const allParams: unknown[] = [];
 

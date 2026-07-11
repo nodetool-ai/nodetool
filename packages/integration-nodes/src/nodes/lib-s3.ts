@@ -1,5 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import { S3Client } from "@nodetool-ai/storage";
 
@@ -13,7 +14,10 @@ function getS3Client(region: string, credentials: AwsCredentials): S3Client {
   return new S3Client({ region, credentials });
 }
 
-function getAwsCredentials(secrets: Record<string, string>): AwsCredentials {
+async function resolveAwsCredentials(
+  secrets: Record<string, string>,
+  context?: ProcessingContext
+): Promise<AwsCredentials> {
   const accessKeyId = secrets.AWS_ACCESS_KEY_ID || "";
   const secretAccessKey = secrets.AWS_SECRET_ACCESS_KEY || "";
   if (!accessKeyId || !secretAccessKey) {
@@ -21,18 +25,18 @@ function getAwsCredentials(secrets: Record<string, string>): AwsCredentials {
       "AWS credentials are required. Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in secrets."
     );
   }
-  // Optional: temporary STS credentials need the session token signed in.
-  const sessionToken = secrets.AWS_SESSION_TOKEN || "";
+  // Temporary STS credentials need the session token signed in. It is
+  // optional, so it can't ride requiredSettings (the UI treats those as
+  // mandatory) — resolve it from the secret store directly.
+  const sessionToken =
+    secrets.AWS_SESSION_TOKEN ||
+    (context ? ((await context.getSecret("AWS_SESSION_TOKEN")) ?? "") : "");
   return {
     accessKeyId,
     secretAccessKey,
     ...(sessionToken ? { sessionToken } : {})
   };
 }
-
-// ---------------------------------------------------------------------------
-// ListBuckets
-// ---------------------------------------------------------------------------
 
 export class S3ListBucketsLibNode extends BaseNode {
   static readonly nodeType = "lib.s3.ListBuckets";
@@ -57,8 +61,8 @@ export class S3ListBucketsLibNode extends BaseNode {
   })
   declare region: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const credentials = getAwsCredentials(this._secrets);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const credentials = await resolveAwsCredentials(this._secrets, context);
     const region = String(this.region ?? "us-east-1");
     const client = getS3Client(region, credentials);
     const buckets = (await client.listBuckets()).map((b) => ({
@@ -68,10 +72,6 @@ export class S3ListBucketsLibNode extends BaseNode {
     return { output: buckets };
   }
 }
-
-// ---------------------------------------------------------------------------
-// ListObjects
-// ---------------------------------------------------------------------------
 
 export class S3ListObjectsLibNode extends BaseNode {
   static readonly nodeType = "lib.s3.ListObjects";
@@ -126,8 +126,8 @@ export class S3ListObjectsLibNode extends BaseNode {
   })
   declare region: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const credentials = getAwsCredentials(this._secrets);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const credentials = await resolveAwsCredentials(this._secrets, context);
     const bucket = String(this.bucket ?? "");
     if (!bucket) throw new Error("Bucket name is required");
     const prefix = String(this.prefix ?? "");
@@ -150,8 +150,8 @@ export class S3ListObjectsLibNode extends BaseNode {
     return { object: objects[0] ?? {}, objects };
   }
 
-  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
-    const credentials = getAwsCredentials(this._secrets);
+  async *genProcess(context?: ProcessingContext): AsyncGenerator<Record<string, unknown>> {
+    const credentials = await resolveAwsCredentials(this._secrets, context);
     const bucket = String(this.bucket ?? "");
     if (!bucket) throw new Error("Bucket name is required");
     const prefix = String(this.prefix ?? "");
@@ -179,10 +179,6 @@ export class S3ListObjectsLibNode extends BaseNode {
     yield { objects };
   }
 }
-
-// ---------------------------------------------------------------------------
-// GetObject
-// ---------------------------------------------------------------------------
 
 export class S3GetObjectLibNode extends BaseNode {
   static readonly nodeType = "lib.s3.GetObject";
@@ -225,8 +221,8 @@ export class S3GetObjectLibNode extends BaseNode {
   })
   declare region: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const credentials = getAwsCredentials(this._secrets);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const credentials = await resolveAwsCredentials(this._secrets, context);
     const bucket = String(this.bucket ?? "");
     const key = String(this.key ?? "");
     if (!bucket) throw new Error("Bucket name is required");
@@ -242,10 +238,6 @@ export class S3GetObjectLibNode extends BaseNode {
     };
   }
 }
-
-// ---------------------------------------------------------------------------
-// PutObject
-// ---------------------------------------------------------------------------
 
 export class S3PutObjectLibNode extends BaseNode {
   static readonly nodeType = "lib.s3.PutObject";
@@ -303,8 +295,8 @@ export class S3PutObjectLibNode extends BaseNode {
   })
   declare region: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const credentials = getAwsCredentials(this._secrets);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const credentials = await resolveAwsCredentials(this._secrets, context);
     const bucket = String(this.bucket ?? "");
     const key = String(this.key ?? "");
     if (!bucket) throw new Error("Bucket name is required");
@@ -326,10 +318,6 @@ export class S3PutObjectLibNode extends BaseNode {
     };
   }
 }
-
-// ---------------------------------------------------------------------------
-// DeleteObject
-// ---------------------------------------------------------------------------
 
 export class S3DeleteObjectLibNode extends BaseNode {
   static readonly nodeType = "lib.s3.DeleteObject";
@@ -370,8 +358,8 @@ export class S3DeleteObjectLibNode extends BaseNode {
   })
   declare region: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const credentials = getAwsCredentials(this._secrets);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const credentials = await resolveAwsCredentials(this._secrets, context);
     const bucket = String(this.bucket ?? "");
     const key = String(this.key ?? "");
     if (!bucket) throw new Error("Bucket name is required");
@@ -383,10 +371,6 @@ export class S3DeleteObjectLibNode extends BaseNode {
     return { output: true };
   }
 }
-
-// ---------------------------------------------------------------------------
-// CopyObject
-// ---------------------------------------------------------------------------
 
 export class S3CopyObjectLibNode extends BaseNode {
   static readonly nodeType = "lib.s3.CopyObject";
@@ -443,8 +427,8 @@ export class S3CopyObjectLibNode extends BaseNode {
   })
   declare region: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const credentials = getAwsCredentials(this._secrets);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const credentials = await resolveAwsCredentials(this._secrets, context);
     const sourceBucket = String(this.source_bucket ?? "");
     const sourceKey = String(this.source_key ?? "");
     const destBucket = String(this.dest_bucket ?? "");
@@ -465,10 +449,6 @@ export class S3CopyObjectLibNode extends BaseNode {
     return { output: true };
   }
 }
-
-// ---------------------------------------------------------------------------
-// GetPresignedUrl
-// ---------------------------------------------------------------------------
 
 export class S3GetPresignedUrlLibNode extends BaseNode {
   static readonly nodeType = "lib.s3.GetPresignedUrl";
@@ -517,8 +497,8 @@ export class S3GetPresignedUrlLibNode extends BaseNode {
   })
   declare region: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const credentials = getAwsCredentials(this._secrets);
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const credentials = await resolveAwsCredentials(this._secrets, context);
     const bucket = String(this.bucket ?? "");
     const key = String(this.key ?? "");
     if (!bucket) throw new Error("Bucket name is required");
@@ -527,13 +507,9 @@ export class S3GetPresignedUrlLibNode extends BaseNode {
     const region = String(this.region ?? "us-east-1");
 
     const client = getS3Client(region, credentials);
-    return { output: client.presignGetObject({ bucket, key, expiresIn }) };
+    return { output: await client.presignGetObject({ bucket, key, expiresIn }) };
   }
 }
-
-// ---------------------------------------------------------------------------
-// Export
-// ---------------------------------------------------------------------------
 
 export const LIB_S3_NODES = tagAsServer([
   S3ListBucketsLibNode,

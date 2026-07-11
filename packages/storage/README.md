@@ -36,10 +36,19 @@ also exported from the package root) instead of `@aws-sdk/client-s3`. It signs
 requests with AWS Signature Version 4 over `fetch`, covers exactly the
 operations NodeTool uses (Put/Get/Head/Delete/Copy object, ListObjectsV2,
 ListBuckets, presigned GET), and supports endpoint overrides with path-style
-addressing for MinIO/R2-style services. Credentials come from an explicit
-`credentials` option or the `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`
-(/ `AWS_SESSION_TOKEN`) environment variables — the wider AWS credential
-chain (profiles, IMDS) is not supported.
+addressing for MinIO/R2-style services (and for dotted AWS bucket names,
+which break the wildcard TLS certificate on virtual-hosted URLs).
+
+Credentials resolve through `src/s3/credentials.ts`: an explicit
+`credentials` option, the `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`
+(/ `AWS_SESSION_TOKEN`) environment variables, or a shared credentials file
+profile (`~/.aws/credentials`, `AWS_PROFILE`). Providers returning an
+`expiration` refresh automatically; for metadata-service environments
+(ECS, EC2 IMDS, EKS), pass a custom `credentialProvider`.
+
+Safe/idempotent operations (GET, HEAD, DELETE, ListObjectsV2, ListBuckets,
+PutObject) retry transient failures — network errors, 429, 5xx — with
+exponential backoff, honoring `Retry-After`.
 
 ## Usage
 
