@@ -1,14 +1,16 @@
 /**
  * DockerSandbox — Docker Engine API-backed SandboxProvider.
  *
- * Each acquire() starts a long-running container from the sandbox image,
- * publishes the in-container tool server port (7788) to an ephemeral host
+ * Each acquire() starts a long-running container from the shared nodetool
+ * image with the sandbox entrypoint (no separate sandbox image — the same
+ * image runs the main server or, via SANDBOX_ENTRYPOINT, the in-container
+ * tool server), publishes the tool server port (7788) to an ephemeral host
  * port, waits for readiness, and returns a Sandbox handle with a connected
  * ToolClient.
  *
  * Security posture (defaults):
  *   - no-new-privileges, all capabilities dropped
- *   - read-only rootfs disabled (agents need /tmp, /home/ubuntu writable);
+ *   - read-only rootfs disabled (agents need /tmp, /home/node writable);
  *     will revisit once agents settle on a workspace pattern
  *   - memory and CPU capped
  *   - network enabled (agents need internet to research)
@@ -26,7 +28,12 @@ import { ToolClient } from "./ToolClient.js";
 
 const log = createLogger("nodetool.sandbox.docker");
 
-export const DEFAULT_SANDBOX_IMAGE = "nodetool/sandbox-agent:latest";
+export const DEFAULT_SANDBOX_IMAGE = "ghcr.io/nodetool-ai/nodetool:latest";
+/** Entrypoint baked into the nodetool image that starts the desktop stack
+ *  and the bundled tool server instead of the main server. */
+export const SANDBOX_ENTRYPOINT = [
+  "/usr/local/bin/sandbox-agent-entrypoint.sh"
+] as const;
 export const TOOL_SERVER_PORT = 7788;
 export const VNC_WS_PORT = 6080;
 /** User-service ports pre-published at container create time. Each is
@@ -44,6 +51,10 @@ export interface DockerSandboxProviderOptions {
   readyTimeoutSeconds?: number;
   /** Pull image if absent locally. Default: true. */
   autoPull?: boolean;
+  /** Container entrypoint override. Defaults to SANDBOX_ENTRYPOINT so the
+   *  shared nodetool image boots the tool server instead of the main
+   *  server. Pass [] to keep the image's own entrypoint. */
+  entrypoint?: readonly string[];
   /** Container ports to publish for user services (agent-hosted dev
    *  servers, generated sites). Defaults to USER_SERVICE_PORTS. */
   userServicePorts?: readonly number[];
@@ -106,6 +117,7 @@ export class DockerSandboxProvider implements SandboxProvider {
   private readonly defaultImage: string;
   private readonly readyTimeoutSeconds: number;
   private readonly autoPull: boolean;
+  private readonly entrypoint: readonly string[];
   private readonly userServicePorts: readonly number[];
 
   constructor(options: DockerSandboxProviderOptions = {}) {
@@ -119,6 +131,7 @@ export class DockerSandboxProvider implements SandboxProvider {
     this.defaultImage = options.defaultImage ?? DEFAULT_SANDBOX_IMAGE;
     this.readyTimeoutSeconds = options.readyTimeoutSeconds ?? 30;
     this.autoPull = options.autoPull ?? true;
+    this.entrypoint = options.entrypoint ?? SANDBOX_ENTRYPOINT;
     this.userServicePorts = options.userServicePorts ?? USER_SERVICE_PORTS;
   }
 
@@ -174,9 +187,15 @@ export class DockerSandboxProvider implements SandboxProvider {
     const containerId = await this.docker.createContainer(
       {
         Image: image,
+        ...(this.entrypoint.length > 0
+          ? { Entrypoint: [...this.entrypoint] }
+          : {}),
         Env: env,
         Labels: labels,
-        WorkingDir: "/home/ubuntu",
+        WorkingDir: "/home/node",
+        // The image's HEALTHCHECK probes the main server on :7777, which
+        // never runs under the sandbox entrypoint — disable it.
+        Healthcheck: { Test: ["NONE"] },
         OpenStdin: false,
         Tty: false,
         ExposedPorts: exposedPorts,

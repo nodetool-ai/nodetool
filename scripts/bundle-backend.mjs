@@ -7,7 +7,7 @@
  *
  * Usage:
  *   node scripts/bundle-backend.mjs [--out <dir>] [--profile desktop|server]
- *                                   [--with-migrate]
+ *                                   [--with-migrate] [--with-sandbox-agent]
  *
  * Defaults preserve the Electron flow: --out electron/backend-bundle,
  * --profile desktop, no migrate entry.
@@ -18,6 +18,8 @@
  *   <out>/_modules/           — external packages staged for the target
  *   <out>/package.json        — { "type": "module" }
  *   <out>/db-migrate.mjs      — bundled migration runner (--with-migrate only)
+ *   <out>/sandbox-agent.mjs   — bundled in-container tool server
+ *                               (--with-sandbox-agent only)
  */
 
 import esbuild from "esbuild";
@@ -41,6 +43,13 @@ const ENTRY_POINT = path.join(
   "server.js"
 );
 const MIGRATE_ENTRY_POINT = path.join(__dirname, "db-migrate.mjs");
+const SANDBOX_AGENT_ENTRY_POINT = path.join(
+  ROOT_DIR,
+  "packages",
+  "sandbox-agent",
+  "dist",
+  "entry.js"
+);
 
 // --- CLI flags -------------------------------------------------------------
 
@@ -49,6 +58,7 @@ function parseArgs(argv) {
     out: path.join(ELECTRON_DIR, "backend-bundle"),
     profile: "desktop",
     withMigrate: false,
+    withSandboxAgent: false,
   };
   for (let i = 2; i < argv.length; i++) {
     const arg = argv[i];
@@ -66,6 +76,8 @@ function parseArgs(argv) {
       opts.profile = value;
     } else if (arg === "--with-migrate") {
       opts.withMigrate = true;
+    } else if (arg === "--with-sandbox-agent") {
+      opts.withSandboxAgent = true;
     } else {
       throw new Error(`Unknown argument: ${arg}`);
     }
@@ -755,6 +767,44 @@ async function buildMigrateBundle() {
   console.log("  Wrote db-migrate.mjs");
 }
 
+/**
+ * Bundle the in-container sandbox tool server (@nodetool-ai/sandbox-agent)
+ * into a single <out>/sandbox-agent.mjs. It shares the Docker image with the
+ * main server and is started by an alternate entrypoint
+ * (packages/sandbox-agent/docker/entrypoint.sh) instead of a separate image.
+ * Its dependency closure (fastify, chrome-launcher, chrome-remote-interface,
+ * zod, @nodetool-ai/{config,sandbox}) is pure JS, so everything bundles in;
+ * the shared external list keeps native modules resolving from the adjacent
+ * staged node_modules if they ever enter the closure.
+ */
+async function buildSandboxAgentBundle() {
+  console.log("\nBundling sandbox tool server (sandbox-agent.mjs)...");
+  if (!fs.existsSync(SANDBOX_AGENT_ENTRY_POINT)) {
+    throw new Error(
+      `Sandbox agent entry point not found: ${SANDBOX_AGENT_ENTRY_POINT}\n` +
+        "Run 'npm run build:packages' first."
+    );
+  }
+  await esbuild.build({
+    entryPoints: [SANDBOX_AGENT_ENTRY_POINT],
+    bundle: true,
+    platform: "node",
+    format: "esm",
+    target: "node20",
+    outfile: path.join(BUNDLE_DIR, "sandbox-agent.mjs"),
+    external: ESBUILD_EXTERNAL_PACKAGES,
+    sourcemap: "external",
+    banner: {
+      js: [
+        'import { createRequire as __ntCreateRequire } from "node:module";',
+        "const require = __ntCreateRequire(import.meta.url);",
+      ].join("\n"),
+    },
+    logLevel: "warning",
+  });
+  console.log("  Wrote sandbox-agent.mjs");
+}
+
 async function main() {
   console.log(
     `Building hybrid backend bundle with esbuild (profile: ${PROFILE})...\n`
@@ -978,6 +1028,11 @@ async function main() {
   // --- Migration runner entry (opt-in) ---
   if (OPTIONS.withMigrate) {
     await buildMigrateBundle();
+  }
+
+  // --- Sandbox tool server entry (opt-in) ---
+  if (OPTIONS.withSandboxAgent) {
+    await buildSandboxAgentBundle();
   }
 
   // --- Stats ---

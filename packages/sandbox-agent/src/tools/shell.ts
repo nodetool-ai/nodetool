@@ -47,7 +47,8 @@ function tmuxNameFor(id: string): string {
 
 export async function shellExec(input: ShellExecInput): Promise<ShellExecOutput> {
   const existing = sessions.get(input.id);
-  const workDir = input.exec_dir ?? existing?.workDir ?? "/home/ubuntu";
+  const workDir =
+    input.exec_dir ?? existing?.workDir ?? process.env.HOME ?? "/home/node";
 
   if (!existing) {
     const tmuxName = tmuxNameFor(input.id);
@@ -288,7 +289,20 @@ function parseCompletion(
 
 function cleanShellOutput(output: string, marker: string | null): string {
   const normalized = stripAnsi(output).replace(/\r/g, "");
-  const lines = normalized.split("\n");
+  // The pane echoes the typed command, which ends with the completion
+  // wrapper (`...; echo __NODETOOL_DONE_<marker>__:$__NT_EC`). When that
+  // echo wraps at the pane width, capture-pane -J joins the command's first
+  // output line onto it — strip the echo and keep the joined output instead
+  // of dropping the whole line as internal.
+  const echoedWrapper =
+    marker !== null ? `${DONE_PREFIX}${marker}__:$__NT_EC` : null;
+  const lines = normalized.split("\n").map((line) => {
+    if (echoedWrapper !== null && line.includes(echoedWrapper)) {
+      const idx = line.indexOf(echoedWrapper);
+      return line.slice(idx + echoedWrapper.length);
+    }
+    return line;
+  });
   const cleaned = lines.filter((line) => {
     const trimmed = line.trim();
     if (trimmed.length === 0) {
