@@ -62,9 +62,9 @@ describe("useAddToGroup", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseNodes.mockReturnValue({
-      updateNode: mockUpdateNode
-    });
+    mockUseNodes.mockImplementation((selector: (s: unknown) => unknown) =>
+      selector({ updateNode: mockUpdateNode })
+    );
     mockGetGroupBounds.mockReturnValue({ width: 300, height: 200, offsetX: 0, offsetY: 0 });
     mockGetState.mockReturnValue({ nodes: [] });
   });
