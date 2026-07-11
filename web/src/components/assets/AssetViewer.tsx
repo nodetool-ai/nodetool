@@ -352,7 +352,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
 
   const { handleDownload } = useAssetDownload({ currentAsset, url });
 
-  // Check if current asset is an image
   const isImage = useMemo(() => {
     const ct = currentAsset?.content_type || contentType;
     return ct?.startsWith("image/") || false;
@@ -376,7 +375,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     return ct?.startsWith("video/") || false;
   }, [currentAsset?.content_type, contentType]);
 
-  // Check if there are multiple images to compare
   const imageAssets = useMemo(
     () => assetsToUse.filter((a) => a.content_type?.startsWith("image/")),
     [assetsToUse]
@@ -512,8 +510,6 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         return;
       }
       const newAsset = assetsToUse[index];
-      // Use requestAnimationFrame for deferred updates instead of setTimeout
-      // This automatically gets cancelled if component unmounts
       requestAnimationFrame(() => {
         setCurrentAsset(newAsset);
       });

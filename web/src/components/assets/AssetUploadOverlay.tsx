@@ -5,7 +5,6 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 import { Text, Box, BORDER_RADIUS, Z_INDEX } from "../ui_primitives";
-//server state
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import LinearProgressWithLabel from "./LinearProgressWithLabel";
 

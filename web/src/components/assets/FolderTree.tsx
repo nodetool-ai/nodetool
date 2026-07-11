@@ -65,10 +65,8 @@ const FolderTree: React.FC<FolderTreeProps> = ({
   const theme = useTheme();
   const treeStyles = useMemo(() => styles(theme), [theme]);
 
-  // Fetch folder tree using useQuery
   const { data: folderTree = {} } = useFolderTree(sortBy);
 
-  // Auto-expand all folders when tree data changes
   const expandedItems = useMemo(() => Object.keys(folderTree), [folderTree]);
 
   const createTreeButtonClickHandler = useCallback((nodeId: string) => {
@@ -103,7 +101,6 @@ const FolderTree: React.FC<FolderTreeProps> = ({
     );
   }, [createTreeButtonClickHandler]);
 
-  // Memoize the root folders list to avoid creating a new array on every render
   const rootFolders = useMemo(() =>
     Object.values(folderTree).filter((rootFolder) => rootFolder?.id),
     [folderTree]

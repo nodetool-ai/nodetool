@@ -38,15 +38,12 @@ const AssetCreateFolderConfirmation: React.FC = () => {
     (state) => state.addNotification
   );
 
-  // Build a Map for O(1) lookups instead of O(n*m) nested find operations
   const assetMap = useMemo(() => {
     const map = new Map<string, Asset>();
     folderFilesFiltered.forEach((asset) => map.set(asset.id, asset));
     return map;
   }, [folderFilesFiltered]);
 
-  // Derive selectedAssets from selectedAssetIds and current assets to ensure they're in sync
-  // Uses Map for O(n) lookup instead of nested O(n*m) find operations
   const selectedAssets = useMemo(() => {
     if (selectedAssetIds.length === 0) {
       return [];
@@ -56,7 +53,6 @@ const AssetCreateFolderConfirmation: React.FC = () => {
       .filter((asset): asset is Asset => asset !== undefined);
   }, [selectedAssetIds, assetMap]);
 
-  // Check if we have non-folder assets selected for moving
   const isFolder = selectedAssets.some(
     (asset) => asset.content_type === "folder"
   );
@@ -81,13 +77,11 @@ const AssetCreateFolderConfirmation: React.FC = () => {
     const invalidCharsRegex = /[/*?"<>|#%{}^[\]`'=&$§!°äüö;+~|$!]+/g;
 
     function startsWithEmoji(fileName: string): boolean {
-      // Unicode range for emojis
       const emojiRegex =
         /^[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F900}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/u;
       return emojiRegex.test(fileName);
     }
 
-    // Check if the name starts with a special character
     if (
       startsWithEmoji(folderName) ||
       folderName.startsWith(".") ||
@@ -99,10 +93,8 @@ const AssetCreateFolderConfirmation: React.FC = () => {
       return;
     }
 
-    // Find invalid characters in the name
     const invalidCharsFound = folderName.match(invalidCharsRegex);
 
-    // Check for empty or overly long names
     if (!folderName) {
       setShowAlert("Name cannot be empty.");
       return;
@@ -111,7 +103,6 @@ const AssetCreateFolderConfirmation: React.FC = () => {
       return;
     }
 
-    // complain about invalid characters
     if (invalidCharsFound) {
       const uniqueInvalidChars = invalidCharsFound.filter(
         (char, index, array) => array.indexOf(char) === index
@@ -123,13 +114,11 @@ const AssetCreateFolderConfirmation: React.FC = () => {
     const cleanedName = folderName.trim();
 
     try {
-      // Create the folder
       const newFolder = await createFolder(
         currentFolder?.id || "",
         cleanedName
       );
 
-      // If we have selected assets and they're not folders, move them to the new folder
       if (hasSelectedAssets && newFolder) {
         const updatePromises = selectedAssetIds.map((assetId) =>
           updateAsset({ id: assetId, parent_id: newFolder.id })
@@ -141,7 +130,6 @@ const AssetCreateFolderConfirmation: React.FC = () => {
           content: `CREATE FOLDER: ${cleanedName} and moved ${selectedAssetIds.length} items`
         });
 
-        // Clear selection since assets were moved
         setSelectedAssetIds([]);
         setSelectedAssets([]);
       } else {
@@ -180,7 +168,6 @@ const AssetCreateFolderConfirmation: React.FC = () => {
     screenWidth - dialogWidth - 50
   );
 
-  // Handle backdrop click
   const handleBackdropClick = useCallback(
     (event: React.MouseEvent) => {
       if (event.target === event.currentTarget) {
