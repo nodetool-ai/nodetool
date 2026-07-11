@@ -356,11 +356,12 @@ export const useSelectionActions = (): SelectionActionsReturn => {
 
     // Create new edges for duplicated nodes (only for edges where both nodes are duplicated)
     const selectedNodeIds = selectedNodes.map((n) => n.id);
+    const selectedNodeIdsSet = new Set(selectedNodeIds);
     const newEdges = edges
       .filter(
         (edge) =>
-          selectedNodeIds.includes(edge.source) &&
-          selectedNodeIds.includes(edge.target)
+          selectedNodeIdsSet.has(edge.source) &&
+          selectedNodeIdsSet.has(edge.target)
       )
       .map((edge) => ({
         ...edge,
