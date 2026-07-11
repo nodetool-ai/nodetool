@@ -4,7 +4,7 @@
 > before opening any PR.** It exists so the audit can resume after an ephemeral
 > container is reclaimed. Branch: `claude/kernel-runtime-bug-audit-2e71pq`.
 
-_Last updated: round 3 in flight; self-review pass done (3 regressions fixed)._
+_Last updated: round 3 fixed (17 of 20; 3 deferred). Loop NOT yet dry._
 
 ## Goal (original task)
 
@@ -29,6 +29,40 @@ Self-review (commit `e4a676e`) fixed 3 defects the round 1/2 fixes introduced:
 trigger-wakeup concurrent-duplicate dedup (in-flight inputId set); edit-search
 dangling-symlink create escape (`lstat` not `access`); comfy readyState fast-fail
 discarding a buffered terminal frame (replay before fast-fail).
+
+Round 3 (commit `51b9194`) confirmed 20 bugs in newly-swept files; #2 was already
+fixed by the self-review. **17 fixed + tested**: trigger dead-waiter, _inboxes
+eviction, graph I/O namespace classify, context storage-URI throw + http body
+drain, base/openai per-tool error isolation, python-websocket close-during-
+reconnect, prompt-asset prototype `in`, js-sandbox SSRF + body-cap + workspace
+symlink, edit_file replace_all deletion, ws-runner slot-leak + send-mode race,
+mcp-server session-transport leak, bundle-import 400.
+
+**Running total: 40 (rounds 1-2) + 3 (self-review) + 17 (round 3) = 60 fixes.**
+
+### Deferred (confirmed but NOT fixed — need deeper work + integration testing)
+
+- **#7 anthropic-provider extended-thinking round-trip** — when `thinkingBudget`
+  is set with tools, multi-turn tool loops 400 because the thinking block +
+  signature aren't preserved. Fix threads a new raw-parts field through the
+  SHARED `generateLoop` (all providers) + convertMessage; needs a live
+  thinking-model round-trip to verify. High blast radius — do carefully.
+- **#15 long-term-memory enforceMaxItems eviction race** — offset pagination is
+  corrupted by concurrent recall/remember mutations. A naive per-instance write
+  mutex (attempted, reverted) shifts read/write timing and breaks a synthesis
+  test; the right fix is a vectorstore-level atomic access-bump / snapshot get.
+- **#16 long-term-memory recall re-embed** (low/perf) — bumpAccess re-embeds
+  every returned item; needs a metadata-only update path on VectorCollection or
+  reuse of the stored embedding. Naturally fixed alongside #15.
+
+### Loop-until-dry status
+
+NOT dry. R1=12, R2=25, R3=20 confirmed — each round expands file coverage and
+finds ~20 more real bugs (the codebase is large). Two consecutive dry rounds
+(the termination condition) are likely several rounds away. Next: round 4 on the
+remaining unexamined files, excluding all fixed bugs + the 3 deferred, then keep
+looping. The 3 deferred bugs will keep re-surfacing in finder output until fixed;
+list them in `exclude` with a "DEFERRED" note.
 
 Round 1's verifiers for `agents-memory-planner`, `ws-runner`, `ws-api-security`,
 `ws-media-servers` were cut short by a session limit; **round 2 re-ran those with
