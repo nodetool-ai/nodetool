@@ -96,6 +96,7 @@ import falPricingRoute from "./routes/fal-pricing.js";
 import falPricingEstimateRoute from "./routes/fal-pricing-estimate.js";
 import kieCreditsRoute from "./routes/kie-credits.js";
 import kiePricingRoute from "./routes/kie-pricing.js";
+import webhookRoute from "./triggers/webhook-route.js";
 import {
   agentSocketRoute,
   getAgentRuntime,
@@ -782,6 +783,7 @@ app.addHook("onRequest", async (req, reply) => {
     pathname === "/api/health" ||
     pathname === "/api/config" ||
     pathname.startsWith("/api/oauth/") ||
+    pathname.startsWith("/api/webhooks/") ||
     pathname === "/api/assets/packages" ||
     pathname.startsWith("/api/assets/packages/") ||
     pathname === "/api/nodes/metadata" ||
@@ -1090,6 +1092,7 @@ const routeOpts = { apiOptions };
 await app.register(assetsRoutes, routeOpts);
 await app.register(workflowsRoutes, routeOpts);
 await app.register(jobsRoutes, routeOpts);
+await app.register(webhookRoute);
 await app.register(nodesRoutes, routeOpts);
 await app.register(storageRoutes, routeOpts);
 await app.register(openaiRoutes, routeOpts);

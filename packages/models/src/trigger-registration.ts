@@ -59,6 +59,22 @@ export class TriggerRegistration extends DBModel {
     );
   }
 
+  /**
+   * All registrations of a kind, enabled and disabled. The webhook route needs
+   * disabled rows too, to answer 410 (disabled) distinctly from 404 (unknown).
+   */
+  static async findByKind(kind: string): Promise<TriggerRegistration[]> {
+    const db = getDb();
+    const rows = await db
+      .select()
+      .from(triggerRegistrations)
+      .where(eq(triggerRegistrations.kind, kind))
+      .orderBy(asc(triggerRegistrations.created_at));
+    return rows.map(
+      (r) => new TriggerRegistration(r as Record<string, unknown>)
+    );
+  }
+
   static async findByWorkflow(
     workflowId: string
   ): Promise<TriggerRegistration[]> {
