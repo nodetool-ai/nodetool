@@ -305,7 +305,7 @@ export default defineConfig(async ({ mode }) => {
       // worker bundling) cannot downlevel certain destructuring patterns in
       // monaco-editor's pre-bundled workers to those ancient targets.
       target: browserslistToEsbuild([">0.2%", "not dead", "not op_mini all", "not ios < 14"]),
-      sourcemap: true,
+      sourcemap: isDebug,
       minify: isDebug ? false : "esbuild",
       ...(isDebug
         ? {}

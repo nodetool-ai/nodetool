@@ -35,9 +35,11 @@ primary_region = "fra"   # next to the Supabase DB (aws eu-central-1 / Frankfurt
 # BEFORE any app machine is updated — and aborts the deploy if it exits
 # non-zero. So a bad migration blocks the release instead of shipping code that
 # 500s against an un-migrated schema. Uses the same image + DATABASE_URL secret;
-# db-migrate.mjs takes the migration lock, so it's safe regardless.
+# db-migrate.mjs takes the migration lock, so it's safe regardless. The bundled
+# runner lives next to backend/node_modules (it needs the adjacent
+# better-sqlite3), matching the Dockerfile entrypoint.
 [deploy]
-  release_command = "node /app/scripts/db-migrate.mjs"
+  release_command = "node /app/backend/db-migrate.mjs"
 
 [http_service]
   internal_port = 7777

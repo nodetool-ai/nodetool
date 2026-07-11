@@ -1,11 +1,23 @@
 /**
- * esbuild-based hybrid bundler for the Electron backend.
+ * esbuild-based hybrid bundler for the backend server artifact.
+ *
+ * Target-agnostic: the same bundled server.mjs runs under Electron (desktop
+ * profile) and Docker (server profile) — the server never knows which; only
+ * the staged native/optional packages differ per profile.
+ *
+ * Usage:
+ *   node scripts/bundle-backend.mjs [--out <dir>] [--profile desktop|server]
+ *                                   [--with-migrate]
+ *
+ * Defaults preserve the Electron flow: --out electron/backend-bundle,
+ * --profile desktop, no migrate entry.
  *
  * Produces:
- *   backend-bundle/server.mjs          — single bundled ESM entry point
- *   backend-bundle/server.mjs.map      — source map
- *   backend-bundle/_modules/           — external packages staged for afterPack
- *   backend-bundle/package.json        — { "type": "module" }
+ *   <out>/server.mjs          — single bundled ESM entry point
+ *   <out>/server.mjs.map      — source map
+ *   <out>/_modules/           — external packages staged for the target
+ *   <out>/package.json        — { "type": "module" }
+ *   <out>/db-migrate.mjs      — bundled migration runner (--with-migrate only)
  */
 
 import esbuild from "esbuild";
@@ -19,9 +31,8 @@ import { verifyBackendBundle } from "./verify-backend-bundle.mjs";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const ROOT_DIR = path.resolve(__dirname, "..", "..");
-const ELECTRON_DIR = path.resolve(__dirname, "..");
-const BUNDLE_DIR = path.join(ELECTRON_DIR, "backend-bundle");
+const ROOT_DIR = path.resolve(__dirname, "..");
+const ELECTRON_DIR = path.join(ROOT_DIR, "electron");
 const ENTRY_POINT = path.join(
   ROOT_DIR,
   "packages",
@@ -29,29 +40,83 @@ const ENTRY_POINT = path.join(
   "dist",
   "server.js"
 );
+const MIGRATE_ENTRY_POINT = path.join(__dirname, "db-migrate.mjs");
+
+// --- CLI flags -------------------------------------------------------------
+
+function parseArgs(argv) {
+  const opts = {
+    out: path.join(ELECTRON_DIR, "backend-bundle"),
+    profile: "desktop",
+    withMigrate: false,
+  };
+  for (let i = 2; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === "--out") {
+      const value = argv[++i];
+      if (!value || value.startsWith("--")) {
+        throw new Error("--out requires a directory argument");
+      }
+      opts.out = path.resolve(value);
+    } else if (arg === "--profile") {
+      const value = argv[++i];
+      if (!value || value.startsWith("--")) {
+        throw new Error("--profile requires a value");
+      }
+      opts.profile = value;
+    } else if (arg === "--with-migrate") {
+      opts.withMigrate = true;
+    } else {
+      throw new Error(`Unknown argument: ${arg}`);
+    }
+  }
+  if (opts.profile !== "desktop" && opts.profile !== "server") {
+    throw new Error(
+      `--profile must be "desktop" or "server", got: ${opts.profile}`
+    );
+  }
+  return opts;
+}
+
+const OPTIONS = parseArgs(process.argv);
+const BUNDLE_DIR = OPTIONS.out;
+const PROFILE = OPTIONS.profile;
 
 // ---------------------------------------------------------------------------
 // External allowlist — packages that stay out of the bundle
 // ---------------------------------------------------------------------------
 
 // Packages that MUST be found and copied — build fails if any are missing.
-const REQUIRED_EXTERNAL_PACKAGES = [
+const COMMON_REQUIRED_EXTERNAL_PACKAGES = [
   "sharp",
   "better-sqlite3",
   "@jitl/quickjs-ng-wasmfile-release-sync",
-  "webgpu",
 ];
+// webgpu is required on desktop only: the GPU compositor needs the dawn.node
+// binary there, while the server profile does no local GPU compute (the gpu
+// package lazy-imports webgpu behind an install-hint error).
+const DESKTOP_REQUIRED_EXTERNAL_PACKAGES = ["webgpu"];
+const REQUIRED_EXTERNAL_PACKAGES =
+  PROFILE === "desktop"
+    ? [
+        ...COMMON_REQUIRED_EXTERNAL_PACKAGES,
+        ...DESKTOP_REQUIRED_EXTERNAL_PACKAGES,
+      ]
+    : COMMON_REQUIRED_EXTERNAL_PACKAGES;
 
-const EXTERNAL_PACKAGES = [
+// Staged into _modules/ on every profile.
+const COMMON_EXTERNAL_PACKAGES = [
   // Native modules (contain .node binaries)
   "better-sqlite3",
   "sqlite-vec",
   "sharp",
   "@img/sharp-*",
+  // node-web-audio-api is a prod dependency of @nodetool-ai/audio-nodes,
+  // which is in the websocket closure via base-nodes — every profile needs it.
   "node-web-audio-api",
-  "keytar",
-  "onnxruntime-node",
-  "webgpu",
+  // onnxruntime-node is intentionally NOT staged: @huggingface/transformers is
+  // a devDependency only, so no runtime import path exists in the packaged
+  // backend. On desktop those nodes install via the Package Manager.
 
   // Native optional deps (loaded by bundleable packages)
   "msgpackr",
@@ -61,8 +126,6 @@ const EXTERNAL_PACKAGES = [
   "utf-8-validate",
 
   // Large optional packages (dynamic await import())
-  "playwright",
-  "playwright-core",
   "pdfjs-dist",
   "@napi-rs/canvas",
   "chart.js",
@@ -82,7 +145,6 @@ const EXTERNAL_PACKAGES = [
   "@jitl/quickjs-ng-wasmfile-release-sync",
 
   // Cloud/optional services (dynamic import via variable + webpackIgnore)
-  "@aws-sdk/*",
   "@supabase/supabase-js",
 
   // Telemetry (conditionally loaded)
@@ -101,6 +163,28 @@ const EXTERNAL_PACKAGES = [
   "cpu-features",
 ];
 
+// Staged into _modules/ on the desktop profile only. All of these stay esbuild
+// externals on every profile (bundling their .node binaries or hoisting their
+// module-init side effects would break server.mjs); the server profile just
+// doesn't ship them, matching today's Docker image.
+const DESKTOP_ONLY_EXTERNAL_PACKAGES = [
+  // Server: no local GPU compute; gpu lazy-imports with an install-hint error.
+  "webgpu",
+  // Server: both call sites (packages/security/src/master-key.ts,
+  // packages/runtime/src/providers/oauth/secure-credential-store.ts) are lazy
+  // try/catch imports, and headless deployments run without a keychain.
+  "keytar",
+  // Server: dev-only in the workspace (reached via @playwright/test); the
+  // Docker image ships no browser automation runtime.
+  "playwright",
+  "playwright-core",
+];
+
+const EXTERNAL_PACKAGES =
+  PROFILE === "desktop"
+    ? [...COMMON_EXTERNAL_PACKAGES, ...DESKTOP_ONLY_EXTERNAL_PACKAGES]
+    : COMMON_EXTERNAL_PACKAGES;
+
 // Packages that esbuild should treat as external (to avoid bundling .node binaries)
 // but that should NOT be copied to _modules/ — they are loaded optionally at runtime
 // with a try/catch fallback (e.g. linkedom falls back to its canvas shim if canvas
@@ -109,6 +193,14 @@ const ESBUILD_ONLY_EXTERNAL_PACKAGES = [
   "canvas",
 ];
 const esbuildOnlyExternalSet = new Set(ESBUILD_ONLY_EXTERNAL_PACKAGES);
+
+// esbuild must always treat every known-external package as external — even
+// ones a profile doesn't stage — so their imports stay lazy at runtime.
+const ESBUILD_EXTERNAL_PACKAGES = [
+  ...COMMON_EXTERNAL_PACKAGES,
+  ...DESKTOP_ONLY_EXTERNAL_PACKAGES,
+  ...ESBUILD_ONLY_EXTERNAL_PACKAGES,
+];
 
 // Packages that ship prebuilt binaries for EVERY OS/arch inside one package
 // (unlike sharp/keytar which split them into per-platform optionalDependencies
@@ -120,7 +212,9 @@ const esbuildOnlyExternalSet = new Set(ESBUILD_ONLY_EXTERNAL_PACKAGES);
 const TARGET_PLATFORM = process.env.NODETOOL_BUNDLE_PLATFORM || process.platform;
 const TARGET_ARCH = process.env.NODETOOL_BUNDLE_ARCH || process.arch;
 const MULTIPLATFORM_BINARY_PACKAGES = [
-  { name: "onnxruntime-node", binRoot: path.join("bin", "napi-v3") },
+  // Currently empty — onnxruntime-node (the original entry) is no longer
+  // staged. Add { name, binRoot } entries here when a staged package ships
+  // per-platform binaries under a single root again.
 ];
 
 // ---------------------------------------------------------------------------
@@ -426,11 +520,245 @@ async function copyExternalPackages() {
 }
 
 // ---------------------------------------------------------------------------
+// Staged-module pruning
+// ---------------------------------------------------------------------------
+
+/** On-disk size of a file or directory, in bytes. */
+async function pathSize(target) {
+  let stat;
+  try {
+    stat = await fsp.lstat(target);
+  } catch {
+    return 0;
+  }
+  return stat.isDirectory() ? dirSize(target) : stat.size;
+}
+
+// Files that are never needed at runtime, safe to strip from every staged
+// package. Runtime-relevant extensions (.js, .cjs, .mjs, .json, .node, .wasm)
+// are explicitly protected and never deleted by the generic pass. Junk-named
+// directories are only pruned at a package root (parent has package.json):
+// nested ones can be compiled runtime code (yaml/dist/doc/ is require()d by
+// yaml's entry, playwright/lib/mcp/test/ by its CLI).
+const JUNK_FILE_PATTERNS = [
+  /\.(md|markdown|map|flow)$/i,
+  /\.d\.(ts|mts|cts)$/,
+  /^LICENSE(\..+)?$/i,
+  /^LICENCE/i,
+  /^CHANGELOG/i,
+  /^AUTHORS/i,
+];
+const PROTECTED_FILE_RE = /\.(wasm|node|json|cjs|mjs|js)$/i;
+const JUNK_DIR_NAMES = new Set([
+  "test",
+  "tests",
+  "__tests__",
+  "docs",
+  "doc",
+  "example",
+  "examples",
+  ".github",
+  "coverage",
+]);
+
+// The emscripten wasm package's directory layout is load-bearing (the .wasm
+// asset resolves relative to its JS) — strip only generic junk files inside
+// it, never whole directories.
+const NO_DIR_PRUNE_PACKAGES = ["@jitl/quickjs-ng-wasmfile-release-sync"];
+
+/**
+ * Strip docs, typings, source maps, tests, and other non-runtime files from
+ * the staged _modules/ tree. Returns bytes reclaimed.
+ */
+async function pruneStagedJunk(modulesDir) {
+  let reclaimed = 0;
+
+  async function remove(target) {
+    reclaimed += await pathSize(target);
+    await fsp.rm(target, { recursive: true, force: true });
+  }
+
+  async function walk(dir, allowDirPrune) {
+    let entries;
+    try {
+      entries = await fsp.readdir(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        const rel = path
+          .relative(modulesDir, full)
+          .split(path.sep)
+          .join("/");
+        const dirPruneOk =
+          allowDirPrune &&
+          !NO_DIR_PRUNE_PACKAGES.some(
+            (pkg) => rel === pkg || rel.startsWith(pkg + "/")
+          );
+        const atPackageRoot = fs.existsSync(path.join(dir, "package.json"));
+        if (
+          dirPruneOk &&
+          atPackageRoot &&
+          JUNK_DIR_NAMES.has(entry.name.toLowerCase())
+        ) {
+          await remove(full);
+          continue;
+        }
+        await walk(full, dirPruneOk);
+      } else {
+        if (PROTECTED_FILE_RE.test(entry.name)) continue;
+        if (JUNK_FILE_PATTERNS.some((re) => re.test(entry.name))) {
+          await remove(full);
+        }
+      }
+    }
+  }
+
+  await walk(modulesDir, true);
+  return reclaimed;
+}
+
+/**
+ * Package-specific prunes for staged packages that ship large trees the
+ * backend never loads. Each rule verifies the package's entry points before
+ * deleting and skips with a warning if the layout doesn't match expectations.
+ * Returns bytes reclaimed.
+ */
+async function pruneTargetedPackages(modulesDir) {
+  let reclaimed = 0;
+
+  async function remove(target) {
+    if (!fs.existsSync(target)) return;
+    reclaimed += await pathSize(target);
+    await fsp.rm(target, { recursive: true, force: true });
+  }
+
+  // openai ships its TypeScript sources in src/ alongside the compiled
+  // package-root output; main/exports point at the compiled files only.
+  const openaiDir = path.join(modulesDir, "openai");
+  const openaiPkgJson = path.join(openaiDir, "package.json");
+  if (fs.existsSync(openaiPkgJson)) {
+    const pkg = await readJson(openaiPkgJson);
+    const entryRefs = JSON.stringify({ main: pkg.main, exports: pkg.exports });
+    if (/\bsrc\//.test(entryRefs)) {
+      console.warn(
+        "  Warning: openai entry points reference src/, skipping src/ prune"
+      );
+    } else {
+      await remove(path.join(openaiDir, "src"));
+    }
+  }
+
+  // pdfjs-dist: every staged consumer (pdf-parse; office-text-extractor and
+  // @llamaindex/liteparse have no pdfjs-dist references at all) imports the
+  // legacy build (pdfjs-dist/legacy/*) only — see the EXTERNAL_PACKAGES
+  // comment above. The modern build/ and the viewer web/ tree are dead weight.
+  const pdfjsDir = path.join(modulesDir, "pdfjs-dist");
+  if (fs.existsSync(pdfjsDir)) {
+    await remove(path.join(pdfjsDir, "build"));
+    await remove(path.join(pdfjsDir, "web"));
+  }
+
+  return reclaimed;
+}
+
+/**
+ * node-web-audio-api ships one prebuilt .node per platform/arch at the
+ * package root (node-web-audio-api.<platform>-<arch>[-<abi>].node — see its
+ * load-native.cjs). Delete the prebuilds that can't load on the bundle
+ * target. Guard: never delete anything unless a prebuild matching
+ * TARGET_PLATFORM/TARGET_ARCH is confirmed present, so a wrong
+ * NODETOOL_BUNDLE_PLATFORM leaves the package untouched. On linux both -gnu
+ * and -musl variants of the target arch are kept, and unknown-token files
+ * (e.g. a local node-web-audio-api.build-release.node) are never touched.
+ * Returns bytes reclaimed.
+ */
+async function pruneWebAudioPrebuilds(modulesDir) {
+  const pkgDir = path.join(modulesDir, "node-web-audio-api");
+  if (!fs.existsSync(pkgDir)) return 0;
+
+  const KNOWN_PLATFORMS = new Set(["darwin", "linux", "win32"]);
+  const binRe = /^node-web-audio-api\.(.+)\.node$/;
+
+  // Token examples: darwin-arm64, linux-x64-gnu, linux-arm64-musl,
+  // linux-arm-gnueabihf, win32-x64-msvc.
+  const parseToken = (token) => {
+    const [platform, arch = ""] = token.split("-");
+    return { platform, arch };
+  };
+
+  let targetMatched = false;
+  const removable = [];
+  for (const file of await fsp.readdir(pkgDir)) {
+    const match = file.match(binRe);
+    if (!match) continue;
+    const { platform, arch } = parseToken(match[1]);
+    if (!KNOWN_PLATFORMS.has(platform)) continue; // local builds etc. — keep
+    if (platform === TARGET_PLATFORM && arch === TARGET_ARCH) {
+      targetMatched = true;
+    } else {
+      removable.push(file);
+    }
+  }
+
+  if (!targetMatched) {
+    console.warn(
+      `  Warning: no node-web-audio-api prebuild matches ` +
+        `${TARGET_PLATFORM}/${TARGET_ARCH} — check NODETOOL_BUNDLE_PLATFORM/` +
+        `NODETOOL_BUNDLE_ARCH; leaving all prebuilds in place`
+    );
+    return 0;
+  }
+
+  let reclaimed = 0;
+  for (const file of removable) {
+    const full = path.join(pkgDir, file);
+    reclaimed += (await fsp.stat(full)).size;
+    await fsp.rm(full);
+  }
+  return reclaimed;
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
+/**
+ * Bundle the Postgres migration runner (scripts/db-migrate.mjs) into a single
+ * <out>/db-migrate.mjs. @nodetool-ai/models and postgres are pure JS
+ * (migrations are code-defined in packages/models/src/migrations/versions.ts,
+ * no import.meta.url asset loads), so they bundle in. Native modules stay
+ * external — models statically imports better-sqlite3, which _modules/
+ * provides at runtime.
+ */
+async function buildMigrateBundle() {
+  console.log("\nBundling migration runner (db-migrate.mjs)...");
+  await esbuild.build({
+    entryPoints: [MIGRATE_ENTRY_POINT],
+    bundle: true,
+    platform: "node",
+    format: "esm",
+    target: "node20",
+    outfile: path.join(BUNDLE_DIR, "db-migrate.mjs"),
+    external: ESBUILD_EXTERNAL_PACKAGES,
+    sourcemap: "external",
+    banner: {
+      js: [
+        'import { createRequire as __ntCreateRequire } from "node:module";',
+        "const require = __ntCreateRequire(import.meta.url);",
+      ].join("\n"),
+    },
+    logLevel: "warning",
+  });
+  console.log("  Wrote db-migrate.mjs");
+}
+
 async function main() {
-  console.log("Building hybrid backend bundle with esbuild...\n");
+  console.log(
+    `Building hybrid backend bundle with esbuild (profile: ${PROFILE})...\n`
+  );
 
   // Verify entry point exists
   if (!fs.existsSync(ENTRY_POINT)) {
@@ -455,7 +783,7 @@ async function main() {
     format: "esm",
     target: "node20",
     outfile: path.join(BUNDLE_DIR, "server.mjs"),
-    external: [...EXTERNAL_PACKAGES, ...ESBUILD_ONLY_EXTERNAL_PACKAGES],
+    external: ESBUILD_EXTERNAL_PACKAGES,
     metafile: true,
     sourcemap: "external",
     banner: {
@@ -484,15 +812,28 @@ async function main() {
   const copiedCount = await copyExternalPackages();
 
   // Drop prebuilt binaries for other platforms/arches from packages that ship
-  // all of them in one package (onnxruntime-node). ~150 MB off the artifact.
-  const reclaimed = await pruneMultiplatformBinaries(
-    path.join(BUNDLE_DIR, "_modules")
-  );
+  // all of them in one package.
+  const modulesDir = path.join(BUNDLE_DIR, "_modules");
+  const reclaimed = await pruneMultiplatformBinaries(modulesDir);
   if (reclaimed > 0) {
     console.log(
       `  Reclaimed ${(reclaimed / 1024 / 1024).toFixed(0)} MB of non-target platform binaries`
     );
   }
+
+  console.log("\nPruning staged backend modules...");
+  const junkBytes = await pruneStagedJunk(modulesDir);
+  console.log(
+    `  Junk prune reclaimed ${(junkBytes / 1024 / 1024).toFixed(1)} MB`
+  );
+  const targetedBytes = await pruneTargetedPackages(modulesDir);
+  console.log(
+    `  Targeted prune reclaimed ${(targetedBytes / 1024 / 1024).toFixed(1)} MB`
+  );
+  const webAudioBytes = await pruneWebAudioPrebuilds(modulesDir);
+  console.log(
+    `  node-web-audio-api prune reclaimed ${(webAudioBytes / 1024 / 1024).toFixed(1)} MB`
+  );
 
   // --- Stage registered package runtime assets next to server.mjs ---
   // The registry in @nodetool-ai/config (package-asset-registry.ts) is the
@@ -634,6 +975,11 @@ async function main() {
     JSON.stringify({ type: "module" }, null, 2) + "\n"
   );
 
+  // --- Migration runner entry (opt-in) ---
+  if (OPTIONS.withMigrate) {
+    await buildMigrateBundle();
+  }
+
   // --- Stats ---
   console.log("\n--- Bundle Stats ---");
 
@@ -668,7 +1014,9 @@ async function main() {
   // regression fails the build here instead of silently shipping an app with
   // empty model lists.
   console.log("\nVerifying staged bundle layout...");
-  for (const line of verifyBackendBundle(BUNDLE_DIR)) {
+  for (const line of verifyBackendBundle(BUNDLE_DIR, {
+    requireWebgpu: PROFILE === "desktop",
+  })) {
     console.log(`  ${line}`);
   }
 

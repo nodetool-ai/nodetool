@@ -237,10 +237,17 @@ registerBuiltinProvider(PROVIDER_IDS.DEEPSEEK, DeepSeekProvider, { DEEPSEEK_API_
 registerBuiltinProvider(PROVIDER_IDS.XAI, XAIProvider, { XAI_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.HUGGINGFACE, HuggingFaceProvider, { HF_TOKEN: "" });
 
-// Local-only providers — require local servers/CLIs, skip in production
+// Local-only providers — require local servers/CLIs. Gated on the cloud
+// profile (not raw NODETOOL_ENV) so self-hosted production deployments that
+// set NODETOOL_NODE_PROFILE=full can point these at sidecar containers
+// (llama.cpp, vLLM, Ollama) while the commercial cloud keeps them off.
 const _envProcess =
   typeof process !== "undefined" ? process : { env: {} as Record<string, string | undefined> };
-if (_envProcess.env["NODETOOL_ENV"] !== "production") {
+const _cloudProfile = isCloudProfileActive(
+  _envProcess.env[CLOUD_PROFILE_ENV],
+  _envProcess.env[NODE_ENV_VAR]
+);
+if (!_cloudProfile) {
   // Ollama defaults to the standard local daemon port so the provider is
   // usable out-of-the-box. The URL is registered as an optionalKwarg so it
   // re-resolves from the secret store / env on every getProvider() call —
@@ -292,17 +299,13 @@ if (
   registerBuiltinProvider(PROVIDER_IDS.FAKE, FakeProvider, {});
 }
 
-// Cloud profile (production, or NODETOOL_NODE_PROFILE=cloud): keep only the
+// Cloud profile (production default, or NODETOOL_NODE_PROFILE=cloud; disabled
+// by NODETOOL_NODE_PROFILE=full): keep only the
 // curated provider allowlist (the big LLM labs plus Fal + Kie). Pruning after
 // registration — rather than gating each register call — keeps the
 // registration block above untouched and works regardless of which providers
 // a future edit adds.
-if (
-  isCloudProfileActive(
-    _envProcess.env[CLOUD_PROFILE_ENV],
-    _envProcess.env[NODE_ENV_VAR]
-  )
-) {
+if (_cloudProfile) {
   for (const id of listBuiltinProviderIds()) {
     if (!isCloudProvider(id)) unregisterBuiltinProvider(id);
   }

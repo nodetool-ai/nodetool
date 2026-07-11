@@ -21,7 +21,6 @@ import {
   SVGElement,
   AssetRef
 } from "../../stores/ApiTypes";
-import AudioPlayer from "../audio/AudioPlayer";
 import ThreadMessageList from "./ThreadMessageList";
 import CalendarEventView from "./CalendarEventView";
 
@@ -115,6 +114,7 @@ import DataframeRenderer from "./output/DataframeRenderer";
 import { isAudioChunkLike, isTextLikeChunk } from "./outputChunkUtils";
 
 const LazyTimelineRenderer = React.lazy(() => import("../timeline/TimelineRenderer"));
+const LazyAudioPlayer = React.lazy(() => import("../audio/AudioPlayer"));
 
 // Keep this large for UX (big LLM outputs), but bounded to avoid browser OOM /
 // `RangeError: Invalid string length` when streams run away.
@@ -574,12 +574,14 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
 
         return (
           <div className="audio" style={AUDIO_WRAPPER_STYLE}>
-            <AudioPlayer
-              source={audioSource}
-              mimeType={mimeType}
-              height={150}
-              waveformHeight={150}
-            />
+            <React.Suspense fallback={<LoadingSpinner size="small" text="Loading audio player" />}>
+              <LazyAudioPlayer
+                source={audioSource}
+                mimeType={mimeType}
+                height={150}
+                waveformHeight={150}
+              />
+            </React.Suspense>
           </div>
         );
       }
