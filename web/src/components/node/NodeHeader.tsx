@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import useContextMenuStore from "../../stores/ContextMenuStore";
+import { useContextMenuActions } from "../../stores/ContextMenuStore";
 import useLogsStore, { nodeLogKey } from "../../stores/LogStore";
 import { shallow } from "zustand/shallow";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
@@ -54,7 +54,7 @@ const NodeHeaderImpl: React.FC<NodeHeaderProps> = ({
   showCodeBadge = false,
   codeBadgeTooltip = "Code node"
 }: NodeHeaderProps) => {
-  const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
+  const { openContextMenu } = useContextMenuActions();
   // Combine multiple useNodes subscriptions into a single selector with shallow equality
   // to reduce unnecessary re-renders when other parts of the node state change
   const { updateNode, updateNodeData, findNode, workflowId: nodeWorkflowId } =

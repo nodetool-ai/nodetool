@@ -4,7 +4,7 @@ import useConnectionStore from "../../stores/ConnectionStore";
 import { useShallow } from "zustand/react/shallow";
 import { Slugify } from "../../utils/TypeHandler";
 import { OutputSlot, TypeMetadata } from "../../stores/ApiTypes";
-import useContextMenuStore from "../../stores/ContextMenuStore";
+import { useContextMenuActions } from "../../stores/ContextMenuStore";
 import isEqual from "../../utils/isEqual";
 import { isConnectableCached } from "../node_menu/typeFilterUtils";
 import HandleTooltip from "../HandleTooltip";
@@ -29,7 +29,7 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, displayName }) => {
         connectHandleId: state.connectHandleId
       }))
     );
-  const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
+  const { openContextMenu } = useContextMenuActions();
   const findNode = useNodes((state) => state.findNode);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
 
