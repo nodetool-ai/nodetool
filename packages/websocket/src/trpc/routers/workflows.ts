@@ -1215,13 +1215,18 @@ export const workflowsRouter = router({
       .query(async ({ ctx, input }) => {
         const grants = await WorkflowCollaborator.listForUser(ctx.userId);
         const limited = grants.slice(0, input.limit);
+        const loaded = await Promise.all(
+          limited.map(async (grant) => ({
+            grant,
+            workflow: (await Workflow.get(
+              grant.workflow_id
+            )) as WorkflowModel | null
+          }))
+        );
         const workflows: Array<
           WorkflowResponse & { shared_role: "viewer" | "editor" }
         > = [];
-        for (const grant of limited) {
-          const workflow = (await Workflow.get(
-            grant.workflow_id
-          )) as WorkflowModel | null;
+        for (const { grant, workflow } of loaded) {
           // Skip grants pointing at deleted workflows.
           if (!workflow) continue;
           workflows.push({

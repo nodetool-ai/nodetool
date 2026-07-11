@@ -65,13 +65,34 @@ const ShareWorkflowDialog = ({
 
   const handleCreateLink = useCallback(
     async (role: ShareRole) => {
-      const share = await createLink.mutateAsync(role);
-      await navigator.clipboard.writeText(shareUrlForToken(share.token));
-      addNotification({
-        type: "success",
-        content: `${ROLE_LABELS[role]} link copied to clipboard`,
-        alert: true
-      });
+      let share;
+      try {
+        share = await createLink.mutateAsync(role);
+      } catch {
+        addNotification({
+          type: "error",
+          content: "Failed to create share link",
+          alert: true
+        });
+        return;
+      }
+      // Clipboard access can be denied (permissions, insecure context); the
+      // link exists either way and stays copyable from the list below.
+      try {
+        await navigator.clipboard.writeText(shareUrlForToken(share.token));
+        addNotification({
+          type: "success",
+          content: `${ROLE_LABELS[role]} link copied to clipboard`,
+          alert: true
+        });
+      } catch {
+        addNotification({
+          type: "info",
+          content:
+            "Share link created — copy it from the Active links list below",
+          alert: true
+        });
+      }
     },
     [createLink, addNotification]
   );
