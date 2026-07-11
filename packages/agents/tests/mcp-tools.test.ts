@@ -102,12 +102,12 @@ describe("GetWorkflowTool", () => {
 describe("CreateWorkflowTool", () => {
   const tool = new CreateWorkflowTool();
 
-  it("calls POST /api/workflows/ with body", async () => {
+  it("calls POST /api/workflows with body", async () => {
     await tool.process(ctx, {
       name: "Test WF",
       graph: { nodes: [], edges: [] }
     });
-    expect(lastFetchUrl()).toContain("/api/workflows/");
+    expect(lastFetchUrl()).toBe(`${API_URL}/api/workflows`);
     expect(lastFetchOpts().method).toBe("POST");
     const body = JSON.parse(lastFetchOpts().body as string);
     expect(body.name).toBe("Test WF");
@@ -158,6 +158,48 @@ describe("CreateWorkflowTool", () => {
         }
       ]
     });
+  });
+
+  it("normalizes node_type in an array graph", async () => {
+    await tool.process(ctx, {
+      name: "News Summarizer",
+      graph: {
+        nodes: [
+          {
+            id: "search_node",
+            node_type: "xai.text.WebSearch",
+            properties: { query: "latest news", search_mode: "on" }
+          },
+          {
+            id: "summarizer_node",
+            node_type: "nodetool.agents.AgentStep",
+            properties: { instructions: "Summarize the news" }
+          }
+        ],
+        edges: [
+          {
+            source: "search_node",
+            sourceHandle: "output",
+            target: "summarizer_node",
+            targetHandle: "input"
+          }
+        ]
+      }
+    });
+
+    const body = JSON.parse(lastFetchOpts().body as string);
+    expect(body.graph.nodes).toEqual([
+      {
+        id: "search_node",
+        type: "xai.text.WebSearch",
+        properties: { query: "latest news", search_mode: "on" }
+      },
+      {
+        id: "summarizer_node",
+        type: "nodetool.agents.AgentStep",
+        properties: { instructions: "Summarize the news" }
+      }
+    ]);
   });
 
   it("userMessage includes name", () => {

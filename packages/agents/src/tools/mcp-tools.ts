@@ -51,19 +51,27 @@ function normalizeWorkflowGraph(graph: unknown): unknown {
   const rawNodes = record["nodes"];
   const rawEdges = record["edges"];
 
-  const nodes =
-    rawNodes && typeof rawNodes === "object" && !Array.isArray(rawNodes)
-      ? Object.entries(rawNodes as Record<string, unknown>).map(([id, value]) => {
-          const node =
-            value && typeof value === "object" && !Array.isArray(value)
-              ? (value as Record<string, unknown>)
-              : {};
-          return {
-            id,
-            type: node["type"] ?? node["node_type"],
-            properties: node["properties"] ?? node["parameters"] ?? {}
-          };
-        })
+  const normalizeNode = (value: unknown, fallbackId?: string): unknown => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return value;
+    }
+    const node = value as Record<string, unknown>;
+    const { node_type, parameters, ...rest } = node;
+    const properties = node["properties"] ?? parameters;
+    return {
+      ...rest,
+      id: node["id"] ?? fallbackId,
+      type: node["type"] ?? node_type,
+      ...(properties === undefined ? {} : { properties })
+    };
+  };
+
+  const nodes = Array.isArray(rawNodes)
+    ? rawNodes.map((node) => normalizeNode(node))
+    : rawNodes && typeof rawNodes === "object"
+      ? Object.entries(rawNodes as Record<string, unknown>).map(([id, node]) =>
+          normalizeNode(node, id)
+        )
       : rawNodes;
 
   const edges = Array.isArray(rawEdges)
@@ -270,7 +278,7 @@ export class CreateWorkflowTool extends Tool {
     context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
-    return apiPost(context, "/api/workflows/", {
+    return apiPost(context, "/api/workflows", {
       name: params["name"],
       graph: normalizeWorkflowGraph(params["graph"]),
       description: params["description"],
