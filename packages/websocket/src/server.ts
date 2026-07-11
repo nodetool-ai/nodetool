@@ -99,6 +99,7 @@ import kiePricingRoute from "./routes/kie-pricing.js";
 import webhookRoute from "./triggers/webhook-route.js";
 import { startDispatcher, notifyDispatcher } from "./triggers/dispatcher.js";
 import { startTriggerScheduler } from "./triggers/scheduler.js";
+import { startFileWatchAdapter } from "./triggers/file-watch.js";
 import {
   agentSocketRoute,
   getAgentRuntime,
@@ -1315,7 +1316,7 @@ const stopReaper = startReaper(
 
 const stopDispatcher = startDispatcher();
 const stopScheduler = startTriggerScheduler();
-// Task 12 (file-watch adapter) registers here: `const stopFileWatch = startFileWatch();`
+const stopFileWatch = startFileWatchAdapter();
 
 // Boot backlog: dispatch any `trigger_inputs` left unprocessed by a previous
 // process. Fire-and-forget — a boot-time drain failure must not abort startup.
@@ -1341,6 +1342,7 @@ async function shutdown(signal: string): Promise<void> {
   stopReaper();
   // Stop producing (scheduler + adapters) before stop consuming (dispatcher).
   stopScheduler();
+  stopFileWatch();
   stopDispatcher();
   localBridge.close();
   workerBridge?.close();

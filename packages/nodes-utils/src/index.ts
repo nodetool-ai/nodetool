@@ -14,6 +14,8 @@
  *     the Prompt, Format Text and Agent nodes.
  *   - `base64.ts` — Buffer-free base64 encode/decode usable in Node and the
  *     browser bundle alike.
+ *   - `file-watch-match.ts` — glob matching + debounce shared by the
+ *     `FileWatchTrigger` node and the host-owned file-watch adapter.
  */
 
 export {
@@ -36,3 +38,9 @@ export {
 export { renderTemplate, referencedVariables } from "./template.js";
 
 export { base64ToBytes, bytesToBase64 } from "./base64.js";
+
+export {
+  matchesGlob,
+  shouldProcessFile,
+  EventDebouncer
+} from "./file-watch-match.js";

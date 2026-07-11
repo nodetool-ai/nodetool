@@ -51,6 +51,7 @@
     "@nodetool-ai/kernel": "*",
     "@nodetool-ai/models": "*",
     "@nodetool-ai/node-sdk": "*",
+    "@nodetool-ai/nodes-utils": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/replicate-nodes": "*",
     "@nodetool-ai/runtime": "*",

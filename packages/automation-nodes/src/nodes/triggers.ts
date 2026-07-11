@@ -4,6 +4,10 @@ import type {
   StreamingOutputs,
   TriggerEvent
 } from "@nodetool-ai/node-sdk";
+import {
+  shouldProcessFile,
+  EventDebouncer
+} from "@nodetool-ai/nodes-utils";
 
 /** Narrow a trigger payload to a plain object, else an empty record. */
 function asRecord(payload: unknown): Record<string, unknown> {
@@ -751,46 +755,9 @@ export class FileWatchTriggerNode extends BaseNode {
     }
 
     const queue = new AsyncQueue<Record<string, unknown>>();
-    const lastEvents = new Map<string, number>();
-
-    // Simple glob matching
-    const matchesPattern = (filename: string, pattern: string): boolean => {
-      if (pattern === "*") return true;
-      // Convert glob to regex: *.txt -> ^.*\.txt$
-      const regex = new RegExp(
-        "^" +
-          pattern
-            .replace(/\./g, "\\.")
-            .replace(/\*/g, ".*")
-            .replace(/\?/g, ".") +
-          "$"
-      );
-      return regex.test(filename);
-    };
-
-    const shouldProcess = (filePath: string): boolean => {
-      const filename = path.basename(filePath);
-
-      // Check ignore patterns
-      for (const p of ignorePatterns) {
-        if (matchesPattern(filename, p)) return false;
-      }
-
-      // Check include patterns
-      for (const p of patterns) {
-        if (matchesPattern(filename, p)) return true;
-      }
-
-      return false;
-    };
-
-    const debounce = (filePath: string): boolean => {
-      const now = Date.now();
-      const last = lastEvents.get(filePath) ?? 0;
-      if (now - last < debounceMs) return true;
-      lastEvents.set(filePath, now);
-      return false;
-    };
+    // Glob matching + debounce are shared with the host-owned file-watch
+    // adapter via @nodetool-ai/nodes-utils so the two stay in lock-step.
+    const debouncer = new EventDebouncer(debounceMs);
 
     const emitEvent = (
       eventType: string,
@@ -798,8 +765,8 @@ export class FileWatchTriggerNode extends BaseNode {
       isDirectory: boolean
     ) => {
       if (!watchEvents.includes(eventType)) return;
-      if (!shouldProcess(filePath)) return;
-      if (debounce(filePath)) return;
+      if (!shouldProcessFile(filePath, patterns, ignorePatterns)) return;
+      if (debouncer.shouldSkip(filePath)) return;
 
       queue.push({
         event: eventType,
