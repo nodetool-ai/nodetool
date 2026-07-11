@@ -8,9 +8,6 @@ import { useQuery } from "@tanstack/react-query";
 import type { VideoModelTask } from "../../hooks/useModelsByProvider";
 import ModelSelectButton from "./shared/ModelSelectButton";
 
-/**
- * Value type for video model selection
- */
 interface VideoModelValue {
   type: "video_model";
   id: string;

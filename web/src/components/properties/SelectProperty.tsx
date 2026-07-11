@@ -24,7 +24,6 @@ const SelectProperty: React.FC<PropertyProps<string>> = ({
     [property.name, propertyIndex]
   );
 
-  // Get the options from the node's properties
   const findNode = useNodes((state) => state.findNode);
   const node = findNode(nodeId);
   const options = useMemo(() => {

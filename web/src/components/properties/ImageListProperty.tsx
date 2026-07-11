@@ -144,7 +144,6 @@ const flattenImageItems = (items: unknown): ImageItem[] => {
     return [];
   }
   if (!Array.isArray(items)) {
-    // Single item - check if it has the right shape
     if (typeof items === "object" && items !== null && "uri" in items) {
       return [items as ImageItem];
     }
@@ -154,7 +153,6 @@ const flattenImageItems = (items: unknown): ImageItem[] => {
   const result: ImageItem[] = [];
   for (const item of items) {
     if (Array.isArray(item)) {
-      // Nested array - recursively flatten
       result.push(...flattenImageItems(item));
     } else if (typeof item === "object" && item !== null && "uri" in item) {
       result.push(item as ImageItem);
@@ -169,7 +167,6 @@ const ImageListProperty = (props: PropertyProps) => {
   const id = `image-list-${props.property.name}-${props.propertyIndex}`;
   const { uploadAsset } = useAssetUpload();
 
-  // Use selectors for asset grid store to avoid full store subscriptions
   const filteredAssets = useAssetGridStore((state) => state.filteredAssets);
   const globalSearchResults = useAssetGridStore((state) => state.globalSearchResults);
   const selectedAssets = useAssetGridStore((state) => state.selectedAssets);
@@ -222,7 +219,6 @@ const ImageListProperty = (props: PropertyProps) => {
     [images, props]
   );
 
-  // Memoize remove handlers for each image to prevent re-renders
   const removeHandlers = useMemo(() => {
     const handlers: Record<number, () => void> = {};
     for (let i = 0; i < images.length; i++) {
@@ -244,7 +240,6 @@ const ImageListProperty = (props: PropertyProps) => {
     }
   }, []);
 
-  // Memoize load handlers for each image to prevent re-renders
   const loadHandlers = useMemo(() => {
     const handlers: Record<string, () => void> = {};
     for (const image of images) {
