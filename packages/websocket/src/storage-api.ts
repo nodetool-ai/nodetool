@@ -6,6 +6,7 @@ import { createReadStream } from "node:fs";
 import { mkdir, stat, writeFile } from "node:fs/promises";
 import path, { extname } from "node:path";
 import { getDefaultAssetsPath } from "@nodetool-ai/config";
+import { getMaxUploadBytes } from "@nodetool-ai/storage";
 import { resolveAllowedOrigin } from "./cors.js";
 
 // ── MIME types ────────────────────────────────────────────────────
@@ -264,8 +265,33 @@ async function handleStorageRequest(
 
   // PUT
   if (request.method === "PUT") {
-    await mkdir(path.dirname(filePath), { recursive: true });
+    const max = getMaxUploadBytes();
+    const tooLarge = (size: number): Response =>
+      new Response(
+        JSON.stringify({
+          detail:
+            `Upload exceeds maximum size: ${size} > ${max} bytes ` +
+            `(set NODETOOL_MAX_UPLOAD_BYTES to raise the limit)`
+        }),
+        {
+          status: 413,
+          headers: { ...cors, "content-type": "application/json" }
+        }
+      );
+
+    // Reject before buffering when the client declares an over-limit size, so a
+    // huge PUT can't force the server to allocate the whole body first.
+    const declaredLength = Number(request.headers.get("content-length"));
+    if (Number.isFinite(declaredLength) && declaredLength > max) {
+      return tooLarge(declaredLength);
+    }
+
+    // Fall back to a post-read check for chunked bodies with no Content-Length.
     const bodyBuffer = await request.arrayBuffer();
+    if (bodyBuffer.byteLength > max) {
+      return tooLarge(bodyBuffer.byteLength);
+    }
+    await mkdir(path.dirname(filePath), { recursive: true });
     await writeFile(filePath, Buffer.from(bodyBuffer));
     return new Response(null, { status: 200, headers: cors });
   }

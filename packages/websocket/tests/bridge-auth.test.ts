@@ -58,7 +58,10 @@ describe("bridge: userId propagation", () => {
     expect(capturedUserId).toBeNull();
   });
 
-  it("does not override an existing x-user-id header if userId is null", async () => {
+  it("strips a client-supplied x-user-id header when userId is null", async () => {
+    // A client must never be able to inject its own identity: on auth-exempt /
+    // public routes req.userId is unset, and forwarding an incoming x-user-id
+    // would let the caller impersonate any user downstream (IDOR).
     const req = makeMockReq({
       userId: null,
       headers: { host: "localhost", "x-user-id": "from-header" }
@@ -71,6 +74,22 @@ describe("bridge: userId propagation", () => {
       return new Response("{}", { status: 200 });
     });
 
-    expect(capturedUserId).toBe("from-header");
+    expect(capturedUserId).toBeNull();
+  });
+
+  it("overrides a client-supplied x-user-id header with the authenticated userId", async () => {
+    const req = makeMockReq({
+      userId: "authed-user",
+      headers: { host: "localhost", "x-user-id": "from-header" }
+    });
+    const reply = makeMockReply();
+    let capturedUserId: string | null = null;
+
+    await bridge(req, reply, async (request) => {
+      capturedUserId = request.headers.get("x-user-id");
+      return new Response("{}", { status: 200 });
+    });
+
+    expect(capturedUserId).toBe("authed-user");
   });
 });

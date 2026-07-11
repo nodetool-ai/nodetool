@@ -22,6 +22,15 @@ const TERMINAL_COLS = 120;
 const TERMINAL_ROWS = 30;
 
 /**
+ * Hard cap on buffered stdout/stderr per stream. Untrusted code can emit
+ * unbounded output; without a cap the collected buffers grow until the process
+ * runs out of memory. Once exceeded, further lines for that stream are dropped
+ * and a truncation marker is appended.
+ */
+const MAX_OUTPUT_BYTES = 10 * 1024 * 1024;
+const TRUNCATION_MARKER = "\n...[output truncated at 10MB]...";
+
+/**
  * Coalescing terminal_update emitter: mirrors runner output lines to the
  * client's node-body terminal as they stream (stderr tinted red). UI-only —
  * the buffered stdout/stderr node outputs are unaffected. No-ops without a
@@ -100,19 +109,53 @@ async function collectRunnerOutput(
 ): Promise<{ stdout: string; stderr: string; exit_code: number }> {
   const stdoutBuf: string[] = [];
   const stderrBuf: string[] = [];
+  let stdoutBytes = 0;
+  let stderrBytes = 0;
+  let stdoutTruncated = false;
+  let stderrTruncated = false;
   let exitCode = 0;
   const term = startTerminalEmitter(
     options?.terminal?.context,
     options?.terminal?.nodeId
   );
+  // Append `line` to a buffer while it stays under MAX_OUTPUT_BYTES; once the
+  // cap is hit, drop further lines and append a one-time truncation marker.
+  const appendCapped = (
+    buf: string[],
+    bytes: number,
+    truncated: boolean,
+    line: string
+  ): { bytes: number; truncated: boolean } => {
+    if (truncated) return { bytes, truncated };
+    const lineBytes = Buffer.byteLength(line, "utf-8");
+    if (bytes + lineBytes > MAX_OUTPUT_BYTES) {
+      buf.push(TRUNCATION_MARKER);
+      return { bytes: bytes + lineBytes, truncated: true };
+    }
+    buf.push(line);
+    return { bytes: bytes + lineBytes, truncated: false };
+  };
   try {
     for await (const [slot, line] of runner.stream(
       userCode,
       envLocals,
       options
     )) {
-      if (slot === "stdout") stdoutBuf.push(line);
-      else if (slot === "stderr") stderrBuf.push(line);
+      if (slot === "stdout") {
+        ({ bytes: stdoutBytes, truncated: stdoutTruncated } = appendCapped(
+          stdoutBuf,
+          stdoutBytes,
+          stdoutTruncated,
+          line
+        ));
+      } else if (slot === "stderr") {
+        ({ bytes: stderrBytes, truncated: stderrTruncated } = appendCapped(
+          stderrBuf,
+          stderrBytes,
+          stderrTruncated,
+          line
+        ));
+      }
       term.write(slot, line);
     }
   } catch (err) {
