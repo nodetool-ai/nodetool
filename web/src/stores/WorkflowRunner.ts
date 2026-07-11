@@ -100,7 +100,7 @@ const buildRunJobData = (opts: {
   authToken: string;
   userId: string;
   concurrent?: boolean;
-}): RunJobRequest & { settings?: Record<string, unknown>; job_id: string; concurrent?: boolean } => {
+}): RunJobRequest & { settings?: Record<string, unknown>; job_id: string; concurrent?: boolean; graph: WorkflowGraph } => {
   const activeNodes: Node<NodeData>[] = [];
   const bypassedNodeIds = new Set<string>();
   for (const node of opts.nodes) {
@@ -558,9 +558,7 @@ export const createWorkflowRunnerStore = (
         );
       } else {
         try {
-          const report = await reportBrowserEligibility(
-            req.graph as unknown as WorkflowGraph
-          );
+          const report = await reportBrowserEligibility(req.graph);
           runsInBrowser = report.eligible;
           if (report.eligible) {
             console.info(
@@ -598,7 +596,7 @@ export const createWorkflowRunnerStore = (
         const abortController = new AbortController();
         browserRunAbortControllers.set(jobId, abortController);
         void runBrowserGraphJob({
-          graph: req.graph as unknown as WorkflowGraph,
+          graph: req.graph,
           params,
           workflowId,
           jobId,

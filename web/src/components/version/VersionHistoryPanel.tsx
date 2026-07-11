@@ -144,10 +144,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
         ? [selectedVersion, compareVersion]
         : [compareVersion, selectedVersion];
 
-    return computeGraphDiff(
-      older.graph as unknown as Graph,
-      newer.graph as unknown as Graph
-    );
+    return computeGraphDiff(older.graph, newer.graph);
   }, [selectedVersion, compareVersion]);
 
   const handleSelect = useCallback(
@@ -492,7 +489,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
               )}
 
               <WorkflowGraphPreview
-                graph={selectedVersion.graph as unknown as Graph}
+                graph={selectedVersion.graph}
                 workflowId={workflowId}
                 width="100%"
                 height={320}

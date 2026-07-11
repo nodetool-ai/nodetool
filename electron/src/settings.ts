@@ -291,7 +291,11 @@ function updateSettings(settings: Record<string, unknown>): void {
 
     writeSettings(updatedSettings);
   } catch (error) {
-    throw new Error(`Failed to update settings: ${error}`);
+    throw new Error(
+      `Failed to update settings: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
   }
 }
 

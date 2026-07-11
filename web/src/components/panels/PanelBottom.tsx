@@ -39,8 +39,6 @@ import ContextMenus from "../context_menus/ContextMenus";
 import {
   Workflow,
   WorkflowVersion,
-  Node as GraphNode,
-  Edge as GraphEdge
 } from "../../stores/ApiTypes";
 import { useRunningJobs } from "../../hooks/useRunningJobs";
 import { useSystemStatsStore } from "../../stores/systemStatsHandler";
@@ -430,16 +428,10 @@ const PanelBodyContent = memo(function PanelBodyContent({
 
       const graph = version.graph;
       const newNodes = graph.nodes.map((n) =>
-        graphNodeToReactFlowNode(
-          {
-            ...workflow,
-            graph: graph as unknown as Workflow["graph"]
-          } as Workflow,
-          n as GraphNode
-        )
+        graphNodeToReactFlowNode({ ...workflow, graph }, n)
       );
       const newEdges = graph.edges.map((e) =>
-        graphEdgeToReactFlowEdge(e as GraphEdge)
+        graphEdgeToReactFlowEdge(e)
       );
 
       storeState.setNodes(newNodes);
