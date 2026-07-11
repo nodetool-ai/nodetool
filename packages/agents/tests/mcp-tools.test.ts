@@ -26,6 +26,7 @@ const API_URL = "http://test-api:7777";
 function makeMockContext(): ProcessingContext {
   return {
     userId: "user-1",
+    authToken: "access-token",
     environment: { NODETOOL_API_URL: API_URL }
   } as unknown as ProcessingContext;
 }
@@ -111,6 +112,52 @@ describe("CreateWorkflowTool", () => {
     const body = JSON.parse(lastFetchOpts().body as string);
     expect(body.name).toBe("Test WF");
     expect(body.graph).toEqual({ nodes: [], edges: [] });
+  });
+
+  it("normalizes an agent-friendly keyed graph", async () => {
+    await tool.process(ctx, {
+      name: "Daily News",
+      graph: {
+        nodes: {
+          search: {
+            node_type: "openai.text.WebSearch",
+            parameters: { query: "current technology news" }
+          },
+          summarize: {
+            node_type: "mistral.text.ChatComplete",
+            parameters: { model: "mistral-large-latest" }
+          }
+        },
+        edges: [
+          { source: "search", target: "summarize", target_input: "prompt" }
+        ]
+      }
+    });
+
+    const body = JSON.parse(lastFetchOpts().body as string);
+    expect(body.graph).toEqual({
+      nodes: [
+        {
+          id: "search",
+          type: "openai.text.WebSearch",
+          properties: { query: "current technology news" }
+        },
+        {
+          id: "summarize",
+          type: "mistral.text.ChatComplete",
+          properties: { model: "mistral-large-latest" }
+        }
+      ],
+      edges: [
+        {
+          id: "edge-0",
+          source: "search",
+          sourceHandle: "output",
+          target: "summarize",
+          targetHandle: "prompt"
+        }
+      ]
+    });
   });
 
   it("userMessage includes name", () => {
@@ -452,6 +499,7 @@ describe("request headers", () => {
     await tool.process(ctx, {});
     const headers = lastFetchOpts().headers as Record<string, string>;
     expect(headers["X-User-Id"]).toBe("user-1");
+    expect(headers["Authorization"]).toBe("Bearer access-token");
     expect(headers["Content-Type"]).toBe("application/json");
   });
 });
