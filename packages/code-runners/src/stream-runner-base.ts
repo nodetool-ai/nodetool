@@ -34,24 +34,72 @@ export class ContainerFailureError extends Error {
 }
 
 /**
+ * Environment variables copied through to subprocess-mode children. Untrusted
+ * user code must NOT inherit the server's full environment (SECRETS_MASTER_KEY,
+ * AWS_*, provider API keys, …), so we allow only a minimal safe base needed for
+ * a process to start and resolve binaries. `buildContainerEnvironment` is
+ * layered on top of this.
+ */
+export const SUBPROCESS_ENV_ALLOWLIST: readonly string[] = [
+  "PATH",
+  "HOME",
+  "LANG",
+  "LC_ALL",
+  "TMPDIR",
+  "TEMP",
+  "TMP",
+  "SYSTEMROOT",
+  "USERPROFILE"
+];
+
+/**
+ * Build a minimal, secret-free base environment for subprocess-mode children by
+ * copying only the allowlisted variables from `process.env`.
+ */
+export function buildSubprocessBaseEnv(): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const key of SUBPROCESS_ENV_ALLOWLIST) {
+    const value = process.env[key];
+    if (value !== undefined) out[key] = value;
+  }
+  return out;
+}
+
+/**
+ * Send `signal` to the child's whole process group (POSIX) so backgrounded /
+ * forked grandchildren spawned in shell mode don't survive. Falls back to a
+ * direct kill on the child when the group kill isn't available (Windows, or a
+ * missing pid).
+ */
+function killChild(child: ChildProcess, signal: NodeJS.Signals): void {
+  const pid = child.pid;
+  if (pid !== undefined && process.platform !== "win32") {
+    try {
+      process.kill(-pid, signal);
+      return;
+    } catch {
+      // Group kill failed (no group, already gone) — fall through to direct.
+    }
+  }
+  try {
+    child.kill(signal);
+  } catch {
+    // ignore — process may have just exited
+  }
+}
+
+/**
  * Terminate a child process gracefully, then force-kill if it ignores SIGTERM.
  * Without the SIGKILL escalation a runaway/hung subprocess (one that traps or
- * ignores SIGTERM) survives timeouts and stop(), leaking CPU/memory.
+ * ignores SIGTERM) survives timeouts and stop(), leaking CPU/memory. Kills the
+ * whole process group so shell-mode grandchildren are cleaned up too.
  */
 function terminateChild(child: ChildProcess, graceMs = 3000): void {
   if (child.exitCode !== null || child.signalCode !== null) return;
-  try {
-    child.kill("SIGTERM");
-  } catch {
-    return;
-  }
+  killChild(child, "SIGTERM");
   const timer = setTimeout(() => {
     if (child.exitCode === null && child.signalCode === null) {
-      try {
-        child.kill("SIGKILL");
-      } catch {
-        // ignore — process may have just exited
-      }
+      killChild(child, "SIGKILL");
     }
   }, graceMs);
   // Don't keep the event loop alive solely for the force-kill timer.
@@ -649,12 +697,19 @@ export class StreamRunnerBase {
       cleanupData = wrapped[1];
     }
 
-    // Prepare environment and working directory
+    // Prepare environment and working directory. Untrusted code runs with only
+    // a minimal allowlisted base env — never the server's full environment
+    // (secrets, cloud creds, API keys).
     const procEnv: Record<string, string> = {
-      ...(process.env as Record<string, string>),
+      ...buildSubprocessBaseEnv(),
       ...this.buildContainerEnvironment(env)
     };
     const cwd = options?.workspaceDir ?? process.cwd();
+
+    // Run the child in its own process group (POSIX) so timeout/stop() can kill
+    // backgrounded/forked grandchildren spawned in shell mode. Not applicable
+    // on Windows, where detached semantics differ.
+    const detached = process.platform !== "win32";
 
     // In shell mode we delegate parsing (quoting, pipes, built-ins like
     // `echo` on Windows) to the OS shell by passing the raw user code.
@@ -663,11 +718,13 @@ export class StreamRunnerBase {
           cwd,
           env: procEnv,
           shell: true,
+          detached,
           stdio: [stdinStream !== null ? "pipe" : "ignore", "pipe", "pipe"]
         })
       : spawn(commandVec[0], commandVec.slice(1), {
           cwd,
           env: procEnv,
+          detached,
           stdio: [stdinStream !== null ? "pipe" : "ignore", "pipe", "pipe"]
         });
 

@@ -7,7 +7,7 @@
  */
 
 import { readFile } from "node:fs/promises";
-import { resolve, join, basename } from "node:path";
+import { resolve, join, basename, sep } from "node:path";
 import { Workspace } from "@nodetool-ai/models";
 import type { HttpApiOptions } from "./http-api.js";
 
@@ -102,8 +102,13 @@ export async function handleWorkspaceRequest(
   const workspacePath = resolve(workspace.path);
   const resolvedFile = resolve(join(workspacePath, filePath));
 
-  // Path traversal check
-  if (!resolvedFile.startsWith(workspacePath)) {
+  // Path traversal check. Compare against `workspacePath + sep` (plus the exact
+  // root) so a sibling dir sharing the name prefix — e.g. workspace `/data/ws`,
+  // path `../ws-secrets/key.txt` → `/data/ws-secrets/key.txt` — cannot pass.
+  if (
+    resolvedFile !== workspacePath &&
+    !resolvedFile.startsWith(workspacePath + sep)
+  ) {
     return errorResponse(403, "Path traversal not allowed");
   }
 

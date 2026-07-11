@@ -6,6 +6,7 @@ import { createReadStream } from "node:fs";
 import { mkdir, stat, writeFile } from "node:fs/promises";
 import path, { extname } from "node:path";
 import { getDefaultAssetsPath } from "@nodetool-ai/config";
+import { getMaxUploadBytes } from "@nodetool-ai/storage";
 import { resolveAllowedOrigin } from "./cors.js";
 
 // ── MIME types ────────────────────────────────────────────────────
@@ -264,8 +265,22 @@ async function handleStorageRequest(
 
   // PUT
   if (request.method === "PUT") {
-    await mkdir(path.dirname(filePath), { recursive: true });
     const bodyBuffer = await request.arrayBuffer();
+    const max = getMaxUploadBytes();
+    if (bodyBuffer.byteLength > max) {
+      return new Response(
+        JSON.stringify({
+          detail:
+            `Upload exceeds maximum size: ${bodyBuffer.byteLength} > ${max} bytes ` +
+            `(set NODETOOL_MAX_UPLOAD_BYTES to raise the limit)`
+        }),
+        {
+          status: 413,
+          headers: { ...cors, "content-type": "application/json" }
+        }
+      );
+    }
+    await mkdir(path.dirname(filePath), { recursive: true });
     await writeFile(filePath, Buffer.from(bodyBuffer));
     return new Response(null, { status: 200, headers: cors });
   }
