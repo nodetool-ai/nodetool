@@ -59,19 +59,16 @@ const workflow = {
 const events: CastEvent[] = [
   m.jobUpdate(0, "running"),
 
-  // 1) A question feeds the model.
   m.nodeUpdate(300, "question", "Question", INPUT_TYPE, "running"),
   m.nodeUpdate(1500, "question", "Question", INPUT_TYPE, "completed", { output: QUESTION }),
   m.edgeUpdate(1800, "e1", "active"),
 
-  // 2) The Agent streams its answer into the text content card.
   m.nodeUpdate(2500, "chat", "Agent", CHAT_TYPE, "running"),
   ...m.stream("chat", ANSWER_TOKENS, 3000, 6000),
   m.nodeUpdate(9600, "chat", "Agent", CHAT_TYPE, "completed", { text: ANSWER }),
   m.edgeUpdate(9800, "e1", "completed"),
   m.edgeUpdate(10000, "e2", "active"),
 
-  // 3) Preview shows the finished answer.
   m.nodeUpdate(10700, "preview", "Preview", PREVIEW_NODE_TYPE, "running"),
   m.output(11300, "preview", "Preview", "value", ANSWER, "str"),
   m.nodeUpdate(11900, "preview", "Preview", PREVIEW_NODE_TYPE, "completed", { value: ANSWER }),

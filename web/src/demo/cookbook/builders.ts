@@ -127,7 +127,6 @@ export const outputMeta = (title = "Output"): NodeMetadata =>
     outputs: [out("output", "any")],
   });
 
-/** A streaming text LLM (Agent / Summarizer) rendered as a text content card. */
 export const textAgentMeta = (
   nodeType: string,
   title: string,
@@ -146,7 +145,6 @@ export const textAgentMeta = (
     is_streaming_output: true,
   });
 
-/** A streaming list generator with its bespoke numbered-list body. */
 export const listGeneratorMeta = (): NodeMetadata =>
   meta({
     node_type: "nodetool.generators.ListGenerator",
@@ -159,7 +157,6 @@ export const listGeneratorMeta = (): NodeMetadata =>
     is_streaming_output: true,
   });
 
-/** A streaming dataframe generator (Flashcards / structured records). */
 export const dataGeneratorMeta = (): NodeMetadata =>
   meta({
     node_type: "nodetool.generators.DataGenerator",
@@ -175,7 +172,6 @@ export const dataGeneratorMeta = (): NodeMetadata =>
     is_streaming_output: true,
   });
 
-/** An image generator / processor — image output routes to the image card. */
 export const imageNodeMeta = (
   nodeType: string,
   title: string,
@@ -192,7 +188,6 @@ export const imageNodeMeta = (
     input_fields: properties.map((p) => p.name),
   });
 
-/** A video generator — video output routes to the video content card. */
 export const videoNodeMeta = (
   nodeType: string,
   title: string,
@@ -209,7 +204,6 @@ export const videoNodeMeta = (
     input_fields: properties.map((p) => p.name),
   });
 
-/** An audio generator (TextToSpeech) — audio output routes to the audio card. */
 export const audioNodeMeta = (
   nodeType: string,
   title: string,
@@ -226,7 +220,6 @@ export const audioNodeMeta = (
     input_fields: properties.map((p) => p.name),
   });
 
-/** A plain processing/plumbing node with a single typed output. */
 export const simpleMeta = (
   nodeType: string,
   title: string,

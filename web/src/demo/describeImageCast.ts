@@ -74,19 +74,16 @@ const workflow = {
 const events: CastEvent[] = [
   m.jobUpdate(0, "running"),
 
-  // 1) An Image Input hands its picture downstream.
   m.nodeUpdate(300, "image", "Image", IMAGE_INPUT_TYPE, "running"),
   m.nodeUpdate(1500, "image", "Image", IMAGE_INPUT_TYPE, "completed", { output: image }),
   m.edgeUpdate(1800, "e1", "active"),
 
-  // 2) The Agent looks at the image and streams a description into its text card.
   m.nodeUpdate(2600, "describe", "Describe", AGENT_TYPE, "running"),
   ...m.stream("describe", DESC_TOKENS, 3200, 6400),
   m.nodeUpdate(10000, "describe", "Describe", AGENT_TYPE, "completed", { text: DESCRIPTION }),
   m.edgeUpdate(10200, "e1", "completed"),
   m.edgeUpdate(10400, "e2", "active"),
 
-  // 3) Preview shows the finished description.
   m.nodeUpdate(11100, "preview", "Preview", PREVIEW_NODE_TYPE, "running"),
   m.output(11700, "preview", "Preview", "value", DESCRIPTION, "str"),
   m.nodeUpdate(12300, "preview", "Preview", PREVIEW_NODE_TYPE, "completed", { value: DESCRIPTION }),
