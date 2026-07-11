@@ -899,9 +899,19 @@ export abstract class BaseProvider {
         tc: ToolCall
       ): Promise<string | MessageContent[]> => {
         const tool = toolMap.get(tc.name);
-        if (tool?.execute) return tool.execute(tc.args ?? {}, tc.id);
-        if (executeTool) return executeTool(tc);
-        return `Tool "${tc.name}" is not available`;
+        try {
+          if (tool?.execute) return await tool.execute(tc.args ?? {}, tc.id);
+          if (executeTool) return await executeTool(tc);
+          return `Tool "${tc.name}" is not available`;
+        } catch (err) {
+          // A throwing tool must not destroy the whole assistant turn: turn the
+          // failure into an error result so the model still receives output for
+          // every tool call (and sibling results are preserved). Without this,
+          // Promise.all in the parallel path would reject before any result is
+          // emitted, discarding the turn.
+          const message = err instanceof Error ? err.message : String(err);
+          return `Error executing tool "${tc.name}": ${message}`;
+        }
       };
 
       // A tool flagged `terminal` ends the loop once its turn's results are

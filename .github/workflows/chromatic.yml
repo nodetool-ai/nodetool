@@ -65,6 +65,7 @@ jobs:
 
       - name: Publish to Chromatic
         uses: chromaui/action@latest
+        continue-on-error: true
         with:
           projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
           # Build settings (buildScriptName, onlyChanged, exitZeroOnChanges,

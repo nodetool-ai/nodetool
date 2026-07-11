@@ -7,13 +7,11 @@ export type {
   DragData,
   DragMetadata,
   DropZoneConfig,
-  DraggableOptions,
   DragImageConfig,
   DragDropState
 } from "./types";
 
 export { useDragDropStore } from "./store";
-export { useDraggable } from "./useDraggable";
 export { useDropZone } from "./useDropZone";
 
 export {

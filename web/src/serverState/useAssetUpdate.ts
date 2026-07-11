@@ -1,6 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AssetUpdate, useAssetStore } from "../stores/AssetStore";
-import { useState } from "react";
 import { useNotificationStore } from "../stores/NotificationStore";
 import { useAssetGridStoreApi } from "../stores/AssetGridStore";
 import { AssetList } from "../stores/ApiTypes";
@@ -12,9 +11,7 @@ export const useAssetUpdate = () => {
   );
   const updateAsset = useAssetStore((state) => state.update);
   const gridStore = useAssetGridStoreApi();
-  const [assets, setAssets] = useState<AssetUpdate[]>([]);
   const performMutation = async (updates: AssetUpdate[]) => {
-    setAssets(updates);
     await Promise.all(updates.map((asset) => updateAsset(asset)));
   };
   const mutation = useMutation({
@@ -67,7 +64,6 @@ export const useAssetUpdate = () => {
       });
     },
     onSettled: (_data, _error, _updates, context) => {
-      setAssets([]);
       if (context?.currentFolderId !== undefined) {
         queryClient.invalidateQueries({
           queryKey: ["assets", { parent_id: context.currentFolderId }]

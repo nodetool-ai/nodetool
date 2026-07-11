@@ -107,27 +107,6 @@ export interface ChatMessageRequest {
 }
 
 /**
- * State for the chat store
- */
-export interface ChatState {
-  // Connection state
-  status: ChatStatus;
-  statusMessage: string | null;
-  error: string | null;
-
-  // Thread management
-  threads: Record<string, Thread>;
-  currentThreadId: string | null;
-
-  // Messages for current thread
-  messageCache: Record<string, Message[]>;
-  isLoadingMessages: boolean;
-
-  // Model selection (for future)
-  selectedModel: LanguageModel | null;
-}
-
-/**
  * WebSocket configuration
  */
 export interface WebSocketConfig {

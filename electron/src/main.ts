@@ -82,7 +82,7 @@ async function initializeBackendServerWithKeychainRetry(): Promise<void> {
       await stopServer();
     } catch (stopError) {
       logMessage(
-        `Failed to stop backend before retry: ${stopError}`,
+        `Failed to stop backend before retry: ${errorMessage(stopError)}`,
         "warn"
       );
     }
@@ -90,7 +90,7 @@ async function initializeBackendServerWithKeychainRetry(): Promise<void> {
       updateSetting(KEYCHAIN_EXPLANATION_ACKNOWLEDGED_KEY, false);
     } catch (settingsError) {
       logMessage(
-        `Failed to reset keychain acknowledgement: ${settingsError}`,
+        `Failed to reset keychain acknowledgement: ${errorMessage(settingsError)}`,
         "warn"
       );
     }
@@ -171,13 +171,13 @@ function showUnexpectedErrorDialog(title: string, message: string): void {
 }
 
 function logUnexpectedError(prefix: string, error: unknown): string {
-  const errorMessage =
+  const message =
     error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-  logMessage(`${prefix}: ${errorMessage}`, "error");
+  logMessage(`${prefix}: ${message}`, "error");
   if (error instanceof Error && error.stack) {
     logMessage(`Stack Trace: ${error.stack}`, "error");
   }
-  return errorMessage;
+  return message;
 }
 
 async function notifyPackageUpdates(): Promise<void> {
@@ -253,7 +253,7 @@ async function checkPythonEnvironmentExists(): Promise<boolean> {
     logMessage(`Python environment available: ${hasCondaEnv}`);
     return hasCondaEnv;
   } catch (error) {
-    logMessage(`Error checking Python environment: ${error}`, "warn");
+    logMessage(`Error checking Python environment: ${errorMessage(error)}`, "warn");
     return false;
   }
 }
@@ -333,12 +333,12 @@ async function initialize(): Promise<void> {
 
     if (validationResult.errors.length > 0) {
       logMessage("Critical permission errors detected", "error");
-      const errorMessage =
+      const permissionMessage =
         "Critical permission errors detected:\n\n" +
         validationResult.errors.join("\n") +
         "\n\nPlease ensure the application has proper permissions to these locations.";
 
-      dialog.showErrorBox("Permission Error", errorMessage);
+      dialog.showErrorBox("Permission Error", permissionMessage);
       app.quit();
       return;
     }
@@ -478,7 +478,7 @@ let isInitialized = false;
 app.on("ready", async () => {
   // Run settings warmup, IPC setup, and media permission check in parallel
   const settingsPromise = readSettingsAsync().catch((error) => {
-    logMessage(`Failed to warm up settings cache: ${error}`, "warn");
+    logMessage(`Failed to warm up settings cache: ${errorMessage(error)}`, "warn");
   });
 
   const ipcPromise = initializeIpcHandlers();

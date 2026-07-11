@@ -260,6 +260,53 @@ const agent = new Agent({
 | `DEFAULT_MAX_STEPS` | 50 | `task-executor.ts` |
 | `MAX_RETRIES` (planning) | 3 | `task-planner.ts` |
 
+## Script Mode (code-shaped orchestration)
+
+The third planning mode next to `TaskPlan` and the graph planner: the LLM
+authors a JavaScript *orchestration script* (`ScriptPlanner`), and
+`ScriptRunner` executes it in the QuickJS sandbox. Every `agent()` call in the
+script runs a real `StepExecutor` sub-agent on the host. A script expresses
+what a static DAG cannot — loops until a condition holds, budget-scaled
+fan-out, dedup between rounds, early exit.
+
+```typescript
+const agent = new Agent({
+  name: "researcher",
+  objective: "Find and verify 5 claims about X",
+  provider, model,
+  useScriptPlanner: true,          // LLM writes the script
+  // script: "...",                // or supply one directly (skips planning)
+  maxConcurrentAgents: 8,          // semaphore over concurrent agent() calls
+  maxAgentCalls: 100               // lifetime cap per run
+});
+```
+
+Guest API (see `SCRIPT_PRELUDE` in `script-runner.ts`):
+
+| Primitive | Behavior |
+|---|---|
+| `await agent(prompt, opts?)` | Run a sub-agent. `opts.schema` → structured result via `finish_step`; `opts.tools` restricts the toolset; `opts.label` names progress events. Throws on failure. |
+| `await parallel(thunks)` | Concurrent thunks; a failure resolves to `null` instead of rejecting the batch. |
+| `await pipeline(items, ...stages)` | Each item flows through all stages independently (no barrier). Stages receive `(prev, originalItem, index)`. |
+| `log(message)` | Emits a `log_update` to the host event stream. |
+| `budget` | `maxAgentCalls`, `agentCalls()`, `remainingCalls()`, `await spentUsd()`. |
+| `inputs` | Caller-supplied inputs object. |
+
+The script's `return` value becomes `agent.getResults()`. Sub-agents share
+`context.memory` as usual, and concurrency is bounded host-side by a semaphore
+(`maxConcurrentAgents`, default 8) plus a lifetime call cap (`maxAgentCalls`,
+default 100) — calls past the cap fail with a budget error the script can
+handle (`budget.remainingCalls()` guards loops). Script failures (syntax
+error, uncaught exception, wall-clock timeout — default 60 min including
+sub-agent time) throw from `Agent.execute`.
+
+Host bridges never reject (the QuickJS handle-leak rule from
+`js-sandbox.ts` applies): `__runAgent` resolves `{ok, result|error}` envelopes
+and the guest `agent()` re-throws.
+
+Tests: `tests/script-runner.test.ts`, `tests/script-planner.test.ts`,
+`tests/agent-script-mode.test.ts`.
+
 ## Observing LLM Steps and Planning
 
 ### Execution Tree (CLI)

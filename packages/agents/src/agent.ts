@@ -32,6 +32,8 @@ import { ParallelTaskExecutor } from "./parallel-task-executor.js";
 import { CompilerAgent } from "./compiler-agent.js";
 import { GraphPlanner } from "./graph-planner.js";
 import { AgentWorkflowRunner } from "./agent-workflow-runner.js";
+import { ScriptPlanner } from "./script-planner.js";
+import { ScriptRunner } from "./script-runner.js";
 import type { Tool } from "./tools/base-tool.js";
 import { gateTools } from "./tools/tool-permissions.js";
 import {
@@ -261,6 +263,24 @@ export interface AgentOptions {
    * graph executed by {@link AgentWorkflowRunner}.
    */
   useGraphPlanner?: boolean;
+  /**
+   * Use the script planner: the LLM authors a JavaScript orchestration
+   * script (loops, conditionals, budget-scaled fan-out) instead of a
+   * TaskPlan, and {@link ScriptRunner} executes it deterministically in the
+   * QuickJS sandbox — every `agent()` call in the script runs a real
+   * sub-agent. Takes precedence over {@link useGraphPlanner}.
+   */
+  useScriptPlanner?: boolean;
+  /**
+   * Pre-authored orchestration script. Skips planning entirely and runs the
+   * script directly (implies script mode). See {@link ScriptRunner} for the
+   * script API.
+   */
+  script?: string;
+  /** Script mode: concurrent `agent()` calls beyond this queue. Default 8. */
+  maxConcurrentAgents?: number;
+  /** Script mode: lifetime `agent()` call cap per run. Default 100. */
+  maxAgentCalls?: number;
   /** Node registry required when {@link useGraphPlanner} is true. */
   registry?: NodeRegistry;
   /**
@@ -338,6 +358,10 @@ export class Agent {
   private readonly autoPersistMemory: boolean;
   private readonly synthesizeRecall: boolean;
   private readonly useGraphPlanner: boolean;
+  private readonly useScriptPlanner: boolean;
+  private readonly script?: string;
+  private readonly maxConcurrentAgents?: number;
+  private readonly maxAgentCalls?: number;
   private readonly registry?: NodeRegistry;
   private readonly providers?: Record<string, BaseProvider>;
   private readonly securityMonitorEnabled: boolean;
@@ -373,6 +397,10 @@ export class Agent {
     this.autoPersistMemory = opts.autoPersistMemory === true;
     this.synthesizeRecall = opts.synthesizeRecall ?? true;
     this.useGraphPlanner = opts.useGraphPlanner === true;
+    this.useScriptPlanner = opts.useScriptPlanner === true;
+    this.script = opts.script;
+    this.maxConcurrentAgents = opts.maxConcurrentAgents;
+    this.maxAgentCalls = opts.maxAgentCalls;
     this.registry = opts.registry;
     this.providers = opts.providers;
     this.securityMonitorEnabled = opts.securityMonitor?.enabled === true;
@@ -650,6 +678,17 @@ export class Agent {
       return;
     }
 
+    // Script mode: LLM-authored (or pre-authored) orchestration script,
+    // executed deterministically by ScriptRunner.
+    if (this.script || this.useScriptPlanner) {
+      yield* this.executeScriptPlan(
+        context,
+        mergedSystemPrompt,
+        effectiveObjective
+      );
+      return;
+    }
+
     if (this.useGraphPlanner && this.registry) {
       yield* this.executeGraphPlan(context, mergedSystemPrompt);
       return;
@@ -901,6 +940,66 @@ export class Agent {
       }
       plan = next.value;
     }
+  }
+
+  /**
+   * Script mode: obtain an orchestration script (pre-authored via the
+   * `script` option, otherwise written by ScriptPlanner) and execute it with
+   * ScriptRunner. The script's return value becomes the agent result.
+   */
+  private async *executeScriptPlan(
+    context: ProcessingContext,
+    systemPrompt: string | undefined,
+    objective: string
+  ): AsyncGenerator<ProcessingMessage> {
+    let script = this.script ?? null;
+
+    if (!script) {
+      log.info("Script planning phase started", { name: this.name });
+      const planner = new ScriptPlanner({
+        provider: this.provider,
+        model: this.planningModel,
+        tools: this.tools,
+        systemPrompt,
+        outputSchema: this.outputSchema,
+        inputs: this.inputs
+      });
+      const planGen = planner.plan(objective, context);
+      let planResult = await planGen.next();
+      while (!planResult.done) {
+        yield planResult.value;
+        planResult = await planGen.next();
+      }
+      script = planResult.value;
+      if (!script) {
+        throw new Error(
+          "ScriptPlanner failed to produce an orchestration script."
+        );
+      }
+    }
+
+    const runner = new ScriptRunner({
+      provider: this.provider,
+      model: this.model,
+      context,
+      tools: this.buildExecutorTools(),
+      systemPrompt,
+      inputs: this.inputs,
+      maxStepIterations: this.maxStepIterations,
+      maxConcurrentAgents: this.maxConcurrentAgents,
+      maxAgentCalls: this.maxAgentCalls
+    });
+
+    const runGen = runner.execute(script);
+    let next = await runGen.next();
+    while (!next.done) {
+      yield next.value;
+      next = await runGen.next();
+    }
+    this.results = next.value ?? null;
+
+    log.info("Agent completed", { name: this.name });
+    this.persistAgentRunMemory();
   }
 
   /**

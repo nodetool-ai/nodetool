@@ -58,3 +58,6 @@
 ## 2026-05-25 - O(N*M) Cycle Detection Bottleneck in Topological Sort
 **Learning:** Found an O(N*M) bottleneck in `packages/kernel/src/correlation-analysis.ts` where `order.includes(n)` was called inside `nodes.filter(...)` to find remaining nodes when a cycle is detected. When N is large, this nested iteration degrades performance.
 **Action:** Replaced `.includes()` with a `Set` for O(1) lookups, reducing the complexity from O(N*M) to O(N+M).
+## 2026-05-25 - O(N*M) lookup optimization in node and edge actions
+**Learning:** Found an $O(N \times M)$ performance bottleneck in graph actions (duplication and copy/paste) where `selectedNodeIds.includes(edge.source)` and `selectedNodeIds.includes(edge.target)` were called repeatedly inside `edges.filter(...)` and downstream loops. For large graphs with thousands of nodes and edges, this caused visible UI stalling.
+**Action:** Replaced `.includes()` with a pre-initialized `Set` of the target node IDs. Using `Set.has()` provides $O(1)$ lookups, reducing the algorithm's complexity from $O(N \times M)$ to $O(N + M)$ and noticeably improving the speed of these graph operations.

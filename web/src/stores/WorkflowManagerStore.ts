@@ -83,7 +83,7 @@ export const getOpenWorkflowsFromStorage = (): string[] =>
  * @param currentWorkflowId - The ID of the currently active workflow.
  * @returns The ID of the next workflow to be activated, or null if none are left.
  */
-export const determineNextWorkflowId = (
+const determineNextWorkflowId = (
   openWorkflows: WorkflowAttributes[],
   closingWorkflowId: string,
   currentWorkflowId: string | null

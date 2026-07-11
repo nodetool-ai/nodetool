@@ -96,16 +96,17 @@ export const useDuplicateNodes = (
     }
 
     const selectedNodeIds = selectedNodes.map((node) => node.id);
+    const selectedNodeIdsSet = new Set(selectedNodeIds);
     const connectedEdges = edges.filter(
       (edge) =>
-        selectedNodeIds.includes(edge.source) ||
-        selectedNodeIds.includes(edge.target)
+        selectedNodeIdsSet.has(edge.source) ||
+        selectedNodeIdsSet.has(edge.target)
     );
 
     const newEdges: Edge[] = [];
     for (const edge of connectedEdges) {
-      const sourceInSelection = selectedNodeIds.includes(edge.source);
-      const targetInSelection = selectedNodeIds.includes(edge.target);
+      const sourceInSelection = selectedNodeIdsSet.has(edge.source);
+      const targetInSelection = selectedNodeIdsSet.has(edge.target);
 
       if (sourceInSelection && targetInSelection) {
         const newSource = oldToNewIds.get(edge.source);
