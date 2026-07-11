@@ -18,8 +18,9 @@ import { readdir, readFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-// Production entrypoints installed by the Docker image (see Dockerfile prod-deps
-// stage). Keep in sync if the deployment installs additional workspaces.
+// Production entrypoints bundled into the Docker image (the Dockerfile build
+// stage esbuilds this workspace via scripts/bundle-backend.mjs --profile
+// server). Keep in sync if the deployment bundles additional workspaces.
 const PROD_ENTRYPOINTS = ["@nodetool-ai/websocket"];
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
