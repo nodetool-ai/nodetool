@@ -860,6 +860,8 @@ export class ProcessingContext {
   readonly workspaceDir: string | null;
   readonly assetOutputMode: AssetOutputMode;
   readonly environment: Record<string, string>;
+  /** Bearer token for authenticated calls back to the owning NodeTool API. */
+  readonly authToken: string | null;
 
   /** Message queue: all emitted processing messages. */
   private _messages: ProcessingMessage[] = [];
@@ -967,6 +969,7 @@ export class ProcessingContext {
     onMessage?: (msg: ProcessingMessage) => void;
     variables?: Record<string, unknown>;
     environment?: Record<string, string>;
+    authToken?: string | null;
     secretResolver?: (
       key: string,
       userId: string
@@ -1002,6 +1005,7 @@ export class ProcessingContext {
       if (typeof v === "string") env[k] = v;
     }
     this.environment = { ...env, ...(opts.environment ?? {}) };
+    this.authToken = opts.authToken ?? null;
     this._secretResolver = opts.secretResolver ?? null;
     this._fetch =
       opts.fetchFn ??
@@ -1024,6 +1028,7 @@ export class ProcessingContext {
       workspaceStorage: this.workspaceStorage,
       variables: { ...this._variables },
       environment: { ...this.environment },
+      authToken: this.authToken,
       fetchFn: this._fetch,
       secretResolver: this._secretResolver ?? undefined,
       tempUrlResolver: this._tempUrlResolver ?? undefined,
