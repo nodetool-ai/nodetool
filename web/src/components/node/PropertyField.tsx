@@ -71,9 +71,6 @@ export type PropertyFieldProps = {
   onValueChange?: (value: unknown) => void;
 };
 
-/**
- * PropertyField renders a single property of a node.
- */
 const PropertyField: React.FC<PropertyFieldProps> = ({
   id,
   value,

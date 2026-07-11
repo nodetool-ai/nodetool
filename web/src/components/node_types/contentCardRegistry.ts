@@ -59,9 +59,9 @@ export const isContentCardNode = (
 };
 
 /**
- * Per-variant default card dimensions applied at node creation time
- * (plan §6.3). Resolved from the node's primary output via
- * `getContentCardDefaultSize`. Single source of truth for content-card sizes.
+ * Per-variant default card dimensions applied at node creation time.
+ * Resolved from the node's primary output via `getContentCardDefaultSize`.
+ * Single source of truth for content-card sizes.
  */
 // Heights are sized for the preview area only; prompt/text inputs now render
 // as left-edge handles (see classifyFields), so we no longer pad for an inline
@@ -79,7 +79,7 @@ export const CONTENT_CARD_SIZES = {
 /**
  * Pick the "primary" output for a ContentCardBody preview.
  *
- * Resolution order (plan §13.2 OQ-3):
+ * Resolution order:
  *   1. If `metadata.primary_output` names an output, use it.
  *      (This is a forward-compatible optional field — backend node authors
  *       may set it; absent today.)
@@ -151,7 +151,7 @@ export const getContentCardVariant = (
 /**
  * Default `{width, height}` for a content-card node, picked by the node's
  * primary-output variant. Used by `NodeStore` when a content-card node is
- * created on the canvas (plan §6.3).
+ * created on the canvas.
  */
 export const getContentCardDefaultSize = (
   metadata: NodeMetadata
@@ -179,10 +179,6 @@ const PROMPT_TEMPLATE_NODES = new Set<string>([
  * Human label for the `DynamicInputButton` shown in a content card.
  * Picked from primary-output variant — image generators say
  * "+ Add another image input", text/prompt nodes say "+ Add variable", etc.
- *
- * Plan §6.5: "+ Add another image input" (image-multi-input generators),
- * "+ Add another text input" (text concatenators), "+ Add variable"
- * (Prompt / template nodes).
  */
 export const getDynamicInputLabel = (metadata: NodeMetadata): string => {
   const t = metadata.node_type ?? "";

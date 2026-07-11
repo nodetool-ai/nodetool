@@ -96,7 +96,6 @@ const styles = (theme: Theme) =>
     }
   });
 
-// Type metadata for image handles
 const imageTypeMetadata = {
   type: "image",
   type_args: [],
@@ -183,7 +182,6 @@ const CompareImagesNode: React.FC<CompareImagesNodeProps> = (props) => {
       }`}
     >
       <div className="compare-node-content">
-        {/* Handle for image_a */}
         <div className="handle-popup image_a">
           <HandleTooltip
             typeMetadata={imageTypeMetadata}
@@ -201,7 +199,6 @@ const CompareImagesNode: React.FC<CompareImagesNodeProps> = (props) => {
           </HandleTooltip>
         </div>
 
-        {/* Handle for image_b */}
         <div className="handle-popup image_b">
           <HandleTooltip
             typeMetadata={imageTypeMetadata}

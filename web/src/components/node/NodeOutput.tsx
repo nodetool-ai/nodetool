@@ -33,7 +33,6 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, displayName }) => {
   const findNode = useNodes((state) => state.findNode);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
 
-  // Track timeout to cleanup on unmount
   const contextMenuTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const effectiveConnectType = useMemo<TypeMetadata | null>(() => {
@@ -67,7 +66,6 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, displayName }) => {
   const outputContextMenu = useCallback(
     (event: React.MouseEvent, id: string, output: OutputSlot) => {
       event.preventDefault();
-      // Clear any pending timeout before scheduling a new one
       if (contextMenuTimeoutRef.current) {
         clearTimeout(contextMenuTimeoutRef.current);
       }
@@ -86,7 +84,6 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, displayName }) => {
     [openContextMenu]
   );
 
-  // Cleanup timeout on unmount
   React.useEffect(() => {
     return () => {
       if (contextMenuTimeoutRef.current) {

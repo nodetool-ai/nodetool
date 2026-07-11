@@ -43,7 +43,6 @@ export const integerEditor: Editor = (
   editor.addEventListener("blur", onChange);
   editor.addEventListener("keydown", onKeyDown);
 
-  // Register cleanup function via onRendered callback
   onRendered(() => {
     return () => {
       editor.removeEventListener("change", onChange);
@@ -89,7 +88,6 @@ export const floatEditor: Editor = (
   editor.addEventListener("blur", onChange);
   editor.addEventListener("keydown", onKeyDown);
 
-  // Register cleanup function via onRendered callback
   onRendered(() => {
     return () => {
       editor.removeEventListener("change", onChange);
@@ -137,13 +135,11 @@ export const datetimeEditor: Editor = (
     );
 
     return () => {
-      // Cleanup React root
       const entry = datePickerRoots.get(editor);
       if (entry) {
         entry.root.unmount();
         datePickerRoots.delete(editor);
       }
-      // Cleanup blur event listener
       editor.removeEventListener("blur", onBlur);
     };
   });

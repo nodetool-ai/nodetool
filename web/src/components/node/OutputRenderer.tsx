@@ -275,7 +275,6 @@ const concatTextChunksSafely = (
   };
 };
 
-// Custom hook for draggable scrolling
 const formatAudioChunkTimestamp = (seconds: number): string => {
   if (!Number.isFinite(seconds) || seconds < 0) {
     return "00:00.000";
@@ -321,7 +320,6 @@ const useDraggableScroll = () => {
     scrollRef.current.style.cursor = "grab";
   });
 
-  // Set up global listeners once
   useEffect(() => {
     const handleGlobalMouseMove = (e: MouseEvent) => handleMouseMoveRef.current(e);
     const handleGlobalMouseUp = () => handleMouseUpRef.current();
@@ -357,8 +355,6 @@ export type OutputRendererProps = {
   value: unknown;
   showTextActions?: boolean;
 };
-
-// all helpers/styles/hooks moved to ./output/*
 
 const OutputRenderer: React.FC<OutputRendererProps> = ({
   value,

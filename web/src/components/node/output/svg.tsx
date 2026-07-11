@@ -2,7 +2,6 @@ import React, { createElement } from "react";
 import DOMPurify from "dompurify";
 import { SVGElement } from "../../../stores/ApiTypes";
 
-// Configure DOMPurify to allow SVG elements and attributes
 const sanitizeSvgContent = (html: string): string => {
   return DOMPurify.sanitize(html, {
     USE_PROFILES: { svg: true, svgFilters: true },

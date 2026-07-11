@@ -161,23 +161,12 @@ function isImageInputType(property: Property): boolean {
   return false;
 }
 
-/**
- * Get the component for the property.
- *
- * @param property The property.
- * @returns The component for the property.
- * @returns null if the property type is not supported.
- * @returns InputProperty if the property type is supported.
- */
 function componentFor(
   property: Property
 ): React.ComponentType<PropertyProps> | null {
   return getComponentForProperty(property);
 }
 
-/**
- * Properties for the PropertyInput component.
- */
 export type PropertyInputProps = {
   id: string;
   nodeType: string;
@@ -297,7 +286,6 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   const hasResetDefault = property.default != null;
   const isChanged = hasResetDefault && !isEqual(value, property.default);
 
-  // Handle slider/number input change complete
   const handleChangeComplete = useCallback(() => {
     onPropertyChangeComplete();
   }, [onPropertyChangeComplete]);

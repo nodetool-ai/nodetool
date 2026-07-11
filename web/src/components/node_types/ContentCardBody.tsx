@@ -5,7 +5,7 @@
  * Content-forward node body for nodes whose metadata declares
  * `body: "content_card"` (image / video / text / etc. generators and "thin"
  * image-edit nodes). See `isContentCardNode` in `contentCardRegistry`.
- * Three regions per plan §6.1:
+ * Three regions:
  *
  *   1. Header           — already rendered by `NodeHeader` in `BaseNode`
  *   2. Preview area     — variant dispatch by primary-output type
@@ -16,9 +16,6 @@
  * Inline fields are rendered below the preview via the existing
  * `NodeInputs` infrastructure. Input fields render as handle-only ports on
  * the left edge via `HandleColumn`. Everything else stays in the Inspector.
- *
- * PR 4 ships only the **image** variant. Other variants fall through to
- * `OutputRenderer` for now and get bespoke previews in PR 5.
  */
 
 import React, { memo, useCallback, useMemo } from "react";
@@ -567,7 +564,7 @@ const TextPreview: React.FC<{ value: unknown }> = ({ value }) => {
 };
 
 const Model3DPreview: React.FC<{ value: unknown }> = ({ value }) => {
-  // Per plan §6.2: static thumbnail only — no interactive viewer.
+  // Static thumbnail only — no interactive viewer.
   const v =
     value && typeof value === "object"
       ? (value as Record<string, unknown>)
@@ -746,11 +743,8 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
     [useNewLayout, properties, handleNames, inlineFieldNameSet, data]
   );
 
-  // Adding a dynamic property is the responsibility of dynamic-input wiring
-  // landed in earlier work (NodeInputs / NodePropertyForm). For PR 4 we
-  // expose a placeholder onAdd that delegates to the same store flow used
-  // by NodePropertyForm — but we only render the button when the node opts
-  // into `supports_dynamic_inputs`. If no add handler is wired, the button is disabled.
+  // Only rendered when the node opts into `supports_dynamic_inputs`; delegates
+  // to the same store flow as NodePropertyForm.
   const updateNodeData = useNodes((state) => state.updateNodeData);
   const handleAddDynamicInput = useCallback(() => {
     const existing = data.dynamic_properties ?? {};

@@ -7,20 +7,14 @@ interface InputNodeNameWarningProps {
   name: string | undefined;
 }
 
-/**
- * Component that displays a warning when an input node has an empty name.
- * Input nodes require a name property for the workflow to run correctly.
- */
 const InputNodeNameWarning: React.FC<InputNodeNameWarningProps> = ({
   nodeType,
   name
 }) => {
   const shouldShowWarning = useMemo(() => {
-    // Only show warning for input nodes
     if (!nodeType.startsWith("nodetool.input.")) {
       return false;
     }
-    // Show warning if name is empty or undefined
     return !name || name.trim() === "";
   }, [nodeType, name]);
 

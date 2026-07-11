@@ -50,8 +50,7 @@ const Toolbar = memo(function Toolbar({
 /**
  * Dedicated React Flow node for SubgraphNode (inline sub-graph execution).
  * Inputs/outputs are derived from the inner Input/Output nodes stored in
- * `data.properties.graph`. Double-click opens the subgraph in a new tab
- * (handled by the editor — wiring lands in a follow-up).
+ * `data.properties.graph`. Double-click opens the subgraph in a new tab.
  */
 const SubgraphNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const theme = useTheme();
