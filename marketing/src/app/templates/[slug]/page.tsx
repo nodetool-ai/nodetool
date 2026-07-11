@@ -13,6 +13,7 @@ import {
   relatedTemplates,
   type TemplateEntry,
 } from "@/data/templates";
+import { miniAppEntries } from "@/data/miniApps";
 
 const BASE_URL = "https://nodetool.ai";
 const GITHUB_URL = "https://github.com/nodetool-ai/nodetool";
@@ -91,6 +92,7 @@ export default async function TemplatePage({
 
   const steps = runSteps(entry);
   const related = relatedTemplates(entry, templateEntries, 9);
+  const miniApp = miniAppEntries.find((a) => a.slug === entry.slug);
   const summary =
     entry.summary ||
     `${entry.name} is a ready-to-run NodeTool workflow. Open it in Studio, connect your keys, and run it — then edit any node to make it yours.`;
@@ -159,6 +161,14 @@ export default async function TemplatePage({
                 <Play className="h-4 w-4" />
                 How to run it
               </a>
+              {miniApp && (
+                <a
+                  href={miniApp.route}
+                  className="inline-flex items-center gap-2 rounded-full border border-sky-500/30 bg-sky-500/10 px-8 py-3.5 text-sm font-semibold text-sky-300 transition-all hover:border-sky-500/50 hover:bg-sky-500/20"
+                >
+                  Try it as a mini app
+                </a>
+              )}
             </div>
           </div>
         </section>

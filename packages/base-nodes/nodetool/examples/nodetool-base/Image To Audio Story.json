@@ -33,6 +33,14 @@
           "className": "str"
         },
         "edge_type": "data"
+      },
+      {
+        "id": "edge-output-narration",
+        "source": "ffb9de38-7e20-4f07-afa8-6b2a0423315f",
+        "sourceHandle": "audio",
+        "target": "output-narration",
+        "targetHandle": "value",
+        "ui_properties": null
       }
     ],
     "nodes": [
@@ -125,6 +133,20 @@
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
+      },
+      {
+        "id": "output-narration",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "narration"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 990,
+            "y": 196
+          },
+          "selectable": true
+        }
       }
     ]
   },
@@ -138,5 +160,83 @@
   "required_providers": null,
   "required_models": null,
   "html_app": null,
-  "etag": "401c49fd798bf06e9cc964974b0783ff"
+  "etag": "401c49fd798bf06e9cc964974b0783ff",
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Image To Audio Story"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-title",
+            "text": "🔊 Image To Audio Story",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "Point it at a picture — hear the story it tells, narrated aloud."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-try",
+            "title": "Try it",
+            "content": [
+              {
+                "type": "Text",
+                "props": {
+                  "id": "note-media",
+                  "text": "🖼️ Uses the bundled sample image — swap in any picture in NodeTool Studio."
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "id": "btn-run",
+                  "label": "Tell me its story",
+                  "variant": "contained",
+                  "color": "primary",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "key": "",
+                      "value": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-results",
+            "title": "Results",
+            "content": [
+              {
+                "type": "Audio",
+                "props": {
+                  "id": "out-narration",
+                  "binding": "narration",
+                  "placeholder": "Your audio appears here"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
 }

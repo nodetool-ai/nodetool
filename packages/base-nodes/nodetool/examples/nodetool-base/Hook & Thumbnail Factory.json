@@ -5,7 +5,7 @@
   "updated_at": "2026-06-25T12:00:00.000Z",
   "name": "Hook & Thumbnail Factory",
   "tool_name": null,
-  "description": "Turn a video topic into scroll-stopping hook ideas and a matching AI thumbnail for each \u2014 a faceless short-form content starter kit in one run.",
+  "description": "Turn a video topic into scroll-stopping hook ideas and a matching AI thumbnail for each — a faceless short-form content starter kit in one run.",
   "tags": [
     "image",
     "content",
@@ -111,7 +111,7 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# \ud83c\udfac Hook & Thumbnail Factory\n\nGive a video topic and audience. The graph writes scroll-stopping hook ideas and, for each one, generates a matching thumbnail image \u2014 a full faceless-content starter kit.\n\n**Pipeline:** Topic + audience \u2192 hook brief \u2192 List Generator (streams hooks) \u2192 thumbnail prompt \u2192 Text-to-Image\n\n**Try this:** change the topic or audience, ask for more hooks, or tweak the thumbnail style. Pick a text model on the list generator and an image model on Text-to-Image first."
+          "comment": "# 🎬 Hook & Thumbnail Factory\n\nGive a video topic and audience. The graph writes scroll-stopping hook ideas and, for each one, generates a matching thumbnail image — a full faceless-content starter kit.\n\n**Pipeline:** Topic + audience → hook brief → List Generator (streams hooks) → thumbnail prompt → Text-to-Image\n\n**Try this:** change the topic or audience, ask for more hooks, or tweak the thumbnail style. Pick a text model on the list generator and an image model on Text-to-Image first."
         },
         "ui_properties": {
           "selected": false,
@@ -144,7 +144,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "1\ufe0f\u20e3 Video topic",
+          "title": "1️⃣ Video topic",
           "selectable": true,
           "bypassed": false
         },
@@ -167,7 +167,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "2\ufe0f\u20e3 Target audience",
+          "title": "2️⃣ Target audience",
           "selectable": true,
           "bypassed": false
         },
@@ -189,7 +189,7 @@
           "zIndex": 0,
           "width": 340,
           "height": 460,
-          "title": "3\ufe0f\u20e3 Build hook brief",
+          "title": "3️⃣ Build hook brief",
           "selectable": true,
           "bypassed": false
         },
@@ -215,7 +215,7 @@
           "zIndex": 0,
           "width": 360,
           "height": 420,
-          "title": "4\ufe0f\u20e3 Generate hooks",
+          "title": "4️⃣ Generate hooks",
           "selectable": true,
           "bypassed": false
         },
@@ -237,7 +237,7 @@
           "zIndex": 0,
           "width": 340,
           "height": 460,
-          "title": "5\ufe0f\u20e3 Build thumbnail prompt",
+          "title": "5️⃣ Build thumbnail prompt",
           "selectable": true,
           "bypassed": false
         },
@@ -266,7 +266,7 @@
           "zIndex": 0,
           "width": 320,
           "height": 360,
-          "title": "6\ufe0f\u20e3 Generate thumbnail",
+          "title": "6️⃣ Generate thumbnail",
           "selectable": true,
           "bypassed": false
         },
@@ -288,7 +288,7 @@
           "zIndex": 0,
           "width": 360,
           "height": 300,
-          "title": "\ud83e\ude9d Hook ideas",
+          "title": "🪝 Hook ideas",
           "selectable": true,
           "bypassed": false
         },
@@ -310,7 +310,7 @@
           "zIndex": 0,
           "width": 360,
           "height": 320,
-          "title": "\ud83d\uddbc\ufe0f Thumbnail",
+          "title": "🖼️ Thumbnail",
           "selectable": true,
           "bypassed": false
         },
@@ -343,5 +343,135 @@
   "workspace_id": null,
   "required_providers": null,
   "required_models": null,
-  "html_app": null
+  "html_app": null,
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Hook & Thumbnail Factory"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-title",
+            "text": "🪝 Hook & Thumbnail Factory",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "Give it a video topic — get scroll-stopping hooks and a matching thumbnail."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-video-topic",
+                        "binding": "Video Topic",
+                        "label": "What's your video about?",
+                        "placeholder": "How compound interest quietly builds wealth",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-target-audience",
+                        "binding": "Target Audience",
+                        "label": "Who's watching?",
+                        "placeholder": "Gen Z just starting to invest",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Make hooks & thumbnail",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-hooks",
+                        "text": "Hook ideas",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-hooks",
+                        "binding": "hooks",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-thumbnail",
+                        "text": "Thumbnail",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-thumbnail",
+                        "binding": "thumbnail",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
 }

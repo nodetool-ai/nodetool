@@ -1,0 +1,90 @@
+{
+  "slug": "color-boost-video",
+  "name": "Color Boost Video",
+  "description": "Grade a short video clip by splitting it into frames, applying exposure/contrast and saturation/vibrance adjustments per frame, then reassembling the result for cinematic color.",
+  "image": "/app-preview/img/color-boost-video.jpg",
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Color Boost Video"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-title",
+            "text": "🌈 Color Boost Video",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "Give any clip a cinematic color grade — no editor required."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-try",
+            "title": "Try it",
+            "content": [
+              {
+                "type": "Text",
+                "props": {
+                  "id": "note-media",
+                  "text": "🎞️ Uses the bundled sample clip — drop in your own in NodeTool Studio."
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "id": "btn-run",
+                  "label": "Boost my video",
+                  "variant": "contained",
+                  "color": "primary",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "key": "",
+                      "value": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-results",
+            "title": "Results",
+            "content": [
+              {
+                "type": "Video",
+                "props": {
+                  "id": "out-graded-video",
+                  "binding": "graded_video",
+                  "height": 320,
+                  "placeholder": "Your video appears here"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  },
+  "values": {
+    "graded_video": {
+      "$demo": "video"
+    }
+  }
+}

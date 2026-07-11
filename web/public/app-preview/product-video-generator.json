@@ -1,0 +1,137 @@
+{
+  "slug": "product-video-generator",
+  "name": "Product Video Generator",
+  "description": "Create a realistic 16:9 marketing video for a new product launch using the ImageToVideo node.",
+  "image": "/app-preview/img/product-video-generator.jpg",
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Product Video Generator"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-title",
+            "text": "📺 Product Video Generator",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "Brief in, launch video out — a realistic 16:9 spot for your product."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-campaign-brief",
+                        "binding": "campaign_brief",
+                        "label": "Campaign brief",
+                        "placeholder": "Launch video for the Aurora Trail smart fitness watch, highlighting outdoor adve",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-target-audience",
+                        "binding": "target_audience",
+                        "label": "Target audience",
+                        "placeholder": "active millennials who enjoy weekend hiking and fitness challenges",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-key-features",
+                        "binding": "key_features",
+                        "label": "Key features",
+                        "placeholder": "GPS navigation, heart-rate analytics, adaptive coaching, water resistance",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "note-media",
+                        "text": "📷 Uses the bundled product image — replace it in NodeTool Studio."
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Generate launch video",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-product-video",
+                        "binding": "product_video",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  },
+  "values": {
+    "campaign_brief": "Launch video for the Aurora Trail smart fitness watch, highlighting outdoor adventure tracking.",
+    "target_audience": "active millennials who enjoy weekend hiking and fitness challenges",
+    "key_features": "GPS navigation, heart-rate analytics, adaptive coaching, water resistance",
+    "product_video": {
+      "$demo": "video"
+    }
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "slug": "pokemon-maker",
+  "name": "Pokemon Maker",
+  "description": "",
+  "image": "/app-preview/img/pokemon-maker.jpg",
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Pokemon Maker"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-title",
+            "text": "🐉 Pokemon Maker",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "Mix any animals you like — meet the creature they become."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-try",
+            "title": "Try it",
+            "content": [
+              {
+                "type": "TextInput",
+                "props": {
+                  "id": "in-animals",
+                  "binding": "animals",
+                  "label": "Mix these animals",
+                  "placeholder": "lion, eagle, dragon, bear",
+                  "multiline": false,
+                  "events": []
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "id": "btn-run",
+                  "label": "Create my creature",
+                  "variant": "contained",
+                  "color": "primary",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "key": "",
+                      "value": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-results",
+            "title": "Results",
+            "content": [
+              {
+                "type": "Image",
+                "props": {
+                  "id": "out-pokemon",
+                  "binding": "pokemon",
+                  "fit": "contain",
+                  "height": 280,
+                  "placeholder": "Your result appears here"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  },
+  "values": {
+    "animals": "lion, eagle, dragon, bear",
+    "pokemon": {
+      "$demo": "image"
+    }
+  }
+}

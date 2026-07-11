@@ -24,6 +24,14 @@
         "target": "d6a1dc18-d26c-45c4-9196-2d6524018b1b",
         "targetHandle": "__control__",
         "edge_type": "control"
+      },
+      {
+        "id": "edge-output-results",
+        "source": "d6a1dc18-d26c-45c4-9196-2d6524018b1b",
+        "sourceHandle": "text",
+        "target": "output-results",
+        "targetHandle": "value",
+        "ui_properties": null
       }
     ],
     "nodes": [
@@ -111,6 +119,20 @@
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
+      },
+      {
+        "id": "output-results",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "results"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 619,
+            "y": 685
+          },
+          "selectable": true
+        }
       }
     ]
   },
@@ -124,5 +146,76 @@
   "required_providers": null,
   "required_models": null,
   "html_app": null,
-  "etag": "43bd2b1fea5f109f5a1594b60e299886"
+  "etag": "43bd2b1fea5f109f5a1594b60e299886",
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Agent Google Search"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-title",
+            "text": "🔎 Agent Google Search",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "Ask anything — an agent runs the Google searches and reports back."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-try",
+            "title": "Try it",
+            "content": [
+              {
+                "type": "Button",
+                "props": {
+                  "id": "btn-run",
+                  "label": "Search with the agent",
+                  "variant": "contained",
+                  "color": "primary",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "key": "",
+                      "value": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-results",
+            "title": "Results",
+            "content": [
+              {
+                "type": "Markdown",
+                "props": {
+                  "id": "out-results",
+                  "binding": "results",
+                  "text": ""
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
 }
