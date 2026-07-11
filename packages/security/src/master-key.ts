@@ -16,10 +16,6 @@
  * New secrets must be created via the appropriate runtime's endpoints.
  */
 
-import {
-  SecretsManagerClient,
-  GetSecretValueCommand
-} from "@aws-sdk/client-secrets-manager";
 import { generateMasterKey } from "./crypto.js";
 import { createLogger } from "@nodetool-ai/config";
 
@@ -89,6 +85,22 @@ async function loadKeytar(): Promise<KeytarModule> {
   }
 }
 
+/**
+ * Lazy-load the AWS Secrets Manager SDK. Imported on demand so the ~90
+ * @aws-sdk/@smithy packages only load when AWS_SECRETS_MASTER_KEY_NAME is set.
+ */
+let _secretsManagerModule: typeof import("@aws-sdk/client-secrets-manager") | null =
+  null;
+async function loadSecretsManager(): Promise<
+  typeof import("@aws-sdk/client-secrets-manager")
+> {
+  if (_secretsManagerModule) {
+    return _secretsManagerModule;
+  }
+  _secretsManagerModule = await import("@aws-sdk/client-secrets-manager");
+  return _secretsManagerModule;
+}
+
 /** Active keytar implementation (can be overridden in tests). */
 let _keytar: KeytarModule | null = null;
 
@@ -120,6 +132,8 @@ export function resetKeytarLoader(): void {
  */
 async function getFromAwsSecrets(secretName: string): Promise<string | null> {
   const region = process.env["AWS_REGION"] ?? "us-east-1";
+  const { SecretsManagerClient, GetSecretValueCommand } =
+    await loadSecretsManager();
   const client = new SecretsManagerClient({ region });
 
   const response = await client.send(

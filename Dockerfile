@@ -38,17 +38,35 @@ RUN rm -rf node_modules \
 # runs local ML inference (it delegates to provider APIs). If any of these is
 # ever needed server-side, the lazy loader throws a clear "install the package"
 # error rather than crashing at boot.
+#
+# Also stripped:
+#   typescript — installed only to satisfy @trpc/server's ">=5.7.2"
+#     peerDependency; the compiler never runs at runtime (~22 MB).
+#   keytar — lazy keychain fallback (packages/security/src/master-key.ts,
+#     packages/runtime secure-credential-store); this stage never installs
+#     libsecret-1-0, so it cannot load anyway — prod uses SECRETS_MASTER_KEY.
+#   webgpu — optionalDependency of packages/gpu, lazy `await import()` with an
+#     install-hint error (packages/gpu/src/node.ts); the cloud server does no
+#     local GPU compute.
+#   pdf-parse's nested node_modules — duplicate @napi-rs/canvas: pdf-parse
+#     pins "0.1.80" exactly, so npm nests the wrapper plus ~58 MB of platform
+#     binaries (canvas-linux-x64-gnu/-musl) beside the hoisted 0.1.100.
+#     pdf-parse's ESM build (the path office-text-extractor uses) never loads
+#     canvas itself — the guarded try/catch require lives in hoisted
+#     pdfjs-dist, which already resolves the hoisted 0.1.100.
 RUN set -eu; \
     for p in \
       onnxruntime-node \
       @huggingface/transformers \
       @tensorflow tesseract.js tesseract.js-core \
+      typescript keytar webgpu \
     ; do \
       rm -rf "node_modules/$p"; \
     done; \
     rm -rf node_modules/@tensorflow-models; \
     rm -rf node_modules/@anthropic-ai/claude-agent-sdk \
            node_modules/@anthropic-ai/claude-agent-sdk-*; \
+    rm -rf node_modules/pdf-parse/node_modules; \
     true
 
 FROM deps AS build
@@ -112,7 +130,8 @@ RUN mkdir -p /runtime/packages /runtime/web \
          cp -a packages/base-nodes/nodetool/assets /runtime/packages/base-nodes/nodetool/assets; \
        fi \
     && cp web/package.json /runtime/web/package.json \
-    && cp -a web/dist /runtime/web/dist
+    && cp -a web/dist /runtime/web/dist \
+    && find /runtime/web/dist -name '*.map' -delete
 
 FROM node:22-slim AS runtime
 

@@ -50,7 +50,9 @@ const EXTERNAL_PACKAGES = [
   "@img/sharp-*",
   "node-web-audio-api",
   "keytar",
-  "onnxruntime-node",
+  // onnxruntime-node is intentionally NOT staged: @huggingface/transformers is
+  // a devDependency only, so no runtime import path exists in the packaged
+  // backend. On desktop those nodes install via the Package Manager.
   "webgpu",
 
   // Native optional deps (loaded by bundleable packages)
@@ -120,7 +122,9 @@ const esbuildOnlyExternalSet = new Set(ESBUILD_ONLY_EXTERNAL_PACKAGES);
 const TARGET_PLATFORM = process.env.NODETOOL_BUNDLE_PLATFORM || process.platform;
 const TARGET_ARCH = process.env.NODETOOL_BUNDLE_ARCH || process.arch;
 const MULTIPLATFORM_BINARY_PACKAGES = [
-  { name: "onnxruntime-node", binRoot: path.join("bin", "napi-v3") },
+  // Currently empty — onnxruntime-node (the original entry) is no longer
+  // staged. Add { name, binRoot } entries here when a staged package ships
+  // per-platform binaries under a single root again.
 ];
 
 // ---------------------------------------------------------------------------
@@ -426,6 +430,231 @@ async function copyExternalPackages() {
 }
 
 // ---------------------------------------------------------------------------
+// Staged-module pruning
+// ---------------------------------------------------------------------------
+
+/** On-disk size of a file or directory, in bytes. */
+async function pathSize(target) {
+  let stat;
+  try {
+    stat = await fsp.lstat(target);
+  } catch {
+    return 0;
+  }
+  return stat.isDirectory() ? dirSize(target) : stat.size;
+}
+
+// Files that are never needed at runtime, safe to strip from every staged
+// package. Runtime-relevant extensions (.js, .cjs, .mjs, .json, .node, .wasm)
+// are explicitly protected and never deleted by the generic pass. Junk-named
+// directories are only pruned at a package root (parent has package.json):
+// nested ones can be compiled runtime code (yaml/dist/doc/ is require()d by
+// yaml's entry, playwright/lib/mcp/test/ by its CLI).
+const JUNK_FILE_PATTERNS = [
+  /\.(md|markdown|map|flow)$/i,
+  /\.d\.(ts|mts|cts)$/,
+  /^LICENSE(\..+)?$/i,
+  /^LICENCE/i,
+  /^CHANGELOG/i,
+  /^AUTHORS/i,
+];
+const PROTECTED_FILE_RE = /\.(wasm|node|json|cjs|mjs|js)$/i;
+const JUNK_DIR_NAMES = new Set([
+  "test",
+  "tests",
+  "__tests__",
+  "docs",
+  "doc",
+  "example",
+  "examples",
+  ".github",
+  "coverage",
+]);
+
+// The emscripten wasm package's directory layout is load-bearing (the .wasm
+// asset resolves relative to its JS) — strip only generic junk files inside
+// it, never whole directories.
+const NO_DIR_PRUNE_PACKAGES = ["@jitl/quickjs-ng-wasmfile-release-sync"];
+
+/**
+ * Strip docs, typings, source maps, tests, and other non-runtime files from
+ * the staged _modules/ tree. Returns bytes reclaimed.
+ */
+async function pruneStagedJunk(modulesDir) {
+  let reclaimed = 0;
+
+  async function remove(target) {
+    reclaimed += await pathSize(target);
+    await fsp.rm(target, { recursive: true, force: true });
+  }
+
+  async function walk(dir, allowDirPrune) {
+    let entries;
+    try {
+      entries = await fsp.readdir(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        const rel = path
+          .relative(modulesDir, full)
+          .split(path.sep)
+          .join("/");
+        const dirPruneOk =
+          allowDirPrune &&
+          !NO_DIR_PRUNE_PACKAGES.some(
+            (pkg) => rel === pkg || rel.startsWith(pkg + "/")
+          );
+        const atPackageRoot = fs.existsSync(path.join(dir, "package.json"));
+        if (
+          dirPruneOk &&
+          atPackageRoot &&
+          JUNK_DIR_NAMES.has(entry.name.toLowerCase())
+        ) {
+          await remove(full);
+          continue;
+        }
+        await walk(full, dirPruneOk);
+      } else {
+        if (PROTECTED_FILE_RE.test(entry.name)) continue;
+        if (JUNK_FILE_PATTERNS.some((re) => re.test(entry.name))) {
+          await remove(full);
+        }
+      }
+    }
+  }
+
+  await walk(modulesDir, true);
+  return reclaimed;
+}
+
+/**
+ * Package-specific prunes for staged packages that ship large trees the
+ * backend never loads. Each rule verifies the package's entry points before
+ * deleting and skips with a warning if the layout doesn't match expectations.
+ * Returns bytes reclaimed.
+ */
+async function pruneTargetedPackages(modulesDir) {
+  let reclaimed = 0;
+
+  async function remove(target) {
+    if (!fs.existsSync(target)) return;
+    reclaimed += await pathSize(target);
+    await fsp.rm(target, { recursive: true, force: true });
+  }
+
+  // openai ships its TypeScript sources in src/ alongside the compiled
+  // package-root output; main/exports point at the compiled files only.
+  const openaiDir = path.join(modulesDir, "openai");
+  const openaiPkgJson = path.join(openaiDir, "package.json");
+  if (fs.existsSync(openaiPkgJson)) {
+    const pkg = await readJson(openaiPkgJson);
+    const entryRefs = JSON.stringify({ main: pkg.main, exports: pkg.exports });
+    if (/\bsrc\//.test(entryRefs)) {
+      console.warn(
+        "  Warning: openai entry points reference src/, skipping src/ prune"
+      );
+    } else {
+      await remove(path.join(openaiDir, "src"));
+    }
+  }
+
+  // AWS SDK v3 / smithy packages ship triple output (dist-cjs, dist-es,
+  // dist-types); Node resolves only dist-cjs via "main".
+  for (const scope of ["@aws-sdk", "@smithy"]) {
+    const scopeDir = path.join(modulesDir, scope);
+    if (!fs.existsSync(scopeDir)) continue;
+    for (const name of await fsp.readdir(scopeDir)) {
+      const pkgDir = path.join(scopeDir, name);
+      const pkgJsonPath = path.join(pkgDir, "package.json");
+      if (!fs.existsSync(pkgJsonPath)) continue;
+      const pkg = await readJson(pkgJsonPath);
+      const main = (pkg.main ?? "").replace(/^\.\//, "");
+      if (!main.startsWith("dist-cjs/")) {
+        console.warn(
+          `  Warning: ${scope}/${name} main is "${pkg.main}" (not dist-cjs), ` +
+            "skipping dist-es/dist-types prune"
+        );
+        continue;
+      }
+      await remove(path.join(pkgDir, "dist-es"));
+      await remove(path.join(pkgDir, "dist-types"));
+    }
+  }
+
+  // pdfjs-dist: every staged consumer (pdf-parse; office-text-extractor and
+  // @llamaindex/liteparse have no pdfjs-dist references at all) imports the
+  // legacy build (pdfjs-dist/legacy/*) only — see the EXTERNAL_PACKAGES
+  // comment above. The modern build/ and the viewer web/ tree are dead weight.
+  const pdfjsDir = path.join(modulesDir, "pdfjs-dist");
+  if (fs.existsSync(pdfjsDir)) {
+    await remove(path.join(pdfjsDir, "build"));
+    await remove(path.join(pdfjsDir, "web"));
+  }
+
+  return reclaimed;
+}
+
+/**
+ * node-web-audio-api ships one prebuilt .node per platform/arch at the
+ * package root (node-web-audio-api.<platform>-<arch>[-<abi>].node — see its
+ * load-native.cjs). Delete the prebuilds that can't load on the bundle
+ * target. Guard: never delete anything unless a prebuild matching
+ * TARGET_PLATFORM/TARGET_ARCH is confirmed present, so a wrong
+ * NODETOOL_BUNDLE_PLATFORM leaves the package untouched. On linux both -gnu
+ * and -musl variants of the target arch are kept, and unknown-token files
+ * (e.g. a local node-web-audio-api.build-release.node) are never touched.
+ * Returns bytes reclaimed.
+ */
+async function pruneWebAudioPrebuilds(modulesDir) {
+  const pkgDir = path.join(modulesDir, "node-web-audio-api");
+  if (!fs.existsSync(pkgDir)) return 0;
+
+  const KNOWN_PLATFORMS = new Set(["darwin", "linux", "win32"]);
+  const binRe = /^node-web-audio-api\.(.+)\.node$/;
+
+  // Token examples: darwin-arm64, linux-x64-gnu, linux-arm64-musl,
+  // linux-arm-gnueabihf, win32-x64-msvc.
+  const parseToken = (token) => {
+    const [platform, arch = ""] = token.split("-");
+    return { platform, arch };
+  };
+
+  let targetMatched = false;
+  const removable = [];
+  for (const file of await fsp.readdir(pkgDir)) {
+    const match = file.match(binRe);
+    if (!match) continue;
+    const { platform, arch } = parseToken(match[1]);
+    if (!KNOWN_PLATFORMS.has(platform)) continue; // local builds etc. — keep
+    if (platform === TARGET_PLATFORM && arch === TARGET_ARCH) {
+      targetMatched = true;
+    } else {
+      removable.push(file);
+    }
+  }
+
+  if (!targetMatched) {
+    console.warn(
+      `  Warning: no node-web-audio-api prebuild matches ` +
+        `${TARGET_PLATFORM}/${TARGET_ARCH} — check NODETOOL_BUNDLE_PLATFORM/` +
+        `NODETOOL_BUNDLE_ARCH; leaving all prebuilds in place`
+    );
+    return 0;
+  }
+
+  let reclaimed = 0;
+  for (const file of removable) {
+    const full = path.join(pkgDir, file);
+    reclaimed += (await fsp.stat(full)).size;
+    await fsp.rm(full);
+  }
+  return reclaimed;
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
@@ -484,15 +713,28 @@ async function main() {
   const copiedCount = await copyExternalPackages();
 
   // Drop prebuilt binaries for other platforms/arches from packages that ship
-  // all of them in one package (onnxruntime-node). ~150 MB off the artifact.
-  const reclaimed = await pruneMultiplatformBinaries(
-    path.join(BUNDLE_DIR, "_modules")
-  );
+  // all of them in one package.
+  const modulesDir = path.join(BUNDLE_DIR, "_modules");
+  const reclaimed = await pruneMultiplatformBinaries(modulesDir);
   if (reclaimed > 0) {
     console.log(
       `  Reclaimed ${(reclaimed / 1024 / 1024).toFixed(0)} MB of non-target platform binaries`
     );
   }
+
+  console.log("\nPruning staged backend modules...");
+  const junkBytes = await pruneStagedJunk(modulesDir);
+  console.log(
+    `  Junk prune reclaimed ${(junkBytes / 1024 / 1024).toFixed(1)} MB`
+  );
+  const targetedBytes = await pruneTargetedPackages(modulesDir);
+  console.log(
+    `  Targeted prune reclaimed ${(targetedBytes / 1024 / 1024).toFixed(1)} MB`
+  );
+  const webAudioBytes = await pruneWebAudioPrebuilds(modulesDir);
+  console.log(
+    `  node-web-audio-api prune reclaimed ${(webAudioBytes / 1024 / 1024).toFixed(1)} MB`
+  );
 
   // --- Stage registered package runtime assets next to server.mjs ---
   // The registry in @nodetool-ai/config (package-asset-registry.ts) is the
