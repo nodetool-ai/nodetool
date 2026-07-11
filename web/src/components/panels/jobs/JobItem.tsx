@@ -26,9 +26,6 @@ import { trpcClient } from "../../../trpc/client";
 import { useQueryClient } from "@tanstack/react-query";
 import isEqual from "../../../utils/isEqual";
 
-/**
- * Format a duration in milliseconds to a human-readable string
- */
 const formatDuration = (ms: number): string => {
   if (ms < 0) {
     return "0ms";
@@ -49,9 +46,6 @@ const formatDuration = (ms: number): string => {
   return `${hours}h ${minutes}m`;
 };
 
-/**
- * Format elapsed time since job started
- */
 const formatElapsedTime = (startedAt: string | null | undefined): string => {
   if (!startedAt) {
     return "Not started";
@@ -64,9 +58,6 @@ const formatElapsedTime = (startedAt: string | null | undefined): string => {
   return formatDuration(elapsed);
 };
 
-/**
- * Calculate job duration from started_at to finished_at
- */
 const getJobDuration = (
   startedAt: string | null | undefined,
   finishedAt: string | null | undefined
@@ -273,7 +264,6 @@ const JobItem = ({ job }: { job: Job }) => {
       } catch (err) {
         console.error("Failed to cancel job:", err);
       } finally {
-        // Refresh the jobs list to show updated status
         queryClient.invalidateQueries({ queryKey: ["jobs"] });
         setCancelling(false);
       }
@@ -404,9 +394,8 @@ const JobItem = ({ job }: { job: Job }) => {
   );
 };
 
-const MemoizedJobItem = memo(JobItem, (prevProps, nextProps) => {
-  // Custom comparison for Job props - only re-render if job data changes
-  return isEqual(prevProps.job, nextProps.job);
-});
+const MemoizedJobItem = memo(JobItem, (prevProps, nextProps) =>
+  isEqual(prevProps.job, nextProps.job)
+);
 
 export default MemoizedJobItem;

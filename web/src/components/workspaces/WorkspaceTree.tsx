@@ -21,7 +21,6 @@ import { useCurrentWorkspace } from "../../hooks/useCurrentWorkspace";
 import WorkspaceSelect from "./WorkspaceSelect";
 import PanelHeadline from "../ui/PanelHeadline";
 
-// Types
 export interface TreeViewItem {
   id: string;
   label: string;
@@ -32,7 +31,6 @@ export interface TreeViewItem {
   style?: Record<string, string>;
 }
 
-// Styles
 const workspaceTreeStyles = (theme: Theme) =>
   css({
     display: "flex",
@@ -112,7 +110,7 @@ const workspaceTreeStyles = (theme: Theme) =>
 
     ".breadcrumb-segment": {
       cursor: "pointer",
-      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xs)}`, // was 1px 4px
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xs)}`,
       borderRadius: BORDER_RADIUS.sm,
       transition: `color ${MOTION.fast}, background-color ${MOTION.fast}`,
       overflow: "hidden",
@@ -188,7 +186,6 @@ const treeViewStyles = (theme: Theme) => ({
   }
 });
 
-// Utils
 const createErrorItem = (itemId: string): TreeViewItem => ({
   id: `${itemId}/error`,
   label: "⚠️ Access denied",
@@ -230,8 +227,6 @@ const fetchWorkspaceFiles = async (
   return (data as FileInfo[]).map((file) => fileToTreeItem(file));
 };
 
-
-// Helper function to find item in tree
 const findItemInTree = (
   items: TreeViewItem[],
   id: string
@@ -246,7 +241,6 @@ const findItemInTree = (
   return undefined;
 };
 
-// Pure function to update tree with children
 const updateTreeWithChildren = (
   items: TreeViewItem[],
   itemId: string,
@@ -269,7 +263,6 @@ const updateTreeWithChildren = (
   });
 };
 
-// Pure function to check if item needs children loaded
 const shouldLoadChildren = (item: TreeViewItem | undefined): boolean => {
   return Boolean(
     item?.children?.length === 1 && item.children[0].label === "loading..."
@@ -308,8 +301,6 @@ const WorkspaceTree: React.FC = () => {
     queryFn: () => fetchWorkspaceFiles(filesWorkspaceId!),
     enabled: Boolean(filesWorkspaceId)
   });
-
-  // Query for workspace is no longer needed since we use WorkspaceSelect
 
   const handleWorkspaceChange = useCallback(
     async (newWorkspaceId: string | undefined) => {
@@ -371,7 +362,6 @@ const WorkspaceTree: React.FC = () => {
 
   const handleItemDoubleClick = useCallback(
     async (event: React.MouseEvent, itemId: string) => {
-      // Open file or folder via Electron API
       if (window.api?.shell?.openPath) {
         await window.api.shell.openPath(itemId);
       }
@@ -395,9 +385,7 @@ const WorkspaceTree: React.FC = () => {
     navigate("/settings?tab=5");
   }, [navigate]);
 
-  // Handle double-click on tree container to find the specific tree item
   const handleTreeDoubleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    // Find the closest tree item element to get the item ID
     const target = e.target as HTMLElement;
     const treeItem = target.closest('[data-testid="tree-item"]') as HTMLElement;
     if (treeItem) {
@@ -408,7 +396,6 @@ const WorkspaceTree: React.FC = () => {
     }
   }, [handleItemDoubleClick]);
 
-  // Build breadcrumb segments from selected path
   const breadcrumbSegments =
     selectedFilePath && !selectedFilePath.includes("/loading")
       ? selectedFilePath.split("/").filter(Boolean)
@@ -446,7 +433,6 @@ const WorkspaceTree: React.FC = () => {
         }
       />
 
-      {/* Workspace Selection */}
       <div className="workspace-selector">
         <WorkspaceSelect
           value={workspaceId ?? undefined}
@@ -459,7 +445,6 @@ const WorkspaceTree: React.FC = () => {
         />
       </div>
 
-      {/* Breadcrumb navigation */}
       {breadcrumbSegments.length > 0 && (
         <div className="breadcrumb">
           <span
