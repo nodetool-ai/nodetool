@@ -40,16 +40,7 @@ export function clearAllSecretCache(): void {
   secretCache.clear();
 }
 
-/**
- * Get a secret value for a user.
- *
- * Resolution order:
- * 1. Forced env priority keys -> environment variable
- * 2. Local cache
- * 3. Database (encrypted Secret model)
- * 4. Environment variable
- * 5. Default value
- */
+/** Get a secret value for a user (resolution order documented at file top). */
 export async function getSecret(
   key: string,
   userId?: string,

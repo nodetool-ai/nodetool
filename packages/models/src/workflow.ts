@@ -10,8 +10,6 @@ import { getDb } from "./db.js";
 import { workflows } from "./schema/workflows.js";
 import type { WorkflowRunMode } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 
-// ── Types ────────────────────────────────────────────────────────────
-
 export type AccessLevel = "private" | "public";
 export type { WorkflowRunMode };
 
@@ -84,8 +82,6 @@ export class Workflow extends DBModel {
     this.updated_at = new Date().toISOString();
   }
 
-  // ── Graph helpers ─────────────────────────────────────────────────
-
   hasTriggerNodes(): boolean {
     if (!this.graph || !this.graph.nodes) return false;
     return this.graph.nodes.some((node) => {
@@ -109,8 +105,6 @@ export class Workflow extends DBModel {
     return this.getGraph();
   }
 
-  // ── Static queries ───────────────────────────────────────────────
-
   /** Find a workflow by id, respecting ownership or public access. */
   static async find(
     userId: string,
@@ -122,7 +116,6 @@ export class Workflow extends DBModel {
     return null;
   }
 
-  /** Paginate workflows for a user. */
   static async paginate(
     userId: string,
     opts: {
@@ -178,7 +171,6 @@ export class Workflow extends DBModel {
       items = items.filter(
         (w: Workflow) => Array.isArray(w.tags) && w.tags.includes(tag)
       );
-      // Apply limit after tag filter
       const capped = items.slice(0, limit + 1);
       if (capped.length <= limit) return [capped, ""];
       capped.pop();
@@ -192,7 +184,6 @@ export class Workflow extends DBModel {
     return [items, cursor];
   }
 
-  /** Paginate public workflows only. */
   static async paginatePublic(
     opts: { limit?: number; startKey?: string } = {}
   ): Promise<[Workflow[], string]> {
@@ -221,7 +212,6 @@ export class Workflow extends DBModel {
     return [items, cursor];
   }
 
-  /** Paginate workflows that are configured as tools. */
   static async paginateTools(
     userId: string,
     opts: { limit?: number; startKey?: string } = {}
@@ -258,7 +248,6 @@ export class Workflow extends DBModel {
     return [tools, cursor];
   }
 
-  /** Create a Workflow instance from a plain dictionary. */
   static fromDict(data: Record<string, unknown>): Workflow {
     return new Workflow({
       id: (data.id as string) ?? "",
@@ -285,7 +274,6 @@ export class Workflow extends DBModel {
     });
   }
 
-  /** Find a workflow by tool name for a given user. */
   static async findByToolName(
     userId: string,
     toolName: string

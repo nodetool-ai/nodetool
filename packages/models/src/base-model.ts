@@ -13,8 +13,6 @@ import { getDb } from "./db.js";
 
 const log = createLogger("nodetool.models");
 
-// ── Observer ─────────────────────────────────────────────────────────
-
 export enum ModelChangeEvent {
   CREATED = "created",
   UPDATED = "updated",
@@ -76,8 +74,6 @@ export class ModelObserver {
   }
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────
-
 export function createTimeOrderedUuid(): string {
   return randomUUID().replace(/-/g, "");
 }
@@ -86,8 +82,6 @@ export function computeEtag(data: Record<string, unknown>): string {
   const raw = JSON.stringify(data, Object.keys(data).sort());
   return createHash("md5").update(raw).digest("hex");
 }
-
-// ── DBModel Base ─────────────────────────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle table type varies by dialect; any is required for the base-class pattern.
 export type DrizzleTable = any;
@@ -127,8 +121,6 @@ export abstract class DBModel {
   constructor(data: Record<string, unknown>) {
     Object.assign(this, data);
   }
-
-  // ── CRUD ─────────────────────────────────────────────────────────
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static async create<T extends DBModel>(
