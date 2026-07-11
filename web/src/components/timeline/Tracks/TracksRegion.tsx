@@ -84,14 +84,10 @@ import { assetMediaType } from "../dnd/assetToClipAdapter";
 import { buildTypedIndexMap } from "./trackVisuals";
 import { partitionTimelineWheel, normalizeWheelDeltaPx } from "./timelineWheel";
 
-// ── Constants ──────────────────────────────────────────────────────────────
-
 const DEFAULT_TRACK_HEIGHT_PX = 64;
 const ZOOM_SENSITIVITY = 0.001;
 /** Extra gap (ms) inserted after the source clip when using Ctrl+Shift+D. */
 const DUPLICATE_OFFSET_MS = 1000;
-
-// ── Styles ─────────────────────────────────────────────────────────────────
 
 const containerStyles = (theme: Theme) =>
   css({
@@ -180,8 +176,6 @@ const lanesContainerStyles = css({
   // Will be set dynamically via style.width
 });
 
-// ── Component ──────────────────────────────────────────────────────────────
-
 export interface TracksRegionProps {
   /** Height of the tracks area in pixels. */
   heightPx: number;
@@ -253,8 +247,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     const scrollableRef = useRef<HTMLDivElement>(null);
     const headerColumnRef = useRef<HTMLDivElement>(null);
 
-    // ── Drop on empty area: auto-create a track of matching type ───────────
-
+    // Drop on empty area: auto-create a track of matching type.
     const isAssetDrag = useCallback((e: React.DragEvent): boolean => {
       return (
         e.dataTransfer.types.includes("asset") ||
@@ -335,8 +328,6 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
       }
     }, []);
 
-    // ── Scroll sync ────────────────────────────────────────────────────────
-
     const handleScroll = useCallback(
       (e: React.UIEvent<HTMLDivElement>) => {
         setScrollLeftPx(e.currentTarget.scrollLeft);
@@ -349,8 +340,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
       [setScrollLeftPx]
     );
 
-    // ── Zoom + horizontal scroll (wheel) ─────────────────────────────────────
-    //
+    // Zoom + horizontal scroll (wheel).
     // Attached as a native non-passive listener: React's onWheel is passive,
     // so preventDefault() inside it can't stop the browser's pinch-zoom or its
     // back/forward swipe. partitionTimelineWheel routes the gesture (see
@@ -502,8 +492,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
       el.scrollLeft = Math.max(0, playMs / msPerPx - playheadViewportPx);
     }, [msPerPx, playbackStore]);
 
-    // ── Keyboard shortcuts ─────────────────────────────────────────────────
-    //
+    // Keyboard shortcuts.
     // Attached at window level so the shortcuts work regardless of which
     // element has focus inside the timeline editor. (Clicking a clip doesn't
     // transfer focus to the tracks region, since Clip's pointerdown calls

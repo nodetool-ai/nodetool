@@ -40,13 +40,9 @@ import {
 } from "../dnd/assetToClipAdapter";
 import { useVideoAudioImport } from "../../../hooks/timeline/useVideoAudioImport";
 
-// ── Constants ──────────────────────────────────────────────────────────────
-
 const DEFAULT_TRACK_HEIGHT_PX = 64;
 /** Duration (ms) the mismatch warning banner remains visible. */
 const WARNING_DISMISS_MS = 3000;
-
-// ── Styles ─────────────────────────────────────────────────────────────────
 
 const laneStyles = (
   theme: Theme,
@@ -90,16 +86,12 @@ const rubberBandStyles = (theme: Theme) =>
     zIndex: Z_INDEX.sticky
   });
 
-// ── Rubber-band selection helper ───────────────────────────────────────────
-
 interface RubberBandRect {
   left: number;
   top: number;
   width: number;
   height: number;
 }
-
-// ── Component ──────────────────────────────────────────────────────────────
 
 export interface TrackLaneProps {
   track: TimelineTrack;
@@ -130,8 +122,6 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
 
   const heightPx = track.heightPx ?? DEFAULT_TRACK_HEIGHT_PX;
 
-  // ── Rubber-band state ───────────────────────────────────────────────────
-
   const isRubberBandingRef = useRef(false);
   const rbStartRef = useRef({ x: 0, y: 0 });
   /** Selection snapshot taken at pointerdown when Shift is held (union mode). */
@@ -154,14 +144,10 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
     null
   );
 
-  // ── Asset drop state ────────────────────────────────────────────────────
-
   const [isDragOver, setIsDragOver] = useState(false);
   const [isDragReject, setIsDragReject] = useState(false);
   const [dropWarning, setDropWarning] = useState<string | null>(null);
   const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // ── Context menu / add-clip state ───────────────────────────────────────
 
   const [contextMenuPos, setContextMenuPos] = useState<{
     x: number;
@@ -427,8 +413,6 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
     rbLaneRectRef.current = null;
     setRubberBand(null);
   }, []);
-
-  // ── Right-click context menu ────────────────────────────────────────────
 
   const handleLaneContextMenu = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
