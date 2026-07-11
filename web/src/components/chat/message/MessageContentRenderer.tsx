@@ -77,12 +77,10 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
         return source;
       }
 
-      // Revoke previous object URL if it exists
       if (objectUrlRef.current) {
         URL.revokeObjectURL(objectUrlRef.current);
       }
 
-      // Create new object URL
       const newObjectUrl = URL.createObjectURL(new Blob([source as BlobPart], { type }));
       objectUrlRef.current = newObjectUrl;
       return newObjectUrl;
@@ -90,7 +88,6 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
     []
   );
 
-  // Cleanup object URL on unmount
   useEffect(() => {
     return () => {
       if (objectUrlRef.current) {
@@ -102,7 +99,6 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
 
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Memoize video style to prevent recreation on every render
   const videoStyle = useMemo(() => ({ width: "100%" }), []);
 
   const handleAddToCanvas = useCallback(() => {
@@ -135,16 +131,13 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
     </ToolbarIconButton>
   ) : null;
 
-  // Render content according to Harmony format
   switch (content.type) {
     case "text": {
       const textContent = content.text ?? "";
 
-      // Check if the text content contains Harmony format tokens
       if (hasHarmonyTokens(textContent)) {
         const { messages, rawText } = parseHarmonyContent(textContent);
 
-        // If we have parsed Harmony messages, render them
         if (messages.length > 0) {
           return (
             <>
@@ -162,7 +155,6 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
         }
       }
 
-      // If no Harmony tokens or parsing failed, render as regular text
       return renderTextContent(textContent, index);
     }
     case "image_url": {
@@ -188,7 +180,6 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
       );
     }
     case "audio":
-      // Handle audio content in Harmony format
       return (
         <div css={wrapperStyles} {...dragProps}>
           <AudioPlayer
@@ -202,7 +193,6 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
         </div>
       );
     case "video": {
-      // Handle video content in Harmony format
       const uri = createObjectUrl(
         content.video?.uri === ""
           ? (content.video?.data as Uint8Array)
@@ -217,7 +207,6 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
       );
     }
     case "document":
-      // Handle document content in Harmony format
       return <div>Document</div>;
     default:
       return null;

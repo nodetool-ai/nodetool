@@ -30,7 +30,6 @@ const ThreadList: React.FC<ThreadListProps> = ({
   const theme = useTheme<Theme>();
   const componentStyles = createStyles(theme);
 
-  // Memoize list elements to avoid rebuilding on every render
   const listElements = useMemo(() => {
     const elements: React.ReactNode[] = [];
 

@@ -10,7 +10,6 @@ import {
 } from "../../../lib/dragdrop";
 import { assetToUri } from "../../node_types/editing/promptComposer/promptTokens";
 
-// Generate a unique ID for each file
 const generateFileId = () => `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
 /**
@@ -59,7 +58,6 @@ export const useDragAndDrop = (
         try {
           const droppedFiles: DroppedFile[] = [];
 
-          // Handle multiple assets
           if (dragData.type === "assets-multiple") {
             const selectedIds = dragData.payload as string[];
             const { filteredAssets, globalSearchResults, selectedAssets } =
@@ -79,7 +77,6 @@ export const useDragAndDrop = (
             }
           }
 
-          // Handle single asset
           if (droppedFiles.length === 0 && dragData.type === "asset") {
             const asset = dragData.payload as Asset;
             droppedFiles.push(assetToDroppedFile(asset));
@@ -114,7 +111,6 @@ export const useDragAndDrop = (
         }
       }
 
-      // Handle external files
       if (hasExternalFiles(e.dataTransfer)) {
         const files = extractFiles(e.dataTransfer);
         if (files.length > 0) {
