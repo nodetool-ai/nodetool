@@ -885,7 +885,8 @@ export class OpenAIProvider extends BaseProvider {
 
     this.recordRequestPayload(request);
     const stream = (await this.getClient().chat.completions.create(
-      request as unknown as OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming
+      request as unknown as OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming,
+      { signal: args.signal }
     )) as AsyncIterable<any> & { close?: () => Promise<void> };
 
     const deltaToolCalls = new Map<number, MutableToolCall>();
@@ -1021,7 +1022,8 @@ export class OpenAIProvider extends BaseProvider {
 
     this.recordRequestPayload(request);
     const completion = await this.getClient().chat.completions.create(
-      request as unknown as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming
+      request as unknown as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming,
+      { signal: args.signal }
     );
 
     const choice = completion.choices?.[0];

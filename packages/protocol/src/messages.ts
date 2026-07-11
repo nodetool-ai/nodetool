@@ -23,7 +23,8 @@ export enum TaskUpdateEvent {
   EnteredConclusionStage = "entered_conclusion_stage",
   StepCompleted = "step_completed",
   StepFailed = "step_failed",
-  TaskCompleted = "task_completed"
+  TaskCompleted = "task_completed",
+  TaskFailed = "task_failed"
 }
 
 export type Severity = "info" | "warning" | "error";

@@ -5,10 +5,22 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { mkdtemp, rm, readFile, writeFile, mkdir, utimes } from "node:fs/promises";
+import {
+  mkdtemp,
+  rm,
+  readFile,
+  writeFile,
+  mkdir,
+  utimes,
+  symlink
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, isAbsolute } from "node:path";
-import { EditFileTool, GlobTool } from "../src/tools/edit-search-tools.js";
+import {
+  EditFileTool,
+  GlobTool,
+  GrepTool
+} from "../src/tools/edit-search-tools.js";
 
 let workspace: string;
 
@@ -98,5 +110,70 @@ describe("GlobTool", () => {
     expect(res.match_count).toBe(2);
     expect(res.truncated).toBe(false);
     expect(typeof res.duration_ms).toBe("number");
+  });
+});
+
+describe("GrepTool", () => {
+  it("finds matches in a normal workspace file", async () => {
+    await writeFile(join(workspace, "a.txt"), "hello\nworld\nhello again\n");
+    const res: any = await new GrepTool().process(ctxFor(workspace), {
+      pattern: "hello"
+    });
+    expect(res.success).toBe(true);
+    expect(res.match_count).toBe(2);
+  });
+
+  it("rejects a nested-quantifier pattern instead of hanging (ReDoS)", async () => {
+    // Regression: "(a+)+$" against a modest run of 'a' triggers catastrophic
+    // backtracking. The scan must refuse the pattern fast, never compile+run it.
+    await writeFile(join(workspace, "victim.txt"), "a".repeat(50));
+    const started = Date.now();
+    const res: any = await new GrepTool().process(ctxFor(workspace), {
+      pattern: "(a+)+$"
+    });
+    expect(res.success).toBe(false);
+    expect(String(res.error)).toMatch(/nested quantifier|backtracking/i);
+    expect(Date.now() - started).toBeLessThan(2000);
+  });
+
+  it("skips files larger than the size cap (OOM guard)", async () => {
+    // 11 MB file containing the pattern — must be skipped, not buffered.
+    const big = "needle\n".repeat(Math.ceil((11 * 1024 * 1024) / 7));
+    await writeFile(join(workspace, "big.log"), big);
+    await writeFile(join(workspace, "small.txt"), "needle here\n");
+    const res: any = await new GrepTool().process(ctxFor(workspace), {
+      pattern: "needle"
+    });
+    expect(res.success).toBe(true);
+    // Only the small file's match is returned; the oversized file is skipped.
+    expect(res.matches.every((m: any) => m.file !== "big.log")).toBe(true);
+    expect(res.matches.some((m: any) => m.file === "small.txt")).toBe(true);
+  });
+
+  it("does not follow a symlink that escapes the workspace", async () => {
+    // A secret file outside the workspace, symlinked in, must not be read.
+    const outside = await mkdtemp(join(tmpdir(), "cc-secret-"));
+    try {
+      const secret = join(outside, "id_rsa");
+      await writeFile(secret, "SUPER_SECRET_KEY_MATERIAL\n");
+      await symlink(secret, join(workspace, "notes"));
+
+      // Directory walk must not surface the symlink's target contents.
+      const walk: any = await new GrepTool().process(ctxFor(workspace), {
+        pattern: "SUPER_SECRET"
+      });
+      expect(walk.success).toBe(true);
+      expect(walk.match_count).toBe(0);
+
+      // Targeting the symlink directly must be refused as outside the workspace.
+      const direct: any = await new GrepTool().process(ctxFor(workspace), {
+        pattern: ".",
+        path: "notes"
+      });
+      expect(direct.success).toBe(false);
+      expect(String(direct.error)).toMatch(/outside the workspace/i);
+    } finally {
+      await rm(outside, { recursive: true, force: true });
+    }
   });
 });

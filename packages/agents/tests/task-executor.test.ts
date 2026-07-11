@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { TaskExecutor } from "../src/task-executor.js";
 import type { Step, Task } from "../src/types.js";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
-import { memoryKeys } from "@nodetool-ai/runtime";
+import { memoryKeys, BaseProvider } from "@nodetool-ai/runtime";
 import { createMockContext } from "./_helpers/mock-context.js";
 
 /**
@@ -371,5 +371,112 @@ describe("TaskExecutor", () => {
     // s1 is the designated finish step, should be deferred until s2 completes
     expect(completionOrder[0]).toBe("s2");
     expect(completionOrder[1]).toBe("s1");
+  });
+
+  it("preserves item order in a parallel fan-out despite out-of-order completion", async () => {
+    // Regression: parallel process-mode fan-out used to push per-item results
+    // in completion order, scrambling them relative to the discover items.
+    const items = ["alpha", "beta", "gamma"];
+
+    // Provider returns an item-tagged result, finishing beta first and alpha
+    // last so completion order (beta, gamma, alpha) differs from item order.
+    const provider = {
+      provider: "mock",
+      hasToolSupport: async () => true,
+      generateMessages: async function* (args: any) {
+        const text = JSON.stringify(args?.messages ?? "");
+        const item = items.find((x) => text.includes(x)) ?? "unknown";
+        const delay = item === "beta" ? 5 : item === "gamma" ? 25 : 45;
+        await new Promise((r) => setTimeout(r, delay));
+        yield {
+          id: "tc_1",
+          name: "finish_step",
+          args: { result: { item } }
+        };
+      },
+      async *generateMessagesTraced(...args: any[]) {
+        yield* (this as any).generateMessages(...args);
+      },
+      generateLoop(args: unknown) {
+        return (
+          BaseProvider.prototype as { generateLoop: (a: unknown) => unknown }
+        ).generateLoop.call(this, args);
+      },
+      async generateMessageTraced(...args: any[]) {
+        return (this as any).generateMessage(...args);
+      },
+      generateMessage: vi.fn(),
+      getAvailableLanguageModels: vi.fn().mockResolvedValue([]),
+      getAvailableImageModels: vi.fn().mockResolvedValue([]),
+      getAvailableVideoModels: vi.fn().mockResolvedValue([]),
+      getAvailableTTSModels: vi.fn().mockResolvedValue([]),
+      getAvailableASRModels: vi.fn().mockResolvedValue([]),
+      getAvailableEmbeddingModels: vi.fn().mockResolvedValue([]),
+      getContainerEnv: () => ({}),
+      textToImage: vi.fn(),
+      imageToImage: vi.fn(),
+      textToSpeech: vi.fn(),
+      automaticSpeechRecognition: vi.fn(),
+      textToVideo: vi.fn(),
+      imageToVideo: vi.fn(),
+      generateEmbedding: vi.fn(),
+      isContextLengthError: () => false
+    } as any;
+
+    const context = createMockContext();
+    // Seed the discover step's result the fan-out reads from.
+    context.memory.set({
+      key: memoryKeys.step("discover"),
+      kind: "step_result",
+      value: items,
+      source: "discover",
+      title: "discover"
+    });
+
+    const discoverStep: Step = {
+      id: "discover",
+      instructions: "list items",
+      completed: true,
+      dependsOn: [],
+      logs: []
+    };
+    const processStep: Step = {
+      id: "process",
+      instructions: "handle {item}",
+      completed: false,
+      dependsOn: ["discover"],
+      mode: "process",
+      outputSchema: JSON.stringify({
+        type: "object",
+        properties: { item: { type: "string" } }
+      }),
+      logs: []
+    } as Step;
+
+    const task: Task = {
+      id: "t1",
+      title: "Fan-out",
+      steps: [discoverStep, processStep]
+    };
+
+    const executor = new TaskExecutor({
+      provider,
+      model: "test-model",
+      context,
+      tools: [],
+      task,
+      parallelExecution: true
+    });
+
+    for await (const _msg of executor.executeTasks()) {
+      // consume
+    }
+
+    const aggregated = context.memory.getValue(memoryKeys.step("process"));
+    expect(aggregated).toEqual([
+      { item: "alpha" },
+      { item: "beta" },
+      { item: "gamma" }
+    ]);
   });
 });

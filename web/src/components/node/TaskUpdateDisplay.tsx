@@ -135,6 +135,8 @@ const getEventDisplayText = (event: string): string => {
       return "Step Failed";
     case "task_completed":
       return "Task Completed";
+    case "task_failed":
+      return "Task Failed";
     default:
       return event.replace(/_/g, " ");
   }

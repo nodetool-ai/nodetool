@@ -444,26 +444,42 @@ export abstract class PythonBridgeBase
         }
       });
 
-    this._send({
-      type: "execute.stream",
-      request_id: requestId,
-      data: { node_type: nodeType, fields, secrets, blobs }
-    });
-
-    while (true) {
-      while (chunks.length > 0) {
-        emittedCount += 1;
-        yield chunks.shift()!;
-      }
-      if (done) break;
-      if (error) throw error;
-      await new Promise<void>((resolve) => {
-        resolveWait = resolve;
+    try {
+      this._send({
+        type: "execute.stream",
+        request_id: requestId,
+        data: { node_type: nodeType, fields, secrets, blobs }
       });
-    }
-    if (error) throw error;
-    if (emittedCount === 0 && finalResult) {
-      yield finalResult;
+
+      while (true) {
+        while (chunks.length > 0) {
+          emittedCount += 1;
+          yield chunks.shift()!;
+        }
+        if (done) break;
+        if (error) throw error;
+        await new Promise<void>((resolve) => {
+          resolveWait = resolve;
+        });
+      }
+      if (error) throw error;
+      if (emittedCount === 0 && finalResult) {
+        yield finalResult;
+      }
+    } finally {
+      // If the stream never reached its terminal frame (consumer abandoned the
+      // generator via break/return, or the initial _send threw), the worker is
+      // still producing output nobody reads. Cancel it and release pending
+      // state so chunks[] stops growing and the entries don't leak.
+      if (!done) {
+        this._pending.delete(requestId);
+        this._pendingStream.delete(requestId);
+        try {
+          this.cancel(requestId);
+        } catch {
+          // Worker may already be gone; cancel is best-effort.
+        }
+      }
     }
   }
 
@@ -487,7 +503,12 @@ export abstract class PythonBridgeBase
         reject,
         onChunk: () => {}
       });
-      this._send({ type: "worker.status", request_id: requestId, data: {} });
+      try {
+        this._send({ type: "worker.status", request_id: requestId, data: {} });
+      } catch (err) {
+        this._pendingStream.delete(requestId);
+        reject(err instanceof Error ? err : new Error(String(err)));
+      }
     });
     this._workerStatus =
       result as unknown as PythonWorkerStatus;
@@ -656,21 +677,35 @@ export abstract class PythonBridgeBase
         }
       });
 
-    this._send({
-      type: "provider.stream",
-      request_id: requestId,
-      data: { provider: providerId, messages, model, ...options }
-    });
-
-    while (true) {
-      while (chunks.length > 0) yield chunks.shift()!;
-      if (done) break;
-      if (error) throw error;
-      await new Promise<void>((resolve) => {
-        resolveWait = resolve;
+    try {
+      this._send({
+        type: "provider.stream",
+        request_id: requestId,
+        data: { provider: providerId, messages, model, ...options }
       });
+
+      while (true) {
+        while (chunks.length > 0) yield chunks.shift()!;
+        if (done) break;
+        if (error) throw error;
+        await new Promise<void>((resolve) => {
+          resolveWait = resolve;
+        });
+      }
+      if (error) throw error;
+    } finally {
+      // Cancel the worker-side stream and drop pending state if the generator
+      // is torn down before its terminal frame (consumer break/return, or a
+      // throwing initial _send).
+      if (!done) {
+        this._pendingStream.delete(requestId);
+        try {
+          this.cancel(requestId);
+        } catch {
+          // Worker may already be gone; cancel is best-effort.
+        }
+      }
     }
-    if (error) throw error;
   }
 
   async providerTextToImage(
@@ -745,21 +780,35 @@ export abstract class PythonBridgeBase
         }
       });
 
-    this._send({
-      type: "provider.tts",
-      request_id: requestId,
-      data: { provider: providerId, text, model, ...options }
-    });
-
-    while (true) {
-      while (chunks.length > 0) yield chunks.shift()!;
-      if (done) break;
-      if (error) throw error;
-      await new Promise<void>((resolve) => {
-        resolveWait = resolve;
+    try {
+      this._send({
+        type: "provider.tts",
+        request_id: requestId,
+        data: { provider: providerId, text, model, ...options }
       });
+
+      while (true) {
+        while (chunks.length > 0) yield chunks.shift()!;
+        if (done) break;
+        if (error) throw error;
+        await new Promise<void>((resolve) => {
+          resolveWait = resolve;
+        });
+      }
+      if (error) throw error;
+    } finally {
+      // Cancel the worker-side stream and drop pending state if the generator
+      // is torn down before its terminal frame (consumer break/return, or a
+      // throwing initial _send).
+      if (!done) {
+        this._pendingStream.delete(requestId);
+        try {
+          this.cancel(requestId);
+        } catch {
+          // Worker may already be gone; cancel is best-effort.
+        }
+      }
     }
-    if (error) throw error;
   }
 
   async providerASR(
@@ -1135,7 +1184,12 @@ export abstract class PythonBridgeBase
         reject,
         onChunk: () => {}
       });
-      this._send({ type, request_id: requestId, data });
+      try {
+        this._send({ type, request_id: requestId, data });
+      } catch (err) {
+        this._pendingStream.delete(requestId);
+        reject(err instanceof Error ? err : new Error(String(err)));
+      }
     });
   }
 

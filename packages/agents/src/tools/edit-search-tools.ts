@@ -11,14 +11,126 @@ import {
   writeFile,
   readdir,
   stat,
-  access
+  access,
+  realpath
 } from "node:fs/promises";
-import { join, relative } from "node:path";
+import { isAbsolute, join, relative } from "node:path";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
 
+/**
+ * Largest file grep will read into memory. `walkDir` returns every non-binary
+ * file regardless of size, so without this cap a single huge log/jsonl file
+ * would be fully buffered (plus a decoded copy and a split array), OOM-ing the
+ * shared server process.
+ */
+const MAX_GREP_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
+
+/**
+ * Hard wall-clock budget for the whole grep scan. A caller-supplied regex can
+ * trigger catastrophic backtracking; JS regex evaluation is synchronous and
+ * uninterruptible, so we bound the aggregate scan time and abort between lines
+ * rather than let one pattern pin the event loop indefinitely (ReDoS).
+ */
+const GREP_TIME_BUDGET_MS = 5000;
+
+/**
+ * Longest single line grep will run the regex against. Backtracking blow-ups
+ * scale with input length, so skipping pathologically long lines removes the
+ * ammunition a ReDoS pattern needs while still matching normal source lines.
+ */
+const MAX_GREP_LINE_LENGTH = 100_000;
+
 function resolveSafePath(context: ProcessingContext, rawPath: string): string {
   return context.resolveWorkspacePath(rawPath);
+}
+
+/**
+ * Best-effort detector for the classic catastrophic-backtracking regex family:
+ * a quantifier (`+`, `*`, `{n,}`) applied to a group whose body already ends in
+ * a quantifier — e.g. `(a+)+`, `(a*)*`, `([a-z]+)+`, `(.*)*`. JS regex matching
+ * is synchronous and uninterruptible, and grep runs in the shared server
+ * process, so one such pattern against a short line hangs the whole event loop
+ * (ReDoS). We reject these patterns up front rather than compile and run them.
+ *
+ * This is a heuristic, not a proof — it blocks the common ReDoS shapes (and the
+ * canonical `(a+)+$` attack) without a time-limited regex engine. The scan-time
+ * budget and per-line length cap in GrepTool are the backstop for anything it
+ * misses.
+ */
+function hasNestedQuantifier(pattern: string): boolean {
+  // Per open group, whether its body has seen a quantifier. `justClosedQuant`
+  // marks that the token immediately to the left was a group that itself
+  // contained a quantifier — so an outer quantifier on it is nested.
+  const groupHadQuantifier: boolean[] = [];
+  let justClosedQuantifiedGroup = false;
+
+  const isQuantifierStart = (i: number): boolean => {
+    const ch = pattern[i];
+    if (ch === "+" || ch === "*") return true;
+    // `{n,}` / `{n,m}` — treat any `{<digit>` as a quantifier.
+    return ch === "{" && /\d/.test(pattern[i + 1] ?? "");
+  };
+
+  for (let i = 0; i < pattern.length; i++) {
+    const ch = pattern[i];
+    if (ch === "\\") {
+      i++; // skip the escaped character
+      justClosedQuantifiedGroup = false;
+      continue;
+    }
+    if (ch === "[") {
+      // Skip character-class body; quantifiers inside `[...]` are literals.
+      i++;
+      while (i < pattern.length && pattern[i] !== "]") {
+        if (pattern[i] === "\\") i++;
+        i++;
+      }
+      justClosedQuantifiedGroup = false;
+      continue;
+    }
+    if (ch === "(") {
+      groupHadQuantifier.push(false);
+      justClosedQuantifiedGroup = false;
+      continue;
+    }
+    if (ch === ")") {
+      justClosedQuantifiedGroup = groupHadQuantifier.pop() ?? false;
+      continue;
+    }
+    if (isQuantifierStart(i)) {
+      if (justClosedQuantifiedGroup) return true;
+      if (groupHadQuantifier.length > 0) {
+        groupHadQuantifier[groupHadQuantifier.length - 1] = true;
+      }
+      justClosedQuantifiedGroup = false;
+      continue;
+    }
+    justClosedQuantifiedGroup = false;
+  }
+  return false;
+}
+
+/**
+ * True when `candidate`'s real (symlink-resolved) path stays within the real
+ * workspace root. `resolveWorkspacePath` only checks containment lexically, so
+ * an in-workspace symlink pointing outside the root (e.g. unpacked from an
+ * imported bundle) would otherwise be dereferenced and leak host files. Returns
+ * false when either path cannot be resolved (broken/dangling link).
+ */
+async function isRealPathWithinRoot(
+  root: string,
+  candidate: string
+): Promise<boolean> {
+  try {
+    const realRoot = await realpath(root);
+    const realCandidate = await realpath(candidate);
+    if (realCandidate === realRoot) return true;
+    const rel = relative(realRoot, realCandidate);
+    return rel !== "" && !rel.startsWith("..") && !isAbsolute(rel);
+  } catch {
+    return false;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -266,6 +378,12 @@ async function walkDir(
       ) {
         continue;
       }
+      // Never follow symlinks: a symlink inside the workspace can point outside
+      // the root, and the lexical containment check can't see through it. Skip
+      // both file and directory symlinks so grep/glob stay sandboxed.
+      if (entry.isSymbolicLink()) {
+        continue;
+      }
       const fullPath = join(dir, entry.name);
       if (entry.isDirectory()) {
         results.push(...(await walkDir(fullPath, maxDepth, depth + 1)));
@@ -448,6 +566,16 @@ export class GrepTool extends Tool {
       };
     }
 
+    if (hasNestedQuantifier(pattern)) {
+      return {
+        success: false,
+        error:
+          "Pattern rejected: nested quantifiers (e.g. \"(a+)+\") can cause " +
+          "catastrophic backtracking. Rewrite the pattern without a quantifier " +
+          "applied to an already-quantified group."
+      };
+    }
+
     let regex: RegExp;
     try {
       regex = new RegExp(pattern, caseInsensitive ? "i" : "");
@@ -455,6 +583,16 @@ export class GrepTool extends Tool {
       return {
         success: false,
         error: `Invalid regex: ${String(e)}`
+      };
+    }
+
+    // The workspace root, used to reject symlinks that escape it. searchDir was
+    // only checked lexically, so a symlinked target must be realpath-verified.
+    const workspaceRoot = resolveSafePath(context, ".");
+    if (!(await isRealPathWithinRoot(workspaceRoot, searchDir))) {
+      return {
+        success: false,
+        error: `Path resolves outside the workspace: ${rawPath ?? "."}`
       };
     }
 
@@ -535,9 +673,24 @@ export class GrepTool extends Tool {
 
     const matches: GrepMatch[] = [];
     let totalMatches = 0;
+    const deadline = Date.now() + GREP_TIME_BUDGET_MS;
+    let timedOut = false;
 
     for (const file of filesToSearch) {
       if (totalMatches >= maxResults) break;
+      if (Date.now() > deadline) {
+        timedOut = true;
+        break;
+      }
+
+      // Skip oversized files: reading them buffers the whole file (plus a
+      // decoded copy and a split array) into the shared process heap.
+      try {
+        const fileInfo = await stat(file);
+        if (fileInfo.size > MAX_GREP_FILE_BYTES) continue;
+      } catch {
+        continue;
+      }
 
       let content: string;
       try {
@@ -552,6 +705,15 @@ export class GrepTool extends Tool {
       const lines = content.split("\n");
       for (let i = 0; i < lines.length; i++) {
         if (totalMatches >= maxResults) break;
+        // Bound total scan time so a catastrophic-backtracking pattern can't
+        // pin the event loop indefinitely; abort between lines.
+        if (Date.now() > deadline) {
+          timedOut = true;
+          break;
+        }
+        // Skip pathologically long lines — backtracking blow-ups scale with
+        // input length, and such lines are not meaningful source matches.
+        if (lines[i].length > MAX_GREP_LINE_LENGTH) continue;
         if (regex.test(lines[i])) {
           const match: GrepMatch = {
             file: relative(searchDir, file),
@@ -574,6 +736,7 @@ export class GrepTool extends Tool {
           totalMatches++;
         }
       }
+      if (timedOut) break;
     }
 
     return {
@@ -581,6 +744,7 @@ export class GrepTool extends Tool {
       pattern,
       match_count: matches.length,
       truncated: totalMatches >= maxResults,
+      timed_out: timedOut,
       matches
     };
   }

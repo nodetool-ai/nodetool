@@ -113,6 +113,16 @@ describe("inlineTextAssetRefs", () => {
     );
     expect(out).toBe("look asset://a.png here");
   });
+
+  it("inlines a resolved-but-empty text asset as empty (not the literal token)", async () => {
+    // Regression: a 0-byte asset resolves successfully and must expand to "",
+    // never fall back to leaking the raw asset:// token into the prompt.
+    const out = await inlineTextAssetRefs(
+      "summarize this: asset://empty.txt",
+      textContext({ "asset://empty.txt": "" })
+    );
+    expect(out).toBe("summarize this: ");
+  });
 });
 
 describe("findAssetRefs", () => {

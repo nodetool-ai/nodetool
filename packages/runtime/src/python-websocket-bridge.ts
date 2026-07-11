@@ -306,6 +306,14 @@ export class WebsocketPythonBridge extends PythonBridgeBase {
       crashSafeTerminate(this._ws);
       this._ws = null;
     }
+    // Cancel any reconnect armed by a mid-handshake close so a connect() the
+    // caller saw fail cannot leave a background reconnect running behind it.
+    // _attemptReconnect's catch re-schedules after this returns, so tearing the
+    // timer down here does not interfere with the reconnect backoff loop.
+    if (this._reconnectTimer) {
+      clearTimeout(this._reconnectTimer);
+      this._reconnectTimer = null;
+    }
     this._connected = false;
     this._rejectAllPending(new Error(reason));
   }
@@ -508,6 +516,13 @@ export class WebsocketPythonBridge extends PythonBridgeBase {
     }
 
     if (!this._autoReconnect) return;
+    // Only auto-reconnect a connection that was fully established. A socket that
+    // dropped mid-handshake (during the initial connect's discover/status phase,
+    // before it was ever announced) is owned by connect()'s caller: the rejected
+    // discover propagates out of connect(), and the caller decides whether to
+    // retry. Arming a background reconnect here would race a caller-driven retry
+    // into two live sockets. (Mirrors the _announcedConnected exit guard above.)
+    if (!this._announcedConnected) return;
     this._scheduleReconnect();
   }
 

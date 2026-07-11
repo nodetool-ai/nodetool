@@ -494,4 +494,135 @@ describe("ParallelTaskExecutor", () => {
     expect(mergeIdx).toBeGreaterThan(branchAIdx);
     expect(mergeIdx).toBeGreaterThan(branchBIdx);
   });
+
+  it("emits a terminal task_failed update when a step never completes", async () => {
+    // Regression: a failed task used to yield only a log_update, never a
+    // terminal task_update, leaving lifecycle consumers stuck "in progress".
+    const provider = {
+      ...createMockProvider(),
+      generateMessages: async function* () {
+        // Never calls finish_step, so the step exhausts its iteration budget.
+        yield { type: "chunk" as const, content: "thinking...", done: false };
+      }
+    } as never;
+
+    const plan: TaskPlan = {
+      title: "Failing Plan",
+      tasks: [
+        {
+          id: "task_1",
+          title: "Doomed",
+          dependsOn: [],
+          completed: false,
+          steps: [
+            {
+              id: "s1",
+              instructions: "do the impossible",
+              completed: false,
+              dependsOn: [],
+              outputSchema: JSON.stringify({
+                type: "object",
+                properties: { done: { type: "boolean" } }
+              }),
+              logs: []
+            }
+          ]
+        }
+      ]
+    };
+
+    const executor = new ParallelTaskExecutor({
+      provider,
+      model: "test-model",
+      context: createMockContext() as never,
+      tools: [],
+      taskPlan: plan,
+      maxStepIterations: 1
+    });
+
+    const events: string[] = [];
+    for await (const msg of executor.execute()) {
+      if (msg.type === "task_update") {
+        events.push((msg as { event: string }).event);
+      }
+    }
+
+    expect(events).toContain("task_failed");
+    expect(events).not.toContain("task_completed");
+    expect(plan.tasks[0].completed).toBe(false);
+  });
+
+  it("treats an all-error fan-out array as a task failure", async () => {
+    // Regression: a process-mode step stores an array and is marked completed
+    // even when every fan-out item errored; isErrorResult ignores arrays, so
+    // the task used to be recorded as a success.
+    const provider = {
+      ...createMockProvider(),
+      generateMessages: async function* () {
+        // Every ephemeral item fails (never finishes).
+        yield { type: "chunk" as const, content: "...", done: false };
+      }
+    } as never;
+
+    const context = createMockContext();
+    context.memory.set({
+      key: memoryKeys.step("discover"),
+      kind: "step_result",
+      value: ["one", "two"],
+      source: "discover",
+      title: "discover"
+    });
+
+    const plan: TaskPlan = {
+      title: "Fan-out Failure Plan",
+      tasks: [
+        {
+          id: "task_1",
+          title: "Fan-out",
+          dependsOn: [],
+          completed: false,
+          steps: [
+            {
+              id: "discover",
+              instructions: "list",
+              completed: true,
+              dependsOn: [],
+              logs: []
+            },
+            {
+              id: "process",
+              instructions: "handle {item}",
+              completed: false,
+              dependsOn: ["discover"],
+              mode: "process",
+              outputSchema: JSON.stringify({
+                type: "object",
+                properties: { ok: { type: "boolean" } }
+              }),
+              logs: []
+            }
+          ] as never
+        }
+      ]
+    };
+
+    const executor = new ParallelTaskExecutor({
+      provider,
+      model: "test-model",
+      context: context as never,
+      tools: [],
+      taskPlan: plan,
+      maxStepIterations: 1
+    });
+
+    const events: string[] = [];
+    for await (const msg of executor.execute()) {
+      if (msg.type === "task_update") {
+        events.push((msg as { event: string }).event);
+      }
+    }
+
+    expect(events).toContain("task_failed");
+    expect(events).not.toContain("task_completed");
+  });
 });

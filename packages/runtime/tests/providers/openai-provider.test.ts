@@ -123,6 +123,49 @@ describe("OpenAIProvider", () => {
     });
   });
 
+  it("forwards the abort signal to non-streaming chat.completions.create", async () => {
+    // Regression: the chat-completions path used to drop args.signal, so an
+    // in-flight non-streaming request could not be cancelled.
+    const create = vi.fn().mockResolvedValue({
+      choices: [{ message: { role: "assistant", content: "done" } }],
+      usage: { prompt_tokens: 1, completion_tokens: 1 }
+    });
+    const provider = new OpenAIProvider(
+      { OPENAI_API_KEY: "k" },
+      { client: { chat: { completions: { create } } } as any }
+    );
+    const controller = new AbortController();
+    await provider.generateMessage({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: "hi" }],
+      signal: controller.signal
+    } as any);
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(create.mock.calls[0][1]).toMatchObject({
+      signal: controller.signal
+    });
+  });
+
+  it("forwards the abort signal to streaming chat.completions.create", async () => {
+    const create = vi.fn().mockResolvedValue(makeAsyncIterable([]));
+    const provider = new OpenAIProvider(
+      { OPENAI_API_KEY: "k" },
+      { client: { chat: { completions: { create } } } as any }
+    );
+    const controller = new AbortController();
+    for await (const _ of provider.generateMessages({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: "hi" }],
+      signal: controller.signal
+    } as any)) {
+      // drain
+    }
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(create.mock.calls[0][1]).toMatchObject({
+      signal: controller.signal
+    });
+  });
+
   it("streams chunks and tool calls", async () => {
     const stream = makeAsyncIterable([
       {

@@ -235,7 +235,9 @@ export async function inlineTextAssetRefs(
   const contents = await Promise.all(
     refs.map(async (ref) => {
       const bytes = await loadMediaRefBytes({ type: "text", uri: ref.uri }, context);
-      return bytes && bytes.length > 0 ? decoder.decode(bytes) : null;
+      // A resolved-but-empty asset must inline as "" (not fall back to the
+      // literal token); only a failed resolution (null bytes) keeps the token.
+      return bytes ? decoder.decode(bytes) : null;
     })
   );
 

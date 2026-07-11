@@ -295,22 +295,36 @@ export class TaskExecutor {
       return executor.execute();
     });
 
-    // Execute and collect results
-    const results: unknown[] = [];
+    // Execute and collect results. Results must be stored in item order (the
+    // order of `ephemeralSteps`), NOT in completion order — otherwise a parallel
+    // fan-out, whose items finish nondeterministically, would scramble the
+    // aggregated list relative to the discover step's items and produce a
+    // different order on every run. Place each step_result at its item index.
+    const indexByStepId = new Map(
+      ephemeralSteps.map((ephStep, index) => [ephStep.id, index])
+    );
+    const results: unknown[] = new Array(ephemeralSteps.length);
+
+    const collect = (msg: unknown): void => {
+      const stepResult = msg as StepResult;
+      if (stepResult.type !== "step_result") return;
+      const stepId = stepResult.step?.id;
+      if (stepId === undefined) return;
+      const index = indexByStepId.get(stepId);
+      if (index !== undefined) {
+        results[index] = stepResult.result;
+      }
+    };
 
     if (this.parallelExecution && generators.length > 1) {
       for await (const msg of mergeAsyncGenerators(generators)) {
-        if ((msg as StepResult).type === "step_result") {
-          results.push((msg as StepResult).result);
-        }
+        collect(msg);
         yield msg;
       }
     } else {
       for (const gen of generators) {
         for await (const msg of gen) {
-          if ((msg as StepResult).type === "step_result") {
-            results.push((msg as StepResult).result);
-          }
+          collect(msg);
           yield msg;
         }
       }

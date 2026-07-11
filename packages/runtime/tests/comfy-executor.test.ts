@@ -6,6 +6,13 @@ let lastWsInstance: any = null;
 vi.mock("ws", () => {
   const { EventEmitter } = require("events");
   class MockWebSocket extends EventEmitter {
+    // Mirror the real `ws` readyState constants so code that checks
+    // ws.readyState === WebSocket.CLOSING/CLOSED behaves as in production.
+    static CONNECTING = 0;
+    static OPEN = 1;
+    static CLOSING = 2;
+    static CLOSED = 3;
+    readyState = MockWebSocket.OPEN;
     constructor() {
       super();
       lastWsInstance = this;
@@ -13,6 +20,7 @@ vi.mock("ws", () => {
       setImmediate(() => this.emit("open"));
     }
     close() {
+      this.readyState = MockWebSocket.CLOSED;
       this.emit("close");
     }
   }
@@ -109,6 +117,32 @@ describe("executeComfy", () => {
 
     expect(result.status).toBe("failed");
     expect(result.error).toContain("Submit failed");
+  });
+
+  it("fails fast when the socket closes during the submit window", async () => {
+    // Regression: the socket accepts the handshake, then closes while POST
+    // /prompt is in flight — before listenForCompletion attaches its own close
+    // handler. The already-closed socket must fail fast instead of hanging for
+    // the full timeout.
+    mockFetch.mockImplementationOnce(async () => {
+      // Simulate the WS being torn down mid-submit.
+      if (lastWsInstance) lastWsInstance.readyState = 3; // CLOSED
+      return jsonResponse({ prompt_id: "abc123" });
+    });
+
+    const handle = executeComfy(
+      samplePrompt,
+      "127.0.0.1:8188",
+      undefined,
+      60_000
+    );
+    const started = Date.now();
+    const result = await handle.result;
+
+    expect(result.status).toBe("failed");
+    expect(result.error).toMatch(/closed before result streaming began/i);
+    // Must not have waited anywhere near the 60s timeout.
+    expect(Date.now() - started).toBeLessThan(5000);
   });
 
   it("works with full URL (e.g. RunPod Pod)", async () => {
