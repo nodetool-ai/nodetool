@@ -18,6 +18,7 @@ import {
   exportWorkflowBundle,
   importWorkflowBundle
 } from "../../utils/workflowBundle";
+import { useWorkflowShareDialogStore } from "../../stores/WorkflowShareDialogStore";
 import { useNodes } from "../../contexts/NodeContext";
 import { create } from "zustand";
 import { shallow } from "zustand/shallow";
@@ -254,6 +255,15 @@ const WorkflowCommands = memo(function WorkflowCommands() {
     }
   }, [currentWorkflow, addNotification]);
 
+  const openShareDialog = useWorkflowShareDialogStore((state) => state.open);
+  const shareWorkflow = useCallback(() => {
+    if (!currentWorkflow?.id) return;
+    openShareDialog({
+      workflowId: currentWorkflow.id,
+      workflowName: currentWorkflow.name
+    });
+  }, [currentWorkflow, openShareDialog]);
+
   const handleImportBundle = useCallback(() => {
     bundleInputRef.current?.click();
   }, []);
@@ -325,6 +335,9 @@ const WorkflowCommands = memo(function WorkflowCommands() {
       </Command.Item>
       <Command.Item onSelect={() => executeAndClose(exportBundle)}>
         <FolderZipRoundedIcon /> Export Workflow as Bundle (.nodetool)
+      </Command.Item>
+      <Command.Item onSelect={() => executeAndClose(shareWorkflow)}>
+        Share Workflow…
       </Command.Item>
       <Command.Item onSelect={() => executeAndClose(handleImportBundle)}>
         <FolderZipRoundedIcon /> Import Workflow from Bundle (.nodetool)

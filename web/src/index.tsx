@@ -83,6 +83,9 @@ const GlobalChat = React.lazy(
 const StandaloneMiniApp = React.lazy(
   () => import("./components/miniapps/StandaloneMiniApp")
 );
+const AcceptSharePage = React.lazy(
+  () => import("./components/workflows/AcceptSharePage")
+);
 const AppBuilderPage = React.lazy(
   () => import("./components/appbuilder/AppBuilderPage")
 );
@@ -306,6 +309,16 @@ function getRoutes() {
       element: (
         <ProtectedRoute>
           <StandaloneMiniApp />
+        </ProtectedRoute>
+      )
+    },
+    {
+      path: "/share/:token",
+      element: (
+        <ProtectedRoute>
+          <React.Suspense fallback={<LoadingSpinner />}>
+            <AcceptSharePage />
+          </React.Suspense>
         </ProtectedRoute>
       )
     },

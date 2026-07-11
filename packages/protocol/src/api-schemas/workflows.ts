@@ -438,3 +438,101 @@ export const terminalOutputsOutput = z.object({
   outputs: z.array(terminalOutputItem)
 });
 export type TerminalOutputsOutput = z.infer<typeof terminalOutputsOutput>;
+
+// ── sharing ──────────────────────────────────────────────────────────────────
+// Private sharing: the owner mints role-scoped share links; any authenticated
+// user who redeems one becomes a collaborator ("viewer" opens and runs,
+// "editor" also modifies). See packages/models workflow-collaborator/share.
+
+export const collaboratorRoleSchema = z.enum(["viewer", "editor"]);
+export type CollaboratorRoleValue = z.infer<typeof collaboratorRoleSchema>;
+
+export const collaboratorItem = z.object({
+  workflow_id: z.string(),
+  user_id: z.string(),
+  role: collaboratorRoleSchema,
+  invited_by: z.string(),
+  created_at: z.string().nullable().optional()
+});
+export type CollaboratorItem = z.infer<typeof collaboratorItem>;
+
+export const shareItem = z.object({
+  id: z.string(),
+  workflow_id: z.string(),
+  token: z.string(),
+  role: collaboratorRoleSchema,
+  created_at: z.string().nullable().optional(),
+  revoked_at: z.string().nullable().optional()
+});
+export type ShareItem = z.infer<typeof shareItem>;
+
+export const sharingGetInput = z.object({ id: z.string().min(1) });
+export type SharingGetInput = z.infer<typeof sharingGetInput>;
+
+export const sharingGetOutput = z.object({
+  collaborators: z.array(collaboratorItem),
+  shares: z.array(shareItem)
+});
+export type SharingGetOutput = z.infer<typeof sharingGetOutput>;
+
+export const sharingCreateLinkInput = z.object({
+  id: z.string().min(1),
+  role: collaboratorRoleSchema
+});
+export type SharingCreateLinkInput = z.infer<typeof sharingCreateLinkInput>;
+
+export const sharingRevokeLinkInput = z.object({
+  id: z.string().min(1),
+  share_id: z.string().min(1)
+});
+export type SharingRevokeLinkInput = z.infer<typeof sharingRevokeLinkInput>;
+
+export const sharingSetRoleInput = z.object({
+  id: z.string().min(1),
+  user_id: z.string().min(1),
+  role: collaboratorRoleSchema
+});
+export type SharingSetRoleInput = z.infer<typeof sharingSetRoleInput>;
+
+export const sharingRemoveCollaboratorInput = z.object({
+  id: z.string().min(1),
+  user_id: z.string().min(1)
+});
+export type SharingRemoveCollaboratorInput = z.infer<
+  typeof sharingRemoveCollaboratorInput
+>;
+
+export const sharingOkOutput = z.object({ ok: z.literal(true) });
+export type SharingOkOutput = z.infer<typeof sharingOkOutput>;
+
+export const sharingAcceptInput = z.object({ token: z.string().min(1) });
+export type SharingAcceptInput = z.infer<typeof sharingAcceptInput>;
+
+export const sharingAcceptOutput = z.object({
+  workflow: workflowResponse,
+  role: collaboratorRoleSchema
+});
+export type SharingAcceptOutput = z.infer<typeof sharingAcceptOutput>;
+
+export const myRoleInput = z.object({ id: z.string().min(1) });
+export type MyRoleInput = z.infer<typeof myRoleInput>;
+
+export const myRoleOutput = z.object({
+  role: z.enum(["owner", "editor", "viewer"]).nullable()
+});
+export type MyRoleOutput = z.infer<typeof myRoleOutput>;
+
+export const sharedWithMeInput = z.object({
+  limit: z.number().int().min(1).max(200).default(100)
+});
+export type SharedWithMeInput = z.infer<typeof sharedWithMeInput>;
+
+export const sharedWorkflowItem = workflowResponse.extend({
+  shared_role: collaboratorRoleSchema
+});
+export type SharedWorkflowItem = z.infer<typeof sharedWorkflowItem>;
+
+export const sharedWithMeOutput = z.object({
+  workflows: z.array(sharedWorkflowItem)
+});
+export type SharedWithMeOutput = z.infer<typeof sharedWithMeOutput>;
