@@ -41,7 +41,6 @@ export function findOutputHandle(
   handleName: string,
   metadata: NodeMetadata
 ): OutputHandle | undefined {
-  // First check static outputs
   const staticOutput = metadata.outputs.find(
     (output: OutputSlot) => output.name === handleName
   );
@@ -70,7 +69,6 @@ export function findOutputHandle(
     };
   }
 
-  // Then check dynamic outputs
   const dynamicOutputs = node.data.dynamic_outputs || {};
   const dynamicOutput = dynamicOutputs[handleName];
 
@@ -95,7 +93,6 @@ export function findInputHandle(
   handleName: string,
   metadata: NodeMetadata
 ): InputHandle | undefined {
-  // First check static properties
   const staticProperty = metadata.properties.find(
     (property: Property) => property.name === handleName
   );
@@ -173,7 +170,7 @@ export function getAllOutputHandles(
 ): OutputHandle[] {
   const handles: OutputHandle[] = [];
 
-  // Add static outputs, resolving instance-dependent types via the registry.
+  // Resolve instance-dependent output types via the registry.
   metadata.outputs.forEach((output: OutputSlot) => {
     const inferred = inferOutputType(
       metadata.node_type,

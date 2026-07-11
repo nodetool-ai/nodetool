@@ -283,7 +283,6 @@ export function isSystemDirectoryAvailable(): boolean {
 }
 
 export function isPathValid(path: string): boolean {
-  // Reject empty strings early
   if (!path) {return false;}
 
   // Disallow path traversal sequences

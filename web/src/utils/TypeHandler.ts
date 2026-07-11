@@ -201,7 +201,6 @@ export const isConnectable = (
   target: TypeMetadata,
   allowAny: boolean = true
 ): boolean => {
-  // Safety check for undefined types
   if (!source || !target || !source.type || !target.type) {
     return false;
   }
@@ -279,7 +278,6 @@ export const isConnectable = (
 
   switch (source.type) {
     case "union":
-      // Union handling stays the same
       break;
     case "enum":
       if (target.type === "str") {

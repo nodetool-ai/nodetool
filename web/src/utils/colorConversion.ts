@@ -37,9 +37,6 @@ export interface LAB {
   b: number; // -128 to 127
 }
 
-/**
- * Clamp a value between min and max
- */
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
@@ -79,9 +76,6 @@ export function hexToRgb(hex: string): RGB {
   };
 }
 
-/**
- * Convert RGB to hex string
- */
 export function rgbToHex(rgb: RGB, includeAlpha = false): string {
   const toHex = (n: number): string => {
     const hex = clamp(Math.round(n), 0, 255).toString(16);
@@ -97,9 +91,6 @@ export function rgbToHex(rgb: RGB, includeAlpha = false): string {
   return hex;
 }
 
-/**
- * Convert RGB to HSL
- */
 export function rgbToHsl(rgb: RGB): HSL {
   const r = rgb.r / 255;
   const g = rgb.g / 255;
@@ -137,9 +128,6 @@ export function rgbToHsl(rgb: RGB): HSL {
   };
 }
 
-/**
- * Convert HSL to RGB
- */
 export function hslToRgb(hsl: HSL): RGB {
   const h = hsl.h / 360;
   const s = hsl.s / 100;
@@ -175,9 +163,6 @@ export function hslToRgb(hsl: HSL): RGB {
   };
 }
 
-/**
- * Convert RGB to HSB/HSV
- */
 export function rgbToHsb(rgb: RGB): HSB {
   const r = rgb.r / 255;
   const g = rgb.g / 255;
@@ -213,9 +198,6 @@ export function rgbToHsb(rgb: RGB): HSB {
   };
 }
 
-/**
- * Convert HSB/HSV to RGB
- */
 export function hsbToRgb(hsb: HSB): RGB {
   const h = hsb.h / 360;
   const s = hsb.s / 100;
@@ -271,9 +253,6 @@ export function hsbToRgb(hsb: HSB): RGB {
   };
 }
 
-/**
- * Convert RGB to CMYK
- */
 export function rgbToCmyk(rgb: RGB): CMYK {
   const r = rgb.r / 255;
   const g = rgb.g / 255;
@@ -297,9 +276,6 @@ export function rgbToCmyk(rgb: RGB): CMYK {
   };
 }
 
-/**
- * Convert CMYK to RGB
- */
 export function cmykToRgb(cmyk: CMYK): RGB {
   const c = cmyk.c / 100;
   const m = cmyk.m / 100;
@@ -360,9 +336,6 @@ export function rgbToLab(rgb: RGB): LAB {
   };
 }
 
-/**
- * Convert LAB to RGB
- */
 export function labToRgb(lab: LAB): RGB {
   // Convert LAB to XYZ
   const fy = (lab.l + 16) / 116;

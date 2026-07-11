@@ -5,8 +5,6 @@
  * lodash dependency can be removed from the web package.
  */
 
-// ---- debounce ----
-
 interface DebouncedFunction<T extends (...args: any[]) => void> {
   (...args: Parameters<T>): void;
   cancel(): void;
@@ -43,8 +41,6 @@ export function debounce<T extends (...args: any[]) => void>(
   );
   return debounced;
 }
-
-// ---- throttle ----
 
 interface ThrottledFunction<T extends (...args: any[]) => void> {
   (...args: Parameters<T>): void;
@@ -94,8 +90,6 @@ export function throttle<T extends (...args: any[]) => void>(
   );
   return throttled;
 }
-
-// ---- omit ----
 
 /**
  * Returns a shallow copy of `obj` without the specified `keys`.
