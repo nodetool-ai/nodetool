@@ -1,11 +1,6 @@
 /**
  * Messages router — migrated from REST `/api/messages*`.
  *
- * Handlers previously lived inline in http-api.ts (`handleMessagesRoot`,
- * `handleMessageById`). The logic is ported verbatim here; helpers that
- * were useful only to those handlers (`toMessageResponse`, `MessageCreateBody`)
- * move with them.
- *
  * User ownership is enforced in every procedure — a message whose `user_id`
  * doesn't match `ctx.userId` is indistinguishable from a missing one (both
  * throw NOT_FOUND) to avoid leaking existence.

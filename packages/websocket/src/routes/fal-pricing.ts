@@ -76,7 +76,6 @@ async function fetchFalPricingForIds(
 
 const falPricingRoute: FastifyPluginAsync = async (app) => {
   app.get("/api/fal/pricing", async (req, reply) => {
-    // Accept one or more endpoint_id query params
     const raw = (req.query as Record<string, string | string[]>)["endpoint_id"];
     const endpointIds = raw
       ? [...new Set(Array.isArray(raw) ? raw : [raw])]

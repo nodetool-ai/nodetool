@@ -1010,69 +1010,36 @@ export const modelsRouter = router({
       return getRecommendedModels(input.check_servers ?? false);
     }),
 
-  /**
-   * Recommended image models (all tasks).
-   */
   recommendedImage: protectedProcedure
     .query(() => selectRecommended("image")),
 
-  /**
-   * Recommended text-to-image models.
-   */
   recommendedImageTextToImage: protectedProcedure
     .query(() => selectRecommended("image", "text_to_image")),
 
-  /**
-   * Recommended image-to-image models.
-   */
   recommendedImageImageToImage: protectedProcedure
     .query(() => selectRecommended("image", "image_to_image")),
 
-  /**
-   * Recommended language models (all tasks).
-   */
   recommendedLanguage: protectedProcedure
     .query(() => selectRecommended("language")),
 
-  /**
-   * Recommended text-generation models.
-   */
   recommendedLanguageTextGeneration: protectedProcedure
     .query(() => selectRecommended("language", "text_generation")),
 
-  /**
-   * Recommended embedding models.
-   */
   recommendedLanguageEmbedding: protectedProcedure
     .query(() => selectRecommended("language", "embedding")),
 
-  /**
-   * Recommended ASR models.
-   */
   recommendedAsr: protectedProcedure
     .query(() => selectRecommended("asr")),
 
-  /**
-   * Recommended TTS models.
-   */
   recommendedTts: protectedProcedure
     .query(() => selectRecommended("tts")),
 
-  /**
-   * Recommended music-generation models.
-   */
   recommendedMusic: protectedProcedure
     .query(() => selectRecommended("music")),
 
-  /**
-   * Recommended text-to-video models.
-   */
   recommendedVideoTextToVideo: protectedProcedure
     .query(() => selectRecommended("video", "text_to_video")),
 
-  /**
-   * Recommended image-to-video models.
-   */
   recommendedVideoImageToVideo: protectedProcedure
     .query(() => selectRecommended("video", "image_to_video")),
 
@@ -1334,9 +1301,6 @@ export const modelsRouter = router({
       }
     }),
 
-  /**
-   * Ollama models.
-   */
   ollama: protectedProcedure
     .output(ollamaModelsOutput)
     .query(async ({ ctx }) =>
@@ -1353,9 +1317,6 @@ export const modelsRouter = router({
       )
     ),
 
-  /**
-   * LLM models by provider.
-   */
   llmByProvider: protectedProcedure
     .input(providerInput)
     .output(modelsListOutput)
@@ -1438,9 +1399,6 @@ export const modelsRouter = router({
       )
     ),
 
-  /**
-   * Image models by provider.
-   */
   imageByProvider: protectedProcedure
     .input(providerInput)
     .output(modelsListOutput)
@@ -1461,9 +1419,6 @@ export const modelsRouter = router({
       )
     ),
 
-  /**
-   * All TTS models across all providers.
-   */
   tts: protectedProcedure.query(async ({ ctx }) => {
     const availableIds = await getAvailableProviderIds(ctx.userId);
     const results = await Promise.all(
@@ -1484,9 +1439,6 @@ export const modelsRouter = router({
     return results.flat();
   }),
 
-  /**
-   * TTS models by provider.
-   */
   ttsByProvider: protectedProcedure
     .input(providerInput)
     .output(modelsListOutput)
@@ -1507,9 +1459,6 @@ export const modelsRouter = router({
       )
     ),
 
-  /**
-   * All music-generation models across all providers.
-   */
   music: protectedProcedure.query(async ({ ctx }) => {
     const availableIds = await getAvailableProviderIds(ctx.userId);
     const results = await Promise.all(
@@ -1530,9 +1479,6 @@ export const modelsRouter = router({
     return results.flat();
   }),
 
-  /**
-   * Music-generation models by provider.
-   */
   musicByProvider: protectedProcedure
     .input(providerInput)
     .output(modelsListOutput)
@@ -1553,9 +1499,6 @@ export const modelsRouter = router({
       )
     ),
 
-  /**
-   * All ASR models across all providers.
-   */
   asr: protectedProcedure.query(async ({ ctx }) => {
     const availableIds = await getAvailableProviderIds(ctx.userId);
     const results = await Promise.all(
@@ -1576,9 +1519,6 @@ export const modelsRouter = router({
     return results.flat();
   }),
 
-  /**
-   * ASR models by provider.
-   */
   asrByProvider: protectedProcedure
     .input(providerInput)
     .output(modelsListOutput)
@@ -1599,9 +1539,6 @@ export const modelsRouter = router({
       )
     ),
 
-  /**
-   * All video models across all providers.
-   */
   video: protectedProcedure.query(async ({ ctx }) => {
     const availableIds = await getAvailableProviderIds(ctx.userId);
     const results = await Promise.all(
@@ -1622,9 +1559,6 @@ export const modelsRouter = router({
     return results.flat();
   }),
 
-  /**
-   * Video models by provider.
-   */
   videoByProvider: protectedProcedure
     .input(providerInput)
     .output(modelsListOutput)
@@ -1645,9 +1579,6 @@ export const modelsRouter = router({
       )
     ),
 
-  /**
-   * Embedding models by provider.
-   */
   embeddingByProvider: protectedProcedure
     .input(providerInput)
     .output(modelsListOutput)
