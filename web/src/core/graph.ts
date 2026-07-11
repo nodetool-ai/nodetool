@@ -17,7 +17,6 @@ export function topologicalSort(
   edges: Edge[],
   nodes: Node<NodeData>[]
 ): string[][] {
-  // handle empty edges case
   if (edges.length === 0) {
     return [nodes.map((node) => node.id)];
   }
@@ -25,52 +24,42 @@ export function topologicalSort(
   const indegree: Record<string, number> = {};
   edges = [...edges];
 
-  // initialize the indegree of each node to 0
   nodes.forEach((node) => {
     indegree[node.id] = 0;
   });
 
-  // iterate through the edges and increment the indegree of the target node
   edges.forEach((edge) => {
     indegree[edge.target]++;
   });
 
-  // initialize the queue with nodes that have no incoming edges
   const queue: string[] = [];
   Object.keys(indegree).forEach((nodeId) => {
     if (indegree[nodeId] === 0) {queue.push(nodeId);}
   });
 
-  // initialize the sorted nodes which will be returned
-  // this is a list of layers of nodes
+  // Each entry is a layer of nodes with no remaining incoming edges.
   const sortedNodes: string[][] = [];
 
-  // iterate through the queue until it is empty
   while (queue.length) {
     const levelNodes: string[] = [];
 
-    // iterate through the nodes in the queue
     for (let i = 0, len = queue.length; i < len; i++) {
       const n = queue.shift()!;
       levelNodes.push(n);
 
-      // iterate through the edges and remove edges that are connected to the nod
       for (const edge of [...edges]) {
-        // if the edge is connected to the node, remove it
         if (edge.source === n) {
           const index = edges.indexOf(edge);
           if (index > -1) {
             edges.splice(index, 1);
           }
           indegree[edge.target]--;
-          // if the node has no more incoming edges, add it to the queue
           if (indegree[edge.target] === 0) {
             queue.push(edge.target);
           }
         }
       }
     }
-    // add the layer to the sorted nodes
     sortedNodes.push(levelNodes);
   }
 
@@ -99,9 +88,7 @@ export function subgraph(
   startNode: Node,
   stopNode: Node | null = null
 ): Result {
-  // Keep track of visited nodes
   const visited: Set<string> = new Set();
-  // Use a stack to perform a depth-first search
   const stack: string[] = [startNode.id];
   const result: Result = { edges: [], nodes: [] };
 
@@ -118,7 +105,6 @@ export function subgraph(
       break;
     }
 
-    // Find and collect connected nodes
     for (const edge of edges) {
       if (edge.source === currentNodeId) {
         if (!visited.has(edge.target)) {
@@ -128,7 +114,6 @@ export function subgraph(
     }
   }
 
-  // Add nodes to result based on visited nodes
   for (const node of nodes) {
     if (visited.has(node.id)) {
       result.nodes.push(node);

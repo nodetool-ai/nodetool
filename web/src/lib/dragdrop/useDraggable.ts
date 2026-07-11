@@ -56,20 +56,16 @@ export function useDraggable<T extends DragDataType>(
         return;
       }
 
-      // Serialize data to dataTransfer
       serializeDragData(data, event.dataTransfer);
 
-      // Set effect
       event.dataTransfer.effectAllowed = options?.effectAllowed ?? "move";
 
-      // Handle drag image
       if (options?.dragImage) {
         let imageElement: HTMLElement;
 
         if (options.dragImage instanceof HTMLElement) {
           imageElement = options.dragImage;
         } else {
-          // DragImageConfig
           const config = options.dragImage as DragImageConfig;
           if (config.count !== undefined) {
             imageElement = createDragCountBadge(config.count);
@@ -82,7 +78,6 @@ export function useDraggable<T extends DragDataType>(
           }
         }
 
-        // Append temporarily if not in DOM
         if (!imageElement.parentElement) {
           document.body.appendChild(imageElement);
           dragImageRef.current = imageElement;
@@ -95,10 +90,7 @@ export function useDraggable<T extends DragDataType>(
         event.dataTransfer.setDragImage(imageElement, offset.x, offset.y);
       }
 
-      // Update global state
       setActiveDrag(data);
-
-      // Call user callback
       options?.onDragStart?.(event);
     },
     [data, options, setActiveDrag]
@@ -106,7 +98,6 @@ export function useDraggable<T extends DragDataType>(
 
   const handleDragEnd = useCallback(
     (event: React.DragEvent) => {
-      // Clean up drag image using modern remove() method
       if (dragImageRef.current) {
         dragImageRef.current.remove();
         dragImageRef.current = null;

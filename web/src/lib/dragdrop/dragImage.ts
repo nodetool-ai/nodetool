@@ -1,7 +1,6 @@
 import { Asset } from "../../stores/ApiTypes";
 import { SPACING, getSpacingPx } from "../../components/ui_primitives";
 
-// Helper to get z-index for stack
 const getZIndex = (index: number, total: number) => total - index;
 
 /**
@@ -18,7 +17,7 @@ export function createAssetDragImage(
 ): HTMLElement {
   const container = document.createElement("div");
 
-  // Base container style - needs to be off-screen usually
+  // Rendered off-screen so it can be handed to setDragImage.
   container.style.cssText = `
     position: absolute;
     top: -9999px;
@@ -29,28 +28,22 @@ export function createAssetDragImage(
     pointer-events: none;
   `;
 
-  // Determine items to show in stack
-  // Always show primary asset first
   const stackAssets: (Asset | null)[] = [primaryAsset];
 
-  // Add other assets if available, up to 2 more
   if (otherAssets.length > 0) {
-    // Filter out the primary asset if it's in the list
     const others = otherAssets
       .filter((a) => a.id !== primaryAsset.id)
       .slice(0, 2);
     stackAssets.push(...others);
   }
 
-  // Fill with nulls if we need more items to represent the count (visual stack effect), max 3 total
+  // Pad with nulls so the stack visually represents the count (max 3 cards).
   while (stackAssets.length < Math.min(totalCount, 3)) {
     stackAssets.push(null);
   }
 
-  // Render stack
   stackAssets.forEach((asset, index) => {
     const item = document.createElement("div");
-    // Offset each card slightly down and right
     const offset = index * 4;
     const scale = 1 - index * 0.04;
 
@@ -73,9 +66,7 @@ export function createAssetDragImage(
       transform-origin: top left;
     `;
 
-    // Content for this card
     if (asset) {
-      // Icon/Thumbnail
       const isImage = asset.content_type?.startsWith("image/") && asset.get_url;
 
       if (isImage && asset.get_url) {
@@ -92,7 +83,6 @@ export function createAssetDragImage(
         `;
         item.appendChild(img);
       } else {
-        // Generic File Icon
         const iconDiv = document.createElement("div");
         iconDiv.style.cssText = `
           width: 48px;
@@ -109,13 +99,11 @@ export function createAssetDragImage(
           font-size: var(--fontSizeSmaller);
           text-transform: uppercase;
         `;
-        // Extension
         const ext = asset.name.split(".").pop()?.substring(0, 4) || "FILE";
         iconDiv.textContent = ext;
         item.appendChild(iconDiv);
       }
 
-      // Info
       const infoDiv = document.createElement("div");
       infoDiv.style.cssText = `
         flex: 1;
@@ -151,14 +139,12 @@ export function createAssetDragImage(
 
       item.appendChild(infoDiv);
     } else {
-      // Placeholder card (looks like back of a card or generic)
       item.style.background = "var(--palette-background-default)";
     }
 
     container.appendChild(item);
   });
 
-  // Badge if more than 1
   if (totalCount > 1) {
     const badge = document.createElement("div");
     badge.textContent = String(totalCount);

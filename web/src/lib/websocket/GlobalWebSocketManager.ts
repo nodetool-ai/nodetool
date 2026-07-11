@@ -51,7 +51,6 @@ interface GlobalWebSocketEvents {
 
 type GlobalWebSocketEvent = keyof GlobalWebSocketEvents;
 
-// Configuration constants
 const MAX_RECONNECT_ATTEMPTS = 10;
 const RECONNECT_INTERVAL_MS = 1000;
 
@@ -88,9 +87,6 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
     return GlobalWebSocketManager.instance;
   }
 
-  /**
-   * Ensure WebSocket connection is established
-   */
   async ensureConnection(): Promise<void> {
     if (this.isConnected && this.wsManager) {
       return;
@@ -310,7 +306,6 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
 
     console.debug(`GlobalWebSocketManager: Subscribed handler for ${key}`);
 
-    // Return unsubscribe function
     return () => {
       const handlers = this.messageHandlers.get(key);
       if (handlers) {
@@ -323,9 +318,6 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
     };
   }
 
-  /**
-   * Send a message through the WebSocket
-   */
   async send(message: Record<string, unknown>): Promise<void> {
     await this.ensureConnection();
 
@@ -337,9 +329,6 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
     this.wsManager.send(message);
   }
 
-  /**
-   * Disconnect the WebSocket
-   */
   disconnect(): void {
     if (this.wsManager) {
       console.info("GlobalWebSocketManager: Disconnecting");
@@ -348,8 +337,7 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
       this.isConnected = false;
       this.isConnecting = false;
     }
-    
-    // Clean up network listeners
+
     if (this.networkCleanup) {
       this.networkCleanup();
       this.networkCleanup = null;
@@ -357,9 +345,6 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
     }
   }
 
-  /**
-   * Get connection state
-   */
   getConnectionState(): {
     isConnected: boolean;
     isConnecting: boolean;
@@ -436,7 +421,6 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
     window.addEventListener("online", handleOnline);
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
-    // Store cleanup function
     this.networkCleanup = () => {
       window.removeEventListener("online", handleOnline);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
@@ -460,5 +444,4 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
   }
 }
 
-// Export singleton instance
 export const globalWebSocketManager = GlobalWebSocketManager.getInstance();

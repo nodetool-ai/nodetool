@@ -26,7 +26,6 @@ export const useAssetUpdate = () => {
       // Cancel outgoing refetches so they don't overwrite the optimistic update
       await queryClient.cancelQueries({ queryKey });
 
-      // Snapshot the previous value for rollback
       const previousData = queryClient.getQueryData<AssetList>(queryKey);
 
       // Immediately remove the moved assets from the current folder view
@@ -54,7 +53,6 @@ export const useAssetUpdate = () => {
     },
     onError: (err, _updates, context) => {
       console.error("Failed to update asset(s):", err);
-      // Roll back to the previous state
       if (context?.previousData !== undefined) {
         queryClient.setQueryData(
           ["assets", { parent_id: context.currentFolderId }],
@@ -70,7 +68,6 @@ export const useAssetUpdate = () => {
     },
     onSettled: (_data, _error, _updates, context) => {
       setAssets([]);
-      // Re-sync with the server after the mutation completes
       if (context?.currentFolderId !== undefined) {
         queryClient.invalidateQueries({
           queryKey: ["assets", { parent_id: context.currentFolderId }]

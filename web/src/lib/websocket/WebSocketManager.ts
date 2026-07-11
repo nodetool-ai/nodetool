@@ -221,10 +221,8 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
 
     this.emit("open");
 
-    // Process queued messages
     this.processMessageQueue();
 
-    // Resolve connection promise
     if (this.connectionResolver) {
       this.connectionResolver();
       this.connectionResolver = null;
@@ -290,7 +288,6 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
       return;
     }
 
-    // Handle connection promise rejection
     if (wasConnecting && this.connectionRejector) {
       this.connectionRejector(
         new Error(`Connection failed: ${event.reason || "Unknown reason"}`)
@@ -302,7 +299,6 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
 
     this.emit("close", event.code, event.reason, event.wasClean);
 
-    // Handle reconnection
     const shouldReconnect = this.shouldReconnect(event);
     console.info(
       `Should reconnect: ${shouldReconnect}, attempts: ${this.reconnectAttempt}/${this.config.reconnectAttempts}`

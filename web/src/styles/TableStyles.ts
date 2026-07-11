@@ -43,18 +43,15 @@ export const tableStyles = (theme: Theme) =>
       }
     },
 
-    // Column resize handle
     ".tabulator .tabulator-col-resize-handle": {
       position: "absolute",
-      // display: "inline-block",
       right: "5em",
       width: "6px",
-      margin: `0 -${getSpacingPx(SPACING.xs)}`, // was 0 -3px
+      margin: `0 -${getSpacingPx(SPACING.xs)}`,
       zIndex: Z_INDEX.dropdown + 1,
       verticalAlign: "middle"
     },
 
-    // Row
     ".tabulator-row": {
       minHeight: "15px",
       minWidth: "20px",
@@ -68,7 +65,6 @@ export const tableStyles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.grey[600]
     },
 
-    // Header
     ".tabulator .tabulator-header": {
       height: "2.5em",
       minHeight: "20px",
@@ -85,7 +81,6 @@ export const tableStyles = (theme: Theme) =>
     ".tabulator .tabulator-header .tabulator-col-title": {
       lineHeight: "1.1em"
     },
-    // Sorting arrow
     ".tabulator .tabulator-header .tabulator-col.tabulator-sortable .tabulator-col-content .tabulator-col-sorter .tabulator-arrow":
       {
         transition: `border ${MOTION.fast}`
@@ -99,20 +94,17 @@ export const tableStyles = (theme: Theme) =>
         borderTop: `6px solid ${theme.vars.palette.primary.main}`
       },
 
-    // cell
     ".tabulator-row .tabulator-cell": {
       borderColor: theme.vars.palette.grey[900]
     },
-    // Frozen column
     ".tabulator-row .tabulator-cell.tabulator-frozen": {
       paddingLeft: `${getSpacingPx(SPACING.micro)} !important`,
       borderRight: `1px solid ${theme.vars.palette.grey[900]}`
     },
     ".tabulator .tabulator-header .tabulator-col .tabulator-col-content": {
-      padding: `${getSpacingPx(SPACING.sm)} 0 0 ${getSpacingPx(SPACING.micro)}` // was 5px 0px 0px 2px
+      padding: `${getSpacingPx(SPACING.sm)} 0 0 ${getSpacingPx(SPACING.micro)}`
     },
 
-    // Table action buttons
     ".table-actions": {
       display: "flex",
       width: "100%",
@@ -147,7 +139,6 @@ export const tableStyles = (theme: Theme) =>
       }
     },
 
-    // Datetime picker
     ".datetime-picker": {
       backgroundColor: theme.vars.palette.primary.main
     },
@@ -180,7 +171,6 @@ export const tableStyles = (theme: Theme) =>
       }
     },
 
-    // Cell editing
     ".tabulator .tabulator-cell.tabulator-editing input": {
       backgroundColor: theme.vars.palette.grey[0],
       color: theme.vars.palette.grey[1000],
@@ -190,7 +180,6 @@ export const tableStyles = (theme: Theme) =>
       }
     },
 
-    // Row select
     ".tabulator-row .tabulator-cell.row-select, .tabulator .tabulator-header .tabulator-col.row-select .tabulator-col-content, .tabulator-header .tabulator-col.row-select":
       {
         width: "25px !important",

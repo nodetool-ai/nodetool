@@ -25,9 +25,7 @@ export function createTRPCHttpClient(): Readonly<TRPCClient<AppRouter>> {
     links: [
       loggerLink({
         enabled: (opts) =>
-          (typeof window !== "undefined" &&
-            import.meta.env.DEV &&
-            typeof window !== "undefined") ||
+          (typeof window !== "undefined" && import.meta.env.DEV) ||
           (opts.direction === "down" && opts.result instanceof Error)
       }),
       httpBatchLink({
