@@ -70,10 +70,11 @@ export const useCopyPaste = (): UseCopyPasteResult => {
         return { nodesToCopy: [], connectedEdges: [] };
       }
       const nodesToCopyIds = nodesToCopy.map((node) => node.id);
+      const nodesToCopyIdsSet = new Set(nodesToCopyIds);
       const connectedEdges = edges.filter(
         (edge) =>
-          nodesToCopyIds.includes(edge.source) ||
-          nodesToCopyIds.includes(edge.target)
+          nodesToCopyIdsSet.has(edge.source) ||
+          nodesToCopyIdsSet.has(edge.target)
       );
       const serializedData = JSON.stringify({
         nodes: nodesToCopy,
