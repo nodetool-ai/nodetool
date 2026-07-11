@@ -17,7 +17,6 @@ import {
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 
-//icons
 import SouthEastIcon from "@mui/icons-material/SouthEast";
 import FitScreenIcon from "@mui/icons-material/FitScreen";
 import AddCommentIcon from "@mui/icons-material/AddComment";
@@ -28,7 +27,6 @@ import ChatIcon from "@mui/icons-material/Chat";
 import ImageIcon from "@mui/icons-material/Image";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 
-//behaviours
 import { useCopyPaste } from "../../hooks/handlers/useCopyPaste";
 import { useClipboard } from "../../hooks/browser/useClipboard";
 import { useFitView } from "../../hooks/useFitView";
@@ -81,7 +79,6 @@ const styles = (theme: Theme) =>
     }
   });
 
-// Memoized divider style to prevent object creation on each render
 const dividerSx = { margin: `${getSpacingPx(SPACING.lg)} 0` } as const;
 
 interface MobilePaneMenuProps {
@@ -101,9 +98,7 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
     addNode: state.addNode
   }), shallow);
 
-  // Get center of viewport for node positioning
   const getViewportCenter = useCallback(() => {
-    // Get center of visible area
     const centerX = window.innerWidth / 2;
     const centerY = window.innerHeight / 2;
 
@@ -190,7 +185,6 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
     >
       <div className="menu-content" css={styles(theme)}>
         <List dense>
-          {/* General Actions */}
           <div className="menu-section-title">Actions</div>
           <ListItem className={`menu-item ${!isClipboardValid ? "disabled" : ""}`}>
             <ListItemButton onClick={handlePasteAction} disabled={!isClipboardValid}>
@@ -220,7 +214,6 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
 
           <Divider sx={dividerSx} />
 
-          {/* AI Nodes */}
           <div className="menu-section-title">AI Nodes</div>
           <ListItem className="menu-item">
             <ListItemButton onClick={addAgentNode}>
@@ -237,7 +230,6 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
 
           <Divider sx={dividerSx} />
 
-          {/* Input Nodes */}
           <div className="menu-section-title">Input Nodes</div>
           <ListItem className="menu-item">
             <ListItemButton onClick={addInputNode} data-node-type="StringInput">
@@ -306,7 +298,6 @@ const MobilePaneMenu: React.FC<MobilePaneMenuProps> = ({ open, onClose }) => {
 
           <Divider sx={dividerSx} />
 
-          {/* Organization */}
           <div className="menu-section-title">Organization</div>
           <ListItem className="menu-item">
             <ListItemButton onClick={addComment}>

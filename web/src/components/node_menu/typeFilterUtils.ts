@@ -241,7 +241,6 @@ export const filterDataByType = (
   inputType: TypeName | undefined,
   outputType: TypeName | undefined
 ): NodeMetadata[] => {
-  // Helper to build a minimal TypeMetadata object
   const buildTypeMeta = (t: string) => ({
     type: t,
     optional: true,
@@ -251,7 +250,6 @@ export const filterDataByType = (
 
   let filtered = metadata;
 
-  // --- Input Filtering ---
   if (inputType) {
     if (inputType === "any") {
       // Strict match: property type must be exactly 'any'
@@ -263,7 +261,6 @@ export const filterDataByType = (
     }
   }
 
-  // --- Output Filtering ---
   if (outputType) {
     if (outputType === "any") {
       filtered = filtered.filter((node) =>

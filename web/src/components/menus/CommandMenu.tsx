@@ -621,7 +621,6 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
     [setOpen]
   );
 
-  // Set up command menu context
   useEffect(() => {
     useCommandMenu.setState({
       executeAndClose,
@@ -636,14 +635,12 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
     };
 
     if (open) {
-      // Clear any existing timeout before setting a new one
       if (focusInputTimeoutRef.current) {
         clearTimeout(focusInputTimeoutRef.current);
       }
       focusInputTimeoutRef.current = setTimeout(focusInput, 0);
     }
 
-    // Cleanup: clear timeout when component unmounts or open changes
     return () => {
       if (focusInputTimeoutRef.current) {
         clearTimeout(focusInputTimeoutRef.current);
@@ -651,7 +648,6 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
     };
   }, [open]);
 
-  // Cleanup timeout on component unmount
   useEffect(() => {
     return () => {
       if (focusInputTimeoutRef.current) {

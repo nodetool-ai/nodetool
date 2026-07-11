@@ -28,8 +28,6 @@ import usePacksStore, {
 } from "../../stores/PacksStore";
 import { useShallow } from "zustand/react/shallow";
 
-// ── Helpers ───────────────────────────────────────────────────────────────
-
 function statusColor(
   pack: PackInfo
 ): "success" | "warning" | "error" | "default" {
@@ -55,8 +53,6 @@ const SKIP_REASON_LABEL: Record<SkipReason, string> = {
   collision: "node type already registered",
   "no-node-type": "no nodeType defined"
 };
-
-// ── Sub-components ────────────────────────────────────────────────────────
 
 interface PackRowProps {
   pack: PackInfo;
@@ -163,8 +159,6 @@ const PackRow = memo(function PackRow({
   );
 });
 
-// ── Install / restart sub-section (Electron only) ─────────────────────────
-
 const InstallPanel = memo(function InstallPanel({
   onInstalled
 }: {
@@ -254,8 +248,6 @@ const InstallPanel = memo(function InstallPanel({
     </FlexColumn>
   );
 });
-
-// ── Main tab content ──────────────────────────────────────────────────────
 
 function PackagesMenu() {
   const {

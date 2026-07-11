@@ -154,7 +154,6 @@ import tencentColorIcon from "../../icons/providers/tencent-color.svg";
 import tencentcloudColorIcon from "../../icons/providers/tencentcloud-color.svg";
 import yuanbaoColorIcon from "../../icons/providers/yuanbao-color.svg";
 
-// Provider to SVG icon mapping
 const providerIconMap: Record<string, string> = {
   // OpenAI / GPT
   openai: openaiIcon,
@@ -324,7 +323,6 @@ const providerIconMap: Record<string, string> = {
   voyage: voyageColorIcon,
 };
 
-// Get icon URL for a provider
 const getProviderIconUrl = (provider: string): string | null => {
   if (!provider) {
     return null;
@@ -556,8 +554,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
       .filter((x) => !x.enabled)
       .sort((a, b) => a.label.localeCompare(b.label))
       .map((x) => x.p);
-    const result = { enabledList, disabledList };
-    return result;
+    return { enabledList, disabledList };
   }, [providers, enabledProviders]);
 
   const handleSelectNull = useCallback(() => {

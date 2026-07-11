@@ -43,7 +43,6 @@ const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
     overscan: theme.virtualScroll.overscan.small,
   });
 
-  // Scroll to the selected item when selectedIndex changes
   useEffect(() => {
     if (selectedIndex >= 0 && searchNodes.length > 0) {
       virtualizer.scrollToIndex(selectedIndex, { align: "auto" });
