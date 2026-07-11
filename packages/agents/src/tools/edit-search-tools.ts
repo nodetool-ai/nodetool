@@ -11,6 +11,7 @@ import {
   writeFile,
   readdir,
   stat,
+  lstat,
   access,
   realpath
 } from "node:fs/promises";
@@ -147,11 +148,17 @@ async function isEditTargetWithinRoot(
   const parent = dirname(candidate);
   if (parent === candidate) return false;
   try {
-    await access(candidate);
-    // It exists but failed the containment check above → outside the root.
+    // lstat, NOT access: access() follows symlinks, so a DANGLING in-workspace
+    // symlink (target outside the root and not yet created) would look absent
+    // and fall through to the parent check, allowing a create that follows the
+    // link outside the workspace. lstat stats the link itself, so it succeeds
+    // and we treat the path as existing-but-out-of-root.
+    await lstat(candidate);
+    // It exists (as a real file or a symlink) but failed the realpath
+    // containment check above → outside the root.
     return false;
   } catch {
-    // Does not exist; the containing directory must be inside the workspace.
+    // Truly does not exist; the containing directory must be inside the root.
     return isRealPathWithinRoot(root, parent);
   }
 }

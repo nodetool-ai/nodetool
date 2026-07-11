@@ -335,21 +335,6 @@ function listenForCompletion(
       }
     });
 
-    // The socket may have already closed/errored during the submit round-trip
-    // (before these handlers were attached); those events won't re-fire, so a
-    // freshly-attached "close" listener would never run and we'd hang for the
-    // full timeout. Detect the already-closed socket up front and fail fast.
-    if (
-      ws.readyState === WebSocket.CLOSING ||
-      ws.readyState === WebSocket.CLOSED
-    ) {
-      settle({
-        status: "failed",
-        error: "ComfyUI WebSocket closed before result streaming began"
-      });
-      return;
-    }
-
     const messageHandler = (raw: WebSocket.RawData) => {
       if (settled) return; // Guard against late messages in receive buffer
 
@@ -473,6 +458,22 @@ function listenForCompletion(
         if (settled) break;
         messageHandler(raw as WebSocket.RawData);
       }
+    }
+
+    // Only after replaying buffered frames: if a completion arrived during the
+    // submit window it has already settled us above. If we're still unsettled
+    // and the socket already closed/errored during that window (those events
+    // won't re-fire on the freshly-attached "close" listener), fail fast rather
+    // than hang for the full timeout.
+    if (
+      !settled &&
+      (ws.readyState === WebSocket.CLOSING ||
+        ws.readyState === WebSocket.CLOSED)
+    ) {
+      settle({
+        status: "failed",
+        error: "ComfyUI WebSocket closed before result streaming began"
+      });
     }
   });
 }

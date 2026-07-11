@@ -227,6 +227,25 @@ describe("EditFileTool symlink containment", () => {
       await rm(outside, { recursive: true, force: true });
     }
   });
+
+  it("refuses to create through a DANGLING symlink that escapes the workspace", async () => {
+    // Regression: access() follows symlinks, so a dangling in-workspace symlink
+    // (target outside the root, not yet created) looked absent and the create
+    // was allowed, writing the file outside the workspace via the link.
+    const outsideTarget = join(
+      tmpdir(),
+      `cc-nonexistent-${Date.now()}`,
+      "evil.txt"
+    );
+    await symlink(outsideTarget, join(workspace, "link.txt"));
+    const res: any = await new EditFileTool().process(ctxFor(workspace), {
+      path: "link.txt",
+      old_string: "",
+      new_string: "should not escape"
+    });
+    expect(res.success).toBe(false);
+    expect(String(res.error)).toMatch(/outside the workspace/i);
+  });
 });
 
 describe("GlobTool symlink containment", () => {

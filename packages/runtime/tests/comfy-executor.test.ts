@@ -152,6 +152,35 @@ describe("executeComfy", () => {
     expect(Date.now() - started).toBeLessThan(5000);
   });
 
+  it("replays a buffered terminal frame even if the socket then closed", async () => {
+    // Regression: the readyState fast-fail ran BEFORE buffered frames were
+    // replayed, so a cached prompt that both completed AND closed during the
+    // submit window was reported failed despite having succeeded.
+    mockFetch.mockImplementationOnce(async () => {
+      if (lastWsInstance) {
+        lastWsInstance.emit(
+          "message",
+          JSON.stringify({
+            type: "execution_success",
+            data: { prompt_id: "cc1" }
+          })
+        );
+        lastWsInstance.readyState = 3; // CLOSED right after the terminal frame
+      }
+      return jsonResponse({ prompt_id: "cc1" });
+    });
+    mockFetch.mockResolvedValueOnce(jsonResponse({ cc1: { outputs: {} } }));
+
+    const handle = executeComfy(
+      samplePrompt,
+      "127.0.0.1:8188",
+      undefined,
+      60_000
+    );
+    const result = await handle.result;
+    expect(result.status).toBe("completed");
+  });
+
   it("fails fast when the socket closes during the submit window", async () => {
     // Regression: the socket accepts the handshake, then closes while POST
     // /prompt is in flight — before listenForCompletion attaches its own close

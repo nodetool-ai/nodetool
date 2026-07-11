@@ -68,6 +68,30 @@ describe("TriggerWakeupService", () => {
     expect(svc.getPendingInputs("r1", "n1")).toHaveLength(1);
   });
 
+  it("dedupes two CONCURRENT deliveries of the same inputId", async () => {
+    // Regression: recording the in-memory marker only after the durable append
+    // opened an await window in which two concurrent same-inputId deliveries
+    // could both pass the idempotency check and both store an entry.
+    const svc = new TriggerWakeupService();
+    const [a, b] = await Promise.all([
+      svc.deliverTriggerInput({
+        runId: "r1",
+        nodeId: "n1",
+        inputId: "dup",
+        payload: { n: 1 }
+      }),
+      svc.deliverTriggerInput({
+        runId: "r1",
+        nodeId: "n1",
+        inputId: "dup",
+        payload: { n: 2 }
+      })
+    ]);
+    // Exactly one delivery is "new", and only one input is stored.
+    expect([a, b].filter(Boolean)).toHaveLength(1);
+    expect(svc.getPendingInputs("r1", "n1")).toHaveLength(1);
+  });
+
   it("deliverTriggerInput() is idempotent — duplicate inputId returns false", async () => {
     const svc = new TriggerWakeupService();
 

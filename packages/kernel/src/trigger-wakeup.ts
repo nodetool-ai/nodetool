@@ -45,6 +45,13 @@ export class TriggerWakeupService {
    * strings — a plain `:` join would let ("a:b","c") collide with ("a","b:c").
    */
   private _inboxes = new Map<string, DurableInbox>();
+  /**
+   * inputIds whose durable append is in flight. Recorded before the `await` so
+   * two concurrent deliveries of the same inputId dedupe against each other
+   * (the in-memory `_inputs` marker is only written after a successful append,
+   * so it can't cover the concurrent window). Cleared once the append settles.
+   */
+  private _inflightInputIds = new Set<string>();
 
   constructor(inboxStore?: DurableInboxStore) {
     this._inboxStore = inboxStore ?? new MemoryDurableInboxStore();
@@ -73,9 +80,10 @@ export class TriggerWakeupService {
     payload: unknown;
     cursor?: string;
   }): Promise<boolean> {
-    // Idempotency check
+    // Idempotency check — against both the committed marker and any delivery
+    // of the same inputId whose durable append is still in flight.
     const existing = this._inputs.find((i) => i.inputId === opts.inputId);
-    if (existing) {
+    if (existing || this._inflightInputIds.has(opts.inputId)) {
       // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.debug("Trigger input already exists (idempotent)", {
         inputId: opts.inputId
@@ -101,8 +109,15 @@ export class TriggerWakeupService {
     // concurrent double-append is safe. Reuse a cached DurableInbox per (run,
     // node) so its per-instance append serialization applies across concurrent
     // deliveries — a fresh instance per call would defeat it (see finding #9).
+    // The in-flight marker covers the await window; on failure it is cleared so
+    // a retry is not short-circuited.
     const inbox = this._inboxFor(opts.runId, opts.nodeId);
-    await inbox.append("trigger", opts.payload, `trigger-${opts.inputId}`);
+    this._inflightInputIds.add(opts.inputId);
+    try {
+      await inbox.append("trigger", opts.payload, `trigger-${opts.inputId}`);
+    } finally {
+      this._inflightInputIds.delete(opts.inputId);
+    }
 
     this._inputs.push(input);
 
