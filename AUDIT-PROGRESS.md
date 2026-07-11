@@ -4,7 +4,7 @@
 > before opening any PR.** It exists so the audit can resume after an ephemeral
 > container is reclaimed. Branch: `claude/kernel-runtime-bug-audit-2e71pq`.
 
-_Last updated: round 3 launched (in flight)._
+_Last updated: round 3 in flight; self-review pass done (3 regressions fixed)._
 
 ## Goal (original task)
 
@@ -23,6 +23,12 @@ produce no new confirmed findings.**
 | 1 | 13 | 12 | fixed + tested + pushed | `da7f7f3` |
 | 2 | 13 | 25 | fixed + tested + pushed | `bfa9af9` |
 | 3 | 13 | ? | **IN FLIGHT** (workflow run `wf_b540d44a-1bb`, task `wexqladdr`) | — |
+| self-review | — | 3 regressions in the fixes themselves | fixed + tested + pushed | `e4a676e` |
+
+Self-review (commit `e4a676e`) fixed 3 defects the round 1/2 fixes introduced:
+trigger-wakeup concurrent-duplicate dedup (in-flight inputId set); edit-search
+dangling-symlink create escape (`lstat` not `access`); comfy readyState fast-fail
+discarding a buffered terminal frame (replay before fast-fail).
 
 Round 1's verifiers for `agents-memory-planner`, `ws-runner`, `ws-api-security`,
 `ws-media-servers` were cut short by a session limit; **round 2 re-ran those with
