@@ -8,22 +8,10 @@
  * color, session). Store action references are stable (they never change),
  * so the returned objects are referentially stable and will not cause
  * unnecessary re-renders.
- *
- * ## Why bundles instead of individual selectors
- *
- * SketchEditor previously had ~60 individual `useSketchStore(...)` calls
- * for store actions it passes to action hooks. This made it hard to see
- * which concern each action belonged to and easy to accidentally add
- * unrelated state dependencies. Grouping by concern makes the dependency
- * graph visible and keeps new actions from landing in an undifferentiated
- * grab-bag.
  */
 
 import { useSketchStore } from "../state";
 
-/**
- * History-related store actions (undo, redo, pushHistory).
- */
 export function useHistoryStoreActions() {
   const pushHistory = useSketchStore((s) => s.pushHistory);
   const undo = useSketchStore((s) => s.undo);
@@ -31,9 +19,6 @@ export function useHistoryStoreActions() {
   return { pushHistory, undo, redo };
 }
 
-/**
- * Layer CRUD store actions.
- */
 export function useLayerStoreActions() {
   const updateLayerData = useSketchStore((s) => s.updateLayerData);
   const setLayerTransform = useSketchStore((s) => s.setLayerTransform);
@@ -94,9 +79,6 @@ export function useLayerStoreActions() {
   };
 }
 
-/**
- * Canvas/viewport store actions.
- */
 export function useCanvasStoreActions() {
   const setZoom = useSketchStore((s) => s.setZoom);
   const setPan = useSketchStore((s) => s.setPan);
@@ -151,9 +133,6 @@ export function useColorStoreActions() {
   };
 }
 
-/**
- * Session/editor-level store actions (document set, tool set, panels toggle).
- */
 export function useSessionStoreActions() {
   const setDocument = useSketchStore((s) => s.setDocument);
   const setActiveTool = useSketchStore((s) => s.setActiveTool);

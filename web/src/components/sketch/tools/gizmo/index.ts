@@ -9,7 +9,6 @@
  */
 
 export {
-  // Constants
   HANDLE_SIZE,
   HANDLE_HIT_RADIUS,
   ROTATION_HANDLE_OFFSET,

@@ -18,18 +18,6 @@
 
 import { useSketchStore } from "../state";
 
-/**
- * Shared store subscriptions for tool-chrome shell components.
- *
- * Both ConnectedToolTopBar and ConnectedContextMenu subscribe to the same
- * set of per-tool settings setters and selection actions. This hook
- * centralizes those subscriptions so neither component carries its own
- * parallel copy.
- *
- * Store action references are stable (they do not change between renders),
- * so the returned values are referentially stable and will not cause
- * unnecessary re-renders in consuming components.
- */
 export function useToolChromeActions() {
   // Per-tool settings setters
   const setBrushSettings = useSketchStore((s) => s.setBrushSettings);

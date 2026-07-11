@@ -591,7 +591,6 @@ function normalizeLayerEffects(raw: unknown): LayerEffect[] {
         });
         break;
       default:
-        // Unknown effect types are dropped during normalization
         break;
     }
   }

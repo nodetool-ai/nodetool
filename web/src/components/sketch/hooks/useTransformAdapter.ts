@@ -1,23 +1,14 @@
 /**
  * useTransformAdapter
  *
- * Shared transform display/action model consumed by both ConnectedToolTopBar
- * and ConnectedContextMenu. Unifies the displayed transform consumption with
- * the same transient preview owner used by compositing, eliminating the
- * parallel active-layer preview channel that both components previously wired
- * independently.
+ * Shared transform display/action model consumed by ConnectedToolTopBar and
+ * ConnectedContextMenu. Resolves the displayed transform from the same
+ * transient preview owner used by compositing.
  *
- * ## What it provides
+ * Provides:
  * - `scaleX`, `scaleY`, `rotation`: resolved display scalars from the preview
  *   or committed layer transform
  * - `onCommit`, `onCancel`, `onReset`: transform lifecycle callbacks
- *
- * ## Why
- * ConnectedToolTopBar and ConnectedContextMenu both called
- * `useDisplayedActiveLayerTransform()` independently and separately wired
- * `onTransformCommit`, `onTransformCancel`, `onTransformReset` through
- * `SketchEditor.tsx` props. This hook centralizes both the display and action
- * sides into one model.
  */
 
 import { useMemo } from "react";

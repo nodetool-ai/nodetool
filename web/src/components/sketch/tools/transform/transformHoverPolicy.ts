@@ -1,13 +1,5 @@
 /**
- * transformHoverPolicy – Hover hit-test and cursor management for TransformTool.
- *
- * Separates hover/cursor concerns from the drag interaction in
- * TransformTool.ts. The policy knows how to:
- *   - hit-test handles against a document-space point
- *   - map handle type + rotation to a CSS cursor
- *   - determine if a point is inside the bounding box
- *
- * This module does NOT own any drag state or transform preview state.
+ * transformHoverPolicy – cursor feedback helper for transform-style tools.
  *
  * @module tools/transform/transformHoverPolicy
  */

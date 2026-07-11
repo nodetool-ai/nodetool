@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-/** Generate Layer + Re-generate Stale Layers toolbar — see PR description. */
+/** Generate Layer + Re-generate Stale Layers toolbar. */
 
 import React, { memo, useCallback, useState } from "react";
 import { useTheme } from "@mui/material/styles";
