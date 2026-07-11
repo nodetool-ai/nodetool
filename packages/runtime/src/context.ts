@@ -558,7 +558,16 @@ export class FileStorageAdapter implements StorageAdapter {
       uri.startsWith("api/storage/")
     ) {
       const key = uri.replace(/^\/?api\/storage\//, "");
-      absolute = this.resolvePathFromKey(key);
+      try {
+        absolute = this.resolvePathFromKey(key);
+      } catch {
+        // resolvePathFromKey -> normalizeStorageKey throws on an invalid key
+        // (contains "..", leading ".", escapes root). retrieve/exists/delete/
+        // stat document a null/false result for unresolvable URIs, so treat a
+        // bad key as unresolvable instead of letting the throw escape (the
+        // sibling file:// and https:// branches already do this).
+        return null;
+      }
     } else if (/^https?:\/\//.test(uri)) {
       try {
         const parsed = new URL(uri);
@@ -1611,6 +1620,10 @@ export class ProcessingContext {
           const delayMs = Number.isFinite(retryDelay)
             ? retryDelay
             : backoffMs * 2 ** attempt;
+          // Drain/cancel the unconsumed body before retrying, or under undici
+          // the socket stays checked out of the connection pool (leaked until
+          // GC) and emits a "body not consumed" warning.
+          await response.body?.cancel().catch(() => {});
           await new Promise((r) => setTimeout(r, Math.max(0, delayMs)));
           continue;
         }

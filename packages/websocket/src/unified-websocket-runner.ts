@@ -1496,8 +1496,13 @@ export class UnifiedWebSocketRunner {
     // f32le here — the one and only conversion on the path to the client.
     message = encodeNativeAudioChunks(message);
 
+    // Snapshot the mode ONCE for this frame. Reading this.mode again after the
+    // send-lock await would let a set_mode that lands mid-queue transmit a
+    // payload prepared for the other mode (e.g. a binary payload with raw
+    // Uint8Arrays JSON.stringify'd into index-keyed garbage).
+    const mode = this.mode;
     const payload =
-      this.mode === "text"
+      mode === "text"
         ? (this.serializeForJson(message) as Record<string, unknown>)
         : message;
 
@@ -1509,7 +1514,7 @@ export class UnifiedWebSocketRunner {
 
     await prev;
     try {
-      if (this.mode === "binary") {
+      if (mode === "binary") {
         await this.websocket.sendBytes(pack(payload));
       } else {
         await this.websocket.sendText(JSON.stringify(payload));
@@ -5281,9 +5286,6 @@ export class UnifiedWebSocketRunner {
         this.logError("workflow job persistence (final) failed", error);
       }
 
-      this.activeJobs.delete(jobId);
-      this.drainQueue();
-
       // Signal completion — done chunk with job_id + workflow_id
       await this.sendMessage({
         type: "chunk",
@@ -5335,6 +5337,13 @@ export class UnifiedWebSocketRunner {
         workflow_id: workflowId,
         thread_id: threadId
       });
+    } finally {
+      // Always release the concurrency slot and drain the queue, even if
+      // streaming/persist/sendMessage threw above. Otherwise a mid-stream
+      // socket-write failure would orphan the ActiveJob and permanently shrink
+      // the MAX_CONCURRENT_JOBS cap (run_job then queues forever).
+      this.activeJobs.delete(jobId);
+      this.drainQueue();
     }
   }
 

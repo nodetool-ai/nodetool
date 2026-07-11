@@ -116,6 +116,33 @@ describe("TriggerWakeupService", () => {
     expect(pending).toHaveLength(1);
   });
 
+  it("evicts the cached inbox after cleanupProcessed removes a run's inputs", async () => {
+    // Regression: _inboxes grew by one entry per run forever.
+    const svc = new TriggerWakeupService();
+    await svc.deliverTriggerInput({
+      runId: "run-1",
+      nodeId: "n1",
+      inputId: "i1",
+      payload: {}
+    });
+    svc.markProcessed("i1");
+    // With a 0h cutoff, the processed input is purged and the inbox evicted.
+    svc.cleanupProcessed("run-1", "n1", 0);
+    // A fresh delivery for the same run works (idempotency marker was purged),
+    // demonstrating no stale state blocks it.
+    const again = await svc.deliverTriggerInput({
+      runId: "run-1",
+      nodeId: "n1",
+      inputId: "i2",
+      payload: {}
+    });
+    expect(again).toBe(true);
+
+    // disposeRun clears everything for a run.
+    svc.disposeRun("run-1");
+    expect(svc.getPendingInputs("run-1", "n1")).toHaveLength(0);
+  });
+
   it("getPendingInputs() returns unprocessed inputs", async () => {
     const svc = new TriggerWakeupService();
 

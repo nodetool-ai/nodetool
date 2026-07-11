@@ -1411,6 +1411,13 @@ export async function handleMcpHttpRequest(
       const transport = sessionTransports.get(sessionId)!;
       return transport.handleRequest(request);
     }
+    // A session id that is present but unknown must NOT fall through to the
+    // new-session path: that constructed a fresh transport + server per stale
+    // request (leaking both). Reject it — only an initialize request without a
+    // session id creates a new session.
+    if (sessionId) {
+      return new Response("Session not found", { status: 404 });
+    }
 
     // New session — create transport and server
     const transport = new WebStandardStreamableHTTPServerTransport({
@@ -1420,6 +1427,12 @@ export async function handleMcpHttpRequest(
         sessionTransports.set(id, transport);
       }
     });
+    // Evict the session when the transport closes (client disconnect without an
+    // explicit DELETE) so sessionTransports — and the McpServer each entry keeps
+    // alive — does not grow unbounded over the process lifetime.
+    transport.onclose = () => {
+      if (transport.sessionId) sessionTransports.delete(transport.sessionId);
+    };
 
     const publicBaseUrl =
       options?.publicBaseUrl ?? `${url.protocol}//${url.host}`;

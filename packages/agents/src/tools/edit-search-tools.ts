@@ -415,9 +415,23 @@ export class EditFileTool extends Tool {
 
       let newContent: string;
       if (replaceAll) {
-        newContent = content.split(searchString).join(newString);
+        if (newString === "" && !oldString.endsWith("\n")) {
+          // Delete every occurrence, consuming a trailing newline PER match
+          // where present. Switching the whole search string to oldString+"\n"
+          // would silently skip occurrences that have no trailing newline (e.g.
+          // "foo" inside "foobar"), leaving them behind while reporting them
+          // removed. Two passes remove both forms; `count` still equals the
+          // number of oldString occurrences actually deleted.
+          newContent = content
+            .split(oldString + "\n")
+            .join("")
+            .split(oldString)
+            .join("");
+        } else {
+          newContent = content.split(oldString).join(newString);
+        }
       } else {
-        // Replace only first occurrence
+        // Replace only first occurrence (searchString may consume its newline).
         const firstIdx = content.indexOf(searchString);
         newContent =
           content.slice(0, firstIdx) +

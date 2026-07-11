@@ -181,6 +181,30 @@ export class TriggerWakeupService {
         nodeId
       });
     }
+    // Evict the cached DurableInbox once no inputs remain for this (run, node),
+    // otherwise _inboxes grows by one entry per run for the process lifetime
+    // (runId is unique per run) even after cleanupProcessed purges the inputs.
+    const hasRemaining = this._inputs.some(
+      (i) => i.runId === runId && i.nodeId === nodeId
+    );
+    if (!hasRemaining) {
+      this._inboxes.delete(JSON.stringify([runId, nodeId]));
+    }
     return removed;
+  }
+
+  /**
+   * Release all in-memory state for a finished run: its trigger inputs and any
+   * cached DurableInbox instances. Call when a run terminates so a long-lived
+   * service does not accumulate per-run state indefinitely.
+   */
+  disposeRun(runId: string): void {
+    this._inputs = this._inputs.filter((i) => i.runId !== runId);
+    for (const key of [...this._inboxes.keys()]) {
+      const [keyRunId] = JSON.parse(key) as [string, string];
+      if (keyRunId === runId) {
+        this._inboxes.delete(key);
+      }
+    }
   }
 }

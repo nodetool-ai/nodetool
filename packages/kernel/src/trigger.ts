@@ -117,9 +117,13 @@ export class TriggerState extends SuspendableState {
         }
         timer = setTimeout(arm, Math.min(remaining, TIMEOUT_MAX));
       };
-      arm();
 
+      // Register the waiter BEFORE arming. For a non-positive timeout the first
+      // arm() rejects synchronously and its filter must find the waiter to
+      // remove it — otherwise a dead (already-rejected) waiter is left in the
+      // array and silently swallows the next sendTriggerEvent.
       this._eventWaiters.push(waiter);
+      arm();
     });
   }
 

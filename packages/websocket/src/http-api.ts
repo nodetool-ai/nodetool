@@ -1387,20 +1387,31 @@ export async function handleWorkflowImportBundle(
   }
 
   const created: JsonObject[] = [];
-  for (const wf of result.workflows) {
-    const workflow = await createWorkflow(
-      {
-        name: wf.name,
-        description: wf.description ?? "",
-        tags: wf.tags ?? [],
-        access: "private",
-        graph: wf.graph as unknown as WorkflowRequestBody["graph"],
-        settings: wf.settings ?? null,
-        run_mode: wf.run_mode ?? "workflow"
-      },
-      userId
+  try {
+    for (const wf of result.workflows) {
+      const workflow = await createWorkflow(
+        {
+          name: wf.name,
+          description: wf.description ?? "",
+          tags: wf.tags ?? [],
+          access: "private",
+          graph: wf.graph as unknown as WorkflowRequestBody["graph"],
+          settings: wf.settings ?? null,
+          run_mode: wf.run_mode ?? "workflow"
+        },
+        userId
+      );
+      created.push(toWorkflowResponse(workflow));
+    }
+  } catch (error) {
+    // createWorkflow throws on a malformed graph (e.g. missing edges array),
+    // which unpackWorkflowBundle does not validate. Surface it as a 400 rather
+    // than an unhandled 500. (Earlier-created workflows in the loop remain —
+    // the import is not transactional; reported as a bad-bundle error.)
+    return errorResponse(
+      400,
+      `Invalid bundle: ${error instanceof Error ? error.message : String(error)}`
     );
-    created.push(toWorkflowResponse(workflow));
   }
 
   return jsonResponse({

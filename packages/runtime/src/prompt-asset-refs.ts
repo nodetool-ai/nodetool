@@ -105,9 +105,15 @@ export function classifyAssetToken(
 ): { kind: AssetMediaKind; mime: string } | null {
   if (!token.startsWith("asset://")) return null;
   const ext = tokenExt(token);
-  if (ext in IMAGE_EXT_MIME) return { kind: "image", mime: IMAGE_EXT_MIME[ext] };
-  if (ext in AUDIO_EXT_MIME) return { kind: "audio", mime: AUDIO_EXT_MIME[ext] };
-  if (ext in VIDEO_EXT_MIME) return { kind: "video", mime: VIDEO_EXT_MIME[ext] };
+  // Object.hasOwn, not `in`: `in` walks the prototype chain, so an extension of
+  // "__proto__"/"toString"/"constructor" would match an inherited key and
+  // return a non-string (object/function) mime, fabricating a bogus media ref.
+  if (Object.hasOwn(IMAGE_EXT_MIME, ext))
+    return { kind: "image", mime: IMAGE_EXT_MIME[ext] };
+  if (Object.hasOwn(AUDIO_EXT_MIME, ext))
+    return { kind: "audio", mime: AUDIO_EXT_MIME[ext] };
+  if (Object.hasOwn(VIDEO_EXT_MIME, ext))
+    return { kind: "video", mime: VIDEO_EXT_MIME[ext] };
   return null;
 }
 
@@ -119,7 +125,9 @@ export function classifyAssetToken(
 export function classifyTextToken(token: string): { mime: string } | null {
   if (!token.startsWith("asset://")) return null;
   const ext = tokenExt(token);
-  return ext in TEXT_EXT_MIME ? { mime: TEXT_EXT_MIME[ext] } : null;
+  return Object.hasOwn(TEXT_EXT_MIME, ext)
+    ? { mime: TEXT_EXT_MIME[ext] }
+    : null;
 }
 
 /**
@@ -136,9 +144,9 @@ function extForContentType(contentType: string): string | null {
   if (ct === "audio/mpeg" || ct === "audio/mp3") sub = "mp3";
   else if (ct === "audio/mp4") sub = "m4a";
   else if (ct === "video/quicktime") sub = "mov";
-  if (top === "image" && sub in IMAGE_EXT_MIME) return sub;
-  if (top === "audio" && sub in AUDIO_EXT_MIME) return sub;
-  if (top === "video" && sub in VIDEO_EXT_MIME) return sub;
+  if (top === "image" && Object.hasOwn(IMAGE_EXT_MIME, sub)) return sub;
+  if (top === "audio" && Object.hasOwn(AUDIO_EXT_MIME, sub)) return sub;
+  if (top === "video" && Object.hasOwn(VIDEO_EXT_MIME, sub)) return sub;
   return null;
 }
 

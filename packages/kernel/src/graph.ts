@@ -778,17 +778,24 @@ export class Graph {
     properties: Record<string, unknown>;
     required: string[];
   } {
-    return this._buildSchema((n) => n.type.includes("Input"));
+    // Match the input-node namespace, not any type merely CONTAINING "Input":
+    // a loose substring pulled in mid-graph nodes like
+    // `nodetool.test.StreamingInputProcessor` (phantom required input) and
+    // missed real ones like `nodetool.input.MessageDeconstructor`.
+    return this._buildSchema((n) => n.type.startsWith("nodetool.input."));
   }
 
   /**
-   * Build a JSON Schema object from output nodes (type contains "Output").
+   * Build a JSON Schema object from output nodes (`nodetool.output.*`).
    */
   getOutputSchema(): {
     properties: Record<string, unknown>;
     required: string[];
   } {
-    return this._buildSchema((n) => n.type.includes("Output"));
+    // Namespace match, not a substring: `nodetool.generators.
+    // StructuredOutputGenerator` / `nodetool.audio.realtime.AudioOutput`
+    // contain "Output" but are not workflow output nodes.
+    return this._buildSchema((n) => n.type.startsWith("nodetool.output."));
   }
 
   private _buildSchema(filter: (n: NodeDescriptor) => boolean): {

@@ -1369,10 +1369,19 @@ export class OpenAIProvider extends BaseProvider {
       const runTool = async (
         tc: ToolCall
       ): Promise<string | MessageContent[]> => {
-        const tool = toolMap.get(tc.name);
-        if (tool?.execute) return tool.execute(tc.args ?? {}, tc.id);
-        if (config.executeTool) return config.executeTool(tc);
-        return `Tool "${tc.name}" is not available`;
+        // Per-tool error isolation: a thrown tool must still yield a
+        // tool_result so a parallel Promise.all rejection can't discard sibling
+        // results and leave a dangling tool_use (rejected by the API next turn).
+        try {
+          const tool = toolMap.get(tc.name);
+          if (tool?.execute) return await tool.execute(tc.args ?? {}, tc.id);
+          if (config.executeTool) return await config.executeTool(tc);
+          return `Tool "${tc.name}" is not available`;
+        } catch (err) {
+          return `Error executing tool "${tc.name}": ${
+            err instanceof Error ? err.message : String(err)
+          }`;
+        }
       };
       const emitToolResult = function* (
         tc: ToolCall,

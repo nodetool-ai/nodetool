@@ -898,10 +898,21 @@ export abstract class BaseProvider {
       const runTool = async (
         tc: ToolCall
       ): Promise<string | MessageContent[]> => {
-        const tool = toolMap.get(tc.name);
-        if (tool?.execute) return tool.execute(tc.args ?? {}, tc.id);
-        if (executeTool) return executeTool(tc);
-        return `Tool "${tc.name}" is not available`;
+        // Isolate per-tool failures: a thrown tool must still yield a
+        // tool_result, otherwise (a) in the parallel branch one rejection makes
+        // Promise.all reject and discards every sibling tool's completed result,
+        // and (b) the assistant tool_use is left with no matching tool_result,
+        // which the provider API rejects on the next turn.
+        try {
+          const tool = toolMap.get(tc.name);
+          if (tool?.execute) return await tool.execute(tc.args ?? {}, tc.id);
+          if (executeTool) return await executeTool(tc);
+          return `Tool "${tc.name}" is not available`;
+        } catch (err) {
+          return `Error executing tool "${tc.name}": ${
+            err instanceof Error ? err.message : String(err)
+          }`;
+        }
       };
 
       // A tool flagged `terminal` ends the loop once its turn's results are

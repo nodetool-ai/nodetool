@@ -77,6 +77,22 @@ describe("EditFileTool", () => {
     expect(await readFile(join(workspace, "list.txt"), "utf-8")).toBe("a\nc\n");
   });
 
+  it("deletes all occurrences with replace_all even when only some have a trailing newline", async () => {
+    // Regression: switching the whole search string to "foo\n" (because ONE
+    // match had a newline) left the newline-less "foo" inside "foobar" intact
+    // while still reporting 2 replacements.
+    await writeFile(join(workspace, "d.txt"), "foo\nfoobar");
+    const res: any = await new EditFileTool().process(ctxFor(workspace), {
+      path: "d.txt",
+      old_string: "foo",
+      new_string: "",
+      replace_all: true
+    });
+    expect(res.success).toBe(true);
+    expect(await readFile(join(workspace, "d.txt"), "utf-8")).toBe("bar");
+    expect(res.replacements).toBe(2);
+  });
+
   it("replaces a unique substring in place", async () => {
     await writeFile(join(workspace, "f.txt"), "foo bar baz");
     const tool = new EditFileTool();

@@ -70,6 +70,18 @@ describe("TriggerState", () => {
     expect(await p).toEqual({ ok: 1 });
   });
 
+  it("does not leave a dead waiter after a non-positive timeout (event not swallowed)", async () => {
+    // Regression: arm() ran before the waiter was registered, so a timeout<=0
+    // rejected but left a dead waiter that consumed the next sendTriggerEvent.
+    const ts = new TriggerState("n1");
+    await expect(ts.waitForTriggerEvent(0)).rejects.toThrow(
+      TriggerInactivityTimeout
+    );
+    // The next event must be queued and readable, not swallowed by a dead waiter.
+    ts.sendTriggerEvent({ ok: 1 });
+    expect(await ts.waitForTriggerEvent(1)).toEqual({ ok: 1 });
+  });
+
   it("does not fire immediately for a timeout larger than setTimeout's max", async () => {
     // Regression: setTimeout clamps delays > 2^31-1 ms to 1 ms and fires almost
     // instantly, so a long-interval trigger rejected within a millisecond and

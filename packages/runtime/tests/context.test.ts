@@ -485,6 +485,24 @@ describe("Storage adapters", () => {
     }
   });
 
+  it("exists/retrieve return false/null (not throw) for an invalid /api/storage key", async () => {
+    // Regression: the /api/storage/ branch of resolvePathFromUri called
+    // resolvePathFromKey outside a try/catch, so a traversal key threw out of
+    // exists()/retrieve() instead of resolving to the documented false/null.
+    const root = await mkdtemp(join(tmpdir(), "nodetool-ts-runtime-"));
+    try {
+      const storage = new FileStorageAdapter(root);
+      await expect(
+        storage.exists("/api/storage/../secret")
+      ).resolves.toBe(false);
+      await expect(
+        storage.retrieve("/api/storage/../secret")
+      ).resolves.toBeNull();
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("S3StorageAdapter stores and returns s3 uri", async () => {
     const store = new Map<string, Uint8Array>();
     const client: S3Client = {

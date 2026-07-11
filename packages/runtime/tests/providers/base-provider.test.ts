@@ -435,6 +435,57 @@ describe("BaseProvider.generateLoop – image tool results", () => {
     });
   });
 
+  it("isolates a throwing tool in parallel execution — every tool_use gets a tool_result", async () => {
+    // Regression: Promise.all rejected on one thrown tool, discarding sibling
+    // results and leaving a dangling tool_use (rejected by the API next turn).
+    class TwoToolsProvider extends BaseProvider {
+      public secondTurnMessages: Message[] | null = null;
+      private called = false;
+      constructor() {
+        super("test");
+      }
+      async *generateMessages(args: {
+        messages: Message[];
+      }): AsyncGenerator<ProviderStreamItem> {
+        if (!this.called) {
+          this.called = true;
+          yield { id: "c1", name: "ok_tool", args: {} } as ToolCall;
+          yield { id: "c2", name: "bad_tool", args: {} } as ToolCall;
+          return;
+        }
+        this.secondTurnMessages = args.messages;
+        yield { type: "chunk", content: "done", done: true };
+      }
+    }
+    const provider = new TwoToolsProvider();
+    const events: ProviderStreamItem[] = [];
+    for await (const item of provider.generateLoop({
+      messages: [{ role: "user", content: "go" }],
+      model: "m",
+      // Not sequential ⇒ parallel Promise.all path.
+      sequentialTools: false,
+      executeTool: async (tc: ToolCall) => {
+        if (tc.name === "bad_tool") throw new Error("boom");
+        return "ok result";
+      }
+    })) {
+      events.push(item);
+    }
+
+    const toolMsgs = events.filter(
+      (e) => isProviderMessageEvent(e) && e.message.role === "tool"
+    );
+    // Both tool_use ids got a matching tool_result — no dangling tool_use.
+    expect(toolMsgs).toHaveLength(2);
+    const contents = toolMsgs.map((e) =>
+      isProviderMessageEvent(e) ? String(e.message.content) : ""
+    );
+    expect(contents).toContain("ok result");
+    expect(contents.some((c) => /Error executing tool "bad_tool"/.test(c))).toBe(
+      true
+    );
+  });
+
   it("dispatches a ProviderTool.execute and ends on terminal:true (no executeTool)", async () => {
     // Provider yields a tool call on the first turn, then a final chunk.
     class ToolThenDoneProvider extends BaseProvider {

@@ -47,7 +47,11 @@ describe("GraphValidationError", () => {
 
 describe("Graph – schema type mapping", () => {
   const schemaFor = (outputType: string | undefined) => {
-    const node = n("o1", "test.Output", outputType ? { outputs: { out: outputType } } : {});
+    const node = n(
+      "o1",
+      "nodetool.output.StringOutput",
+      outputType ? { outputs: { out: outputType } } : {}
+    );
     return new Graph({ nodes: [node], edges: [] }).getOutputSchema();
   };
 
@@ -64,17 +68,23 @@ describe("Graph – schema type mapping", () => {
   });
 
   it("uses node.name when present and lists it as required", () => {
-    const node = n("id1", "test.Input", { name: "myField", outputs: { out: "int" } });
+    const node = n("id1", "nodetool.input.IntegerInput", {
+      name: "myField",
+      outputs: { out: "int" }
+    });
     const schema = new Graph({ nodes: [node], edges: [] }).getInputSchema();
     expect(schema.properties.myField).toEqual({ type: "number" });
     expect(schema.required).toEqual(["myField"]);
     expect(schema.properties.id1).toBeUndefined();
   });
 
-  it("getInputSchema filters to Input-typed nodes only", () => {
+  it("getInputSchema filters to input-namespace nodes only", () => {
     const nodes = [
-      n("i", "test.Input", { outputs: { out: "str" } }),
-      n("o", "test.Output", { outputs: { out: "str" } })
+      n("i", "nodetool.input.StringInput", { outputs: { out: "str" } }),
+      n("o", "nodetool.output.StringOutput", { outputs: { out: "str" } }),
+      // A mid-graph node whose type merely CONTAINS "Input" must NOT be treated
+      // as a workflow input (regression: the old substring match pulled it in).
+      n("g", "nodetool.test.StreamingInputProcessor", { outputs: { out: "str" } })
     ];
     const schema = new Graph({ nodes, edges: [] }).getInputSchema();
     expect(Object.keys(schema.properties)).toEqual(["i"]);

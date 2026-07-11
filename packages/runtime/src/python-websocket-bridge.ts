@@ -569,8 +569,10 @@ export class WebsocketPythonBridge extends PythonBridgeBase {
       // restart) that never answers discover would otherwise wedge the
       // reconnect loop forever with _reconnecting stuck true.
       await this._withRpcTimeout(this._runPostOpenRpc());
-      if (epoch !== this._reconnectEpoch) {
-        // A newer attempt superseded this one; leave its state untouched.
+      if (epoch !== this._reconnectEpoch || this._explicitlyClosed) {
+        // A newer attempt superseded this one, or the bridge was explicitly
+        // closed while the RPC was in flight; leave state untouched and do not
+        // emit "reconnected" on a dead bridge.
         return;
       }
       // Success: reset backoff and announce.
@@ -619,6 +621,11 @@ export class WebsocketPythonBridge extends PythonBridgeBase {
     }
     this._reconnecting = false;
     this._announcedConnected = false;
+    // Supersede any in-flight reconnect attempt whose post-open RPC is still
+    // awaiting: bump the epoch so its success block no-ops instead of emitting
+    // "reconnected" / setting _announcedConnected on a bridge that is now
+    // explicitly closed.
+    this._reconnectEpoch += 1;
     // Abort an in-flight handshake (CONNECTING socket) so a pending connect()
     // rejects immediately instead of waiting out the startup timeout. The
     // aborter crash-safely terminates the CONNECTING socket.

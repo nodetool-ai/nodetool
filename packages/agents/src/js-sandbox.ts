@@ -159,6 +159,139 @@ async function loadNodePath(): Promise<typeof import("node:path")> {
   return nodePath;
 }
 
+/**
+ * Verify a workspace path's real (symlink-resolved) location stays within the
+ * real workspace root before an fs operation. resolveWorkspacePath only checks
+ * containment lexically, so an in-workspace symlink pointing outside the root
+ * would otherwise be dereferenced (arbitrary host file read/write). For a write
+ * to a not-yet-existing file, the parent directory is checked instead. Throws
+ * on an escape.
+ */
+async function assertWorkspaceContained(
+  context: { resolveWorkspacePath: (p: string) => string },
+  fs: typeof import("node:fs/promises"),
+  nodePath: typeof import("node:path"),
+  fullPath: string,
+  isWrite: boolean
+): Promise<void> {
+  const within = async (root: string, candidate: string): Promise<boolean> => {
+    try {
+      const realRoot = await fs.realpath(root);
+      const realCandidate = await fs.realpath(candidate);
+      if (realRoot === realCandidate) return true;
+      const rel = nodePath.relative(realRoot, realCandidate);
+      return rel !== "" && !rel.startsWith("..") && !nodePath.isAbsolute(rel);
+    } catch {
+      return false;
+    }
+  };
+  const root = context.resolveWorkspacePath(".");
+  if (await within(root, fullPath)) return;
+  if (isWrite) {
+    // Target may not exist yet — lstat detects a dangling symlink entry, and
+    // otherwise the containing directory must be inside the workspace.
+    try {
+      await fs.lstat(fullPath);
+      // Exists (real file or symlink) but failed containment → outside root.
+    } catch {
+      if (await within(root, nodePath.dirname(fullPath))) return;
+    }
+  }
+  throw new Error(`workspace path resolves outside the workspace: ${fullPath}`);
+}
+
+/** True if a literal IPv4/IPv6 host is loopback, link-local, or private. */
+function isBlockedIpLiteral(host: string): boolean {
+  // Strip IPv6 brackets/zone id.
+  const h = host.replace(/^\[|\]$/g, "").split("%")[0].toLowerCase();
+  // IPv4 (incl. IPv4-mapped IPv6 like ::ffff:127.0.0.1)
+  const v4 = h.match(/(?:^|:)((?:\d{1,3}\.){3}\d{1,3})$/);
+  if (v4) {
+    const [a, b] = v4[1].split(".").map(Number);
+    if (a === 127 || a === 10 || a === 0) return true; // loopback, private, this-host
+    if (a === 169 && b === 254) return true; // link-local incl. 169.254.169.254 metadata
+    if (a === 192 && b === 168) return true; // private
+    if (a === 172 && b >= 16 && b <= 31) return true; // private
+    if (a === 100 && b >= 64 && b <= 127) return true; // CGNAT
+    return false;
+  }
+  // IPv6
+  if (h === "::1" || h === "::") return true; // loopback / unspecified
+  if (h.startsWith("fe80")) return true; // link-local
+  if (h.startsWith("fc") || h.startsWith("fd")) return true; // unique-local fc00::/7
+  return false;
+}
+
+/**
+ * SSRF allow-check for the sandbox fetch bridge. Rejects non-http(s) schemes
+ * and hosts that resolve to loopback/link-local/private literals or localhost.
+ * Throws on a blocked URL.
+ */
+function assertFetchUrlAllowed(url: string): void {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new Error("fetch: invalid URL");
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new Error(`fetch: unsupported scheme "${parsed.protocol}"`);
+  }
+  const host = parsed.hostname.toLowerCase();
+  if (host === "localhost" || host.endsWith(".localhost")) {
+    throw new Error("fetch: access to localhost is blocked");
+  }
+  if (isBlockedIpLiteral(host)) {
+    throw new Error(
+      `fetch: access to internal/private address "${host}" is blocked`
+    );
+  }
+}
+
+/**
+ * Read a fetch Response body into a Uint8Array bounded by `maxBytes`. Aborts the
+ * transfer via `controller` once the cap is exceeded so an oversized/fast
+ * response cannot buffer unbounded host memory.
+ */
+async function readBodyCapped(
+  response: { body: ReadableStream<Uint8Array> | null; arrayBuffer: () => Promise<ArrayBuffer> },
+  controller: AbortController,
+  maxBytes: number
+): Promise<Uint8Array> {
+  if (!response.body) {
+    // No stream (e.g. empty body) — fall back, then clamp.
+    const buf = new Uint8Array(await response.arrayBuffer());
+    return buf.length > maxBytes ? buf.slice(0, maxBytes) : buf;
+  }
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+      chunks.push(value);
+      total += value.byteLength;
+      if (total >= maxBytes) {
+        controller.abort();
+        break;
+      }
+    }
+  } catch {
+    // Aborted or network error mid-read — return what we have.
+  }
+  const out = new Uint8Array(Math.min(total, maxBytes));
+  let offset = 0;
+  for (const c of chunks) {
+    if (offset >= out.length) break;
+    const take = Math.min(c.byteLength, out.length - offset);
+    out.set(c.subarray(0, take), offset);
+    offset += take;
+  }
+  return out;
+}
+
 function formatArg(arg: unknown): string {
   if (arg === null) return "null";
   if (arg === undefined) return "undefined";
@@ -316,6 +449,10 @@ export function buildSandbox(context?: ProcessingContext): SandboxResult {
     if (typeof url !== "string" || !url) {
       throw new Error("fetch: url must be a non-empty string");
     }
+    // SSRF guard: untrusted guest code must not reach loopback, link-local
+    // (incl. cloud metadata 169.254.169.254), or private ranges, nor non-http
+    // schemes. Blocks the direct-literal attacks; DNS-rebinding is out of scope.
+    assertFetchUrlAllowed(url);
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 15_000);
@@ -337,7 +474,14 @@ export function buildSandbox(context?: ProcessingContext): SandboxResult {
       }
 
       const response = await fetch(url, fetchOptions);
-      const rawBytes = new Uint8Array(await response.arrayBuffer());
+      // Read the body under a hard byte cap so a large/fast response can't OOM
+      // the shared host heap (the guest's 64MB WASM limit does not apply to
+      // these host-side bytes). Aborts the transfer once the cap is exceeded.
+      const rawBytes = await readBodyCapped(
+        response,
+        controller,
+        MAX_RESPONSE_BODY_SIZE
+      );
       const ok = response.ok;
       const status = response.status;
       const statusText = response.statusText;
@@ -392,18 +536,23 @@ export function buildSandbox(context?: ProcessingContext): SandboxResult {
         read: async (path: string): Promise<string> => {
           const fullPath = context.resolveWorkspacePath(path);
           const fs = await loadFsPromises();
+          const nodePath = await loadNodePath();
+          await assertWorkspaceContained(context, fs, nodePath, fullPath, false);
           return fs.readFile(fullPath, "utf-8");
         },
         write: async (path: string, content: string): Promise<void> => {
           const fullPath = context.resolveWorkspacePath(path);
           const fs = await loadFsPromises();
           const nodePath = await loadNodePath();
+          await assertWorkspaceContained(context, fs, nodePath, fullPath, true);
           await fs.mkdir(nodePath.dirname(fullPath), { recursive: true });
           await fs.writeFile(fullPath, content, "utf-8");
         },
         list: async (path: string): Promise<string[]> => {
           const fullPath = context.resolveWorkspacePath(path);
           const fs = await loadFsPromises();
+          const nodePath = await loadNodePath();
+          await assertWorkspaceContained(context, fs, nodePath, fullPath, false);
           return fs.readdir(fullPath);
         }
       }
