@@ -28,6 +28,13 @@ describe("cloud profile activation", () => {
     expect(isCloudProfileActive("", "")).toBe(false);
     expect(isCloudProfileActive(null, null)).toBe(false);
   });
+
+  it("lets an explicit full profile override production", () => {
+    expect(isCloudProfileActive("full", "production")).toBe(false);
+    // Blank/whitespace values don't count as explicit — production default holds.
+    expect(isCloudProfileActive("", "production")).toBe(true);
+    expect(isCloudProfileActive("  ", "production")).toBe(true);
+  });
 });
 
 describe("isCloudNodeType", () => {
