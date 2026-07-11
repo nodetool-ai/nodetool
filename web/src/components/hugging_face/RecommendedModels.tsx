@@ -173,7 +173,6 @@ const RecommendedModelsInner: React.FC<RecommendedModelsProps> = ({
         the details.
       </Text>
 
-      {/* Open folder buttons */}
       {isLocalhost && isFileExplorerAvailable() && (
         <FlexRow gap={2} mt={2}>
           <EditorButton

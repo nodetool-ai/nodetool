@@ -42,7 +42,6 @@ const SORT_OPTIONS: { value: ModelSortField; label: string }[] = [
   { value: "likes", label: "Likes" }
 ];
 
-/** Thin vertical separator used to group the toolbar's control clusters. */
 const dividerSx = (theme: Theme) => ({
   alignSelf: "center",
   width: "1px",
@@ -167,7 +166,7 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
                 alignItems: "center",
                 minHeight: 0,
                 boxSizing: "border-box",
-                padding: `0 ${getSpacingPx(SPACING.xxxl)} 0 ${getSpacingPx(SPACING.lg)}`, // was 0 30px 0 12px
+                padding: `0 ${getSpacingPx(SPACING.xxxl)} 0 ${getSpacingPx(SPACING.lg)}`,
                 lineHeight: 1
               },
               "& .MuiOutlinedInput-notchedOutline": {
@@ -214,9 +213,6 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
 
         <Box sx={dividerSx(theme)} />
 
-        {/* Max-size limit: a labeled, mark-free slider with the current value
-            shown inline. The old version used always-on tick marks that bled
-            into the row below and lacked a label. */}
         <FlexRow align="center" gap={1.25} sx={{ flexShrink: 0 }}>
           <Text
             size="small"

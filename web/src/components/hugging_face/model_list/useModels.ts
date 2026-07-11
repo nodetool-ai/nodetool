@@ -253,7 +253,6 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
       HF_HUB_CATEGORY_TYPES.forEach((t) => allTypes.add(t));
     }
 
-    // Get unique types from all models
     allModels?.forEach((model) => {
       if (model.type) {
         allTypes.add(model.type);

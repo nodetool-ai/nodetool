@@ -1,8 +1,3 @@
-/**
- * ModelPackCard - Displays a curated model pack as an expandable card.
- * Shows title, description, total size, and allows one-click download of all models.
- */
-
 import React, { memo, useState, useMemo, useEffect, useCallback } from "react";
 
 import {
@@ -55,7 +50,6 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
     }))
   );
 
-  // Track download progress
   const activeDownloads = useMemo(() => {
     const activeDownloadIds = new Set(
       Object.values(downloads)

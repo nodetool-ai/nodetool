@@ -60,7 +60,7 @@ const styles = (theme: Theme) =>
       background: theme.vars.palette.action.hover
     },
     ".model-list": {
-      paddingBottom: `calc(${getSpacingPx(SPACING.micro)} * 125)` // was 250px
+      paddingBottom: `calc(${getSpacingPx(SPACING.micro)} * 125)`
     },
     ".model-list-header": {
       display: "flex",
@@ -237,7 +237,6 @@ const ModelListIndex: React.FC = () => {
     [source, setSource, setModelSearchTerm, setSelectedModelType]
   );
 
-  // Flatten the model list with headers for "All" view
   const flattenedList = useMemo(() => {
     if (selectedModelType !== "All") {
       return filteredModels.map(

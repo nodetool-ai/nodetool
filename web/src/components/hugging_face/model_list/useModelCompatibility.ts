@@ -12,9 +12,6 @@ export type CompatibilityMatchKind =
   | "recommended_type"
   | "pipeline";
 
-/**
- * Interface for a node that is compatible with a given model.
- */
 export interface NodeCompatibilityInfo {
   nodeType: string;
   title: string;
