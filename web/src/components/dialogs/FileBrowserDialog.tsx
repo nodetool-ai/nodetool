@@ -108,8 +108,6 @@ const styles = (theme: Theme) =>
     }
   });
 
-// --- Helper Functions ---
-
 const fetchFileList = async (path: string): Promise<FileInfo[]> => {
   return trpcClient.files.list.query({ path });
 };
@@ -123,8 +121,6 @@ const formatBytes = (bytes: number, decimals = 2) => {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
 };
 
-// --- Component ---
-
 function FileBrowserDialog({
   open,
   onClose,
@@ -135,7 +131,6 @@ function FileBrowserDialog({
 }: FileBrowserDialogProps) {
   const theme = useTheme();
 
-  // --- State ---
   const [currentPath, setCurrentPath] = useState(initialPath);
   const [isEditingPath, setIsEditingPath] = useState(false);
   const [pathInputValue, setPathInputValue] = useState(initialPath);
@@ -150,9 +145,7 @@ function FileBrowserDialog({
 
   const treeScrollRef = useRef<HTMLDivElement>(null);
 
-  // --- Memos (Moved up for usage in effects) ---
-
-  // Sort files: Folders first, then files (memoized for performance)
+  // Folders first, then files.
   const sortedFiles = useMemo(() => {
     return [...files].sort((a, b) => {
       if (a.is_dir === b.is_dir) {return a.name.localeCompare(b.name);}
@@ -160,21 +153,16 @@ function FileBrowserDialog({
     });
   }, [files]);
 
-  // Filter files (after sorting)
   const filteredFiles = useMemo(() => {
     if (!searchQuery) {return sortedFiles;}
-    // Optimization: Convert search query to lowercase once
     const searchQueryLower = searchQuery.toLowerCase();
     return sortedFiles.filter((f) =>
       f.name.toLowerCase().includes(searchQueryLower)
     );
   }, [sortedFiles, searchQuery]);
 
-  // Breadcrumbs
   const breadcrumbs = useMemo(() => {
-    // Detect likely separator from current path
     const separator = currentPath.includes("\\") ? "\\" : "/";
-    // Memoize the regex pattern to avoid recreating on every render
     const pathSplitRegex = /[/\\]/;
     const parts = currentPath.split(pathSplitRegex).filter(Boolean);
     const items = [];
@@ -211,8 +199,6 @@ function FileBrowserDialog({
     });
     return items;
   }, [currentPath]);
-
-  // --- Effects ---
 
   // Sync input value when path changes externally
   useEffect(() => {
@@ -438,8 +424,6 @@ function FileBrowserDialog({
     }
   }, [currentPath, open]);
 
-  // --- Handlers ---
-
   const handlePathSubmit = async () => {
     const path = pathInputValue.trim();
 
@@ -543,8 +527,6 @@ function FileBrowserDialog({
     setSearchQuery(value);
   }, []);
 
-  // --- Tree Logic ---
-
   const handleItemExpansionToggle = async (
     event: React.SyntheticEvent,
     itemId: string,
@@ -618,8 +600,6 @@ function FileBrowserDialog({
     },
     [breadcrumbs, handleNavigate]
   );
-
-  // --- Virtualization ---
 
   const fileListScrollRef = useRef<HTMLDivElement>(null);
   const fileVirtualizer = useVirtualizer({

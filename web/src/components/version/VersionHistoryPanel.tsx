@@ -1,6 +1,4 @@
 /**
- * VersionHistoryPanel Component
- *
  * Side panel for browsing and managing workflow version history.
  */
 
@@ -39,13 +37,10 @@ interface VersionHistoryPanelProps {
   onClose: () => void;
 }
 
-// Helper function to calculate graph size efficiently
-// Uses a simple approximation instead of creating a Blob
+// Approximate byte size from JSON length (×2 for UTF-16) — cheaper than a Blob.
 const getGraphSizeBytes = (graph: Graph): number => {
   try {
-    // Use JSON.stringify length as an approximation
-    // This is much faster than creating a Blob
-    return JSON.stringify(graph).length * 2; // Approximate UTF-16 byte size
+    return JSON.stringify(graph).length * 2;
   } catch {
     return 0;
   }

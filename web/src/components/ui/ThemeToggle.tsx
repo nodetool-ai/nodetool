@@ -12,7 +12,6 @@ export const ThemeToggle = memo(function ThemeToggle() {
     setMode(newMode);
   }, [mode, setMode]);
 
-  // Don't render until we have the mode
   if (!mode) {
     return null;
   }

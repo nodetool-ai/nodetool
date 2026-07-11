@@ -10,7 +10,6 @@ import { CloseButton, NodeTextField, ToolbarIconButton, Box, BORDER_RADIUS, SPAC
 
 const MAX_SEARCH_LENGTH = 1000;
 
-// Simple validation for search/replace terms
 const isValidInput = (value: string) => {
   const trimmed = value.trim();
   return trimmed.length > 0 && trimmed.length <= MAX_SEARCH_LENGTH;
@@ -133,7 +132,6 @@ const FindReplaceBar = ({
   const [replaceTerm, setReplaceTerm] = useState("");
   const [showReplace, setShowReplace] = useState(false);
 
-  // Handlers with proper length validation
   const handleSearchChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const value = e.target.value.slice(0, MAX_SEARCH_LENGTH);
@@ -150,7 +148,6 @@ const FindReplaceBar = ({
     []
   );
 
-  // Debounced search effect
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (isValidInput(searchTerm) && onFind) {
