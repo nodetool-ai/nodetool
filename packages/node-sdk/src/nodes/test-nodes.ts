@@ -334,9 +334,6 @@ export class FullStreamingNode extends BaseNode {
 // Data processing nodes
 // ---------------------------------------------------------------------------
 
-/**
- * Accepts a list of numbers and emits their sum.
- */
 export class ListSumProcessor extends BaseNode {
   static readonly nodeType = "nodetool.test.ListSumProcessor";
   static readonly title = "List Sum Processor";
@@ -354,9 +351,6 @@ export class ListSumProcessor extends BaseNode {
   }
 }
 
-/**
- * Throws if shouldFail input or prop is true.
- */
 export class ConditionalErrorProcessor extends BaseNode {
   static readonly nodeType = "nodetool.test.ConditionalErrorProcessor";
   static readonly title = "Conditional Error Processor";
@@ -376,9 +370,6 @@ export class ConditionalErrorProcessor extends BaseNode {
   }
 }
 
-/**
- * Runs successfully but emits no output values.
- */
 export class SilentNode extends BaseNode {
   static readonly nodeType = "nodetool.test.SilentNode";
   static readonly title = "Silent Node";

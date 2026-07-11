@@ -18,9 +18,6 @@ export interface SettingStatus extends SettingDefinition {
 
 const registry = new Map<string, SettingDefinition>();
 
-/**
- * Register a configuration setting.
- */
 export function registerSetting(definition: SettingDefinition): void {
   registry.set(definition.envVar, definition);
 }
