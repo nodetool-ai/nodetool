@@ -6,6 +6,7 @@ export { assets } from "./assets.js";
 export { secrets } from "./secrets.js";
 export { workspaces } from "./workspaces.js";
 export { workflowVersions } from "./workflow-versions.js";
+export { workflowCollaborators, workflowShares } from "./workflow-sharing.js";
 export { oauthCredentials } from "./oauth-credentials.js";
 export { runNodeState } from "./run-node-state.js";
 export { predictions } from "./predictions.js";

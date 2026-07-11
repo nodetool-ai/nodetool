@@ -423,7 +423,7 @@ describe("MigrationRunner", () => {
 // ── Built-in migrations smoke test ───────────────────────────────────
 
 describe("Built-in migrations", () => {
-  const EXPECTED_BUILT_IN_MIGRATION_COUNT = 43;
+  const EXPECTED_BUILT_IN_MIGRATION_COUNT = 44;
 
   it("should have correct count of migrations", () => {
     expect(migrations.length).toBe(EXPECTED_BUILT_IN_MIGRATION_COUNT);
@@ -468,6 +468,10 @@ describe("Built-in migrations", () => {
     expect(await adapter.tableExists("image_documents")).toBe(true);
     expect(await adapter.tableExists("worker_profiles")).toBe(true);
     expect(await adapter.tableExists("worker_instances")).toBe(true);
+    expect(
+      await adapter.tableExists("nodetool_workflow_collaborators")
+    ).toBe(true);
+    expect(await adapter.tableExists("nodetool_workflow_shares")).toBe(true);
 
     // The provider_session continuation token column is added by migration.
     expect(

@@ -478,6 +478,23 @@ const TABLE_COLUMNS: Record<string, Record<string, string>> = {
     document: "text",
     created_at: "text",
     updated_at: "text"
+  },
+  nodetool_workflow_collaborators: {
+    id: "text",
+    workflow_id: "text",
+    user_id: "text",
+    role: "text",
+    invited_by: "text",
+    created_at: "text"
+  },
+  nodetool_workflow_shares: {
+    id: "text",
+    workflow_id: "text",
+    token: "text",
+    role: "text",
+    created_by: "text",
+    created_at: "text",
+    revoked_at: "text"
   }
 };
 
@@ -858,6 +875,29 @@ function getCreateSchemaSql(): string {
     );
     CREATE INDEX IF NOT EXISTS "idx_worker_instances_status" ON "worker_instances" ("status");
     CREATE INDEX IF NOT EXISTS "idx_worker_instances_profile_name" ON "worker_instances" ("profile_name");
+
+    CREATE TABLE IF NOT EXISTS "nodetool_workflow_collaborators" (
+      "id" text PRIMARY KEY NOT NULL,
+      "workflow_id" text NOT NULL,
+      "user_id" text NOT NULL,
+      "role" text NOT NULL DEFAULT 'viewer',
+      "invited_by" text NOT NULL,
+      "created_at" text NOT NULL
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS "idx_wcol_workflow_user" ON "nodetool_workflow_collaborators" ("workflow_id", "user_id");
+    CREATE INDEX IF NOT EXISTS "idx_wcol_user_id" ON "nodetool_workflow_collaborators" ("user_id");
+
+    CREATE TABLE IF NOT EXISTS "nodetool_workflow_shares" (
+      "id" text PRIMARY KEY NOT NULL,
+      "workflow_id" text NOT NULL,
+      "token" text NOT NULL,
+      "role" text NOT NULL DEFAULT 'viewer',
+      "created_by" text NOT NULL,
+      "created_at" text NOT NULL,
+      "revoked_at" text
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS "idx_wshare_token" ON "nodetool_workflow_shares" ("token");
+    CREATE INDEX IF NOT EXISTS "idx_wshare_workflow_id" ON "nodetool_workflow_shares" ("workflow_id");
   `;
 }
 

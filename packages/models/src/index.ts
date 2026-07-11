@@ -63,6 +63,12 @@ export { Workflow } from "./workflow.js";
 export type { AccessLevel, WorkflowGraph } from "./workflow.js";
 
 export { WorkflowVersion } from "./workflow-version.js";
+export {
+  WorkflowCollaborator,
+  isCollaboratorRole,
+  type CollaboratorRole
+} from "./workflow-collaborator.js";
+export { WorkflowShare } from "./workflow-share.js";
 
 export { Asset } from "./asset.js";
 

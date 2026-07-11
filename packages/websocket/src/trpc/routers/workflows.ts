@@ -25,6 +25,8 @@ import { withCacheBuster } from "../../lib/example-thumbnail.js";
 import {
   Workflow,
   WorkflowVersion,
+  WorkflowCollaborator,
+  WorkflowShare,
   Job
 } from "@nodetool-ai/models";
 import type {
@@ -88,11 +90,65 @@ import {
   terminalOutputsOutput,
   workflowResponse,
   graph as graphSchema,
+  sharingGetInput,
+  sharingGetOutput,
+  sharingCreateLinkInput,
+  sharingRevokeLinkInput,
+  sharingSetRoleInput,
+  sharingRemoveCollaboratorInput,
+  sharingOkOutput,
+  sharingAcceptInput,
+  sharingAcceptOutput,
+  shareItem,
+  collaboratorItem,
+  myRoleInput,
+  myRoleOutput,
+  sharedWithMeInput,
+  sharedWithMeOutput,
   type WorkflowResponse,
   type VersionResponse
 } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 
 const log = createLogger("nodetool.websocket.trpc.workflows");
+
+/**
+ * The caller's effective role on a workflow:
+ *   owner  — workflows.user_id
+ *   editor — collaborator grant with role "editor"
+ *   viewer — collaborator grant with role "viewer", or public access
+ *   null   — no access (surfaced as WORKFLOW_NOT_FOUND, never FORBIDDEN,
+ *            so private workflow ids are not probeable)
+ */
+type WorkflowRole = "owner" | "editor" | "viewer";
+
+async function resolveWorkflowRole(
+  workflow: WorkflowModel,
+  userId: string
+): Promise<WorkflowRole | null> {
+  if (workflow.user_id === userId) return "owner";
+  const grant = await WorkflowCollaborator.findFor(workflow.id, userId);
+  if (grant) return grant.role;
+  if (workflow.access === "public") return "viewer";
+  return null;
+}
+
+/** Load a workflow and require at least `minimum` access, else 404. */
+async function requireWorkflowRole(
+  workflowId: string,
+  userId: string,
+  minimum: "viewer" | "editor" | "owner"
+): Promise<{ workflow: WorkflowModel; role: WorkflowRole }> {
+  const workflow = (await Workflow.get(workflowId)) as WorkflowModel | null;
+  if (!workflow) {
+    throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
+  }
+  const role = await resolveWorkflowRole(workflow, userId);
+  const rank: Record<WorkflowRole, number> = { viewer: 1, editor: 2, owner: 3 };
+  if (!role || rank[role] < rank[minimum]) {
+    throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
+  }
+  return { workflow, role };
+}
 
 /**
  * Validate a workflow graph against the wire schema. Returns the graph if it
@@ -215,6 +271,27 @@ function toVersionResponse(v: WorkflowVersionModel): VersionResponse {
     save_type: (v.save_type as string | null) ?? "manual",
     autosave_metadata: (v.autosave_metadata as unknown) ?? null,
     created_at: (v.created_at as string | undefined) ?? null
+  };
+}
+
+function toCollaboratorItem(grant: WorkflowCollaborator) {
+  return {
+    workflow_id: grant.workflow_id,
+    user_id: grant.user_id,
+    role: grant.role,
+    invited_by: grant.invited_by,
+    created_at: grant.created_at ?? null
+  };
+}
+
+function toShareItem(share: WorkflowShare) {
+  return {
+    id: share.id,
+    workflow_id: share.workflow_id,
+    token: share.token,
+    role: share.role,
+    created_at: share.created_at ?? null,
+    revoked_at: share.revoked_at ?? null
   };
 }
 
@@ -424,11 +501,11 @@ export const workflowsRouter = router({
     .input(getInput)
     .output(workflowResponse)
     .query(async ({ ctx, input }) => {
-      const workflow = (await Workflow.get(input.id)) as WorkflowModel | null;
-      if (!workflow) throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
-      if (workflow.access !== "public" && workflow.user_id !== ctx.userId) {
-        throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
-      }
+      const { workflow } = await requireWorkflowRole(
+        input.id,
+        ctx.userId,
+        "viewer"
+      );
       return toWorkflowResponse(workflow);
     }),
 
@@ -496,8 +573,12 @@ export const workflowsRouter = router({
       const graph = input.graph;
       const existing = (await Workflow.get(input.id)) as WorkflowModel | null;
 
-      if (existing && existing.user_id !== ctx.userId) {
-        throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
+      let existingRole: WorkflowRole | null = null;
+      if (existing) {
+        existingRole = await resolveWorkflowRole(existing, ctx.userId);
+        if (existingRole !== "owner" && existingRole !== "editor") {
+          throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
+        }
       }
 
       if (existing) {
@@ -507,7 +588,10 @@ export const workflowsRouter = router({
         existing.tags = input.tags ?? [];
         existing.package_name = input.package_name ?? null;
         if (input.thumbnail !== undefined) existing.thumbnail = input.thumbnail;
-        existing.access = input.access === "public" ? "public" : "private";
+        // Only the owner can change visibility; editors keep it as-is.
+        if (existingRole === "owner") {
+          existing.access = input.access === "public" ? "public" : "private";
+        }
         existing.graph = graph;
         existing.settings = input.settings ?? null;
         if (input.run_mode !== undefined && input.run_mode !== null)
@@ -555,6 +639,8 @@ export const workflowsRouter = router({
         throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
       }
       await workflow.delete();
+      await WorkflowCollaborator.removeAllForWorkflow(input.id);
+      await WorkflowShare.removeAllForWorkflow(input.id);
       return { ok: true as const };
     }),
 
@@ -563,8 +649,11 @@ export const workflowsRouter = router({
     .input(runInput)
     .output(runOutput)
     .mutation(async ({ ctx, input }) => {
-      const workflow = await Workflow.find(ctx.userId, input.id);
-      if (!workflow) throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
+      const { workflow } = await requireWorkflowRole(
+        input.id,
+        ctx.userId,
+        "viewer"
+      );
 
       const runMode = workflow.run_mode ?? "workflow";
       if (runMode !== "workflow") {
@@ -707,11 +796,11 @@ export const workflowsRouter = router({
     .input(autosaveInput)
     .output(autosaveOutput)
     .mutation(async ({ ctx, input }) => {
-      const workflow = (await Workflow.get(input.id)) as WorkflowModel | null;
-      if (!workflow) throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
-      if (workflow.user_id !== ctx.userId) {
-        throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
-      }
+      const { workflow, role } = await requireWorkflowRole(
+        input.id,
+        ctx.userId,
+        "editor"
+      );
 
       const force = input.force === true;
       const maxVersions = typeof input.max_versions === "number" ? input.max_versions : 10;
@@ -732,7 +821,11 @@ export const workflowsRouter = router({
       if (input.name !== undefined) workflow.name = input.name;
       if (input.description !== undefined)
         workflow.description = input.description;
-      if (input.access === "public" || input.access === "private")
+      // Only the owner can change visibility; editors keep it as-is.
+      if (
+        role === "owner" &&
+        (input.access === "public" || input.access === "private")
+      )
         workflow.access = input.access;
       await workflow.save();
       lastAutosaveTime.set(input.id, Date.now());
@@ -899,11 +992,8 @@ export const workflowsRouter = router({
       .input(versionsListInput)
       .output(versionsListOutput)
       .query(async ({ ctx, input }) => {
-        // Check ownership via the parent workflow
-        const workflow = (await Workflow.get(input.id)) as WorkflowModel | null;
-        if (!workflow || workflow.user_id !== ctx.userId) {
-          throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
-        }
+        // Owners and editors see version history
+        await requireWorkflowRole(input.id, ctx.userId, "editor");
         const versions = await WorkflowVersion.listForWorkflow(input.id, {
           limit: input.limit
         });
@@ -915,11 +1005,11 @@ export const workflowsRouter = router({
       .input(versionCreateInput)
       .output(versionResponse)
       .mutation(async ({ ctx, input }) => {
-        const workflow = (await Workflow.get(input.id)) as WorkflowModel | null;
-        if (!workflow) throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
-        if (workflow.user_id !== ctx.userId) {
-          throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
-        }
+        const { workflow } = await requireWorkflowRole(
+          input.id,
+          ctx.userId,
+          "editor"
+        );
         const nextVer = await WorkflowVersion.nextVersion(input.id);
         const version = (await WorkflowVersion.create({
           workflow_id: input.id,
@@ -937,10 +1027,7 @@ export const workflowsRouter = router({
       .input(versionGetInput)
       .output(versionResponse)
       .query(async ({ ctx, input }) => {
-        const workflow = (await Workflow.get(input.id)) as WorkflowModel | null;
-        if (!workflow || workflow.user_id !== ctx.userId) {
-          throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
-        }
+        await requireWorkflowRole(input.id, ctx.userId, "editor");
         const version = await WorkflowVersion.findByVersion(
           input.id,
           input.version
@@ -954,10 +1041,11 @@ export const workflowsRouter = router({
       .input(versionRestoreInput)
       .output(workflowResponse)
       .mutation(async ({ ctx, input }) => {
-        const workflow = (await Workflow.get(input.id)) as WorkflowModel | null;
-        if (!workflow || workflow.user_id !== ctx.userId) {
-          throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
-        }
+        const { workflow } = await requireWorkflowRole(
+          input.id,
+          ctx.userId,
+          "editor"
+        );
         const version = await WorkflowVersion.findByVersion(
           input.id,
           input.version
@@ -978,10 +1066,170 @@ export const workflowsRouter = router({
         )) as WorkflowVersionModel | null;
         if (!version) throwApiError(ApiErrorCode.NOT_FOUND, "Version not found");
         if (version.user_id !== ctx.userId) {
-          throwApiError(ApiErrorCode.NOT_FOUND, "Version not found");
+          // The workflow owner may prune versions saved by collaborators.
+          const parent = (await Workflow.get(
+            version.workflow_id
+          )) as WorkflowModel | null;
+          if (!parent || parent.user_id !== ctx.userId) {
+            throwApiError(ApiErrorCode.NOT_FOUND, "Version not found");
+          }
         }
         await version.delete();
         return { ok: true as const };
+      })
+  }),
+
+  // ── sharing ────────────────────────────────────────────────────────────────
+  // Private sharing via role-scoped links: the owner mints a link, any
+  // authenticated user who redeems it becomes a collaborator (viewer/editor).
+  sharing: router({
+    // Collaborators + share links for the dialog. Owner only.
+    get: protectedProcedure
+      .input(sharingGetInput)
+      .output(sharingGetOutput)
+      .query(async ({ ctx, input }) => {
+        await requireWorkflowRole(input.id, ctx.userId, "owner");
+        const [collaborators, shares] = await Promise.all([
+          WorkflowCollaborator.listForWorkflow(input.id),
+          WorkflowShare.listForWorkflow(input.id)
+        ]);
+        return {
+          collaborators: collaborators.map(toCollaboratorItem),
+          shares: shares.map(toShareItem)
+        };
+      }),
+
+    // Mint (or return the existing active) share link for a role.
+    createLink: protectedProcedure
+      .input(sharingCreateLinkInput)
+      .output(shareItem)
+      .mutation(async ({ ctx, input }) => {
+        await requireWorkflowRole(input.id, ctx.userId, "owner");
+        const share = await WorkflowShare.ensure({
+          workflowId: input.id,
+          role: input.role,
+          createdBy: ctx.userId
+        });
+        return toShareItem(share);
+      }),
+
+    // Stop new redemptions of a link. Existing collaborators keep access.
+    revokeLink: protectedProcedure
+      .input(sharingRevokeLinkInput)
+      .output(sharingOkOutput)
+      .mutation(async ({ ctx, input }) => {
+        await requireWorkflowRole(input.id, ctx.userId, "owner");
+        const share = (await WorkflowShare.get(
+          input.share_id
+        )) as WorkflowShare | null;
+        if (!share || share.workflow_id !== input.id) {
+          throwApiError(ApiErrorCode.NOT_FOUND, "Share not found");
+        }
+        if (!share.isRevoked) await share.revoke();
+        return { ok: true as const };
+      }),
+
+    // Change a collaborator's role. Owner only.
+    setRole: protectedProcedure
+      .input(sharingSetRoleInput)
+      .output(collaboratorItem)
+      .mutation(async ({ ctx, input }) => {
+        await requireWorkflowRole(input.id, ctx.userId, "owner");
+        const grant = await WorkflowCollaborator.findFor(
+          input.id,
+          input.user_id
+        );
+        if (!grant) {
+          throwApiError(ApiErrorCode.NOT_FOUND, "Collaborator not found");
+        }
+        if (grant.role !== input.role) {
+          grant.role = input.role;
+          await grant.save();
+        }
+        return toCollaboratorItem(grant);
+      }),
+
+    // Remove a collaborator. Owner removes anyone; a collaborator may
+    // remove themself ("leave").
+    removeCollaborator: protectedProcedure
+      .input(sharingRemoveCollaboratorInput)
+      .output(sharingOkOutput)
+      .mutation(async ({ ctx, input }) => {
+        if (input.user_id !== ctx.userId) {
+          await requireWorkflowRole(input.id, ctx.userId, "owner");
+        }
+        const removed = await WorkflowCollaborator.remove(
+          input.id,
+          input.user_id
+        );
+        if (!removed) {
+          throwApiError(ApiErrorCode.NOT_FOUND, "Collaborator not found");
+        }
+        return { ok: true as const };
+      }),
+
+    // Redeem a share link: the caller becomes a collaborator with the
+    // link's role and gets the workflow back for navigation.
+    accept: protectedProcedure
+      .input(sharingAcceptInput)
+      .output(sharingAcceptOutput)
+      .mutation(async ({ ctx, input }) => {
+        const share = await WorkflowShare.findByToken(input.token);
+        if (!share || share.isRevoked) {
+          throwApiError(ApiErrorCode.NOT_FOUND, "Share link is invalid or revoked");
+        }
+        const workflow = (await Workflow.get(
+          share.workflow_id
+        )) as WorkflowModel | null;
+        if (!workflow) {
+          throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
+        }
+        // The owner opening their own link is a no-op, not a grant.
+        if (workflow.user_id !== ctx.userId) {
+          await WorkflowCollaborator.upsert({
+            workflowId: workflow.id,
+            userId: ctx.userId,
+            role: share.role,
+            invitedBy: share.created_by
+          });
+        }
+        return { workflow: toWorkflowResponse(workflow), role: share.role };
+      }),
+
+    // The caller's effective role on a workflow, for read-only UI state.
+    myRole: protectedProcedure
+      .input(myRoleInput)
+      .output(myRoleOutput)
+      .query(async ({ ctx, input }) => {
+        const workflow = (await Workflow.get(
+          input.id
+        )) as WorkflowModel | null;
+        if (!workflow) return { role: null };
+        return { role: await resolveWorkflowRole(workflow, ctx.userId) };
+      }),
+
+    // Workflows shared with the caller, with their role on each.
+    sharedWithMe: protectedProcedure
+      .input(sharedWithMeInput)
+      .output(sharedWithMeOutput)
+      .query(async ({ ctx, input }) => {
+        const grants = await WorkflowCollaborator.listForUser(ctx.userId);
+        const limited = grants.slice(0, input.limit);
+        const workflows: Array<
+          WorkflowResponse & { shared_role: "viewer" | "editor" }
+        > = [];
+        for (const grant of limited) {
+          const workflow = (await Workflow.get(
+            grant.workflow_id
+          )) as WorkflowModel | null;
+          // Skip grants pointing at deleted workflows.
+          if (!workflow) continue;
+          workflows.push({
+            ...toWorkflowResponse(workflow),
+            shared_role: grant.role
+          });
+        }
+        return { workflows };
       })
   })
 });

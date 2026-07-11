@@ -29,6 +29,23 @@ vi.mock("@nodetool-ai/models", async (orig) => {
     Job: {
       ...actual.Job,
       create: vi.fn()
+    },
+    WorkflowCollaborator: {
+      ...actual.WorkflowCollaborator,
+      findFor: vi.fn(),
+      listForWorkflow: vi.fn(),
+      listForUser: vi.fn(),
+      upsert: vi.fn(),
+      remove: vi.fn(),
+      removeAllForWorkflow: vi.fn()
+    },
+    WorkflowShare: {
+      ...actual.WorkflowShare,
+      get: vi.fn(),
+      findByToken: vi.fn(),
+      listForWorkflow: vi.fn(),
+      ensure: vi.fn(),
+      removeAllForWorkflow: vi.fn()
     }
   };
 });
@@ -43,6 +60,8 @@ vi.mock("@nodetool-ai/kernel", () => {
 import {
   Workflow,
   WorkflowVersion,
+  WorkflowCollaborator,
+  WorkflowShare,
   Job
 } from "@nodetool-ai/models";
 import { WorkflowRunner } from "@nodetool-ai/kernel";
@@ -131,6 +150,9 @@ function makeVersion(opts: {
 describe("workflows router", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    (WorkflowCollaborator.findFor as ReturnType<typeof vi.fn>).mockResolvedValue(
+      null
+    );
     // Set WorkflowRunner constructor mock for each test.
     (WorkflowRunner as unknown as ReturnType<typeof vi.fn>).mockImplementation(
       function () {
@@ -498,7 +520,7 @@ describe("workflows router", () => {
         user_id: "user-1",
         run_mode: "workflow"
       });
-      (Workflow.find as ReturnType<typeof vi.fn>).mockResolvedValue(wf);
+      (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(wf);
 
       const job = {
         id: "job-1",
@@ -518,7 +540,7 @@ describe("workflows router", () => {
     });
 
     it("throws NOT_FOUND when workflow does not exist", async () => {
-      (Workflow.find as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+      (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(null);
       const caller = createCaller(makeCtx());
       await expect(caller.workflows.run({ id: "missing" })).rejects.toMatchObject({
         code: "NOT_FOUND"
@@ -527,7 +549,7 @@ describe("workflows router", () => {
 
     it("throws BAD_REQUEST for unsupported run mode", async () => {
       const wf = makeWorkflow({ id: "wf-1", run_mode: "chat" });
-      (Workflow.find as ReturnType<typeof vi.fn>).mockResolvedValue(wf);
+      (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(wf);
 
       const caller = createCaller(makeCtx());
       await expect(caller.workflows.run({ id: "wf-1" })).rejects.toMatchObject({
@@ -962,9 +984,12 @@ describe("workflows router", () => {
         ).rejects.toMatchObject({ code: "NOT_FOUND" });
       });
 
-      it("throws NOT_FOUND when user doesn't own the version", async () => {
+      it("throws NOT_FOUND when user owns neither the version nor the workflow", async () => {
         const ver = makeVersion({ id: "ver-1", user_id: "other-user" });
         (WorkflowVersion.get as ReturnType<typeof vi.fn>).mockResolvedValue(ver);
+        (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(
+          makeWorkflow({ id: "wf-1", user_id: "other-owner" })
+        );
 
         const caller = createCaller(makeCtx());
         await expect(
@@ -976,6 +1001,22 @@ describe("workflows router", () => {
         expect(ver.delete).not.toHaveBeenCalled();
       });
 
+      it("lets the workflow owner delete a collaborator's version", async () => {
+        const ver = makeVersion({ id: "ver-1", user_id: "collaborator" });
+        (WorkflowVersion.get as ReturnType<typeof vi.fn>).mockResolvedValue(ver);
+        (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(
+          makeWorkflow({ id: "wf-1", user_id: "user-1" })
+        );
+
+        const caller = createCaller(makeCtx());
+        const result = await caller.workflows.versions.delete({
+          id: "wf-1",
+          version_id: "ver-1"
+        });
+        expect(result.ok).toBe(true);
+        expect(ver.delete).toHaveBeenCalled();
+      });
+
       it("rejects unauthenticated callers", async () => {
         const caller = createCaller(makeCtx({ userId: null }));
         await expect(
@@ -985,6 +1026,377 @@ describe("workflows router", () => {
           })
         ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
       });
+    });
+  });
+});
+
+// ── sharing ──────────────────────────────────────────────────────────────────
+
+describe("workflows.sharing router", () => {
+  const asMock = (fn: unknown) => fn as ReturnType<typeof vi.fn>;
+
+  function makeGrant(opts: {
+    workflow_id?: string;
+    user_id?: string;
+    role?: "viewer" | "editor";
+  }) {
+    return {
+      workflow_id: opts.workflow_id ?? "wf-1",
+      user_id: opts.user_id ?? "user-2",
+      role: opts.role ?? "viewer",
+      invited_by: "user-1",
+      created_at: "2026-07-10T00:00:00Z",
+      save: vi.fn().mockResolvedValue(undefined),
+      delete: vi.fn().mockResolvedValue(undefined)
+    };
+  }
+
+  function makeShare(opts: {
+    id?: string;
+    workflow_id?: string;
+    role?: "viewer" | "editor";
+    revoked_at?: string | null;
+  }) {
+    const revokedAt = opts.revoked_at ?? null;
+    return {
+      id: opts.id ?? "share-1",
+      workflow_id: opts.workflow_id ?? "wf-1",
+      token: "tok_abc",
+      role: opts.role ?? "viewer",
+      created_by: "user-1",
+      created_at: "2026-07-10T00:00:00Z",
+      revoked_at: revokedAt,
+      isRevoked: revokedAt != null,
+      revoke: vi.fn().mockResolvedValue(undefined),
+      save: vi.fn().mockResolvedValue(undefined)
+    };
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    asMock(WorkflowCollaborator.findFor).mockResolvedValue(null);
+  });
+
+  describe("collaborator access to core procedures", () => {
+    it("get allows a viewer collaborator on a private workflow", async () => {
+      const wf = makeWorkflow({ id: "wf-1", user_id: "owner-1" });
+      asMock(Workflow.get).mockResolvedValue(wf);
+      asMock(WorkflowCollaborator.findFor).mockResolvedValue(
+        makeGrant({ user_id: "user-1", role: "viewer" })
+      );
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.workflows.get({ id: "wf-1" });
+      expect(result.id).toBe("wf-1");
+      expect(WorkflowCollaborator.findFor).toHaveBeenCalledWith(
+        "wf-1",
+        "user-1"
+      );
+    });
+
+    it("get still hides private workflows without a grant", async () => {
+      const wf = makeWorkflow({ id: "wf-1", user_id: "owner-1" });
+      asMock(Workflow.get).mockResolvedValue(wf);
+
+      const caller = createCaller(makeCtx());
+      await expect(caller.workflows.get({ id: "wf-1" })).rejects.toMatchObject(
+        { code: "NOT_FOUND" }
+      );
+    });
+
+    it("update allows an editor collaborator but preserves access", async () => {
+      const wf = makeWorkflow({
+        id: "wf-1",
+        user_id: "owner-1",
+        access: "private"
+      });
+      asMock(Workflow.get).mockResolvedValue(wf);
+      asMock(WorkflowCollaborator.findFor).mockResolvedValue(
+        makeGrant({ user_id: "user-1", role: "editor" })
+      );
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.workflows.update({
+        id: "wf-1",
+        name: "Renamed",
+        graph: { nodes: [], edges: [] },
+        access: "public"
+      });
+      expect(result.name).toBe("Renamed");
+      // An editor cannot flip visibility.
+      expect(wf.access).toBe("private");
+      expect(wf.save).toHaveBeenCalled();
+    });
+
+    it("update rejects a viewer collaborator", async () => {
+      const wf = makeWorkflow({ id: "wf-1", user_id: "owner-1" });
+      asMock(Workflow.get).mockResolvedValue(wf);
+      asMock(WorkflowCollaborator.findFor).mockResolvedValue(
+        makeGrant({ user_id: "user-1", role: "viewer" })
+      );
+
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.workflows.update({
+          id: "wf-1",
+          name: "Nope",
+          graph: { nodes: [], edges: [] }
+        })
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    });
+
+    it("run allows a viewer collaborator", async () => {
+      const wf = makeWorkflow({
+        id: "wf-1",
+        user_id: "owner-1",
+        run_mode: "workflow"
+      });
+      asMock(Workflow.get).mockResolvedValue(wf);
+      asMock(WorkflowCollaborator.findFor).mockResolvedValue(
+        makeGrant({ user_id: "user-1", role: "viewer" })
+      );
+      const job = {
+        id: "job-1",
+        markCompleted: vi.fn(),
+        markFailed: vi.fn(),
+        markCancelled: vi.fn(),
+        save: vi.fn().mockResolvedValue(undefined)
+      };
+      asMock(Job.create).mockResolvedValue(job);
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.workflows.run({ id: "wf-1" });
+      expect(result.job_id).toBe("job-1");
+    });
+  });
+
+  describe("sharing.get", () => {
+    it("returns collaborators and shares for the owner", async () => {
+      const wf = makeWorkflow({ id: "wf-1", user_id: "user-1" });
+      asMock(Workflow.get).mockResolvedValue(wf);
+      asMock(WorkflowCollaborator.listForWorkflow).mockResolvedValue([
+        makeGrant({ user_id: "user-2", role: "editor" })
+      ]);
+      asMock(WorkflowShare.listForWorkflow).mockResolvedValue([
+        makeShare({ role: "viewer" })
+      ]);
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.workflows.sharing.get({ id: "wf-1" });
+      expect(result.collaborators).toHaveLength(1);
+      expect(result.collaborators[0].role).toBe("editor");
+      expect(result.shares[0].token).toBe("tok_abc");
+    });
+
+    it("rejects non-owners, including editors", async () => {
+      const wf = makeWorkflow({ id: "wf-1", user_id: "owner-1" });
+      asMock(Workflow.get).mockResolvedValue(wf);
+      asMock(WorkflowCollaborator.findFor).mockResolvedValue(
+        makeGrant({ user_id: "user-1", role: "editor" })
+      );
+
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.workflows.sharing.get({ id: "wf-1" })
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    });
+  });
+
+  describe("sharing.createLink / revokeLink", () => {
+    it("mints a share link for the owner", async () => {
+      const wf = makeWorkflow({ id: "wf-1", user_id: "user-1" });
+      asMock(Workflow.get).mockResolvedValue(wf);
+      asMock(WorkflowShare.ensure).mockResolvedValue(
+        makeShare({ role: "editor" })
+      );
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.workflows.sharing.createLink({
+        id: "wf-1",
+        role: "editor"
+      });
+      expect(result.token).toBe("tok_abc");
+      expect(WorkflowShare.ensure).toHaveBeenCalledWith({
+        workflowId: "wf-1",
+        role: "editor",
+        createdBy: "user-1"
+      });
+    });
+
+    it("revokes a link belonging to the workflow", async () => {
+      const wf = makeWorkflow({ id: "wf-1", user_id: "user-1" });
+      asMock(Workflow.get).mockResolvedValue(wf);
+      const share = makeShare({ id: "share-1", workflow_id: "wf-1" });
+      asMock(WorkflowShare.get).mockResolvedValue(share);
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.workflows.sharing.revokeLink({
+        id: "wf-1",
+        share_id: "share-1"
+      });
+      expect(result.ok).toBe(true);
+      expect(share.revoke).toHaveBeenCalled();
+    });
+
+    it("rejects revoking a share of a different workflow", async () => {
+      const wf = makeWorkflow({ id: "wf-1", user_id: "user-1" });
+      asMock(Workflow.get).mockResolvedValue(wf);
+      asMock(WorkflowShare.get).mockResolvedValue(
+        makeShare({ id: "share-1", workflow_id: "wf-other" })
+      );
+
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.workflows.sharing.revokeLink({ id: "wf-1", share_id: "share-1" })
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    });
+  });
+
+  describe("sharing.accept", () => {
+    it("grants the caller the link's role", async () => {
+      const wf = makeWorkflow({ id: "wf-1", user_id: "owner-1" });
+      asMock(WorkflowShare.findByToken).mockResolvedValue(
+        makeShare({ role: "editor" })
+      );
+      asMock(Workflow.get).mockResolvedValue(wf);
+      asMock(WorkflowCollaborator.upsert).mockResolvedValue(
+        makeGrant({ user_id: "user-1", role: "editor" })
+      );
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.workflows.sharing.accept({
+        token: "tok_abc"
+      });
+      expect(result.workflow.id).toBe("wf-1");
+      expect(result.role).toBe("editor");
+      expect(WorkflowCollaborator.upsert).toHaveBeenCalledWith({
+        workflowId: "wf-1",
+        userId: "user-1",
+        role: "editor",
+        invitedBy: "user-1"
+      });
+    });
+
+    it("does not grant the owner a collaborator row", async () => {
+      const wf = makeWorkflow({ id: "wf-1", user_id: "user-1" });
+      asMock(WorkflowShare.findByToken).mockResolvedValue(makeShare({}));
+      asMock(Workflow.get).mockResolvedValue(wf);
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.workflows.sharing.accept({
+        token: "tok_abc"
+      });
+      expect(result.workflow.id).toBe("wf-1");
+      expect(WorkflowCollaborator.upsert).not.toHaveBeenCalled();
+    });
+
+    it("rejects revoked tokens", async () => {
+      asMock(WorkflowShare.findByToken).mockResolvedValue(
+        makeShare({ revoked_at: "2026-07-09T00:00:00Z" })
+      );
+
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.workflows.sharing.accept({ token: "tok_abc" })
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    });
+
+    it("rejects unknown tokens", async () => {
+      asMock(WorkflowShare.findByToken).mockResolvedValue(null);
+
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.workflows.sharing.accept({ token: "nope" })
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    });
+  });
+
+  describe("sharing.removeCollaborator", () => {
+    it("owner removes a collaborator", async () => {
+      const wf = makeWorkflow({ id: "wf-1", user_id: "user-1" });
+      asMock(Workflow.get).mockResolvedValue(wf);
+      asMock(WorkflowCollaborator.remove).mockResolvedValue(true);
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.workflows.sharing.removeCollaborator({
+        id: "wf-1",
+        user_id: "user-2"
+      });
+      expect(result.ok).toBe(true);
+      expect(WorkflowCollaborator.remove).toHaveBeenCalledWith(
+        "wf-1",
+        "user-2"
+      );
+    });
+
+    it("a collaborator can remove themself without ownership", async () => {
+      asMock(WorkflowCollaborator.remove).mockResolvedValue(true);
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.workflows.sharing.removeCollaborator({
+        id: "wf-1",
+        user_id: "user-1"
+      });
+      expect(result.ok).toBe(true);
+      // Ownership was never checked — Workflow.get untouched.
+      expect(Workflow.get).not.toHaveBeenCalled();
+    });
+
+    it("a non-owner cannot remove someone else", async () => {
+      const wf = makeWorkflow({ id: "wf-1", user_id: "owner-1" });
+      asMock(Workflow.get).mockResolvedValue(wf);
+
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.workflows.sharing.removeCollaborator({
+          id: "wf-1",
+          user_id: "user-2"
+        })
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    });
+  });
+
+  describe("sharing.myRole / sharedWithMe", () => {
+    it("myRole reports owner / editor / null", async () => {
+      const caller = createCaller(makeCtx());
+
+      asMock(Workflow.get).mockResolvedValue(
+        makeWorkflow({ id: "wf-1", user_id: "user-1" })
+      );
+      expect(await caller.workflows.sharing.myRole({ id: "wf-1" })).toEqual({
+        role: "owner"
+      });
+
+      asMock(Workflow.get).mockResolvedValue(
+        makeWorkflow({ id: "wf-1", user_id: "owner-1" })
+      );
+      asMock(WorkflowCollaborator.findFor).mockResolvedValue(
+        makeGrant({ user_id: "user-1", role: "editor" })
+      );
+      expect(await caller.workflows.sharing.myRole({ id: "wf-1" })).toEqual({
+        role: "editor"
+      });
+
+      asMock(WorkflowCollaborator.findFor).mockResolvedValue(null);
+      expect(await caller.workflows.sharing.myRole({ id: "wf-1" })).toEqual({
+        role: null
+      });
+    });
+
+    it("sharedWithMe lists granted workflows with roles", async () => {
+      asMock(WorkflowCollaborator.listForUser).mockResolvedValue([
+        makeGrant({ workflow_id: "wf-1", user_id: "user-1", role: "editor" }),
+        makeGrant({ workflow_id: "wf-gone", user_id: "user-1", role: "viewer" })
+      ]);
+      asMock(Workflow.get).mockImplementation(async (id: string) =>
+        id === "wf-1" ? makeWorkflow({ id: "wf-1", user_id: "owner-1" }) : null
+      );
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.workflows.sharing.sharedWithMe({});
+      expect(result.workflows).toHaveLength(1);
+      expect(result.workflows[0].id).toBe("wf-1");
+      expect(result.workflows[0].shared_role).toBe("editor");
     });
   });
 });

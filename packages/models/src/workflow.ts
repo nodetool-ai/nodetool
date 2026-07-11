@@ -8,6 +8,7 @@ import { eq, and, desc, or, isNull, lt, type SQL } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
 import { workflows } from "./schema/workflows.js";
+import { WorkflowCollaborator } from "./workflow-collaborator.js";
 import type { WorkflowRunMode } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -111,7 +112,11 @@ export class Workflow extends DBModel {
 
   // ── Static queries ───────────────────────────────────────────────
 
-  /** Find a workflow by id, respecting ownership or public access. */
+  /**
+   * Find a workflow by id, respecting ownership, public access, or a
+   * collaborator grant (private sharing). This is the read-access gate for
+   * every "fetch someone's workflow" path.
+   */
   static async find(
     userId: string,
     workflowId: string
@@ -119,6 +124,8 @@ export class Workflow extends DBModel {
     const wf = await Workflow.get<Workflow>(workflowId);
     if (!wf) return null;
     if (wf.user_id === userId || wf.access === "public") return wf;
+    const grant = await WorkflowCollaborator.findFor(workflowId, userId);
+    if (grant) return wf;
     return null;
   }
 
