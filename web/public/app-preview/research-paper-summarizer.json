@@ -1,0 +1,92 @@
+{
+  "slug": "research-paper-summarizer",
+  "name": "Research Paper Summarizer",
+  "description": "Extract and summarize key findings from research papers and technical documents.",
+  "image": "/app-preview/img/research-paper-summarizer.jpg",
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Research Paper Summarizer"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-34",
+            "text": "📄 Research Paper Summarizer",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-35",
+            "text": "Paste a paper or abstract and extract the key findings."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "c-38",
+            "title": "Paper",
+            "content": [
+              {
+                "type": "TextInput",
+                "props": {
+                  "id": "in-36",
+                  "binding": "paper",
+                  "label": "Paper Text",
+                  "placeholder": "Paste the abstract or full text…",
+                  "multiline": true,
+                  "events": []
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "id": "b-37",
+                  "label": "Summarize",
+                  "variant": "contained",
+                  "color": "primary",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "key": "",
+                      "value": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "c-40",
+            "title": "Summary",
+            "content": [
+              {
+                "type": "Markdown",
+                "props": {
+                  "id": "md-39",
+                  "binding": "Summary",
+                  "text": ""
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  },
+  "values": {
+    "paper": "\nTitle: Attention Is All You Need\n\nAbstract:\nThe dominant sequence transduction models are based on complex recurrent or convolutional neural networks.\nWe propose a new simple network architecture, the Transformer, based solely on attention mechanisms.\n\nIntroduction:\nRecurrent neural networks have long been the standard for sequence modeling tasks.\nHowever, RNNs suffer from parallelization challenges during training.\nOur approach abandons recurrence entirely and relies on attention mechanisms.\n\nMethods:\nThe Transformer architecture consists of:\n1. Multi-head self-attention layers\n2. Feed-forward networks\n3. Positional encoding\n4. Layer normalization\n\nResults:\nOur model achieves state-of-the-art results on machine translation tasks.\nThe architecture enables much faster training compared to RNNs.\nWe demonstrate superior performance on multiple benchmarks.\n\nConclusion:\nThe Transformer architecture represents a major advancement in sequence modeling.\nIt enables faster training and better parallelization.\nFuture work will explore applications beyond sequence transduction.\n",
+    "Summary": "**Attention Is All You Need — in plain terms:** the paper replaces recurrence entirely with attention, trains 10× faster, and sets new translation records. The trick: let every word look at every other word at once."
+  }
+}

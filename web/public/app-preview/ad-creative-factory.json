@@ -1,0 +1,163 @@
+{
+  "slug": "ad-creative-factory",
+  "name": "Ad Creative Factory",
+  "description": "Turn one product photo and one offer into a batch of ready-to-test vertical video ads. A strategist agent plans a persona × angle test matrix, a list generator writes one spoken hook per cell, and every hook becomes a staged product scene, an animated 9:16 clip, and a voiceover mixed on top.",
+  "image": null,
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Ad Creative Factory"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-title",
+            "text": "🎬 Ad Creative Factory",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "Turn one product photo and one offer into a batch of ready-to-test video ads."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-product-offer",
+                        "binding": "product_offer",
+                        "label": "Product & offer",
+                        "placeholder": "Aurora Trail smart fitness watch — launch-week offer: 20% off. GPS navigation, h",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-audience",
+                        "binding": "audience",
+                        "label": "Who is it for?",
+                        "placeholder": "active millennials who hike on weekends and scroll fitness content at night",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "in-variant-count",
+                        "binding": "variant_count",
+                        "label": "How many ad variants?",
+                        "min": 2,
+                        "max": 12,
+                        "step": 1,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "note-media",
+                        "text": "📷 Uses the bundled product photo — swap in your own in NodeTool Studio."
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Generate my ads",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-hooks",
+                        "text": "Hook ideas",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-hooks",
+                        "binding": "hooks",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-finished-ads",
+                        "text": "Finished ads",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-finished-ads",
+                        "binding": "finished_ads",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  },
+  "values": {
+    "product_offer": "Aurora Trail smart fitness watch — launch-week offer: 20% off. GPS navigation, heart-rate analytics, adaptive coaching, water resistance.",
+    "audience": "active millennials who hike on weekends and scroll fitness content at night",
+    "variant_count": 6,
+    "hooks": "1. **“Your watch is lying to you.”** Hard cut to the Aurora Trail's GPS trace.\n2. **“I hiked 14 miles and my phone stayed in my pocket.”**\n3. **“POV: your smartwatch actually coaches you.”**",
+    "finished_ads": {
+      "$demo": "video"
+    }
+  }
+}

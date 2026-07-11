@@ -1,0 +1,80 @@
+{
+  "slug": "summarize-rss",
+  "name": "Summarize RSS",
+  "description": "",
+  "image": "/app-preview/img/summarize-rss.jpg",
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Summarize RSS"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-title",
+            "text": "📰 Summarize RSS",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "Your feeds, read for you — one click for a clean daily brief."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-try",
+            "title": "Try it",
+            "content": [
+              {
+                "type": "Button",
+                "props": {
+                  "id": "btn-run",
+                  "label": "Brief me",
+                  "variant": "contained",
+                  "color": "primary",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "key": "",
+                      "value": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-results",
+            "title": "Results",
+            "content": [
+              {
+                "type": "Markdown",
+                "props": {
+                  "id": "out-summary",
+                  "binding": "summary",
+                  "text": ""
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  },
+  "values": {
+    "summary": "**Today's brief:** EU passes the AI liability directive; OpenAI and Anthropic both ship smaller on-device models; and a solo dev's local-first note app tops Product Hunt."
+  }
+}

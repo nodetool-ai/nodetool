@@ -63,7 +63,7 @@
           "prompt": "Enhance this photo with professional cinematic color grading, improved lighting, and subtle film grain. Keep the subject and composition intact, only improve quality.",
           "negative_prompt": "",
           "strength": 0.3,
-          "guidance_scale": 7.0,
+          "guidance_scale": 7,
           "num_inference_steps": 25,
           "target_width": 512,
           "target_height": 512,
@@ -247,7 +247,7 @@
           "value": 1.2,
           "description": "Color saturation boost factor (1.0 = no change)",
           "min": 0.5,
-          "max": 2.0
+          "max": 2
         },
         "ui_properties": {
           "title": "Color factor"
@@ -265,6 +265,34 @@
         "ui_properties": {},
         "dynamic_properties": {},
         "dynamic_outputs": {}
+      },
+      {
+        "id": "output-enhanced-photos",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "enhanced_photos"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 320,
+            "y": 0
+          },
+          "selectable": true
+        }
+      },
+      {
+        "id": "output-upscaled-photos",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "upscaled_photos"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 320,
+            "y": 0
+          },
+          "selectable": true
+        }
       }
     ],
     "edges": [
@@ -355,6 +383,22 @@
         "target": "14",
         "targetHandle": "input_item",
         "ui_properties": null
+      },
+      {
+        "id": "edge-output-enhanced-photos",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "output-enhanced-photos",
+        "targetHandle": "value",
+        "ui_properties": null
+      },
+      {
+        "id": "edge-output-upscaled-photos",
+        "source": "14",
+        "sourceHandle": "output",
+        "target": "output-upscaled-photos",
+        "targetHandle": "value",
+        "ui_properties": null
       }
     ]
   },
@@ -365,5 +409,146 @@
   "path": null,
   "run_mode": null,
   "required_providers": null,
-  "required_models": null
+  "required_models": null,
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Photo Enhancement Suite"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-title",
+            "text": "🖼️ Photo Enhancement Suite",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "Batch-enhance a whole folder of photos — color, brightness, upscaling."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "in-brightness-adjust",
+                        "binding": "brightness_adjust",
+                        "label": "Brightness",
+                        "min": 0.5,
+                        "max": 1.5,
+                        "step": 0.05,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "in-color-boost",
+                        "binding": "color_boost",
+                        "label": "Color boost",
+                        "min": 0.5,
+                        "max": 2,
+                        "step": 0.05,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "note-media",
+                        "text": "📁 Points at the bundled sample folder — choose your own in NodeTool Studio."
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Enhance my photos",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-enhanced-photos",
+                        "text": "Enhanced",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-enhanced-photos",
+                        "binding": "enhanced_photos",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-upscaled-photos",
+                        "text": "Upscaled",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-upscaled-photos",
+                        "binding": "upscaled_photos",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
 }

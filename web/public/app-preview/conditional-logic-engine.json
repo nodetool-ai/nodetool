@@ -1,0 +1,93 @@
+{
+  "slug": "conditional-logic-engine",
+  "name": "Conditional Logic Engine",
+  "description": "Workflow that demonstrates multi-branch decision logic with value routing.",
+  "image": "/app-preview/img/conditional-logic-engine.jpg",
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Conditional Logic Engine"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-30",
+            "text": "🔀 Conditional Logic Engine",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-31",
+            "text": "Enter a value and see how the workflow routes it."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "c-34",
+            "title": "Input",
+            "content": [
+              {
+                "type": "NumberInput",
+                "props": {
+                  "id": "nin-32",
+                  "binding": "value",
+                  "label": "Value",
+                  "min": 0,
+                  "max": 100,
+                  "step": 1,
+                  "events": []
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "id": "b-33",
+                  "label": "Run",
+                  "variant": "contained",
+                  "color": "primary",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "key": "",
+                      "value": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "c-36",
+            "title": "Result",
+            "content": [
+              {
+                "type": "Markdown",
+                "props": {
+                  "id": "md-35",
+                  "binding": "Result",
+                  "text": ""
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  },
+  "values": {
+    "value": 75,
+    "Result": "**75** → routed to the *high* branch: “Excellent — above the 70 threshold.”"
+  }
+}

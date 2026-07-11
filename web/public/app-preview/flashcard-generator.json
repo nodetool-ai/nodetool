@@ -1,0 +1,91 @@
+{
+  "slug": "flashcard-generator",
+  "name": "Flashcard Generator",
+  "description": "Generate study flashcards using AI and store them persistently in a database. Enter any topic and get instant flashcards that are saved for future review.",
+  "image": "/app-preview/img/flashcard-generator.jpg",
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Flashcard Generator"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-10",
+            "text": "🃏 Flashcard Generator",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-11",
+            "text": "Enter any topic and generate study flashcards."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "c-14",
+            "title": "Topic",
+            "content": [
+              {
+                "type": "TextInput",
+                "props": {
+                  "id": "in-12",
+                  "binding": "topic",
+                  "label": "Topic",
+                  "placeholder": "e.g. Python Programming",
+                  "multiline": false,
+                  "events": []
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "id": "b-13",
+                  "label": "Generate Flashcards",
+                  "variant": "contained",
+                  "color": "primary",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "key": "",
+                      "value": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "c-16",
+            "title": "Flashcards",
+            "content": [
+              {
+                "type": "Json",
+                "props": {
+                  "id": "j-15",
+                  "binding": "Flashcards"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  },
+  "values": {
+    "topic": "Python Programming",
+    "Flashcards": "**Q:** What does `len()` return for a dict?\n**A:** The number of keys.\n\n**Q:** What's the difference between a list and a tuple?\n**A:** Lists are mutable; tuples are not."
+  }
+}

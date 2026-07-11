@@ -1,0 +1,142 @@
+{
+  "slug": "brand-asset-generator",
+  "name": "Brand Asset Generator",
+  "description": "Generate brand assets for a given brand.",
+  "image": "/app-preview/img/brand-asset-generator.jpg",
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Brand Asset Generator"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-title",
+            "text": "🎨 Brand Asset Generator",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "Type your brand name and vibe — get logo-ready visuals in seconds."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-tagline",
+                        "binding": "tagline",
+                        "label": "Tagline",
+                        "placeholder": "Streamline Your Workflow",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-brand-name",
+                        "binding": "brand_name",
+                        "label": "Brand name",
+                        "placeholder": "TechFlow",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-primary-color",
+                        "binding": "primary_color",
+                        "label": "Primary color (hex)",
+                        "placeholder": "#3498db",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-brand-description",
+                        "binding": "brand_description",
+                        "label": "Describe your brand",
+                        "placeholder": "A modern tech startup focused on productivity tools. Clean, minimal aesthetic wi",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Generate brand assets",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-brand-asset",
+                        "binding": "brand_asset",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  },
+  "values": {
+    "tagline": "Streamline Your Workflow",
+    "brand_name": "TechFlow",
+    "brand_description": "A modern tech startup focused on productivity tools. Clean, minimal aesthetic with futuristic vibes.",
+    "brand_asset": {
+      "$demo": "image"
+    }
+  }
+}

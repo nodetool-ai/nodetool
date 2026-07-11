@@ -35,6 +35,14 @@
         "ui_properties": {
           "className": "str"
         }
+      },
+      {
+        "id": "edge-output-summary",
+        "source": "99c95069-03f6-4f45-bb66-ab3482f79496",
+        "sourceHandle": "text",
+        "target": "output-summary",
+        "targetHandle": "value",
+        "ui_properties": null
       }
     ],
     "nodes": [
@@ -143,6 +151,20 @@
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
+      },
+      {
+        "id": "output-summary",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "summary"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 936,
+            "y": 111
+          },
+          "selectable": true
+        }
       }
     ]
   },
@@ -194,5 +216,83 @@
   "required_providers": null,
   "required_models": null,
   "html_app": null,
-  "etag": "dc1b625962a99f61450b907c984944ba"
+  "etag": "dc1b625962a99f61450b907c984944ba",
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Summarize Audio"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-title",
+            "text": "🎧 Summarize Audio",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "Any recording in — the gist out. Transcribed and summarized for you."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-try",
+            "title": "Try it",
+            "content": [
+              {
+                "type": "Text",
+                "props": {
+                  "id": "note-media",
+                  "text": "🎧 Uses the bundled recording — upload any audio in NodeTool Studio."
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "id": "btn-run",
+                  "label": "Summarize it",
+                  "variant": "contained",
+                  "color": "primary",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "key": "",
+                      "value": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-results",
+            "title": "Results",
+            "content": [
+              {
+                "type": "Markdown",
+                "props": {
+                  "id": "out-summary",
+                  "binding": "summary",
+                  "text": ""
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
 }

@@ -9,6 +9,8 @@ import {
   TextWidget,
   MarkdownWidget,
   ImageWidget,
+  AudioWidget,
+  VideoWidget,
   JsonWidget,
   ProgressWidget,
   TextInputWidget,
@@ -91,7 +93,16 @@ export const appConfig: Config = {
     actions: { title: "Actions", components: ["Button"] },
     display: {
       title: "Display",
-      components: ["Heading", "Text", "Markdown", "Image", "Json", "Progress"]
+      components: [
+        "Heading",
+        "Text",
+        "Markdown",
+        "Image",
+        "Audio",
+        "Video",
+        "Json",
+        "Progress"
+      ]
     },
     layout: { title: "Layout", components: ["Container", "Columns", "Divider"] }
   },
@@ -150,6 +161,25 @@ export const appConfig: Config = {
       },
       defaultProps: { fit: "contain", height: 240, placeholder: "No image" },
       render: (props) => <ImageWidget {...props} />
+    },
+    Audio: {
+      label: "Audio",
+      fields: {
+        binding: bindingField("read"),
+        placeholder: { type: "text", label: "Placeholder" }
+      },
+      defaultProps: { placeholder: "No audio yet" },
+      render: (props) => <AudioWidget {...props} />
+    },
+    Video: {
+      label: "Video",
+      fields: {
+        binding: bindingField("read"),
+        height: { type: "number", label: "Max height (px)" },
+        placeholder: { type: "text", label: "Placeholder" }
+      },
+      defaultProps: { height: 320, placeholder: "No video yet" },
+      render: (props) => <VideoWidget {...props} />
     },
     Json: {
       label: "JSON",

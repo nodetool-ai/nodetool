@@ -63,6 +63,14 @@
         "sourceHandle": "output",
         "target": "2",
         "targetHandle": "negative_prompt"
+      },
+      {
+        "id": "edge-output-animation",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "output-animation",
+        "targetHandle": "value",
+        "ui_properties": null
       }
     ],
     "nodes": [
@@ -246,6 +254,20 @@
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
+      },
+      {
+        "id": "output-animation",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "animation"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1320,
+            "y": 165
+          },
+          "selectable": true
+        }
       }
     ]
   },
@@ -311,5 +333,132 @@
   "path": null,
   "run_mode": null,
   "required_providers": null,
-  "required_models": null
+  "required_models": null,
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Image to Video Animation"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-title",
+            "text": "🎥 Image to Video Animation",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "Type a scene — get a still, then watch it come alive as a cinematic clip."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-scene-prompt",
+                        "binding": "scene_prompt",
+                        "label": "Describe the scene",
+                        "placeholder": "Moody twilight ocean scene with cinematic lighting",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-motion-prompt",
+                        "binding": "motion_prompt",
+                        "label": "How should it move?",
+                        "placeholder": "Slow dolly push toward the horizon as waves shimmer with reflective highlights",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-duration-prompt",
+                        "binding": "duration_prompt",
+                        "label": "Length & pacing",
+                        "placeholder": "8 second dramatic reveal",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-negative-prompt",
+                        "binding": "negative_prompt",
+                        "label": "What to avoid",
+                        "placeholder": "no watermarks, no text overlays, maintain realistic wave motion",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Animate my scene",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-animation",
+                        "binding": "animation",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
 }

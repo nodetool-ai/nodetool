@@ -30,12 +30,7 @@
 
 ## Comparisons
 
-- [NodeTool vs ComfyUI](https://nodetool.ai/vs/comfyui)
-- [NodeTool vs Weavy](https://nodetool.ai/vs/weavy)
-- [NodeTool vs Langflow](https://nodetool.ai/vs/langflow)
-- [NodeTool vs n8n](https://nodetool.ai/vs/n8n)
-- [NodeTool vs Flowise](https://nodetool.ai/vs/flowise)
-- [NodeTool vs Dify](https://nodetool.ai/vs/dify)
+
 
 ## Use cases
 

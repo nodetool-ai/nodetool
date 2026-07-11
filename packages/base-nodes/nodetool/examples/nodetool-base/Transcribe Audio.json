@@ -79,6 +79,20 @@
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
+      },
+      {
+        "id": "output-transcript",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "transcript"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 79
+          },
+          "selectable": true
+        }
       }
     ],
     "edges": [
@@ -91,6 +105,14 @@
         "ui_properties": {
           "className": "audio"
         }
+      },
+      {
+        "id": "edge-output-transcript",
+        "source": "c5191702-2a3c-440d-b3af-2db20e74a369",
+        "sourceHandle": "text",
+        "target": "output-transcript",
+        "targetHandle": "value",
+        "ui_properties": null
       }
     ]
   },
@@ -101,5 +123,83 @@
   "path": null,
   "run_mode": null,
   "required_providers": null,
-  "required_models": null
+  "required_models": null,
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Transcribe Audio"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-title",
+            "text": "🎤 Transcribe Audio",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "Speech to text with word-level timestamps — paste-ready in seconds."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-try",
+            "title": "Try it",
+            "content": [
+              {
+                "type": "Text",
+                "props": {
+                  "id": "note-media",
+                  "text": "🎧 Uses the bundled recording — upload any audio in NodeTool Studio."
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "id": "btn-run",
+                  "label": "Transcribe",
+                  "variant": "contained",
+                  "color": "primary",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "key": "",
+                      "value": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-results",
+            "title": "Results",
+            "content": [
+              {
+                "type": "Markdown",
+                "props": {
+                  "id": "out-transcript",
+                  "binding": "transcript",
+                  "text": ""
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
 }

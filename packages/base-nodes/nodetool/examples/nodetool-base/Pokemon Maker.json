@@ -42,6 +42,14 @@
         "ui_properties": {
           "className": "str"
         }
+      },
+      {
+        "id": "edge-output-pokemon",
+        "source": "b55c474e-e397-44a3-adc7-94bcf61eee35",
+        "sourceHandle": "output",
+        "target": "output-pokemon",
+        "targetHandle": "value",
+        "ui_properties": null
       }
     ],
     "nodes": [
@@ -156,6 +164,20 @@
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
+      },
+      {
+        "id": "output-pokemon",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "pokemon"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1543,
+            "y": 149
+          },
+          "selectable": true
+        }
       }
     ]
   },
@@ -183,5 +205,89 @@
   "run_mode": null,
   "workspace_id": null,
   "required_providers": null,
-  "required_models": null
+  "required_models": null,
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Pokemon Maker"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-title",
+            "text": "🐉 Pokemon Maker",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "Mix any animals you like — meet the creature they become."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-try",
+            "title": "Try it",
+            "content": [
+              {
+                "type": "TextInput",
+                "props": {
+                  "id": "in-animals",
+                  "binding": "animals",
+                  "label": "Mix these animals",
+                  "placeholder": "lion, eagle, dragon, bear",
+                  "multiline": false,
+                  "events": []
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "id": "btn-run",
+                  "label": "Create my creature",
+                  "variant": "contained",
+                  "color": "primary",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "key": "",
+                      "value": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-results",
+            "title": "Results",
+            "content": [
+              {
+                "type": "Image",
+                "props": {
+                  "id": "out-pokemon",
+                  "binding": "pokemon",
+                  "fit": "contain",
+                  "height": 280,
+                  "placeholder": "Your result appears here"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
 }

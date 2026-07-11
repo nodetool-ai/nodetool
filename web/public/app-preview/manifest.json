@@ -1,0 +1,150 @@
+[
+  {
+    "slug": "ad-creative-factory",
+    "name": "Ad Creative Factory"
+  },
+  {
+    "slug": "agent-google-search",
+    "name": "Agent Google Search"
+  },
+  {
+    "slug": "audio-to-image",
+    "name": "Audio To Image"
+  },
+  {
+    "slug": "brand-asset-generator",
+    "name": "Brand Asset Generator"
+  },
+  {
+    "slug": "cold-outreach-co-pilot",
+    "name": "Cold Outreach Co-Pilot"
+  },
+  {
+    "slug": "color-boost-video",
+    "name": "Color Boost Video"
+  },
+  {
+    "slug": "concept-art-iteration-board",
+    "name": "Concept Art Iteration Board"
+  },
+  {
+    "slug": "conditional-logic-engine",
+    "name": "Conditional Logic Engine"
+  },
+  {
+    "slug": "creative-story-ideas",
+    "name": "Creative Story Ideas"
+  },
+  {
+    "slug": "data-generator",
+    "name": "Data Generator"
+  },
+  {
+    "slug": "fetch-papers",
+    "name": "Fetch Papers"
+  },
+  {
+    "slug": "flashcard-generator",
+    "name": "Flashcard Generator"
+  },
+  {
+    "slug": "hacker-news-agent",
+    "name": "Hacker News Agent"
+  },
+  {
+    "slug": "hook-and-thumbnail-factory",
+    "name": "Hook & Thumbnail Factory"
+  },
+  {
+    "slug": "image-enhance",
+    "name": "Image Enhance"
+  },
+  {
+    "slug": "image-to-audio-story",
+    "name": "Image To Audio Story"
+  },
+  {
+    "slug": "image-to-video-animation",
+    "name": "Image to Video Animation"
+  },
+  {
+    "slug": "learning-path-generator",
+    "name": "Learning Path Generator"
+  },
+  {
+    "slug": "meeting-transcript-summarizer",
+    "name": "Meeting Transcript Summarizer"
+  },
+  {
+    "slug": "movie-posters",
+    "name": "Movie Posters"
+  },
+  {
+    "slug": "movie-trailer-generator",
+    "name": "Movie Trailer Generator"
+  },
+  {
+    "slug": "music-video-visualizer",
+    "name": "Music Video Visualizer"
+  },
+  {
+    "slug": "photo-enhancement-suite",
+    "name": "Photo Enhancement Suite"
+  },
+  {
+    "slug": "podcast-repurposing-studio",
+    "name": "Podcast Repurposing Studio"
+  },
+  {
+    "slug": "pokemon-maker",
+    "name": "Pokemon Maker"
+  },
+  {
+    "slug": "product-mockup-generator",
+    "name": "Product Mockup Generator"
+  },
+  {
+    "slug": "product-video-generator",
+    "name": "Product Video Generator"
+  },
+  {
+    "slug": "research-paper-summarizer",
+    "name": "Research Paper Summarizer"
+  },
+  {
+    "slug": "seo-content-engine",
+    "name": "SEO Content Engine"
+  },
+  {
+    "slug": "social-media-calendar-filler",
+    "name": "Social Media Calendar Filler"
+  },
+  {
+    "slug": "story-to-video-generator",
+    "name": "Story to Video Generator"
+  },
+  {
+    "slug": "summarize-audio",
+    "name": "Summarize Audio"
+  },
+  {
+    "slug": "summarize-rss",
+    "name": "Summarize RSS"
+  },
+  {
+    "slug": "transcribe-audio",
+    "name": "Transcribe Audio"
+  },
+  {
+    "slug": "wikipedia-agent",
+    "name": "Wikipedia Agent"
+  },
+  {
+    "slug": "youtube-research-agent",
+    "name": "YouTube Research Agent"
+  },
+  {
+    "slug": "youtube-thumbnail-pipeline",
+    "name": "YouTube Thumbnail Pipeline"
+  }
+]

@@ -144,6 +144,14 @@
         "target": "final_video",
         "targetHandle": "audio",
         "edge_type": "data"
+      },
+      {
+        "id": "edge-output-music-video",
+        "source": "final_video",
+        "sourceHandle": "output",
+        "target": "output-music-video",
+        "targetHandle": "value",
+        "ui_properties": null
       }
     ],
     "nodes": [
@@ -467,6 +475,20 @@
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
+      },
+      {
+        "id": "output-music-video",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "music_video"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3560,
+            "y": 50
+          },
+          "selectable": true
+        }
       }
     ]
   },
@@ -480,6 +502,128 @@
   "required_providers": null,
   "required_models": null,
   "html_app": null,
-  "app_doc": null,
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Music Video Visualizer"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-title",
+            "text": "🎵 Music Video Visualizer",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "Feed it a track — get mood-matched visuals cut to your music."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-genre-hint",
+                        "binding": "genre_hint",
+                        "label": "Genre",
+                        "placeholder": "electronic ambient",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-visual-style",
+                        "binding": "visual_style",
+                        "label": "Visual style",
+                        "placeholder": "abstract geometric patterns, neon colors, flowing energy",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-num-frames",
+                        "binding": "num_frames",
+                        "label": "Number of scenes",
+                        "placeholder": "8",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "note-media",
+                        "text": "🎧 Uses the bundled track — drop in your own audio in NodeTool Studio."
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Visualize my track",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-music-video",
+                        "binding": "music_video",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  },
   "etag": "4d0ea7f6c49c64ed6ac4a8ad2c591032"
 }

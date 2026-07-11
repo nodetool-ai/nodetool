@@ -113,6 +113,22 @@
         "sourceHandle": "item",
         "target": "15",
         "targetHandle": "prompt"
+      },
+      {
+        "id": "edge-output-mockup",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "output-mockup",
+        "targetHandle": "value",
+        "ui_properties": null
+      },
+      {
+        "id": "edge-output-scene",
+        "source": "15",
+        "sourceHandle": "output",
+        "target": "output-scene",
+        "targetHandle": "value",
+        "ui_properties": null
       }
     ],
     "nodes": [
@@ -463,6 +479,34 @@
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
+      },
+      {
+        "id": "output-mockup",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "mockup"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2620,
+            "y": 479
+          },
+          "selectable": true
+        }
+      },
+      {
+        "id": "output-scene",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "scene"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2000,
+            "y": 0
+          },
+          "selectable": true
+        }
       }
     ]
   },
@@ -547,5 +591,167 @@
   "path": null,
   "run_mode": null,
   "required_providers": null,
-  "required_models": null
+  "required_models": null,
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Product Mockup Generator"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-title",
+            "text": "📦 Product Mockup Generator",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "Turn one product shot into a set of polished lifestyle mockups."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-product-name",
+                        "binding": "product_name",
+                        "label": "Product name",
+                        "placeholder": "Premium Wireless Headphones",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-product-description",
+                        "binding": "product_description",
+                        "label": "Describe the product",
+                        "placeholder": "Sleek, modern wireless headphones with noise cancellation. Matte black finish wi",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-target-audience",
+                        "binding": "target_audience",
+                        "label": "Who's it for?",
+                        "placeholder": "Tech-savvy professionals, music enthusiasts, remote workers",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "in-num-scenes",
+                        "binding": "num_scenes",
+                        "label": "How many scenes?",
+                        "min": 2,
+                        "max": 12,
+                        "step": 1,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "note-media",
+                        "text": "📷 Uses the bundled product photo — swap in yours in NodeTool Studio."
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Generate mockups",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-mockup",
+                        "text": "Hero mockup",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-mockup",
+                        "binding": "mockup",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-scene",
+                        "text": "Lifestyle scene",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-scene",
+                        "binding": "scene",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
 }

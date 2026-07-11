@@ -135,6 +135,20 @@
           "selectable": true
         },
         "dynamic_properties": {}
+      },
+      {
+        "id": "output-graded-video",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "graded_video"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1640,
+            "y": 112
+          },
+          "selectable": true
+        }
       }
     ],
     "edges": [
@@ -189,6 +203,14 @@
         "target": "4ca8874f-5caa-413c-a329-936d90358e8e",
         "targetHandle": "fps",
         "ui_properties": null
+      },
+      {
+        "id": "edge-output-graded-video",
+        "source": "4ca8874f-5caa-413c-a329-936d90358e8e",
+        "sourceHandle": "output",
+        "target": "output-graded-video",
+        "targetHandle": "value",
+        "ui_properties": null
       }
     ]
   },
@@ -196,5 +218,84 @@
   "output_schema": null,
   "settings": null,
   "package_name": "nodetool-base",
-  "path": null
+  "path": null,
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Color Boost Video"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-title",
+            "text": "🌈 Color Boost Video",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "Give any clip a cinematic color grade — no editor required."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-try",
+            "title": "Try it",
+            "content": [
+              {
+                "type": "Text",
+                "props": {
+                  "id": "note-media",
+                  "text": "🎞️ Uses the bundled sample clip — drop in your own in NodeTool Studio."
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "id": "btn-run",
+                  "label": "Boost my video",
+                  "variant": "contained",
+                  "color": "primary",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "key": "",
+                      "value": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-results",
+            "title": "Results",
+            "content": [
+              {
+                "type": "Video",
+                "props": {
+                  "id": "out-graded-video",
+                  "binding": "graded_video",
+                  "height": 320,
+                  "placeholder": "Your video appears here"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
 }

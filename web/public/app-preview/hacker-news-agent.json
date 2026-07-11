@@ -1,0 +1,80 @@
+{
+  "slug": "hacker-news-agent",
+  "name": "Hacker News Agent",
+  "description": "Scrape and analyze the front page of Hacker News.",
+  "image": "/app-preview/img/hacker-news-agent.jpg",
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Hacker News Agent"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-title",
+            "text": "🗞️ Hacker News Agent",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "One click for a smart digest of today's Hacker News front page."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-try",
+            "title": "Try it",
+            "content": [
+              {
+                "type": "Button",
+                "props": {
+                  "id": "btn-run",
+                  "label": "Analyze today's front page",
+                  "variant": "contained",
+                  "color": "primary",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "key": "",
+                      "value": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-results",
+            "title": "Results",
+            "content": [
+              {
+                "type": "Markdown",
+                "props": {
+                  "id": "out-analysis",
+                  "binding": "analysis",
+                  "text": ""
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  },
+  "values": {
+    "analysis": "**Today on HN:** local-first software is having a moment — three of the top ten posts cover sync engines. The comment section consensus: SQLite keeps winning.\n\n**Worth your time:** a deep-dive on how Anthropic trains coding agents (412 points)."
+  }
+}

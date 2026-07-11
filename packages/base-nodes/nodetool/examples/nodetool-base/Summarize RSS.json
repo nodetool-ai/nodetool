@@ -98,6 +98,20 @@
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
+      },
+      {
+        "id": "output-summary",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "summary"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1206,
+            "y": 329
+          },
+          "selectable": true
+        }
       }
     ],
     "edges": [
@@ -120,6 +134,14 @@
         "ui_properties": {
           "className": "str"
         }
+      },
+      {
+        "id": "edge-output-summary",
+        "source": "0659612a-1a3b-471b-b397-6ec97e33882f",
+        "sourceHandle": "text",
+        "target": "output-summary",
+        "targetHandle": "value",
+        "ui_properties": null
       }
     ]
   },
@@ -130,5 +152,76 @@
   "path": null,
   "run_mode": null,
   "required_providers": null,
-  "required_models": null
+  "required_models": null,
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Summarize RSS"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-title",
+            "text": "📰 Summarize RSS",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "Your feeds, read for you — one click for a clean daily brief."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-try",
+            "title": "Try it",
+            "content": [
+              {
+                "type": "Button",
+                "props": {
+                  "id": "btn-run",
+                  "label": "Brief me",
+                  "variant": "contained",
+                  "color": "primary",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "key": "",
+                      "value": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-results",
+            "title": "Results",
+            "content": [
+              {
+                "type": "Markdown",
+                "props": {
+                  "id": "out-summary",
+                  "binding": "summary",
+                  "text": ""
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
 }
