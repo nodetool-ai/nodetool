@@ -265,13 +265,12 @@ async function handleStorageRequest(
 
   // PUT
   if (request.method === "PUT") {
-    const bodyBuffer = await request.arrayBuffer();
     const max = getMaxUploadBytes();
-    if (bodyBuffer.byteLength > max) {
-      return new Response(
+    const tooLarge = (size: number): Response =>
+      new Response(
         JSON.stringify({
           detail:
-            `Upload exceeds maximum size: ${bodyBuffer.byteLength} > ${max} bytes ` +
+            `Upload exceeds maximum size: ${size} > ${max} bytes ` +
             `(set NODETOOL_MAX_UPLOAD_BYTES to raise the limit)`
         }),
         {
@@ -279,6 +278,18 @@ async function handleStorageRequest(
           headers: { ...cors, "content-type": "application/json" }
         }
       );
+
+    // Reject before buffering when the client declares an over-limit size, so a
+    // huge PUT can't force the server to allocate the whole body first.
+    const declaredLength = Number(request.headers.get("content-length"));
+    if (Number.isFinite(declaredLength) && declaredLength > max) {
+      return tooLarge(declaredLength);
+    }
+
+    // Fall back to a post-read check for chunked bodies with no Content-Length.
+    const bodyBuffer = await request.arrayBuffer();
+    if (bodyBuffer.byteLength > max) {
+      return tooLarge(bodyBuffer.byteLength);
     }
     await mkdir(path.dirname(filePath), { recursive: true });
     await writeFile(filePath, Buffer.from(bodyBuffer));
