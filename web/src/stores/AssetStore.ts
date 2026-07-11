@@ -220,33 +220,18 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
   currentFolder: null,
   parentFolder: null,
 
-  /**
-   * Set the react query client to allow clearing the cache.
-   */
   setQueryClient: (queryClient: QueryClient) => {
     set({ queryClient });
   },
 
-  /**
-   * Clear the cache for a given query.
-   */
   invalidateQueries: (queryKey: QueryKey) => {
     get().queryClient?.invalidateQueries({ queryKey: queryKey });
   },
 
-  /**
-   * Add an asset to the cache.
-   */
   add: (asset: Asset) => {
     get().queryClient?.setQueryData(["assets", asset.id], asset);
   },
 
-  /**
-   * Get an asset by ID from the server.
-   *
-   * @param id The ID of the asset to get.
-   * @returns A promise that resolves to the asset.
-   */
   get: async (id: string) => {
     const raw = await trpcClient.assets.get.query({
       id
@@ -294,10 +279,6 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     return { ...data, assets: normalized };
   },
 
-  /**
-   * Load all folders as a tree
-   */
-
   loadFolderTree: async (sortBy?: string) => {
     // Fallback implementation: fetch all folders via tRPC and build tree locally
     const data = await trpcClient.assets.list.query({
@@ -342,12 +323,6 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     return get().load({ parent_id: requestedFolderId });
   },
 
-  /**
-   * Search assets globally with folder path information.
-   *
-   * @param query The search query parameters.
-   * @returns A promise that resolves to the search results.
-   */
   search: async (query: AssetSearchQuery): Promise<AssetSearchResult> => {
     try {
       const data = await trpcClient.assets.search.query({
@@ -399,12 +374,6 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       throw normalizeAssetError(error, "Failed to create folder");
     }
   },
-  /**
-   * Get all assets in a folder, including subfolders.
-   *
-   * @param folderId The ID of the folder to get assets from.
-   * @returns A promise that resolves to the assets in the folder.
-   */
   getAllAssetsInFolder: async (folderId: string): Promise<Asset[]> => {
     const tree = await get().getAssetsRecursive(folderId);
 
@@ -424,12 +393,6 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
 
     return flatten(tree);
   },
-  /**
-   * Delete an asset from the store and the server.
-   *
-   * @param id The ID of the asset to delete.
-   * @returns A promise that resolves when the asset is deleted.
-   */
   delete: async (id: string): Promise<string[]> => {
     // Capture parent before delete so we can invalidate the listing the
     // asset was visible in (its parent's children), not its own children.
@@ -456,13 +419,6 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     get().invalidateQueries(["assets"]);
     return deleted_asset_ids;
   },
-
-  /**
-   * Download assets from the server.
-   *
-   * @param ids An array of asset IDs to download.
-   * @returns A promise that resolves when the download is complete.
-   */
 
   download: async (ids: string[]): Promise<boolean> => {
     console.info(`[AssetStore] Attempting to download assets: ${ids.join(", ")}`);
@@ -547,10 +503,6 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     }
   },
 
-  /**
-   * Update an asset on the server.
-   *
-   */
   update: async (req: AssetUpdate) => {
     const prev = await get().get(req.id);
     if (req.id === req.parent_id) {
@@ -594,12 +546,6 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     return normalized;
   },
 
-  /**
-   * Create an asset on the server.
-   *
-   * @param file The file to create an asset from.
-   * @returns A promise that resolves to the created asset.
-   */
   createAsset: async (
     file: File,
     workflow_id?: string,

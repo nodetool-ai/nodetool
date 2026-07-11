@@ -117,16 +117,12 @@ const generateInputNodeName = (
   return `${baseName}_${existingCount + 1}`;
 };
 
-/**
- * Generates a UUID v4 string
- * Falls back to a simple implementation if crypto.randomUUID is not available
- */
+/** UUID v4, falling back to a manual implementation when crypto.randomUUID is absent. */
 const generateUUID = (): string => {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
     return crypto.randomUUID();
   }
 
-  // Fallback implementation for environments without crypto.randomUUID
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
     /[xy]/g,
     function (char) {

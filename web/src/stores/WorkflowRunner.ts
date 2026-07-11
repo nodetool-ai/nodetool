@@ -51,11 +51,6 @@ export type MessageHandler = (
 ) => void;
 
 /**
- * Build the `run_job` payload from the current graph. Shared by the active run
- * and queued submissions (clicking Run while busy). Filters out bypassed nodes
- * and their edges.
- */
-/**
  * Title for a run: the node's name for a single-node run, otherwise the
  * workflow name. Stored on the job and shown in the queue.
  */

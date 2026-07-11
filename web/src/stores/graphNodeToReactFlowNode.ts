@@ -26,7 +26,6 @@ export function graphNodeToReactFlowNode(
   const isPreviewNode = node.type === PREVIEW_NODE_TYPE;
   const isCompareImagesNode = node.type === "nodetool.compare.CompareImages";
 
-  // Debug: warn if node.data contains a stale workflow_id
   if (
     isRecord(node.data) &&
     "workflow_id" in node.data
@@ -39,7 +38,6 @@ export function graphNodeToReactFlowNode(
     );
   }
 
-  // Set default size for Preview and CompareImages nodes if not already set
   let defaultWidth = ui_properties?.width || DEFAULT_NODE_WIDTH;
   let defaultHeight = ui_properties?.height;
 

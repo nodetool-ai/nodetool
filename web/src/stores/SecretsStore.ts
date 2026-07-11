@@ -81,7 +81,6 @@ const useSecretsStore = create<SecretsStore>((set, get) => ({
         value,
         ...(description !== undefined ? { description } : {})
       });
-      // Refresh secrets list
       await get().fetchSecrets();
       invalidateProviderDependentCaches();
     } catch (err: unknown) {

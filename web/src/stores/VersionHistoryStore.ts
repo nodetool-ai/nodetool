@@ -14,23 +14,19 @@ import type { WorkflowVersionSaveType } from "./ApiTypes";
 export type SaveType = WorkflowVersionSaveType;
 
 interface VersionHistoryState {
-  // Currently selected version for viewing
   selectedVersionId: string | null;
 
-  // Compare mode state
   compareVersionId: string | null;
   isCompareMode: boolean;
 
-  // Panel state
   isHistoryPanelOpen: boolean;
 
-  // Last autosave timestamp per workflow
+  /** Last autosave timestamp per workflow. */
   lastAutosaveTime: Record<string, number>;
 
-  // Edit counter for autosave triggering
+  /** Edits since last save, for autosave triggering. */
   editCountSinceLastSave: Record<string, number>;
 
-  // Actions
   setSelectedVersion: (versionId: string | null) => void;
   setCompareVersion: (versionId: string | null) => void;
   setHistoryPanelOpen: (open: boolean) => void;

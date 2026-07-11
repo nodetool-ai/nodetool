@@ -1,9 +1,5 @@
-// WorkflowManagerStore.ts
-// -----------------------------------------------
-// Zustand store for managing workflows in the app.
-// This file contains only the store creation logic, separated from the
-// React context to maintain Fast Refresh compatibility.
-// -----------------------------------------------
+// Store creation for workflow management, kept separate from the React context
+// so Fast Refresh keeps working.
 
 import { create, StoreApi, UseBoundStore } from "zustand";
 import { NodeStore, createNodeStore } from "./NodeStore";
@@ -52,35 +48,22 @@ const isWorkflowNotFoundError = (err: unknown): boolean => {
   return false;
 };
 
-// -----------------------------------------------------------------
-// HELPER FUNCTIONS
-// -----------------------------------------------------------------
-
-// -----------------------------------------------------------------
-// LOCAL STORAGE UTILITIES
-// -----------------------------------------------------------------
-
-// Storage keys for persisting workflow state in localStorage.
 const STORAGE_KEYS = {
   CURRENT_WORKFLOW: "currentWorkflowId",
   OPEN_WORKFLOWS: "openWorkflows"
 } as const;
 
-// localStorage utilities with debounced writes
+// localStorage utilities with debounced writes.
 const storage = {
-  // Retrieve the current workflow ID from localStorage.
   getCurrentWorkflow: () => localStorage.getItem(STORAGE_KEYS.CURRENT_WORKFLOW),
 
-  // Retrieve the list of open workflow IDs.
   getOpenWorkflows: (): string[] =>
     JSON.parse(localStorage.getItem(STORAGE_KEYS.OPEN_WORKFLOWS) || "[]") as string[],
 
-  // Debounced setter for the current workflow ID.
   setCurrentWorkflow: debounce((workflowId: string) => {
     localStorage.setItem(STORAGE_KEYS.CURRENT_WORKFLOW, workflowId);
   }, 100),
 
-  // Debounced setter for the array of open workflows.
   setOpenWorkflows: debounce((workflowIds: string[]) => {
     localStorage.setItem(
       STORAGE_KEYS.OPEN_WORKFLOWS,
@@ -89,13 +72,8 @@ const storage = {
   }, 100)
 };
 
-// Export storage utility function for use in WorkflowManagerContext
 export const getOpenWorkflowsFromStorage = (): string[] =>
   JSON.parse(localStorage.getItem(STORAGE_KEYS.OPEN_WORKFLOWS) || "[]") as string[];
-
-// -----------------------------------------------------------------
-// HELPER FUNCTIONS
-// -----------------------------------------------------------------
 
 /**
  * Determines the next active workflow ID when a workflow is removed.
@@ -133,10 +111,6 @@ export const determineNextWorkflowId = (
 
   return nextWorkflow.id;
 };
-
-// -----------------------------------------------------------------
-// TYPES
-// -----------------------------------------------------------------
 
 export type WorkflowManagerState = {
   nodeStores: Record<string, NodeStore>;
@@ -251,10 +225,6 @@ const releasePricingUnsubs = (workflowId: string): void => {
   }
 };
 
-// -----------------------------------------------------------------
-// ZUSTAND STORE CREATION
-// -----------------------------------------------------------------
-
 /**
  * Creates a new Zustand store for managing workflows.
  * @param {QueryClient} queryClient The React Query client instance
@@ -268,10 +238,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
       notifiedAutosaveVersions: {},
       currentWorkflowId: storage.getCurrentWorkflow() || null,
       queryClient: queryClient,
-
-      // ---------------------------------------------------------------------------------
-      // Workflow Creation and API methods
-      // ---------------------------------------------------------------------------------
 
       /**
        * Creates a new workflow with default properties.
@@ -554,7 +520,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           thumbnail_url: workflow.thumbnail_url,
           tags: workflow.tags,
           access: "private",
-          graph: structuredClone(workflow.graph), // Deep copy graph
+          graph: structuredClone(workflow.graph),
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           settings: workflow.settings
@@ -618,10 +584,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         return data as unknown as Workflow;
       },
 
-      // ---------------------------------------------------------------------------------
-      // Current Workflow (loading state handled via React Query)
-      // ---------------------------------------------------------------------------------
-
       /**
        * Sets the current workflow ID and syncs it to localStorage.
        * @param {string} workflowId The ID of the workflow to set as current
@@ -642,10 +604,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         const store = get().nodeStores[workflowId];
         return store ? store.getState().getWorkflow() : undefined;
       },
-
-      // ---------------------------------------------------------------------------------
-      // Handling Open Workflows and Node Stores
-      // ---------------------------------------------------------------------------------
 
       /**
        * Adds a workflow to the store and updates open workflows.
@@ -864,10 +822,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
 
        // Returns the node store for a given workflow Id.
       getNodeStore: (workflowId: string) => get().nodeStores[workflowId],
-
-      // ---------------------------------------------------------------------------------
-      // Reordering and Updating Workflows
-      // ---------------------------------------------------------------------------------
 
       /**
        * Reorders workflows in the list.
