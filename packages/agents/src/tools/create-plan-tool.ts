@@ -10,9 +10,6 @@ import { Tool } from "./base-tool.js";
 import type { Step, Task, TaskPlan } from "../types.js";
 import { randomUUID } from "node:crypto";
 
-/**
- * JSON Schema for the create_plan tool input.
- */
 const CREATE_PLAN_INPUT_SCHEMA = {
   type: "object",
   properties: {
@@ -93,7 +90,6 @@ export class CreatePlanTool extends Tool {
       };
     }
 
-    // Apply schema normalization to all task steps
     for (const task of taskPlan.tasks) {
       this.applySchemaOverrides(task.steps);
     }
@@ -112,10 +108,6 @@ export class CreatePlanTool extends Tool {
       typeof params["title"] === "string" ? params["title"] : "plan";
     return `Creating plan: ${title}`;
   }
-
-  // ---------------------------------------------------------------------------
-  // Build
-  // ---------------------------------------------------------------------------
 
   private buildTaskPlan(data: Record<string, unknown>): TaskPlan {
     const title =
@@ -176,15 +168,10 @@ export class CreatePlanTool extends Tool {
     return { title, tasks };
   }
 
-  // ---------------------------------------------------------------------------
-  // Validation
-  // ---------------------------------------------------------------------------
-
   private validateTaskPlan(taskPlan: TaskPlan): string[] {
     const errors: string[] = [];
     const taskIds = new Set(taskPlan.tasks.map((t) => t.id));
 
-    // Check for duplicate task IDs
     const seenTaskIds = new Set<string>();
     for (const task of taskPlan.tasks) {
       if (seenTaskIds.has(task.id)) {
@@ -193,7 +180,6 @@ export class CreatePlanTool extends Tool {
       seenTaskIds.add(task.id);
     }
 
-    // Check task-level dependencies
     for (const task of taskPlan.tasks) {
       for (const dep of task.dependsOn ?? []) {
         if (!taskIds.has(dep)) {
@@ -204,12 +190,10 @@ export class CreatePlanTool extends Tool {
       }
     }
 
-    // Check for cycles at the task level
     if (!this.checkForTaskCycles(taskPlan)) {
       errors.push("Circular dependency detected among tasks.");
     }
 
-    // Collect all step IDs across all tasks for uniqueness check
     const allStepIds = new Set<string>();
     for (const task of taskPlan.tasks) {
       for (const step of task.steps) {
@@ -222,7 +206,6 @@ export class CreatePlanTool extends Tool {
       }
     }
 
-    // Validate each task's internal steps
     for (const task of taskPlan.tasks) {
       const stepIds = new Set(task.steps.map((s) => s.id));
 
@@ -236,16 +219,13 @@ export class CreatePlanTool extends Tool {
         }
       }
 
-      // Check for step-level cycles within this task
       if (!this.checkForStepCycles(task)) {
         errors.push(
           `Circular dependency detected in steps of task '${task.id}'.`
         );
       }
-
     }
 
-    // Must have at least one task
     if (taskPlan.tasks.length === 0) {
       errors.push("Plan must contain at least one task.");
     }
@@ -306,10 +286,6 @@ export class CreatePlanTool extends Tool {
     }
     return true;
   }
-
-  // ---------------------------------------------------------------------------
-  // Schema normalization
-  // ---------------------------------------------------------------------------
 
   private applySchemaOverrides(steps: Step[]): void {
     for (const step of steps) {

@@ -84,7 +84,6 @@ export function parseFrontmatter(frontmatter: string): Record<string, string> {
     if (colonIdx === -1) continue;
     const key = line.slice(0, colonIdx).trim();
     let value = line.slice(colonIdx + 1).trim();
-    // Strip surrounding quotes
     if (
       (value.startsWith('"') && value.endsWith('"')) ||
       (value.startsWith("'") && value.endsWith("'"))
@@ -601,7 +600,6 @@ export class Agent {
       objective: this.objective.slice(0, 80)
     });
 
-    // Discover and resolve skills
     const availableSkills = await this.discoverSkills();
     const activeSkills = this.resolveActiveSkills(
       availableSkills,
@@ -638,13 +636,11 @@ export class Agent {
       memoryPrompt
     );
 
-    // Ensure workspace directory exists
     const workspacePath =
       this.workspace ??
       path.join(os.homedir(), "nodetool_workspace", Date.now().toString());
     await fs.mkdir(workspacePath, { recursive: true });
 
-    // If a pre-defined task is given, fall back to single-task execution
     if (this.initialTask) {
       yield* this.executeSingleTask(
         context,
@@ -654,13 +650,11 @@ export class Agent {
       return;
     }
 
-    // Graph-native planner: build DAG of nodes directly.
     if (this.useGraphPlanner && this.registry) {
       yield* this.executeGraphPlan(context, mergedSystemPrompt);
       return;
     }
 
-    // Plan: use TaskPlanner to decompose the objective into parallel tasks
     log.info("Planning phase started", { name: this.name });
     yield {
       type: "log_update",
@@ -753,7 +747,6 @@ export class Agent {
       severity: "info"
     } satisfies LogUpdate;
 
-    // Execute: run ParallelTaskExecutor over the planned tasks
     const executor = new ParallelTaskExecutor({
       provider: this.provider,
       model: this.model,
