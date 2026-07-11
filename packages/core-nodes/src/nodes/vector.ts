@@ -15,10 +15,6 @@ import {
   type VectorMatch
 } from "@nodetool-ai/vectorstore";
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
 async function getOllamaEmbedding(
   model: string,
   text: string
@@ -48,10 +44,6 @@ function flattenMetadata(obj: Record<string, unknown>): RecordMetadata {
 function sortMatchesById(matches: VectorMatch[]): VectorMatch[] {
   return [...matches].sort((a, b) => a.id.localeCompare(b.id));
 }
-
-// ---------------------------------------------------------------------------
-// 1. CollectionNode
-// ---------------------------------------------------------------------------
 
 export class CollectionNode extends BaseNode {
   static readonly nodeType = "vector.Collection";
@@ -109,10 +101,6 @@ export class CollectionNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// 2. CountNode
-// ---------------------------------------------------------------------------
-
 export class CountNode extends BaseNode {
   static readonly nodeType = "vector.Count";
   static readonly title = "Count";
@@ -145,10 +133,6 @@ export class CountNode extends BaseNode {
     return { output: count };
   }
 }
-
-// ---------------------------------------------------------------------------
-// 3. GetDocumentsNode
-// ---------------------------------------------------------------------------
 
 export class GetDocumentsNode extends BaseNode {
   static readonly nodeType = "vector.GetDocuments";
@@ -215,10 +199,6 @@ export class GetDocumentsNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// 4. PeekNode
-// ---------------------------------------------------------------------------
-
 export class PeekNode extends BaseNode {
   static readonly nodeType = "vector.Peek";
   static readonly title = "Peek";
@@ -258,10 +238,6 @@ export class PeekNode extends BaseNode {
     return { output: records.map((r) => r.document ?? null) };
   }
 }
-
-// ---------------------------------------------------------------------------
-// 5. IndexImageNode
-// ---------------------------------------------------------------------------
 
 export class IndexImageNode extends BaseNode {
   static readonly nodeType = "vector.IndexImage";
@@ -354,10 +330,6 @@ export class IndexImageNode extends BaseNode {
     return { output: null };
   }
 }
-
-// ---------------------------------------------------------------------------
-// 6. IndexEmbeddingNode
-// ---------------------------------------------------------------------------
 
 export class IndexEmbeddingNode extends BaseNode {
   static readonly nodeType = "vector.IndexEmbedding";
@@ -483,10 +455,6 @@ export class IndexEmbeddingNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// 7. IndexTextChunkNode
-// ---------------------------------------------------------------------------
-
 export class IndexTextChunkNode extends BaseNode {
   static readonly nodeType = "vector.IndexTextChunk";
   static readonly title = "Index Text Chunk";
@@ -546,10 +514,6 @@ export class IndexTextChunkNode extends BaseNode {
     return { output: null };
   }
 }
-
-// ---------------------------------------------------------------------------
-// 8. IndexAggregatedTextNode
-// ---------------------------------------------------------------------------
 
 type AggregationMethod = "mean" | "max" | "min" | "sum";
 
@@ -689,10 +653,6 @@ export class IndexAggregatedTextNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// 9. IndexStringNode
-// ---------------------------------------------------------------------------
-
 export class IndexStringNode extends BaseNode {
   static readonly nodeType = "vector.IndexString";
   static readonly title = "Index String";
@@ -749,10 +709,6 @@ export class IndexStringNode extends BaseNode {
     return { output: null };
   }
 }
-
-// ---------------------------------------------------------------------------
-// 10. QueryImageNode
-// ---------------------------------------------------------------------------
 
 export class QueryImageNode extends BaseNode {
   static readonly nodeType = "vector.QueryImage";
@@ -823,10 +779,6 @@ export class QueryImageNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// 11. QueryTextNode
-// ---------------------------------------------------------------------------
-
 export class QueryTextNode extends BaseNode {
   static readonly nodeType = "vector.QueryText";
   static readonly title = "Query Text";
@@ -886,10 +838,6 @@ export class QueryTextNode extends BaseNode {
     };
   }
 }
-
-// ---------------------------------------------------------------------------
-// 12. RemoveOverlapNode
-// ---------------------------------------------------------------------------
 
 export class RemoveOverlapNode extends BaseNode {
   static readonly nodeType = "vector.RemoveOverlap";
@@ -971,10 +919,6 @@ export class RemoveOverlapNode extends BaseNode {
     return { documents: result };
   }
 }
-
-// ---------------------------------------------------------------------------
-// 13. HybridSearchNode
-// ---------------------------------------------------------------------------
 
 export class HybridSearchNode extends BaseNode {
   static readonly nodeType = "vector.HybridSearch";
@@ -1126,10 +1070,6 @@ export class HybridSearchNode extends BaseNode {
     };
   }
 }
-
-// ---------------------------------------------------------------------------
-// Export
-// ---------------------------------------------------------------------------
 
 export const VECTOR_NODES = tagAsUniversal([
   CollectionNode as unknown as NodeClass,

@@ -9,10 +9,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import { tagAsUniversal } from "@nodetool-ai/nodes-utils";
 
-// ---------------------------------------------------------------------------
-// Shared validators
-// ---------------------------------------------------------------------------
-
 // Practical email regex — rejects obvious garbage, accepts the common forms.
 // Local part: letters/digits/._%+- . Domain: letters/digits/.- with an
 // alphanumeric TLD of ≥2 characters.
@@ -126,10 +122,6 @@ export function normalizeEmail(value: string): string {
   const v = value.trim().toLowerCase();
   return isEmail(v) ? v : "";
 }
-
-// ---------------------------------------------------------------------------
-// Nodes
-// ---------------------------------------------------------------------------
 
 export class ValidateEmailNode extends BaseNode {
   static readonly nodeType = "lib.validate.Email";

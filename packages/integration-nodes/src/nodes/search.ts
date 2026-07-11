@@ -1,10 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
 const SERPAPI_BASE = "https://serpapi.com/search.json";
 
 function getSerpApiKey(secrets: Record<string, string>): string {
@@ -72,9 +68,6 @@ function formatResults(
   return lines.join("\n");
 }
 
-// ---------------------------------------------------------------------------
-// 1. GoogleSearch
-// ---------------------------------------------------------------------------
 export class GoogleSearchNode extends BaseNode {
   static readonly nodeType = "search.google.GoogleSearch";
   static readonly title = "Google Search";
@@ -129,9 +122,6 @@ export class GoogleSearchNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// 2. GoogleNews
-// ---------------------------------------------------------------------------
 export class GoogleNewsNode extends BaseNode {
   static readonly nodeType = "search.google.GoogleNews";
   static readonly title = "Google News";
@@ -185,9 +175,6 @@ export class GoogleNewsNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// 3. GoogleImages
-// ---------------------------------------------------------------------------
 export class GoogleImagesNode extends BaseNode {
   static readonly nodeType = "search.google.GoogleImages";
   static readonly title = "Google Images";
@@ -257,9 +244,6 @@ export class GoogleImagesNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// 4. GoogleFinance
-// ---------------------------------------------------------------------------
 export class GoogleFinanceNode extends BaseNode {
   static readonly nodeType = "search.google.GoogleFinance";
   static readonly title = "Google Finance";
@@ -309,9 +293,6 @@ export class GoogleFinanceNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// 5. GoogleJobs
-// ---------------------------------------------------------------------------
 export class GoogleJobsNode extends BaseNode {
   static readonly nodeType = "search.google.GoogleJobs";
   static readonly title = "Google Jobs";
@@ -376,9 +357,6 @@ export class GoogleJobsNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// 6. GoogleLens
-// ---------------------------------------------------------------------------
 export class GoogleLensNode extends BaseNode {
   static readonly nodeType = "search.google.GoogleLens";
   static readonly title = "Google Lens";
@@ -425,9 +403,6 @@ export class GoogleLensNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// 7. GoogleMaps
-// ---------------------------------------------------------------------------
 export class GoogleMapsNode extends BaseNode {
   static readonly nodeType = "search.google.GoogleMaps";
   static readonly title = "Google Maps";
@@ -500,9 +475,6 @@ export class GoogleMapsNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// 8. GoogleShopping
-// ---------------------------------------------------------------------------
 export class GoogleShoppingNode extends BaseNode {
   static readonly nodeType = "search.google.GoogleShopping";
   static readonly title = "Google Shopping";
@@ -642,9 +614,6 @@ export class GoogleShoppingNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Export
-// ---------------------------------------------------------------------------
 export const SEARCH_NODES = tagAsServer([
   GoogleSearchNode,
   GoogleNewsNode,

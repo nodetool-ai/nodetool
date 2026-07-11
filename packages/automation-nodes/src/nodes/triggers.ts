@@ -313,12 +313,10 @@ export class IntervalTriggerNode extends BaseNode {
     const startTime = Date.now();
     let tickCount = 0;
 
-    // Initial delay
     if (initialDelayMs > 0) {
       await new Promise((r) => setTimeout(r, initialDelayMs));
     }
 
-    // Emit on start if configured
     if (emitOnStart) {
       tickCount++;
       yield this._createEvent(tickCount, startTime);
@@ -334,7 +332,6 @@ export class IntervalTriggerNode extends BaseNode {
     const driftOffset = emitOnStart ? 0 : 1;
     while (true) {
       if (driftCompensation) {
-        // Calculate next tick time based on start time
         const intervalsElapsed = tickCount + driftOffset;
         const nextTickMs = intervalsElapsed * intervalMs + initialDelayMs;
         const elapsed = Date.now() - startTime;
@@ -463,18 +460,15 @@ export class WebhookTriggerNode extends BaseNode {
 
     const queue = new AsyncQueue<Record<string, unknown>>();
 
-    // Create HTTP server
     const server = http.createServer(async (req, res) => {
       const reqUrl = new URL(req.url ?? "/", `http://${host}:${port}`);
 
-      // Check path
       if (reqUrl.pathname !== webhookPath) {
         res.writeHead(404, { "Content-Type": "text/plain" });
         res.end("Not Found");
         return;
       }
 
-      // Check method
       const method = (req.method ?? "GET").toUpperCase();
       if (!allowedMethods.includes(method)) {
         res.writeHead(405, { "Content-Type": "text/plain" });
@@ -482,7 +476,6 @@ export class WebhookTriggerNode extends BaseNode {
         return;
       }
 
-      // Check secret
       if (secret) {
         const provided = req.headers["x-webhook-secret"] ?? "";
         if (provided !== secret) {
@@ -492,7 +485,6 @@ export class WebhookTriggerNode extends BaseNode {
         }
       }
 
-      // Read body
       const chunks: Buffer[] = [];
       for await (const chunk of req) {
         chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
@@ -509,7 +501,6 @@ export class WebhookTriggerNode extends BaseNode {
         }
       }
 
-      // Build query params
       const query: Record<string, string> = {};
       reqUrl.searchParams.forEach((v, k) => {
         query[k] = v;
@@ -530,7 +521,6 @@ export class WebhookTriggerNode extends BaseNode {
       res.end(JSON.stringify({ status: "accepted" }));
     });
 
-    // Start server
     await new Promise<void>((resolve, reject) => {
       server.on("error", reject);
       server.listen(port, host, () => resolve());
@@ -548,7 +538,6 @@ export class WebhookTriggerNode extends BaseNode {
         if (maxEvents > 0 && eventsProcessed >= maxEvents) break;
       }
     } finally {
-      // Shut down HTTP server
       await new Promise<void>((resolve) => {
         server.close(() => resolve());
       });
@@ -658,7 +647,6 @@ export class FileWatchTriggerNode extends BaseNode {
     const debounceMs = Number(this.debounce_seconds ?? 0.5) * 1000;
     const maxEvents = Number(this.max_events ?? 0);
 
-    // Verify path exists
     if (!fs.existsSync(watchPath)) {
       throw new Error(`Watch path does not exist: ${watchPath}`);
     }
@@ -666,7 +654,6 @@ export class FileWatchTriggerNode extends BaseNode {
     const queue = new AsyncQueue<Record<string, unknown>>();
     const lastEvents = new Map<string, number>();
 
-    // Simple glob matching
     const matchesPattern = (filename: string, pattern: string): boolean => {
       if (pattern === "*") return true;
       // Convert glob to regex: *.txt -> ^.*\.txt$
@@ -723,7 +710,6 @@ export class FileWatchTriggerNode extends BaseNode {
       });
     };
 
-    // Use fs.watch for filesystem monitoring
     const watchers: fs.FSWatcher[] = [];
     let watchError: unknown = null;
 
@@ -781,7 +767,6 @@ export class FileWatchTriggerNode extends BaseNode {
         if (maxEvents > 0 && eventsProcessed >= maxEvents) break;
       }
     } finally {
-      // Close all watchers
       for (const w of watchers) {
         w.close();
       }

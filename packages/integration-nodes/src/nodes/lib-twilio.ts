@@ -4,16 +4,9 @@ import { tagAsServer } from "@nodetool-ai/nodes-utils";
 
 const TWILIO_TIMEOUT = 30000;
 
-/**
- * Build Basic Auth header for Twilio API.
- */
 function twilioAuthHeader(sid: string, token: string): string {
   return `Basic ${Buffer.from(`${sid}:${token}`).toString("base64")}`;
 }
-
-// ---------------------------------------------------------------------------
-// Send SMS
-// ---------------------------------------------------------------------------
 
 export class TwilioSendSMSLibNode extends BaseNode {
   static readonly nodeType = "lib.twilio.SendSMS";
@@ -127,10 +120,6 @@ export class TwilioSendSMSLibNode extends BaseNode {
     }
   }
 }
-
-// ---------------------------------------------------------------------------
-// Send WhatsApp
-// ---------------------------------------------------------------------------
 
 export class TwilioSendWhatsAppLibNode extends BaseNode {
   static readonly nodeType = "lib.twilio.SendWhatsApp";
@@ -253,10 +242,6 @@ export class TwilioSendWhatsAppLibNode extends BaseNode {
     }
   }
 }
-
-// ---------------------------------------------------------------------------
-// Get Messages
-// ---------------------------------------------------------------------------
 
 export class TwilioGetMessagesLibNode extends BaseNode {
   static readonly nodeType = "lib.twilio.GetMessages";
@@ -414,10 +399,6 @@ export class TwilioGetMessagesLibNode extends BaseNode {
     };
   }
 }
-
-// ---------------------------------------------------------------------------
-// Lookup
-// ---------------------------------------------------------------------------
 
 export class TwilioLookupLibNode extends BaseNode {
   static readonly nodeType = "lib.twilio.Lookup";
