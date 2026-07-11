@@ -1,6 +1,4 @@
 /**
- * SupabaseStorage — T-ST-5.
- *
  * Storage backend for Supabase Storage buckets, on top of the in-house
  * fetch-backed REST client (see supabase-rest.ts).
  */

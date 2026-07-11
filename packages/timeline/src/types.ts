@@ -1,9 +1,5 @@
 /**
- * Core timeline types for the NodeTool timeline feature.
- *
- * This module exports all canonical type definitions for sequences, tracks,
- * clips, markers, versions, and status values. No runtime code lives here —
- * runtime helpers (dependency hash, timeline math) live in NOD-297.
+ * Core timeline types: sequences, tracks, clips, markers, versions, status.
  *
  * `paramOverrides` values are typed as `unknown` because they come from
  * heterogeneous Input* nodes and cannot be narrowed further at this layer.
