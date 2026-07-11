@@ -536,6 +536,38 @@ describe("Graph – validation methods", () => {
     const g = new Graph({ nodes: [n("a", "t")], edges: [e("a", "o", "ghost", "i")] });
     expect(() => g.validate()).toThrow(GraphValidationError);
   });
+
+  it("validateDataEdgeSourceHandles rejects a prototype-named output handle", () => {
+    // Regression: the guard used `in`, so a sourceHandle matching an
+    // Object.prototype member ("toString") passed as if it were a real output
+    // and the edge would hang at runtime. Own-property check must reject it.
+    const nodes = [
+      n("a", "t", { outputs: { output: "str" } }),
+      n("b", "t", { properties: { in: { type: "str" } } })
+    ];
+    const g = new Graph({
+      nodes,
+      edges: [e("a", "toString", "b", "in", { id: "ed" })]
+    });
+    expect(() => g.validateDataEdgeSourceHandles()).toThrow(
+      /unknown output "toString"/
+    );
+  });
+
+  it("validateEdgeTypes ignores a prototype-named output handle instead of crashing", () => {
+    // Regression: `outputs["toString"]` returned the inherited function, which
+    // is truthy, so it reached TypeMetadata.fromString with a non-string.
+    const nodes = [
+      n("a", "t", { outputs: { out: "str" } }),
+      n("b", "t", { properties: { in: { type: "str" } } })
+    ];
+    const g = new Graph({
+      nodes,
+      edges: [e("a", "constructor", "b", "in")]
+    });
+    // No declared "constructor" output ⇒ no source type ⇒ edge skipped, no throw.
+    expect(() => g.validateEdgeTypes()).not.toThrow();
+  });
 });
 
 describe("Graph.fromDict – malformed entry handling", () => {

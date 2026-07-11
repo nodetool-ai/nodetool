@@ -479,4 +479,103 @@ describe("TaskExecutor", () => {
       { item: "gamma" }
     ]);
   });
+
+  it("keeps every result for duplicate fan-out items (no hash collision holes)", async () => {
+    // Regression: content-hash-only ephemeral IDs collided for equal items, so
+    // duplicates collapsed in the id->index map, dropping results and leaving
+    // undefined holes. Index-qualified IDs must keep all N results.
+    const items = ["cat", "cat", "dog"];
+    const provider = {
+      provider: "mock",
+      hasToolSupport: async () => true,
+      generateMessages: async function* (args: any) {
+        const text = JSON.stringify(args?.messages ?? "");
+        const item = text.match(/handle (\w+)/)?.[1] ?? "unknown";
+        yield { id: "tc_1", name: "finish_step", args: { result: { item } } };
+      },
+      async *generateMessagesTraced(...args: any[]) {
+        yield* (this as any).generateMessages(...args);
+      },
+      generateLoop(args: unknown) {
+        return (
+          BaseProvider.prototype as { generateLoop: (a: unknown) => unknown }
+        ).generateLoop.call(this, args);
+      },
+      async generateMessageTraced(...args: any[]) {
+        return (this as any).generateMessage(...args);
+      },
+      generateMessage: vi.fn(),
+      getAvailableLanguageModels: vi.fn().mockResolvedValue([]),
+      getAvailableImageModels: vi.fn().mockResolvedValue([]),
+      getAvailableVideoModels: vi.fn().mockResolvedValue([]),
+      getAvailableTTSModels: vi.fn().mockResolvedValue([]),
+      getAvailableASRModels: vi.fn().mockResolvedValue([]),
+      getAvailableEmbeddingModels: vi.fn().mockResolvedValue([]),
+      getContainerEnv: () => ({}),
+      textToImage: vi.fn(),
+      imageToImage: vi.fn(),
+      textToSpeech: vi.fn(),
+      automaticSpeechRecognition: vi.fn(),
+      textToVideo: vi.fn(),
+      imageToVideo: vi.fn(),
+      generateEmbedding: vi.fn(),
+      isContextLengthError: () => false
+    } as any;
+
+    const context = createMockContext();
+    context.memory.set({
+      key: memoryKeys.step("discover"),
+      kind: "step_result",
+      value: items,
+      source: "discover",
+      title: "discover"
+    });
+    const task: Task = {
+      id: "t1",
+      title: "Dup fan-out",
+      steps: [
+        {
+          id: "discover",
+          instructions: "list",
+          completed: true,
+          dependsOn: [],
+          logs: []
+        },
+        {
+          id: "process",
+          instructions: "handle {item}",
+          completed: false,
+          dependsOn: ["discover"],
+          mode: "process",
+          outputSchema: JSON.stringify({
+            type: "object",
+            properties: { item: { type: "string" } }
+          }),
+          logs: []
+        } as Step
+      ]
+    };
+    const executor = new TaskExecutor({
+      provider,
+      model: "test-model",
+      context,
+      tools: [],
+      task,
+      parallelExecution: true
+    });
+    for await (const _msg of executor.executeTasks()) {
+      // consume
+    }
+
+    const aggregated = context.memory.getValue(
+      memoryKeys.step("process")
+    ) as unknown[];
+    expect(aggregated).toHaveLength(3);
+    expect(aggregated.every((r) => r != null)).toBe(true);
+    expect(aggregated).toEqual([
+      { item: "cat" },
+      { item: "cat" },
+      { item: "dog" }
+    ]);
+  });
 });

@@ -176,4 +176,73 @@ describe("GrepTool", () => {
       await rm(outside, { recursive: true, force: true });
     }
   });
+
+  it("rejects an overlapping-alternation pattern (ReDoS)", async () => {
+    // "(a|a)*b" passes the nested-quantifier check but is catastrophic.
+    await writeFile(join(workspace, "victim.txt"), "a".repeat(50));
+    const started = Date.now();
+    const res: any = await new GrepTool().process(ctxFor(workspace), {
+      pattern: "(a|a)*b"
+    });
+    expect(res.success).toBe(false);
+    expect(String(res.error)).toMatch(/backtracking|overlapping|quantifier/i);
+    expect(Date.now() - started).toBeLessThan(2000);
+  });
+});
+
+describe("EditFileTool symlink containment", () => {
+  it("refuses to edit through a symlink that escapes the workspace", async () => {
+    const outside = await mkdtemp(join(tmpdir(), "cc-secret-"));
+    try {
+      const secret = join(outside, "secret.txt");
+      await writeFile(secret, "original secret\n");
+      await symlink(secret, join(workspace, "link.txt"));
+
+      const res: any = await new EditFileTool().process(ctxFor(workspace), {
+        path: "link.txt",
+        old_string: "original secret",
+        new_string: "PWNED"
+      });
+      expect(res.success).toBe(false);
+      expect(String(res.error)).toMatch(/outside the workspace/i);
+      // The host file must be untouched.
+      expect(await readFile(secret, "utf-8")).toBe("original secret\n");
+    } finally {
+      await rm(outside, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses to create a file under a symlinked-out directory", async () => {
+    const outside = await mkdtemp(join(tmpdir(), "cc-outdir-"));
+    try {
+      await symlink(outside, join(workspace, "outdir"));
+      const res: any = await new EditFileTool().process(ctxFor(workspace), {
+        path: "outdir/new.txt",
+        old_string: "",
+        new_string: "should not be written"
+      });
+      expect(res.success).toBe(false);
+      expect(String(res.error)).toMatch(/outside the workspace/i);
+    } finally {
+      await rm(outside, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("GlobTool symlink containment", () => {
+  it("refuses to list a symlinked search directory that escapes the workspace", async () => {
+    const outside = await mkdtemp(join(tmpdir(), "cc-globout-"));
+    try {
+      await writeFile(join(outside, "leak.txt"), "x");
+      await symlink(outside, join(workspace, "out"));
+      const res: any = await new GlobTool().process(ctxFor(workspace), {
+        pattern: "**/*",
+        path: "out"
+      });
+      expect(res.success).toBe(false);
+      expect(String(res.error)).toMatch(/outside the workspace/i);
+    } finally {
+      await rm(outside, { recursive: true, force: true });
+    }
+  });
 });

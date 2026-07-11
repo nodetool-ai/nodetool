@@ -249,7 +249,7 @@ export class TaskExecutor {
     });
 
     // Create ephemeral steps for each item
-    const ephemeralSteps: Step[] = items.map((item) => {
+    const ephemeralSteps: Step[] = items.map((item, index) => {
       let instructions = template;
       if (typeof item === "object" && item !== null) {
         for (const [key, value] of Object.entries(
@@ -267,9 +267,14 @@ export class TaskExecutor {
         instructions = instructions.replace(/\{item\}/g, () => strItem);
       }
 
+      // Include the item index so duplicate/deep-equal items get DISTINCT
+      // ephemeral IDs. A content-hash-only id collides for repeated items
+      // (common in LLM discover lists), collapsing the id->index map and
+      // clobbering their shared step:<id> memory key — dropping results and
+      // leaving holes in the aggregated array.
       const hash = this.shortHash(item);
       return {
-        id: `${step.id}_item_${hash}`,
+        id: `${step.id}_item_${index}_${hash}`,
         instructions,
         completed: false,
         dependsOn: [],

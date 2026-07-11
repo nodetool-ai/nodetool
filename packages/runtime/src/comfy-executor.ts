@@ -125,6 +125,16 @@ export function executeComfy(
     }
   };
 
+  // Frames that arrive after 'open' but before listenForCompletion attaches its
+  // real handler (i.e. during the /prompt submit round-trip). ComfyUI can
+  // dequeue and finish a cached prompt within milliseconds of returning the
+  // prompt_id, emitting its terminal events in this window; the `ws` library
+  // drops 'message' events with no listener, so buffer them and replay.
+  const preListenBuffer: unknown[] = [];
+  const bufferListener = (raw: unknown) => {
+    preListenBuffer.push(raw);
+  };
+
   const result = (async (): Promise<ComfyExecutorResult> => {
     // Connect WebSocket FIRST so we don't miss any events
     const wsUrl = toWsUrl(base, clientId);
@@ -134,6 +144,9 @@ export function executeComfy(
         ws!.on("open", resolve);
         ws!.on("error", reject);
       });
+      // Start buffering immediately so events during the submit round-trip
+      // below are not lost before listenForCompletion attaches its handler.
+      ws.on("message", bufferListener);
       log.info(`ComfyUI WebSocket connected: ${wsUrl}`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -202,13 +215,16 @@ export function executeComfy(
       onNodeOutput
     };
 
-    // Listen for progress events on the already-connected WebSocket
+    // Listen for progress events on the already-connected WebSocket. Hand off
+    // the buffered frames (and the buffer listener to detach) so any terminal
+    // event that arrived during submit is replayed rather than lost.
     const listenResult = await listenForCompletion(
       ws,
       promptId,
       onProgress,
       timeoutMs,
-      streamState
+      streamState,
+      { bufferListener, bufferedFrames: preListenBuffer }
     );
 
     if (listenResult.status === "failed") {
@@ -272,7 +288,11 @@ function listenForCompletion(
   promptId: string,
   onProgress: ((event: ComfyProgressEvent) => void) | undefined,
   timeoutMs: number,
-  stream: ComfyStreamState
+  stream: ComfyStreamState,
+  buffer?: {
+    bufferListener: (raw: unknown) => void;
+    bufferedFrames: unknown[];
+  }
 ): Promise<ComfyExecutorResult> {
   return new Promise((resolve) => {
     let settled = false;
@@ -330,7 +350,7 @@ function listenForCompletion(
       return;
     }
 
-    ws.on("message", (raw) => {
+    const messageHandler = (raw: WebSocket.RawData) => {
       if (settled) return; // Guard against late messages in receive buffer
 
       let msg: { type?: string; data?: Record<string, unknown> };
@@ -439,7 +459,21 @@ function listenForCompletion(
           settle({ status: "failed", error: "Execution interrupted" });
           break;
       }
-    });
+    };
+
+    // Detach the pre-listen buffer, attach the real handler for live frames,
+    // then replay any frames buffered during the submit window (in order). A
+    // terminal event that arrived before this point is thus not lost.
+    if (buffer) {
+      ws.off("message", buffer.bufferListener);
+    }
+    ws.on("message", messageHandler);
+    if (buffer) {
+      for (const raw of buffer.bufferedFrames) {
+        if (settled) break;
+        messageHandler(raw as WebSocket.RawData);
+      }
+    }
   });
 }
 

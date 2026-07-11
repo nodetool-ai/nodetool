@@ -2107,6 +2107,32 @@ export class UnifiedWebSocketRunner {
       };
     }>
   ): Promise<void> {
+    // The drain loop has awaited operations (Asset.paginate, normalizeOutputValue,
+    // sendMessage) that can throw. Guarantee the job slot is released and the
+    // queue drains no matter what — otherwise one throw permanently leaks a
+    // MAX_CONCURRENT_JOBS slot and stalls every queued run.
+    try {
+      await this._streamJobMessagesInner(active, executePromise);
+    } finally {
+      this.activeJobs.delete(active.jobId);
+      this.drainQueue();
+    }
+  }
+
+  private async _streamJobMessagesInner(
+    active: ActiveJob,
+    executePromise: Promise<{
+      status: "completed" | "failed" | "cancelled" | "suspended";
+      error?: string;
+      outputs?: Record<string, unknown[]>;
+      suspend?: {
+        node_id: string;
+        reason: string;
+        state: Record<string, unknown>;
+        metadata: Record<string, unknown>;
+      };
+    }>
+  ): Promise<void> {
     let terminalSeen = false;
     let terminalWithResultSeen = false;
     let outputUpdateSeen = false;
@@ -2405,15 +2431,27 @@ export class UnifiedWebSocketRunner {
     } catch (error) {
       this.logError("job persistence (final status) failed", error);
     }
-
-    this.activeJobs.delete(active.jobId);
-    this.drainQueue();
+    // Slot release + queue drain happen in the streamJobMessages wrapper's
+    // finally, so they run even if the drain loop above throws.
   }
 
   async reconnectJob(jobId: string, workflowId?: string): Promise<void> {
     const active = this.activeJobs.get(jobId);
     if (!active) {
-      throw new Error(`Job ${jobId} not found`);
+      // Reconnecting to a job that already finished (or one this server never
+      // had) is a normal client flow after a socket blip. Reply with the job's
+      // terminal state from the persisted row instead of throwing — a throw
+      // here became an unhandled promise rejection (the caller only `void`s
+      // this) and left the client waiting for state that never arrived.
+      const job = (await Job.get(jobId)) as Job | null;
+      await this.sendMessage({
+        type: "job_update",
+        status: job?.status ?? "completed",
+        job_id: jobId,
+        workflow_id: workflowId ?? job?.workflow_id ?? null,
+        ...(job ? {} : { error: `Job ${jobId} not found` })
+      });
+      return;
     }
 
     await this.sendMessage({
@@ -5853,7 +5891,11 @@ export class UnifiedWebSocketRunner {
         return { message: "Job started", workflow_id: workflowId ?? null };
       case "reconnect_job":
         if (!jobId) return { error: "job_id is required" };
-        void this.reconnectJob(jobId, workflowId);
+        // Await so an error can't escape as an unhandled rejection; reconnectJob
+        // only replays state (it does not run the job), so this stays quick.
+        await this.reconnectJob(jobId, workflowId).catch((err) => {
+          log.warn("reconnect_job failed", { jobId, error: String(err) });
+        });
         return {
           message: `Reconnecting to job ${jobId}`,
           job_id: jobId,
@@ -5861,7 +5903,9 @@ export class UnifiedWebSocketRunner {
         };
       case "resume_job":
         if (!jobId) return { error: "job_id is required" };
-        void this.resumeJob(jobId, workflowId);
+        await this.resumeJob(jobId, workflowId).catch((err) => {
+          log.warn("resume_job failed", { jobId, error: String(err) });
+        });
         return {
           message: `Resumption initiated for job ${jobId}`,
           job_id: jobId,

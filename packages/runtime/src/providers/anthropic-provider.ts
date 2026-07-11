@@ -536,6 +536,7 @@ export class AnthropicProvider extends BaseProvider {
     frequencyPenalty?: number;
     audio?: Record<string, unknown>;
     thinkingBudget?: number;
+    signal?: AbortSignal;
   }): AsyncGenerator<ProviderStreamItem> {
     const system = this.extractSystemMessage(args.messages);
     const converted = await Promise.all(
@@ -580,7 +581,9 @@ export class AnthropicProvider extends BaseProvider {
       stream: true as const
     };
     this.recordRequestPayload(streamRequest);
-    const stream = await this.getClient().messages.create(streamRequest);
+    const stream = await this.getClient().messages.create(streamRequest, {
+      signal: args.signal
+    });
 
     let streamInputTokens = 0;
     let streamOutputTokens = 0;
@@ -722,6 +725,7 @@ export class AnthropicProvider extends BaseProvider {
     presencePenalty?: number;
     frequencyPenalty?: number;
     thinkingBudget?: number;
+    signal?: AbortSignal;
   }): Promise<Message> {
     const system = this.extractSystemMessage(args.messages);
     const converted = await Promise.all(
@@ -763,7 +767,8 @@ export class AnthropicProvider extends BaseProvider {
 
     this.recordRequestPayload(request);
     const response = await this.getClient().messages.create(
-      request as unknown as MessageCreateParamsNonStreaming
+      request as unknown as MessageCreateParamsNonStreaming,
+      { signal: args.signal }
     );
 
     if (response.usage) {

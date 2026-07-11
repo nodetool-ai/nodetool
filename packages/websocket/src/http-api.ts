@@ -1460,6 +1460,14 @@ export async function handleWorkflowVersions(
   }
 
   if (request.method === "GET") {
+    // Version history (and its full graphs) is private to the owner. Enforce
+    // ownership before listing, mirroring the POST branch — otherwise any
+    // authenticated user could read another user's workflows by id (IDOR).
+    const workflow = (await Workflow.get(workflowId)) as Workflow | null;
+    if (!workflow) return errorResponse(404, "Workflow not found");
+    if (workflow.user_id !== userId && workflow.access !== "public")
+      return errorResponse(404, "Workflow not found");
+
     const url = new URL(request.url);
     const limit = parseLimit(url, 100);
     const versions = await WorkflowVersion.listForWorkflow(workflowId, {

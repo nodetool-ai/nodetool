@@ -369,6 +369,30 @@ function isWithinRoot(root: string, target: string): boolean {
 }
 
 /**
+ * Deterministic JSON serialization with object keys sorted at every depth.
+ * Unlike `JSON.stringify(value, sortedKeys)` (a recursive replacer allow-list
+ * that drops nested values), this preserves the full nested structure, so two
+ * values are equal-keyed iff they are deeply equal.
+ */
+function stableStringifyDeep(value: unknown): string {
+  if (value === null || typeof value !== "object") {
+    return JSON.stringify(value ?? null);
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map((v) => stableStringifyDeep(v)).join(",")}]`;
+  }
+  const entries = Object.keys(value as Record<string, unknown>)
+    .sort()
+    .map(
+      (k) =>
+        `${JSON.stringify(k)}:${stableStringifyDeep(
+          (value as Record<string, unknown>)[k]
+        )}`
+    );
+  return `{${entries.join(",")}}`;
+}
+
+/**
  * Normalize the image input for image-to-image / image-to-video predictions
  * into a list of byte buffers. Accepts the modern `images` array as well as
  * the legacy singular `image` field so older callers keep working.
@@ -1345,14 +1369,12 @@ export class ProcessingContext {
   // -----------------------------------------------------------------------
 
   generateNodeCacheKey(nodeType: string, nodeProps: unknown): string {
-    const normalizedProps =
-      nodeProps && typeof nodeProps === "object"
-        ? JSON.stringify(
-            nodeProps,
-            Object.keys(nodeProps as Record<string, unknown>).sort()
-          )
-        : JSON.stringify(nodeProps ?? null);
-    return `${this.userId}:${nodeType}:${normalizedProps}`;
+    // Deep, deterministic serialization: keys are sorted at EVERY nesting
+    // level. The previous `JSON.stringify(props, sortedTopLevelKeys)` form used
+    // the key array as a recursive replacer allow-list, which silently dropped
+    // every nested value — so nodes differing only in a nested prop collided on
+    // the same key and returned each other's cached (wrong) results.
+    return `${this.userId}:${nodeType}:${stableStringifyDeep(nodeProps ?? null)}`;
   }
 
   async getCachedResult(
@@ -1593,13 +1615,21 @@ export class ProcessingContext {
           continue;
         }
         if (!response.ok) {
-          throw new Error(
+          // Non-retryable HTTP error (status not in retryStatuses): fail fast.
+          // Throwing into the generic catch below would treat it like a network
+          // error and retry it, hammering 4xx responses maxRetries times.
+          const nonRetryable = new Error(
             `HTTP ${response.status} ${response.statusText} for ${method} ${url}`
-          );
+          ) as Error & { nonRetryable?: boolean };
+          nonRetryable.nonRetryable = true;
+          throw nonRetryable;
         }
         return response;
       } catch (error) {
         lastError = error;
+        // A non-retryable HTTP error must not loop; only thrown fetch/network
+        // errors and retryable statuses are retried.
+        if ((error as { nonRetryable?: boolean })?.nonRetryable) break;
         if (attempt >= maxRetries - 1) break;
         const delayMs = backoffMs * 2 ** attempt;
         await new Promise((r) => setTimeout(r, delayMs));
@@ -1933,7 +1963,7 @@ export class ProcessingContext {
     if (packageRef) {
       const root =
         this.environment.NODETOOL_PACKAGE_ASSETS_DIR ??
-        process.env.NODETOOL_PACKAGE_ASSETS_DIR;
+        safeProcessEnv().NODETOOL_PACKAGE_ASSETS_DIR;
       if (root) {
         const segments = `${packageRef.packageName}/${packageRef.path}`
           .split("/")
@@ -1958,7 +1988,7 @@ export class ProcessingContext {
       if (httpPath) {
         let pkgBaseUrl =
           this.environment.NODETOOL_API_URL ??
-          process.env.NODETOOL_API_URL ??
+          safeProcessEnv().NODETOOL_API_URL ??
           "http://localhost:7777";
         while (pkgBaseUrl.endsWith("/")) {
           pkgBaseUrl = pkgBaseUrl.slice(0, -1);

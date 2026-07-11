@@ -976,7 +976,14 @@ export abstract class PythonBridgeBase
    * pending-stream entry clears both pending maps; a no-op if the id is unknown.
    */
   cancelModelDownload(requestId: string): void {
-    this.cancel(requestId);
+    // Best-effort per the JSDoc: cancel() -> _send() throws when the transport
+    // is down, but this must stay a no-op so a disconnected caller isn't hit
+    // with 'Not connected' from a documented safe cancel.
+    try {
+      this.cancel(requestId);
+    } catch {
+      // Worker may already be gone; cancel is best-effort.
+    }
     const streamReq = this._pendingStream.get(requestId);
     if (streamReq) {
       streamReq.reject(
@@ -1087,7 +1094,13 @@ export abstract class PythonBridgeBase
    * {@link cancelModelDownload}.
    */
   cancelComfyExecute(requestId: string): void {
-    this.cancel(requestId);
+    // Best-effort (see cancelModelDownload): swallow a 'Not connected' from
+    // _send so a disconnected cancel stays the documented no-op.
+    try {
+      this.cancel(requestId);
+    } catch {
+      // Worker may already be gone; cancel is best-effort.
+    }
     const streamReq = this._pendingStream.get(requestId);
     if (streamReq) {
       streamReq.reject(

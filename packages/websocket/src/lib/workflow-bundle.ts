@@ -201,8 +201,36 @@ export interface UnpackedBundle {
   thumbnail: Uint8Array | null;
 }
 
+/** Max total decompressed size of a bundle — guards against zip bombs. */
+const MAX_BUNDLE_UNCOMPRESSED_BYTES = 512 * 1024 * 1024; // 512 MB
+/** Max number of entries in a bundle. */
+const MAX_BUNDLE_ENTRIES = 10_000;
+
 export function unpackWorkflowBundle(zipBytes: Uint8Array): UnpackedBundle {
-  const entries = unzipSync(zipBytes);
+  // Bound decompression: `unzipSync` otherwise inflates every entry into memory
+  // with no size limit, so a small highly-compressible upload (a deflate run of
+  // zeros) can expand to tens of GB and OOM the whole server (decompression
+  // bomb). The filter runs per entry with the header-declared uncompressed size
+  // before that entry is inflated, so we reject over-budget archives up front.
+  let totalUncompressed = 0;
+  let entryCount = 0;
+  const entries = unzipSync(zipBytes, {
+    filter: (file) => {
+      entryCount += 1;
+      if (entryCount > MAX_BUNDLE_ENTRIES) {
+        throw new Error(
+          `Bundle rejected: too many entries (limit ${MAX_BUNDLE_ENTRIES})`
+        );
+      }
+      totalUncompressed += file.originalSize;
+      if (totalUncompressed > MAX_BUNDLE_UNCOMPRESSED_BYTES) {
+        throw new Error(
+          `Bundle rejected: decompressed size exceeds ${MAX_BUNDLE_UNCOMPRESSED_BYTES} bytes`
+        );
+      }
+      return true;
+    }
+  });
 
   const manifestEntry = entries["manifest.json"];
   if (!manifestEntry) {

@@ -308,6 +308,66 @@ describe("MemoryCache", () => {
   });
 });
 
+describe("ProcessingContext.generateNodeCacheKey", () => {
+  it("distinguishes nodes that differ only in a nested prop value", () => {
+    // Regression: the old replacer-array form dropped all nested values, so
+    // {model:{id:'a'}} and {model:{id:'b'}} produced the same key and returned
+    // each other's cached result.
+    const ctx = new ProcessingContext({ jobId: "j1", userId: "u1" });
+    const keyA = ctx.generateNodeCacheKey("T", { model: { id: "gpt-a" } });
+    const keyB = ctx.generateNodeCacheKey("T", { model: { id: "gpt-b" } });
+    expect(keyA).not.toBe(keyB);
+  });
+
+  it("is stable regardless of key insertion order", () => {
+    const ctx = new ProcessingContext({ jobId: "j1", userId: "u1" });
+    const k1 = ctx.generateNodeCacheKey("T", { a: 1, b: { x: 1, y: 2 } });
+    const k2 = ctx.generateNodeCacheKey("T", { b: { y: 2, x: 1 }, a: 1 });
+    expect(k1).toBe(k2);
+  });
+});
+
+describe("ProcessingContext.httpRequestWithRetries", () => {
+  it("does not retry a non-retryable HTTP status", async () => {
+    const fetchFn = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      statusText: "Unauthorized",
+      headers: { get: () => null }
+    } as unknown as Response);
+    const ctx = new ProcessingContext({ jobId: "j1", fetchFn: fetchFn as any });
+    await expect(ctx.httpGet("https://example.test/x")).rejects.toThrow(
+      /401/
+    );
+    // Exactly one attempt — a 401 is not in retryStatuses.
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries a retryable status", async () => {
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+        statusText: "Unavailable",
+        headers: { get: () => null }
+      } as unknown as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        headers: { get: () => null }
+      } as unknown as Response);
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      fetchFn: fetchFn as any
+    });
+    const res = await ctx.httpGet("https://example.test/x", { backoffMs: 1 });
+    expect(res.status).toBe(200);
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe("ProcessingContext.sanitizeForClient", () => {
   it("does not rewrite plain memory:// strings", () => {
     expect(ProcessingContext.sanitizeForClient("memory://abc")).toBe(

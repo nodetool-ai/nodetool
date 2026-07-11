@@ -852,7 +852,11 @@ export class Graph {
       ) {
         continue;
       }
-      if (!(edge.sourceHandle in outputs)) {
+      // Own-property check, not `in`: `in` walks the prototype chain, so a
+      // sourceHandle named after an Object.prototype member ("toString",
+      // "constructor", …) would spuriously pass this guard and then hang at
+      // runtime when the source node emits nothing on that handle.
+      if (!Object.hasOwn(outputs, edge.sourceHandle)) {
         throw new GraphValidationError(
           `Edge ${edge.id ?? syntheticEdgeId(edge.source, edge.sourceHandle, edge.target, edge.targetHandle)} ` +
             `references unknown output "${edge.sourceHandle}" on node "${edge.source}"` +
@@ -949,8 +953,14 @@ export class Graph {
       const targetNode = this._nodeIndex.get(edge.target);
       if (!sourceNode || !targetNode) continue;
 
-      // Get source output type from node.outputs[sourceHandle]
-      const sourceType = sourceNode.outputs?.[edge.sourceHandle];
+      // Get source output type from node.outputs[sourceHandle]. Own-property
+      // guard: a prototype-named handle ("toString", "constructor", …) would
+      // otherwise read an inherited Object.prototype member (a truthy function)
+      // and pass it to TypeMetadata.fromString, crashing on a runnable graph.
+      const sourceType =
+        sourceNode.outputs && Object.hasOwn(sourceNode.outputs, edge.sourceHandle)
+          ? sourceNode.outputs[edge.sourceHandle]
+          : undefined;
       if (!sourceType) continue; // no type info, skip
 
       // Get target input type: propertyTypes is the authoritative map after

@@ -70,6 +70,22 @@ describe("TriggerState", () => {
     expect(await p).toEqual({ ok: 1 });
   });
 
+  it("does not fire immediately for a timeout larger than setTimeout's max", async () => {
+    // Regression: setTimeout clamps delays > 2^31-1 ms to 1 ms and fires almost
+    // instantly, so a long-interval trigger rejected within a millisecond and
+    // dropped any event that arrived after. A ~30-day timeout must stay pending.
+    const ts = new TriggerState("n1");
+    const p = ts.waitForTriggerEvent(2_600_000); // ~30 days in seconds
+    let rejected = false;
+    p.catch(() => {
+      rejected = true;
+    });
+    await new Promise((r) => setTimeout(r, 30));
+    expect(rejected).toBe(false);
+    ts.sendTriggerEvent({ ok: 1 });
+    expect(await p).toEqual({ ok: 1 });
+  });
+
   it("a timed-out waiter is dropped so the next event is queued, not lost", async () => {
     const ts = new TriggerState("n1");
     await expect(ts.waitForTriggerEvent(0.02)).rejects.toThrow(

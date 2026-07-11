@@ -92,6 +92,18 @@ export class TriggerWakeupService {
       processed: false,
       createdAt: new Date()
     };
+
+    // Durable append FIRST, then record the in-memory idempotency marker.
+    // Recording the marker before the append meant a transient append failure
+    // left the marker behind, so the caller's retry hit the idempotency check
+    // and returned early WITHOUT ever writing the durable message — the event
+    // was lost. The inbox dedupes by message id (`trigger-<inputId>`), so a
+    // concurrent double-append is safe. Reuse a cached DurableInbox per (run,
+    // node) so its per-instance append serialization applies across concurrent
+    // deliveries — a fresh instance per call would defeat it (see finding #9).
+    const inbox = this._inboxFor(opts.runId, opts.nodeId);
+    await inbox.append("trigger", opts.payload, `trigger-${opts.inputId}`);
+
     this._inputs.push(input);
 
     // Stryker disable next-line StringLiteral,ObjectLiteral,ConditionalExpression: diagnostic log args only (the cursor spread only affects log fields)
@@ -102,12 +114,6 @@ export class TriggerWakeupService {
       // Stryker disable next-line ObjectLiteral,ConditionalExpression: diagnostic log field only
       ...(opts.cursor ? { cursor: opts.cursor } : {})
     });
-
-    // Also append as inbox message. Reuse a cached DurableInbox per (run, node)
-    // so its per-instance append serialization applies across concurrent
-    // deliveries — a fresh instance per call would defeat it (see finding #9).
-    const inbox = this._inboxFor(opts.runId, opts.nodeId);
-    await inbox.append("trigger", opts.payload, `trigger-${opts.inputId}`);
 
     return true;
   }

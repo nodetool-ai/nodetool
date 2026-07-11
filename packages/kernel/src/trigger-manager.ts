@@ -219,6 +219,20 @@ export class TriggerWorkflowManager {
    * Stop a running trigger workflow.
    */
   async stopTriggerWorkflow(workflowId: string): Promise<boolean> {
+    // A start for this workflow may be in flight — during that window the job
+    // lives only in _pendingStarts, not yet in _runningJobs. Without waiting,
+    // a stop that races the start finds nothing, returns false, and the job
+    // keeps running after the start lands, against the user's last action.
+    // Await the pending start so we can stop the job it produces.
+    const pendingStart = this._pendingStarts.get(workflowId);
+    if (pendingStart) {
+      try {
+        await pendingStart;
+      } catch {
+        // A failed start leaves nothing to stop.
+      }
+    }
+
     const job = this._runningJobs.get(workflowId);
     // Stryker disable next-line ConditionalExpression,BlockStatement: equivalent — when the job is missing, falling through dereferences undefined and the try/catch below also returns false
     if (!job) {

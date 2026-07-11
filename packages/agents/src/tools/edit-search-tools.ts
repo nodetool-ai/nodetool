@@ -14,7 +14,7 @@ import {
   access,
   realpath
 } from "node:fs/promises";
-import { isAbsolute, join, relative } from "node:path";
+import { dirname, isAbsolute, join, relative } from "node:path";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
 
@@ -133,6 +133,126 @@ async function isRealPathWithinRoot(
   }
 }
 
+/**
+ * Like {@link isRealPathWithinRoot} but tolerant of a not-yet-created target:
+ * when the candidate does not exist, its parent directory is realpath-checked
+ * instead, so creating a file under a symlinked-out directory is still blocked.
+ */
+async function isEditTargetWithinRoot(
+  root: string,
+  candidate: string
+): Promise<boolean> {
+  if (await isRealPathWithinRoot(root, candidate)) return true;
+  // Candidate may not exist yet (create path) — check its parent.
+  const parent = dirname(candidate);
+  if (parent === candidate) return false;
+  try {
+    await access(candidate);
+    // It exists but failed the containment check above → outside the root.
+    return false;
+  } catch {
+    // Does not exist; the containing directory must be inside the workspace.
+    return isRealPathWithinRoot(root, parent);
+  }
+}
+
+/**
+ * Detects the alternation-overlap catastrophic-backtracking family that
+ * {@link hasNestedQuantifier} misses — a quantifier applied to a group whose
+ * top-level branches overlap (a branch equals, or is a prefix of, another),
+ * e.g. `(a|a)*`, `(a|ab)+`, `(\d|\d)*`. Such a group can match the same input
+ * in exponentially many ways. Prefix/equality on the raw branch text is a
+ * conservative proxy: `(cat|car)+` (neither a prefix of the other) is allowed.
+ */
+function hasOverlappingAlternationQuantifier(pattern: string): boolean {
+  // Walk to each group close `)` that is immediately followed by a quantifier,
+  // capturing the group body, then split its top-level branches.
+  for (let i = 0; i < pattern.length; i++) {
+    if (pattern[i] === "\\") {
+      i++;
+      continue;
+    }
+    if (pattern[i] !== "(") continue;
+    // Find the matching close paren, honoring nesting, classes and escapes.
+    let depth = 0;
+    let j = i;
+    for (; j < pattern.length; j++) {
+      const ch = pattern[j];
+      if (ch === "\\") {
+        j++;
+        continue;
+      }
+      if (ch === "[") {
+        j++;
+        while (j < pattern.length && pattern[j] !== "]") {
+          if (pattern[j] === "\\") j++;
+          j++;
+        }
+        continue;
+      }
+      if (ch === "(") depth++;
+      else if (ch === ")") {
+        depth--;
+        if (depth === 0) break;
+      }
+    }
+    if (depth !== 0) break; // unbalanced — let RegExp compile/throw
+    const after = pattern[j + 1];
+    const quantified =
+      after === "*" || after === "+" || (after === "{" && /\d/.test(pattern[j + 2] ?? ""));
+    if (quantified) {
+      const body = pattern.slice(i + 1, j);
+      if (branchesOverlap(splitTopLevelAlternation(body))) return true;
+    }
+    i = j; // continue scanning after this group
+  }
+  return false;
+}
+
+/** Split a group body on top-level `|`, respecting nesting/classes/escapes. */
+function splitTopLevelAlternation(body: string): string[] {
+  const branches: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < body.length; i++) {
+    const ch = body[i];
+    if (ch === "\\") {
+      i++;
+      continue;
+    }
+    if (ch === "[") {
+      i++;
+      while (i < body.length && body[i] !== "]") {
+        if (body[i] === "\\") i++;
+        i++;
+      }
+      continue;
+    }
+    if (ch === "(") depth++;
+    else if (ch === ")") depth--;
+    else if (ch === "|" && depth === 0) {
+      branches.push(body.slice(start, i));
+      start = i + 1;
+    }
+  }
+  branches.push(body.slice(start));
+  return branches;
+}
+
+/** True if any branch equals or is a prefix of another (raw-text proxy). */
+function branchesOverlap(branches: string[]): boolean {
+  if (branches.length < 2) return false;
+  // Strip a non-capturing-group marker so "(?:a|a)" compares branch bodies.
+  const norm = branches.map((b) => b.replace(/^\?:/, ""));
+  for (let a = 0; a < norm.length; a++) {
+    for (let b = 0; b < norm.length; b++) {
+      if (a === b || norm[a] === "") continue;
+      if (norm[b] === norm[a] || norm[b].startsWith(norm[a])) return true;
+    }
+  }
+  return false;
+}
+
 // ---------------------------------------------------------------------------
 // EditFileTool — exact string replacement in files
 // ---------------------------------------------------------------------------
@@ -198,6 +318,18 @@ export class EditFileTool extends Tool {
       return {
         success: false,
         error: String(e instanceof Error ? e.message : e)
+      };
+    }
+
+    // resolveSafePath only checks containment lexically. Follow symlinks and
+    // verify the real target (or, for a not-yet-created file, its parent dir)
+    // stays inside the workspace, so an in-workspace symlink can't be used to
+    // read or overwrite arbitrary host files.
+    const workspaceRoot = resolveSafePath(context, ".");
+    if (!(await isEditTargetWithinRoot(workspaceRoot, filePath))) {
+      return {
+        success: false,
+        error: `Path resolves outside the workspace: ${rawPath}`
       };
     }
 
@@ -443,6 +575,17 @@ export class GlobTool extends Tool {
       };
     }
 
+    // walkDir skips symlink entries, but readdir transparently follows a
+    // symlinked search root itself, so realpath-verify it stays in the
+    // workspace before walking (mirrors GrepTool).
+    const workspaceRoot = resolveSafePath(context, ".");
+    if (!(await isRealPathWithinRoot(workspaceRoot, searchDir))) {
+      return {
+        success: false,
+        error: `Path resolves outside the workspace: ${rawPath ?? "."}`
+      };
+    }
+
     const maxDepth = pattern.includes("**") ? 20 : 5;
     const LIMIT = 100;
     const start = Date.now();
@@ -566,13 +709,14 @@ export class GrepTool extends Tool {
       };
     }
 
-    if (hasNestedQuantifier(pattern)) {
+    if (hasNestedQuantifier(pattern) || hasOverlappingAlternationQuantifier(pattern)) {
       return {
         success: false,
         error:
-          "Pattern rejected: nested quantifiers (e.g. \"(a+)+\") can cause " +
-          "catastrophic backtracking. Rewrite the pattern without a quantifier " +
-          "applied to an already-quantified group."
+          "Pattern rejected: it can cause catastrophic backtracking (a " +
+          "quantifier applied to an already-quantified group like \"(a+)+\", or " +
+          "to a group with overlapping alternation branches like \"(a|a)*\"). " +
+          "Rewrite the pattern to avoid nested/overlapping quantifiers."
       };
     }
 

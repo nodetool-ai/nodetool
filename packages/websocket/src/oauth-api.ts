@@ -444,12 +444,20 @@ async function handleHfRefresh(
   }
 
   try {
+    // Send the decrypted refresh token, not the at-rest ciphertext.
+    const currentRefreshToken = await credential.getDecryptedRefreshToken();
+    if (!currentRefreshToken) {
+      return errorResponse(
+        400,
+        "No refresh token available. Please re-authenticate."
+      );
+    }
     const tokenRes = await fetch(HF_TOKEN_URL, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
         grant_type: "refresh_token",
-        refresh_token: credential.encrypted_refresh_token,
+        refresh_token: currentRefreshToken,
         client_id: HF_CLIENT_ID
       })
     });
@@ -461,8 +469,9 @@ async function handleHfRefresh(
 
     const tokenData = (await tokenRes.json()) as Record<string, unknown>;
     const accessToken = tokenData.access_token as string | undefined;
+    // Reuse the current (plaintext) refresh token if the response omits one.
     const newRefreshToken =
-      (tokenData.refresh_token as string) ?? credential.encrypted_refresh_token;
+      (tokenData.refresh_token as string) ?? currentRefreshToken;
     const tokenType = (tokenData.token_type as string) ?? credential.token_type;
     const scope = (tokenData.scope as string) ?? credential.scope;
     const expiresIn = tokenData.expires_in as number | undefined;
@@ -476,13 +485,15 @@ async function handleHfRefresh(
       expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
     }
 
-    credential.encrypted_access_token = accessToken;
-    credential.encrypted_refresh_token = newRefreshToken;
-    credential.token_type = tokenType;
-    credential.scope = scope;
-    credential.received_at = new Date().toISOString();
-    credential.expires_at = expiresAt;
-    await credential.save();
+    // updateTokens encrypts before persisting — never assign plaintext to the
+    // encrypted_* columns directly.
+    await credential.updateTokens({
+      accessToken,
+      refreshToken: newRefreshToken,
+      tokenType,
+      scope,
+      expiresAt
+    });
 
     return jsonResponse({
       success: true,
@@ -522,9 +533,11 @@ async function handleHfWhoami(
   }
 
   try {
+    // Send the decrypted token, not the at-rest ciphertext, or HF always 401s.
+    const accessToken = await credential.getDecryptedAccessToken();
     const res = await fetch(HF_WHOAMI_URL, {
       headers: {
-        Authorization: `${credential.token_type} ${credential.encrypted_access_token}`
+        Authorization: `${credential.token_type} ${accessToken}`
       }
     });
 
@@ -801,9 +814,11 @@ async function handleGithubUser(
   }
 
   try {
+    // Send the decrypted token, not the at-rest ciphertext, or GitHub 401s.
+    const accessToken = await credential.getDecryptedAccessToken();
     const res = await fetch(GITHUB_USER_URL, {
       headers: {
-        Authorization: `${credential.token_type} ${credential.encrypted_access_token}`,
+        Authorization: `${credential.token_type} ${accessToken}`,
         Accept: "application/json"
       }
     });

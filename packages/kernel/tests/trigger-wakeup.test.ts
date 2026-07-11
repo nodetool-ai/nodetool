@@ -22,6 +22,52 @@ describe("TriggerWakeupService", () => {
     expect(pending[0].processed).toBe(false);
   });
 
+  it("re-delivers after a transient durable append failure (marker not recorded early)", async () => {
+    // Regression: the idempotency marker was recorded before the durable inbox
+    // append, so a transient save() failure left the marker behind and the
+    // caller's retry was short-circuited without ever writing the message.
+    const base = new MemoryDurableInboxStore();
+    let failNextSave = true;
+    const flakyStore = {
+      findByMessageId: (id: string) => base.findByMessageId(id),
+      save: async (m: any) => {
+        if (failNextSave) {
+          failNextSave = false;
+          throw new Error("transient store failure");
+        }
+        return base.save(m);
+      },
+      findPending: (...a: any[]) => (base.findPending as any)(...a),
+      getMaxSeq: (...a: any[]) => (base.getMaxSeq as any)(...a),
+      markConsumed: (id: string) => base.markConsumed(id),
+      deleteConsumed: (...a: any[]) => (base.deleteConsumed as any)(...a)
+    } as any;
+
+    const svc = new TriggerWakeupService(flakyStore);
+    // First delivery fails inside the durable append.
+    await expect(
+      svc.deliverTriggerInput({
+        runId: "r1",
+        nodeId: "n1",
+        inputId: "e1",
+        payload: { a: 1 }
+      })
+    ).rejects.toThrow(/transient/);
+    // No marker was recorded, so nothing is pending yet.
+    expect(svc.getPendingInputs("r1", "n1")).toHaveLength(0);
+
+    // Retry succeeds — the input is now delivered rather than being swallowed
+    // by a stale idempotency marker.
+    const retry = await svc.deliverTriggerInput({
+      runId: "r1",
+      nodeId: "n1",
+      inputId: "e1",
+      payload: { a: 1 }
+    });
+    expect(retry).toBe(true);
+    expect(svc.getPendingInputs("r1", "n1")).toHaveLength(1);
+  });
+
   it("deliverTriggerInput() is idempotent — duplicate inputId returns false", async () => {
     const svc = new TriggerWakeupService();
 

@@ -119,6 +119,39 @@ describe("executeComfy", () => {
     expect(result.error).toContain("Submit failed");
   });
 
+  it("does not lose a terminal event emitted during the submit window", async () => {
+    // Regression: the message listener used to attach only after the submit
+    // round-trip, so a fast/cached prompt whose execution_success fired during
+    // `await submitRes.json()` was dropped and the run hung until timeout.
+    mockFetch.mockImplementationOnce(async () => {
+      // Emit the terminal event before returning the prompt_id — i.e. during
+      // the submit window, before listenForCompletion attaches its handler.
+      if (lastWsInstance) {
+        lastWsInstance.emit(
+          "message",
+          JSON.stringify({
+            type: "execution_success",
+            data: { prompt_id: "cached1" }
+          })
+        );
+      }
+      return jsonResponse({ prompt_id: "cached1" });
+    });
+    // History reconciliation fetch.
+    mockFetch.mockResolvedValueOnce(jsonResponse({ cached1: { outputs: {} } }));
+
+    const handle = executeComfy(
+      samplePrompt,
+      "127.0.0.1:8188",
+      undefined,
+      60_000
+    );
+    const started = Date.now();
+    const result = await handle.result;
+    expect(result.status).toBe("completed");
+    expect(Date.now() - started).toBeLessThan(5000);
+  });
+
   it("fails fast when the socket closes during the submit window", async () => {
     // Regression: the socket accepts the handshake, then closes while POST
     // /prompt is in flight — before listenForCompletion attaches its own close

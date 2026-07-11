@@ -33,7 +33,11 @@ export function getNodeInputTypes(
 
   for (const edge of graph.findIncomingEdges(nodeId)) {
     const sourceNode = graph.findNode(edge.source);
-    if (sourceNode && sourceNode.outputs) {
+    if (
+      sourceNode &&
+      sourceNode.outputs &&
+      Object.hasOwn(sourceNode.outputs, edge.sourceHandle)
+    ) {
       result[edge.targetHandle] = sourceNode.outputs[edge.sourceHandle];
     } else {
       result[edge.targetHandle] = undefined;
@@ -133,8 +137,8 @@ function getOutputTypeString(
   node: NodeDescriptor | undefined,
   handle: string
 ): string | undefined {
-  if (!node) return undefined;
-  return node.outputs?.[handle];
+  if (!node || !node.outputs) return undefined;
+  return Object.hasOwn(node.outputs, handle) ? node.outputs[handle] : undefined;
 }
 
 /**

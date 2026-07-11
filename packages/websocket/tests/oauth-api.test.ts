@@ -103,6 +103,40 @@ describe("OAuth API: HuggingFace endpoints", () => {
     expect(oauthStateStore.size).toBe(1);
   });
 
+  it("hf/whoami sends the decrypted token, not the at-rest ciphertext", async () => {
+    // Regression: the handler put credential.encrypted_access_token (ciphertext)
+    // in the Authorization header, so HF always 401'd.
+    const cred = await OAuthCredential.upsert({
+      user_id: "test-user-1",
+      provider: "huggingface",
+      account_id: "acc1",
+      access_token: "hf_plaintext_secret_123",
+      token_type: "Bearer",
+      received_at: new Date().toISOString()
+    });
+    expect(cred.encrypted_access_token).not.toBe("hf_plaintext_secret_123");
+
+    let sentAuth: string | null = null;
+    const origFetch = global.fetch;
+    global.fetch = (async (_url: unknown, init?: RequestInit) => {
+      sentAuth = new Headers(init?.headers).get("Authorization");
+      return new Response(JSON.stringify({ name: "u" }), { status: 200 });
+    }) as typeof fetch;
+    try {
+      await handleOAuthRequest(
+        new Request(
+          "http://localhost:7777/api/oauth/hf/whoami?account_id=acc1"
+        ),
+        "/api/oauth/hf/whoami",
+        getUserId
+      );
+    } finally {
+      global.fetch = origFetch;
+    }
+    expect(sentAuth).toContain("hf_plaintext_secret_123");
+    expect(sentAuth).not.toContain(cred.encrypted_access_token);
+  });
+
   it("GET /api/oauth/hf/tokens returns empty list initially", async () => {
     const response = await handleOAuthRequest(
       new Request("http://localhost:7777/api/oauth/hf/tokens"),
