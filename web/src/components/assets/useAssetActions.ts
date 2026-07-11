@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { Asset } from "../../stores/ApiTypes";
-import useContextMenu from "../../stores/ContextMenuStore";
+import { useContextMenuActions } from "../../stores/ContextMenuStore";
 import { useAssetUpdate } from "../../serverState/useAssetUpdate";
 import {
   useAssetGridStore,
@@ -17,7 +17,7 @@ import { useDragDropStore } from "../../lib/dragdrop/store";
 export const useAssetActions = (asset: Asset) => {
   const [isDragHovered, setIsDragHovered] = useState(false);
 
-  const { openContextMenu } = useContextMenu();
+  const { openContextMenu } = useContextMenuActions();
   const gridStore = useAssetGridStoreApi();
   const {
     selectedAssetIds,

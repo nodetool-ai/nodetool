@@ -9,7 +9,11 @@ jest.mock("../../ui_primitives", () => {
 jest.mock("../../../stores/ContextMenuStore", () => ({
   __esModule: true,
   default: (selector: (state: { openContextMenu: jest.Mock }) => unknown) =>
-    selector({ openContextMenu: jest.fn() })
+    selector({ openContextMenu: jest.fn() }),
+  useContextMenuActions: () => ({
+    openContextMenu: jest.fn(),
+    closeContextMenu: jest.fn()
+  })
 }));
 
 jest.mock("../../../stores/LogStore", () => {

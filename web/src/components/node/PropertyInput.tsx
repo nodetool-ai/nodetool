@@ -4,7 +4,7 @@ import React, { useCallback, createElement, memo, useMemo } from "react";
 import { shallow } from "zustand/shallow";
 import { Property } from "../../stores/ApiTypes";
 import { PropertyHandleTooltipContext } from "../../contexts/PropertyHandleTooltipContext";
-import useContextMenu from "../../stores/ContextMenuStore";
+import { useContextMenuActions } from "../../stores/ContextMenuStore";
 import StringProperty from "../properties/StringProperty";
 import DataframeProperty from "../properties/DataframeProperty";
 import isEqual from "../../utils/isEqual";
@@ -303,7 +303,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   }, [onPropertyChangeComplete]);
 
   // Property Context Menu
-  const { openContextMenu } = useContextMenu();
+  const { openContextMenu } = useContextMenuActions();
   const handlePropertyContextMenu = useCallback(
     (event: React.MouseEvent<HTMLElement>, prop: Property) => {
       event.preventDefault();
