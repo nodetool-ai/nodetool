@@ -48,6 +48,7 @@ import useCanvasChatDockStore, {
 } from "../../stores/CanvasChatDockStore";
 import CanvasMediaComposer from "./CanvasMediaComposer";
 import ConversationOverlay from "./ConversationOverlay";
+import TriggerActivationControl from "../triggers/TriggerActivationControl";
 
 const MOBILE_DOCK_POSITION: DockPosition = { x: 0, y: 0 };
 const MOBILE_DOCK_LAYER_STYLE: React.CSSProperties = {
@@ -549,6 +550,8 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           )}
         </button>
       </Tooltip>
+
+      <TriggerActivationControl />
 
       {isRunningish && (
         <Tooltip

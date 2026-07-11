@@ -1686,6 +1686,16 @@ export function toJobResponse(job: Job): JsonObject {
 // ── Trigger registration endpoints ────────────────────────────────
 
 function triggerSummary(reg: TriggerRegistration): JsonObject {
+  // Webhook registrations expose their public URL token so the owner (this is an
+  // authenticated, owner-scoped listing) can build the `POST /api/webhooks/:token`
+  // URL in the editor. The secret is only ever stored hashed and never surfaced.
+  const config = reg.config_json ?? null;
+  const token =
+    reg.kind === "webhook" &&
+    config &&
+    typeof config.token === "string"
+      ? config.token
+      : null;
   return {
     id: reg.id,
     workflow_id: reg.workflow_id,
@@ -1693,7 +1703,8 @@ function triggerSummary(reg: TriggerRegistration): JsonObject {
     kind: reg.kind,
     enabled: reg.enabled === 1,
     last_fired_at: reg.last_fired_at ?? null,
-    last_error: reg.last_error ?? null
+    last_error: reg.last_error ?? null,
+    token
   };
 }
 
