@@ -11,13 +11,8 @@ import type {
   NodeSpec,
   NodeConfig,
   ModuleConfig,
-  FieldDef,
-  EnumDef
+  FieldDef
 } from "./types.js";
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 /** module name used in nodeType: dashes → underscores */
 function moduleNameToId(moduleName: string): string {
@@ -44,7 +39,6 @@ function fieldToVarName(name: string): string {
   return varName;
 }
 
-/** Return a cast expression for the given propType */
 function castFn(propType: string): string {
   switch (propType) {
     case "int":
@@ -57,7 +51,6 @@ function castFn(propType: string): string {
   }
 }
 
-/** Return a sensible TS default literal for a field default value */
 function defaultLiteral(def: unknown, propType: string): string {
   if (def === null || def === undefined) {
     return propType === "bool" ? "false" : '""';
@@ -68,17 +61,14 @@ function defaultLiteral(def: unknown, propType: string): string {
   return JSON.stringify(def);
 }
 
-/** Build a @prop({...}) decorator string for a field */
 function buildPropDecorator(field: FieldDef): string {
   const parts: string[] = [];
   parts.push(`type: ${JSON.stringify(field.propType)}`);
 
-  // default value
   const def = field.default;
   const defLit = defaultLiteral(def, field.propType);
   parts.push(`default: ${defLit}`);
 
-  // enum values (inline array of raw values)
   if (
     field.propType === "enum" &&
     field.enumValues &&
@@ -99,11 +89,6 @@ function buildPropDecorator(field: FieldDef): string {
   return `  @prop({ ${parts.join(", ")} })`;
 }
 
-// ---------------------------------------------------------------------------
-// Asset handling code snippets
-// ---------------------------------------------------------------------------
-
-/** Determine what kind of asset a field is based on its propType */
 function assetKind(field: FieldDef): "image" | "video" | "audio" | "none" {
   if (field.propType === "image" || field.propType === "list[image]")
     return "image";
@@ -114,7 +99,6 @@ function assetKind(field: FieldDef): "image" | "video" | "audio" | "none" {
   return "none";
 }
 
-/** True if field is a list of assets */
 function isListAsset(field: FieldDef): boolean {
   return (
     field.propType === "list[image]" ||
@@ -123,14 +107,7 @@ function isListAsset(field: FieldDef): boolean {
   );
 }
 
-// ---------------------------------------------------------------------------
-// NodeGenerator
-// ---------------------------------------------------------------------------
-
 export class NodeGenerator {
-  /**
-   * Generate a single node class string.
-   */
   generate(spec: NodeSpec, moduleName: string, config?: NodeConfig): string {
     if (config) {
       spec = this.applyConfig(spec, config);
@@ -138,9 +115,6 @@ export class NodeGenerator {
     return this._renderClass(spec, moduleName);
   }
 
-  /**
-   * Generate complete module file with imports, all classes, and exports array.
-   */
   generateModule(
     moduleName: string,
     specs: NodeSpec[],
@@ -148,7 +122,6 @@ export class NodeGenerator {
   ): string {
     const lines: string[] = [];
 
-    // Imports
     lines.push(
       `import { BaseNode, prop } from "@nodetool-ai/node-sdk";`,
       `import type { NodeClass } from "@nodetool-ai/node-sdk";`,
@@ -166,7 +139,6 @@ export class NodeGenerator {
       ``
     );
 
-    // Apply configs and render classes
     const classNames: string[] = [];
     for (const spec of specs) {
       const endpointConfig = moduleConfig?.configs?.[spec.endpointId];
@@ -178,7 +150,6 @@ export class NodeGenerator {
       classNames.push(finalSpec.className);
     }
 
-    // Export array
     const moduleUpper = moduleNameToId(moduleName).toUpperCase();
     lines.push(
       `export const FAL_${moduleUpper}_NODES: readonly NodeClass[] = [`,
@@ -205,7 +176,6 @@ export class NodeGenerator {
     if (config.tags !== undefined) spec.tags = config.tags;
     if (config.useCases !== undefined) spec.useCases = config.useCases;
 
-    // Enum overrides (rename enum defs)
     const enumRenameMap: Record<string, string> = {};
     if (config.enumOverrides) {
       for (const enumDef of spec.enums) {
@@ -217,7 +187,6 @@ export class NodeGenerator {
       }
     }
 
-    // Enum value overrides
     if (config.enumValueOverrides) {
       for (const enumDef of spec.enums) {
         // Check both original and renamed names
@@ -247,7 +216,6 @@ export class NodeGenerator {
       });
     }
 
-    // Field overrides
     if (config.fieldOverrides) {
       spec.inputFields = spec.inputFields.map((f) => {
         const override = config.fieldOverrides![f.name];
@@ -266,10 +234,6 @@ export class NodeGenerator {
 
     return spec;
   }
-
-  // ---------------------------------------------------------------------------
-  // Private rendering methods
-  // ---------------------------------------------------------------------------
 
   private _renderClass(spec: NodeSpec, moduleName: string): string {
     const moduleId = moduleNameToId(moduleName);
@@ -291,7 +255,6 @@ export class NodeGenerator {
     );
     lines.push(`  static readonly requiredSettings = ["FAL_API_KEY"];`);
 
-    // Output type declaration
     if (spec.outputType === "model_3d") {
       lines.push(`  static readonly outputTypes = { output: "model_3d" };`);
     } else if (spec.outputType === "str") {
@@ -309,7 +272,6 @@ export class NodeGenerator {
 
     lines.push(``);
 
-    // Field declarations
     for (const field of spec.inputFields) {
       if (field.parentField) continue; // skip sub-fields of nested assets
       lines.push(buildPropDecorator(field));
@@ -317,7 +279,6 @@ export class NodeGenerator {
       lines.push(``);
     }
 
-    // process() method
     lines.push(...this._renderProcessMethod(spec));
 
     lines.push(`}`);
@@ -330,7 +291,6 @@ export class NodeGenerator {
     lines.push(`  async process(): Promise<Record<string, unknown>> {`);
     lines.push(`    const apiKey = getFalApiKey(this._secrets);`);
 
-    // Separate fields by kind
     const assetFields = spec.inputFields.filter(
       (f) => !f.parentField && assetKind(f) !== "none"
     );
@@ -338,7 +298,6 @@ export class NodeGenerator {
       (f) => !f.parentField && assetKind(f) === "none"
     );
 
-    // 1. Extract scalar fields
     for (const field of scalarFields) {
       const varName = fieldToVarName(field.name);
       const defLit = defaultLiteral(field.default, field.propType);
@@ -350,7 +309,6 @@ export class NodeGenerator {
 
     if (scalarFields.length > 0) lines.push(``);
 
-    // 2. Build args object with scalar fields
     lines.push(`    const args: Record<string, unknown> = {`);
     for (const field of scalarFields) {
       const varName = fieldToVarName(field.name);
@@ -359,14 +317,12 @@ export class NodeGenerator {
     }
     lines.push(`    };`);
 
-    // 3. Handle asset inputs
     for (const field of assetFields) {
       const kind = assetKind(field);
       const varName = fieldToVarName(field.name);
       const apiName = field.apiParamName ?? field.name;
 
       if (isListAsset(field)) {
-        // List of assets
         lines.push(``);
         lines.push(
           `    const ${varName}List = this.${field.name} as Record<string, unknown>[] | undefined;`
@@ -383,7 +339,6 @@ export class NodeGenerator {
         );
         lines.push(`    }`);
       } else if (field.nestedAssetKey) {
-        // Nested asset with extra sub-fields
         const subFields = spec.inputFields.filter(
           (f) => f.parentField === field.name
         );
@@ -412,7 +367,6 @@ export class NodeGenerator {
         lines.push(`      }`);
         lines.push(`    }`);
       } else {
-        // Plain asset
         lines.push(``);
         lines.push(
           `    const ${varName}Ref = this.${field.name} as Record<string, unknown> | undefined;`
