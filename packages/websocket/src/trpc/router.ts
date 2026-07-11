@@ -18,6 +18,7 @@ import { storageRouter } from "./routers/storage.js";
 import { threadsRouter } from "./routers/threads.js";
 import { sketchRouter } from "./routers/sketch.js";
 import { timelineRouter } from "./routers/timeline.js";
+import { triggersRouter } from "./routers/triggers.js";
 import { usersRouter } from "./routers/users.js";
 import { workerRouter } from "./routers/worker.js";
 import { workflowsRouter } from "./routers/workflows.js";
@@ -46,6 +47,7 @@ export const appRouter = router({
   storage: storageRouter,
   threads: threadsRouter,
   timeline: timelineRouter,
+  triggers: triggersRouter,
   users: usersRouter,
   worker: workerRouter,
   workflows: workflowsRouter,
