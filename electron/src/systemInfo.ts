@@ -207,24 +207,19 @@ export async function getSystemInfo(): Promise<SystemInfo> {
   ]);
 
   const systemInfo: SystemInfo = {
-    // App information
     appVersion: app.getVersion(),
     electronVersion: process.versions.electron,
     chromeVersion: process.versions.chrome,
     nodeVersion: process.versions.node,
-    // OS information
     os: getOsName(),
     osVersion: getOsVersion(),
     arch: process.arch,
-    // Paths
     installPath: app.getPath("exe"),
     condaEnvPath: getCondaEnvPath(),
     dataPath: getSystemDataPath(""),
     logsPath: LOG_FILE,
     optionalNodePath: getOptionalNodeModulesPath(),
-    // Python and package versions
     pythonVersion,
-    // Feature availability
     cudaAvailable: cudaInfo.available,
     cudaVersion: cudaInfo.version,
     llamaServerInstalled,

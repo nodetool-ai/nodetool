@@ -142,7 +142,6 @@ async function promptForInstallLocation(
       }
     );
 
-    // Send the prompt data to the renderer process
     let mainWindow = BrowserWindow.getFocusedWindow();
 
     if (!mainWindow) {

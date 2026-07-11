@@ -41,9 +41,6 @@ const PACKAGE_INDEX_URL =
 const PYPI_SIMPLE_INDEX_URL = "https://pypi.org/simple";
 const REQUIRED_PYTHON_PACKAGES = ["nodetool-core"] as const;
 
-/**
- * Verify write permissions for critical paths
- */
 async function verifyApplicationPaths(): Promise<ValidationResult> {
   const pathsToCheck: PathCheck[] = [
     {
@@ -353,13 +350,9 @@ async function installRequiredPythonPackages(
   await runCommand(installCommand);
 }
 
-/**
- * Helper function to run pip commands
- */
 async function runCommand(command: string[]): Promise<void> {
   const executable = command[0];
-  
-  // Check if executable exists before attempting to spawn
+
   const executableExists = await fileExists(executable);
   if (!executableExists) {
     const errorMsg = `Python environment not properly installed: executable not found at ${executable}. ` +

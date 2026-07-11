@@ -17,8 +17,6 @@ import { logMessage } from "./logger";
 import { getProcessEnv, resolveNpmInvocation } from "./config";
 import type { NodePackActionResult, NodePackInfo } from "./types";
 
-// ── Path helpers ─────────────────────────────────────────────────────────
-
 /** The directory `npm install` runs in (parent of `node_modules`). */
 export function getNodePackInstallRoot(): string {
   return path.join(app.getPath("userData"), "optional-node");
@@ -31,8 +29,6 @@ function nodeModulesDir(): string {
 function npmCacheDir(): string {
   return path.join(app.getPath("userData"), "npm-cache");
 }
-
-// ── Validation ───────────────────────────────────────────────────────────
 
 const NAME_RE = /^(@[a-z0-9][\w.-]*\/)?[a-z0-9][\w.-]*$/i;
 const SPEC_RE = /^(@[a-z0-9][\w.-]*\/)?[a-z0-9][\w.-]*(@[\w.\-^~><=*]+)?$/i;
@@ -48,8 +44,6 @@ function assertValidName(name: string): void {
     throw new Error(`Invalid npm pack name: ${String(name)}`);
   }
 }
-
-// ── npm runner ───────────────────────────────────────────────────────────
 
 async function ensureInstallRoot(): Promise<void> {
   const root = getNodePackInstallRoot();
@@ -110,8 +104,6 @@ async function runNpm(args: string[]): Promise<void> {
     child.on("error", reject);
   });
 }
-
-// ── Public API ───────────────────────────────────────────────────────────
 
 /** Install a node pack by npm spec, e.g. `@acme/cool-nodes` or `cool-nodes@1.2.3`. */
 export async function installNodePack(

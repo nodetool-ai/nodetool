@@ -281,7 +281,6 @@ export function createIpcMainHandler<T extends keyof IpcRequest>(
     );
   }
 
-  // Wrap the handler with logging
   const wrappedHandler: IpcMainHandler<T> = async (event, data) => {
     const startTime = Date.now();
     const channelStr = String(channel);

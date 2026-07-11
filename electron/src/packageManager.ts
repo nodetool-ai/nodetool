@@ -151,7 +151,6 @@ export function isRegistryWheelPackage(packageName: string): boolean {
   return REGISTRY_WHEEL_PACKAGES.has(canonicalizePackageName(packageName));
 }
 
-// Get the app version dynamically from Electron's app.getVersion()
 function getAppVersion(): string {
   try {
     return app.getVersion();
@@ -160,7 +159,6 @@ function getAppVersion(): string {
   }
 }
 
-// Simple in-memory cache for nodes
 let nodeCache: PackageNode[] | null = null;
 
 /**

@@ -15,7 +15,6 @@ function isSettingsRecord(value: unknown): value is SettingsRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-// Add cache at the module level
 let settingsCache: SettingsRecord | null = null;
 
 const START_LLAMA_CPP_ON_STARTUP_KEY = "START_LLAMA_CPP_ON_STARTUP";
@@ -131,7 +130,6 @@ function getAppConfigPath(filename: string): string {
       basePath = path.join(process.cwd(), "data");
     }
 
-    // Ensure directory exists
     fs.mkdirSync(basePath, { recursive: true });
 
     return path.join(basePath, filename);
@@ -151,7 +149,6 @@ function getAppConfigPath(filename: string): string {
  */
 function readSettings(): SettingsRecord {
   try {
-    // Return cached settings if available
     if (settingsCache !== null) {
       return settingsCache;
     }
@@ -189,7 +186,6 @@ function readSettings(): SettingsRecord {
  */
 async function readSettingsAsync(): Promise<SettingsRecord> {
   try {
-    // Return cached settings if available
     if (settingsCache !== null) {
       return settingsCache;
     }
@@ -232,7 +228,6 @@ function writeSettings(settings: SettingsRecord): void {
     const settingsPath = getAppConfigPath("settings.yaml");
     const yamlString = yaml.dump(settings);
     fs.writeFileSync(settingsPath, yamlString, "utf8");
-    // Update cache after successful write
     settingsCache = settings;
   } catch (error) {
     throw new Error(
