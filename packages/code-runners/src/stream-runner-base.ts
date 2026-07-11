@@ -66,40 +66,24 @@ export function buildSubprocessBaseEnv(): Record<string, string> {
 }
 
 /**
- * Send `signal` to the child's whole process group (POSIX) so backgrounded /
- * forked grandchildren spawned in shell mode don't survive. Falls back to a
- * direct kill on the child when the group kill isn't available (Windows, or a
- * missing pid).
- */
-function killChild(child: ChildProcess, signal: NodeJS.Signals): void {
-  const pid = child.pid;
-  if (pid !== undefined && process.platform !== "win32") {
-    try {
-      process.kill(-pid, signal);
-      return;
-    } catch {
-      // Group kill failed (no group, already gone) — fall through to direct.
-    }
-  }
-  try {
-    child.kill(signal);
-  } catch {
-    // ignore — process may have just exited
-  }
-}
-
-/**
  * Terminate a child process gracefully, then force-kill if it ignores SIGTERM.
  * Without the SIGKILL escalation a runaway/hung subprocess (one that traps or
- * ignores SIGTERM) survives timeouts and stop(), leaking CPU/memory. Kills the
- * whole process group so shell-mode grandchildren are cleaned up too.
+ * ignores SIGTERM) survives timeouts and stop(), leaking CPU/memory.
  */
 function terminateChild(child: ChildProcess, graceMs = 3000): void {
   if (child.exitCode !== null || child.signalCode !== null) return;
-  killChild(child, "SIGTERM");
+  try {
+    child.kill("SIGTERM");
+  } catch {
+    return;
+  }
   const timer = setTimeout(() => {
     if (child.exitCode === null && child.signalCode === null) {
-      killChild(child, "SIGKILL");
+      try {
+        child.kill("SIGKILL");
+      } catch {
+        // ignore — process may have just exited
+      }
     }
   }, graceMs);
   // Don't keep the event loop alive solely for the force-kill timer.
@@ -706,11 +690,6 @@ export class StreamRunnerBase {
     };
     const cwd = options?.workspaceDir ?? process.cwd();
 
-    // Run the child in its own process group (POSIX) so timeout/stop() can kill
-    // backgrounded/forked grandchildren spawned in shell mode. Not applicable
-    // on Windows, where detached semantics differ.
-    const detached = process.platform !== "win32";
-
     // In shell mode we delegate parsing (quoting, pipes, built-ins like
     // `echo` on Windows) to the OS shell by passing the raw user code.
     const child = useShell
@@ -718,13 +697,11 @@ export class StreamRunnerBase {
           cwd,
           env: procEnv,
           shell: true,
-          detached,
           stdio: [stdinStream !== null ? "pipe" : "ignore", "pipe", "pipe"]
         })
       : spawn(commandVec[0], commandVec.slice(1), {
           cwd,
           env: procEnv,
-          detached,
           stdio: [stdinStream !== null ? "pipe" : "ignore", "pipe", "pipe"]
         });
 

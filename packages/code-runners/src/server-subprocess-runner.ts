@@ -418,39 +418,24 @@ async function waitForServerReady(
 }
 
 /**
- * Send `signal` to the child's whole process group (POSIX) so backgrounded /
- * forked grandchildren don't survive. Falls back to a direct kill when the
- * group kill isn't available (Windows, or a missing pid).
+ * Terminate a child process, then force-kill after a grace period.
  */
-function killProcGroup(proc: ChildProcess, signal: NodeJS.Signals): void {
-  const pid = proc.pid;
-  if (pid !== undefined && process.platform !== "win32") {
-    try {
-      process.kill(-pid, signal);
-      return;
-    } catch {
-      // Group kill failed (no group, already gone) — fall through to direct.
-    }
-  }
+function killProc(proc: ChildProcess, graceMs = 3000): void {
   try {
-    proc.kill(signal);
+    proc.kill("SIGTERM");
   } catch {
     // ignore
   }
-}
-
-/**
- * Terminate a child process, then force-kill after a grace period. Kills the
- * whole process group so forked/backgrounded grandchildren are cleaned up too.
- */
-function killProc(proc: ChildProcess, graceMs = 3000): void {
-  killProcGroup(proc, "SIGTERM");
   // Wait a bit, then force kill
   const start = Date.now();
   const check = (): void => {
     if (proc.exitCode !== null) return;
     if (Date.now() - start > graceMs) {
-      killProcGroup(proc, "SIGKILL");
+      try {
+        proc.kill("SIGKILL");
+      } catch {
+        // ignore
+      }
       return;
     }
     setTimeout(check, 100);
@@ -545,13 +530,9 @@ export class ServerSubprocessRunner {
       }
       const cwd = options?.workspaceDir ?? process.cwd();
 
-      // Own process group (POSIX) so timeout/stop() kills the whole tree.
-      const detached = process.platform !== "win32";
-
       proc = spawn(argv[0], argv.slice(1), {
         cwd,
         env,
-        detached,
         stdio: [stdinStream !== null ? "pipe" : "ignore", "pipe", "pipe"]
       });
 
