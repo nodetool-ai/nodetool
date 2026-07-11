@@ -110,7 +110,6 @@ export function executeComfy(
   const cancel = () => {
     if (cancelled) return;
     cancelled = true;
-    // Tell ComfyUI to interrupt
     void fetch(`${base}/interrupt`, { method: "POST" }).catch((err) => {
       log.warn("Failed to send ComfyUI interrupt request", {
         error: String(err)

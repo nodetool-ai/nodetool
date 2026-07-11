@@ -1134,9 +1134,6 @@ export class ProcessingContext {
     return this._resolveNodeType;
   }
 
-  /**
-   * Check if control event dispatch is available.
-   */
   get hasControlEventSupport(): boolean {
     return this._sendControlEvent !== null;
   }
@@ -1438,7 +1435,6 @@ export class ProcessingContext {
     this._providerCost = null;
   }
 
-  /** Get all emitted messages. */
   getMessages(): ReadonlyArray<ProcessingMessage> {
     return this._messages;
   }
@@ -1481,7 +1477,6 @@ export class ProcessingContext {
     return Object.fromEntries(this._edgeStatuses);
   }
 
-  /** Clear the message queue. */
   clearMessages(): void {
     this._messages = [];
   }
