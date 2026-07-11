@@ -26,11 +26,14 @@ export interface DockerHostConfig {
 
 export interface ContainerCreateOptions {
   Image: string;
+  Entrypoint?: string[];
   Cmd?: string[];
   Env?: string[];
   Labels?: Record<string, string>;
   WorkingDir?: string;
   User?: string;
+  /** Health check config; Test: ["NONE"] disables the image's HEALTHCHECK. */
+  Healthcheck?: { Test: string[] };
   OpenStdin?: boolean;
   Tty?: boolean;
   ExposedPorts?: Record<string, Record<string, never>>;

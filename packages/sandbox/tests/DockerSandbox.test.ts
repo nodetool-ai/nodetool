@@ -73,7 +73,7 @@ describe("waitForHttpReady", () => {
 
 describe("DockerSandbox constants", () => {
   it("exposes the expected default image tag", () => {
-    expect(DEFAULT_SANDBOX_IMAGE).toBe("nodetool/sandbox-agent:latest");
+    expect(DEFAULT_SANDBOX_IMAGE).toBe("ghcr.io/nodetool-ai/nodetool:latest");
   });
 
   it("uses port 7788 for the tool server", () => {
