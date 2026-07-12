@@ -156,22 +156,40 @@ export class ViewImageTool extends Tool {
     const notes: string[] = [];
 
     if (sourceBytes) {
-      const needsTransform = Boolean(region) || maxSide !== undefined;
+      // Vision providers only accept these formats; anything else must be
+      // re-encoded to PNG before it can be shown to the model.
+      const PROVIDER_SAFE_MIMES = new Set([
+        "image/png",
+        "image/jpeg",
+        "image/gif",
+        "image/webp"
+      ]);
+      const needsTransform =
+        Boolean(region) ||
+        maxSide !== undefined ||
+        !PROVIDER_SAFE_MIMES.has(sourceMime);
       if (!needsTransform) {
-        // No crop or downscale requested: ship the original bytes unchanged.
-        // Re-encoding a well-compressed source through the codec can bloat it
-        // many-fold (a 44KB screenshot PNG re-encoded to >1MB), wasting tokens
-        // and bandwidth for no visual gain.
+        // No crop or downscale requested and the source is a provider-safe
+        // format: ship the original bytes unchanged. Re-encoding a
+        // well-compressed source through the codec can bloat it many-fold (a
+        // 44KB screenshot PNG re-encoded to >1MB), wasting tokens for no gain.
         outUri = `data:${sourceMime};base64,${Buffer.from(sourceBytes).toString("base64")}`;
         outMime = sourceMime;
       } else {
         try {
           const prepared = await extractImageRegion(sourceBytes, {
             ...(region ? { region } : {}),
-            ...(maxSide ? { maxSide } : {})
+            ...(maxSide ? { maxSide } : {}),
+            sourceMime
           });
-          outUri = `data:${prepared.mimeType};base64,${Buffer.from(prepared.data).toString("base64")}`;
-          outMime = prepared.mimeType;
+          // width/height 0 signals the no-sharp pass-through: the bytes were
+          // NOT re-encoded, so keep the true source mime rather than a
+          // fabricated one (mislabeling makes the provider reject the image).
+          outMime =
+            prepared.width === 0 && prepared.height === 0
+              ? sourceMime
+              : prepared.mimeType;
+          outUri = `data:${outMime};base64,${Buffer.from(prepared.data).toString("base64")}`;
           width = prepared.width;
           height = prepared.height;
         } catch (e) {

@@ -360,8 +360,16 @@ export class Graph {
       const props = node.properties as Record<string, unknown> | undefined;
       // Stryker disable next-line ConditionalExpression: defensive — fromDict/loadFromDict always normalize `properties` to an object before reaching here, so `!props` is never true and skipping vs not skipping is indistinguishable
       if (!props) continue;
+      // dynamic_properties is merged into `properties` AND kept on the node,
+      // and _executeWithInputs merges {...properties, ...dynamic_properties,
+      // ...inputs}. Pruning only `properties` leaves the same saved default in
+      // dynamic_properties, which then re-shadows a connected input when no
+      // edge value is delivered — so prune both maps.
+      const dynProps = (node as { dynamic_properties?: unknown })
+        .dynamic_properties as Record<string, unknown> | undefined;
       for (const handle of handles) {
         delete props[handle];
+        if (dynProps) delete dynProps[handle];
       }
     }
   }

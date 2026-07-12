@@ -178,18 +178,22 @@ async function handleLocalFileStream(
   }
 
   const rangeHeader = request.headers.get("Range");
-  if (rangeHeader) {
-    const range = parseRangeHeader(rangeHeader, fileSize);
-    if (!range) {
-      return new Response(JSON.stringify({ detail: "Range Not Satisfiable" }), {
-        status: 416,
-        headers: {
-          ...cors,
-          "content-type": "application/json",
-          "Content-Range": `bytes */${fileSize}`
-        }
-      });
-    }
+  const range = rangeHeader
+    ? parseRangeHeader(rangeHeader, fileSize)
+    : null;
+  // "unsatisfiable" → 416; an unparseable/unsupported header (null with a header
+  // present) is ignored and the full file served with 200, per RFC 7233.
+  if (range === "unsatisfiable") {
+    return new Response(JSON.stringify({ detail: "Range Not Satisfiable" }), {
+      status: 416,
+      headers: {
+        ...cors,
+        "content-type": "application/json",
+        "Content-Range": `bytes */${fileSize}`
+      }
+    });
+  }
+  if (range) {
     const { start, end } = range;
     const body = nodeStreamToWebStream(resolved, { start, end });
     return new Response(body, {

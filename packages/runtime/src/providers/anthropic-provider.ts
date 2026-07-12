@@ -78,9 +78,15 @@ function parseDataUri(uri: string): { mime: string; base64: string } {
 }
 
 export class AnthropicProvider extends BaseProvider {
-  /** Anthropic runs web search server-side via the `web_search` server tool. */
+  /**
+   * Anthropic runs web search server-side via the `web_search_20250305` server
+   * tool. Gate on the provider id so subclasses that reuse the Anthropic SDK
+   * against a different endpoint (e.g. Moonshot/Kimi, which does not implement
+   * that server tool) fall back to the SerpAPI WebSearchTool instead of sending
+   * an unsupported tool that silently breaks web search.
+   */
   override get supportsNativeWebSearch(): boolean {
-    return true;
+    return this.provider === "anthropic";
   }
 
   static requiredSecrets(): string[] {

@@ -185,6 +185,24 @@ export class SwappableBridge extends EventEmitter implements PythonBridge {
     return this._target.providerGenerate(providerId, messages, model, options);
   }
 
+  providerStream(
+    providerId: string,
+    messages: Record<string, unknown>[],
+    model: string,
+    options?: Record<string, unknown>
+  ): AsyncGenerator<Record<string, unknown>> {
+    return this._target.providerStream(providerId, messages, model, options);
+  }
+
+  providerTTS(
+    providerId: string,
+    text: string,
+    model: string,
+    options?: Record<string, unknown>
+  ): AsyncGenerator<Uint8Array> {
+    return this._target.providerTTS(providerId, text, model, options);
+  }
+
   providerTextToImage(
     providerId: string,
     params: Record<string, unknown>,

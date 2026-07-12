@@ -236,8 +236,20 @@ export class RunSearchTool extends Tool {
 
         if (item.type === "step_result") {
           const sr = item as StepResult;
+          // StepExecutor reports failure as `result: { error: "Step failed…" }`
+          // and never sets the top-level `sr.error`; detect the nested error
+          // shape so a failed search isn't returned as a successful report.
+          const nestedError =
+            sr.result &&
+            typeof sr.result === "object" &&
+            !Array.isArray(sr.result) &&
+            "error" in sr.result
+              ? (sr.result as { error?: unknown }).error
+              : undefined;
           if (sr.error) {
             errorMessage = sr.error;
+          } else if (typeof nestedError === "string") {
+            errorMessage = nestedError;
           } else if (sr.result !== null && sr.result !== undefined) {
             finalResult = sr.result;
           }

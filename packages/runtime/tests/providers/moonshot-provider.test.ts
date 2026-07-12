@@ -18,6 +18,17 @@ describe("MoonshotProvider", () => {
     );
   });
 
+  it("does not claim native web search (#21)", () => {
+    // Kimi's Claude-compatible endpoint does not implement Anthropic's
+    // web_search_20250305 server tool, so it must fall back to the SerpAPI
+    // WebSearchTool rather than sending an unsupported server tool.
+    const provider = new MoonshotProvider(
+      { KIMI_API_KEY: "k" },
+      { client: {} as any }
+    );
+    expect(provider.supportsNativeWebSearch).toBe(false);
+  });
+
   it("throws when KIMI_API_KEY is missing", () => {
     expect(() => new MoonshotProvider({}, { client: {} as any })).toThrow(
       "KIMI_API_KEY is not configured"

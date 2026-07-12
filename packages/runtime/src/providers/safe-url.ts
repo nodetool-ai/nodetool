@@ -218,7 +218,9 @@ export async function safeFetch(
   for (let hop = 0; hop <= maxRedirects; hop++) {
     assertSafePublicHttpsUrl(current);
     const res = await fetchImpl(current, { ...currentInit, redirect: "manual" });
-    const location = res.headers.get("location");
+    // A real Response always has headers; tolerate minimal fetch mocks/polyfills
+    // that omit them (treated as no redirect).
+    const location = res.headers?.get?.("location") ?? null;
     if (res.status >= 300 && res.status < 400 && location) {
       const next = new URL(location, current);
       if (next.origin !== currentOrigin) {

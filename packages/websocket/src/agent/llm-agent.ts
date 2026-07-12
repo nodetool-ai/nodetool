@@ -298,6 +298,13 @@ class GraphPlannerUiTool extends Tool {
       next = await planGen.next();
     }
 
+    // The loop can exit on its final non-aborted iteration with a graph in
+    // hand; re-check so a Stop that lands right as planning finishes doesn't
+    // still write the cancelled graph to the user's canvas.
+    if (this.opts.signal?.aborted) {
+      return { isError: true, error: "Graph planning was cancelled." };
+    }
+
     const graph = next.value;
     if (!graph) {
       if (deferredComplete) emitUpdate(deferredComplete);
@@ -307,6 +314,9 @@ class GraphPlannerUiTool extends Tool {
     const applyToCanvas = params.apply_to_canvas !== false;
     let applied = false;
     let applyError: string | null = null;
+    if (applyToCanvas && this.opts.signal?.aborted) {
+      return { isError: true, error: "Graph planning was cancelled." };
+    }
     if (applyToCanvas) {
       const uiGraph = workflowGraphToUiGraph(graph);
       emitUpdate({

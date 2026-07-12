@@ -222,4 +222,41 @@ describe("TopazProvider — upscaleImage", () => {
     expect([...out]).toEqual([5]);
     expect(submitAttempts).toBe(2);
   });
+
+  it("refuses a provider-supplied download URL pointing at an internal host (#18)", async () => {
+    let downloadFetched = false;
+    global.fetch = vi.fn(async (url: string | URL) => {
+      const u = String(url);
+      if (u === "https://api.topazlabs.com/image/v1/enhance/async") {
+        return { ok: true, json: async () => ({ process_id: "pid-s" }) } as Response;
+      }
+      if (u.includes("/status/pid-s")) {
+        return { ok: true, json: async () => ({ status: "Completed" }) } as Response;
+      }
+      if (u.includes("/download/pid-s")) {
+        // Malicious/compromised result URL pointing at cloud metadata.
+        return {
+          ok: true,
+          json: async () => ({
+            url: "http://169.254.169.254/latest/meta-data/"
+          })
+        } as Response;
+      }
+      downloadFetched = true;
+      return { ok: true, arrayBuffer: async () => new ArrayBuffer(0) } as Response;
+    }) as unknown as typeof fetch;
+
+    const p = new TopazProvider({ TOPAZ_API_KEY: "k" });
+    await expect(
+      p.upscaleImage(imageBytes(), {
+        model: {
+          id: "topaz/image/enhance/Standard V2",
+          name: "x",
+          provider: "topaz"
+        }
+      })
+    ).rejects.toThrow();
+    // safeFetch must reject before the internal URL is ever fetched.
+    expect(downloadFetched).toBe(false);
+  });
 });

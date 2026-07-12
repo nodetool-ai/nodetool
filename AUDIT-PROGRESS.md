@@ -4,9 +4,48 @@
 > before opening any PR.** It exists so the audit can resume after an ephemeral
 > container is reclaimed. Branch: `claude/kernel-runtime-bug-audit-2e71pq`.
 
-_Last updated: round 6 complete (24 confirmed → fixed + tested + committed).
-115 fixes, 3 deferred. Converging: R1=12, R2=25, R3=20, R4=13, R5=18, R6=24
-confirmed. Loop NOT yet dry (need two consecutive zero-confirm rounds).
+_Last updated: round 7 complete (27 confirmed → 25 fixed + tested + committed,
+2 deferred). 140 fixes, 5 deferred. Converging: R1=12, R2=25, R3=20, R4=13,
+R5=18, R6=24, R7=25 confirmed-and-fixed. Loop NOT yet dry.
+
+Round 7 (`scripts/bug-audit-workflow-r7.mjs`, run `wf_ebfad157-56e`) swept 14
+finder groups over the last unexamined files (unified-websocket-runner, agent
+runtime/pi-agent/llm-agent, storage-api/file-api/thumbnail, mcp/screenshot
+servers, settings/plugins, files/collections/nodes routers, kernel graph
+internals, image-codec/agent-memory, provider infra, topaz/evolink/rodin/meshy/
+reve media-gen providers, elevenlabs/moonshot/deepseek/vllm, agent executors +
+code/image/ltm/workspace tools). 35 findings, 27 confirmed (≥2/3), 8 refuted.
+Fixed 25:
+- **ws runner** — chat Stop now cancels a workflow-target turn (#1); SSRF guard
+  on readBytesFromUri (#2).
+- **agent runtime** — llm-agent re-checks abort before applying a graph to the
+  canvas (#3); streaming re-key can't resurrect a closed session (#4); pi text
+  buffer cleared for id-less messages (#5).
+- **storage-api/file-api** — Range end past EOF is clamped, not 416'd (#6);
+  unparseable/multi-range headers are ignored → full 200 (#8).
+- **thumbnail** — short clips fall back to frame 0 (#7).
+- **mcp-server** — don't cache a rejected runtime-bootstrap promise (#9); empty
+  load-error suffix no longer matches every node type (#11, also plugins).
+- **collections router** — list degrades per-collection instead of 500-ing (#13).
+- **files router** — realpath containment closes the symlink sandbox escape (#14).
+- **kernel graph** — edge-fed pruning also clears dynamic_properties (#15).
+- **image-codec/view-image** — no-sharp pass-through keeps the true source mime
+  (#16, #25); unsupported formats re-encode to PNG (#26).
+- **swappable-python-bridge** — delegate providerStream/providerTTS so Python
+  streaming chat + TTS work on the server (#17).
+- **topaz/evolink** — result downloads routed through safeFetch (SSRF) (#18, #19);
+  topaz Retry-After HTTP-date parsed (#20).
+- **anthropic base** — supportsNativeWebSearch gated on provider id so Moonshot
+  falls back to SerpAPI (#21).
+- **elevenlabs** — forward voice_settings.speed (#22).
+- **run-subtask/run-search** — detect the nested `{error}` step-result shape so a
+  failed child isn't returned as success (#23, #24).
+
+**Deferred (2):** collections router (#12) and collection tools (#27) cross-tenant
+IDOR — closing these needs per-user namespacing of the shared vector store plus a
+migration and web-UI/RAG-node coordination (the store is also used directly by
+workflow nodes), too broad for a single safe commit. Both are HIGH security and
+should be prioritized as a dedicated change.
 
 Round 6 (`scripts/bug-audit-workflow-r6.mjs`, run `wf_943ff508-c20`) swept 15
 finder groups over files not examined in rounds 1-5 (asset/file/storage/

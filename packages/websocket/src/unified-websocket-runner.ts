@@ -538,6 +538,14 @@ async function readBytesFromUri(uri: string): Promise<Uint8Array | null> {
       return Uint8Array.from(Buffer.from(uri.slice(commaIdx + 1), "base64"));
     }
     if (uri.startsWith("http://") || uri.startsWith("https://")) {
+      // The uri comes from a user-authored workflow's output, so gate it
+      // against SSRF (internal/link-local hosts) exactly like
+      // resolveSourceImageBytes does — otherwise an auto-save node could make
+      // the server fetch cloud-metadata / internal services.
+      if (!isSafeExternalUrl(uri)) {
+        log.warn(`readBytesFromUri refused unsafe URL: ${uri}`);
+        return null;
+      }
       const resp = await fetch(uri);
       if (!resp.ok) return null;
       return new Uint8Array(await resp.arrayBuffer());
@@ -4997,7 +5005,7 @@ export class UnifiedWebSocketRunner {
 
   private async handleWorkflowMessage(
     data: Record<string, unknown>,
-    _requestSeq?: number
+    requestSeq?: number
   ): Promise<void> {
     const threadId = typeof data.thread_id === "string" ? data.thread_id : "";
     const workflowId =
@@ -5194,7 +5202,23 @@ export class UnifiedWebSocketRunner {
         }
       }
 
+      // A chat Stop / superseding message bumps chatRequestSeq. Unlike the
+      // other chat handlers this one owns a workflow runner, so cancel it and
+      // stop streaming when our turn is no longer current — otherwise the run
+      // completes and delivers an assistant message after the user stopped.
+      const superseded = (): boolean =>
+        requestSeq !== undefined && requestSeq !== this.chatRequestSeq;
+
       while (!active.finished || active.context.hasMessages()) {
+        if (superseded()) {
+          try {
+            active.runner.cancel();
+          } catch {
+            // best-effort cancel
+          }
+          this.activeJobs.delete(jobId);
+          return;
+        }
         while (active.context.hasMessages()) {
           const msg = active.context.popMessage();
           if (!msg) break;
