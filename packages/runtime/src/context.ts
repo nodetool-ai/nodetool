@@ -54,6 +54,24 @@ const randomUUID = nodeCrypto?.randomUUID
 const safeProcessEnv = (): Record<string, string | undefined> =>
   typeof process !== "undefined" && process.env ? process.env : {};
 
+function waitForRetry(delayMs: number, signal?: AbortSignal | null): Promise<void> {
+  return new Promise((resolveWait, rejectWait) => {
+    if (signal?.aborted) {
+      rejectWait(signal.reason ?? new Error("HTTP request aborted"));
+      return;
+    }
+    const onAbort = () => {
+      clearTimeout(timer);
+      rejectWait(signal?.reason ?? new Error("HTTP request aborted"));
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolveWait();
+    }, delayMs);
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
 // Eager local bindings; unavailable off-Node, throw at call time.
 function notOnNode(api: string): never {
   throw new Error(
@@ -953,6 +971,7 @@ export class ProcessingContext {
   private _modelInterfaces: ProcessingContextModelInterfaces | null = null;
   /** Provider cache keyed by provider id. */
   private _providers = new Map<string, BaseProvider>();
+  private _providerPromises = new Map<string, Promise<BaseProvider>>();
   /** In-context memory URI cache (memory:// key-value objects). */
   private _memory = new Map<string, unknown>();
   /** Optional control event dispatcher (set by workflow runner). */
@@ -1186,21 +1205,27 @@ export class ProcessingContext {
     const cached = this._providers.get(providerId);
     if (cached) return cached;
 
-    let resolved: BaseProvider;
-    if (this._providerResolver) {
-      resolved = await this._providerResolver(providerId);
-    } else {
-      const { getProvider: buildProvider } = await import(
-        "./providers/index.js"
-      );
-      resolved = await buildProvider(providerId, (key) => this.getSecret(key));
-    }
+    const pending = this._providerPromises.get(providerId);
+    if (pending) return pending;
 
-    this._providers.set(providerId, resolved);
-    resolved.setMessageEmitter((msg) =>
-      this.postMessage(msg as ProcessingMessage)
-    );
-    return resolved;
+    const resolution = (async () => {
+      const resolved = this._providerResolver
+        ? await this._providerResolver(providerId)
+        : await import("./providers/index.js").then(({ getProvider }) =>
+            getProvider(providerId, (key) => this.getSecret(key))
+          );
+      this._providers.set(providerId, resolved);
+      resolved.setMessageEmitter((msg) =>
+        this.postMessage(msg as ProcessingMessage)
+      );
+      return resolved;
+    })();
+    this._providerPromises.set(providerId, resolution);
+    try {
+      return await resolution;
+    } finally {
+      this._providerPromises.delete(providerId);
+    }
   }
 
   async get_provider(providerId: string): Promise<BaseProvider> {
@@ -1431,7 +1456,11 @@ export class ProcessingContext {
       this._edgeStatuses.set(msg.edge_id, msg);
     }
     for (const listener of this._messageListeners) {
-      listener(msg);
+      try {
+        listener(msg);
+      } catch {
+        // Listeners are observers and must not interrupt workflow execution.
+      }
     }
   }
 
@@ -1618,13 +1647,13 @@ export class ProcessingContext {
           const retryAfter = response.headers.get("Retry-After");
           const retryDelay = retryAfter ? Number(retryAfter) * 1000 : NaN;
           const delayMs = Number.isFinite(retryDelay)
-            ? retryDelay
+            ? Math.min(Math.max(0, retryDelay), 30_000)
             : backoffMs * 2 ** attempt;
           // Drain/cancel the unconsumed body before retrying, or under undici
           // the socket stays checked out of the connection pool (leaked until
           // GC) and emits a "body not consumed" warning.
           await response.body?.cancel().catch(() => {});
-          await new Promise((r) => setTimeout(r, Math.max(0, delayMs)));
+          await waitForRetry(Math.max(0, delayMs), opts.signal);
           continue;
         }
         if (!response.ok) {
@@ -1635,17 +1664,19 @@ export class ProcessingContext {
             `HTTP ${response.status} ${response.statusText} for ${method} ${url}`
           ) as Error & { nonRetryable?: boolean };
           nonRetryable.nonRetryable = true;
+          await response.body?.cancel().catch(() => {});
           throw nonRetryable;
         }
         return response;
       } catch (error) {
         lastError = error;
+        if (opts.signal?.aborted) break;
         // A non-retryable HTTP error must not loop; only thrown fetch/network
         // errors and retryable statuses are retried.
         if ((error as { nonRetryable?: boolean })?.nonRetryable) break;
         if (attempt >= maxRetries - 1) break;
         const delayMs = backoffMs * 2 ** attempt;
-        await new Promise((r) => setTimeout(r, delayMs));
+        await waitForRetry(delayMs, opts.signal);
       }
     }
 
@@ -2665,6 +2696,7 @@ export class ProcessingContext {
     const id = randomUUID();
     const startedAt = Date.now();
     this.emitPrediction("running", req, id, null, undefined, startedAt);
+    let terminalStatusEmitted = false;
     try {
       const provider = await this.getProvider(req.provider);
       const params = req.params ?? {};
@@ -2702,10 +2734,16 @@ export class ProcessingContext {
       }
 
       this.emitPrediction("completed", req, id, null, undefined, startedAt);
+      terminalStatusEmitted = true;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.emitPrediction("failed", req, id, null, message, startedAt);
+      terminalStatusEmitted = true;
       throw error;
+    } finally {
+      if (!terminalStatusEmitted) {
+        this.emitPrediction("completed", req, id, null, undefined, startedAt);
+      }
     }
   }
 
@@ -2834,7 +2872,12 @@ export class ProcessingContext {
 
     const uri = asset.uri;
     if (typeof uri !== "string" || !this.storage) return null;
-    return this.storage.retrieve(uri);
+    const stored = await this.storage.retrieve(uri);
+    if (stored) return stored;
+    if (uri.startsWith("asset://") || uri.startsWith("/api/storage/")) {
+      return (await this.resolveAssetBytes(uri)).bytes;
+    }
+    return null;
   }
 
   private async materializeAsset(
