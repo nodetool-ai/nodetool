@@ -166,6 +166,10 @@ const VIEW_SPECS: Record<BottomPanelView, ViewSpec> = {
   }
 };
 
+const ENABLED_VIEWS = BOTTOM_PANEL_GROUPS.flatMap((g) =>
+  g.views.filter((v) => VIEW_SPECS[v]?.enabled)
+);
+
 const styles = (theme: Theme) =>
   css({
     position: "fixed",
@@ -517,8 +521,10 @@ const PanelBottom: React.FC = () => {
   );
 
   const { data: allJobs } = useRunningJobs();
-  const queuedCount =
-    allJobs?.filter((j) => j.status === "queued").length ?? 0;
+  const queuedCount = useMemo(
+    () => allJobs?.filter((j) => j.status === "queued").length ?? 0,
+    [allJobs]
+  );
 
   const systemStats = useSystemStatsStore((state) => state.stats);
 
@@ -539,9 +545,7 @@ const PanelBottom: React.FC = () => {
     return null;
   }
 
-  const enabledViews = BOTTOM_PANEL_GROUPS.flatMap((g) =>
-    g.views.filter((v) => VIEW_SPECS[v]?.enabled)
-  );
+  const enabledViews = ENABLED_VIEWS;
 
   const openHeight = isVisible
     ? Math.min(
