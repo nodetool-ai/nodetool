@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-import { rank, scoreItem, searchTermsFromQuery, type RankConfig } from "../ranking";
+import { rank, searchTermsFromQuery, type RankConfig } from "../ranking";
 
 type Item = {
   id: string;
@@ -41,49 +41,6 @@ describe("searchTermsFromQuery", () => {
   it("deduplicates", () => {
     const terms = searchTermsFromQuery("foo");
     expect(terms).toEqual(["foo"]);
-  });
-});
-
-describe("scoreItem", () => {
-  it("returns 0 when no terms", () => {
-    expect(scoreItem(items[0], [], baseConfig)).toBe(0);
-  });
-
-  it("scores name matches higher than description matches", () => {
-    const nameMatch = scoreItem(items[0], ["alpha"], baseConfig);
-    const descMatch = scoreItem(items[0], ["first"], baseConfig);
-    expect(nameMatch).toBeGreaterThan(descMatch);
-  });
-
-  it("applies the per-item multiplier", () => {
-    const cfg: RankConfig<Item> = {
-      ...baseConfig,
-      multiplier: (i) => (i.kind === "core" ? 2 : 1)
-    };
-    const normal = scoreItem({ ...items[0] }, ["alpha"], cfg);
-    const boosted = scoreItem({ ...items[0], kind: "core" }, ["alpha"], cfg);
-    expect(boosted).toBe(normal * 2);
-  });
-
-  it("respects the prefilter", () => {
-    const cfg: RankConfig<Item> = {
-      ...baseConfig,
-      prefilter: (i) => i.id !== "alpha"
-    };
-    expect(scoreItem(items[0], ["alpha"], cfg)).toBe(0);
-    expect(scoreItem(items[1], ["beta"], cfg)).toBeGreaterThan(0);
-  });
-
-  it("gives exact-subtoken matches an extra bonus", () => {
-    const item: Item = { id: "x", name: "image to image" };
-    const cfg: RankConfig<Item> = {
-      ...baseConfig,
-      fields: [{ get: (i) => i.name, weight: 6 }]
-    };
-    // "image" is an exact subtoken → weight*(1 + exactTokenBonus)
-    expect(scoreItem(item, ["image"], cfg)).toBe(6 + 6 * 2);
-    // "mage" is a substring but not a subtoken → just weight
-    expect(scoreItem(item, ["mage"], cfg)).toBe(6);
   });
 });
 

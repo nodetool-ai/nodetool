@@ -10,7 +10,7 @@ const FOR_EACH_NODE_TYPE = "nodetool.control.ForEach";
  * re-run of the same partial graph reuses the same id (no duplicate nodes) and
  * two different replays into the same target never collide.
  */
-export const replayNodeId = (
+const replayNodeId = (
   sourceId: string,
   sourceHandle: string | null | undefined,
   targetId: string,
