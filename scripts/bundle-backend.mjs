@@ -733,6 +733,322 @@ async function pruneWebAudioPrebuilds(modulesDir) {
   return reclaimed;
 }
 
+/**
+ * npm installs BOTH linux libc flavors of @napi-rs/canvas's platform packages
+ * (canvas-linux-x64-gnu ~32 MB and canvas-linux-x64-musl ~29 MB), and the
+ * transitive crawl stages both. The loader (@napi-rs/canvas/js-binding.js)
+ * requires exactly one sibling: it branches on platform/arch and, on linux, on
+ * isMusl() — there is no cross-libc fallback, so deleting the non-matching
+ * variants cannot break resolution as long as the matching one is present.
+ *
+ * Package naming: @napi-rs/canvas-<platform>-<arch>[-<abi>] where <abi> is
+ * gnu/musl (or gnueabihf/musleabihf on arm, msvc on win32); darwin variants
+ * have no abi suffix. Two steps: (a) drop variants whose platform/arch don't
+ * match the bundle target; (b) on linux, keep only the target libc —
+ * NODETOOL_BUNDLE_LIBC=gnu|musl overrides, else detect from
+ * process.report.getReport().header.glibcVersionRuntime (truthy → gnu, else
+ * musl). Host detection is valid because linux bundles are always built on the
+ * OS family they run on (Docker builds inside the target image base).
+ *
+ * Guards: nothing is deleted unless a kept variant with a .node binary is
+ * confirmed present; if the libc can't be determined and no override is set,
+ * both linux variants are kept with a warning. Returns bytes reclaimed.
+ */
+async function pruneCanvasLibcVariants(modulesDir) {
+  const scopeDir = path.join(modulesDir, "@napi-rs");
+  let entries;
+  try {
+    entries = await fsp.readdir(scopeDir, { withFileTypes: true });
+  } catch {
+    return 0; // @napi-rs scope not staged — nothing to do
+  }
+
+  const KNOWN_PLATFORMS = new Set([
+    "darwin",
+    "linux",
+    "win32",
+    "android",
+    "freebsd",
+  ]);
+  const variants = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const match = entry.name.match(/^canvas-(.+)$/);
+    if (!match) continue;
+    // Token examples: linux-x64-gnu, linux-x64-musl, linux-arm-gnueabihf,
+    // darwin-arm64, win32-x64-msvc.
+    const [platform, arch = "", ...rest] = match[1].split("-");
+    if (!KNOWN_PLATFORMS.has(platform)) continue; // unknown layout — keep
+    variants.push({ name: entry.name, platform, arch, abi: rest.join("-") });
+  }
+  if (variants.length === 0) return 0;
+
+  // Resolve the target libc for linux targets.
+  let targetLibc = null;
+  if (TARGET_PLATFORM === "linux") {
+    const override = process.env.NODETOOL_BUNDLE_LIBC;
+    if (override === "gnu" || override === "musl") {
+      targetLibc = override;
+    } else if (override) {
+      console.warn(
+        `  Warning: NODETOOL_BUNDLE_LIBC must be "gnu" or "musl", got ` +
+          `"${override}" — ignoring`
+      );
+    }
+    if (targetLibc === null && process.platform === "linux") {
+      targetLibc = process.report?.getReport?.().header?.glibcVersionRuntime
+        ? "gnu"
+        : "musl";
+    }
+  }
+
+  const kept = [];
+  const removable = [];
+  for (const variant of variants) {
+    if (
+      variant.platform !== TARGET_PLATFORM ||
+      variant.arch !== TARGET_ARCH
+    ) {
+      removable.push(variant);
+    } else if (TARGET_PLATFORM === "linux" && targetLibc !== null) {
+      // gnu also matches gnueabihf, musl also matches musleabihf.
+      if (variant.abi.startsWith(targetLibc)) {
+        kept.push(variant);
+      } else {
+        removable.push(variant);
+      }
+    } else {
+      // Non-linux target, or linux with undetermined libc: keep.
+      kept.push(variant);
+    }
+  }
+
+  if (TARGET_PLATFORM === "linux" && targetLibc === null && kept.length > 1) {
+    console.warn(
+      `  Warning: cannot determine target libc for @napi-rs/canvas (set ` +
+        `NODETOOL_BUNDLE_LIBC=gnu|musl) — keeping all linux variants`
+    );
+  }
+
+  // Guard: only delete when a kept variant with its prebuilt binary exists.
+  const keptWithBinary = [];
+  for (const variant of kept) {
+    const dir = path.join(scopeDir, variant.name);
+    try {
+      const files = await fsp.readdir(dir);
+      if (files.some((f) => f.endsWith(".node"))) keptWithBinary.push(variant);
+    } catch {
+      // unreadable — treat as absent
+    }
+  }
+  if (keptWithBinary.length === 0) {
+    console.warn(
+      `  Warning: no @napi-rs/canvas variant with a .node binary matches ` +
+        `${TARGET_PLATFORM}/${TARGET_ARCH}` +
+        (targetLibc ? `/${targetLibc}` : "") +
+        ` — check NODETOOL_BUNDLE_PLATFORM/NODETOOL_BUNDLE_ARCH/` +
+        `NODETOOL_BUNDLE_LIBC; leaving all variants in place`
+    );
+    return 0;
+  }
+
+  let reclaimed = 0;
+  for (const variant of removable) {
+    const dir = path.join(scopeDir, variant.name);
+    reclaimed += await pathSize(dir);
+    await fsp.rm(dir, { recursive: true, force: true });
+  }
+  return reclaimed;
+}
+
+/**
+ * tesseract.js-core ships six WASM cores (plain / simd / relaxedsimd, each in
+ * lstm and non-lstm form), each as a .js loader + a .wasm binary + a .wasm.js
+ * single-file alternative — ~44 MB, of which Node loads exactly one pair.
+ *
+ * Selection (tesseract.js v7, src/worker-script/node/getCore.js): probes
+ * wasm-feature-detect and requires tesseract-core-relaxedsimd[-lstm] /
+ * tesseract-core-simd[-lstm] / tesseract-core[-lstm]. Node 22's V8 supports
+ * both SIMD and relaxed SIMD, so the relaxedsimd branch wins. The call site
+ * (src/worker-script/index.js) passes the boolean `lstmOnly` where getCore
+ * expects an OEM enum, so `[OEM.DEFAULT, OEM.LSTM_ONLY].includes(oem)` is
+ * always false and the non-lstm ("full") core loads regardless — which is
+ * also the safe one, since it supports every OEM mode. The kept .js loader
+ * reads its sibling .wasm via fs.readFileSync(__dirname + "/<base>.wasm");
+ * the .wasm.js files are a browser-oriented alternative Node never touches.
+ *
+ * Guards: skips with a warning if the staged tesseract.js selection logic
+ * doesn't match these expectations, if feature detection fails, or if the
+ * selected loader/wasm pair is missing. Returns bytes reclaimed.
+ */
+async function pruneTesseractCores(modulesDir) {
+  const coreDir = path.join(modulesDir, "tesseract.js-core");
+  if (!fs.existsSync(coreDir)) return 0;
+
+  const tessDir = path.join(modulesDir, "tesseract.js");
+  let getCoreSrc;
+  let workerIndexSrc;
+  let createWorkerSrc;
+  try {
+    getCoreSrc = await fsp.readFile(
+      path.join(tessDir, "src", "worker-script", "node", "getCore.js"),
+      "utf8"
+    );
+    workerIndexSrc = await fsp.readFile(
+      path.join(tessDir, "src", "worker-script", "index.js"),
+      "utf8"
+    );
+    createWorkerSrc = await fsp.readFile(
+      path.join(tessDir, "src", "createWorker.js"),
+      "utf8"
+    );
+  } catch {
+    console.warn(
+      `  Warning: staged tesseract.js worker-script sources not found — ` +
+        `skipping tesseract.js-core prune`
+    );
+    return 0;
+  }
+
+  const expectedRequires = [
+    "tesseract.js-core/tesseract-core-relaxedsimd-lstm",
+    "tesseract.js-core/tesseract-core-relaxedsimd",
+    "tesseract.js-core/tesseract-core-simd-lstm",
+    "tesseract.js-core/tesseract-core-simd",
+    "tesseract.js-core/tesseract-core-lstm",
+    "tesseract.js-core/tesseract-core",
+  ];
+  const selectionMatches =
+    expectedRequires.every((spec) => getCoreSrc.includes(`'${spec}'`)) &&
+    // Boolean-for-enum call: guarantees the non-lstm core is selected. If a
+    // future tesseract.js passes the real OEM, re-derive which core to keep.
+    workerIndexSrc.includes("adapter.getCore(lstmOnly") &&
+    // The boolean originates here — an upstream fix could change only this
+    // file (send the OEM enum under the same payload key), so it must be
+    // part of the guard too.
+    createWorkerSrc.includes("lstmOnly: lstmOnlyCore");
+  if (!selectionMatches) {
+    console.warn(
+      `  Warning: tesseract.js core-selection logic changed — skipping ` +
+        `tesseract.js-core prune (update pruneTesseractCores)`
+    );
+    return 0;
+  }
+
+  // Run the same feature detection tesseract.js runs at runtime. WASM feature
+  // support depends on the Node/V8 version, not the OS, and both profiles run
+  // vanilla Node 22 — same as this build script.
+  let base;
+  try {
+    // Resolve from the workspace root: _modules/ is flat (not a node_modules
+    // layout), so staged packages can't resolve their own deps here. The
+    // workspace copy is the same package the staged tesseract.js was crawled
+    // from, and detection depends only on this Node's V8, not on the copy.
+    const rootRequire = Module.createRequire(
+      path.join(ROOT_DIR, "package.json")
+    );
+    const { simd, relaxedSimd } = rootRequire("wasm-feature-detect");
+    if (await relaxedSimd()) {
+      base = "tesseract-core-relaxedsimd";
+    } else if (await simd()) {
+      base = "tesseract-core-simd";
+    } else {
+      console.warn(
+        `  Warning: WASM SIMD not detected (unexpected on Node 22) — ` +
+          `skipping tesseract.js-core prune`
+      );
+      return 0;
+    }
+  } catch (err) {
+    console.warn(
+      `  Warning: wasm-feature-detect unavailable (${err.message}) — ` +
+        `skipping tesseract.js-core prune`
+    );
+    return 0;
+  }
+
+  const keep = new Set([`${base}.js`, `${base}.wasm`]);
+  for (const file of keep) {
+    if (!fs.existsSync(path.join(coreDir, file))) {
+      console.warn(
+        `  Warning: expected tesseract.js-core file missing: ${file} — ` +
+          `skipping tesseract.js-core prune`
+      );
+      return 0;
+    }
+  }
+
+  let reclaimed = 0;
+  for (const file of await fsp.readdir(coreDir)) {
+    // Matches all core loaders, .wasm binaries, and .wasm.js alternatives;
+    // index.js and package.json survive.
+    if (!/^tesseract-core.*\.(js|wasm)$/.test(file)) continue;
+    if (keep.has(file)) continue;
+    const full = path.join(coreDir, file);
+    reclaimed += await pathSize(full);
+    await fsp.rm(full, { force: true });
+  }
+  return reclaimed;
+}
+
+/**
+ * SERVER PROFILE ONLY. The staged better-sqlite3 carries node-gyp compilation
+ * intermediates (build/ obj.target, .o files, Makefiles — ~18 MB) and the
+ * SQLite source amalgamation (deps/ — ~10 MB). At runtime lib/database.js
+ * loads the addon via require('bindings')('better_sqlite3.node'), which
+ * resolves build/Release/better_sqlite3.node — so the server bundle needs
+ * only lib/, package.json, and build/Release/*.node.
+ *
+ * Do NOT apply this on the desktop profile: electron/scripts/after-pack.cjs
+ * re-runs `node-gyp rebuild` on the staged copy against Electron's ABI, which
+ * needs deps/, src/, and binding.gyp. The caller gates on PROFILE === "server".
+ *
+ * Guard: only prunes when build/Release contains at least one .node file.
+ * Returns bytes reclaimed.
+ */
+async function pruneBetterSqliteBuildArtifacts(modulesDir) {
+  const pkgDir = path.join(modulesDir, "better-sqlite3");
+  if (!fs.existsSync(pkgDir)) return 0;
+
+  const buildDir = path.join(pkgDir, "build");
+  const releaseDir = path.join(buildDir, "Release");
+  let releaseEntries;
+  try {
+    releaseEntries = await fsp.readdir(releaseDir, { withFileTypes: true });
+  } catch {
+    releaseEntries = [];
+  }
+  const hasAddon = releaseEntries.some(
+    (e) => e.isFile() && e.name.endsWith(".node")
+  );
+  if (!hasAddon) {
+    console.warn(
+      `  Warning: better-sqlite3 build/Release has no .node addon — ` +
+        `skipping build-artifact prune`
+    );
+    return 0;
+  }
+
+  let reclaimed = 0;
+  async function remove(target) {
+    reclaimed += await pathSize(target);
+    await fsp.rm(target, { recursive: true, force: true });
+  }
+
+  await remove(path.join(pkgDir, "deps"));
+  await remove(path.join(pkgDir, "src"));
+  await remove(path.join(pkgDir, "binding.gyp"));
+  for (const entry of await fsp.readdir(buildDir)) {
+    if (entry !== "Release") await remove(path.join(buildDir, entry));
+  }
+  for (const entry of releaseEntries) {
+    if (!(entry.isFile() && entry.name.endsWith(".node"))) {
+      await remove(path.join(releaseDir, entry.name));
+    }
+  }
+  return reclaimed;
+}
+
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
@@ -884,6 +1200,22 @@ async function main() {
   console.log(
     `  node-web-audio-api prune reclaimed ${(webAudioBytes / 1024 / 1024).toFixed(1)} MB`
   );
+  const canvasBytes = await pruneCanvasLibcVariants(modulesDir);
+  console.log(
+    `  @napi-rs/canvas libc prune reclaimed ${(canvasBytes / 1024 / 1024).toFixed(1)} MB`
+  );
+  const tesseractBytes = await pruneTesseractCores(modulesDir);
+  console.log(
+    `  tesseract.js-core prune reclaimed ${(tesseractBytes / 1024 / 1024).toFixed(1)} MB`
+  );
+  // Desktop keeps better-sqlite3's sources: after-pack.cjs rebuilds the addon
+  // against Electron's ABI from the staged copy.
+  if (PROFILE === "server") {
+    const sqliteBytes = await pruneBetterSqliteBuildArtifacts(modulesDir);
+    console.log(
+      `  better-sqlite3 build-artifact prune reclaimed ${(sqliteBytes / 1024 / 1024).toFixed(1)} MB`
+    );
+  }
 
   // --- Stage registered package runtime assets next to server.mjs ---
   // The registry in @nodetool-ai/config (package-asset-registry.ts) is the
