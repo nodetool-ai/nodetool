@@ -4,10 +4,15 @@
 > before opening any PR.** It exists so the audit can resume after an ephemeral
 > container is reclaimed. Branch: `claude/kernel-runtime-bug-audit-2e71pq`.
 
-_Last updated: round 8 complete (19 confirmed → 19 fixed + tested + committed).
-159 fixes, 5 deferred. Converging: R1=12, R2=25, R3=20, R4=13, R5=18, R6=24,
-R7=25, R8=19 confirmed-and-fixed. Confirmed count trending down (25→19). Loop
-NOT yet dry.
+_Last updated: round 9 complete (43/43 candidates confirmed by ≥2/3 skeptics,
+fixed, tested, and committed). The reconciled total is 201 unique confirmed,
+199 fixed, and 4 deferred. Round 9 closes the previously deferred Anthropic
+thinking round-trip. See `BUG-AUDIT-REPORT.md` for the consolidated ledger.
+
+Round 9 fix commits: `e21c3f2bb` (websocket/HTTP), `817008419` (runtime
+context), `04b85fd1c` (runtime providers), and `23ff7be1d` (agents/kernel/models).
+Verification: all 56 package builds; kernel 823, runtime 1,991, agents 1,249,
+models 641, websocket 929 tests; oxlint source gate has no errors.
 
 Round 8 (`scripts/bug-audit-workflow-r8.mjs`, run `wf_7442d97b-b5c`) swept 14
 finder groups over the remaining files (http-api/oauth/models-api, test-ui/
