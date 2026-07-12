@@ -272,9 +272,11 @@ const ReactFlowWrapper = ({
 
   // Single trigger: connection drag ended or edges changed (add/remove/reconnect).
   // Wait one frame, then refresh handle positions for all nodes.
-  // Use a ref for nodes to avoid re-running on every node position change (60fps drag).
+  // Use refs to avoid re-running on every node position change (60fps drag).
   const nodesRef = useRef(nodes);
   nodesRef.current = nodes;
+  const edgesRef = useRef(edges);
+  edgesRef.current = edges;
   const prevConnectingRef = useRef(connecting);
   const prevEdgeCountRef = useRef(edges.length);
   useEffect(() => {
@@ -302,9 +304,13 @@ const ReactFlowWrapper = ({
   }, [workflowId]);
 
   const sortedKeysCache = useRef(new WeakMap<object, string>());
-  useEffect(() => {
+
+  // Structural fingerprint: only changes when layout-relevant fields change
+  // (height, collapsed, exposed inputs, dynamic props). Position-only drag
+  // frames produce the same string, so the effect below stays dormant.
+  const nodeLayoutFingerprint = useMemo(() => {
     const cache = sortedKeysCache.current;
-    const sortedKeys = (obj: object | null | undefined): string => {
+    const getSortedKeys = (obj: object | null | undefined): string => {
       if (!obj) return "";
       const cached = cache.get(obj);
       if (cached !== undefined) return cached;
@@ -313,7 +319,7 @@ const ReactFlowWrapper = ({
       return result;
     };
 
-    const next = new Map<string, string>();
+    const parts: string[] = [];
     for (const n of nodes) {
       const sh = n.style?.height;
       const stylePart =
@@ -327,9 +333,42 @@ const ReactFlowWrapper = ({
         ...(n.data.exposedInputsLabeled ?? []),
         ...(n.data.exposedInputsHidden ?? [])
       ].join(",");
-      const dynPropsPart = sortedKeys(n.data.dynamic_properties);
-      const dynInputsPart = sortedKeys(n.data.dynamic_inputs);
-      const dynOutputsPart = sortedKeys(n.data.dynamic_outputs);
+      parts.push(
+        `${n.id}:${typeof n.height === "number" ? n.height : ""}:${stylePart}:${Boolean(n.data.collapsed)}:${exposedPart}:${getSortedKeys(n.data.dynamic_properties)}:${getSortedKeys(n.data.dynamic_inputs)}:${getSortedKeys(n.data.dynamic_outputs)}`
+      );
+    }
+    return parts.join("|");
+  }, [nodes]);
+
+  useEffect(() => {
+    const cache = sortedKeysCache.current;
+    const getSortedKeys = (obj: object | null | undefined): string => {
+      if (!obj) return "";
+      const cached = cache.get(obj);
+      if (cached !== undefined) return cached;
+      const result = Object.keys(obj).sort().join(",");
+      cache.set(obj, result);
+      return result;
+    };
+
+    const currentNodes = nodesRef.current;
+    const next = new Map<string, string>();
+    for (const n of currentNodes) {
+      const sh = n.style?.height;
+      const stylePart =
+        typeof sh === "number"
+          ? String(sh)
+          : typeof sh === "string"
+            ? sh.trim()
+            : "";
+      const exposedPart = [
+        ...(n.data.exposedInputs ?? []),
+        ...(n.data.exposedInputsLabeled ?? []),
+        ...(n.data.exposedInputsHidden ?? [])
+      ].join(",");
+      const dynPropsPart = getSortedKeys(n.data.dynamic_properties);
+      const dynInputsPart = getSortedKeys(n.data.dynamic_inputs);
+      const dynOutputsPart = getSortedKeys(n.data.dynamic_outputs);
       next.set(
         n.id,
         `${typeof n.height === "number" ? n.height : ""}:${stylePart}:${Boolean(n.data.collapsed)}:${exposedPart}:${dynPropsPart}:${dynInputsPart}:${dynOutputsPart}`
@@ -358,9 +397,9 @@ const ReactFlowWrapper = ({
     }
     scheduleNodeInternalsRefresh(
       updateNodeInternals,
-      withEdgeNeighborNodeIds(changedIds, edges)
+      withEdgeNeighborNodeIds(changedIds, edgesRef.current)
     );
-  }, [nodes, edges, updateNodeInternals]);
+  }, [nodeLayoutFingerprint, updateNodeInternals]);
 
   const ref = useRef<HTMLDivElement | null>(null);
   const zoomedOut = useStore((s) => s.transform[2] <= ZOOMED_OUT);
@@ -536,10 +575,10 @@ const ReactFlowWrapper = ({
       }
       scheduleNodeInternalsRefresh(
         updateNodeInternals,
-        withEdgeNeighborNodeIds([...dimIds], edges)
+        withEdgeNeighborNodeIds([...dimIds], edgesRef.current)
       );
     },
-    [propagateNodesChange, updateNodeInternals, edges]
+    [propagateNodesChange, updateNodeInternals]
   );
 
   const {
@@ -769,7 +808,8 @@ const ReactFlowWrapper = ({
       return;
     }
 
-    if (!edges.length) {
+    const currentEdges = edgesRef.current;
+    if (!currentEdges.length) {
       return;
     }
 
@@ -791,7 +831,7 @@ const ReactFlowWrapper = ({
 
     const selectionUpdates: Record<string, boolean> = {};
 
-    for (const edge of edges) {
+    for (const edge of currentEdges) {
       const isEdgeAlreadySelected = Boolean(edge.selected);
       const nodeDrivenSelection =
         selectedNodeIds.has(edge.source) || selectedNodeIds.has(edge.target);
@@ -808,7 +848,6 @@ const ReactFlowWrapper = ({
       setEdgeSelectionState(selectionUpdates);
     }
   }, [
-    edges,
     setEdgeSelectionState,
     isSelecting,
     selectedNodeIds,
