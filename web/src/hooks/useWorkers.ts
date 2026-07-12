@@ -4,7 +4,7 @@ import {
   type UseQueryResult
 } from "@tanstack/react-query";
 import { useCallback } from "react";
-import { trpcClient } from "../trpc/client";
+import { trpcClient, type RouterOutputs } from "../trpc/client";
 
 /**
  * GPU-worker provisioning surface for the UI. Wraps the `worker` tRPC router
@@ -111,11 +111,10 @@ const EMPTY_INSTANCES: WorkerInstance[] = [];
 export const useWorkerHealth = (
   id: string,
   enabled: boolean
-): UseQueryResult<WorkerHealth, Error> =>
-  useQuery<WorkerHealth, Error>({
+): UseQueryResult<RouterOutputs["worker"]["health"], Error> =>
+  useQuery<RouterOutputs["worker"]["health"], Error>({
     queryKey: workerQueryKeys.health(id),
-    queryFn: async () =>
-      (await trpcClient.worker.health.query({ id })) as WorkerHealth,
+    queryFn: () => trpcClient.worker.health.query({ id }),
     enabled,
     refetchInterval: enabled ? HEALTH_REFETCH_INTERVAL_MS : false,
     refetchOnWindowFocus: false,
@@ -153,24 +152,21 @@ export const useWorkers = (): UseWorkersResult => {
 
   const profilesQuery = useQuery<WorkerProfile[], Error>({
     queryKey: workerQueryKeys.profiles,
-    queryFn: async () =>
-      (await trpcClient.worker.profiles.list.query()) as WorkerProfile[]
+    queryFn: () =>
+      trpcClient.worker.profiles.list.query() as Promise<WorkerProfile[]>
   });
 
   const instancesQuery = useQuery<WorkerInstance[], Error>({
     queryKey: workerQueryKeys.instances,
-    queryFn: async () =>
-      (await trpcClient.worker.instances.list.query()) as WorkerInstance[],
+    queryFn: () =>
+      trpcClient.worker.instances.list.query() as Promise<WorkerInstance[]>,
     refetchInterval: INSTANCES_REFETCH_INTERVAL_MS
   });
 
   const apiKeyStatusQuery = useQuery<Record<WorkerTarget, boolean>, Error>({
     queryKey: workerQueryKeys.apiKeyStatus,
-    queryFn: async () =>
-      (await trpcClient.worker.apiKeyStatus.query()) as Record<
-        WorkerTarget,
-        boolean
-      >
+    queryFn: () =>
+      trpcClient.worker.apiKeyStatus.query() as Promise<Record<WorkerTarget, boolean>>
   });
 
   const invalidateInstances = useCallback(
@@ -190,12 +186,10 @@ export const useWorkers = (): UseWorkersResult => {
   );
 
   const createProfile = useCallback(
-    async (input: CreateWorkerProfileInput) => {
-      const profile = (await trpcClient.worker.profiles.create.mutate(
-        input
-      )) as WorkerProfile;
+    async (input: CreateWorkerProfileInput): Promise<WorkerProfile> => {
+      const profile = await trpcClient.worker.profiles.create.mutate(input);
       await invalidateProfiles();
-      return profile;
+      return profile as WorkerProfile;
     },
     [invalidateProfiles]
   );
@@ -209,45 +203,39 @@ export const useWorkers = (): UseWorkersResult => {
   );
 
   const provision = useCallback(
-    async (profileName: string) => {
-      const instance = (await trpcClient.worker.provision.mutate({
+    async (profileName: string): Promise<WorkerInstance> => {
+      const instance = await trpcClient.worker.provision.mutate({
         profileName
-      })) as WorkerInstance;
+      });
       await invalidateInstances();
-      return instance;
+      return instance as WorkerInstance;
     },
     [invalidateInstances]
   );
 
   const stop = useCallback(
-    async (id: string) => {
-      const instance = (await trpcClient.worker.stop.mutate({
-        id
-      })) as WorkerInstance;
+    async (id: string): Promise<WorkerInstance> => {
+      const instance = await trpcClient.worker.stop.mutate({ id });
       await invalidateInstances();
-      return instance;
+      return instance as WorkerInstance;
     },
     [invalidateInstances]
   );
 
   const resume = useCallback(
-    async (id: string) => {
-      const instance = (await trpcClient.worker.resume.mutate({
-        id
-      })) as WorkerInstance;
+    async (id: string): Promise<WorkerInstance> => {
+      const instance = await trpcClient.worker.resume.mutate({ id });
       await invalidateInstances();
-      return instance;
+      return instance as WorkerInstance;
     },
     [invalidateInstances]
   );
 
   const terminate = useCallback(
-    async (id: string) => {
-      const instance = (await trpcClient.worker.terminate.mutate({
-        id
-      })) as WorkerInstance;
+    async (id: string): Promise<WorkerInstance> => {
+      const instance = await trpcClient.worker.terminate.mutate({ id });
       await invalidateInstances();
-      return instance;
+      return instance as WorkerInstance;
     },
     [invalidateInstances]
   );
@@ -258,12 +246,10 @@ export const useWorkers = (): UseWorkersResult => {
   }, [invalidateInstances]);
 
   const attach = useCallback(
-    async (id: string) => {
-      const connection = (await trpcClient.worker.attach.mutate({
-        id
-      })) as WorkerConnection;
+    async (id: string): Promise<WorkerConnection> => {
+      const connection = await trpcClient.worker.attach.mutate({ id });
       await invalidateInstances();
-      return connection;
+      return connection as WorkerConnection;
     },
     [invalidateInstances]
   );
@@ -273,11 +259,10 @@ export const useWorkers = (): UseWorkersResult => {
     await invalidateInstances();
   }, [invalidateInstances]);
 
-  const reconcile = useCallback(async () => {
-    const summary =
-      (await trpcClient.worker.reconcile.mutate()) as ReconcileSummary;
+  const reconcile = useCallback(async (): Promise<ReconcileSummary> => {
+    const summary = await trpcClient.worker.reconcile.mutate();
     await invalidateInstances();
-    return summary;
+    return summary as ReconcileSummary;
   }, [invalidateInstances]);
 
   const instances = instancesQuery.data ?? EMPTY_INSTANCES;
