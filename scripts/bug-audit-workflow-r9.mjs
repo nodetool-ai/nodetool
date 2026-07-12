@@ -60,23 +60,33 @@ const FINDERS = [
 phase('Find')
 const verdictKey = (v) => v && v.refuted === false
 
+// The re-sweep of the highest-complexity files runs on Fable (per request):
+// dense, already-hardened files where a fresh model lens is most valuable.
+const isHighComplexity = (finder) => finder.key.startsWith('resweep-')
+
 const results = await pipeline(
   FINDERS,
   (finder) =>
     agent(
       `${PREAMBLE}\n\nYour lens: ${finder.lens}\nYour files (read all):\n${finder.files.map((f) => '- ' + f).join('\n')}\n\nHunt for bugs. Return structured findings.`,
-      { label: `find:${finder.key}`, phase: 'Find', schema: FINDING_SCHEMA },
+      {
+        label: `find:${finder.key}`,
+        phase: 'Find',
+        schema: FINDING_SCHEMA,
+        ...(isHighComplexity(finder) ? { model: 'fable' } : {}),
+      },
     ),
   (findResult, finder) => {
     const findings = (findResult && findResult.findings) || []
     if (!findings.length) return []
+    const verifyModel = isHighComplexity(finder) ? { model: 'fable' } : {}
     return parallel(
       findings.map((f) => () =>
         parallel(
           [0, 1, 2].map((i) => () =>
             agent(
               `You are an adversarial skeptic (reviewer #${i + 1} of 3). A bug hunter claims the following is a REAL bug. DEFAULT to skepticism: try hard to REFUTE it. Read the actual code first.\n\nClaimed bug:\n- File: ${f.file}:${f.line}\n- Category: ${f.category}\n- Title: ${f.title}\n- Description: ${f.description}\n- Failure scenario: ${f.failureScenario}\n\nRead ${f.file} and related code. Set refuted=true if it's a false positive, intended/guarded behavior, unreachable, or the scenario doesn't hold. Set refuted=false ONLY if you independently confirm a genuine bug. Give code-grounded reasoning.`,
-              { label: `verify:${finder.key}#${i}`, phase: 'Verify', schema: VERDICT_SCHEMA },
+              { label: `verify:${finder.key}#${i}`, phase: 'Verify', schema: VERDICT_SCHEMA, ...verifyModel },
             ),
           ),
         ).then((verdicts) => {
