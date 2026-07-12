@@ -72,6 +72,28 @@ describe("UnifiedWebSocketRunner", () => {
     await runner.disconnect();
   });
 
+  it("drops a queued frame when the socket disconnects", async () => {
+    await runner.connect(ws);
+    let releaseFirst: (() => void) | undefined;
+    ws.sendBytes = vi.fn(async () => {
+      await new Promise<void>((resolve) => {
+        releaseFirst = resolve;
+      });
+    });
+
+    const first = runner.sendMessage({ type: "first" });
+    const second = runner.sendMessage({ type: "second" });
+    await vi.waitFor(() => expect(releaseFirst).toBeDefined());
+    runner.websocket = null;
+    releaseFirst?.();
+
+    await expect(Promise.all([first, second])).resolves.toEqual([
+      undefined,
+      undefined
+    ]);
+    expect(ws.sendBytes).toHaveBeenCalledTimes(1);
+  });
+
   it("switches to text mode", async () => {
     const res = await runner.handleCommand({
       command: "set_mode",

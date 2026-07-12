@@ -5,6 +5,7 @@ import {
   type ServerResponse
 } from "node:http";
 import { gzipSync } from "node:zlib";
+import { once } from "node:events";
 import { readFileSync, readdirSync, existsSync, promises as fsp } from "node:fs";
 import nodePath from "node:path";
 import os from "node:os";
@@ -40,6 +41,7 @@ import {
   PythonNodeExecutor,
   createPythonBridge,
   logPythonWorkerStderr,
+  safeFetch,
   type NodeExecutor,
   type PythonBridge
 } from "@nodetool-ai/runtime";
@@ -1227,7 +1229,7 @@ async function resolveAssetBytesForExport(
       return await adapter.retrieve(adapter.uriForKey(key));
     }
     if (/^https?:\/\//.test(ref)) {
-      const res = await fetch(ref);
+      const res = await safeFetch(ref);
       if (!res.ok) return null;
       return new Uint8Array(await res.arrayBuffer());
     }
@@ -2248,12 +2250,18 @@ export async function handleNodeHttpRequest(
     return;
   }
 
-  const bodyBuffer = Buffer.from(await response.arrayBuffer());
-
-  // Gzip-compress large JSON responses for performance (e.g. /api/nodes/metadata
-  // is ~5 MB uncompressed, ~550 KB compressed).
   const acceptEncoding = req.headers["accept-encoding"] ?? "";
-  if (bodyBuffer.length > GZIP_THRESHOLD && acceptEncoding.includes("gzip")) {
+  const contentLength = Number(response.headers.get("content-length") ?? 0);
+  const contentType = response.headers.get("content-type") ?? "";
+  const mayCompress =
+    response.status !== 206 &&
+    !response.headers.has("content-range") &&
+    (contentType.includes("json") || contentType.startsWith("text/")) &&
+    contentLength > GZIP_THRESHOLD &&
+    acceptEncoding.includes("gzip");
+
+  if (mayCompress) {
+    const bodyBuffer = Buffer.from(await response.arrayBuffer());
     const compressed = gzipSync(bodyBuffer);
     res.setHeader("content-encoding", "gzip");
     res.setHeader("content-length", compressed.length);
@@ -2261,7 +2269,17 @@ export async function handleNodeHttpRequest(
     return;
   }
 
-  res.end(bodyBuffer);
+  const reader = response.body.getReader();
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) {
+      break;
+    }
+    if (!res.write(value)) {
+      await once(res, "drain");
+    }
+  }
+  res.end();
 }
 
 export function createHttpApiServer(options: HttpApiOptions = {}): Server {

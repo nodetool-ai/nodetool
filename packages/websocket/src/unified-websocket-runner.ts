@@ -110,6 +110,7 @@ import type { PythonBridge } from "@nodetool-ai/runtime";
 import { appRouter } from "./trpc/router.js";
 import { createCallerFactory } from "./trpc/index.js";
 import type { HttpApiOptions } from "./http-api.js";
+import { getAssetFileName } from "./lib/asset-paths.js";
 
 const log = createLogger("nodetool.websocket.runner");
 const DATA_URI_PATTERN = /data:([^;,]+)?;base64,[A-Za-z0-9+/=\r\n]+/gi;
@@ -368,12 +369,6 @@ const ASSET_TYPE_MIME: Record<string, string> = {
   image: "image/png",
   audio: "audio/wav",
   video: "video/mp4"
-};
-
-const ASSET_TYPE_EXT: Record<string, string> = {
-  image: "png",
-  audio: "wav",
-  video: "mp4"
 };
 
 function isAssetLikeValue(
@@ -659,8 +654,6 @@ async function autoSaveAssets(
         ? explicitMime
         : (ASSET_TYPE_MIME[assetType] ?? "application/octet-stream");
 
-    const ext = isRaw ? "png" : (ASSET_TYPE_EXT[assetType] ?? "bin");
-
     // Create Asset record
     const asset = new Asset({
       user_id: opts.userId,
@@ -679,7 +672,7 @@ async function autoSaveAssets(
       asset.metadata = mediaMeta;
     }
 
-    const fileName = `${asset.id}.${ext}`;
+    const fileName = getAssetFileName(asset.id, contentType);
     try {
       await storeAssetWithThumbnail(asset.id, fileName, bytes, contentType);
       asset.size = bytes.length;
@@ -1146,12 +1139,14 @@ class ToolBridge {
     {
       resolve: (value: Record<string, unknown>) => void;
       reject: (reason: Error) => void;
+      scope?: string;
     }
   >();
 
   createWaiter(
     toolCallId: string,
-    timeoutMs = 300_000
+    timeoutMs = 300_000,
+    scope?: string
   ): Promise<Record<string, unknown>> {
     return new Promise((resolve, reject) => {
       let timer: ReturnType<typeof setTimeout> | null = null;
@@ -1169,7 +1164,8 @@ class ToolBridge {
       };
       this.waiters.set(toolCallId, {
         resolve: wrappedResolve,
-        reject: wrappedReject
+        reject: wrappedReject,
+        scope
       });
       if (timeoutMs > 0) {
         timer = setTimeout(() => {
@@ -1197,6 +1193,16 @@ class ToolBridge {
       waiter.reject(error);
     }
     this.waiters.clear();
+  }
+
+  cancelScope(scope: string): void {
+    const error = new Error(`Pending tool calls cancelled for ${scope}`);
+    for (const [id, waiter] of this.waiters) {
+      if (waiter.scope === scope) {
+        waiter.reject(error);
+        this.waiters.delete(id);
+      }
+    }
   }
 }
 
@@ -1282,6 +1288,7 @@ export class UnifiedWebSocketRunner {
    * flight. They start automatically (FIFO) as active jobs finish.
    */
   private jobQueue = new JobConcurrencyQueue<RunJobRequest>();
+  private dequeuedJobs = new Set<string>();
   /**
    * Count of jobs that have passed the concurrency gate but haven't been added
    * to {@link activeJobs} yet (startJob awaits graph hydration first). Counted
@@ -1306,6 +1313,12 @@ export class UnifiedWebSocketRunner {
 
   private logError(context: string, error: unknown): void {
     log.error(context, formatSanitizedError(error));
+  }
+
+  private sendDetached(message: Record<string, unknown>): void {
+    void this.sendMessage(message).catch((err) => {
+      this.logError("detached websocket send failed", err);
+    });
   }
 
   /**
@@ -1456,6 +1469,18 @@ export class UnifiedWebSocketRunner {
       }
     }
 
+    for (const dequeuedId of this.dequeuedJobs) {
+      try {
+        const job = await Job.get(dequeuedId);
+        if (job) {
+          job.markCancelled();
+          await job.save();
+        }
+      } catch (err) {
+        this.logError("disconnect dequeued-job cancellation failed", err);
+      }
+    }
+
     if (this.websocket) {
       try {
         await this.websocket.close();
@@ -1522,10 +1547,18 @@ export class UnifiedWebSocketRunner {
 
     await prev;
     try {
+      const websocket = this.websocket;
+      if (
+        !websocket ||
+        websocket.clientState === "disconnected" ||
+        websocket.applicationState === "disconnected"
+      ) {
+        return;
+      }
       if (mode === "binary") {
-        await this.websocket.sendBytes(pack(payload));
+        await websocket.sendBytes(pack(payload));
       } else {
-        await this.websocket.sendText(JSON.stringify(payload));
+        await websocket.sendText(JSON.stringify(payload));
       }
     } finally {
       release();
@@ -1872,7 +1905,7 @@ export class UnifiedWebSocketRunner {
     } catch (err) {
       this.logError("enqueue persistence failed", err);
     }
-    void this.sendMessage({
+    this.sendDetached({
       type: "job_update",
       status: "queued",
       job_id: jobId,
@@ -1916,6 +1949,10 @@ export class UnifiedWebSocketRunner {
         // Reserve the slot synchronously, mirroring runJob, so a concurrent
         // run_job/drain can't also claim it before startJob registers.
         this.startingJobs++;
+        const nextId = next.job_id;
+        if (nextId) {
+          this.dequeuedJobs.add(nextId);
+        }
         try {
           await this.startJob(next);
         } catch (err) {
@@ -1930,6 +1967,10 @@ export class UnifiedWebSocketRunner {
             workflow_id: next.workflow_id ?? null,
             error: formatSanitizedError(err)
           });
+        } finally {
+          if (nextId) {
+            this.dequeuedJobs.delete(nextId);
+          }
         }
       }
       this.broadcastQueuePositions();
@@ -1939,7 +1980,7 @@ export class UnifiedWebSocketRunner {
   /** Push updated queue positions to every still-waiting run. */
   private broadcastQueuePositions(): void {
     for (const { jobId, workflowId, position } of this.jobQueue.positions()) {
-      void this.sendMessage({
+      this.sendDetached({
         type: "job_update",
         status: "queued",
         job_id: jobId,
@@ -2006,7 +2047,7 @@ export class UnifiedWebSocketRunner {
     });
     // Agents planning inside this run pause for user approval over this
     // socket before executing their plan.
-    this.attachPlanApproval(context, null);
+    this.attachPlanApproval(context, jobId);
 
     // Expose executor/node-type resolution on the context so that
     // sub-workflow nodes (WorkflowNode) can create child runners.
@@ -2063,7 +2104,7 @@ export class UnifiedWebSocketRunner {
         if (existing.status === "cancelled") {
           log.info("Skipping start of cancelled job", { jobId });
           this.activeJobs.delete(jobId);
-          void this.sendMessage({
+          this.sendDetached({
             type: "job_update",
             status: "cancelled",
             job_id: jobId,
@@ -2979,8 +3020,12 @@ export class UnifiedWebSocketRunner {
       args: request.args
     });
     try {
-      // No timeout — the user may take a while; `stop` cancels via cancelAll.
-      const response = await this.approvalBridge.createWaiter(approvalId, 0);
+      // No timeout — the user may take a while; `stop` cancels this thread.
+      const response = await this.approvalBridge.createWaiter(
+        approvalId,
+        0,
+        threadId
+      );
       const decision = response.decision;
       if (
         decision === "allow" ||
@@ -3026,8 +3071,12 @@ export class UnifiedWebSocketRunner {
       }
     });
     try {
-      // No timeout — the user may take a while; `stop` cancels via cancelAll.
-      const response = await this.approvalBridge.createWaiter(approvalId, 0);
+      // No timeout — the user may take a while; `stop` cancels this run.
+      const response = await this.approvalBridge.createWaiter(
+        approvalId,
+        0,
+        threadId ?? undefined
+      );
       if (response.decision === "approve") {
         return { decision: "approve" };
       }
@@ -3698,7 +3747,8 @@ export class UnifiedWebSocketRunner {
         });
         const clientResult = await this.toolBridge.createWaiter(
           toolCall.id,
-          300_000
+          300_000,
+          threadId
         );
         toolResult =
           clientResult.result ?? clientResult.content ?? clientResult;
@@ -4329,9 +4379,9 @@ export class UnifiedWebSocketRunner {
 
     const provider = await this.resolveProvider(providerId, userId);
     // Wire up progress forwarding so provider.emitMessage() reaches the client.
-    provider.setMessageEmitter((msg) =>
-      void this.sendMessage(msg as Record<string, unknown>)
-    );
+    provider.setMessageEmitter((msg) => {
+      this.sendDetached(msg as Record<string, unknown>);
+    });
 
     // Store generated media as a proper Asset record and return the
     // asset ID.  The DB message stores only `asset_id` — URLs are
@@ -4911,9 +4961,10 @@ export class UnifiedWebSocketRunner {
       try {
         const asset = await Asset.find(userId, assetId);
         if (!asset) return null;
-        const ext = (asset.content_type ?? "image/png").split("/")[1] ?? "png";
         const adapter = getAssetAdapter();
-        return await adapter.retrieve(adapter.uriForKey(`${assetId}.${ext}`));
+        return await adapter.retrieve(
+          adapter.uriForKey(getAssetFileName(assetId, asset.content_type))
+        );
       } catch (err) {
         log.warn("resolveSourceImageBytes: asset load failed", {
           assetId,
@@ -5215,6 +5266,16 @@ export class UnifiedWebSocketRunner {
             active.runner.cancel();
           } catch {
             // best-effort cancel
+          }
+          active.status = "cancelled";
+          try {
+            const job = await Job.get(jobId);
+            if (job && job.status !== "cancelled") {
+              job.markCancelled();
+              await job.save();
+            }
+          } catch (err) {
+            this.logError("workflow chat cancellation persistence failed", err);
           }
           this.activeJobs.delete(jobId);
           return;
@@ -5723,11 +5784,17 @@ export class UnifiedWebSocketRunner {
       ]);
       if (!sourceAsset) throw new Error(`Source asset not found: ${req.sourceAssetId}`);
       if (!maskAsset) throw new Error(`Mask asset not found: ${req.maskAssetId}`);
-      const sourceExt = (sourceAsset.content_type ?? "image/png").split("/")[1] ?? "png";
-      const maskExt = (maskAsset.content_type ?? "image/png").split("/")[1] ?? "png";
       const [sourceBytes, maskBytes] = await Promise.all([
-        adapter.retrieve(adapter.uriForKey(`${req.sourceAssetId}.${sourceExt}`)),
-        adapter.retrieve(adapter.uriForKey(`${req.maskAssetId}.${maskExt}`))
+        adapter.retrieve(
+          adapter.uriForKey(
+            getAssetFileName(req.sourceAssetId, sourceAsset.content_type)
+          )
+        ),
+        adapter.retrieve(
+          adapter.uriForKey(
+            getAssetFileName(req.maskAssetId, maskAsset.content_type)
+          )
+        )
       ]);
       if (!sourceBytes) throw new Error(`Source asset bytes not found: ${req.sourceAssetId}`);
       if (!maskBytes) throw new Error(`Mask asset bytes not found: ${req.maskAssetId}`);
@@ -5751,11 +5818,11 @@ export class UnifiedWebSocketRunner {
       if (!sourceAsset) {
         throw new Error(`Source asset not found: ${req.sourceAssetId}`);
       }
-      const ext =
-        (sourceAsset.content_type ?? "image/png").split("/")[1] ?? "png";
       const adapter = getAssetAdapter();
       const sourceBytes = await adapter.retrieve(
-        adapter.uriForKey(`${req.sourceAssetId}.${ext}`)
+        adapter.uriForKey(
+          getAssetFileName(req.sourceAssetId, sourceAsset.content_type)
+        )
       );
       if (!sourceBytes) {
         throw new Error(`Source asset bytes not found: ${req.sourceAssetId}`);
@@ -5811,10 +5878,9 @@ export class UnifiedWebSocketRunner {
     if (!asset) {
       throw new Error(`Audio asset not found: ${req.assetId}`);
     }
-    const ext = (asset.content_type ?? "audio/wav").split("/")[1] ?? "wav";
     const adapter = getAssetAdapter();
     const bytes = await adapter.retrieve(
-      adapter.uriForKey(`${req.assetId}.${ext}`)
+      adapter.uriForKey(getAssetFileName(req.assetId, asset.content_type))
     );
     if (!bytes) {
       throw new Error(`Audio asset bytes not found: ${req.assetId}`);
@@ -6081,12 +6147,14 @@ export class UnifiedWebSocketRunner {
           const active = this.activeJobs.get(jobId);
           if (active) {
             active.runner.cancel();
-            active.finished = true;
             active.status = "cancelled";
           }
         }
-        this.toolBridge.cancelAll();
-        this.approvalBridge.cancelAll();
+        const stopScope = threadId ?? jobId;
+        if (stopScope) {
+          this.toolBridge.cancelScope(stopScope);
+          this.approvalBridge.cancelScope(stopScope);
+        }
         await this.sendMessage({
           type: "generation_stopped",
           message: "Generation stopped by user",
@@ -6307,7 +6375,7 @@ export class UnifiedWebSocketRunner {
       }
     }
 
-    void this.sendMessage({
+    this.sendDetached({
       type: "resource_change",
       event,
       resource_type: instance.constructor.name.toLowerCase(),
@@ -6318,7 +6386,7 @@ export class UnifiedWebSocketRunner {
   private onResourceEvent = (payload: ResourceChangePayload): void => {
     if (!this.websocket) return;
     if (payload.userId && this.userId && payload.userId !== this.userId) return;
-    void this.sendMessage({
+    this.sendDetached({
       type: "resource_change",
       event: payload.event,
       resource_type: payload.resource_type,
