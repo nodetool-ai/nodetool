@@ -60,7 +60,6 @@ interface ChatState {
   stopGeneration: () => void;
   createNewThread: (title?: string) => Promise<string>;
   loadThreadFromServer: (threadId: string) => Promise<void>;
-  getCurrentMessages: () => Message[];
   setSelectedModel: (model: LanguageModel) => void;
   setAgentMode: (enabled: boolean) => void;
   setHelpMode: (enabled: boolean) => void;
@@ -69,8 +68,6 @@ interface ChatState {
 
   // Internal actions
   addMessageToCache: (threadId: string, message: Message) => void;
-  setError: (error: string | null) => void;
-  clearError: () => void;
 }
 
 // Tracks the in-flight safety timeout from sendMessage. Module-scoped so
@@ -572,12 +569,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
-  getCurrentMessages: () => {
-    const { currentThreadId, messageCache } = get();
-    if (!currentThreadId) {return [];}
-    return messageCache[currentThreadId] || [];
-  },
-
   addMessageToCache: (threadId: string, message: Message) => {
     set((state) => {
       const existingMessages = state.messageCache[threadId] || [];
@@ -587,24 +578,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
           [threadId]: [...existingMessages, message],
         },
       };
-    });
-  },
-
-  setError: (error: string | null) => {
-    set({ error });
-  },
-
-  /**
-   * Dismiss the current error and return to a usable state so the user can
-   * retry — back to `connected` if the socket is still up, otherwise
-   * `disconnected` (the next send will reconnect).
-   */
-  clearError: () => {
-    const { wsManager } = get();
-    set({
-      error: null,
-      statusMessage: null,
-      status: wsManager?.isConnected() ? 'connected' : 'disconnected',
     });
   },
 

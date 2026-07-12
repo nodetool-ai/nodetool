@@ -386,14 +386,6 @@ describe('WorkflowRunner', () => {
     });
   });
 
-  describe('setStatusMessage', () => {
-    it('updates the status message', () => {
-      const store = createWorkflowRunnerStore('status-test');
-      store.getState().setStatusMessage('hi');
-      expect(store.getState().statusMessage).toBe('hi');
-    });
-  });
-
   describe('getWorkflowRunnerStore', () => {
     it('returns the same store instance for a given workflow id', () => {
       const a = getWorkflowRunnerStore('shared-id');

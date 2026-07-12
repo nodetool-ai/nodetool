@@ -52,7 +52,6 @@ export type WorkflowRunner = {
   nodeErrors: Record<string, string>;
 
   statusMessage: string | null;
-  setStatusMessage: (message: string | null) => void;
 
   run: (
     params: Record<string, unknown>,
@@ -93,10 +92,6 @@ export const createWorkflowRunnerStore = (
     nodeResults: {},
     nodeErrors: {},
     statusMessage: null,
-
-    setStatusMessage: (message: string | null) => {
-      set({ statusMessage: message });
-    },
 
     ensureConnection: async () => {
       set({ state: "connecting" });

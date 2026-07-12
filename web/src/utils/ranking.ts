@@ -92,7 +92,7 @@ function fieldScore(
   return score;
 }
 
-export function scoreItem<T>(
+function scoreItem<T>(
   item: T,
   terms: readonly string[],
   config: RankConfig<T>
