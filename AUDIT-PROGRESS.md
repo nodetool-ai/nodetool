@@ -4,7 +4,7 @@
 > before opening any PR.** It exists so the audit can resume after an ephemeral
 > container is reclaimed. Branch: `claude/kernel-runtime-bug-audit-2e71pq`.
 
-_Last updated: rounds 1-4 done (73 fixes pushed, 3 deferred). Round 5 next.
+_Last updated: round 5 in flight (run `wf_5015e686-bee`, task `w0skqc2gu`). 73 fixes, 3 deferred.
 Converging: R1=12, R2=25, R3=20, R4=13 confirmed. Loop NOT yet dry._
 
 Round 4 (commit `3166ee9`) fixed 13: gemini usage tracking, replicate TTS encoded
