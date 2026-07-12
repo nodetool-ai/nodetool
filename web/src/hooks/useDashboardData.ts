@@ -3,13 +3,15 @@ import { useQuery } from "@tanstack/react-query";
 import { WorkflowList, Workflow } from "../stores/ApiTypes";
 import { useSettingsStore } from "../stores/SettingsStore";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
-import { trpcClient } from "../trpc/client";
+import { trpcClient, type RouterOutputs } from "../trpc/client";
 
-const loadWorkflows = async () => {
+type WorkflowListResponse = RouterOutputs["workflows"]["list"];
+
+const loadWorkflows = async (): Promise<WorkflowListResponse> => {
   return trpcClient.workflows.list.query({
     cursor: "",
     limit: 20
-  }) as unknown as WorkflowList;
+  });
 };
 
 interface UseDashboardDataResult {
@@ -24,7 +26,7 @@ export const useDashboardData = (): UseDashboardDataResult => {
   const loadTemplates = useWorkflowManager((state) => state.loadTemplates);
 
   const { data: workflowsData, isLoading: isLoadingWorkflows } =
-    useQuery<WorkflowList>({
+    useQuery<WorkflowListResponse>({
       queryKey: ["workflows"],
       queryFn: loadWorkflows
     });
@@ -53,14 +55,14 @@ export const useDashboardData = (): UseDashboardDataResult => {
     });
   }, [examplesData]);
 
-  const sortedWorkflows = useMemo(() => {
+  const sortedWorkflows = useMemo((): Workflow[] => {
     return (
       [...(workflowsData?.workflows || [])].sort((a, b) => {
         if (settings.workflowOrder === "name") {
           return a.name.localeCompare(b.name);
         }
-        return b.updated_at.localeCompare(a.updated_at);
-      })
+        return (b.updated_at ?? "").localeCompare(a.updated_at ?? "");
+      }) as Workflow[]
     );
   }, [workflowsData, settings.workflowOrder]);
 

@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { trpc } from "../lib/trpc";
 import { useWorkers } from "./useWorkers";
-import type { UnifiedModel } from "../stores/ApiTypes";
+import type { RouterOutputs } from "../trpc/client";
 
 export interface WorkerCachedModelsResult {
   /** Keys of models cached on the active worker (`owner/repo` or `owner/repo/path`). */
@@ -22,14 +22,13 @@ const EMPTY_IDS = new Set<string>();
 export const useWorkerCachedModels = (): WorkerCachedModelsResult => {
   const { activeWorker } = useWorkers();
 
-  const { data, isLoading } = useQuery<UnifiedModel[]>({
+  type HuggingfaceListResult = RouterOutputs["models"]["huggingfaceList"];
+
+  const { data, isLoading } = useQuery<HuggingfaceListResult>({
     // Segment by worker id so attaching to a different worker doesn't reuse the
     // previous worker's cached-model list.
     queryKey: ["worker-cached-models", activeWorker?.id ?? null],
-    queryFn: () =>
-      trpc.models.huggingfaceList.query({ scope: "worker" }) as Promise<
-        UnifiedModel[]
-      >,
+    queryFn: () => trpc.models.huggingfaceList.query({ scope: "worker" }),
     enabled: !!activeWorker,
     staleTime: 30_000,
     refetchOnWindowFocus: true,

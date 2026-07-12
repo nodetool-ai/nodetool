@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { CollectionList } from "../../stores/ApiTypes";
-import { trpcClient } from "../../trpc/client";
+import { trpcClient, type RouterOutputs } from "../../trpc/client";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import { memo, useMemo } from "react";
@@ -18,11 +17,9 @@ const CollectionProperty = (props: PropertyProps) => {
   );
   const isConnected = useNodes(isConnectedSelector);
 
-  const { data, error, isLoading } = useQuery<CollectionList>({
+  const { data, error, isLoading } = useQuery<RouterOutputs["collections"]["list"]>({
     queryKey: ["collections"],
-    queryFn: async () => {
-      return (await trpcClient.collections.list.query()) as unknown as CollectionList;
-    }
+    queryFn: () => trpcClient.collections.list.query()
   });
 
   const selectValue = props.value?.name || "";
