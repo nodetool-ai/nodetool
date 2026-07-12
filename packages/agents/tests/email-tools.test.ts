@@ -13,7 +13,10 @@ const mockClient = {
   search: vi.fn().mockResolvedValue([]),
   fetch: vi.fn(),
   messageFlagsRemove: vi.fn().mockResolvedValue(undefined),
-  messageFlagsAdd: vi.fn().mockResolvedValue(undefined)
+  messageFlagsAdd: vi.fn().mockResolvedValue(undefined),
+  // Archiving moves the message out of INBOX (Gmail semantics), not a bogus
+  // `\Inbox` flag removal. messageMove resolves truthy on a real move.
+  messageMove: vi.fn().mockResolvedValue({ path: "[Gmail]/All Mail" })
 };
 
 // Mock imapflow
@@ -188,18 +191,39 @@ describe("ArchiveEmailTool", () => {
     expect(result.archived_messages).toEqual(["42"]);
   });
 
+  it("moves messages out of INBOX to archive them (#22)", async () => {
+    const client = mockClient;
+    await tool.process(mockContext, { message_ids: ["1"] });
+    // Must actually move to All Mail, not remove a non-existent `\Inbox` flag.
+    expect(client.messageMove).toHaveBeenCalledWith("1", "[Gmail]/All Mail", {
+      uid: true
+    });
+  });
+
+  it("only reports ids the server actually moved", async () => {
+    const client = mockClient;
+    // A move that matched nothing resolves falsy — the id must NOT be reported
+    // as archived.
+    client.messageMove.mockResolvedValueOnce(undefined);
+
+    const result = (await tool.process(mockContext, {
+      message_ids: ["not-moved", "moved"]
+    })) as any;
+
+    expect(result.success).toBe(true);
+    expect(result.archived_messages).toEqual(["moved"]);
+  });
+
   it("handles failed archive operations gracefully", async () => {
     const client = mockClient;
-    client.messageFlagsRemove.mockRejectedValueOnce(
-      new Error("Message not found")
-    );
+    client.messageMove.mockRejectedValueOnce(new Error("Message not found"));
 
     const result = (await tool.process(mockContext, {
       message_ids: ["bad-id", "good-id"]
     })) as any;
 
     expect(result.success).toBe(true);
-    // First one fails, second one succeeds
+    // First one throws and is skipped, second one succeeds.
     expect(result.archived_messages).toEqual(["good-id"]);
   });
 

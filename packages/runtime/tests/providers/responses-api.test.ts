@@ -3,6 +3,7 @@ import {
   extractResponsesText,
   extractResponsesToolCalls,
   messagesToResponsesInput,
+  responseToolChoice,
   responseTools,
   responseUsage,
   streamResponsesEvents
@@ -28,6 +29,25 @@ async function collect(
   for await (const item of stream) items.push(item);
   return items;
 }
+
+describe("responseToolChoice", () => {
+  it('maps "any" to "required" so forced tool-calling is honored (#18)', () => {
+    // Regression: "any" mapped to "auto" left tool use optional exactly when
+    // the caller demanded a tool call.
+    expect(responseToolChoice("any")).toBe("required");
+  });
+
+  it("passes a specific tool name through as a function choice", () => {
+    expect(responseToolChoice("my_tool")).toEqual({
+      type: "function",
+      name: "my_tool"
+    });
+  });
+
+  it("returns undefined when no choice is given", () => {
+    expect(responseToolChoice(undefined)).toBeUndefined();
+  });
+});
 
 describe("Responses API helpers", () => {
   it("converts text, assistant tool calls, tool outputs, and images", async () => {

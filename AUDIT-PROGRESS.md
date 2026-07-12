@@ -4,9 +4,52 @@
 > before opening any PR.** It exists so the audit can resume after an ephemeral
 > container is reclaimed. Branch: `claude/kernel-runtime-bug-audit-2e71pq`.
 
-_Last updated: round 5 complete (18 confirmed → fixed + tested + committed).
-88 fixes, 3 deferred. Converging: R1=12, R2=25, R3=20, R4=13, R5=18 confirmed.
-Loop NOT yet dry (need two consecutive zero-confirm rounds)._
+_Last updated: round 6 complete (24 confirmed → fixed + tested + committed).
+115 fixes, 3 deferred. Converging: R1=12, R2=25, R3=20, R4=13, R5=18, R6=24
+confirmed. Loop NOT yet dry (need two consecutive zero-confirm rounds).
+
+Round 6 (`scripts/bug-audit-workflow-r6.mjs`, run `wf_943ff508-c20`) swept 15
+finder groups over files not examined in rounds 1-5 (asset/file/storage/
+workspace/sandbox/thread/message/collections/packs/jobs/worker/costs tRPC
+routers; kernel actor/runner/inbox; runtime node-executor/variable-channel/
+media-codec/python-node-exec/token-cost; mistral/xai/groq/openrouter/responses/
+cohere providers; browser/http/google/email/search/code/collection/asset agent
+tools; graph-builder/security-monitor). 37 findings, 24 confirmed (≥2/3), 13
+refuted. Fixed 24:
+- **storage router** — cross-user IDOR (list/metadata/signUrl/delete now scoped
+  to the caller by asset-ownership, fail-closed).
+- **workspace router** — update now validates the path like create (arbitrary
+  dir read); segment-aware traversal guard (`..config` no longer rejected).
+- **sandboxes router** — map "no such object" → 404 (was 500).
+- **messages router** — create now checks thread ownership (IDOR + thread
+  lockout).
+- **assets router** — reject content_type change that orphans the stored file.
+- **packs router** — setTrust persists file-level base, not env-merged effective
+  values.
+- **models message/thread/prediction paginate + jobs router** — honor
+  startKey/cursor (pagination was a no-op past page 1) and wire jobs.list cursor.
+- **media-ref-bytes** — split data URIs on the first comma only; try/catch the
+  decodeURIComponent so a malformed URI returns null instead of throwing.
+- **python-stdio-bridge** — stdin 'error' handler + try/catch _send (EPIPE no
+  longer crashes the backend); settleError kills the candidate and resets the
+  shared read buffer (no orphaned worker / frame desync).
+- **python-bridge-base** — _discover() now has a timeout (connect no longer
+  hangs forever when a worker is READY but never answers discover).
+- **token-counter** — hard-split no longer bisects surrogate pairs.
+- **openai-provider** — convertSystemToUserForOModels matches genuine o1/o3/o4
+  only (was mangling every "openai/…" compat model's system prompt).
+- **responses-api** — tool_choice "any" → "required" (was "auto").
+- **search-tools** — allow/block domain filter uses a label boundary (look-alike
+  domains no longer bypass the allowlist).
+- **http-tools** — http_request/download_file route through safeFetch (SSRF).
+- **browser-tools** — numeric HTML entities decode via fromCodePoint (astral).
+- **email-tools** — archive_email moves to All Mail (the `\Inbox` flag removal
+  was a no-op).
+- **asset-tools** — read_asset resolves createAsset-saved assets (name-mirror)
+  and returns base64 for binary instead of corrupt UTF-8.
+
+23 of 24 carry a dedicated regression test (the python-subprocess fixes
+#13/#14/#15 are covered by code review + build, not a spawn-based unit test)._
 
 Round 4 (commit `3166ee9`) fixed 13: gemini usage tracking, replicate TTS encoded
 path, comfy handshake timeout, openai Responses mid-turn abort, step-executor

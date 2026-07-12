@@ -4,7 +4,7 @@
  * Port of Python's `nodetool.models.thread`.
  */
 
-import { eq, and, desc, asc } from "drizzle-orm";
+import { eq, and, gt, lt, desc, asc } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
 import { threads } from "./schema/threads.js";
@@ -55,15 +55,27 @@ export class Thread extends DBModel {
       workflowId?: string;
     } = {}
   ): Promise<[Thread[], string]> {
-    const { limit = 50, reverse = true, workflowId } = opts;
+    const { limit = 50, reverse = true, workflowId, startKey } = opts;
     const db = getDb();
+    const conditions = [eq(threads.user_id, userId)];
+    if (workflowId !== undefined) {
+      conditions.push(eq(threads.workflow_id, workflowId));
+    }
+    // Seek past the cursor row so following `next` advances the page. Without
+    // this the same first page was returned forever while still advertising a
+    // cursor.
+    if (startKey) {
+      const cursorRow = await Thread.get<Thread>(startKey);
+      if (cursorRow && cursorRow.user_id === userId) {
+        conditions.push(
+          reverse
+            ? lt(threads.updated_at, cursorRow.updated_at)
+            : gt(threads.updated_at, cursorRow.updated_at)
+        );
+      }
+    }
     const where =
-      workflowId === undefined
-        ? eq(threads.user_id, userId)
-        : and(
-            eq(threads.user_id, userId),
-            eq(threads.workflow_id, workflowId)
-          );
+      conditions.length === 1 ? conditions[0] : and(...conditions);
     const rows = await db
       .select()
       .from(threads)

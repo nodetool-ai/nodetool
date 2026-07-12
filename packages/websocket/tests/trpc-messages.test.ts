@@ -17,7 +17,8 @@ vi.mock("@nodetool-ai/models", async (orig) => {
     },
     Thread: {
       ...actual.Thread,
-      create: vi.fn()
+      create: vi.fn(),
+      find: vi.fn()
     }
   };
 });
@@ -83,6 +84,12 @@ function makeMessage(opts: {
 describe("messages router", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default: the caller owns the thread they post to. Individual tests
+    // override this to exercise the not-owned path.
+    (Thread.find as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "t1",
+      user_id: "user-1"
+    });
   });
 
   afterEach(() => {
@@ -205,6 +212,20 @@ describe("messages router", () => {
         tool_calls: null
       });
       expect(Thread.create).not.toHaveBeenCalled();
+    });
+
+    it("rejects appending to a thread the caller does not own (IDOR)", async () => {
+      // Thread.find returns null for a thread owned by someone else.
+      (Thread.find as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.messages.create({
+          thread_id: "victim-thread",
+          role: "user",
+          content: "x"
+        })
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+      expect(Message.create).not.toHaveBeenCalled();
     });
 
     it("auto-creates a thread when thread_id is omitted", async () => {

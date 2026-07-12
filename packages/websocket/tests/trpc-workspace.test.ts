@@ -276,6 +276,12 @@ describe("workspace router", () => {
     it("updates name and path", async () => {
       const ws = makeWorkspace({ id: "w1", name: "Old", path: "/old" });
       (Workspace.find as ReturnType<typeof vi.fn>).mockResolvedValue(ws);
+      // update now validates the new path exactly like create.
+      (existsSync as ReturnType<typeof vi.fn>).mockReturnValue(true);
+      (stat as ReturnType<typeof vi.fn>).mockResolvedValue({
+        isDirectory: () => true
+      });
+      (access as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
 
       const caller = createCaller(makeCtx());
       const result = await caller.workspace.update({
@@ -288,6 +294,18 @@ describe("workspace router", () => {
       expect(ws.save).toHaveBeenCalled();
       expect(result.name).toBe("New");
       expect(result.path).toBe("/new");
+    });
+
+    it("rejects a non-existent path on update (validation now enforced)", async () => {
+      const ws = makeWorkspace({ id: "w1", name: "Old", path: "/old" });
+      (Workspace.find as ReturnType<typeof vi.fn>).mockResolvedValue(ws);
+      (existsSync as ReturnType<typeof vi.fn>).mockReturnValue(false);
+
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.workspace.update({ id: "w1", path: "/etc" })
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+      expect(ws.save).not.toHaveBeenCalled();
     });
 
     it("unsets other defaults when setting is_default=true", async () => {

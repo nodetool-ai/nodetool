@@ -304,18 +304,42 @@ export abstract class PythonBridgeBase
 
   protected async _discover(): Promise<void> {
     const requestId = randomUUID();
+    // Bound the discover RPC: _openTransport resolves as soon as the worker
+    // signals readiness, so a worker that becomes READY but never answers
+    // discover (wedged/hung post-ready init) would leave connect() pending
+    // forever. Mirror _getWorkerStatusWithTimeout's timeout handling.
+    const timeoutMs =
+      this._options.statusTimeoutMs ?? DEFAULT_STATUS_TIMEOUT_MS;
+
     return new Promise<void>((resolve, reject) => {
+      let timer: NodeJS.Timeout | undefined;
       this._pending.set(requestId, {
         resolve: () => {
+          if (timer) clearTimeout(timer);
           this._pending.delete(requestId);
           resolve();
         },
         reject: (err) => {
+          if (timer) clearTimeout(timer);
           this._pending.delete(requestId);
           reject(err);
         }
       });
-      this._send({ type: "discover", request_id: requestId, data: {} });
+      if (timeoutMs > 0) {
+        timer = setTimeout(() => {
+          this._pending.delete(requestId);
+          reject(
+            new Error(`Python worker discover timed out after ${timeoutMs}ms.`)
+          );
+        }, timeoutMs);
+      }
+      try {
+        this._send({ type: "discover", request_id: requestId, data: {} });
+      } catch (err) {
+        if (timer) clearTimeout(timer);
+        this._pending.delete(requestId);
+        reject(err instanceof Error ? err : new Error(String(err)));
+      }
     });
   }
 

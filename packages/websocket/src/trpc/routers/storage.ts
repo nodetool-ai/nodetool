@@ -10,6 +10,7 @@ import {
   loadAssetStorageConfig
 } from "@nodetool-ai/config";
 import { createAssetUrlBuilder } from "@nodetool-ai/storage";
+import { Asset } from "@nodetool-ai/models";
 
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
@@ -77,6 +78,32 @@ function keyFromPath(rootDir: string, filePath: string): string {
     .replace(/\\/g, "/");
 }
 
+// Asset files are stored flat as `{assetId}.{ext}` and `{assetId}_thumb.jpg`.
+// Derive the owning asset id from a storage key so operations can be scoped to
+// the caller — the storage dir is a single shared bucket with no per-user
+// prefix, so without this any authenticated user could enumerate/read/delete
+// every other user's asset files (IDOR).
+function assetIdFromKey(key: string): string | null {
+  const base = path.basename(key.replace(/\\/g, "/"));
+  const withoutExt = base.replace(/\.[^.]+$/, "");
+  const id = withoutExt.replace(/_thumb$/, "");
+  return id || null;
+}
+
+// Verifies the key references an asset owned by `userId`. Returns false (fail
+// closed) for keys that don't map to an owned asset, so a traversal-clean but
+// foreign key can't be read or deleted.
+async function callerOwnsKey(userId: string, key: string): Promise<boolean> {
+  const assetId = assetIdFromKey(key);
+  if (!assetId) return false;
+  try {
+    return (await Asset.find(userId, assetId)) !== null;
+  } catch {
+    // Fail closed: deny when ownership can't be verified.
+    return false;
+  }
+}
+
 // ── URL builder (lazy, cached per backend kind) ───────────────────────────────
 
 let _urlBuilder: ((key: string) => Promise<string>) | null = null;
@@ -97,7 +124,7 @@ export const storageRouter = router({
   list: protectedProcedure
     .input(listStorageInput)
     .output(listStorageOutput)
-    .query(async ({ input }) => {
+    .query(async ({ ctx, input }) => {
       const rootDir = getDefaultAssetsPath();
       const prefix = input.prefix ?? "";
 
@@ -149,16 +176,39 @@ export const storageRouter = router({
       }
 
       await walk(baseDir);
-      return { entries, count: entries.length };
+      // Scope to the caller: only return keys for assets they own. An
+      // in-memory cache avoids a duplicate lookup for an asset + its thumbnail.
+      const ownershipCache = new Map<string, boolean>();
+      const owned: typeof entries = [];
+      for (const entry of entries) {
+        const assetId = assetIdFromKey(entry.key);
+        if (!assetId) continue;
+        let isOwned = ownershipCache.get(assetId);
+        if (isOwned === undefined) {
+          try {
+            isOwned = (await Asset.find(ctx.userId, assetId)) !== null;
+          } catch {
+            // Fail closed: if ownership can't be verified (e.g. DB error) don't
+            // expose the entry.
+            isOwned = false;
+          }
+          ownershipCache.set(assetId, isOwned);
+        }
+        if (isOwned) owned.push(entry);
+      }
+      return { entries: owned, count: owned.length };
     }),
 
   metadata: protectedProcedure
     .input(storageMetadataInput)
     .output(storageMetadataOutput)
-    .query(async ({ input }) => {
+    .query(async ({ ctx, input }) => {
       const validationError = validateStorageKey(input.key);
       if (validationError) {
         throwApiError(ApiErrorCode.INVALID_INPUT, validationError);
+      }
+      if (!(await callerOwnsKey(ctx.userId, input.key))) {
+        throwApiError(ApiErrorCode.NOT_FOUND, "Object not found");
       }
 
       const rootDir = getDefaultAssetsPath();
@@ -180,10 +230,13 @@ export const storageRouter = router({
   signUrl: protectedProcedure
     .input(signUrlInput)
     .output(signUrlOutput)
-    .query(async ({ input }) => {
+    .query(async ({ ctx, input }) => {
       const validationError = validateStorageKey(input.key);
       if (validationError) {
         throwApiError(ApiErrorCode.INVALID_INPUT, validationError);
+      }
+      if (!(await callerOwnsKey(ctx.userId, input.key))) {
+        throwApiError(ApiErrorCode.NOT_FOUND, "Object not found");
       }
       const url = await getUrlBuilder()(input.key);
       return { url };
@@ -192,10 +245,13 @@ export const storageRouter = router({
   delete: protectedProcedure
     .input(storageDeleteInput)
     .output(storageDeleteOutput)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const validationError = validateStorageKey(input.key);
       if (validationError) {
         throwApiError(ApiErrorCode.INVALID_INPUT, validationError);
+      }
+      if (!(await callerOwnsKey(ctx.userId, input.key))) {
+        throwApiError(ApiErrorCode.NOT_FOUND, "Object not found");
       }
 
       const rootDir = getDefaultAssetsPath();

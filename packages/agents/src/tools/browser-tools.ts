@@ -56,10 +56,20 @@ export function htmlToText(html: string, maxLength = 50_000): string {
     (match) => ENTITY_MAP[match.toLowerCase()] ?? match
   );
 
-  // Decode numeric entities
-  text = text.replace(NUMERIC_ENTITY_RE, (_match, hex, dec) => {
+  // Decode numeric entities. Use fromCodePoint, not fromCharCode: the latter
+  // keeps only the low 16 bits, mangling any astral-plane code point (emoji,
+  // CJK extensions, math symbols) — e.g. &#128512; would become U+F600.
+  text = text.replace(NUMERIC_ENTITY_RE, (match, hex, dec) => {
     const code = hex ? parseInt(hex, 16) : parseInt(dec, 10);
-    return String.fromCharCode(code);
+    if (
+      !Number.isFinite(code) ||
+      code < 0 ||
+      code > 0x10ffff ||
+      (code >= 0xd800 && code <= 0xdfff)
+    ) {
+      return match;
+    }
+    return String.fromCodePoint(code);
   });
 
   // Collapse whitespace (preserve single newlines)

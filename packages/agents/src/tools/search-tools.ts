@@ -162,11 +162,16 @@ export class WebSearchTool extends Tool {
       list.map((d) => d.replace(/^www\./, "").toLowerCase());
     const blockedSet = new Set(norm(blocked));
     const allowedSet = new Set(norm(allowed));
+    // Match on a real label boundary, not a bare suffix: `host.endsWith("bank.com")`
+    // also matches "fakebank.com", so a bare endsWith would leak look-alike
+    // domains past an allowlist (and over-block on a blocklist).
+    const hostMatches = (host: string, d: string) =>
+      host === d || host.endsWith("." + d);
     const keep = (link: string | null | undefined) => {
       const host = domainOf(link);
-      if (blockedSet.size && [...blockedSet].some((d) => host.endsWith(d)))
+      if (blockedSet.size && [...blockedSet].some((d) => hostMatches(host, d)))
         return false;
-      if (allowedSet.size && ![...allowedSet].some((d) => host.endsWith(d)))
+      if (allowedSet.size && ![...allowedSet].some((d) => hostMatches(host, d)))
         return false;
       return true;
     };

@@ -218,8 +218,17 @@ export class ArchiveEmailTool extends Tool {
         const archivedIds: string[] = [];
         for (const id of messageIds) {
           try {
-            await client.messageFlagsRemove(id, ["\\Inbox"], { uid: true });
-            archivedIds.push(id);
+            // Archiving in Gmail = removing the message from INBOX. `\Inbox` is
+            // not an IMAP flag, so messageFlagsRemove was a silent no-op; move
+            // the message to [Gmail]/All Mail, which drops the Inbox label.
+            const moved = await client.messageMove(id, "[Gmail]/All Mail", {
+              uid: true
+            });
+            // messageMove resolves even when nothing matched; only report
+            // messages the server actually moved.
+            if (moved) {
+              archivedIds.push(id);
+            }
           } catch {
             // Skip failed messages
           }

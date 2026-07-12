@@ -4,7 +4,7 @@
  * Port of Python's `nodetool.models.message`.
  */
 
-import { eq, desc, asc } from "drizzle-orm";
+import { eq, and, gt, lt, desc, asc } from "drizzle-orm";
 import type { ProviderSession } from "@nodetool-ai/protocol";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
@@ -88,12 +88,26 @@ export class Message extends DBModel {
     threadId: string,
     opts: { limit?: number; startKey?: string; reverse?: boolean } = {}
   ): Promise<[Message[], string]> {
-    const { limit = 50, reverse = false } = opts;
+    const { limit = 50, reverse = false, startKey } = opts;
     const db = getDb();
+    const conditions = [eq(messages.thread_id, threadId)];
+    // Seek past the cursor row so following the returned cursor actually
+    // advances. Without this, every page returned the same first page while
+    // still advertising a `next` cursor — an infinite loop for the client.
+    if (startKey) {
+      const cursorRow = await Message.get<Message>(startKey);
+      if (cursorRow && cursorRow.thread_id === threadId) {
+        conditions.push(
+          reverse
+            ? lt(messages.created_at, cursorRow.created_at)
+            : gt(messages.created_at, cursorRow.created_at)
+        );
+      }
+    }
     const rows = await db
       .select()
       .from(messages)
-      .where(eq(messages.thread_id, threadId))
+      .where(conditions.length === 1 ? conditions[0] : and(...conditions))
       .orderBy(reverse ? desc(messages.created_at) : asc(messages.created_at))
       .limit(limit + 1)
 

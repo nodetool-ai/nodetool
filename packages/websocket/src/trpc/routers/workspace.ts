@@ -11,7 +11,7 @@
 
 import { stat, readdir, access } from "node:fs/promises";
 import { existsSync, constants } from "node:fs";
-import { resolve, relative, join, isAbsolute } from "node:path";
+import { resolve, relative, join, isAbsolute, sep } from "node:path";
 import { Workspace } from "@nodetool-ai/models";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
@@ -56,6 +56,41 @@ function requireNonProduction(): void {
   }
 }
 
+/**
+ * Validate a workspace path: absolute, existing, a directory, and writable.
+ * Shared by create and update so update can't repoint a workspace at an
+ * arbitrary directory (e.g. /etc) and read it via listFiles.
+ */
+async function validateWorkspacePath(candidate: string): Promise<void> {
+  if (!isAbsolute(candidate)) {
+    throwApiError(ApiErrorCode.INVALID_INPUT, "Path must be absolute");
+  }
+  if (!existsSync(candidate)) {
+    throwApiError(ApiErrorCode.INVALID_INPUT, "Path does not exist");
+  }
+  try {
+    const s = await stat(candidate);
+    if (!s.isDirectory()) {
+      throwApiError(ApiErrorCode.INVALID_INPUT, "Path is not a directory");
+    }
+  } catch (err) {
+    if (
+      err &&
+      typeof err === "object" &&
+      "name" in err &&
+      (err as { name: string }).name === "TRPCError"
+    ) {
+      throw err; // already a throwApiError result — rethrow
+    }
+    throwApiError(ApiErrorCode.INVALID_INPUT, "Cannot access path");
+  }
+  try {
+    await access(candidate, constants.W_OK);
+  } catch {
+    throwApiError(ApiErrorCode.INVALID_INPUT, "Path is not writable");
+  }
+}
+
 export const workspaceRouter = router({
   list: protectedProcedure
     .input(listInput)
@@ -97,38 +132,7 @@ export const workspaceRouter = router({
     .mutation(async ({ ctx, input }) => {
       requireNonProduction();
 
-      // Validate path
-      if (!isAbsolute(input.path)) {
-        throwApiError(ApiErrorCode.INVALID_INPUT, "Path must be absolute");
-      }
-      if (!existsSync(input.path)) {
-        throwApiError(ApiErrorCode.INVALID_INPUT, "Path does not exist");
-      }
-      try {
-        const s = await stat(input.path);
-        if (!s.isDirectory()) {
-          throwApiError(
-            ApiErrorCode.INVALID_INPUT,
-            "Path is not a directory"
-          );
-        }
-      } catch (err) {
-        // If stat itself failed (not the isDirectory check), surface as cannot access.
-        if (
-          err &&
-          typeof err === "object" &&
-          "name" in err &&
-          (err as { name: string }).name === "TRPCError"
-        ) {
-          throw err; // already a throwApiError result — rethrow
-        }
-        throwApiError(ApiErrorCode.INVALID_INPUT, "Cannot access path");
-      }
-      try {
-        await access(input.path, constants.W_OK);
-      } catch {
-        throwApiError(ApiErrorCode.INVALID_INPUT, "Path is not writable");
-      }
+      await validateWorkspacePath(input.path);
 
       if (input.is_default) {
         await Workspace.unsetOtherDefaults(ctx.userId);
@@ -155,7 +159,13 @@ export const workspaceRouter = router({
       }
 
       if (input.name !== undefined) ws.name = input.name;
-      if (input.path !== undefined) ws.path = input.path;
+      if (input.path !== undefined) {
+        // Validate exactly as create does — otherwise a user could repoint
+        // their workspace at any directory (/etc, /root) and enumerate/read it
+        // via listFiles and the REST download endpoint.
+        await validateWorkspacePath(input.path);
+        ws.path = input.path;
+      }
       if (input.is_default !== undefined) {
         if (input.is_default) {
           await Workspace.unsetOtherDefaults(ctx.userId);
@@ -213,7 +223,10 @@ export const workspaceRouter = router({
       // would pass a naive `startsWith("/tmp/ws")`, so use `path.relative`
       // and require the result to be empty or a non-`..` relative path.
       const rel = relative(workspacePath, resolvedPath);
-      if (rel.startsWith("..") || isAbsolute(rel)) {
+      // Segment-aware traversal check: a bare `startsWith("..")` also rejects a
+      // legitimate in-workspace entry named e.g. `..config`. Only `..` alone or
+      // a leading `../` segment actually escapes the workspace.
+      if (rel === ".." || rel.startsWith(".." + sep) || isAbsolute(rel)) {
         throwApiError(ApiErrorCode.FORBIDDEN, "Path traversal not allowed");
       }
 

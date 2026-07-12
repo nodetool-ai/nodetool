@@ -35,6 +35,35 @@ describe("OpenAIProvider", () => {
     expect(await provider.hasToolSupport("gpt-5.4-mini")).toBe(true);
   });
 
+  it("only rewrites system messages for genuine o-series reasoning models (#17)", () => {
+    const provider = new OpenAIProvider(
+      { OPENAI_API_KEY: "k" },
+      { client: {} as any }
+    );
+    const convert = (model: string) =>
+      (
+        provider as unknown as {
+          convertSystemToUserForOModels: (m: Message[], model: string) => Message[];
+        }
+      ).convertSystemToUserForOModels(
+        [
+          { role: "system", content: "You are a terse pirate." },
+          { role: "user", content: "hi" }
+        ],
+        model
+      );
+
+    // Real reasoning models: system → user rewrite still applies.
+    expect(convert("o1-mini")[0]).toMatchObject({ role: "user" });
+    expect(convert("o3")[0]).toMatchObject({ role: "user" });
+
+    // Namespaced compat ids that merely start with "o" (or whose vendor prefix
+    // does) must keep the system role untouched — they support it.
+    expect(convert("openai/gpt-4o")[0]).toMatchObject({ role: "system" });
+    expect(convert("openai/gpt-oss-120b")[0]).toMatchObject({ role: "system" });
+    expect(convert("openrouter/auto")[0]).toMatchObject({ role: "system" });
+  });
+
   it("resolves image/video size helpers", () => {
     const provider = new OpenAIProvider(
       { OPENAI_API_KEY: "k" },

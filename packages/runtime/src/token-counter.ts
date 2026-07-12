@@ -54,8 +54,21 @@ function* encodingPieces(text: string): Generator<string> {
         yield buf;
         buf = "";
       }
-      for (let i = 0; i < segment.length; i += RUN_LIMIT) {
-        yield segment.slice(i, i + RUN_LIMIT);
+      for (let i = 0; i < segment.length; ) {
+        let end = Math.min(i + RUN_LIMIT, segment.length);
+        // Never cut between a surrogate pair: if the last code unit of the
+        // slice is a high surrogate, back off by one so the astral character
+        // stays whole. Splitting it would encode each half as U+FFFD, both
+        // overcounting tokens and leaving a replacement char in truncated text.
+        if (
+          end < segment.length &&
+          segment.charCodeAt(end - 1) >= 0xd800 &&
+          segment.charCodeAt(end - 1) <= 0xdbff
+        ) {
+          end -= 1;
+        }
+        yield segment.slice(i, end);
+        i = end;
       }
       continue;
     }

@@ -108,6 +108,46 @@ describe("WebSearchTool", () => {
     expect(result).toBe("No results.");
   });
 
+  it("allowlist matches on a label boundary, not a bare suffix (#19)", async () => {
+    const ctx = makeContext({ SERPAPI_API_KEY: "k" });
+    fetchSpy = stubFetch({
+      organic_results: [
+        { title: "Real", link: "https://bank.com/login", snippet: "s" },
+        { title: "Sub", link: "https://secure.bank.com/x", snippet: "s" },
+        // Look-alike domain that a bare endsWith("bank.com") would wrongly keep.
+        { title: "Phish", link: "https://fakebank.com/login", snippet: "s" }
+      ]
+    });
+
+    const result = (await tool.process(ctx, {
+      query: "login help",
+      allowed_domains: ["bank.com"]
+    })) as string;
+
+    expect(result).toContain("bank.com/login");
+    expect(result).toContain("secure.bank.com");
+    expect(result).not.toContain("fakebank.com");
+  });
+
+  it("blocklist does not over-block look-alike domains (#19)", async () => {
+    const ctx = makeContext({ SERPAPI_API_KEY: "k" });
+    fetchSpy = stubFetch({
+      organic_results: [
+        { title: "Ad", link: "https://ads.com/x", snippet: "s" },
+        // "downloads.com" ends with "ads.com" but is unrelated — must survive.
+        { title: "DL", link: "https://downloads.com/y", snippet: "s" }
+      ]
+    });
+
+    const result = (await tool.process(ctx, {
+      query: "files",
+      blocked_domains: ["ads.com"]
+    })) as string;
+
+    expect(result).not.toContain("ads.com/x");
+    expect(result).toContain("downloads.com");
+  });
+
   it("userMessage returns search description", () => {
     expect(tool.userMessage({ query: "cats" })).toBe(
       "Searching the web for 'cats'"

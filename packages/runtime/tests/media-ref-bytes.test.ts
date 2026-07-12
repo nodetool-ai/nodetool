@@ -41,6 +41,30 @@ describe("loadMediaRefBytes", () => {
     expect(bytes).toBeNull();
   });
 
+  it("keeps the full payload when it contains commas (#11)", async () => {
+    // Regression: split(",", 2) truncated everything after the second comma,
+    // corrupting SVG/CSV/text data URIs.
+    const svg = '<svg><path d="M0,0 L10,10"/></svg>';
+    const bytes = await loadMediaRefBytes({
+      type: "image",
+      uri: `data:image/svg+xml,${svg}`,
+      data: ""
+    });
+    expect(bytes).toEqual(new TextEncoder().encode(svg));
+  });
+
+  it("returns null (no throw) on a malformed percent-escape (#12)", async () => {
+    // Regression: decodeURIComponent threw URIError uncaught, aborting byte
+    // resolution instead of returning null.
+    await expect(
+      loadMediaRefBytes({
+        type: "image",
+        uri: "data:text/plain,100%discount",
+        data: ""
+      })
+    ).resolves.toBeNull();
+  });
+
   it("resolves storage via asset_id when uri is stale", async () => {
     const ctx = {
       storage: {

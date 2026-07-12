@@ -818,7 +818,15 @@ export class OpenAIProvider extends BaseProvider {
     messages: Message[],
     model: string
   ): Message[] {
-    if (!model.startsWith("o")) {
+    // Match ONLY genuine OpenAI reasoning models (o1/o3/o4), not any id that
+    // merely starts with "o". Compat providers use namespaced ids like
+    // "openai/gpt-4o" or "openai/gpt-oss-120b" that begin with "o" but fully
+    // support the system role — mangling their system prompt corrupts every
+    // request. Strip a leading "vendor/" namespace before matching.
+    const bareModel = model.includes("/")
+      ? model.slice(model.lastIndexOf("/") + 1)
+      : model;
+    if (!/^o[134](-|$)/.test(bareModel)) {
       return messages;
     }
 
