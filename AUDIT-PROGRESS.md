@@ -4,8 +4,14 @@
 > before opening any PR.** It exists so the audit can resume after an ephemeral
 > container is reclaimed. Branch: `claude/kernel-runtime-bug-audit-2e71pq`.
 
-_Last updated: round 4 in flight (workflow run `wf_a5daae84-c54`, task `wa91u9hzy`).
-Rounds 1-3 done: 60 fixes pushed, 3 deferred. Loop NOT yet dry._
+_Last updated: rounds 1-4 done (73 fixes pushed, 3 deferred). Round 5 next.
+Converging: R1=12, R2=25, R3=20, R4=13 confirmed. Loop NOT yet dry._
+
+Round 4 (commit `3166ee9`) fixed 13: gemini usage tracking, replicate TTS encoded
+path, comfy handshake timeout, openai Responses mid-turn abort, step-executor
+removeThinkTags, agent {markdown} wrap, compiler prose false-success, media-tools
+sample-rate + asset:// reads, vector-tools infinite-loop clamp, models-api path
+traversal, llm-agent resume system prompt + planner cancel.
 
 Round 4 uses `scripts/bug-audit-workflow-r4.mjs` (finders retargeted at the ~23
 files NOT examined in rounds 1-3: durable-inbox, suspendable, io,
