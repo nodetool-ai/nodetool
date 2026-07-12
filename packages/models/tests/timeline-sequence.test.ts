@@ -371,4 +371,82 @@ describe("TimelineSequence model", () => {
       "document must contain tracks, clips, and markers arrays"
     );
   });
+
+  // ── Atomic document CAS (lost-update prevention) ────────────────────
+  describe("updateDocumentIfUnchanged / mutateDocument", () => {
+    it("writes when updated_at still matches and bumps updated_at", async () => {
+      const seq = await createSeq();
+      const before = seq.updated_at;
+      const updated = await TimelineSequence.updateDocumentIfUnchanged(
+        seq.id,
+        before,
+        makeDocument({ markers: [{ id: "m1", timeMs: 0 } as TimelineMarker] })
+      );
+      expect(updated).not.toBeNull();
+      expect(updated!.toDocument().markers).toHaveLength(1);
+      expect(updated!.updated_at).not.toBe(before);
+    });
+
+    it("returns null (no write) when updated_at no longer matches", async () => {
+      const seq = await createSeq();
+      const stale = seq.updated_at;
+      // A concurrent write bumps updated_at.
+      const first = await TimelineSequence.updateDocumentIfUnchanged(
+        seq.id,
+        stale,
+        makeDocument({ markers: [{ id: "a" } as TimelineMarker] })
+      );
+      expect(first).not.toBeNull();
+
+      // Second write with the stale expected value must be rejected.
+      const second = await TimelineSequence.updateDocumentIfUnchanged(
+        seq.id,
+        stale,
+        makeDocument({ markers: [{ id: "b" } as TimelineMarker] })
+      );
+      expect(second).toBeNull();
+
+      const loaded = await TimelineSequence.findById(seq.id);
+      expect(loaded!.toDocument().markers).toEqual([{ id: "a" }]);
+    });
+
+    it("mutateDocument retries against a fresh snapshot and never loses a concurrent append", async () => {
+      const seq = await createSeq(
+        "u1",
+        "p1",
+        "seq",
+        makeDocument({
+          clips: [
+            { id: "X", versions: [] } as unknown as TimelineClip,
+            { id: "Y", versions: [] } as unknown as TimelineClip
+          ]
+        })
+      );
+
+      // Two concurrent appends to sibling clips. With a plain read-modify-write
+      // one would clobber the other; mutateDocument must retain both.
+      await Promise.all([
+        TimelineSequence.mutateDocument(seq.id, (doc) => {
+          const clip = doc.clips.find((c) => c.id === "X")!;
+          (clip as unknown as { versions: unknown[] }).versions.push({
+            id: "vx"
+          });
+        }),
+        TimelineSequence.mutateDocument(seq.id, (doc) => {
+          const clip = doc.clips.find((c) => c.id === "Y")!;
+          (clip as unknown as { versions: unknown[] }).versions.push({
+            id: "vy"
+          });
+        })
+      ]);
+
+      const loaded = await TimelineSequence.findById(seq.id);
+      const clips = loaded!.toDocument().clips as unknown as Array<{
+        id: string;
+        versions: Array<{ id: string }>;
+      }>;
+      expect(clips.find((c) => c.id === "X")!.versions).toEqual([{ id: "vx" }]);
+      expect(clips.find((c) => c.id === "Y")!.versions).toEqual([{ id: "vy" }]);
+    });
+  });
 });

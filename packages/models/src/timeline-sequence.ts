@@ -1,4 +1,4 @@
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import type {
   TimelineSequence as TimelineSequenceDoc,
   TimelineTrack,
@@ -6,9 +6,47 @@ import type {
   TimelineMarker,
   TranscriptLine
 } from "@nodetool-ai/timeline";
-import { DBModel, createTimeOrderedUuid } from "./base-model.js";
+import {
+  DBModel,
+  ModelChangeEvent,
+  ModelObserver,
+  createTimeOrderedUuid
+} from "./base-model.js";
 import { getDb } from "./db.js";
 import { timelineSequences } from "./schema/timeline-sequences.js";
+
+export class TimelineSequenceConflictError extends Error {
+  constructor(id: string) {
+    super(`Timeline sequence ${id} was modified concurrently`);
+    this.name = "TimelineSequenceConflictError";
+  }
+}
+
+export interface TimelineSequenceMutationResult<T> {
+  sequence: TimelineSequence;
+  result: T;
+}
+
+function validateTimelineDocument(doc: TimelineDocument): void {
+  if (
+    !Array.isArray(doc.tracks) ||
+    !Array.isArray(doc.clips) ||
+    !Array.isArray(doc.markers)
+  ) {
+    throw new Error("document must contain tracks, clips, and markers arrays");
+  }
+}
+
+// Guarantees a strictly increasing updated_at so a mutation is never a no-op
+// against the CAS predicate even when two writes land within the same ms.
+function nextUpdatedAtAfter(previous: string): string {
+  const now = new Date();
+  const previousMs = Date.parse(previous);
+  if (Number.isFinite(previousMs) && now.getTime() <= previousMs) {
+    return new Date(previousMs + 1).toISOString();
+  }
+  return now.toISOString();
+}
 
 export interface TimelineDocument {
   tracks: TimelineTrack[];
@@ -183,6 +221,117 @@ export class TimelineSequence extends DBModel {
     Object.assign(seq, fields);
     await seq.save();
     return seq;
+  }
+
+  /**
+   * Atomic compare-and-swap on the `document` field. Writes only when the row's
+   * `updated_at` still equals `expectedUpdatedAt`, so a concurrent write landing
+   * in between makes this a no-op (returns null) instead of clobbering it.
+   */
+  static async updateDocumentIfUnchanged(
+    id: string,
+    expectedUpdatedAt: string,
+    doc: TimelineDocument
+  ): Promise<TimelineSequence | null> {
+    validateTimelineDocument(doc);
+    const db = getDb();
+    const now = nextUpdatedAtAfter(expectedUpdatedAt);
+    const rows = await db
+      .update(timelineSequences)
+      .set({
+        document: JSON.stringify(doc),
+        updated_at: now
+      })
+      .where(
+        and(
+          eq(timelineSequences.id, id),
+          eq(timelineSequences.updated_at, expectedUpdatedAt)
+        )
+      )
+      .returning();
+
+    const row = rows[0] as Record<string, unknown> | undefined;
+    if (!row) return null;
+
+    const updated = new TimelineSequence(row);
+    ModelObserver.notify(updated, ModelChangeEvent.UPDATED);
+    return updated;
+  }
+
+  /**
+   * Atomic compare-and-swap for a client-driven save that may touch scalar
+   * fields and/or the document in one write. Applies only when the row's
+   * `updated_at` still equals `expectedUpdatedAt`; returns null on conflict so
+   * the caller can report "modified since last load" instead of clobbering.
+   */
+  static async updateFieldsIfUnchanged(
+    id: string,
+    expectedUpdatedAt: string,
+    fields: Partial<{
+      name: string;
+      fps: number;
+      width: number;
+      height: number;
+      duration_ms: number;
+      workflow_id: string | null;
+      document: string;
+    }>
+  ): Promise<TimelineSequence | null> {
+    if (fields.document !== undefined) {
+      validateTimelineDocument(JSON.parse(fields.document) as TimelineDocument);
+    }
+    const db = getDb();
+    const now = nextUpdatedAtAfter(expectedUpdatedAt);
+    const rows = await db
+      .update(timelineSequences)
+      .set({ ...fields, updated_at: now })
+      .where(
+        and(
+          eq(timelineSequences.id, id),
+          eq(timelineSequences.updated_at, expectedUpdatedAt)
+        )
+      )
+      .returning();
+
+    const row = rows[0] as Record<string, unknown> | undefined;
+    if (!row) return null;
+
+    const updated = new TimelineSequence(row);
+    ModelObserver.notify(updated, ModelChangeEvent.UPDATED);
+    return updated;
+  }
+
+  /**
+   * Load → mutate → CAS-write the document, retrying on concurrent conflicts.
+   * The mutator receives a fresh document snapshot on every attempt, so callers
+   * never operate on a stale read. Throws `TimelineSequenceConflictError` if all
+   * retries lose the race.
+   */
+  static async mutateDocument<T>(
+    id: string,
+    mutator: (
+      doc: TimelineDocument,
+      sequence: TimelineSequence
+    ) => T | Promise<T>,
+    maxRetries = 5
+  ): Promise<TimelineSequenceMutationResult<T> | null> {
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      const seq = await TimelineSequence.get<TimelineSequence>(id);
+      if (!seq) return null;
+
+      const doc = seq.toDocument();
+      const result = await mutator(doc, seq);
+      const updated = await TimelineSequence.updateDocumentIfUnchanged(
+        id,
+        seq.updated_at,
+        doc
+      );
+      if (updated) {
+        return { sequence: updated, result };
+      }
+    }
+
+    throw new TimelineSequenceConflictError(id);
   }
 
   /** Touch `updated_at` without changing any other field. */

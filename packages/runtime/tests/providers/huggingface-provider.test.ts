@@ -215,6 +215,41 @@ describe("HuggingFaceProvider", () => {
       expect((items[0] as any).content).toBe("streamed");
       expect((items[1] as any).done).toBe(true);
     });
+
+    it("records token usage from the terminal stream chunk (#8)", async () => {
+      // Regression: the streaming path never inspected chunk.usage, so every
+      // streamed HuggingFace call reported 0 tokens / $0 cost.
+      const mockClient = makeMockHfClient({
+        chatCompletionStream: vi.fn().mockReturnValue({
+          async *[Symbol.asyncIterator]() {
+            yield {
+              choices: [{ delta: { content: "hello" }, finish_reason: null }]
+            };
+            yield {
+              choices: [{ delta: { content: "" }, finish_reason: "stop" }],
+              usage: { prompt_tokens: 12, completion_tokens: 8 }
+            };
+          }
+        })
+      });
+      const provider = new HuggingFaceProvider(
+        { HF_TOKEN: "hf_test" },
+        { hfClient: mockClient }
+      );
+
+      const usageSpy = vi.spyOn(provider, "trackUsage");
+      for await (const _ of provider.generateMessages({
+        messages: [{ role: "user", content: "hi" }],
+        model: "test-model"
+      })) {
+        // drain
+      }
+
+      expect(usageSpy).toHaveBeenCalledWith(
+        "test-model",
+        expect.objectContaining({ inputTokens: 12, outputTokens: 8 })
+      );
+    });
   });
 
   describe("textToImage", () => {

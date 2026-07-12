@@ -377,6 +377,18 @@ export class HuggingFaceProvider extends BaseProvider {
     const stream = client.chatCompletionStream(requestPayload);
 
     for await (const chunk of stream) {
+      // OpenAI-compatible streams (which the HF Inference SDK proxies) carry
+      // usage on the terminal chunk. Record it, otherwise every streamed HF
+      // call reports 0 tokens / $0 cost (the non-streaming path already tracks).
+      const usage = (chunk as { usage?: { prompt_tokens?: number; completion_tokens?: number } })
+        ?.usage;
+      if (usage) {
+        this.trackUsage(args.model, {
+          inputTokens: usage.prompt_tokens ?? 0,
+          outputTokens: usage.completion_tokens ?? 0
+        });
+      }
+
       const choice = chunk?.choices?.[0];
       if (!choice) continue;
 

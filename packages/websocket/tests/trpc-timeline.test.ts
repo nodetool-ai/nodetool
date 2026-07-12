@@ -43,7 +43,57 @@ vi.mock("@nodetool-ai/models", async (orig) => {
     static findById = vi.fn();
     static listByUser = vi.fn();
     static listByProject = vi.fn();
+    // `update` is retained as the spy the assertions inspect; the atomic
+    // helpers below route their write through it so existing assertions on
+    // `TS.update.mock.calls[...]` keep working. These helpers are plain static
+    // methods (not vi.fn) so `vi.resetAllMocks()` doesn't strip their bodies.
     static update = vi.fn();
+
+    static async updateDocumentIfUnchanged(
+      id: string,
+      _expectedUpdatedAt: string,
+      doc: TimelineDocument
+    ): Promise<StubTimelineSequence | null> {
+      const seq = (await StubTimelineSequence.findById(
+        id
+      )) as StubTimelineSequence | null;
+      if (!seq) return null;
+      seq.document = JSON.stringify(doc);
+      await StubTimelineSequence.update(id, { document: seq.document });
+      return seq;
+    }
+
+    static async updateFieldsIfUnchanged(
+      id: string,
+      _expectedUpdatedAt: string,
+      fields: Record<string, unknown>
+    ): Promise<StubTimelineSequence | null> {
+      const seq = (await StubTimelineSequence.findById(
+        id
+      )) as StubTimelineSequence | null;
+      if (!seq) return null;
+      Object.assign(seq, fields);
+      await StubTimelineSequence.update(id, fields);
+      return seq;
+    }
+
+    static async mutateDocument(
+      id: string,
+      mutator: (
+        doc: TimelineDocument,
+        seq: StubTimelineSequence
+      ) => unknown | Promise<unknown>
+    ): Promise<{ sequence: StubTimelineSequence; result: unknown } | null> {
+      const seq = (await StubTimelineSequence.findById(
+        id
+      )) as StubTimelineSequence | null;
+      if (!seq) return null;
+      const doc = seq.toDocument();
+      const result = await mutator(doc, seq);
+      seq.document = JSON.stringify(doc);
+      await StubTimelineSequence.update(id, { document: seq.document });
+      return { sequence: seq, result };
+    }
   }
   return {
     ...actual,
@@ -532,16 +582,25 @@ describe("timeline router", () => {
       const persisted = JSON.parse(
         updateArgs?.document as string
       ) as TimelineDocument;
-      // 1 favorite + 9 newest non-favorites = 10 total (cap kept)
-      expect(persisted.clips[0].versions!.length).toBeLessThanOrEqual(10);
-      // The favorite version must still be present
-      expect(
-        persisted.clips[0].versions!.some((v) => v.id === "v-0")
-      ).toBe(true);
+      const versions = persisted.clips[0].versions!;
+      // Favorites are retained on top of the non-favorite cap (mirrors sketch):
+      // the 1 favorite plus the newest MAX_SUCCESSFUL_VERSIONS non-favorites.
+      // Here there are exactly 10 non-favorite successes (9 old + the new one),
+      // so all are kept and the favorite is extra: 11 total.
+      expect(versions.filter((v) => !v.favorite).length).toBeLessThanOrEqual(
+        10
+      );
+      // The favorite version must still be present.
+      expect(versions.some((v) => v.id === "v-0")).toBe(true);
+      // The just-appended version is retained.
+      expect(versions.some((v) => v.jobId === "job-new")).toBe(true);
     });
 
-    it("append does not exceed cap when all versions are favorited", async () => {
-      // 10 favorites fills the cap — no slots left for non-favorites
+    it("append keeps the just-created version even when favorites fill the cap", async () => {
+      // Regression (#16): previously, 10 favorites zeroed the non-favorite
+      // slots and the freshly-appended version was silently dropped while still
+      // being returned to the client as saved. Favorites must not evict the new
+      // generation result.
       const allFavVersions = Array.from({ length: 10 }, (_, i) => ({
         id: `vf-${i}`,
         createdAt: `2026-01-01T00:00:0${i}Z`,
@@ -578,7 +637,7 @@ describe("timeline router", () => {
       );
       TS.update.mockResolvedValue(undefined);
       const caller = createCaller(makeCtx());
-      await caller.timeline.versions.append({
+      const out = await caller.timeline.versions.append({
         id: "seq-1",
         clipId: "clip-1",
         jobId: "job-new",
@@ -590,15 +649,13 @@ describe("timeline router", () => {
       const persisted = JSON.parse(
         updateArgs?.document as string
       ) as TimelineDocument;
-      // 10 favorites + 1 new non-favorite (the just-appended version)
-      // Since favorites fill the cap, the new non-fav gets 0 slots → only favorites + new item itself
-      // The new version is kept (it was just appended), non-fav slots = 0
       const versions = persisted.clips[0].versions!;
-      // All 10 favorites must still be present
+      // All 10 favorites survive (favorites are not counted against the cap).
       expect(versions.filter((v) => v.favorite).length).toBe(10);
-      // slotsForNonFav = Math.max(0, 10 - 10) = 0 → new non-favorite is pruned
-      expect(versions.filter((v) => !v.favorite).length).toBe(0);
-      expect(versions.length).toBe(10);
+      // The just-created non-favorite version is retained, not dropped.
+      expect(versions.some((v) => v.id === out.id)).toBe(true);
+      expect(versions.filter((v) => !v.favorite)).toHaveLength(1);
+      expect(versions.length).toBe(11);
     });
 
     it("setFavorite toggles the favorite flag", async () => {

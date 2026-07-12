@@ -156,6 +156,95 @@ describe("OllamaProvider", () => {
     ]);
   });
 
+  // Emulation path helper: /api/show reports no "tools" capability, then
+  // /api/chat returns the given assistant content.
+  function emulationFetch(chatContent: string) {
+    return vi.fn(async (url: string) => {
+      if (String(url).includes("/api/show")) {
+        return jsonResponse({ capabilities: ["completion"] });
+      }
+      return jsonResponse({ message: { content: chatContent } });
+    });
+  }
+
+  it("strips emulated tool-call syntax from returned content (#1)", async () => {
+    // Regression: the emulation branch returned the RAW content, leaving the
+    // literal call text in the message alongside the structured tool call.
+    const fetchFn = emulationFetch("get_weather(city='Paris')");
+    const provider = new OllamaProvider(
+      { OLLAMA_API_URL: "http://localhost:11434" },
+      { fetchFn: fetchFn as unknown as typeof fetch }
+    );
+
+    const result = await provider.generateMessage({
+      model: "gemma:2b",
+      messages: [{ role: "user", content: "weather?" }],
+      tools: [
+        {
+          name: "get_weather",
+          inputSchema: {
+            type: "object",
+            properties: { city: { type: "string" } }
+          }
+        }
+      ]
+    });
+
+    expect(result.toolCalls?.[0]?.name).toBe("get_weather");
+    expect(result.toolCalls?.[0]?.args).toEqual({ city: "Paris" });
+    // The literal call syntax must NOT survive in the assistant content.
+    expect(String(result.content ?? "")).not.toContain("get_weather(");
+  });
+
+  it("keeps numeric-looking string args as strings in emulated calls (#4)", async () => {
+    // Regression: unquoted-but-quoted values were coerced to numbers, so a
+    // quoted zip like '01234' became 1234. Quoted values must stay strings.
+    const fetchFn = emulationFetch("lookup(zip='01234')");
+    const provider = new OllamaProvider(
+      { OLLAMA_API_URL: "http://localhost:11434" },
+      { fetchFn: fetchFn as unknown as typeof fetch }
+    );
+
+    const result = await provider.generateMessage({
+      model: "gemma:2b",
+      messages: [{ role: "user", content: "lookup" }],
+      tools: [
+        {
+          name: "lookup",
+          inputSchema: {
+            type: "object",
+            properties: { zip: { type: "string" } }
+          }
+        }
+      ]
+    });
+
+    expect(result.toolCalls?.[0]?.args).toEqual({ zip: "01234" });
+  });
+
+  it("preserves array-typed assistant content in convertMessage (#2)", async () => {
+    // Regression: the assistant branch collapsed MessageContent[] to "",
+    // erasing a prior assistant turn from replayed history.
+    const provider = new OllamaProvider(
+      { OLLAMA_API_URL: "http://localhost:11434" },
+      { fetchFn: vi.fn() as unknown as typeof fetch }
+    );
+
+    const message: Message = {
+      role: "assistant",
+      content: [
+        { type: "text", text: "Prior" },
+        { type: "text", text: "answer" }
+      ]
+    };
+
+    // asTextParts joins text parts with a newline (matching system/user roles).
+    await expect(provider.convertMessage(message)).resolves.toEqual({
+      role: "assistant",
+      content: "Prior\nanswer"
+    });
+  });
+
   it("surfaces reasoning-model thinking tokens as thinking chunks", async () => {
     const fetchFn = vi.fn().mockResolvedValue(
       streamResponse([

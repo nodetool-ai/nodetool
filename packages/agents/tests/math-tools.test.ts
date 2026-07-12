@@ -305,6 +305,57 @@ describe("ConversionTool", () => {
     expect(result.error).toBeDefined();
   });
 
+  // Regression: a flat conversion map silently produced a plausible-but-wrong
+  // number for cross-dimension pairs (e.g. liters -> kilometers). Each of these
+  // must be rejected with an error instead of returning converted_value.
+  it("rejects cross-dimension conversions (volume -> length)", async () => {
+    const result = (await tool.process(ctx, {
+      value: 5,
+      from_unit: "liters",
+      to_unit: "kilometers"
+    })) as any;
+    expect(result.error).toBeDefined();
+    expect(result.converted_value).toBeUndefined();
+  });
+
+  it("rejects cross-dimension conversions (area -> length)", async () => {
+    const result = (await tool.process(ctx, {
+      value: 1,
+      from_unit: "acres",
+      to_unit: "miles"
+    })) as any;
+    expect(result.error).toBeDefined();
+    expect(result.converted_value).toBeUndefined();
+  });
+
+  it("rejects temperature <-> non-temperature conversions", async () => {
+    const toLength = (await tool.process(ctx, {
+      value: 20,
+      from_unit: "celsius",
+      to_unit: "meters"
+    })) as any;
+    expect(toLength.error).toBeDefined();
+    expect(toLength.converted_value).toBeUndefined();
+
+    const fromLength = (await tool.process(ctx, {
+      value: 20,
+      from_unit: "meters",
+      to_unit: "celsius"
+    })) as any;
+    expect(fromLength.error).toBeDefined();
+    expect(fromLength.converted_value).toBeUndefined();
+  });
+
+  it("still converts within the same dimension", async () => {
+    const result = (await tool.process(ctx, {
+      value: 2,
+      from_unit: "liters",
+      to_unit: "milliliters"
+    })) as any;
+    expect(result.error).toBeUndefined();
+    expect(result.converted_value).toBeCloseTo(2000, 6);
+  });
+
   it("formats result string", async () => {
     const result = (await tool.process(ctx, {
       value: 1,

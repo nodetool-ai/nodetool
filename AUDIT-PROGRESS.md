@@ -4,8 +4,9 @@
 > before opening any PR.** It exists so the audit can resume after an ephemeral
 > container is reclaimed. Branch: `claude/kernel-runtime-bug-audit-2e71pq`.
 
-_Last updated: round 5 in flight (run `wf_5015e686-bee`, task `w0skqc2gu`). 73 fixes, 3 deferred.
-Converging: R1=12, R2=25, R3=20, R4=13 confirmed. Loop NOT yet dry._
+_Last updated: round 5 complete (18 confirmed → fixed + tested + committed).
+88 fixes, 3 deferred. Converging: R1=12, R2=25, R3=20, R4=13, R5=18 confirmed.
+Loop NOT yet dry (need two consecutive zero-confirm rounds)._
 
 Round 4 (commit `3166ee9`) fixed 13: gemini usage tracking, replicate TTS encoded
 path, comfy handshake timeout, openai Responses mid-turn abort, step-executor
@@ -51,7 +52,35 @@ reconnect, prompt-asset prototype `in`, js-sandbox SSRF + body-cap + workspace
 symlink, edit_file replace_all deletion, ws-runner slot-leak + send-mode race,
 mcp-server session-transport leak, bundle-import 400.
 
-**Running total: 40 (rounds 1-2) + 3 (self-review) + 17 (round 3) = 60 fixes.**
+**Running total: 40 (rounds 1-2) + 3 (self-review) + 17 (round 3) + 13 (round 4)
++ 18 (round 5) = 91 fixes** (3 additionally deferred).
+
+Round 5 (this commit) fixed 18 across runtime providers + agents + websocket
+tRPC routers:
+- **ollama-provider** ×3 — emulated tool-call syntax leaking into content (#1),
+  array-typed assistant content dropped in convertMessage (#2), numeric coercion
+  of quoted string args (#4).
+- **together-provider** — WAV fmt-chunk bounds guard off by 4 → RangeError (#3).
+- **claude-agent-provider** — tool-free "pure LLM" path left SDK built-in
+  Bash/file/web tools live under bypassPermissions; now `disallowedTools` (#5).
+- **minimax-provider** — result-media downloads now route through `safeFetch`
+  (SSRF guard), with an injectable fetch impl for testability (#6).
+- **kie-provider** — pollUntilDone now fails fast on persistent non-OK polls
+  instead of hanging ~20 min then misreporting a timeout (#7).
+- **huggingface-provider** — streaming path now records token usage (#8).
+- **math-tools ConversionTool** — reject cross-dimension and temperature↔non-temp
+  conversions instead of returning plausible-but-wrong numbers (#9).
+- **models router** — path-traversal existence oracle via `safeJoinWithin` (#10),
+  secrets resolved for the authenticated `ctx.userId` not hardcoded "1" (#11),
+  ReDoS-safe linear glob matcher replacing backtracking regex (#12).
+- **workflows router** — `Object.hasOwn` instead of `in` for output-node lookup
+  (prototype pollution, #13), autosave map now pruned + evicted on delete (#14).
+- **timeline router + TimelineSequence model** — all document mutations routed
+  through an atomic CAS mutator (`mutateDocument`/`updateFieldsIfUnchanged`) to
+  stop lost updates (#15); append no longer drops the just-created version when
+  favorites fill the cap (#16); favorited failed versions no longer pruned (#17).
+- **sketch router + ImageDocument model** — `sketch.update` routed through an
+  atomic `updateFieldsIfUnchanged` CAS, closing the TOCTOU clobber (#18).
 
 ### Deferred (confirmed but NOT fixed — need deeper work + integration testing)
 

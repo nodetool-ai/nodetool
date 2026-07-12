@@ -65,6 +65,28 @@ const log = createLogger("nodetool.runtime.providers.claude-agent");
 const DEFAULT_SYSTEM_PROMPT = "You are a helpful assistant.";
 
 /**
+ * The Claude Agent SDK's built-in tools. Passed as `disallowedTools` on the
+ * tool-free path so a "pure LLM" completion cannot execute host tools (Bash,
+ * file, web) under bypassPermissions.
+ */
+const SDK_BUILTIN_TOOLS = [
+  "Bash",
+  "BashOutput",
+  "KillShell",
+  "Read",
+  "Write",
+  "Edit",
+  "MultiEdit",
+  "NotebookEdit",
+  "Glob",
+  "Grep",
+  "WebFetch",
+  "WebSearch",
+  "Task",
+  "TodoWrite"
+];
+
+/**
  * Env vars a nested Claude subscription session leaks into its children. The
  * SDK spawns the bundled CLI as a subprocess; left in place these would make it
  * believe it is itself nested. We strip them via `options.env` rather than any
@@ -478,6 +500,15 @@ export class ClaudeAgentProvider extends BaseProvider {
       // safety flag below.
       permissionMode: "bypassPermissions",
       allowDangerouslySkipPermissions: true,
+      // On the tool-free path (config.mcp === null — the documented "pure LLM"
+      // primitive used by generateMessage/generateMessages), explicitly disable
+      // the SDK's built-in tools. Under bypassPermissions they are otherwise
+      // live and auto-approved, so a prompt-injected "call Bash …" in untrusted
+      // text being summarized/classified would execute on the host. allowedTools
+      // is only a no-prompt approval list, not an availability restriction.
+      ...(plan.config.mcp
+        ? {}
+        : { disallowedTools: SDK_BUILTIN_TOOLS }),
       includePartialMessages: true,
       // Setting env REPLACES the child env, so spread process.env minus the
       // nested-session leakage. Preserves PATH/HOME/ANTHROPIC_BASE_URL/proxies.

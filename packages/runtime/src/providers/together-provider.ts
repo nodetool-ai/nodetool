@@ -129,7 +129,10 @@ function parseWavPCM(bytes: Uint8Array): {
     const chunkId = view.getUint32(offset, false);
     const chunkSize = view.getUint32(offset + 4, true);
 
-    if (chunkId === 0x666d7420 /* "fmt " */ && offset + 12 <= bytes.byteLength) {
+    if (chunkId === 0x666d7420 /* "fmt " */ && offset + 16 <= bytes.byteLength) {
+      // The sampleRate read is a 4-byte uint32 at offset+12, so it needs
+      // offset+16 in bounds — the previous offset+12 guard let getUint32 throw
+      // RangeError on a WAV truncated between offset+12 and offset+15.
       sampleRate = view.getUint32(offset + 12, true);
     } else if (chunkId === 0x64617461 /* "data" */) {
       const dataStart = offset + 8;

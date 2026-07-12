@@ -187,6 +187,9 @@ describe("MinimaxProvider", () => {
       }),
       async () => ({
         ok: true,
+        // The download now goes through safeFetch, which inspects response
+        // headers for redirects; provide a no-op headers accessor.
+        headers: { get: () => null },
         arrayBuffer: async () => new Uint8Array([7, 7, 7]).buffer
       })
     ];

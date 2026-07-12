@@ -43,7 +43,7 @@ import { MODEL_SEARCH_KINDS } from "@nodetool-ai/protocol";
 import { access, readdir } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
 import { homedir } from "node:os";
-import { basename, join } from "node:path";
+import { basename, join, resolve, sep } from "node:path";
 import { z } from "zod";
 import { getSecret } from "@nodetool-ai/models";
 
@@ -287,14 +287,34 @@ function normalizePatterns(
   return cleaned.length > 0 ? cleaned : null;
 }
 
-function wildcardToRegExp(pattern: string): RegExp {
-  const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, "\\$&");
-  const regex = `^${escaped.replaceAll("*", ".*").replaceAll("?", ".")}$`;
-  return new RegExp(regex);
-}
-
-function matchesPattern(value: string, pattern: string): boolean {
-  return wildcardToRegExp(pattern).test(value);
+// Linear (two-pointer) glob matcher. `*` matches any run of characters, `?`
+// matches a single character; all other characters are literal. This avoids
+// the catastrophic backtracking of a naive `*` -> `.*` regex compiled from
+// client-supplied patterns (ReDoS), while matching the same glob semantics.
+// Exported for regression tests.
+export function matchesPattern(value: string, pattern: string): boolean {
+  let v = 0;
+  let p = 0;
+  let starIdx = -1;
+  let matchIdx = 0;
+  while (v < value.length) {
+    if (p < pattern.length && (pattern[p] === "?" || pattern[p] === value[v])) {
+      v++;
+      p++;
+    } else if (p < pattern.length && pattern[p] === "*") {
+      starIdx = p;
+      matchIdx = v;
+      p++;
+    } else if (starIdx !== -1) {
+      p = starIdx + 1;
+      matchIdx++;
+      v = matchIdx;
+    } else {
+      return false;
+    }
+  }
+  while (p < pattern.length && pattern[p] === "*") p++;
+  return p === pattern.length;
 }
 
 function isIgnored(path: string, ignorePatterns: string[] | null): boolean {
@@ -341,6 +361,23 @@ async function pathExists(path: string): Promise<boolean> {
   }
 }
 
+// Joins a client-supplied relative path under `baseDir` and rejects any result
+// that escapes the base directory (via `..` segments or an absolute path).
+// Returns null when the path would escape — callers treat that as "not found"
+// so a traversal attempt can't be used as a filesystem existence oracle.
+// Exported for regression tests.
+export function safeJoinWithin(
+  baseDir: string,
+  relativePath: string
+): string | null {
+  const resolvedBase = resolve(baseDir);
+  const full = resolve(resolvedBase, relativePath);
+  if (full !== resolvedBase && !full.startsWith(resolvedBase + sep)) {
+    return null;
+  }
+  return full;
+}
+
 async function listSnapshotDirs(repoId: string): Promise<string[]> {
   const snapshotsRoot = join(
     getHfCacheRoot(),
@@ -360,9 +397,10 @@ async function repoFileInCache(
 ): Promise<boolean> {
   const snapshotDirs = await listSnapshotDirs(repoId);
   const checks = await Promise.all(
-    snapshotDirs.map((snapshotDir) =>
-      pathExists(join(snapshotDir, relativePath))
-    )
+    snapshotDirs.map((snapshotDir) => {
+      const full = safeJoinWithin(snapshotDir, relativePath);
+      return full ? pathExists(full) : Promise.resolve(false);
+    })
   );
   return checks.some((exists) => exists);
 }
@@ -414,10 +452,13 @@ async function isLlamaCppModelCached(
   const snapshots = await readdir(repoDir, { withFileTypes: true });
   for (const snapshot of snapshots) {
     if (!snapshot.isDirectory()) continue;
-    if (await pathExists(join(repoDir, snapshot.name, filePath))) {
+    const snapshotDir = join(repoDir, snapshot.name);
+    const full = safeJoinWithin(snapshotDir, filePath);
+    if (full && (await pathExists(full))) {
       return true;
     }
-    if (await pathExists(join(repoDir, snapshot.name, basename(filePath)))) {
+    // basename() strips any traversal segments, so this join stays contained.
+    if (await pathExists(join(snapshotDir, basename(filePath)))) {
       return true;
     }
   }
@@ -538,7 +579,9 @@ async function isServerReachable(url: string): Promise<boolean> {
   }
 }
 
-async function getServerAvailability(): Promise<Record<string, boolean>> {
+async function getServerAvailability(
+  userId: string
+): Promise<Record<string, boolean>> {
   if (isProduction()) {
     return { ollama: false, llama_cpp: false, lmstudio: false, vllm: false };
   }
@@ -546,7 +589,7 @@ async function getServerAvailability(): Promise<Record<string, boolean>> {
   // Resolve URLs the same way getProvider() does: secret store → env →
   // default. Otherwise a user-set URL in Settings → API Keys wouldn't filter
   // the recommended-models list correctly.
-  const getSecret = secretResolverFor("1");
+  const getSecret = secretResolverFor(userId);
   const resolve = async (key: string, fallback: string): Promise<string> => {
     const fromStore = await getSecret(key);
     return (fromStore || process.env[key] || fallback).replace(/\/+$/, "");
@@ -573,26 +616,31 @@ async function getServerAvailability(): Promise<Record<string, boolean>> {
 
 async function serverAllowsModel(
   model: RecommendedUnifiedModel,
-  servers: Record<string, boolean>
+  servers: Record<string, boolean>,
+  userId: string
 ): Promise<boolean> {
   if (model.provider === "ollama") return servers.ollama ?? false;
   if (model.provider === "llama_cpp") return servers.llama_cpp ?? false;
   if (model.provider === "lmstudio") return servers.lmstudio ?? false;
   if (model.provider === "vllm") return servers.vllm ?? false;
   if (model.provider)
-    return await isProviderConfigured(model.provider, secretResolverFor("1"));
+    return await isProviderConfigured(
+      model.provider,
+      secretResolverFor(userId)
+    );
   return true;
 }
 
 async function getRecommendedModels(
-  checkServers: boolean
+  checkServers: boolean,
+  userId: string
 ): Promise<UnifiedModel[]> {
   const models = [...RECOMMENDED_MODELS];
   if (!checkServers) return models;
-  const servers = await getServerAvailability();
+  const servers = await getServerAvailability(userId);
   const filtered: UnifiedModel[] = [];
   for (const model of models) {
-    if (await serverAllowsModel(model, servers)) {
+    if (await serverAllowsModel(model, servers, userId)) {
       filtered.push(model);
     }
   }
@@ -1006,8 +1054,8 @@ export const modelsRouter = router({
    */
   recommended: protectedProcedure
     .input(recommendedInput)
-    .query(async ({ input }) => {
-      return getRecommendedModels(input.check_servers ?? false);
+    .query(async ({ input, ctx }) => {
+      return getRecommendedModels(input.check_servers ?? false, ctx.userId);
     }),
 
   /**
@@ -1782,10 +1830,10 @@ export const modelsRouter = router({
   huggingfaceFileInfo: protectedProcedure
     .input(hfFileInfoInput)
     .output(z.array(z.record(z.string(), z.unknown())))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       if (isProduction()) return [];
       try {
-        const token = (await getSecret("HF_TOKEN", "1")) ?? undefined;
+        const token = (await getSecret("HF_TOKEN", ctx.userId)) ?? undefined;
         const infos = await getHuggingfaceFileInfos(
           input.map((i) => ({ repo_id: i.repo_id, path: i.path })),
           token

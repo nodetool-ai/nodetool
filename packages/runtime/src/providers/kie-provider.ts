@@ -178,8 +178,26 @@ async function pollUntilDone(
   maxAttempts = 300
 ): Promise<void> {
   const url = `${KIE_API_BASE}/api/v1/jobs/recordInfo?taskId=${taskId}`;
+  // A persistent non-OK poll (429/5xx/revoked key) after createTask succeeded
+  // used to be treated as "not done yet", so the loop silently ran the full
+  // maxAttempts (~20 min) and then blamed a slow job. Fail fast after a bounded
+  // run of consecutive errors with the real status.
+  const MAX_CONSECUTIVE_ERRORS = 5;
+  let consecutiveErrors = 0;
   for (let i = 0; i < maxAttempts; i++) {
     const res = await fetch(url, { headers: headers(apiKey) });
+    if (!res.ok) {
+      consecutiveErrors += 1;
+      if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+        const body = await res.text().catch(() => "");
+        throw new Error(
+          `Kie recordInfo failed ${consecutiveErrors}× (HTTP ${res.status}) for taskId ${taskId}: ${body.slice(0, 200)}`
+        );
+      }
+      await new Promise((r) => setTimeout(r, pollInterval));
+      continue;
+    }
+    consecutiveErrors = 0;
     const data = (await res.json()) as Record<string, unknown>;
     const state = (data.data as Record<string, unknown>)?.state as string;
     if (state === "success") return;

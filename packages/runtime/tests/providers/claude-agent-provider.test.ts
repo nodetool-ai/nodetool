@@ -234,6 +234,13 @@ describe("ClaudeAgentProvider", () => {
     expect(opts.allowDangerouslySkipPermissions).toBe(true);
     expect(opts.includePartialMessages).toBe(true);
     expect(opts.resume).toBeUndefined();
+    // Regression (#5): on the tool-free path the SDK's built-in tools must be
+    // explicitly disabled, otherwise a prompt-injected tool call in untrusted
+    // text would execute on the host under bypassPermissions. allowedTools:[]
+    // alone does NOT disable them.
+    expect(opts.disallowedTools).toEqual(
+      expect.arrayContaining(["Bash", "WebFetch", "Read", "Write", "Edit"])
+    );
   });
 
   it("streams text and thinking as SEPARATE chunks, never merged", async () => {

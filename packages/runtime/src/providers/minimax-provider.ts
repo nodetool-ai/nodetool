@@ -15,6 +15,7 @@ import {
 } from "./openai-compat-provider.js";
 import type { OpenAIProvider } from "./openai-provider.js";
 import { createLogger } from "@nodetool-ai/config";
+import { safeFetch } from "./safe-url.js";
 import type {
   ASRModel,
   EmbeddingModel,
@@ -534,7 +535,10 @@ export class MinimaxProvider extends OpenAICompatProvider {
     if (urls && urls.length > 0) {
       const results: Uint8Array[] = [];
       for (const url of urls) {
-        const dl = await this._minimaxFetch(url);
+        // safeFetch (not the raw API fetch): this URL comes from the provider
+        // response body, so block internal/link-local targets (SSRF). Route
+        // through the injected fetch so the guard stays testable.
+        const dl = await safeFetch(url, undefined, 5, this._minimaxFetch);
         if (!dl.ok) {
           throw new Error(`Failed to download MiniMax image from ${url}`);
         }
@@ -680,7 +684,10 @@ export class MinimaxProvider extends OpenAICompatProvider {
         `MiniMax files/retrieve returned no download_url: ${JSON.stringify(data)}`
       );
     }
-    const dl = await this._minimaxFetch(downloadUrl);
+    // safeFetch: download_url is provider-returned (externally influenced), so
+    // route it through the SSRF guard rather than the raw API fetch. Use the
+    // injected fetch so the guard stays testable.
+    const dl = await safeFetch(downloadUrl, undefined, 5, this._minimaxFetch);
     if (!dl.ok) {
       throw new Error(`Failed to download MiniMax file from ${downloadUrl}`);
     }

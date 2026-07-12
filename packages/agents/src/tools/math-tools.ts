@@ -329,51 +329,71 @@ export class TrigonometryTool extends Tool {
   }
 }
 
-const UNIT_CONVERSIONS: Record<string, number> = {
-  // Length (to meters)
-  meters: 1.0,
-  m: 1.0,
-  centimeters: 0.01,
-  cm: 0.01,
-  millimeters: 0.001,
-  mm: 0.001,
-  kilometers: 1000.0,
-  km: 1000.0,
-  feet: 0.3048,
-  ft: 0.3048,
-  inches: 0.0254,
-  in: 0.0254,
-  yards: 0.9144,
-  yd: 0.9144,
-  miles: 1609.344,
-  // Weight (to kilograms)
-  kilograms: 1.0,
-  kg: 1.0,
-  grams: 0.001,
-  g: 0.001,
-  pounds: 0.453592,
-  lbs: 0.453592,
-  ounces: 0.0283495,
-  oz: 0.0283495,
-  // Area (to square meters)
-  square_meters: 1.0,
-  m2: 1.0,
-  square_feet: 0.092903,
-  ft2: 0.092903,
-  square_inches: 0.00064516,
-  in2: 0.00064516,
-  acres: 4046.86,
-  // Volume (to liters)
-  liters: 1.0,
-  l: 1.0,
-  milliliters: 0.001,
-  ml: 0.001,
-  gallons: 3.78541,
-  gal: 3.78541,
-  cups: 0.236588,
-  fluid_ounces: 0.0295735,
-  fl_oz: 0.0295735
+// Conversion factors grouped by physical dimension. Units may only be
+// converted within the same category — the base unit of each category has
+// factor 1.0. A flat map would silently allow meaningless cross-dimension
+// conversions (e.g. liters -> kilometers), so category membership is enforced.
+const UNIT_CATEGORIES: Record<string, Record<string, number>> = {
+  length: {
+    // to meters
+    meters: 1.0,
+    m: 1.0,
+    centimeters: 0.01,
+    cm: 0.01,
+    millimeters: 0.001,
+    mm: 0.001,
+    kilometers: 1000.0,
+    km: 1000.0,
+    feet: 0.3048,
+    ft: 0.3048,
+    inches: 0.0254,
+    in: 0.0254,
+    yards: 0.9144,
+    yd: 0.9144,
+    miles: 1609.344
+  },
+  weight: {
+    // to kilograms
+    kilograms: 1.0,
+    kg: 1.0,
+    grams: 0.001,
+    g: 0.001,
+    pounds: 0.453592,
+    lbs: 0.453592,
+    ounces: 0.0283495,
+    oz: 0.0283495
+  },
+  area: {
+    // to square meters
+    square_meters: 1.0,
+    m2: 1.0,
+    square_feet: 0.092903,
+    ft2: 0.092903,
+    square_inches: 0.00064516,
+    in2: 0.00064516,
+    acres: 4046.86
+  },
+  volume: {
+    // to liters
+    liters: 1.0,
+    l: 1.0,
+    milliliters: 0.001,
+    ml: 0.001,
+    gallons: 3.78541,
+    gal: 3.78541,
+    cups: 0.236588,
+    fluid_ounces: 0.0295735,
+    fl_oz: 0.0295735
+  }
 };
+
+// unit name -> category, derived from UNIT_CATEGORIES so lookups stay in sync.
+const UNIT_TO_CATEGORY: Record<string, string> = Object.create(null);
+for (const [category, units] of Object.entries(UNIT_CATEGORIES)) {
+  for (const unit of Object.keys(units)) {
+    UNIT_TO_CATEGORY[unit] = category;
+  }
+}
 
 export class ConversionTool extends Tool {
   readonly name = "unit_conversion";
@@ -409,15 +429,28 @@ export class ConversionTool extends Tool {
       let result: number;
 
       if (tempUnits.has(fromUnit) || tempUnits.has(toUnit)) {
+        // Temperature is its own dimension — both units must be temperatures.
+        if (!tempUnits.has(fromUnit) || !tempUnits.has(toUnit)) {
+          return {
+            error: `Cannot convert between temperature and non-temperature units: ${fromUnit} to ${toUnit}`
+          };
+        }
         result = this.convertTemperature(value, fromUnit, toUnit);
       } else {
-        const fromFactor = UNIT_CONVERSIONS[fromUnit];
-        const toFactor = UNIT_CONVERSIONS[toUnit];
-        if (fromFactor === undefined || toFactor === undefined) {
+        const fromCategory = UNIT_TO_CATEGORY[fromUnit];
+        const toCategory = UNIT_TO_CATEGORY[toUnit];
+        if (fromCategory === undefined || toCategory === undefined) {
           return {
             error: `Unsupported unit conversion: ${fromUnit} to ${toUnit}`
           };
         }
+        if (fromCategory !== toCategory) {
+          return {
+            error: `Cannot convert between incompatible units: ${fromUnit} (${fromCategory}) to ${toUnit} (${toCategory})`
+          };
+        }
+        const fromFactor = UNIT_CATEGORIES[fromCategory][fromUnit];
+        const toFactor = UNIT_CATEGORIES[toCategory][toUnit];
         result = (value * fromFactor) / toFactor;
       }
 

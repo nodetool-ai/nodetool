@@ -274,6 +274,10 @@ export const sketchRouter = router({
     .mutation(async ({ ctx, input }) => {
       const doc = await loadOwned(ctx.userId, input.id);
 
+      // CAS on this value so the conflict check and the write are atomic. When
+      // the client supplies baseUpdatedAt, honor it; otherwise fall back to the
+      // just-loaded updated_at so a concurrent write still can't be clobbered.
+      const expectedUpdatedAt = input.baseUpdatedAt ?? doc.updated_at;
       if (input.baseUpdatedAt && doc.updated_at !== input.baseUpdatedAt) {
         throwApiError(
           ApiErrorCode.ALREADY_EXISTS,
@@ -281,7 +285,9 @@ export const sketchRouter = router({
         );
       }
 
-      const fields: Record<string, unknown> = {};
+      const fields: Parameters<
+        typeof ImageDocument.updateFieldsIfUnchanged
+      >[2] = {};
       if (input.name !== undefined) fields.name = input.name;
       if (input.width !== undefined) fields.width = input.width;
       if (input.height !== undefined) fields.height = input.height;
@@ -292,8 +298,19 @@ export const sketchRouter = router({
       if (input.document !== undefined)
         fields.document = JSON.stringify(input.document);
 
-      const updated = await ImageDocument.updateDoc(input.id, fields);
-      if (!updated) throwApiError(ApiErrorCode.NOT_FOUND, "Document not found");
+      const updated = await ImageDocument.updateFieldsIfUnchanged(
+        input.id,
+        expectedUpdatedAt,
+        fields
+      );
+      if (!updated) {
+        // Row changed between load and write (or was deleted): report a
+        // conflict rather than overwriting the concurrent change.
+        throwApiError(
+          ApiErrorCode.ALREADY_EXISTS,
+          "Document was modified since last read (optimistic concurrency conflict)"
+        );
+      }
       return updated.toResponse();
     }),
 
