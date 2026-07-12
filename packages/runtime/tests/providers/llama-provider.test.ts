@@ -116,6 +116,37 @@ describe("LlamaProvider", () => {
     });
   });
 
+  it("keeps args after a quoted value ending in an escaped backslash (#11)", async () => {
+    // Regression: an escaped backslash before the closing quote (a Windows
+    // path) was misread as escaping the quote, so the quote never closed and
+    // every following argument was swallowed into the string.
+    const fetchMock = mockChatFetch(
+      chatJsonResponse({
+        choices: [
+          {
+            message: {
+              content: 'save(path="C:\\\\", overwrite=true)',
+              tool_calls: []
+            }
+          }
+        ]
+      })
+    );
+    const provider = new LlamaProvider(
+      { LLAMA_CPP_URL: "http://127.0.0.1:8080" },
+      { fetchFn: fetchMock as unknown as typeof fetch }
+    );
+    const result = await provider.generateMessage({
+      model: "gemma3:4b",
+      messages: [{ role: "user", content: "save" }],
+      tools: [{ name: "save" }]
+    });
+    const args = result.toolCalls?.[0]?.args as Record<string, unknown>;
+    // The `overwrite` argument survives instead of being absorbed into `path`.
+    expect(args.overwrite).toBe(true);
+    expect(String(args.path).startsWith("C:")).toBe(true);
+  });
+
   it("streams chunks and parses emulated tool call on stop", async () => {
     const fetchMock = mockChatFetch(
       chatSSEResponse([

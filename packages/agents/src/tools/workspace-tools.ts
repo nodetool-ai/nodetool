@@ -183,18 +183,23 @@ export class WorkspaceListTool extends Tool {
         return { success: false, error: `Directory not found: ${rawPath}` };
       }
     }
-    const prefixToStrip = rawPath ? `${rawPath.replace(/\/+$/, "")}/` : "";
+    // Derive the strip prefix from the storage-normalized listPrefix, not
+    // rawPath. For the root (listPrefix ""), rawPath="/" produced prefixToStrip
+    // "/" whose de-slashed form is "", so `startsWith("")` matched every entry
+    // and sliced off the first character of each directory name ("sub" -> "ub").
+    const prefixToStrip = listPrefix ? `${listPrefix.replace(/\/+$/, "")}/` : "";
     const entries: Array<{ name: string; size: number; is_dir: boolean }> = [];
     for (const entry of result.entries) {
-      const name = prefixToStrip && entry.key.startsWith(prefixToStrip)
-        ? entry.key.slice(prefixToStrip.length)
-        : entry.key;
+      const name =
+        prefixToStrip && entry.key.startsWith(prefixToStrip)
+          ? entry.key.slice(prefixToStrip.length)
+          : entry.key;
       entries.push({ name, size: entry.size, is_dir: false });
     }
     for (const cp of result.commonPrefixes) {
       const trimmed = cp.replace(/\/+$/, "");
       const name =
-        prefixToStrip && trimmed.startsWith(prefixToStrip.replace(/\/+$/, ""))
+        prefixToStrip && trimmed.startsWith(prefixToStrip)
           ? trimmed.slice(prefixToStrip.length).replace(/^\/+/, "")
           : trimmed;
       entries.push({

@@ -14,6 +14,11 @@ import { pathToFileURL } from "node:url";
 const MIME_TO_EXT: Record<string, string> = {
   "image/png": "png",
   "image/jpeg": "jpg",
+  // `image/jpg` and `image/bmp` are accepted by the storage-side extension map
+  // (IMAGE_MIME_TO_EXT); without them here, resolution fell through to `.bin`
+  // and produced a dangling asset URL for a file written as `.jpg` / `.bmp`.
+  "image/jpg": "jpg",
+  "image/bmp": "bmp",
   "image/gif": "gif",
   "image/webp": "webp",
   "image/svg+xml": "svg",
@@ -31,6 +36,20 @@ function extFromMime(mime: string | undefined | null): string {
   return MIME_TO_EXT[mime] ?? "bin";
 }
 
+// asset_id comes from client-supplied message content and is interpolated into
+// a filesystem path. A value with path separators or `..` segments would let
+// the resolved file:// URI escape the assets dir and expose arbitrary local
+// files to the LLM. Restrict to a plain id token.
+function isSafeAssetId(assetId: string): boolean {
+  return (
+    assetId.length > 0 &&
+    !assetId.includes("/") &&
+    !assetId.includes("\\") &&
+    !assetId.includes("..") &&
+    !assetId.includes("\0")
+  );
+}
+
 function resolveAssetId(assetId: string, mimeType?: string | null): string {
   return buildAssetUrl(`${assetId}.${extFromMime(mimeType)}`);
 }
@@ -45,8 +64,11 @@ function resolveRef(
   const resolved = { ...ref };
   const mime = (resolved.mimeType ?? resolved.mime_type ?? resolved.content_type ?? fallbackMime) as string | undefined;
 
-  if (typeof resolved.asset_id === "string" && resolved.asset_id) {
-    resolved.uri = resolveAssetId(resolved.asset_id as string, mime);
+  if (
+    typeof resolved.asset_id === "string" &&
+    isSafeAssetId(resolved.asset_id)
+  ) {
+    resolved.uri = resolveAssetId(resolved.asset_id, mime);
   }
 
   return resolved;
@@ -64,9 +86,13 @@ function resolveRefForProvider(
   const resolved = { ...ref };
   const mime = (resolved.mimeType ?? resolved.mime_type ?? resolved.content_type ?? fallbackMime) as string | undefined;
 
-  if (typeof resolved.asset_id === "string" && resolved.asset_id && !resolved.uri) {
+  if (
+    typeof resolved.asset_id === "string" &&
+    isSafeAssetId(resolved.asset_id) &&
+    !resolved.uri
+  ) {
     const ext = extFromMime(mime);
-    const filePath = getAssetFilePath(`${resolved.asset_id as string}.${ext}`);
+    const filePath = getAssetFilePath(`${resolved.asset_id}.${ext}`);
     resolved.uri = pathToFileURL(filePath).href;
   }
 

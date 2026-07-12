@@ -4,9 +4,52 @@
 > before opening any PR.** It exists so the audit can resume after an ephemeral
 > container is reclaimed. Branch: `claude/kernel-runtime-bug-audit-2e71pq`.
 
-_Last updated: round 7 complete (27 confirmed → 25 fixed + tested + committed,
-2 deferred). 140 fixes, 5 deferred. Converging: R1=12, R2=25, R3=20, R4=13,
-R5=18, R6=24, R7=25 confirmed-and-fixed. Loop NOT yet dry.
+_Last updated: round 8 complete (19 confirmed → 19 fixed + tested + committed).
+159 fixes, 5 deferred. Converging: R1=12, R2=25, R3=20, R4=13, R5=18, R6=24,
+R7=25, R8=19 confirmed-and-fixed. Confirmed count trending down (25→19). Loop
+NOT yet dry.
+
+Round 8 (`scripts/bug-audit-workflow-r8.mjs`, run `wf_7442d97b-b5c`) swept 14
+finder groups over the remaining files (http-api/oauth/models-api, test-ui/
+screenshot servers, misc routers, workflow-bundle/media-url libs, telemetry/
+schema, provider mgmt, small compat + embedding/3D providers, comfy/python-graph
+executors, remaining agent tools). 29 findings, 19 confirmed (≥2/3), 10 refuted.
+Fixed 19:
+- **models-api** — HF hub cache root no longer double-appends "hub" to
+  HUGGINGFACE_HUB_CACHE / honors HF_HUB_CACHE (#1).
+- **test-ui-server** — WsAdapter queues the disconnect frame / short-circuits a
+  closed socket so the runner can't hang forever on client disconnect (#2).
+- **mcp-config router** — TOML-escape the MCP url + z.string().url() validation
+  (TOML injection into Codex config) (#3).
+- **settings router** — only skip the exact "****" mask, not any all-asterisk
+  secret (#4).
+- **file-user-manager** — Object.hasOwn guards so reserved usernames
+  (__proto__/constructor/…) return null instead of 500 (#5).
+- **resolve-media-urls** — reject traversal asset_ids (local-file exfil to the
+  LLM) (#6); add image/jpg + image/bmp so stored images don't resolve to a
+  dangling .bin URL (#7).
+- **telemetry** — shutdownTelemetry() flushes the OTLP BatchSpanProcessor; wired
+  into the CLI exit paths (spans were lost on exit) (#8).
+- **zod-schema** — coerce a top-level scalar schema instead of throwing (#9).
+- **python-provider** — TTS Int16 conversion honors byteOffset/odd length
+  (garbled/crash) (#10).
+- **llama-provider** — quote-state parser handles escaped backslashes so
+  following args aren't swallowed (#11).
+- **atlascloud-provider** — Retry-After parsed + capped (no multi-hour hang /
+  zero-backoff storm) (#12).
+- **comfy-executor** — submit + upload fetches now time out (#13, #14).
+- **add-edge tool** — allow edges into dynamic-input/output handles (#15).
+- **serp-tool-factory** — bind getSecret so the secret store is consulted (#16).
+- **workspace-tools** — workspace_list("/") no longer drops the first char of
+  directory names (#17).
+- **todo-tools** — bound TODO_STORE with an LRU cap (unbounded leak) (#18).
+- **security-monitor** — pick the verdict object (not the first JSON) + fail-safe
+  block on any non-none tier, so a verbose judge can't fail open (#19).
+
+Regression tests added for the high-value fixes (#5, #6, #7, #11, #15, #17, #19).
+The 5 deferred items are unchanged (anthropic thinking round-trip; LTM
+concurrency/re-embed; collections router + collection-tools cross-tenant IDOR —
+the last two need per-user vector-store namespacing + migration).
 
 Round 7 (`scripts/bug-audit-workflow-r7.mjs`, run `wf_ebfad157-56e`) swept 14
 finder groups over the last unexamined files (unified-websocket-runner, agent

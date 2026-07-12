@@ -50,8 +50,26 @@ const POLL_INTERVAL_MS = 3000;
 const MAX_POLL_ATTEMPTS = 600;
 
 const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
+const RETRY_MAX_WAIT_MS = 30000;
 const sleep = (ms: number): Promise<void> =>
   new Promise((r) => setTimeout(r, ms));
+
+// Parse a Retry-After header (delta-seconds or HTTP-date) into a bounded wait.
+// Returns null when absent/unparseable so the caller falls back to its backoff.
+// Capping matters: an unbounded header value (or a NaN from an HTTP-date) would
+// otherwise hang for hours or collapse the backoff to zero.
+function parseRetryAfterMs(value: string | null): number | null {
+  if (!value) return null;
+  const secs = Number(value);
+  if (Number.isFinite(secs)) {
+    return Math.min(RETRY_MAX_WAIT_MS, Math.max(0, secs * 1000));
+  }
+  const dateMs = Date.parse(value);
+  if (Number.isFinite(dateMs)) {
+    return Math.min(RETRY_MAX_WAIT_MS, Math.max(0, dateMs - Date.now()));
+  }
+  return null;
+}
 
 // ---------------------------------------------------------------------------
 // Manifest peek — model id → declared field names + modality
@@ -113,10 +131,9 @@ async function fetchWithRetry(
     if (!RETRYABLE_STATUS.has(resp.status)) return resp;
     last = resp;
     if (attempt === maxAttempts) break;
-    const retryAfter = resp.headers.get("Retry-After");
-    const wait = retryAfter ? Number(retryAfter) * 1000 : delay;
+    const wait = parseRetryAfterMs(resp.headers.get("Retry-After")) ?? delay;
     await sleep(wait);
-    delay = Math.min(delay * 2, 30000);
+    delay = Math.min(delay * 2, RETRY_MAX_WAIT_MS);
   }
   return last as Response;
 }

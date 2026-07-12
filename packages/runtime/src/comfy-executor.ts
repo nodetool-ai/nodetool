@@ -189,10 +189,14 @@ export function executeComfy(
       log.info(
         `Submitting prompt to ${url} (${body.length} bytes, ${Object.keys(prompt).length} nodes)`
       );
+      // Bound the submit: it runs after the WS handshake resolves but before
+      // listenForCompletion arms its watchdog, so a server that accepts the
+      // connection but never responds would hang the node forever otherwise.
       const submitRes = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body
+        body,
+        signal: AbortSignal.timeout(timeoutMs)
       });
       if (!submitRes.ok) {
         const text = await submitRes.text();
@@ -635,7 +639,10 @@ export async function uploadComfyFile(
   form.append("overwrite", "true");
   const res = await fetch(`${base}/upload/image`, {
     method: "POST",
-    body: form
+    body: form,
+    // Bound the upload so a stalled ComfyUI endpoint rejects instead of hanging
+    // the caller indefinitely, matching the download/history fetches.
+    signal: AbortSignal.timeout(IMAGE_FETCH_TIMEOUT_MS)
   });
   if (!res.ok) {
     const text = await res.text();

@@ -203,10 +203,17 @@ function isDownloadedFromFiles(
 }
 
 function getHfCacheRoot(): string {
-  const cacheEnv = process.env.HUGGINGFACE_HUB_CACHE ?? process.env.HF_HOME;
-  return cacheEnv
-    ? join(cacheEnv, "hub")
-    : join(homedir(), ".cache", "huggingface", "hub");
+  // HF_HUB_CACHE (modern) and HUGGINGFACE_HUB_CACHE already point AT the hub
+  // directory that holds the `models--*` folders — they are used verbatim.
+  // Only HF_HOME needs `/hub` appended. Appending it to the hub-cache vars
+  // (the previous behavior) probed one level too deep, so every model showed as
+  // not-downloaded. Mirrors electron/src/fileExplorer.ts.
+  const hubDir =
+    process.env.HF_HUB_CACHE ?? process.env.HUGGINGFACE_HUB_CACHE;
+  if (hubDir) return hubDir;
+  const hfHome = process.env.HF_HOME;
+  if (hfHome) return join(hfHome, "hub");
+  return join(homedir(), ".cache", "huggingface", "hub");
 }
 
 function repoToCacheDir(repoId: string): string {

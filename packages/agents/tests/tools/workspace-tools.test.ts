@@ -205,6 +205,29 @@ describe("WorkspaceListTool", () => {
     expect(names).toContain("subdir");
   });
 
+  it('lists root via "/" without corrupting directory names (#17)', async () => {
+    // Regression: path="/" made prefixToStrip "/" whose de-slashed form was "",
+    // so startsWith("") matched every directory and sliced off the first char
+    // ("src" -> "rc").
+    await fs.mkdir(path.join(tmpDir, "src"));
+    await fs.mkdir(path.join(tmpDir, "images"));
+    await fs.writeFile(path.join(tmpDir, "readme.md"), "x");
+
+    const tool = new WorkspaceListTool(tmpDir);
+    const result = (await tool.process(mockContext, {
+      path: "/"
+    })) as Record<string, unknown>;
+
+    const names = (
+      result.entries as Array<{ name: string; is_dir: boolean }>
+    ).map((e) => e.name);
+    expect(names).toContain("src");
+    expect(names).toContain("images");
+    expect(names).toContain("readme.md");
+    expect(names).not.toContain("rc");
+    expect(names).not.toContain("mages");
+  });
+
   it("marks directories correctly", async () => {
     await fs.mkdir(path.join(tmpDir, "mydir"));
     await fs.writeFile(path.join(tmpDir, "file.txt"), "x");
