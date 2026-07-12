@@ -139,10 +139,28 @@ export function executeComfy(
     // Connect WebSocket FIRST so we don't miss any events
     const wsUrl = toWsUrl(base, clientId);
     try {
-      ws = new WebSocket(wsUrl);
+      // Bound the handshake: `ws` has no default handshake timeout, so a host
+      // that accepts the TCP connection but never completes the WS upgrade
+      // (hung proxy, wrong port, black-hole) would leave neither "open" nor
+      // "error" firing and the awaited promise — and the node actor — hung
+      // forever (the run watchdog is only armed later, in listenForCompletion).
+      ws = new WebSocket(wsUrl, { handshakeTimeout: timeoutMs });
       await new Promise<void>((resolve, reject) => {
-        ws!.on("open", resolve);
-        ws!.on("error", reject);
+        const connectTimer = setTimeout(() => {
+          reject(
+            new Error(
+              `ComfyUI WebSocket did not open within ${timeoutMs}ms`
+            )
+          );
+        }, timeoutMs);
+        ws!.on("open", () => {
+          clearTimeout(connectTimer);
+          resolve();
+        });
+        ws!.on("error", (err) => {
+          clearTimeout(connectTimer);
+          reject(err);
+        });
       });
       // Start buffering immediately so events during the submit round-trip
       // below are not lost before listenForCompletion attaches its handler.

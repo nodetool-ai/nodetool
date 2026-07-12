@@ -167,11 +167,13 @@ describe("LlmAgentSession persistence", () => {
     });
     await second.send("turn 3", makeTransport(), "tmp", []);
 
-    // Hydrated 4 prior messages (2 user + 2 assistant). System prompt is
-    // intentionally not persisted so it doesn't show up on resume.
-    expect(lengthOnEntry).toBe(4);
-    expect(firstRoleOnEntry).toBe("user");
-    expect(secondRoleOnEntry).toBe("assistant");
+    // Hydrated 4 prior messages (2 user + 2 assistant) PLUS the system prompt
+    // prepended on resume. The system prompt is never persisted, but it must be
+    // re-added on resume so the resumed agent still follows the builder contract
+    // (regression: it used to be missing on any non-empty resumed conversation).
+    expect(lengthOnEntry).toBe(5);
+    expect(firstRoleOnEntry).toBe("system");
+    expect(secondRoleOnEntry).toBe("user");
   });
 
   it("refuses to resume a thread that belongs to another user", async () => {

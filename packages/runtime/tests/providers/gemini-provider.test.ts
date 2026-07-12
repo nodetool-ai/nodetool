@@ -320,6 +320,26 @@ describe("GeminiProvider", () => {
     expect(result.toolCalls).toBeUndefined();
   });
 
+  it("tracks token usage from usageMetadata (regression: Gemini reported $0)", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(
+      makeFetchResponse({
+        candidates: [{ content: { parts: [{ text: "Hi" }] } }],
+        usageMetadata: {
+          promptTokenCount: 12,
+          candidatesTokenCount: 8,
+          totalTokenCount: 20
+        }
+      })
+    );
+    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
+    await provider.generateMessage({
+      model: "gemini-2.0-flash",
+      messages: [{ role: "user", content: "hi" }]
+    });
+    // Usage was recorded (non-zero) rather than left null/zero.
+    expect(provider.getTotalCost()).toBeGreaterThan(0);
+  });
+
   it("generates a non-streaming message with tool calls", async () => {
     const fetchFn = vi.fn().mockResolvedValue(
       makeFetchResponse({

@@ -1403,6 +1403,13 @@ export class OpenAIProvider extends BaseProvider {
       let terminated = false;
       if (config.sequentialTools) {
         for (const tc of state.pending) {
+          // Honor a mid-turn abort (mirrors base-provider generateLoop): a tool
+          // like finish_step aborts the signal to stop the model running any
+          // further tools THIS turn. Without this check the Responses loop would
+          // keep executing pending tools after completion — duplicate
+          // step_result/StepCompleted events, overwritten memory, and stray
+          // side-effecting tools after the step is already done.
+          if (config.args.signal?.aborted) break;
           const content = await runTool(tc);
           yield* emitToolResult(tc, content);
           const tool = toolMap.get(tc.name);

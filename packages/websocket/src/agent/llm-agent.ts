@@ -229,6 +229,8 @@ class GraphPlannerUiTool extends Tool {
       uiSessionId: string;
       userId: string;
       emit: EmitAgentMessage;
+      /** Session abort signal so interrupt()/close() can cancel planning. */
+      signal?: AbortSignal;
     }
   ) {
     super();
@@ -277,6 +279,13 @@ class GraphPlannerUiTool extends Tool {
     const planGen = planner.plan(objective.trim(), context);
     let next = await planGen.next();
     while (!next.done) {
+      // Honor a session interrupt/close: stop driving the planner (which would
+      // otherwise run every remaining LLM call to completion, unresponsive to
+      // Stop and potentially applying a graph the user cancelled).
+      if (this.opts.signal?.aborted) {
+        await planGen.return(null);
+        return { isError: true, error: "Graph planning was cancelled." };
+      }
       const event = next.value;
       if (
         event.type === "planning_update" &&
@@ -480,15 +489,19 @@ class LlmAgentSession implements AgentQuerySession {
       this.threadId = thread.id;
     }
 
-    if (this.conversation.length === 0 && this.systemPrompt) {
-      // System prompt is part of the conversation but not persisted — it's
-      // a server-side configuration concern and doesn't belong in the user's
-      // transcript.
-      this.conversation.push({
+    if (this.systemPrompt && this.conversation[0]?.role !== "system") {
+      // The system prompt is part of the conversation but never persisted (a
+      // server-side config concern, not the user's transcript). Prepend it
+      // whenever there is no leading system message — both a FRESH thread and a
+      // RESUMED one, which reloads only persisted user/assistant/tool rows.
+      // Without this, resumed sessions ran with no system prompt and ignored
+      // the builder contract. unshift keeps it at index 0; bump persistedCount
+      // so the ephemeral system message is not re-persisted.
+      this.conversation.unshift({
         role: "system",
         content: this.systemPrompt,
       } as Message);
-      this.persistedCount = this.conversation.length;
+      this.persistedCount++;
     }
 
     this.hydrated = true;
@@ -579,7 +592,8 @@ class LlmAgentSession implements AgentQuerySession {
           sessionId,
           uiSessionId: this.threadId,
           userId: this.userId,
-          emit
+          emit,
+          signal: this.abortController.signal
         }),
         ...manifest.map((m) => new UiBridgeTool(transport, sessionId, m))
       ];

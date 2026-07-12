@@ -88,6 +88,12 @@ interface GeminiCandidate {
 interface GeminiResponse {
   candidates?: GeminiCandidate[];
   error?: { message?: string };
+  usageMetadata?: {
+    promptTokenCount?: number;
+    candidatesTokenCount?: number;
+    totalTokenCount?: number;
+    cachedContentTokenCount?: number;
+  };
 }
 
 /** Shape of a model entry from the Gemini models list API. */
@@ -555,12 +561,27 @@ export class GeminiProvider extends BaseProvider {
       throw new Error(`Gemini API error: ${data.error.message}`);
     }
 
+    this.trackGeminiUsage(model, data.usageMetadata);
+
     const candidate = data.candidates?.[0];
     if (!candidate?.content?.parts) {
       throw new Error("Gemini returned no candidates");
     }
 
     return this.extractMessage(candidate.content.parts, reverseMap);
+  }
+
+  /** Record token usage from a Gemini usageMetadata block (if present). */
+  private trackGeminiUsage(
+    model: string,
+    usage: GeminiResponse["usageMetadata"]
+  ): void {
+    if (!usage) return;
+    this.trackUsage(model, {
+      inputTokens: usage.promptTokenCount ?? 0,
+      outputTokens: usage.candidatesTokenCount ?? 0,
+      cachedTokens: usage.cachedContentTokenCount ?? 0
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -634,6 +655,9 @@ export class GeminiProvider extends BaseProvider {
     // separate SSE events, but they must all be sent back together.
     const allParts: GeminiPart[] = [];
     const pendingToolCalls: ToolCall[] = [];
+    // Gemini SSE reports CUMULATIVE usageMetadata; keep the last one seen and
+    // record it once after the stream (accumulating each event would over-count).
+    let lastUsage: GeminiResponse["usageMetadata"];
 
     try {
       while (true) {
@@ -655,6 +679,8 @@ export class GeminiProvider extends BaseProvider {
           } catch {
             continue;
           }
+
+          if (event.usageMetadata) lastUsage = event.usageMetadata;
 
           const parts = event.candidates?.[0]?.content?.parts;
           if (!parts) continue;
@@ -690,6 +716,8 @@ export class GeminiProvider extends BaseProvider {
     } finally {
       reader.releaseLock();
     }
+
+    this.trackGeminiUsage(model, lastUsage);
 
     // Attach accumulated raw parts to tool calls for thought replay
     const hasThoughts = allParts.some((p) => p.thought);

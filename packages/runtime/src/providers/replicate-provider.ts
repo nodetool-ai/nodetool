@@ -743,31 +743,31 @@ export class ReplicateProvider extends BaseProvider {
     return this.runWithInput(params.model.id, input);
   }
 
-  async *textToSpeech(args: {
+  /**
+   * Replicate TTS models (elevenlabs, minimax, kokoro, chatterbox, f5-tts)
+   * return an ENCODED audio file (MP3/WAV), not raw little-endian PCM. Expose
+   * it through the encoded path (like textToMusic / FAL) rather than overriding
+   * the streaming-PCM textToSpeech — the previous override blindly cast the
+   * encoded bytes to Int16Array, producing noise (MP3) or a header click +
+   * misaligned waveform (WAV).
+   */
+  override async textToSpeechEncoded(args: {
     text: string;
     model: string;
     voice?: string;
     speed?: number;
     audioFormat?: string;
-  }): AsyncGenerator<{ samples: Int16Array }> {
+  }): Promise<EncodedAudioResult | null> {
     const input: Record<string, unknown> = { text: args.text };
     if (args.voice) input.voice = args.voice;
     if (args.speed != null) input.speed = args.speed;
 
-    log.debug("textToSpeech", { model: args.model });
+    log.debug("textToSpeechEncoded", { model: args.model });
     const output = await this._client.run(args.model as `${string}/${string}`, {
       input
     });
     const bytes = await this._fetchOutputBytes(output);
-
-    // Convert to Int16Array (assume raw PCM or WAV)
-    yield {
-      samples: new Int16Array(
-        bytes.buffer,
-        bytes.byteOffset,
-        bytes.byteLength / 2
-      )
-    };
+    return { data: bytes, mimeType: sniffAudioMime(bytes) };
   }
 
   /**
