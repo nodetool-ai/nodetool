@@ -435,6 +435,71 @@ describe("BaseProvider.generateLoop – image tool results", () => {
     });
   });
 
+  it("appends all sibling tool results before image follow-up messages", async () => {
+    class TwoToolProvider extends BaseProvider {
+      secondTurnMessages: Message[] = [];
+      private called = false;
+      constructor() {
+        super("test");
+      }
+      async *generateMessages(args: { messages: Message[] }) {
+        if (!this.called) {
+          this.called = true;
+          yield { id: "image", name: "image", args: {} } as ToolCall;
+          yield { id: "text", name: "text", args: {} } as ToolCall;
+          return;
+        }
+        this.secondTurnMessages = args.messages;
+        yield { type: "chunk" as const, content: "done", done: true };
+      }
+    }
+
+    const provider = new TwoToolProvider();
+    for await (const _item of provider.generateLoop({
+      messages: [{ role: "user", content: "go" }],
+      model: "m",
+      executeTool: async (toolCall) =>
+        toolCall.id === "image"
+          ? [{ type: "image_url", image: { data: "QUJD" } }]
+          : "ok"
+    })) {
+      // drain
+    }
+
+    expect(
+      provider.secondTurnMessages
+        .map((message) => message.role)
+        .slice(0, 5)
+    ).toEqual(["user", "assistant", "tool", "tool", "user"]);
+  });
+
+  it("does not dispatch parallel tools after the turn is aborted", async () => {
+    const controller = new AbortController();
+    let executions = 0;
+    class AbortingProvider extends BaseProvider {
+      constructor() {
+        super("test");
+      }
+      async *generateMessages() {
+        yield { id: "call", name: "write", args: {} } as ToolCall;
+        controller.abort();
+      }
+    }
+
+    for await (const _item of new AbortingProvider().generateLoop({
+      messages: [{ role: "user", content: "go" }],
+      model: "m",
+      signal: controller.signal,
+      executeTool: async () => {
+        executions++;
+        return "done";
+      }
+    })) {
+      // drain
+    }
+    expect(executions).toBe(0);
+  });
+
   it("isolates a throwing tool in parallel execution — every tool_use gets a tool_result", async () => {
     // Regression: Promise.all rejected on one thrown tool, discarding sibling
     // results and leaving a dangling tool_use (rejected by the API next turn).

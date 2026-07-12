@@ -92,7 +92,12 @@ export interface ToolCall {
   thought_signature?: string;
   /** Raw Gemini parts to echo back (preserves thought content). */
   _rawGeminiParts?: unknown[];
+  _anthropicThinkingBlocks?: AnthropicThinkingBlock[];
 }
+
+export type AnthropicThinkingBlock =
+  | { type: "thinking"; thinking: string; signature: string }
+  | { type: "redacted_thinking"; data: string };
 
 /**
  * Canonical name for the web-search tool. Providers with a built-in web search
@@ -176,6 +181,7 @@ export interface Message {
   threadId?: string | null;
   /** Provider-specific raw parts to echo back (e.g., Gemini thought parts). */
   _rawGeminiParts?: unknown[];
+  _anthropicThinkingBlocks?: AnthropicThinkingBlock[];
 }
 
 export interface TextToImageParams {

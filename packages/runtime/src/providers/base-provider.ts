@@ -49,7 +49,7 @@ import {
 import { logProviderRequestFailure } from "./provider-request-log.js";
 import type { Span } from "@opentelemetry/api";
 import { SpanStatusCode } from "@opentelemetry/api";
-import { createLogger, getAssetFilePath } from "@nodetool-ai/config";
+import { createLogger, getDefaultAssetsPath } from "@nodetool-ai/config";
 
 const log = createLogger("nodetool.runtime.provider");
 
@@ -890,6 +890,12 @@ export abstract class BaseProvider {
       if (rawParts) {
         assistantMsg._rawGeminiParts = rawParts;
       }
+      const thinkingBlocks = pending.find(
+        (tc) => tc._anthropicThinkingBlocks
+      )?._anthropicThinkingBlocks;
+      if (thinkingBlocks) {
+        assistantMsg._anthropicThinkingBlocks = thinkingBlocks;
+      }
       messages.push(assistantMsg);
       yield { type: "message", message: assistantMsg };
 
@@ -918,6 +924,7 @@ export abstract class BaseProvider {
       // A tool flagged `terminal` ends the loop once its turn's results are
       // emitted (e.g. a finish/submit tool).
       let terminated = false;
+      const imageMessages: Message[] = [];
 
       const emitToolResult = function* (
         tc: ToolCall,
@@ -936,7 +943,7 @@ export abstract class BaseProvider {
           // providers can't render an image in a tool-result message). It is
           // in-flight only — pushed to the loop's messages but never yielded,
           // so it is never persisted or echoed, keeping saved history cheap.
-          messages.push(imageMessage);
+          imageMessages.push(imageMessage);
         }
       };
 
@@ -952,6 +959,7 @@ export abstract class BaseProvider {
           }
         }
       } else {
+        if (turnArgs.signal?.aborted) return;
         const results = await Promise.all(
           pending.map(async (tc) => ({ tc, content: await runTool(tc) }))
         );
@@ -960,6 +968,8 @@ export abstract class BaseProvider {
           if (toolMap.get(tc.name)?.terminal) terminated = true;
         }
       }
+
+      messages.push(...imageMessages);
 
       // A terminal tool ran this turn — stop after emitting its results.
       if (terminated) return;
@@ -1289,7 +1299,7 @@ export abstract class BaseProvider {
   /**
    * Resolve a URI to a `data:` URI that providers can consume directly.
    *
-   * - `file://...`        → read from disk, return `data:<mime>;base64,…`
+   * - `file://...`        → read an asset file, return `data:<mime>;base64,…`
    * - `/api/storage/<k>`  → read from getDefaultAssetsPath()/<k> (legacy fallback)
    * - Everything else     → returned unchanged (http/https/data: pass through)
    */
@@ -1303,34 +1313,62 @@ export abstract class BaseProvider {
         "resolveUri requires node:fs/promises (Node-only feature)"
       );
     }
+    const pathMod = await importNodeBuiltin<typeof import("node:path")>(
+      "node:path"
+    );
+    if (!pathMod) {
+      throw new Error("resolveUri requires node:path (Node-only feature)");
+    }
+
+    const getAssetsRoot = () => fsP.realpath(getDefaultAssetsPath());
+    const readAssetFile = async (filePath: string): Promise<Uint8Array> => {
+      const assetsRoot = await getAssetsRoot();
+      const assertContained = (candidate: string) => {
+        const relative = pathMod.relative(assetsRoot, candidate);
+        if (relative.startsWith("..") || pathMod.isAbsolute(relative)) {
+          throw new Error("Asset URI resolves outside the asset directory");
+        }
+      };
+      const requestedPath = pathMod.resolve(filePath);
+      assertContained(requestedPath);
+      const realPath = await fsP.realpath(requestedPath);
+      assertContained(realPath);
+      return (await fsP.readFile(realPath)) as Uint8Array;
+    };
 
     if (uri.startsWith("file://")) {
-      try {
-        const urlMod = await importNodeBuiltin<typeof import("node:url")>(
-          "node:url"
-        );
-        if (!urlMod) {
-          throw new Error("resolveUri file:// requires node:url");
-        }
-        const filePath = urlMod.fileURLToPath(uri);
-        const bytes = (await fsP.readFile(filePath)) as Uint8Array;
-        const ext = filePath.split(".").pop()?.toLowerCase() ?? "";
-        const mime = EXT_TO_MIME[ext] ?? "application/octet-stream";
-        return `data:${mime};base64,${Buffer.from(bytes).toString("base64")}`;
-      } catch {
-        return uri;
+      const urlMod = await importNodeBuiltin<typeof import("node:url")>(
+        "node:url"
+      );
+      if (!urlMod) {
+        throw new Error("resolveUri file:// requires node:url");
       }
+      const filePath = urlMod.fileURLToPath(uri);
+      const bytes = await readAssetFile(filePath);
+      const ext = filePath.split(".").pop()?.toLowerCase() ?? "";
+      const mime = EXT_TO_MIME[ext] ?? "application/octet-stream";
+      return `data:${mime};base64,${Buffer.from(bytes).toString("base64")}`;
     }
 
     // Legacy: old messages stored with browser-facing /api/storage/ path
     if (uri.startsWith("/api/storage/")) {
       const key = uri.slice("/api/storage/".length);
       try {
-        const bytes = (await fsP.readFile(getAssetFilePath(key))) as Uint8Array;
+        const assetsRoot = await getAssetsRoot();
+        const decodedKey = decodeURIComponent(key);
+        const bytes = await readAssetFile(
+          pathMod.resolve(assetsRoot, decodedKey.replace(/^\/+/, ""))
+        );
         const ext = key.split(".").pop()?.toLowerCase() ?? "";
         const mime = EXT_TO_MIME[ext] ?? "application/octet-stream";
         return `data:${mime};base64,${Buffer.from(bytes).toString("base64")}`;
-      } catch {
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          error.message === "Asset URI resolves outside the asset directory"
+        ) {
+          throw error;
+        }
         // Remote deployment: file not local, fall back to absolute HTTP
         return `http://127.0.0.1:${process.env.PORT ?? 7777}${uri}`;
       }

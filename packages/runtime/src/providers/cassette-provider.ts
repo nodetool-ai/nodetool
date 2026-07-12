@@ -109,15 +109,19 @@ export function stableStringify(value: unknown): string {
     }
     if (seen.has(v as object)) return "[circular]";
     seen.add(v as object);
-    if (Array.isArray(v)) {
-      return v.map(encode);
+    try {
+      if (Array.isArray(v)) {
+        return v.map(encode);
+      }
+      const obj = v as Record<string, unknown>;
+      const out: Record<string, unknown> = {};
+      for (const key of Object.keys(obj).sort()) {
+        out[key] = encode(obj[key]);
+      }
+      return out;
+    } finally {
+      seen.delete(v as object);
     }
-    const obj = v as Record<string, unknown>;
-    const out: Record<string, unknown> = {};
-    for (const key of Object.keys(obj).sort()) {
-      out[key] = encode(obj[key]);
-    }
-    return out;
   };
 
   return JSON.stringify(encode(value));

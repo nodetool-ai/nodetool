@@ -80,6 +80,13 @@ describe("stableStringify", () => {
     expect(a).toBe(b);
     expect(a).toContain("__bytes__:");
   });
+
+  it("encodes shared acyclic references the same as copied values", () => {
+    const schema = { type: "object", properties: { value: { type: "string" } } };
+    expect(stableStringify({ first: schema, second: schema })).toBe(
+      stableStringify({ first: { ...schema }, second: { ...schema } })
+    );
+  });
 });
 
 describe("hashRequest", () => {

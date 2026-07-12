@@ -582,6 +582,80 @@ describe("AnthropicProvider – extractSystemMessage non-string non-array conten
 });
 
 describe("AnthropicProvider – extended thinking (T-RT-5)", () => {
+  it("replays signed thinking blocks before tool use", async () => {
+    const provider = new AnthropicProvider(
+      { ANTHROPIC_API_KEY: "k" },
+      { client: { messages: { create: vi.fn() } } as any }
+    );
+    const converted = await provider.convertMessage({
+      role: "assistant",
+      content: null,
+      toolCalls: [{ id: "call", name: "lookup", args: {} }],
+      _anthropicThinkingBlocks: [
+        { type: "thinking", thinking: "reason", signature: "signed" }
+      ]
+    });
+    expect(converted?.content).toEqual([
+      { type: "thinking", thinking: "reason", signature: "signed" },
+      { type: "tool_use", id: "call", name: "lookup", input: {} }
+    ]);
+  });
+
+  it("captures streamed thinking signatures on tool calls", async () => {
+    const create = vi.fn().mockReturnValue(
+      makeAsyncIterable([
+        {
+          type: "content_block_start",
+          index: 0,
+          content_block: { type: "thinking", thinking: "", signature: "" }
+        },
+        {
+          type: "content_block_delta",
+          index: 0,
+          delta: { thinking: "reason" }
+        },
+        {
+          type: "content_block_delta",
+          index: 0,
+          delta: { signature: "signed" }
+        },
+        { type: "content_block_stop", index: 0 },
+        {
+          type: "content_block_start",
+          index: 1,
+          content_block: { type: "tool_use", id: "call", name: "lookup" }
+        },
+        {
+          type: "content_block_delta",
+          index: 1,
+          delta: { partial_json: "{}" }
+        },
+        { type: "content_block_stop", index: 1 },
+        { type: "message_stop" }
+      ])
+    );
+    const provider = new AnthropicProvider(
+      { ANTHROPIC_API_KEY: "k" },
+      { client: { messages: { create } } as any }
+    );
+    const items: unknown[] = [];
+    for await (const item of provider.generateMessages({
+      model: "claude-sonnet",
+      messages: [{ role: "user", content: "think" }],
+      thinkingBudget: 2048
+    })) {
+      items.push(item);
+    }
+    expect(items).toContainEqual(
+      expect.objectContaining({
+        id: "call",
+        _anthropicThinkingBlocks: [
+          { type: "thinking", thinking: "reason", signature: "signed" }
+        ]
+      })
+    );
+  });
+
   it("includes thinking config in streaming request when thinkingBudget is set", async () => {
     const stream = vi.fn().mockReturnValue(
       makeAsyncIterable([
@@ -614,6 +688,9 @@ describe("AnthropicProvider – extended thinking (T-RT-5)", () => {
       type: "enabled",
       budget_tokens: 5000
     });
+    expect(requestBody.max_tokens).toBe(8192);
+    expect(requestBody.temperature).toBeUndefined();
+    expect(requestBody.top_p).toBeUndefined();
 
     // Verify thinking chunks are emitted
     expect(out[0]).toEqual({
@@ -671,6 +748,7 @@ describe("AnthropicProvider – extended thinking (T-RT-5)", () => {
       type: "enabled",
       budget_tokens: 10000
     });
+    expect(requestBody.max_tokens).toBe(11024);
   });
 
   it("does not include thinking config in non-streaming when not set", async () => {
@@ -692,4 +770,3 @@ describe("AnthropicProvider – extended thinking (T-RT-5)", () => {
     expect(requestBody.thinking).toBeUndefined();
   });
 });
-
