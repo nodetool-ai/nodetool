@@ -89,7 +89,6 @@ const styles = (theme: Theme) =>
     }
   });
 
-// Fetch workspaces
 const fetchWorkspaces = async (): Promise<WorkspaceResponse[]> => {
   const { workspaces } = await trpcClient.workspace.list.query({ limit: 100 });
   return workspaces as WorkspaceResponse[];

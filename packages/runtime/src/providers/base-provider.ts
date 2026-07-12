@@ -342,7 +342,7 @@ export abstract class BaseProvider {
    * Explicit capability declaration. Returns `null` by default, in which case
    * {@link getCapabilities} derives capabilities by reflecting on which
    * optional methods the concrete class overrides. Providers may override this
-   * to declare their capabilities directly — a robust alternative to method
+   * to declare their capabilities directly — an alternative to method
    * reflection when methods are wrapped, bound, or composed via mixins.
    */
   protected declaredCapabilities(): ProviderCapability[] | null {
@@ -904,20 +904,19 @@ export abstract class BaseProvider {
       const runTool = async (
         tc: ToolCall
       ): Promise<string | MessageContent[]> => {
-        // Isolate per-tool failures: a thrown tool must still yield a
-        // tool_result, otherwise (a) in the parallel branch one rejection makes
-        // Promise.all reject and discards every sibling tool's completed result,
-        // and (b) the assistant tool_use is left with no matching tool_result,
-        // which the provider API rejects on the next turn.
+        const tool = toolMap.get(tc.name);
         try {
-          const tool = toolMap.get(tc.name);
           if (tool?.execute) return await tool.execute(tc.args ?? {}, tc.id);
           if (executeTool) return await executeTool(tc);
           return `Tool "${tc.name}" is not available`;
         } catch (err) {
-          return `Error executing tool "${tc.name}": ${
-            err instanceof Error ? err.message : String(err)
-          }`;
+          // A throwing tool must not destroy the whole assistant turn: turn the
+          // failure into an error result so the model still receives output for
+          // every tool call (and sibling results are preserved). Without this,
+          // Promise.all in the parallel path would reject before any result is
+          // emitted, discarding the turn.
+          const message = err instanceof Error ? err.message : String(err);
+          return `Error executing tool "${tc.name}": ${message}`;
         }
       };
 

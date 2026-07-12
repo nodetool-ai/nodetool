@@ -25,7 +25,7 @@ const ModelSelectButton = memo(forwardRef<HTMLButtonElement, ModelSelectButtonPr
     active,
     className,
     tooltipTitle,
-    sx, // Add sx prop
+    sx,
   },
     ref
   ) => {

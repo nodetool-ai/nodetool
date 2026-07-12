@@ -32,7 +32,6 @@ export type QuickActionDefinition = {
 
 /**
  * Build a QuickActionDefinition from two rgba base colors and an icon color.
- * Eliminates the repeated gradient/shadow boilerplate across all action buttons.
  */
 const buildQuickAction = (
   key: string,

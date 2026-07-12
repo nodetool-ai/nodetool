@@ -37,7 +37,7 @@ These apply to **every** deployment, regardless of environment:
 
 - **Keep secrets out of Git**: Load provider API keys and tokens from environment variables or a secrets manager.
 - **Never commit `.env` files** with secrets. Add `.env` to `.gitignore`.
-- Provide the encryption master key (`SECRETS_MASTER_KEY`, or `AWS_SECRETS_MASTER_KEY_NAME` for AWS Secrets Manager) on every server so they share one key, and store all other deployment secrets in your platform's secrets manager.
+- Provide the encryption master key (`SECRETS_MASTER_KEY`) on every server so they share one key, and store all other deployment secrets in your platform's secrets manager.
 
 ### Resource Limits
 

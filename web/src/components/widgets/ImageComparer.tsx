@@ -171,7 +171,6 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
   const [loadedMetadataA, setLoadedMetadataA] = useState<ImageMetadata>({});
   const [loadedMetadataB, setLoadedMetadataB] = useState<ImageMetadata>({});
 
-  // Handle mouse move to update divider position
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       if (!containerRef.current) {return;}
@@ -206,7 +205,6 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
     setPosition(50);
   }, []);
 
-  // Handle image load to get natural dimensions
   const handleImageALoad = useCallback(
     (e: React.SyntheticEvent<HTMLImageElement>) => {
       const img = e.currentTarget;
@@ -231,7 +229,6 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
     []
   );
 
-  // Merge provided metadata with loaded metadata
   const finalMetadataA = useMemo(
     () => ({ ...loadedMetadataA, ...metadataA }),
     [loadedMetadataA, metadataA]
@@ -241,21 +238,16 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
     [loadedMetadataB, metadataB]
   );
 
-  // Calculate clip paths for revealing images
   const clipPathA = useMemo(() => {
     if (mode === "horizontal") {
-      // Show left portion of image A
       return `inset(0 ${100 - position}% 0 0)`;
     } else {
-      // Show top portion of image A
       return `inset(0 0 ${100 - position}% 0)`;
     }
   }, [mode, position]);
 
-  // Cursor style based on mode
   const cursorStyle = mode === "horizontal" ? "ew-resize" : "ns-resize";
 
-  // Divider position style
   const dividerStyle = useMemo(() => {
     if (mode === "horizontal") {
       return { left: `${position}%` };

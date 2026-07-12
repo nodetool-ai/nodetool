@@ -201,7 +201,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
 
   const addRecentModel = useModelPreferencesStore((s) => s.addRecent);
 
-  // Popover anchors
   const [modeAnchor, setModeAnchor] = useState<HTMLButtonElement | null>(null);
   const [durationAnchor, setDurationAnchor] = useState<HTMLButtonElement | null>(null);
   const [resolutionAnchor, setResolutionAnchor] = useState<HTMLButtonElement | null>(null);
@@ -264,7 +263,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       onSelectAsset: handleSelectAsset
     });
 
-  // Adjust textarea height based on content
   const adjustHeight = useCallback(() => {
     const el = textareaRef.current;
     if (!el) {
@@ -280,7 +278,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     adjustHeight();
   }, [prompt, adjustHeight]);
 
-  // Focus on mount
   useEffect(() => {
     if (autoFocus) {
       textareaRef.current?.focus();
@@ -485,7 +482,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     clearFiles
   ]);
 
-  // Handle paste events — extract images from clipboard
   const handlePaste = useCallback(
     (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
       const items = e.clipboardData?.items;
@@ -525,7 +521,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     [handleMentionKeyDown, shiftKeyPressed, metaKeyPressed, altKeyPressed, handleSend]
   );
 
-  // Mode icon for the mode chip
   const modeIcon = useMemo(() => {
     if (isPi) return <SmartToyOutlinedIcon fontSize="small" />;
     if (mode === "image") return <ImageIcon fontSize="small" />;
@@ -551,7 +546,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     return "Motion";
   }, [mode, isPi]);
 
-  // Model dialog selection callbacks
   const handlePickImageModel = useCallback(
     (model: ImageModel) => {
       const constraints = imageModelConstraints(model);

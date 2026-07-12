@@ -142,6 +142,22 @@
         "sourceHandle": "item",
         "target": "collected_captions",
         "targetHandle": "input_item"
+      },
+      {
+        "id": "edge-output-post-images",
+        "source": "collected_images",
+        "sourceHandle": "output",
+        "target": "output-post-images",
+        "targetHandle": "value",
+        "ui_properties": null
+      },
+      {
+        "id": "edge-output-captions",
+        "source": "collected_captions",
+        "sourceHandle": "output",
+        "target": "output-captions",
+        "targetHandle": "value",
+        "ui_properties": null
       }
     ],
     "nodes": [
@@ -493,6 +509,34 @@
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
+      },
+      {
+        "id": "output-post-images",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "post_images"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2570,
+            "y": 792
+          },
+          "selectable": true
+        }
+      },
+      {
+        "id": "output-captions",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "captions"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1950,
+            "y": 198
+          },
+          "selectable": true
+        }
       }
     ]
   },
@@ -562,5 +606,169 @@
   "path": null,
   "run_mode": null,
   "required_providers": null,
-  "required_models": null
+  "required_models": null,
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Social Media Calendar Filler"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-title",
+            "text": "📅 Social Media Calendar Filler",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "Fill a month of social posts — images, captions, and hashtags included."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-brand-name",
+                        "binding": "brand_name",
+                        "label": "Brand name",
+                        "placeholder": "TechStartup Pro",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-monthly-theme",
+                        "binding": "monthly_theme",
+                        "label": "This month's theme",
+                        "placeholder": "AI productivity tools and workflow automation",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-target-audience",
+                        "binding": "target_audience",
+                        "label": "Audience",
+                        "placeholder": "Tech professionals, entrepreneurs, and startup founders aged 25-45",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-brand-voice",
+                        "binding": "brand_voice",
+                        "label": "Brand voice",
+                        "placeholder": "Professional yet approachable, educational, inspiring, data-driven",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "in-posts-per-week",
+                        "binding": "posts_per_week",
+                        "label": "Posts per week",
+                        "min": 1,
+                        "max": 7,
+                        "step": 1,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Fill my calendar",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-post-images",
+                        "text": "Post visuals",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-post-images",
+                        "binding": "post_images",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-captions",
+                        "text": "Captions & hashtags",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-captions",
+                        "binding": "captions",
+                        "text": ""
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
 }

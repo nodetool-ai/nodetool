@@ -112,7 +112,6 @@ const EditableTitle = memo(function EditableTitle({
       transform: "rotate(45deg)"
     },
 
-    // Textarea styling
     "& textarea": {
       flex: 1,
       minWidth: "160px",
@@ -134,7 +133,6 @@ const EditableTitle = memo(function EditableTitle({
       }
     },
 
-    // Title text styling
     ".title": {
       pointerEvents: "none",
       minWidth: 0,

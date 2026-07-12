@@ -817,6 +817,7 @@ function createRuntimeContext(opts: {
   threadId?: string | null;
   userId: string;
   workspaceDir: string | null;
+  authToken?: string | null;
   assetOutputMode?:
     | "native"
     | "data_uri"
@@ -840,6 +841,7 @@ function createRuntimeContext(opts: {
     secretResolver: getSecret,
     storage: tempAdapter,
     workspaceStorage: workspaceAdapter,
+    authToken: opts.authToken,
     tempUrlResolver: (uri: string) => {
       // Cloud backends: key becomes /api/storage/<key> — the HTTP handler
       // will redirect to a signed URL (once signed URL support is wired in).
@@ -3660,7 +3662,8 @@ export class UnifiedWebSocketRunner {
       jobId: randomUUID(),
       threadId: threadId || null,
       userId,
-      workspaceDir: chatWorkspaceDir
+      workspaceDir: chatWorkspaceDir,
+      authToken: this.authToken
     });
     // Any agent planning inside this turn (e.g. via run_node spawning an
     // Agent node in plan mode) pauses for user plan approval.

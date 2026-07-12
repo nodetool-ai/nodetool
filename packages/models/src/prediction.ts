@@ -10,8 +10,6 @@ import { getDb } from "./db.js";
 import { predictions } from "./schema/predictions.js";
 import { workflows } from "./schema/workflows.js";
 
-// ── Aggregate result types ──────────────────────────────────────────
-
 export interface AggregateResult {
   user_id: string;
   provider?: string | null;

@@ -14,7 +14,6 @@ import { useRemoveFromGroup } from "../nodes/useRemoveFromGroup";
 import { useIsGroupable } from "../nodes/useIsGroupable";
 import { useNodes, useTemporalNodes } from "../../contexts/NodeContext";
 import { shallow } from "zustand/shallow";
-// Removed comment creation via drag
 
 // Throttle interval for intersection checks (ms)
 const INTERSECTION_THROTTLE_MS = 50;
@@ -36,7 +35,6 @@ export default function useDragHandlers() {
   const addToGroup = useAddToGroup();
   const removeFromGroup = useRemoveFromGroup();
   const { isGroup } = useIsGroupable();
-  // Removed: c-key drag-to-create-comment feature
   const controlKeyPressed = useKeyPressed((state) =>
     state.isKeyPressed("control")
   );
@@ -289,12 +287,8 @@ export default function useDragHandlers() {
       x: currentMousePos.x,
       y: currentMousePos.y
     });
-    setStartPos(projectedStartPos); // General purpose
-  }, [
-    reactFlow,
-    setStartPos,
-    // comment creation via drag removed
-  ]); // Added commentDragState.isActive
+    setStartPos(projectedStartPos);
+  }, [reactFlow, setStartPos]);
 
   const onSelectionEnd = useCallback(
     (_event: ReactMouseEvent | TouchEvent | null) => {

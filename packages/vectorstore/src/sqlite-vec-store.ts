@@ -122,7 +122,6 @@ export class VecCollection {
   private ensureIndex(dimension: number): void {
     if (dimension <= 0) return;
 
-    // Check if virtual table exists
     const exists = this.db
       .prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name=?`)
       .get(this.idxTable) as { name: string } | undefined;

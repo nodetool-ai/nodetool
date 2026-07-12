@@ -364,7 +364,6 @@ export class StepExecutor {
     this.threadId = opts.threadId;
     this.upstreamMemoryKeys = opts.upstreamMemoryKeys ?? [];
 
-    // Load and sanitize the output schema
     this.resultSchema = this.loadResultSchema();
 
     // Auto-attach memory tools so the step can list / read / write
@@ -376,13 +375,11 @@ export class StepExecutor {
       }
     }
 
-    // Setup finish_step tool if we have a schema
     if (this.resultSchema) {
       this.finishStepTool = new FinishStepTool(this.resultSchema);
       this.tools.push(this.finishStepTool);
     }
 
-    // Build the system prompt from templates
     this.systemPrompt = this.buildSystemPrompt(opts.systemPrompt);
   }
 
@@ -838,14 +835,11 @@ export class StepExecutor {
       instructions: this.step.instructions.slice(0, 60)
     });
 
-    // Initialize history with system prompt
     this.history.push({ role: "system" as const, content: this.systemPrompt });
 
-    // Build user message with instructions and dependency results
     const userContent = this.buildUserMessage();
     this.history.push({ role: "user" as const, content: userContent });
 
-    // Yield task update: step started
     this.step.startTime = Date.now();
 
     yield {

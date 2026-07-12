@@ -68,7 +68,7 @@ const secretKeyToDisplayName: Record<string, string> = {
   MINIMAX_API_KEY: "MiniMax API Key"
 };
 
-export const getRootNamespace = (namespace: string): string =>
+const getRootNamespace = (namespace: string): string =>
   namespace.split(".")[0].toLowerCase();
 
 export const getRequiredSecretKeyForNamespace = (

@@ -33,7 +33,6 @@ describe("loadKeytar — dynamic import success path", () => {
     resetKeytarLoader();
     keytar.getPassword.mockClear();
     delete process.env["SECRETS_MASTER_KEY"];
-    delete process.env["AWS_SECRETS_MASTER_KEY_NAME"];
   });
 
   afterEach(() => {

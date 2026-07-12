@@ -31,6 +31,14 @@
         "ui_properties": {
           "className": "image"
         }
+      },
+      {
+        "id": "edge-output-enhanced-image",
+        "source": "4c9c6b63-646a-4da9-8794-abd180c59041",
+        "sourceHandle": "output",
+        "target": "output-enhanced-image",
+        "targetHandle": "value",
+        "ui_properties": null
       }
     ],
     "nodes": [
@@ -123,6 +131,20 @@
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
+      },
+      {
+        "id": "output-enhanced-image",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "enhanced_image"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 990,
+            "y": 113
+          },
+          "selectable": true
+        }
       }
     ]
   },
@@ -174,5 +196,85 @@
   "required_providers": null,
   "required_models": null,
   "html_app": null,
-  "etag": "beed9be1513b27ac2a666e8faa1e254d"
+  "etag": "beed9be1513b27ac2a666e8faa1e254d",
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Image Enhance"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-title",
+            "text": "✨ Image Enhance",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "Sharper, brighter, cleaner — enhance any photo in one click."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-try",
+            "title": "Try it",
+            "content": [
+              {
+                "type": "Text",
+                "props": {
+                  "id": "note-media",
+                  "text": "🖼️ Uses the bundled sample photo — drop in your own in NodeTool Studio."
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "id": "btn-run",
+                  "label": "Enhance my photo",
+                  "variant": "contained",
+                  "color": "primary",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "key": "",
+                      "value": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-results",
+            "title": "Results",
+            "content": [
+              {
+                "type": "Image",
+                "props": {
+                  "id": "out-enhanced-image",
+                  "binding": "enhanced_image",
+                  "fit": "contain",
+                  "height": 280,
+                  "placeholder": "Your result appears here"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
 }

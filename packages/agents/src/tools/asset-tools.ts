@@ -180,16 +180,14 @@ export class ReadAssetTool extends Tool {
         return { success: false, error: "No storage adapter configured" };
       }
 
-      // Build the expected URI from the asset key
       const key = `assets/${name}`;
 
-      // Try common URI schemes that the storage adapter may use
+      // Try the URI schemes the storage adapter might have used to store it.
       const schemes = [`memory://${key}`, `file://${key}`, `s3://${key}`];
 
       let data: Uint8Array | null = null;
       let matchedUri: string | null = null;
 
-      // First try storing nothing - just check if we can retrieve by key directly
       for (const uri of schemes) {
         const result = await context.storage.retrieve(uri);
         if (result) {

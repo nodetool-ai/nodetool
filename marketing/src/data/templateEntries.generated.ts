@@ -413,9 +413,14 @@ export const templateEntries: TemplateEntry[] = [
         "type": "search.google.GoogleSearch",
         "label": "Google Search",
         "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
       }
     ],
-    "nodeCount": 2,
+    "nodeCount": 3,
     "thumbnail": "/templates/agent-google-search.jpg",
     "graph": {
       "nodes": [
@@ -444,6 +449,14 @@ export const templateEntries: TemplateEntry[] = [
           "x": 299,
           "y": 685,
           "width": 280
+        },
+        {
+          "id": "output-results",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 619,
+          "y": 685,
+          "width": 280
         }
       ],
       "edges": [
@@ -452,6 +465,13 @@ export const templateEntries: TemplateEntry[] = [
           "sourceHandle": "__control__",
           "target": "d6a1dc18-d26c-45c4-9196-2d6524018b1b",
           "targetHandle": "__control__",
+          "color": "any"
+        },
+        {
+          "source": "d6a1dc18-d26c-45c4-9196-2d6524018b1b",
+          "sourceHandle": "text",
+          "target": "output-results",
+          "targetHandle": "value",
           "color": "any"
         }
       ]
@@ -486,12 +506,17 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
         "type": "nodetool.image.TextToImage",
         "label": "Text To Image",
         "count": 1
       }
     ],
-    "nodeCount": 3,
+    "nodeCount": 4,
     "thumbnail": "/templates/audio-to-image.jpg",
     "graph": {
       "nodes": [
@@ -527,6 +552,14 @@ export const templateEntries: TemplateEntry[] = [
           "x": 650,
           "y": 86,
           "width": 384
+        },
+        {
+          "id": "output-image",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 970,
+          "y": 86,
+          "width": 280
         }
       ],
       "edges": [
@@ -543,6 +576,13 @@ export const templateEntries: TemplateEntry[] = [
           "target": "8b07b1ed-2ce9-4581-993e-efad334ab7a8",
           "targetHandle": "prompt",
           "color": "string"
+        },
+        {
+          "source": "8b07b1ed-2ce9-4581-993e-efad334ab7a8",
+          "sourceHandle": "output",
+          "target": "output-image",
+          "targetHandle": "value",
+          "color": "any"
         }
       ]
     }
@@ -586,6 +626,11 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
         "type": "nodetool.text.Prompt",
         "label": "Prompt",
         "count": 1
@@ -596,7 +641,7 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       }
     ],
-    "nodeCount": 9,
+    "nodeCount": 10,
     "thumbnail": "/templates/brand-asset-generator.jpg",
     "graph": {
       "nodes": [
@@ -684,6 +729,14 @@ export const templateEntries: TemplateEntry[] = [
           "y": 16,
           "width": 280,
           "subtitle": "A modern tech startup focused on productivity tools. Clean, minimal aesthetic with futuristic vibes."
+        },
+        {
+          "id": "output-brand-asset",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1970,
+          "y": 136,
+          "width": 280
         }
       ],
       "edges": [
@@ -748,6 +801,13 @@ export const templateEntries: TemplateEntry[] = [
           "sourceHandle": "output",
           "target": "2",
           "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "2",
+          "sourceHandle": "output",
+          "target": "output-brand-asset",
+          "targetHandle": "value",
           "color": "any"
         }
       ]
@@ -960,6 +1020,11 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
         "type": "lib.image.color_grading.SaturationVibrance",
         "label": "Saturation Vibrance",
         "count": 1
@@ -970,7 +1035,7 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       }
     ],
-    "nodeCount": 5,
+    "nodeCount": 6,
     "thumbnail": "/templates/color-boost-video.jpg",
     "graph": {
       "nodes": [
@@ -1022,6 +1087,14 @@ export const templateEntries: TemplateEntry[] = [
           "y": -209,
           "width": 520,
           "isComment": true
+        },
+        {
+          "id": "output-graded-video",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1640,
+          "y": 112,
+          "width": 280
         }
       ],
       "edges": [
@@ -1065,6 +1138,13 @@ export const templateEntries: TemplateEntry[] = [
           "sourceHandle": "fps",
           "target": "4ca8874f-5caa-413c-a329-936d90358e8e",
           "targetHandle": "fps",
+          "color": "any"
+        },
+        {
+          "source": "4ca8874f-5caa-413c-a329-936d90358e8e",
+          "sourceHandle": "output",
+          "target": "output-graded-video",
+          "targetHandle": "value",
           "color": "any"
         }
       ]
@@ -2227,9 +2307,14 @@ export const templateEntries: TemplateEntry[] = [
         "type": "nodetool.agents.Agent",
         "label": "Agent",
         "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
       }
     ],
-    "nodeCount": 3,
+    "nodeCount": 4,
     "thumbnail": "/templates/hacker-news-agent.jpg",
     "graph": {
       "nodes": [
@@ -2267,6 +2352,14 @@ export const templateEntries: TemplateEntry[] = [
           "y": 80,
           "width": 280,
           "subtitle": "Scrape the front page of https://news.ycombinator.com/ and analyze activity. Tasks: 1) Identify the top 5 posts on the front page. 2) For e…"
+        },
+        {
+          "id": "output-analysis",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1120,
+          "y": 80,
+          "width": 280
         }
       ],
       "edges": [
@@ -2289,6 +2382,13 @@ export const templateEntries: TemplateEntry[] = [
           "sourceHandle": "posts",
           "target": "2",
           "targetHandle": "posts",
+          "color": "any"
+        },
+        {
+          "source": "2",
+          "sourceHandle": "output",
+          "target": "output-analysis",
+          "targetHandle": "value",
           "color": "any"
         }
       ]
@@ -2509,12 +2609,17 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
         "type": "lib.image.filter.UnsharpMask",
         "label": "Unsharp Mask",
         "count": 1
       }
     ],
-    "nodeCount": 3,
+    "nodeCount": 4,
     "thumbnail": "/templates/image-enhance.jpg",
     "graph": {
       "nodes": [
@@ -2550,6 +2655,14 @@ export const templateEntries: TemplateEntry[] = [
           "x": 1,
           "y": 71,
           "width": 280
+        },
+        {
+          "id": "output-enhanced-image",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 990,
+          "y": 113,
+          "width": 280
         }
       ],
       "edges": [
@@ -2566,6 +2679,13 @@ export const templateEntries: TemplateEntry[] = [
           "target": "9d8850a4-c20f-4698-9cb4-e315c956aee6",
           "targetHandle": "image",
           "color": "image"
+        },
+        {
+          "source": "4c9c6b63-646a-4da9-8794-abd180c59041",
+          "sourceHandle": "output",
+          "target": "output-enhanced-image",
+          "targetHandle": "value",
+          "color": "any"
         }
       ]
     }
@@ -2598,12 +2718,17 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
         "type": "nodetool.audio.TextToSpeech",
         "label": "Text To Speech",
         "count": 1
       }
     ],
-    "nodeCount": 3,
+    "nodeCount": 4,
     "thumbnail": "/templates/image-to-audio-story.jpg",
     "graph": {
       "nodes": [
@@ -2640,6 +2765,14 @@ export const templateEntries: TemplateEntry[] = [
           "x": 670,
           "y": 196,
           "width": 340
+        },
+        {
+          "id": "output-narration",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 990,
+          "y": 196,
+          "width": 280
         }
       ],
       "edges": [
@@ -2656,6 +2789,13 @@ export const templateEntries: TemplateEntry[] = [
           "target": "ffb9de38-7e20-4f07-afa8-6b2a0423315f",
           "targetHandle": "text",
           "color": "string"
+        },
+        {
+          "source": "ffb9de38-7e20-4f07-afa8-6b2a0423315f",
+          "sourceHandle": "audio",
+          "target": "output-narration",
+          "targetHandle": "value",
+          "color": "any"
         }
       ]
     }
@@ -2688,6 +2828,11 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
         "type": "nodetool.text.Prompt",
         "label": "Prompt",
         "count": 1
@@ -2698,7 +2843,7 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       }
     ],
-    "nodeCount": 7,
+    "nodeCount": 8,
     "thumbnail": "/templates/image-to-video-animation.jpg",
     "graph": {
       "nodes": [
@@ -2771,6 +2916,14 @@ export const templateEntries: TemplateEntry[] = [
           "y": 0,
           "width": 280,
           "subtitle": "no watermarks, no text overlays, maintain realistic wave motion"
+        },
+        {
+          "id": "output-animation",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1320,
+          "y": 165,
+          "width": 280
         }
       ],
       "edges": [
@@ -2821,6 +2974,13 @@ export const templateEntries: TemplateEntry[] = [
           "sourceHandle": "output",
           "target": "2",
           "targetHandle": "negative_prompt",
+          "color": "any"
+        },
+        {
+          "source": "2",
+          "sourceHandle": "output",
+          "target": "output-animation",
+          "targetHandle": "value",
           "color": "any"
         }
       ]
@@ -3448,12 +3608,17 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
         "type": "nodetool.image.TextToImage",
         "label": "Text To Image",
         "count": 1
       }
     ],
-    "nodeCount": 12,
+    "nodeCount": 13,
     "thumbnail": "/templates/movie-trailer-generator.jpg",
     "graph": {
       "nodes": [
@@ -3567,6 +3732,14 @@ export const templateEntries: TemplateEntry[] = [
           "x": 2994,
           "y": 586,
           "width": 161
+        },
+        {
+          "id": "output-trailer",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 3505,
+          "y": 534,
+          "width": 280
         }
       ],
       "edges": [
@@ -3667,6 +3840,13 @@ export const templateEntries: TemplateEntry[] = [
           "target": "keyframe_prompt",
           "targetHandle": "STYLE",
           "color": "string"
+        },
+        {
+          "source": "b8622937-e6d7-445f-bb19-e254b49a23ef",
+          "sourceHandle": "output",
+          "target": "output-trailer",
+          "targetHandle": "value",
+          "color": "any"
         }
       ]
     }
@@ -3741,12 +3921,17 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
         "type": "nodetool.image.TextToImage",
         "label": "Text To Image",
         "count": 1
       }
     ],
-    "nodeCount": 14,
+    "nodeCount": 15,
     "thumbnail": "/templates/music-video-visualizer.jpg",
     "graph": {
       "nodes": [
@@ -3873,6 +4058,14 @@ export const templateEntries: TemplateEntry[] = [
           "x": 3240,
           "y": 50,
           "width": 416
+        },
+        {
+          "id": "output-music-video",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 3560,
+          "y": 50,
+          "width": 280
         }
       ],
       "edges": [
@@ -3987,6 +4180,13 @@ export const templateEntries: TemplateEntry[] = [
           "target": "final_video",
           "targetHandle": "audio",
           "color": "any"
+        },
+        {
+          "source": "final_video",
+          "sourceHandle": "output",
+          "target": "output-music-video",
+          "targetHandle": "value",
+          "color": "any"
         }
       ]
     }
@@ -4016,6 +4216,11 @@ export const templateEntries: TemplateEntry[] = [
       {
         "type": "nodetool.input.FloatInput",
         "label": "Float Input",
+        "count": 2
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
         "count": 2
       },
       {
@@ -4054,7 +4259,7 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       }
     ],
-    "nodeCount": 12,
+    "nodeCount": 14,
     "thumbnail": "/templates/photo-enhancement-suite.jpg",
     "graph": {
       "nodes": [
@@ -4164,6 +4369,22 @@ export const templateEntries: TemplateEntry[] = [
           "x": 0,
           "y": 0,
           "width": 280
+        },
+        {
+          "id": "output-enhanced-photos",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 320,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "output-upscaled-photos",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 320,
+          "y": 0,
+          "width": 280
         }
       ],
       "edges": [
@@ -4242,6 +4463,20 @@ export const templateEntries: TemplateEntry[] = [
           "sourceHandle": "path",
           "target": "14",
           "targetHandle": "input_item",
+          "color": "any"
+        },
+        {
+          "source": "2",
+          "sourceHandle": "output",
+          "target": "output-enhanced-photos",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "14",
+          "sourceHandle": "output",
+          "target": "output-upscaled-photos",
+          "targetHandle": "value",
           "color": "any"
         }
       ]
@@ -4647,6 +4882,11 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
         "type": "nodetool.text.Prompt",
         "label": "Prompt",
         "count": 1
@@ -4657,7 +4897,7 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       }
     ],
-    "nodeCount": 4,
+    "nodeCount": 5,
     "thumbnail": "/templates/pokemon-maker.jpg",
     "graph": {
       "nodes": [
@@ -4703,6 +4943,14 @@ export const templateEntries: TemplateEntry[] = [
           "x": 1223,
           "y": 149,
           "width": 384
+        },
+        {
+          "id": "output-pokemon",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1543,
+          "y": 149,
+          "width": 280
         }
       ],
       "edges": [
@@ -4726,6 +4974,13 @@ export const templateEntries: TemplateEntry[] = [
           "target": "b55c474e-e397-44a3-adc7-94bcf61eee35",
           "targetHandle": "prompt",
           "color": "string"
+        },
+        {
+          "source": "b55c474e-e397-44a3-adc7-94bcf61eee35",
+          "sourceHandle": "output",
+          "target": "output-pokemon",
+          "targetHandle": "value",
+          "color": "any"
         }
       ]
     }
@@ -4756,6 +5011,11 @@ export const templateEntries: TemplateEntry[] = [
       {
         "type": "lib.image.color.BrightnessContrast",
         "label": "Brightness Contrast",
+        "count": 2
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
         "count": 2
       },
       {
@@ -4794,7 +5054,7 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       }
     ],
-    "nodeCount": 13,
+    "nodeCount": 15,
     "thumbnail": "/templates/product-mockup-generator.jpg",
     "graph": {
       "nodes": [
@@ -4915,6 +5175,22 @@ export const templateEntries: TemplateEntry[] = [
           "x": 1680,
           "y": 0,
           "width": 384
+        },
+        {
+          "id": "output-mockup",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2620,
+          "y": 479,
+          "width": 280
+        },
+        {
+          "id": "output-scene",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2000,
+          "y": 0,
+          "width": 280
         }
       ],
       "edges": [
@@ -5015,6 +5291,20 @@ export const templateEntries: TemplateEntry[] = [
           "target": "15",
           "targetHandle": "prompt",
           "color": "any"
+        },
+        {
+          "source": "2",
+          "sourceHandle": "output",
+          "target": "output-mockup",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "15",
+          "sourceHandle": "output",
+          "target": "output-scene",
+          "targetHandle": "value",
+          "color": "any"
         }
       ]
     }
@@ -5058,12 +5348,17 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
         "type": "nodetool.text.Prompt",
         "label": "Prompt",
         "count": 1
       }
     ],
-    "nodeCount": 7,
+    "nodeCount": 8,
     "thumbnail": "/templates/product-video-generator.jpg",
     "graph": {
       "nodes": [
@@ -5135,6 +5430,14 @@ export const templateEntries: TemplateEntry[] = [
           "x": 1443,
           "y": 357,
           "width": 739
+        },
+        {
+          "id": "output-product-video",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1763,
+          "y": 357,
+          "width": 280
         }
       ],
       "edges": [
@@ -5186,6 +5489,13 @@ export const templateEntries: TemplateEntry[] = [
           "target": "97f03868-da4f-4604-b57e-5f2118847956",
           "targetHandle": "image",
           "color": "image"
+        },
+        {
+          "source": "97f03868-da4f-4604-b57e-5f2118847956",
+          "sourceHandle": "output",
+          "target": "output-product-video",
+          "targetHandle": "value",
+          "color": "any"
         }
       ]
     }
@@ -5690,6 +6000,11 @@ export const templateEntries: TemplateEntry[] = [
         "count": 2
       },
       {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 2
+      },
+      {
         "type": "nodetool.agents.Agent",
         "label": "Agent",
         "count": 1
@@ -5710,7 +6025,7 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       }
     ],
-    "nodeCount": 15,
+    "nodeCount": 17,
     "thumbnail": "/templates/social-media-calendar-filler.jpg",
     "graph": {
       "nodes": [
@@ -5846,6 +6161,22 @@ export const templateEntries: TemplateEntry[] = [
           "x": 1630,
           "y": 198,
           "width": 280
+        },
+        {
+          "id": "output-post-images",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2570,
+          "y": 792,
+          "width": 280
+        },
+        {
+          "id": "output-captions",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1950,
+          "y": 198,
+          "width": 280
         }
       ],
       "edges": [
@@ -5974,6 +6305,20 @@ export const templateEntries: TemplateEntry[] = [
           "target": "collected_captions",
           "targetHandle": "input_item",
           "color": "any"
+        },
+        {
+          "source": "collected_images",
+          "sourceHandle": "output",
+          "target": "output-post-images",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "collected_captions",
+          "sourceHandle": "output",
+          "target": "output-captions",
+          "targetHandle": "value",
+          "color": "any"
         }
       ]
     }
@@ -6008,6 +6353,11 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
         "type": "nodetool.text.Prompt",
         "label": "Prompt",
         "count": 1
@@ -6023,7 +6373,7 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       }
     ],
-    "nodeCount": 5,
+    "nodeCount": 6,
     "thumbnail": "/templates/story-to-video-generator.jpg",
     "graph": {
       "nodes": [
@@ -6077,6 +6427,14 @@ export const templateEntries: TemplateEntry[] = [
           "x": 599,
           "y": 838,
           "width": 280
+        },
+        {
+          "id": "output-video",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1566,
+          "y": 664,
+          "width": 280
         }
       ],
       "edges": [
@@ -6099,6 +6457,13 @@ export const templateEntries: TemplateEntry[] = [
           "sourceHandle": "text",
           "target": "video_generator",
           "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "video_generator",
+          "sourceHandle": "output",
+          "target": "output-video",
+          "targetHandle": "value",
           "color": "any"
         }
       ]
@@ -6133,12 +6498,17 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
         "type": "nodetool.agents.Summarizer",
         "label": "Summarizer",
         "count": 1
       }
     ],
-    "nodeCount": 3,
+    "nodeCount": 4,
     "thumbnail": "/templates/summarize-audio.jpg",
     "graph": {
       "nodes": [
@@ -6175,6 +6545,14 @@ export const templateEntries: TemplateEntry[] = [
           "y": 111,
           "width": 280,
           "subtitle": "You are an expert summarizer. Your task is to create clear, accurate, and concise summaries using Markdown for structuring. Follow these gu…"
+        },
+        {
+          "id": "output-summary",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 936,
+          "y": 111,
+          "width": 280
         }
       ],
       "edges": [
@@ -6191,6 +6569,13 @@ export const templateEntries: TemplateEntry[] = [
           "target": "99c95069-03f6-4f45-bb66-ab3482f79496",
           "targetHandle": "text",
           "color": "string"
+        },
+        {
+          "source": "99c95069-03f6-4f45-bb66-ab3482f79496",
+          "sourceHandle": "text",
+          "target": "output-summary",
+          "targetHandle": "value",
+          "color": "any"
         }
       ]
     }
@@ -6219,12 +6604,17 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
         "type": "nodetool.agents.Summarizer",
         "label": "Summarizer",
         "count": 1
       }
     ],
-    "nodeCount": 3,
+    "nodeCount": 4,
     "thumbnail": "/templates/summarize-rss.jpg",
     "graph": {
       "nodes": [
@@ -6261,6 +6651,14 @@ export const templateEntries: TemplateEntry[] = [
           "y": 329,
           "width": 280,
           "subtitle": "You are an expert summarizer. Your task is to create clear, accurate, and concise summaries using Markdown for structuring. Follow these gu…"
+        },
+        {
+          "id": "output-summary",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1206,
+          "y": 329,
+          "width": 280
         }
       ],
       "edges": [
@@ -6277,6 +6675,13 @@ export const templateEntries: TemplateEntry[] = [
           "target": "0659612a-1a3b-471b-b397-6ec97e33882f",
           "targetHandle": "text",
           "color": "string"
+        },
+        {
+          "source": "0659612a-1a3b-471b-b397-6ec97e33882f",
+          "sourceHandle": "text",
+          "target": "output-summary",
+          "targetHandle": "value",
+          "color": "any"
         }
       ]
     }
@@ -6307,9 +6712,14 @@ export const templateEntries: TemplateEntry[] = [
         "type": "nodetool.text.AutomaticSpeechRecognition",
         "label": "Automatic Speech Recognition",
         "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
       }
     ],
-    "nodeCount": 2,
+    "nodeCount": 3,
     "thumbnail": "/templates/transcribe-audio.jpg",
     "graph": {
       "nodes": [
@@ -6337,6 +6747,14 @@ export const templateEntries: TemplateEntry[] = [
           "x": 360,
           "y": 79,
           "width": 280
+        },
+        {
+          "id": "output-transcript",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 680,
+          "y": 79,
+          "width": 280
         }
       ],
       "edges": [
@@ -6346,6 +6764,13 @@ export const templateEntries: TemplateEntry[] = [
           "target": "c5191702-2a3c-440d-b3af-2db20e74a369",
           "targetHandle": "audio",
           "color": "audio"
+        },
+        {
+          "source": "c5191702-2a3c-440d-b3af-2db20e74a369",
+          "sourceHandle": "text",
+          "target": "output-transcript",
+          "targetHandle": "value",
+          "color": "any"
         }
       ]
     }
@@ -6504,6 +6929,11 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
         "type": "nodetool.text.Prompt",
         "label": "Prompt",
         "count": 1
@@ -6514,7 +6944,7 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       }
     ],
-    "nodeCount": 3,
+    "nodeCount": 4,
     "thumbnail": "/templates/youtube-research-agent.jpg",
     "graph": {
       "nodes": [
@@ -6551,6 +6981,14 @@ export const templateEntries: TemplateEntry[] = [
           "x": 830,
           "y": 300,
           "width": 320
+        },
+        {
+          "id": "output-research",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1150,
+          "y": 300,
+          "width": 280
         }
       ],
       "edges": [
@@ -6567,6 +7005,13 @@ export const templateEntries: TemplateEntry[] = [
           "target": "claude-agent-node",
           "targetHandle": "prompt",
           "color": "string"
+        },
+        {
+          "source": "claude-agent-node",
+          "sourceHandle": "text",
+          "target": "output-research",
+          "targetHandle": "value",
+          "color": "any"
         }
       ]
     }
@@ -6625,6 +7070,11 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
         "type": "nodetool.text.Prompt",
         "label": "Prompt",
         "count": 1
@@ -6635,7 +7085,7 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       }
     ],
-    "nodeCount": 13,
+    "nodeCount": 14,
     "thumbnail": "/templates/youtube-thumbnail-pipeline.jpg",
     "graph": {
       "nodes": [
@@ -6755,6 +7205,14 @@ export const templateEntries: TemplateEntry[] = [
           "x": 3760,
           "y": 200,
           "width": 280
+        },
+        {
+          "id": "output-thumbnails",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 4080,
+          "y": 200,
+          "width": 280
         }
       ],
       "edges": [
@@ -6840,6 +7298,13 @@ export const templateEntries: TemplateEntry[] = [
           "sourceHandle": "output",
           "target": "collected_thumbnails",
           "targetHandle": "input_item",
+          "color": "any"
+        },
+        {
+          "source": "collected_thumbnails",
+          "sourceHandle": "output",
+          "target": "output-thumbnails",
+          "targetHandle": "value",
           "color": "any"
         }
       ]

@@ -28,7 +28,6 @@ const FloatProperty = (props: PropertyProps) => {
   const isMinMaxProperty = property.name === "min" || property.name === "max";
   const showSlider = !(isInputNode && isMinMaxProperty);
 
-  // Memoize handler to prevent unnecessary re-renders of memoized NumberInput child
   const handleChange = useCallback((_: React.ChangeEvent<HTMLInputElement> | null, newValue: number) => {
     onChange(Number(newValue));
   }, [onChange]);

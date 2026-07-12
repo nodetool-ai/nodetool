@@ -102,7 +102,6 @@ export const loadMetadata = async (): Promise<"success" | "error"> => {
     }, new Map<string, UnifiedModel>()).values()
   );
 
-  // Add snippet virtual nodes to the metadata
   const snippetMetadata = generateSnippetMetadata();
   Object.assign(metadataByType, snippetMetadata);
 

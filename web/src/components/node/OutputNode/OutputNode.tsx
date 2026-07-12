@@ -201,9 +201,6 @@ interface OutputNodeProps extends NodeProps {
   id: string;
 }
 
-/**
- * Memoized style object to prevent recreation on every render
- */
 const CONTENT_DIV_STYLE = {
   width: "100%",
   height: "100%",
@@ -226,7 +223,6 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
   const hasParent = props.parentId !== undefined;
   const [isContentFocused, setIsContentFocused] = useState(false);
 
-  // Get metadata for this node type
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const nodeMetadata = getMetadata(props.type);
 

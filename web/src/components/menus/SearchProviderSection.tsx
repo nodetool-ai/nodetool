@@ -41,7 +41,6 @@ const SearchProviderSection = memo(function SearchProviderSection({
     DEFAULT_SERP_PROVIDER) as SerpProviderId;
   const config = PROVIDER_CONFIGS[selectedProvider];
 
-  // Get credential fields for all providers
   const credentialSettings = useMemo(() => {
     const result: Record<string, SettingWithValue> = {};
     allSettings.forEach((setting) => {
@@ -55,7 +54,6 @@ const SearchProviderSection = memo(function SearchProviderSection({
     return result;
   }, [allSettings]);
 
-  // Check if current provider has all required credentials
   const hasAllCredentials = useMemo(() => {
     if (!config) return false;
     return config.credentialFields.every(
@@ -84,7 +82,6 @@ const SearchProviderSection = memo(function SearchProviderSection({
         Search Provider
       </Text>
 
-      {/* Provider Selector */}
       <div className="settings-item large">
         <FormControl variant="standard" fullWidth sx={{ marginBottom: "1.5em" }}>
           <InputLabel id="provider-select-label">Provider</InputLabel>
@@ -102,7 +99,6 @@ const SearchProviderSection = memo(function SearchProviderSection({
           </Select>
         </FormControl>
 
-        {/* Provider Status */}
         <FlexRow
           align="center"
           sx={{
@@ -140,11 +136,9 @@ const SearchProviderSection = memo(function SearchProviderSection({
           </Text>
         </FlexRow>
 
-        {/* Provider Description */}
         <Text className="description">{config?.description}</Text>
       </div>
 
-      {/* Credentials Section */}
       {config && (
         <div
           style={{
@@ -201,7 +195,6 @@ const SearchProviderSection = memo(function SearchProviderSection({
               );
             })}
 
-            {/* Get Credentials Link */}
             <Box sx={{ marginTop: "1em" }}>
               <ExternalLink
                 href={config.getApiKeyUrl}

@@ -69,8 +69,6 @@ import { useTimelineAutosave } from "../../hooks/timeline/useTimelineAutosave";
 import { useTimelineSave } from "../../hooks/timeline/useTimelineSave";
 import { useTimelineExport } from "../../hooks/timeline/useTimelineExport";
 
-// ── Drag-handle constants ──────────────────────────────────────────────────
-
 const HANDLE_HEIGHT_PX = 6;
 const DEFAULT_TRACKS_HEIGHT_PX = 240;
 const MIN_TRACKS_HEIGHT_PX = 80;
@@ -82,8 +80,6 @@ const KEYBOARD_RESIZE_STEP_PX = 20;
  * zoom = DEFAULT_MS_PER_PX / msPerPx  →  msPerPx = DEFAULT_MS_PER_PX / zoom
  */
 const DEFAULT_MS_PER_PX = 10;
-
-// ── Styles ─────────────────────────────────────────────────────────────────
 
 const editorStyles = (theme: Theme) =>
   css({
@@ -150,8 +146,6 @@ function exportPhaseLabel(
       return "Preparing…";
   }
 }
-
-// ── Sub-region placeholder components ─────────────────────────────────────
 
 const PreviewRegion: React.FC<{
   isLoading: boolean;
@@ -325,8 +319,6 @@ const TimelineStatusBar: React.FC = memo(() => {
   );
 });
 TimelineStatusBar.displayName = "TimelineStatusBar";
-
-// ── Main component ─────────────────────────────────────────────────────────
 
 interface TimelineEditorProps {
   /**

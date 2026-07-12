@@ -38,6 +38,14 @@
         "ui_properties": {
           "className": "str"
         }
+      },
+      {
+        "id": "edge-output-research",
+        "source": "claude-agent-node",
+        "sourceHandle": "text",
+        "target": "output-research",
+        "targetHandle": "value",
+        "ui_properties": null
       }
     ],
     "nodes": [
@@ -134,6 +142,20 @@
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
+      },
+      {
+        "id": "output-research",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "research"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1150,
+            "y": 300
+          },
+          "selectable": true
+        }
       }
     ]
   },
@@ -152,5 +174,76 @@
   "path": null,
   "run_mode": "workflow",
   "required_providers": null,
-  "required_models": null
+  "required_models": null,
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "YouTube Research Agent"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-title",
+            "text": "▶️ YouTube Research Agent",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "An agent scours YouTube and distills what actually matters."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-try",
+            "title": "Try it",
+            "content": [
+              {
+                "type": "Button",
+                "props": {
+                  "id": "btn-run",
+                  "label": "Run the research",
+                  "variant": "contained",
+                  "color": "primary",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "key": "",
+                      "value": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-results",
+            "title": "Results",
+            "content": [
+              {
+                "type": "Markdown",
+                "props": {
+                  "id": "out-research",
+                  "binding": "research",
+                  "text": ""
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
 }

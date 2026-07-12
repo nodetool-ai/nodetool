@@ -1,7 +1,6 @@
 import type { MouseEvent } from "react";
 import { useCallback, memo } from "react";
 import { useNavigate } from "react-router-dom";
-//mui
 
 import {
   Text,
@@ -10,7 +9,6 @@ import {
   MenuItem
 } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
-//icons
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutline";
 import DriveFileMoveIcon from "@mui/icons-material/DriveFileMove";
@@ -20,7 +18,6 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CompareIcon from "@mui/icons-material/Compare";
 import TabIcon from "@mui/icons-material/Tab";
 import MovieEditIcon from "@mui/icons-material/Movie";
-//store
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useAssetStore } from "../../stores/AssetStore";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
@@ -76,13 +73,11 @@ const AssetItemContextMenu = () => {
       ? selectedAssets[0]
       : null;
 
-  // Check if the selected asset is a single item that supports clipboard
   const isSingleClipboardSupported =
     selectedAssets.length === 1 &&
     selectedAssets[0]?.content_type &&
     isClipboardSupported(selectedAssets[0].content_type);
 
-  // Check if exactly 2 images are selected for comparison
   const isTwoImages =
     selectedAssets.length === 2 &&
     selectedAssets.every((asset) => asset.content_type?.startsWith("image/"));
@@ -95,7 +90,6 @@ const AssetItemContextMenu = () => {
       ? assetTabType(selectedAssets[0])
       : null;
 
-  // Determine if we have non-folder assets selected for moving to new folder
   const hasSelectedAssets = selectedAssets.length > 0 && !isFolder;
 
   const handleCopyToClipboard = useCallback(async () => {

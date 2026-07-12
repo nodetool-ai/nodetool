@@ -1,0 +1,91 @@
+{
+  "slug": "audio-to-image",
+  "name": "Audio To Image",
+  "description": "Transform spoken descriptions into images with this workflow. Record or upload audio, which is transcribed by Whisper and then visualized by Stable Diffusion. Perfect for quickly generating images from verbal ideas without typing.",
+  "image": "/app-preview/img/audio-to-image.jpg",
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Audio To Image"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-title",
+            "text": "🎙️ Audio To Image",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "Describe a scene out loud — get it back as a picture."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-try",
+            "title": "Try it",
+            "content": [
+              {
+                "type": "Text",
+                "props": {
+                  "id": "note-media",
+                  "text": "🎧 Uses the bundled voice memo — record your own in NodeTool Studio."
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "id": "btn-run",
+                  "label": "Turn my voice into art",
+                  "variant": "contained",
+                  "color": "primary",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "key": "",
+                      "value": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-results",
+            "title": "Results",
+            "content": [
+              {
+                "type": "Image",
+                "props": {
+                  "id": "out-image",
+                  "binding": "image",
+                  "fit": "contain",
+                  "height": 280,
+                  "placeholder": "Your result appears here"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  },
+  "values": {
+    "image": {
+      "$demo": "image"
+    }
+  }
+}

@@ -85,7 +85,6 @@ export class GoogleGroundedSearchTool extends Tool {
         | Array<Record<string, unknown>>
         | undefined;
 
-      // Extract text results
       const results: string[] = [];
       if (parts) {
         for (const part of parts) {
@@ -95,7 +94,6 @@ export class GoogleGroundedSearchTool extends Tool {
         }
       }
 
-      // Extract grounding metadata / sources
       const groundingMetadata = candidate["groundingMetadata"] as
         | Record<string, unknown>
         | undefined;

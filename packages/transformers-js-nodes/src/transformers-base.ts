@@ -183,10 +183,6 @@ export function clearPipelineCache(): void {
   pipelineCache.clear();
 }
 
-// ---------------------------------------------------------------------------
-// Common option lists
-// ---------------------------------------------------------------------------
-
 export const DTYPE_VALUES = [
   "auto",
   "fp32",
@@ -211,10 +207,6 @@ export function normalizeOption(value: unknown): string | undefined {
   if (!str || str === "auto") return undefined;
   return str;
 }
-
-// ---------------------------------------------------------------------------
-// Media reference helpers
-// ---------------------------------------------------------------------------
 
 export type ImageRefLike = {
   uri?: string;
@@ -479,10 +471,6 @@ export async function loadAudioSamples(
   return decodeAudioBytesToSamples(bytes, samplingRate);
 }
 
-// ---------------------------------------------------------------------------
-// Output normalization helpers
-// ---------------------------------------------------------------------------
-
 export function ensureArray<T>(value: T | T[] | undefined | null): T[] {
   if (value === undefined || value === null) return [];
   return Array.isArray(value) ? value : [value];
@@ -497,10 +485,6 @@ export function asString(value: unknown, fallback = ""): string {
   if (value === undefined || value === null) return fallback;
   return String(value);
 }
-
-// ---------------------------------------------------------------------------
-// Hugging Face model ref helpers
-// ---------------------------------------------------------------------------
 
 /**
  * Shape of an `hf.*` typed model value as produced by the web Hugging Face

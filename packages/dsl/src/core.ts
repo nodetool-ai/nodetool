@@ -1,9 +1,3 @@
-/**
- * @nodetool-ai/dsl – Core DSL primitives
- *
- * OutputHandle, Connectable, DslNode, SingleOutput, createNode(), workflow(), run()
- */
-
 import { WorkflowRunner, withExplicitNodeFlags } from "@nodetool-ai/kernel";
 import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import {
@@ -17,10 +11,6 @@ import type {
   Edge,
   NodeUpdate
 } from "@nodetool-ai/protocol";
-
-// ---------------------------------------------------------------------------
-// OutputHandle
-// ---------------------------------------------------------------------------
 
 export interface OutputHandle<T> {
   readonly __brand: "OutputHandle";
@@ -37,15 +27,7 @@ export function isOutputHandle(value: unknown): value is OutputHandle<unknown> {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Connectable
-// ---------------------------------------------------------------------------
-
 export type Connectable<T> = T | OutputHandle<T>;
-
-// ---------------------------------------------------------------------------
-// SingleOutput
-// ---------------------------------------------------------------------------
 
 export type SingleOutput<T, TSlot extends string = "output"> = {
   readonly [K in TSlot]: T;
@@ -66,10 +48,6 @@ export interface OutputAccessor<
   <K extends OutputSlot<TOutputs>>(slot: K): OutputHandle<TOutputs[K]>;
 }
 
-// ---------------------------------------------------------------------------
-// DslNode
-// ---------------------------------------------------------------------------
-
 export interface DslNode<
   TOutputs extends object,
   TDefault extends OutputSlot<TOutputs> | undefined =
@@ -82,10 +60,6 @@ export interface DslNode<
   readonly inputs: Record<string, unknown>;
   readonly output: OutputAccessor<TOutputs, TDefault>;
 }
-
-// ---------------------------------------------------------------------------
-// WorkflowNode / WorkflowEdge / Workflow
-// ---------------------------------------------------------------------------
 
 export interface WorkflowNode {
   readonly id: string;
@@ -106,10 +80,6 @@ export interface Workflow {
   readonly nodes: WorkflowNode[];
   readonly edges: WorkflowEdge[];
 }
-
-// ---------------------------------------------------------------------------
-// Node Registry (internal)
-// ---------------------------------------------------------------------------
 
 interface RegisteredNodeDescriptor {
   nodeId: string;
@@ -139,10 +109,6 @@ export type CreateNodeOptions<
   defaultOutput?: TDefault;
   multiOutput?: boolean;
 };
-
-// ---------------------------------------------------------------------------
-// createNode() — used by generated factories
-// ---------------------------------------------------------------------------
 
 export function createNode<
   TOutputs extends object,
@@ -202,10 +168,6 @@ export function createNode<
   return node;
 }
 
-// ---------------------------------------------------------------------------
-// workflow() — BFS graph tracing
-// ---------------------------------------------------------------------------
-
 export function workflow(...terminals: DslNode<any>[]): Workflow {
   if (terminals.length === 0) {
     throw new Error("workflow() requires at least one terminal node");
@@ -215,7 +177,6 @@ export function workflow(...terminals: DslNode<any>[]): Workflow {
   const edges: WorkflowEdge[] = [];
   const queue: string[] = [];
 
-  // Seed BFS with terminal nodes
   for (const terminal of terminals) {
     const desc = nodeRegistry.get(terminal.nodeId);
     if (!desc) {
@@ -229,14 +190,12 @@ export function workflow(...terminals: DslNode<any>[]): Workflow {
     }
   }
 
-  // BFS
   while (queue.length > 0) {
     const currentId = queue.shift()!;
     const desc = visited.get(currentId)!;
 
     for (const [inputName, value] of Object.entries(desc.inputs)) {
       if (isOutputHandle(value)) {
-        // Create edge
         edges.push({
           source: value.nodeId,
           sourceHandle: value.slot,
@@ -244,7 +203,6 @@ export function workflow(...terminals: DslNode<any>[]): Workflow {
           targetHandle: inputName
         });
 
-        // Enqueue source if not visited
         if (!visited.has(value.nodeId)) {
           const sourceDesc = nodeRegistry.get(value.nodeId);
           if (!sourceDesc) {
@@ -307,15 +265,10 @@ export function workflow(...terminals: DslNode<any>[]): Workflow {
     };
   });
 
-  // Clear registry
   nodeRegistry.clear();
 
   return Object.freeze({ nodes, edges });
 }
-
-// ---------------------------------------------------------------------------
-// run() / runGraph() — execution helpers
-// ---------------------------------------------------------------------------
 
 export type SecretResolver = (
   key: string,

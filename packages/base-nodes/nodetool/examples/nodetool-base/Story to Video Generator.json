@@ -154,6 +154,20 @@
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
+      },
+      {
+        "id": "output-video",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "video"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1565.5,
+            "y": 664
+          },
+          "selectable": true
+        }
       }
     ],
     "edges": [
@@ -180,6 +194,14 @@
         "target": "video_generator",
         "targetHandle": "prompt",
         "ui_properties": null
+      },
+      {
+        "id": "edge-output-video",
+        "source": "video_generator",
+        "sourceHandle": "output",
+        "target": "output-video",
+        "targetHandle": "value",
+        "ui_properties": null
       }
     ]
   },
@@ -190,5 +212,88 @@
   "path": null,
   "run_mode": null,
   "required_providers": null,
-  "required_models": null
+  "required_models": null,
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Story to Video Generator"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-title",
+            "text": "🚀 Story to Video Generator",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "Type a story idea — watch it become a cinematic AI-generated video."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-try",
+            "title": "Try it",
+            "content": [
+              {
+                "type": "TextInput",
+                "props": {
+                  "id": "in-story-theme",
+                  "binding": "story_theme",
+                  "label": "Your story idea",
+                  "placeholder": "A lone astronaut discovering an ancient alien civilization on Mars",
+                  "multiline": true,
+                  "events": []
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "id": "btn-run",
+                  "label": "Generate my video",
+                  "variant": "contained",
+                  "color": "primary",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "key": "",
+                      "value": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-results",
+            "title": "Results",
+            "content": [
+              {
+                "type": "Video",
+                "props": {
+                  "id": "out-video",
+                  "binding": "video",
+                  "height": 320,
+                  "placeholder": "Your video appears here"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
 }

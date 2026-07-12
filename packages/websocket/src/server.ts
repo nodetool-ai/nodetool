@@ -769,6 +769,7 @@ if (enforceAuth && process.env["NODETOOL_TRUST_LOCAL_NETWORKS"]) {
 }
 
 app.decorateRequest("userId", null);
+app.decorateRequest("authToken", null);
 
 app.addHook("onRequest", async (req, reply) => {
   // Let CORS preflight through — the @fastify/cors plugin handles OPTIONS responses
@@ -844,6 +845,7 @@ app.addHook("onRequest", async (req, reply) => {
       return;
     }
     req.userId = result.userId ?? null;
+    req.authToken = token;
     return;
   }
 

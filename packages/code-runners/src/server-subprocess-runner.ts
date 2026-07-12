@@ -30,6 +30,7 @@ import { resolve as pathResolve, join as pathJoin, sep } from "node:path";
 import { createHash } from "node:crypto";
 import { StringDecoder } from "node:string_decoder";
 import { getNodetoolDataDir } from "@nodetool-ai/config";
+import { buildSubprocessBaseEnv } from "./stream-runner-base.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -139,15 +140,21 @@ function safeExtractZip(zipPath: string, destDir: string): void {
   const escapes = (target: string): boolean =>
     target !== resolvedDest && !target.startsWith(destPrefix);
 
-  // Stage 1: validate entry names before extracting anything.
+  // Stage 1: validate entry names before extracting anything. If the listing
+  // step fails we must fail CLOSED — extracting without validation would let a
+  // malicious archive write outside destDir (Zip Slip).
   let listing = "";
   try {
-    listing = execFileSync("unzip", ["-Z1", zipPath], {
+    listing = execFileSync("unzip", ["-Z1", "--", zipPath], {
       encoding: "utf-8",
       timeout: 120_000
     });
-  } catch {
-    listing = "";
+  } catch (err) {
+    throw new Error(
+      `Refusing to extract archive: could not list entries for validation (${String(
+        err
+      )})`
+    );
   }
   for (const raw of listing.split("\n")) {
     const entry = raw.trim();
@@ -159,7 +166,9 @@ function safeExtractZip(zipPath: string, destDir: string): void {
     }
   }
 
-  execFileSync("unzip", ["-o", zipPath, "-d", destDir], {
+  // `-d exdir` may precede the archive (per unzip(1)); keep it before `--` so
+  // it's still parsed as the extract-dir option, then `--` guards zipPath.
+  execFileSync("unzip", ["-o", "-d", destDir, "--", zipPath], {
     stdio: "ignore",
     timeout: 120_000
   });
@@ -320,7 +329,8 @@ function downloadSync(destPath: string, url: string): void {
   const dir = pathResolve(destPath, "..");
   mkdirSync(dir, { recursive: true });
   const partPath = destPath + ".part";
-  execFileSync("curl", ["-fsSL", "-o", partPath, url], {
+  // `--` guards a url that begins with `-` from being parsed as a curl flag.
+  execFileSync("curl", ["-fsSL", "-o", partPath, "--", url], {
     stdio: "ignore",
     timeout: 300_000
   });
@@ -511,10 +521,10 @@ export class ServerSubprocessRunner {
       const extra = userCode ? shellSplit(userCode) : [];
       const argv = [binaryPath, ...templated, ...extra];
 
-      // 4) Launch process
-      const env: Record<string, string> = {
-        ...(process.env as Record<string, string>)
-      };
+      // 4) Launch process. Untrusted server binaries get only a minimal
+      // allowlisted base env — never the parent's full environment (secrets,
+      // cloud creds, API keys).
+      const env: Record<string, string> = buildSubprocessBaseEnv();
       if (this.portEnvVar) {
         env[this.portEnvVar] = String(port);
       }

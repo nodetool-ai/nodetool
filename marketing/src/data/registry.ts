@@ -6,6 +6,7 @@ import { entries as modelComparisonEntries } from "./modelComparisonEntries";
 import { faqPageEntries } from "./faqEntries";
 import { ideasPageEntries } from "./ideasEntries";
 import { templateEntries } from "./templates";
+import { miniAppEntries } from "./miniApps";
 import { solutionRegistryEntries } from "./landingEntries";
 import { taskRegistryEntries } from "./taskEntries";
 import { showcasePageEntries } from "./showcasePages";
@@ -35,6 +36,7 @@ export const registryModules: RegistryModule[] = [
   { name: "faq", entries: faqPageEntries },
   { name: "ideas", entries: ideasPageEntries },
   { name: "templates", entries: templateEntries },
+  { name: "apps", entries: miniAppEntries },
   { name: "solutions", entries: solutionRegistryEntries },
   { name: "tasks", entries: taskRegistryEntries },
   // Showcase pages can grow into the hundreds once W-1 seeds real batches, so

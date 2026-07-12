@@ -133,7 +133,6 @@ async function download(filename: string, assetUrl: string) {
   }
 
   try {
-    // fetch file from server
     const response = await fetch(assetUrl);
 
     if (!response.ok) {
@@ -141,10 +140,8 @@ async function download(filename: string, assetUrl: string) {
       return;
     }
 
-    // create a blob from the response
     const blob = await response.blob();
 
-    // create a download link and click it
     const blobUrl = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = blobUrl;
@@ -152,7 +149,6 @@ async function download(filename: string, assetUrl: string) {
     document.body.appendChild(link);
     link.click();
 
-    // clean up
     document.body.removeChild(link);
     window.URL.revokeObjectURL(blobUrl);
   } catch (error) {

@@ -1,0 +1,89 @@
+{
+  "slug": "image-to-audio-story",
+  "name": "Image To Audio Story",
+  "description": "Generate and narrate creative stories from images using AI",
+  "image": "/app-preview/img/image-to-audio-story.jpg",
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Image To Audio Story"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-title",
+            "text": "🔊 Image To Audio Story",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "Point it at a picture — hear the story it tells, narrated aloud."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-try",
+            "title": "Try it",
+            "content": [
+              {
+                "type": "Text",
+                "props": {
+                  "id": "note-media",
+                  "text": "🖼️ Uses the bundled sample image — swap in any picture in NodeTool Studio."
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "id": "btn-run",
+                  "label": "Tell me its story",
+                  "variant": "contained",
+                  "color": "primary",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "key": "",
+                      "value": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-results",
+            "title": "Results",
+            "content": [
+              {
+                "type": "Audio",
+                "props": {
+                  "id": "out-narration",
+                  "binding": "narration",
+                  "placeholder": "Your audio appears here"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  },
+  "values": {
+    "narration": {
+      "$demo": "audio"
+    }
+  }
+}

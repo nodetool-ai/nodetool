@@ -21,7 +21,6 @@ export function validateIdentifierName(name: string): ValidationResult {
     };
   }
 
-  // Check if the first character is a digit
   if (/^[0-9]/.test(trimmedName)) {
     return {
       isValid: false,

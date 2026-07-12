@@ -54,11 +54,10 @@ Secrets are encrypted and persisted in a local SQLite database, not in YAML file
 Secrets saved through the CLI are encrypted with AES-256-GCM, using a per-user key derived from the master key via PBKDF2-SHA256 (100,000 iterations). `initMasterKey()` in `@nodetool-ai/security` resolves the master key in this order:
 
 1. `SECRETS_MASTER_KEY` environment variable.
-2. AWS Secrets Manager if `AWS_SECRETS_MASTER_KEY_NAME` is set.
-3. Local system keyring (macOS Keychain, Windows Credential Manager, or Secret Service via keytar).
-4. Generates a new key and persists it to the keyring.
+2. Local system keyring (macOS Keychain, Windows Credential Manager, or Secret Service via keytar).
+3. Generates a new key and persists it to the keyring.
 
-For shared deployments you **must** pre-provision the master key (via `SECRETS_MASTER_KEY` environment variable or AWS Secrets Manager) so every server can decrypt secrets generated locally. On a headless host with no keychain and no provisioned key, master-key initialization (and therefore startup) fails because there is no place to persist a generated key.
+For shared deployments you **must** pre-provision the master key (via the `SECRETS_MASTER_KEY` environment variable) so every server can decrypt secrets generated locally. On a headless host with no keychain and no provisioned key, master-key initialization (and therefore startup) fails because there is no place to persist a generated key.
 
 ### Migrating Secrets to a Server
 
@@ -165,7 +164,7 @@ Security notes:
 | `NODETOOL_WS_RATE_LIMIT_MAX` | Max inbound WS messages per window per connection | no | Default `200`; over-cap clients are closed with code `1008` |
 | `NODETOOL_WS_RATE_LIMIT_WINDOW_MS` | WebSocket rate-limit window length (ms) | no | Default `1000` (1 second) |
 | `LOG_LEVEL` / `NODETOOL_LOG_LEVEL` | Logging level | no | Defaults to `info` (`NODETOOL_LOG_LEVEL` takes precedence) |
-| `SECRETS_MASTER_KEY` / `AWS_SECRETS_MASTER_KEY_NAME` | Master key for secret encryption | yes | See [Secret Storage and Master Key](#secret-storage-and-master-key) |
+| `SECRETS_MASTER_KEY` | Master key for secret encryption | yes | See [Secret Storage and Master Key](#secret-storage-and-master-key) |
 | `RUNPOD_API_KEY` | RunPod deployments | yes | Used by CLI and providers |
 | `NODETOOL_WORKER_TOKEN` | Worker bearer token for admin endpoints | yes | Rotate regularly |
 

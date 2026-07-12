@@ -38,10 +38,6 @@ async function resolveAwsCredentials(
   };
 }
 
-// ---------------------------------------------------------------------------
-// ListBuckets
-// ---------------------------------------------------------------------------
-
 export class S3ListBucketsLibNode extends BaseNode {
   static readonly nodeType = "lib.s3.ListBuckets";
   static readonly title = "S3 List Buckets";
@@ -76,10 +72,6 @@ export class S3ListBucketsLibNode extends BaseNode {
     return { output: buckets };
   }
 }
-
-// ---------------------------------------------------------------------------
-// ListObjects
-// ---------------------------------------------------------------------------
 
 export class S3ListObjectsLibNode extends BaseNode {
   static readonly nodeType = "lib.s3.ListObjects";
@@ -188,10 +180,6 @@ export class S3ListObjectsLibNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// GetObject
-// ---------------------------------------------------------------------------
-
 export class S3GetObjectLibNode extends BaseNode {
   static readonly nodeType = "lib.s3.GetObject";
   static readonly title = "S3 Get Object";
@@ -250,10 +238,6 @@ export class S3GetObjectLibNode extends BaseNode {
     };
   }
 }
-
-// ---------------------------------------------------------------------------
-// PutObject
-// ---------------------------------------------------------------------------
 
 export class S3PutObjectLibNode extends BaseNode {
   static readonly nodeType = "lib.s3.PutObject";
@@ -335,10 +319,6 @@ export class S3PutObjectLibNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// DeleteObject
-// ---------------------------------------------------------------------------
-
 export class S3DeleteObjectLibNode extends BaseNode {
   static readonly nodeType = "lib.s3.DeleteObject";
   static readonly title = "S3 Delete Object";
@@ -391,10 +371,6 @@ export class S3DeleteObjectLibNode extends BaseNode {
     return { output: true };
   }
 }
-
-// ---------------------------------------------------------------------------
-// CopyObject
-// ---------------------------------------------------------------------------
 
 export class S3CopyObjectLibNode extends BaseNode {
   static readonly nodeType = "lib.s3.CopyObject";
@@ -474,10 +450,6 @@ export class S3CopyObjectLibNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// GetPresignedUrl
-// ---------------------------------------------------------------------------
-
 export class S3GetPresignedUrlLibNode extends BaseNode {
   static readonly nodeType = "lib.s3.GetPresignedUrl";
   static readonly title = "S3 Get Presigned URL";
@@ -538,10 +510,6 @@ export class S3GetPresignedUrlLibNode extends BaseNode {
     return { output: await client.presignGetObject({ bucket, key, expiresIn }) };
   }
 }
-
-// ---------------------------------------------------------------------------
-// Export
-// ---------------------------------------------------------------------------
 
 export const LIB_S3_NODES = tagAsServer([
   S3ListBucketsLibNode,

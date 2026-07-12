@@ -26,25 +26,35 @@ export const CLOUD_PROFILE_ENV = "NODETOOL_NODE_PROFILE";
 /** Value of {@link CLOUD_PROFILE_ENV} that turns on the curated cloud profile. */
 export const CLOUD_PROFILE_VALUE = "cloud";
 
+/**
+ * Value of {@link CLOUD_PROFILE_ENV} that keeps the full catalog and provider
+ * list even in production. Self-hosted deployments (docker-compose) set this
+ * to opt out of the cloud curation the production default would apply.
+ */
+export const FULL_PROFILE_VALUE = "full";
+
 /** Env var + value that put the server in production mode. */
 export const NODE_ENV_VAR = "NODETOOL_ENV";
 export const PRODUCTION_ENV_VALUE = "production";
 
 /**
- * True when the cloud profile should apply. The commercial cloud product runs
- * in production mode, so production *is* the cloud profile; the explicit
- * `NODETOOL_NODE_PROFILE=cloud` flag additionally enables it outside
- * production (e.g. for local testing). Callers pass the raw env values so this
- * stays free of any runtime/env dependency and remains trivially testable.
+ * True when the cloud profile should apply. An explicit
+ * `NODETOOL_NODE_PROFILE` always wins: `cloud` turns the profile on (e.g. for
+ * local testing), any other value — canonically {@link FULL_PROFILE_VALUE} —
+ * turns it off. When unset, production defaults to the cloud profile because
+ * the commercial cloud product runs in production mode; self-hosted
+ * deployments set `NODETOOL_NODE_PROFILE=full` to keep the full catalog.
+ * Callers pass the raw env values so this stays free of any runtime/env
+ * dependency and remains trivially testable.
  */
 export function isCloudProfileActive(
   profileValue: string | undefined | null,
   nodeEnvValue: string | undefined | null
 ): boolean {
-  return (
-    profileValue === CLOUD_PROFILE_VALUE ||
-    nodeEnvValue === PRODUCTION_ENV_VALUE
-  );
+  if (profileValue != null && profileValue.trim() !== "") {
+    return profileValue === CLOUD_PROFILE_VALUE;
+  }
+  return nodeEnvValue === PRODUCTION_ENV_VALUE;
 }
 
 /**

@@ -91,10 +91,6 @@ function requireReplicateToken(strict: boolean): void {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Manifest building
-// ---------------------------------------------------------------------------
-
 interface ManifestEntry {
   endpointId: string;
   className: string;
@@ -223,10 +219,6 @@ async function generateManifestFromConfigs(
   await writeFile(outputPath, JSON.stringify(manifest, null, 2));
   console.log(`Wrote ${manifest.length} nodes to ${outputPath}`);
 }
-
-// ---------------------------------------------------------------------------
-// Main
-// ---------------------------------------------------------------------------
 
 async function main(): Promise<void> {
   const useCache = !values["no-cache"];

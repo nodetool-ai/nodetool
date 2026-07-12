@@ -152,6 +152,20 @@
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
+      },
+      {
+        "id": "output-analysis",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "analysis"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1120,
+            "y": 80
+          },
+          "selectable": true
+        }
       }
     ],
     "edges": [
@@ -178,6 +192,14 @@
         "target": "2",
         "targetHandle": "posts",
         "ui_properties": null
+      },
+      {
+        "id": "edge-output-analysis",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "output-analysis",
+        "targetHandle": "value",
+        "ui_properties": null
       }
     ]
   },
@@ -188,5 +210,76 @@
   "path": null,
   "run_mode": null,
   "required_providers": null,
-  "required_models": null
+  "required_models": null,
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Hacker News Agent"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-title",
+            "text": "🗞️ Hacker News Agent",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "One click for a smart digest of today's Hacker News front page."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-try",
+            "title": "Try it",
+            "content": [
+              {
+                "type": "Button",
+                "props": {
+                  "id": "btn-run",
+                  "label": "Analyze today's front page",
+                  "variant": "contained",
+                  "color": "primary",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "key": "",
+                      "value": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-results",
+            "title": "Results",
+            "content": [
+              {
+                "type": "Markdown",
+                "props": {
+                  "id": "out-analysis",
+                  "binding": "analysis",
+                  "text": ""
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
 }

@@ -1,28 +1,14 @@
-/**
- * MiniMapStore manages the minimap component state.
- *
- * Features:
- * - Toggle minimap visibility
- * - Configure node color display mode (default or type-based)
- * - Toggle color legend display
- */
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-/**
- * Determines how nodes are colored in the minimap.
- */
 type MiniMapColorMode = "default" | "type";
 
 interface MiniMapState {
-  /** Whether the minimap is visible */
   visible: boolean;
-  /** How nodes should be colored in the minimap */
   colorMode: MiniMapColorMode;
-  /** Whether to show the color legend (only applies when colorMode is 'type') */
+  /** Only applies when colorMode is 'type'. */
   showLegend: boolean;
 
-  // Actions
   setVisible: (visible: boolean) => void;
   toggleVisible: () => void;
   setColorMode: (mode: MiniMapColorMode) => void;

@@ -281,7 +281,6 @@ export function createIpcMainHandler<T extends keyof IpcRequest>(
     );
   }
 
-  // Wrap the handler with logging
   const wrappedHandler: IpcMainHandler<T> = async (event, data) => {
     const startTime = Date.now();
     const channelStr = String(channel);
@@ -734,7 +733,7 @@ export function initializeIpcHandlers(): void {
   });
 
   // Window control handlers
-  ipcMain.on(IpcChannels.WINDOW_CLOSE, (event) => {
+  ipcMain.on(IpcChannels.WINDOW_CLOSE, (_event) => {
     try {
       const window = BrowserWindow.getFocusedWindow();
       if (window) {
@@ -745,7 +744,7 @@ export function initializeIpcHandlers(): void {
     }
   });
 
-  ipcMain.on(IpcChannels.WINDOW_MINIMIZE, (event) => {
+  ipcMain.on(IpcChannels.WINDOW_MINIMIZE, (_event) => {
     try {
       const window = BrowserWindow.getFocusedWindow();
       if (window) {
@@ -756,7 +755,7 @@ export function initializeIpcHandlers(): void {
     }
   });
 
-  ipcMain.on(IpcChannels.WINDOW_MAXIMIZE, (event) => {
+  ipcMain.on(IpcChannels.WINDOW_MAXIMIZE, (_event) => {
     try {
       const window = BrowserWindow.getFocusedWindow();
       if (window) {
@@ -773,7 +772,7 @@ export function initializeIpcHandlers(): void {
 
   createIpcMainHandler(
     IpcChannels.ON_CREATE_WORKFLOW,
-    async (event, workflow) => {
+    async (_event, workflow) => {
       logMessage(`Creating workflow: ${workflow.name}`);
       registerWorkflowShortcut(workflow);
       emitWorkflowsChanged();
@@ -782,7 +781,7 @@ export function initializeIpcHandlers(): void {
 
   createIpcMainHandler(
     IpcChannels.ON_UPDATE_WORKFLOW,
-    async (event, workflow) => {
+    async (_event, workflow) => {
       logMessage(`Updating workflow: ${workflow.name}`);
       registerWorkflowShortcut(workflow);
       emitWorkflowsChanged();
@@ -791,7 +790,7 @@ export function initializeIpcHandlers(): void {
 
   createIpcMainHandler(
     IpcChannels.ON_DELETE_WORKFLOW,
-    async (event, workflow) => {
+    async (_event, workflow) => {
       logMessage(`Deleting workflow: ${workflow.name}`);
       if (workflow.settings?.shortcut) {
         globalShortcut.unregister(workflow.settings.shortcut);

@@ -118,7 +118,7 @@ export function resolvePackageAssetPath(
     `resolution of "${specifier}" and "${candidate}" (relative to the ` +
     `importer). In dev, check the owning package's build copies the file ` +
     `into dist/ and its exports map the subpath. In the packaged app, check ` +
-    `electron/scripts/bundle-backend.mjs staged it (verify-backend-bundle ` +
+    `scripts/bundle-backend.mjs staged it (verify-backend-bundle ` +
     `should have failed the build).`;
   record({ pkg: ref.pkg, path: ref.path, resolvedPath: null, via: null, error: message });
   log.warn(message);

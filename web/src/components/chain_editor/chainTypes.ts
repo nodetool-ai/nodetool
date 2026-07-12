@@ -13,8 +13,6 @@ import type {
 import type { TypeMetadata } from "../../stores/ApiTypes";
 import type { Node, Edge } from "../../stores/ApiTypes";
 
-// ── Input source mapping ─────────────────────────────────────────────
-
 /** Describes where a single input gets its data from. */
 export interface InputSource {
   /** The chain node id of the source. */
@@ -30,18 +28,13 @@ export interface InputSource {
  */
 export type InputMappings = Record<string, InputSource>;
 
-// ── Chain node ───────────────────────────────────────────────────────
-
 export interface ChainNode {
   id: string;
   nodeType: string;
   metadata: NodeMetadata;
   properties: Record<string, unknown>;
   selectedOutput: string;
-  /**
-   * Maps input property names → source node + output.
-   * Replaces the old single `inputMapping` field.
-   */
+  /** Maps input property names → source node + output. */
   inputMappings: InputMappings;
   expanded: boolean;
 }
@@ -52,8 +45,6 @@ export interface ChainConnection {
   targetId: string;
   targetInput: string;
 }
-
-// ── Type compatibility ───────────────────────────────────────────────
 
 export function areTypesCompatible(
   source: TypeMetadata,
@@ -92,8 +83,6 @@ export function findBestInput(
   const compatible = getCompatibleInputs(metadata, outputType);
   return compatible.length > 0 ? compatible[0].name : null;
 }
-
-// ── Workflow conversion ──────────────────────────────────────────────
 
 export interface WorkflowGraph {
   nodes: Node[];

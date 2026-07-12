@@ -111,7 +111,7 @@ function SketchToolIconLabel({
         className="sketch-tool-icon-label__label"
         sx={{
           fontSize: compact ? SKETCH_FONT.xxs : SKETCH_FONT.sm,
-          fontWeight: row ? 600 : 600,
+          fontWeight: 600,
           color: row ? "text.primary" : "text.secondary",
           lineHeight: 1.15,
           textTransform: "uppercase",

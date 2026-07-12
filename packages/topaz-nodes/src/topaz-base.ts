@@ -105,10 +105,6 @@ type AssetContext =
     }
   | undefined;
 
-// ---------------------------------------------------------------------------
-// API key
-// ---------------------------------------------------------------------------
-
 export function getApiKey(secrets: Record<string, string>): string {
   const key = secrets?.TOPAZ_API_KEY || process.env.TOPAZ_API_KEY || "";
   if (!key) throw new Error("TOPAZ_API_KEY is not configured");
@@ -121,10 +117,6 @@ function authHeaders(
 ): Record<string, string> {
   return { "X-API-Key": apiKey, ...extra };
 }
-
-// ---------------------------------------------------------------------------
-// HTTP helpers
-// ---------------------------------------------------------------------------
 
 /**
  * Resolve a `Retry-After` header to milliseconds. The header may be either a
@@ -218,10 +210,6 @@ async function pollUntilTerminal(
   );
 }
 
-// ---------------------------------------------------------------------------
-// Asset → bytes
-// ---------------------------------------------------------------------------
-
 function localFilePath(uri: string): string {
   try {
     return fileURLToPath(new URL(uri));
@@ -280,10 +268,7 @@ export async function refToBytes(
   throw new Error(`Cannot resolve asset URI: ${uri}`);
 }
 
-// ---------------------------------------------------------------------------
 // Image result → ImageRef (with sharp metadata when available)
-// ---------------------------------------------------------------------------
-
 export async function topazImageRef(
   bytes: Uint8Array
 ): Promise<Record<string, unknown>> {
@@ -303,10 +288,6 @@ export async function topazImageRef(
     return { type: "image", uri: "", data: base64 };
   }
 }
-
-// ---------------------------------------------------------------------------
-// Video metadata probe (ffprobe)
-// ---------------------------------------------------------------------------
 
 function parseFrameRate(raw: unknown): number {
   if (typeof raw !== "string" || !raw) return 0;
@@ -388,10 +369,6 @@ export async function probeVideoMetadata(
     };
   });
 }
-
-// ---------------------------------------------------------------------------
-// Image executor
-// ---------------------------------------------------------------------------
 
 function detectImageMime(bytes: Uint8Array): string {
   if (
@@ -489,10 +466,6 @@ export async function topazExecuteImageTask(
   }
   return new Uint8Array(await result.arrayBuffer());
 }
-
-// ---------------------------------------------------------------------------
-// Video executor
-// ---------------------------------------------------------------------------
 
 const INTERPOLATION_MODELS = new Set([
   "apf-2",

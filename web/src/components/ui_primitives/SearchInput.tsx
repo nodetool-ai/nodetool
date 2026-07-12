@@ -154,12 +154,10 @@ export const SearchInput = memo(forwardRef<HTMLInputElement, SearchInputProps>((
     }
   }, [localValue, onSubmit, handleClear]);
   
-  // Sync local value with prop
   React.useEffect(() => {
     setLocalValue(value);
   }, [value]);
-  
-  // Cleanup timeout on unmount
+
   React.useEffect(() => {
     return () => {
       if (timeoutRef.current) {

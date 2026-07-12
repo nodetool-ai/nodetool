@@ -82,7 +82,7 @@ program
   )
   .option(
     "--sandbox-image <image>",
-    "Override the sandbox Docker image (default: nodetool/sandbox-agent:latest)"
+    "Override the sandbox Docker image (default: ghcr.io/nodetool-ai/nodetool:latest)"
   )
   .option(
     "--trace-file <path>",
@@ -138,7 +138,6 @@ function parseTraceStdout(v: string | boolean): "pretty" | "json" | false {
   );
 }
 
-// Initialize database
 try {
   initDb(getDefaultDbPath());
 } catch {

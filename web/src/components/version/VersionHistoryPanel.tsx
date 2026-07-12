@@ -1,6 +1,4 @@
 /**
- * VersionHistoryPanel Component
- *
  * Side panel for browsing and managing workflow version history.
  */
 
@@ -39,13 +37,10 @@ interface VersionHistoryPanelProps {
   onClose: () => void;
 }
 
-// Helper function to calculate graph size efficiently
-// Uses a simple approximation instead of creating a Blob
+// Approximate byte size from JSON length (×2 for UTF-16) — cheaper than a Blob.
 const getGraphSizeBytes = (graph: Graph): number => {
   try {
-    // Use JSON.stringify length as an approximation
-    // This is much faster than creating a Blob
-    return JSON.stringify(graph).length * 2; // Approximate UTF-16 byte size
+    return JSON.stringify(graph).length * 2;
   } catch {
     return 0;
   }
@@ -144,10 +139,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
         ? [selectedVersion, compareVersion]
         : [compareVersion, selectedVersion];
 
-    return computeGraphDiff(
-      older.graph as unknown as Graph,
-      newer.graph as unknown as Graph
-    );
+    return computeGraphDiff(older.graph, newer.graph);
   }, [selectedVersion, compareVersion]);
 
   const handleSelect = useCallback(
@@ -492,7 +484,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
               )}
 
               <WorkflowGraphPreview
-                graph={selectedVersion.graph as unknown as Graph}
+                graph={selectedVersion.graph}
                 workflowId={workflowId}
                 width="100%"
                 height={320}

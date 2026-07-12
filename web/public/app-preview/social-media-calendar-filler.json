@@ -1,0 +1,181 @@
+{
+  "slug": "social-media-calendar-filler",
+  "name": "Social Media Calendar Filler",
+  "description": "Generate a month's worth of social media content with images, captions, and hashtags. Plans content based on monthly themes and brand guidelines.",
+  "image": "/app-preview/img/social-media-calendar-filler.jpg",
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Social Media Calendar Filler"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-title",
+            "text": "📅 Social Media Calendar Filler",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "Fill a month of social posts — images, captions, and hashtags included."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-brand-name",
+                        "binding": "brand_name",
+                        "label": "Brand name",
+                        "placeholder": "TechStartup Pro",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-monthly-theme",
+                        "binding": "monthly_theme",
+                        "label": "This month's theme",
+                        "placeholder": "AI productivity tools and workflow automation",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-target-audience",
+                        "binding": "target_audience",
+                        "label": "Audience",
+                        "placeholder": "Tech professionals, entrepreneurs, and startup founders aged 25-45",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-brand-voice",
+                        "binding": "brand_voice",
+                        "label": "Brand voice",
+                        "placeholder": "Professional yet approachable, educational, inspiring, data-driven",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "in-posts-per-week",
+                        "binding": "posts_per_week",
+                        "label": "Posts per week",
+                        "min": 1,
+                        "max": 7,
+                        "step": 1,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Fill my calendar",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-post-images",
+                        "text": "Post visuals",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-post-images",
+                        "binding": "post_images",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-captions",
+                        "text": "Captions & hashtags",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-captions",
+                        "binding": "captions",
+                        "text": ""
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  },
+  "values": {
+    "brand_name": "TechStartup Pro",
+    "monthly_theme": "AI productivity tools and workflow automation",
+    "target_audience": "Tech professionals, entrepreneurs, and startup founders aged 25-45",
+    "brand_voice": "Professional yet approachable, educational, inspiring, data-driven",
+    "posts_per_week": 4,
+    "post_images": {
+      "$demo": "image"
+    },
+    "captions": "**Mon** — Your team isn't slow. Your handoffs are. Here's the fix 🧵\n#productivity #automation\n\n**Wed** — We measured 30 days of context-switching. The results hurt.\n#futureofwork"
+  }
+}

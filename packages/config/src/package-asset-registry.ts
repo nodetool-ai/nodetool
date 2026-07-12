@@ -9,10 +9,10 @@
  * 1. `package-assets.ts` — runtime resolution. Refuses to load a file that
  *    is not registered, so a forgotten registration fails loudly in dev
  *    instead of silently in the packaged app.
- * 2. `electron/scripts/bundle-backend.mjs` — stages every entry next to the
+ * 2. `scripts/bundle-backend.mjs` — stages every entry next to the
  *    bundled server.mjs and fails the build when a source file is missing
  *    or an on-disk manifest is not registered.
- * 3. `electron/scripts/verify-backend-bundle.mjs` — final artifact check
+ * 3. `scripts/verify-backend-bundle.mjs` — final artifact check
  *    that every manifest referenced by server.mjs is staged.
  *
  * `path` is relative to the owning package's `dist/`. Basenames must be

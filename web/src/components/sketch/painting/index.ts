@@ -1,7 +1,5 @@
 /**
- * painting/ — shared paint architecture (Phase 4).
- *
- * Barrel export for the transform-aware paint session model.
+ * painting/ — barrel export for the transform-aware paint session model.
  */
 
 // ── Core session ────────────────────────────────────────────────────────────

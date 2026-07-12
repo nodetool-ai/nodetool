@@ -50,11 +50,10 @@ export function getGroupBounds(
   const calculatedHeight = boundsRect.y + boundsRect.height + paddingY;
   const finalWidth = Math.max(calculatedWidth, paddingX * 2);
   const finalHeight = Math.max(calculatedHeight, paddingY * 2);
-  const result = {
+  return {
     width: finalWidth,
     height: finalHeight,
     offsetX: boundsRect.x,
     offsetY: boundsRect.y
   };
-  return result;
 }

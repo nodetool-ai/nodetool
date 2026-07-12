@@ -33,7 +33,7 @@ export async function runStartupChecks(): Promise<StartupCheckResult> {
 
   // Check master key. initMasterKey() is idempotent (returns the cached key if
   // already resolved) and, unlike the sync getter, resolves from the keychain
-  // and AWS Secrets Manager too — so this check reflects every key source.
+  // too — so this check reflects every key source.
   try {
     const key = await initMasterKey();
     if (!key) {
@@ -44,7 +44,6 @@ export async function runStartupChecks(): Promise<StartupCheckResult> {
     errors.push(`Master key initialization failed: ${msg}`);
   }
 
-  // Check optional API keys
   for (const envVar of OPTIONAL_API_KEYS) {
     if (!process.env[envVar]) {
       warnings.push(

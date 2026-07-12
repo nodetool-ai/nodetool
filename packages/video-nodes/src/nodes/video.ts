@@ -799,7 +799,6 @@ export class LoadVideoAssetsNode extends BaseNode {
       allNames.push(item.name);
       yield { video: item.video, name: item.name };
     }
-    // Emit collected lists as final output
     yield { videos: allVideos, names: allNames };
   }
 }
@@ -934,7 +933,6 @@ export class ForEachFrameNode extends BaseNode {
       path.join(os.tmpdir(), "nodetool-frames-out-")
     );
     try {
-      // Get FPS from the video for output metadata
       let fps = 24;
       try {
         const { stdout } = await execFile("ffprobe", [
@@ -970,7 +968,6 @@ export class ForEachFrameNode extends BaseNode {
         { maxBuffer: 50 * 1024 * 1024 }
       );
 
-      // Read extracted frames in order
       const entries = await fs.readdir(outputDir);
       const frameFiles = entries
         .filter((f) => f.startsWith("frame_") && f.endsWith(".png"))
@@ -1093,7 +1090,6 @@ export class FrameToVideoNode extends BaseNode {
     outputs: StreamingOutputs,
     _context?: ProcessingContext
   ): Promise<void> {
-    // Collect all frames from the streaming input
     const frames: unknown[] = [];
     let fps = Math.max(1, Number(this.fps ?? 30));
     for await (const [handle, item] of inputs.any()) {
@@ -1741,7 +1737,6 @@ export class StabilizeVideoNode extends VideoTransformNode {
     const smoothing = Math.max(1, Number(this.smoothing ?? 10));
     const cropBlack = Boolean(this.crop_black ?? true);
 
-    // deshake with smoothing parameter
     let vf = `deshake=smooth=${smoothing}`;
 
     // If crop_black is enabled, chain cropdetect and crop to remove black borders
@@ -2005,7 +2000,6 @@ export class AddSubtitlesVideoNode extends VideoTransformNode {
     );
     const align = String(this.align ?? "bottom");
 
-    // Compute y position based on alignment
     let yExpr: string;
     if (align === "top") {
       yExpr = "text_h";

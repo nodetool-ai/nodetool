@@ -160,6 +160,7 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
     });
     const runner = new UnifiedWebSocketRunner({
       userId: req.userId ?? "1",
+      authToken: req.authToken ?? undefined,
       beforeRunJob: async (graph) => {
         if (getPythonBridgeReady()) return;
         const hasPythonNode = graph.nodes.some((n) => {

@@ -37,6 +37,14 @@
           "className": "str"
         },
         "edge_type": "data"
+      },
+      {
+        "id": "edge-output-image",
+        "source": "8b07b1ed-2ce9-4581-993e-efad334ab7a8",
+        "sourceHandle": "output",
+        "target": "output-image",
+        "targetHandle": "value",
+        "ui_properties": null
       }
     ],
     "nodes": [
@@ -134,6 +142,20 @@
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
+      },
+      {
+        "id": "output-image",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "image"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 970,
+            "y": 86
+          },
+          "selectable": true
+        }
       }
     ]
   },
@@ -147,5 +169,85 @@
   "required_providers": null,
   "required_models": null,
   "html_app": null,
-  "etag": "1df46df6e3b676565bc604b2d9511d56"
+  "etag": "1df46df6e3b676565bc604b2d9511d56",
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Audio To Image"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-title",
+            "text": "🎙️ Audio To Image",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "Describe a scene out loud — get it back as a picture."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-try",
+            "title": "Try it",
+            "content": [
+              {
+                "type": "Text",
+                "props": {
+                  "id": "note-media",
+                  "text": "🎧 Uses the bundled voice memo — record your own in NodeTool Studio."
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "id": "btn-run",
+                  "label": "Turn my voice into art",
+                  "variant": "contained",
+                  "color": "primary",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "key": "",
+                      "value": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-results",
+            "title": "Results",
+            "content": [
+              {
+                "type": "Image",
+                "props": {
+                  "id": "out-image",
+                  "binding": "image",
+                  "fit": "contain",
+                  "height": 280,
+                  "placeholder": "Your result appears here"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
 }

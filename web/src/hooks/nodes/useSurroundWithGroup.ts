@@ -6,29 +6,13 @@ import { Node } from "@xyflow/react";
 import { useTheme } from "@mui/material/styles";
 import { shallow } from "zustand/shallow";
 
-/**
- * Options for surroundWithGroup function.
- */
 type SurroundWithGroupOptions = {
-  /** Array of nodes to surround with a group */
   selectedNodes: Node<NodeData>[];
 };
 
 /**
- * Hook for grouping selected nodes within a group/loop node.
- * 
- * Creates a group node that contains the selected nodes as children,
- * automatically calculating bounds and adjusting node positions.
- * 
- * @returns Function to surround selected nodes with a group
- * 
- * @example
- * ```typescript
- * const surroundWithGroup = useSurroundWithGroup();
- * 
- * // Surround selected nodes with a group
- * surroundWithGroup({ selectedNodes: selectedNodesArray });
- * ```
+ * Wrap the selected nodes in a group node, computing group bounds and
+ * reparenting each child to positions relative to the group.
  */
 export const useSurroundWithGroup = (): ((options: SurroundWithGroupOptions) => void) => {
   const theme = useTheme();

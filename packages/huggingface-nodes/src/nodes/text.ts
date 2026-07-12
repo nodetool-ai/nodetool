@@ -7,10 +7,6 @@ import {
   hfPipelineJson
 } from "../huggingface-base.js";
 
-
-// ---------------------------------------------------------------------------
-// Chat Completion
-// ---------------------------------------------------------------------------
 export class ChatCompletionNode extends BaseNode {
   static readonly nodeType = "huggingface.ChatCompletion";
   static readonly title = "Chat Completion";
@@ -102,9 +98,6 @@ export class ChatCompletionNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Text Generation
-// ---------------------------------------------------------------------------
 export class TextGenerationNode extends BaseNode {
   static readonly nodeType = "huggingface.TextGeneration";
   static readonly title = "Text Generation";
@@ -184,9 +177,6 @@ export class TextGenerationNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Summarization
-// ---------------------------------------------------------------------------
 export class SummarizationNode extends BaseNode {
   static readonly nodeType = "huggingface.Summarization";
   static readonly title = "Summarization";
@@ -260,9 +250,6 @@ export class SummarizationNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Translation
-// ---------------------------------------------------------------------------
 export class TranslationNode extends BaseNode {
   static readonly nodeType = "huggingface.Translation";
   static readonly title = "Translation";
@@ -332,9 +319,6 @@ export class TranslationNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Fill Mask
-// ---------------------------------------------------------------------------
 export class FillMaskNode extends BaseNode {
   static readonly nodeType = "huggingface.FillMask";
   static readonly title = "Fill Mask";
@@ -383,9 +367,6 @@ export class FillMaskNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Question Answering
-// ---------------------------------------------------------------------------
 export class QuestionAnsweringNode extends BaseNode {
   static readonly nodeType = "huggingface.QuestionAnswering";
   static readonly title = "Question Answering";
@@ -448,9 +429,6 @@ export class QuestionAnsweringNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Table Question Answering
-// ---------------------------------------------------------------------------
 export class TableQuestionAnsweringNode extends BaseNode {
   static readonly nodeType = "huggingface.TableQuestionAnswering";
   static readonly title = "Table Question Answering";
@@ -529,9 +507,6 @@ export class TableQuestionAnsweringNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Feature Extraction (embeddings)
-// ---------------------------------------------------------------------------
 export class FeatureExtractionNode extends BaseNode {
   static readonly nodeType = "huggingface.FeatureExtraction";
   static readonly title = "Feature Extraction";
@@ -588,9 +563,6 @@ export class FeatureExtractionNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Text Classification
-// ---------------------------------------------------------------------------
 export class TextClassificationNode extends BaseNode {
   static readonly nodeType = "huggingface.TextClassification";
   static readonly title = "Text Classification";
@@ -643,9 +615,6 @@ export class TextClassificationNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Token Classification (NER)
-// ---------------------------------------------------------------------------
 export class TokenClassificationNode extends BaseNode {
   static readonly nodeType = "huggingface.TokenClassification";
   static readonly title = "Token Classification";
@@ -704,9 +673,6 @@ export class TokenClassificationNode extends BaseNode {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Zero Shot Classification
-// ---------------------------------------------------------------------------
 export class ZeroShotClassificationNode extends BaseNode {
   static readonly nodeType = "huggingface.ZeroShotClassification";
   static readonly title = "Zero Shot Classification";

@@ -12,12 +12,7 @@ import { Tool } from "./base-tool.js";
 import type { SerpProvider } from "./serp-providers/index.js";
 import { SerpApiProvider } from "./serp-providers/serpapi-provider.js";
 
-/* ------------------------------------------------------------------ */
-/*  Helpers                                                           */
-/* ------------------------------------------------------------------ */
-
 async function getSerpApiKey(context: ProcessingContext): Promise<string> {
-  // Try context secret resolver first, then fall back to env var.
   const fromCtx = await context.getSecret("SERPAPI_API_KEY");
   if (fromCtx) return fromCtx;
 
@@ -50,10 +45,6 @@ async function serpApiFetch(params: SerpApiParams): Promise<unknown> {
   return res.json();
 }
 
-/**
- * Resolve a SerpProvider.  If an explicit provider is supplied, use it;
- * otherwise create a SerpApiProvider from the context's API key.
- */
 async function resolveProvider(
   context: ProcessingContext,
   provider?: SerpProvider
@@ -62,10 +53,6 @@ async function resolveProvider(
   const apiKey = await getSerpApiKey(context);
   return new SerpApiProvider(apiKey);
 }
-
-/* ------------------------------------------------------------------ */
-/*  WebSearchTool                                                     */
-/* ------------------------------------------------------------------ */
 
 function formatSearchResults(
   results: Array<{
@@ -221,10 +208,6 @@ export class WebSearchTool extends Tool {
   }
 }
 
-/* ------------------------------------------------------------------ */
-/*  GoogleNewsTool                                                    */
-/* ------------------------------------------------------------------ */
-
 export class GoogleNewsTool extends Tool {
   readonly name = "google_news";
   readonly description =
@@ -290,10 +273,6 @@ export class GoogleNewsTool extends Tool {
     return msg.length > 80 ? "Searching Google News..." : msg;
   }
 }
-
-/* ------------------------------------------------------------------ */
-/*  GoogleImagesTool                                                  */
-/* ------------------------------------------------------------------ */
 
 export class GoogleImagesTool extends Tool {
   readonly name = "google_images";

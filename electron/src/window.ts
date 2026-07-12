@@ -50,14 +50,12 @@ let permissionHandlersInitialized = false;
  * @returns {BrowserWindow} The created window instance
  */
 function createWindow(): BrowserWindow {
-  // Check if window already exists and is not destroyed
   const existingWindow = getMainWindow();
   if (existingWindow && !existingWindow.isDestroyed()) {
     existingWindow.focus();
     return existingWindow;
   }
 
-  // Create new window
   const window = new BrowserWindow({
     width: 1500,
     height: 1000,
@@ -78,7 +76,6 @@ function createWindow(): BrowserWindow {
   registerDevToolsShortcut(window);
   hardenWebContents(window.webContents);
 
-  // Handle window close
   window.on("close", (event) => {
     if (!isAppQuitting) {
       event.preventDefault();
@@ -148,7 +145,6 @@ function initializePermissionHandlers(): void {
   if (permissionHandlersInitialized) return;
   permissionHandlersInitialized = true;
 
-  // Define allowed permissions at the top
   const allowedPermissions: string[] = [
     "media",
     "enumerate-devices",

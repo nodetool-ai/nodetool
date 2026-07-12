@@ -31,7 +31,6 @@ interface TypeFilterChipsProps {
   setSelectedOutputType: (value: string) => void;
 }
 
-// Fixed quick filters requested by UX
 const TYPE_CATEGORIES = [
   { value: "image", label: "Image", icon: "image" },
   { value: "text", label: "Text", icon: "text" },

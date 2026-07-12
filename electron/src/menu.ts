@@ -60,9 +60,6 @@ const buildVaultSubmenu = (): MenuItemConstructorOptions[] => {
   ];
 };
 
-/**
- * Builds the application menu
- */
 const buildMenu = () => {
   const mainWindow = getMainWindow();
   if (!mainWindow) {
@@ -328,9 +325,6 @@ const buildMenu = () => {
   Menu.setApplicationMenu(menu);
 };
 
-/**
- * Shows a native dialog with system information
- */
 async function showSystemInfoDialog(): Promise<void> {
   const mainWindow = getMainWindow();
   
@@ -374,7 +368,6 @@ Features & Versions
     
     const result = await showDialog;
     if (result.response === 1) {
-      // Copy to clipboard
       clipboard.writeText(message);
     }
   } catch (error) {

@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 /**
- * ChannelsBody — bespoke body for `nodetool.image.Channels` (plan §9.E3,
- * PR 13).
+ * ChannelsBody — bespoke body for `nodetool.image.Channels`.
  *
  * Top: image preview rendered through the currently selected channel
  * (the server output is already single-channel grayscale; we just show it).

@@ -27,10 +27,6 @@ import {
   type TopazVideoSpec
 } from "./topaz-base.js";
 
-// ---------------------------------------------------------------------------
-// Manifest types
-// ---------------------------------------------------------------------------
-
 export interface TopazFieldDef {
   name: string;
   type: "str" | "int" | "float" | "bool" | "enum" | "image" | "video";
@@ -62,10 +58,6 @@ export interface TopazManifestEntry {
   maxAttempts: number;
   fields: TopazFieldDef[];
 }
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 function isAssetType(type: string): boolean {
   return type === "image" || type === "video";
@@ -130,10 +122,6 @@ function uploadFieldName(spec: TopazManifestEntry): string {
   const upload = spec.fields.find((f) => f.uploadField);
   return upload?.name ?? (spec.outputType === "video" ? "video" : "image");
 }
-
-// ---------------------------------------------------------------------------
-// Factory
-// ---------------------------------------------------------------------------
 
 export function createTopazNodeClass(spec: TopazManifestEntry): NodeClass {
   const nodeType = `topaz.${spec.moduleName}.${spec.className}`;

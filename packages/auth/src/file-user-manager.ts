@@ -6,7 +6,7 @@
  */
 
 import { createHash, randomBytes } from "node:crypto";
-import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { readFile, writeFile, mkdir, chmod } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { homedir } from "node:os";
 
@@ -81,10 +81,18 @@ export class FileUserManager {
   }
 
   private async save(data: UsersFile): Promise<void> {
-    await mkdir(dirname(this.usersFile), { recursive: true });
+    // The file holds usernames, roles, and token hashes — keep it and its
+    // directory owner-only. POSIX modes are ignored on Windows, which is fine.
+    await mkdir(dirname(this.usersFile), { recursive: true, mode: 0o700 });
     // Stryker disable next-line StringLiteral: writeFile encodes the string as utf8
     // regardless of an empty encoding argument, so "utf8" vs "" are equivalent.
-    await writeFile(this.usersFile, JSON.stringify(data, null, 2), "utf8");
+    await writeFile(this.usersFile, JSON.stringify(data, null, 2), {
+      encoding: "utf8",
+      mode: 0o600
+    });
+    // writeFile's mode only applies when the file is created; chmod an existing
+    // file down to owner-only too.
+    await chmod(this.usersFile, 0o600);
   }
 
   private generateToken(): string {

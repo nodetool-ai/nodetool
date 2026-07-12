@@ -1,0 +1,130 @@
+{
+  "slug": "movie-trailer-generator",
+  "name": "Movie Trailer Generator",
+  "description": "Type a single logline and get back a cinematic teaser. Prompt nodes template the inputs into a treatment and turn each shot into full cinematic key art; the shots are animated and cut together into the final trailer.",
+  "image": "/app-preview/img/movie-trailer-generator.jpg",
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Movie Trailer Generator"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-title",
+            "text": "🍿 Movie Trailer Generator",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "Type one logline — get a cinematic teaser cut shot-by-shot."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-logline",
+                        "binding": "Logline",
+                        "label": "Your movie in one sentence",
+                        "placeholder": "A getaway driver speeds onto a bridge as it starts to collapse — and the only wa",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-visual-style",
+                        "binding": "Visual Style",
+                        "label": "Visual style",
+                        "placeholder": "high-contrast daylight, dust and sparks, handheld telephoto, motion blur, hard s",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-shot-count",
+                        "binding": "Shot Count",
+                        "label": "Number of shots",
+                        "placeholder": "6",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Cut my trailer",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-trailer",
+                        "binding": "trailer",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  },
+  "values": {
+    "Logline": "A getaway driver speeds onto a bridge as it starts to collapse — and the only way out is to outrun the gap.",
+    "Visual Style": "high-contrast daylight, dust and sparks, handheld telephoto, motion blur, hard sun, blown-out sky, gritty",
+    "Shot Count": "6",
+    "trailer": {
+      "$demo": "video"
+    }
+  }
+}

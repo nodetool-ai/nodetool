@@ -5,7 +5,14 @@ import * as path from "path";
 
 // The script is ESM (.mjs), which ts-jest's CJS transform can't import, so we
 // exercise it the way the build does: as a child process against a bundle dir.
-const SCRIPT = path.join(__dirname, "..", "..", "scripts", "verify-backend-bundle.mjs");
+const SCRIPT = path.join(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "scripts",
+  "verify-backend-bundle.mjs"
+);
 
 const SERVER_SOURCE = [
   'const kie = req("kie-manifest.json");',

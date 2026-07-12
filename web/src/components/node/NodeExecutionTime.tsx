@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo, useMemo } from "react";
+import React, { memo } from "react";
 import {
   Text,
   FlexRow,
@@ -66,10 +66,7 @@ const NodeExecutionTime: React.FC<NodeExecutionTimeProps> = ({
 }) => {
   const duration = useNodeExecutionDuration(workflowId, nodeId);
 
-  const shouldShow = useMemo(
-    () => status === "completed" || status === "error",
-    [status]
-  );
+  const shouldShow = status === "completed" || status === "error";
 
   if (!shouldShow || duration === undefined) {
     return null;

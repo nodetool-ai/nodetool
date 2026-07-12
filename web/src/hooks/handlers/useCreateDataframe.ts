@@ -1,5 +1,3 @@
-// - create DataFrame nodes from CSV files
-
 import { useCallback } from "react";
 import { Node, XYPosition } from "@xyflow/react";
 import Papa from "papaparse";

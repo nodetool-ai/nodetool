@@ -75,10 +75,6 @@ function parseModelArgs(
   return { provider, model };
 }
 
-/* ------------------------------------------------------------------ */
-/*  Image generation                                                  */
-/* ------------------------------------------------------------------ */
-
 export class GenerateImageTool extends Tool {
   readonly name = "generate_image";
   readonly description =
@@ -217,10 +213,6 @@ export class EditImageTool extends Tool {
   }
 }
 
-/* ------------------------------------------------------------------ */
-/*  Video generation                                                  */
-/* ------------------------------------------------------------------ */
-
 export class GenerateVideoTool extends Tool {
   readonly name = "generate_video";
   readonly description =
@@ -352,10 +344,6 @@ export class AnimateImageTool extends Tool {
     return `Animating image with ${String(params["provider"])}:${String(params["model"])}`;
   }
 }
-
-/* ------------------------------------------------------------------ */
-/*  Audio: TTS + ASR                                                  */
-/* ------------------------------------------------------------------ */
 
 interface TTSChunkLike {
   data?: Uint8Array | string;
@@ -644,10 +632,6 @@ export class TranscribeAudioTool extends Tool {
     return `Transcribing audio with ${String(params["provider"])}:${String(params["model"])}`;
   }
 }
-
-/* ------------------------------------------------------------------ */
-/*  Embeddings                                                        */
-/* ------------------------------------------------------------------ */
 
 export class EmbedTextTool extends Tool {
   readonly name = "embed_text";

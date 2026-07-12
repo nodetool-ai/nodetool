@@ -1,4 +1,3 @@
-import isEqual from "../../utils/isEqual";
 import { NodeData } from "../../stores/NodeData";
 
 /**
@@ -30,5 +29,3 @@ export const isFieldRelevantDataEqual = (
   }
   return true;
 };
-
-export { isEqual };

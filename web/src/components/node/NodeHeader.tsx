@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import useContextMenuStore from "../../stores/ContextMenuStore";
+import { useContextMenuActions } from "../../stores/ContextMenuStore";
 import useLogsStore, { nodeLogKey } from "../../stores/LogStore";
 import { shallow } from "zustand/shallow";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
@@ -54,7 +54,7 @@ const NodeHeaderImpl: React.FC<NodeHeaderProps> = ({
   showCodeBadge = false,
   codeBadgeTooltip = "Code node"
 }: NodeHeaderProps) => {
-  const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
+  const { openContextMenu } = useContextMenuActions();
   // Combine multiple useNodes subscriptions into a single selector with shallow equality
   // to reduce unnecessary re-renders when other parts of the node state change
   const { updateNode, updateNodeData, findNode, workflowId: nodeWorkflowId } =
@@ -279,9 +279,6 @@ const NodeHeaderImpl: React.FC<NodeHeaderProps> = ({
     } as React.CSSProperties;
   }, [backgroundColor]);
 
-  const iconBackgroundStyle = ICON_BACKGROUND_STYLE;
-
-  // Memoize title padding style to prevent recreation on every render
   const titlePaddingStyle = useMemo(() => ({
     paddingLeft: hasIcon ? 0 : undefined
   }), [hasIcon]);
@@ -302,7 +299,7 @@ const NodeHeaderImpl: React.FC<NodeHeaderProps> = ({
         {hasIcon && showIcon && (
           <div
             className="node-icon node-drag-handle"
-            style={iconBackgroundStyle}
+            style={ICON_BACKGROUND_STYLE}
             onDoubleClick={handleIconDoubleClick}
           >
             <IconForType

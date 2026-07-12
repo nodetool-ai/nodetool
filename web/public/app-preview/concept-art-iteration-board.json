@@ -1,0 +1,120 @@
+{
+  "slug": "concept-art-iteration-board",
+  "name": "Concept Art Iteration Board",
+  "description": "Turn a creative brief, style, and mood into concept art variations. An agent sets the art direction, then a batch of images is generated.",
+  "image": "/app-preview/img/concept-art-iteration-board.jpg",
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Concept Art Board"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-44",
+            "text": "🎨 Concept Art Board",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-45",
+            "text": "Generate concept art from a brief, style, and mood."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "c-50",
+            "title": "Brief",
+            "content": [
+              {
+                "type": "TextInput",
+                "props": {
+                  "id": "in-46",
+                  "binding": "creative_brief",
+                  "label": "Creative Brief",
+                  "placeholder": "e.g. a floating desert city",
+                  "multiline": true,
+                  "events": []
+                }
+              },
+              {
+                "type": "TextInput",
+                "props": {
+                  "id": "in-47",
+                  "binding": "art_style",
+                  "label": "Art Style",
+                  "placeholder": "e.g. painterly, cinematic",
+                  "multiline": false,
+                  "events": []
+                }
+              },
+              {
+                "type": "TextInput",
+                "props": {
+                  "id": "in-48",
+                  "binding": "mood_keywords",
+                  "label": "Mood Keywords",
+                  "placeholder": "e.g. serene, golden hour",
+                  "multiline": false,
+                  "events": []
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "id": "b-49",
+                  "label": "Generate Concept Art",
+                  "variant": "contained",
+                  "color": "primary",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "key": "",
+                      "value": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "c-52",
+            "title": "Concept Art",
+            "content": [
+              {
+                "type": "Image",
+                "props": {
+                  "id": "img-51",
+                  "binding": "Concept Art",
+                  "fit": "contain",
+                  "height": 520,
+                  "placeholder": "Your concept art will appear here"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  },
+  "values": {
+    "creative_brief": "A mystical forest guardian - ancient tree spirit protecting enchanted woods. Fantasy RPG character design.",
+    "art_style": "Digital painting, concept art style, painterly, dramatic lighting, rich colors",
+    "mood_keywords": "mysterious, ancient, powerful, serene, magical",
+    "Concept Art": {
+      "$demo": "image"
+    }
+  }
+}

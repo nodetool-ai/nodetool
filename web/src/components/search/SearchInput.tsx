@@ -149,24 +149,17 @@ const SearchInput: React.FC<SearchInputProps> = ({
     onSearchChange(value);
   }, debounceTime);
 
-  // Reset search state and cancel any pending searches
   const resetSearch = useCallback(() => {
-    // Cancel any pending debounced searches first
     debouncedSetSearchTerm.cancel();
-    // Clear local input state
     setLocalSearchTerm("");
-    // Reset search in store
     onSearchChange("");
   }, [debouncedSetSearchTerm, onSearchChange]);
 
-
-  // Handle input changes with debouncing
   const handleInputChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const newValue = event.target.value;
-      // Update local state immediately for UI responsiveness
+      // Update local state immediately for responsiveness; debounce the search.
       setLocalSearchTerm(newValue);
-      // Schedule debounced search
       debouncedSetSearchTerm(newValue);
     },
     [debouncedSetSearchTerm]

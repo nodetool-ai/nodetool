@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 /**
- * LevelsBody — bespoke body for `nodetool.image.Levels` (plan §9.E1, PR 15).
+ * LevelsBody — bespoke body for `nodetool.image.Levels`.
  *
  * Layout:
  *   • Full-bleed image preview (top)

@@ -7,9 +7,7 @@ import VideoViewer from "../../components/asset_viewer/VideoViewer";
 import LazyPDFViewer from "../../components/asset_viewer/LazyPDFViewer";
 import LazyModel3DViewer from "../../components/asset_viewer/LazyModel3DViewer";
 
-// Helper to detect 3D model content types
 const isModel3D = (type: string, url?: string): boolean => {
-  // Check MIME types
   if (
     type.startsWith("model/") ||
     type === "application/octet-stream" ||
@@ -18,7 +16,6 @@ const isModel3D = (type: string, url?: string): boolean => {
   ) {
     return true;
   }
-  // Check file extensions
   if (url) {
     try {
       // Extract pathname to handle URLs with query parameters or fragments

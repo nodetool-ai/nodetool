@@ -14,9 +14,6 @@ type AnyRecord = Record<string, any>;
 export class SchemaParser {
   private _rootSchema: AnyRecord = {};
 
-  /**
-   * Parse an OpenAPI schema into a node specification.
-   */
   parse(openapiSchema: AnyRecord): NodeSpec {
     this._rootSchema = openapiSchema;
 
@@ -58,9 +55,6 @@ export class SchemaParser {
     };
   }
 
-  /**
-   * Extract endpoint ID from schema metadata or paths fallback.
-   */
   private _extractEndpointId(schema: AnyRecord): string {
     try {
       const meta = schema["info"]?.["x-fal-metadata"];
@@ -81,9 +75,6 @@ export class SchemaParser {
     return "";
   }
 
-  /**
-   * Extract input schema from OpenAPI paths (POST requestBody).
-   */
   private _extractInputSchema(schema: AnyRecord): AnyRecord {
     const paths = (schema["paths"] as AnyRecord | undefined) ?? {};
     for (const methods of Object.values(paths)) {
@@ -104,9 +95,6 @@ export class SchemaParser {
     return {};
   }
 
-  /**
-   * Extract output schema from OpenAPI paths (GET responses).
-   */
   private _extractOutputSchema(schema: AnyRecord): AnyRecord {
     const paths = (schema["paths"] as AnyRecord | undefined) ?? {};
     let candidateSchema: AnyRecord = {};
@@ -145,9 +133,6 @@ export class SchemaParser {
     return candidateSchema;
   }
 
-  /**
-   * Check if a schema is a queue status schema (not the actual output).
-   */
   private _isQueueStatusSchema(schema: AnyRecord): boolean {
     const title = ((schema["title"] as string | undefined) ?? "").toLowerCase();
     if (title === "queuestatus") return true;
@@ -155,9 +140,6 @@ export class SchemaParser {
     return "status" in properties && "request_id" in properties;
   }
 
-  /**
-   * Resolve $ref references in schema, merging allOf.
-   */
   private _resolveRef(schema: AnyRecord, schemaObj: AnyRecord): AnyRecord {
     if (typeof schemaObj !== "object" || schemaObj === null) return {};
 
@@ -201,9 +183,6 @@ export class SchemaParser {
     return schemaObj;
   }
 
-  /**
-   * Parse properties into field definitions.
-   */
   private _parseProperties(
     properties: AnyRecord,
     required: string[],
@@ -213,7 +192,6 @@ export class SchemaParser {
     const fields: FieldDef[] = [];
 
     for (const [name, prop] of Object.entries(properties)) {
-      // Check if this is a nested asset structure
       const [nestedAssetKey, extraFields] = this._getNestedAssetInfo(
         prop as AnyRecord
       );
@@ -332,14 +310,12 @@ export class SchemaParser {
         enumRef = enumName;
       }
 
-      // Determine TS type
       const { tsType, propType } = this.jsonTypeToTs(
         prop as AnyRecord,
         enumRef,
         name
       );
 
-      // Determine default value
       const defaultVal = this._getDefaultValue(
         prop as AnyRecord,
         propType,
@@ -579,9 +555,6 @@ export class SchemaParser {
     return { tsType: "any", propType: "any" };
   }
 
-  /**
-   * Map a nested asset key (e.g. "image_url", "video_url") to its asset kind.
-   */
   private _assetKindFromKey(
     key: string
   ): "image" | "video" | "audio" | null {
@@ -592,9 +565,6 @@ export class SchemaParser {
     return null;
   }
 
-  /**
-   * Resolve a $ref path to the referenced schema's title.
-   */
   private _resolveRefTypeName(refPath: string): string | null {
     if (!refPath.startsWith("#/")) return null;
     const parts = refPath.replace(/^#\//, "").split("/");
@@ -690,16 +660,12 @@ export class SchemaParser {
     return [nestedAssetKey, extraFields];
   }
 
-  /**
-   * Get default value for a field.
-   */
   private _getDefaultValue(
     prop: AnyRecord,
     propType: string,
     required: boolean,
     enumName?: string
   ): unknown {
-    // Asset refs should always default to empty objects
     if (propType === "image") return null;
     if (propType === "video") return null;
     if (propType === "audio") return null;
@@ -714,11 +680,9 @@ export class SchemaParser {
       } else if (typeof defaultVal === "number") {
         return defaultVal;
       }
-      // null default
       if (defaultVal === null) return null;
     }
 
-    // Generate sensible defaults based on type
     if (propType === "str") return "";
     if (propType === "int") {
       const desc = (
@@ -734,9 +698,6 @@ export class SchemaParser {
     return null;
   }
 
-  /**
-   * Determine the output type for the node.
-   */
   private _determineOutputType(
     outputSchema: AnyRecord,
     _outputFields: FieldDef[]
@@ -809,9 +770,6 @@ export class SchemaParser {
     return nameParts.join("");
   }
 
-  /**
-   * Generate an enum class name from field name (PascalCase).
-   */
   private _generateEnumName(fieldName: string): string {
     const words = fieldName.replace(/-/g, "_").split("_");
     return words.map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join("");
@@ -915,10 +873,7 @@ export class SchemaParser {
     return result;
   }
 
-  /**
-   * Normalize asset URL field names for output fields.
-   * Maps "image_url" / "video_url" / "audio_url" style fields.
-   */
+  /** Map "image_url" / "video_url" / "audio_url" style fields to asset fields. */
   normalizeAssetUrlFields(fields: FieldDef[]): FieldDef[] {
     return fields.map((f) => {
       const lower = f.name.toLowerCase();
@@ -966,9 +921,6 @@ export class SchemaParser {
     });
   }
 
-  /**
-   * Normalize image_urls (plural) style fields.
-   */
   normalizeImageUrlsFields(fields: FieldDef[]): FieldDef[] {
     return fields.map((f) => {
       const lower = f.name.toLowerCase();

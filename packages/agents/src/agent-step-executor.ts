@@ -113,7 +113,6 @@ export class AgentStepExecutor implements NodeExecutor {
       step.instructions = upstreamContext + step.instructions;
     }
 
-    // Filter tools if the step specifies a subset
     let tools = this.opts.tools;
     if (step.tools && step.tools.length > 0) {
       const allowedNames = new Set(step.tools);
@@ -133,7 +132,6 @@ export class AgentStepExecutor implements NodeExecutor {
 
     let result: unknown = null;
     for await (const msg of executor.execute()) {
-      // Forward processing messages for UI updates
       if (context) {
         context.emit(msg);
       }

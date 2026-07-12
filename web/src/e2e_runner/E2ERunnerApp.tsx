@@ -356,5 +356,4 @@ export default function E2ERunnerApp() {
   );
 }
 
-// Re-export so callers can find records easily in tests.
 export type { RunRecord };

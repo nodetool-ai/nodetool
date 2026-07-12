@@ -109,10 +109,6 @@ export interface DisplayedGroup {
   label: string;
 }
 
-/** Anchor id for a settings group heading (e.g. "vLLM" → "vllm"). */
-export const settingGroupSlug = (groupName: string): string =>
-  groupName.toLowerCase().replace(/\s+/g, "-");
-
 /**
  * Partitions visible registry groups into the fixed meta-section order. Shared
  * by the panel (rendering) and getDisplayedSettingGroups (sidebar) so the two
@@ -368,14 +364,10 @@ const RemoteSettings = () => {
     }
   }, [data, settings]);
 
-  // Use settingsByGroup from store or compute from data
   const settingsByGroup = useMemo<Map<string, SettingWithValue[]>>(() => {
-    // First try to use the store's grouped settings
     if (storeSettingsByGroup && storeSettingsByGroup.size > 0) {
       return storeSettingsByGroup;
     }
-
-    // Otherwise compute from data
     if (!data || !Array.isArray(data)) { return new Map<string, SettingWithValue[]>(); }
 
     const groups = new Map<string, SettingWithValue[]>();

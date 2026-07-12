@@ -8,10 +8,6 @@
 
 import type { Edge, GraphData, NodeDescriptor } from "@nodetool-ai/protocol";
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
 /** Simplified node for API serialisation (no runtime metadata). */
 export interface ApiNode {
   id: string;
@@ -40,10 +36,6 @@ export interface ApiGraph {
   edges: ApiEdge[];
 }
 
-// ---------------------------------------------------------------------------
-// Converters
-// ---------------------------------------------------------------------------
-
 /**
  * Convert a kernel-level NodeDescriptor to an ApiNode.
  *
@@ -62,9 +54,6 @@ export function toApiNode(node: NodeDescriptor): ApiNode {
   };
 }
 
-/**
- * Convert a protocol Edge to an ApiEdge.
- */
 export function toApiEdge(edge: Edge): ApiEdge {
   return {
     id: edge.id ?? null,
@@ -86,10 +75,6 @@ export function toApiGraph(graph: GraphData): ApiGraph {
     edges: graph.edges.map(toApiEdge)
   };
 }
-
-// ---------------------------------------------------------------------------
-// Utility: remove connected slots
-// ---------------------------------------------------------------------------
 
 /**
  * Clear data slots on nodes that have incoming edges (the edge provides the

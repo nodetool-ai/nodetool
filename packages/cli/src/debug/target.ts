@@ -14,6 +14,8 @@ export interface ResolvedTarget {
   graph: DebugGraph;
   /** Params discovered in a file's `params` field, merged under caller params. */
   fileParams: Record<string, unknown>;
+  /** The workflow's app-builder document (`app_doc`), when present. */
+  appDoc: unknown;
 }
 
 function looksLikeFile(ref: string): boolean {
@@ -48,9 +50,9 @@ function normalizeGraph(graph: DebugGraph): DebugGraph {
  */
 export async function resolveTarget(
   ref: string,
-  loadFromDb: (id: string) => Promise<{ graph: DebugGraph } | null>
+  loadFromDb: (id: string) => Promise<{ graph: DebugGraph; app_doc?: unknown } | null>
 ): Promise<ResolvedTarget> {
-  let raw: { graph?: DebugGraph; nodes?: unknown[]; edges?: unknown[]; id?: string; workflow_id?: string; params?: Record<string, unknown> };
+  let raw: { graph?: DebugGraph; nodes?: unknown[]; edges?: unknown[]; id?: string; workflow_id?: string; params?: Record<string, unknown>; app_doc?: unknown };
   let source: DebugTargetInfo["source"];
   let workflowId: string | null;
   const fileParams: Record<string, unknown> = {};
@@ -95,6 +97,7 @@ export async function resolveTarget(
       edgeCount: graph.edges.length
     },
     graph,
-    fileParams
+    fileParams,
+    appDoc: raw.app_doc ?? null
   };
 }

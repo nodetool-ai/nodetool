@@ -34,7 +34,6 @@ const FontProperty: React.FC<PropertyProps<FontValue | null>> = ({
     queryFn: fetchFonts
   });
 
-  // Handle value change
   const handleChange = useCallback(
     (fontName: string) => {
       onChange({ type: "font", name: fontName });
@@ -42,13 +41,11 @@ const FontProperty: React.FC<PropertyProps<FontValue | null>> = ({
     [onChange]
   );
 
-  // Current value handling
   const currentValue =
     value && typeof value === "object" && value.type === "font"
       ? value.name
       : "";
 
-  // Prepare options for Select component
   const options = useMemo(() => {
     if (!fonts || isLoading || isError)
       {return [{ value: "", label: "Select a font" }];}

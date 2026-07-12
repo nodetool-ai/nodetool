@@ -2,7 +2,7 @@
  * Workflows REST routes — file downloads and JSON metadata used outside tRPC.
  *
  * The web app uses `/trpc/workflows.*`. These routes serve:
- *   - Workflow list / detail JSON (`GET /api/workflows`, `GET /api/workflows/:id`) for SDKs (e.g. VVVV)
+ *   - Workflow list, creation, and detail JSON for SDKs and agents
  *   - Public workflows, examples, tools, names (parity with `http-api` router)
  *   - File endpoints that cannot use tRPC's JSON layer (DSL export, thumbnails)
  */
@@ -113,10 +113,14 @@ const workflowsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
   });
 
   // Single route: Fastify normalizes `/api/workflows` and `/api/workflows/` to one path.
-  app.get("/api/workflows", async (req, reply) => {
-    await bridge(req, reply, (request) =>
-      handleWorkflowsRoot(request, apiOptions)
-    );
+  app.route({
+    method: ["GET", "POST"],
+    url: "/api/workflows",
+    handler: async (req, reply) => {
+      await bridge(req, reply, (request) =>
+        handleWorkflowsRoot(request, apiOptions)
+      );
+    }
   });
 
   app.get("/api/workflows/:id/dsl-export", async (req, reply) => {

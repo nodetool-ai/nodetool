@@ -163,7 +163,6 @@ export const ToolbarIconButton = memo(
         }
       }, [variant, theme]);
 
-      // Build tooltip content with optional shortcut hint
       const tooltipContent = shortcut ? (
         <Box
           sx={{

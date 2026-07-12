@@ -16,8 +16,6 @@
  *     create      (mutation) — LayerWorkflowBinding
  *     delete      (mutation) — { ok: true }
  *     duplicate   (mutation) — LayerWorkflowBinding
- *
- * Mirrors the Timeline router, retargeted from clips→layers.
  */
 
 import { z } from "zod";
@@ -44,8 +42,6 @@ import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
-
-// ── input shapes specific to this router ────────────────────────────────────
 
 const listInput = z.object({
   projectId: z.string().optional()
@@ -87,8 +83,6 @@ const MAX_FAILED_VERSIONS = 5;
 
 const okOutput = z.object({ ok: z.literal(true) });
 const DEFAULT_SKETCH_ACTIVE_TOOL = "brush";
-
-// ── helpers ─────────────────────────────────────────────────────────────────
 
 function toListItem(doc: ImageDocument) {
   return {
@@ -150,8 +144,6 @@ async function mutateOwnedDocumentData<T>(
   }
 }
 
-// ── Node-type helpers ────────────────────────────────────────────────────────
-
 const IMAGE_OUTPUT_TYPES: Record<string, true> = {
   "nodetool.output.ImageOutput": true,
   "nodetool.output.MaskOutput": true,
@@ -181,8 +173,6 @@ function inputNodeDefault(node: Record<string, unknown>): unknown {
   const data = node.data as Record<string, unknown> | undefined;
   return data?.value ?? null;
 }
-
-// ── router ──────────────────────────────────────────────────────────────────
 
 export const sketchRouter = router({
   list: protectedProcedure
@@ -323,8 +313,6 @@ export const sketchRouter = router({
       return { ok: true as const };
     }),
 
-  // ── versions sub-router ──────────────────────────────────────────────────
-
   versions: router({
     list: protectedProcedure
       .input(versionsListInput)
@@ -423,8 +411,6 @@ export const sketchRouter = router({
         });
       })
   }),
-
-  // ── layers sub-router ────────────────────────────────────────────────────
 
   layers: router({
     create: protectedProcedure

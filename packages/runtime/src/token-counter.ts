@@ -132,14 +132,22 @@ export function truncateToTokens(text: string, maxTokens: number): string {
 
 /**
  * Drop a trailing partial character left by cutting at a token boundary: a
- * U+FFFD replacement char (an incomplete UTF-8 sequence) or a lone high
- * surrogate (an incomplete UTF-16 pair).
+ * U+FFFD replacement char (an incomplete UTF-8 sequence), a lone high surrogate
+ * (an incomplete UTF-16 pair), or a lone low surrogate not preceded by a high
+ * surrogate (a dangling second half of a pair).
  */
 function stripTrailingPartialChar(text: string): string {
   let end = text.length;
   while (end > 0) {
     const code = text.charCodeAt(end - 1);
     if (code === 0xfffd || (code >= 0xd800 && code <= 0xdbff)) {
+      end -= 1;
+    } else if (code >= 0xdc00 && code <= 0xdfff) {
+      // Trailing low surrogate: only a valid pair if preceded by a high
+      // surrogate. If it is, leave the pair intact; otherwise strip the lone
+      // low surrogate.
+      const prev = end >= 2 ? text.charCodeAt(end - 2) : 0;
+      if (prev >= 0xd800 && prev <= 0xdbff) break;
       end -= 1;
     } else {
       break;

@@ -177,7 +177,6 @@ const PropertyContextMenuComponent: React.FC = () => {
             content: "Value copied to clipboard"
           });
         } catch {
-          // Clipboard write failed, notify user
           addNotification({
             type: "error",
             content: "Failed to copy to clipboard"

@@ -661,7 +661,7 @@ const EditorSurface = styled("div")(({ theme }) => ({
   "& .script-caret": {
     position: "absolute",
     width: 2,
-    marginLeft: `-${getSpacingPx(SPACING.micro)}`, // was -1px
+    marginLeft: `-${getSpacingPx(SPACING.micro)}`,
     background: theme.vars.palette.primary.main,
     borderRadius: BORDER_RADIUS.xs,
     pointerEvents: "none",

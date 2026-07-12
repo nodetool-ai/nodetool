@@ -293,7 +293,6 @@ const ConstantStringNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         } as React.CSSProperties
       }
     >
-      {/* Header with always-visible action buttons */}
       <div className="header-wrapper">
         <NodeHeader
           id={id}

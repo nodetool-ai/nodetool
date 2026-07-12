@@ -196,7 +196,6 @@ export const JSONRenderer: React.FC<JSONRendererProps> = ({
       jsonString = String(value);
     }
 
-    // Ensure jsonString is always a string
     if (typeof jsonString !== "string") {
       jsonString = "";
     }
@@ -235,9 +234,7 @@ export const JSONRenderer: React.FC<JSONRendererProps> = ({
 };
 
 
-// Custom comparison function for deep equality check
 const arePropsEqual = (prevProps: JSONRendererProps, nextProps: JSONRendererProps) => {
-  // Quick check for primitive props
   if (prevProps.showActions !== nextProps.showActions) {
     return false;
   }

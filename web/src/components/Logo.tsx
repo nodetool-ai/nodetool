@@ -25,8 +25,8 @@ const logoStyles = (
   css({
     display: "flex",
     alignItems: "center",
-    gap: getSpacingPx(SPACING.xxl), // was 20px
-    margin: `${getSpacingPx(SPACING.micro)} 0 0 0`, // was 1px 0 0 0
+    gap: getSpacingPx(SPACING.xxl),
+    margin: `${getSpacingPx(SPACING.micro)} 0 0 0`,
     ".nt": {
       fontFamily: theme.fontFamily1,
       fontWeight: 600,
@@ -35,7 +35,7 @@ const logoStyles = (
       height: height,
       backgroundColor: "transparent",
       opacity: opacity,
-      marginTop: getSpacingPx(SPACING.micro), // was 1px
+      marginTop: getSpacingPx(SPACING.micro),
       transition: `opacity ${MOTION.slow} ${200}ms`
     },
     ".nodetool": {

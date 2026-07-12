@@ -403,7 +403,6 @@ export class GeminiProvider extends BaseProvider {
 
         const parts: GeminiPart[] = [];
 
-        // Tool calls
         if (msg.toolCalls && msg.toolCalls.length > 0) {
           for (const tc of msg.toolCalls) {
             const part: GeminiPart = {
@@ -416,7 +415,6 @@ export class GeminiProvider extends BaseProvider {
           }
         }
 
-        // Text / content
         if (typeof msg.content === "string" && msg.content) {
           parts.push({ text: msg.content });
         } else if (Array.isArray(msg.content)) {
@@ -431,7 +429,6 @@ export class GeminiProvider extends BaseProvider {
         continue;
       }
 
-      // user
       const parts: GeminiPart[] = [];
       if (typeof msg.content === "string") {
         parts.push({ text: msg.content });

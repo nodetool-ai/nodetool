@@ -1,8 +1,6 @@
 /**
  * Jobs router — migrated from REST `/api/jobs*`.
  *
- * Ported verbatim from the legacy http-api.ts handlers (`handleJobsRoot`,
- * `handleJobById`, `handleJobCancel`, and the inline `/running/all` handler).
  * User ownership is enforced on every procedure — a job whose `user_id`
  * doesn't match `ctx.userId` is indistinguishable from a missing one.
  *

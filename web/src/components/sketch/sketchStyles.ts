@@ -1,8 +1,5 @@
 /**
  * Shared design tokens and MUI sx styles for the Sketch Editor.
- *
- * Import from here instead of repeating values inline.
- * Keep all sketch-wide visual constants in one place.
  */
 
 import type { SxProps, Theme } from "@mui/material/styles";

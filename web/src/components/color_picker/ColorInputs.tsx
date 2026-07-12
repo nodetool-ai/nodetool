@@ -71,10 +71,8 @@ const ColorInputs: React.FC<ColorInputsProps> = memo(({
 }) => {
   const theme = useTheme();
 
-  // Use the extracted color conversion hook
   const { state, handlers } = useColorConversion(color, alpha, onChange);
 
-  // Memoize static styles to prevent recreation on every render
   const widthStyle = React.useMemo(() => ({ width: "80px" }), []);
 
   const renderInputs = () => {

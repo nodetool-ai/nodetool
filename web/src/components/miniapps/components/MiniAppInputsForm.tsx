@@ -73,7 +73,6 @@ const createPropertyFromDefinition = (
       case "boolean":
         return false;
       case "select":
-        // Default to first option if available
         return definition.data.options?.[0] ?? "";
       case "image_list":
       case "video_list":
@@ -85,7 +84,6 @@ const createPropertyFromDefinition = (
     }
   })();
 
-  // For select kind, use the options from the node data
   const enumValues =
     definition.kind === "select" && definition.data.options
       ? definition.data.options
@@ -93,7 +91,6 @@ const createPropertyFromDefinition = (
   const enumTypeName =
     definition.kind === "select" ? definition.data.enum_type_name ?? null : null;
 
-  // For list kinds, set the appropriate element type in type_args
   const getTypeArgsForKind = (kind: MiniAppInputKind) => {
     switch (kind) {
       case "image_list":
@@ -355,7 +352,6 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
               );
             }
 
-            // Language model input
             if (definition.kind === "language_model") {
               const modelValue = value as { id?: string } | undefined;
               return (
@@ -388,7 +384,6 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
               );
             }
 
-            // Image model input
             if (definition.kind === "image_model") {
               const modelValue = value as { id?: string } | undefined;
               return (
@@ -421,7 +416,6 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
               );
             }
 
-            // Video model input
             if (definition.kind === "video_model") {
               const modelValue = value as { id?: string } | undefined;
               return (
@@ -454,7 +448,6 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
               );
             }
 
-            // TTS model input
             if (definition.kind === "tts_model") {
               const modelValue = value as { id?: string } | undefined;
               return (
@@ -487,7 +480,6 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
               );
             }
 
-            // ASR model input
             if (definition.kind === "asr_model") {
               const modelValue = value as { id?: string } | undefined;
               return (
@@ -520,7 +512,6 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
               );
             }
 
-            // Embedding model input
             if (definition.kind === "embedding_model") {
               const modelValue = value as { id?: string } | undefined;
               return (
@@ -553,7 +544,6 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
               );
             }
 
-            // Generic component rendering (Component should be defined at this point)
             if (!Component) {
               return null;
             }

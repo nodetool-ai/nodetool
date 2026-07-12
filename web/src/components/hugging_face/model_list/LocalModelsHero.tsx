@@ -60,7 +60,6 @@ const LocalModelsHero: React.FC<LocalModelsHeroProps> = ({ models }) => {
       }}
     >
       <FlexRow gap={2} align="center" sx={{ flexWrap: "wrap" }}>
-        {/* Icon + title */}
         <FlexRow align="center" gap={1.5} sx={{ minWidth: 0, flex: "1 1 320px" }}>
           <FlexRow
             align="center"
@@ -108,7 +107,6 @@ const LocalModelsHero: React.FC<LocalModelsHeroProps> = ({ models }) => {
           </FlexColumn>
         </FlexRow>
 
-        {/* Stats */}
         <FlexRow gap={3} align="center" sx={{ flexShrink: 0 }}>
           <Stat
             value={String(stats.count)}

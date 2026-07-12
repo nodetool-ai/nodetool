@@ -17,6 +17,7 @@ export {
   DockerSandbox,
   DockerSandboxProvider,
   DEFAULT_SANDBOX_IMAGE,
+  SANDBOX_ENTRYPOINT,
   TOOL_SERVER_PORT,
   VNC_WS_PORT,
   parseMemLimit

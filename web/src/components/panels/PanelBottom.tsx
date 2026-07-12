@@ -39,8 +39,6 @@ import ContextMenus from "../context_menus/ContextMenus";
 import {
   Workflow,
   WorkflowVersion,
-  Node as GraphNode,
-  Edge as GraphEdge
 } from "../../stores/ApiTypes";
 import { useRunningJobs } from "../../hooks/useRunningJobs";
 import { useSystemStatsStore } from "../../stores/systemStatsHandler";
@@ -167,6 +165,10 @@ const VIEW_SPECS: Record<BottomPanelView, ViewSpec> = {
     enabled: true
   }
 };
+
+const ENABLED_VIEWS = BOTTOM_PANEL_GROUPS.flatMap((g) =>
+  g.views.filter((v) => VIEW_SPECS[v]?.enabled)
+);
 
 const styles = (theme: Theme) =>
   css({
@@ -430,16 +432,10 @@ const PanelBodyContent = memo(function PanelBodyContent({
 
       const graph = version.graph;
       const newNodes = graph.nodes.map((n) =>
-        graphNodeToReactFlowNode(
-          {
-            ...workflow,
-            graph: graph as unknown as Workflow["graph"]
-          } as Workflow,
-          n as GraphNode
-        )
+        graphNodeToReactFlowNode({ ...workflow, graph }, n)
       );
       const newEdges = graph.edges.map((e) =>
-        graphEdgeToReactFlowEdge(e as GraphEdge)
+        graphEdgeToReactFlowEdge(e)
       );
 
       storeState.setNodes(newNodes);
@@ -525,8 +521,10 @@ const PanelBottom: React.FC = () => {
   );
 
   const { data: allJobs } = useRunningJobs();
-  const queuedCount =
-    allJobs?.filter((j) => j.status === "queued").length ?? 0;
+  const queuedCount = useMemo(
+    () => allJobs?.filter((j) => j.status === "queued").length ?? 0,
+    [allJobs]
+  );
 
   const systemStats = useSystemStatsStore((state) => state.stats);
 
@@ -547,9 +545,7 @@ const PanelBottom: React.FC = () => {
     return null;
   }
 
-  const enabledViews = BOTTOM_PANEL_GROUPS.flatMap((g) =>
-    g.views.filter((v) => VIEW_SPECS[v]?.enabled)
-  );
+  const enabledViews = ENABLED_VIEWS;
 
   const openHeight = isVisible
     ? Math.min(

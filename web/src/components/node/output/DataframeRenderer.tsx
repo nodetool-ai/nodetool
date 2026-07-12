@@ -106,9 +106,8 @@ const DataframeRenderer: React.FC<DataframeRendererProps> = ({ dataframe }) => {
     });
   }, []);
 
-  // Read-only onChange handler (no-op)
   const handleChange = useCallback(() => {
-    // Read-only mode - do nothing
+    // Read-only renderer: output values are never edited here.
   }, []);
 
   return (

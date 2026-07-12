@@ -54,6 +54,17 @@ const resolveImageSrc = (value: unknown): string | null => {
   return null;
 };
 
+/** Resolve a playable media source from a string, MediaRef, or data payload. */
+const resolveMediaSrc = (value: unknown, mime: string): string | null => {
+  const src = resolveImageSrc(value);
+  if (!src) return null;
+  // Raw base64 payloads (no scheme) become a data URI so <audio>/<video> play them.
+  if (/^[A-Za-z0-9+/]+=*$/.test(src) && src.length > 256) {
+    return `data:${mime};base64,${src}`;
+  }
+  return src;
+};
+
 /** Common props Puck injects plus our binding/event props. */
 interface WidgetCommon {
   id: string;
@@ -149,6 +160,74 @@ export const ImageWidget: React.FC<WidgetCommon & {
         height,
         objectFit: props.fit === "cover" ? "cover" : "contain",
         borderRadius: BORDER_RADIUS.md
+      }}
+    />
+  );
+};
+
+export const AudioWidget: React.FC<WidgetCommon & { placeholder?: string }> = (
+  props
+) => {
+  const { value } = useBinding(props, "read");
+  const src = resolveMediaSrc(value, "audio/mpeg");
+  if (!src) {
+    return (
+      <FlexColumn
+        align="center"
+        justify="center"
+        fullWidth
+        sx={{
+          height: 56,
+          border: "1px dashed",
+          borderColor: "divider",
+          borderRadius: BORDER_RADIUS.md,
+          color: "text.secondary"
+        }}
+      >
+        <Caption color="secondary">{props.placeholder ?? "No audio yet"}</Caption>
+      </FlexColumn>
+    );
+  }
+  return (
+    <Box component="audio" controls src={src} sx={{ width: "100%" }} />
+  );
+};
+
+export const VideoWidget: React.FC<WidgetCommon & {
+  height?: number;
+  placeholder?: string;
+}> = (props) => {
+  const { value } = useBinding(props, "read");
+  const src = resolveMediaSrc(value, "video/mp4");
+  const height = numOr(props.height, 320);
+  if (!src) {
+    return (
+      <FlexColumn
+        align="center"
+        justify="center"
+        fullWidth
+        sx={{
+          height,
+          border: "1px dashed",
+          borderColor: "divider",
+          borderRadius: BORDER_RADIUS.md,
+          color: "text.secondary"
+        }}
+      >
+        <Caption color="secondary">{props.placeholder ?? "No video yet"}</Caption>
+      </FlexColumn>
+    );
+  }
+  return (
+    <Box
+      component="video"
+      controls
+      src={src}
+      sx={{
+        width: "100%",
+        maxHeight: height,
+        borderRadius: BORDER_RADIUS.md,
+        backgroundColor: "common.black"
       }}
     />
   );

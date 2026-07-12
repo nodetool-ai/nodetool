@@ -30,9 +30,6 @@ const PREVIEW_VALUE_HANDLE = "value";
 const REROUTE_INPUT_HANDLE = "input_value";
 const REROUTE_OUTPUT_HANDLE = "output";
 
-/**
- * Find if an element or any of its parents has a class name
- */
 const findClassNameinElementOrParents = (
   element: HTMLElement,
   className: string
@@ -47,7 +44,6 @@ const findClassNameinElementOrParents = (
 };
 
 export default function useConnectionHandlers() {
-  // useRef is needed to track current connection state
   const connectionCreated = useRef(false);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
@@ -75,7 +71,6 @@ export default function useConnectionHandlers() {
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const { openContextMenu } = useContextMenu();
 
-  /* CONNECT START */
   const onConnectStart: OnConnectStart = useCallback(
     (event, { nodeId, handleId, handleType }) => {
       if (!nodeId || !handleId || !handleType) {
@@ -112,7 +107,6 @@ export default function useConnectionHandlers() {
     [findNode, startConnecting, endConnecting, getMetadata]
   );
 
-  /* ON CONNECT */
   const handleOnConnect = useCallback(
     (connection: Connection) => {
       const { source, sourceHandle, target, targetHandle } = connection;
@@ -203,7 +197,6 @@ export default function useConnectionHandlers() {
           return;
         }
         connectionCreated.current = true;
-        // Add className based on the source handle type
         const connectionWithClassName = {
           ...connection,
           className: Slugify(sourceHandleMetadata.type.type || "")
@@ -257,7 +250,6 @@ export default function useConnectionHandlers() {
     [openContextMenu, handleOnConnect, setConnectionAttempted, endConnecting]
   );
 
-  /* CONNECT END */
   const onConnectEnd: OnConnectEnd = useCallback(
     (event, _connectionState) => {
       const resetConnectingState = (): void => {

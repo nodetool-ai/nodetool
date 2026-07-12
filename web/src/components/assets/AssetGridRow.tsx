@@ -64,7 +64,6 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const rowItems = getItemsForRow(index);
 
-  // Memoize select handlers for each item to prevent re-renders
   const selectHandlers = useMemo(() => {
     const handlers: Record<string, () => void> = {};
     for (const item of rowItems) {
@@ -101,7 +100,6 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
     }
   }, [openContextMenu, rowItems]);
 
-  // Empty callback for disabled button - prevents new function creation on each render
   const emptyCallback = useCallback(() => {}, []);
 
   const handleToggleExpanded = useCallback(() => {

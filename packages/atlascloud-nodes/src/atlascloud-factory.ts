@@ -31,10 +31,6 @@ import {
   type AtlasModality
 } from "./atlascloud-base.js";
 
-// ---------------------------------------------------------------------------
-// Manifest types
-// ---------------------------------------------------------------------------
-
 export type AtlasFieldType =
   | "str"
   | "int"
@@ -77,10 +73,6 @@ export interface AtlasManifestEntry {
   maxAttempts: number;
   fields: AtlasFieldDef[];
 }
-
-// ---------------------------------------------------------------------------
-// Asset-ref handling
-// ---------------------------------------------------------------------------
 
 const ASSET_TYPES = new Set<AtlasFieldType>(["image", "video", "audio"]);
 const LIST_ASSET_RE = /^list\[(image|video|audio)\]$/;
@@ -343,10 +335,6 @@ export async function resolveAssetForAtlas(
   );
 }
 
-// ---------------------------------------------------------------------------
-// Field helpers
-// ---------------------------------------------------------------------------
-
 /**
  * Coerce a UI-serialized value back to the type AtlasCloud's worker expects.
  * NodeTool serializes numeric dropdowns as strings; AtlasCloud rejects `"5"`
@@ -462,10 +450,6 @@ function promptAssetOverrides(
   }
   return mapPromptAssetsToInputs(textFields, assetFields, context);
 }
-
-// ---------------------------------------------------------------------------
-// Factory
-// ---------------------------------------------------------------------------
 
 export function createAtlasNodeClass(spec: AtlasManifestEntry): NodeClass {
   const nodeType = `atlascloud.${spec.moduleName}.${spec.className}`;

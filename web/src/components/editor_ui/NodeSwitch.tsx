@@ -49,7 +49,6 @@ export const NodeSwitch = forwardRef<HTMLButtonElement, NodeSwitchProps>(
         ? editorUiClasses.scopeInspector
         : editorUiClasses.scopeNode;
 
-    // Memoize sx prop to prevent unnecessary re-renders
     const switchSx = useMemo(() => ({
       ...sx
     }), [sx]);

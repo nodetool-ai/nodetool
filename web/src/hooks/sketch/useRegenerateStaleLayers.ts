@@ -1,4 +1,4 @@
-/** Re-generate Stale Layers preflight + sequential drainer — see PR description. */
+/** Re-generate Stale Layers preflight + sequential drainer. */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 

@@ -21,7 +21,6 @@ export const useClipboard = (): UseClipboardResult => {
     []
   );
 
-  // Check if Electron API is available
   const hasElectronApi = useMemo(
     () => typeof window !== "undefined" && !!window.api,
     []
@@ -130,7 +129,6 @@ export const useClipboard = (): UseClipboardResult => {
     readClipboard,
     writeClipboard,
     isClipboardValid,
-    // Export utility function for asset-based clipboard operations
     copyAssetToClipboard
   };
 };

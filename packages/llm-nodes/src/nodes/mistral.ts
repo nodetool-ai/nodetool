@@ -277,7 +277,6 @@ export class Embedding extends BaseNode {
     const model = String(this.model ?? "mistral-embed");
     const chunkSize = Number(this.chunk_size ?? 4096);
 
-    // Chunk the input
     const chunks: string[] = [];
     for (let i = 0; i < input.length; i += chunkSize) {
       chunks.push(input.slice(i, i + chunkSize));

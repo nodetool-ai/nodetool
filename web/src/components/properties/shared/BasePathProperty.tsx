@@ -9,7 +9,6 @@ import { Text, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_pri
 import type { Theme } from "@mui/material/styles";
 import FileBrowserDialog from "../../dialogs/FileBrowserDialog";
 
-// Types
 export type PathType = "file_path" | "folder_path";
 
 interface PathPreviewProps {
@@ -25,14 +24,10 @@ interface BasePathPropertyProps extends PropertyProps {
   onlyDirs: boolean;
 }
 
-/**
- * Check if native dialog API is available (running in Electron)
- */
 const hasNativeDialog = (): boolean => {
   return typeof window !== "undefined" && window.api?.dialog !== undefined;
 };
 
-// Styles
 const createPathPropertyStyles = (theme: Theme) =>
   css({
     display: "flex",
@@ -91,7 +86,6 @@ const createPathPropertyStyles = (theme: Theme) =>
     }
   });
 
-// Components
 const PathPreview = ({
   value,
   onBrowseClick,
@@ -126,14 +120,12 @@ const BasePathProperty = (props: BasePathPropertyProps) => {
   const [isFileBrowserOpen, setIsFileBrowserOpen] = useState(false);
 
   const handleBrowseClick = useCallback(async () => {
-    // Use native dialog if available (Electron context)
-    // Note: The second check is required for TypeScript type narrowing
+    // The second check is required for TypeScript type narrowing.
     if (hasNativeDialog() && window.api.dialog) {
       try {
         const currentValue = typeof props.value === "string" ? props.value : undefined;
 
         if (props.onlyDirs) {
-          // Folder selection
           const result = await window.api.dialog.openFolder({
             title: props.dialogTitle,
             defaultPath: currentValue
@@ -142,7 +134,6 @@ const BasePathProperty = (props: BasePathPropertyProps) => {
             props.onChange(result.filePaths[0]);
           }
         } else {
-          // File selection
           const result = await window.api.dialog.openFile({
             title: props.dialogTitle,
             defaultPath: currentValue
@@ -152,12 +143,11 @@ const BasePathProperty = (props: BasePathPropertyProps) => {
           }
         }
       } catch (error) {
-        // If native dialog fails, fall back to the custom dialog
+        // Fall back to the custom dialog when the native dialog fails.
         console.error("Native dialog failed, falling back to custom dialog:", error);
         setIsFileBrowserOpen(true);
       }
     } else {
-      // No native dialog available, use custom FileBrowserDialog
       setIsFileBrowserOpen(true);
     }
   }, [props]);

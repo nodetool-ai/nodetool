@@ -37,17 +37,14 @@ export function loadEnvironment(rootDir?: string): void {
   const root = rootDir ?? process.cwd();
   const nodeEnv = process.env.NODE_ENV ?? "development";
 
-  // Load files in order: .env, .env.{NODE_ENV}, .env.{NODE_ENV}.local
   const files = [
     pathSync.resolve(root, ".env"),
     pathSync.resolve(root, `.env.${nodeEnv}`),
     pathSync.resolve(root, `.env.${nodeEnv}.local`)
   ];
 
-  // Start fresh
   envStore.clear();
 
-  // Snapshot system env before loading files
   const systemEnv = { ...process.env };
 
   for (const file of files) {

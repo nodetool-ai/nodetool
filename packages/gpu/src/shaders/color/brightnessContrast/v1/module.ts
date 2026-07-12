@@ -32,8 +32,8 @@ const samplerDescriptor: GPUSamplerDescriptor = {
 export const colorBrightnessContrastV1 = defineModule({
   id: "color.brightnessContrast",
   version: 1,
-  // Promoted in Phase 3 Batch 1: same math as `color.grade`'s sub-stage, now
-  // its own published op for workflow nodes that only need brightness/contrast.
+  // Same math as `color.grade`'s sub-stage, exposed as its own op for workflow
+  // nodes that only need brightness/contrast.
   surface: "published",
   category: "color",
   linearity: "nonlinear-in-rgb",

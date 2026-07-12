@@ -193,7 +193,6 @@ export const SelectionControls = memo(
         );
       }
 
-      // Buttons variant
       return (
         <Box
           ref={ref}

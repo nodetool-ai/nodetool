@@ -1758,5 +1758,63 @@ export const migrations: MigrationDef[] = [
       await db.execute("DROP INDEX IF EXISTS idx_trigger_reg_workflow_node");
       await db.execute("DROP TABLE IF EXISTS trigger_registrations");
     }
+  },
+
+  // ── Create workflow sharing tables ─────────────────────────────────
+  {
+    version: "20260711_000000",
+    name: "create_workflow_sharing_tables",
+    createsTables: [
+      "nodetool_workflow_collaborators",
+      "nodetool_workflow_shares"
+    ],
+    modifiesTables: [],
+    async up(db) {
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS nodetool_workflow_collaborators (
+          id TEXT PRIMARY KEY,
+          workflow_id TEXT NOT NULL,
+          user_id TEXT NOT NULL,
+          role TEXT NOT NULL DEFAULT 'viewer',
+          invited_by TEXT NOT NULL,
+          created_at TEXT NOT NULL
+        )
+      `);
+      await db.execute(`
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_wcol_workflow_user
+        ON nodetool_workflow_collaborators(workflow_id, user_id)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_wcol_user_id
+        ON nodetool_workflow_collaborators(user_id)
+      `);
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS nodetool_workflow_shares (
+          id TEXT PRIMARY KEY,
+          workflow_id TEXT NOT NULL,
+          token TEXT NOT NULL,
+          role TEXT NOT NULL DEFAULT 'viewer',
+          created_by TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          revoked_at TEXT
+        )
+      `);
+      await db.execute(`
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_wshare_token
+        ON nodetool_workflow_shares(token)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_wshare_workflow_id
+        ON nodetool_workflow_shares(workflow_id)
+      `);
+    },
+    async down(db) {
+      await db.execute("DROP INDEX IF EXISTS idx_wcol_workflow_user");
+      await db.execute("DROP INDEX IF EXISTS idx_wcol_user_id");
+      await db.execute("DROP TABLE IF EXISTS nodetool_workflow_collaborators");
+      await db.execute("DROP INDEX IF EXISTS idx_wshare_token");
+      await db.execute("DROP INDEX IF EXISTS idx_wshare_workflow_id");
+      await db.execute("DROP TABLE IF EXISTS nodetool_workflow_shares");
+    }
   }
 ];

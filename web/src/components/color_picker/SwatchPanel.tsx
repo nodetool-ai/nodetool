@@ -201,7 +201,6 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
 
   return (
     <FlexColumn css={swatchStyles} gap={2}>
-      {/* Recent Colors */}
       <FlexColumn className="section" gap={1} fullWidth>
         <FlexRow className="section-header" align="center" justify="space-between" fullWidth>
           <Text className="section-title">Recent</Text>
@@ -231,7 +230,6 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
         </FlexRow>
       </FlexColumn>
 
-      {/* Saved Swatches */}
       <FlexColumn className="section" gap={1} fullWidth>
         <FlexRow className="section-header" align="center" justify="space-between" fullWidth>
           <Text className="section-title">Saved</Text>
@@ -264,7 +262,6 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
         </FlexRow>
       </FlexColumn>
 
-      {/* User Palettes */}
       {palettes.length > 0 && (
         <FlexColumn className="section" gap={1} fullWidth>
           <FlexRow className="section-header" align="center" justify="space-between" fullWidth>
@@ -297,7 +294,6 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
         </FlexColumn>
       )}
 
-      {/* Preset Palettes */}
       <FlexColumn className="section" gap={1} fullWidth>
         <FlexRow className="section-header" align="center" justify="space-between" fullWidth>
           <Text className="section-title">Presets</Text>
@@ -337,7 +333,6 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
         </EditorMenu>
       </FlexColumn>
 
-      {/* Swatch Context Menu */}
       <EditorMenu
         anchorEl={swatchMenuAnchor?.element}
         open={Boolean(swatchMenuAnchor)}

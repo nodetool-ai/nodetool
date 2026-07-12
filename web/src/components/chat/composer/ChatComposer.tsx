@@ -99,10 +99,9 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if (e.key === "Enter") {
         if (shiftKeyPressed) {
-          // Allow default behavior (newline insertion)
+          // Shift+Enter inserts a newline (default behavior)
           return;
         }
-        // For Enter without Shift (and without Meta/Alt), send the message
         if (!metaKeyPressed && !altKeyPressed) {
           e.preventDefault();
           handleSend();

@@ -16,7 +16,6 @@ import {
   setMasterKeyPersistent,
   deleteMasterKey,
   isUsingEnvKey,
-  isUsingAwsKey,
   setKeytarLoader,
   resetKeytarLoader
 } from "../src/master-key.js";
@@ -354,7 +353,6 @@ describe("master-key", () => {
     clearMasterKeyCache();
     resetKeytarLoader();
     delete process.env["SECRETS_MASTER_KEY"];
-    delete process.env["AWS_SECRETS_MASTER_KEY_NAME"];
   });
 
   afterEach(() => {
@@ -365,7 +363,6 @@ describe("master-key", () => {
     } else {
       delete process.env["SECRETS_MASTER_KEY"];
     }
-    delete process.env["AWS_SECRETS_MASTER_KEY_NAME"];
   });
 
   describe("getMasterKey (sync)", () => {
@@ -486,17 +483,6 @@ describe("master-key", () => {
       expect(key2).toBe(key3);
       // ...and only one key was generated and persisted, not one per caller.
       expect(setPassword).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe("isUsingAwsKey", () => {
-    it("should return false when AWS_SECRETS_MASTER_KEY_NAME is not set", () => {
-      expect(isUsingAwsKey()).toBe(false);
-    });
-
-    it("should return true when AWS_SECRETS_MASTER_KEY_NAME is set", () => {
-      process.env["AWS_SECRETS_MASTER_KEY_NAME"] = "my-secret";
-      expect(isUsingAwsKey()).toBe(true);
     });
   });
 

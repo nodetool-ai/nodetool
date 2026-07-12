@@ -2251,21 +2251,23 @@ export async function handleNodeHttpRequest(
   }
 
   const acceptEncoding = req.headers["accept-encoding"] ?? "";
-  const contentLength = Number(response.headers.get("content-length") ?? 0);
   const contentType = response.headers.get("content-type") ?? "";
   const mayCompress =
     response.status !== 206 &&
     !response.headers.has("content-range") &&
     (contentType.includes("json") || contentType.startsWith("text/")) &&
-    contentLength > GZIP_THRESHOLD &&
     acceptEncoding.includes("gzip");
 
   if (mayCompress) {
     const bodyBuffer = Buffer.from(await response.arrayBuffer());
-    const compressed = gzipSync(bodyBuffer);
-    res.setHeader("content-encoding", "gzip");
-    res.setHeader("content-length", compressed.length);
-    res.end(compressed);
+    if (bodyBuffer.length > GZIP_THRESHOLD) {
+      const compressed = gzipSync(bodyBuffer);
+      res.setHeader("content-encoding", "gzip");
+      res.setHeader("content-length", compressed.length);
+      res.end(compressed);
+    } else {
+      res.end(bodyBuffer);
+    }
     return;
   }
 

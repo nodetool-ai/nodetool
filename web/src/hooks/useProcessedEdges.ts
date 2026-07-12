@@ -8,20 +8,11 @@ import { forwardInputHandle, isForwardInput } from "../utils/forwardOutputs";
 import { nodeKey, edgeKey } from "../stores/nodeKey";
 import { MOTION } from "../components/ui_primitives";
 
-/**
- * Options for processing edges in the workflow graph.
- * Provides all data needed to compute edge types, colors, and status.
- */
 interface ProcessedEdgesOptions {
-  /** All edges in the workflow graph */
   edges: Edge[];
-  /** All nodes in the workflow graph */
   nodes: Node<NodeData>[];
-  /** Available data types for type checking */
   dataTypes: DataType[];
-  /** Function to get node metadata by node type */
   getMetadata: (nodeType: string) => NodeMetadata | undefined;
-  /** Optional workflow ID for status tracking */
   workflowId?: string;
   /**
    * Focused run for the workflow. Edge-status and node-status keys are
@@ -29,21 +20,13 @@ interface ProcessedEdgesOptions {
    * undefined, both are treated as empty (no focused run to display).
    */
   focusedJobId?: string;
-  /** Optional edge status map for execution visualization */
   edgeStatuses?: Record<string, { status: string; counter?: number }>;
-  /** Optional node status map - used to animate edges when source node is running */
   nodeStatuses?: Record<string, string | Record<string, unknown> | null | undefined>;
-  /** true while the selection rectangle is being dragged */
   isSelecting?: boolean;
 }
 
-/**
- * Result of edge processing containing styled edges and gradient keys.
- */
 interface ProcessedEdgesResult {
-  /** Edges with computed styles, types, and status */
   processedEdges: Edge[];
-  /** Set of gradient keys needed for SVG gradient definitions */
   activeGradientKeys: Set<string>;
 }
 
@@ -329,29 +312,11 @@ function useStructurallyProcessedEdges({
 }
 
 /**
- * Hook that processes workflow edges to add type information, styling, and status.
- * This hook performs several critical transformations:
- *
- * 1. **Type Resolution**: Determines the effective data type of each edge by
- *    tracing through Reroute nodes and looking up handle types in node metadata.
- *
- * 2. **Visual Styling**: Computes edge colors based on source and target types.
- *    Matching types get solid colors, different types get gradient strokes.
- *
- * 3. **Execution Status**: Adds status classes and labels for edges with data flowing.
- *    Message counters are displayed on edges with "message_sent" status.
- *
- * 4. **Optimization**: Uses caching during selection drag operations to prevent
- *    expensive recalculations while the user is selecting nodes.
- *
- * The hook implements several performance optimizations:
- * - O(1) data type lookups using Map structures
- * - Result caching during selection rectangle drag
- * - Lazy evaluation with useMemo to avoid unnecessary recalculations
- * - **Two-stage processing**: Splits structural (expensive) and status (cheap/frequent) updates
- *
- * @param options - Configuration for edge processing
- * @returns Processed edges with computed styles and metadata
+ * Processes workflow edges to add type information, styling, and status.
+ * Resolves each edge's effective type (tracing through Reroute nodes), colors
+ * it (solid for matching source/target types, gradient otherwise), and adds
+ * execution status. Splits the expensive structural pass from the cheap,
+ * frequent status pass, and caches results during selection drag.
  */
 export function useProcessedEdges({
   edges,

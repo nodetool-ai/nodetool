@@ -163,7 +163,6 @@ export function makeScratchPool(device: GPUDevice): ScratchPool {
         label: spec.label ?? `scratch-${key}`,
         meta: spec.meta
       });
-      // Stash the bucket key on the instance for release routing.
       poolKeys.set(texture, key);
       live.add(texture);
       return texture;

@@ -639,7 +639,6 @@ const Inspector: React.FC = () => {
     ? getMetadata(selectedNode.type)
     : null;
 
-  // --- Header identity (icon + tint) -------------------------------------
   const iconType = useMemo(() => {
     return (
       metadata?.outputs?.[0]?.type?.type ??
@@ -657,7 +656,6 @@ const Inspector: React.FC = () => {
     } as React.CSSProperties;
   }, [metadata, iconType]);
 
-  // --- Tabs --------------------------------------------------------------
   const [activeTab, setActiveTab] = useState<InspectorTab>("params");
 
   // Reset tab when the focused node changes so we don't strand the user

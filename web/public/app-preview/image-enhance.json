@@ -1,0 +1,91 @@
+{
+  "slug": "image-enhance",
+  "name": "Image Enhance",
+  "description": "Improve image quality with basic enhancement tools like sharpening, contrast and color adjustment",
+  "image": "/app-preview/img/image-enhance.jpg",
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Image Enhance"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-title",
+            "text": "✨ Image Enhance",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "Sharper, brighter, cleaner — enhance any photo in one click."
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-try",
+            "title": "Try it",
+            "content": [
+              {
+                "type": "Text",
+                "props": {
+                  "id": "note-media",
+                  "text": "🖼️ Uses the bundled sample photo — drop in your own in NodeTool Studio."
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "id": "btn-run",
+                  "label": "Enhance my photo",
+                  "variant": "contained",
+                  "color": "primary",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "key": "",
+                      "value": ""
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "panel-results",
+            "title": "Results",
+            "content": [
+              {
+                "type": "Image",
+                "props": {
+                  "id": "out-enhanced-image",
+                  "binding": "enhanced_image",
+                  "fit": "contain",
+                  "height": 280,
+                  "placeholder": "Your result appears here"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  },
+  "values": {
+    "enhanced_image": {
+      "$demo": "image"
+    }
+  }
+}

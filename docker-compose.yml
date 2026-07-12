@@ -28,9 +28,15 @@ name: nodetool
 
 services:
   nodetool:
-    image: ghcr.io/nodetool-ai/nodetool:${NODETOOL_VERSION:-latest}
+    # Pin a release with NODETOOL_VERSION (e.g. NODETOOL_VERSION=v1.2.3), or
+    # point NODETOOL_IMAGE at a locally built image (e.g.
+    # NODETOOL_IMAGE=nodetool:dev) to test your own build.
+    image: "${NODETOOL_IMAGE:-ghcr.io/nodetool-ai/nodetool:${NODETOOL_VERSION:-latest}}"
     container_name: nodetool
     restart: unless-stopped
+    # PID 1 init: forwards signals and reaps zombies from spawned workers
+    # (Python bridge, code runners), so `docker stop` shuts down cleanly.
+    init: true
     ports:
       # ⚠️  Published on 0.0.0.0 — reachable from your whole LAN. In Local mode
       # that means no-login admin access to anyone who can hit this port. To
@@ -39,11 +45,26 @@ services:
       - "${NODETOOL_PORT:-17777}:7777"
     volumes:
       - nodetool-data:/workspace
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:7777/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     environment:
       # Bind on all interfaces so the published host port reaches the server.
       HOST: "0.0.0.0"
       PORT: "7777"
       NODETOOL_ENV: "production"
+      # Production defaults to the curated "cloud" catalog (no local model
+      # runtimes). Self-hosting wants the full catalog — including the
+      # llama.cpp / vLLM / Ollama providers configured below — so opt out:
+      NODETOOL_NODE_PROFILE: "full"
 
       # Keep every persistent path on the /workspace volume.
       DB_PATH: "/workspace/nodetool.sqlite3"
@@ -67,10 +88,11 @@ services:
       #
       # In Local mode the server only trusts a request when its *source IP* is
       # trusted. Loopback (127.0.0.1/::1) always is — but Docker NATs a
-      # published-port connection to the bridge gateway (e.g. 172.17.0.1), so it
-      # never arrives from loopback. Without the setting below every API/WS call
-      # returns 401 "Remote access requires authentication" even though the UI
-      # loads.
+      # published-port connection: on Linux to the bridge gateway (e.g.
+      # 172.17.0.1), on Docker Desktop (macOS/Windows) to the VM gateway
+      # 192.168.65.1. Either way it never arrives from loopback. Without the
+      # setting below every API/WS call returns 401 "Remote access requires
+      # authentication" even though the UI loads.
       #
       # ┌────────────────────────────────────────────────────────────────────┐
       # │  ⚠️⚠️⚠️  DANGER: NODETOOL_TRUST_LOCAL_NETWORKS BYPASSES LOGIN  ⚠️⚠️⚠️  │
@@ -79,9 +101,14 @@ services:
       # │  password. ANYONE who can reach the published port from one of      │
       # │  these ranges gets full control of your data, secrets & API keys.   │
       # │                                                                     │
-      # │  172.16.0.0/12  ✅ DEFAULT — Docker's bridge range. Host + LAN       │
+      # │  172.16.0.0/12  ✅ DEFAULT — Docker's Linux bridge range. Host + LAN │
       # │                    clients reach the app through the port mapping,  │
       # │                    but nothing off the Docker bridge is trusted.    │
+      # │                                                                     │
+      # │  192.168.65.0/24 ✅ DEFAULT — Docker Desktop's VM gateway subnet     │
+      # │                    (macOS/Windows). Published-port traffic arrives  │
+      # │                    from 192.168.65.1, not the bridge gateway. Only   │
+      # │                    the Desktop VM itself lives in this subnet.      │
       # │                                                                     │
       # │  0.0.0.0/0      🚫 DO NOT USE on a public IP. Trusts EVERY source —  │
       # │                    the entire internet if the port is reachable.    │
@@ -90,7 +117,7 @@ services:
       # │  🔒 Exposing NodeTool publicly or to untrusted users? Do NOT widen  │
       # │     this list — enable real logins with Supabase auth below.        │
       # └────────────────────────────────────────────────────────────────────┘
-      NODETOOL_TRUST_LOCAL_NETWORKS: "${NODETOOL_TRUST_LOCAL_NETWORKS:-172.16.0.0/12}"
+      NODETOOL_TRUST_LOCAL_NETWORKS: "${NODETOOL_TRUST_LOCAL_NETWORKS:-172.16.0.0/12,192.168.65.0/24}"
 
       # To require login (multi-user or remote access), point these at your
       # Supabase project. The server enforces a valid Supabase JWT on every
@@ -114,15 +141,77 @@ services:
       # Local inference backends — point these at your own services if you run
       # them (e.g. an Ollama container on the same Docker network).
       # OLLAMA_API_URL: "http://ollama:11434"
+      # Ollama running on the HOST instead? Uncomment `extra_hosts` below and:
+      # OLLAMA_API_URL: "http://host.docker.internal:11434"
+      #
+      # Uncomment the matching service below to run one of these in-compose:
+      # LLAMA_CPP_URL: "http://llamacpp:8080"
+      # VLLM_BASE_URL: "http://vllm:8000"
 
       # ── PostgreSQL instead of SQLite ────────────────────────────────────────
       # The default above is SQLite on the /workspace volume (DB_PATH). To use
       # Postgres instead, uncomment the `postgres` service below, remove
       # DB_PATH, and set:
       # DATABASE_URL: "postgres://nodetool:${POSTGRES_PASSWORD:-nodetool}@postgres:5432/nodetool"
+
+    # Reach services on the host (e.g. Ollama) from inside the container.
+    # `host-gateway` works on Docker Desktop and on Linux with Docker 20.10+.
+    # extra_hosts:
+    #   - "host.docker.internal:host-gateway"
+
     # depends_on:
     #   postgres:
     #     condition: service_healthy
+
+  # ── Optional local inference backends ─────────────────────────────────────
+  # Uncomment ONE of these (plus its URL in the nodetool environment above) to
+  # serve local models next to the server. Both speak the OpenAI API; NodeTool
+  # discovers their models automatically once the URL env var is set.
+
+  # llama.cpp — runs GGUF models on CPU (works anywhere, including Docker
+  # Desktop on a Mac; note Docker has no Apple-GPU access, so this is CPU-only
+  # there). `-hf` downloads the model from Hugging Face on first start and
+  # caches it in the llamacpp-cache volume. Swap in any GGUF repo you like.
+  # For NVIDIA GPUs use the `server-cuda` image tag and add the `deploy` block
+  # from the vllm service below.
+  # llamacpp:
+  #   image: ghcr.io/ggml-org/llama.cpp:server
+  #   container_name: nodetool-llamacpp
+  #   restart: unless-stopped
+  #   command: >
+  #     -hf ggml-org/Qwen3-4B-Instruct-2507-GGUF
+  #     --host 0.0.0.0 --port 8080 --ctx-size 8192
+  #   environment:
+  #     LLAMA_CACHE: /cache
+  #   volumes:
+  #     - llamacpp-cache:/cache
+  #   # Only needed to reach it from the host too (NodeTool talks to it over
+  #   # the compose network either way):
+  #   # ports:
+  #   #   - "127.0.0.1:8080:8080"
+
+  # vLLM — high-throughput serving, requires an NVIDIA GPU (Linux). Downloads
+  # the model from Hugging Face on first start (set HF_TOKEN in .env for gated
+  # models like Llama). `ipc: host` is required for PyTorch shared memory.
+  # vllm:
+  #   image: vllm/vllm-openai:latest
+  #   container_name: nodetool-vllm
+  #   restart: unless-stopped
+  #   command: --model Qwen/Qwen2.5-7B-Instruct --max-model-len 8192
+  #   environment:
+  #     HF_TOKEN: "${HF_TOKEN:-}"
+  #   volumes:
+  #     - vllm-cache:/root/.cache/huggingface
+  #   ipc: host
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - driver: nvidia
+  #             count: all
+  #             capabilities: [gpu]
+  #   # ports:
+  #   #   - "127.0.0.1:8000:8000"
 
   # Uncomment to run Postgres alongside the server. The image ships psql, so
   # you can inspect the database with:
@@ -145,4 +234,6 @@ services:
 
 volumes:
   nodetool-data:
+  # llamacpp-cache:
+  # vllm-cache:
   # nodetool-pgdata:

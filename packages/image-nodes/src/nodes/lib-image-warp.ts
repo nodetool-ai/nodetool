@@ -42,13 +42,8 @@ function num(value: unknown, fallback: number): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
-function vec4From(value: unknown, fallback: [number, number, number, number]): ReturnType<typeof d.vec4f> {
-  const [r, g, b, a] = colorValueToVec4(value, fallback);
-  return d.vec4f(r, g, b, a);
-}
-
 /**
- * Same as {@link vec4From} but premultiplies the alpha into RGB before
+ * Convert a colour value to a vec4f, premultiplying the alpha into RGB before
  * packing. Use when handing a colour to a shader whose param contract
  * expects premultiplied (e.g. `transform.pad@1`'s `color`).
  */

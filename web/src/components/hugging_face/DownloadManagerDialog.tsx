@@ -69,7 +69,6 @@ const DownloadManagerDialog: React.FC = () => {
     }))
   );
 
-  // Memoize download names to avoid recomputing Object.keys on every render
   const downloadNames = useMemo(() => Object.keys(downloads), [downloads]);
   const hasActiveDownloads = downloadNames.length > 0;
 

@@ -1,9 +1,6 @@
-// csvDataframe.ts
-// -----------------------------------------------------------------
 // Convert CSV/TSV text to/from a DataframeRef so the tabular editor
 // (DataTable) and the MUI table view can render a text asset, while
 // the canonical persisted form stays plain delimited text.
-// -----------------------------------------------------------------
 
 import Papa from "papaparse";
 import type { DataframeRef } from "../stores/ApiTypes";

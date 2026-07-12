@@ -172,6 +172,14 @@
           "className": "str"
         },
         "edge_type": "data"
+      },
+      {
+        "id": "edge-output-trailer",
+        "source": "b8622937-e6d7-445f-bb19-e254b49a23ef",
+        "sourceHandle": "output",
+        "target": "output-trailer",
+        "targetHandle": "value",
+        "ui_properties": null
       }
     ],
     "nodes": [
@@ -501,6 +509,20 @@
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
+      },
+      {
+        "id": "output-trailer",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "trailer"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3505,
+            "y": 534
+          },
+          "selectable": true
+        }
       }
     ]
   },
@@ -514,5 +536,121 @@
   "required_providers": null,
   "required_models": null,
   "html_app": null,
-  "etag": "3304e8bd39421697cc5bd574c6428dee"
+  "etag": "3304e8bd39421697cc5bd574c6428dee",
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Movie Trailer Generator"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-title",
+            "text": "🍿 Movie Trailer Generator",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "Type one logline — get a cinematic teaser cut shot-by-shot."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-logline",
+                        "binding": "Logline",
+                        "label": "Your movie in one sentence",
+                        "placeholder": "A getaway driver speeds onto a bridge as it starts to collapse — and the only wa",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-visual-style",
+                        "binding": "Visual Style",
+                        "label": "Visual style",
+                        "placeholder": "high-contrast daylight, dust and sparks, handheld telephoto, motion blur, hard s",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-shot-count",
+                        "binding": "Shot Count",
+                        "label": "Number of shots",
+                        "placeholder": "6",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Cut my trailer",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-trailer",
+                        "binding": "trailer",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
 }

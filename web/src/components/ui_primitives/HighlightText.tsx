@@ -5,7 +5,6 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { MOTION } from "./tokens";
 
-// Convert hex color to RGB values
 const hexToRgb = (hex: string) => {
   const normalizedHex = hex.trim();
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(
@@ -41,16 +40,14 @@ const tokenize = (text: string, query: string | null): TextPart[] => {
   }
 
   try {
-    // Escape special regex characters
     const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const re = new RegExp(`(${escapedQuery})`, "gi");
 
     const parts = text.split(re).filter(Boolean);
 
     return parts.map((part) => {
-      // Test if this part matches the query (case-insensitive)
       const matches = re.test(part);
-      // Reset regex lastIndex for next test
+      // Reset lastIndex — the /g regex is reused across parts and keeps state.
       re.lastIndex = 0;
       return {
         text: part,
@@ -58,7 +55,6 @@ const tokenize = (text: string, query: string | null): TextPart[] => {
       };
     });
   } catch (error) {
-    // If regex fails, return original text
     console.warn("Tokenize error:", error);
     return [{ text, match: false }];
   }
@@ -109,19 +105,16 @@ export const HighlightText = memo<HighlightTextProps>(
   ({ text, query, className, matchStyle = "primary", isBulletList = false }) => {
     const theme = useTheme();
 
-    // Memoize styles to avoid recreating on every render
     const styles = useMemo(
       () => highlightStyles(theme, matchStyle),
       [theme, matchStyle]
     );
 
-    // Memoize tokenized parts to avoid re-computing regex
     const parts = useMemo(
       () => tokenize(text, query),
       [text, query]
     );
 
-    // Memoize lines for bullet list
     const lines = useMemo(
       () => isBulletList ? formatBulletList(text) : null,
       [text, isBulletList]

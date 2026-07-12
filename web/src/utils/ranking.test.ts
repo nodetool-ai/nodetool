@@ -1,6 +1,5 @@
 import {
   searchTermsFromQuery,
-  scoreItem,
   rank,
   type RankConfig,
   type RankField
@@ -58,53 +57,6 @@ const item = (key: string, title: string, description = ""): TestItem => ({
   key,
   title,
   description
-});
-
-describe("scoreItem", () => {
-  it("returns 0 for empty terms", () => {
-    expect(scoreItem(item("a", "hello"), [], baseConfig)).toBe(0);
-  });
-
-  it("returns 0 when no fields match", () => {
-    expect(scoreItem(item("a", "hello"), ["xyz"], baseConfig)).toBe(0);
-  });
-
-  it("scores substring matches using field weight", () => {
-    const score = scoreItem(item("a", "hello world"), ["hello"], baseConfig);
-    expect(score).toBeGreaterThan(0);
-  });
-
-  it("gives exact token match a bonus over substring", () => {
-    const exactScore = scoreItem(
-      item("a", "image resize"),
-      ["image"],
-      baseConfig
-    );
-    const substringScore = scoreItem(
-      item("b", "imagery resize"),
-      ["image"],
-      baseConfig
-    );
-    expect(exactScore).toBeGreaterThan(substringScore);
-  });
-
-  it("applies multiplier", () => {
-    const config: RankConfig<TestItem> = {
-      ...baseConfig,
-      multiplier: () => 2
-    };
-    const normal = scoreItem(item("a", "test"), ["test"], baseConfig);
-    const boosted = scoreItem(item("a", "test"), ["test"], config);
-    expect(boosted).toBe(normal * 2);
-  });
-
-  it("returns 0 when prefilter rejects the item", () => {
-    const config: RankConfig<TestItem> = {
-      ...baseConfig,
-      prefilter: () => false
-    };
-    expect(scoreItem(item("a", "hello"), ["hello"], config)).toBe(0);
-  });
 });
 
 describe("rank", () => {

@@ -140,16 +140,13 @@ export class TaskExecutor {
         stepIds: executableSteps.map((s) => s.id)
       });
 
-      // Separate process-mode steps from normal steps
       const processSteps = executableSteps.filter((s) => s.mode === "process");
       const normalSteps = executableSteps.filter((s) => s.mode !== "process");
 
-      // Handle process-mode steps with fan-out
       for (const pStep of processSteps) {
         yield* this.handleProcessStep(pStep);
       }
 
-      // Create step executors for normal steps
       const stepGenerators = normalSteps.map((step) => {
         const executor = new StepExecutor({
           task: this.task,
@@ -167,10 +164,8 @@ export class TaskExecutor {
       });
 
       if (this.parallelExecution && stepGenerators.length > 1) {
-        // Execute all steps concurrently, merging yielded messages
         yield* mergeAsyncGenerators(stepGenerators);
       } else {
-        // Execute steps sequentially
         for (const generator of stepGenerators) {
           for await (const message of generator) {
             yield message;
@@ -260,7 +255,6 @@ export class TaskExecutor {
       itemCount: items.length
     });
 
-    // Create ephemeral steps for each item
     const ephemeralSteps: Step[] = items.map((item, index) => {
       let instructions = template;
       if (typeof item === "object" && item !== null) {
@@ -301,7 +295,6 @@ export class TaskExecutor {
       } as Step;
     });
 
-    // Create step executors for each ephemeral step
     const generators = ephemeralSteps.map((ephStep) => {
       const executor = new StepExecutor({
         task: this.task,
@@ -318,11 +311,6 @@ export class TaskExecutor {
       return executor.execute();
     });
 
-    // Execute and collect results. Results must be stored in item order (the
-    // order of `ephemeralSteps`), NOT in completion order — otherwise a parallel
-    // fan-out, whose items finish nondeterministically, would scramble the
-    // aggregated list relative to the discover step's items and produce a
-    // different order on every run. Place each step_result at its item index.
     const indexByStepId = new Map(
       ephemeralSteps.map((ephStep, index) => [ephStep.id, index])
     );
@@ -353,7 +341,6 @@ export class TaskExecutor {
       }
     }
 
-    // Store aggregated results and mark complete.
     this.context.memory.set({
       key: memoryKeys.step(step.id),
       kind: "step_result",

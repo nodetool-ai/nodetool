@@ -27,9 +27,6 @@ interface WorkflowLoaderProps {
   data: NodeData;
 }
 
-/**
- * WorkflowLoader - Lets users select a workflow and loads its IO as dynamic handles.
- */
 export const WorkflowLoader: React.FC<WorkflowLoaderProps> = memo(
   ({ nodeId, data }) => {
     const selectedWorkflowId = useMemo(

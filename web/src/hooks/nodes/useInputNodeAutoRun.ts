@@ -39,18 +39,10 @@ interface UseNodeAutoRunReturn {
   onPropertyChangeComplete: () => void;
 }
 
-/**
- * Checks if auto-run should be enabled for a node based on settings and node type.
- * - If instantUpdate is enabled: returns true for ALL nodes
- * - If instantUpdate is disabled: returns false (no auto-run)
- */
-const shouldAutoRun = (nodeType: string, instantUpdate: boolean): boolean => {
-  if (instantUpdate) {
-    return true; // All nodes trigger auto-run when instantUpdate is enabled
-  }
-  return false; // No auto-run when instantUpdate is disabled
-};
-
+// Auto-run fires for every node type when instantUpdate is enabled, and never
+// when it is disabled.
+const shouldAutoRun = (nodeType: string, instantUpdate: boolean): boolean =>
+  instantUpdate;
 
 export const useNodeAutoRun = (
   options: UseNodeAutoRunOptions
@@ -75,12 +67,10 @@ export const useNodeAutoRun = (
   }, [instantUpdate]);
 
   /**
-   * Execute the downstream subgraph starting from this node.
-   * Performs comprehensive dependency analysis to ensure all nodes in the
-   * subgraph have their external dependencies (cached results) injected.
+   * Execute the downstream subgraph starting from this node, injecting each
+   * external upstream's cached result as an override.
    */
   const executeDownstreamSubgraph = useCallback(() => {
-    // Check if auto-run should be enabled based on settings and node type
     if (!shouldAutoRun(nodeType, instantUpdateRef.current)) {
       return;
     }
@@ -130,18 +120,15 @@ export const useNodeAutoRun = (
    * Debounces to avoid triggering too many runs.
    */
   const onPropertyChange = useCallback(() => {
-    // Check if auto-run should be enabled based on settings and node type
     if (!shouldAutoRun(nodeType, instantUpdateRef.current)) {
       return;
     }
 
-    // Clear any existing debounce timer
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
       debounceTimerRef.current = null;
     }
 
-    // Set a new debounce timer
     debounceTimerRef.current = setTimeout(() => {
       executeDownstreamSubgraph();
     }, AUTO_RUN_DEBOUNCE_MS);
@@ -152,12 +139,10 @@ export const useNodeAutoRun = (
    * Triggers auto-run immediately without additional debounce.
    */
   const onPropertyChangeComplete = useCallback(() => {
-    // Check if auto-run should be enabled based on settings and node type
     if (!shouldAutoRun(nodeType, instantUpdateRef.current)) {
       return;
     }
 
-    // Clear any existing debounce timer since we're executing immediately
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
       debounceTimerRef.current = null;
@@ -172,7 +157,6 @@ export const useNodeAutoRun = (
   };
 };
 
-// Export as both the new name and original name for backward compatibility
 export const useInputNodeAutoRun = useNodeAutoRun;
 
 export default useNodeAutoRun;

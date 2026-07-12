@@ -170,7 +170,6 @@ export const useFitView = (): ((options?: { padding?: number; nodeIds?: string[]
         setViewport(newViewport);
       }, TRANSITION_DURATION + FIT_BOUNDS_DELAY_DEFAULT + 100); // Wait for animations to finish
     },
-    // [nodes, selectedNodes, setSelectedNodes, reactFlowInstance, setViewport]
     [nodes, selectedNodes, reactFlowInstance, setSelectedNodes, setViewport]
   );
 };

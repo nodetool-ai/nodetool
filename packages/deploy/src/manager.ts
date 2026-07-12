@@ -110,7 +110,6 @@ export class DeploymentManager {
           : null
       };
 
-      // Add type-specific info
       if (deployment.type === "docker") {
         const d = deployment as DockerDeployment;
         info.host = d.host;
@@ -215,7 +214,6 @@ export class DeploymentManager {
         const deployment = this.getDeployment(deploymentName);
 
         if (deployment.type === "docker") {
-          // Validate SSH config if applicable
           const d = deployment as DockerDeployment;
           const sshConfig = (d as { ssh?: SSHConfig }).ssh;
           if (sshConfig && !sshConfig.key_path && !sshConfig.password) {

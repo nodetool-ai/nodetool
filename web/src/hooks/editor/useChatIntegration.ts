@@ -213,8 +213,6 @@ BLOCKED: setTimeout, setInterval, eval, require, import, process, __dirname, __f
     [sendMessageFn, buildContext]
   );
 
-  // Connection is now handled automatically by GlobalWebSocketManager
-
   const improvePendingRef = useRef<{
     active: boolean;
     baseCount: number;

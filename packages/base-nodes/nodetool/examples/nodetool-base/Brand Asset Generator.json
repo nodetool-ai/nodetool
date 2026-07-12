@@ -78,6 +78,14 @@
         "sourceHandle": "output",
         "target": "2",
         "targetHandle": "image"
+      },
+      {
+        "id": "edge-output-brand-asset",
+        "source": "2",
+        "sourceHandle": "output",
+        "target": "output-brand-asset",
+        "targetHandle": "value",
+        "ui_properties": null
       }
     ],
     "nodes": [
@@ -329,6 +337,20 @@
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
+      },
+      {
+        "id": "output-brand-asset",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "brand_asset"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1970,
+            "y": 136
+          },
+          "selectable": true
+        }
       }
     ]
   },
@@ -374,5 +396,133 @@
   "path": null,
   "run_mode": null,
   "required_providers": null,
-  "required_models": null
+  "required_models": null,
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Brand Asset Generator"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-title",
+            "text": "🎨 Brand Asset Generator",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "Type your brand name and vibe — get logo-ready visuals in seconds."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-tagline",
+                        "binding": "tagline",
+                        "label": "Tagline",
+                        "placeholder": "Streamline Your Workflow",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-brand-name",
+                        "binding": "brand_name",
+                        "label": "Brand name",
+                        "placeholder": "TechFlow",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-primary-color",
+                        "binding": "primary_color",
+                        "label": "Primary color (hex)",
+                        "placeholder": "#3498db",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-brand-description",
+                        "binding": "brand_description",
+                        "label": "Describe your brand",
+                        "placeholder": "A modern tech startup focused on productivity tools. Clean, minimal aesthetic wi",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Generate brand assets",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-brand-asset",
+                        "binding": "brand_asset",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
 }

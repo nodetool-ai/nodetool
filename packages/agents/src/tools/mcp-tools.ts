@@ -39,7 +39,58 @@ function getHeaders(context: ProcessingContext): Record<string, string> {
   if (context.userId) {
     headers["X-User-Id"] = context.userId;
   }
+  if (context.authToken) {
+    headers["Authorization"] = `Bearer ${context.authToken}`;
+  }
   return headers;
+}
+
+function normalizeWorkflowGraph(graph: unknown): unknown {
+  if (!graph || typeof graph !== "object" || Array.isArray(graph)) return graph;
+  const record = graph as Record<string, unknown>;
+  const rawNodes = record["nodes"];
+  const rawEdges = record["edges"];
+
+  const normalizeNode = (value: unknown, fallbackId?: string): unknown => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return value;
+    }
+    const node = value as Record<string, unknown>;
+    const { node_type, parameters, ...rest } = node;
+    const properties = node["properties"] ?? parameters;
+    return {
+      ...rest,
+      id: node["id"] ?? fallbackId,
+      type: node["type"] ?? node_type,
+      ...(properties === undefined ? {} : { properties })
+    };
+  };
+
+  const nodes = Array.isArray(rawNodes)
+    ? rawNodes.map((node) => normalizeNode(node))
+    : rawNodes && typeof rawNodes === "object"
+      ? Object.entries(rawNodes as Record<string, unknown>).map(([id, node]) =>
+          normalizeNode(node, id)
+        )
+      : rawNodes;
+
+  const edges = Array.isArray(rawEdges)
+    ? rawEdges.map((value, index) => {
+        if (!value || typeof value !== "object" || Array.isArray(value)) {
+          return value;
+        }
+        const edge = value as Record<string, unknown>;
+        const { source_output, target_input, ...rest } = edge;
+        return {
+          ...rest,
+          id: edge["id"] ?? `edge-${index}`,
+          sourceHandle: edge["sourceHandle"] ?? source_output ?? "output",
+          targetHandle: edge["targetHandle"] ?? target_input
+        };
+      })
+    : rawEdges;
+
+  return { ...record, nodes, edges };
 }
 
 async function apiGet(
@@ -202,7 +253,8 @@ export class CreateWorkflowTool extends Tool {
       name: { type: "string" as const, description: "The workflow name" },
       graph: {
         type: "object" as const,
-        description: "Workflow graph structure with nodes and edges"
+        description:
+          "Workflow graph with nodes and edges. Nodes may be an array of {id, type, properties} or an object keyed by node id with {node_type, parameters}. Edges use source, target, targetHandle/target_input, and optional sourceHandle/source_output (defaults to output)."
       },
       description: {
         type: "string" as const,
@@ -226,9 +278,9 @@ export class CreateWorkflowTool extends Tool {
     context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
-    return apiPost(context, "/api/workflows/", {
+    return apiPost(context, "/api/workflows", {
       name: params["name"],
-      graph: params["graph"],
+      graph: normalizeWorkflowGraph(params["graph"]),
       description: params["description"],
       tags: params["tags"],
       access: params["access"] ?? "private"

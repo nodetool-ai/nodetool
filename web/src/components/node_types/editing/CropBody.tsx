@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 /**
- * CropBody — bespoke body for `nodetool.image.Crop` (plan §9.E2, PR 11).
+ * CropBody — bespoke body for `nodetool.image.Crop`.
  *
  * Top: image preview with a draggable crop rectangle overlay (4 corner +
  * 4 edge handles, drag-to-move interior). The overlay lives in image-

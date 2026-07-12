@@ -18,6 +18,7 @@ import { trpcClient } from "../../trpc/client";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import WorkflowListView from "./WorkflowListView";
+import SharedWithMeSection from "./SharedWithMeSection";
 import WorkflowFormModal from "./WorkflowFormModal";
 import { usePanelStore } from "../../stores/PanelStore";
 import { useFavoriteWorkflowIds } from "../../stores/FavoriteWorkflowsStore";
@@ -375,6 +376,7 @@ const WorkflowList = () => {
             />
           </div>
         )}
+        <SharedWithMeSection />
       </FlexColumn>
     </>
   );

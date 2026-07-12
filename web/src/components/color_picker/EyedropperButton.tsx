@@ -37,7 +37,7 @@ const EyedropperButton: React.FC<EyedropperButtonProps> = ({
   }, [isSupported, isPicking, onColorPicked]);
 
   if (!isSupported) {
-    return null; // Don't render if not supported
+    return null;
   }
 
   return (

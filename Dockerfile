@@ -25,32 +25,6 @@ COPY electron/scripts/rebuild-native.mjs electron/scripts/rebuild-native.mjs
 
 RUN npm ci
 
-FROM deps AS prod-deps
-RUN rm -rf node_modules \
-    && npm ci --omit=dev --workspace=@nodetool-ai/websocket --include-workspace-root=false \
-    && npm cache clean --force
-# Strip production-dead heavy packages (~700 MB). Each is lazy-imported
-# (`await import()`) or a peerDependency, so none load at server boot, and in
-# production their nodes are unregistered (transformers-js pack skipped,
-# PRODUCTION_SKIPPED_PREFIXES, transformers-js-provider off — see
-# packages/websocket/src/node-registry-setup.ts and server.ts). On the desktop
-# app these ship / install via the Package Manager; the cloud server never
-# runs local ML inference (it delegates to provider APIs). If any of these is
-# ever needed server-side, the lazy loader throws a clear "install the package"
-# error rather than crashing at boot.
-RUN set -eu; \
-    for p in \
-      onnxruntime-node \
-      @huggingface/transformers \
-      @tensorflow tesseract.js tesseract.js-core \
-    ; do \
-      rm -rf "node_modules/$p"; \
-    done; \
-    rm -rf node_modules/@tensorflow-models; \
-    rm -rf node_modules/@anthropic-ai/claude-agent-sdk \
-           node_modules/@anthropic-ai/claude-agent-sdk-*; \
-    true
-
 FROM deps AS build
 
 COPY packages/ packages/
@@ -60,24 +34,24 @@ COPY turbo.json ./
 
 RUN npm run build:packages
 
-# Bundle template workflows + gallery thumbnails next to the server entry so
-# Docker/Electron-style installs resolve examples without extra volume mounts.
-RUN set -eu; \
-    examples_src="packages/base-nodes/nodetool/examples/nodetool-base"; \
-    assets_src="packages/base-nodes/nodetool/assets/nodetool-base"; \
-    examples_dest="packages/websocket/dist/examples/nodetool-base"; \
-    assets_dest="packages/websocket/dist/assets/nodetool-base"; \
-    mkdir -p "$examples_dest" "$assets_dest"; \
-    if [ -d "$examples_src" ]; then \
-      cp -a "$examples_src/." "$examples_dest/"; \
-    else \
-      echo "Warning: template examples not found at $examples_src"; \
-    fi; \
-    if [ -d "$assets_src" ]; then \
-      cp -a "$assets_src/." "$assets_dest/"; \
-    else \
-      echo "Warning: template thumbnails not found at $assets_src"; \
-    fi
+# Bundle the backend with esbuild (scripts/bundle-backend.mjs — the same
+# bundler the Electron app uses; the server profile skips desktop-only natives
+# like webgpu/keytar). The bundle is the entire backend runtime artifact:
+# server.mjs, the staged external native/lazy packages, provider manifests,
+# template examples + thumbnails, and the bundled migration runner — the image
+# ships no workspace node_modules tree. esbuild itself resolves from
+# /app/node_modules (hoisted from web's devDependency by the plain `npm ci` in
+# the deps stage). verify-backend-bundle re-checks the staged layout so a
+# staging regression fails the image build, not a deploy.
+#
+# The bundler stages externals as _modules/ only because electron-builder
+# globs exclude any "node_modules" dir; that constraint doesn't exist here, so
+# rename it to node_modules and let server.mjs / db-migrate.mjs resolve their
+# externals via normal Node resolution. Source maps are dev artifacts — drop.
+RUN node scripts/bundle-backend.mjs --out /app/backend --profile server --with-migrate --with-sandbox-agent \
+    && node scripts/verify-backend-bundle.mjs /app/backend --profile server \
+    && mv /app/backend/_modules /app/backend/node_modules \
+    && rm -f /app/backend/server.mjs.map /app/backend/db-migrate.mjs.map /app/backend/sandbox-agent.mjs.map
 
 COPY web/ web/
 ARG WEB_BUILD_NODE_OPTIONS=--max-old-space-size=4096
@@ -91,28 +65,8 @@ ARG GIT_COMMIT_HASH=unknown
 ARG BUILD_NUMBER=0
 ENV GIT_COMMIT_HASH=$GIT_COMMIT_HASH \
     BUILD_NUMBER=$BUILD_NUMBER
-RUN cd web && NODE_OPTIONS="$WEB_BUILD_NODE_OPTIONS" npm run build
-
-# Assemble a minimal runtime filesystem with compiled packages, web assets, and
-# bundled workflow examples/thumbnails.
-RUN mkdir -p /runtime/packages /runtime/web \
-    && cp package.json package-lock.json /runtime/ \
-    && for pkg in packages/*; do \
-         if [ -d "$pkg/dist" ]; then \
-           mkdir -p "/runtime/$pkg"; \
-           cp "$pkg/package.json" "/runtime/$pkg/package.json"; \
-           cp -a "$pkg/dist" "/runtime/$pkg/dist"; \
-         fi; \
-       done \
-    && mkdir -p /runtime/packages/base-nodes/nodetool \
-    && if [ -d packages/base-nodes/nodetool/examples ]; then \
-         cp -a packages/base-nodes/nodetool/examples /runtime/packages/base-nodes/nodetool/examples; \
-       fi \
-    && if [ -d packages/base-nodes/nodetool/assets ]; then \
-         cp -a packages/base-nodes/nodetool/assets /runtime/packages/base-nodes/nodetool/assets; \
-       fi \
-    && cp web/package.json /runtime/web/package.json \
-    && cp -a web/dist /runtime/web/dist
+RUN cd web && NODE_OPTIONS="$WEB_BUILD_NODE_OPTIONS" npm run build \
+    && find dist -name '*.map' -delete
 
 FROM node:22-slim AS runtime
 
@@ -137,15 +91,32 @@ ENV NODE_ENV=production \
 #   pandoc            — document conversion nodes
 #   postgresql-client — psql/pg_dump for DATABASE_URL deployments
 #   jq/zip/unzip      — everyday shell plumbing for agents
+#
+# The image doubles as the agent sandbox (see the sandbox entrypoint below),
+# so it also carries the sandbox desktop/browser stack:
+#   xvfb/fluxbox/x11vnc/websockify/novnc — virtual desktop + live VNC viewing
+#   chromium (+ fonts/libs)              — browser_* tools drive it over CDP
+#   xdotool/scrot/xterm                  — desktop_* tools (input, screenshots)
+#   imagemagick/tesseract-ocr/weasyprint — screenshot post-processing, OCR, PDF
+#   tmux/wget                            — shell tool conveniences
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates curl \
+    ca-certificates curl wget tmux \
     ffmpeg git jq zip unzip \
     poppler-utils qpdf pandoc \
     postgresql-client \
     python3 python3-venv \
+    xvfb fluxbox x11vnc websockify novnc xterm \
+    xdotool scrot imagemagick tesseract-ocr weasyprint \
+    chromium fonts-liberation fonts-noto-color-emoji \
+    libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
+    libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
+    libgbm1 libpango-1.0-0 libcairo2 libasound2 \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /workspace \
     && chown node:node /workspace
+
+# chrome-launcher (sandbox browser tools) locates the system Chromium.
+ENV CHROME_PATH=/usr/bin/chromium
 
 # Python tool venv on PATH for every execute_bash call: yt-dlp for the
 # downloader agent plus the PDF stack the PDF agent's prompt references.
@@ -159,30 +130,41 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Installed globally with NODE_PATH set so require('pdf-lib') resolves from
 # any workspace directory without a per-run npm install. NODE_PATH only
 # affects CommonJS resolution as a last-resort fallback; the ESM server
-# ignores it, so /app/node_modules resolution is unchanged.
+# ignores it, so /app/backend/node_modules resolution is unchanged.
 RUN npm install -g pdf-lib docx && npm cache clean --force
 ENV NODE_PATH=/usr/local/lib/node_modules
 
 WORKDIR /app
 
-COPY --from=prod-deps --chown=node:node /app/node_modules ./node_modules
-COPY --from=prod-deps --chown=node:node /app/packages ./packages
-COPY --from=build --chown=node:node /runtime/ ./
-
-# Startup migration runner (Postgres). Depends only on @nodetool-ai/models +
-# postgres, both already present above — no CLI bundle needed.
+# The backend bundle is self-contained: server.mjs + node_modules (staged
+# externals) + manifests/examples/assets + db-migrate.mjs. web/dist is served
+# by the server via STATIC_FOLDER (see ENV above) — no path assumptions.
+#
+# db-migrate.mjs stays inside backend/ because @nodetool-ai/models (inlined in
+# it) imports better-sqlite3 at module top level, which must resolve from the
+# adjacent backend/node_modules — even Postgres-only runs load it. Referenced
+# by the entrypoint below and fly.toml's release_command.
 #
 # By default the entrypoint applies migrations on every boot (the migration
 # lock keeps concurrent boots safe). Orchestrators that migrate once per
 # release in a dedicated step — e.g. Fly's release_command — should set
 # NODETOOL_MIGRATE_ON_BOOT=0 so the long-lived app machines don't each re-run
 # the migrator on startup. See fly.toml.
-COPY --chown=node:node scripts/db-migrate.mjs ./scripts/db-migrate.mjs
+COPY --from=build --chown=node:node /app/backend ./backend
+COPY --from=build --chown=node:node /app/web/dist ./web/dist
 
-# If neither a master key nor AWS Secrets Manager is configured, persist a
-# generated 32-byte base64 key next to the SQLite database so encrypted secrets
-# survive restarts when /workspace is mounted as a volume. For production, pass
-# -e SECRETS_MASTER_KEY=$(openssl rand -base64 32) or configure AWS.
+# Alternate entrypoint that turns a container from this image into an agent
+# sandbox: desktop stack (Xvfb/fluxbox/x11vnc/websockify) + the bundled tool
+# server (backend/sandbox-agent.mjs) on :7788 instead of the main server.
+# DockerSandboxProvider (@nodetool-ai/sandbox) starts containers with
+# `--entrypoint sandbox-agent-entrypoint.sh`.
+COPY packages/sandbox-agent/docker/entrypoint.sh /usr/local/bin/sandbox-agent-entrypoint.sh
+RUN chmod +x /usr/local/bin/sandbox-agent-entrypoint.sh
+
+# If no master key is configured, persist a generated 32-byte base64 key next
+# to the SQLite database so encrypted secrets survive restarts when /workspace
+# is mounted as a volume. For production, pass
+# -e SECRETS_MASTER_KEY=$(openssl rand -base64 32).
 RUN printf '%s\n' \
     '#!/bin/sh' \
     'set -eu' \
@@ -191,7 +173,7 @@ RUN printf '%s\n' \
     '  exit 1' \
     'fi' \
     'KEY_FILE="${SECRETS_MASTER_KEY_FILE:-/workspace/.secrets_master_key}"' \
-    'if [ -z "${SECRETS_MASTER_KEY:-}" ] && [ -z "${AWS_SECRETS_MASTER_KEY_NAME:-}" ]; then' \
+    'if [ -z "${SECRETS_MASTER_KEY:-}" ]; then' \
     '  mkdir -p "$(dirname "$KEY_FILE")"' \
     '  if [ ! -s "$KEY_FILE" ]; then' \
     '    umask 077' \
@@ -201,7 +183,7 @@ RUN printf '%s\n' \
     'fi' \
     'if [ -n "${DATABASE_URL:-}" ] && [ "${NODETOOL_MIGRATE_ON_BOOT:-1}" != "0" ]; then' \
     '  echo "Applying database migrations..."' \
-    '  node /app/scripts/db-migrate.mjs' \
+    '  node /app/backend/db-migrate.mjs' \
     'fi' \
     'exec "$@"' \
     > /usr/local/bin/docker-entrypoint.sh \
@@ -209,7 +191,9 @@ RUN printf '%s\n' \
 
 USER node
 
-EXPOSE 7777
+# 7777: main server. 7788/6080: sandbox tool server + noVNC websocket, only
+# bound when the container runs the sandbox entrypoint.
+EXPOSE 7777 7788 6080
 
 HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=5 \
     CMD curl -fsk https://localhost:7777/health \
@@ -217,4 +201,4 @@ HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=5 \
      || exit 1
 
 ENTRYPOINT ["docker-entrypoint.sh"]
-CMD ["node", "packages/websocket/dist/server.js"]
+CMD ["node", "backend/server.mjs"]

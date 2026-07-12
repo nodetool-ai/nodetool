@@ -135,7 +135,6 @@ const InferenceProviderModelSelect = ({
         }
     }, [property.type.type]);
 
-    // Fetch models for the selected provider
     const { data: models, isLoading: isLoadingModels, error: modelsError } = useQuery({
         queryKey: ['inference-models', value.provider, pipelineTag],
         queryFn: () => fetchModelsForProvider(value.provider, pipelineTag),

@@ -41,8 +41,6 @@ const TARGET_LABELS: Record<McpTarget, string> = {
 const NODETOOL_MCP_BEGIN = "# BEGIN NODETOOL MCP";
 const NODETOOL_MCP_END = "# END NODETOOL MCP";
 
-// ── Helpers ──────────────────────────────────────────────────────
-
 /** Guard: MCP config is disabled in production. */
 function requireNonProduction(): void {
   if (process.env["NODETOOL_ENV"] === "production") {
@@ -260,8 +258,6 @@ function resolveTargets(
   // Zod already validated against the enum, but keep the guard for clarity.
   return raw.filter((t) => mcpTarget.safeParse(t).success);
 }
-
-// ── Router ────────────────────────────────────────────────────────
 
 export const mcpConfigRouter = router({
   status: protectedProcedure.output(statusOutput).query(() => {

@@ -911,6 +911,8 @@ export class ProcessingContext {
   readonly workspaceDir: string | null;
   readonly assetOutputMode: AssetOutputMode;
   readonly environment: Record<string, string>;
+  /** Bearer token for authenticated calls back to the owning NodeTool API. */
+  readonly authToken: string | null;
 
   /** Message queue: all emitted processing messages. */
   private _messages: ProcessingMessage[] = [];
@@ -1019,6 +1021,7 @@ export class ProcessingContext {
     onMessage?: (msg: ProcessingMessage) => void;
     variables?: Record<string, unknown>;
     environment?: Record<string, string>;
+    authToken?: string | null;
     secretResolver?: (
       key: string,
       userId: string
@@ -1054,6 +1057,7 @@ export class ProcessingContext {
       if (typeof v === "string") env[k] = v;
     }
     this.environment = { ...env, ...(opts.environment ?? {}) };
+    this.authToken = opts.authToken ?? null;
     this._secretResolver = opts.secretResolver ?? null;
     this._fetch =
       opts.fetchFn ??
@@ -1076,6 +1080,7 @@ export class ProcessingContext {
       workspaceStorage: this.workspaceStorage,
       variables: { ...this._variables },
       environment: { ...this.environment },
+      authToken: this.authToken,
       fetchFn: this._fetch,
       secretResolver: this._secretResolver ?? undefined,
       tempUrlResolver: this._tempUrlResolver ?? undefined,
@@ -1186,9 +1191,6 @@ export class ProcessingContext {
     return this._resolveNodeType;
   }
 
-  /**
-   * Check if control event dispatch is available.
-   */
   get hasControlEventSupport(): boolean {
     return this._sendControlEvent !== null;
   }
@@ -1498,7 +1500,6 @@ export class ProcessingContext {
     this._providerCost = null;
   }
 
-  /** Get all emitted messages. */
   getMessages(): ReadonlyArray<ProcessingMessage> {
     return this._messages;
   }
@@ -1541,7 +1542,6 @@ export class ProcessingContext {
     return Object.fromEntries(this._edgeStatuses);
   }
 
-  /** Clear the message queue. */
   clearMessages(): void {
     this._messages = [];
   }

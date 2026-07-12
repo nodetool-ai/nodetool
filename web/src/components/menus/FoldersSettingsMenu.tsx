@@ -142,8 +142,6 @@ const FoldersSettings = () => {
     const secretsToSave: Record<string, string> = {};
 
     if (data) {
-      // Iterate over all fetched settings to find those belonging to the "Folders" group
-      // and are present in the current settingValues state.
       data.forEach((setting) => {
         if (setting.group === "Folders") {
           const value = settingValues[setting.env_var];
@@ -174,7 +172,6 @@ const FoldersSettings = () => {
 
   const theme = useTheme();
 
-  // Check if we can show folder opening buttons
   const canOpenFolders = isElectron && isLocalhost && isFileExplorerAvailable();
   const canOpenSystemFolders = isElectron && isLocalhost && isSystemDirectoryAvailable();
 
@@ -192,7 +189,6 @@ const FoldersSettings = () => {
         <div className="settings-main-content">
           <Text size="giant">Folder Settings</Text>
 
-          {/* System Folders Section - Always show when in Electron */}
           {canOpenSystemFolders && (
             <div className="settings-section">
               <Text
@@ -221,7 +217,6 @@ const FoldersSettings = () => {
             </div>
           )}
 
-          {/* Model Folders Section */}
           {canOpenFolders && (
             <div className="settings-section">
               <Text
@@ -246,12 +241,11 @@ const FoldersSettings = () => {
             </div>
           )}
 
-          {/* Dynamic folder settings from backend */}
           {isSuccess && settingsByGroup && settingsByGroup.size > 0 && (
             <>
               {Array.from(settingsByGroup.entries()).map(
                 ([groupName, groupSettings]) => {
-                  // Only add "Custom" prefix if system or model folders are visible, to differentiate
+                  // "Custom" prefix disambiguates from the system/model folder sections above.
                   const showCustomPrefix = canOpenFolders || canOpenSystemFolders;
                   const sectionTitle = showCustomPrefix ? `Custom ${groupName}` : groupName;
                   
@@ -267,7 +261,7 @@ const FoldersSettings = () => {
                         <div key={setting.env_var} className="settings-item large">
                           <FlexRow align="flex-end" fullWidth>
                             <NodeTextField
-                              type={setting.is_secret ? "text" : "text"}
+                              type="text"
                               autoComplete="off"
                               id={`${setting.env_var.toLowerCase()}-input`}
                               label={setting.env_var.replace(/_/g, " ")}
@@ -304,7 +298,6 @@ const FoldersSettings = () => {
             </>
           )}
           
-          {/* Show message if no settings available and no folder buttons */}
           {(() => {
             const hasNoSettings = isSuccess && (!settingsByGroup || settingsByGroup.size === 0);
             const hasNoFolderButtons = !canOpenFolders && !canOpenSystemFolders;

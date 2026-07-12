@@ -28,7 +28,6 @@ const DataTypesList = ({
   onChange
 }: DataTypesListProps) => {
   const theme = useTheme();
-  const types = dataTypes;
 
   const cssStyles = useMemo(() => css({
     "&": {
@@ -69,7 +68,7 @@ const DataTypesList = ({
         compact
       >
         <FlexColumn className="datatype-list" sx={{ height: "100%", overflowY: "auto" }}>
-          {types.map((type) => (
+          {dataTypes.map((type) => (
             <FlexRow
               key={type.value}
               className="help-item datatype"

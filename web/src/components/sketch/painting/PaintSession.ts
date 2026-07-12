@@ -284,8 +284,6 @@ export class PaintSession {
       return true;
     }
 
-    const offset = this.mapper.offset;
-
     // ── Shift+click: straight line from last stroke end ──────────────
     if (ctx.shiftHeldRef.current && this.lastStrokeEnd) {
       this.captureShiftRubberBandBase(ctx);
@@ -344,8 +342,6 @@ export class PaintSession {
     if (!paintCtx) {
       return;
     }
-
-    const offset = this.mapper.offset;
 
     const useShiftRubber =
       ctx.shiftHeldRef.current &&
@@ -411,7 +407,6 @@ export class PaintSession {
       // Stabilize if the engine supports it
       const smoothPt = this.engine.stabilize(localPt);
 
-      // Determine the "from" point
       const from = this.resolveFromPoint();
 
       const paintPressure = paintPressureForEngine(
@@ -427,7 +422,6 @@ export class PaintSession {
         smoothPt
       );
 
-      // Update tracked points
       if (this.engine.hasStabilizer) {
         this.lastSmoothedPoint = this.mapper.layerToDoc(smoothPt);
       }
@@ -490,7 +484,6 @@ export class PaintSession {
       const localPt = this.mapper.docToLayer(pt);
       const bufferCtx = activeStroke.buffer.getContext("2d");
       if (bufferCtx) {
-        const offset = this.mapper.offset;
         ctx.withMirror(
           bufferCtx,
           (f, t, c, branchIdx) =>

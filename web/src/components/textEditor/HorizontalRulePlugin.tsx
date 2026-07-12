@@ -22,11 +22,8 @@ export function HorizontalRulePlugin(): null {
           return false;
         }
 
-        const focusNode = selection.focus.getNode();
-        if (focusNode !== null) {
-          const horizontalRuleNode = $createHorizontalRuleNode();
-          $insertNodeToNearestRoot(horizontalRuleNode);
-        }
+        const horizontalRuleNode = $createHorizontalRuleNode();
+        $insertNodeToNearestRoot(horizontalRuleNode);
 
         return true;
       },

@@ -55,10 +55,6 @@ function findMatch(text: string) {
   return null;
 }
 
-function getTextContent(node: TextNode): string {
-  return node.getTextContent();
-}
-
 export function AutoLinkPlugin(): null {
   const [editor] = useLexicalComposerContext();
 
@@ -66,15 +62,13 @@ export function AutoLinkPlugin(): null {
     return editor.registerNodeTransform(TextNode, (textNode: TextNode) => {
       const parent = textNode.getParent();
       if ($isAutoLinkNode(parent)) {
-        // Already a link, skip
         return;
       }
       if ($isLinkNode(parent)) {
-        // Already a link, skip
         return;
       }
 
-      const text = getTextContent(textNode);
+      const text = textNode.getTextContent();
       const match = findMatch(text);
       if (match === null) {
         return;

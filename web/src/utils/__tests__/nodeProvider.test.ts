@@ -2,31 +2,12 @@
  * @jest-environment node
  */
 import {
-  getRootNamespace,
   getRequiredSecretKeyForNamespace,
   getSecretDisplayName,
   getProviderKindForNamespace
 } from "../nodeProvider";
 
 describe("nodeProvider", () => {
-  describe("getRootNamespace", () => {
-    it("returns the first segment of a dotted namespace", () => {
-      expect(getRootNamespace("openai.gpt4")).toBe("openai");
-    });
-
-    it("returns the whole string when there is no dot", () => {
-      expect(getRootNamespace("anthropic")).toBe("anthropic");
-    });
-
-    it("lowercases the result", () => {
-      expect(getRootNamespace("OpenAI.chat")).toBe("openai");
-    });
-
-    it("handles deeply nested namespaces", () => {
-      expect(getRootNamespace("google.ai.text.gen")).toBe("google");
-    });
-  });
-
   describe("getRequiredSecretKeyForNamespace", () => {
     it("returns the correct key for known providers", () => {
       expect(getRequiredSecretKeyForNamespace("openai")).toBe("OPENAI_API_KEY");

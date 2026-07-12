@@ -108,7 +108,7 @@ const styles = (theme: Theme) =>
       minWidth: "150px",
       maxWidth: "240px",
       flex: "0 0 auto",
-      padding: `0 ${getSpacingPx(SPACING.lg)} 0 ${getSpacingPx(SPACING.xl)}`, // was 0 10px 0 14px
+      padding: `0 ${getSpacingPx(SPACING.lg)} 0 ${getSpacingPx(SPACING.xl)}`,
       cursor: "pointer",
       color: theme.vars.palette.text.secondary,
       borderRight: `1px solid ${theme.vars.palette.divider}`,
@@ -180,7 +180,7 @@ const styles = (theme: Theme) =>
       flexShrink: 0,
       display: "flex",
       alignItems: "center",
-      gap: getSpacingPx(SPACING.sm), // was 5px
+      gap: getSpacingPx(SPACING.sm),
       padding: `0 ${getSpacingPx(SPACING.xl)}`,
       border: "none",
       borderRight: `1px solid ${theme.vars.palette.divider}`,
@@ -197,7 +197,7 @@ const styles = (theme: Theme) =>
       },
       "& .new-tab-caret": {
         fontSize: "var(--fontSizeSmall)",
-        marginLeft: getSpacingPx(SPACING.micro), // was 1px
+        marginLeft: getSpacingPx(SPACING.micro),
         opacity: 0.75,
         lineHeight: 1
       },
@@ -212,7 +212,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       gap: getSpacingPx(SPACING.micro),
-      padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.lg)}`, // was 6px 10px
+      padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.lg)}`,
       flexShrink: 0,
       "& button": {
         border: `1px solid ${theme.vars.palette.divider}`,
@@ -220,7 +220,7 @@ const styles = (theme: Theme) =>
         color: theme.vars.palette.text.secondary,
         cursor: "pointer",
         fontSize: "var(--fontSizeSmaller)",
-        padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.lg)}`, // was 3px 12px
+        padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.lg)}`,
         "&:first-of-type": { borderRadius: `${BORDER_RADIUS.sm} 0 0 ${BORDER_RADIUS.sm}`, borderRight: "none" },
         "&:last-of-type": { borderRadius: `0 ${BORDER_RADIUS.sm} ${BORDER_RADIUS.sm} 0` },
         "&.on": {

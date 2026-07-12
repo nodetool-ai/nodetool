@@ -94,7 +94,6 @@ export const ChainEditor: React.FC<ChainEditorProps> = ({ onSave }) => {
 
   return (
     <FlexColumn fullHeight fullWidth sx={{ backgroundColor: theme.vars.palette.background.default }}>
-      {/* Toolbar */}
       <FlexRow
         gap={1.5}
         align="center"
@@ -125,7 +124,6 @@ export const ChainEditor: React.FC<ChainEditorProps> = ({ onSave }) => {
         />
       </FlexRow>
 
-      {/* Chain content */}
       <Box
         sx={{
           flex: 1,

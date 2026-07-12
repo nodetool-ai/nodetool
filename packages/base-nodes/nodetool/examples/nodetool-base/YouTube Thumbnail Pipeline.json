@@ -199,7 +199,7 @@
           "model": {},
           "width": 1280,
           "height": 720,
-          "guidance_scale": 8.0,
+          "guidance_scale": 8,
           "num_inference_steps": 35,
           "seed": -1
         },
@@ -339,6 +339,20 @@
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
+      },
+      {
+        "id": "output-thumbnails",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "thumbnails"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 4080,
+            "y": 200
+          },
+          "selectable": true
+        }
       }
     ],
     "edges": [
@@ -425,6 +439,14 @@
         "sourceHandle": "output",
         "target": "collected_thumbnails",
         "targetHandle": "input_item"
+      },
+      {
+        "id": "edge-output-thumbnails",
+        "source": "collected_thumbnails",
+        "sourceHandle": "output",
+        "target": "output-thumbnails",
+        "targetHandle": "value",
+        "ui_properties": null
       }
     ]
   },
@@ -441,5 +463,134 @@
   "required_models": [
     "gpt-4o-mini",
     "fal-ai/flux/schnell"
-  ]
+  ],
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "YouTube Thumbnail Pipeline"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-title",
+            "text": "🖼️ YouTube Thumbnail Pipeline",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "Generate a batch of bold, click-worthy thumbnail variations."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-video-title",
+                        "binding": "video_title",
+                        "label": "Video title",
+                        "placeholder": "10 AI Tools That Will Change How You Work in 2024",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-video-topic",
+                        "binding": "video_topic",
+                        "label": "What's the video about?",
+                        "placeholder": "A tech review video covering productivity AI tools including ChatGPT, Claude, an",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-thumbnail-text",
+                        "binding": "thumbnail_text",
+                        "label": "Text on the thumbnail",
+                        "placeholder": "AI TOOLS 2024",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "in-num-variations",
+                        "binding": "num_variations",
+                        "label": "How many variations?",
+                        "min": 1,
+                        "max": 20,
+                        "step": 1,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Generate thumbnails",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-thumbnails",
+                        "binding": "thumbnails",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
 }

@@ -30,9 +30,7 @@ const reduceUnionType = (type: TypeMetadata): string => {
   if (type.type_args === undefined) {
     return "str";
   }
-  // join typeArgs with underscore
   const typeArgs = type.type_args.map((arg) => arg.type);
-  // sort typeArgs
   typeArgs.sort();
   const typeArgsStr = typeArgs.join("_");
   if (typeArgsStr in reduceTypeRules) {

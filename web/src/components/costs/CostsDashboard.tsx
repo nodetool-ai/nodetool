@@ -388,8 +388,6 @@ const CostsDashboard: React.FC = () => {
   );
 };
 
-// --- content (success state) ------------------------------------------------
-
 interface DashboardContentProps {
   view: NonNullable<ReturnType<typeof useCostsDashboard>["view"]>;
   range: DateRange;
@@ -573,8 +571,6 @@ const StateMessage: React.FC<React.PropsWithChildren> = ({ children }) => (
     {children}
   </FlexColumn>
 );
-
-// --- filter dropdown --------------------------------------------------------
 
 interface FilterOption {
   key: string;

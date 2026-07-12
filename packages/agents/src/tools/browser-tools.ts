@@ -7,10 +7,6 @@
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
 
-// ---------------------------------------------------------------------------
-// HTML-to-text helpers
-// ---------------------------------------------------------------------------
-
 const ENTITY_MAP: Record<string, string> = {
   "&amp;": "&",
   "&lt;": "<",
@@ -23,9 +19,7 @@ const ENTITY_MAP: Record<string, string> = {
 
 const ENTITY_RE = new RegExp(Object.keys(ENTITY_MAP).join("|"), "gi");
 
-/**
- * Numeric character references: &#123; or &#x1a;
- */
+// Numeric character references: &#123; or &#x1a;
 const NUMERIC_ENTITY_RE = /&#(?:x([0-9a-fA-F]+)|(\d+));/g;
 
 /**
@@ -40,25 +34,19 @@ const NUMERIC_ENTITY_RE = /&#(?:x([0-9a-fA-F]+)|(\d+));/g;
 export function htmlToText(html: string, maxLength = 50_000): string {
   let text = html;
 
-  // Remove script and style blocks (including content)
   text = text.replace(/<script[\s\S]*?<\/script>/gi, "");
   text = text.replace(/<style[\s\S]*?<\/style>/gi, "");
 
-  // Replace <br>, <p>, <div>, <li>, <tr> boundaries with newlines for readability
+  // Turn block boundaries into newlines before stripping tags.
   text = text.replace(/<(?:br|\/p|\/div|\/li|\/tr|\/h[1-6])\s*\/?>/gi, "\n");
 
-  // Strip remaining HTML tags
   text = text.replace(/<[^>]+>/g, "");
 
-  // Decode named entities
   text = text.replace(
     ENTITY_RE,
     (match) => ENTITY_MAP[match.toLowerCase()] ?? match
   );
 
-  // Decode numeric entities. Use fromCodePoint, not fromCharCode: the latter
-  // keeps only the low 16 bits, mangling any astral-plane code point (emoji,
-  // CJK extensions, math symbols) — e.g. &#128512; would become U+F600.
   text = text.replace(NUMERIC_ENTITY_RE, (match, hex, dec) => {
     const code = hex ? parseInt(hex, 16) : parseInt(dec, 10);
     if (
@@ -72,7 +60,7 @@ export function htmlToText(html: string, maxLength = 50_000): string {
     return String.fromCodePoint(code);
   });
 
-  // Collapse whitespace (preserve single newlines)
+  // Collapse runs of non-newline whitespace, preserving line breaks.
   text = text.replace(/[^\S\n]+/g, " ");
   text = text.replace(/\n{3,}/g, "\n\n");
   text = text.trim();
@@ -84,10 +72,7 @@ export function htmlToText(html: string, maxLength = 50_000): string {
   return text;
 }
 
-// ---------------------------------------------------------------------------
-// Search-engine host list (block direct browsing of SERPs)
-// ---------------------------------------------------------------------------
-
+// Search-engine hosts whose result pages are blocked from direct browsing.
 const SEARCH_ENGINE_HOSTS = [
   "google.",
   "bing.",
@@ -103,10 +88,6 @@ function isSearchEngine(hostname: string): boolean {
   const lower = hostname.toLowerCase();
   return SEARCH_ENGINE_HOSTS.some((h) => lower.includes(h));
 }
-
-// ---------------------------------------------------------------------------
-// BrowserTool
-// ---------------------------------------------------------------------------
 
 export class BrowserTool extends Tool {
   readonly name = "browser";
@@ -174,10 +155,6 @@ export class BrowserTool extends Tool {
   }
 }
 
-// ---------------------------------------------------------------------------
-// ScreenshotTool
-// ---------------------------------------------------------------------------
-
 export class ScreenshotTool extends Tool {
   readonly name = "take_screenshot";
   readonly description =
@@ -225,7 +202,6 @@ export class ScreenshotTool extends Tool {
       };
     }
 
-    // If a BROWSER_URL is configured, attempt to call it as a screenshot API.
     try {
       const outputFile = (params.output_file as string) ?? "screenshot.png";
       const response = await fetch(browserUrl, {

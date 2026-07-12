@@ -2,7 +2,7 @@
 
 Visual AI workflow platform. TypeScript monorepo with React frontend, Electron desktop app, and Node.js backend.
 
-> _Last updated: 2026-06-19._ When the architecture, commands, or rules below drift from the codebase, update this file in the same PR.
+> _Last updated: 2026-07-11._ When the architecture, commands, or rules below drift from the codebase, update this file in the same PR.
 
 ## Critical Commands
 
@@ -139,7 +139,7 @@ npm run typecheck   # Must pass before committing
 - **Package build order matters**. Use `npm run build:packages` which builds in dependency order, not `npm run build` on individual packages that have unbuilt dependencies.
 - **Deploy = the GHCR image, self-contained**. The prod server runs on **Fly.io** (`fly.toml`, app `nodetool`, https://nodetool.fly.dev / https://api.nodetool.ai). The deploy unit is the GHCR image built by `.github/workflows/docker.yml`; `web/dist` and workflow examples are baked into it (no host bind-mount). A push to `main` builds the image (`docker.yml`) and then auto-deploys it to Fly (`fly-deploy.yml`), so both backend and frontend changes ship in a new image. Migrations run once per release via Fly's `release_command` (see `fly.toml`).
 - **Self-hosting** (outside Fly) uses `docker-compose.yml` (reference compose) or the `packages/deploy` tooling. The old self-hosted `deploy.sh`/`npm run redeploy` box was decommissioned once Fly took over.
-- **Packaged Electron backend flattens file paths**. esbuild bundles the backend into one `server.mjs`, so anything resolved relative to `import.meta.url` (provider `*-manifest.json`, examples, `package://` assets) lives elsewhere in the packaged app than in dev. Data files a package loads at runtime must be declared in `PACKAGE_RUNTIME_ASSETS` (`packages/config/src/package-asset-registry.ts`) and loaded via `loadPackageAssetJson` from `@nodetool-ai/config` — the registry drives staging (`electron/scripts/bundle-backend.mjs`) and artifact verification (`verify-backend-bundle.mjs`), and unregistered loads throw in dev. See [electron/src/AGENTS.md § Packaged file layout](electron/src/AGENTS.md).
+- **Packaged Electron backend flattens file paths**. esbuild bundles the backend into one `server.mjs`, so anything resolved relative to `import.meta.url` (provider `*-manifest.json`, examples, `package://` assets) lives elsewhere in the packaged app than in dev. Data files a package loads at runtime must be declared in `PACKAGE_RUNTIME_ASSETS` (`packages/config/src/package-asset-registry.ts`) and loaded via `loadPackageAssetJson` from `@nodetool-ai/config` — the registry drives staging (`scripts/bundle-backend.mjs`) and artifact verification (`scripts/verify-backend-bundle.mjs`), and unregistered loads throw in dev. See [electron/src/AGENTS.md § Packaged file layout](electron/src/AGENTS.md).
 - **WebSocket messages use MsgPack**, not JSON. Use the existing serialization helpers.
 - **Don't create new WebSocket instances** — use `GlobalWebSocketManager` singleton.
 - **Mobile typecheck** requires building protocol first: `cd packages/protocol && npm run build`.
@@ -263,6 +263,45 @@ tool (runs the workflow + returns status, outputs, errors, job logs, and the
 graph overview in one call). The browser surface is exposed in `web/` as
 `npm run test:debug-harness` (env: `NODETOOL_DEBUG_GRAPH`, `NODETOOL_DEBUG_OUT`,
 `NODETOOL_DEBUG_PARAMS`).
+
+### nodetool app debug (App-Builder Debug Harness)
+
+Runs an app-builder mini app (the Puck document on `workflow.app_doc`)
+**headlessly** for agent debugging: validates every widget binding against the
+workflow's inputs/outputs/variables, simulates the app the way the web runtime
+does (seed input defaults, apply params, click the Run button or a scripted
+interaction sequence), executes the workflow on the kernel runner, folds the
+streamed messages into the app's reactive values, and reports each widget's
+final state plus a verdict. Accepts a workflow id or a JSON file carrying
+`graph` + `app_doc`.
+
+```bash
+npm run dev:nodetool -- app debug <workflow_id>
+npm run dev:nodetool -- app debug workflow.json --params '{"prompt":"hi"}'
+npm run dev:nodetool -- app debug <id> --no-run       # static wiring check only
+npm run dev:nodetool -- app debug <id> --json         # full AppDebugReport for agents
+
+# Scripted interactions: set values, change inputs, click widgets (by
+# component id, unique type, or unique label)
+npm run dev:nodetool -- app debug <id> --interact \
+  '[{"set":{"key":"prompt","value":"hi"}},{"click":"Button-1"}]'
+```
+
+The verdict catches app-level failures a workflow-only run can't: bindings that
+reference missing inputs/outputs/variables, apps with no run trigger, and
+display widgets that never receive a value from a completed run. The bundle
+(`nodetool-debug/app-<id>-<ts>/`) contains `report.json`/`report.md`,
+`app.json` (the app document), `workflow.json`, and
+`server/run-N.messages.jsonl` per triggered run. Harness code:
+`packages/cli/src/app-debug/`.
+
+Every shipped workflow template carries a generated mini app on its `app_doc`
+(`node scripts/generate-template-apps.mjs` — curation table + Output-node
+augmentation + preview bundles in `web/public/app-preview/`). Marketing
+screenshots come from `web/scripts/screenshot-app-previews.mjs` (renders
+`web/app-preview.html` headlessly → `marketing/public/apps/<slug>.png`), and
+the `/apps/*` landing pages are generated by
+`marketing/scripts/generate-miniapp-entries.mjs` (`npm run gen:apps`).
 
 ### nodetool validate (Static Workflow Check)
 
