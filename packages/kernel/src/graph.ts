@@ -52,13 +52,6 @@ export interface GraphFromDictOptions {
   skipErrors?: boolean;
   allowUndefinedProperties?: boolean;
   validateNodeType?: (nodeType: string) => boolean;
-  /**
-   * When true (default), delete each node's saved property default for every
-   * handle fed by a surviving edge (the edge value wins at runtime).
-   * loadFromDict disables this and prunes itself after node-type resolution,
-   * since resolution can drop further nodes — and with them, edges.
-   */
-  pruneEdgeProperties?: boolean;
 }
 
 export interface ResolvedNodeType {
@@ -191,8 +184,7 @@ export class Graph {
     const {
       skipErrors = true,
       allowUndefinedProperties = true,
-      validateNodeType,
-      pruneEdgeProperties = true
+      validateNodeType
     } = options;
     if (!data || typeof data !== "object") {
       throw new GraphValidationError("Graph data must be an object");
@@ -252,7 +244,10 @@ export class Graph {
       // dynamic nodes (e.g. WorkflowNode) receive user-provided values
       // for inputs that aren't connected via edges.
       // Stryker disable next-line all: equivalent — Object.assign with a non-object dynamic_properties value adds no keys (no-op)
-      if (nodeObj.dynamic_properties && typeof nodeObj.dynamic_properties === "object") {
+      if (
+        nodeObj.dynamic_properties &&
+        typeof nodeObj.dynamic_properties === "object"
+      ) {
         Object.assign(
           rawProperties,
           nodeObj.dynamic_properties as Record<string, unknown>
@@ -264,7 +259,11 @@ export class Graph {
         // Using properties itself as a source of truth would defeat the purpose
         // of this check, since every property key would always be "defined".
         // Stryker disable next-line all: these operands all guard the same thing — a non-object or empty propertyTypes disables the check (the empty-object case has a dedicated test)
-        const hasPropertyTypes = nodeObj.propertyTypes != null && typeof nodeObj.propertyTypes === "object" && Object.keys(nodeObj.propertyTypes as Record<string, unknown>).length > 0;
+        const hasPropertyTypes =
+          nodeObj.propertyTypes != null &&
+          typeof nodeObj.propertyTypes === "object" &&
+          Object.keys(nodeObj.propertyTypes as Record<string, unknown>).length >
+            0;
 
         if (hasPropertyTypes) {
           const definedProperties = new Set<string>(
@@ -325,53 +324,7 @@ export class Graph {
       validEdges.push(edgeObj as unknown as Edge);
     }
 
-    // Delete property defaults only for handles fed by edges that survived
-    // validation. Pruning from the raw edge list would strip a node's saved
-    // default for a malformed or dangling edge that is then dropped, leaving
-    // the node with neither its default nor an incoming value.
-    if (pruneEdgeProperties) {
-      Graph._pruneEdgeFedProperties(validNodes, validEdges);
-    }
-
     return new Graph({ nodes: validNodes, edges: validEdges });
-  }
-
-  /**
-   * Delete each node's saved property default for every handle that has an
-   * incoming edge — the runtime edge value wins, and stale defaults would
-   * shadow it in `_executeWithInputs`'s property merge.
-   */
-  private static _pruneEdgeFedProperties(
-    nodes: ReadonlyArray<NodeDescriptor>,
-    edges: ReadonlyArray<Edge>
-  ): void {
-    const handlesByTarget = new Map<string, Set<string>>();
-    for (const edge of edges) {
-      let handles = handlesByTarget.get(edge.target);
-      if (!handles) {
-        handles = new Set<string>();
-        handlesByTarget.set(edge.target, handles);
-      }
-      handles.add(edge.targetHandle);
-    }
-    for (const node of nodes) {
-      const handles = handlesByTarget.get(node.id);
-      if (!handles) continue;
-      const props = node.properties as Record<string, unknown> | undefined;
-      // Stryker disable next-line ConditionalExpression: defensive — fromDict/loadFromDict always normalize `properties` to an object before reaching here, so `!props` is never true and skipping vs not skipping is indistinguishable
-      if (!props) continue;
-      // dynamic_properties is merged into `properties` AND kept on the node,
-      // and _executeWithInputs merges {...properties, ...dynamic_properties,
-      // ...inputs}. Pruning only `properties` leaves the same saved default in
-      // dynamic_properties, which then re-shadows a connected input when no
-      // edge value is delivered — so prune both maps.
-      const dynProps = (node as { dynamic_properties?: unknown })
-        .dynamic_properties as Record<string, unknown> | undefined;
-      for (const handle of handles) {
-        delete props[handle];
-        if (dynProps) delete dynProps[handle];
-      }
-    }
   }
 
   static async loadFromDict(
@@ -386,11 +339,7 @@ export class Graph {
     const normalized = Graph.fromDict(data, {
       skipErrors,
       // Stryker disable next-line BooleanLiteral: must stay true — property validation happens later against the RESOLVED types, not the saved cache (see comment in loadFromDict)
-      allowUndefinedProperties: true,
-      // Resolution below can drop further nodes (unknown types) and their
-      // edges; prune edge-fed defaults only after the final edge set is known
-      // so a node downstream of a dropped node keeps its saved default.
-      pruneEdgeProperties: false
+      allowUndefinedProperties: true
     });
 
     const resolvedNodes: HydratedNodeDescriptor[] = [];
@@ -473,7 +422,6 @@ export class Graph {
     const validEdges = normalized.edges.filter(
       (edge) => validNodeIds.has(edge.source) && validNodeIds.has(edge.target)
     );
-    Graph._pruneEdgeFedProperties(resolvedNodes, validEdges);
     // Sound: resolvedNodes were built as HydratedNodeDescriptor above.
     return new Graph({
       nodes: resolvedNodes,
@@ -592,7 +540,10 @@ export class Graph {
   getControllerNodes(targetId: string): NodeDescriptor[];
   getControllerNodes(targetId?: string): NodeDescriptor[] {
     // Stryker disable next-line all: redundant ternary — getControlEdges(undefined) already returns all control edges, identical to getControlEdges()
-    const controlEdges = targetId === undefined ? this.getControlEdges() : this.getControlEdges(targetId);
+    const controlEdges =
+      targetId === undefined
+        ? this.getControlEdges()
+        : this.getControlEdges(targetId);
     const ids = new Set(controlEdges.map((e) => e.source));
     return this.nodes.filter((n) => ids.has(n.id));
   }
@@ -700,7 +651,8 @@ export class Graph {
     const isInScope = (node: NodeDescriptor): boolean => {
       const directlyInScope = (node.parent_id ?? null) === parentId;
       // Stryker disable next-line ConditionalExpression: the `!= null` guard is redundant — groupNodeIds only holds real node-id strings, so has(null/undefined) is already false
-      const inScopedGroup = node.parent_id != null && groupNodeIds.has(node.parent_id);
+      const inScopedGroup =
+        node.parent_id != null && groupNodeIds.has(node.parent_id);
       return directlyInScope || inScopedGroup;
     };
     const filteredNodes = this.nodes.filter(isInScope);
@@ -973,7 +925,8 @@ export class Graph {
       // otherwise read an inherited Object.prototype member (a truthy function)
       // and pass it to TypeMetadata.fromString, crashing on a runnable graph.
       const sourceType =
-        sourceNode.outputs && Object.hasOwn(sourceNode.outputs, edge.sourceHandle)
+        sourceNode.outputs &&
+        Object.hasOwn(sourceNode.outputs, edge.sourceHandle)
           ? sourceNode.outputs[edge.sourceHandle]
           : undefined;
       if (!sourceType) continue; // no type info, skip
@@ -983,7 +936,10 @@ export class Graph {
       // `type` descriptor for raw payloads. Plain string property values
       // are runtime data (e.g. saved literals), never type names.
       let targetType: string | undefined =
-        targetNode.propertyTypes?.[edge.targetHandle];
+        targetNode.propertyTypes &&
+        Object.hasOwn(targetNode.propertyTypes, edge.targetHandle)
+          ? targetNode.propertyTypes[edge.targetHandle]
+          : undefined;
       if (!targetType) {
         const targetProp = targetNode.properties?.[edge.targetHandle];
         if (

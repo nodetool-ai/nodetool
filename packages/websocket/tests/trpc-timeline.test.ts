@@ -153,14 +153,14 @@ describe("timeline router", () => {
       expect(out.map((s) => s.id)).toEqual(["a", "b"]);
     });
 
-    it("filters by projectId and excludes other users' sequences", async () => {
+    it("scopes project listing by user before applying its limit", async () => {
       TS.listByProject.mockResolvedValue([
-        makeSeq({ id: "a", user_id: "user-1" }),
-        makeSeq({ id: "b", user_id: "other" })
+        makeSeq({ id: "a", user_id: "user-1" })
       ]);
       const caller = createCaller(makeCtx());
       const out = await caller.timeline.list({ projectId: "p-1" });
       expect(out.map((s) => s.id)).toEqual(["a"]);
+      expect(TS.listByProject).toHaveBeenCalledWith("p-1", "user-1");
     });
 
     it("rejects unauthenticated callers", async () => {
@@ -351,9 +351,7 @@ describe("timeline router", () => {
       let savedDocumentJson = "";
       TS.update.mockImplementation((_id, fields) => {
         savedDocumentJson = (fields as { document: string }).document;
-        return Promise.resolve(
-          makeSeq({ document: savedDocumentJson })
-        );
+        return Promise.resolve(makeSeq({ document: savedDocumentJson }));
       });
       const caller = createCaller(makeCtx());
       await caller.timeline.update({

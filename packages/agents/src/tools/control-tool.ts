@@ -83,7 +83,8 @@ export class ControlNodeTool extends Tool {
     this.jsonSchema = {
       type: "object",
       properties,
-      required: []
+      required: [],
+      additionalProperties: false
     };
 
     // Set name from normalized node title
@@ -107,7 +108,11 @@ export class ControlNodeTool extends Tool {
    * Create a control event from tool arguments.
    */
   createControlEvent(args: Record<string, unknown>): ControlEvent {
-    return { event_type: "run", properties: args } satisfies RunEvent;
+    const allowed = this.jsonSchema["properties"] as Record<string, unknown>;
+    const properties = Object.fromEntries(
+      Object.entries(args).filter(([key]) => Object.hasOwn(allowed, key))
+    );
+    return { event_type: "run", properties } satisfies RunEvent;
   }
 
   userMessage(params: Record<string, unknown>): string {

@@ -417,7 +417,7 @@ describe("Graph.fromDict — property defaults vs dropped edges", () => {
     expect(graph.findNode("b")!.properties).toEqual({ x: 5 });
   });
 
-  it("still deletes the default when the edge survives", () => {
+  it("retains the default when the edge survives", () => {
     const graph = Graph.fromDict({
       nodes: [nodeDict("a"), nodeDict("b", { x: 5 })],
       edges: [
@@ -425,7 +425,7 @@ describe("Graph.fromDict — property defaults vs dropped edges", () => {
       ]
     });
     expect(graph.edges).toHaveLength(1);
-    expect(graph.findNode("b")!.properties).toEqual({});
+    expect(graph.findNode("b")!.properties).toEqual({ x: 5 });
   });
 
   it("loadFromDict keeps the default when the resolver drops the source node", async () => {

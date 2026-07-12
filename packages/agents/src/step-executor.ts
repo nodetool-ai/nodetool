@@ -38,7 +38,7 @@ import {
 import { ControlNodeTool } from "./tools/control-tool.js";
 import { FinishStepTool } from "./tools/finish-step-tool.js";
 import { getMemoryTools } from "./tools/memory-tools.js";
-import { MAX_TOOL_RESULT_CHARS } from "./constants.js";
+import { truncateToolResult } from "./constants.js";
 
 const log = createLogger("nodetool.agents.step-executor");
 
@@ -476,7 +476,9 @@ export class StepExecutor {
     }
     if (
       expectedType === "object" &&
-      (typeof normalized !== "object" || normalized === null)
+      (typeof normalized !== "object" ||
+        normalized === null ||
+        Array.isArray(normalized))
     ) {
       return [false, `Expected object, got ${typeof normalized}`, normalized];
     }
@@ -577,13 +579,7 @@ export class StepExecutor {
     try {
       const normalized = normalizeToolResult(toolResult);
       const serialized = JSON.stringify(normalized);
-      if (serialized.length > MAX_TOOL_RESULT_CHARS) {
-        return (
-          serialized.slice(0, MAX_TOOL_RESULT_CHARS) +
-          "... [truncated to maintain context size]"
-        );
-      }
-      return serialized;
+      return truncateToolResult(serialized);
     } catch (e) {
       return JSON.stringify({
         error: `Failed to serialize tool result: ${e}`,
@@ -815,7 +811,6 @@ export class StepExecutor {
 
     return parts.join("\n");
   }
-
 
   /**
    * Execute the step, yielding ProcessingMessages as progress updates.

@@ -125,7 +125,7 @@ export class ImageDocument extends DBModel {
   }
 
   override beforeSave(): void {
-    this.updated_at = new Date().toISOString();
+    this.updated_at = nextUpdatedAtAfter(this.updated_at);
     assertValidDocumentData(JSON.parse(this.document) as ImageDocumentData);
   }
 

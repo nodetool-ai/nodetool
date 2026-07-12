@@ -18,7 +18,11 @@ import type { BaseProvider } from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { memoryKeys } from "@nodetool-ai/runtime";
 import { createLogger } from "@nodetool-ai/config";
-import type { ProcessingMessage, Chunk, StepResult } from "@nodetool-ai/protocol";
+import type {
+  ProcessingMessage,
+  Chunk,
+  StepResult
+} from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.agents.task-executor");
 import { StepExecutor } from "./step-executor.js";
@@ -207,6 +211,14 @@ export class TaskExecutor {
         stepId: step.id
       });
       step.completed = true;
+      this.context.memory.set({
+        key: memoryKeys.step(step.id),
+        kind: "step_result",
+        value: [],
+        source: step.id,
+        title: step.instructions.slice(0, 60)
+      });
+      step.endTime = Date.now();
       return;
     }
 
@@ -256,12 +268,18 @@ export class TaskExecutor {
           item as Record<string, unknown>
         )) {
           const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-          const strValue = String(value);
+          const strValue =
+            typeof value === "object" && value !== null
+              ? JSON.stringify(value)
+              : String(value);
           instructions = instructions.replace(
             new RegExp(`\\{${escapedKey}\\}`, "g"),
             () => strValue
           );
         }
+        instructions = instructions.replace(/\{item\}/g, () =>
+          JSON.stringify(item)
+        );
       } else {
         const strItem = String(item);
         instructions = instructions.replace(/\{item\}/g, () => strItem);
@@ -417,7 +435,26 @@ export class TaskExecutor {
     );
     if (!otherPending) return executableSteps;
 
-    return executableSteps.filter((s) => s.id !== this._finishStepId);
+    const withoutFinish = executableSteps.filter(
+      (s) => s.id !== this._finishStepId
+    );
+    if (withoutFinish.length === 0) return executableSteps;
+
+    const dependsOnFinish = (step: Step, seen = new Set<string>()): boolean => {
+      if (seen.has(step.id)) return false;
+      seen.add(step.id);
+      return step.dependsOn.some((dependencyId) => {
+        if (dependencyId === this._finishStepId) return true;
+        const dependency = this.task.steps.find((s) => s.id === dependencyId);
+        return dependency ? dependsOnFinish(dependency, new Set(seen)) : false;
+      });
+    };
+    if (
+      this.task.steps.some((step) => !step.completed && dependsOnFinish(step))
+    ) {
+      return executableSteps;
+    }
+    return withoutFinish;
   }
 }
 

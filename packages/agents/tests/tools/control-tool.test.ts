@@ -88,6 +88,7 @@ describe("ControlNodeTool", () => {
     expect(props).toHaveProperty("width");
     expect(props).toHaveProperty("height");
     expect(tool.inputSchema["required"]).toEqual([]);
+    expect(tool.inputSchema["additionalProperties"]).toBe(false);
   });
 
   it("handles missing control_actions gracefully", () => {
@@ -111,6 +112,19 @@ describe("ControlNodeTool", () => {
     ).toEqual({
       width: 800,
       height: 600
+    });
+  });
+
+  it("drops properties outside the declared control action", () => {
+    const tool = new ControlNodeTool("node_1", baseInfo);
+    const event = tool.createControlEvent({
+      width: 800,
+      url: "file:///secret"
+    });
+    expect(
+      (event as { properties: Record<string, unknown> }).properties
+    ).toEqual({
+      width: 800
     });
   });
 

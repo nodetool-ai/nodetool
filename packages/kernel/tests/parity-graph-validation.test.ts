@@ -450,9 +450,7 @@ describe("Gap #14 – property filtering for nodes with incoming edges", () => {
     const graph = Graph.fromDict(data);
     const procNode = graph.findNode("proc");
 
-    // "value" should be stripped because it has an incoming edge
-    expect(procNode!.properties).not.toHaveProperty("value");
-    // "other" should remain because it has no incoming edge
+    expect(procNode!.properties).toHaveProperty("value", 999);
     expect(procNode!.properties).toHaveProperty("other", "static");
   });
 });

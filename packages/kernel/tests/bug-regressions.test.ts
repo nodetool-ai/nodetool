@@ -135,8 +135,7 @@ describe("node executor error", () => {
     expect(result.error).toMatch(/boom.*kaboom/);
     const failedUpdate = result.messages.find(
       (m) =>
-        m.type === "job_update" &&
-        (m as { status: string }).status === "failed"
+        m.type === "job_update" && (m as { status: string }).status === "failed"
     );
     expect(failedUpdate).toBeDefined();
   });
@@ -147,45 +146,52 @@ describe("node executor error", () => {
 // ---------------------------------------------------------------------------
 
 describe("concurrent sendControlEvent", () => {
-  it("settles every in-flight control response in FIFO order", {
-    timeout: 5000
-  }, async () => {
-    const nodes: NodeDescriptor[] = [
-      { id: "agent", type: "test.Controller" },
-      { id: "proc", type: "test.Processor", is_controlled: true }
-    ];
-    const edges: Edge[] = [ce("agent", "proc")];
+  it(
+    "settles every in-flight control response in FIFO order",
+    {
+      timeout: 5000
+    },
+    async () => {
+      const nodes: NodeDescriptor[] = [
+        { id: "agent", type: "test.Controller" },
+        { id: "proc", type: "test.Processor", is_controlled: true }
+      ];
+      const edges: Edge[] = [ce("agent", "proc")];
 
-    let runnerRef!: WorkflowRunner;
-    const responses: Array<Record<string, unknown>> = [];
-    const runner = new WorkflowRunner("ctrl-burst", {
-      resolveExecutor: (node) => {
-        if (node.id === "agent") {
+      let runnerRef!: WorkflowRunner;
+      const responses: Array<Record<string, unknown>> = [];
+      const runner = new WorkflowRunner("ctrl-burst", {
+        resolveExecutor: (node) => {
+          if (node.id === "agent") {
+            return {
+              async process() {
+                // Fire two control events without awaiting in between.
+                const p1 = runnerRef.sendControlEvent("proc", { a: 1 });
+                const p2 = runnerRef.sendControlEvent("proc", { a: 2 });
+                responses.push(await p1, await p2);
+                return {};
+              }
+            };
+          }
           return {
-            async process() {
-              // Fire two control events without awaiting in between.
-              const p1 = runnerRef.sendControlEvent("proc", { a: 1 });
-              const p2 = runnerRef.sendControlEvent("proc", { a: 2 });
-              responses.push(await p1, await p2);
-              return {};
+            async process(inputs) {
+              return { result: inputs.a };
             }
           };
         }
-        return {
-          async process(inputs) {
-            return { result: inputs.a };
-          }
-        };
-      }
-    });
-    runnerRef = runner;
+      });
+      runnerRef = runner;
 
-    const result = await runner.run({ job_id: "ctrl-burst" }, { nodes, edges });
-    expect(result.status).toBe("completed");
-    expect(responses.length).toBe(2);
-    expect(responses[0].result).toBe(1);
-    expect(responses[1].result).toBe(2);
-  });
+      const result = await runner.run(
+        { job_id: "ctrl-burst" },
+        { nodes, edges }
+      );
+      expect(result.status).toBe("completed");
+      expect(responses.length).toBe(2);
+      expect(responses[0].result).toBe(1);
+      expect(responses[1].result).toBe(2);
+    }
+  );
 });
 
 // ---------------------------------------------------------------------------
@@ -229,56 +235,60 @@ describe("self-loop edges", () => {
 // ---------------------------------------------------------------------------
 
 describe("control EOS accounting", () => {
-  it("a controller with duplicate control edges closes __control__ once", {
-    timeout: 5000
-  }, async () => {
-    const nodes: NodeDescriptor[] = [
-      { id: "a", type: "test.CtrlA" },
-      { id: "b", type: "test.CtrlB" },
-      { id: "proc", type: "test.Processor", is_controlled: true }
-    ];
-    // A holds two control edges to proc; upstream counting is per unique
-    // controller, so A finishing must decrement proc's __control__ once.
-    const edges: Edge[] = [
-      ce("a", "proc", "ca1"),
-      ce("a", "proc", "ca2"),
-      ce("b", "proc", "cb")
-    ];
+  it(
+    "a controller with duplicate control edges closes __control__ once",
+    {
+      timeout: 5000
+    },
+    async () => {
+      const nodes: NodeDescriptor[] = [
+        { id: "a", type: "test.CtrlA" },
+        { id: "b", type: "test.CtrlB" },
+        { id: "proc", type: "test.Processor", is_controlled: true }
+      ];
+      // A holds two control edges to proc; upstream counting is per unique
+      // controller, so A finishing must decrement proc's __control__ once.
+      const edges: Edge[] = [
+        ce("a", "proc", "ca1"),
+        ce("a", "proc", "ca2"),
+        ce("b", "proc", "cb")
+      ];
 
-    const calls: Array<Record<string, unknown>> = [];
-    const runner = new WorkflowRunner("ctrl-eos", {
-      resolveExecutor: (node) => {
-        if (node.id === "a") {
-          return {
-            async process() {
-              return {}; // finishes immediately, no events
-            }
-          };
-        }
-        if (node.id === "b") {
-          return {
-            async process() {
-              await sleep(50);
-              return { __control_output__: { x: 1 } };
-            }
-          };
-        }
-        return {
-          async process(inputs) {
-            calls.push({ ...inputs });
-            return { result: inputs.x };
+      const calls: Array<Record<string, unknown>> = [];
+      const runner = new WorkflowRunner("ctrl-eos", {
+        resolveExecutor: (node) => {
+          if (node.id === "a") {
+            return {
+              async process() {
+                return {}; // finishes immediately, no events
+              }
+            };
           }
-        };
-      }
-    });
+          if (node.id === "b") {
+            return {
+              async process() {
+                await sleep(50);
+                return { __control_output__: { x: 1 } };
+              }
+            };
+          }
+          return {
+            async process(inputs) {
+              calls.push({ ...inputs });
+              return { result: inputs.x };
+            }
+          };
+        }
+      });
 
-    const result = await runner.run({ job_id: "ctrl-eos" }, { nodes, edges });
-    expect(result.status).toBe("completed");
-    // Without per-controller dedup, A's double decrement closed __control__
-    // before B's event arrived and proc never executed.
-    expect(calls.length).toBe(1);
-    expect(calls[0].x).toBe(1);
-  });
+      const result = await runner.run({ job_id: "ctrl-eos" }, { nodes, edges });
+      expect(result.status).toBe("completed");
+      // Without per-controller dedup, A's double decrement closed __control__
+      // before B's event arrived and proc never executed.
+      expect(calls.length).toBe(1);
+      expect(calls[0].x).toBe(1);
+    }
+  );
 });
 
 // ---------------------------------------------------------------------------
@@ -286,45 +296,49 @@ describe("control EOS accounting", () => {
 // ---------------------------------------------------------------------------
 
 describe("runner reuse", () => {
-  it("sendControlEvent works on a second run() of the same runner", {
-    timeout: 5000
-  }, async () => {
-    const nodes: NodeDescriptor[] = [
-      { id: "agent", type: "test.Controller" },
-      { id: "proc", type: "test.Processor", is_controlled: true }
-    ];
-    const edges: Edge[] = [ce("agent", "proc")];
+  it(
+    "sendControlEvent works on a second run() of the same runner",
+    {
+      timeout: 5000
+    },
+    async () => {
+      const nodes: NodeDescriptor[] = [
+        { id: "agent", type: "test.Controller" },
+        { id: "proc", type: "test.Processor", is_controlled: true }
+      ];
+      const edges: Edge[] = [ce("agent", "proc")];
 
-    let runnerRef!: WorkflowRunner;
-    const results: unknown[] = [];
-    const runner = new WorkflowRunner("reuse", {
-      resolveExecutor: (node) => {
-        if (node.id === "agent") {
+      let runnerRef!: WorkflowRunner;
+      const results: unknown[] = [];
+      const runner = new WorkflowRunner("reuse", {
+        resolveExecutor: (node) => {
+          if (node.id === "agent") {
+            return {
+              async process() {
+                // Without _completedNodes reset, the second run rejects here
+                // because proc completed during the FIRST run.
+                const res = await runnerRef.sendControlEvent("proc", { a: 7 });
+                results.push(res.result);
+                return {};
+              }
+            };
+          }
           return {
-            async process() {
-              // Without _completedNodes reset, the second run rejects here
-              // because proc completed during the FIRST run.
-              const res = await runnerRef.sendControlEvent("proc", { a: 7 });
-              results.push(res.result);
-              return {};
+            async process(inputs) {
+              return { result: inputs.a };
             }
           };
         }
-        return {
-          async process(inputs) {
-            return { result: inputs.a };
-          }
-        };
-      }
-    });
-    runnerRef = runner;
+      });
+      runnerRef = runner;
 
-    const r1 = await runner.run({ job_id: "reuse-1" }, { nodes, edges });
-    const r2 = await runner.run({ job_id: "reuse-2" }, { nodes, edges });
-    expect(r1.status).toBe("completed");
-    expect(r2.status).toBe("completed");
-    expect(results).toEqual([7, 7]);
-  });
+      const r1 = await runner.run({ job_id: "reuse-1" }, { nodes, edges });
+      const r2 = await runner.run({ job_id: "reuse-2" }, { nodes, edges });
+      expect(r1.status).toBe("completed");
+      expect(r2.status).toBe("completed");
+      expect(results).toEqual([7, 7]);
+    }
+  );
 });
 
 // ---------------------------------------------------------------------------
@@ -446,7 +460,7 @@ describe("edge-fed property pruning", () => {
     expect(graph.nodes[0].properties).toEqual({ keep: 1, extra: "saved" });
   });
 
-  it("fromDict still prunes values for handles fed by surviving edges", () => {
+  it("fromDict retains fallbacks for handles fed by surviving edges", () => {
     const graph = Graph.fromDict({
       nodes: [
         { id: "a", type: "t" },
@@ -456,6 +470,7 @@ describe("edge-fed property pruning", () => {
     });
     expect(graph.edges).toHaveLength(1);
     expect(graph.nodes.find((n) => n.id === "b")!.properties).toEqual({
+      fed: "stale",
       keep: 2
     });
   });
@@ -470,8 +485,7 @@ describe("edge-fed property pruning", () => {
         edges: [de("ghost", "out", "b", "extra")]
       },
       {
-        resolver: (nodeType: string) =>
-          nodeType === "t" ? { nodeType } : null
+        resolver: (nodeType: string) => (nodeType === "t" ? { nodeType } : null)
       }
     );
     expect(graph.nodes).toHaveLength(1);

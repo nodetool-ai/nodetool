@@ -23,7 +23,9 @@ function setup() {
   initTestDb();
 }
 
-function makeDocument(overrides: Partial<TimelineDocument> = {}): TimelineDocument {
+function makeDocument(
+  overrides: Partial<TimelineDocument> = {}
+): TimelineDocument {
   return {
     tracks: [],
     clips: [],
@@ -136,14 +138,14 @@ describe("TimelineSequence model", () => {
     await createSeq("u1", "p1", "S2");
     await createSeq("u1", "p2", "S3");
 
-    const seqs = await TimelineSequence.listByProject("p1");
+    const seqs = await TimelineSequence.listByProject("p1", "u1");
     expect(seqs).toHaveLength(2);
     const names = seqs.map((s) => s.name).sort();
     expect(names).toEqual(["S1", "S2"]);
   });
 
   it("listByProject returns empty array for unknown project", async () => {
-    const seqs = await TimelineSequence.listByProject("nobody");
+    const seqs = await TimelineSequence.listByProject("nobody", "u1");
     expect(seqs).toHaveLength(0);
   });
 
@@ -152,8 +154,30 @@ describe("TimelineSequence model", () => {
     await createSeq("u1", "p1", "S2");
     await createSeq("u1", "p1", "S3");
 
-    const seqs = await TimelineSequence.listByProject("p1", 2);
+    const seqs = await TimelineSequence.listByProject("p1", "u1", 2);
     expect(seqs).toHaveLength(2);
+  });
+
+  it("scopes by user before applying the project limit", async () => {
+    await createSeq("u1", "shared", "owned");
+    for (let index = 0; index < 50; index++) {
+      await createSeq("u2", "shared", `other-${index}`);
+    }
+
+    const seqs = await TimelineSequence.listByProject("shared", "u1", 50);
+    expect(seqs.map((sequence) => sequence.name)).toEqual(["owned"]);
+  });
+
+  it("advances updated_at beyond a future version token before saving", () => {
+    const future = new Date(Date.now() + 1000).toISOString();
+    const seq = new TimelineSequence({
+      user_id: "u1",
+      project_id: "p1",
+      name: "future",
+      updated_at: future
+    });
+    seq.beforeSave();
+    expect(Date.parse(seq.updated_at)).toBeGreaterThan(Date.parse(future));
   });
 
   // ── Update bumps updated_at ─────────────────────────────────────────
@@ -251,7 +275,11 @@ describe("TimelineSequence model", () => {
       note: "important"
     };
 
-    const doc: TimelineDocument = { tracks: [track], clips: [clip], markers: [marker] };
+    const doc: TimelineDocument = {
+      tracks: [track],
+      clips: [clip],
+      markers: [marker]
+    };
     const seq = await TimelineSequence.create<TimelineSequence>({
       user_id: "u1",
       project_id: "p1",

@@ -13,10 +13,16 @@ import {
 } from "@nodetool-ai/config";
 import { getAssetAdapter, getTempAdapter } from "./lib/storage.js";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
-import { resourceEvents, type ResourceChangePayload } from "./resource-events.js";
+import {
+  resourceEvents,
+  type ResourceChangePayload
+} from "./resource-events.js";
 import { createSystemStatsSampler } from "./system-stats.js";
 import { storeAssetWithThumbnail } from "./lib/thumbnail.js";
-import { resolveContentUrls, resolveContentForProvider } from "./resolve-media-urls.js";
+import {
+  resolveContentUrls,
+  resolveContentForProvider
+} from "./resolve-media-urls.js";
 import {
   Graph,
   WorkflowRunner,
@@ -499,7 +505,10 @@ function extractEmbeddedImage(source: {
     if (data.startsWith("data:")) {
       const parsed = parseImageDataUri(data);
       if (parsed) {
-        return { bytes: parsed.bytes, mimeType: declaredMime ?? parsed.mimeType };
+        return {
+          bytes: parsed.bytes,
+          mimeType: declaredMime ?? parsed.mimeType
+        };
       }
     } else {
       const bytes = decodeAssetBytes(data);
@@ -510,7 +519,10 @@ function extractEmbeddedImage(source: {
     if (uri.startsWith("data:")) {
       const parsed = parseImageDataUri(uri);
       if (parsed) {
-        return { bytes: parsed.bytes, mimeType: declaredMime ?? parsed.mimeType };
+        return {
+          bytes: parsed.bytes,
+          mimeType: declaredMime ?? parsed.mimeType
+        };
       }
     } else {
       return { uri };
@@ -845,11 +857,21 @@ function createRuntimeContext(opts: {
   });
 
   const MIME_TO_EXT: Record<string, string> = {
-    "image/jpeg": "jpg", "image/png": "png", "image/gif": "gif",
-    "image/webp": "webp", "image/bmp": "bmp", "image/svg+xml": "svg",
-    "audio/mpeg": "mp3", "audio/mp3": "mp3", "audio/wav": "wav",
-    "audio/ogg": "ogg", "video/mp4": "mp4", "video/webm": "webm",
-    "application/pdf": "pdf", "text/plain": "txt", "text/html": "html",
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/gif": "gif",
+    "image/webp": "webp",
+    "image/bmp": "bmp",
+    "image/svg+xml": "svg",
+    "audio/mpeg": "mp3",
+    "audio/mp3": "mp3",
+    "audio/wav": "wav",
+    "audio/ogg": "ogg",
+    "video/mp4": "mp4",
+    "video/webm": "webm",
+    "application/pdf": "pdf",
+    "text/plain": "txt",
+    "text/html": "html",
     "model/gltf-binary": "glb"
   };
 
@@ -867,7 +889,12 @@ function createRuntimeContext(opts: {
       if (args.content) {
         const ext = MIME_TO_EXT[args.contentType] ?? "bin";
         const key = `${asset.id}.${ext}`;
-        await storeAssetWithThumbnail(asset.id, key, args.content, args.contentType);
+        await storeAssetWithThumbnail(
+          asset.id,
+          key,
+          args.content,
+          args.contentType
+        );
         asset.size = args.content.length;
       }
       await asset.save();
@@ -942,14 +969,18 @@ function createRuntimeContext(opts: {
         userId,
         sequence as Parameters<typeof TimelineSequence.fromTimelineSequence>[1]
       );
-      const updated = await TimelineSequence.update(id, {
-        name: next.name,
-        fps: next.fps,
-        width: next.width,
-        height: next.height,
-        duration_ms: next.duration_ms,
-        document: next.document
-      });
+      const updated = await TimelineSequence.updateFieldsIfUnchanged(
+        id,
+        next.updated_at,
+        {
+          name: next.name,
+          fps: next.fps,
+          width: next.width,
+          height: next.height,
+          duration_ms: next.duration_ms,
+          document: next.document
+        }
+      );
       return updated ? updated.toTimelineSequence() : null;
     }
   });
@@ -1803,7 +1834,10 @@ export class UnifiedWebSocketRunner {
     cached: { value: number; at: number } | null
   ): Promise<{ value: number; at: number }> {
     const now = Date.now();
-    if (cached && now - cached.at < UnifiedWebSocketRunner.MAX_CONCURRENT_JOBS_TTL_MS) {
+    if (
+      cached &&
+      now - cached.at < UnifiedWebSocketRunner.MAX_CONCURRENT_JOBS_TTL_MS
+    ) {
       return cached;
     }
     let raw: string | null = null;
@@ -2381,8 +2415,7 @@ export class UnifiedWebSocketRunner {
           // incrementally instead of collapsing to the final value.
           if (outbound.type === "output_update") {
             const isDisplaySink =
-              nodeType.includes("Output") ||
-              nodeType.endsWith(".Preview");
+              nodeType.includes("Output") || nodeType.endsWith(".Preview");
             const isStreamingLeaf =
               Boolean(meta?.is_streaming_output) ||
               Boolean(meta?.auto_save_asset);
@@ -2405,7 +2438,10 @@ export class UnifiedWebSocketRunner {
           }
           // Normalize generation_complete.outputs the same way node_update.result
           // is treated (raw bytes → temp URLs) before sending over the wire.
-          if (outbound.type === "generation_complete" && outbound.outputs != null) {
+          if (
+            outbound.type === "generation_complete" &&
+            outbound.outputs != null
+          ) {
             outbound.outputs = await active.context.normalizeOutputValue(
               outbound.outputs
             );
@@ -2960,14 +2996,14 @@ export class UnifiedWebSocketRunner {
    */
   private toolResultDisplayText(content: MessageContent[]): string {
     const text = content
-      .filter((c): c is MessageContent & { type: "text"; text: string } =>
-        c.type === "text"
+      .filter(
+        (c): c is MessageContent & { type: "text"; text: string } =>
+          c.type === "text"
       )
       .map((c) => c.text)
       .join("\n");
     return text || "[image result]";
   }
-
 
   private addCollectionContext(
     messages: ProviderMessage[],
@@ -3334,7 +3370,10 @@ export class UnifiedWebSocketRunner {
     // because the resume `loadFullHistory` thunk and the prepend both run after.
     let toolSearchReminder = "";
     const buildSystemContent = (): string => {
-      const base = buildChatAgentSystemPrompt(permissionMode, extraSystemPrompt);
+      const base = buildChatAgentSystemPrompt(
+        permissionMode,
+        extraSystemPrompt
+      );
       return toolSearchReminder ? `${base}\n\n${toolSearchReminder}` : base;
     };
     const systemChatMessage = (): ProviderMessage => ({
@@ -3374,7 +3413,8 @@ export class UnifiedWebSocketRunner {
       for (const m of recent) {
         if (m.role === "assistant" && m.provider_session) {
           const s = m.provider_session;
-          if (s.providerId === providerId && s.model === model) probeSession = s;
+          if (s.providerId === providerId && s.model === model)
+            probeSession = s;
           break;
         }
         sinceSessionNewestFirst.push(m);
@@ -3464,8 +3504,7 @@ export class UnifiedWebSocketRunner {
     this.chatSessionAllow.set(threadId, sessionAllow);
     const requestApproval = (
       request: ApprovalRequest
-    ): Promise<ApprovalDecision> =>
-      this.requestToolApproval(threadId, request);
+    ): Promise<ApprovalDecision> => this.requestToolApproval(threadId, request);
     const baseTools = gateTools(dedupedToolbelt, {
       mode: permissionMode,
       sessionAllow,
@@ -3484,7 +3523,8 @@ export class UnifiedWebSocketRunner {
           ...(msg as unknown as Record<string, unknown>)
         };
         if (enriched.thread_id == null) enriched.thread_id = subtaskThreadId;
-        if (enriched.workflow_id == null) enriched.workflow_id = subtaskWorkflowId;
+        if (enriched.workflow_id == null)
+          enriched.workflow_id = subtaskWorkflowId;
         try {
           await this.sendMessage(enriched);
           // Tool calls inside a subtask only arrive here as transient
@@ -3571,8 +3611,12 @@ export class UnifiedWebSocketRunner {
       providerToolSchemas.push(...allSchemas);
     } else {
       // Resident = the minimal delegation primitives; everything else deferred.
-      const resident = allSchemas.filter((s) => RESIDENT_TOOL_NAMES.has(s.name));
-      const deferred = allSchemas.filter((s) => !RESIDENT_TOOL_NAMES.has(s.name));
+      const resident = allSchemas.filter((s) =>
+        RESIDENT_TOOL_NAMES.has(s.name)
+      );
+      const deferred = allSchemas.filter(
+        (s) => !RESIDENT_TOOL_NAMES.has(s.name)
+      );
       providerToolSchemas.push(...resident);
       deferredToolCount = deferred.length;
       if (deferred.length > 0) {
@@ -3763,10 +3807,7 @@ export class UnifiedWebSocketRunner {
       if (toolCall.name === "view_image") {
         const injected = extractInjectableImages(toolResult);
         if (injected) {
-          return [
-            { type: "text", text: injected.text },
-            ...injected.images
-          ];
+          return [{ type: "text", text: injected.text }, ...injected.images];
         }
       }
 
@@ -3822,10 +3863,7 @@ export class UnifiedWebSocketRunner {
               );
               persistedContent = materialized;
               content = materialized
-                .filter(
-                  (c) =>
-                    c.type === "text" && typeof c.text === "string"
-                )
+                .filter((c) => c.type === "text" && typeof c.text === "string")
                 .map((c) => c.text as string)
                 .join("");
             }
@@ -3863,7 +3901,7 @@ export class UnifiedWebSocketRunner {
               type: "message",
               role: "tool",
               tool_call_id: m.toolCallId ?? null,
-              name: m.toolCallId ? toolNames.get(m.toolCallId) ?? null : null,
+              name: m.toolCallId ? (toolNames.get(m.toolCallId) ?? null) : null,
               content: toolContent,
               thread_id: threadId,
               workflow_id: workflowId,
@@ -4326,8 +4364,7 @@ export class UnifiedWebSocketRunner {
     mediaGeneration: Record<string, unknown>,
     requestSeq?: number
   ): Promise<void> {
-    const threadId =
-      typeof data.thread_id === "string" ? data.thread_id : "";
+    const threadId = typeof data.thread_id === "string" ? data.thread_id : "";
     const workflowId =
       typeof data.workflow_id === "string" ? data.workflow_id : null;
     const userId = this.userId ?? "1";
@@ -4631,7 +4668,12 @@ export class UnifiedWebSocketRunner {
           ) {
             log.warn(
               "Requested audio_format not supported by provider; returning native format",
-              { providerId, modelId, requestedFormat, returnedMime: encoded.mimeType }
+              {
+                providerId,
+                modelId,
+                requestedFormat,
+                returnedMime: encoded.mimeType
+              }
             );
           }
           assetId = await storeMediaAsset(encoded.data, encoded.mimeType, ext);
@@ -4648,10 +4690,7 @@ export class UnifiedWebSocketRunner {
             speed,
             audioFormat: requestedFormat ?? undefined
           })) {
-            if (
-              requestSeq !== undefined &&
-              requestSeq !== this.chatRequestSeq
-            )
+            if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)
               return;
             if (chunk?.samples) {
               if (chunk.sampleRate) chunkSampleRate = chunk.sampleRate;
@@ -5445,9 +5484,7 @@ export class UnifiedWebSocketRunner {
     if (cached) return cached;
 
     const providersMod = await import("@nodetool-ai/runtime");
-    const { getSecret: getStoredSecret } = await import(
-      "@nodetool-ai/models"
-    );
+    const { getSecret: getStoredSecret } = await import("@nodetool-ai/models");
     const getSecret = (key: string) =>
       getStoredSecret(key, userId).then((v) => v ?? undefined);
     const ids: string[] = providersMod.listRegisteredProviderIds();
@@ -5579,26 +5616,24 @@ export class UnifiedWebSocketRunner {
    * image layers and the timeline's direct-gen video / audio clips; the
    * chat-path equivalents stay in `handleMediaGenerationMessage` for now.
    */
-  private async runDirectMediaGeneration(
-    req: {
-      mode: "image" | "image_edit" | "inpaint" | "video" | "audio";
-      provider: string;
-      model: string;
-      prompt: string;
-      sourceAssetId?: string;
-      maskAssetId?: string;
-      width?: number;
-      height?: number;
-      aspectRatio?: string;
-      resolution?: string;
-      strength?: number;
-      numInferenceSteps?: number;
-      variations?: number;
-      voice?: string;
-      speed?: number;
-      audioFormat?: string;
-    }
-  ): Promise<{ asset_ids: string[] }> {
+  private async runDirectMediaGeneration(req: {
+    mode: "image" | "image_edit" | "inpaint" | "video" | "audio";
+    provider: string;
+    model: string;
+    prompt: string;
+    sourceAssetId?: string;
+    maskAssetId?: string;
+    width?: number;
+    height?: number;
+    aspectRatio?: string;
+    resolution?: string;
+    strength?: number;
+    numInferenceSteps?: number;
+    variations?: number;
+    voice?: string;
+    speed?: number;
+    audioFormat?: string;
+  }): Promise<{ asset_ids: string[] }> {
     if (!this.resolveProvider) {
       throw new Error("No provider resolver configured");
     }
@@ -5782,8 +5817,10 @@ export class UnifiedWebSocketRunner {
         Asset.find(userId, req.sourceAssetId),
         Asset.find(userId, req.maskAssetId)
       ]);
-      if (!sourceAsset) throw new Error(`Source asset not found: ${req.sourceAssetId}`);
-      if (!maskAsset) throw new Error(`Mask asset not found: ${req.maskAssetId}`);
+      if (!sourceAsset)
+        throw new Error(`Source asset not found: ${req.sourceAssetId}`);
+      if (!maskAsset)
+        throw new Error(`Mask asset not found: ${req.maskAssetId}`);
       const [sourceBytes, maskBytes] = await Promise.all([
         adapter.retrieve(
           adapter.uriForKey(
@@ -5796,8 +5833,10 @@ export class UnifiedWebSocketRunner {
           )
         )
       ]);
-      if (!sourceBytes) throw new Error(`Source asset bytes not found: ${req.sourceAssetId}`);
-      if (!maskBytes) throw new Error(`Mask asset bytes not found: ${req.maskAssetId}`);
+      if (!sourceBytes)
+        throw new Error(`Source asset bytes not found: ${req.sourceAssetId}`);
+      if (!maskBytes)
+        throw new Error(`Mask asset bytes not found: ${req.maskAssetId}`);
       const params: InpaintingParams = {
         model: imageModel,
         prompt: req.prompt,
@@ -6170,7 +6209,9 @@ export class UnifiedWebSocketRunner {
       case "list_workflows": {
         const caller = this.getTrpcCaller();
         return this.runRpc(command, () =>
-          caller.workflows.list(data as Parameters<typeof caller.workflows.list>[0])
+          caller.workflows.list(
+            data as Parameters<typeof caller.workflows.list>[0]
+          )
         );
       }
       case "get_workflow": {

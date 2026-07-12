@@ -18,7 +18,12 @@
  */
 
 import { z } from "zod";
-import { TimelineSequence, Workflow, createTimeOrderedUuid } from "@nodetool-ai/models";
+import {
+  TimelineSequence,
+  TimelineSequenceConflictError,
+  Workflow,
+  createTimeOrderedUuid
+} from "@nodetool-ai/models";
 import type { TimelineDocument } from "@nodetool-ai/models";
 import type { ClipVersion } from "@nodetool-ai/timeline";
 import { makeClip } from "@nodetool-ai/timeline";
@@ -118,7 +123,9 @@ function isOutputNode(nodeType: string): boolean {
   return nodeType in OUTPUT_NODE_MEDIA_TYPES;
 }
 
-function mediaTypeForOutputNode(nodeType: string): "image" | "video" | "audio" | null {
+function mediaTypeForOutputNode(
+  nodeType: string
+): "image" | "video" | "audio" | null {
   return OUTPUT_NODE_MEDIA_TYPES[nodeType] ?? null;
 }
 
@@ -129,9 +136,13 @@ function isInputNode(nodeType: string): boolean {
 /** Extract the node's `name` property from its `data` or `dynamic_properties`. */
 function inputNodeName(node: Record<string, unknown>): string | null {
   const data = node.data as Record<string, unknown> | undefined;
-  return (data?.name as string | undefined) ??
-    ((node.dynamic_properties as Record<string, unknown> | undefined)?.name as string | undefined) ??
-    null;
+  return (
+    (data?.name as string | undefined) ??
+    ((node.dynamic_properties as Record<string, unknown> | undefined)?.name as
+      | string
+      | undefined) ??
+    null
+  );
 }
 
 /** Extract the default value for an input node from its `data`. */
@@ -148,6 +159,26 @@ const DEFAULT_DURATION_MS: Record<string, number> = {
   overlay: 4000
 };
 
+async function mutateTimelineDocument<T>(
+  id: string,
+  mutator: (
+    document: TimelineDocument,
+    sequence: TimelineSequence
+  ) => T | Promise<T>
+) {
+  try {
+    return await TimelineSequence.mutateDocument(id, mutator);
+  } catch (error) {
+    if (error instanceof TimelineSequenceConflictError) {
+      throwApiError(
+        ApiErrorCode.ALREADY_EXISTS,
+        "Timeline changed concurrently; retry the operation"
+      );
+    }
+    throw error;
+  }
+}
+
 // ── clips sub-router input ───────────────────────────────────────────────────
 
 // (defined in protocol; re-used here)
@@ -160,9 +191,7 @@ export const timelineRouter = router({
     .output(z.array(timelineSequenceListItem))
     .query(async ({ ctx, input }) => {
       const seqs = input.projectId
-        ? (await TimelineSequence.listByProject(input.projectId)).filter(
-            (s) => s.user_id === ctx.userId
-          )
+        ? await TimelineSequence.listByProject(input.projectId, ctx.userId)
         : await TimelineSequence.listByUser(ctx.userId);
       return seqs.map(toListItem);
     }),
@@ -211,8 +240,9 @@ export const timelineRouter = router({
         );
       }
 
-      const fields: Parameters<typeof TimelineSequence.updateFieldsIfUnchanged>[2] =
-        {};
+      const fields: Parameters<
+        typeof TimelineSequence.updateFieldsIfUnchanged
+      >[2] = {};
       if (input.name !== undefined) fields.name = input.name;
       if (input.fps !== undefined) fields.fps = input.fps;
       if (input.width !== undefined) fields.width = input.width;
@@ -302,40 +332,36 @@ export const timelineRouter = router({
 
         // Atomic read-modify-write: the mutator runs against a fresh snapshot on
         // every retry, so a concurrent append on a sibling clip is never lost.
-        const outcome = await TimelineSequence.mutateDocument(
-          input.id,
-          (doc) => {
-            const idx = doc.clips.findIndex((c) => c.id === input.clipId);
-            if (idx === -1) {
-              throwApiError(ApiErrorCode.NOT_FOUND, "Clip not found");
-            }
-
-            const clip = doc.clips[idx];
-            if (!clip.versions) clip.versions = [];
-            clip.versions.push(newVersion);
-
-            // ── Pruning (mirrors the sketch router) ───────────────────────
-            // Keep every favorite regardless of status, plus the newest
-            // non-favorite successful and non-favorite failed versions up to
-            // their caps. Favorites are not counted against the caps, so a
-            // favorited version (any status) is never pruned, and the
-            // just-pushed version — the newest non-favorite success — always
-            // survives even when favorites already fill MAX_SUCCESSFUL_VERSIONS.
-            const favorites = clip.versions.filter((v) => v.favorite);
-            const nonFavorite = clip.versions.filter((v) => !v.favorite);
-            const successful = nonFavorite
-              .filter((v) => v.status === "success")
-              .slice(-MAX_SUCCESSFUL_VERSIONS);
-            const failed = nonFavorite
-              .filter((v) => v.status !== "success")
-              .slice(-MAX_FAILED_VERSIONS);
-            clip.versions = [...favorites, ...successful, ...failed].sort(
-              (a, b) =>
-                new Date(a.createdAt).getTime() -
-                new Date(b.createdAt).getTime()
-            );
+        const outcome = await mutateTimelineDocument(input.id, (doc) => {
+          const idx = doc.clips.findIndex((c) => c.id === input.clipId);
+          if (idx === -1) {
+            throwApiError(ApiErrorCode.NOT_FOUND, "Clip not found");
           }
-        );
+
+          const clip = doc.clips[idx];
+          if (!clip.versions) clip.versions = [];
+          clip.versions.push(newVersion);
+
+          // ── Pruning (mirrors the sketch router) ───────────────────────
+          // Keep every favorite regardless of status, plus the newest
+          // non-favorite successful and non-favorite failed versions up to
+          // their caps. Favorites are not counted against the caps, so a
+          // favorited version (any status) is never pruned, and the
+          // just-pushed version — the newest non-favorite success — always
+          // survives even when favorites already fill MAX_SUCCESSFUL_VERSIONS.
+          const favorites = clip.versions.filter((v) => v.favorite);
+          const nonFavorite = clip.versions.filter((v) => !v.favorite);
+          const successful = nonFavorite
+            .filter((v) => v.status === "success")
+            .slice(-MAX_SUCCESSFUL_VERSIONS);
+          const failed = nonFavorite
+            .filter((v) => v.status !== "success")
+            .slice(-MAX_FAILED_VERSIONS);
+          clip.versions = [...favorites, ...successful, ...failed].sort(
+            (a, b) =>
+              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
+        });
         if (!outcome) {
           throwApiError(ApiErrorCode.NOT_FOUND, "Timeline sequence not found");
         }
@@ -349,26 +375,23 @@ export const timelineRouter = router({
       .mutation(async ({ ctx, input }) => {
         await loadOwned(ctx.userId, input.id);
 
-        const outcome = await TimelineSequence.mutateDocument(
-          input.id,
-          (doc) => {
-            const clipIdx = doc.clips.findIndex((c) => c.id === input.clipId);
-            if (clipIdx === -1) {
-              throwApiError(ApiErrorCode.NOT_FOUND, "Clip not found");
-            }
-            const clip = doc.clips[clipIdx];
-            const versionIdx = (clip.versions ?? []).findIndex(
-              (v) => v.id === input.versionId
-            );
-            if (versionIdx === -1) {
-              throwApiError(ApiErrorCode.NOT_FOUND, "Version not found");
-            }
-            const version = clip.versions![versionIdx];
-            const next = { ...version, favorite: input.favorite };
-            clip.versions![versionIdx] = next;
-            return next;
+        const outcome = await mutateTimelineDocument(input.id, (doc) => {
+          const clipIdx = doc.clips.findIndex((c) => c.id === input.clipId);
+          if (clipIdx === -1) {
+            throwApiError(ApiErrorCode.NOT_FOUND, "Clip not found");
           }
-        );
+          const clip = doc.clips[clipIdx];
+          const versionIdx = (clip.versions ?? []).findIndex(
+            (v) => v.id === input.versionId
+          );
+          if (versionIdx === -1) {
+            throwApiError(ApiErrorCode.NOT_FOUND, "Version not found");
+          }
+          const version = clip.versions![versionIdx];
+          const next = { ...version, favorite: input.favorite };
+          clip.versions![versionIdx] = next;
+          return next;
+        });
         if (!outcome) {
           throwApiError(ApiErrorCode.NOT_FOUND, "Timeline sequence not found");
         }
@@ -382,23 +405,20 @@ export const timelineRouter = router({
       .mutation(async ({ ctx, input }) => {
         await loadOwned(ctx.userId, input.id);
 
-        const outcome = await TimelineSequence.mutateDocument(
-          input.id,
-          (doc) => {
-            const clipIdx = doc.clips.findIndex((c) => c.id === input.clipId);
-            if (clipIdx === -1) {
-              throwApiError(ApiErrorCode.NOT_FOUND, "Clip not found");
-            }
-            const clip = doc.clips[clipIdx];
-            const before = (clip.versions ?? []).length;
-            clip.versions = (clip.versions ?? []).filter(
-              (v) => v.id !== input.versionId
-            );
-            if (clip.versions.length === before) {
-              throwApiError(ApiErrorCode.NOT_FOUND, "Version not found");
-            }
+        const outcome = await mutateTimelineDocument(input.id, (doc) => {
+          const clipIdx = doc.clips.findIndex((c) => c.id === input.clipId);
+          if (clipIdx === -1) {
+            throwApiError(ApiErrorCode.NOT_FOUND, "Clip not found");
           }
-        );
+          const clip = doc.clips[clipIdx];
+          const before = (clip.versions ?? []).length;
+          clip.versions = (clip.versions ?? []).filter(
+            (v) => v.id !== input.versionId
+          );
+          if (clip.versions.length === before) {
+            throwApiError(ApiErrorCode.NOT_FOUND, "Version not found");
+          }
+        });
         if (!outcome) {
           throwApiError(ApiErrorCode.NOT_FOUND, "Timeline sequence not found");
         }
@@ -415,10 +435,7 @@ export const timelineRouter = router({
         await loadOwned(ctx.userId, input.id);
 
         // Validate access to the source workflow.
-        const source = await Workflow.find(
-          ctx.userId!,
-          input.sourceWorkflowId
-        );
+        const source = await Workflow.find(ctx.userId!, input.sourceWorkflowId);
         if (!source) {
           throwApiError(
             ApiErrorCode.NOT_FOUND,
@@ -428,9 +445,7 @@ export const timelineRouter = router({
 
         const nodes = (source.graph?.nodes ?? []) as Record<string, unknown>[];
 
-        const outputNodes = nodes.filter((n) =>
-          isOutputNode(n.type as string)
-        );
+        const outputNodes = nodes.filter((n) => isOutputNode(n.type as string));
 
         if (outputNodes.length === 0) {
           throwApiError(
@@ -460,9 +475,8 @@ export const timelineRouter = router({
           );
         }
 
-        const rawMediaType = mediaTypeForOutputNode(
-          selectedOutputNode.type as string
-        ) ?? "image";
+        const rawMediaType =
+          mediaTypeForOutputNode(selectedOutputNode.type as string) ?? "image";
         const mediaType: "image" | "video" | "audio" | "overlay" =
           input.mediaTypeOverride === "overlay" && rawMediaType === "video"
             ? "overlay"
@@ -478,10 +492,13 @@ export const timelineRouter = router({
         }
 
         const durationMsInput = nodes.find(
-          (n) => isInputNode(n.type as string) && inputNodeName(n) === "duration_ms"
+          (n) =>
+            isInputNode(n.type as string) && inputNodeName(n) === "duration_ms"
         );
         const durationMs: number =
-          (durationMsInput ? (inputNodeDefault(durationMsInput) as number | null) : null) ??
+          (durationMsInput
+            ? (inputNodeDefault(durationMsInput) as number | null)
+            : null) ??
           DEFAULT_DURATION_MS[mediaType] ??
           4000;
 
@@ -516,12 +533,9 @@ export const timelineRouter = router({
           versions: []
         });
 
-        const outcome = await TimelineSequence.mutateDocument(
-          input.id,
-          (doc) => {
-            doc.clips.push(newClip);
-          }
-        );
+        const outcome = await mutateTimelineDocument(input.id, (doc) => {
+          doc.clips.push(newClip);
+        });
         if (!outcome) {
           throwApiError(ApiErrorCode.NOT_FOUND, "Timeline sequence not found");
         }
@@ -535,18 +549,13 @@ export const timelineRouter = router({
       .mutation(async ({ ctx, input }) => {
         await loadOwned(ctx.userId, input.id);
 
-        const outcome = await TimelineSequence.mutateDocument(
-          input.id,
-          (doc) => {
-            const clipIndex = doc.clips.findIndex(
-              (c) => c.id === input.clipId
-            );
-            if (clipIndex === -1) {
-              throwApiError(ApiErrorCode.NOT_FOUND, "Clip not found");
-            }
-            doc.clips.splice(clipIndex, 1);
+        const outcome = await mutateTimelineDocument(input.id, (doc) => {
+          const clipIndex = doc.clips.findIndex((c) => c.id === input.clipId);
+          if (clipIndex === -1) {
+            throwApiError(ApiErrorCode.NOT_FOUND, "Clip not found");
           }
-        );
+          doc.clips.splice(clipIndex, 1);
+        });
         if (!outcome) {
           throwApiError(ApiErrorCode.NOT_FOUND, "Timeline sequence not found");
         }
@@ -565,33 +574,30 @@ export const timelineRouter = router({
       .mutation(async ({ ctx, input }) => {
         await loadOwned(ctx.userId, input.id);
 
-        const outcome = await TimelineSequence.mutateDocument(
-          input.id,
-          (doc) => {
-            const src = doc.clips.find((c) => c.id === input.clipId);
-            if (!src) {
-              throwApiError(ApiErrorCode.NOT_FOUND, "Clip not found");
-            }
-
-            const newClip = makeClip({
-              ...src,
-              id: createTimeOrderedUuid(),
-              startMs: src.startMs + input.deltaMs,
-              workflowId: src.workflowId,
-              paramOverrides: src.paramOverrides
-                ? structuredClone(src.paramOverrides)
-                : undefined,
-              status: "draft",
-              locked: false,
-              currentAssetId: undefined,
-              lastGeneratedHash: undefined,
-              versions: []
-            });
-
-            doc.clips.push(newClip);
-            return newClip;
+        const outcome = await mutateTimelineDocument(input.id, (doc) => {
+          const src = doc.clips.find((c) => c.id === input.clipId);
+          if (!src) {
+            throwApiError(ApiErrorCode.NOT_FOUND, "Clip not found");
           }
-        );
+
+          const newClip = makeClip({
+            ...src,
+            id: createTimeOrderedUuid(),
+            startMs: src.startMs + input.deltaMs,
+            workflowId: src.workflowId,
+            paramOverrides: src.paramOverrides
+              ? structuredClone(src.paramOverrides)
+              : undefined,
+            status: "draft",
+            locked: false,
+            currentAssetId: undefined,
+            lastGeneratedHash: undefined,
+            versions: []
+          });
+
+          doc.clips.push(newClip);
+          return newClip;
+        });
         if (!outcome) {
           throwApiError(ApiErrorCode.NOT_FOUND, "Timeline sequence not found");
         }

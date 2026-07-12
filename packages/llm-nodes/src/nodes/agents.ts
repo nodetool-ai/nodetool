@@ -718,6 +718,7 @@ const CONTROL_TOOL_MARKER = Symbol("controlTool");
 interface ControlToolLike extends ToolLike {
   [CONTROL_TOOL_MARKER]: true;
   targetNodeId: string;
+  allowedProperties: ReadonlySet<string>;
 }
 
 function isControlTool(tool: ToolLike): tool is ControlToolLike {
@@ -733,12 +734,11 @@ function isControlTool(tool: ToolLike): tool is ControlToolLike {
  * recognized so the streaming splitter matches what `extractThinkTags` does.
  */
 const REDACTED_THINKING_OPEN = "<think>";
-const REDACTED_THINKING_CLOSES = [
-  "</redacted_thinking>",
-  "</think>"
-] as const;
+const REDACTED_THINKING_CLOSES = ["</redacted_thinking>", "</think>"] as const;
 
-function findEarliestThinkClose(buf: string): { idx: number; len: number } | null {
+function findEarliestThinkClose(
+  buf: string
+): { idx: number; len: number } | null {
   let best: { idx: number; len: number } | null = null;
   for (const c of REDACTED_THINKING_CLOSES) {
     const i = buf.indexOf(c);
@@ -750,7 +750,10 @@ function findEarliestThinkClose(buf: string): { idx: number; len: number } | nul
 }
 
 /** Longest suffix of buf that is a proper prefix of one of the candidate strings (for streaming). */
-function holdSuffixForPartialTag(buf: string, candidates: readonly string[]): number {
+function holdSuffixForPartialTag(
+  buf: string,
+  candidates: readonly string[]
+): number {
   const maxCheck = Math.max(
     0,
     ...candidates.map((c) => Math.max(0, c.length - 1))
@@ -775,7 +778,10 @@ function extractThinkTags(text: string): { thinking: string; text: string } {
     parts.push(orphan[1].trim());
     cleaned = cleaned.slice(0, orphan.index);
   }
-  return { thinking: parts.filter((p) => p.length > 0).join("\n\n"), text: cleaned.trim() };
+  return {
+    thinking: parts.filter((p) => p.length > 0).join("\n\n"),
+    text: cleaned.trim()
+  };
 }
 
 /**
@@ -786,7 +792,9 @@ class RedactedThinkingStreamSplitter {
   private buf = "";
   private inThink = false;
 
-  *feed(incoming: string): Generator<
+  *feed(
+    incoming: string
+  ): Generator<
     { kind: "text"; content: string } | { kind: "thinking"; content: string }
   > {
     if (!incoming) return;
@@ -796,7 +804,9 @@ class RedactedThinkingStreamSplitter {
       if (!this.inThink) {
         const openIdx = this.buf.indexOf(REDACTED_THINKING_OPEN);
         if (openIdx === -1) {
-          const keep = holdSuffixForPartialTag(this.buf, [REDACTED_THINKING_OPEN]);
+          const keep = holdSuffixForPartialTag(this.buf, [
+            REDACTED_THINKING_OPEN
+          ]);
           if (this.buf.length > keep) {
             const emitEnd = this.buf.length - keep;
             const out = this.buf.slice(0, emitEnd);
@@ -809,16 +819,17 @@ class RedactedThinkingStreamSplitter {
           const out = this.buf.slice(0, openIdx);
           if (out) yield { kind: "text", content: out };
         }
-        this.buf = this.buf.slice(
-          openIdx + REDACTED_THINKING_OPEN.length
-        );
+        this.buf = this.buf.slice(openIdx + REDACTED_THINKING_OPEN.length);
         this.inThink = true;
         continue;
       }
 
       const close = findEarliestThinkClose(this.buf);
       if (!close) {
-        const keep = holdSuffixForPartialTag(this.buf, REDACTED_THINKING_CLOSES);
+        const keep = holdSuffixForPartialTag(
+          this.buf,
+          REDACTED_THINKING_CLOSES
+        );
         if (this.buf.length > keep) {
           const emitEnd = this.buf.length - keep;
           const out = this.buf.slice(0, emitEnd);
@@ -905,6 +916,7 @@ function buildControlTools(controlContext: unknown): ControlToolLike[] {
   if (!controlContext || typeof controlContext !== "object") return [];
 
   const tools: ControlToolLike[] = [];
+  const usedNames = new Set<string>();
 
   for (const [targetId, info] of Object.entries(
     controlContext as Record<string, unknown>
@@ -915,7 +927,15 @@ function buildControlTools(controlContext: unknown): ControlToolLike[] {
     const nodeTitle = String(
       nodeInfo.node_title ?? nodeInfo.node_type ?? targetId
     );
-    const toolName = sanitizeControlToolName(nodeTitle);
+    const baseName = sanitizeControlToolName(nodeTitle);
+    let toolName = baseName;
+    let suffix = 2;
+    while (usedNames.has(toolName)) {
+      const suffixText = `_${suffix}`;
+      toolName = `${baseName.slice(0, 64 - suffixText.length)}${suffixText}`;
+      suffix++;
+    }
+    usedNames.add(toolName);
 
     // Build input schema from control_actions.run.properties
     const actions = (nodeInfo.control_actions ?? {}) as Record<string, unknown>;
@@ -936,7 +956,8 @@ function buildControlTools(controlContext: unknown): ControlToolLike[] {
     const inputSchema = {
       type: "object",
       properties,
-      required: [] as string[]
+      required: [] as string[],
+      additionalProperties: false
     };
 
     let description = `Control ${nodeTitle}: trigger execution with optional property overrides`;
@@ -948,6 +969,7 @@ function buildControlTools(controlContext: unknown): ControlToolLike[] {
     tools.push({
       [CONTROL_TOOL_MARKER]: true as const,
       targetNodeId: targetId,
+      allowedProperties: new Set(Object.keys(properties)),
       name: toolName,
       description,
       inputSchema,
@@ -1347,7 +1369,10 @@ export class SummarizerNode extends BaseNode {
         "Qwen3 4B offers multilingual summarization with tight, well-structured outputs.",
       size_on_disk: 2684354560
     },
-    { ...GEMMA_3_4B_IT_GGUF_BASE, description: "Efficient Gemma 3 for summarization via llama.cpp." }
+    {
+      ...GEMMA_3_4B_IT_GGUF_BASE,
+      description: "Efficient Gemma 3 for summarization via llama.cpp."
+    }
   ];
 
   @prop({
@@ -1780,7 +1805,10 @@ export class ExtractorNode extends BaseNode {
         "Reasoning-oriented DeepSeek shines when extraction needs cross-field validation.",
       size_on_disk: 4617089843
     },
-    { ...GEMMA_3_4B_IT_GGUF_BASE, description: "Efficient Gemma 3 for extraction via llama.cpp." }
+    {
+      ...GEMMA_3_4B_IT_GGUF_BASE,
+      description: "Efficient Gemma 3 for extraction via llama.cpp."
+    }
   ];
 
   @prop({
@@ -1956,7 +1984,10 @@ export class ClassifierNode extends BaseNode {
         "Reasoning-focused DeepSeek variant is great for multi-step label decisions.",
       size_on_disk: 912680550
     },
-    { ...GEMMA_3_4B_IT_GGUF_BASE, description: "Efficient Gemma 3 for classification via llama.cpp." }
+    {
+      ...GEMMA_3_4B_IT_GGUF_BASE,
+      description: "Efficient Gemma 3 for classification via llama.cpp."
+    }
   ];
 
   @prop({
@@ -2055,7 +2086,8 @@ export class ClassifierNode extends BaseNode {
           {
             role: "system",
             content:
-              asText(this.system_prompt ?? "").trim() || CLASSIFIER_SYSTEM_PROMPT
+              asText(this.system_prompt ?? "").trim() ||
+              CLASSIFIER_SYSTEM_PROMPT
           },
           {
             role: "user",
@@ -2228,7 +2260,11 @@ export class AgentNode extends BaseNode {
       downloads: 156909,
       likes: 135
     },
-    { ...GEMMA_3_4B_IT_GGUF_BASE, description: "Google's Gemma 3 4B in Q4_K_M quantization for efficient inference." },
+    {
+      ...GEMMA_3_4B_IT_GGUF_BASE,
+      description:
+        "Google's Gemma 3 4B in Q4_K_M quantization for efficient inference."
+    },
     {
       id: "ggml-org/gemma-3-12b-it-GGUF:gemma-3-12b-it-Q4_K_M.gguf",
       type: "llama_cpp_model",
@@ -2577,7 +2613,7 @@ export class AgentNode extends BaseNode {
     default: "You are a friendly assistant",
     title: "System",
     description:
-      "Instructions that define the agent's persona, role, tone, and global behaviour. Sent to the model as the system message at the start of every run, before any history or user prompt. Use it for things that should always hold (e.g. \"You are a senior Python reviewer. Reply in Markdown.\"). Leave the prompt itself for the per‑run task."
+      'Instructions that define the agent\'s persona, role, tone, and global behaviour. Sent to the model as the system message at the start of every run, before any history or user prompt. Use it for things that should always hold (e.g. "You are a senior Python reviewer. Reply in Markdown."). Leave the prompt itself for the per‑run task.'
   })
   declare system: string;
 
@@ -2729,7 +2765,8 @@ export class AgentNode extends BaseNode {
     // Build control tools from _control_context (injected by the kernel
     // for nodes that have outgoing control edges). This lets the LLM
     // call controlled nodes as tools.
-    const controlContext = this.getDynamic<Record<string, unknown>>("_control_context");
+    const controlContext =
+      this.getDynamic<Record<string, unknown>>("_control_context");
     const controlTools = buildControlTools(controlContext);
     if (controlTools.length > 0) {
       tools.push(...controlTools);
@@ -2816,11 +2853,14 @@ export class AgentNode extends BaseNode {
                 args: Record<string, unknown>
               ): Promise<string | MessageContent[]> => {
                 if (typeof tool.process !== "function") {
-                  log.warn("AgentNode tool call had no matching executable tool", {
-                    nodeId: this.__node_id ?? null,
-                    toolName: tool.name,
-                    availableTools: tools.map((candidate) => candidate.name)
-                  });
+                  log.warn(
+                    "AgentNode tool call had no matching executable tool",
+                    {
+                      nodeId: this.__node_id ?? null,
+                      toolName: tool.name,
+                      availableTools: tools.map((candidate) => candidate.name)
+                    }
+                  );
                   return JSON.stringify({
                     status: "error",
                     error: `Unknown or non-executable tool: ${tool.name}`
@@ -2830,7 +2870,11 @@ export class AgentNode extends BaseNode {
                 let result: unknown;
 
                 if (isControlTool(tool)) {
-                  const callArgs = args ?? {};
+                  const callArgs = Object.fromEntries(
+                    Object.entries(args ?? {}).filter(([key]) =>
+                      tool.allowedProperties.has(key)
+                    )
+                  );
                   log.info("AgentNode dispatching control tool", {
                     nodeId: this.__node_id ?? null,
                     toolName: tool.name,
@@ -2920,7 +2964,11 @@ export class AgentNode extends BaseNode {
             streamedRedactedThinking = true;
             yield {
               chunk: null,
-              thinking: { type: "chunk", content: part.content, thinking: true },
+              thinking: {
+                type: "chunk",
+                content: part.content,
+                thinking: true
+              },
               text: null,
               audio: null
             };
@@ -2949,7 +2997,11 @@ export class AgentNode extends BaseNode {
           if (thinkingText && !streamedRedactedThinking) {
             yield {
               chunk: null,
-              thinking: { type: "chunk", content: thinkingText, thinking: true },
+              thinking: {
+                type: "chunk",
+                content: thinkingText,
+                thinking: true
+              },
               text: null,
               audio: null
             };
@@ -3023,7 +3075,11 @@ export class AgentNode extends BaseNode {
           }
           const rawPiece = typeof item.content === "string" ? item.content : "";
           assistantText += rawPiece;
-          for (const y of yieldSplitThinkChunks(item, rawPiece, thinkSplitter)) {
+          for (const y of yieldSplitThinkChunks(
+            item,
+            rawPiece,
+            thinkSplitter
+          )) {
             if (y.thinking != null) streamedRedactedThinking = true;
             yield y;
           }
@@ -3148,7 +3204,8 @@ export class AgentNode extends BaseNode {
     const structuredSchema = getStructuredOutputSchema(this);
 
     // Build control tools
-    const controlContext = this.getDynamic<Record<string, unknown>>("_control_context");
+    const controlContext =
+      this.getDynamic<Record<string, unknown>>("_control_context");
     const controlTools = buildControlTools(controlContext);
     if (controlTools.length > 0) {
       rawTools.push(...controlTools);

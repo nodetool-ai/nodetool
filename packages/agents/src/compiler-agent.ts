@@ -34,17 +34,14 @@ import type {
 } from "@nodetool-ai/protocol";
 
 import { FinishStepTool } from "./tools/finish-step-tool.js";
-import {
-  MemoryListTool,
-  MemoryReadTool
-} from "./tools/memory-tools.js";
+import { MemoryListTool, MemoryReadTool } from "./tools/memory-tools.js";
 import { Tool } from "./tools/base-tool.js";
 import type { TaskPlan } from "./types.js";
+import { truncateToolResult } from "./constants.js";
 
 const log = createLogger("nodetool.agents.compiler-agent");
 
 const MAX_COMPILE_ROUNDS = 6;
-const MAX_TOOL_RESULT_CHARS = 20_000;
 
 const COMPILER_SYSTEM_PROMPT_STRUCTURED = `# Role
 You are the Compiler. The plan has finished gathering information; your only
@@ -306,13 +303,9 @@ export class CompilerAgent {
     ): Promise<string> => {
       try {
         const result = await Tool.executeTool(tool, this.context, args);
-        let serialized =
+        const serialized =
           typeof result === "string" ? result : JSON.stringify(result);
-        if (serialized.length > MAX_TOOL_RESULT_CHARS) {
-          serialized =
-            serialized.slice(0, MAX_TOOL_RESULT_CHARS) + "... [truncated]";
-        }
-        return serialized;
+        return truncateToolResult(serialized);
       } catch (e) {
         return JSON.stringify({ error: String(e) });
       }

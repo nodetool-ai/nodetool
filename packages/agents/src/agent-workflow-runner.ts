@@ -7,7 +7,10 @@
  */
 
 import { WorkflowRunner } from "@nodetool-ai/kernel";
-import { hydrateGraphNodeFlags, type NodeRegistry } from "@nodetool-ai/node-sdk";
+import {
+  hydrateGraphNodeFlags,
+  type NodeRegistry
+} from "@nodetool-ai/node-sdk";
 import type { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
 import type {
   GraphData,
@@ -44,9 +47,7 @@ export class AgentWorkflowRunner {
   /**
    * Execute a graph plan and yield ProcessingMessages live as the kernel emits them.
    */
-  async *execute(
-    graphData: GraphData
-  ): AsyncGenerator<ProcessingMessage> {
+  async *execute(graphData: GraphData): AsyncGenerator<ProcessingMessage> {
     const jobId = randomUUID();
     const { provider, model, registry, tools, context } = this.opts;
 
@@ -121,12 +122,14 @@ export class AgentWorkflowRunner {
       }
     } finally {
       ctx.emit = origEmit;
+      if (!done) {
+        runner.cancel();
+        await runPromise;
+      }
     }
 
     if (runError) {
-      throw runError instanceof Error
-        ? runError
-        : new Error(String(runError));
+      throw runError instanceof Error ? runError : new Error(String(runError));
     }
 
     const result = await runPromise;
@@ -157,7 +160,10 @@ export class AgentWorkflowRunner {
 
     // Yield a final step_result with the graph outputs so callers can
     // capture the result (Agent checks is_task_result).
-    if (result.status === "completed" && Object.keys(result.outputs).length > 0) {
+    if (
+      result.status === "completed" &&
+      Object.keys(result.outputs).length > 0
+    ) {
       yield {
         type: "step_result",
         step: { name: "graph_execution", status: "completed" },

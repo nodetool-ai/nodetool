@@ -89,7 +89,7 @@ export class TimelineSequence extends DBModel {
   }
 
   override beforeSave(): void {
-    this.updated_at = new Date().toISOString();
+    this.updated_at = nextUpdatedAtAfter(this.updated_at);
     const doc = JSON.parse(this.document);
     if (
       !Array.isArray(doc.tracks) ||
@@ -173,25 +173,27 @@ export class TimelineSequence extends DBModel {
       .where(eq(timelineSequences.user_id, userId))
       .orderBy(desc(timelineSequences.updated_at))
       .limit(limit);
-    return rows.map(
-      (r: Record<string, unknown>) => new TimelineSequence(r)
-    );
+    return rows.map((r: Record<string, unknown>) => new TimelineSequence(r));
   }
 
   static async listByProject(
     projectId: string,
+    userId: string,
     limit = 50
   ): Promise<TimelineSequence[]> {
     const db = getDb();
     const rows = await db
       .select()
       .from(timelineSequences)
-      .where(eq(timelineSequences.project_id, projectId))
+      .where(
+        and(
+          eq(timelineSequences.user_id, userId),
+          eq(timelineSequences.project_id, projectId)
+        )
+      )
       .orderBy(desc(timelineSequences.updated_at))
       .limit(limit);
-    return rows.map(
-      (r: Record<string, unknown>) => new TimelineSequence(r)
-    );
+    return rows.map((r: Record<string, unknown>) => new TimelineSequence(r));
   }
 
   /**
