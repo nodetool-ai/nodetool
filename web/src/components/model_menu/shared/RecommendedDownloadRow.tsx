@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
-import { Check } from "@mui/icons-material";
+import Check from "@mui/icons-material/Check";
 import DownloadIcon from "@mui/icons-material/Download";
 import {
   Box,

@@ -1,5 +1,5 @@
 import React, { memo, useCallback } from "react";
-import { Check } from "@mui/icons-material";
+import Check from "@mui/icons-material/Check";
 import {
   BORDER_RADIUS,
   Chip,

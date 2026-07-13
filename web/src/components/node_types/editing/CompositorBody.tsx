@@ -219,6 +219,14 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
     return (state: NodeStoreState) => {
       if (state.edges === edgesCacheRef.current.src) return edgesCacheRef.current.result;
       const filtered = state.edges.filter((e) => e.target === id);
+      const prev = edgesCacheRef.current.result;
+      if (
+        prev.length === filtered.length &&
+        prev.every((edge, i) => edge === filtered[i])
+      ) {
+        edgesCacheRef.current = { src: state.edges, result: prev };
+        return prev;
+      }
       edgesCacheRef.current = { src: state.edges, result: filtered };
       return filtered;
     };
