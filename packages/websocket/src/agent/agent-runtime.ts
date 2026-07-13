@@ -257,7 +257,13 @@ class AgentRuntime {
         if (
           serialized.session_id &&
           serialized.session_id !== sessionId &&
-          !this.activeSessions.has(serialized.session_id)
+          !this.activeSessions.has(serialized.session_id) &&
+          // Only re-key while the original session is still the active mapping.
+          // A trailing message (e.g. the error emitted from send()'s catch after
+          // an abort) can fire AFTER closeSession() removed this session; without
+          // this guard it would re-insert a closed session under the resolved id,
+          // leaking the entry and breaking later sends to that id.
+          this.activeSessions.get(sessionId) === session
         ) {
           // The session resolved its real id (e.g. our DB thread id for the
           // LLM provider). Re-key under that id and stamp ownership so

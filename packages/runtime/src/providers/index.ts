@@ -48,6 +48,11 @@ import { JinaProvider } from "./jina-provider.js";
 import { FakeProvider } from "./fake-provider.js";
 export { BaseProvider, providerCapabilities } from "./base-provider.js";
 export type { ProviderCapability } from "./base-provider.js";
+export {
+  isSafePublicHttpsUrl,
+  assertSafePublicHttpsUrl,
+  safeFetch
+} from "./safe-url.js";
 export { AnthropicProvider };
 export { ClaudeAgentProvider };
 export { GeminiProvider };

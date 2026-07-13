@@ -235,6 +235,61 @@ describe("buildSandbox", () => {
       "not available without a context"
     );
   });
+
+  it("blocks SSRF to metadata / loopback / private hosts and non-http schemes", async () => {
+    const { sandbox } = buildSandbox();
+    const fetchFn = sandbox.fetch as (u: string) => Promise<unknown>;
+    for (const url of [
+      "http://169.254.169.254/latest/meta-data/",
+      "http://127.0.0.1:7777/api",
+      "http://localhost/x",
+      "http://10.0.0.5/internal",
+      "http://192.168.1.1/",
+      "http://[::1]/",
+      "file:///etc/passwd"
+    ]) {
+      await expect(fetchFn(url)).rejects.toThrow(/blocked|unsupported|invalid/i);
+    }
+  });
+});
+
+describe("buildSandbox workspace symlink containment", () => {
+  it("blocks reads/writes through a symlink that escapes the workspace", async () => {
+    const { mkdtemp, rm, writeFile, symlink } = await import(
+      "node:fs/promises"
+    );
+    const { tmpdir } = await import("node:os");
+    const { join, isAbsolute } = await import("node:path");
+    const ws = await mkdtemp(join(tmpdir(), "sbx-ws-"));
+    const outside = await mkdtemp(join(tmpdir(), "sbx-out-"));
+    try {
+      await writeFile(join(outside, "secret.txt"), "SECRET\n");
+      await symlink(join(outside, "secret.txt"), join(ws, "link.txt"));
+      const context = {
+        resolveWorkspacePath: (p: string) =>
+          isAbsolute(p) ? p : join(ws, p)
+      } as never;
+      const { sandbox } = buildSandbox(context);
+      const workspace = sandbox.workspace as {
+        read: (p: string) => Promise<string>;
+        write: (p: string, c: string) => Promise<void>;
+      };
+      await expect(workspace.read("link.txt")).rejects.toThrow(
+        /outside the workspace/i
+      );
+      await expect(workspace.write("link.txt", "PWNED")).rejects.toThrow(
+        /outside the workspace/i
+      );
+      // Host file untouched.
+      const { readFile } = await import("node:fs/promises");
+      expect(await readFile(join(outside, "secret.txt"), "utf-8")).toBe(
+        "SECRET\n"
+      );
+    } finally {
+      await rm(ws, { recursive: true, force: true });
+      await rm(outside, { recursive: true, force: true });
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------

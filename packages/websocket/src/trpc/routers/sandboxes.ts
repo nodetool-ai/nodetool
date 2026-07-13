@@ -132,6 +132,10 @@ async function runDockerStrict(args: string[]): Promise<string> {
     const normalizedStderr = stderr.trim().toLowerCase();
     if (
       normalizedStderr.includes("no such container") ||
+      // `docker inspect <id>` prints "No such object: <id>" for a missing
+      // container, which matches neither substring above — so a request for a
+      // removed sandbox surfaced as a 500 instead of a 404.
+      normalizedStderr.includes("no such object") ||
       normalizedStderr.includes("not found")
     ) {
       throw new TRPCError({

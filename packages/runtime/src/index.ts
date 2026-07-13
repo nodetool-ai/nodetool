@@ -28,6 +28,7 @@ export {
 export * from "./providers/index.js";
 export {
   initTelemetry,
+  shutdownTelemetry,
   getTracer,
   type TelemetryOptions
 } from "./telemetry.js";

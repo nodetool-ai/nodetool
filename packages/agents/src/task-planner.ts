@@ -207,7 +207,13 @@ export class TaskPlanner {
     return hashPlanKey({
       objective,
       tools: this.tools.map((t) => t.name),
-      model: this.model
+      model: this.model,
+      outputSchema: this.outputSchema ?? null,
+      inputKeys: Object.keys(this.inputs),
+      systemPrompt:
+        this.systemPrompt !== DEFAULT_PLANNING_SYSTEM_PROMPT
+          ? this.systemPrompt
+          : null
     });
   }
 
@@ -373,7 +379,11 @@ export class TaskPlanner {
           status: "success",
           content: `Plan cache hit: ${cached.title} (${cached.tasks.length} tasks)`
         } satisfies PlanningUpdate;
-        return cached;
+        // Return a private deep copy: execution mutates the plan in place
+        // (task.completed = true, step.logs.push, …). Handing out the cached
+        // reference would leave the template marked completed, so the NEXT
+        // cache hit would run zero tasks and produce an empty result.
+        return structuredClone(cached);
       }
     }
 
@@ -601,8 +611,10 @@ export class TaskPlanner {
 
     if (finished) {
       // Persist a successful plan so an identical objective + tool set reuses it.
+      // Store a deep copy so the executor's in-place mutation of the returned
+      // plan cannot corrupt the cached template.
       if (planCache && planKey && builder.plan) {
-        planCache.set(planKey, builder.plan);
+        planCache.set(planKey, structuredClone(builder.plan));
       }
       return builder.plan;
     }

@@ -311,6 +311,18 @@ export interface PythonBridge extends EventEmitter {
     model: string,
     options?: Record<string, unknown>
   ): Promise<Record<string, unknown>>;
+  providerStream(
+    providerId: string,
+    messages: Record<string, unknown>[],
+    model: string,
+    options?: Record<string, unknown>
+  ): AsyncGenerator<Record<string, unknown>>;
+  providerTTS(
+    providerId: string,
+    text: string,
+    model: string,
+    options?: Record<string, unknown>
+  ): AsyncGenerator<Uint8Array>;
   providerTextToImage(
     providerId: string,
     params: Record<string, unknown>,

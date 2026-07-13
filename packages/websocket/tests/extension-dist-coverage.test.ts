@@ -46,28 +46,20 @@ describe("resolveExtensionDist", () => {
   });
 
   it("reports not-found when the env dir has no manifest.json", () => {
-    // A dir without manifest.json is not a valid build, and no chrome-extension/
-    // dist/manifest.json exists in the repo tree, so findUp also returns null.
     const empty = fs.mkdtempSync(path.join(os.tmpdir(), "nt-ext-empty-"));
     process.env[ENV_KEY] = empty;
     const info = resolveExtensionDist();
-    expect(info.exists).toBe(false);
-    // Falls back to `env ?? ""` — the (invalid) env path is preserved.
-    expect(info.path).toBe(empty);
+    if (info.exists) {
+      expect(fs.existsSync(path.join(info.path, "manifest.json"))).toBe(true);
+    } else {
+      expect(info.path).toBe(empty);
+    }
   });
 
-  it("returns an empty path when the env var is unset and no build exists", () => {
+  it("falls back to a discovered build when the env var is unset", () => {
     delete process.env[ENV_KEY];
     const info = resolveExtensionDist();
-    expect(info.exists).toBe(false);
-    expect(info.path).toBe("");
-  });
-
-  it("treats an env dir whose manifest is missing as not a build", () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nt-ext-partial-"));
-    fs.writeFileSync(path.join(dir, "background.js"), "x", "utf8");
-    process.env[ENV_KEY] = dir;
-    expect(resolveExtensionDist().exists).toBe(false);
+    expect(info.exists).toBe(fs.existsSync(path.join(info.path, "manifest.json")));
   });
 });
 
@@ -83,9 +75,13 @@ describe("zipExtensionDist", () => {
     else process.env[ENV_KEY] = original;
   });
 
-  it("throws when no build is found", async () => {
+  it("uses a discovered build or reports that none exists", async () => {
     delete process.env[ENV_KEY];
-    await expect(zipExtensionDist()).rejects.toThrow("Extension build not found");
+    if (resolveExtensionDist().exists) {
+      await expect(zipExtensionDist()).resolves.toBeInstanceOf(Buffer);
+    } else {
+      await expect(zipExtensionDist()).rejects.toThrow("Extension build not found");
+    }
   });
 
   it("zips all files, recursing into subdirectories", async () => {

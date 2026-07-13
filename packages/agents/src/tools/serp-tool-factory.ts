@@ -60,5 +60,10 @@ export async function resolveSerpProvider(
   context: ProcessingContext
 ): Promise<SerpProvider> {
   const providerType = await getSerpProviderSetting(context);
-  return createSerpProvider(providerType, { getSecret: context.getSecret });
+  // Bind getSecret to its ProcessingContext receiver. Passing the bare method
+  // reference detaches `this`, so context._secretResolver/userId are undefined
+  // and the secret store is never consulted — SERP keys stored there are lost.
+  return createSerpProvider(providerType, {
+    getSecret: (key: string) => context.getSecret(key)
+  });
 }

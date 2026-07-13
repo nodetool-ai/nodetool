@@ -110,7 +110,7 @@ export class FileUserManager {
   async addUser(username: string, role = "user"): Promise<CreateUserResult> {
     return this.withLock(async () => {
       const data = await this.load();
-      if (data.users[username]) {
+      if (Object.hasOwn(data.users, username)) {
         throw new Error(`User '${username}' already exists`);
       }
       const token = this.generateToken();
@@ -131,7 +131,7 @@ export class FileUserManager {
   async removeUser(username: string): Promise<void> {
     return this.withLock(async () => {
       const data = await this.load();
-      if (!data.users[username]) {
+      if (!Object.hasOwn(data.users, username)) {
         throw new Error(`User '${username}' not found`);
       }
       delete data.users[username];
@@ -142,7 +142,9 @@ export class FileUserManager {
   async resetToken(username: string): Promise<CreateUserResult> {
     return this.withLock(async () => {
       const data = await this.load();
-      const existing = data.users[username];
+      const existing = Object.hasOwn(data.users, username)
+        ? data.users[username]
+        : undefined;
       if (!existing) {
         throw new Error(`User '${username}' not found`);
       }
@@ -171,6 +173,9 @@ export class FileUserManager {
 
   async getUser(username: string): Promise<UserRecord | null> {
     const data = await this.load();
-    return data.users[username] ?? null;
+    // Own-property check: a bare index of `__proto__`/`constructor`/`toString`
+    // returns an inherited Object.prototype value (truthy), which bypasses the
+    // not-found guard and later crashes on the non-UserRecord shape.
+    return Object.hasOwn(data.users, username) ? data.users[username] : null;
   }
 }

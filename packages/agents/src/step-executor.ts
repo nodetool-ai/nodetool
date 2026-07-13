@@ -38,7 +38,7 @@ import {
 import { ControlNodeTool } from "./tools/control-tool.js";
 import { FinishStepTool } from "./tools/finish-step-tool.js";
 import { getMemoryTools } from "./tools/memory-tools.js";
-import { MAX_TOOL_RESULT_CHARS } from "./constants.js";
+import { truncateToolResult } from "./constants.js";
 
 const log = createLogger("nodetool.agents.step-executor");
 
@@ -247,12 +247,14 @@ function validateAndSanitizeSchema(
 
 function removeThinkTags(text: string | null | undefined): string {
   if (!text) return "";
+  // Only strip well-formed PAIRED reasoning blocks (each opener with its own
+  // matching close, non-greedy). The previous open-ended `/<think>[\s\S]*/`
+  // deleted everything after the first literal "<think>", silently truncating
+  // legit answers that merely mention the substring; and it hardcoded <think>
+  // as the opener, so <redacted_thinking> blocks leaked through.
   return text
-    .replace(
-      /<think>[\s\S]*?<\/(?:redacted_thinking|think)>/g,
-      ""
-    )
-    .replace(/<think>[\s\S]*/g, "")
+    .replace(/<think>[\s\S]*?<\/think>/g, "")
+    .replace(/<redacted_thinking>[\s\S]*?<\/redacted_thinking>/g, "")
     .trim();
 }
 
@@ -471,7 +473,9 @@ export class StepExecutor {
     }
     if (
       expectedType === "object" &&
-      (typeof normalized !== "object" || normalized === null)
+      (typeof normalized !== "object" ||
+        normalized === null ||
+        Array.isArray(normalized))
     ) {
       return [false, `Expected object, got ${typeof normalized}`, normalized];
     }
@@ -572,13 +576,7 @@ export class StepExecutor {
     try {
       const normalized = normalizeToolResult(toolResult);
       const serialized = JSON.stringify(normalized);
-      if (serialized.length > MAX_TOOL_RESULT_CHARS) {
-        return (
-          serialized.slice(0, MAX_TOOL_RESULT_CHARS) +
-          "... [truncated to maintain context size]"
-        );
-      }
-      return serialized;
+      return truncateToolResult(serialized);
     } catch (e) {
       return JSON.stringify({
         error: `Failed to serialize tool result: ${e}`,
@@ -810,7 +808,6 @@ export class StepExecutor {
 
     return parts.join("\n");
   }
-
 
   /**
    * Execute the step, yielding ProcessingMessages as progress updates.

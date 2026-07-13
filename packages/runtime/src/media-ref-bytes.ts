@@ -80,14 +80,24 @@ export function isAbsoluteFilePath(uri: string): boolean {
 
 /** Decode a `data:` URI's payload, honoring the `;base64` header flag. */
 function decodeDataUri(uri: string): Uint8Array | null {
-  const parts = uri.split(",", 2);
-  if (parts.length !== 2) {
+  // Split on the FIRST comma only: the header ends there and everything after
+  // is payload. `split(",", 2)` would discard payload past a second comma,
+  // corrupting non-base64 data (SVG path data, CSV, text) that contains commas.
+  const comma = uri.indexOf(",");
+  if (comma < 0) {
     return null;
   }
-  const [header, data] = parts;
-  return header.includes(";base64")
-    ? decodeBase64(data)
-    : encodeUtf8(decodeURIComponent(data));
+  const header = uri.slice(0, comma);
+  const data = uri.slice(comma + 1);
+  try {
+    // decodeURIComponent throws URIError on a malformed percent-escape; the
+    // resolver contract is null-on-failure, so never let that escape.
+    return header.includes(";base64")
+      ? decodeBase64(data)
+      : encodeUtf8(decodeURIComponent(data));
+  } catch {
+    return null;
+  }
 }
 
 async function readUriBytes(uri: string): Promise<Uint8Array | null> {

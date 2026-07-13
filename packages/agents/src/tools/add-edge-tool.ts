@@ -98,6 +98,11 @@ export class AddEdgeTool extends Tool {
     let sourceType: string | undefined;
     let targetType: string | undefined;
 
+    // A reserved handle like `__value__` is used by dynamic nodes and never
+    // appears in static metadata.
+    const isReservedHandle = (h: string): boolean =>
+      h.startsWith("__") && h.endsWith("__");
+
     const sourceNode = this.builder.getNode(source);
     if (sourceNode && sourceNode.type !== AGENT_STEP_NODE_TYPE) {
       const meta = this.registry.getMetadata(sourceNode.type);
@@ -105,7 +110,15 @@ export class AddEdgeTool extends Tool {
         const output = meta.outputs.find(
           (o: NodeMetadata["outputs"][number]) => o.name === sourceHandle
         );
-        if (meta.outputs.length > 0 && !output) {
+        // Dynamic-output nodes accept handles absent from static metadata;
+        // mirror validateGraph and don't reject those (leave the type
+        // undefined so the compatibility check is skipped).
+        if (
+          meta.outputs.length > 0 &&
+          !output &&
+          !meta.supports_dynamic_outputs &&
+          !isReservedHandle(sourceHandle)
+        ) {
           validationErrors.push(
             `Source node '${source}' (${sourceNode.type}) has no output '${sourceHandle}'. Available: ${meta.outputs.map((o: { name: string }) => o.name).join(", ")}`
           );
@@ -122,7 +135,13 @@ export class AddEdgeTool extends Tool {
         const input = meta.properties.find(
           (p: NodeMetadata["properties"][number]) => p.name === targetHandle
         );
-        if (meta.properties.length > 0 && !input) {
+        // Dynamic-input nodes accept handles absent from static metadata.
+        if (
+          meta.properties.length > 0 &&
+          !input &&
+          meta.supports_dynamic_inputs !== true &&
+          !isReservedHandle(targetHandle)
+        ) {
           validationErrors.push(
             `Target node '${target}' (${targetNode.type}) has no input '${targetHandle}'. Available: ${meta.properties.map((p: { name: string }) => p.name).join(", ")}`
           );

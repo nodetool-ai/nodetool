@@ -124,15 +124,46 @@ export function executeComfy(
     }
   };
 
+  // Frames that arrive after 'open' but before listenForCompletion attaches its
+  // real handler (i.e. during the /prompt submit round-trip). ComfyUI can
+  // dequeue and finish a cached prompt within milliseconds of returning the
+  // prompt_id, emitting its terminal events in this window; the `ws` library
+  // drops 'message' events with no listener, so buffer them and replay.
+  const preListenBuffer: unknown[] = [];
+  const bufferListener = (raw: unknown) => {
+    preListenBuffer.push(raw);
+  };
+
   const result = (async (): Promise<ComfyExecutorResult> => {
     // Connect WebSocket FIRST so we don't miss any events
     const wsUrl = toWsUrl(base, clientId);
     try {
-      ws = new WebSocket(wsUrl);
+      // Bound the handshake: `ws` has no default handshake timeout, so a host
+      // that accepts the TCP connection but never completes the WS upgrade
+      // (hung proxy, wrong port, black-hole) would leave neither "open" nor
+      // "error" firing and the awaited promise — and the node actor — hung
+      // forever (the run watchdog is only armed later, in listenForCompletion).
+      ws = new WebSocket(wsUrl, { handshakeTimeout: timeoutMs });
       await new Promise<void>((resolve, reject) => {
-        ws!.on("open", resolve);
-        ws!.on("error", reject);
+        const connectTimer = setTimeout(() => {
+          reject(
+            new Error(
+              `ComfyUI WebSocket did not open within ${timeoutMs}ms`
+            )
+          );
+        }, timeoutMs);
+        ws!.on("open", () => {
+          clearTimeout(connectTimer);
+          resolve();
+        });
+        ws!.on("error", (err) => {
+          clearTimeout(connectTimer);
+          reject(err);
+        });
       });
+      // Start buffering immediately so events during the submit round-trip
+      // below are not lost before listenForCompletion attaches its handler.
+      ws.on("message", bufferListener);
       log.info(`ComfyUI WebSocket connected: ${wsUrl}`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -157,10 +188,14 @@ export function executeComfy(
       log.info(
         `Submitting prompt to ${url} (${body.length} bytes, ${Object.keys(prompt).length} nodes)`
       );
+      // Bound the submit: it runs after the WS handshake resolves but before
+      // listenForCompletion arms its watchdog, so a server that accepts the
+      // connection but never responds would hang the node forever otherwise.
       const submitRes = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body
+        body,
+        signal: AbortSignal.timeout(timeoutMs)
       });
       if (!submitRes.ok) {
         const text = await submitRes.text();
@@ -201,13 +236,16 @@ export function executeComfy(
       onNodeOutput
     };
 
-    // Listen for progress events on the already-connected WebSocket
+    // Listen for progress events on the already-connected WebSocket. Hand off
+    // the buffered frames (and the buffer listener to detach) so any terminal
+    // event that arrived during submit is replayed rather than lost.
     const listenResult = await listenForCompletion(
       ws,
       promptId,
       onProgress,
       timeoutMs,
-      streamState
+      streamState,
+      { bufferListener, bufferedFrames: preListenBuffer }
     );
 
     if (listenResult.status === "failed") {
@@ -271,7 +309,11 @@ function listenForCompletion(
   promptId: string,
   onProgress: ((event: ComfyProgressEvent) => void) | undefined,
   timeoutMs: number,
-  stream: ComfyStreamState
+  stream: ComfyStreamState,
+  buffer?: {
+    bufferListener: (raw: unknown) => void;
+    bufferedFrames: unknown[];
+  }
 ): Promise<ComfyExecutorResult> {
   return new Promise((resolve) => {
     let settled = false;
@@ -314,7 +356,7 @@ function listenForCompletion(
       }
     });
 
-    ws.on("message", (raw) => {
+    const messageHandler = (raw: WebSocket.RawData) => {
       if (settled) return; // Guard against late messages in receive buffer
 
       let msg: { type?: string; data?: Record<string, unknown> };
@@ -423,7 +465,37 @@ function listenForCompletion(
           settle({ status: "failed", error: "Execution interrupted" });
           break;
       }
-    });
+    };
+
+    // Detach the pre-listen buffer, attach the real handler for live frames,
+    // then replay any frames buffered during the submit window (in order). A
+    // terminal event that arrived before this point is thus not lost.
+    if (buffer) {
+      ws.off("message", buffer.bufferListener);
+    }
+    ws.on("message", messageHandler);
+    if (buffer) {
+      for (const raw of buffer.bufferedFrames) {
+        if (settled) break;
+        messageHandler(raw as WebSocket.RawData);
+      }
+    }
+
+    // Only after replaying buffered frames: if a completion arrived during the
+    // submit window it has already settled us above. If we're still unsettled
+    // and the socket already closed/errored during that window (those events
+    // won't re-fire on the freshly-attached "close" listener), fail fast rather
+    // than hang for the full timeout.
+    if (
+      !settled &&
+      (ws.readyState === WebSocket.CLOSING ||
+        ws.readyState === WebSocket.CLOSED)
+    ) {
+      settle({
+        status: "failed",
+        error: "ComfyUI WebSocket closed before result streaming began"
+      });
+    }
   });
 }
 
@@ -566,7 +638,10 @@ export async function uploadComfyFile(
   form.append("overwrite", "true");
   const res = await fetch(`${base}/upload/image`, {
     method: "POST",
-    body: form
+    body: form,
+    // Bound the upload so a stalled ComfyUI endpoint rejects instead of hanging
+    // the caller indefinitely, matching the download/history fetches.
+    signal: AbortSignal.timeout(IMAGE_FETCH_TIMEOUT_MS)
   });
   if (!res.ok) {
     const text = await res.text();

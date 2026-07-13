@@ -120,15 +120,25 @@ export interface ImageRegion {
  * out-of-frame region yields the overlapping area rather than an error. When
  * `sharp` is unavailable (off Node, or a broken native addon) the original
  * bytes are returned unchanged with `width`/`height` 0 — the caller still gets
- * a viewable full image, just uncropped.
+ * a viewable full image, just uncropped. In that pass-through case the returned
+ * `mimeType` is `opts.sourceMime` (the caller's known format) so the bytes are
+ * never mislabeled; it falls back to `image/png` only when the caller didn't
+ * provide one.
  */
 export async function extractImageRegion(
   bytes: Uint8Array,
-  opts: { region?: ImageRegion; maxSide?: number } = {}
+  opts: { region?: ImageRegion; maxSide?: number; sourceMime?: string } = {}
 ): Promise<{ data: Uint8Array; mimeType: string; width: number; height: number }> {
   const sharp = await loadSharp();
   if (!sharp) {
-    return { data: bytes, mimeType: "image/png", width: 0, height: 0 };
+    // No re-encode happened — keep the true source mime rather than claiming
+    // PNG for what may be JPEG/WebP/GIF bytes (which a vision provider rejects).
+    return {
+      data: bytes,
+      mimeType: opts.sourceMime || "image/png",
+      width: 0,
+      height: 0
+    };
   }
 
   let pipeline = sharp(Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength), {

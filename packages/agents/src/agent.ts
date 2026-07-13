@@ -828,12 +828,15 @@ export class Agent {
     compiled = next.value;
 
     if (compiled !== null && compiled !== undefined) {
-      this.results =
+      // Only shoe-horn a plain-string compiler result into { markdown } when the
+      // schema is object-typed (prose that must be wrapped to satisfy an object
+      // shape). A string-typed outputSchema legitimately yields a string via
+      // finish_step; wrapping it would violate the caller's declared schema.
+      const wrapAsMarkdown =
         this.outputFormat === "structured" &&
-        this.outputSchema &&
-        typeof compiled === "string"
-          ? { markdown: compiled }
-          : compiled;
+        this.outputSchema?.type === "object" &&
+        typeof compiled === "string";
+      this.results = wrapAsMarkdown ? { markdown: compiled } : compiled;
     } else {
       // Compiler timed out — fall back to the executor's last task result so
       // the caller still gets something rather than null.

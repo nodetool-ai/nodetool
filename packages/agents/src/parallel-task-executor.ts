@@ -356,6 +356,19 @@ export class ParallelTaskExecutor {
         content: `Task "${task.title}" (${task.id}) failed: ${failureReason}`,
         severity: "error"
       } satisfies LogUpdate;
+      // Emit a terminal task_update so lifecycle consumers (ExecutionTree, chat
+      // UI) resolve the task instead of leaving its spinner running forever.
+      // The success path yields TaskCompleted; the failure path must yield a
+      // terminal event too — mirror StepExecutor's StepFailed emission.
+      yield {
+        type: "task_update",
+        event: TaskUpdateEvent.TaskFailed,
+        task: {
+          id: task.id,
+          title: task.title,
+          error: failureReason
+        } as TaskUpdate["task"]
+      } satisfies TaskUpdate;
       return;
     }
 
@@ -412,6 +425,22 @@ export class ParallelTaskExecutor {
       const value = this.context.memory.getValue(memoryKeys.step(step.id));
       if (isErrorResult(value)) {
         return `step ${step.id}: ${value.error}`;
+      }
+      // A process-mode (fan-out) step always stores an array of per-item
+      // results and is always marked completed, even when every item failed
+      // (each item is an `{ error }` object). isErrorResult returns false for
+      // arrays, so an all-failed fan-out would otherwise be recorded as a
+      // success and checkpointed, never retried. Treat a non-empty array whose
+      // every element is an error result as a failed step.
+      if (
+        Array.isArray(value) &&
+        value.length > 0 &&
+        value.every((item) => isErrorResult(item))
+      ) {
+        const first = value.find((item) => isErrorResult(item)) as {
+          error: string;
+        };
+        return `step ${step.id}: all ${value.length} fan-out item(s) failed (${first.error})`;
       }
     }
     if (isErrorResult(taskResult)) {

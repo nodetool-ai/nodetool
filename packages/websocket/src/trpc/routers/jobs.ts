@@ -64,7 +64,8 @@ export const jobsRouter = router({
     .query(async ({ ctx, input }) => {
       const [jobs, nextStartKey] = await Job.paginate(ctx.userId, {
         limit: input.limit,
-        workflowId: input.workflow_id
+        workflowId: input.workflow_id,
+        startKey: input.start_key
       });
       return {
         jobs: jobs.map((j) => toJobResponse(j)),

@@ -90,15 +90,25 @@ async function runFfmpegThumb(
 }
 
 async function generateVideoThumb(bytes: Uint8Array): Promise<Buffer> {
-  return runFfmpegThumb(bytes, "nodetool-vthumb-", (input, output) => [
-    "-y",
-    "-ss", "1",
-    "-i", input,
-    "-frames:v", "1",
-    "-vf", `scale='min(${THUMB_MAX_DIM},iw)':-2`,
-    "-q:v", "4",
-    output
-  ]);
+  const buildArgs =
+    (seekSeconds: number) =>
+    (input: string, output: string): string[] => [
+      "-y",
+      "-ss", String(seekSeconds),
+      "-i", input,
+      "-frames:v", "1",
+      "-vf", `scale='min(${THUMB_MAX_DIM},iw)':-2`,
+      "-q:v", "4",
+      output
+    ];
+  // Seek 1s in for a representative frame, but clips shorter than that would
+  // seek past EOF and yield no frame (leaving the asset thumbnail-less). Fall
+  // back to the first frame so short clips still get a thumbnail.
+  try {
+    return await runFfmpegThumb(bytes, "nodetool-vthumb-", buildArgs(1));
+  } catch {
+    return await runFfmpegThumb(bytes, "nodetool-vthumb-", buildArgs(0));
+  }
 }
 
 async function generatePdfThumb(bytes: Uint8Array): Promise<Buffer> {

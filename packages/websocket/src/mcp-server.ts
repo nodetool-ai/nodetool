@@ -274,11 +274,14 @@ function getRuntimeEnvironment(
               getLoadErrors?: () => Array<{ module: string; error: string }>;
             }
           ).getLoadErrors?.() ?? [];
-          const matchingLoadError = loadErrors.find(
-            (entry) =>
-              entry.module.includes(node.type) ||
-              node.type.startsWith(entry.module.split(".").slice(2).join("."))
-          );
+          const matchingLoadError = loadErrors.find((entry) => {
+            if (entry.module.includes(node.type)) return true;
+            const suffix = entry.module.split(".").slice(2).join(".");
+            // An empty suffix makes startsWith("") match every node type,
+            // mis-attributing an unrelated import failure. Require a non-empty
+            // prefix match.
+            return suffix.length > 0 && node.type.startsWith(suffix);
+          });
           throw new Error(
             pythonBridgeReady
               ? `Python node "${node.type}" cannot execute: it is declared in metadata but was not loaded by the Python worker.${matchingLoadError ? ` Load error: ${matchingLoadError.module}: ${matchingLoadError.error}.` : stderrSummary ? ` Recent Python worker stderr: ${stderrSummary}` : " Check Python worker status/load errors for import failures."}`
@@ -294,7 +297,13 @@ function getRuntimeEnvironment(
         ensurePythonBridge,
         resolveExecutor
       };
-    })();
+    })().catch((err) => {
+      // Don't cache a rejected promise — a single transient bootstrap failure
+      // would otherwise poison every later run_workflow / node-metadata call for
+      // the process lifetime. Clear the cache so the next call retries.
+      runtimeEnvironmentPromise = null;
+      throw err;
+    });
   }
 
   return runtimeEnvironmentPromise;
@@ -1411,6 +1420,13 @@ export async function handleMcpHttpRequest(
       const transport = sessionTransports.get(sessionId)!;
       return transport.handleRequest(request);
     }
+    // A session id that is present but unknown must NOT fall through to the
+    // new-session path: that constructed a fresh transport + server per stale
+    // request (leaking both). Reject it — only an initialize request without a
+    // session id creates a new session.
+    if (sessionId) {
+      return new Response("Session not found", { status: 404 });
+    }
 
     // New session — create transport and server
     const transport = new WebStandardStreamableHTTPServerTransport({
@@ -1420,6 +1436,12 @@ export async function handleMcpHttpRequest(
         sessionTransports.set(id, transport);
       }
     });
+    // Evict the session when the transport closes (client disconnect without an
+    // explicit DELETE) so sessionTransports — and the McpServer each entry keeps
+    // alive — does not grow unbounded over the process lifetime.
+    transport.onclose = () => {
+      if (transport.sessionId) sessionTransports.delete(transport.sessionId);
+    };
 
     const publicBaseUrl =
       options?.publicBaseUrl ?? `${url.protocol}//${url.host}`;

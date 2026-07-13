@@ -75,22 +75,28 @@ export const collectionsRouter = router({
     const provider = getDefaultVectorProvider();
     const collections = await provider.listCollections();
 
-    const results = await Promise.all(
+    // Resolve each collection independently: a single failing/racing entry
+    // (e.g. one deleted between listCollections() and getCollection(), raising
+    // CollectionNotFoundError) must not 500 the whole listing and hide every
+    // healthy collection. Skip the failures instead.
+    const settled = await Promise.all(
       collections.map(async (info) => {
-        const collection = await provider.getCollection({ name: info.name });
-        const count = await collection.count();
-        const metadata = normalizeMetadata(info.metadata);
-        const workflowName = await resolveWorkflowName(
-          typeof metadata.workflow === "string" ? metadata.workflow : undefined
-        );
-        return {
-          name: info.name,
-          count,
-          metadata,
-          workflow_name: workflowName
-        };
+        try {
+          const collection = await provider.getCollection({ name: info.name });
+          const count = await collection.count();
+          const metadata = normalizeMetadata(info.metadata);
+          const workflowName = await resolveWorkflowName(
+            typeof metadata.workflow === "string"
+              ? metadata.workflow
+              : undefined
+          );
+          return { name: info.name, count, metadata, workflow_name: workflowName };
+        } catch {
+          return null;
+        }
       })
     );
+    const results = settled.filter((r): r is NonNullable<typeof r> => r !== null);
 
     return { collections: results, count: results.length };
   }),

@@ -122,13 +122,16 @@ export type {
   ListWorkerInstancesOptions
 } from "./worker-instances.js";
 
-export { TimelineSequence } from "./timeline-sequence.js";
-export type { TimelineDocument } from "./timeline-sequence.js";
-
 export {
-  ImageDocument,
-  ImageDocumentConflictError
-} from "./image-document.js";
+  TimelineSequence,
+  TimelineSequenceConflictError
+} from "./timeline-sequence.js";
+export type {
+  TimelineDocument,
+  TimelineSequenceMutationResult
+} from "./timeline-sequence.js";
+
+export { ImageDocument, ImageDocumentConflictError } from "./image-document.js";
 export type {
   ImageDocumentData,
   ImageDocumentMutationResult,

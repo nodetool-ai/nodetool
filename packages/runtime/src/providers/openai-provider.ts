@@ -98,13 +98,8 @@ function asUint8Array(data: unknown): Uint8Array {
 }
 
 function toInt16Samples(bytes: Uint8Array): Int16Array {
-  const aligned =
-    bytes.length % 2 === 0 ? bytes : bytes.slice(0, bytes.length - 1);
-  return new Int16Array(
-    aligned.buffer,
-    aligned.byteOffset,
-    aligned.byteLength / 2
-  );
+  const copy = Uint8Array.from(bytes);
+  return new Int16Array(copy.buffer);
 }
 
 function parseDataUri(uri: string): { mime: string; data: Uint8Array } {
@@ -818,7 +813,15 @@ export class OpenAIProvider extends BaseProvider {
     messages: Message[],
     model: string
   ): Message[] {
-    if (!model.startsWith("o")) {
+    // Match ONLY genuine OpenAI reasoning models (o1/o3/o4), not any id that
+    // merely starts with "o". Compat providers use namespaced ids like
+    // "openai/gpt-4o" or "openai/gpt-oss-120b" that begin with "o" but fully
+    // support the system role — mangling their system prompt corrupts every
+    // request. Strip a leading "vendor/" namespace before matching.
+    const bareModel = model.includes("/")
+      ? model.slice(model.lastIndexOf("/") + 1)
+      : model;
+    if (!/^o[134](-|$)/.test(bareModel)) {
       return messages;
     }
 
@@ -848,7 +851,8 @@ export class OpenAIProvider extends BaseProvider {
       topP,
       presencePenalty,
       frequencyPenalty,
-      audio
+      audio,
+      toolChoice
     } = args;
 
     const messages = this.convertSystemToUserForOModels(args.messages, model);
@@ -879,13 +883,20 @@ export class OpenAIProvider extends BaseProvider {
 
     if (hasTools) {
       request.tools = this.formatTools(tools);
+      if (toolChoice) {
+        request.tool_choice =
+          toolChoice === "any"
+            ? "required"
+            : { type: "function", function: { name: toolChoice } };
+      }
     }
 
     log.debug("OpenAI request", { model });
 
     this.recordRequestPayload(request);
     const stream = (await this.getClient().chat.completions.create(
-      request as unknown as OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming
+      request as unknown as OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming,
+      { signal: args.signal }
     )) as AsyncIterable<any> & { close?: () => Promise<void> };
 
     const deltaToolCalls = new Map<number, MutableToolCall>();
@@ -941,7 +952,7 @@ export class OpenAIProvider extends BaseProvider {
           yield item;
         }
 
-        if (choice.finish_reason === "tool_calls") {
+        if (choice.finish_reason && deltaToolCalls.size > 0) {
           for (const call of deltaToolCalls.values()) {
             const toolCall: ToolCall = this.buildToolCall(
               call.id,
@@ -1021,7 +1032,8 @@ export class OpenAIProvider extends BaseProvider {
 
     this.recordRequestPayload(request);
     const completion = await this.getClient().chat.completions.create(
-      request as unknown as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming
+      request as unknown as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming,
+      { signal: args.signal }
     );
 
     const choice = completion.choices?.[0];
@@ -1367,10 +1379,19 @@ export class OpenAIProvider extends BaseProvider {
       const runTool = async (
         tc: ToolCall
       ): Promise<string | MessageContent[]> => {
-        const tool = toolMap.get(tc.name);
-        if (tool?.execute) return tool.execute(tc.args ?? {}, tc.id);
-        if (config.executeTool) return config.executeTool(tc);
-        return `Tool "${tc.name}" is not available`;
+        // Per-tool error isolation: a thrown tool must still yield a
+        // tool_result so a parallel Promise.all rejection can't discard sibling
+        // results and leave a dangling tool_use (rejected by the API next turn).
+        try {
+          const tool = toolMap.get(tc.name);
+          if (tool?.execute) return await tool.execute(tc.args ?? {}, tc.id);
+          if (config.executeTool) return await config.executeTool(tc);
+          return `Tool "${tc.name}" is not available`;
+        } catch (err) {
+          return `Error executing tool "${tc.name}": ${
+            err instanceof Error ? err.message : String(err)
+          }`;
+        }
       };
       const emitToolResult = function* (
         tc: ToolCall,
@@ -1392,6 +1413,13 @@ export class OpenAIProvider extends BaseProvider {
       let terminated = false;
       if (config.sequentialTools) {
         for (const tc of state.pending) {
+          // Honor a mid-turn abort (mirrors base-provider generateLoop): a tool
+          // like finish_step aborts the signal to stop the model running any
+          // further tools THIS turn. Without this check the Responses loop would
+          // keep executing pending tools after completion — duplicate
+          // step_result/StepCompleted events, overwritten memory, and stray
+          // side-effecting tools after the step is already done.
+          if (config.args.signal?.aborted) break;
           const content = await runTool(tc);
           yield* emitToolResult(tc, content);
           const tool = toolMap.get(tc.name);
@@ -1666,9 +1694,18 @@ export class OpenAIProvider extends BaseProvider {
         response_format: "pcm"
       });
 
+      let carry: number | undefined;
       for await (const chunk of response.iterBytes(4096)) {
-        const bytes = asUint8Array(chunk);
-        yield { samples: toInt16Samples(bytes) };
+        const incoming = asUint8Array(chunk);
+        const bytes = new Uint8Array(incoming.length + (carry == null ? 0 : 1));
+        if (carry != null) bytes[0] = carry;
+        bytes.set(incoming, carry == null ? 0 : 1);
+        const completeLength = bytes.length - (bytes.length % 2);
+        carry =
+          completeLength < bytes.length ? bytes[bytes.length - 1] : undefined;
+        if (completeLength > 0) {
+          yield { samples: toInt16Samples(bytes.subarray(0, completeLength)) };
+        }
       }
       return;
     }

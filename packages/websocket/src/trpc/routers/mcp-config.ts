@@ -157,7 +157,11 @@ function installTarget(target: McpTarget, mcpUrl: string): string {
       const block = [
         NODETOOL_MCP_BEGIN,
         "[mcp_servers.nodetool]",
-        `url = "${mcpUrl}"`,
+        // TOML-escape the url. Interpolating it raw let a value with a quote or
+        // newline terminate the string early and inject arbitrary TOML tables
+        // (e.g. an extra [mcp_servers.evil] with a command). JSON string
+        // escaping is a valid TOML basic string.
+        `url = ${JSON.stringify(mcpUrl)}`,
         "startup_timeout_sec = 20",
         "tool_timeout_sec = 60",
         "enabled = true",

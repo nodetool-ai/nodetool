@@ -750,6 +750,32 @@ describe("OpenAIProvider – imageToImage", () => {
 });
 
 describe("OpenAIProvider – textToSpeech", () => {
+  it("carries a split PCM sample across network chunks", async () => {
+    const iterBytes = async function* () {
+      yield new Uint8Array([1]);
+      yield new Uint8Array([2, 3, 4]);
+    };
+    const provider = new OpenAIProvider(
+      { OPENAI_API_KEY: "k" },
+      {
+        client: {
+          audio: {
+            speech: {
+              with_streaming_response: {
+                create: vi.fn().mockResolvedValue({ iterBytes })
+              }
+            }
+          }
+        } as any
+      }
+    );
+    const samples: number[] = [];
+    for await (const chunk of provider.textToSpeech({ text: "hi", model: "tts-1" })) {
+      samples.push(...chunk.samples);
+    }
+    expect(samples).toEqual([513, 1027]);
+  });
+
   it("streams PCM audio chunks via with_streaming_response", async () => {
     const pcmData = new Uint8Array([0, 1, 0, 2]);
 

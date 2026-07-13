@@ -47,9 +47,17 @@ export function htmlToText(html: string, maxLength = 50_000): string {
     (match) => ENTITY_MAP[match.toLowerCase()] ?? match
   );
 
-  text = text.replace(NUMERIC_ENTITY_RE, (_match, hex, dec) => {
+  text = text.replace(NUMERIC_ENTITY_RE, (match, hex, dec) => {
     const code = hex ? parseInt(hex, 16) : parseInt(dec, 10);
-    return String.fromCharCode(code);
+    if (
+      !Number.isFinite(code) ||
+      code < 0 ||
+      code > 0x10ffff ||
+      (code >= 0xd800 && code <= 0xdfff)
+    ) {
+      return match;
+    }
+    return String.fromCodePoint(code);
   });
 
   // Collapse runs of non-newline whitespace, preserving line breaks.

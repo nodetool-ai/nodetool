@@ -225,7 +225,14 @@ export class PythonProvider extends BaseProvider {
       args.model,
       { voice: args.voice, speed: args.speed, secrets: this._secrets }
     )) {
-      yield { samples: new Int16Array(audioBytes.buffer) };
+      // audioBytes is a msgpack-decoded Uint8Array — generally a view into a
+      // larger buffer at a non-zero byteOffset. `new Int16Array(bytes.buffer)`
+      // ignores the offset (reinterpreting unrelated bytes) and throws when the
+      // buffer length or offset isn't 2-aligned. Copy to guarantee alignment,
+      // trimming a trailing odd byte.
+      const even = audioBytes.byteLength - (audioBytes.byteLength % 2);
+      const copy = audioBytes.slice(0, even);
+      yield { samples: new Int16Array(copy.buffer, copy.byteOffset, even / 2) };
     }
   }
 

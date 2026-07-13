@@ -23,21 +23,58 @@ function getRootDir(): string {
   return os.homedir();
 }
 
+function isWithinRoot(candidate: string, normalizedRoot: string): boolean {
+  return (
+    candidate === normalizedRoot ||
+    candidate.startsWith(normalizedRoot + path.sep)
+  );
+}
+
 /**
  * Resolve a user-provided path within the sandbox root.
- * Returns the resolved absolute path, or throws FORBIDDEN if path escapes.
+ * Returns the resolved absolute path, or throws FORBIDDEN if the path escapes.
+ *
+ * The lexical check alone is not enough: a symlink that lives under the root but
+ * points outside it passes `startsWith` yet resolves elsewhere at the syscall
+ * level. So the real (symlink-resolved) path is also verified to stay within the
+ * root. realpath is resolved on the deepest existing ancestor so a not-yet-
+ * existing leaf still gets its parent chain checked.
  */
-function resolveSandboxed(rootDir: string, userPath: string): string {
+async function resolveSandboxed(
+  rootDir: string,
+  userPath: string
+): Promise<string> {
   const resolved = path.resolve(
     rootDir,
     userPath.startsWith("/") ? "." + userPath : userPath
   );
   const normalizedRoot = path.resolve(rootDir);
-  if (
-    !resolved.startsWith(normalizedRoot + path.sep) &&
-    resolved !== normalizedRoot
-  ) {
+  if (!isWithinRoot(resolved, normalizedRoot)) {
     throwApiError(ApiErrorCode.FORBIDDEN, "Path traversal not allowed");
+  }
+
+  // Resolve symlinks on the deepest existing ancestor and re-check containment.
+  let probe = resolved;
+  for (;;) {
+    try {
+      const real = await fs.realpath(probe);
+      if (!isWithinRoot(real, normalizedRoot)) {
+        throwApiError(ApiErrorCode.FORBIDDEN, "Path traversal not allowed");
+      }
+      break;
+    } catch (err) {
+      if (
+        err &&
+        typeof err === "object" &&
+        "name" in err &&
+        (err as { name: string }).name === "TRPCError"
+      ) {
+        throw err; // FORBIDDEN from the containment check above
+      }
+      const parent = path.dirname(probe);
+      if (parent === probe) break; // reached filesystem root without resolving
+      probe = parent;
+    }
   }
   return resolved;
 }
@@ -57,7 +94,7 @@ export const filesRouter = router({
       }
 
       const rootDir = getRootDir();
-      const resolved = resolveSandboxed(rootDir, input.path);
+      const resolved = await resolveSandboxed(rootDir, input.path);
 
       try {
         const entries = await fs.readdir(resolved, { withFileTypes: true });
@@ -99,7 +136,7 @@ export const filesRouter = router({
       }
 
       const rootDir = getRootDir();
-      const resolved = resolveSandboxed(rootDir, input.path);
+      const resolved = await resolveSandboxed(rootDir, input.path);
 
       try {
         const stat = await fs.stat(resolved);

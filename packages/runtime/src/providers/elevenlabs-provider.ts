@@ -120,20 +120,30 @@ export class ElevenLabsProvider extends BaseProvider {
   }
 
   private async requestSpeech(
-    args: { text: string; model: string; voice?: string },
+    args: { text: string; model: string; voice?: string; speed?: number },
     outputFormat: string
   ): Promise<Uint8Array> {
     const voiceId = this.resolveVoiceId(args.voice);
     const url =
       `${ELEVENLABS_API_BASE}/text-to-speech/${voiceId}` +
       `?output_format=${outputFormat}`;
+    const body: Record<string, unknown> = {
+      text: args.text,
+      model_id: args.model
+    };
+    // ElevenLabs applies playback speed via voice_settings.speed (0.7–1.2).
+    // Forward it when the caller asked for a non-default tempo — omitting it
+    // silently discarded the request.
+    if (typeof args.speed === "number" && args.speed !== 1.0) {
+      body.voice_settings = { speed: Math.max(0.7, Math.min(1.2, args.speed)) };
+    }
     const response = await this._fetch(url, {
       method: "POST",
       headers: {
         "xi-api-key": this.apiKey,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ text: args.text, model_id: args.model })
+      body: JSON.stringify(body)
     });
     if (!response.ok) {
       const detail = await response.text().catch(() => "");

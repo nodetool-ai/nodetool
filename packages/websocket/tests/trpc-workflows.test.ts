@@ -813,6 +813,30 @@ describe("workflows router", () => {
       const result = await caller.workflows.terminalOutputs({ id: "wf-1" });
       expect(result.outputs.map((output) => output.id)).toEqual(["img-out"]);
     });
+
+    // Regression (#13): a client-controlled node type equal to an inherited
+    // Object.prototype key ("toString", "constructor", …) must NOT be treated
+    // as a terminal media-output node. The `in` operator matched prototype
+    // keys; Object.hasOwn does not.
+    it("does not classify Object.prototype-keyed node types as media outputs", async () => {
+      const wf = makeWorkflow({
+        id: "wf-proto",
+        user_id: "user-1",
+        graph: {
+          nodes: [
+            { id: "evil-1", type: "toString", data: {} },
+            { id: "evil-2", type: "constructor", data: {} },
+            { id: "evil-3", type: "hasOwnProperty", data: {} }
+          ],
+          edges: []
+        }
+      });
+      (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(wf);
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.workflows.terminalOutputs({ id: "wf-proto" });
+      expect(result.outputs).toEqual([]);
+    });
   });
 
   // ── versions ──────────────────────────────────────────────────────────────

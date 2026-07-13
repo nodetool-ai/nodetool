@@ -1,4 +1,5 @@
 import { createLogger } from "@nodetool-ai/config";
+import { safeFetch } from "./safe-url.js";
 import {
   OpenAICompatProvider,
   type OpenAICompatProviderOptions
@@ -447,7 +448,9 @@ export class EvolinkProvider extends OpenAICompatProvider {
   }
 
   private async downloadResult(url: string): Promise<Uint8Array> {
-    const response = await this._evolinkFetch(url);
+    // url is task-result-body-controlled — gate it through safeFetch (SSRF)
+    // while still using the injected fetch impl for testability.
+    const response = await safeFetch(url, undefined, 5, this._evolinkFetch);
     if (!response.ok) {
       throw new Error(`Failed to download Evolink result: ${response.status}`);
     }

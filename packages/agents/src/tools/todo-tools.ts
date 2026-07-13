@@ -20,6 +20,22 @@ const VALID_STATUSES: ReadonlySet<TodoStatus> = new Set<TodoStatus>([
 /** Module-level store: thread_id → latest TodoItem[]. */
 const TODO_STORE = new Map<string, TodoItem[]>();
 
+// Bound the store so a long-lived server (one thread id per chat session) can't
+// leak an array per session forever. Nothing reliably calls clearThreadTodos on
+// thread deletion, so evict the least-recently-written thread past this cap.
+const TODO_STORE_MAX_THREADS = 1000;
+
+function putThreadTodos(threadId: string, todos: TodoItem[]): void {
+  // Re-insert to mark most-recently-used (Map preserves insertion order).
+  TODO_STORE.delete(threadId);
+  TODO_STORE.set(threadId, todos);
+  while (TODO_STORE.size > TODO_STORE_MAX_THREADS) {
+    const oldest = TODO_STORE.keys().next().value;
+    if (oldest === undefined) break;
+    TODO_STORE.delete(oldest);
+  }
+}
+
 /**
  * Read the current todo list for a chat thread. Returns a defensive copy.
  * Other code (tests, server endpoints) can use this to hydrate UI state.
@@ -110,7 +126,7 @@ export class TodoWriteTool extends Tool {
 
     const threadId = context.threadId;
     if (threadId) {
-      TODO_STORE.set(threadId, todos.map((t) => ({ ...t })));
+      putThreadTodos(threadId, todos.map((t) => ({ ...t })));
     }
 
     const update: TodoUpdate = {

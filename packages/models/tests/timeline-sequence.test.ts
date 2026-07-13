@@ -23,7 +23,9 @@ function setup() {
   initTestDb();
 }
 
-function makeDocument(overrides: Partial<TimelineDocument> = {}): TimelineDocument {
+function makeDocument(
+  overrides: Partial<TimelineDocument> = {}
+): TimelineDocument {
   return {
     tracks: [],
     clips: [],
@@ -136,14 +138,14 @@ describe("TimelineSequence model", () => {
     await createSeq("u1", "p1", "S2");
     await createSeq("u1", "p2", "S3");
 
-    const seqs = await TimelineSequence.listByProject("p1");
+    const seqs = await TimelineSequence.listByProject("p1", "u1");
     expect(seqs).toHaveLength(2);
     const names = seqs.map((s) => s.name).sort();
     expect(names).toEqual(["S1", "S2"]);
   });
 
   it("listByProject returns empty array for unknown project", async () => {
-    const seqs = await TimelineSequence.listByProject("nobody");
+    const seqs = await TimelineSequence.listByProject("nobody", "u1");
     expect(seqs).toHaveLength(0);
   });
 
@@ -152,8 +154,30 @@ describe("TimelineSequence model", () => {
     await createSeq("u1", "p1", "S2");
     await createSeq("u1", "p1", "S3");
 
-    const seqs = await TimelineSequence.listByProject("p1", 2);
+    const seqs = await TimelineSequence.listByProject("p1", "u1", 2);
     expect(seqs).toHaveLength(2);
+  });
+
+  it("scopes by user before applying the project limit", async () => {
+    await createSeq("u1", "shared", "owned");
+    for (let index = 0; index < 50; index++) {
+      await createSeq("u2", "shared", `other-${index}`);
+    }
+
+    const seqs = await TimelineSequence.listByProject("shared", "u1", 50);
+    expect(seqs.map((sequence) => sequence.name)).toEqual(["owned"]);
+  });
+
+  it("advances updated_at beyond a future version token before saving", () => {
+    const future = new Date(Date.now() + 1000).toISOString();
+    const seq = new TimelineSequence({
+      user_id: "u1",
+      project_id: "p1",
+      name: "future",
+      updated_at: future
+    });
+    seq.beforeSave();
+    expect(Date.parse(seq.updated_at)).toBeGreaterThan(Date.parse(future));
   });
 
   // ── Update bumps updated_at ─────────────────────────────────────────
@@ -251,7 +275,11 @@ describe("TimelineSequence model", () => {
       note: "important"
     };
 
-    const doc: TimelineDocument = { tracks: [track], clips: [clip], markers: [marker] };
+    const doc: TimelineDocument = {
+      tracks: [track],
+      clips: [clip],
+      markers: [marker]
+    };
     const seq = await TimelineSequence.create<TimelineSequence>({
       user_id: "u1",
       project_id: "p1",
@@ -370,5 +398,83 @@ describe("TimelineSequence model", () => {
     await expect(seq.save()).rejects.toThrow(
       "document must contain tracks, clips, and markers arrays"
     );
+  });
+
+  // ── Atomic document CAS (lost-update prevention) ────────────────────
+  describe("updateDocumentIfUnchanged / mutateDocument", () => {
+    it("writes when updated_at still matches and bumps updated_at", async () => {
+      const seq = await createSeq();
+      const before = seq.updated_at;
+      const updated = await TimelineSequence.updateDocumentIfUnchanged(
+        seq.id,
+        before,
+        makeDocument({ markers: [{ id: "m1", timeMs: 0 } as TimelineMarker] })
+      );
+      expect(updated).not.toBeNull();
+      expect(updated!.toDocument().markers).toHaveLength(1);
+      expect(updated!.updated_at).not.toBe(before);
+    });
+
+    it("returns null (no write) when updated_at no longer matches", async () => {
+      const seq = await createSeq();
+      const stale = seq.updated_at;
+      // A concurrent write bumps updated_at.
+      const first = await TimelineSequence.updateDocumentIfUnchanged(
+        seq.id,
+        stale,
+        makeDocument({ markers: [{ id: "a" } as TimelineMarker] })
+      );
+      expect(first).not.toBeNull();
+
+      // Second write with the stale expected value must be rejected.
+      const second = await TimelineSequence.updateDocumentIfUnchanged(
+        seq.id,
+        stale,
+        makeDocument({ markers: [{ id: "b" } as TimelineMarker] })
+      );
+      expect(second).toBeNull();
+
+      const loaded = await TimelineSequence.findById(seq.id);
+      expect(loaded!.toDocument().markers).toEqual([{ id: "a" }]);
+    });
+
+    it("mutateDocument retries against a fresh snapshot and never loses a concurrent append", async () => {
+      const seq = await createSeq(
+        "u1",
+        "p1",
+        "seq",
+        makeDocument({
+          clips: [
+            { id: "X", versions: [] } as unknown as TimelineClip,
+            { id: "Y", versions: [] } as unknown as TimelineClip
+          ]
+        })
+      );
+
+      // Two concurrent appends to sibling clips. With a plain read-modify-write
+      // one would clobber the other; mutateDocument must retain both.
+      await Promise.all([
+        TimelineSequence.mutateDocument(seq.id, (doc) => {
+          const clip = doc.clips.find((c) => c.id === "X")!;
+          (clip as unknown as { versions: unknown[] }).versions.push({
+            id: "vx"
+          });
+        }),
+        TimelineSequence.mutateDocument(seq.id, (doc) => {
+          const clip = doc.clips.find((c) => c.id === "Y")!;
+          (clip as unknown as { versions: unknown[] }).versions.push({
+            id: "vy"
+          });
+        })
+      ]);
+
+      const loaded = await TimelineSequence.findById(seq.id);
+      const clips = loaded!.toDocument().clips as unknown as Array<{
+        id: string;
+        versions: Array<{ id: string }>;
+      }>;
+      expect(clips.find((c) => c.id === "X")!.versions).toEqual([{ id: "vx" }]);
+      expect(clips.find((c) => c.id === "Y")!.versions).toEqual([{ id: "vy" }]);
+    });
   });
 });

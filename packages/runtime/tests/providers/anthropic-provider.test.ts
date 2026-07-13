@@ -182,6 +182,27 @@ describe("AnthropicProvider", () => {
     ]);
   });
 
+  it("forwards the abort signal to messages.create (non-streaming)", async () => {
+    // Regression: the Anthropic provider dropped args.signal, so a request
+    // could not be cancelled and kept billing after an abort.
+    const create = vi.fn().mockResolvedValueOnce({
+      content: [{ type: "text", text: "ok" }]
+    });
+    const provider = new AnthropicProvider(
+      { ANTHROPIC_API_KEY: "k" },
+      { client: { messages: { create } } as any }
+    );
+    const controller = new AbortController();
+    await provider.generateMessage({
+      model: "claude-sonnet",
+      messages: [{ role: "user", content: "hi" }],
+      signal: controller.signal
+    } as any);
+    expect(create.mock.calls[0][1]).toMatchObject({
+      signal: controller.signal
+    });
+  });
+
   it("generates non-streaming messages with tool calls", async () => {
     const create = vi
       .fn()

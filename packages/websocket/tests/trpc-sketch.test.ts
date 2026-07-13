@@ -56,6 +56,27 @@ vi.mock("@nodetool-ai/models", async (orig) => {
     static listByProject = vi.fn();
     static updateDoc = vi.fn();
     static mutateDocumentData = vi.fn();
+
+    // Atomic CAS helper for sketch.update. Plain static method (not a vi.fn so
+    // `vi.resetAllMocks()` can't strip its body) that routes its write through
+    // `updateDoc`, keeping existing `ID.updateDoc.mock.calls` assertions valid.
+    static async updateFieldsIfUnchanged(
+      id: string,
+      _expectedUpdatedAt: string,
+      fields: Record<string, unknown>
+    ): Promise<StubImageDocument | null> {
+      const doc = (await StubImageDocument.findById(
+        id
+      )) as StubImageDocument | null;
+      if (!doc) return null;
+      Object.assign(doc, fields);
+      if (fields.background_color !== undefined) {
+        (doc as { background_color: unknown }).background_color =
+          fields.background_color;
+      }
+      await StubImageDocument.updateDoc(id, fields);
+      return doc;
+    }
   }
   return {
     ...actual,

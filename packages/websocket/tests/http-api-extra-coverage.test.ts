@@ -692,11 +692,13 @@ interface CapturedRes {
   headers: Record<string, unknown>;
   body: Buffer | undefined;
   setHeader(key: string, value: unknown): void;
+  write(chunk: Uint8Array): boolean;
   end(chunk?: Buffer): void;
 }
 
 function makeMockRes(): { res: CapturedRes; done: Promise<CapturedRes> } {
   let resolve!: (r: CapturedRes) => void;
+  const chunks: Buffer[] = [];
   const done = new Promise<CapturedRes>((r) => (resolve = r));
   const res: CapturedRes = {
     statusCode: 0,
@@ -705,8 +707,13 @@ function makeMockRes(): { res: CapturedRes; done: Promise<CapturedRes> } {
     setHeader(key, value) {
       this.headers[key.toLowerCase()] = value;
     },
+    write(chunk) {
+      chunks.push(Buffer.from(chunk));
+      return true;
+    },
     end(chunk) {
-      this.body = chunk;
+      if (chunk) chunks.push(Buffer.from(chunk));
+      this.body = chunks.length > 0 ? Buffer.concat(chunks) : undefined;
       resolve(this);
     }
   };

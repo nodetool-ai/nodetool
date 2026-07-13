@@ -124,6 +124,38 @@ describe("Prediction model", () => {
     expect(cursor).toBeTruthy();
   });
 
+  it("paginate advances past the cursor instead of repeating page 1", async () => {
+    // Regression (#9): startKey was ignored, so costs.list "load more" returned
+    // the same first page forever and older records were unreachable.
+    for (let i = 0; i < 5; i++) {
+      await createPrediction({
+        user_id: "u1",
+        created_at: new Date(Date.UTC(2026, 0, 1, 0, 0, i)).toISOString()
+      });
+    }
+    // Newest first (desc created_at): seconds 4,3,2,1,0.
+    const [page1, cursor1] = await Prediction.paginate("u1", { limit: 2 });
+    expect(page1).toHaveLength(2);
+    expect(cursor1).toBeTruthy();
+
+    const [page2, cursor2] = await Prediction.paginate("u1", {
+      limit: 2,
+      startKey: cursor1
+    });
+    expect(page2).toHaveLength(2);
+    // page2 must not overlap page1.
+    const page1Ids = new Set(page1.map((p) => p.id));
+    expect(page2.every((p) => !page1Ids.has(p.id))).toBe(true);
+
+    const [page3] = await Prediction.paginate("u1", {
+      limit: 2,
+      startKey: cursor2
+    });
+    expect(page3).toHaveLength(1);
+    const seen = new Set([...page1, ...page2].map((p) => p.id));
+    expect(seen.has(page3[0].id)).toBe(false);
+  });
+
   it("paginate returns an empty page and empty cursor when limit is zero", async () => {
     await createPrediction({ user_id: "u1" });
 

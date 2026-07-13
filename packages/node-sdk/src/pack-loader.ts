@@ -228,6 +228,20 @@ export function resolvePackTrust(
   return { allowlist, allowUnlisted };
 }
 
+/**
+ * The trust fields as they exist ON DISK (no env or default merging). Use this
+ * — not {@link resolvePackTrust} — when persisting a partial trust update, so an
+ * ephemeral `NODETOOL_PACKS_ALLOWLIST` env override is never baked into the
+ * config file for a field the caller didn't set.
+ */
+export function readPackTrustFromFile(): {
+  allow?: string[];
+  allowUnlisted?: boolean;
+} {
+  const f = readPacksConfigFile();
+  return { allow: f.allow, allowUnlisted: f.allowUnlisted };
+}
+
 function trustConfigPath(): string {
   return (
     process.env["NODETOOL_PACKS_CONFIG"] ??

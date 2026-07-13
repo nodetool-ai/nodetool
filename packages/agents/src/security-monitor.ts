@@ -174,21 +174,72 @@ function tagBody(text: string, tag: string): string | null {
  * Returns null when neither yields a usable verdict, letting the caller apply
  * the fail-open default.
  */
+/**
+ * Scan `text` for the first balanced `{…}` object that actually parses AND
+ * contains a `block` or `tier` key. `extractJSON` returns the FIRST balanced
+ * object, which — for a verbose judge that prepends prose containing another
+ * object (e.g. echoing the tool args it was shown) — is not the verdict. Using
+ * that wrong object made a real BLOCK decision fall through to the fail-open
+ * ALLOW default.
+ */
+function findVerdictObject(text: string): Record<string, unknown> | null {
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] !== "{") continue;
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    for (let j = i; j < text.length; j++) {
+      const ch = text[j];
+      if (inString) {
+        if (escaped) escaped = false;
+        else if (ch === "\\") escaped = true;
+        else if (ch === '"') inString = false;
+        continue;
+      }
+      if (ch === '"') inString = true;
+      else if (ch === "{") depth++;
+      else if (ch === "}") {
+        depth--;
+        if (depth === 0) {
+          const candidate = text.slice(i, j + 1);
+          try {
+            const obj = JSON.parse(candidate);
+            if (
+              obj &&
+              typeof obj === "object" &&
+              !Array.isArray(obj) &&
+              ("block" in obj || "tier" in obj)
+            ) {
+              return obj as Record<string, unknown>;
+            }
+          } catch {
+            // not valid JSON — keep scanning from the next "{"
+          }
+          break; // move outer loop past this object
+        }
+      }
+    }
+  }
+  return null;
+}
+
 export function parseVerdict(text: string): SecurityVerdict | null {
   const trimmed = text.trim();
   if (!trimmed) return null;
 
-  // Strategy 1: JSON (direct, fenced, or first balanced object).
-  const parsed = extractJSON(trimmed);
+  // Strategy 1: the verdict JSON object (the first balanced object that carries
+  // block/tier), falling back to extractJSON's fence/brace recovery.
+  const scanned = findVerdictObject(trimmed);
+  const parsed = scanned ?? extractJSON(trimmed);
   if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
     const obj = parsed as Record<string, unknown>;
     if ("block" in obj || "tier" in obj) {
       const tier = coerceTier(obj["tier"]);
-      // `block` is authoritative when present. When the judge omits it but
-      // gives a tier, a non-"none" tier implies a block — otherwise a
-      // `{tier:"hard"}` verdict would silently fail open (see module header).
-      const block =
-        "block" in obj ? coerceBlock(obj["block"]) : tier !== "none";
+      // Fail safe: block when `block` is truthy OR the tier is non-"none". A
+      // non-boolean `block` (e.g. {block:1,tier:"hard"}) coerces to false, which
+      // combined with a hard/soft tier would otherwise fail open — the tier
+      // rescues it. A `{tier:"hard"}` with no block field blocks the same way.
+      const block = coerceBlock(obj["block"]) || tier !== "none";
       return {
         block,
         tier,

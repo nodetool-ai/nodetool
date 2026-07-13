@@ -11,14 +11,253 @@ import {
   writeFile,
   readdir,
   stat,
-  access
+  lstat,
+  access,
+  realpath
 } from "node:fs/promises";
-import { join, relative } from "node:path";
+import { dirname, isAbsolute, join, relative } from "node:path";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
 
+/**
+ * Largest file grep will read into memory. `walkDir` returns every non-binary
+ * file regardless of size, so without this cap a single huge log/jsonl file
+ * would be fully buffered (plus a decoded copy and a split array), OOM-ing the
+ * shared server process.
+ */
+const MAX_GREP_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
+
+/**
+ * Hard wall-clock budget for the whole grep scan. A caller-supplied regex can
+ * trigger catastrophic backtracking; JS regex evaluation is synchronous and
+ * uninterruptible, so we bound the aggregate scan time and abort between lines
+ * rather than let one pattern pin the event loop indefinitely (ReDoS).
+ */
+const GREP_TIME_BUDGET_MS = 5000;
+
+/**
+ * Longest single line grep will run the regex against. Backtracking blow-ups
+ * scale with input length, so skipping pathologically long lines removes the
+ * ammunition a ReDoS pattern needs while still matching normal source lines.
+ */
+const MAX_GREP_LINE_LENGTH = 100_000;
+
 function resolveSafePath(context: ProcessingContext, rawPath: string): string {
   return context.resolveWorkspacePath(rawPath);
+}
+
+/**
+ * Best-effort detector for the classic catastrophic-backtracking regex family:
+ * a quantifier (`+`, `*`, `{n,}`) applied to a group whose body already ends in
+ * a quantifier — e.g. `(a+)+`, `(a*)*`, `([a-z]+)+`, `(.*)*`. JS regex matching
+ * is synchronous and uninterruptible, and grep runs in the shared server
+ * process, so one such pattern against a short line hangs the whole event loop
+ * (ReDoS). We reject these patterns up front rather than compile and run them.
+ *
+ * This is a heuristic, not a proof — it blocks the common ReDoS shapes (and the
+ * canonical `(a+)+$` attack) without a time-limited regex engine. The scan-time
+ * budget and per-line length cap in GrepTool are the backstop for anything it
+ * misses.
+ */
+function hasNestedQuantifier(pattern: string): boolean {
+  // Per open group, whether its body has seen a quantifier. `justClosedQuant`
+  // marks that the token immediately to the left was a group that itself
+  // contained a quantifier — so an outer quantifier on it is nested.
+  const groupHadQuantifier: boolean[] = [];
+  let justClosedQuantifiedGroup = false;
+
+  const isQuantifierStart = (i: number): boolean => {
+    const ch = pattern[i];
+    if (ch === "+" || ch === "*") return true;
+    // `{n,}` / `{n,m}` — treat any `{<digit>` as a quantifier.
+    return ch === "{" && /\d/.test(pattern[i + 1] ?? "");
+  };
+
+  for (let i = 0; i < pattern.length; i++) {
+    const ch = pattern[i];
+    if (ch === "\\") {
+      i++; // skip the escaped character
+      justClosedQuantifiedGroup = false;
+      continue;
+    }
+    if (ch === "[") {
+      // Skip character-class body; quantifiers inside `[...]` are literals.
+      i++;
+      while (i < pattern.length && pattern[i] !== "]") {
+        if (pattern[i] === "\\") i++;
+        i++;
+      }
+      justClosedQuantifiedGroup = false;
+      continue;
+    }
+    if (ch === "(") {
+      groupHadQuantifier.push(false);
+      justClosedQuantifiedGroup = false;
+      continue;
+    }
+    if (ch === ")") {
+      justClosedQuantifiedGroup = groupHadQuantifier.pop() ?? false;
+      continue;
+    }
+    if (isQuantifierStart(i)) {
+      if (justClosedQuantifiedGroup) return true;
+      if (groupHadQuantifier.length > 0) {
+        groupHadQuantifier[groupHadQuantifier.length - 1] = true;
+      }
+      justClosedQuantifiedGroup = false;
+      continue;
+    }
+    justClosedQuantifiedGroup = false;
+  }
+  return false;
+}
+
+/**
+ * True when `candidate`'s real (symlink-resolved) path stays within the real
+ * workspace root. `resolveWorkspacePath` only checks containment lexically, so
+ * an in-workspace symlink pointing outside the root (e.g. unpacked from an
+ * imported bundle) would otherwise be dereferenced and leak host files. Returns
+ * false when either path cannot be resolved (broken/dangling link).
+ */
+async function isRealPathWithinRoot(
+  root: string,
+  candidate: string
+): Promise<boolean> {
+  try {
+    const realRoot = await realpath(root);
+    const realCandidate = await realpath(candidate);
+    if (realCandidate === realRoot) return true;
+    const rel = relative(realRoot, realCandidate);
+    return rel !== "" && !rel.startsWith("..") && !isAbsolute(rel);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Like {@link isRealPathWithinRoot} but tolerant of a not-yet-created target:
+ * when the candidate does not exist, its parent directory is realpath-checked
+ * instead, so creating a file under a symlinked-out directory is still blocked.
+ */
+async function isEditTargetWithinRoot(
+  root: string,
+  candidate: string
+): Promise<boolean> {
+  if (await isRealPathWithinRoot(root, candidate)) return true;
+  // Candidate may not exist yet (create path) — check its parent.
+  const parent = dirname(candidate);
+  if (parent === candidate) return false;
+  try {
+    // lstat, NOT access: access() follows symlinks, so a DANGLING in-workspace
+    // symlink (target outside the root and not yet created) would look absent
+    // and fall through to the parent check, allowing a create that follows the
+    // link outside the workspace. lstat stats the link itself, so it succeeds
+    // and we treat the path as existing-but-out-of-root.
+    await lstat(candidate);
+    // It exists (as a real file or a symlink) but failed the realpath
+    // containment check above → outside the root.
+    return false;
+  } catch {
+    // Truly does not exist; the containing directory must be inside the root.
+    return isRealPathWithinRoot(root, parent);
+  }
+}
+
+/**
+ * Detects the alternation-overlap catastrophic-backtracking family that
+ * {@link hasNestedQuantifier} misses — a quantifier applied to a group whose
+ * top-level branches overlap (a branch equals, or is a prefix of, another),
+ * e.g. `(a|a)*`, `(a|ab)+`, `(\d|\d)*`. Such a group can match the same input
+ * in exponentially many ways. Prefix/equality on the raw branch text is a
+ * conservative proxy: `(cat|car)+` (neither a prefix of the other) is allowed.
+ */
+function hasOverlappingAlternationQuantifier(pattern: string): boolean {
+  // Walk to each group close `)` that is immediately followed by a quantifier,
+  // capturing the group body, then split its top-level branches.
+  for (let i = 0; i < pattern.length; i++) {
+    if (pattern[i] === "\\") {
+      i++;
+      continue;
+    }
+    if (pattern[i] !== "(") continue;
+    // Find the matching close paren, honoring nesting, classes and escapes.
+    let depth = 0;
+    let j = i;
+    for (; j < pattern.length; j++) {
+      const ch = pattern[j];
+      if (ch === "\\") {
+        j++;
+        continue;
+      }
+      if (ch === "[") {
+        j++;
+        while (j < pattern.length && pattern[j] !== "]") {
+          if (pattern[j] === "\\") j++;
+          j++;
+        }
+        continue;
+      }
+      if (ch === "(") depth++;
+      else if (ch === ")") {
+        depth--;
+        if (depth === 0) break;
+      }
+    }
+    if (depth !== 0) break; // unbalanced — let RegExp compile/throw
+    const after = pattern[j + 1];
+    const quantified =
+      after === "*" || after === "+" || (after === "{" && /\d/.test(pattern[j + 2] ?? ""));
+    if (quantified) {
+      const body = pattern.slice(i + 1, j);
+      if (branchesOverlap(splitTopLevelAlternation(body))) return true;
+    }
+    i = j; // continue scanning after this group
+  }
+  return false;
+}
+
+/** Split a group body on top-level `|`, respecting nesting/classes/escapes. */
+function splitTopLevelAlternation(body: string): string[] {
+  const branches: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < body.length; i++) {
+    const ch = body[i];
+    if (ch === "\\") {
+      i++;
+      continue;
+    }
+    if (ch === "[") {
+      i++;
+      while (i < body.length && body[i] !== "]") {
+        if (body[i] === "\\") i++;
+        i++;
+      }
+      continue;
+    }
+    if (ch === "(") depth++;
+    else if (ch === ")") depth--;
+    else if (ch === "|" && depth === 0) {
+      branches.push(body.slice(start, i));
+      start = i + 1;
+    }
+  }
+  branches.push(body.slice(start));
+  return branches;
+}
+
+/** True if any branch equals or is a prefix of another (raw-text proxy). */
+function branchesOverlap(branches: string[]): boolean {
+  if (branches.length < 2) return false;
+  // Strip a non-capturing-group marker so "(?:a|a)" compares branch bodies.
+  const norm = branches.map((b) => b.replace(/^\?:/, ""));
+  for (let a = 0; a < norm.length; a++) {
+    for (let b = 0; b < norm.length; b++) {
+      if (a === b || norm[a] === "") continue;
+      if (norm[b] === norm[a] || norm[b].startsWith(norm[a])) return true;
+    }
+  }
+  return false;
 }
 
 // ---------------------------------------------------------------------------
@@ -86,6 +325,18 @@ export class EditFileTool extends Tool {
       return {
         success: false,
         error: String(e instanceof Error ? e.message : e)
+      };
+    }
+
+    // resolveSafePath only checks containment lexically. Follow symlinks and
+    // verify the real target (or, for a not-yet-created file, its parent dir)
+    // stays inside the workspace, so an in-workspace symlink can't be used to
+    // read or overwrite arbitrary host files.
+    const workspaceRoot = resolveSafePath(context, ".");
+    if (!(await isEditTargetWithinRoot(workspaceRoot, filePath))) {
+      return {
+        success: false,
+        error: `Path resolves outside the workspace: ${rawPath}`
       };
     }
 
@@ -164,9 +415,23 @@ export class EditFileTool extends Tool {
 
       let newContent: string;
       if (replaceAll) {
-        newContent = content.split(searchString).join(newString);
+        if (newString === "" && !oldString.endsWith("\n")) {
+          // Delete every occurrence, consuming a trailing newline PER match
+          // where present. Switching the whole search string to oldString+"\n"
+          // would silently skip occurrences that have no trailing newline (e.g.
+          // "foo" inside "foobar"), leaving them behind while reporting them
+          // removed. Two passes remove both forms; `count` still equals the
+          // number of oldString occurrences actually deleted.
+          newContent = content
+            .split(oldString + "\n")
+            .join("")
+            .split(oldString)
+            .join("");
+        } else {
+          newContent = content.split(oldString).join(newString);
+        }
       } else {
-        // Replace only first occurrence
+        // Replace only first occurrence (searchString may consume its newline).
         const firstIdx = content.indexOf(searchString);
         newContent =
           content.slice(0, firstIdx) +
@@ -266,6 +531,12 @@ async function walkDir(
       ) {
         continue;
       }
+      // Never follow symlinks: a symlink inside the workspace can point outside
+      // the root, and the lexical containment check can't see through it. Skip
+      // both file and directory symlinks so grep/glob stay sandboxed.
+      if (entry.isSymbolicLink()) {
+        continue;
+      }
       const fullPath = join(dir, entry.name);
       if (entry.isDirectory()) {
         results.push(...(await walkDir(fullPath, maxDepth, depth + 1)));
@@ -322,6 +593,17 @@ export class GlobTool extends Tool {
       return {
         success: false,
         error: String(e instanceof Error ? e.message : e)
+      };
+    }
+
+    // walkDir skips symlink entries, but readdir transparently follows a
+    // symlinked search root itself, so realpath-verify it stays in the
+    // workspace before walking (mirrors GrepTool).
+    const workspaceRoot = resolveSafePath(context, ".");
+    if (!(await isRealPathWithinRoot(workspaceRoot, searchDir))) {
+      return {
+        success: false,
+        error: `Path resolves outside the workspace: ${rawPath ?? "."}`
       };
     }
 
@@ -448,6 +730,17 @@ export class GrepTool extends Tool {
       };
     }
 
+    if (hasNestedQuantifier(pattern) || hasOverlappingAlternationQuantifier(pattern)) {
+      return {
+        success: false,
+        error:
+          "Pattern rejected: it can cause catastrophic backtracking (a " +
+          "quantifier applied to an already-quantified group like \"(a+)+\", or " +
+          "to a group with overlapping alternation branches like \"(a|a)*\"). " +
+          "Rewrite the pattern to avoid nested/overlapping quantifiers."
+      };
+    }
+
     let regex: RegExp;
     try {
       regex = new RegExp(pattern, caseInsensitive ? "i" : "");
@@ -455,6 +748,16 @@ export class GrepTool extends Tool {
       return {
         success: false,
         error: `Invalid regex: ${String(e)}`
+      };
+    }
+
+    // The workspace root, used to reject symlinks that escape it. searchDir was
+    // only checked lexically, so a symlinked target must be realpath-verified.
+    const workspaceRoot = resolveSafePath(context, ".");
+    if (!(await isRealPathWithinRoot(workspaceRoot, searchDir))) {
+      return {
+        success: false,
+        error: `Path resolves outside the workspace: ${rawPath ?? "."}`
       };
     }
 
@@ -535,9 +838,24 @@ export class GrepTool extends Tool {
 
     const matches: GrepMatch[] = [];
     let totalMatches = 0;
+    const deadline = Date.now() + GREP_TIME_BUDGET_MS;
+    let timedOut = false;
 
     for (const file of filesToSearch) {
       if (totalMatches >= maxResults) break;
+      if (Date.now() > deadline) {
+        timedOut = true;
+        break;
+      }
+
+      // Skip oversized files: reading them buffers the whole file (plus a
+      // decoded copy and a split array) into the shared process heap.
+      try {
+        const fileInfo = await stat(file);
+        if (fileInfo.size > MAX_GREP_FILE_BYTES) continue;
+      } catch {
+        continue;
+      }
 
       let content: string;
       try {
@@ -552,6 +870,15 @@ export class GrepTool extends Tool {
       const lines = content.split("\n");
       for (let i = 0; i < lines.length; i++) {
         if (totalMatches >= maxResults) break;
+        // Bound total scan time so a catastrophic-backtracking pattern can't
+        // pin the event loop indefinitely; abort between lines.
+        if (Date.now() > deadline) {
+          timedOut = true;
+          break;
+        }
+        // Skip pathologically long lines — backtracking blow-ups scale with
+        // input length, and such lines are not meaningful source matches.
+        if (lines[i].length > MAX_GREP_LINE_LENGTH) continue;
         if (regex.test(lines[i])) {
           const match: GrepMatch = {
             file: relative(searchDir, file),
@@ -574,6 +901,7 @@ export class GrepTool extends Tool {
           totalMatches++;
         }
       }
+      if (timedOut) break;
     }
 
     return {
@@ -581,6 +909,7 @@ export class GrepTool extends Tool {
       pattern,
       match_count: matches.length,
       truncated: totalMatches >= maxResults,
+      timed_out: timedOut,
       matches
     };
   }

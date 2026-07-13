@@ -274,10 +274,10 @@ export function buildExecutionTreeState(
             };
           }
         }
-      } else if (event === "task_completed") {
+      } else if (event === "task_completed" || event === "task_failed") {
         const task = taskMap.get(taskId);
         if (task) {
-          task.status = "completed";
+          task.status = event === "task_failed" ? "failed" : "completed";
           task.expanded = false;
           task.duration = task.startedAt
             ? (Date.now() - task.startedAt) / 1000

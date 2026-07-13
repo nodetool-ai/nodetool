@@ -35,6 +35,35 @@ describe("OpenAIProvider", () => {
     expect(await provider.hasToolSupport("gpt-5.4-mini")).toBe(true);
   });
 
+  it("only rewrites system messages for genuine o-series reasoning models (#17)", () => {
+    const provider = new OpenAIProvider(
+      { OPENAI_API_KEY: "k" },
+      { client: {} as any }
+    );
+    const convert = (model: string) =>
+      (
+        provider as unknown as {
+          convertSystemToUserForOModels: (m: Message[], model: string) => Message[];
+        }
+      ).convertSystemToUserForOModels(
+        [
+          { role: "system", content: "You are a terse pirate." },
+          { role: "user", content: "hi" }
+        ],
+        model
+      );
+
+    // Real reasoning models: system → user rewrite still applies.
+    expect(convert("o1-mini")[0]).toMatchObject({ role: "user" });
+    expect(convert("o3")[0]).toMatchObject({ role: "user" });
+
+    // Namespaced compat ids that merely start with "o" (or whose vendor prefix
+    // does) must keep the system role untouched — they support it.
+    expect(convert("openai/gpt-4o")[0]).toMatchObject({ role: "system" });
+    expect(convert("openai/gpt-oss-120b")[0]).toMatchObject({ role: "system" });
+    expect(convert("openrouter/auto")[0]).toMatchObject({ role: "system" });
+  });
+
   it("resolves image/video size helpers", () => {
     const provider = new OpenAIProvider(
       { OPENAI_API_KEY: "k" },
@@ -120,6 +149,49 @@ describe("OpenAIProvider", () => {
       role: "assistant",
       content: "done",
       toolCalls: [{ id: "tc1", name: "sum", args: { a: 1 } }]
+    });
+  });
+
+  it("forwards the abort signal to non-streaming chat.completions.create", async () => {
+    // Regression: the chat-completions path used to drop args.signal, so an
+    // in-flight non-streaming request could not be cancelled.
+    const create = vi.fn().mockResolvedValue({
+      choices: [{ message: { role: "assistant", content: "done" } }],
+      usage: { prompt_tokens: 1, completion_tokens: 1 }
+    });
+    const provider = new OpenAIProvider(
+      { OPENAI_API_KEY: "k" },
+      { client: { chat: { completions: { create } } } as any }
+    );
+    const controller = new AbortController();
+    await provider.generateMessage({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: "hi" }],
+      signal: controller.signal
+    } as any);
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(create.mock.calls[0][1]).toMatchObject({
+      signal: controller.signal
+    });
+  });
+
+  it("forwards the abort signal to streaming chat.completions.create", async () => {
+    const create = vi.fn().mockResolvedValue(makeAsyncIterable([]));
+    const provider = new OpenAIProvider(
+      { OPENAI_API_KEY: "k" },
+      { client: { chat: { completions: { create } } } as any }
+    );
+    const controller = new AbortController();
+    for await (const _ of provider.generateMessages({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: "hi" }],
+      signal: controller.signal
+    } as any)) {
+      // drain
+    }
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(create.mock.calls[0][1]).toMatchObject({
+      signal: controller.signal
     });
   });
 

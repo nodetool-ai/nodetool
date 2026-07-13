@@ -13,15 +13,19 @@ import { countTokens, truncateToTokens } from "./token-counter.js";
 const NON_TEXT_BLOCK_TOKENS = 25;
 
 function estimateMessageTokens(msg: Message): number {
-  if (msg.content === null || msg.content === undefined) return 1;
-  if (typeof msg.content === "string") return countTokens(msg.content);
   let tokens = 0;
-  for (const part of msg.content as MessageContent[]) {
-    if (part.type === "text") {
-      tokens += countTokens(part.text);
-    } else {
-      tokens += NON_TEXT_BLOCK_TOKENS;
+  if (msg.content === null || msg.content === undefined) {
+    tokens = 1;
+  } else if (typeof msg.content === "string") {
+    tokens = countTokens(msg.content);
+  } else {
+    for (const part of msg.content as MessageContent[]) {
+      tokens +=
+        part.type === "text" ? countTokens(part.text) : NON_TEXT_BLOCK_TOKENS;
     }
+  }
+  for (const call of msg.toolCalls ?? []) {
+    tokens += countTokens(call.name) + countTokens(JSON.stringify(call.args));
   }
   return tokens;
 }

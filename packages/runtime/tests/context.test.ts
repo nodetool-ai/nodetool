@@ -79,6 +79,18 @@ describe("ProcessingContext – message queue", () => {
     ]);
   });
 
+  it("continues notifying listeners when one throws", () => {
+    const received: ProcessingMessage[] = [];
+    const ctx = new ProcessingContext({ jobId: "j1" });
+    ctx.addMessageListener(() => {
+      throw new Error("listener failed");
+    });
+    ctx.addMessageListener((msg) => received.push(msg));
+
+    expect(() => ctx.emit({ type: "job_update", status: "running" })).not.toThrow();
+    expect(received).toHaveLength(1);
+  });
+
   it("clearMessages empties the queue", () => {
     const ctx = new ProcessingContext({ jobId: "j1" });
     ctx.emit({ type: "job_update", status: "running" });
@@ -308,6 +320,100 @@ describe("MemoryCache", () => {
   });
 });
 
+describe("ProcessingContext.generateNodeCacheKey", () => {
+  it("distinguishes nodes that differ only in a nested prop value", () => {
+    // Regression: the old replacer-array form dropped all nested values, so
+    // {model:{id:'a'}} and {model:{id:'b'}} produced the same key and returned
+    // each other's cached result.
+    const ctx = new ProcessingContext({ jobId: "j1", userId: "u1" });
+    const keyA = ctx.generateNodeCacheKey("T", { model: { id: "gpt-a" } });
+    const keyB = ctx.generateNodeCacheKey("T", { model: { id: "gpt-b" } });
+    expect(keyA).not.toBe(keyB);
+  });
+
+  it("is stable regardless of key insertion order", () => {
+    const ctx = new ProcessingContext({ jobId: "j1", userId: "u1" });
+    const k1 = ctx.generateNodeCacheKey("T", { a: 1, b: { x: 1, y: 2 } });
+    const k2 = ctx.generateNodeCacheKey("T", { b: { y: 2, x: 1 }, a: 1 });
+    expect(k1).toBe(k2);
+  });
+});
+
+describe("ProcessingContext.httpRequestWithRetries", () => {
+  it("cancels an error response body before throwing", async () => {
+    const cancel = vi.fn().mockResolvedValue(undefined);
+    const fetchFn = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      statusText: "Not Found",
+      headers: new Headers(),
+      body: { cancel }
+    } as unknown as Response);
+    const ctx = new ProcessingContext({ jobId: "j1", fetchFn });
+
+    await expect(ctx.httpGet("https://example.test/missing")).rejects.toThrow("HTTP 404");
+    expect(cancel).toHaveBeenCalledOnce();
+  });
+
+  it("interrupts Retry-After waits when the request is aborted", async () => {
+    const controller = new AbortController();
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      fetchFn: async () =>
+        new Response("retry", {
+          status: 429,
+          headers: { "Retry-After": "86400" }
+        })
+    });
+
+    const request = ctx.httpGet("https://example.test/rate-limited", {
+      signal: controller.signal,
+      retry: { maxRetries: 2 }
+    });
+    controller.abort(new Error("cancelled"));
+
+    await expect(request).rejects.toThrow("cancelled");
+  });
+  it("does not retry a non-retryable HTTP status", async () => {
+    const fetchFn = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      statusText: "Unauthorized",
+      headers: { get: () => null }
+    } as unknown as Response);
+    const ctx = new ProcessingContext({ jobId: "j1", fetchFn: fetchFn as any });
+    await expect(ctx.httpGet("https://example.test/x")).rejects.toThrow(
+      /401/
+    );
+    // Exactly one attempt — a 401 is not in retryStatuses.
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries a retryable status", async () => {
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+        statusText: "Unavailable",
+        headers: { get: () => null }
+      } as unknown as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        headers: { get: () => null }
+      } as unknown as Response);
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      fetchFn: fetchFn as any
+    });
+    const res = await ctx.httpGet("https://example.test/x", { backoffMs: 1 });
+    expect(res.status).toBe(200);
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe("ProcessingContext.sanitizeForClient", () => {
   it("does not rewrite plain memory:// strings", () => {
     expect(ProcessingContext.sanitizeForClient("memory://abc")).toBe(
@@ -425,6 +531,24 @@ describe("Storage adapters", () => {
     }
   });
 
+  it("exists/retrieve return false/null (not throw) for an invalid /api/storage key", async () => {
+    // Regression: the /api/storage/ branch of resolvePathFromUri called
+    // resolvePathFromKey outside a try/catch, so a traversal key threw out of
+    // exists()/retrieve() instead of resolving to the documented false/null.
+    const root = await mkdtemp(join(tmpdir(), "nodetool-ts-runtime-"));
+    try {
+      const storage = new FileStorageAdapter(root);
+      await expect(
+        storage.exists("/api/storage/../secret")
+      ).resolves.toBe(false);
+      await expect(
+        storage.retrieve("/api/storage/../secret")
+      ).resolves.toBeNull();
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("S3StorageAdapter stores and returns s3 uri", async () => {
     const store = new Map<string, Uint8Array>();
     const client: S3Client = {
@@ -508,6 +632,22 @@ describe("workspace path resolution", () => {
 });
 
 describe("output normalization", () => {
+  it("materializes asset URIs found through storage prefix lookup", async () => {
+    const storage = new InMemoryStorageAdapter();
+    await storage.store("asset-1.png", new TextEncoder().encode("pixels"));
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      assetOutputMode: "data_uri",
+      storage
+    });
+
+    const normalized = (await ctx.normalizeOutputValue({
+      type: "ImageRef",
+      uri: "asset://asset-1"
+    })) as { uri: string };
+
+    expect(normalized.uri).toBe("data:image/png;base64,cGl4ZWxz");
+  });
   it("materializes asset refs as data URIs", async () => {
     const ctx = new ProcessingContext({
       jobId: "j1",
@@ -1171,6 +1311,25 @@ describe("ProcessingContext – HTTP helpers", () => {
 });
 
 describe("ProcessingContext – provider prediction pipeline", () => {
+  it("emits a terminal update when a stream consumer stops early", async () => {
+    const ctx = new ProcessingContext({ jobId: "j1" });
+    ctx.registerProvider("mock", new MockProvider());
+
+    for await (const _item of ctx.streamProviderPrediction({
+      provider: "mock",
+      capability: "generate_messages",
+      model: "m1",
+      params: { messages: [] }
+    })) {
+      break;
+    }
+
+    const statuses = ctx
+      .getMessages()
+      .filter((message) => message.type === "prediction")
+      .map((message) => (message as { status: string }).status);
+    expect(statuses).toEqual(["running", "completed"]);
+  });
   it("runs non-stream and emits prediction lifecycle updates", async () => {
     const ctx = new ProcessingContext({ jobId: "j1" });
     ctx.registerProvider("mock", new MockProvider());
@@ -2044,6 +2203,25 @@ describe("ProcessingContext – assetsToWorkspaceFiles", () => {
 });
 
 describe("ProcessingContext – getProvider edge cases", () => {
+  it("shares an in-flight provider resolution", async () => {
+    const ctx = new ProcessingContext({ jobId: "j1" });
+    let resolveProvider: ((provider: BaseProvider) => void) | undefined;
+    const resolver = vi.fn(
+      () =>
+        new Promise<BaseProvider>((resolve) => {
+          resolveProvider = resolve;
+        })
+    );
+    ctx.setProviderResolver(resolver);
+
+    const first = ctx.getProvider("mock");
+    const second = ctx.getProvider("mock");
+    const provider = new MockProvider();
+    resolveProvider?.(provider);
+
+    await expect(Promise.all([first, second])).resolves.toEqual([provider, provider]);
+    expect(resolver).toHaveBeenCalledOnce();
+  });
   it("throws for empty providerId", async () => {
     const ctx = new ProcessingContext({ jobId: "j1" });
     await expect(ctx.getProvider("")).rejects.toThrow("providerId is required");

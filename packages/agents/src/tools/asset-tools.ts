@@ -91,6 +91,17 @@ export class SaveAssetTool extends Tool {
           content: data
         })) as { id?: string };
         if (asset && typeof asset.id === "string") {
+          // createAsset persists under a DB-generated id, so a name-keyed
+          // read_asset("<name>") would never find it. Mirror the bytes under
+          // the `assets/<name>` storage key too (best-effort) so the reader's
+          // name-based lookup resolves what this tool saved.
+          if (context.storage) {
+            try {
+              await context.storage.store(`assets/${name}`, data, mime);
+            } catch {
+              // Non-fatal: the asset is still saved via createAsset.
+            }
+          }
           return {
             success: true,
             name,
@@ -193,12 +204,25 @@ export class ReadAssetTool extends Tool {
         };
       }
 
-      const content = new TextDecoder().decode(data);
+      // Decode as UTF-8 only when the bytes actually are UTF-8. TextDecoder
+      // with fatal:false would silently turn binary (PNG, audio, msgpack) into
+      // U+FFFD garbage and still report success; for non-text bytes return
+      // base64 the caller can round-trip instead.
+      let content: string;
+      let contentBase64: string | undefined;
+      try {
+        content = new TextDecoder("utf-8", { fatal: true }).decode(data);
+      } catch {
+        contentBase64 = Buffer.from(data).toString("base64");
+        content = "";
+      }
 
       return {
         success: true,
         name,
         content,
+        ...(contentBase64 !== undefined ? { content_base64: contentBase64 } : {}),
+        binary: contentBase64 !== undefined,
         uri: matchedUri,
         size: data.byteLength
       };

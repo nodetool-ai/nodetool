@@ -70,6 +70,12 @@ export interface PlanKeyInput {
   objective: string;
   tools: string[];
   model?: string;
+  /** The output schema shapes the plan (injected into the planning prompt). */
+  outputSchema?: Record<string, unknown> | null;
+  /** Input keys the plan is validated against / built for. */
+  inputKeys?: string[];
+  /** A non-default planning system prompt changes the plan. */
+  systemPrompt?: string | null;
 }
 
 /**
@@ -82,7 +88,13 @@ export function hashPlanKey(input: PlanKeyInput): string {
   const canonical = stableStringify({
     objective: input.objective,
     tools: [...input.tools].sort(),
-    model: input.model ?? null
+    model: input.model ?? null,
+    // Fold in everything else that shapes the produced plan, so structurally
+    // different planning requests (different output schema, inputs, or system
+    // prompt) never collide on the same cache key.
+    outputSchema: input.outputSchema ?? null,
+    inputKeys: input.inputKeys ? [...input.inputKeys].sort() : null,
+    systemPrompt: input.systemPrompt ?? null
   });
   if (_nodeCrypto?.createHash) {
     return _nodeCrypto.createHash("sha256").update(canonical).digest("hex");

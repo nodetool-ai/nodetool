@@ -1,0 +1,311 @@
+# Kernel/Runtime/Agents/Websocket Bug Audit — Progress & Resume State
+
+> Working artifact for an in-progress multi-round bug audit. **Delete this file
+> before opening any PR.** It exists so the audit can resume after an ephemeral
+> container is reclaimed. Branch: `claude/kernel-runtime-bug-audit-2e71pq`.
+
+_Last updated: round 9 complete (43/43 candidates confirmed by ≥2/3 skeptics,
+fixed, tested, and committed). The reconciled total is 201 unique confirmed,
+199 fixed, and 4 deferred. Round 9 closes the previously deferred Anthropic
+thinking round-trip. See `BUG-AUDIT-REPORT.md` for the consolidated ledger.
+
+Round 9 fix commits: `e21c3f2bb` (websocket/HTTP), `817008419` (runtime
+context), `04b85fd1c` (runtime providers), and `23ff7be1d` (agents/kernel/models).
+Verification: all 56 package builds; kernel 823, runtime 1,991, agents 1,249,
+models 641, websocket 929 tests; oxlint source gate has no errors.
+
+Round 8 (`scripts/bug-audit-workflow-r8.mjs`, run `wf_7442d97b-b5c`) swept 14
+finder groups over the remaining files (http-api/oauth/models-api, test-ui/
+screenshot servers, misc routers, workflow-bundle/media-url libs, telemetry/
+schema, provider mgmt, small compat + embedding/3D providers, comfy/python-graph
+executors, remaining agent tools). 29 findings, 19 confirmed (≥2/3), 10 refuted.
+Fixed 19:
+- **models-api** — HF hub cache root no longer double-appends "hub" to
+  HUGGINGFACE_HUB_CACHE / honors HF_HUB_CACHE (#1).
+- **test-ui-server** — WsAdapter queues the disconnect frame / short-circuits a
+  closed socket so the runner can't hang forever on client disconnect (#2).
+- **mcp-config router** — TOML-escape the MCP url + z.string().url() validation
+  (TOML injection into Codex config) (#3).
+- **settings router** — only skip the exact "****" mask, not any all-asterisk
+  secret (#4).
+- **file-user-manager** — Object.hasOwn guards so reserved usernames
+  (__proto__/constructor/…) return null instead of 500 (#5).
+- **resolve-media-urls** — reject traversal asset_ids (local-file exfil to the
+  LLM) (#6); add image/jpg + image/bmp so stored images don't resolve to a
+  dangling .bin URL (#7).
+- **telemetry** — shutdownTelemetry() flushes the OTLP BatchSpanProcessor; wired
+  into the CLI exit paths (spans were lost on exit) (#8).
+- **zod-schema** — coerce a top-level scalar schema instead of throwing (#9).
+- **python-provider** — TTS Int16 conversion honors byteOffset/odd length
+  (garbled/crash) (#10).
+- **llama-provider** — quote-state parser handles escaped backslashes so
+  following args aren't swallowed (#11).
+- **atlascloud-provider** — Retry-After parsed + capped (no multi-hour hang /
+  zero-backoff storm) (#12).
+- **comfy-executor** — submit + upload fetches now time out (#13, #14).
+- **add-edge tool** — allow edges into dynamic-input/output handles (#15).
+- **serp-tool-factory** — bind getSecret so the secret store is consulted (#16).
+- **workspace-tools** — workspace_list("/") no longer drops the first char of
+  directory names (#17).
+- **todo-tools** — bound TODO_STORE with an LRU cap (unbounded leak) (#18).
+- **security-monitor** — pick the verdict object (not the first JSON) + fail-safe
+  block on any non-none tier, so a verbose judge can't fail open (#19).
+
+Regression tests added for the high-value fixes (#5, #6, #7, #11, #15, #17, #19).
+The 5 deferred items are unchanged (anthropic thinking round-trip; LTM
+concurrency/re-embed; collections router + collection-tools cross-tenant IDOR —
+the last two need per-user vector-store namespacing + migration).
+
+Round 7 (`scripts/bug-audit-workflow-r7.mjs`, run `wf_ebfad157-56e`) swept 14
+finder groups over the last unexamined files (unified-websocket-runner, agent
+runtime/pi-agent/llm-agent, storage-api/file-api/thumbnail, mcp/screenshot
+servers, settings/plugins, files/collections/nodes routers, kernel graph
+internals, image-codec/agent-memory, provider infra, topaz/evolink/rodin/meshy/
+reve media-gen providers, elevenlabs/moonshot/deepseek/vllm, agent executors +
+code/image/ltm/workspace tools). 35 findings, 27 confirmed (≥2/3), 8 refuted.
+Fixed 25:
+- **ws runner** — chat Stop now cancels a workflow-target turn (#1); SSRF guard
+  on readBytesFromUri (#2).
+- **agent runtime** — llm-agent re-checks abort before applying a graph to the
+  canvas (#3); streaming re-key can't resurrect a closed session (#4); pi text
+  buffer cleared for id-less messages (#5).
+- **storage-api/file-api** — Range end past EOF is clamped, not 416'd (#6);
+  unparseable/multi-range headers are ignored → full 200 (#8).
+- **thumbnail** — short clips fall back to frame 0 (#7).
+- **mcp-server** — don't cache a rejected runtime-bootstrap promise (#9); empty
+  load-error suffix no longer matches every node type (#11, also plugins).
+- **collections router** — list degrades per-collection instead of 500-ing (#13).
+- **files router** — realpath containment closes the symlink sandbox escape (#14).
+- **kernel graph** — edge-fed pruning also clears dynamic_properties (#15).
+- **image-codec/view-image** — no-sharp pass-through keeps the true source mime
+  (#16, #25); unsupported formats re-encode to PNG (#26).
+- **swappable-python-bridge** — delegate providerStream/providerTTS so Python
+  streaming chat + TTS work on the server (#17).
+- **topaz/evolink** — result downloads routed through safeFetch (SSRF) (#18, #19);
+  topaz Retry-After HTTP-date parsed (#20).
+- **anthropic base** — supportsNativeWebSearch gated on provider id so Moonshot
+  falls back to SerpAPI (#21).
+- **elevenlabs** — forward voice_settings.speed (#22).
+- **run-subtask/run-search** — detect the nested `{error}` step-result shape so a
+  failed child isn't returned as success (#23, #24).
+
+**Deferred (2):** collections router (#12) and collection tools (#27) cross-tenant
+IDOR — closing these needs per-user namespacing of the shared vector store plus a
+migration and web-UI/RAG-node coordination (the store is also used directly by
+workflow nodes), too broad for a single safe commit. Both are HIGH security and
+should be prioritized as a dedicated change.
+
+Round 6 (`scripts/bug-audit-workflow-r6.mjs`, run `wf_943ff508-c20`) swept 15
+finder groups over files not examined in rounds 1-5 (asset/file/storage/
+workspace/sandbox/thread/message/collections/packs/jobs/worker/costs tRPC
+routers; kernel actor/runner/inbox; runtime node-executor/variable-channel/
+media-codec/python-node-exec/token-cost; mistral/xai/groq/openrouter/responses/
+cohere providers; browser/http/google/email/search/code/collection/asset agent
+tools; graph-builder/security-monitor). 37 findings, 24 confirmed (≥2/3), 13
+refuted. Fixed 24:
+- **storage router** — cross-user IDOR (list/metadata/signUrl/delete now scoped
+  to the caller by asset-ownership, fail-closed).
+- **workspace router** — update now validates the path like create (arbitrary
+  dir read); segment-aware traversal guard (`..config` no longer rejected).
+- **sandboxes router** — map "no such object" → 404 (was 500).
+- **messages router** — create now checks thread ownership (IDOR + thread
+  lockout).
+- **assets router** — reject content_type change that orphans the stored file.
+- **packs router** — setTrust persists file-level base, not env-merged effective
+  values.
+- **models message/thread/prediction paginate + jobs router** — honor
+  startKey/cursor (pagination was a no-op past page 1) and wire jobs.list cursor.
+- **media-ref-bytes** — split data URIs on the first comma only; try/catch the
+  decodeURIComponent so a malformed URI returns null instead of throwing.
+- **python-stdio-bridge** — stdin 'error' handler + try/catch _send (EPIPE no
+  longer crashes the backend); settleError kills the candidate and resets the
+  shared read buffer (no orphaned worker / frame desync).
+- **python-bridge-base** — _discover() now has a timeout (connect no longer
+  hangs forever when a worker is READY but never answers discover).
+- **token-counter** — hard-split no longer bisects surrogate pairs.
+- **openai-provider** — convertSystemToUserForOModels matches genuine o1/o3/o4
+  only (was mangling every "openai/…" compat model's system prompt).
+- **responses-api** — tool_choice "any" → "required" (was "auto").
+- **search-tools** — allow/block domain filter uses a label boundary (look-alike
+  domains no longer bypass the allowlist).
+- **http-tools** — http_request/download_file route through safeFetch (SSRF).
+- **browser-tools** — numeric HTML entities decode via fromCodePoint (astral).
+- **email-tools** — archive_email moves to All Mail (the `\Inbox` flag removal
+  was a no-op).
+- **asset-tools** — read_asset resolves createAsset-saved assets (name-mirror)
+  and returns base64 for binary instead of corrupt UTF-8.
+
+23 of 24 carry a dedicated regression test (the python-subprocess fixes
+#13/#14/#15 are covered by code review + build, not a spawn-based unit test)._
+
+Round 4 (commit `3166ee9`) fixed 13: gemini usage tracking, replicate TTS encoded
+path, comfy handshake timeout, openai Responses mid-turn abort, step-executor
+removeThinkTags, agent {markdown} wrap, compiler prose false-success, media-tools
+sample-rate + asset:// reads, vector-tools infinite-loop clamp, models-api path
+traversal, llm-agent resume system prompt + planner cancel.
+
+Round 4 uses `scripts/bug-audit-workflow-r4.mjs` (finders retargeted at the ~23
+files NOT examined in rounds 1-3: durable-inbox, suspendable, io,
+correlation-analysis; gemini/fal/replicate providers; step-executor, agent,
+graph-planner, compiler-agent; mcp/media/pdf/vector/filesystem tools; server,
+models-api, openai-api, screenshot-server, llm-agent).
+
+## Goal (original task)
+
+Thorough bug audit over `packages/kernel`, `packages/runtime`, `packages/agents`,
+`packages/websocket`. Finder subagents per subsystem × error class (correctness,
+races/actor-messaging, resource leaks, error-handling, security). Every finding
+adversarially verified by **3 independent skeptics**; only findings confirmed by
+**≥2/3** count. Confirmed bugs: fix + regression test + `npm run check` green +
+commit + push. **Loop-until-dry: stop only after two consecutive finder rounds
+produce no new confirmed findings.**
+
+## Status
+
+| Round | Finders | Confirmed | State | Commit |
+|-------|---------|-----------|-------|--------|
+| 1 | 13 | 12 | fixed + tested + pushed | `da7f7f3` |
+| 2 | 13 | 25 | fixed + tested + pushed | `bfa9af9` |
+| 3 | 13 | ? | **IN FLIGHT** (workflow run `wf_b540d44a-1bb`, task `wexqladdr`) | — |
+| self-review | — | 3 regressions in the fixes themselves | fixed + tested + pushed | `e4a676e` |
+
+Self-review (commit `e4a676e`) fixed 3 defects the round 1/2 fixes introduced:
+trigger-wakeup concurrent-duplicate dedup (in-flight inputId set); edit-search
+dangling-symlink create escape (`lstat` not `access`); comfy readyState fast-fail
+discarding a buffered terminal frame (replay before fast-fail).
+
+Round 3 (commit `51b9194`) confirmed 20 bugs in newly-swept files; #2 was already
+fixed by the self-review. **17 fixed + tested**: trigger dead-waiter, _inboxes
+eviction, graph I/O namespace classify, context storage-URI throw + http body
+drain, base/openai per-tool error isolation, python-websocket close-during-
+reconnect, prompt-asset prototype `in`, js-sandbox SSRF + body-cap + workspace
+symlink, edit_file replace_all deletion, ws-runner slot-leak + send-mode race,
+mcp-server session-transport leak, bundle-import 400.
+
+**Running total: 40 (rounds 1-2) + 3 (self-review) + 17 (round 3) + 13 (round 4)
++ 18 (round 5) = 91 fixes** (3 additionally deferred).
+
+Round 5 (this commit) fixed 18 across runtime providers + agents + websocket
+tRPC routers:
+- **ollama-provider** ×3 — emulated tool-call syntax leaking into content (#1),
+  array-typed assistant content dropped in convertMessage (#2), numeric coercion
+  of quoted string args (#4).
+- **together-provider** — WAV fmt-chunk bounds guard off by 4 → RangeError (#3).
+- **claude-agent-provider** — tool-free "pure LLM" path left SDK built-in
+  Bash/file/web tools live under bypassPermissions; now `disallowedTools` (#5).
+- **minimax-provider** — result-media downloads now route through `safeFetch`
+  (SSRF guard), with an injectable fetch impl for testability (#6).
+- **kie-provider** — pollUntilDone now fails fast on persistent non-OK polls
+  instead of hanging ~20 min then misreporting a timeout (#7).
+- **huggingface-provider** — streaming path now records token usage (#8).
+- **math-tools ConversionTool** — reject cross-dimension and temperature↔non-temp
+  conversions instead of returning plausible-but-wrong numbers (#9).
+- **models router** — path-traversal existence oracle via `safeJoinWithin` (#10),
+  secrets resolved for the authenticated `ctx.userId` not hardcoded "1" (#11),
+  ReDoS-safe linear glob matcher replacing backtracking regex (#12).
+- **workflows router** — `Object.hasOwn` instead of `in` for output-node lookup
+  (prototype pollution, #13), autosave map now pruned + evicted on delete (#14).
+- **timeline router + TimelineSequence model** — all document mutations routed
+  through an atomic CAS mutator (`mutateDocument`/`updateFieldsIfUnchanged`) to
+  stop lost updates (#15); append no longer drops the just-created version when
+  favorites fill the cap (#16); favorited failed versions no longer pruned (#17).
+- **sketch router + ImageDocument model** — `sketch.update` routed through an
+  atomic `updateFieldsIfUnchanged` CAS, closing the TOCTOU clobber (#18).
+
+### Deferred (confirmed but NOT fixed — need deeper work + integration testing)
+
+- **#7 anthropic-provider extended-thinking round-trip** — when `thinkingBudget`
+  is set with tools, multi-turn tool loops 400 because the thinking block +
+  signature aren't preserved. Fix threads a new raw-parts field through the
+  SHARED `generateLoop` (all providers) + convertMessage; needs a live
+  thinking-model round-trip to verify. High blast radius — do carefully.
+- **#15 long-term-memory enforceMaxItems eviction race** — offset pagination is
+  corrupted by concurrent recall/remember mutations. A naive per-instance write
+  mutex (attempted, reverted) shifts read/write timing and breaks a synthesis
+  test; the right fix is a vectorstore-level atomic access-bump / snapshot get.
+- **#16 long-term-memory recall re-embed** (low/perf) — bumpAccess re-embeds
+  every returned item; needs a metadata-only update path on VectorCollection or
+  reuse of the stored embedding. Naturally fixed alongside #15.
+
+### Loop-until-dry status
+
+NOT dry. R1=12, R2=25, R3=20 confirmed — each round expands file coverage and
+finds ~20 more real bugs (the codebase is large). Two consecutive dry rounds
+(the termination condition) are likely several rounds away. Next: round 4 on the
+remaining unexamined files, excluding all fixed bugs + the 3 deferred, then keep
+looping. The 3 deferred bugs will keep re-surfacing in finder output until fixed;
+list them in `exclude` with a "DEFERRED" note.
+
+Round 1's verifiers for `agents-memory-planner`, `ws-runner`, `ws-api-security`,
+`ws-media-servers` were cut short by a session limit; **round 2 re-ran those with
+full verification** and confirmed the serious ones (IDOR, zip-bomb, OAuth
+ciphertext-as-token, job-slot leak, plan-cache bugs).
+
+**37 bugs fixed so far.** Not yet dry — round 2 found 25, so at minimum rounds 3
+and 4 are needed (two consecutive dry rounds to terminate).
+
+## Fixed bugs (37) — see commit messages `da7f7f3` and `bfa9af9` for details
+
+Round 1 (12): openai AbortSignal; python-websocket unsupervised reconnect;
+python-bridge streaming cleanup + `_send` leak; comfy close-during-submit hang;
+empty text asset token leak; fan-out result order; all-error fan-out reported
+success; no terminal `task_update` on failure (+ `TaskFailed` protocol event);
+GrepTool ReDoS / OOM / symlink escape.
+
+Round 2 (25): graph `in`/bracket prototype pollution (graph.ts + graph-utils.ts);
+trigger setTimeout overflow; trigger-wakeup idempotency-before-append;
+trigger-manager stop-vs-start race; context cache key nested-value loss; http
+retry of non-retryable status; context `process.env` in browser; anthropic
+AbortSignal; python-websocket reconnect epoch (setTarget race); python-bridge
+cancel no-op; comfy listener-after-submit (buffer+replay); task-executor
+duplicate-item collision; plan-cache shared-mutable clone; plan-cache key omits
+schema/inputs; EditFileTool + GlobTool symlink escape; GrepTool
+alternation-overlap ReDoS; unified-runner job-slot try/finally; unified-runner
+await reconnect/resume; http-api IDOR on workflow versions; oauth-api
+ciphertext-as-token (HF whoami, GitHub user, HF refresh); workflow-bundle
+zip-bomb.
+
+## How to resume after a restart
+
+1. Environment (sandboxed/proxied):
+   ```bash
+   nvm use
+   npm install --ignore-scripts          # keytar/electron/onnx postinstalls 403 otherwise
+   npm run build:packages                # required for cross-package typecheck
+   npm run rebuild:native                # better-sqlite3 for agents LTM/vectorstore tests
+   ```
+2. Recreate the workflow script (see `scripts/bug-audit-workflow.mjs`, committed
+   alongside this file — it is the finder+3-skeptic-verify workflow, parameterized
+   by `args.round`, `args.exclude`, `args.focusNote`).
+3. Re-run the next round via the `Workflow` tool with `scriptPath` pointing at
+   that script, passing `exclude` = every already-fixed bug (file+title) and a
+   `focusNote` telling finders those are FIXED and to report only NEW defects.
+4. For each ≥2/3-confirmed finding: fix, add a regression test, keep the affected
+   package suites green, commit, push.
+5. Continue until **two consecutive rounds** yield zero new confirmed findings.
+
+## Verification commands
+
+```bash
+npm run build:packages   # typecheck all
+npx vitest run --root packages/kernel      # 821 pass
+npx vitest run --root packages/runtime     # 1954 pass
+npx vitest run --root packages/agents      # 1221 pass (needs rebuild:native)
+npx vitest run --root packages/websocket   # 911 pass
+npx vitest run --root packages/cli         # 323 pass
+```
+Note: `mobile/` typecheck fails in this env (its deps aren't installed — it is
+intentionally NOT a root workspace); unrelated to these changes.
+
+## Refuted findings (kept out, with reason) — see round reports
+
+Round 1 genuinely-refuted (0/3): js-sandbox SSRF/`Function` recovery (QuickJS
+WASM sandbox, no host fetch to internal endpoints; eval/Function deleted at
+init); context copy()/emit() (fields are copied; listeners intentionally
+fire-and-forget); anthropic signal (aborts via SDK stream — later re-examined
+and a real non-streaming gap WAS confirmed in round 2 at a different line and
+fixed); durable-inbox cleanupConsumed; graph schema collision; plan-cache
+variants (round-1 unverified → confirmed+fixed in round 2). Round 2
+genuinely-refuted (≤1/3): popMessageAsync undefined; openai streaming toolChoice
+drop; anthropic thinkingBudget>max_tokens; FileCheckpointStore fire-and-forget;
+stop sets finished directly; mcp-server arbitrary user_id.

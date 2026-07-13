@@ -38,7 +38,15 @@ function parseKeywordArgs(raw: string): Record<string, unknown> {
     const ch = src[i];
     if (quote) {
       buf += ch;
-      if (ch === quote && src[i - 1] !== "\\") quote = null;
+      if (ch === "\\") {
+        // Consume the escaped character literally so an escaped backslash
+        // (e.g. a trailing `\\` in a Windows path) or an escaped quote can't be
+        // misread as the closing quote — which swallowed every following arg.
+        i += 1;
+        if (i < src.length) buf += src[i];
+        continue;
+      }
+      if (ch === quote) quote = null;
       continue;
     }
     if (ch === "'" || ch === '"') {

@@ -143,15 +143,14 @@ describe("EditFileTool — validation and error paths", () => {
     expect(await readFile(join(workspace, "f.txt"), "utf-8")).toBe("y y y");
   });
 
-  it("reports failure when creating a file at an invalid path", async () => {
-    // A path whose parent directory does not exist → writeFile rejects.
+  it("rejects creating a file through a missing parent", async () => {
     const res: any = await tool.process(ctxFor(workspace), {
       path: "no/such/dir/file.txt",
       old_string: "",
       new_string: "content"
     });
     expect(res.success).toBe(false);
-    expect(res.error).toMatch(/Failed to create file/);
+    expect(res.error).toMatch(/Path resolves outside the workspace/);
   });
 
   it("reports failure when editing but writing back fails", async () => {
@@ -300,13 +299,13 @@ describe("GrepTool", () => {
     expect(res.error).toMatch(/Invalid regex/);
   });
 
-  it("returns Path not found for a missing directory", async () => {
+  it("rejects a missing search path", async () => {
     const res: any = await tool.process(ctxFor(workspace), {
       pattern: "x",
       path: "does-not-exist"
     });
     expect(res.success).toBe(false);
-    expect(res.error).toMatch(/Path not found/);
+    expect(res.error).toMatch(/Path resolves outside the workspace/);
   });
 
   it("searches a single file when path is a file", async () => {

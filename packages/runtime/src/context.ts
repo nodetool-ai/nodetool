@@ -54,6 +54,24 @@ const randomUUID = nodeCrypto?.randomUUID
 const safeProcessEnv = (): Record<string, string | undefined> =>
   typeof process !== "undefined" && process.env ? process.env : {};
 
+function waitForRetry(delayMs: number, signal?: AbortSignal | null): Promise<void> {
+  return new Promise((resolveWait, rejectWait) => {
+    if (signal?.aborted) {
+      rejectWait(signal.reason ?? new Error("HTTP request aborted"));
+      return;
+    }
+    const onAbort = () => {
+      clearTimeout(timer);
+      rejectWait(signal?.reason ?? new Error("HTTP request aborted"));
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolveWait();
+    }, delayMs);
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
 // Eager local bindings; unavailable off-Node, throw at call time.
 function notOnNode(api: string): never {
   throw new Error(
@@ -369,6 +387,30 @@ function isWithinRoot(root: string, target: string): boolean {
 }
 
 /**
+ * Deterministic JSON serialization with object keys sorted at every depth.
+ * Unlike `JSON.stringify(value, sortedKeys)` (a recursive replacer allow-list
+ * that drops nested values), this preserves the full nested structure, so two
+ * values are equal-keyed iff they are deeply equal.
+ */
+function stableStringifyDeep(value: unknown): string {
+  if (value === null || typeof value !== "object") {
+    return JSON.stringify(value ?? null);
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map((v) => stableStringifyDeep(v)).join(",")}]`;
+  }
+  const entries = Object.keys(value as Record<string, unknown>)
+    .sort()
+    .map(
+      (k) =>
+        `${JSON.stringify(k)}:${stableStringifyDeep(
+          (value as Record<string, unknown>)[k]
+        )}`
+    );
+  return `{${entries.join(",")}}`;
+}
+
+/**
  * Normalize the image input for image-to-image / image-to-video predictions
  * into a list of byte buffers. Accepts the modern `images` array as well as
  * the legacy singular `image` field so older callers keep working.
@@ -534,7 +576,16 @@ export class FileStorageAdapter implements StorageAdapter {
       uri.startsWith("api/storage/")
     ) {
       const key = uri.replace(/^\/?api\/storage\//, "");
-      absolute = this.resolvePathFromKey(key);
+      try {
+        absolute = this.resolvePathFromKey(key);
+      } catch {
+        // resolvePathFromKey -> normalizeStorageKey throws on an invalid key
+        // (contains "..", leading ".", escapes root). retrieve/exists/delete/
+        // stat document a null/false result for unresolvable URIs, so treat a
+        // bad key as unresolvable instead of letting the throw escape (the
+        // sibling file:// and https:// branches already do this).
+        return null;
+      }
     } else if (/^https?:\/\//.test(uri)) {
       try {
         const parsed = new URL(uri);
@@ -922,6 +973,7 @@ export class ProcessingContext {
   private _modelInterfaces: ProcessingContextModelInterfaces | null = null;
   /** Provider cache keyed by provider id. */
   private _providers = new Map<string, BaseProvider>();
+  private _providerPromises = new Map<string, Promise<BaseProvider>>();
   /** In-context memory URI cache (memory:// key-value objects). */
   private _memory = new Map<string, unknown>();
   /** Optional control event dispatcher (set by workflow runner). */
@@ -1155,21 +1207,27 @@ export class ProcessingContext {
     const cached = this._providers.get(providerId);
     if (cached) return cached;
 
-    let resolved: BaseProvider;
-    if (this._providerResolver) {
-      resolved = await this._providerResolver(providerId);
-    } else {
-      const { getProvider: buildProvider } = await import(
-        "./providers/index.js"
-      );
-      resolved = await buildProvider(providerId, (key) => this.getSecret(key));
-    }
+    const pending = this._providerPromises.get(providerId);
+    if (pending) return pending;
 
-    this._providers.set(providerId, resolved);
-    resolved.setMessageEmitter((msg) =>
-      this.postMessage(msg as ProcessingMessage)
-    );
-    return resolved;
+    const resolution = (async () => {
+      const resolved = this._providerResolver
+        ? await this._providerResolver(providerId)
+        : await import("./providers/index.js").then(({ getProvider }) =>
+            getProvider(providerId, (key) => this.getSecret(key))
+          );
+      this._providers.set(providerId, resolved);
+      resolved.setMessageEmitter((msg) =>
+        this.postMessage(msg as ProcessingMessage)
+      );
+      return resolved;
+    })();
+    this._providerPromises.set(providerId, resolution);
+    try {
+      return await resolution;
+    } finally {
+      this._providerPromises.delete(providerId);
+    }
   }
 
   async get_provider(providerId: string): Promise<BaseProvider> {
@@ -1347,14 +1405,12 @@ export class ProcessingContext {
   // -----------------------------------------------------------------------
 
   generateNodeCacheKey(nodeType: string, nodeProps: unknown): string {
-    const normalizedProps =
-      nodeProps && typeof nodeProps === "object"
-        ? JSON.stringify(
-            nodeProps,
-            Object.keys(nodeProps as Record<string, unknown>).sort()
-          )
-        : JSON.stringify(nodeProps ?? null);
-    return `${this.userId}:${nodeType}:${normalizedProps}`;
+    // Deep, deterministic serialization: keys are sorted at EVERY nesting
+    // level. The previous `JSON.stringify(props, sortedTopLevelKeys)` form used
+    // the key array as a recursive replacer allow-list, which silently dropped
+    // every nested value — so nodes differing only in a nested prop collided on
+    // the same key and returned each other's cached (wrong) results.
+    return `${this.userId}:${nodeType}:${stableStringifyDeep(nodeProps ?? null)}`;
   }
 
   async getCachedResult(
@@ -1402,7 +1458,11 @@ export class ProcessingContext {
       this._edgeStatuses.set(msg.edge_id, msg);
     }
     for (const listener of this._messageListeners) {
-      listener(msg);
+      try {
+        listener(msg);
+      } catch {
+        // Listeners are observers and must not interrupt workflow execution.
+      }
     }
   }
 
@@ -1587,22 +1647,36 @@ export class ProcessingContext {
           const retryAfter = response.headers.get("Retry-After");
           const retryDelay = retryAfter ? Number(retryAfter) * 1000 : NaN;
           const delayMs = Number.isFinite(retryDelay)
-            ? retryDelay
+            ? Math.min(Math.max(0, retryDelay), 30_000)
             : backoffMs * 2 ** attempt;
-          await new Promise((r) => setTimeout(r, Math.max(0, delayMs)));
+          // Drain/cancel the unconsumed body before retrying, or under undici
+          // the socket stays checked out of the connection pool (leaked until
+          // GC) and emits a "body not consumed" warning.
+          await response.body?.cancel().catch(() => {});
+          await waitForRetry(Math.max(0, delayMs), opts.signal);
           continue;
         }
         if (!response.ok) {
-          throw new Error(
+          // Non-retryable HTTP error (status not in retryStatuses): fail fast.
+          // Throwing into the generic catch below would treat it like a network
+          // error and retry it, hammering 4xx responses maxRetries times.
+          const nonRetryable = new Error(
             `HTTP ${response.status} ${response.statusText} for ${method} ${url}`
-          );
+          ) as Error & { nonRetryable?: boolean };
+          nonRetryable.nonRetryable = true;
+          await response.body?.cancel().catch(() => {});
+          throw nonRetryable;
         }
         return response;
       } catch (error) {
         lastError = error;
+        if (opts.signal?.aborted) break;
+        // A non-retryable HTTP error must not loop; only thrown fetch/network
+        // errors and retryable statuses are retried.
+        if ((error as { nonRetryable?: boolean })?.nonRetryable) break;
         if (attempt >= maxRetries - 1) break;
         const delayMs = backoffMs * 2 ** attempt;
-        await new Promise((r) => setTimeout(r, delayMs));
+        await waitForRetry(delayMs, opts.signal);
       }
     }
 
@@ -1933,7 +2007,7 @@ export class ProcessingContext {
     if (packageRef) {
       const root =
         this.environment.NODETOOL_PACKAGE_ASSETS_DIR ??
-        process.env.NODETOOL_PACKAGE_ASSETS_DIR;
+        safeProcessEnv().NODETOOL_PACKAGE_ASSETS_DIR;
       if (root) {
         const segments = `${packageRef.packageName}/${packageRef.path}`
           .split("/")
@@ -1958,7 +2032,7 @@ export class ProcessingContext {
       if (httpPath) {
         let pkgBaseUrl =
           this.environment.NODETOOL_API_URL ??
-          process.env.NODETOOL_API_URL ??
+          safeProcessEnv().NODETOOL_API_URL ??
           "http://localhost:7777";
         while (pkgBaseUrl.endsWith("/")) {
           pkgBaseUrl = pkgBaseUrl.slice(0, -1);
@@ -2622,6 +2696,7 @@ export class ProcessingContext {
     const id = randomUUID();
     const startedAt = Date.now();
     this.emitPrediction("running", req, id, null, undefined, startedAt);
+    let terminalStatusEmitted = false;
     try {
       const provider = await this.getProvider(req.provider);
       const params = req.params ?? {};
@@ -2659,10 +2734,16 @@ export class ProcessingContext {
       }
 
       this.emitPrediction("completed", req, id, null, undefined, startedAt);
+      terminalStatusEmitted = true;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.emitPrediction("failed", req, id, null, message, startedAt);
+      terminalStatusEmitted = true;
       throw error;
+    } finally {
+      if (!terminalStatusEmitted) {
+        this.emitPrediction("completed", req, id, null, undefined, startedAt);
+      }
     }
   }
 
@@ -2791,7 +2872,12 @@ export class ProcessingContext {
 
     const uri = asset.uri;
     if (typeof uri !== "string" || !this.storage) return null;
-    return this.storage.retrieve(uri);
+    const stored = await this.storage.retrieve(uri);
+    if (stored) return stored;
+    if (uri.startsWith("asset://") || uri.startsWith("/api/storage/")) {
+      return (await this.resolveAssetBytes(uri)).bytes;
+    }
+    return null;
   }
 
   private async materializeAsset(

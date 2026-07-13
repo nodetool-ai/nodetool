@@ -236,6 +236,20 @@ export const assetsRouter = router({
 
       if (input.name !== undefined) asset.name = input.name;
       if (input.content_type !== undefined) {
+        // The stored file name (and get_url) is derived from content_type. If
+        // the new content_type maps to a different file extension and no new
+        // bytes accompany the change, get_url would point at a file that was
+        // never written while the real bytes are orphaned under the old name.
+        // Reject rather than silently break the asset link.
+        const changesExtension =
+          getAssetFileName(asset.id, input.content_type) !==
+          getAssetFileName(asset.id, asset.content_type);
+        if (changesExtension && input.data == null) {
+          throwApiError(
+            ApiErrorCode.INVALID_INPUT,
+            "Changing content_type to a different file type requires re-uploading the asset data"
+          );
+        }
         asset.content_type = input.content_type;
       }
       if (input.parent_id !== undefined) asset.parent_id = input.parent_id;

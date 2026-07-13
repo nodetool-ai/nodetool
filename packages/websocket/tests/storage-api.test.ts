@@ -171,14 +171,37 @@ describe("range requests", () => {
     expect(res.status).toBe(416);
   });
 
-  it("returns 416 for malformed range header", async () => {
+  it("ignores a malformed/unsupported range header and serves the full file (RFC 7233)", async () => {
     const handler = makeHandler();
     const res = await handler(
       makeRequest("/api/storage/range-test.txt", "GET", {
         Range: "invalid-range"
       })
     );
-    expect(res.status).toBe(416);
+    // A Range header the server can't parse must be ignored (full 200), not 416.
+    expect(res.status).toBe(200);
+  });
+
+  it("ignores a multi-range header and serves the full file", async () => {
+    const handler = makeHandler();
+    const res = await handler(
+      makeRequest("/api/storage/range-test.txt", "GET", {
+        Range: "bytes=0-2,5-7"
+      })
+    );
+    expect(res.status).toBe(200);
+  });
+
+  it("clamps an end past EOF instead of rejecting (RFC 7233)", async () => {
+    const handler = makeHandler();
+    const res = await handler(
+      makeRequest("/api/storage/range-test.txt", "GET", {
+        Range: "bytes=0-999999"
+      })
+    );
+    expect(res.status).toBe(206);
+    // Content-Range end is clamped to the last byte, not the requested value.
+    expect(res.headers.get("Content-Range")).toMatch(/^bytes 0-\d+\/\d+$/);
   });
 });
 

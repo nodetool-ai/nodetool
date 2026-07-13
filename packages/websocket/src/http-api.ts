@@ -5,6 +5,7 @@ import {
   type ServerResponse
 } from "node:http";
 import { gzipSync } from "node:zlib";
+import { once } from "node:events";
 import { readFileSync, readdirSync, existsSync, promises as fsp } from "node:fs";
 import nodePath from "node:path";
 import os from "node:os";
@@ -40,6 +41,7 @@ import {
   PythonNodeExecutor,
   createPythonBridge,
   logPythonWorkerStderr,
+  safeFetch,
   type NodeExecutor,
   type PythonBridge
 } from "@nodetool-ai/runtime";
@@ -1227,7 +1229,7 @@ async function resolveAssetBytesForExport(
       return await adapter.retrieve(adapter.uriForKey(key));
     }
     if (/^https?:\/\//.test(ref)) {
-      const res = await fetch(ref);
+      const res = await safeFetch(ref);
       if (!res.ok) return null;
       return new Uint8Array(await res.arrayBuffer());
     }
@@ -1387,20 +1389,31 @@ export async function handleWorkflowImportBundle(
   }
 
   const created: JsonObject[] = [];
-  for (const wf of result.workflows) {
-    const workflow = await createWorkflow(
-      {
-        name: wf.name,
-        description: wf.description ?? "",
-        tags: wf.tags ?? [],
-        access: "private",
-        graph: wf.graph as unknown as WorkflowRequestBody["graph"],
-        settings: wf.settings ?? null,
-        run_mode: wf.run_mode ?? "workflow"
-      },
-      userId
+  try {
+    for (const wf of result.workflows) {
+      const workflow = await createWorkflow(
+        {
+          name: wf.name,
+          description: wf.description ?? "",
+          tags: wf.tags ?? [],
+          access: "private",
+          graph: wf.graph as unknown as WorkflowRequestBody["graph"],
+          settings: wf.settings ?? null,
+          run_mode: wf.run_mode ?? "workflow"
+        },
+        userId
+      );
+      created.push(toWorkflowResponse(workflow));
+    }
+  } catch (error) {
+    // createWorkflow throws on a malformed graph (e.g. missing edges array),
+    // which unpackWorkflowBundle does not validate. Surface it as a 400 rather
+    // than an unhandled 500. (Earlier-created workflows in the loop remain —
+    // the import is not transactional; reported as a bad-bundle error.)
+    return errorResponse(
+      400,
+      `Invalid bundle: ${error instanceof Error ? error.message : String(error)}`
     );
-    created.push(toWorkflowResponse(workflow));
   }
 
   return jsonResponse({
@@ -1460,6 +1473,14 @@ export async function handleWorkflowVersions(
   }
 
   if (request.method === "GET") {
+    // Version history (and its full graphs) is private to the owner. Enforce
+    // ownership before listing, mirroring the POST branch — otherwise any
+    // authenticated user could read another user's workflows by id (IDOR).
+    const workflow = (await Workflow.get(workflowId)) as Workflow | null;
+    if (!workflow) return errorResponse(404, "Workflow not found");
+    if (workflow.user_id !== userId && workflow.access !== "public")
+      return errorResponse(404, "Workflow not found");
+
     const url = new URL(request.url);
     const limit = parseLimit(url, 100);
     const versions = await WorkflowVersion.listForWorkflow(workflowId, {
@@ -2229,20 +2250,38 @@ export async function handleNodeHttpRequest(
     return;
   }
 
-  const bodyBuffer = Buffer.from(await response.arrayBuffer());
-
-  // Gzip-compress large JSON responses for performance (e.g. /api/nodes/metadata
-  // is ~5 MB uncompressed, ~550 KB compressed).
   const acceptEncoding = req.headers["accept-encoding"] ?? "";
-  if (bodyBuffer.length > GZIP_THRESHOLD && acceptEncoding.includes("gzip")) {
-    const compressed = gzipSync(bodyBuffer);
-    res.setHeader("content-encoding", "gzip");
-    res.setHeader("content-length", compressed.length);
-    res.end(compressed);
+  const contentType = response.headers.get("content-type") ?? "";
+  const mayCompress =
+    response.status !== 206 &&
+    !response.headers.has("content-range") &&
+    (contentType.includes("json") || contentType.startsWith("text/")) &&
+    acceptEncoding.includes("gzip");
+
+  if (mayCompress) {
+    const bodyBuffer = Buffer.from(await response.arrayBuffer());
+    if (bodyBuffer.length > GZIP_THRESHOLD) {
+      const compressed = gzipSync(bodyBuffer);
+      res.setHeader("content-encoding", "gzip");
+      res.setHeader("content-length", compressed.length);
+      res.end(compressed);
+    } else {
+      res.end(bodyBuffer);
+    }
     return;
   }
 
-  res.end(bodyBuffer);
+  const reader = response.body.getReader();
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) {
+      break;
+    }
+    if (!res.write(value)) {
+      await once(res, "drain");
+    }
+  }
+  res.end();
 }
 
 export function createHttpApiServer(options: HttpApiOptions = {}): Server {

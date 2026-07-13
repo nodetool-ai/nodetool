@@ -35,6 +35,15 @@ describe("htmlToText", () => {
     expect(htmlToText("&#65;&#x42;")).toBe("AB");
   });
 
+  it("decodes astral-plane numeric entities correctly (#21)", () => {
+    // Regression: String.fromCharCode kept only the low 16 bits, mangling any
+    // code point above U+FFFF (emoji, CJK ext). fromCodePoint fixes it.
+    expect(htmlToText("&#128512;")).toBe("\u{1F600}"); // 😀
+    expect(htmlToText("&#x1F30D;")).toBe("\u{1F30D}"); // 🌍
+    // Out-of-range values are left as the literal match rather than throwing.
+    expect(htmlToText("&#1114112;")).toBe("&#1114112;");
+  });
+
   it("decodes &nbsp;", () => {
     expect(htmlToText("hello&nbsp;world")).toBe("hello world");
   });

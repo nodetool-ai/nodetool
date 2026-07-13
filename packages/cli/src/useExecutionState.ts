@@ -234,14 +234,20 @@ export function useExecutionState() {
               return { ...prev, tasks };
             }
 
-            if (tu.event === TaskUpdateEvent.TaskCompleted) {
+            if (
+              tu.event === TaskUpdateEvent.TaskCompleted ||
+              tu.event === TaskUpdateEvent.TaskFailed
+            ) {
               const taskIdx = tasks.findIndex((t) => t.id === tu.task.id);
               if (taskIdx !== -1) {
                 const task = tasks[taskIdx];
                 const now = Date.now();
                 tasks[taskIdx] = {
                   ...task,
-                  status: "completed",
+                  status:
+                    tu.event === TaskUpdateEvent.TaskFailed
+                      ? "failed"
+                      : "completed",
                   expanded: false,
                   duration: task.startedAt
                     ? (now - task.startedAt) / 1000

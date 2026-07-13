@@ -284,7 +284,7 @@ describe("UnifiedWebSocketRunner lifecycle — handleCommand dispatch guards", (
     expect(ta?.error).toBe("request_id is required for RPC commands");
   });
 
-  it("stop cancels an active job, clears bridges, and emits generation_stopped", async () => {
+  it("stop cancels the active job and scoped waiters", async () => {
     await runner.connect(ws);
     const cancel = vi.fn();
     const active = {
@@ -295,8 +295,11 @@ describe("UnifiedWebSocketRunner lifecycle — handleCommand dispatch guards", (
       runner: { cancel }
     };
     asAny(runner).activeJobs.set("J", active);
-    const cancelAllTool = vi.spyOn(asAny(runner).toolBridge, "cancelAll");
-    const cancelAllApproval = vi.spyOn(asAny(runner).approvalBridge, "cancelAll");
+    const cancelToolScope = vi.spyOn(asAny(runner).toolBridge, "cancelScope");
+    const cancelApprovalScope = vi.spyOn(
+      asAny(runner).approvalBridge,
+      "cancelScope"
+    );
     const seqBefore = asAny(runner).chatRequestSeq;
 
     const res = await runner.handleCommand({
@@ -307,10 +310,10 @@ describe("UnifiedWebSocketRunner lifecycle — handleCommand dispatch guards", (
     expect(res?.job_id).toBe("J");
     expect(res?.thread_id).toBe("T");
     expect(cancel).toHaveBeenCalledOnce();
-    expect(active.finished).toBe(true);
+    expect(active.finished).toBe(false);
     expect(active.status).toBe("cancelled");
-    expect(cancelAllTool).toHaveBeenCalled();
-    expect(cancelAllApproval).toHaveBeenCalled();
+    expect(cancelToolScope).toHaveBeenCalledWith("T");
+    expect(cancelApprovalScope).toHaveBeenCalledWith("T");
     expect(asAny(runner).chatRequestSeq).toBe(seqBefore + 1);
 
     const stopped = decodeAll(ws).find((m) => m.type === "generation_stopped");
@@ -390,9 +393,14 @@ describe("UnifiedWebSocketRunner lifecycle — job status/cancel/reconnect", () 
     expect(cancelled.length).toBeGreaterThan(0);
   });
 
-  it("reconnectJob throws for an unknown job and replays statuses for an active one", async () => {
-    await expect(runner.reconnectJob("missing")).rejects.toThrow(
-      /Job missing not found/
+  it("reconnectJob reports an unknown job and replays active statuses", async () => {
+    await runner.reconnectJob("missing");
+    expect(decodeAll(ws)).toContainEqual(
+      expect.objectContaining({
+        type: "job_update",
+        job_id: "missing",
+        error: "Job missing not found"
+      })
     );
     asAny(runner).activeJobs.set("J", {
       jobId: "J",
@@ -424,8 +432,7 @@ describe("UnifiedWebSocketRunner lifecycle — job status/cancel/reconnect", () 
     expect(
       sent.some((m) => m.type === "edge_update" && m.edge_id === "e1")
     ).toBe(true);
-    // resumeJob is a thin alias for reconnectJob.
-    await expect(runner.resumeJob("missing")).rejects.toThrow(/not found/);
+    await expect(runner.resumeJob("missing")).resolves.toBeUndefined();
   });
 });
 

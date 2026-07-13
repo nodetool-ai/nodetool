@@ -150,7 +150,7 @@ export class OpenAICompatProvider extends OpenAIProvider {
 
     if (tools.length > 0 && (await this.hasToolSupport(model))) {
       request.tools = this.formatTools(tools);
-      if (!stream && toolChoice) {
+      if (toolChoice) {
         request.tool_choice =
           toolChoice === "any"
             ? "required"
@@ -229,7 +229,7 @@ export class OpenAICompatProvider extends OpenAIProvider {
         yield item;
       }
 
-      if (choice.finish_reason === "tool_calls") {
+      if (choice.finish_reason && deltaToolCalls.size > 0) {
         for (const call of deltaToolCalls.values()) {
           const toolCall: ToolCall = this.buildToolCall(
             call.id,

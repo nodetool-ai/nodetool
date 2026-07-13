@@ -426,7 +426,7 @@ describe("OpenAICompatProvider.generateMessages (streaming)", () => {
 
     const body = requestBodyOf(fetchMock as never);
     expect(Array.isArray(body.tools)).toBe(true);
-    expect(body.tool_choice).toBeUndefined();
+    expect(body.tool_choice).toBe("required");
   });
 });
 

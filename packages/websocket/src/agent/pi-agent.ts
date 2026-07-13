@@ -372,8 +372,12 @@ export class PiQuerySession {
         return null;
       }
       case "message_end": {
-        const msgId = (event.message as { id?: string }).id;
-        if (msgId) textBuffers.delete(msgId);
+        // Use the same key fallback as text_delta (`id ?? sessionId`) — otherwise
+        // an id-less message never clears its buffer and the next id-less
+        // assistant message concatenates onto the stale text, merging two
+        // separate bubbles into one.
+        const msgId = (event.message as { id?: string }).id ?? sessionId;
+        textBuffers.delete(msgId);
         return null;
       }
       case "tool_execution_start": {

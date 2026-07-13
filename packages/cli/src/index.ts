@@ -10,7 +10,7 @@
  *   nodetool-chat --workspace /path/to/dir  # set workspace directory
  */
 
-import { initTelemetry } from "@nodetool-ai/runtime";
+import { initTelemetry, shutdownTelemetry } from "@nodetool-ai/runtime";
 import { program } from "commander";
 import { render } from "ink";
 import React from "react";
@@ -256,6 +256,8 @@ if (opts.sandbox) {
     } catch {
       // ignore
     }
+    // Flush buffered OTLP/Traceloop spans before exit.
+    await shutdownTelemetry();
   };
   process.on("SIGINT", () => void cleanup().finally(() => process.exit(130)));
   process.on("SIGTERM", () => void cleanup().finally(() => process.exit(143)));
@@ -296,6 +298,7 @@ if (!process.stdin.isTTY) {
     });
   } finally {
     if (sandboxStore) await sandboxStore.close();
+    await shutdownTelemetry();
   }
   process.exit(0);
 }
@@ -316,4 +319,5 @@ const { waitUntilExit } = render(
 
 await waitUntilExit();
 if (sandboxStore) await sandboxStore.close();
+await shutdownTelemetry();
 process.exit(0);

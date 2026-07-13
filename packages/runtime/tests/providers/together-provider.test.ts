@@ -423,6 +423,43 @@ describe("TogetherProvider", () => {
     expect(body.response_format).toBe("wav");
   });
 
+  it("does not throw on a WAV truncated inside the fmt chunk header (#3)", async () => {
+    // Regression: the fmt-chunk bounds guard was off by 4, so a buffer ending
+    // between offset+12 and offset+15 passed the guard and getUint32 threw an
+    // uncaught RangeError out of the async generator. Truncate a valid WAV to
+    // 26 bytes (fmt chunk present, sampleRate field cut off) — parsing must
+    // fall back to the default sample rate instead of crashing.
+    const truncated = buildMinimalWav(24000).slice(0, 26);
+
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      arrayBuffer: async () => truncated.buffer.slice(0, 26)
+    });
+
+    const provider = new TogetherProvider(
+      { TOGETHER_API_KEY: "k" },
+      { client: {} as any, fetchFn: mockFetch as any }
+    );
+
+    const chunks: import("../../src/providers/types.js").StreamingAudioChunk[] =
+      [];
+    await expect(
+      (async () => {
+        for await (const chunk of provider.textToSpeech({
+          text: "hi",
+          model: "canopylabs/orpheus-3b-0.1-ft",
+          voice: "tara"
+        })) {
+          chunks.push(chunk);
+        }
+      })()
+    ).resolves.not.toThrow();
+    // Sample rate falls back to the 24 kHz default.
+    if (chunks.length > 0) {
+      expect(chunks[0].sampleRate).toBe(24000);
+    }
+  });
+
   it("textToSpeech defaults to tara voice when none supplied", async () => {
     const wavBytes = buildMinimalWav();
 

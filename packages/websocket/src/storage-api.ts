@@ -92,12 +92,21 @@ interface ParsedRange {
   end: number;
 }
 
+/**
+ * Parse a single-range `Range` header per RFC 7233. Returns:
+ *  - a `ParsedRange` (end clamped to the last byte) when satisfiable,
+ *  - `"unsatisfiable"` when the syntax is valid but the first byte is out of
+ *    bounds (caller answers 416),
+ *  - `null` when the header is unparseable/unsupported (a non-`bytes=` unit, a
+ *    multi-range list, or malformed) — the caller must IGNORE it and serve the
+ *    full 200 representation, not answer 416.
+ */
 export function parseRangeHeader(
   rangeHeader: string,
   fileSize: number
-): ParsedRange | null {
+): ParsedRange | "unsatisfiable" | null {
   const match = rangeHeader.match(/^bytes=(\d*)-(\d*)$/);
-  if (!match) return null;
+  if (!match) return null; // unparseable / multi-range / other unit → ignore
   const startStr = match[1];
   const endStr = match[2];
 
@@ -107,6 +116,7 @@ export function parseRangeHeader(
   if (startStr === "" && endStr !== "") {
     // suffix range: bytes=-500
     const suffixLength = Number.parseInt(endStr, 10);
+    if (suffixLength === 0) return "unsatisfiable"; // zero-length suffix
     start = Math.max(0, fileSize - suffixLength);
     end = fileSize - 1;
   } else if (startStr !== "" && endStr === "") {
@@ -117,10 +127,13 @@ export function parseRangeHeader(
     start = Number.parseInt(startStr, 10);
     end = Number.parseInt(endStr, 10);
   } else {
-    return null;
+    return null; // "bytes=-" — neither bound present
   }
 
-  if (start > end || end >= fileSize || start < 0) return null;
+  // A last-byte-pos past EOF is clamped to the remainder (RFC 7233 §2.1), not
+  // rejected. Only a first-byte-pos out of bounds is unsatisfiable.
+  end = Math.min(end, fileSize - 1);
+  if (start < 0 || start >= fileSize || start > end) return "unsatisfiable";
   return { start, end };
 }
 
@@ -218,21 +231,23 @@ async function handleStorageRequest(
 
     // Range request
     const rangeHeader = request.headers.get("Range");
-    if (rangeHeader) {
-      const range = parseRangeHeader(rangeHeader, fileSize);
-      if (!range) {
-        return new Response(
-          JSON.stringify({ detail: "Range Not Satisfiable" }),
-          {
-            status: 416,
-            headers: {
-              ...cors,
-              "content-type": "application/json",
-              "Content-Range": `bytes */${fileSize}`
-            }
-          }
-        );
-      }
+    const range = rangeHeader
+      ? parseRangeHeader(rangeHeader, fileSize)
+      : null;
+    // A parsed-but-unsatisfiable range → 416. An unparseable/unsupported header
+    // (range === null while a header was present) is ignored and the full file
+    // is served with 200, per RFC 7233.
+    if (range === "unsatisfiable") {
+      return new Response(JSON.stringify({ detail: "Range Not Satisfiable" }), {
+        status: 416,
+        headers: {
+          ...cors,
+          "content-type": "application/json",
+          "Content-Range": `bytes */${fileSize}`
+        }
+      });
+    }
+    if (range) {
       const { start, end } = range;
       const chunkSize = end - start + 1;
       const body = nodeStreamToWebStream(filePath, { start, end });

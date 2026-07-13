@@ -10,6 +10,7 @@ import { BaseProvider } from "./base-provider.js";
 const log = createLogger("nodetool.runtime.providers.anthropic");
 import type {
   LanguageModel,
+  AnthropicThinkingBlock,
   Message,
   MessageContent,
   MessageImageContent,
@@ -78,9 +79,15 @@ function parseDataUri(uri: string): { mime: string; base64: string } {
 }
 
 export class AnthropicProvider extends BaseProvider {
-  /** Anthropic runs web search server-side via the `web_search` server tool. */
+  /**
+   * Anthropic runs web search server-side via the `web_search_20250305` server
+   * tool. Gate on the provider id so subclasses that reuse the Anthropic SDK
+   * against a different endpoint (e.g. Moonshot/Kimi, which does not implement
+   * that server tool) fall back to the SerpAPI WebSearchTool instead of sending
+   * an unsupported tool that silently breaks web search.
+   */
   override get supportsNativeWebSearch(): boolean {
-    return true;
+    return this.provider === "anthropic";
   }
 
   static requiredSecrets(): string[] {
@@ -412,7 +419,11 @@ export class AnthropicProvider extends BaseProvider {
         }
         if (isImageContent(part)) {
           content.push(await this.convertImagePart(part));
+          continue;
         }
+        throw new Error(
+          `Anthropic does not support ${part.type} message content`
+        );
       }
 
       return {
@@ -433,7 +444,9 @@ export class AnthropicProvider extends BaseProvider {
     }
 
     if (message.toolCalls && message.toolCalls.length > 0) {
-      const contentBlocks: Array<Record<string, unknown>> = [];
+      const contentBlocks: Array<Record<string, unknown>> = [
+        ...(message._anthropicThinkingBlocks ?? [])
+      ];
       if (typeof message.content === "string" && message.content.trim()) {
         contentBlocks.push({ type: "text", text: message.content });
       }
@@ -536,6 +549,7 @@ export class AnthropicProvider extends BaseProvider {
     frequencyPenalty?: number;
     audio?: Record<string, unknown>;
     thinkingBudget?: number;
+    signal?: AbortSignal;
   }): AsyncGenerator<ProviderStreamItem> {
     const system = this.extractSystemMessage(args.messages);
     const converted = await Promise.all(
@@ -551,8 +565,10 @@ export class AnthropicProvider extends BaseProvider {
       ? this.formatTools(args.tools)
       : undefined;
 
+    const thinkingBudget = args.thinkingBudget;
+    const thinkingEnabled = thinkingBudget != null;
     let resolvedToolChoice: Record<string, unknown> | undefined;
-    if (args.toolChoice) {
+    if (args.toolChoice && !thinkingEnabled) {
       resolvedToolChoice =
         args.toolChoice === "any"
           ? { type: "any" }
@@ -563,13 +579,17 @@ export class AnthropicProvider extends BaseProvider {
       model: args.model,
       messages: anthropicMessages,
       system,
-      max_tokens: args.maxTokens ?? 8192,
+      max_tokens: thinkingEnabled
+        ? Math.max(args.maxTokens ?? 8192, thinkingBudget + 1024)
+        : args.maxTokens ?? 8192,
       ...(formattedTools ? { tools: formattedTools } : {}),
       ...(resolvedToolChoice ? { tool_choice: resolvedToolChoice } : {}),
-      ...(args.temperature != null ? { temperature: args.temperature } : {}),
-      ...(args.topP != null ? { top_p: args.topP } : {}),
+      ...(!thinkingEnabled && args.temperature != null
+        ? { temperature: args.temperature }
+        : {}),
+      ...(!thinkingEnabled && args.topP != null ? { top_p: args.topP } : {}),
       ...(args.thinkingBudget != null
-        ? { thinking: { type: "enabled", budget_tokens: args.thinkingBudget } }
+        ? { thinking: { type: "enabled", budget_tokens: thinkingBudget } }
         : {})
     };
 
@@ -580,7 +600,9 @@ export class AnthropicProvider extends BaseProvider {
       stream: true as const
     };
     this.recordRequestPayload(streamRequest);
-    const stream = await this.getClient().messages.create(streamRequest);
+    const stream = await this.getClient().messages.create(streamRequest, {
+      signal: args.signal
+    });
 
     let streamInputTokens = 0;
     let streamOutputTokens = 0;
@@ -592,6 +614,8 @@ export class AnthropicProvider extends BaseProvider {
       number,
       { id: string; name: string; json: string }
     >();
+    const activeThinkingBlocks = new Map<number, AnthropicThinkingBlock>();
+    const thinkingBlocks: AnthropicThinkingBlock[] = [];
 
     for await (const event of stream) {
       if (event.type === "message_start") {
@@ -627,6 +651,17 @@ export class AnthropicProvider extends BaseProvider {
             name: String(block.name ?? ""),
             json: ""
           });
+        } else if (block.type === "thinking") {
+          activeThinkingBlocks.set(event.index, {
+            type: "thinking",
+            thinking: block.thinking,
+            signature: block.signature
+          });
+        } else if (block.type === "redacted_thinking") {
+          thinkingBlocks.push({
+            type: "redacted_thinking",
+            data: block.data
+          });
         }
         continue;
       }
@@ -634,6 +669,10 @@ export class AnthropicProvider extends BaseProvider {
       if (event.type === "content_block_delta") {
         const delta = event.delta;
         if ("thinking" in delta && typeof delta.thinking === "string") {
+          const block = activeThinkingBlocks.get(event.index);
+          if (block?.type === "thinking") {
+            block.thinking += delta.thinking;
+          }
           const chunk: Chunk = {
             type: "chunk",
             content: delta.thinking,
@@ -641,6 +680,14 @@ export class AnthropicProvider extends BaseProvider {
             thinking: true
           };
           yield chunk;
+          continue;
+        }
+
+        if ("signature" in delta && typeof delta.signature === "string") {
+          const block = activeThinkingBlocks.get(event.index);
+          if (block?.type === "thinking") {
+            block.signature += delta.signature;
+          }
           continue;
         }
 
@@ -675,6 +722,11 @@ export class AnthropicProvider extends BaseProvider {
         // Use the block we recorded from content_block_start + accumulated partial_json.
         const index = event.index;
         const toolBlock = activeToolBlocks.get(index);
+        const thinkingBlock = activeThinkingBlocks.get(index);
+        if (thinkingBlock) {
+          activeThinkingBlocks.delete(index);
+          thinkingBlocks.push(thinkingBlock);
+        }
         if (toolBlock) {
           activeToolBlocks.delete(index);
           let parsedArgs: Record<string, unknown> = {};
@@ -693,7 +745,9 @@ export class AnthropicProvider extends BaseProvider {
           const toolCall: ToolCall = {
             id: toolBlock.id,
             name: toolBlock.name,
-            args: parsedArgs
+            args: parsedArgs,
+            _anthropicThinkingBlocks:
+              thinkingBlocks.length > 0 ? [...thinkingBlocks] : undefined
           };
           yield toolCall;
         }
@@ -722,6 +776,7 @@ export class AnthropicProvider extends BaseProvider {
     presencePenalty?: number;
     frequencyPenalty?: number;
     thinkingBudget?: number;
+    signal?: AbortSignal;
   }): Promise<Message> {
     const system = this.extractSystemMessage(args.messages);
     const converted = await Promise.all(
@@ -737,8 +792,10 @@ export class AnthropicProvider extends BaseProvider {
       ? this.formatTools(args.tools)
       : undefined;
 
+    const thinkingBudget = args.thinkingBudget;
+    const thinkingEnabled = thinkingBudget != null;
     let resolvedToolChoice: Record<string, unknown> | undefined;
-    if (args.toolChoice) {
+    if (args.toolChoice && !thinkingEnabled) {
       resolvedToolChoice =
         args.toolChoice === "any"
           ? { type: "any" }
@@ -749,13 +806,17 @@ export class AnthropicProvider extends BaseProvider {
       model: args.model,
       messages: anthropicMessages,
       system,
-      max_tokens: args.maxTokens ?? 8192,
+      max_tokens: thinkingEnabled
+        ? Math.max(args.maxTokens ?? 8192, thinkingBudget + 1024)
+        : args.maxTokens ?? 8192,
       ...(formattedTools ? { tools: formattedTools } : {}),
       ...(resolvedToolChoice ? { tool_choice: resolvedToolChoice } : {}),
-      ...(args.temperature != null ? { temperature: args.temperature } : {}),
-      ...(args.topP != null ? { top_p: args.topP } : {}),
+      ...(!thinkingEnabled && args.temperature != null
+        ? { temperature: args.temperature }
+        : {}),
+      ...(!thinkingEnabled && args.topP != null ? { top_p: args.topP } : {}),
       ...(args.thinkingBudget != null
-        ? { thinking: { type: "enabled", budget_tokens: args.thinkingBudget } }
+        ? { thinking: { type: "enabled", budget_tokens: thinkingBudget } }
         : {})
     };
 
@@ -763,7 +824,8 @@ export class AnthropicProvider extends BaseProvider {
 
     this.recordRequestPayload(request);
     const response = await this.getClient().messages.create(
-      request as unknown as MessageCreateParamsNonStreaming
+      request as unknown as MessageCreateParamsNonStreaming,
+      { signal: args.signal }
     );
 
     if (response.usage) {
@@ -782,6 +844,7 @@ export class AnthropicProvider extends BaseProvider {
 
     const textParts: string[] = [];
     const toolCalls: ToolCall[] = [];
+    const thinkingBlocks: AnthropicThinkingBlock[] = [];
 
     for (const block of response.content ?? []) {
       if (block.type === "tool_use") {
@@ -792,6 +855,18 @@ export class AnthropicProvider extends BaseProvider {
         });
         continue;
       }
+      if (block.type === "thinking") {
+        thinkingBlocks.push({
+          type: "thinking",
+          thinking: block.thinking,
+          signature: block.signature
+        });
+        continue;
+      }
+      if (block.type === "redacted_thinking") {
+        thinkingBlocks.push({ type: "redacted_thinking", data: block.data });
+        continue;
+      }
       if (block.type === "text") {
         textParts.push(String(block.text ?? ""));
       }
@@ -800,7 +875,9 @@ export class AnthropicProvider extends BaseProvider {
     return {
       role: "assistant",
       content: textParts.join("\n"),
-      toolCalls
+      toolCalls,
+      _anthropicThinkingBlocks:
+        thinkingBlocks.length > 0 ? thinkingBlocks : undefined
     };
   }
 

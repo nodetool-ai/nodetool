@@ -870,6 +870,11 @@ class WsAdapter implements WebSocketConnection {
       this.applicationState = "disconnected";
       const waiter = this.waiters.shift();
       if (waiter) waiter({ type: "websocket.disconnect" });
+      // If no receiver is parked (the runner is busy handling a command), queue
+      // the disconnect so the next receive() resolves it. Dropping it here left
+      // receive() waiting on a frame that could never arrive — the runner loop
+      // hung forever and its disconnect()/cleanup never ran.
+      else this.queue.push({ type: "websocket.disconnect" });
     });
   }
 
@@ -882,6 +887,11 @@ class WsAdapter implements WebSocketConnection {
   }> {
     const next = this.queue.shift();
     if (next) return next;
+    // Never park a waiter on an already-closed socket — no further 'message' or
+    // 'close' event will fire to resolve it.
+    if (this.clientState === "disconnected") {
+      return { type: "websocket.disconnect" };
+    }
     return await new Promise((resolve) => this.waiters.push(resolve));
   }
 

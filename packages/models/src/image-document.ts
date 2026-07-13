@@ -125,7 +125,7 @@ export class ImageDocument extends DBModel {
   }
 
   override beforeSave(): void {
-    this.updated_at = new Date().toISOString();
+    this.updated_at = nextUpdatedAtAfter(this.updated_at);
     assertValidDocumentData(JSON.parse(this.document) as ImageDocumentData);
   }
 
@@ -210,6 +210,50 @@ export class ImageDocument extends DBModel {
     Object.assign(doc, fields);
     await doc.save();
     return doc;
+  }
+
+  /**
+   * Atomic compare-and-swap for a client-driven save that may touch scalar
+   * fields and/or the serialized document in one write. Applies only when the
+   * row's `updated_at` still equals `expectedUpdatedAt`; returns null on
+   * conflict so the caller can report it instead of clobbering a concurrent
+   * change (the TOCTOU that `updateDoc` + a manual updated_at check left open).
+   */
+  static async updateFieldsIfUnchanged(
+    id: string,
+    expectedUpdatedAt: string,
+    fields: Partial<{
+      name: string;
+      width: number;
+      height: number;
+      background_color: string;
+      workflow_id: string | null;
+      document: string;
+      thumbnail_asset_id: string | null;
+    }>
+  ): Promise<ImageDocument | null> {
+    if (fields.document !== undefined) {
+      assertValidDocumentData(JSON.parse(fields.document) as ImageDocumentData);
+    }
+    const db = getDb();
+    const now = nextUpdatedAtAfter(expectedUpdatedAt);
+    const rows = await db
+      .update(imageDocuments)
+      .set({ ...fields, updated_at: now })
+      .where(
+        and(
+          eq(imageDocuments.id, id),
+          eq(imageDocuments.updated_at, expectedUpdatedAt)
+        )
+      )
+      .returning();
+
+    const row = rows[0] as Record<string, unknown> | undefined;
+    if (!row) return null;
+
+    const updated = new ImageDocument(row);
+    ModelObserver.notify(updated, ModelChangeEvent.UPDATED);
+    return updated;
   }
 
   static async updateDocumentDataIfUnchanged(

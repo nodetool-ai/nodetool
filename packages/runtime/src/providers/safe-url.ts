@@ -205,15 +205,22 @@ function stripCrossOriginCredentials(init: RequestInit): RequestInit {
 export async function safeFetch(
   url: string,
   init?: RequestInit,
-  maxRedirects = 5
+  maxRedirects = 5,
+  // The underlying fetch implementation. Defaults to the global fetch; callers
+  // that inject a fetch (e.g. providers with a testable `fetchFn`) can pass it
+  // here so the SSRF URL validation still runs on every hop while the actual
+  // request goes through their implementation.
+  fetchImpl: typeof fetch = fetch
 ): Promise<Response> {
   let current = url;
   let currentInit: RequestInit = { ...init };
   let currentOrigin = new URL(url).origin;
   for (let hop = 0; hop <= maxRedirects; hop++) {
     assertSafePublicHttpsUrl(current);
-    const res = await fetch(current, { ...currentInit, redirect: "manual" });
-    const location = res.headers.get("location");
+    const res = await fetchImpl(current, { ...currentInit, redirect: "manual" });
+    // A real Response always has headers; tolerate minimal fetch mocks/polyfills
+    // that omit them (treated as no redirect).
+    const location = res.headers?.get?.("location") ?? null;
     if (res.status >= 300 && res.status < 400 && location) {
       const next = new URL(location, current);
       if (next.origin !== currentOrigin) {

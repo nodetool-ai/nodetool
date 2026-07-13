@@ -86,6 +86,15 @@ export const messagesRouter = router({
           title: "New Thread"
         })) as unknown as { id: string };
         threadId = thread.id;
+      } else {
+        // Only allow appending to a thread the caller owns. Without this any
+        // authenticated user could inject a message into another user's thread
+        // — and because list() 404s on the first foreign message, that would
+        // also lock the owner out of their own thread.
+        const thread = await Thread.find(ctx.userId, threadId);
+        if (!thread) {
+          throwApiError(ApiErrorCode.NOT_FOUND, "Thread not found");
+        }
       }
       const contentStr =
         typeof input.content === "string"

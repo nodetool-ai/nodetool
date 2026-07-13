@@ -34,7 +34,11 @@ export type BackgroundJobResponse = z.infer<typeof backgroundJobResponse>;
 // ── list (GET /api/jobs) ─────────────────────────────────────────
 export const listInput = z.object({
   limit: z.number().int().min(1).max(500).default(100),
-  workflow_id: z.string().optional()
+  workflow_id: z.string().optional(),
+  // Cursor from a previous response's next_start_key. Without this the returned
+  // cursor could never be submitted, so pagination past the first page was
+  // unreachable.
+  start_key: z.string().optional()
 });
 export type ListInput = z.infer<typeof listInput>;
 

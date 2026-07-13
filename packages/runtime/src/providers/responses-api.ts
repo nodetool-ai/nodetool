@@ -159,7 +159,10 @@ export function responseToolChoice(
   toolChoice: string | "any" | undefined
 ): unknown {
   if (!toolChoice) return undefined;
-  if (toolChoice === "any") return "auto";
+  // "any" is the cross-provider sentinel for "the model MUST call a tool". The
+  // Responses API forcing value is "required"; "auto" (the previous mapping) is
+  // the default and leaves tool use optional, silently defeating forced calls.
+  if (toolChoice === "any") return "required";
   return { type: "function", name: toolChoice };
 }
 

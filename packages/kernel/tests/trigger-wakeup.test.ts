@@ -22,6 +22,76 @@ describe("TriggerWakeupService", () => {
     expect(pending[0].processed).toBe(false);
   });
 
+  it("re-delivers after a transient durable append failure (marker not recorded early)", async () => {
+    // Regression: the idempotency marker was recorded before the durable inbox
+    // append, so a transient save() failure left the marker behind and the
+    // caller's retry was short-circuited without ever writing the message.
+    const base = new MemoryDurableInboxStore();
+    let failNextSave = true;
+    const flakyStore = {
+      findByMessageId: (id: string) => base.findByMessageId(id),
+      save: async (m: any) => {
+        if (failNextSave) {
+          failNextSave = false;
+          throw new Error("transient store failure");
+        }
+        return base.save(m);
+      },
+      findPending: (...a: any[]) => (base.findPending as any)(...a),
+      getMaxSeq: (...a: any[]) => (base.getMaxSeq as any)(...a),
+      markConsumed: (id: string) => base.markConsumed(id),
+      deleteConsumed: (...a: any[]) => (base.deleteConsumed as any)(...a)
+    } as any;
+
+    const svc = new TriggerWakeupService(flakyStore);
+    // First delivery fails inside the durable append.
+    await expect(
+      svc.deliverTriggerInput({
+        runId: "r1",
+        nodeId: "n1",
+        inputId: "e1",
+        payload: { a: 1 }
+      })
+    ).rejects.toThrow(/transient/);
+    // No marker was recorded, so nothing is pending yet.
+    expect(svc.getPendingInputs("r1", "n1")).toHaveLength(0);
+
+    // Retry succeeds — the input is now delivered rather than being swallowed
+    // by a stale idempotency marker.
+    const retry = await svc.deliverTriggerInput({
+      runId: "r1",
+      nodeId: "n1",
+      inputId: "e1",
+      payload: { a: 1 }
+    });
+    expect(retry).toBe(true);
+    expect(svc.getPendingInputs("r1", "n1")).toHaveLength(1);
+  });
+
+  it("dedupes two CONCURRENT deliveries of the same inputId", async () => {
+    // Regression: recording the in-memory marker only after the durable append
+    // opened an await window in which two concurrent same-inputId deliveries
+    // could both pass the idempotency check and both store an entry.
+    const svc = new TriggerWakeupService();
+    const [a, b] = await Promise.all([
+      svc.deliverTriggerInput({
+        runId: "r1",
+        nodeId: "n1",
+        inputId: "dup",
+        payload: { n: 1 }
+      }),
+      svc.deliverTriggerInput({
+        runId: "r1",
+        nodeId: "n1",
+        inputId: "dup",
+        payload: { n: 2 }
+      })
+    ]);
+    // Exactly one delivery is "new", and only one input is stored.
+    expect([a, b].filter(Boolean)).toHaveLength(1);
+    expect(svc.getPendingInputs("r1", "n1")).toHaveLength(1);
+  });
+
   it("deliverTriggerInput() is idempotent — duplicate inputId returns false", async () => {
     const svc = new TriggerWakeupService();
 
@@ -44,6 +114,33 @@ describe("TriggerWakeupService", () => {
     // Only one input stored
     const pending = svc.getPendingInputs("r1", "n1");
     expect(pending).toHaveLength(1);
+  });
+
+  it("evicts the cached inbox after cleanupProcessed removes a run's inputs", async () => {
+    // Regression: _inboxes grew by one entry per run forever.
+    const svc = new TriggerWakeupService();
+    await svc.deliverTriggerInput({
+      runId: "run-1",
+      nodeId: "n1",
+      inputId: "i1",
+      payload: {}
+    });
+    svc.markProcessed("i1");
+    // With a 0h cutoff, the processed input is purged and the inbox evicted.
+    svc.cleanupProcessed("run-1", "n1", 0);
+    // A fresh delivery for the same run works (idempotency marker was purged),
+    // demonstrating no stale state blocks it.
+    const again = await svc.deliverTriggerInput({
+      runId: "run-1",
+      nodeId: "n1",
+      inputId: "i2",
+      payload: {}
+    });
+    expect(again).toBe(true);
+
+    // disposeRun clears everything for a run.
+    svc.disposeRun("run-1");
+    expect(svc.getPendingInputs("run-1", "n1")).toHaveLength(0);
   });
 
   it("getPendingInputs() returns unprocessed inputs", async () => {

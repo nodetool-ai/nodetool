@@ -131,6 +131,14 @@ export class WebsocketPythonBridge extends PythonBridgeBase {
   /** True while a reconnect attempt is in flight (guards overlap). */
   private _reconnecting = false;
   /**
+   * Monotonic generation for reconnect attempts. Bumped whenever the current
+   * attempt is superseded (setTarget re-points the worker, or a teardown
+   * abandons it). An in-flight _attemptReconnect captures the epoch at start
+   * and, once its RPC settles, bails out if the epoch changed — so a stale
+   * attempt can't clobber the state of the one that replaced it.
+   */
+  private _reconnectEpoch = 0;
+  /**
    * True once a connection has been fully established and announced (initial
    * connect() resolved, or a reconnect emitted "reconnected"). Gates the
    * "exit" emission so a socket that drops mid-reconnect — before any
@@ -306,6 +314,18 @@ export class WebsocketPythonBridge extends PythonBridgeBase {
       crashSafeTerminate(this._ws);
       this._ws = null;
     }
+    // Cancel any reconnect armed by a mid-handshake close so a connect() the
+    // caller saw fail cannot leave a background reconnect running behind it.
+    // _attemptReconnect's catch re-schedules after this returns, so tearing the
+    // timer down here does not interfere with the reconnect backoff loop.
+    if (this._reconnectTimer) {
+      clearTimeout(this._reconnectTimer);
+      this._reconnectTimer = null;
+    }
+    // Supersede any in-flight reconnect: an _attemptReconnect awaiting its RPC
+    // captured the old epoch and will no-op when it settles, so it can't clobber
+    // a socket opened after this teardown (e.g. by setTarget's fresh attempt).
+    this._reconnectEpoch += 1;
     this._connected = false;
     this._rejectAllPending(new Error(reason));
   }
@@ -508,6 +528,13 @@ export class WebsocketPythonBridge extends PythonBridgeBase {
     }
 
     if (!this._autoReconnect) return;
+    // Only auto-reconnect a connection that was fully established. A socket that
+    // dropped mid-handshake (during the initial connect's discover/status phase,
+    // before it was ever announced) is owned by connect()'s caller: the rejected
+    // discover propagates out of connect(), and the caller decides whether to
+    // retry. Arming a background reconnect here would race a caller-driven retry
+    // into two live sockets. (Mirrors the _announcedConnected exit guard above.)
+    if (!this._announcedConnected) return;
     this._scheduleReconnect();
   }
 
@@ -528,6 +555,11 @@ export class WebsocketPythonBridge extends PythonBridgeBase {
   private async _attemptReconnect(): Promise<void> {
     if (this._explicitlyClosed || this._reconnecting) return;
     this._reconnecting = true;
+    // Snapshot the generation. If setTarget/_teardownSocket supersedes this
+    // attempt while its RPC is awaiting, the epoch changes and both the success
+    // and failure paths below no-op instead of clobbering the newer attempt's
+    // socket/state or arming a duplicate reconnect timer.
+    const epoch = ++this._reconnectEpoch;
     try {
       await this._openTransport();
       // Re-run discovery + status against the (possibly new) worker so node
@@ -537,6 +569,12 @@ export class WebsocketPythonBridge extends PythonBridgeBase {
       // restart) that never answers discover would otherwise wedge the
       // reconnect loop forever with _reconnecting stuck true.
       await this._withRpcTimeout(this._runPostOpenRpc());
+      if (epoch !== this._reconnectEpoch || this._explicitlyClosed) {
+        // A newer attempt superseded this one, or the bridge was explicitly
+        // closed while the RPC was in flight; leave state untouched and do not
+        // emit "reconnected" on a dead bridge.
+        return;
+      }
       // Success: reset backoff and announce.
       this._reconnectDelayMs = INITIAL_RECONNECT_DELAY_MS;
       this._reconnecting = false;
@@ -544,6 +582,11 @@ export class WebsocketPythonBridge extends PythonBridgeBase {
       log.info(`Python worker WebSocket reconnected (${this._wsUrl}).`);
       this.emit("reconnected");
     } catch (err) {
+      if (epoch !== this._reconnectEpoch) {
+        // This attempt was superseded before its RPC settled. The attempt that
+        // replaced it owns _reconnecting/teardown/backoff — do nothing here.
+        return;
+      }
       // This catch is the single owner of teardown + backoff growth +
       // reschedule for a failed reconnect. _onUnexpectedClose deliberately
       // does NOT reschedule while _reconnecting is true, so backoff timing is
@@ -578,6 +621,11 @@ export class WebsocketPythonBridge extends PythonBridgeBase {
     }
     this._reconnecting = false;
     this._announcedConnected = false;
+    // Supersede any in-flight reconnect attempt whose post-open RPC is still
+    // awaiting: bump the epoch so its success block no-ops instead of emitting
+    // "reconnected" / setting _announcedConnected on a bridge that is now
+    // explicitly closed.
+    this._reconnectEpoch += 1;
     // Abort an in-flight handshake (CONNECTING socket) so a pending connect()
     // rejects immediately instead of waiting out the startup timeout. The
     // aborter crash-safely terminates the CONNECTING socket.

@@ -347,23 +347,18 @@ describe("ReplicateProvider coverage", () => {
 
   // --- textToSpeech ---
 
-  it("textToSpeech yields Int16Array samples from downloaded bytes", async () => {
-    // 4-byte payload => 2 Int16 samples
+  it("textToSpeechEncoded returns the downloaded encoded audio", async () => {
     const pcm = new Uint8Array([0x01, 0x00, 0x02, 0x00]);
     const runMock = vi.fn().mockResolvedValue(fakeFileOutput(pcm));
     const provider = createProvider({ run: runMock });
-    const out: { samples: Int16Array }[] = [];
-    for await (const chunk of provider.textToSpeech({
+    const out = await provider.textToSpeechEncoded({
       text: "hello",
       model: "jaaari/kokoro-82m",
       voice: "af",
       speed: 1.2
-    })) {
-      out.push(chunk);
-    }
-    expect(out.length).toBe(1);
-    expect(out[0].samples).toBeInstanceOf(Int16Array);
-    expect(out[0].samples.length).toBe(2);
+    });
+    expect(out?.data).toEqual(pcm);
+    expect(out?.mimeType).toBe("audio/mpeg");
     const input = runMock.mock.calls[0][1].input;
     expect(input.text).toBe("hello");
     expect(input.voice).toBe("af");

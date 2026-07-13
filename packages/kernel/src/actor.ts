@@ -240,9 +240,7 @@ export class NodeActor {
    * output slot (`outputs.complete(slot)`). Marks the slot's downstream edges
    * done immediately, rather than waiting for the actor to finish.
    */
-  private _signalSlotEos:
-    | ((nodeId: string, slot: string) => void)
-    | undefined;
+  private _signalSlotEos: ((nodeId: string, slot: string) => void) | undefined;
 
   constructor(opts: {
     node: NodeDescriptor;
@@ -354,11 +352,7 @@ export class NodeActor {
                   };
                 }
               }
-              await this._sendOutputs(
-                this.node.id,
-                { [slot]: value },
-                hints
-              );
+              await this._sendOutputs(this.node.id, { [slot]: value }, hints);
             },
             emitGroupFn: async (values, opts) => {
               await this._emitGroup(values, opts?.lineage);
@@ -371,7 +365,10 @@ export class NodeActor {
               // outgoing edge for `slot` at the envelope's projected key.
               // §5. The drop signal lets downstream joins move past keys
               // that were intentionally filtered out.
-              await this._propagateLineageDone(slot, envelope.correlation_lineage);
+              await this._propagateLineageDone(
+                slot,
+                envelope.correlation_lineage
+              );
             }
           });
           await this._executor.run(
@@ -423,7 +420,9 @@ export class NodeActor {
         await this._runControlled();
       } else {
         if (!this._correlation) {
-          throw new Error(`Missing correlation analysis for node "${this.node.id}"`);
+          throw new Error(
+            `Missing correlation analysis for node "${this.node.id}"`
+          );
         }
         await this._runCorrelated(this._correlation);
       }
@@ -554,9 +553,7 @@ export class NodeActor {
   }
 
   private async _runCorrelatedImpl(analysis: NodeAnalysis): Promise<void> {
-    const dataHandles = this.inbox
-      .handles()
-      .filter((h) => h !== "__control__");
+    const dataHandles = this.inbox.handles().filter((h) => h !== "__control__");
 
     if (dataHandles.length === 0) {
       // Source node: fire once with empty inputs at empty scope.
@@ -613,10 +610,7 @@ export class NodeActor {
     // Multi-edge list inputs accumulate every envelope instead of
     // overwriting; drained as an array when the node fires.
     const emptyListEnvelopes = new Map<string, MessageEnvelope[]>();
-    const prefixListBuckets = new Map<
-      string,
-      Map<string, MessageEnvelope[]>
-    >();
+    const prefixListBuckets = new Map<string, Map<string, MessageEnvelope[]>>();
 
     const isListInput = (h: string): boolean => this._listInputHandles.has(h);
 
@@ -682,7 +676,9 @@ export class NodeActor {
       return true;
     };
 
-    const collect = (key: string): {
+    const collect = (
+      key: string
+    ): {
       values: Record<string, unknown>;
       envelopes: Map<string, MessageEnvelope>;
     } => {
@@ -700,10 +696,13 @@ export class NodeActor {
             values[h] = drained.map((e) => e.data);
             maxBuckets.get(h)!.delete(key);
           } else {
-            const env = bucket.shift()!;
+            const stickySideInput = driverHandle !== null && h !== driverHandle;
+            const env = stickySideInput ? bucket[0] : bucket.shift()!;
             envelopes.set(h, env);
             values[h] = env.data;
-            if (bucket.length === 0) maxBuckets.get(h)!.delete(key);
+            if (!stickySideInput && bucket.length === 0) {
+              maxBuckets.get(h)!.delete(key);
+            }
           }
         } else if (cls === "prefix") {
           const parentScope = handleScope.get(h)!;
@@ -856,10 +855,7 @@ export class NodeActor {
     await tryFire(enumerateAllPendingKeys(maxBuckets));
 
     // If the node has no max-scope inputs (all empty / prefix), fire once.
-    if (
-      [...handleClass.values()].every((c) => c !== "max") &&
-      !fired.has("")
-    ) {
+    if ([...handleClass.values()].every((c) => c !== "max") && !fired.has("")) {
       // Build values from sticky state.
       const values: Record<string, unknown> = {};
       const envelopes = new Map<string, MessageEnvelope>();
@@ -1071,7 +1067,8 @@ export class NodeActor {
         // a validation error after migration; for now we warn-and-overwrite.
         const overrides = this._mintIterationFrameOverrides(routed);
         Object.assign(this._streamingCollectedOutputs, routed);
-        if (overrides) Object.assign(this._streamingCollectedOutputs, overrides);
+        if (overrides)
+          Object.assign(this._streamingCollectedOutputs, overrides);
         const emit = overrides ? { ...routed, ...overrides } : routed;
         this._latestResult = { ...this._streamingCollectedOutputs };
         await this._sendOutputs(
@@ -1271,14 +1268,10 @@ export class NodeActor {
     // The actor doesn't know the downstream inbox map directly; the runner
     // owns _sendOutputs. We extend the routing channel by passing a sentinel
     // value with `__lineage_done__` metadata so the runner can dispatch it.
-    await this._sendOutputs(
-      this.node.id,
-      { [slot]: undefined },
-      {
-        perSlotLineage: { [slot]: lineage },
-        lineageDoneSlots: new Set([slot])
-      } as OutputRoutingHints
-    );
+    await this._sendOutputs(this.node.id, { [slot]: undefined }, {
+      perSlotLineage: { [slot]: lineage },
+      lineageDoneSlots: new Set([slot])
+    } as OutputRoutingHints);
   }
 
   /**
@@ -1350,9 +1343,7 @@ export class NodeActor {
    */
   private async _runControlled(): Promise<void> {
     // Identify data handles (non-control) that need to be populated
-    const dataHandles = this.inbox
-      .handles()
-      .filter((h) => h !== "__control__");
+    const dataHandles = this.inbox.handles().filter((h) => h !== "__control__");
 
     // Wait for all data handles to have at least one value before
     // processing the first control event. This ensures that when an

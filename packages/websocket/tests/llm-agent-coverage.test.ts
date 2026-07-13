@@ -538,7 +538,9 @@ describe("LlmAgentSession resume hydration", () => {
     processChatSpy.mockImplementationOnce(
       async (opts: { messages: any[]; userInput: string }) => {
         lengthOnEntry = opts.messages.length;
-        toolCallsPreserved = Array.isArray(opts.messages[1]?.toolCalls);
+        toolCallsPreserved = opts.messages.some((message) =>
+          Array.isArray(message.toolCalls)
+        );
         opts.messages.push({ role: "user", content: opts.userInput });
         return opts.messages;
       },
@@ -546,7 +548,7 @@ describe("LlmAgentSession resume hydration", () => {
 
     const session = newSession({ resumeSessionId: thread.id });
     await session.send("next", makeTransport() as never, "sid", []);
-    expect(lengthOnEntry).toBe(2);
+    expect(lengthOnEntry).toBe(3);
     expect(toolCallsPreserved).toBe(true);
   });
 });

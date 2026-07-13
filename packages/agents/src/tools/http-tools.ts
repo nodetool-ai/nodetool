@@ -5,6 +5,7 @@
  */
 
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { safeFetch } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
 import { persistBinaryOutput } from "./binary-output.js";
 
@@ -70,7 +71,11 @@ export class DownloadFileTool extends Tool {
 
       let response: Response;
       try {
-        response = await fetch(url, {
+        // safeFetch gates the URL (and every redirect hop) against SSRF: no
+        // http:// downgrade, no loopback/link-local/RFC1918 targets. The URL is
+        // model/attacker-influenceable via prompt injection, so it must not be
+        // able to reach the host's metadata service or internal APIs.
+        response = await safeFetch(url, {
           headers: mergedHeaders,
           signal: controller.signal
         });
@@ -187,7 +192,10 @@ export class HttpRequestTool extends Tool {
 
       let response: Response;
       try {
-        response = await fetch(url, {
+        // safeFetch gates the URL (and redirects) against SSRF — the URL is
+        // model/attacker-influenceable via prompt injection, so it must not be
+        // able to reach loopback/link-local/internal hosts or downgrade to http.
+        response = await safeFetch(url, {
           method,
           headers: mergedHeaders,
           body: ["POST", "PUT", "PATCH"].includes(method) ? body : undefined,

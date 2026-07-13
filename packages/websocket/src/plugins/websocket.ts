@@ -207,11 +207,13 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
               getLoadErrors?: () => Array<{ module: string; error: string }>;
             }
           ).getLoadErrors?.() ?? [];
-          const matchingLoadError = loadErrors.find(
-            (entry) =>
-              entry.module.includes(node.type) ||
-              node.type.startsWith(entry.module.split(".").slice(2).join("."))
-          );
+          const matchingLoadError = loadErrors.find((entry) => {
+            if (entry.module.includes(node.type)) return true;
+            const suffix = entry.module.split(".").slice(2).join(".");
+            // An empty suffix makes startsWith("") match every node type,
+            // blaming an unrelated import failure. Require a non-empty prefix.
+            return suffix.length > 0 && node.type.startsWith(suffix);
+          });
           throw new Error(
             getPythonBridgeReady()
               ? `Python node "${node.type}" cannot execute: it is declared in metadata but was not loaded by the Python worker.${matchingLoadError ? ` Load error: ${matchingLoadError.module}: ${matchingLoadError.error}.` : stderrSummary ? ` Recent Python worker stderr: ${stderrSummary}` : " Check Python worker status/load errors for import failures."}`

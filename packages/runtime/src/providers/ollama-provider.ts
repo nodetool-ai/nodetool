@@ -210,13 +210,23 @@ export class OllamaProvider extends BaseProvider {
       let argMatch: RegExpExecArray | null;
       while ((argMatch = argPattern.exec(argsStr)) !== null) {
         const key = argMatch[1];
+        // A quoted value ('…' or "…") is explicitly a string — never coerce it.
+        const quoted = argMatch[2] !== undefined || argMatch[3] !== undefined;
         const value = argMatch[2] ?? argMatch[3] ?? argMatch[4];
-        // Try to parse as number or boolean
-        if (value === "true") args[key] = true;
-        else if (value === "false") args[key] = false;
-        else if (!isNaN(Number(value)) && value !== "")
+        if (quoted) {
+          args[key] = value;
+        } else if (value === "true") {
+          args[key] = true;
+        } else if (value === "false") {
+          args[key] = false;
+        } else if (/^-?(?:0|[1-9]\d*)(?:\.\d+)?$/.test(value)) {
+          // Only coerce STRICT decimal integers/floats. Leading-zero ("01234"),
+          // exponent ("1e5"), hex ("0x10") and "Infinity" forms stay strings so
+          // numeric-looking identifiers aren't corrupted.
           args[key] = Number(value);
-        else args[key] = value;
+        } else {
+          args[key] = value;
+        }
       }
 
       // Include a per-call index so repeated calls to the same tool within one
@@ -277,7 +287,15 @@ export class OllamaProvider extends BaseProvider {
     if (message.role === "assistant") {
       const out: Record<string, unknown> = {
         role: "assistant",
-        content: typeof message.content === "string" ? message.content : ""
+        // Flatten array-typed content like the system/user branches do; the
+        // previous `: ""` silently erased a prior assistant turn stored as text
+        // parts, dropping it from the replayed context.
+        content:
+          typeof message.content === "string"
+            ? message.content
+            : Array.isArray(message.content)
+              ? asTextParts(message.content)
+              : ""
       };
 
       const toolCalls = message.toolCalls ?? [];
@@ -465,16 +483,25 @@ export class OllamaProvider extends BaseProvider {
     const content = typeof message.content === "string" ? message.content : "";
 
     let toolCalls: ToolCall[];
+    let finalContent = content;
     if (useToolEmulation) {
-      const [emulatedCalls] = this._parseEmulatedToolCalls(content, tools);
+      // Use the CLEANED content — the parser strips the literal call syntax.
+      // Returning the raw content left `get_weather(city='Paris')` both as a
+      // structured tool call AND as prose, which re-enters history and confuses
+      // the model on later turns.
+      const [emulatedCalls, cleaned] = this._parseEmulatedToolCalls(
+        content,
+        tools
+      );
       toolCalls = emulatedCalls;
+      if (emulatedCalls.length > 0) finalContent = cleaned;
     } else {
       toolCalls = this.toToolCalls(message.tool_calls);
     }
 
     return {
       role: "assistant",
-      content,
+      content: finalContent,
       toolCalls
     };
   }

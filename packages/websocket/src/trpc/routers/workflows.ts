@@ -206,7 +206,7 @@ function findTerminalMediaOutputNodes(
   const edges = (graph?.edges ?? []) as Array<{ source?: string }>;
   const terminalOutputNodeIds = new Set(
     nodes
-      .filter((n) => n.type in OUTPUT_NODE_MEDIA_TYPES)
+      .filter((n) => Object.hasOwn(OUTPUT_NODE_MEDIA_TYPES, n.type))
       .map((n) => n.id)
   );
   for (const edge of edges) {
@@ -225,6 +225,18 @@ function hasTerminalMediaOutput(workflow: WorkflowModel): boolean {
 // ── Rate-limit tracking for autosave ───────────────────────────────────────
 const lastAutosaveTime = new Map<string, number>();
 const AUTOSAVE_RATE_LIMIT_MS = 30_000;
+
+// Entries older than the rate-limit window can never rate-limit again, so drop
+// them. Without this the map grows one permanent entry per workflow ever
+// autosaved (including deleted ones) for the lifetime of the process.
+function recordAutosave(workflowId: string, now: number): void {
+  for (const [id, ts] of lastAutosaveTime) {
+    if (now - ts >= AUTOSAVE_RATE_LIMIT_MS) {
+      lastAutosaveTime.delete(id);
+    }
+  }
+  lastAutosaveTime.set(workflowId, now);
+}
 
 // ── toWorkflowResponse ─────────────────────────────────────────────────────
 
@@ -639,6 +651,7 @@ export const workflowsRouter = router({
         throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
       }
       await workflow.delete();
+      lastAutosaveTime.delete(input.id);
       await WorkflowCollaborator.removeAllForWorkflow(input.id);
       await WorkflowShare.removeAllForWorkflow(input.id);
       return { ok: true as const };
@@ -828,7 +841,7 @@ export const workflowsRouter = router({
       )
         workflow.access = input.access;
       await workflow.save();
-      lastAutosaveTime.set(input.id, Date.now());
+      recordAutosave(input.id, Date.now());
 
       let version: {
         id: string;

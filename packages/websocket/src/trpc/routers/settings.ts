@@ -202,14 +202,15 @@ export const settingsRouter = router({
         }
       }
 
-      // Secrets: skip "****" placeholders, upsert the rest, invalidate caches.
+      // Secrets: skip the unchanged-display placeholder, upsert the rest,
+      // invalidate caches. settings.list emits the fixed literal "****" for a
+      // configured secret, so match that exact string — treating ANY all-
+      // asterisk value as the mask silently dropped legitimate secrets that
+      // happen to be asterisks (e.g. an 8-char "********").
+      const SECRET_MASK = "****";
       if (input.secrets) {
         for (const [key, value] of Object.entries(input.secrets)) {
-          if (
-            typeof value === "string" &&
-            value.length > 0 &&
-            value.split("").every((c) => c === "*")
-          ) {
+          if (value === SECRET_MASK) {
             continue;
           }
           await Secret.upsert({

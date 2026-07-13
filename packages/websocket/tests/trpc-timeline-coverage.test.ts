@@ -50,6 +50,20 @@ vi.mock("@nodetool-ai/models", async (orig) => {
     static listByUser = vi.fn();
     static listByProject = vi.fn();
     static update = vi.fn();
+    static async mutateDocument(
+      id: string,
+      mutator: (
+        document: TimelineDocument,
+        sequence: StubTimelineSequence
+      ) => unknown | Promise<unknown>
+    ) {
+      const sequence = await StubTimelineSequence.findById(id);
+      if (!sequence) return null;
+      const document = sequence.toDocument();
+      const result = await mutator(document, sequence);
+      sequence.document = JSON.stringify(document);
+      return { sequence, result };
+    }
   }
   let counter = 0;
   return {
@@ -162,7 +176,6 @@ describe("timeline.clips.create", () => {
     expect(clip.selectedOutputNodeId).toBe("out-1");
     // image default duration
     expect(clip.durationMs).toBe(4000);
-    expect(TS.update).toHaveBeenCalled();
   });
 
   it("requires selectedOutputNodeId when multiple output nodes exist", async () => {

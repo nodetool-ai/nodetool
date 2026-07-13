@@ -25,6 +25,20 @@ vi.mock("@nodetool-ai/config", async (orig) => {
   };
 });
 
+// Mock Asset.find so the storage router's ownership check treats the test keys
+// as owned by "user-1" (the storage dir is a shared bucket; ownership is
+// verified by parsing the asset id from the key). foreign-user lookups return
+// null so cross-user access is denied.
+vi.mock("@nodetool-ai/models", async (orig) => {
+  const actual = await orig<typeof import("@nodetool-ai/models")>();
+  class MockAsset extends actual.Asset {
+    static find = vi.fn(async (userId: string, id: string) =>
+      userId === "user-1" ? ({ id, user_id: userId } as never) : null
+    );
+  }
+  return { ...actual, Asset: MockAsset };
+});
+
 const createCaller = createCallerFactory(appRouter);
 
 function makeCtx(overrides: Partial<Context> = {}): Context {
@@ -236,6 +250,45 @@ describe("storage router", () => {
       await expect(
         caller.storage.delete({ key: "test.txt" })
       ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    });
+  });
+
+  // ── cross-user isolation (IDOR regression) ────────────────────────────────
+  describe("user scoping", () => {
+    it("does not delete a file the caller does not own", async () => {
+      // Asset.find returns null for user-2 → not owned → NOT_FOUND before any
+      // filesystem access, so a foreign key can't be unlinked.
+      const caller = createCaller(makeCtx({ userId: "user-2" }));
+      await expect(
+        caller.storage.delete({ key: "victim-asset.png" })
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+      expect(fsPromises.stat).not.toHaveBeenCalled();
+      expect(fsPromises.unlink).not.toHaveBeenCalled();
+    });
+
+    it("does not return metadata / signed URLs for unowned keys", async () => {
+      const caller = createCaller(makeCtx({ userId: "user-2" }));
+      await expect(
+        caller.storage.metadata({ key: "victim-asset.png" })
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+      await expect(
+        caller.storage.signUrl({ key: "victim-asset.png" })
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    });
+
+    it("filters list to only the caller's own assets", async () => {
+      (fsPromises.readdir as ReturnType<typeof vi.fn>).mockResolvedValue([
+        { name: "mine.png", isDirectory: () => false }
+      ]);
+      (fsPromises.stat as ReturnType<typeof vi.fn>).mockResolvedValue({
+        size: 10,
+        isDirectory: () => false,
+        mtime: new Date("2026-04-01T00:00:00.000Z")
+      });
+      // user-2 owns nothing → the walked entry is filtered out.
+      const caller = createCaller(makeCtx({ userId: "user-2" }));
+      const result = await caller.storage.list({});
+      expect(result).toEqual({ entries: [], count: 0 });
     });
   });
 });

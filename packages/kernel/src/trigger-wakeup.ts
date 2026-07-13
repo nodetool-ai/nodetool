@@ -45,6 +45,13 @@ export class TriggerWakeupService {
    * strings — a plain `:` join would let ("a:b","c") collide with ("a","b:c").
    */
   private _inboxes = new Map<string, DurableInbox>();
+  /**
+   * inputIds whose durable append is in flight. Recorded before the `await` so
+   * two concurrent deliveries of the same inputId dedupe against each other
+   * (the in-memory `_inputs` marker is only written after a successful append,
+   * so it can't cover the concurrent window). Cleared once the append settles.
+   */
+  private _inflightInputIds = new Set<string>();
 
   constructor(inboxStore?: DurableInboxStore) {
     this._inboxStore = inboxStore ?? new MemoryDurableInboxStore();
@@ -73,9 +80,10 @@ export class TriggerWakeupService {
     payload: unknown;
     cursor?: string;
   }): Promise<boolean> {
-    // Idempotency check
+    // Idempotency check — against both the committed marker and any delivery
+    // of the same inputId whose durable append is still in flight.
     const existing = this._inputs.find((i) => i.inputId === opts.inputId);
-    if (existing) {
+    if (existing || this._inflightInputIds.has(opts.inputId)) {
       // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.debug("Trigger input already exists (idempotent)", {
         inputId: opts.inputId
@@ -92,6 +100,25 @@ export class TriggerWakeupService {
       processed: false,
       createdAt: new Date()
     };
+
+    // Durable append FIRST, then record the in-memory idempotency marker.
+    // Recording the marker before the append meant a transient append failure
+    // left the marker behind, so the caller's retry hit the idempotency check
+    // and returned early WITHOUT ever writing the durable message — the event
+    // was lost. The inbox dedupes by message id (`trigger-<inputId>`), so a
+    // concurrent double-append is safe. Reuse a cached DurableInbox per (run,
+    // node) so its per-instance append serialization applies across concurrent
+    // deliveries — a fresh instance per call would defeat it (see finding #9).
+    // The in-flight marker covers the await window; on failure it is cleared so
+    // a retry is not short-circuited.
+    const inbox = this._inboxFor(opts.runId, opts.nodeId);
+    this._inflightInputIds.add(opts.inputId);
+    try {
+      await inbox.append("trigger", opts.payload, `trigger-${opts.inputId}`);
+    } finally {
+      this._inflightInputIds.delete(opts.inputId);
+    }
+
     this._inputs.push(input);
 
     // Stryker disable next-line StringLiteral,ObjectLiteral,ConditionalExpression: diagnostic log args only (the cursor spread only affects log fields)
@@ -102,12 +129,6 @@ export class TriggerWakeupService {
       // Stryker disable next-line ObjectLiteral,ConditionalExpression: diagnostic log field only
       ...(opts.cursor ? { cursor: opts.cursor } : {})
     });
-
-    // Also append as inbox message. Reuse a cached DurableInbox per (run, node)
-    // so its per-instance append serialization applies across concurrent
-    // deliveries — a fresh instance per call would defeat it (see finding #9).
-    const inbox = this._inboxFor(opts.runId, opts.nodeId);
-    await inbox.append("trigger", opts.payload, `trigger-${opts.inputId}`);
 
     return true;
   }
@@ -160,6 +181,30 @@ export class TriggerWakeupService {
         nodeId
       });
     }
+    // Evict the cached DurableInbox once no inputs remain for this (run, node),
+    // otherwise _inboxes grows by one entry per run for the process lifetime
+    // (runId is unique per run) even after cleanupProcessed purges the inputs.
+    const hasRemaining = this._inputs.some(
+      (i) => i.runId === runId && i.nodeId === nodeId
+    );
+    if (!hasRemaining) {
+      this._inboxes.delete(JSON.stringify([runId, nodeId]));
+    }
     return removed;
+  }
+
+  /**
+   * Release all in-memory state for a finished run: its trigger inputs and any
+   * cached DurableInbox instances. Call when a run terminates so a long-lived
+   * service does not accumulate per-run state indefinitely.
+   */
+  disposeRun(runId: string): void {
+    this._inputs = this._inputs.filter((i) => i.runId !== runId);
+    for (const key of [...this._inboxes.keys()]) {
+      const [keyRunId] = JSON.parse(key) as [string, string];
+      if (keyRunId === runId) {
+        this._inboxes.delete(key);
+      }
+    }
   }
 }

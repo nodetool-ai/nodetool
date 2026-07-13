@@ -55,6 +55,15 @@ describe("classifyAssetToken", () => {
     expect(classifyAssetToken("asset://noext")).toBeNull();
     expect(classifyAssetToken("https://x/a.png")).toBeNull();
   });
+
+  it("returns null for prototype-key extensions (no inherited-key match)", () => {
+    // Regression: `ext in MAP` matched Object.prototype keys, returning a
+    // non-string mime (object/function) for these tokens.
+    expect(classifyAssetToken("asset://a.__proto__")).toBeNull();
+    expect(classifyAssetToken("asset://a.constructor")).toBeNull();
+    expect(classifyAssetToken("asset://a.toString")).toBeNull();
+    expect(classifyTextToken("asset://a.hasOwnProperty")).toBeNull();
+  });
 });
 
 describe("classifyTextToken", () => {
@@ -112,6 +121,16 @@ describe("inlineTextAssetRefs", () => {
       textContext({})
     );
     expect(out).toBe("look asset://a.png here");
+  });
+
+  it("inlines a resolved-but-empty text asset as empty (not the literal token)", async () => {
+    // Regression: a 0-byte asset resolves successfully and must expand to "",
+    // never fall back to leaking the raw asset:// token into the prompt.
+    const out = await inlineTextAssetRefs(
+      "summarize this: asset://empty.txt",
+      textContext({ "asset://empty.txt": "" })
+    );
+    expect(out).toBe("summarize this: ");
   });
 });
 

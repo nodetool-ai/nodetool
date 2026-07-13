@@ -15,6 +15,20 @@ import type { StorageAdapter } from "@nodetool-ai/storage";
 import { z } from "zod";
 import { Tool } from "./base-tool.js";
 
+// Linear slash trimming — avoids the `/\/+$/` / `/^\/+/` regexes that CodeQL
+// flags as polynomial ReDoS on uncontrolled path input (storage keys).
+function stripTrailingSlashes(s: string): string {
+  let end = s.length;
+  while (end > 0 && s.charCodeAt(end - 1) === 47 /* "/" */) end--;
+  return s.slice(0, end);
+}
+
+function stripLeadingSlashes(s: string): string {
+  let i = 0;
+  while (i < s.length && s.charCodeAt(i) === 47 /* "/" */) i++;
+  return s.slice(i);
+}
+
 function getStorage(context: ProcessingContext): StorageAdapter | null {
   return context.workspaceStorage ?? null;
 }
@@ -183,19 +197,26 @@ export class WorkspaceListTool extends Tool {
         return { success: false, error: `Directory not found: ${rawPath}` };
       }
     }
-    const prefixToStrip = rawPath ? `${rawPath.replace(/\/+$/, "")}/` : "";
+    // Derive the strip prefix from the storage-normalized listPrefix, not
+    // rawPath. For the root (listPrefix ""), rawPath="/" produced prefixToStrip
+    // "/" whose de-slashed form is "", so `startsWith("")` matched every entry
+    // and sliced off the first character of each directory name ("sub" -> "ub").
+    const prefixToStrip = listPrefix
+      ? `${stripTrailingSlashes(listPrefix)}/`
+      : "";
     const entries: Array<{ name: string; size: number; is_dir: boolean }> = [];
     for (const entry of result.entries) {
-      const name = prefixToStrip && entry.key.startsWith(prefixToStrip)
-        ? entry.key.slice(prefixToStrip.length)
-        : entry.key;
+      const name =
+        prefixToStrip && entry.key.startsWith(prefixToStrip)
+          ? entry.key.slice(prefixToStrip.length)
+          : entry.key;
       entries.push({ name, size: entry.size, is_dir: false });
     }
     for (const cp of result.commonPrefixes) {
-      const trimmed = cp.replace(/\/+$/, "");
+      const trimmed = stripTrailingSlashes(cp);
       const name =
-        prefixToStrip && trimmed.startsWith(prefixToStrip.replace(/\/+$/, ""))
-          ? trimmed.slice(prefixToStrip.length).replace(/^\/+/, "")
+        prefixToStrip && trimmed.startsWith(prefixToStrip)
+          ? stripLeadingSlashes(trimmed.slice(prefixToStrip.length))
           : trimmed;
       entries.push({
         name: name.split("/").pop() ?? name,
