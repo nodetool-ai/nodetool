@@ -28,7 +28,7 @@ Generate vector representations of text for semantic analysis using Google's Gem
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
 | input | `str` | The text to embed. | `` |
-| model | `enum` | The embedding model to use | `text-embedding-004` |
+| model | `enum` | The embedding model to use | `gemini-embedding-2` |
 
 ## Outputs
 

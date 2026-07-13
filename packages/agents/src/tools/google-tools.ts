@@ -48,7 +48,7 @@ export class GoogleGroundedSearchTool extends Tool {
 
     try {
       const apiKey = await getGeminiApiKey(context);
-      const url = `${GEMINI_API_BASE}/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+      const url = `${GEMINI_API_BASE}/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
 
       const body = {
         contents: [{ role: "user", parts: [{ text: query }] }],
@@ -171,12 +171,11 @@ export class GoogleImageGenerationTool extends Tool {
 
     try {
       const apiKey = await getGeminiApiKey(context);
-      // Use Imagen 3 REST API
-      const url = `${GEMINI_API_BASE}/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
+      const url = `${GEMINI_API_BASE}/models/gemini-3.1-flash-image:generateContent?key=${apiKey}`;
 
       const body = {
-        instances: [{ prompt }],
-        parameters: { sampleCount: 1 }
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: { responseModalities: ["IMAGE"] }
       };
 
       const response = await fetch(url, {
@@ -191,23 +190,39 @@ export class GoogleImageGenerationTool extends Tool {
       }
 
       const data = (await response.json()) as Record<string, unknown>;
-      const predictions = data["predictions"] as
+      const candidates = data["candidates"] as
         | Array<Record<string, unknown>>
         | undefined;
 
-      if (!predictions?.length) {
+      if (!candidates?.length) {
         return { error: "No images generated" };
       }
 
-      const imageB64 = predictions[0]["bytesBase64Encoded"] as
-        | string
+      const content = candidates[0]["content"] as
+        | Record<string, unknown>
         | undefined;
+      const parts = content?.["parts"] as
+        | Array<Record<string, unknown>>
+        | undefined;
+      const imagePart = parts?.find((part) => {
+        const inlineData = part["inlineData"] as
+          | Record<string, unknown>
+          | undefined;
+        return typeof inlineData?.["data"] === "string";
+      });
+      const inlineData = imagePart?.["inlineData"] as
+        | Record<string, unknown>
+        | undefined;
+      const imageB64 = inlineData?.["data"] as string | undefined;
       if (!imageB64) return { error: "No image bytes found in response" };
 
       const bytes = Uint8Array.from(Buffer.from(imageB64, "base64"));
       const persisted = await persistBinaryOutput(context, bytes, {
         outputFile,
-        contentType: "image/png",
+        contentType:
+          typeof inlineData?.["mimeType"] === "string"
+            ? inlineData["mimeType"]
+            : "image/png",
         uiPrefix: "gemini-images"
       });
 

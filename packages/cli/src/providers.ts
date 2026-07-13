@@ -25,7 +25,7 @@ import {
   PythonProvider,
   registerProvider
 } from "@nodetool-ai/runtime";
-import type { Chunk } from "@nodetool-ai/protocol";
+import type { Chunk, UnifiedModel } from "@nodetool-ai/protocol";
 import { getSecret } from "@nodetool-ai/models";
 import type { WebSocketChatClient } from "./websocket-client.js";
 
@@ -146,27 +146,15 @@ async function ensurePythonProvidersRegistered(): Promise<void> {
   return pythonProvidersPromise;
 }
 
-/**
- * Build a provider instance by id, resolving credentials via the registry
- * (encrypted DB first, then `process.env`).
- *
- * Python-only providers (e.g. `mlx`) aren't in the registry until the local
- * Python worker bridge connects, so they're registered on demand here. If the
- * worker can't be started, the failure surfaces with a clear message rather
- * than silently falling back to Ollama.
- *
- * An unknown/unregistered id (e.g. a typo) falls back to the local Ollama
- * daemon, preserving the CLI's historical default. A *registered* provider that
- * fails to construct — most commonly a missing API key, which several providers
- * enforce in their constructor — surfaces its error to the caller rather than
- * silently masquerading as Ollama (which would list Ollama's models under the
- * requested provider).
- */
-export async function createProvider(
+/** Build a registered provider, rejecting unknown ids instead of falling back. */
+export async function createProviderStrict(
   providerId: string
 ): Promise<BaseProvider> {
   const id = providerId.toLowerCase();
-  if (PYTHON_ONLY_PROVIDERS.includes(id) && !listRegisteredProviderIds().includes(id)) {
+  if (
+    PYTHON_ONLY_PROVIDERS.includes(id) &&
+    !listRegisteredProviderIds().includes(id)
+  ) {
     try {
       await ensurePythonProvidersRegistered();
     } catch (err) {
@@ -184,9 +172,23 @@ export async function createProvider(
     }
   }
   if (!listRegisteredProviderIds().includes(id)) {
-    return getProvider("ollama", resolveForUser1);
+    throw new Error(`Unknown provider "${id}"`);
   }
   return getProvider(id, resolveForUser1);
+}
+
+/** Build a provider, preserving the chat CLI's Ollama fallback for unknown ids. */
+export async function createProvider(
+  providerId: string
+): Promise<BaseProvider> {
+  const id = providerId.toLowerCase();
+  if (
+    !PYTHON_ONLY_PROVIDERS.includes(id) &&
+    !listRegisteredProviderIds().includes(id)
+  ) {
+    return getProvider("ollama", resolveForUser1);
+  }
+  return createProviderStrict(id);
 }
 
 /**
@@ -218,6 +220,94 @@ export async function buildConfiguredProviders(): Promise<
     }
   }
   return result;
+}
+
+export type ProviderModelKind =
+  | "llm"
+  | "image"
+  | "tts"
+  | "asr"
+  | "video"
+  | "embedding";
+
+export async function listConfiguredProviderInfo(): Promise<
+  Array<{ provider: string; capabilities: string[] }>
+> {
+  const providers = await buildConfiguredProviders();
+  return Object.entries(providers).map(([provider, instance]) => ({
+    provider,
+    capabilities: instance.getCapabilities()
+  }));
+}
+
+function toUnifiedModel(
+  model: {
+    id: string;
+    name: string;
+    provider: string;
+    voices?: string[];
+    supportedTasks?: string[];
+    durations?: number[];
+    resolutions?: string[];
+    aspectRatios?: string[];
+  },
+  type: string
+): UnifiedModel {
+  return {
+    id: model.id,
+    type,
+    name: model.name,
+    provider: model.provider,
+    repo_id: null,
+    path: null,
+    downloaded: model.provider === "ollama" || model.provider === "llama_cpp",
+    tags: [model.provider],
+    voices: model.voices ?? null,
+    supported_tasks: model.supportedTasks ?? null,
+    durations: model.durations ?? null,
+    resolutions: model.resolutions ?? null,
+    aspect_ratios: model.aspectRatios ?? null
+  };
+}
+
+export async function listProviderModels(
+  providerId: string,
+  kind: ProviderModelKind
+): Promise<UnifiedModel[]> {
+  const provider = await createProviderStrict(providerId);
+  if (kind === "llm") {
+    const models = await provider.getAvailableLanguageModels();
+    const toolSupport = await Promise.all(
+      models.map((model) => provider.hasToolSupport(model.id).catch(() => null))
+    );
+    return models.map((model, index) => ({
+      ...toUnifiedModel(model, "language_model"),
+      supports_tools: toolSupport[index]
+    }));
+  }
+
+  switch (kind) {
+    case "image":
+      return (await provider.getAvailableImageModels()).map((model) =>
+        toUnifiedModel(model, "image_model")
+      );
+    case "tts":
+      return (await provider.getAvailableTTSModels()).map((model) =>
+        toUnifiedModel(model, "tts_model")
+      );
+    case "asr":
+      return (await provider.getAvailableASRModels()).map((model) =>
+        toUnifiedModel(model, "asr_model")
+      );
+    case "video":
+      return (await provider.getAvailableVideoModels()).map((model) =>
+        toUnifiedModel(model, "video_model")
+      );
+    case "embedding":
+      return (await provider.getAvailableEmbeddingModels()).map((model) =>
+        toUnifiedModel(model, "embedding_model")
+      );
+  }
 }
 
 /**

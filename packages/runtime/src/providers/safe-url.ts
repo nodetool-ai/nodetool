@@ -177,7 +177,8 @@ export function assertSafePublicHttpsUrl(url: string): void {
 const CROSS_ORIGIN_SENSITIVE_HEADERS = [
   "authorization",
   "cookie",
-  "proxy-authorization"
+  "proxy-authorization",
+  "x-goog-api-key"
 ];
 
 /**

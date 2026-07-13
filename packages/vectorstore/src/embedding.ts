@@ -375,10 +375,10 @@ export class OllamaEmbeddingFunction extends ProviderEmbeddingFunction {
 /**
  * Gemini embedding function.
  *
- * @param model Defaults to `text-embedding-004`.
+ * @param model Defaults to `gemini-embedding-2`.
  */
 export class GeminiEmbeddingFunction extends ProviderEmbeddingFunction {
-  constructor(model = "text-embedding-004", userId?: string) {
+  constructor(model = "gemini-embedding-2", userId?: string) {
     super({ provider: "gemini", model, userId });
   }
 }
@@ -456,7 +456,7 @@ export function getProviderEmbeddingFunction(
     });
   }
 
-  // Auto-detect from model name — check Gemini-specific patterns before generic OpenAI prefix
+  // Keep the retired text-embedding-004 prefix for saved collection metadata.
   if (
     embeddingModel.startsWith("text-embedding-004") ||
     embeddingModel.startsWith("gemini-embedding-")

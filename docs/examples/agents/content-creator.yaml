@@ -27,7 +27,7 @@ system_prompt: |
 
 model:
   provider: google
-  id: gemini-2.0-flash-exp
+  id: gemini-3.5-flash
 
 planning_agent:
   enabled: true

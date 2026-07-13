@@ -102,7 +102,7 @@ max_steps: 10
 |-----------|----------------|------------|
 | Analytical | gpt-4o-mini | gpt-4o |
 | General | gpt-4o-mini | gpt-4o |
-| Creative | gpt-4o-mini | gemini-2.0-flash |
+| Creative | gpt-4o-mini | gemini-3.5-flash |
 | Code | gpt-4o-mini | claude-sonnet-4-6 |
 
 ## Environment Variables

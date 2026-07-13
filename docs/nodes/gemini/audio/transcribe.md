@@ -29,7 +29,7 @@ Transcribe audio to text using Google's Gemini models.
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
 | audio | `audio` | The audio file to transcribe. | `{"type":"audio","uri":"","asset_id":null,"data"...` |
-| model | `enum` | The Gemini model to use for transcription | `gemini-2.5-flash` |
+| model | `enum` | The Gemini model to use for transcription | `gemini-3.5-flash` |
 | prompt | `str` | Instructions for the transcription. You can customize this to request specific formatting or focus. | `Transcribe the following audio accurately. Retu...` |
 
 ## Outputs

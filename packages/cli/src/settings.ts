@@ -60,7 +60,7 @@ function detectDefaultModel(): string {
     case "openai":
       return "gpt-4o";
     case "gemini":
-      return "gemini-2.0-flash";
+      return "gemini-3.5-flash";
     default:
       return "llama3.2";
   }

@@ -8,14 +8,14 @@
 
 - **Mirror the request/response shape of the matching `packages/runtime`
   provider — never the vendor JS/Python SDK shape.** The SDK wraps a different
-  wire envelope. Gemini's `:predict`/`:generateImages`/`:generateVideos` REST
-  endpoints need `{ instances: [{ prompt, image: { bytesBase64Encoded, mimeType } }], parameters: {...} }`,
-  not the SDK's `{ prompt, config }`; image bytes go under `bytesBase64Encoded`,
-  not `imageBytes`.
+  wire envelope. Imagen uses `:predict`; Veo uses `:predictLongRunning` with
+  `{ instances: [{ prompt, image: { inlineData: { data, mimeType } } }], parameters: {...} }`.
+  Do not send the SDK's `{ prompt, config }` envelope.
 - **Parse every documented response variant.** Try REST/Vertex
   `predictions[].bytesBase64Encoded` *and* SDK `generatedImages[].image.imageBytes`;
-  handle large media (Veo video) delivered as a download **`uri`** (fetch with the
-  API key appended, then base64) in addition to inline bytes.
+  handle large media (Veo video) delivered as a download **`uri`** in addition
+  to inline bytes. Validate provider-supplied URIs with `safeFetch`; send the
+  API key only to `generativelanguage.googleapis.com`.
 - **Gate model-specific request params on the target model.** `gpt-image-1`
   rejects `response_format` (valid only for dall-e-2/3) and always returns base64.
   Don't send a param a newer model rejects.

@@ -56,6 +56,11 @@ import { registerValidateCommand } from "./commands/validate.js";
 import { registerNodeCommands } from "./commands/node.js";
 import { registerGenerateCommand } from "./commands/generate.js";
 import { registerAffectedCommand } from "./commands/affected.js";
+import {
+  listConfiguredProviderInfo,
+  listProviderModels,
+  type ProviderModelKind
+} from "./providers.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -1136,18 +1141,14 @@ assets
 const models = program.command("models").description("Model management");
 
 const modelKinds = ["llm", "image", "tts", "asr", "video", "embedding"] as const;
-type ModelKind = (typeof modelKinds)[number];
 
-const byProviderRoute: Record<ModelKind, string> = {
-  llm: "llmByProvider",
-  image: "imageByProvider",
-  tts: "ttsByProvider",
-  asr: "asrByProvider",
-  video: "videoByProvider",
-  embedding: "embeddingByProvider"
-};
-
-function modelRow(m: Record<string, unknown>): Record<string, unknown> {
+function modelRow(m: {
+  id?: unknown;
+  name?: unknown;
+  provider?: unknown;
+  type?: unknown;
+  repo_id?: unknown;
+}): Record<string, unknown> {
   return {
     id: m["id"],
     name: m["name"],
@@ -1185,16 +1186,11 @@ models
 models
   .command("providers")
   .description("List configured providers and their capabilities")
-  .option(
-    "--api-url <url>",
-    "API base URL",
-    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
-  )
   .option("--json", "Output as JSON")
   .action(async (opts) => {
+    await setupDb();
     try {
-      const client = createApiClient(opts.apiUrl);
-      const data = await client.models.providers.query();
+      const data = await listConfiguredProviderInfo();
       if (opts.json) {
         asJson(data);
         return;
@@ -1277,31 +1273,19 @@ models
   .description(
     `List models for a provider. --kind one of: ${modelKinds.join(", ")}`
   )
-  .option(
-    "--api-url <url>",
-    "API base URL",
-    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
-  )
   .option("--kind <kind>", "Model kind", "llm")
   .option("--json", "Output as JSON")
   .action(async (provider, opts) => {
-    const kind = opts.kind as ModelKind;
+    const kind = opts.kind as ProviderModelKind;
     if (!modelKinds.includes(kind)) {
       console.error(
         `Invalid --kind '${opts.kind}'. Must be one of: ${modelKinds.join(", ")}`
       );
       process.exit(1);
     }
+    await setupDb();
     try {
-      const client = createApiClient(opts.apiUrl);
-      const route = byProviderRoute[kind];
-      const data = await (
-        client.models as unknown as Record<
-          string,
-          { query: (input: { provider: string }) => Promise<unknown[]> }
-        >
-      )[route]!.query({ provider });
-      const rows = data as Record<string, unknown>[];
+      const rows = await listProviderModels(provider, kind);
       if (opts.json) {
         asJson(rows);
         return;
