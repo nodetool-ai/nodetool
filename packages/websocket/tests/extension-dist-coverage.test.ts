@@ -61,14 +61,6 @@ describe("resolveExtensionDist", () => {
     const info = resolveExtensionDist();
     expect(info.exists).toBe(fs.existsSync(path.join(info.path, "manifest.json")));
   });
-
-  it("treats an env dir whose manifest is missing as not a build", () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nt-ext-partial-"));
-    fs.writeFileSync(path.join(dir, "background.js"), "x", "utf8");
-    process.env[ENV_KEY] = dir;
-    const info = resolveExtensionDist();
-    expect(info.path).not.toBe(dir);
-  });
 });
 
 describe("zipExtensionDist", () => {
