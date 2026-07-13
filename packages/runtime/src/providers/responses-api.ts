@@ -115,9 +115,12 @@ export async function messagesToResponsesInput(
         });
       }
       for (const toolCall of message.toolCalls ?? []) {
+        // Only `call_id` (the `call_...`-prefixed id) is echoed back. The item
+        // `id` is deliberately omitted: we track the call_id, not the `fc_...`
+        // item id, and supplying the call_id in the `id` field makes the
+        // Responses API reject it ("Expected an ID that begins with 'fc'").
         input.push({
           type: "function_call",
-          id: toolCall.id,
           call_id: toolCall.id,
           name: toolCall.name,
           arguments: JSON.stringify(toolCall.args ?? {})

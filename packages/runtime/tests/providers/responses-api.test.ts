@@ -94,7 +94,6 @@ describe("Responses API helpers", () => {
       },
       {
         type: "function_call",
-        id: "call_1",
         call_id: "call_1",
         name: "lookup",
         arguments: '{"q":"x"}'
@@ -105,6 +104,31 @@ describe("Responses API helpers", () => {
         output: '{"ok":true}'
       }
     ]);
+  });
+
+  it("omits the item id when replaying a function_call so a call_-prefixed id is never sent as the fc_ item id", async () => {
+    // Regression: the Responses API rejects a function_call input whose `id`
+    // does not begin with "fc_". We only track the call_id, so the `id` field
+    // must be omitted rather than filled with the call_id.
+    const messages: Message[] = [
+      {
+        role: "assistant",
+        content: "",
+        toolCalls: [{ id: "call_AunLsAYx1gOmtr0LdLBCRwIL", name: "add_item", args: { item: "x" } }]
+      }
+    ];
+
+    const input = await messagesToResponsesInput(messages, async (uri) => uri);
+
+    expect(input).toEqual([
+      {
+        type: "function_call",
+        call_id: "call_AunLsAYx1gOmtr0LdLBCRwIL",
+        name: "add_item",
+        arguments: '{"item":"x"}'
+      }
+    ]);
+    expect(input[0]).not.toHaveProperty("id");
   });
 
   it("formats function tools for Responses", () => {
