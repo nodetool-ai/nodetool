@@ -265,8 +265,8 @@ describe("OpenAIProvider", () => {
       { client: {} as any }
     );
 
-    await expect(provider.getAvailableASRModels()).resolves.toHaveLength(1);
-    await expect(provider.getAvailableTTSModels()).resolves.toHaveLength(2);
+    await expect(provider.getAvailableASRModels()).resolves.toHaveLength(4);
+    await expect(provider.getAvailableTTSModels()).resolves.toHaveLength(3);
     await expect(provider.getAvailableImageModels()).resolves.toHaveLength(4);
     await expect(provider.getAvailableVideoModels()).resolves.toHaveLength(2);
     await expect(provider.getAvailableEmbeddingModels()).resolves.toHaveLength(
