@@ -68,7 +68,18 @@ describe("RECOMMENDED_MODELS catalog invariants", () => {
   it("includes the expected anchor models", () => {
     const ids = RECOMMENDED_MODELS.map((m) => m.id);
     expect(ids).toContain("gpt-5-mini");
-    expect(ids).toContain("claude-3-5-sonnet-latest");
+    expect(ids).toContain("claude-sonnet-5");
     expect(ids).toContain("whisper-1");
+  });
+
+  it("uses pinned Anthropic model ids instead of moving latest aliases", () => {
+    const anthropicModels = RECOMMENDED_MODELS.filter(
+      (model) => model.provider === "anthropic"
+    );
+
+    expect(anthropicModels.length).toBeGreaterThan(0);
+    for (const model of anthropicModels) {
+      expect(model.id).not.toMatch(/-latest$/);
+    }
   });
 });

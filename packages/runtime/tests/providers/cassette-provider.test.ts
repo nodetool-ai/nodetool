@@ -51,7 +51,12 @@ class UsageProvider extends BaseProvider {
     messages: Message[];
     model: string;
   }): Promise<Message> {
-    this.trackUsage(args.model, { inputTokens: 1000, outputTokens: 500 });
+    this.trackUsage(args.model, {
+      inputTokens: 1000,
+      outputTokens: 500,
+      cachedTokens: 50,
+      cacheWriteTokens: 100
+    });
     return { role: "assistant", content: [{ type: "text", text: "ok" }] };
   }
   async *generateMessages(args: {
@@ -59,7 +64,12 @@ class UsageProvider extends BaseProvider {
     model: string;
   }): AsyncGenerator<ProviderStreamItem> {
     yield { type: "chunk", content: "ok", done: true, content_type: "text" };
-    this.trackUsage(args.model, { inputTokens: 1000, outputTokens: 500 });
+    this.trackUsage(args.model, {
+      inputTokens: 1000,
+      outputTokens: 500,
+      cachedTokens: 50,
+      cacheWriteTokens: 100
+    });
   }
 }
 
@@ -102,6 +112,32 @@ describe("hashRequest", () => {
     const b = normalizeRequest({ messages: USER, model: "m", temperature: 0.5 });
     expect(hashRequest("generateMessages", a)).toBe(
       hashRequest("generateMessages", b)
+    );
+  });
+
+  it("includes thinking and tool configuration in the request hash", () => {
+    const base = normalizeRequest({
+      messages: USER,
+      model: "m",
+      tools: [{ name: "lookup", inputSchema: { type: "object" } }]
+    });
+    const configured = normalizeRequest({
+      messages: USER,
+      model: "m",
+      thinking: { type: "adaptive", display: "summarized" },
+      effort: "high",
+      tools: [
+        {
+          name: "lookup",
+          inputSchema: { type: "object" },
+          strict: true,
+          cacheControl: { type: "ephemeral", ttl: "1h" }
+        }
+      ]
+    });
+
+    expect(hashRequest("generateMessages", configured)).not.toBe(
+      hashRequest("generateMessages", base)
     );
   });
 });
@@ -297,7 +333,9 @@ describe("CassetteProvider usage/cost reproduction", () => {
     expect(recordedCost).toBeGreaterThan(0);
     expect(cassette.interactions[0].usage).toEqual({
       inputTokens: 1000,
-      outputTokens: 500
+      outputTokens: 500,
+      cachedTokens: 50,
+      cacheWriteTokens: 100
     });
 
     const replayer = new CassetteProvider(new PoisonProvider(), {
