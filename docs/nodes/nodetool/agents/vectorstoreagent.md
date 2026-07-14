@@ -11,8 +11,8 @@ namespace: "nodetool.agents"
 
 ## Description
 
-Prompt-driven vector store skill for indexing and similarity search workflows.
-    skills, vectorstore, embeddings, rag, retrieval
+Index documents and run similarity search for RAG from a prompt.
+    agent, vectorstore, embeddings, rag, retrieval
 
 ## Properties
 

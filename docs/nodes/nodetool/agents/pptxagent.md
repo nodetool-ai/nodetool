@@ -11,8 +11,8 @@ namespace: "nodetool.agents"
 
 ## Description
 
-Prompt-driven PowerPoint generation skill with PptxGenJS.
-    skills, pptx, powerpoint, pptxgenjs, slides
+Generate PowerPoint (.pptx) slide decks from a plain-language description.
+    agent, pptx, powerpoint, slides
 
 ## Properties
 

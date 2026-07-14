@@ -3,7 +3,7 @@ layout: page
 title: "nodetool.video Nodes"
 ---
 
-This namespace contains 31 node(s).
+This namespace contains 32 node(s).
 
 ## Nodes
 
@@ -16,6 +16,7 @@ This namespace contains 31 node(s).
 - **[Denoise](denoise.md)**
 - **[Extract Audio](extractaudio.md)**
 - **[Extract Frame](extractframe.md)**
+- **[Extract Video Frame](extractvideoframe.md)**
 - **[For Each Frame](foreachframe.md)**
 - **[Fps](fps.md)**
 - **[Frame To Video](frametovideo.md)**

@@ -3,7 +3,7 @@ layout: page
 title: "nodetool.audio Nodes"
 ---
 
-This namespace contains 38 node(s).
+This namespace contains 39 node(s).
 
 ## Sub-namespaces
 
@@ -33,6 +33,7 @@ This namespace contains 38 node(s).
 - **[Save Audio File](saveaudiofile.md)**
 - **[Slice Audio](sliceaudio.md)**
 - **[Stereo To Mono](stereotomono.md)**
+- **[Text To Music](texttomusic.md)**
 - **[Text To Speech](texttospeech.md)**
 - **[Trim](trim.md)**
 

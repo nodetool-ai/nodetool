@@ -11,8 +11,8 @@ namespace: "nodetool.agents"
 
 ## Description
 
-Prompt-driven HTML creation skill.
-    skills, html, web, template, static-site
+Build HTML pages and static sites from a plain-language description.
+    agent, html, web, template, static-site
 
 ## Properties
 

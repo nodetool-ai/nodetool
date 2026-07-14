@@ -26,6 +26,7 @@ Applies a limiter effect to an audio file.
 | audio | `audio` | The audio file to process. | `{"type":"audio","uri":"","asset_id":null,"data"...` |
 | threshold_db | `float` | Threshold in dB above which the limiter is applied. | `-2` |
 | release_ms | `float` | Release time in milliseconds. | `250` |
+| auto_gain | `bool` | Apply automatic makeup gain so the limited peaks reach 0 dBFS, turning the headroom below the ceiling into added loudness (maximizer behaviour). | `true` |
 
 ## Outputs
 

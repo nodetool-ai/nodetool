@@ -7,6 +7,9 @@
 
   <title>{% if page.title %}{{ page.title }} | {% endif %}{{ site.title }}</title>
   <meta name="description" content="{{ page.description | default: site.description }}">
+  {% unless page.path contains '.txt' or page.path contains '.xml' or page.path contains '.json' %}
+  <link rel="alternate" type="text/markdown" href="{{ page.url | markdown_alternate_url | relative_url }}">
+  {% endunless %}
 
   {% seo %}
 

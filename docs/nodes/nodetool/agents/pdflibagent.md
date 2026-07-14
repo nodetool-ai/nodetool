@@ -11,8 +11,8 @@ namespace: "nodetool.agents"
 
 ## Description
 
-Prompt-driven PDF processing skill with pdf-lib and complementary tooling.
-    skills, pdf, pdf-lib, qpdf, poppler, pdfjs, pypdfium2
+Create and edit PDF files from a plain-language description.
+    agent, pdf, document, edit
 
 ## Properties
 

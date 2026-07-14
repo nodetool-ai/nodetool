@@ -11,9 +11,13 @@ namespace: "nodetool.agents"
 
 ## Description
 
-Drives your real, logged-in Chrome via the Nodetool browser extension.
-    Automates media-generation UIs, saves generated images/videos as assets, and uploads assets into sites.
-    skills, browser, live, automation, extension, media
+Control your own logged-in Chrome through the Nodetool browser extension.
+    agent, browser, live, automation, extension, media
+
+    Use cases:
+    - Automate media-generation websites
+    - Save generated images and videos as assets
+    - Upload your assets into other sites
 
 ## Properties
 

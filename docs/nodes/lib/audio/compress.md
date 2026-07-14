@@ -28,6 +28,7 @@ Applies dynamic range compression to an audio file.
 | ratio | `float` | Compression ratio. Higher values result in more compression. | `4` |
 | attack | `float` | Attack time in milliseconds. | `5` |
 | release | `float` | Release time in milliseconds. | `50` |
+| auto_gain | `bool` | Apply automatic makeup gain to compensate for the level lost to compression, keeping the output roughly as loud as the input. | `true` |
 
 ## Outputs
 
