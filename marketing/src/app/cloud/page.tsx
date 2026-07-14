@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import {
   Cloud,
   Globe,
@@ -276,11 +277,14 @@ export default function CloudPage() {
                   }}
                 />
                 <div className="rounded-2xl border border-slate-700/60 bg-slate-900/80 p-1.5 shadow-2xl shadow-black/60 ring-1 ring-white/5 backdrop-blur">
-                  <img
-                    src="/screen_canvas.png"
+                  <Image
+                    src="/screen_canvas.webp"
                     alt="NodeTool Cloud workflow editor"
-                    className="block w-full rounded-xl"
-                    loading="eager"
+                    width={1200}
+                    height={792}
+                    className="block h-auto w-full rounded-xl"
+                    priority
+                    sizes="(max-width: 1023px) 100vw, 58vw"
                   />
                 </div>
               </div>
