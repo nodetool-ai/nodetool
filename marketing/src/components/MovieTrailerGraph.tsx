@@ -160,7 +160,7 @@ export default function MovieTrailerGraph() {
 
             <div data-node="keyframe" style={{ position: "absolute", left: 1740, top: 130 }}>
               <FlowNode title="Text To Image" icon={<ImageIcon size={16} />} width={320} style={{ position: "relative" }}>
-                <NodePreview src="/trailer-shot-1.png" ratio="16 / 9" />
+                <NodePreview src="/trailer-shot-1.webp" ratio="16 / 9" />
                 <HandleRow side="in" color="string" label="Shot" anchorId="keyframe.shot" />
                 <HandleRow side="out" color="image" anchorId="keyframe.out" />
               </FlowNode>
@@ -168,7 +168,7 @@ export default function MovieTrailerGraph() {
 
             <div data-node="i2v" style={{ position: "absolute", left: 2160, top: 130 }}>
               <FlowNode title="Image To Video" icon={<Film size={16} />} width={320} style={{ position: "relative" }}>
-                <NodePreview src="/trailer-shot-4.png" ratio="16 / 9" />
+                <NodePreview src="/trailer-shot-4.webp" ratio="16 / 9" />
                 <HandleRow side="in" color="image" label="Image" anchorId="i2v.image" />
                 <HandleRow side="out" color="video" anchorId="i2v.out" />
               </FlowNode>
@@ -176,7 +176,12 @@ export default function MovieTrailerGraph() {
 
             <div data-node="concat" style={{ position: "absolute", left: 2580, top: 150 }}>
               <FlowNode title="🎬 Final trailer" icon={<Film size={16} />} width={340} style={{ position: "relative" }}>
-                <NodePreview src="/movie_trailer_example.mp4" video ratio="16 / 9" />
+                <NodePreview
+                  src="/movie_trailer_example.mp4"
+                  poster="/trailer-shot-4.webp"
+                  video
+                  ratio="16 / 9"
+                />
                 <HandleRow side="in" color="video" label="Videos" anchorId="concat.video" />
                 <HandleRow side="out" color="video" anchorId="concat.out" />
               </FlowNode>

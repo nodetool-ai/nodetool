@@ -102,11 +102,8 @@ export default function UseCasesShowcase() {
                         src={item.video}
                         poster={item.poster}
                         className="aspect-video w-full object-cover"
-                        autoPlay
-                        loop
-                        muted
                         playsInline
-                        preload="metadata"
+                        preload="none"
                       />
                     ) : (
                       <Image
