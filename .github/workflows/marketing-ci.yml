@@ -63,6 +63,9 @@ jobs:
             exit 1
           fi
 
+      - name: Check generated agent discovery files are up to date
+        run: npm run seo:check
+
       - name: Type check
         run: npx tsc --noEmit
 
