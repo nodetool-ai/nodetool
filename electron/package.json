@@ -58,7 +58,7 @@
   "dependencies": {
     "@nodetool-ai/protocol": "*",
     "@trpc/client": "^11.17.0",
-    "better-sqlite3": "^12.10.0",
+    "better-sqlite3": "^12.11.1",
     "bufferutil": "^4.1.0",
     "electron-log": "^5.4.4",
     "electron-updater": "^6.8.3",
