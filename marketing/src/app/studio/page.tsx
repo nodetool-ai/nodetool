@@ -2,7 +2,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
-import Image from "next/image";
 import {
   Cpu,
   Shield,
@@ -15,6 +14,7 @@ import {
 } from "lucide-react";
 import { SmartDownloadButton } from "../SmartDownloadButton";
 import SiteHeader from "../../components/SiteHeader";
+import CanvasScreenshot from "../../components/CanvasScreenshot";
 import SiteFooter from "../../components/SiteFooter";
 
 const ModelSupportSection = dynamic(
@@ -254,15 +254,7 @@ export default function StudioPage() {
                   }}
                 />
                 <div className="rounded-2xl border border-slate-700/60 bg-slate-900/80 p-1.5 shadow-2xl shadow-black/60 ring-1 ring-white/5 backdrop-blur">
-                  <Image
-                    src="/screen_canvas.webp"
-                    alt="NodeTool Studio workflow editor"
-                    width={1200}
-                    height={792}
-                    className="block h-auto w-full rounded-xl"
-                    priority
-                    sizes="(max-width: 1023px) 100vw, 58vw"
-                  />
+                  <CanvasScreenshot alt="NodeTool Studio workflow editor" />
                 </div>
               </div>
             </div>

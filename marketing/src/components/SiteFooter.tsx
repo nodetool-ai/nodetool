@@ -68,7 +68,7 @@ export default function SiteFooter() {
           <div className="col-span-2 sm:col-span-3 lg:col-span-1">
             <a href="/" className="inline-flex items-center gap-2 focus-ring rounded" aria-label="NodeTool home">
               <Image
-                src="/logo_small.png"
+                src="/logo_small.webp"
                 alt=""
                 width={32}
                 height={32}

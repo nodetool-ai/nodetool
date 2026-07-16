@@ -6,6 +6,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   outputFileTracingRoot: __dirname,
+  // Inline the (small, ~17 KiB) global CSS into the HTML instead of shipping
+  // render-blocking stylesheet requests — Lighthouse mobile measured 480 ms
+  // of blocking time on the two CSS files.
+  experimental: {
+    inlineCss: true,
+  },
   images: {
     unoptimized: true,
     remotePatterns: [

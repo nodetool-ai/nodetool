@@ -87,7 +87,7 @@ export default function ComparisonSection({
             <div className="flex md:block">
               <div className="flex h-20 w-20 items-center justify-center rounded-xl border border-amber-500/25 bg-slate-950">
                 <Image
-                  src="/logo_small.png"
+                  src="/logo_small.webp"
                   alt=""
                   width={48}
                   height={48}

@@ -34,7 +34,7 @@ function Wordmark() {
       aria-label="NodeTool home"
     >
       <Image
-        src="/logo_small.png"
+        src="/logo_small.webp"
         alt=""
         width={48}
         height={48}
