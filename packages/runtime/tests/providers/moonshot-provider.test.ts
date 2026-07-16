@@ -11,6 +11,7 @@ describe("MoonshotProvider", () => {
     expect(MoonshotProvider.requiredSecrets()).toEqual(["KIMI_API_KEY"]);
     expect(provider.getContainerEnv()).toEqual({
       KIMI_API_KEY: "k",
+      ANTHROPIC_API_KEY: "k",
       ANTHROPIC_BASE_URL: "https://api.kimi.com/coding"
     });
     expect((provider as unknown as { provider: string }).provider).toBe(
