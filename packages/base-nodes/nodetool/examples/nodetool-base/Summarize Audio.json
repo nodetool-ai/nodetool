@@ -99,7 +99,13 @@
         "id": "3fb6a37e-7f5f-4cc5-9f13-51402a6e32ef",
         "type": "nodetool.text.AutomaticSpeechRecognition",
         "data": {
-          "model": {}
+          "model": {
+            "type": "asr_model",
+            "provider": "fal_ai",
+            "id": "openai/whisper-large-v3",
+            "name": "Whisper Large v3",
+            "path": null
+          }
         },
         "ui_properties": {
           "selected": false,
@@ -121,7 +127,14 @@
         "type": "nodetool.agents.Summarizer",
         "data": {
           "system_prompt": "\n        You are an expert summarizer. Your task is to create clear, accurate, and concise summaries using Markdown for structuring.\n        Follow these guidelines:\n        1. Identify and include only the most important information.\n        2. Maintain factual accuracy - do not add or modify information.\n        3. Use clear, direct language.\n        4. Aim for approximately {self.max_tokens} tokens.\n        ",
-          "model": {},
+          "model": {
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
+          },
           "image": {
             "type": "image",
             "uri": "",

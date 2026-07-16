@@ -425,7 +425,14 @@
         "id": "prompt_list_generator",
         "type": "nodetool.generators.ListGenerator",
         "data": {
-          "model": {},
+          "model": {
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
+          },
           "max_tokens": 100000
         },
         "ui_properties": {
@@ -448,7 +455,14 @@
         "id": "0276f606-d899-4487-be65-4615564507cc",
         "type": "nodetool.image.TextToImage",
         "data": {
-          "model": {},
+          "model": {
+            "type": "image_model",
+            "provider": "huggingface_fal_ai",
+            "id": "fal-ai/flux/schnell",
+            "name": "FLUX.1 Schnell",
+            "path": null,
+            "supported_tasks": []
+          },
           "negative_prompt": "",
           "aspect_ratio": "3:4",
           "resolution": "2K",
@@ -527,7 +541,14 @@
         "type": "nodetool.generators.StructuredOutputGenerator",
         "data": {
           "system_prompt": "\nYou are a structured data generator focused on JSON outputs.\n\nGoal\n- Produce a high-quality JSON object that matches <JSON_SCHEMA> using the guidance in <INSTRUCTIONS> and any supplemental <CONTEXT>.\n\nOutput format (MANDATORY)\n- Output exactly ONE fenced code block labeled json containing ONLY the JSON object:\n\n  ```json\n  { ...single JSON object matching <JSON_SCHEMA>... }\n  ```\n\n- No additional prose before or after the block.\n\nGeneration rules\n- Invent plausible, internally consistent values when not explicitly provided.\n- Honor all constraints from <JSON_SCHEMA> (types, enums, ranges, formats).\n- Prefer ISO 8601 for dates/times when applicable.\n- Ensure numbers respect reasonable magnitudes and relationships described in <INSTRUCTIONS>.\n- Avoid referencing external sources; rely solely on the provided guidance.\n\nValidation\n- Ensure the final JSON validates against <JSON_SCHEMA> exactly.\n",
-          "model": {},
+          "model": {
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
+          },
           "context": "",
           "max_tokens": 4096,
           "image": [],

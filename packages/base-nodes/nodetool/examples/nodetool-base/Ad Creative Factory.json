@@ -407,7 +407,14 @@
         "id": "strategist",
         "type": "nodetool.agents.Agent",
         "data": {
-          "model": {},
+          "model": {
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
+          },
           "system": "You are a senior performance-marketing creative strategist. You design paid-social creative tests where every variant isolates one message. Concrete and specific, no filler.",
           "image": {
             "type": "image",
@@ -470,7 +477,14 @@
         "id": "variant_list",
         "type": "nodetool.generators.ListGenerator",
         "data": {
-          "model": {},
+          "model": {
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
+          },
           "input_text": "",
           "max_tokens": 100000
         },
@@ -539,7 +553,14 @@
         "id": "ad_still",
         "type": "nodetool.image.ImageToImage",
         "data": {
-          "model": {},
+          "model": {
+            "type": "image_model",
+            "provider": "huggingface_fal_ai",
+            "id": "fal-ai/flux/schnell",
+            "name": "FLUX.1 Schnell",
+            "path": null,
+            "supported_tasks": []
+          },
           "negative_prompt": "",
           "strength": 0.85,
           "aspect_ratio": "9:16",
@@ -588,7 +609,14 @@
         "id": "ad_clip",
         "type": "nodetool.video.ImageToVideo",
         "data": {
-          "model": {},
+          "model": {
+            "type": "video_model",
+            "provider": "gemini",
+            "id": "veo-3.1-generate-preview",
+            "name": "Veo 3.1 Preview",
+            "path": null,
+            "supported_tasks": []
+          },
           "negative_prompt": "",
           "aspect_ratio": "9:16",
           "resolution": "720p",
@@ -614,7 +642,22 @@
         "id": "voiceover",
         "type": "nodetool.audio.TextToSpeech",
         "data": {
-          "model": {},
+          "model": {
+            "type": "tts_model",
+            "provider": "openai",
+            "id": "tts-1",
+            "name": "TTS 1",
+            "path": null,
+            "voices": [
+              "alloy",
+              "echo",
+              "fable",
+              "onyx",
+              "nova",
+              "shimmer"
+            ],
+            "selected_voice": "alloy"
+          },
           "speed": 1
         },
         "ui_properties": {

@@ -71,7 +71,14 @@
         "id": "77a9cf98-c4c6-4585-930b-badbe641a662",
         "type": "nodetool.agents.Agent",
         "data": {
-          "model": {},
+          "model": {
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
+          },
           "system": "You are a friendly assistant.",
           "prompt": "Write a compelling story about the image.",
           "messages": [],
@@ -116,7 +123,22 @@
         "id": "ffb9de38-7e20-4f07-afa8-6b2a0423315f",
         "type": "nodetool.audio.TextToSpeech",
         "data": {
-          "model": {},
+          "model": {
+            "type": "tts_model",
+            "provider": "openai",
+            "id": "tts-1",
+            "name": "TTS 1",
+            "path": null,
+            "voices": [
+              "alloy",
+              "echo",
+              "fable",
+              "onyx",
+              "nova",
+              "shimmer"
+            ],
+            "selected_voice": "alloy"
+          },
           "speed": 1
         },
         "ui_properties": {

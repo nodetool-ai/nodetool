@@ -139,10 +139,11 @@
         "data": {
           "model": {
             "type": "image_model",
-            "id": "",
-            "provider": "",
-            "name": "",
-            "path": ""
+            "provider": "huggingface_fal_ai",
+            "id": "fal-ai/flux/schnell",
+            "name": "FLUX.1 Schnell",
+            "path": null,
+            "supported_tasks": []
           },
           "negative_prompt": "",
           "width": 1024,
@@ -174,9 +175,11 @@
         "data": {
           "model": {
             "type": "language_model",
-            "id": "",
-            "provider": "",
-            "name": ""
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
           },
           "input_text": "",
           "max_tokens": 100000
@@ -202,9 +205,11 @@
         "data": {
           "model": {
             "type": "language_model",
-            "id": "",
-            "provider": "",
-            "name": ""
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
           },
           "system": "You are an experienced concept art director. Provide detailed, inspiring art direction.",
           "image": {

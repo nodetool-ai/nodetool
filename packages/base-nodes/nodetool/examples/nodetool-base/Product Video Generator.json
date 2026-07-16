@@ -153,7 +153,14 @@
         "id": "3",
         "type": "nodetool.agents.Agent",
         "data": {
-          "model": {},
+          "model": {
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
+          },
           "system": "You are a prompt engineer for video models.",
           "audio": {
             "type": "audio",
@@ -275,7 +282,14 @@
         "id": "97f03868-da4f-4604-b57e-5f2118847956",
         "type": "nodetool.video.ImageToVideo",
         "data": {
-          "model": {},
+          "model": {
+            "type": "video_model",
+            "provider": "gemini",
+            "id": "veo-3.1-generate-preview",
+            "name": "Veo 3.1 Preview",
+            "path": null,
+            "supported_tasks": []
+          },
           "negative_prompt": "",
           "aspect_ratio": "16:9",
           "resolution": "720p",
