@@ -260,8 +260,8 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     if (editorRef.current && containerRef.current) {
       const editorDiv = editorRef.current.querySelector(
         ".editor-input"
-      ) as HTMLDivElement;
-      if (!editorDiv) {
+      );
+      if (!(editorDiv instanceof HTMLDivElement)) {
         return;
       }
 

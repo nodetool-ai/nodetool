@@ -505,7 +505,9 @@ export function usePointerHandlers({
           x: e.clientX - panOffsetRef.current.x,
           y: e.clientY - panOffsetRef.current.y
         };
-        (e.target as HTMLElement).setPointerCapture(e.pointerId);
+        if (e.target instanceof HTMLElement) {
+          e.target.setPointerCapture(e.pointerId);
+        }
         return;
       }
 
@@ -534,7 +536,9 @@ export function usePointerHandlers({
         } else {
           sizeDragInitialSize.current = doc.toolSettings.brush.size;
         }
-        (e.target as HTMLElement).setPointerCapture(e.pointerId);
+        if (e.target instanceof HTMLElement) {
+          e.target.setPointerCapture(e.pointerId);
+        }
         return;
       }
 
@@ -560,7 +564,9 @@ export function usePointerHandlers({
         isDrawingRef.current = true;
         gestureToolRef.current = interactionTool;
       }
-      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+      if (e.target instanceof HTMLElement) {
+        e.target.setPointerCapture(e.pointerId);
+      }
 
       // Post-delegation: active stroke preview for tools that declare the capability
       if (

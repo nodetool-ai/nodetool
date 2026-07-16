@@ -644,7 +644,9 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
   useEffect(() => {
     const focusInput = () => {
       const inputElement = document.querySelector("input[cmdk-input]");
-      (inputElement as HTMLInputElement)?.focus();
+      if (inputElement instanceof HTMLInputElement) {
+        inputElement.focus();
+      }
     };
 
     if (open) {
