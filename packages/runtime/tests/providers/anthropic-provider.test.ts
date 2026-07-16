@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { AnthropicProvider } from "../../src/providers/anthropic-provider.js";
-import { MoonshotProvider } from "../../src/providers/moonshot-provider.js";
 import type Anthropic from "@anthropic-ai/sdk";
 import type { Message, ProviderTool } from "../../src/providers/types.js";
 
@@ -105,10 +104,13 @@ describe("AnthropicProvider", () => {
     expect(formatted[1].input_schema).toBeDefined();
   });
 
-  it("renders web_search as a plain function tool for subclasses without native web search (Moonshot)", () => {
-    const provider = new MoonshotProvider(
-      { KIMI_API_KEY: "k" },
-      { client: {} as unknown as Anthropic }
+  it("renders web_search as a plain function tool for Anthropic-compatible gateways without native web search", () => {
+    // Subclasses pointed at a non-Anthropic endpoint pass their own providerId;
+    // supportsNativeWebSearch is false for them, so formatTools must not emit
+    // the web_search_20250305 server tool.
+    const provider = new AnthropicProvider(
+      { ANTHROPIC_API_KEY: "k" },
+      { client: {} as unknown as Anthropic, providerId: "moonshot" }
     );
     expect(provider.supportsNativeWebSearch).toBe(false);
 
