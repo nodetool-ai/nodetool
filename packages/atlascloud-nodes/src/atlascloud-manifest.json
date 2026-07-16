@@ -1244,5 +1244,1774 @@
         ]
       }
     ]
+  },
+  {
+    "className": "SeedreamV5ProTextToImage",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "bytedance/seedream-v5.0-pro/text-to-image",
+    "outputType": "image",
+    "title": "Seedream v5.0 Pro \u2014 Text to Image",
+    "description": "AtlasCloud / ByteDance Seedream v5.0 Pro \u2014 flagship next-generation text-to-image with stronger prompt adherence.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The positive prompt for the generation. Recommended length: under 600 English words.",
+        "required": true
+      },
+      {
+        "name": "size",
+        "type": "enum",
+        "default": "2048*2048",
+        "title": "Size",
+        "description": "Output image size in 'WIDTH*HEIGHT' pixels. Total pixels must stay within [1,048,576 (1024*1024), 4,194,304 (2048*2048)] and aspect ratio within [1/16, 16].",
+        "values": [
+          "2048*2048",
+          "2304*1728",
+          "1728*2304",
+          "2720*1530",
+          "1530*2720",
+          "2496*1664",
+          "1664*2496",
+          "1024*1024",
+          "1536*1536",
+          "1776*1328",
+          "1328*1776",
+          "2048*1152",
+          "1152*2048"
+        ]
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "jpeg",
+        "title": "Output Format",
+        "description": "Output image file format. Seedream v5.0 Pro supports both JPEG and PNG output.",
+        "values": [
+          "jpeg",
+          "png"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "SeedreamV5ProEdit",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "bytedance/seedream-v5.0-pro/edit",
+    "outputType": "image",
+    "title": "Seedream v5.0 Pro \u2014 Edit",
+    "description": "AtlasCloud / ByteDance Seedream v5.0 Pro \u2014 professional image editing with up to 10 reference images, preserving identity, lighting, and color tones.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The positive prompt for the generation. Recommended length: under 600 English words.",
+        "required": true
+      },
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": null,
+        "title": "Images",
+        "description": "The images to edit. Accepts URLs or Base64 data URLs. A maximum of 10 reference images can be uploaded; the first input image is free and each additional input image adds $0.003.",
+        "required": true
+      },
+      {
+        "name": "size",
+        "type": "enum",
+        "default": "2048*2048",
+        "title": "Size",
+        "description": "Output image size in 'WIDTH*HEIGHT' pixels. Total pixels must stay within [1,048,576 (1024*1024), 4,194,304 (2048*2048)] and aspect ratio within [1/16, 16].",
+        "values": [
+          "2048*2048",
+          "2304*1728",
+          "1728*2304",
+          "2720*1530",
+          "1530*2720",
+          "2496*1664",
+          "1664*2496",
+          "1024*1024",
+          "1536*1536",
+          "1776*1328",
+          "1328*1776",
+          "2048*1152",
+          "1152*2048"
+        ]
+      },
+      {
+        "name": "output_format",
+        "type": "enum",
+        "default": "jpeg",
+        "title": "Output Format",
+        "description": "Output image file format. Seedream v5.0 Pro supports both JPEG and PNG output.",
+        "values": [
+          "jpeg",
+          "png"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "NanoBanana2LiteTextToImage",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "google/nano-banana-2-lite/text-to-image",
+    "outputType": "image",
+    "title": "Nano Banana 2 Lite \u2014 Text to Image",
+    "description": "AtlasCloud / Google Nano Banana 2 Lite \u2014 fast, cost-efficient 1K text-to-image with sub-2-second latency.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The positive prompt for the generation.",
+        "required": true
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "auto",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated media.",
+        "values": [
+          "auto",
+          "1:1",
+          "3:2",
+          "2:3",
+          "3:4",
+          "4:3",
+          "4:5",
+          "5:4",
+          "9:16",
+          "16:9",
+          "21:9",
+          "4:1",
+          "1:4",
+          "8:1",
+          "1:8"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1k",
+        "title": "Resolution",
+        "description": "The resolution of the output image.",
+        "values": [
+          "1k"
+        ]
+      },
+      {
+        "name": "thinking_level",
+        "type": "enum",
+        "default": "default",
+        "title": "Thinking Level",
+        "description": "Controls the amount of internal reasoning the model performs before generating a response. Higher levels may improve quality on complex tasks but increase latency.",
+        "values": [
+          "default",
+          "high",
+          "minimal"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "NanoBanana2LiteEdit",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "google/nano-banana-2-lite/edit",
+    "outputType": "image",
+    "title": "Nano Banana 2 Lite \u2014 Edit",
+    "description": "AtlasCloud / Google Nano Banana 2 Lite \u2014 fast multi-turn local edits (up to 14 input images).",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The positive prompt for the generation.",
+        "required": true
+      },
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": null,
+        "title": "Images",
+        "description": "List of URLs of input images for editing. The maximum number of images is 14.",
+        "required": true
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "auto",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated media.",
+        "values": [
+          "auto",
+          "1:1",
+          "3:2",
+          "2:3",
+          "3:4",
+          "4:3",
+          "4:5",
+          "5:4",
+          "9:16",
+          "16:9",
+          "21:9",
+          "4:1",
+          "1:4",
+          "8:1",
+          "1:8"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1k",
+        "title": "Resolution",
+        "description": "The resolution of the output image.",
+        "values": [
+          "1k"
+        ]
+      },
+      {
+        "name": "thinking_level",
+        "type": "enum",
+        "default": "default",
+        "title": "Thinking Level",
+        "description": "Controls the amount of internal reasoning the model performs before generating a response. Higher levels may improve quality on complex tasks but increase latency.",
+        "values": [
+          "default",
+          "high",
+          "minimal"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "MaiImage25TextToImage",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "microsoft/mai-image-2.5/text-to-image",
+    "outputType": "image",
+    "title": "MAI Image 2.5 \u2014 Text to Image",
+    "description": "AtlasCloud / Microsoft MAI Image 2.5 \u2014 flagship high-quality text-to-image.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text prompt describing the image to generate. Maximum context length: 32,000 tokens.",
+        "required": true
+      },
+      {
+        "name": "size",
+        "type": "str",
+        "default": "1024*1024",
+        "title": "Size",
+        "description": "Image dimensions in width*height format (e.g., 1024*1024, 1280*720). Minimum 768. The product of width \u00d7 height must not exceed 1,049,088."
+      }
+    ]
+  },
+  {
+    "className": "MaiImage25Edit",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "microsoft/mai-image-2.5/edit",
+    "outputType": "image",
+    "title": "MAI Image 2.5 \u2014 Edit",
+    "description": "AtlasCloud / Microsoft MAI Image 2.5 \u2014 natural-language-guided image editing.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text prompt describing the edit to perform on the image. Maximum context length: 32,000 tokens.",
+        "required": true
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "Image",
+        "description": "The reference image to edit. Can be a URL or a base64-encoded image string. Must be in JPEG or PNG format.",
+        "required": true
+      }
+    ]
+  },
+  {
+    "className": "MaiImage25FlashTextToImage",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "microsoft/mai-image-2.5-flash/text-to-image",
+    "outputType": "image",
+    "title": "MAI Image 2.5 Flash \u2014 Text to Image",
+    "description": "AtlasCloud / Microsoft MAI Image 2.5 Flash \u2014 fast, cost-optimized text-to-image.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text prompt describing the image to generate. Maximum context length: 32,000 tokens.",
+        "required": true
+      },
+      {
+        "name": "size",
+        "type": "str",
+        "default": "1024*1024",
+        "title": "Size",
+        "description": "Image dimensions in width*height format (e.g., 1024*1024, 1280*720). Minimum 768. The product of width \u00d7 height must not exceed 1,049,088."
+      }
+    ]
+  },
+  {
+    "className": "YouchuanV81TextToImage",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "youchuan/v8.1/text-to-image",
+    "outputType": "image",
+    "title": "Youchuan v8.1 \u2014 Text to Image",
+    "description": "AtlasCloud / Youchuan v8.1 \u2014 generates four images per task with optional native 2K HD.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Natural-language description of the image to generate. Maximum 1024 characters (Youchuan command flags embedded in the prompt are not counted toward the limit).",
+        "required": true
+      },
+      {
+        "name": "sref",
+        "type": "str",
+        "default": "",
+        "title": "Style Reference URL",
+        "description": "Optional URL of a style-reference image. Must be a publicly reachable https image URL."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Aspect Ratio",
+        "description": "Aspect ratio of the generated image.",
+        "values": [
+          "1:1",
+          "9:16",
+          "16:9",
+          "4:3",
+          "3:4",
+          "2:3",
+          "3:2",
+          "9:21",
+          "21:9"
+        ]
+      },
+      {
+        "name": "hd",
+        "type": "bool",
+        "default": false,
+        "title": "HD (2K)",
+        "description": "Enable native 2K HD generation. Costs 1.5x."
+      },
+      {
+        "name": "stylize",
+        "type": "int",
+        "default": 0,
+        "title": "Stylize",
+        "description": "Controls how strongly the model's default aesthetic is applied (0-1000).",
+        "min": 0,
+        "max": 1000
+      },
+      {
+        "name": "chaos",
+        "type": "int",
+        "default": 0,
+        "title": "Chaos",
+        "description": "Higher values produce more unusual and varied results (0-100).",
+        "min": 0,
+        "max": 100
+      },
+      {
+        "name": "weird",
+        "type": "int",
+        "default": 0,
+        "title": "Weird",
+        "description": "Makes results quirky and unconventional (0-3000).",
+        "min": 0,
+        "max": 3000
+      },
+      {
+        "name": "quality",
+        "type": "int",
+        "default": 1,
+        "title": "Quality",
+        "description": "Controls image detail. 4 = higher detail at the same price (slower). v8.1 supports 1 or 4 only.",
+        "values": [
+          1,
+          4
+        ]
+      }
+    ]
+  },
+  {
+    "className": "YouchuanV81ImageToImage",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "youchuan/v8.1/image-to-image",
+    "outputType": "image",
+    "title": "Youchuan v8.1 \u2014 Image to Image",
+    "description": "AtlasCloud / Youchuan v8.1 \u2014 re-imagines an input image with text guidance; returns four images.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text prompt guiding the generation. Maximum 1024 characters. Each task returns 4 images.",
+        "required": true
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "Image",
+        "description": "Input image to re-imagine. A publicly reachable https image URL (or upload). Each task returns 4 images.",
+        "required": true
+      },
+      {
+        "name": "sref",
+        "type": "str",
+        "default": "",
+        "title": "Style Reference URL",
+        "description": "Optional URL of a style-reference image. Must be a publicly reachable https image URL."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Aspect Ratio",
+        "description": "Aspect ratio of the generated image.",
+        "values": [
+          "1:1",
+          "9:16",
+          "16:9",
+          "4:3",
+          "3:4",
+          "2:3",
+          "3:2",
+          "9:21",
+          "21:9"
+        ]
+      },
+      {
+        "name": "hd",
+        "type": "bool",
+        "default": false,
+        "title": "HD (2K)",
+        "description": "Enable native 2K HD generation. Costs 1.5x."
+      },
+      {
+        "name": "stylize",
+        "type": "int",
+        "default": 0,
+        "title": "Stylize",
+        "description": "Controls how strongly the model's default aesthetic is applied (0-1000).",
+        "min": 0,
+        "max": 1000
+      },
+      {
+        "name": "chaos",
+        "type": "int",
+        "default": 0,
+        "title": "Chaos",
+        "description": "Higher values produce more unusual and varied results (0-100).",
+        "min": 0,
+        "max": 100
+      },
+      {
+        "name": "weird",
+        "type": "int",
+        "default": 0,
+        "title": "Weird",
+        "description": "Makes results quirky and unconventional (0-3000).",
+        "min": 0,
+        "max": 3000
+      },
+      {
+        "name": "quality",
+        "type": "int",
+        "default": 1,
+        "title": "Quality",
+        "description": "Controls image detail. 4 = higher detail at the same price (slower). v8.1 supports 1 or 4 only.",
+        "values": [
+          1,
+          4
+        ]
+      }
+    ]
+  },
+  {
+    "className": "YouchuanV81RemoveBackground",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "youchuan/v8.1/remove-background",
+    "outputType": "image",
+    "title": "Youchuan v8.1 \u2014 Remove Background",
+    "description": "AtlasCloud / Youchuan v8.1 \u2014 automatic background removal.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "Image",
+        "description": "Input image whose background will be removed. A publicly reachable https image URL (or upload). Returns 1 image with transparent background.",
+        "required": true
+      }
+    ]
+  },
+  {
+    "className": "YouchuanV81StyleTransfer",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "youchuan/v8.1/style-transfer",
+    "outputType": "image",
+    "title": "Youchuan v8.1 \u2014 Style Transfer",
+    "description": "AtlasCloud / Youchuan v8.1 \u2014 applies an artistic style described in the prompt to an input image.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Description of the target artistic style (e.g. 'cyberpunk neon night style').",
+        "required": true
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "Image",
+        "description": "Input image to restyle. A publicly reachable https image URL (or upload). Each task returns 4 restyled images that keep the original composition.",
+        "required": true
+      }
+    ]
+  },
+  {
+    "className": "YouchuanV81Blend",
+    "moduleName": "image",
+    "modality": "image",
+    "modelId": "youchuan/v8.1/blend",
+    "outputType": "image",
+    "title": "Youchuan v8.1 \u2014 Blend",
+    "description": "AtlasCloud / Youchuan v8.1 \u2014 fuses 2-5 input images into blended results.",
+    "pollInterval": 3000,
+    "maxAttempts": 300,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Optional text prompt guiding the blend. Maximum 1024 characters."
+      },
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": null,
+        "title": "Images",
+        "description": "Two to five input images to blend. Publicly reachable https image URLs (or uploads). Each task returns 4 fused images.",
+        "required": true
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "1:1",
+        "title": "Aspect Ratio",
+        "description": "Aspect ratio of the generated image.",
+        "values": [
+          "1:1",
+          "9:16",
+          "16:9",
+          "4:3",
+          "3:4",
+          "2:3",
+          "3:2",
+          "9:21",
+          "21:9"
+        ]
+      },
+      {
+        "name": "hd",
+        "type": "bool",
+        "default": false,
+        "title": "HD (2K)",
+        "description": "Enable native 2K HD generation. Costs 1.5x."
+      },
+      {
+        "name": "stylize",
+        "type": "int",
+        "default": 0,
+        "title": "Stylize",
+        "description": "Controls how strongly the model's default aesthetic is applied (0-1000).",
+        "min": 0,
+        "max": 1000
+      },
+      {
+        "name": "chaos",
+        "type": "int",
+        "default": 0,
+        "title": "Chaos",
+        "description": "Higher values produce more unusual and varied results (0-100).",
+        "min": 0,
+        "max": 100
+      },
+      {
+        "name": "weird",
+        "type": "int",
+        "default": 0,
+        "title": "Weird",
+        "description": "Makes results quirky and unconventional (0-3000).",
+        "min": 0,
+        "max": 3000
+      },
+      {
+        "name": "quality",
+        "type": "int",
+        "default": 1,
+        "title": "Quality",
+        "description": "Controls image detail. 4 = higher detail at the same price (slower). v8.1 supports 1 or 4 only.",
+        "values": [
+          1,
+          4
+        ]
+      }
+    ]
+  },
+  {
+    "className": "Seedance2MiniTextToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "bytedance/seedance-2.0-mini/text-to-video",
+    "outputType": "video",
+    "title": "Seedance 2.0 Mini \u2014 Text to Video",
+    "description": "AtlasCloud / ByteDance Seedance 2.0 Mini \u2014 lightweight text-to-video with native audio.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text prompt describing the desired video. Supports Chinese and English. Recommended length: Chinese < 500 characters, English < 1000 words.",
+        "required": true
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 5,
+        "title": "Duration (seconds)",
+        "description": "Video duration in seconds (4-15), or -1 for model to choose automatically.",
+        "values": [
+          -1,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "Video resolution.",
+        "values": [
+          "480p",
+          "720p",
+          "720p-SR",
+          "1080p-SR",
+          "1440p-SR"
+        ]
+      },
+      {
+        "name": "ratio",
+        "type": "enum",
+        "default": "adaptive",
+        "title": "Aspect Ratio",
+        "description": "Aspect ratio. 'adaptive' automatically selects based on prompt context.",
+        "values": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16",
+          "21:9",
+          "adaptive"
+        ]
+      },
+      {
+        "name": "generate_audio",
+        "type": "bool",
+        "default": true,
+        "title": "Generate Audio",
+        "description": "Whether to generate synchronized audio (voice, sound effects, background music)."
+      },
+      {
+        "name": "watermark",
+        "type": "bool",
+        "default": false,
+        "title": "Watermark",
+        "description": "Whether to add a watermark."
+      }
+    ]
+  },
+  {
+    "className": "Seedance2MiniImageToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "bytedance/seedance-2.0-mini/image-to-video",
+    "outputType": "video",
+    "title": "Seedance 2.0 Mini \u2014 Image to Video",
+    "description": "AtlasCloud / ByteDance Seedance 2.0 Mini \u2014 lightweight first/last-frame animation with native audio.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text prompt describing the desired video motion. Optional but recommended."
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "Image",
+        "description": "First-frame image URL, Base64, or asset reference (asset://<ASSET_ID>). The video starts from this image.",
+        "required": true
+      },
+      {
+        "name": "last_image",
+        "type": "image",
+        "default": null,
+        "title": "Last Frame (optional)",
+        "description": "Last-frame image URL, Base64, or asset reference. The video transitions from the first frame to this last frame. Same format requirements as image."
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 5,
+        "title": "Duration (seconds)",
+        "description": "Video duration in seconds (4-15), or -1 for model to choose automatically.",
+        "values": [
+          -1,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "Video resolution.",
+        "values": [
+          "480p",
+          "720p",
+          "720p-SR",
+          "1080p-SR",
+          "1440p-SR"
+        ]
+      },
+      {
+        "name": "ratio",
+        "type": "enum",
+        "default": "adaptive",
+        "title": "Aspect Ratio",
+        "description": "Aspect ratio. 'adaptive' matches the first frame image aspect ratio.",
+        "values": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16",
+          "21:9",
+          "adaptive"
+        ]
+      },
+      {
+        "name": "generate_audio",
+        "type": "bool",
+        "default": true,
+        "title": "Generate Audio",
+        "description": "Whether to generate synchronized audio."
+      },
+      {
+        "name": "watermark",
+        "type": "bool",
+        "default": false,
+        "title": "Watermark",
+        "description": "Whether to add a watermark."
+      }
+    ]
+  },
+  {
+    "className": "Seedance2MiniReferenceToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "bytedance/seedance-2.0-mini/reference-to-video",
+    "outputType": "video",
+    "title": "Seedance 2.0 Mini \u2014 Reference to Video",
+    "description": "AtlasCloud / ByteDance Seedance 2.0 Mini multimodal \u2014 generates video from reference images, videos, and/or audio. Refer to inputs in your prompt as 'image 1', 'video 1', etc.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text prompt describing the desired video. References like 'image 1', 'video 1' refer to inputs in order."
+      },
+      {
+        "name": "reference_images",
+        "type": "list[image]",
+        "default": null,
+        "title": "Reference Images",
+        "description": "Reference image URLs, Base64, or asset references (asset://<ASSET_ID>). Up to 9 images for character/style/scene references, video editing, or combined generation."
+      },
+      {
+        "name": "reference_videos",
+        "type": "list[video]",
+        "default": null,
+        "title": "Reference Videos",
+        "description": "Reference video URLs or asset references for video editing, extension, or multimodal generation. Up to 3 videos, total duration <= 15s."
+      },
+      {
+        "name": "reference_audios",
+        "type": "list[audio]",
+        "default": null,
+        "title": "Reference Audios",
+        "description": "Reference audio URLs, Base64, or asset references. Must include at least 1 reference video or image. Formats: wav/mp3, duration [2,15]s, max 15MB each."
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 5,
+        "title": "Duration (seconds)",
+        "description": "Video duration in seconds (4-15), or -1 for model to choose automatically.",
+        "values": [
+          -1,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "Video resolution.",
+        "values": [
+          "480p",
+          "720p",
+          "720p-SR",
+          "1080p-SR",
+          "1440p-SR"
+        ]
+      },
+      {
+        "name": "ratio",
+        "type": "enum",
+        "default": "adaptive",
+        "title": "Aspect Ratio",
+        "description": "Aspect ratio. 'adaptive' uses primary media aspect ratio.",
+        "values": [
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16",
+          "21:9",
+          "adaptive"
+        ]
+      },
+      {
+        "name": "generate_audio",
+        "type": "bool",
+        "default": true,
+        "title": "Generate Audio",
+        "description": "Whether to generate synchronized audio."
+      },
+      {
+        "name": "watermark",
+        "type": "bool",
+        "default": false,
+        "title": "Watermark",
+        "description": "Whether to add a watermark."
+      }
+    ]
+  },
+  {
+    "className": "HappyHorse11TextToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "alibaba/happyhorse-1.1/text-to-video",
+    "outputType": "video",
+    "title": "HappyHorse 1.1 \u2014 Text to Video",
+    "description": "AtlasCloud / Alibaba HappyHorse 1.1 \u2014 720P/1080P text-to-video, 3-15 second durations.",
+    "pollInterval": 5000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text prompt describing the video content. Maximum length is 2500 characters.",
+        "required": true
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1080P",
+        "title": "Resolution",
+        "description": "Output video resolution.",
+        "values": [
+          "720P",
+          "1080P"
+        ]
+      },
+      {
+        "name": "ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "Aspect ratio of the generated video.",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "4:5",
+          "5:4",
+          "9:21",
+          "21:9"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 5,
+        "title": "Duration (seconds)",
+        "description": "Video duration in seconds.",
+        "min": 3,
+        "max": 15
+      }
+    ]
+  },
+  {
+    "className": "HappyHorse11ImageToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "alibaba/happyhorse-1.1/image-to-video",
+    "outputType": "video",
+    "title": "HappyHorse 1.1 \u2014 Image to Video",
+    "description": "AtlasCloud / Alibaba HappyHorse 1.1 \u2014 animates a first-frame image into a 3-15 second video.",
+    "pollInterval": 5000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Optional text prompt to guide the motion, style, or scene details. Maximum length is 2500 characters."
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "Image",
+        "description": "First-frame image URL. Supported formats are JPEG, JPG, PNG, and WEBP.",
+        "required": true
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1080P",
+        "title": "Resolution",
+        "description": "Output video resolution.",
+        "values": [
+          "720P",
+          "1080P"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 5,
+        "title": "Duration (seconds)",
+        "description": "Video duration in seconds.",
+        "min": 3,
+        "max": 15
+      }
+    ]
+  },
+  {
+    "className": "HappyHorse11ReferenceToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "alibaba/happyhorse-1.1/reference-to-video",
+    "outputType": "video",
+    "title": "HappyHorse 1.1 \u2014 Reference to Video",
+    "description": "AtlasCloud / Alibaba HappyHorse 1.1 \u2014 generates video from 1-9 reference images with a text prompt.",
+    "pollInterval": 5000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text prompt describing the desired video and how the reference images should be used. Maximum length is 2500 characters.",
+        "required": true
+      },
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": null,
+        "title": "Images",
+        "description": "Reference image URLs. Provide 1 to 9 images. Supported formats are JPEG, JPG, PNG, and WEBP. Each image can be up to 20 MB, with the shorter side at least 400 px.",
+        "required": true
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1080P",
+        "title": "Resolution",
+        "description": "Output video resolution.",
+        "values": [
+          "720P",
+          "1080P"
+        ]
+      },
+      {
+        "name": "ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "Aspect ratio of the generated video.",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "4:5",
+          "5:4",
+          "9:21",
+          "21:9"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 5,
+        "title": "Duration (seconds)",
+        "description": "Video duration in seconds.",
+        "min": 3,
+        "max": 15
+      }
+    ]
+  },
+  {
+    "className": "GeminiOmniFlashTextToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "google/gemini-omni-flash/text-to-video",
+    "outputType": "video",
+    "title": "Gemini Omni Flash \u2014 Text to Video",
+    "description": "AtlasCloud / Google Gemini Omni Flash \u2014 cinematic text-to-video with synchronized native audio.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text prompt for generation. Describes the target content, style, camera language, or character actions. Maximum 20,000 characters.",
+        "required": true
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 10,
+        "title": "Duration (seconds)",
+        "description": "The duration of the generated video in seconds.",
+        "min": 3,
+        "max": 10
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video.",
+        "values": [
+          "16:9",
+          "9:16"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "The resolution of the generated video.",
+        "values": [
+          "720p"
+        ]
+      },
+      {
+        "name": "thinking_level",
+        "type": "enum",
+        "default": "default",
+        "title": "Thinking Level",
+        "description": "Controls the amount of internal reasoning the model performs before generating a response. Higher levels may improve quality on complex tasks but increase latency.",
+        "values": [
+          "default",
+          "high",
+          "low"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "GeminiOmniFlashImageToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "google/gemini-omni-flash/image-to-video",
+    "outputType": "video",
+    "title": "Gemini Omni Flash \u2014 Image to Video",
+    "description": "AtlasCloud / Google Gemini Omni Flash \u2014 cinematic animation from an input image, preserving subjects.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text prompt for generation. Describes the target content, style, camera language, or character actions. Maximum 20,000 characters.",
+        "required": true
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "Image",
+        "description": "The image to animate into a video, used as the starting frame or motion guide. Supported formats: PNG, JPEG, JPG, WebP. Limited to 20MB.",
+        "required": true
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 10,
+        "title": "Duration (seconds)",
+        "description": "The duration of the generated video in seconds.",
+        "min": 3,
+        "max": 10
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video.",
+        "values": [
+          "16:9",
+          "9:16"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "The resolution of the generated video.",
+        "values": [
+          "720p"
+        ]
+      },
+      {
+        "name": "thinking_level",
+        "type": "enum",
+        "default": "default",
+        "title": "Thinking Level",
+        "description": "Controls the amount of internal reasoning the model performs before generating a response. Higher levels may improve quality on complex tasks but increase latency.",
+        "values": [
+          "default",
+          "high",
+          "low"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "GeminiOmniFlashReferenceToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "google/gemini-omni-flash/reference-to-video",
+    "outputType": "video",
+    "title": "Gemini Omni Flash \u2014 Reference to Video",
+    "description": "AtlasCloud / Google Gemini Omni Flash \u2014 video generation from 1-5 reference images, maintaining subject consistency.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text prompt for generation. Describes the target content, style, camera language, or character actions. Maximum 20,000 characters.",
+        "required": true
+      },
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": null,
+        "title": "Images",
+        "description": "Images to use as character, scene, or style references. Accepts 1 to 5 images when combined with a video reference. Supported formats: PNG, JPEG, JPG, WebP.",
+        "required": true
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 10,
+        "title": "Duration (seconds)",
+        "description": "The duration of the generated video in seconds.",
+        "min": 3,
+        "max": 10
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video.",
+        "values": [
+          "16:9",
+          "9:16"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "The resolution of the generated video.",
+        "values": [
+          "720p"
+        ]
+      },
+      {
+        "name": "thinking_level",
+        "type": "enum",
+        "default": "default",
+        "title": "Thinking Level",
+        "description": "Controls the amount of internal reasoning the model performs before generating a response. Higher levels may improve quality on complex tasks but increase latency.",
+        "values": [
+          "default",
+          "high",
+          "low"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "GeminiOmniFlashVideoEdit",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "google/gemini-omni-flash/video-edit",
+    "outputType": "video",
+    "title": "Gemini Omni Flash \u2014 Video Edit",
+    "description": "AtlasCloud / Google Gemini Omni Flash \u2014 edits an existing video from a text prompt with optional reference images.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Text prompt describing the edit to apply to the source video (e.g., add, remove, or transform elements). Maximum 20,000 characters.",
+        "required": true
+      },
+      {
+        "name": "video",
+        "type": "video",
+        "default": null,
+        "title": "Video",
+        "description": "The source video to edit. Limited to 100MB and 30 seconds duration.",
+        "required": true
+      },
+      {
+        "name": "images",
+        "type": "list[image]",
+        "default": null,
+        "title": "Images",
+        "description": "Images to use as character, scene, or style references. Accepts 1 to 5 images when combined with a video reference. Supported formats: PNG, JPEG, JPG, WebP."
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "720p",
+        "title": "Resolution",
+        "description": "The resolution of the generated video.",
+        "values": [
+          "720p"
+        ]
+      },
+      {
+        "name": "thinking_level",
+        "type": "enum",
+        "default": "default",
+        "title": "Thinking Level",
+        "description": "Controls the amount of internal reasoning the model performs before generating a response. Higher levels may improve quality on complex tasks but increase latency.",
+        "values": [
+          "default",
+          "high",
+          "low"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "AvatarOmniHuman15",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "bytedance/avatar-omni-human-v1.5",
+    "outputType": "video",
+    "title": "Avatar Omni Human 1.5 \u2014 Audio to Video",
+    "description": "AtlasCloud / ByteDance Omni Human 1.5 \u2014 digital-human video from a portrait image and driving audio, with lip-sync and natural gestures.",
+    "pollInterval": 5000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Optional hint for action / scene / expression (supports Chinese, English, Japanese, Korean, Spanish, Indonesian)"
+      },
+      {
+        "name": "image_url",
+        "type": "image",
+        "default": null,
+        "title": "Portrait Image",
+        "description": "URL of the reference portrait image \u2014 a clear, front-facing face works best",
+        "required": true
+      },
+      {
+        "name": "audio_url",
+        "type": "audio",
+        "default": null,
+        "title": "Driving Audio",
+        "description": "URL of the driving audio (MP3/WAV). Maximum 60 seconds; 15 seconds or less recommended for best quality. The avatar lip-syncs to this audio.",
+        "required": true
+      },
+      {
+        "name": "output_resolution",
+        "type": "int",
+        "default": 1080,
+        "title": "Resolution",
+        "description": "Output video resolution (720 or 1080)",
+        "values": [
+          720,
+          1080
+        ]
+      }
+    ]
+  },
+  {
+    "className": "KlingV3TurboTextToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "kwaivgi/kling-v3.0-turbo/text-to-video",
+    "outputType": "video",
+    "title": "Kling v3.0 Turbo \u2014 Text to Video",
+    "description": "AtlasCloud / KwaiVGI Kling v3.0 Turbo \u2014 dynamic cinematic text-to-video.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The positive prompt for the generation.",
+        "required": true
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video.",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1"
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1080p",
+        "title": "Resolution",
+        "description": "The resolution of the generated media.",
+        "values": [
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 5,
+        "title": "Duration (seconds)",
+        "description": "The duration of the generated media in seconds (3-15).",
+        "values": [
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ]
+      }
+    ]
+  },
+  {
+    "className": "KlingV3TurboImageToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "kwaivgi/kling-v3.0-turbo/image-to-video",
+    "outputType": "video",
+    "title": "Kling v3.0 Turbo \u2014 Image to Video",
+    "description": "AtlasCloud / KwaiVGI Kling v3.0 Turbo \u2014 image-to-video animation built on MVL technology.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The positive prompt for the generation."
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "Image",
+        "description": "Supported image formats: .jpg/.jpeg/.png. The size of the image file should not exceed 10MB, the width and height of the image should be no less than 300px, and the aspect ratio of\u2026",
+        "required": true
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 5,
+        "title": "Duration (seconds)",
+        "description": "The duration of the generated media in seconds (3-15).",
+        "values": [
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ]
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "1080p",
+        "title": "Resolution",
+        "description": "The resolution of the generated media.",
+        "values": [
+          "720p",
+          "1080p"
+        ]
+      }
+    ]
+  },
+  {
+    "className": "KlingVideoO34kTextToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "kwaivgi/kling-video-o3-4k/text-to-video",
+    "outputType": "video",
+    "title": "Kling Video O3 4K \u2014 Text to Video",
+    "description": "AtlasCloud / KwaiVGI Kling Video O3 4K \u2014 high-quality 4K text-to-video with optional audio.",
+    "pollInterval": 5000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The positive prompt for the generation."
+      },
+      {
+        "name": "aspect_ratio",
+        "type": "enum",
+        "default": "16:9",
+        "title": "Aspect Ratio",
+        "description": "The aspect ratio of the generated video.",
+        "values": [
+          "16:9",
+          "9:16",
+          "1:1"
+        ]
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 5,
+        "title": "Duration (seconds)",
+        "description": "The duration of the generated media in seconds (3-15).",
+        "values": [
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ]
+      },
+      {
+        "name": "sound",
+        "type": "bool",
+        "default": true,
+        "title": "Generate Audio",
+        "description": "Whether to generate audio for the video."
+      },
+      {
+        "name": "multi_shot",
+        "type": "bool",
+        "default": false,
+        "title": "Multi-Shot",
+        "description": "Whether to enable multi-shot generation."
+      }
+    ]
+  },
+  {
+    "className": "KlingVideoO34kImageToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "kwaivgi/kling-video-o3-4k/image-to-video",
+    "outputType": "video",
+    "title": "Kling Video O3 4K \u2014 Image to Video",
+    "description": "AtlasCloud / KwaiVGI Kling Video O3 4K \u2014 4K cinematic image-to-video with optional end frame and audio.",
+    "pollInterval": 5000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "The positive prompt for the generation."
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "Image",
+        "description": "The first frame image URL.",
+        "required": true
+      },
+      {
+        "name": "end_image",
+        "type": "image",
+        "default": null,
+        "title": "End Frame (optional)",
+        "description": "The last frame image URL."
+      },
+      {
+        "name": "duration",
+        "type": "int",
+        "default": 5,
+        "title": "Duration (seconds)",
+        "description": "The duration of the generated media in seconds (3-15).",
+        "values": [
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ]
+      },
+      {
+        "name": "sound",
+        "type": "bool",
+        "default": true,
+        "title": "Generate Audio",
+        "description": "Whether to automatically add audio to the generated video."
+      },
+      {
+        "name": "multi_shot",
+        "type": "bool",
+        "default": false,
+        "title": "Multi-Shot",
+        "description": "Whether to enable multi-shot generation."
+      }
+    ]
+  },
+  {
+    "className": "YouchuanV81ImageToVideo",
+    "moduleName": "video",
+    "modality": "video",
+    "modelId": "youchuan/v8.1/image-to-video",
+    "outputType": "video",
+    "title": "Youchuan v8.1 \u2014 Image to Video",
+    "description": "AtlasCloud / Youchuan v8.1 \u2014 four 5-second videos per task at 480p/720p from an input image.",
+    "pollInterval": 3000,
+    "maxAttempts": 600,
+    "fields": [
+      {
+        "name": "prompt",
+        "type": "str",
+        "default": "",
+        "title": "Prompt",
+        "description": "Optional text describing the motion / scene for the generated video."
+      },
+      {
+        "name": "image",
+        "type": "image",
+        "default": null,
+        "title": "Image",
+        "description": "First-frame image to animate. A publicly reachable https image URL (or upload). The generated video keeps the input image's aspect ratio. Each task returns 4 five-second videos.",
+        "required": true
+      },
+      {
+        "name": "resolution",
+        "type": "enum",
+        "default": "480p",
+        "title": "Resolution",
+        "description": "Output resolution. 720p costs 3x of 480p.",
+        "values": [
+          "480p",
+          "720p"
+        ]
+      },
+      {
+        "name": "motion",
+        "type": "enum",
+        "default": "low",
+        "title": "Motion",
+        "description": "Amount of motion in the generated video.",
+        "values": [
+          "low",
+          "high"
+        ]
+      }
+    ]
   }
 ]
