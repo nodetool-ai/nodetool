@@ -3,6 +3,7 @@ import { staticEntries } from "./staticEntries";
 import { competitorEntries } from "./competitorEntries";
 import { entries as modelEntries } from "./modelEntries";
 import { entries as modelComparisonEntries } from "./modelComparisonEntries";
+import { entries as providerEntries } from "./providerEntries";
 import { faqPageEntries } from "./faqEntries";
 import { ideasPageEntries } from "./ideasEntries";
 import { templateEntries } from "./templates";
@@ -33,6 +34,7 @@ export const registryModules: RegistryModule[] = [
   { name: "competitors", entries: competitorEntries },
   { name: "models", entries: modelEntries },
   { name: "model-comparisons", entries: modelComparisonEntries },
+  { name: "providers", entries: providerEntries },
   { name: "faq", entries: faqPageEntries },
   { name: "ideas", entries: ideasPageEntries },
   { name: "templates", entries: templateEntries },
