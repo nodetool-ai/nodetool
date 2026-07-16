@@ -136,16 +136,24 @@ describe("SummarizerNode", () => {
     expectMetadataDefaults(SummarizerNode);
   });
 
-  it("summarizes text to max_sentences", async () => {
+  it("throws 'Select a model' when no model is configured", async () => {
     const n = new (SummarizerNode as any)();
     n.assign({
-      text: "First sentence. Second sentence. Third sentence. Fourth sentence."
+      text: "First sentence. Second sentence. Third sentence."
     });
-    // max_sentences is not a declared prop, so set it directly on the instance
     n.max_sentences = 2;
-    const result = await n.process();
-    expect(result.text).toBe("First sentence. Second sentence.");
-    expect(result.output).toBe(result.text);
+    await expect(n.process()).rejects.toThrow("Select a model");
+  });
+
+  it("throws when a model is set but the context lacks getProvider", async () => {
+    const n = new (SummarizerNode as any)();
+    n.assign({
+      text: "Long text",
+      model: { provider: "test", id: "m1" }
+    });
+    await expect(n.process({} as any)).rejects.toThrow(
+      "Processing context is required"
+    );
   });
 
   it("uses provider when model is connected", async () => {
@@ -170,110 +178,36 @@ describe("SummarizerNode", () => {
     expect(result.text).toContain("Long text");
   });
 
-  it("returns empty string for empty text", async () => {
+  it("strips <think> tags from streamed chunks and the final summary", async () => {
     const n = new (SummarizerNode as any)();
-    n.assign({ text: "", max_sentences: 3 });
-    const result = await n.process();
-    expect(result.text).toBe("");
-  });
-
-  it("handles text with no sentence terminators", async () => {
-    const n = new (SummarizerNode as any)();
-    n.assign({ text: "just a phrase", max_sentences: 5 });
-    const result = await n.process();
-    expect(result.text).toBe("just a phrase");
-  });
-
-  it("handles numeric input via asText", async () => {
-    const n = new (SummarizerNode as any)();
-    n.assign({ text: 42, max_sentences: 1 });
-    const result = await n.process();
-    expect(result.text).toBe("42");
-  });
-
-  it("handles boolean input via asText", async () => {
-    const n = new (SummarizerNode as any)();
-    n.assign({ text: true, max_sentences: 1 });
-    const result = await n.process();
-    expect(result.text).toBe("true");
-  });
-
-  it("handles null/undefined input via asText", async () => {
-    const n = new (SummarizerNode as any)();
-    n.assign({ text: null });
-    const result = await n.process();
-    expect(result.text).toBe("");
-  });
-
-  it("handles array input via asText", async () => {
-    const n = new (SummarizerNode as any)();
-    n.assign({ text: ["Hello", "World"], max_sentences: 1 });
-    const result = await n.process();
-    // asText joins array elements with space
-    expect(result.text).toBe("Hello World");
-  });
-
-  it("handles object with content string via asText", async () => {
-    const n = new (SummarizerNode as any)();
-    n.assign({
-      text: { content: "Message content here." },
-      max_sentences: 1
-    });
-    const result = await n.process();
-    expect(result.text).toBe("Message content here.");
-  });
-
-  it("handles object with content array (MessagePart) via asText", async () => {
-    const n = new (SummarizerNode as any)();
-    n.assign({
-      text: {
-        content: [
-          { type: "text", text: "Part one." },
-          { type: "image" }, // non-text part
-          { type: "text", text: "Part two." }
-        ]
-      },
-      max_sentences: 2
-    });
-    const result = await n.process();
-    expect(result.text).toContain("Part one.");
-    expect(result.text).toContain("Part two.");
-  });
-
-  it("handles object without content (falls back to JSON.stringify)", async () => {
-    const n = new (SummarizerNode as any)();
-    n.assign({
-      text: { foo: "bar" },
-      max_sentences: 1
-    });
-    const result = await n.process();
-    expect(result.text).toContain("foo");
-  });
-
-  it("handles function input via asText (returns empty string)", async () => {
-    const n = new (SummarizerNode as any)();
-    n.assign({ text: () => "fn", max_sentences: 1 });
-    const result = await n.process();
-    // A function is not string/number/boolean/falsy/array/object, so asText returns ""
-    expect(result.text).toBe("");
-  });
-
-  it("handles non-finite max_sentences by defaulting to 3", async () => {
-    const n = new (SummarizerNode as any)();
-    n.assign({
-      text: "A. B. C. D. E.",
-      max_sentences: NaN
-    });
-    const result = await n.process();
-    // NaN is not finite, so defaults to 3
-    expect(result.text).toBe("A. B. C.");
-  });
-
-  it("respects assigned max_sentences", async () => {
-    const n = new (SummarizerNode as any)();
-    n.assign({ text: "From props. Second.", max_sentences: 1 });
-    const result = await n.process();
-    expect(result.text).toBe("From props.");
+    const mockProvider = {
+      async *generateMessages() {
+        yield {
+          type: "chunk",
+          content: "<think>reasoning here</think>Clean ",
+          content_type: "text",
+          done: false
+        };
+        yield {
+          type: "chunk",
+          content: "summary.",
+          content_type: "text",
+          done: true
+        };
+      }
+    };
+    const mockContext = { getProvider: async () => mockProvider };
+    n.assign({ text: "x", model: { provider: "test", id: "m1" } });
+    const chunks: string[] = [];
+    let finalText = "";
+    for await (const item of n.genProcess(mockContext as any)) {
+      if (item.chunk) chunks.push((item.chunk as any).content);
+      if (typeof item.text === "string") finalText = item.text;
+    }
+    expect(chunks.join("")).toBe("Clean summary.");
+    expect(chunks.join("")).not.toContain("reasoning");
+    expect(finalText).toBe("Clean summary.");
+    expect(finalText).not.toContain("think");
   });
 });
 
@@ -302,12 +236,18 @@ describe("EnhancePromptNode", () => {
     expect(target?.default).toBe("general");
   });
 
-  it("passes the draft prompt through unchanged when no provider is connected", async () => {
+  it("throws 'Select a model' when a non-empty prompt has no model", async () => {
     const n = new (EnhancePromptNode as any)();
     n.assign({ prompt: "  a short idea  " });
-    const result = await n.process();
-    expect(result.text).toBe("a short idea");
-    expect(result.output).toBe(result.text);
+    await expect(n.process()).rejects.toThrow("Select a model");
+  });
+
+  it("throws when a model is set but the context lacks getProvider", async () => {
+    const n = new (EnhancePromptNode as any)();
+    n.assign({ prompt: "idea", model: { provider: "test", id: "m1" } });
+    await expect(n.process({} as any)).rejects.toThrow(
+      "Processing context is required"
+    );
   });
 
   it("returns empty string for empty prompt", async () => {
@@ -388,6 +328,37 @@ describe("EnhancePromptNode", () => {
     const result = await n.process(mockContext as any);
     expect(result.text).toBe("keep me");
   });
+
+  it("strips <think> tags from streamed chunks and the final prompt", async () => {
+    const n = new (EnhancePromptNode as any)();
+    const mockProvider = {
+      async *generateMessages() {
+        yield {
+          type: "chunk",
+          content: "<think>plan the rewrite</think>Better ",
+          content_type: "text",
+          done: false
+        };
+        yield {
+          type: "chunk",
+          content: "prompt.",
+          content_type: "text",
+          done: true
+        };
+      }
+    };
+    const mockContext = { getProvider: async () => mockProvider };
+    n.assign({ prompt: "x", model: { provider: "test", id: "m1" } });
+    const chunks: string[] = [];
+    let finalText = "";
+    for await (const item of n.genProcess(mockContext as any)) {
+      if (item.chunk) chunks.push((item.chunk as any).content);
+      if (typeof item.text === "string") finalText = item.text;
+    }
+    expect(chunks.join("")).toBe("Better prompt.");
+    expect(chunks.join("")).not.toContain("plan the rewrite");
+    expect(finalText).toBe("Better prompt.");
+  });
 });
 
 // ---- CreateThreadNode ----
@@ -437,74 +408,73 @@ describe("ExtractorNode", () => {
     expectMetadataDefaults(ExtractorNode);
   });
 
-  it("extracts valid JSON object from text", async () => {
+  it("throws 'Select a model' when no model is configured", async () => {
     const n = new (ExtractorNode as any)();
     n.assign({ text: '{"name": "Alice", "age": 30}' });
-    const result = await n.process();
+    await expect(n.process()).rejects.toThrow("Select a model");
+  });
+
+  it("throws when a model is set but the context lacks getProvider", async () => {
+    const n = new (ExtractorNode as any)();
+    n.assign({ text: "data", model: { provider: "test", id: "m1" } });
+    await expect(n.process({} as any)).rejects.toThrow(
+      "Processing context is required"
+    );
+  });
+
+  it("returns the structured tool call from the provider", async () => {
+    const n = new (ExtractorNode as any)();
+    const mockProvider = {
+      generateMessage: async () => ({
+        content: "",
+        toolCalls: [
+          {
+            id: "t1",
+            name: "extraction_result",
+            args: { name: "Alice", age: 30 }
+          }
+        ]
+      }),
+      async generateMessageTraced(...a: any[]) {
+        return (this as any).generateMessage(...a);
+      }
+    };
+    const mockContext = { getProvider: async () => mockProvider };
+    n.assign({
+      text: "Alice is 30",
+      model: { provider: "test", id: "m1" }
+    });
+    const result = await n.process(mockContext as any);
     expect(result.name).toBe("Alice");
     expect(result.age).toBe(30);
   });
 
-  it("extracts JSON embedded in surrounding text", async () => {
+  it("throws when the model returns no structured data", async () => {
     const n = new (ExtractorNode as any)();
+    const mockProvider = {
+      generateMessage: async () => ({ content: "sorry, no idea" }),
+      async generateMessageTraced(...a: any[]) {
+        return (this as any).generateMessage(...a);
+      }
+    };
+    const mockContext = { getProvider: async () => mockProvider };
     n.assign({
-      text: 'Here is the data: {"key": "value"} end.'
+      text: "unparseable",
+      model: { provider: "test", id: "m1" }
     });
-    const result = await n.process();
-    expect(result.key).toBe("value");
+    await expect(n.process(mockContext as any)).rejects.toThrow(
+      "did not return structured data"
+    );
   });
 
-  it("returns { output: text } when no JSON found", async () => {
-    const n = new (ExtractorNode as any)();
-    n.assign({ text: "no json here" });
-    const result = await n.process();
-    expect(result.output).toBe("no json here");
-  });
-
-  it("returns { output: text } for JSON array (not object)", async () => {
-    const n = new (ExtractorNode as any)();
-    n.assign({ text: "[1,2,3]" });
-    const result = await n.process();
-    expect(result.output).toBe("[1,2,3]");
-  });
-
-  it("returns { output: text } for embedded JSON array", async () => {
-    const n = new (ExtractorNode as any)();
-    // The braces extraction will find { but inner content is not valid object
-    n.assign({ text: "prefix [1,2,3] suffix" });
-    const result = await n.process();
-    expect(result.output).toBe("prefix [1,2,3] suffix");
-  });
-
-  it("handles embedded invalid JSON gracefully", async () => {
-    const n = new (ExtractorNode as any)();
-    n.assign({ text: "prefix {invalid json} suffix" });
-    const result = await n.process();
-    expect(result.output).toBe("prefix {invalid json} suffix");
-  });
-
-  it("handles no braces at all", async () => {
-    const n = new (ExtractorNode as any)();
-    n.assign({ text: "plain text only" });
-    const result = await n.process();
-    expect(result.output).toBe("plain text only");
-  });
-
-  it("returns null for embedded braces containing a JSON array (not object)", async () => {
-    const n = new (ExtractorNode as any)();
-    // The outer JSON.parse fails, inner finds { and } but parsed result
-    // is not a plain object. We need braces that contain a valid JSON value
-    // that is NOT an object. E.g., wrapping text around {"arr": [1]} won't work
-    // since that IS an object. We need the inner parse to succeed with an array.
-    // Actually we need braces around something that parses as a non-object.
-    // But { ... } always parses as an object if valid JSON. So line 78 covers
-    // cases like inner parse succeeding but returning an array from within
-    // the braces — which can't happen since {..} is always an object in JSON.
-    // Line 78 is effectively dead code for the inner parse path.
-    // However we can still test the case where there are braces but inner parse fails.
-    n.assign({ text: "before {not: valid, json} after" });
-    const result = await n.process();
-    expect(result.output).toBe("before {not: valid, json} after");
+  it("default system prompt tells the model to call the extraction tool, not emit a fenced block", () => {
+    const meta = getNodeMetadata(ExtractorNode as any);
+    const systemPrompt = meta.properties.find(
+      (p) => p.name === "system_prompt"
+    );
+    const value = String(systemPrompt?.default ?? "");
+    expect(value.toLowerCase()).toContain("extraction tool");
+    expect(value.toLowerCase()).not.toContain("fenced code block");
   });
 });
 
@@ -526,25 +496,44 @@ describe("ClassifierNode", () => {
     );
   });
 
-  it("classifies text to matching category by token overlap", async () => {
+  it("throws 'Select a model' when categories are valid but no model is set", async () => {
     const n = new (ClassifierNode as any)();
     n.assign({
       text: "I love programming in python",
       categories: ["sports", "programming", "cooking"]
     });
-    const result = await n.process();
-    expect(result.output).toBe("programming");
-    expect(result.category).toBe("programming");
+    await expect(n.process()).rejects.toThrow("Select a model");
   });
 
-  it("returns first category when no tokens match", async () => {
+  it("throws when a model is set but the context lacks getProvider", async () => {
     const n = new (ClassifierNode as any)();
     n.assign({
-      text: "xyzzy",
-      categories: ["alpha", "beta", "gamma"]
+      text: "hi",
+      categories: ["a", "b"],
+      model: { provider: "test", id: "m1" }
     });
-    const result = await n.process();
-    expect(result.output).toBe("alpha");
+    await expect(n.process({} as any)).rejects.toThrow(
+      "Processing context is required"
+    );
+  });
+
+  it("throws when the model output maps to no allowed category", async () => {
+    const n = new (ClassifierNode as any)();
+    const mockProvider = {
+      generateMessage: async () => ({ content: '{"category":"nonexistent"}' }),
+      async generateMessageTraced(...a: any[]) {
+        return (this as any).generateMessage(...a);
+      }
+    };
+    const mockContext = { getProvider: async () => mockProvider };
+    n.assign({
+      text: "help me",
+      categories: ["billing", "support"],
+      model: { provider: "test", id: "m1" }
+    });
+    await expect(n.process(mockContext as any)).rejects.toThrow(
+      /could not map the model output/i
+    );
   });
 
   it("handles non-array categories via getCategories", async () => {
@@ -567,16 +556,6 @@ describe("ClassifierNode", () => {
     await expect(n.process()).rejects.toThrow(
       "At least 2 categories are required"
     );
-  });
-
-  it("handles multi-word categories", async () => {
-    const n = new (ClassifierNode as any)();
-    n.assign({
-      text: "machine learning is great",
-      categories: ["web development", "machine learning", "data science"]
-    });
-    const result = await n.process();
-    expect(result.output).toBe("machine learning");
   });
 
   it("uses provider-backed classification when model is connected", async () => {
@@ -616,6 +595,33 @@ describe("AgentNode", () => {
     const n = new (AgentNode as any)();
     n.assign({ prompt: "Hello" });
     await expect(n.process()).rejects.toThrow("Select a model");
+  });
+
+  it("plan mode rejects loop-only inputs (thread_id/history/image/audio)", async () => {
+    const mockContext = {
+      getProvider: async () => withAgentLoop({
+        async *generateMessages(): AsyncGenerator<Record<string, unknown>> {
+          yield { type: "chunk", content: "x", content_type: "text", done: true };
+        }
+      })
+    };
+    for (const loopOnly of [
+      { thread_id: "t1" },
+      { history: [{ role: "user", content: "hi" }] },
+      { image: [{ uri: "file://a.png" }] },
+      { audio: [{ data: "YXVkaW8=" }] }
+    ]) {
+      const n = new (AgentNode as any)();
+      n.assign({
+        mode: "plan",
+        prompt: "Do a task",
+        model: { provider: "test", id: "m1" },
+        ...loopOnly
+      });
+      await expect(n.process(mockContext as any)).rejects.toThrow(
+        /only apply in loop mode/i
+      );
+    }
   });
 
   it("streams text chunks and final text from the provider", async () => {

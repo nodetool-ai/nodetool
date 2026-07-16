@@ -181,79 +181,10 @@ import {
 
 describe("agents nodes", () => {
   describe("SummarizerNode", () => {
-    it("summarizes text", async () => {
+    it("throws 'Select a model' when no model is configured", async () => {
       const node = new SummarizerNode();
       node.assign({ text: "Hello world. This is a test. Another sentence." });
-      const result = await node.process();
-      expect(result.text).toBeDefined();
-      expect(result.output).toBeDefined();
-    });
-
-    it("handles empty text", async () => {
-      const node = new SummarizerNode();
-      node.assign({ text: "" });
-      const result = await node.process();
-      expect(result.text).toBe("");
-    });
-
-    it("handles non-finite max_sentences", async () => {
-      const node = new SummarizerNode();
-      node.assign({ text: "Hello.", max_sentences: NaN });
-      const result = await node.process();
-      expect(result.text).toBe("Hello.");
-    });
-  });
-
-  describe("asText helper (via SummarizerNode)", () => {
-    it("handles number input", async () => {
-      const node = new SummarizerNode();
-      node.assign({ text: 42 });
-      const result = await node.process();
-      expect(result.text).toBe("42");
-    });
-
-    it("handles boolean input", async () => {
-      const node = new SummarizerNode();
-      node.assign({ text: true });
-      const result = await node.process();
-      expect(result.text).toBe("true");
-    });
-
-    it("handles null/undefined", async () => {
-      const node = new SummarizerNode();
-      node.assign({ text: null });
-      const result = await node.process();
-      expect(result.text).toBe("");
-    });
-
-    it("handles array of strings", async () => {
-      const node = new SummarizerNode();
-      node.assign({ text: ["hello", "world"] });
-      const result = await node.process();
-      expect(result.text).toBe("hello world");
-    });
-
-    it("handles message object with string content", async () => {
-      const node = new SummarizerNode();
-      node.assign({ text: { content: "message text" } });
-      const result = await node.process();
-      expect(result.text).toBe("message text");
-    });
-
-    it("handles message object with array content (MessagePart)", async () => {
-      const node = new SummarizerNode();
-      node.assign({
-        text: { content: [{ type: "text", text: "hello" }, { type: "image" }] }
-      });
-      const result = await node.process();
-      expect(result.text).toBe("hello");
-    });
-
-    it("handles plain object (JSON serialized)", async () => {
-      const node = new SummarizerNode();
-      node.assign({ text: { foo: "bar" } });
-      const result = await node.process();
-      expect(result.text).toContain("foo");
+      await expect(node.process()).rejects.toThrow("Select a model");
     });
   });
 
@@ -278,56 +209,15 @@ describe("agents nodes", () => {
   });
 
   describe("ExtractorNode", () => {
-    it("extracts JSON from text", async () => {
+    it("throws 'Select a model' when no model is configured", async () => {
       const node = new ExtractorNode();
       node.assign({ text: '{"name": "test", "value": 42}' });
-      const result = await node.process();
-      expect(result.name).toBe("test");
-      expect(result.value).toBe(42);
-    });
-
-    it("extracts JSON embedded in text", async () => {
-      const node = new ExtractorNode();
-      node.assign({ text: 'Here is the data: {"key": "val"} end.' });
-      const result = await node.process();
-      expect(result.key).toBe("val");
-    });
-
-    it("returns text when no JSON found", async () => {
-      const node = new ExtractorNode();
-      node.assign({ text: "no json here" });
-      const result = await node.process();
-      expect(result.output).toBe("no json here");
-    });
-
-    it("returns null for array JSON (not an object)", async () => {
-      const node = new ExtractorNode();
-      node.assign({ text: "[1, 2, 3]" });
-      const result = await node.process();
-      expect(result.output).toBe("[1, 2, 3]");
-    });
-
-    it("returns null for embedded array JSON substring", async () => {
-      const node = new ExtractorNode();
-      // The substring between { and } that parses as a non-object
-      node.assign({ text: "prefix {broken end" });
-      const result = await node.process();
-      expect(result.output).toBe("prefix {broken end");
+      await expect(node.process()).rejects.toThrow("Select a model");
     });
   });
 
   describe("ClassifierNode", () => {
-    it("classifies to closest category by token match", async () => {
-      const node = new ClassifierNode();
-      node.assign({
-        text: "I love programming in python",
-        categories: ["python", "javascript", "rust"]
-      });
-      const result = await node.process();
-      expect(result.category).toBe("python");
-    });
-
-    it("throws for empty categories", async () => {
+    it("throws for empty categories before checking the model", async () => {
       const node = new ClassifierNode();
       node.assign({ text: "hello", categories: [] });
       await expect(node.process()).rejects.toThrow(
@@ -335,15 +225,13 @@ describe("agents nodes", () => {
       );
     });
 
-    it("returns first category when no token match", async () => {
+    it("throws 'Select a model' when categories are valid but no model is set", async () => {
       const node = new ClassifierNode();
       node.assign({
-        text: "zzzzz",
-        categories: ["alpha", "beta"]
+        text: "I love programming in python",
+        categories: ["python", "javascript", "rust"]
       });
-      const result = await node.process();
-      // Both have 0 score, first one wins since bestScore starts at -1
-      expect(result.category).toBe("alpha");
+      await expect(node.process()).rejects.toThrow("Select a model");
     });
   });
 

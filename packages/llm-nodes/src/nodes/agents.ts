@@ -19,17 +19,14 @@ import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import type { ToolLike } from "./agent-utils.js";
 import {
   asText,
-  summarize,
-  tokenize,
-  extractJson,
   makeThreadId,
   getCategories,
   getModelConfig,
-  hasProviderSupport,
   generateStructured,
   parseCategory,
   normalizeMessage,
   buildUserMessage,
+  toRefArray,
   uniqueToolName,
   normalizeTools,
   isChunkItem,
@@ -86,8 +83,8 @@ const DEFAULT_SYSTEM_PROMPT = "You are a friendly assistant";
 const AGENT_DEFAULT_MAX_TOKENS = 16_384;
 const EXTRACTOR_SYSTEM_PROMPT = [
   "You are a precise structured data extractor.",
-  "Return exactly one JSON object and no additional prose.",
-  "Use only information present in the input."
+  "Call the extraction tool exactly once with the extracted fields.",
+  "Use only information present in the input; do not invent facts."
 ].join(" ");
 const CLASSIFIER_SYSTEM_PROMPT = [
   "You are a precise classifier.",
@@ -225,52 +222,63 @@ export class SummarizerNode extends BaseNode {
       asText(this.system_prompt ?? "").trim() || SUMMARIZER_SYSTEM_PROMPT;
     const { providerId, modelId } = getModelConfig(this.serialize());
 
-    if (hasProviderSupport(context, providerId, modelId)) {
-      const provider = await context.getProvider(providerId);
-      let full = "";
-      for await (const item of streamProviderMessages(provider, {
-        messages: [
-          { role: "system", content: systemPrompt },
-          {
-            role: "user",
-            content: `Summarize the following text in about ${maxSentences} sentence(s):\n\n${text}`
+    if (!providerId || !modelId) {
+      throw new Error("Select a model");
+    }
+    if (!context || typeof context.getProvider !== "function") {
+      throw new Error("Processing context is required");
+    }
+
+    const provider = await context.getProvider(providerId);
+    // Route streamed text through the think-tag splitter so a local model that
+    // emits <think>…</think> never leaks reasoning into the summary. This node
+    // has no `thinking` output, so the split-off thinking parts are dropped.
+    const splitter = new RedactedThinkingStreamSplitter();
+    const emitText = (piece: string): Record<string, unknown> | null =>
+      piece
+        ? {
+            chunk: {
+              type: "chunk",
+              content: piece,
+              content_type: "text",
+              done: false
+            },
+            text: null
           }
-        ],
-        model: modelId,
-        maxTokens: Math.max(64, maxSentences * 128)
-      })) {
-        if (isChunkItem(item) && !item.thinking) {
-          const piece = item.content ?? "";
-          if (piece) {
-            full += piece;
-            yield {
-              chunk: {
-                type: "chunk",
-                content: piece,
-                content_type: "text",
-                done: false
-              },
-              text: null
-            };
+        : null;
+    let full = "";
+    for await (const item of streamProviderMessages(provider, {
+      messages: [
+        { role: "system", content: systemPrompt },
+        {
+          role: "user",
+          content: `Summarize the following text in about ${maxSentences} sentence(s):\n\n${text}`
+        }
+      ],
+      model: modelId,
+      maxTokens: Math.max(64, maxSentences * 128)
+    })) {
+      if (isChunkItem(item) && !item.thinking) {
+        const piece = typeof item.content === "string" ? item.content : "";
+        if (piece) {
+          full += piece;
+          for (const part of splitter.feed(piece)) {
+            if (part.kind === "text") {
+              const out = emitText(part.content);
+              if (out) yield out;
+            }
           }
         }
       }
-      const summary = full.trim();
-      yield { chunk: null, text: summary, output: summary };
-      return;
     }
-
-    const summary = summarize(text, maxSentences);
-    yield {
-      chunk: {
-        type: "chunk",
-        content: summary,
-        content_type: "text",
-        done: true
-      },
-      text: summary,
-      output: summary
-    };
+    for (const part of splitter.flush()) {
+      if (part.kind === "text") {
+        const out = emitText(part.content);
+        if (out) yield out;
+      }
+    }
+    const summary = extractThinkTags(full).text.trim();
+    yield { chunk: null, text: summary, output: summary };
   }
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
@@ -365,54 +373,65 @@ export class EnhancePromptNode extends BaseNode {
       return;
     }
 
-    if (hasProviderSupport(context, providerId, modelId)) {
-      const provider = await context.getProvider(providerId);
-      const guidance =
-        ENHANCE_PROMPT_GUIDANCE[target] ?? ENHANCE_PROMPT_GUIDANCE.general;
-      let full = "";
-      for await (const item of streamProviderMessages(provider, {
-        messages: [
-          { role: "system", content: systemPrompt },
-          {
-            role: "user",
-            content: `${guidance}\n\nImprove this prompt and return only the improved version:\n\n${prompt}`
+    if (!providerId || !modelId) {
+      throw new Error("Select a model");
+    }
+    if (!context || typeof context.getProvider !== "function") {
+      throw new Error("Processing context is required");
+    }
+
+    const provider = await context.getProvider(providerId);
+    const guidance =
+      ENHANCE_PROMPT_GUIDANCE[target] ?? ENHANCE_PROMPT_GUIDANCE.general;
+    // Route streamed text through the think-tag splitter so a local model that
+    // emits <think>…</think> never leaks reasoning into the improved prompt.
+    // This node has no `thinking` output, so those parts are dropped.
+    const splitter = new RedactedThinkingStreamSplitter();
+    const emitText = (piece: string): Record<string, unknown> | null =>
+      piece
+        ? {
+            chunk: {
+              type: "chunk",
+              content: piece,
+              content_type: "text",
+              done: false
+            },
+            text: null
           }
-        ],
-        model: modelId,
-        maxTokens: ENHANCE_PROMPT_MAX_TOKENS
-      })) {
-        if (isChunkItem(item) && !item.thinking) {
-          const piece = item.content ?? "";
-          if (piece) {
-            full += piece;
-            yield {
-              chunk: {
-                type: "chunk",
-                content: piece,
-                content_type: "text",
-                done: false
-              },
-              text: null
-            };
+        : null;
+    let full = "";
+    for await (const item of streamProviderMessages(provider, {
+      messages: [
+        { role: "system", content: systemPrompt },
+        {
+          role: "user",
+          content: `${guidance}\n\nImprove this prompt and return only the improved version:\n\n${prompt}`
+        }
+      ],
+      model: modelId,
+      maxTokens: ENHANCE_PROMPT_MAX_TOKENS
+    })) {
+      if (isChunkItem(item) && !item.thinking) {
+        const piece = typeof item.content === "string" ? item.content : "";
+        if (piece) {
+          full += piece;
+          for (const part of splitter.feed(piece)) {
+            if (part.kind === "text") {
+              const out = emitText(part.content);
+              if (out) yield out;
+            }
           }
         }
       }
-      const enhanced = full.trim() || prompt;
-      yield { chunk: null, text: enhanced, output: enhanced };
-      return;
     }
-
-    // No provider available — pass the original prompt through unchanged.
-    yield {
-      chunk: {
-        type: "chunk",
-        content: prompt,
-        content_type: "text",
-        done: true
-      },
-      text: prompt,
-      output: prompt
-    };
+    for (const part of splitter.flush()) {
+      if (part.kind === "text") {
+        const out = emitText(part.content);
+        if (out) yield out;
+      }
+    }
+    const enhanced = extractThinkTags(full).text.trim() || prompt;
+    yield { chunk: null, text: enhanced, output: enhanced };
   }
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
@@ -489,7 +508,7 @@ export class ExtractorNode extends BaseNode {
   @prop({
     type: "str",
     default:
-      '\nYou are a precise structured data extractor.\n\nGoal\n- Extract exactly the fields described in <JSON_SCHEMA> from the content in <TEXT> (and any attached media).\n\nOutput format (MANDATORY)\n- Output exactly ONE fenced code block labeled json containing ONLY the JSON object:\n\n  ```json\n  { ...single JSON object matching <JSON_SCHEMA>... }\n  ```\n\n- No additional prose before or after the block.\n\nExtraction rules\n- Use only information found in <TEXT> or attached media. Do not invent facts.\n- Preserve source values; normalize internal whitespace and trim leading/trailing spaces.\n- If a required field is missing or not explicitly stated, return the closest reasonable default consistent with its type:\n  - string: ""\n  - number: 0\n  - boolean: false\n  - array/object: empty value of that type (only if allowed by the schema)\n- Dates/times: prefer ISO 8601 when the schema type is string and the value represents a date/time.\n- If multiple candidates exist, choose the most precise and unambiguous one.\n\nValidation\n- Ensure the final JSON validates against <JSON_SCHEMA> exactly.\n',
+      '\nYou are a precise structured data extractor.\n\nGoal\n- Extract exactly the fields described by the extraction tool\'s schema from the content in <TEXT> (and any attached media).\n\nHow to respond (MANDATORY)\n- Call the extraction tool exactly once, passing the extracted fields as its arguments.\n- Do not answer in prose; the tool call is the only output.\n\nExtraction rules\n- Use only information found in <TEXT> or attached media. Do not invent facts.\n- Preserve source values; normalize internal whitespace and trim leading/trailing spaces.\n- If a required field is missing or not explicitly stated, return the closest reasonable default consistent with its type:\n  - string: ""\n  - number: 0\n  - boolean: false\n  - array/object: empty value of that type (only if allowed by the schema)\n- Dates/times: prefer ISO 8601 when the schema type is string and the value represents a date/time.\n- If multiple candidates exist, choose the most precise and unambiguous one.\n',
     title: "System Prompt",
     description: "The system prompt for the data extractor"
   })
@@ -559,34 +578,39 @@ export class ExtractorNode extends BaseNode {
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const text = asText(this.text ?? "");
     const { providerId, modelId } = getModelConfig(this.serialize());
-    if (hasProviderSupport(context, providerId, modelId)) {
-      const provider = await context.getProvider(providerId);
-      const schema = getStructuredOutputSchema(this) ?? {
-        type: "object",
-        properties: { output: { type: "string" } },
-        required: ["output"],
-        additionalProperties: true
-      };
-      const result = await generateStructured(provider, {
-        model: modelId,
-        maxTokens: Number(this.max_tokens ?? 1024),
-        messages: [
-          {
-            role: "system",
-            content:
-              asText(this.system_prompt ?? "").trim() || EXTRACTOR_SYSTEM_PROMPT
-          },
-          { role: "user", content: text }
-        ],
-        toolName: "extraction_result",
-        toolDescription: "Submit the extracted data.",
-        schema
-      });
-      if (result) return result;
+    if (!providerId || !modelId) {
+      throw new Error("Select a model");
     }
-    const parsed = extractJson(text);
-    if (parsed) return parsed;
-    return { output: text };
+    if (!context || typeof context.getProvider !== "function") {
+      throw new Error("Processing context is required");
+    }
+
+    const provider = await context.getProvider(providerId);
+    const schema = getStructuredOutputSchema(this) ?? {
+      type: "object",
+      properties: { output: { type: "string" } },
+      required: ["output"],
+      additionalProperties: true
+    };
+    const result = await generateStructured(provider, {
+      model: modelId,
+      maxTokens: Number(this.max_tokens ?? 1024),
+      messages: [
+        {
+          role: "system",
+          content:
+            asText(this.system_prompt ?? "").trim() || EXTRACTOR_SYSTEM_PROMPT
+        },
+        { role: "user", content: text }
+      ],
+      toolName: "extraction_result",
+      toolDescription: "Submit the extracted data.",
+      schema
+    });
+    if (result) return result;
+    throw new Error(
+      "Extractor: the model did not return structured data for the extraction tool."
+    );
   }
 }
 
@@ -693,55 +717,43 @@ export class ClassifierNode extends BaseNode {
     }
 
     const { providerId, modelId } = getModelConfig(this.serialize());
-    if (hasProviderSupport(context, providerId, modelId)) {
-      const provider = await context.getProvider(providerId);
-      const result = await generateStructured(provider, {
-        model: modelId,
-        maxTokens: Number(this.max_tokens ?? 256),
-        messages: [
-          {
-            role: "system",
-            content:
-              asText(this.system_prompt ?? "").trim() ||
-              CLASSIFIER_SYSTEM_PROMPT
-          },
-          {
-            role: "user",
-            content: `Allowed categories: ${categories.join(", ")}\n\nText: ${text}`
-          }
-        ],
-        toolName: "classification_result",
-        toolDescription: "Submit the classification result.",
-        schema: {
-          type: "object",
-          properties: {
-            category: { type: "string", enum: categories }
-          },
-          required: ["category"]
-        }
-      });
-      const category = parseCategory(
-        result ? String(result.category ?? "") : "",
-        categories
-      );
-      return { output: category, category };
+    if (!providerId || !modelId) {
+      throw new Error("Select a model");
+    }
+    if (!context || typeof context.getProvider !== "function") {
+      throw new Error("Processing context is required");
     }
 
-    const tokens = tokenize(text);
-    let best = categories[0];
-    let bestScore = -1;
-    for (const category of categories) {
-      const catTokens = tokenize(category);
-      let score = 0;
-      for (const token of catTokens) {
-        if (tokens.includes(token)) score += 1;
+    const provider = await context.getProvider(providerId);
+    const result = await generateStructured(provider, {
+      model: modelId,
+      maxTokens: Number(this.max_tokens ?? 256),
+      messages: [
+        {
+          role: "system",
+          content:
+            asText(this.system_prompt ?? "").trim() || CLASSIFIER_SYSTEM_PROMPT
+        },
+        {
+          role: "user",
+          content: `Allowed categories: ${categories.join(", ")}\n\nText: ${text}`
+        }
+      ],
+      toolName: "classification_result",
+      toolDescription: "Submit the classification result.",
+      schema: {
+        type: "object",
+        properties: {
+          category: { type: "string", enum: categories }
+        },
+        required: ["category"]
       }
-      if (score > bestScore) {
-        best = category;
-        bestScore = score;
-      }
-    }
-    return { output: best, category: best };
+    });
+    const category = parseCategory(
+      result ? String(result.category ?? "") : "",
+      categories
+    );
+    return { output: category, category };
   }
 }
 
@@ -795,7 +807,7 @@ export class AgentNode extends BaseNode {
     default: "loop",
     title: "Mode",
     description:
-      "How the agent runs.\n\n• loop: standard tool‑calling loop — the LLM responds to the prompt and may iteratively call the connected tools until it produces a final answer. Use this for chat, Q&A, and most tool‑using tasks.\n• plan: the LLM first drafts a multi‑step task plan from the objective, then executes the steps in dependency order (independent steps run in parallel). Best for longer, structured jobs with clear sub‑tasks.",
+      "How the agent runs.\n\n• loop: standard tool‑calling loop — the LLM responds to the prompt and may iteratively call the connected tools until it produces a final answer. Use this for chat, Q&A, and most tool‑using tasks. Only loop mode uses conversation history, threads, and image/audio inputs.\n• plan: the LLM first drafts a multi‑step task plan from the objective, then executes the steps in dependency order (independent steps run in parallel). Best for longer, structured jobs with clear sub‑tasks. Plan mode ignores/rejects the Thread ID, Messages (history), Images, and Audio inputs — it plans purely from the prompt objective.",
     values: ["loop", "plan"]
   })
   declare mode: string;
@@ -814,7 +826,7 @@ export class AgentNode extends BaseNode {
     default: "",
     title: "Prompt",
     description:
-      "The user message for this run — the actual question, task, or content the agent should act on. Appended after the system prompt and conversation history as the latest user turn. Any connected Image or Audio inputs are attached to this message. In plan and multi-agent modes this is treated as the objective for planning."
+      "The user message for this run — the actual question, task, or content the agent should act on. Appended after the system prompt and conversation history as the latest user turn. Any connected Image or Audio inputs are attached to this message (loop mode). In plan mode this is treated as the objective for planning."
   })
   declare prompt: string;
 
@@ -832,7 +844,7 @@ export class AgentNode extends BaseNode {
     default: [],
     title: "Images",
     description:
-      "Images to attach to the prompt. Wire a list[image] source to send several at once, or a single Image (auto-wrapped into a one-item list). Each image becomes a separate block in the user message sent to the provider."
+      "Images to attach to the prompt. Loop mode only — plan mode rejects image inputs. Wire a list[image] source to send several at once, or a single Image (auto-wrapped into a one-item list). Each image becomes a separate block in the user message sent to the provider."
   })
   declare image: ImageRef[];
 
@@ -841,7 +853,7 @@ export class AgentNode extends BaseNode {
     default: [],
     title: "Audio",
     description:
-      "Audio clips to attach to the prompt. Wire a list[audio] source to send several at once, or a single Audio (auto-wrapped into a one-item list). Each clip becomes a separate block in the user message sent to the provider."
+      "Audio clips to attach to the prompt. Loop mode only — plan mode rejects audio inputs. Wire a list[audio] source to send several at once, or a single Audio (auto-wrapped into a one-item list). Each clip becomes a separate block in the user message sent to the provider."
   })
   declare audio: AudioRef[];
 
@@ -850,7 +862,7 @@ export class AgentNode extends BaseNode {
     default: [],
     title: "Messages",
     description:
-      "Prior conversation turns to include before the current prompt, in chronological order (oldest first). Each item is a Message with a role (user/assistant/tool) and content. Use this to supply ad‑hoc context — for example, few‑shot examples, a previous chat transcript piped in from another node, or the messages output of an upstream Agent. Inserted between the system prompt and the new user prompt. If a Thread ID is also set, history loaded from the thread comes first, then this list, then the current prompt."
+      "Prior conversation turns to include before the current prompt, in chronological order (oldest first). Loop mode only — plan mode rejects a non-empty history. Each item is a Message with a role (user/assistant/tool) and content. Use this to supply ad‑hoc context — for example, few‑shot examples, a previous chat transcript piped in from another node, or the messages output of an upstream Agent. Inserted between the system prompt and the new user prompt. If a Thread ID is also set, history loaded from the thread comes first, then this list, then the current prompt."
   })
   declare history: Message[];
 
@@ -859,7 +871,7 @@ export class AgentNode extends BaseNode {
     default: "",
     title: "Thread ID",
     description:
-      "Identifier for a persistent conversation thread. When set, the agent loads all earlier messages stored under this ID before this turn and saves the new user message, assistant reply, and any tool messages back to it — giving the agent long‑term memory across runs and across nodes that share the same ID. Leave empty for a stateless one‑shot call. Use the Create Thread node to mint a fresh ID, or wire in the same string from upstream to continue an existing conversation."
+      "Identifier for a persistent conversation thread. Loop mode only — plan mode rejects a thread_id. When set, the agent loads all earlier messages stored under this ID before this turn and saves the new user message, assistant reply, and any tool messages back to it — giving the agent long‑term memory across runs and across nodes that share the same ID. Leave empty for a stateless one‑shot call. Use the Create Thread node to mint a fresh ID, or wire in the same string from upstream to continue an existing conversation."
   })
   declare thread_id: string;
 
@@ -868,7 +880,7 @@ export class AgentNode extends BaseNode {
     default: AGENT_DEFAULT_MAX_TOKENS,
     title: "Max Tokens",
     description:
-      "Upper bound on generated tokens per response, including visible output and any reasoning/thinking tokens used by reasoning models. Higher values allow longer answers and more thinking headroom but cost more and take longer; very low values may truncate reasoning or the final answer. Typical values: 1024 for short answers, 8192–16384 for normal agent use, 32k+ for long-form or heavy reasoning. Must be within the chosen model's context window.",
+      "Upper bound on generated tokens per response, including visible output and any reasoning/thinking tokens used by reasoning models. Applies in loop mode; plan mode's step executor does not expose a per-call token budget, so this is ignored there. Higher values allow longer answers and more thinking headroom but cost more and take longer; very low values may truncate reasoning or the final answer. Typical values: 1024 for short answers, 8192–16384 for normal agent use, 32k+ for long-form or heavy reasoning. Must be within the chosen model's context window.",
     min: 1,
     max: 100000
   })
@@ -1389,6 +1401,26 @@ export class AgentNode extends BaseNode {
     providerId: string,
     modelId: string
   ): AsyncGenerator<Record<string, unknown>> {
+    // Plan mode runs a fresh planning agent off the objective — it has no
+    // conversation transcript, thread persistence, or media attachment path.
+    // Reject those inputs loudly instead of silently dropping them (the old
+    // behavior); they only apply in loop mode.
+    const threadId = String(this.thread_id ?? "").trim();
+    const history = Array.isArray(this.history) ? this.history : [];
+    const images = toRefArray(this.image);
+    const audios = toRefArray(this.audio);
+    if (
+      threadId ||
+      history.length > 0 ||
+      images.length > 0 ||
+      audios.length > 0
+    ) {
+      throw new Error(
+        "thread_id, history, image, and audio inputs only apply in loop mode. " +
+          'Set Mode to "loop" to use conversation history, threads, or image/audio inputs.'
+      );
+    }
+
     const prompt = asText(this.prompt ?? "");
     const system = asText(this.system ?? DEFAULT_SYSTEM_PROMPT);
     const rawTools: ToolLike[] = await this.buildTools(context);
@@ -1416,6 +1448,11 @@ export class AgentNode extends BaseNode {
       systemPrompt: system,
       outputSchema: structuredSchema ?? undefined,
       planningModel: modelId,
+      // maxSteps caps the *number of plan steps* the executor will run
+      // (`stepsTaken < maxSteps` in TaskExecutor), not the per-step tool-call
+      // iteration count. The node's `max_turns` is a turn/iteration budget, so
+      // it maps to maxStepIterations semantics, not maxSteps — deriving maxSteps
+      // from max_turns would conflate plan size with turn count. Kept fixed here.
       maxSteps: 10,
       maxStepIterations: 5
     });
@@ -1606,11 +1643,12 @@ export class AgentStepNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     throw new Error(
-      "AgentStep cannot run via the standard workflow runner — it depends on " +
-        "the agent runner's configured provider/model. Use this node only in " +
-        "agent-mode workflows (chat in agent mode, or AgentWorkflowRunner). " +
-        "For a standalone LLM step with its own model property, use " +
-        "`nodetool.agents.Agent` instead."
+      "AgentStep is not a standalone node — do not add it to a graph by hand. " +
+        "It is inserted by GraphPlanner and executed by AgentWorkflowRunner, " +
+        "which supplies the workflow's configured provider/model; it has no " +
+        "`model` property of its own, so the standard workflow runner cannot " +
+        "run it. For a standalone LLM step you place yourself, use " +
+        "`nodetool.agents.Agent` (it has its own model property) instead."
     );
   }
 }

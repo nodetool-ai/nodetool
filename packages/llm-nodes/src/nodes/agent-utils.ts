@@ -51,23 +51,6 @@ export function asText(value: unknown): string {
   return "";
 }
 
-export function summarize(text: string, maxSentences: number): string {
-  const parts = text
-    .split(/(?<=[.!?])\s+/)
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
-  if (parts.length === 0) return "";
-  return parts.slice(0, Math.max(1, maxSentences)).join(" ");
-}
-
-export function tokenize(text: string): string[] {
-  return text
-    .toLowerCase()
-    .split(/[^a-z0-9]+/)
-    .map((t) => t.trim())
-    .filter((t) => t.length > 0);
-}
-
 export function extractJson(text: string): Record<string, unknown> | null {
   try {
     const parsed = JSON.parse(text);
@@ -268,9 +251,13 @@ export async function* streamProviderMessages(
   }
 }
 
+/**
+ * Map a model's raw classification output to one of the allowed categories.
+ * Tries the parsed JSON `category` field (case-insensitive exact match) first,
+ * then a substring-containment scan of the raw text. Throws if neither matches
+ * — never invents an answer by defaulting to the first category.
+ */
 export function parseCategory(raw: string, categories: string[]): string {
-  if (categories.length === 0) return "Unknown";
-
   const parsed = extractJson(raw);
   const categoryValue =
     typeof parsed?.category === "string" ? parsed.category : "";
@@ -287,13 +274,12 @@ export function parseCategory(raw: string, categories: string[]): string {
     }
   }
 
-  for (const fallback of ["other", "unknown"]) {
-    for (const category of categories) {
-      if (category.trim().toLowerCase() === fallback) return category;
-    }
-  }
-
-  return categories[0];
+  const preview = raw.length > 200 ? `${raw.slice(0, 200)}…` : raw;
+  throw new Error(
+    `Classifier could not map the model output to an allowed category. ` +
+      `Model output: ${JSON.stringify(preview)}. ` +
+      `Allowed categories: ${categories.join(", ")}.`
+  );
 }
 
 export function messageContentText(content: Message["content"] | unknown): string {
