@@ -16,16 +16,19 @@ export function makePlaceholderNode(nodeType: string): NodeClass {
     static readonly inputFields = [];
 
     async process(): Promise<Record<string, unknown>> {
-      return { output: (this as any).value ?? this.serialize() };
+      return { output: this.getDynamic("value") ?? this.serialize() };
     }
   }
 
   return PlaceholderNode as unknown as NodeClass;
 }
 
-export const EXTENDED_PLACEHOLDER_NODE_TYPES = tagAsUniversal([]);
+/**
+ * Node types that currently need a generated placeholder. Empty today; add
+ * fully-qualified node type strings here to register stand-ins for them.
+ */
+export const EXTENDED_PLACEHOLDER_NODE_TYPES: string[] = [];
 
-export const EXTENDED_PLACEHOLDER_NODES: NodeClass[] =
-  EXTENDED_PLACEHOLDER_NODE_TYPES.map((nodeType) =>
-    makePlaceholderNode(nodeType)
-  );
+export const EXTENDED_PLACEHOLDER_NODES: NodeClass[] = tagAsUniversal(
+  EXTENDED_PLACEHOLDER_NODE_TYPES.map((nodeType) => makePlaceholderNode(nodeType))
+);
