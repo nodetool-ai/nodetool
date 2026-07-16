@@ -1,0 +1,25 @@
+# Cache headers for statically-served assets (Cloudflare Workers Assets).
+# Next's hashed /_next/static/* files are already immutable; these rules cover
+# the un-hashed media in public/, which Lighthouse flagged for short cache
+# lifetimes. Filenames here are stable, and content changes ship under new
+# names, so a long max-age is safe.
+
+# Long-lived, effectively immutable assets (fonts, icons).
+/*.woff2
+  Cache-Control: public, max-age=31536000, immutable
+/*.ico
+  Cache-Control: public, max-age=31536000, immutable
+/*.svg
+  Cache-Control: public, max-age=31536000, immutable
+
+# Images and video: long cache, revalidated so an in-place update is picked up.
+/*.webp
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=86400
+/*.png
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=86400
+/*.jpg
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=86400
+/*.gif
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=86400
+/*.mp4
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=86400

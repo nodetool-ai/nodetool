@@ -65,7 +65,7 @@ export default function AssetManagerSection() {
               className={`overflow-hidden rounded-lg border border-blue-800/30 ${strongShadow}`}
             >
               <Image
-                src="/screen_assets.png"
+                src="/screen_assets.webp"
                 alt="NodeTool Asset Manager interface preview"
                 width={1448}
                 height={1083}
