@@ -61,7 +61,6 @@ vi.mock("../../src/providers/anthropic-provider.js", () => ({
 vi.mock("openai", () => ({
   default: class {
     responses = { create: h.responsesCreate };
-    constructor(_opts?: unknown) {}
   }
 }));
 
@@ -72,7 +71,8 @@ function jsonResponse(body: unknown, ok = true, status = 200): Response {
   return {
     ok,
     status,
-    json: async () => body
+    json: async () => body,
+    text: async () => JSON.stringify(body)
   } as unknown as Response;
 }
 
@@ -386,22 +386,68 @@ describe("KieProvider — requireApiKey", () => {
 });
 
 describe("KieProvider — textToImage", () => {
-  it("submits width and height and returns the downloaded bytes", async () => {
+  it("sends only declared fields and derives aspect ratio from width/height", async () => {
     const { createdInputs } = mockKieFlow();
     const p = new KieProvider({ KIE_API_KEY: "k" });
+    // google/imagen4 declares prompt, negative_prompt, aspect_ratio, seed.
     const params: TextToImageParams = {
       prompt: "a fox",
-      width: 512,
-      height: 768,
-      model: { id: "flux/schnell", name: "Flux", provider: "kie" }
+      width: 1920,
+      height: 1080,
+      negativePrompt: "blurry",
+      seed: 42,
+      model: { id: "google/imagen4", name: "Imagen 4", provider: "kie" }
     };
     const bytes = await p.textToImage(params);
     expect(bytes).toEqual(new Uint8Array([7, 7, 7]));
     expect(createdInputs[0]).toMatchObject({
       prompt: "a fox",
-      width: 512,
-      height: 768
+      negative_prompt: "blurry",
+      seed: 42,
+      // 1920:1080 = 16:9, the nearest declared enum ratio.
+      aspect_ratio: "16:9"
     });
+    expect(createdInputs[0].width).toBeUndefined();
+    expect(createdInputs[0].height).toBeUndefined();
+  });
+
+  it("passes a declared aspect ratio through and never sends width/height", async () => {
+    const { createdInputs } = mockKieFlow();
+    const p = new KieProvider({ KIE_API_KEY: "k" });
+    await p.textToImage({
+      prompt: "a fox",
+      aspectRatio: "3:4",
+      width: 100,
+      height: 100,
+      model: { id: "google/imagen4", name: "Imagen 4", provider: "kie" }
+    });
+    expect(createdInputs[0].aspect_ratio).toBe("3:4");
+    expect(createdInputs[0].width).toBeUndefined();
+    expect(createdInputs[0].height).toBeUndefined();
+  });
+
+  it("sends only the prompt for an unknown model", async () => {
+    const { createdInputs } = mockKieFlow();
+    const p = new KieProvider({ KIE_API_KEY: "k" });
+    await p.textToImage({
+      prompt: "x",
+      width: 512,
+      height: 512,
+      negativePrompt: "no",
+      model: { id: "flux/schnell", name: "Flux", provider: "kie" }
+    });
+    expect(createdInputs[0]).toEqual({ prompt: "x" });
+  });
+
+  it("throws when the prompt is missing", async () => {
+    mockKieFlow();
+    const p = new KieProvider({ KIE_API_KEY: "k" });
+    await expect(
+      p.textToImage({
+        prompt: "",
+        model: { id: "google/imagen4", name: "Imagen 4", provider: "kie" }
+      })
+    ).rejects.toThrow("Prompt is required");
   });
 });
 
@@ -436,36 +482,200 @@ describe("KieProvider — textToVideo", () => {
   });
 });
 
-describe("KieProvider — textToMusic", () => {
-  it("submits lyrics and rounded duration, returns encoded audio", async () => {
+interface SunoFlowOptions {
+  status?: string;
+  audioBytes?: Uint8Array;
+}
+
+/**
+ * Routes the Suno music flow (submit → generate/record-info → audio download).
+ * generate-music/generate-sounds submit to `/api/v1/generate[/sounds]` and poll
+ * `/api/v1/generate/record-info`; the submit path is a prefix of the poll path,
+ * so match record-info first. Captures the submit URL + body.
+ */
+function mockSunoFlow(opts: SunoFlowOptions = {}) {
+  const submitted: Array<Record<string, unknown>> = [];
+  const submitUrls: string[] = [];
+  const audio = opts.audioBytes ?? new Uint8Array([0xff, 0xfb, 0x90, 0x00]);
+  const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+    const u = String(url);
+    if (u.includes("/generate/record-info")) {
+      return jsonResponse({
+        data: {
+          status: opts.status ?? "SUCCESS",
+          response: { sunoData: [{ audioUrl: "https://kie.suno/out.mp3" }] }
+        }
+      });
+    }
+    if (u.includes("/api/v1/generate")) {
+      submitUrls.push(u);
+      submitted.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+      return jsonResponse({ data: { taskId: "suno-1" } });
+    }
+    return {
+      ok: true,
+      headers: new Headers(),
+      arrayBuffer: async () => audio.buffer
+    } as unknown as Response;
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  return { fetchMock, submitted, submitUrls };
+}
+
+describe("KieProvider — textToMusic (Suno)", () => {
+  it("submits non-custom mode with the prompt and a filled model default", async () => {
     const mp3 = new Uint8Array([0xff, 0xfb, 0x90, 0x00]);
-    const { createdInputs } = mockKieFlow({ downloadBytes: mp3 });
+    const { submitted, submitUrls } = mockSunoFlow({ audioBytes: mp3 });
     const p = new KieProvider({ KIE_API_KEY: "k" });
     const params: TextToMusicParams = {
-      prompt: "lofi beat",
-      lyrics: "la la la",
-      durationSeconds: 30.6,
-      model: { id: "suno/v5", name: "Suno", provider: "kie" }
+      prompt: "a calm piano tune",
+      model: { id: "generate-music", name: "Generate Music", provider: "kie" }
     };
     const result = await p.textToMusic(params);
     expect(result.mimeType).toBe("audio/mpeg");
     expect(result.data).toEqual(mp3);
-    expect(createdInputs[0]).toMatchObject({
-      prompt: "lofi beat",
-      lyrics: "la la la",
-      duration: 31
+    // Suno submit, not the generic jobs createTask endpoint.
+    expect(submitUrls[0]).toContain("/api/v1/generate");
+    expect(submitUrls[0]).not.toContain("/jobs/createTask");
+    expect(submitted[0]).toMatchObject({
+      prompt: "a calm piano tune",
+      customMode: false,
+      instrumental: false,
+      model: "V4",
+      callBackUrl: "https://nodetool.ai/kie-callback"
     });
   });
 
+  it("uses custom mode when lyrics are supplied", async () => {
+    const { submitted } = mockSunoFlow();
+    const p = new KieProvider({ KIE_API_KEY: "k" });
+    await p.textToMusic({
+      prompt: "jazzy, upbeat",
+      lyrics: "la la la",
+      model: { id: "generate-music", name: "Generate Music", provider: "kie" }
+    });
+    expect(submitted[0]).toMatchObject({
+      customMode: true,
+      prompt: "la la la",
+      style: "jazzy, upbeat",
+      instrumental: false,
+      model: "V4"
+    });
+  });
+
+  it("routes generate-sounds to its own Suno endpoint", async () => {
+    const { submitted, submitUrls } = mockSunoFlow();
+    const p = new KieProvider({ KIE_API_KEY: "k" });
+    await p.textToMusic({
+      prompt: "rain on a window",
+      model: { id: "generate-sounds", name: "Generate Sounds", provider: "kie" }
+    });
+    expect(submitUrls[0]).toContain("/api/v1/generate/sounds");
+    expect(submitted[0]).toMatchObject({
+      prompt: "rain on a window",
+      model: "V5"
+    });
+  });
+
+  it("fails fast on a terminal failure status", async () => {
+    mockSunoFlow({ status: "SENSITIVE_WORD_ERROR" });
+    const p = new KieProvider({ KIE_API_KEY: "k" });
+    await expect(
+      p.textToMusic({
+        prompt: "x",
+        model: { id: "generate-music", name: "Generate Music", provider: "kie" }
+      })
+    ).rejects.toThrow("SENSITIVE_WORD_ERROR");
+  });
+
   it("throws when the prompt is missing", async () => {
-    mockKieFlow();
+    mockSunoFlow();
     const p = new KieProvider({ KIE_API_KEY: "k" });
     await expect(
       p.textToMusic({
         prompt: "",
-        model: { id: "suno/v5", name: "Suno", provider: "kie" }
+        model: { id: "generate-music", name: "Generate Music", provider: "kie" }
       })
     ).rejects.toThrow("Prompt is required");
+  });
+});
+
+describe("KieProvider — HTTP-200 error envelope", () => {
+  const imageModel = {
+    id: "flux/schnell",
+    name: "Flux",
+    provider: "kie" as const
+  };
+
+  it("surfaces a code envelope returned by createTask", async () => {
+    const fetchMock = vi.fn(async (url: string) => {
+      if (String(url).includes("/jobs/createTask")) {
+        return jsonResponse({ code: 402, msg: "no credits" });
+      }
+      return jsonResponse({});
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const p = new KieProvider({ KIE_API_KEY: "k" });
+    await expect(
+      p.textToImage({ prompt: "x", model: imageModel })
+    ).rejects.toThrow("Insufficient Credits");
+  });
+
+  it("fails fast on a code envelope returned while polling", async () => {
+    let recordCalls = 0;
+    const fetchMock = vi.fn(async (url: string) => {
+      const u = String(url);
+      if (u.includes("/jobs/createTask")) {
+        return jsonResponse({ data: { taskId: "t" } });
+      }
+      if (u.includes("/jobs/recordInfo")) {
+        recordCalls += 1;
+        return jsonResponse({ code: 500, msg: "boom" });
+      }
+      return jsonResponse({});
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const p = new KieProvider({ KIE_API_KEY: "k" });
+    await expect(
+      p.textToImage({ prompt: "x", model: imageModel })
+    ).rejects.toThrow("Server Error");
+    // One poll, then immediate failure — not a full-timeout hang.
+    expect(recordCalls).toBe(1);
+  });
+});
+
+describe("KieProvider — timeoutSeconds bounds poll attempts", () => {
+  it("derives max attempts from timeoutSeconds and the model poll interval", async () => {
+    vi.useFakeTimers();
+    let recordCalls = 0;
+    const fetchMock = vi.fn(async (url: string) => {
+      const u = String(url);
+      if (u.includes("/jobs/createTask")) {
+        return jsonResponse({ data: { taskId: "t" } });
+      }
+      if (u.includes("/jobs/recordInfo")) {
+        recordCalls += 1;
+        return jsonResponse({ data: { state: "processing" } });
+      }
+      return jsonResponse({});
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const p = new KieProvider({ KIE_API_KEY: "k" });
+    // kling declares pollInterval 8000ms → ceil(20000 / 8000) = 3 attempts.
+    const promise = p.textToVideo({
+      prompt: "x",
+      timeoutSeconds: 20,
+      model: {
+        id: "kling/v2-1-master-image-to-video",
+        name: "Kling",
+        provider: "kie"
+      }
+    });
+    const assertion = expect(promise).rejects.toThrow("timed out");
+    await vi.runAllTimersAsync();
+    await assertion;
+    expect(recordCalls).toBe(3);
+    vi.useRealTimers();
   });
 });
 
