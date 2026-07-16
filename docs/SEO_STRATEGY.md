@@ -66,6 +66,40 @@ you own" is the argument acquisitions make for us.
 Watch queries (GSC, weekly, alongside the §0.2 set): "weavy alternative", "figma weave
 alternative", "figma weave pricing", "figma weave vs", "open source figma weave".
 
+## 0.10 Second capture wave (2026-07-16)
+
+Shipped the same day as §0.9, extending the same playbooks to the rest of the 2026 landscape:
+
+- **Four competitor entries** (`competitorEntries.ts`, all `isNew`): `/vs/firefly-graph` (Adobe's
+  Project Graph → Firefly Graph — copy carries both names, same rename-capture logic as §0.9),
+  `/vs/freepik-spaces` (Freepik rebranded company-wide to **Magnific** on 2026-04-28 — the copy
+  states it and an FAQ row targets "is freepik now magnific"; if "magnific spaces" queries
+  materialize, a dedicated slug can follow the figma-weave pattern), `/vs/higgsfield`, and
+  `/vs/openart`. Pricing copy avoids exact dollar figures — tiers and mechanisms only, with
+  "check their current pricing" hedges — so the pages don't rot with plan changes.
+- **Three task hubs** (`taskEntries.ts`): `/tasks/ai-b-roll` ("ai b-roll generator" — one of the
+  most-searched editor-tool queries of 2026), `/tasks/ai-storyboard`, and
+  `/tasks/consistent-characters` ("consistent character ai video" — a workflow-shaped query a
+  node canvas answers better than single-shot tools). Template matchers verified against
+  `templateEntries.generated.ts`; model lists reuse version strings already in the data files.
+- **`/node-based-ai-editor`** — the §0.2 fix. A dedicated page for the site's only ranking
+  non-branded cluster ("ai node editor" and variants, ~5k impressions stuck at position 7–9 on the
+  homepage), with the exact phrase in title/h1/hero, definitional section for the informational
+  intent, links into `/vs/*`, and SoftwareApplication + FAQPage JSON-LD. In the footer Product
+  column. Watch whether it takes over the cluster's impressions from the homepage.
+- **Model roster freshness** (`modelEntries.ts`): added `/models/nano-banana` (the Gemini image
+  family — very high search volume, provider coverage confirmed: atlascloud/fal/kie/replicate) and
+  `/models/grok-imagine` (xAI, kie/replicate). Updated Seedance copy for 2.0 (native audio,
+  reference-to-video) and Kling resolution for 3.0; fixed a dead `templateSlug` ("movie-trailers" →
+  "movie-trailer-generator") that 404'd the featured-workflow link on all six video model pages.
+  Process note: a new model slug needs a keyword entry in `generate-model-coverage.mjs` plus
+  `npm run seo:model-coverage`, or the page renders an empty provider table.
+
+Watch queries: "firefly graph alternative", "project graph adobe", "freepik spaces alternative",
+"magnific ai", "higgsfield alternative", "openart alternative", "ai b-roll generator", "ai
+storyboard generator", "consistent character ai video", "nano banana", "grok imagine", and the
+§0.2 "ai node editor" cluster (expect the new page to absorb it).
+
 ## 0. What Search Console actually says (audit 2026-07-02)
 
 Everything below §0 was written from a content audit. This section is the first pass with real

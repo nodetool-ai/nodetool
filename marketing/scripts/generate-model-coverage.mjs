@@ -66,6 +66,8 @@ const MODELS = {
   flux: { kind: "image", keywords: ["flux"] },
   "gpt-image": { kind: "image", keywords: ["gpt-image", "gpt image"] },
   imagen: { kind: "image", keywords: ["imagen"] },
+  "nano-banana": { kind: "image", keywords: ["nano-banana", "nano banana"] },
+  "grok-imagine": { kind: "video", keywords: ["grok-imagine", "grok imagine", "grok_imagine"] },
 };
 
 /** outputType values that count for each model kind (mirrors buildImageModels/buildVideoModels). */

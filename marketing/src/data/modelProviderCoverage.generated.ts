@@ -15,4 +15,6 @@ export const modelProviderCoverage: Record<string, string[]> = {
   "flux": ["fal_ai","kie","replicate","together"],
   "gpt-image": ["atlascloud","fal_ai","kie","replicate"],
   "imagen": ["fal_ai","kie","replicate","together"],
+  "nano-banana": ["atlascloud","fal_ai","kie","replicate"],
+  "grok-imagine": ["kie","replicate"],
 };

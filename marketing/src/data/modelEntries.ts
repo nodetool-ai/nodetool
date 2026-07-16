@@ -8,6 +8,12 @@
  *
  * Launch set: Seedance, Veo 3, Kling, Sora, Hailuo, Wan (video), Seedream,
  * FLUX, GPT-Image, Imagen (image) — all verified present in `packages/*-nodes`.
+ *
+ * Added later: Nano Banana (image) and Grok Imagine (image/video) — both
+ * verified present in `packages/*-nodes` manifests and wired into `MODELS` in
+ * `scripts/generate-model-coverage.mjs`. New slugs need a keyword entry there
+ * plus `npm run seo:model-coverage`, or their pages render with an empty
+ * provider list.
  */
 import type { PageEntry } from "./types";
 import { yearToken } from "./types";
@@ -122,7 +128,7 @@ export const modelEntries: ModelEntry[] = [
       },
     ],
     showcaseSlugs: ["veo-3", "veo3", "veo-3-fast", "veo3-fast"],
-    templateSlug: "movie-trailers",
+    templateSlug: "movie-trailer-generator",
   }),
   model({
     slug: "sora",
@@ -158,7 +164,7 @@ export const modelEntries: ModelEntry[] = [
       },
     ],
     showcaseSlugs: ["sora", "sora-2", "sora2", "sora-2-pro"],
-    templateSlug: "movie-trailers",
+    templateSlug: "movie-trailer-generator",
   }),
   model({
     slug: "kling",
@@ -176,7 +182,7 @@ export const modelEntries: ModelEntry[] = [
     facts: [
       { label: "Modality", value: "Image-to-video and text-to-video" },
       { label: "Clip length", value: "Up to ~10s, extendable" },
-      { label: "Resolution", value: "Up to 1080p" },
+      { label: "Resolution", value: "Up to 4K (Kling 3.0)" },
       { label: "Modes", value: "Standard / pro, start-end frame" },
     ],
     faq: [
@@ -194,7 +200,7 @@ export const modelEntries: ModelEntry[] = [
       },
     ],
     showcaseSlugs: ["kling", "kling-2", "kling-pro", "kling-o3"],
-    templateSlug: "movie-trailers",
+    templateSlug: "movie-trailer-generator",
   }),
   model({
     slug: "seedance",
@@ -205,24 +211,25 @@ export const modelEntries: ModelEntry[] = [
     tagline:
       "Run ByteDance's Seedance in a visual AI workflow — fast, high-motion text- and image-to-video, BYOK at provider prices.",
     blurb: [
-      "Seedance is ByteDance's video model, built for lively motion and quick turnaround. Its lite and pro tiers trade speed against fidelity, and it handles both text-to-video and image-to-video, which makes it a practical default for iterating on a shot before committing to a slower model.",
+      "Seedance is ByteDance's video model, built for lively motion and quick turnaround. Its lite and pro tiers trade speed against fidelity, and it handles both text-to-video and image-to-video, which makes it a practical default for iterating on a shot before committing to a slower model. Seedance 2.0 adds native audio — dialogue, sound effects, and music generated with the clip — plus a reference-to-video mode that takes multiple reference images, videos, or audio clips in one prompt.",
       "As a NodeTool node, Seedance slots into the same graph as your prompt writer, reference images, and post-processing. Because every model here shares one interface, you can A/B Seedance against Veo or Kling on the same prompt without rebuilding the pipeline.",
       "Seedance is BYOK. The table below — generated from the node manifests — shows which providers serve it and under which ids.",
     ],
     facts: [
       { label: "Modality", value: "Text-to-video and image-to-video" },
-      { label: "Tiers", value: "Lite (fast) and pro (higher fidelity)" },
-      { label: "Clip length", value: "~5–10s" },
+      { label: "Tiers", value: "Lite (fast), pro (higher fidelity), 2.0 (native audio)" },
+      { label: "Clip length", value: "~5–15s" },
       { label: "Resolution", value: "Up to 1080p" },
+      { label: "Native audio", value: "Yes, in Seedance 2.0" },
     ],
     faq: [
       {
         q: "What is Seedance best at?",
-        a: "High-motion clips generated quickly. The lite tier is fast enough for rapid iteration; the pro tier raises fidelity for a final render.",
+        a: "High-motion clips generated quickly. The lite tier is fast enough for rapid iteration, the pro tier raises fidelity for a final render, and 2.0 adds synchronized native audio.",
       },
       {
         q: "Does Seedance support image-to-video?",
-        a: "Yes. Both text-to-video and image-to-video endpoints are available as nodes in NodeTool.",
+        a: "Yes. Text-to-video, image-to-video, and — in 2.0 — a reference-to-video mode that accepts multiple images, videos, or audio clips are all available as nodes in NodeTool.",
       },
       {
         q: "How do I compare Seedance to other video models?",
@@ -230,7 +237,7 @@ export const modelEntries: ModelEntry[] = [
       },
     ],
     showcaseSlugs: ["seedance", "seedance-pro", "seedance-lite", "seedance-1"],
-    templateSlug: "movie-trailers",
+    templateSlug: "movie-trailer-generator",
   }),
   model({
     slug: "hailuo",
@@ -266,7 +273,7 @@ export const modelEntries: ModelEntry[] = [
       },
     ],
     showcaseSlugs: ["hailuo", "hailuo-2", "hailuo-02", "minimax-hailuo"],
-    templateSlug: "movie-trailers",
+    templateSlug: "movie-trailer-generator",
   }),
   model({
     slug: "wan",
@@ -302,7 +309,7 @@ export const modelEntries: ModelEntry[] = [
       },
     ],
     showcaseSlugs: ["wan", "wan-2", "wan-22", "wan2"],
-    templateSlug: "movie-trailers",
+    templateSlug: "movie-trailer-generator",
   }),
   model({
     slug: "flux",
@@ -455,6 +462,88 @@ export const modelEntries: ModelEntry[] = [
     ],
     showcaseSlugs: ["imagen", "imagen-3", "imagen-4", "imagen4"],
     templateSlug: "movie-posters",
+  }),
+  model({
+    slug: "nano-banana",
+    name: "Nano Banana",
+    vendor: "Google DeepMind",
+    modality: "text-to-image",
+    accent: "amber",
+    tagline:
+      "Run Google DeepMind's Nano Banana in a visual AI workflow — the Gemini image family for fast edits and 4K Pro renders, BYOK at provider prices.",
+    blurb: [
+      "Nano Banana is Google DeepMind's nickname for its Gemini image-generation line: Nano Banana (Gemini 2.5 Flash Image), Nano Banana Pro (Gemini 3 Pro Image), and Nano Banana 2 (Gemini 3.1 Flash Image). All three follow detailed instructions closely, keep a subject consistent across edits, and render legible text directly in the image rather than garbling it.",
+      "Each tier is also an editing model, not just a generator — give it an existing image and a text instruction and it revises the image in place. In NodeTool that means a generate-then-edit graph is two nodes, not two tools: produce a first pass, wire the output into an edit node with a follow-up instruction, and iterate without leaving the canvas.",
+      "Nano Banana is BYOK — bring a key for a provider that serves it and pay their list price. The provider table below is generated from the node manifests.",
+    ],
+    facts: [
+      { label: "Modality", value: "Text-to-image and image editing" },
+      {
+        label: "Tiers",
+        value: "Nano Banana, Nano Banana Pro (Gemini 3 Pro Image), Nano Banana 2",
+      },
+      { label: "Resolution", value: "Up to 4K (Pro tier)" },
+      { label: "Reference images", value: "Up to 14 in one prompt (Pro)" },
+    ],
+    faq: [
+      {
+        q: "What is Nano Banana?",
+        a: "Nano Banana is the common name for Google DeepMind's Gemini image models — Gemini 2.5 Flash Image, Gemini 3 Pro Image (Nano Banana Pro), and Gemini 3.1 Flash Image (Nano Banana 2). In NodeTool each tier is a separate image node.",
+      },
+      {
+        q: "Can Nano Banana edit an existing image?",
+        a: "Yes — editing is a core capability, not an add-on. Feed it an image plus an instruction and it revises the image while keeping the rest intact.",
+      },
+      {
+        q: "What does Nano Banana Pro add over the original?",
+        a: "Higher resolution output (up to 4K vs. 2K), up to 14 reference images in one prompt, and stronger in-image text rendering for posters, diagrams, and infographics.",
+      },
+      {
+        q: "How do I run Nano Banana in NodeTool?",
+        a: "Add the Nano Banana node to a workflow, connect a text prompt, and run. NodeTool routes the call to a provider you have a key for.",
+      },
+    ],
+    showcaseSlugs: ["nano-banana", "nano-banana-2", "nano-banana-pro", "gemini-3-pro-image"],
+    templateSlug: "movie-posters",
+  }),
+  model({
+    slug: "grok-imagine",
+    name: "Grok Imagine",
+    vendor: "xAI",
+    modality: "text-to-video",
+    accent: "violet",
+    tagline:
+      "Run xAI's Grok Imagine in a visual AI workflow — text- and image-to-video with native audio, plus a matching image generator, BYOK at provider prices.",
+    blurb: [
+      "Grok Imagine is xAI's image and video model. The video side turns a prompt or a still image into a clip with native audio — dialogue, sound effects, and music generated in the same pass — and the image side (including a higher-fidelity \"Image Quality\" tier) handles straight text-to-image and image-to-image generation.",
+      "In NodeTool, Grok Imagine's video and image endpoints are separate nodes you can mix in one graph: generate a reference still, animate it into a clip, and route the result to an upscaler or a timeline — all re-runnable as a single workflow file.",
+      "Grok Imagine is BYOK. The provider table below is generated from the node manifests and matches each provider's `--list-models`.",
+    ],
+    facts: [
+      {
+        label: "Modality",
+        value: "Text-to-image, image-to-image, text-to-video, image-to-video",
+      },
+      { label: "Native audio", value: "Yes — dialogue, SFX, and music" },
+      { label: "Clip length", value: "~6–15s" },
+      { label: "Image resolution", value: "Up to 2K (Image Quality tier)" },
+    ],
+    faq: [
+      {
+        q: "Does Grok Imagine generate audio with its videos?",
+        a: "Yes. Audio is generated in the same pass as the video and stays in sync with the motion — no separate dubbing step.",
+      },
+      {
+        q: "Does Grok Imagine do images as well as video?",
+        a: "Yes. Its text-to-image and image-to-image endpoints are separate nodes in NodeTool, including a higher-resolution Image Quality tier.",
+      },
+      {
+        q: "How do I run Grok Imagine in NodeTool?",
+        a: "Add a Grok Imagine node — video or image — to a workflow, connect a prompt, and run. NodeTool routes the call to a provider you have a key for.",
+      },
+    ],
+    showcaseSlugs: ["grok-imagine", "grok-imagine-video", "grok-imagine-image"],
+    templateSlug: "movie-trailer-generator",
   }),
 ];
 
