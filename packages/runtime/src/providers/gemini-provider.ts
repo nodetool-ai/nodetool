@@ -146,7 +146,9 @@ const GEMINI_UNSUPPORTED_SCHEMA_KEYS = new Set([
   "patternProperties",
   "unevaluatedProperties",
   "dependentSchemas",
-  "dependentRequired"
+  "dependentRequired",
+  "exclusiveMinimum",
+  "exclusiveMaximum"
 ]);
 
 function isArraySchemaType(type: unknown): boolean {

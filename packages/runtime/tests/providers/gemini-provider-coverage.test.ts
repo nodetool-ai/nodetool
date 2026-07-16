@@ -307,6 +307,37 @@ describe("GeminiProvider – formatTools deduplication", () => {
     const { geminiTools } = provider.formatTools([]);
     expect(geminiTools).toEqual([]);
   });
+
+  it("strips JSON-Schema-only keys Gemini rejects from tool parameters", () => {
+    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" });
+
+    const { geminiTools } = provider.formatTools([
+      {
+        name: "set_value",
+        description: "test",
+        inputSchema: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            count: {
+              type: "integer",
+              minimum: 0,
+              exclusiveMinimum: 0,
+              exclusiveMaximum: 100
+            }
+          }
+        }
+      }
+    ]);
+
+    const params = geminiTools[0].functionDeclarations[0].parameters as any;
+    expect(params.additionalProperties).toBeUndefined();
+    expect(params.properties.count.exclusiveMinimum).toBeUndefined();
+    expect(params.properties.count.exclusiveMaximum).toBeUndefined();
+    // Supported constraints survive.
+    expect(params.properties.count.minimum).toBe(0);
+    expect(params.properties.count.type).toBe("integer");
+  });
 });
 
 describe("GeminiProvider – generateMessage error handling", () => {
