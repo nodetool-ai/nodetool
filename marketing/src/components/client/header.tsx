@@ -72,7 +72,7 @@ const Header: React.FC<HeaderProps> = ({ navigation, rightSlot }) => {
             <span className="sr-only">nodetool</span>
             <Image
               className="max-h-12 w-auto object-contain"
-              src="/logo_small.png"
+              src="/logo_small.webp"
               width={64}
               height={64}
               alt="nodetool"
@@ -138,7 +138,7 @@ const Header: React.FC<HeaderProps> = ({ navigation, rightSlot }) => {
             <Link href="/" className="-m-1.5 p-1.5">
               <Image
                 className="col-span-2 min-h-12 max-h-12 w-full object-contain lg:col-span-1"
-                src="/logo_small.png"
+                src="/logo_small.webp"
                 width={64}
                 height={64}
                 alt="nodetool"

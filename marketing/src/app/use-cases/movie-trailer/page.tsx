@@ -179,7 +179,7 @@ export default function MovieTrailerUseCase() {
               <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/60 p-2 shadow-2xl backdrop-blur-sm">
                 <video
                   src="/movie_trailer_example.mp4"
-                  poster="/trailer-shot-1.png"
+                  poster="/trailer-shot-1-800.webp"
                   className="aspect-video w-full rounded-xl"
                   autoPlay
                   loop
@@ -331,7 +331,7 @@ export default function MovieTrailerUseCase() {
             >
               <video
                 src="/movie_trailer_example.mp4"
-                poster="/trailer-shot-1.png"
+                poster="/trailer-shot-1-800.webp"
                 className="aspect-video w-full object-cover"
                 autoPlay
                 loop

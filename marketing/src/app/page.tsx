@@ -336,7 +336,7 @@ export default function Home() {
               <div className="relative rounded-2xl border border-slate-700/60 bg-slate-900/80 p-2 shadow-2xl shadow-amber-900/20 backdrop-blur-sm ring-1 ring-white/5 overflow-hidden">
                 <video
                   src="/demo.mp4"
-                  poster="/demo-poster.webp"
+                  poster="/demo-poster-960.webp"
                   width={1500}
                   height={1000}
                   className="block aspect-[3/2] h-auto w-full rounded-xl"
