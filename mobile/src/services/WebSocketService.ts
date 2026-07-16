@@ -156,7 +156,7 @@ class WebSocketService {
    * Send a message, connecting first if needed. The underlying manager queues
    * the message if a reconnect is in progress rather than dropping it.
    */
-  async send(message: unknown, path: string = '/ws'): Promise<void> {
+  async send(message: Record<string, unknown>, path: string = '/ws'): Promise<void> {
     await this.ensureConnection(path);
 
     if (!this.wsManager) {

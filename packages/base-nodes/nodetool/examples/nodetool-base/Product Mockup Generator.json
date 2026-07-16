@@ -199,7 +199,14 @@
         "id": "4",
         "type": "nodetool.image.ImageToImage",
         "data": {
-          "model": {},
+          "model": {
+            "type": "image_model",
+            "provider": "huggingface_fal_ai",
+            "id": "fal-ai/flux/schnell",
+            "name": "FLUX.1 Schnell",
+            "path": null,
+            "supported_tasks": []
+          },
           "negative_prompt": "",
           "strength": 0.65,
           "guidance_scale": 7.5,
@@ -257,7 +264,14 @@
         "id": "6",
         "type": "nodetool.generators.ListGenerator",
         "data": {
-          "model": {},
+          "model": {
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
+          },
           "input_text": "",
           "max_tokens": 100000
         },
@@ -303,7 +317,14 @@
         "id": "8",
         "type": "nodetool.agents.Agent",
         "data": {
-          "model": {},
+          "model": {
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
+          },
           "system": "You are a professional product photographer. Create compelling scene concepts.",
           "image": {
             "type": "image",
@@ -456,7 +477,14 @@
         "id": "15",
         "type": "nodetool.image.TextToImage",
         "data": {
-          "model": {},
+          "model": {
+            "type": "image_model",
+            "provider": "huggingface_fal_ai",
+            "id": "fal-ai/flux/schnell",
+            "name": "FLUX.1 Schnell",
+            "path": null,
+            "supported_tasks": []
+          },
           "negative_prompt": "",
           "width": 1200,
           "height": 1200,

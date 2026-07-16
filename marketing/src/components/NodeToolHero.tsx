@@ -1,5 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
+import Image from "next/image";
 import { Download, Play, Code2, KeyRound, Layers } from "lucide-react";
 import { SmartDownloadButton } from "../app/SmartDownloadButton";
 import { track } from "../lib/analytics";
@@ -94,15 +95,14 @@ export default function NodeToolHero() {
             }}
           />
           <div className="rounded-2xl border border-slate-700/60 bg-slate-900/80 p-1.5 shadow-2xl shadow-black/60 ring-1 ring-white/5 backdrop-blur">
-            <img
-              src="/screen_canvas.png"
+            <Image
+              src="/screen_canvas.webp"
               alt="NodeTool canvas: nodes for image, video, and text models wired together"
-              width={2000}
-              height={1320}
+              width={1200}
+              height={792}
               className="block h-auto w-full rounded-xl"
-              loading="eager"
-              decoding="async"
-              fetchPriority="high"
+              priority
+              sizes="(max-width: 1023px) 100vw, 58vw"
             />
           </div>
         </motion.div>

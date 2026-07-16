@@ -11,8 +11,8 @@ namespace: "nodetool.agents"
 
 ## Description
 
-Prompt-driven Supabase skill with guarded SELECT execution.
-    skills, data, supabase, query
+Query a Supabase database with plain-language requests (read-only SELECT).
+    agent, database, supabase, sql, query
 
 ## Properties
 

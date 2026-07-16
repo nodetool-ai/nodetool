@@ -11,8 +11,8 @@ namespace: "nodetool.agents"
 
 ## Description
 
-Prompt-driven email skill for IMAP/SMTP and message processing tasks.
-    skills, email, imap, smtp, messaging
+Read, send, and process email over IMAP and SMTP from a prompt.
+    agent, email, imap, smtp, messaging
 
 ## Properties
 

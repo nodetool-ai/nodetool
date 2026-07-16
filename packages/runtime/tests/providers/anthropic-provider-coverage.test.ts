@@ -20,7 +20,7 @@ function makeAsyncIterable(items: unknown[]) {
 describe("AnthropicProvider – constructor edge cases", () => {
   it("throws on empty/whitespace API key", () => {
     expect(() => new AnthropicProvider({ ANTHROPIC_API_KEY: "  " })).toThrow(
-      "ANTHROPIC_API_KEY is not configured"
+      "Anthropic authentication is not configured"
     );
   });
 
@@ -140,18 +140,59 @@ describe("AnthropicProvider – convertMessage branches", () => {
     expect((result as any).content[0].source.media_type).toBe("image/jpeg");
   });
 
-  it("falls back to image/png for a mime Anthropic does not accept", async () => {
+  it("rejects image media types Anthropic does not accept", async () => {
     const base64 = Buffer.from("test").toString("base64");
+    await expect(
+      provider.convertMessage({
+        role: "user",
+        content: [
+          {
+            type: "image_url",
+            image: { data: base64, mimeType: "application/octet-stream" }
+          }
+        ]
+      })
+    ).rejects.toThrow("does not support image media type");
+  });
+
+  it("converts PDF and text document blocks", async () => {
     const result = await provider.convertMessage({
       role: "user",
       content: [
         {
-          type: "image_url",
-          image: { data: base64, mimeType: "application/octet-stream" }
+          type: "document",
+          document: {
+            data: Buffer.from("pdf").toString("base64"),
+            mimeType: "application/pdf",
+            title: "Report"
+          },
+          citations: true
+        },
+        {
+          type: "document",
+          document: { data: "notes", mimeType: "text/plain" }
         }
       ]
     });
-    expect((result as any).content[0].source.media_type).toBe("image/png");
+    expect(result).toEqual({
+      role: "user",
+      content: [
+        {
+          type: "document",
+          source: {
+            type: "base64",
+            media_type: "application/pdf",
+            data: Buffer.from("pdf").toString("base64")
+          },
+          title: "Report",
+          citations: { enabled: true }
+        },
+        {
+          type: "document",
+          source: { type: "text", media_type: "text/plain", data: "notes" }
+        }
+      ]
+    });
   });
 
   it("strips Content-Type parameters from a fetched image mime", async () => {
@@ -245,6 +286,16 @@ describe("AnthropicProvider – convertMessage branches", () => {
     expect((result as any).content[0].content).toBe("result text");
   });
 
+  it("maps structured tool failures to is_error", async () => {
+    const result = await provider.convertMessage({
+      role: "tool",
+      content: "failed",
+      toolCallId: "tc1",
+      isError: true
+    });
+    expect((result as any).content[0].is_error).toBe(true);
+  });
+
   it("converts tool message with text + image content into blocks", async () => {
     const base64 = Buffer.from("png-bytes").toString("base64");
     const result = await provider.convertMessage({
@@ -285,7 +336,7 @@ describe("AnthropicProvider – prepareJsonSchema via formatTools", () => {
     { client: {} as any }
   );
 
-  it("strips unsupported JSON schema keywords", () => {
+  it("preserves JSON schema validation keywords", () => {
     const tools: ProviderTool[] = [
       {
         name: "tool",
@@ -319,14 +370,14 @@ describe("AnthropicProvider – prepareJsonSchema via formatTools", () => {
     const formatted = provider.formatTools(tools);
     const schema = formatted[0].input_schema as any;
 
-    // unsupported keywords should be removed
-    expect(schema.properties.items.items.default).toBeUndefined();
-    expect(schema.properties.items.items.minLength).toBeUndefined();
-    expect(schema.properties.items.minItems).toBeUndefined();
-    expect(schema.properties.items.maxItems).toBeUndefined();
-    expect(schema.properties.items.uniqueItems).toBeUndefined();
-    expect(schema.definitions.Foo.properties.n.minimum).toBeUndefined();
-    expect(schema.$defs.Bar.properties.s.maxLength).toBeUndefined();
+    expect(schema.properties.items.items.default).toBe("x");
+    expect(schema.properties.items.items.minLength).toBe(1);
+    expect(schema.properties.items.minItems).toBe(1);
+    expect(schema.properties.items.maxItems).toBe(10);
+    expect(schema.properties.items.uniqueItems).toBe(true);
+    expect(schema.definitions.Foo.properties.n.minimum).toBe(0);
+    expect(schema.definitions.Foo.properties.n.maximum).toBe(100);
+    expect(schema.$defs.Bar.properties.s.maxLength).toBe(50);
     // additionalProperties should be added to object types
     expect(schema.additionalProperties).toBe(false);
     expect(schema.definitions.Foo.additionalProperties).toBe(false);
@@ -341,6 +392,26 @@ describe("AnthropicProvider – prepareJsonSchema via formatTools", () => {
       type: "object",
       additionalProperties: false,
       properties: {}
+    });
+  });
+
+  it("maps Anthropic tool metadata", () => {
+    const [formatted] = provider.formatTools([
+      {
+        name: "lookup",
+        inputExamples: [{ id: "42" }],
+        cacheControl: { type: "ephemeral", ttl: "1h" },
+        strict: true,
+        deferLoading: true,
+        allowedCallers: ["direct"]
+      }
+    ]);
+    expect(formatted).toMatchObject({
+      input_examples: [{ id: "42" }],
+      cache_control: { type: "ephemeral", ttl: "1h" },
+      strict: true,
+      defer_loading: true,
+      allowed_callers: ["direct"]
     });
   });
 });
@@ -436,10 +507,10 @@ describe("AnthropicProvider – streaming thinking chunks", () => {
 
 describe("AnthropicProvider – getAvailableLanguageModels edge cases", () => {
   it("returns empty on non-OK response", async () => {
-    const fetchFn = vi.fn().mockResolvedValue({ ok: false, status: 500 });
+    const list = vi.fn().mockRejectedValue({ status: 404 });
     const provider = new AnthropicProvider(
       { ANTHROPIC_API_KEY: "k" },
-      { client: {} as any, fetchFn: fetchFn as any }
+      { client: { models: { list } } as any }
     );
 
     const models = await provider.getAvailableLanguageModels();
@@ -515,7 +586,9 @@ describe("AnthropicProvider – image fetch from remote URI", () => {
       ]
     });
     expect((result as any).content[0].source.media_type).toBe("image/jpeg");
-    expect(fetchFn).toHaveBeenCalledWith("https://example.com/img.jpg");
+    expect(fetchFn).toHaveBeenCalledWith("https://example.com/img.jpg", {
+      redirect: "manual"
+    });
   });
 
   it("throws when fetch fails", async () => {
@@ -748,7 +821,7 @@ describe("AnthropicProvider – extended thinking (T-RT-5)", () => {
       type: "enabled",
       budget_tokens: 10000
     });
-    expect(requestBody.max_tokens).toBe(11024);
+    expect(requestBody.max_tokens).toBe(10001);
   });
 
   it("does not include thinking config in non-streaming when not set", async () => {
@@ -768,5 +841,297 @@ describe("AnthropicProvider – extended thinking (T-RT-5)", () => {
 
     const requestBody = create.mock.calls[0][0];
     expect(requestBody.thinking).toBeUndefined();
+  });
+
+  it("maps adaptive thinking display and effort", async () => {
+    const create = vi.fn().mockResolvedValue({
+      content: [{ type: "text", text: "ok" }]
+    });
+    const provider = new AnthropicProvider(
+      { ANTHROPIC_API_KEY: "k" },
+      { client: { messages: { create } } as any }
+    );
+
+    await provider.generateMessage({
+      model: "claude-sonnet-5",
+      messages: [{ role: "user", content: "think" }],
+      thinking: { type: "adaptive", display: "omitted" },
+      effort: "high",
+      temperature: 0.2,
+      topP: 0.8
+    });
+
+    expect(create.mock.calls[0][0]).toMatchObject({
+      thinking: { type: "adaptive", display: "omitted" },
+      output_config: { effort: "high" }
+    });
+    expect(create.mock.calls[0][0].temperature).toBeUndefined();
+    expect(create.mock.calls[0][0].top_p).toBeUndefined();
+  });
+
+  it("rejects manual thinking on adaptive-only models", async () => {
+    const provider = new AnthropicProvider(
+      { ANTHROPIC_API_KEY: "k" },
+      { client: { messages: { create: vi.fn() } } as any }
+    );
+    await expect(
+      provider.generateMessage({
+        model: "claude-sonnet-5",
+        messages: [{ role: "user", content: "think" }],
+        thinking: { type: "manual", budgetTokens: 2048 }
+      })
+    ).rejects.toThrow("requires adaptive thinking");
+  });
+
+  it("joins multiple system messages without dropping one", async () => {
+    const create = vi.fn().mockResolvedValue({
+      content: [{ type: "text", text: "ok" }]
+    });
+    const provider = new AnthropicProvider(
+      { ANTHROPIC_API_KEY: "k" },
+      { client: { messages: { create } } as any }
+    );
+    await provider.generateMessage({
+      model: "claude-sonnet",
+      messages: [
+        { role: "system", content: "first" },
+        { role: "system", content: "second" },
+        { role: "user", content: "hello" }
+      ]
+    });
+    expect(create.mock.calls[0][0].system).toBe("first\n\nsecond");
+  });
+
+  it("allows deprecated manual thinking on Opus 4.6", async () => {
+    const create = vi.fn().mockResolvedValue({
+      content: [{ type: "text", text: "ok" }]
+    });
+    const provider = new AnthropicProvider(
+      { ANTHROPIC_API_KEY: "k" },
+      { client: { messages: { create } } as any }
+    );
+    await provider.generateMessage({
+      model: "claude-opus-4-6",
+      messages: [{ role: "user", content: "think" }],
+      thinking: { type: "manual", budgetTokens: 2048 }
+    });
+    expect(create.mock.calls[0][0].thinking).toEqual({
+      type: "enabled",
+      budget_tokens: 2048
+    });
+  });
+
+  it("rejects forced tool choice when model-default thinking is active", async () => {
+    const provider = new AnthropicProvider(
+      { ANTHROPIC_API_KEY: "k" },
+      { client: { messages: { create: vi.fn() } } as any }
+    );
+    await expect(
+      provider.generateMessage({
+        model: "claude-sonnet-5",
+        messages: [{ role: "user", content: "search" }],
+        tools: [{ name: "lookup" }],
+        toolChoice: "any"
+      })
+    ).rejects.toThrow("forced tool choice");
+  });
+
+  it("rejects disabling thinking on always-thinking models", async () => {
+    const provider = new AnthropicProvider(
+      { ANTHROPIC_API_KEY: "k" },
+      { client: { messages: { create: vi.fn() } } as any }
+    );
+    await expect(
+      provider.generateMessage({
+        model: "claude-fable-5",
+        messages: [{ role: "user", content: "hello" }],
+        thinking: { type: "disabled" }
+      })
+    ).rejects.toThrow("does not allow thinking to be disabled");
+  });
+
+  it("preserves non-streaming citation metadata", async () => {
+    const citation = {
+      type: "page_location",
+      cited_text: "source text",
+      document_index: 0,
+      document_title: "Report",
+      file_id: null,
+      start_page_number: 2,
+      end_page_number: 3
+    };
+    const create = vi.fn().mockResolvedValue({
+      content: [{ type: "text", text: "answer", citations: [citation] }]
+    });
+    const provider = new AnthropicProvider(
+      { ANTHROPIC_API_KEY: "k" },
+      { client: { messages: { create } } as any }
+    );
+    const message = await provider.generateMessage({
+      model: "claude-sonnet",
+      messages: [{ role: "user", content: "question" }]
+    });
+    expect(message.content).toEqual([
+      {
+        type: "text",
+        text: "answer",
+        citations: [
+          {
+            type: "page_location",
+            citedText: "source text",
+            documentIndex: 0,
+            documentTitle: "Report",
+            fileId: null,
+            startPageNumber: 2,
+            endPageNumber: 3
+          }
+        ]
+      }
+    ]);
+  });
+
+  it("emits a finalized structured message for streaming citations", async () => {
+    const stream = vi.fn().mockReturnValue(
+      makeAsyncIterable([
+        {
+          type: "content_block_start",
+          index: 0,
+          content_block: { type: "text", text: "", citations: [] }
+        },
+        {
+          type: "content_block_delta",
+          index: 0,
+          delta: { type: "text_delta", text: "answer" }
+        },
+        {
+          type: "content_block_delta",
+          index: 0,
+          delta: {
+            type: "citations_delta",
+            citation: {
+              type: "web_search_result_location",
+              cited_text: "source",
+              encrypted_index: "enc",
+              url: "https://example.com",
+              title: "Example"
+            }
+          }
+        }
+      ])
+    );
+    const provider = new AnthropicProvider(
+      { ANTHROPIC_API_KEY: "k" },
+      { client: { messages: { create: stream } } as any }
+    );
+    const items: unknown[] = [];
+    for await (const item of provider.generateMessages({
+      model: "claude-sonnet",
+      messages: [{ role: "user", content: "question" }]
+    })) {
+      items.push(item);
+    }
+    expect(items).toContainEqual({
+      type: "message",
+      message: {
+        role: "assistant",
+        content: [
+          {
+            type: "text",
+            text: "answer",
+            citations: [
+              {
+                type: "web_search_result_location",
+                citedText: "source",
+                encryptedIndex: "enc",
+                url: "https://example.com",
+                title: "Example"
+              }
+            ]
+          }
+        ]
+      }
+    });
+  });
+
+  it("rejects oversized inline images and mismatched document data URIs", async () => {
+    const provider = new AnthropicProvider(
+      { ANTHROPIC_API_KEY: "k" },
+      { client: {} as any }
+    );
+    await expect(
+      provider.convertMessage({
+        role: "user",
+        content: [
+          {
+            type: "image_url",
+            image: {
+              data: Buffer.alloc(5 * 1024 * 1024 + 1).toString("base64"),
+              mimeType: "image/png"
+            }
+          }
+        ]
+      })
+    ).rejects.toThrow("exceeds the 5 MB limit");
+    await expect(
+      provider.convertMessage({
+        role: "user",
+        content: [
+          {
+            type: "document",
+            document: {
+              data: "data:text/plain;base64,dGV4dA==",
+              mimeType: "application/pdf"
+            }
+          }
+        ]
+      })
+    ).rejects.toThrow("MIME mismatch");
+  });
+
+  it("preserves later server-tool blocks on earlier client tool calls", async () => {
+    const create = vi.fn().mockReturnValue(
+      makeAsyncIterable([
+        {
+          type: "content_block_start",
+          index: 0,
+          content_block: { type: "tool_use", id: "call", name: "lookup", input: {} }
+        },
+        { type: "content_block_stop", index: 0 },
+        {
+          type: "content_block_start",
+          index: 1,
+          content_block: { type: "server_tool_use", id: "server", name: "web_search", input: {} }
+        },
+        {
+          type: "content_block_start",
+          index: 2,
+          content_block: { type: "web_search_tool_result", tool_use_id: "server", content: [] }
+        }
+      ])
+    );
+    const provider = new AnthropicProvider(
+      { ANTHROPIC_API_KEY: "k" },
+      { client: { messages: { create } } as any }
+    );
+    const items: unknown[] = [];
+    for await (const item of provider.generateMessages({
+      model: "claude-sonnet",
+      messages: [{ role: "user", content: "search" }]
+    })) {
+      items.push(item);
+    }
+    const toolCall = items.find(
+      (item): item is { id: string; _anthropicContentBlocks: unknown[] } =>
+        typeof item === "object" &&
+        item !== null &&
+        "id" in item &&
+        item.id === "call" &&
+        "_anthropicContentBlocks" in item &&
+        Array.isArray(item._anthropicContentBlocks)
+    );
+    expect(toolCall?._anthropicContentBlocks).toHaveLength(3);
+    expect(toolCall?._anthropicContentBlocks[2]).toMatchObject({
+      type: "web_search_tool_result"
+    });
   });
 });

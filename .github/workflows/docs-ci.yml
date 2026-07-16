@@ -49,6 +49,15 @@ jobs:
             --no-enforce-https
         working-directory: ./docs
 
+      - name: Check agent documentation artifacts
+        run: |
+          set -euo pipefail
+          test -s docs/_site/llms.txt
+          test -s docs/_site/llms-full.txt
+          test -s docs/_site/cli.md
+          test -s docs/_site/nodes/catalog.json
+          node -e 'const c = require("./docs/_site/nodes/catalog.json"); if (c.schema_version !== "1" || c.nodes.length === 0) process.exit(1)'
+
       - name: Guard — no internal docs or developer paths in the published site
         run: |
           set -euo pipefail

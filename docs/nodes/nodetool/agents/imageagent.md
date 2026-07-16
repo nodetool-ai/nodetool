@@ -11,8 +11,8 @@ namespace: "nodetool.agents"
 
 ## Description
 
-Prompt-driven image skill for model-based image reasoning.
-    skills, image, agent, transform, extraction
+Analyze and transform images with a vision model from a prompt.
+    agent, image, vision, transform, analysis
 
 ## Properties
 

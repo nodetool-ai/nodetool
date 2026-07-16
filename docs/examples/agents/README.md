@@ -136,7 +136,7 @@ max_steps: 10
 **Model Selection:**
 - **Planning model**: Use a fast, cost-effective model (gpt-4o-mini)
 - **Main model**: Match the model to task complexity
-  - Simple tasks: gpt-4o-mini, gemini-2.0-flash
+  - Simple tasks: gpt-4o-mini, gemini-3.5-flash
   - Complex reasoning: gpt-4o, claude-sonnet-4-6
   - Code tasks: claude-sonnet-4-6 (large context)
 

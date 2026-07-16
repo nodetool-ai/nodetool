@@ -120,7 +120,12 @@
         "data": {
           "prompt": "",
           "model": {
-            "type": "language_model"
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
           },
           "system": "You are a thorough research analyst specializing in YouTube content analysis. You provide structured, insightful analysis with specific references to the data provided. Be concise but comprehensive.",
           "max_turns": 5,

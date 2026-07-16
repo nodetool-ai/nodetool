@@ -220,40 +220,44 @@ const SAMPLE_NODE_README: NodeMetadata = {
   properties: [
     {
       name: "prompt",
-      type: { type: "str" } as never,
+      type: { type: "str", optional: false, type_args: [] },
       default: "A cinematic photo of a cat astronaut on the moon",
       title: "Prompt",
-      description: "The text description of the image to generate."
+      description: "The text description of the image to generate.",
+      required: false
     },
     {
       name: "negative_prompt",
-      type: { type: "str" } as never,
+      type: { type: "str", optional: false, type_args: [] },
       default: "blurry, low quality",
       title: "Negative prompt",
-      description: "Concepts to discourage from the generated image."
+      description: "Concepts to discourage from the generated image.",
+      required: false
     },
     {
       name: "steps",
-      type: { type: "int" } as never,
+      type: { type: "int", optional: false, type_args: [] },
       default: 30,
       title: "Steps",
-      description: "Number of denoising steps. Higher = better but slower."
+      description: "Number of denoising steps. Higher = better but slower.",
+      required: false
     },
     {
       name: "guidance_scale",
-      type: { type: "float" } as never,
+      type: { type: "float", optional: false, type_args: [] },
       default: 7.5,
       title: "Guidance scale",
-      description: "Strength of prompt conditioning."
+      description: "Strength of prompt conditioning.",
+      required: false
     }
-  ] as never,
+  ],
   outputs: [
     {
       name: "image",
-      type: { type: "image" } as never,
+      type: { type: "image", optional: false, type_args: [] },
       stream: false
     }
-  ] as never,
+  ],
   recommended_models: SAMPLE_RECOMMENDED_MODELS,
   inline_fields: ["prompt", "steps"],
   required_settings: [],

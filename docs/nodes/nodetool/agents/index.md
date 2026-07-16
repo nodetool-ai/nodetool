@@ -3,7 +3,7 @@ layout: page
 title: "nodetool.agents Nodes"
 ---
 
-This namespace contains 27 node(s).
+This namespace contains 28 node(s).
 
 ## Nodes
 
@@ -16,6 +16,7 @@ This namespace contains 27 node(s).
 - **[Document Agent](documentagent.md)**
 - **[DOCX Agent](docxagent.md)**
 - **[Email Agent](emailagent.md)**
+- **[Enhance Prompt](enhanceprompt.md)**
 - **[Extractor](extractor.md)**
 - **[FFmpeg Agent](ffmpegagent.md)**
 - **[Filesystem Agent](filesystemagent.md)**

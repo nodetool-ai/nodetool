@@ -119,7 +119,7 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
   );
 
   const fpsPreset = useMemo(
-    () => (fpsValid && FPS_PRESETS.includes(fpsNum as never) ? String(fpsNum) : CUSTOM),
+    () => (fpsValid && (FPS_PRESETS as readonly number[]).includes(fpsNum) ? String(fpsNum) : CUSTOM),
     [fpsValid, fpsNum]
   );
 

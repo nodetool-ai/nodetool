@@ -14,7 +14,7 @@
 
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
 import { staticEntries } from "../src/data/staticEntries.ts";
 import { faqByCategory, faqEntries } from "../src/data/faqEntries.ts";
@@ -22,6 +22,7 @@ import { ideaCategories } from "../src/data/ideasEntries.ts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT_FILE = resolve(__dirname, "..", "public/llms.txt");
+const PUBLIC_DIR = resolve(__dirname, "..", "public");
 const BASE_URL = "https://nodetool.ai";
 
 // --- Preamble prose (hand-written; edit here) --------------------------------
@@ -77,16 +78,103 @@ function keyPagesSection() {
   const order = Object.keys(KEY_PAGE_LABELS);
   const lines = order
     .filter((route) => staticEntries.some((e) => e.route === route && e.indexable))
-    .map((route) => link(KEY_PAGE_LABELS[route], route, KEY_PAGE_BLURBS[route]));
+    .map((route) => link(KEY_PAGE_LABELS[route], markdownPath(route), KEY_PAGE_BLURBS[route]));
   // Docs live off-site (docs.nodetool.ai) — not in the registry, appended here.
   lines.push(
     link(
       "Documentation",
-      "https://docs.nodetool.ai",
+      "https://docs.nodetool.ai/llms.txt",
       "install guides, key concepts, node reference, API reference, CLI."
     )
   );
   return `## Key pages\n\n${lines.join("\n")}`;
+}
+
+function markdownPath(route) {
+  return route === "/" ? "/index.md" : `${route}.md`;
+}
+
+const MARKDOWN_PAGES = {
+  "index.md": {
+    title: "NodeTool",
+    description: "The open-source creative AI workspace.",
+    body: `NodeTool is an open-source visual workspace for building and running AI workflows. It connects image, video, audio, language, agent, and data models on a node-based canvas.
+
+## Editions
+
+- [NodeTool Studio](${BASE_URL}/studio.md) is the free desktop application for macOS, Windows, and Linux.
+- [NodeTool Cloud](${BASE_URL}/cloud.md) is the hosted browser application.
+
+## Start here
+
+- [Product overview](${BASE_URL}/index.md)
+- [Developer platform](${BASE_URL}/developers.md)
+- [Technical documentation](https://docs.nodetool.ai/llms.txt)
+- [GitHub repository](https://github.com/nodetool-ai/nodetool)`,
+  },
+  "studio.md": {
+    title: "NodeTool Studio",
+    description: "The local-first NodeTool desktop application.",
+    body: `NodeTool Studio is the free desktop edition of NodeTool for macOS, Windows, and Linux. It runs workflows locally and can use local models or provider API keys.
+
+Use Studio when you need local execution, offline work, or control of workflow files and provider credentials.
+
+See the [installation guide](https://docs.nodetool.ai/installation.md) for supported platforms and setup.`,
+  },
+  "cloud.md": {
+    title: "NodeTool Cloud",
+    description: "The hosted browser edition of NodeTool.",
+    body: `NodeTool Cloud is the hosted browser edition of NodeTool. It provides the same workflow canvas without a desktop installation.
+
+Cloud uses bring-your-own provider keys. See [pricing](${BASE_URL}/pricing.md) and [technical documentation](https://docs.nodetool.ai/llms.txt) for deployment and configuration details.`,
+  },
+  "developers.md": {
+    title: "NodeTool Developer Platform",
+    description: "Build, run, extend, and deploy NodeTool workflows with code.",
+    body: `NodeTool provides a TypeScript SDK, CLI, HTTP and WebSocket APIs, custom-node APIs, and a deployable workflow runtime.
+
+Use the [CLI](https://docs.nodetool.ai/cli.md) for automation, the [node catalog](https://docs.nodetool.ai/nodes/catalog.json) to discover node schemas, and the [developer guide](https://docs.nodetool.ai/developer/index.md) to extend NodeTool.`,
+  },
+  "agents.md": {
+    title: "NodeTool Agents",
+    description: "Build planning agents that use models, tools, and workflows.",
+    body: `NodeTool agents plan multi-step tasks, call tools, and run workflows on the same visual canvas as media and data pipelines.
+
+Read the [agent documentation](https://docs.nodetool.ai/agents/index.md) for installation, schema discovery, validation, execution, and job monitoring.`,
+  },
+  "pricing.md": {
+    title: "NodeTool Pricing",
+    description: "Studio is free; Cloud provides managed hosting.",
+    body: `NodeTool Studio is free and open source under AGPL-3.0. NodeTool Cloud provides managed hosting. In both editions, users supply provider keys and pay model providers directly.`,
+  },
+  "creatives.md": {
+    title: "NodeTool for Creatives",
+    description: "A visual workspace for creative AI workflows.",
+    body: `NodeTool lets creative teams combine image, video, audio, and language models in reusable visual workflows. It supports local and cloud models, editing tools, and provider keys that stay under the user's control.`,
+  },
+  "marketing.md": {
+    title: "NodeTool for Marketing Teams",
+    description: "Generate and adapt campaign assets with AI workflows.",
+    body: `NodeTool helps marketing teams build repeatable workflows for campaign visuals, product videos, social assets, and research. Workflows can be shared as focused mini-app interfaces while preserving the underlying graph.`,
+  },
+};
+
+function markdownPage({ title, description, body }, filename) {
+  const canonicalPath = filename === "index.md" ? "/" : `/${filename.slice(0, -3)}`;
+  return `---\ntitle: ${JSON.stringify(title)}\ndescription: ${JSON.stringify(description)}\ncanonical: ${BASE_URL}${canonicalPath}\nmarkdown: ${BASE_URL}/${filename}\nproduct: NodeTool\n---\n# ${title}\n\n${body}\n`;
+}
+
+function writeMarkdownPages(check) {
+  mkdirSync(PUBLIC_DIR, { recursive: true });
+  for (const [filename, page] of Object.entries(MARKDOWN_PAGES)) {
+    const output = resolve(PUBLIC_DIR, filename);
+    const next = markdownPage(page, filename);
+    const current = existsSync(output) ? readFileSync(output, "utf8") : "";
+    if (check && current !== next) {
+      throw new Error(`public/${filename} is stale. Run: npm run seo:llms`);
+    }
+    if (!check) writeFileSync(output, next);
+  }
 }
 
 function comparisonsSection() {
@@ -146,11 +234,13 @@ function main() {
       );
       process.exit(1);
     }
-    console.log("public/llms.txt is up to date.");
+    writeMarkdownPages(true);
+    console.log("public agent documentation is up to date.");
     return;
   }
 
   writeFileSync(OUT_FILE, next);
+  writeMarkdownPages(false);
   console.log(
     `Wrote ${OUT_FILE} — ${faqEntries.length} FAQ rows, ${ideaCategories.length} idea categories.`
   );

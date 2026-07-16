@@ -42,13 +42,13 @@ Chat models are fetched live from each provider's API, so a provider's list alwa
 
 ### Text & chat models (LLMs)
 
-The generic `nodetool.agents.Agent` and chat nodes route to whichever provider owns the model you pick — swap `claude-opus` for `gpt-5` for `gemini-3-pro` without touching the rest of the graph.
+The generic `nodetool.agents.Agent` and chat nodes route to whichever provider owns the model you pick. Swap `claude-opus` for `gpt-5` or `gemini-3.1-pro-preview` without changing the rest of the graph.
 
 | Provider | Model families |
 |---|---|
 | <img src="assets/icons/openai.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> OpenAI | GPT-5, GPT-5 mini, GPT-5 nano, GPT-4.1, GPT-4o, o-series reasoning models |
 | <img src="assets/icons/anthropic.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Anthropic | Claude Opus 4.x, Claude Sonnet 4.x, Claude Haiku 4.x, Claude 3.5/3.7 Sonnet |
-| <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Google Gemini | Gemini 3 Pro, Gemini 2.5 Pro, Gemini 2.5 Flash, Gemini 2.0 Flash |
+| <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Google Gemini | Gemini 3.5 Flash, Gemini 3.1 Pro, Gemini 3.1 Flash-Lite, Gemini 2.5 Pro |
 | <img src="assets/icons/xai.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> xAI | Grok 4, Grok 3, Grok Code |
 | DeepSeek | DeepSeek-V3, DeepSeek-R1 (reasoning) |
 | Groq | Llama, Qwen, GPT-OSS, Kimi K2 on LPU inference |
@@ -82,14 +82,13 @@ Generate and edit images through `nodetool.image.TextToImage` and `nodetool.imag
 | **Ideogram V3** | Ideogram | T2I/Edit | Typography rendering and artistic style control |
 | **Seedream 4.5** | ByteDance | T2I/Edit | High-fidelity generation and instruction-based editing |
 | **Z-Image Turbo** | Z-AI | T2I | Fast generation with strong prompt adherence |
-| **Imagen 4** | <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Google | T2I | Ultra-detailed photorealistic images |
 
 **Full catalog by provider**
 
 | Provider | Image models |
 |---|---|
 | <img src="assets/icons/openai.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> OpenAI | GPT Image 2, GPT Image 1.5, GPT Image 1, GPT Image 1 mini |
-| <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Google | Nano Banana (Gemini 2.5 Flash Image), Nano Banana 2, Nano Banana Pro, Imagen 3, Imagen 4, Imagen 4 Ultra, Gemini 3 Pro Image |
+| <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Google | Gemini 3.1 Flash Image (Nano Banana 2), Gemini 3 Pro Image (Nano Banana Pro) |
 | <img src="assets/icons/bfl.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Black Forest Labs | FLUX.1 [schnell], FLUX.1 [dev], FLUX.1 Pro, FLUX 1.1 Pro, FLUX 1.1 Pro Ultra, FLUX.2 [dev/flex/pro/max], FLUX.2 Klein, FLUX Kontext [pro/max], FLUX Fill, FLUX Canny, FLUX Depth, FLUX Redux, FLUX PuLID |
 | Stability AI | Stable Diffusion 1.5, SD 2.1, SDXL, SDXL Lightning, Stable Diffusion 3 Medium, SD 3.5 [medium/large/large turbo], Stable Cascade |
 | Qwen | Qwen Image, Qwen Image Edit (2509/2511/Plus), Qwen Image Max, Qwen Image Layered |
@@ -124,7 +123,7 @@ Generate video through `nodetool.video.TextToVideo` and `nodetool.video.ImageToV
 | Provider | Video models |
 |---|---|
 | <img src="assets/icons/openai.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> OpenAI | Sora 2, Sora 2 Pro |
-| <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Google | Veo 2, Veo 3, Veo 3.1, Veo 3.1 Lite |
+| <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Google | Veo 3.1, Veo 3.1 Fast, Veo 3.1 Lite |
 | <img src="assets/icons/kling.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Kling | Kling 2.1 [standard/pro/master], Kling 2.5 Turbo Pro, Kling 2.6, Kling 3.0, Kling Avatar, Kling Lip Sync |
 | ByteDance | Seedance 1.0 [lite/pro], Seedance 1.5 Pro, Seedance 2.0 |
 | <img src="assets/icons/alibaba.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Alibaba | Wan 2.1, Wan 2.2, Wan 2.5, Wan 2.6, Wan VACE |
@@ -168,7 +167,7 @@ Generate speech through `nodetool.audio.TextToSpeech`, transcribe with `nodetool
 | Suno (via kie.ai) | Suno — song generation, extend, cover, remix |
 | <img src="assets/icons/elevenlabs.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> ElevenLabs | V3 Dialogue, Sound Effects |
 | <img src="assets/icons/minimax.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> MiniMax | Music 01, Music 1.5, Music 2.6 |
-| <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Google | Lyria 2 |
+| <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Google | Lyria 3 Clip, Lyria 3 Pro |
 | Open models | MusicGen, Stable Audio 2.5, ACE-Step, DiffRhythm, YuE, Riffusion, Flux Music, MMAudio, ThinkSound |
 
 ### 3D generation models
@@ -189,7 +188,7 @@ Power RAG and semantic search through embedding nodes.
 | Provider | Embedding models |
 |---|---|
 | <img src="assets/icons/openai.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> OpenAI | text-embedding-3-small, text-embedding-3-large, ada-002 |
-| <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Google | gemini-embedding-001 |
+| <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Google | gemini-embedding-2 |
 | Mistral | mistral-embed |
 | Cohere | embed-v4.0, embed-english-v3.0, embed-multilingual-v3.0 |
 | Voyage AI | voyage-3.5 and the Voyage line |

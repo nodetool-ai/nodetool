@@ -810,7 +810,8 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
       case "calendar_event":
         return <CalendarEventView event={value as CalendarEvent} />;
       case "array": {
-        const arr = value as unknown[];
+        if (!Array.isArray(value)) return null;
+        const arr: unknown[] = value;
         if (arr.length > 0) {
           if (arr[0] === undefined || arr[0] === null) {
             return null;

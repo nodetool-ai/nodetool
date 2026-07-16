@@ -332,7 +332,13 @@
         "id": "transcribe",
         "type": "nodetool.text.AutomaticSpeechRecognition",
         "data": {
-          "model": {}
+          "model": {
+            "type": "asr_model",
+            "provider": "fal_ai",
+            "id": "openai/whisper-large-v3",
+            "name": "Whisper Large v3",
+            "path": null
+          }
         },
         "ui_properties": {
           "position": {
@@ -377,7 +383,14 @@
         "id": "shownotes_agent",
         "type": "nodetool.agents.Agent",
         "data": {
-          "model": {},
+          "model": {
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
+          },
           "system": "You are a podcast producer who writes episode pages people actually read. Specific and concrete, in the show's voice, no filler.",
           "audio": {
             "type": "audio",
@@ -453,7 +466,14 @@
         "id": "newsletter_agent",
         "type": "nodetool.agents.Agent",
         "data": {
-          "model": {},
+          "model": {
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
+          },
           "system": "You write email newsletters for podcasters. Short, personal, in the host's voice — the reader should feel the episode, not a summary of it.",
           "audio": {
             "type": "audio",
@@ -529,7 +549,14 @@
         "id": "posts_list",
         "type": "nodetool.generators.ListGenerator",
         "data": {
-          "model": {},
+          "model": {
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
+          },
           "input_text": "",
           "max_tokens": 100000
         },
@@ -597,7 +624,14 @@
         "id": "quotes_list",
         "type": "nodetool.generators.ListGenerator",
         "data": {
-          "model": {},
+          "model": {
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
+          },
           "input_text": "",
           "max_tokens": 100000
         },
@@ -644,7 +678,14 @@
         "id": "quote_card",
         "type": "nodetool.image.TextToImage",
         "data": {
-          "model": {},
+          "model": {
+            "type": "image_model",
+            "provider": "huggingface_fal_ai",
+            "id": "fal-ai/flux/schnell",
+            "name": "FLUX.1 Schnell",
+            "path": null,
+            "supported_tasks": []
+          },
           "negative_prompt": "",
           "aspect_ratio": "1:1",
           "resolution": "1K",

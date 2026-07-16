@@ -14,8 +14,6 @@ namespace: "lib.s3"
 Generates a presigned URL for temporary access to an S3 object.
     aws, s3, presigned, url, share, cloud, storage
 
-    Note: Requires @aws-sdk/s3-request-presigner. If unavailable, falls back to constructing an unsigned URL.
-
 ## Properties
 
 | Property | Type | Description | Default |

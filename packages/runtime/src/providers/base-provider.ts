@@ -15,7 +15,10 @@ import type {
   ProviderId,
   ProviderSession,
   ProviderStreamItem,
+  ProviderThinkingConfig,
+  ProviderEffort,
   ProviderTool,
+  ProviderToolResult,
   EncodedAudioResult,
   TextToMusicParams,
   RelightImageParams,
@@ -31,7 +34,11 @@ import type {
   VideoModel,
   VideoToVideoParams
 } from "./types.js";
-import { isProviderSessionUpdate, isProviderMessageEvent } from "./types.js";
+import {
+  isProviderSessionUpdate,
+  isProviderMessageEvent,
+  isProviderToolErrorResult
+} from "./types.js";
 import { CostCalculator } from "./cost-calculator.js";
 import type { UsageInfo } from "./cost-calculator.js";
 import { getTracer } from "../telemetry.js";
@@ -391,6 +398,7 @@ export abstract class BaseProvider {
       inputTokens: usage.inputTokens ?? 0,
       outputTokens: usage.outputTokens ?? 0,
       cachedInputTokens: usage.cachedTokens,
+      cacheWriteTokens: usage.cacheWriteTokens,
       cost
     });
     log.debug("Cost tracked", { model, cost, total: this._cost });
@@ -484,6 +492,8 @@ export abstract class BaseProvider {
     topP?: number;
     presencePenalty?: number;
     frequencyPenalty?: number;
+    thinking?: ProviderThinkingConfig;
+    effort?: ProviderEffort;
     /** Optional thread/conversation identifier for session-based providers. */
     threadId?: string | null;
     /**
@@ -518,6 +528,8 @@ export abstract class BaseProvider {
     topP?: number;
     presencePenalty?: number;
     frequencyPenalty?: number;
+    thinking?: ProviderThinkingConfig;
+    effort?: ProviderEffort;
     audio?: Record<string, unknown>;
     /** Optional thread/conversation identifier for session-based providers. */
     threadId?: string | null;
@@ -794,7 +806,7 @@ export abstract class BaseProvider {
        * vision-capable providers. The harness owns tool resolution, gating, and
        * side effects; the provider only orchestrates.
        */
-      executeTool?: (toolCall: ToolCall) => Promise<string | MessageContent[]>;
+      executeTool?: (toolCall: ToolCall) => Promise<ProviderToolResult>;
       /** Cap on tool-calling rounds before stopping. Defaults to 25. */
       maxIterations?: number;
       /**
@@ -835,6 +847,9 @@ export abstract class BaseProvider {
             name,
             args: toolArgs
           });
+          if (isProviderToolErrorResult(result)) {
+            return toolResultToText(result.content);
+          }
           return typeof result === "string" ? result : toolResultToText(result);
         }
       : turnArgs.onToolCall;
@@ -842,6 +857,7 @@ export abstract class BaseProvider {
     for (let iteration = 0; iteration < maxIterations; iteration++) {
       if (turnArgs.signal?.aborted) return;
       let assistantText = "";
+      let finalizedAssistant: Message | undefined;
       const pending: ToolCall[] = [];
 
       for await (const item of this.generateMessagesTraced({
@@ -850,7 +866,14 @@ export abstract class BaseProvider {
         onToolCall
       })) {
         if (turnArgs.signal?.aborted) break;
-        if (isProviderSessionUpdate(item) || isProviderMessageEvent(item)) {
+        if (isProviderMessageEvent(item)) {
+          if (item.message.role === "assistant") {
+            finalizedAssistant = item.message;
+          }
+          yield item;
+          continue;
+        }
+        if (isProviderSessionUpdate(item)) {
           yield item;
           continue;
         }
@@ -867,6 +890,10 @@ export abstract class BaseProvider {
       }
 
       if (pending.length === 0) {
+        if (finalizedAssistant) {
+          messages.push(finalizedAssistant);
+          return;
+        }
         const assistantMsg: Message = {
           role: "assistant",
           content: assistantText || null
@@ -903,7 +930,7 @@ export abstract class BaseProvider {
       // harness-supplied `executeTool` callback; else the tool is unavailable.
       const runTool = async (
         tc: ToolCall
-      ): Promise<string | MessageContent[]> => {
+      ): Promise<ProviderToolResult> => {
         const tool = toolMap.get(tc.name);
         try {
           if (tool?.execute) return await tool.execute(tc.args ?? {}, tc.id);
@@ -916,7 +943,10 @@ export abstract class BaseProvider {
           // Promise.all in the parallel path would reject before any result is
           // emitted, discarding the turn.
           const message = err instanceof Error ? err.message : String(err);
-          return `Error executing tool "${tc.name}": ${message}`;
+          return {
+            content: `Error executing tool "${tc.name}": ${message}`,
+            isError: true
+          };
         }
       };
 
@@ -927,13 +957,22 @@ export abstract class BaseProvider {
 
       const emitToolResult = function* (
         tc: ToolCall,
-        content: string | MessageContent[]
+        result: ProviderToolResult
       ): Generator<ProviderStreamItem> {
+        let content: string | MessageContent[];
+        let isError = false;
+        if (isProviderToolErrorResult(result)) {
+          content = result.content;
+          isError = true;
+        } else {
+          content = result;
+        }
         const { toolContent, imageMessage } = splitToolResultImages(content);
         const toolMsg: Message = {
           role: "tool",
           toolCallId: tc.id,
-          content: toolContent
+          content: toolContent,
+          ...(isError ? { isError: true } : {})
         };
         messages.push(toolMsg);
         yield { type: "message", message: toolMsg };

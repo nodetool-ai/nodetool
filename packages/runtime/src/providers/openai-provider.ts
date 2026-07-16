@@ -171,10 +171,24 @@ const RESPONSE_IMAGE_GENERATION_TOOL: Record<string, unknown> = {
   type: "image_generation"
 };
 
+const RESPONSE_HOSTED_TOOL_CHOICES: Readonly<Record<string, string>> = {
+  [WEB_SEARCH_TOOL_NAME]: "web_search",
+  [IMAGE_GENERATION_TOOL_NAME]: "image_generation"
+};
+
+const SORA_VIDEO_DURATIONS = [4, 8, 12, 16, 20] as const;
+
 const OPENAI_FALLBACK_MODELS: LanguageModel[] = [
+  "gpt-5.6",
+  "gpt-5.6-sol",
+  "gpt-5.6-terra",
+  "gpt-5.6-luna",
   "gpt-5.5",
+  "gpt-5.5-pro",
   "gpt-5.4",
+  "gpt-5.4-pro",
   "gpt-5.4-mini",
+  "gpt-5.4-nano",
   "gpt-5",
   "gpt-5-mini",
   "gpt-5-nano"
@@ -349,24 +363,70 @@ export class OpenAIProvider extends BaseProvider {
   }
 
   async getAvailableTTSModels(): Promise<TTSModel[]> {
+    const legacyVoices = [
+      "alloy",
+      "ash",
+      "coral",
+      "echo",
+      "fable",
+      "onyx",
+      "nova",
+      "sage",
+      "shimmer"
+    ];
     return [
+      {
+        id: "gpt-4o-mini-tts",
+        name: "GPT-4o Mini TTS (Deprecated)",
+        provider: "openai",
+        voices: [
+          "alloy",
+          "ash",
+          "ballad",
+          "coral",
+          "echo",
+          "fable",
+          "nova",
+          "onyx",
+          "sage",
+          "shimmer",
+          "verse",
+          "marin",
+          "cedar"
+        ]
+      },
       {
         id: "tts-1",
         name: "TTS 1",
         provider: "openai",
-        voices: ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
+        voices: legacyVoices
       },
       {
         id: "tts-1-hd",
         name: "TTS 1 HD",
         provider: "openai",
-        voices: ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
+        voices: legacyVoices
       }
     ];
   }
 
   async getAvailableASRModels(): Promise<ASRModel[]> {
     return [
+      {
+        id: "gpt-4o-transcribe",
+        name: "GPT-4o Transcribe",
+        provider: "openai"
+      },
+      {
+        id: "gpt-4o-mini-transcribe",
+        name: "GPT-4o Mini Transcribe",
+        provider: "openai"
+      },
+      {
+        id: "gpt-4o-transcribe-diarize",
+        name: "GPT-4o Transcribe Diarize",
+        provider: "openai"
+      },
       {
         id: "whisper-1",
         name: "Whisper",
@@ -381,13 +441,19 @@ export class OpenAIProvider extends BaseProvider {
         id: "sora-2",
         name: "Sora 2",
         provider: "openai",
-        supportedTasks: ["text_to_video"]
+        supportedTasks: ["text_to_video", "image_to_video"],
+        durations: [...SORA_VIDEO_DURATIONS],
+        resolutions: ["720p"],
+        aspectRatios: ["16:9", "9:16"]
       },
       {
         id: "sora-2-pro",
         name: "Sora 2 Pro",
         provider: "openai",
-        supportedTasks: ["text_to_video"]
+        supportedTasks: ["text_to_video", "image_to_video"],
+        durations: [...SORA_VIDEO_DURATIONS],
+        resolutions: ["720p", "1024p", "1080p"],
+        aspectRatios: ["16:9", "9:16"]
       }
     ];
   }
@@ -446,10 +512,29 @@ export class OpenAIProvider extends BaseProvider {
 
   resolveImageSize(
     width?: number | null,
-    height?: number | null
+    height?: number | null,
+    model?: string
   ): string | null {
     if (!width || !height) {
       return null;
+    }
+
+    if (model === "gpt-image-2" || model?.startsWith("gpt-image-2-") === true) {
+      const area = width * height;
+      const longEdge = Math.max(width, height);
+      const shortEdge = Math.min(width, height);
+      const isValid =
+        Number.isInteger(width) &&
+        Number.isInteger(height) &&
+        width > 0 &&
+        height > 0 &&
+        longEdge <= 3840 &&
+        width % 16 === 0 &&
+        height % 16 === 0 &&
+        longEdge / shortEdge <= 3 &&
+        area >= 655_360 &&
+        area <= 8_294_400;
+      return isValid ? `${width}x${height}` : null;
     }
 
     const supported: Array<[number, number]> = [
@@ -481,18 +566,28 @@ export class OpenAIProvider extends BaseProvider {
 
   static resolveVideoSize(
     aspectRatio?: string | null,
-    resolution?: string | null
+    resolution?: string | null,
+    model?: string
   ): string | null {
     if (!resolution) {
       return null;
     }
 
-    const supported: Array<[number, number]> = [
-      [1280, 720],
-      [1792, 1024],
-      [720, 1280],
-      [1024, 1792]
-    ];
+    const isStandardSora2 =
+      model?.startsWith("sora-2") === true && !model.includes("pro");
+    const supported: Array<[number, number]> = isStandardSora2
+      ? [
+          [1280, 720],
+          [720, 1280]
+        ]
+      : [
+          [1280, 720],
+          [1792, 1024],
+          [1920, 1080],
+          [720, 1280],
+          [1024, 1792],
+          [1080, 1920]
+        ];
 
     const aspect = (aspectRatio ?? "16:9").replaceAll(" ", "");
     const resolutionKey = resolution.toLowerCase();
@@ -561,17 +656,33 @@ export class OpenAIProvider extends BaseProvider {
   }
 
   static secondsFromParams(params: {
+    durationSeconds?: number | null;
     numFrames?: number | null;
   }): number | null {
+    const durationSeconds = params.durationSeconds;
+    if (
+      durationSeconds != null &&
+      Number.isFinite(durationSeconds) &&
+      durationSeconds > 0
+    ) {
+      return SORA_VIDEO_DURATIONS.reduce(
+        (duration, candidate) =>
+          candidate <= durationSeconds ? candidate : duration,
+        SORA_VIDEO_DURATIONS[0]
+      );
+    }
+
     const numFrames = params.numFrames;
-    if (!numFrames || numFrames <= 0) {
+    if (!numFrames || !Number.isFinite(numFrames) || numFrames <= 0) {
       return null;
     }
 
     const estimated = Math.ceil(numFrames / 24);
-    if (estimated < 8) return 4;
-    if (estimated < 12) return 8;
-    return 12;
+    return SORA_VIDEO_DURATIONS.reduce(
+      (duration, candidate) =>
+        candidate <= estimated ? candidate : duration,
+      SORA_VIDEO_DURATIONS[0]
+    );
   }
 
   static snapToValidVideoDimensions(width: number, height: number): string {
@@ -1274,11 +1385,12 @@ export class OpenAIProvider extends BaseProvider {
     const tools = this.formatResponsesTools(args.tools ?? []);
     if (tools.length > 0) {
       request.tools = tools;
-      request.tool_choice =
-        args.toolChoice === WEB_SEARCH_TOOL_NAME ||
-        args.toolChoice === IMAGE_GENERATION_TOOL_NAME
-          ? "auto"
-          : responseToolChoice(args.toolChoice) ?? "auto";
+      const hostedToolChoice = args.toolChoice
+        ? RESPONSE_HOSTED_TOOL_CHOICES[args.toolChoice]
+        : undefined;
+      request.tool_choice = hostedToolChoice
+        ? { type: hostedToolChoice }
+        : responseToolChoice(args.toolChoice) ?? "auto";
     }
 
     return request;
@@ -1527,7 +1639,8 @@ export class OpenAIProvider extends BaseProvider {
 
     const size = this.resolveImageSize(
       params.width ?? undefined,
-      params.height ?? undefined
+      params.height ?? undefined,
+      params.model.id
     );
     if (size) request.size = size;
     if (params.quality) request.quality = params.quality;
@@ -1640,7 +1753,8 @@ export class OpenAIProvider extends BaseProvider {
 
     const size = this.resolveImageSize(
       params.targetWidth ?? undefined,
-      params.targetHeight ?? undefined
+      params.targetHeight ?? undefined,
+      params.model.id
     );
     if (size) request.size = size;
     if (params.quality) request.quality = params.quality;
@@ -1798,13 +1912,28 @@ export class OpenAIProvider extends BaseProvider {
             name: "audio.mp3"
           });
 
+    const isDiarizationModel = args.model.startsWith(
+      "gpt-4o-transcribe-diarize"
+    );
+    if (args.word_timestamps && args.model !== "whisper-1") {
+      throw new Error("Word timestamps are only supported by whisper-1");
+    }
+
     const requestParams: Record<string, unknown> = {
       file: fileLike,
       model: args.model,
       language: args.language,
-      prompt: args.prompt,
       temperature
     };
+
+    if (!isDiarizationModel && args.prompt) {
+      requestParams.prompt = args.prompt;
+    }
+
+    if (isDiarizationModel) {
+      requestParams.response_format = "diarized_json";
+      requestParams.chunking_strategy = "auto";
+    }
 
     if (args.word_timestamps) {
       requestParams.response_format = "verbose_json";
@@ -1817,7 +1946,7 @@ export class OpenAIProvider extends BaseProvider {
 
     const text = String(response.text ?? "");
 
-    if (!args.word_timestamps) {
+    if (!args.word_timestamps && !isDiarizationModel) {
       return { text };
     }
 
@@ -1856,14 +1985,15 @@ export class OpenAIProvider extends BaseProvider {
 
     const size = OpenAIProvider.resolveVideoSize(
       params.aspectRatio,
-      params.resolution
+      params.resolution,
+      params.model.id
     );
     const seconds = OpenAIProvider.secondsFromParams(params) ?? 4;
 
     const request: Record<string, unknown> = {
       model: params.model.id,
       prompt: params.prompt,
-      size: size ?? "1024x1024",
+      size: size ?? "1280x720",
       seconds: String(seconds)
     };
 
@@ -1876,7 +2006,12 @@ export class OpenAIProvider extends BaseProvider {
       );
     }
 
-    const timeoutMs = 10 * 60 * 1000;
+    const timeoutMs =
+      params.timeoutSeconds != null &&
+      Number.isFinite(params.timeoutSeconds) &&
+      params.timeoutSeconds > 0
+        ? params.timeoutSeconds * 1000
+        : 10 * 60 * 1000;
     const intervalMs = 2000;
     const start = Date.now();
 
@@ -1886,7 +2021,13 @@ export class OpenAIProvider extends BaseProvider {
         throw new Error("Video generation timed out");
       }
 
-      await new Promise((resolve) => setTimeout(resolve, intervalMs));
+      const remainingMs = timeoutMs - (Date.now() - start);
+      await new Promise((resolve) =>
+        setTimeout(resolve, Math.min(intervalMs, remainingMs))
+      );
+      if (Date.now() - start >= timeoutMs) {
+        throw new Error("Video generation timed out");
+      }
       latest = await this.getClient().videos.retrieve(video.id);
     }
 
@@ -1918,7 +2059,8 @@ export class OpenAIProvider extends BaseProvider {
     const [width, height] = OpenAIProvider.extractImageDimensions(image);
     const requestedSize = OpenAIProvider.resolveVideoSize(
       params.aspectRatio,
-      params.resolution
+      params.resolution,
+      params.model.id
     );
     const size =
       requestedSize ?? OpenAIProvider.snapToValidVideoDimensions(width, height);
@@ -1951,7 +2093,12 @@ export class OpenAIProvider extends BaseProvider {
       );
     }
 
-    const timeoutMs = 10 * 60 * 1000;
+    const timeoutMs =
+      params.timeoutSeconds != null &&
+      Number.isFinite(params.timeoutSeconds) &&
+      params.timeoutSeconds > 0
+        ? params.timeoutSeconds * 1000
+        : 10 * 60 * 1000;
     const intervalMs = 2000;
     const start = Date.now();
 
@@ -1961,7 +2108,13 @@ export class OpenAIProvider extends BaseProvider {
         throw new Error("Image-to-video generation timed out");
       }
 
-      await new Promise((resolve) => setTimeout(resolve, intervalMs));
+      const remainingMs = timeoutMs - (Date.now() - start);
+      await new Promise((resolve) =>
+        setTimeout(resolve, Math.min(intervalMs, remainingMs))
+      );
+      if (Date.now() - start >= timeoutMs) {
+        throw new Error("Image-to-video generation timed out");
+      }
       latest = await this.getClient().videos.retrieve(video.id);
     }
 

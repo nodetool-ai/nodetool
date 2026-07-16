@@ -946,7 +946,7 @@ describe("TranscribeGeminiNode", () => {
     node.setDynamic("_secrets", secrets._secrets);
     await node.process();
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-    expect(body.contents[0].parts[1].inline_data.mime_type).toBe("audio/wav");
+    expect(body.contents[0].parts[1].inlineData.mimeType).toBe("audio/wav");
   });
 
   it("detects FLAC mime type", async () => {
@@ -966,7 +966,7 @@ describe("TranscribeGeminiNode", () => {
     node.setDynamic("_secrets", secrets._secrets);
     await node.process();
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-    expect(body.contents[0].parts[1].inline_data.mime_type).toBe("audio/flac");
+    expect(body.contents[0].parts[1].inlineData.mimeType).toBe("audio/flac");
   });
 
   it("detects OGG mime type", async () => {
@@ -986,7 +986,7 @@ describe("TranscribeGeminiNode", () => {
     node.setDynamic("_secrets", secrets._secrets);
     await node.process();
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-    expect(body.contents[0].parts[1].inline_data.mime_type).toBe("audio/ogg");
+    expect(body.contents[0].parts[1].inlineData.mimeType).toBe("audio/ogg");
   });
 
   it("detects MP3 with ID3 tag", async () => {
@@ -1006,7 +1006,7 @@ describe("TranscribeGeminiNode", () => {
     node.setDynamic("_secrets", secrets._secrets);
     await node.process();
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-    expect(body.contents[0].parts[1].inline_data.mime_type).toBe("audio/mpeg");
+    expect(body.contents[0].parts[1].inlineData.mimeType).toBe("audio/mpeg");
   });
 
   it("defaults to audio/mpeg for short bytes", async () => {
@@ -1026,7 +1026,7 @@ describe("TranscribeGeminiNode", () => {
     node.setDynamic("_secrets", secrets._secrets);
     await node.process();
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-    expect(body.contents[0].parts[1].inline_data.mime_type).toBe("audio/mpeg");
+    expect(body.contents[0].parts[1].inlineData.mimeType).toBe("audio/mpeg");
   });
 
   it("throws when audio not set", async () => {
@@ -1138,7 +1138,7 @@ describe("TranscribeGeminiNode", () => {
     node.setDynamic("_secrets", secrets._secrets);
     await node.process();
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-    expect(body.contents[0].parts[1].inline_data.mime_type).toBe("audio/mpeg");
+    expect(body.contents[0].parts[1].inlineData.mimeType).toBe("audio/mpeg");
   });
 });
 
@@ -1149,21 +1149,21 @@ describe("Node defaults coverage", () => {
     const node = new GroundedSearchNode();
     const d = node.serialize();
     expect(d.query).toBe("");
-    expect(d.model).toBe("gemini-3-flash-preview");
+    expect(d.model).toBe("gemini-3.5-flash");
   });
 
   it("EmbeddingNode defaults", () => {
     const node = new EmbeddingNode();
     const d = node.serialize();
     expect(d.input).toBe("");
-    expect(d.model).toBe("text-embedding-004");
+    expect(d.model).toBe("gemini-embedding-2");
   });
 
   it("ImageGenerationNode defaults", () => {
     const node = new ImageGenerationNode();
     const d = node.serialize();
     expect(d.prompt).toBe("");
-    expect(d.model).toBe("imagen-4.0-generate-001");
+    expect(d.model).toBe("gemini-3.1-flash-image");
   });
 
   it("TextToVideoGeminiNode defaults", () => {
@@ -1186,7 +1186,7 @@ describe("Node defaults coverage", () => {
     const node = new TextToSpeechGeminiNode();
     const d = node.serialize();
     expect(d.text).toBe("");
-    expect(d.model).toBe("gemini-2.5-pro-preview-tts");
+    expect(d.model).toBe("gemini-3.1-flash-tts-preview");
     expect(d.voice_name).toBe("kore");
     expect(d.style_prompt).toBe("");
   });
@@ -1194,7 +1194,7 @@ describe("Node defaults coverage", () => {
   it("TranscribeGeminiNode defaults", () => {
     const node = new TranscribeGeminiNode();
     const d = node.serialize();
-    expect(d.model).toBe("gemini-2.5-flash");
+    expect(d.model).toBe("gemini-3.5-flash");
   });
 
   it("TextToSpeechGeminiNode throws when no parts", async () => {

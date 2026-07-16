@@ -14,12 +14,14 @@ NodeTool is an open-source, local-first visual environment for building AI workf
 - [Why NodeTool]({{ site.url }}/comparisons): How NodeTool compares to ComfyUI, n8n, LangChain, etc.
 - [Installation]({{ site.url }}/installation): Install NodeTool Studio on macOS, Windows, or Linux.
 - [Quick Start]({{ site.url }}/getting-started): Install, run a template, edit and iterate.
+- [Agents and Automation]({{ site.url }}/agents/): Install, discover node schemas, validate and run workflows programmatically.
 
 ## Core Concepts
 
 - [Key Concepts]({{ site.url }}/key-concepts): Canvas, nodes, edges, workflows, agents, providers.
 - [Workflows]({{ site.url }}/workflow-editor): Building, running, and managing workflow graphs.
 - [Nodes]({{ site.url }}/nodes/): Catalog of available nodes by category.
+- [Node catalog]({{ site.url }}/nodes/catalog.json): Machine-readable node types, inputs, outputs, and documentation URLs.
 - [Agents]({{ site.url }}/global-chat-agents): Planning agents, tools, multi-step execution.
 - [Models]({{ site.url }}/models-and-providers): Local and cloud model providers.
 - [Glossary]({{ site.url }}/glossary): Terminology used across NodeTool.

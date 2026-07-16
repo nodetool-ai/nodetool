@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import { Chunk } from "../../../stores/ApiTypes";
 import Actions from "./Actions";
 import { MaybeMarkdown } from "./markdown";
@@ -16,6 +16,7 @@ type Props = {
 
 export const ChunkRenderer: React.FC<Props> = memo(({ chunk }) => {
   const theme = useTheme();
+  const memoizedStyles = useMemo(() => outputStyles(theme), [theme]);
   const contentType = chunk.content_type;
 
   if (contentType === "html" as string) {
@@ -65,7 +66,7 @@ export const ChunkRenderer: React.FC<Props> = memo(({ chunk }) => {
       );
     case "document":
       return (
-        <div className="output value" css={outputStyles(theme)}>
+        <div className="output value" css={memoizedStyles}>
           <a href={chunk.content as string} target="_blank" rel="noreferrer">
             Open document
           </a>
@@ -75,7 +76,7 @@ export const ChunkRenderer: React.FC<Props> = memo(({ chunk }) => {
     default: {
       const text = (chunk.content as string) ?? "";
       return (
-        <div className="output value" css={outputStyles(theme)}>
+        <div className="output value" css={memoizedStyles}>
           {text !== "" && (
             <>
               <Actions copyValue={text} />

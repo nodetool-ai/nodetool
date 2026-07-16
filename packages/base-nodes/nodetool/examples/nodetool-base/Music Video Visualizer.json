@@ -270,7 +270,13 @@
         "id": "transcription",
         "type": "nodetool.text.AutomaticSpeechRecognition",
         "data": {
-          "model": {}
+          "model": {
+            "type": "asr_model",
+            "provider": "fal_ai",
+            "id": "openai/whisper-large-v3",
+            "name": "Whisper Large v3",
+            "path": null
+          }
         },
         "ui_properties": {
           "position": {
@@ -312,7 +318,14 @@
         "id": "mood_analysis",
         "type": "nodetool.agents.Agent",
         "data": {
-          "model": {},
+          "model": {
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
+          },
           "system": "You are a creative director specializing in music visualization."
         },
         "ui_properties": {
@@ -356,7 +369,14 @@
         "id": "frame_prompts",
         "type": "nodetool.generators.ListGenerator",
         "data": {
-          "model": {},
+          "model": {
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
+          },
           "max_tokens": 100000
         },
         "ui_properties": {
@@ -395,7 +415,14 @@
         "id": "visual_frame",
         "type": "nodetool.image.TextToImage",
         "data": {
-          "model": {},
+          "model": {
+            "type": "image_model",
+            "provider": "huggingface_fal_ai",
+            "id": "fal-ai/flux/schnell",
+            "name": "FLUX.1 Schnell",
+            "path": null,
+            "supported_tasks": []
+          },
           "width": 1920,
           "height": 1080,
           "guidance_scale": 7.5,

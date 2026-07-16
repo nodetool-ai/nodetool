@@ -61,7 +61,7 @@ describe("OpenAIProvider Responses path", () => {
     await expect(provider.hasToolSupport("gpt-5.4")).resolves.toBe(true);
   });
 
-  it("does not force hosted web_search through function tool_choice", async () => {
+  it("forces hosted web_search with the Responses hosted-tool choice", async () => {
     const create = vi.fn().mockResolvedValue({
       id: "resp_1",
       output_text: "done",
@@ -78,7 +78,49 @@ describe("OpenAIProvider Responses path", () => {
 
     expect(create.mock.calls[0][0]).toMatchObject({
       tools: [{ type: "web_search" }],
-      tool_choice: "auto"
+      tool_choice: { type: "web_search" }
+    });
+  });
+
+  it("forces hosted image generation with the Responses hosted-tool choice", async () => {
+    const create = vi.fn().mockResolvedValue({
+      id: "resp_1",
+      output_text: "done",
+      output: []
+    });
+    const provider = providerWithCreate(create);
+
+    await provider.generateMessage({
+      model: "gpt-5",
+      messages: [{ role: "user", content: "draw" }],
+      tools: [{ name: IMAGE_GENERATION_TOOL_NAME }],
+      toolChoice: IMAGE_GENERATION_TOOL_NAME
+    });
+
+    expect(create.mock.calls[0][0]).toMatchObject({
+      tools: [{ type: "image_generation" }],
+      tool_choice: { type: "image_generation" }
+    });
+  });
+
+  it('maps the cross-provider "any" choice to required', async () => {
+    const create = vi.fn().mockResolvedValue({
+      id: "resp_1",
+      output_text: "done",
+      output: []
+    });
+    const provider = providerWithCreate(create);
+
+    await provider.generateMessage({
+      model: "gpt-5",
+      messages: [{ role: "user", content: "search" }],
+      tools: [{ name: "web_search" }],
+      toolChoice: "any"
+    });
+
+    expect(create.mock.calls[0][0]).toMatchObject({
+      tools: [{ type: "web_search" }],
+      tool_choice: "required"
     });
   });
 

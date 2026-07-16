@@ -9,7 +9,7 @@
  */
 
 import { create } from "zustand";
-import { apiService, type WorkflowGraphInput } from "../services/api";
+import { apiService, type WorkflowGraphInput, normalizeWorkflow } from "../services/api";
 import type { NodeMetadata, Workflow } from "../types/ApiTypes";
 import type {
   ChainNode,
@@ -472,6 +472,10 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
   saveWorkflow: async () => {
     const { workflowId, workflowName, chain, connections } = get();
     const graph = chainToGraph(chain, connections);
+    const graphInput: WorkflowGraphInput = {
+      nodes: graph.nodes,
+      edges: graph.edges,
+    };
 
     try {
       if (workflowId) {
@@ -479,21 +483,21 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
           id: workflowId,
           name: workflowName,
           description: "",
-          graph: graph as unknown as WorkflowGraphInput,
+          graph: graphInput,
           access: "private",
         });
         set({ isDirty: false });
-        return result as unknown as Workflow;
+        return normalizeWorkflow(result as Record<string, unknown>);
       } else {
         const result = await apiService.createWorkflow({
           name: workflowName,
           description: "",
-          graph: graph as unknown as WorkflowGraphInput,
+          graph: graphInput,
           access: "private",
         });
-        const newId = (result as unknown as Workflow).id;
-        set({ workflowId: newId, isDirty: false });
-        return result as unknown as Workflow;
+        const workflow = normalizeWorkflow(result as Record<string, unknown>);
+        set({ workflowId: workflow.id, isDirty: false });
+        return workflow;
       }
     } catch (err) {
       console.error("Failed to save workflow:", err);

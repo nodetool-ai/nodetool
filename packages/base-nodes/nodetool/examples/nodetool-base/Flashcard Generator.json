@@ -114,7 +114,12 @@
         "type": "nodetool.generators.DataGenerator",
         "data": {
           "model": {
-            "type": "language_model"
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
           },
           "max_tokens": 4096,
           "columns": {

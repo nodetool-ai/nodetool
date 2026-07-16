@@ -81,10 +81,14 @@ const SettingsSidebar = ({
     const owner = sections.find((s) =>
       s.items.some((item) => item.id === activeSection)
     );
-    if (owner && openFolders[owner.category] === false) {
-      setOpenFolders((prev) => ({ ...prev, [owner.category]: true }));
+    if (owner) {
+      setOpenFolders((prev) =>
+        prev[owner.category] === false
+          ? { ...prev, [owner.category]: true }
+          : prev
+      );
     }
-  }, [activeSection, sections, openFolders]);
+  }, [activeSection, sections]);
 
   const toggleFolder = useCallback((category: string) => {
     setOpenFolders((prev) => ({ ...prev, [category]: !prev[category] }));

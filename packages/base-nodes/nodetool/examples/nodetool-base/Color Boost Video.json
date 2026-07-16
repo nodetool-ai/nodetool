@@ -189,14 +189,6 @@
         "ui_properties": null
       },
       {
-        "id": "c4081d24-ebb0-4c64-a182-8107036b7b5e",
-        "source": "abb8ee0b-dbf0-4969-8046-c2e690b7d1e4",
-        "sourceHandle": "index",
-        "target": "4ca8874f-5caa-413c-a329-936d90358e8e",
-        "targetHandle": "index",
-        "ui_properties": null
-      },
-      {
         "id": "f9de3335-3122-4d71-8f28-f6c7ada89c84",
         "source": "abb8ee0b-dbf0-4969-8046-c2e690b7d1e4",
         "sourceHandle": "fps",

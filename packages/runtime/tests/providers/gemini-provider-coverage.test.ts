@@ -222,7 +222,9 @@ describe("GeminiProvider – convertMessages with images", () => {
     expect(result.contents[0].parts[0].inlineData).toBeDefined();
     // audio/mpeg is normalized to Gemini's accepted audio/mp3 label.
     expect(result.contents[0].parts[0].inlineData!.mimeType).toBe("audio/mp3");
-    expect(fetchFn).toHaveBeenCalledWith("https://example.com/audio.mp3");
+    expect(fetchFn).toHaveBeenCalledWith("https://example.com/audio.mp3", {
+      redirect: "manual"
+    });
   });
 
   it("converts audio content with no data and no URI to empty inlineData", async () => {
@@ -307,7 +309,6 @@ describe("GeminiProvider – formatTools deduplication", () => {
   });
 });
 
-
 describe("GeminiProvider – generateMessage error handling", () => {
   it("throws on API error in response body", async () => {
     const fetchFn = vi.fn().mockResolvedValue(
@@ -381,7 +382,7 @@ describe("GeminiProvider – streaming error handling", () => {
     await expect(gen.next()).rejects.toThrow("no body");
   });
 
-  it("handles malformed JSON in SSE stream gracefully", async () => {
+  it("rejects malformed JSON in an SSE stream", async () => {
     // Create a stream with invalid JSON
     const encoder = new TextEncoder();
     const bytes = encoder.encode(
@@ -407,17 +408,11 @@ describe("GeminiProvider – streaming error handling", () => {
 
     const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
 
-    const out: unknown[] = [];
-    for await (const item of provider.generateMessages({
+    const gen = provider.generateMessages({
       model: "gemini-2.0-flash",
       messages: [{ role: "user", content: "hi" }]
-    })) {
-      out.push(item);
-    }
-
-    // Should skip bad JSON and still parse the good one + done
-    const textChunks = out.filter((o: any) => o.type === "chunk" && o.content);
-    expect(textChunks.length).toBeGreaterThan(0);
+    });
+    await expect(gen.next()).rejects.toThrow("malformed SSE JSON");
   });
 
   it("handles [DONE] signal in SSE stream", async () => {
@@ -569,6 +564,12 @@ describe("GeminiProvider – model listing", () => {
     const models = await provider.getAvailableImageModels();
     expect(models.length).toBeGreaterThanOrEqual(2);
     expect(models[0].provider).toBe("gemini");
+    expect(models.map((model) => model.id)).toEqual([
+      "gemini-3.1-flash-image",
+      "gemini-3.1-flash-lite-image",
+      "gemini-3-pro-image",
+      "imagen-4.0-generate-001"
+    ]);
   });
 
   it("returns TTS models with voices", async () => {
@@ -587,13 +588,16 @@ describe("GeminiProvider – model listing", () => {
     const models = await provider.getAvailableVideoModels();
     expect(models.length).toBeGreaterThanOrEqual(2);
     expect(models[0].id).toContain("veo");
+    expect(models.every((model) => model.supportedTasks?.length === 2)).toBe(
+      true
+    );
   });
 
   it("returns embedding models with dimensions", async () => {
     const models = await provider.getAvailableEmbeddingModels();
-    expect(models.length).toBeGreaterThanOrEqual(2);
-    expect(models[0].dimensions).toBe(768);
-    expect(models[1].dimensions).toBe(3072);
+    expect(models).toHaveLength(1);
+    expect(models[0].dimensions).toBe(3072);
+    expect(models[0].id).toBe("gemini-embedding-2");
   });
 });
 
@@ -657,6 +661,20 @@ describe("GeminiProvider – generateEmbedding", () => {
     expect(body.outputDimensionality).toBe(256);
   });
 
+  it("normalizes reduced-dimension embeddings", async () => {
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValue(makeFetchResponse({ embedding: { values: [3, 4] } }));
+    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
+    await expect(
+      provider.generateEmbedding({
+        text: "hello",
+        model: "gemini-embedding-2",
+        dimensions: 2
+      })
+    ).resolves.toEqual([[0.6, 0.8]]);
+  });
+
   it("throws on empty text", async () => {
     const provider = new GeminiProvider({ GEMINI_API_KEY: "k" });
     await expect(
@@ -718,7 +736,7 @@ describe("GeminiProvider – textToImage", () => {
     expect(url).toContain("generateContent");
   });
 
-  it("generates image with imagen model (generateImages path)", async () => {
+  it("generates image with imagen model through predict", async () => {
     const imageB64 = Buffer.from("fake-png").toString("base64");
     const fetchFn = vi.fn().mockResolvedValue(
       makeFetchResponse({
@@ -738,7 +756,63 @@ describe("GeminiProvider – textToImage", () => {
 
     expect(result).toBeInstanceOf(Uint8Array);
     const url = fetchFn.mock.calls[0][0] as string;
-    expect(url).toContain("generateImages");
+    expect(url).toContain(":predict");
+  });
+
+  it("maps Gemini and Imagen image controls to their wire shapes", async () => {
+    const imageData = Buffer.from([1]).toString("base64");
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValueOnce(
+        makeFetchResponse({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  { inlineData: { data: imageData, mimeType: "image/png" } }
+                ]
+              }
+            }
+          ]
+        })
+      )
+      .mockResolvedValueOnce(
+        makeFetchResponse({ predictions: [{ bytesBase64Encoded: imageData }] })
+      );
+    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
+    await provider.textToImage({
+      model: {
+        id: "gemini-3.1-flash-image",
+        name: "Gemini",
+        provider: "gemini"
+      },
+      prompt: "cat",
+      aspectRatio: "16:9",
+      resolution: "2K"
+    });
+    await provider.textToImage({
+      model: {
+        id: "imagen-4.0-generate-001",
+        name: "Imagen",
+        provider: "gemini"
+      },
+      prompt: "cat",
+      aspectRatio: "4:3",
+      seed: 7,
+      safetyCheck: false
+    });
+    expect(
+      JSON.parse(fetchFn.mock.calls[0][1].body).generationConfig.imageConfig
+    ).toEqual({
+      aspectRatio: "16:9",
+      imageSize: "2K"
+    });
+    expect(JSON.parse(fetchFn.mock.calls[1][1].body).parameters).toEqual({
+      sampleCount: 1,
+      aspectRatio: "4:3",
+      seed: 7,
+      safetyFilterLevel: "block_only_high"
+    });
   });
 
   it("throws on empty prompt", async () => {
@@ -1108,7 +1182,7 @@ describe("GeminiProvider – textToVideo", () => {
     );
     expect(fetchFn.mock.calls[0][1].headers["x-goog-api-key"]).toBe("k");
     expect(fetchFn.mock.calls[1][0]).toBe("https://example.com/video.mp4");
-    expect(fetchFn.mock.calls[1][1].headers["x-goog-api-key"]).toBe("k");
+    expect(fetchFn.mock.calls[1][1].headers).toBeUndefined();
   });
 
   it("throws when no video URI in response", async () => {
@@ -1194,8 +1268,10 @@ describe("GeminiProvider – imageToVideo", () => {
     );
     const body = JSON.parse(fetchFn.mock.calls[0][1].body);
     expect(body.instances[0].image).toEqual({
-      bytesBase64Encoded: Buffer.from([1, 2, 3]).toString("base64"),
-      mimeType: "image/png"
+      inlineData: {
+        data: Buffer.from([1, 2, 3]).toString("base64"),
+        mimeType: "image/png"
+      }
     });
     expect(body.parameters.durationSeconds).toBe(8);
   });

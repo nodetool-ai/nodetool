@@ -61,6 +61,7 @@ export interface LlmUsage {
   inputTokens: number;
   outputTokens: number;
   cachedInputTokens?: number;
+  cacheWriteTokens?: number;
   /** Cost of the call in US dollars. */
   cost?: number;
 }
@@ -69,11 +70,12 @@ export interface LlmUsage {
  * Per-call slot carrying the in-flight LLM call's side state: token usage and
  * the exact request payload sent to the provider.
  *
- * Providers' `trackUsage` writes usage via {@link setLastUsage}; providers'
+ * Providers' `trackUsage` adds usage via {@link setLastUsage}; providers'
  * `recordRequestPayload` writes the wire payload via {@link setLastRequest}.
  * The traced wrapper reads both back ({@link consumeLastUsage},
  * {@link peekLastRequest}) so it can attach usage to its span and, on failure,
- * log precisely what was sent.
+ * log precisely what was sent. Repeated writes in one call are summed so
+ * continuation requests keep their full token and cost totals.
  *
  * We use AsyncLocalStorage rather than an instance field so concurrent calls
  * on the same provider instance don't clobber each other.
@@ -100,10 +102,22 @@ export function withUsageCapture<T>(fn: () => Promise<T>): Promise<T> {
   return usageStore.run({ usage: null, request: null }, fn);
 }
 
-/** Provider hook: record token usage for the in-flight LLM call. */
+/** Provider hook: add token usage for the in-flight LLM call. */
 export function setLastUsage(usage: LlmUsage): void {
   const slot = usageStore.getStore();
-  if (slot) slot.usage = usage;
+  if (!slot) return;
+  const previous = slot.usage;
+  slot.usage = previous
+    ? {
+        inputTokens: previous.inputTokens + usage.inputTokens,
+        outputTokens: previous.outputTokens + usage.outputTokens,
+        cachedInputTokens:
+          (previous.cachedInputTokens ?? 0) + (usage.cachedInputTokens ?? 0),
+        cacheWriteTokens:
+          (previous.cacheWriteTokens ?? 0) + (usage.cacheWriteTokens ?? 0),
+        cost: (previous.cost ?? 0) + (usage.cost ?? 0)
+      }
+    : usage;
 }
 
 /** Read and clear the most recent usage recorded in this async context. */

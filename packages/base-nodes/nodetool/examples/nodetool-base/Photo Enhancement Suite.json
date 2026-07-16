@@ -52,7 +52,14 @@
         "parent_id": null,
         "type": "nodetool.image.ImageToImage",
         "data": {
-          "model": {},
+          "model": {
+            "type": "image_model",
+            "provider": "huggingface_fal_ai",
+            "id": "fal-ai/flux/schnell",
+            "name": "FLUX.1 Schnell",
+            "path": null,
+            "supported_tasks": []
+          },
           "image": {
             "type": "image",
             "uri": "",
@@ -325,7 +332,7 @@
         "source": "11",
         "sourceHandle": "output",
         "target": "7",
-        "targetHandle": "factor",
+        "targetHandle": "contrast",
         "ui_properties": null
       },
       {
@@ -341,7 +348,7 @@
         "source": "12",
         "sourceHandle": "output",
         "target": "6",
-        "targetHandle": "factor",
+        "targetHandle": "saturation",
         "ui_properties": null
       },
       {

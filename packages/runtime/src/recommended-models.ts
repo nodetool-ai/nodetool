@@ -35,9 +35,9 @@ export const RECOMMENDED_MODELS: RecommendedUnifiedModel[] = [
     provider: "openai"
   },
   {
-    id: "claude-3-5-sonnet-latest",
+    id: "claude-sonnet-5",
     type: "language_model",
-    name: "Claude 3.5 Sonnet",
+    name: "Claude Sonnet 5",
     repo_id: null,
     path: null,
     downloaded: false,

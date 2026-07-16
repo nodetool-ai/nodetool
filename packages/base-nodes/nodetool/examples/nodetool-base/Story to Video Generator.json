@@ -66,7 +66,14 @@
         "parent_id": null,
         "type": "nodetool.agents.Agent",
         "data": {
-          "model": {},
+          "model": {
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
+          },
           "system": "You are a professional video prompt engineer specializing in cinematic AI video generation. Your job is to transform story ideas into detailed, visually compelling prompts optimized for AI video models like Gemini Veo.\n\nGuidelines:\n- Focus on visual elements: camera movements, lighting, colors, atmosphere\n- Include specific details about setting, action, and mood\n- Use cinematic language (e.g., 'tracking shot', 'golden hour lighting', 'slow motion')\n- Keep prompts under 150 words but rich with visual detail\n- Avoid abstract concepts; make everything concrete and visual\n- Consider composition, framing, and movement",
           "max_tokens": 100000
         },
@@ -88,7 +95,14 @@
         "parent_id": null,
         "type": "nodetool.video.TextToVideo",
         "data": {
-          "model": {},
+          "model": {
+            "type": "video_model",
+            "provider": "gemini",
+            "id": "veo-3.1-generate-preview",
+            "name": "Veo 3.1 Preview",
+            "path": null,
+            "supported_tasks": []
+          },
           "aspect_ratio": "16:9",
           "resolution": "720p",
           "num_frames": 60,

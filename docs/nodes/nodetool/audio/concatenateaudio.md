@@ -11,7 +11,7 @@ namespace: "nodetool.audio"
 
 ## Description
 
-Concatenates audio files together. Add inputs dynamically with the “add audio input” button.
+Concatenates audio files together. Add inputs dynamically with the “add audio input” button, or wire a list of audio into a single input.
     audio, edit, join, +
 
 ## Properties

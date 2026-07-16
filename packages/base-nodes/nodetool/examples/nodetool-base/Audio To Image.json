@@ -100,7 +100,13 @@
         "id": "3620653b-0786-4222-9829-3183899984cd",
         "type": "nodetool.text.AutomaticSpeechRecognition",
         "data": {
-          "model": {}
+          "model": {
+            "type": "asr_model",
+            "provider": "fal_ai",
+            "id": "openai/whisper-large-v3",
+            "name": "Whisper Large v3",
+            "path": null
+          }
         },
         "ui_properties": {
           "title": "2️⃣ Transcribe",
@@ -121,7 +127,14 @@
         "id": "8b07b1ed-2ce9-4581-993e-efad334ab7a8",
         "type": "nodetool.image.TextToImage",
         "data": {
-          "model": {},
+          "model": {
+            "type": "image_model",
+            "provider": "huggingface_fal_ai",
+            "id": "fal-ai/flux/schnell",
+            "name": "FLUX.1 Schnell",
+            "path": null,
+            "supported_tasks": []
+          },
           "negative_prompt": "",
           "aspect_ratio": "1:1",
           "resolution": "1K",

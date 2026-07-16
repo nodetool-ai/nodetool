@@ -11,8 +11,8 @@ namespace: "nodetool.agents"
 
 ## Description
 
-Prompt-driven FFmpeg skill for audio/video editing, conversion, and packaging.
-    skills, ffmpeg, media, video, audio, transcode, remux
+Edit, convert, and package audio and video with FFmpeg from a prompt.
+    agent, ffmpeg, media, video, audio, convert
 
 ## Properties
 

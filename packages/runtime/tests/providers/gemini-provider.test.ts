@@ -25,6 +25,7 @@ function makeSSEStream(events: unknown[]): Response {
       released = true;
       return { done: false, value: bytes };
     },
+    async cancel() {},
     releaseLock() {}
   };
 
@@ -100,13 +101,16 @@ describe("GeminiProvider", () => {
     expect(result.contents).toHaveLength(2);
     expect(result.contents[0]).toEqual({
       role: "model",
-      parts: [{ functionCall: { name: "search", args: { q: "test" } } }]
+      parts: [
+        { functionCall: { id: "tc1", name: "search", args: { q: "test" } } }
+      ]
     });
     expect(result.contents[1]).toEqual({
       role: "user",
       parts: [
         {
           functionResponse: {
+            id: "search",
             name: "search",
             response: { result: "result text" }
           }
@@ -139,6 +143,7 @@ describe("GeminiProvider", () => {
       parts: [
         {
           functionResponse: {
+            id: "call_123_abc",
             name: "search",
             response: { result: "result text" }
           }
@@ -169,8 +174,20 @@ describe("GeminiProvider", () => {
     expect(result.contents[1]).toEqual({
       role: "user",
       parts: [
-        { functionResponse: { name: "search", response: { result: "a" } } },
-        { functionResponse: { name: "lookup", response: { result: "b" } } }
+        {
+          functionResponse: {
+            id: "call_1",
+            name: "search",
+            response: { result: "a" }
+          }
+        },
+        {
+          functionResponse: {
+            id: "call_2",
+            name: "lookup",
+            response: { result: "b" }
+          }
+        }
       ]
     });
   });
@@ -180,7 +197,7 @@ describe("GeminiProvider", () => {
 
     const { geminiTools, nameMap, reverseMap } = provider.formatTools([
       {
-        name: "my tool!",
+        name: "my.tool:name!",
         description: "A tool",
         inputSchema: { type: "object", properties: {} }
       },
@@ -190,13 +207,24 @@ describe("GeminiProvider", () => {
     expect(geminiTools).toHaveLength(1);
     expect(geminiTools[0].functionDeclarations).toHaveLength(2);
 
-    // "my tool!" should be sanitized
-    const sanitized = nameMap.get("my tool!");
-    expect(sanitized).toBe("my_tool_");
-    expect(reverseMap.get(sanitized!)).toBe("my tool!");
+    // Unsupported punctuation should be sanitized.
+    const sanitized = nameMap.get("my.tool:name!");
+    expect(sanitized).toBe("my_tool_name_");
+    expect(reverseMap.get(sanitized!)).toBe("my.tool:name!");
 
     // "valid_name" should stay the same
     expect(nameMap.get("valid_name")).toBe("valid_name");
+  });
+
+  it("assigns distinct names when sanitized tool names collide", () => {
+    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" });
+    const { nameMap, reverseMap } = provider.formatTools([
+      { name: "a b" },
+      { name: "a@b" }
+    ]);
+    expect(nameMap.get("a b")).toBe("a_b");
+    expect(nameMap.get("a@b")).toBe("a_b_2");
+    expect(reverseMap.get("a_b_2")).toBe("a@b");
   });
 
   it("adds default items to array schemas missing them (Gemini requires items)", () => {
@@ -279,6 +307,46 @@ describe("GeminiProvider", () => {
     expect(models).toEqual([
       { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", provider: "gemini" }
     ]);
+  });
+
+  it("paginates and filters language model discovery", async () => {
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValueOnce(
+        makeFetchResponse({
+          models: [
+            {
+              name: "models/gemini-3.5-flash",
+              supportedGenerationMethods: ["generateContent"]
+            }
+          ],
+          nextPageToken: "next"
+        })
+      )
+      .mockResolvedValueOnce(
+        makeFetchResponse({
+          models: [
+            {
+              name: "models/gemini-embedding-2",
+              supportedGenerationMethods: ["generateContent"]
+            },
+            {
+              name: "models/gemini-3.1-flash-lite",
+              supportedGenerationMethods: ["generateContent"]
+            }
+          ]
+        })
+      );
+    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
+    await expect(provider.getAvailableLanguageModels()).resolves.toEqual([
+      { id: "gemini-3.5-flash", name: "gemini-3.5-flash", provider: "gemini" },
+      {
+        id: "gemini-3.1-flash-lite",
+        name: "gemini-3.1-flash-lite",
+        provider: "gemini"
+      }
+    ]);
+    expect(fetchFn.mock.calls[1][0]).toContain("pageToken=next");
   });
 
   it("returns empty list on model fetch failure", async () => {
@@ -441,7 +509,11 @@ describe("GeminiProvider", () => {
             content: {
               parts: [
                 {
-                  functionCall: { name: "lookup", args: { q: "test" } }
+                  functionCall: {
+                    id: "gemini-call-7",
+                    name: "lookup",
+                    args: { q: "test" }
+                  }
                 }
               ]
             }
@@ -468,7 +540,7 @@ describe("GeminiProvider", () => {
     const tc = out[0] as any;
     expect(tc.name).toBe("lookup");
     expect(tc.args).toEqual({ q: "test" });
-    expect(tc.id).toBeDefined();
+    expect(tc.id).toBe("gemini-call-7");
     expect((out[1] as any).done).toBe(true);
   });
 
@@ -518,5 +590,234 @@ describe("GeminiProvider", () => {
   it("returns container env", () => {
     const provider = new GeminiProvider({ GEMINI_API_KEY: "test-key" });
     expect(provider.getContainerEnv()).toEqual({ GEMINI_API_KEY: "test-key" });
+  });
+
+  it("preserves Gemini function IDs through a tool response round trip", async () => {
+    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" });
+    const converted = await provider.convertMessages([
+      {
+        role: "assistant",
+        content: null,
+        toolCalls: [{ id: "vendor-call-1", name: "lookup", args: { q: "x" } }]
+      },
+      { role: "tool", toolCallId: "vendor-call-1", content: "ok" }
+    ]);
+    expect(converted.contents[0].parts[0]).toEqual({
+      functionCall: { id: "vendor-call-1", name: "lookup", args: { q: "x" } }
+    });
+    expect(converted.contents[1].parts[0]).toEqual({
+      functionResponse: {
+        id: "vendor-call-1",
+        name: "lookup",
+        response: { result: "ok" }
+      }
+    });
+  });
+
+  it("uses the declared sanitized tool name throughout follow-up history", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(
+      makeFetchResponse({
+        candidates: [{ content: { parts: [{ text: "done" }] } }]
+      })
+    );
+    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
+    await provider.generateMessage({
+      model: "gemini-3.5-flash",
+      tools: [{ name: "my tool!" }],
+      messages: [
+        {
+          role: "assistant",
+          content: null,
+          toolCalls: [{ id: "id-1", name: "my tool!", args: {} }]
+        },
+        { role: "tool", toolCallId: "id-1", content: "ok" }
+      ]
+    });
+    const body = JSON.parse(fetchFn.mock.calls[0][1].body);
+    expect(body.tools[0].functionDeclarations[0].name).toBe("my_tool_");
+    expect(body.contents[0].parts[0].functionCall.name).toBe("my_tool_");
+    expect(body.contents[1].parts[0].functionResponse.name).toBe("my_tool_");
+  });
+
+  it("maps toolChoice and native web search without dropping function tools", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(
+      makeFetchResponse({
+        candidates: [{ content: { parts: [{ text: "ok" }] } }]
+      })
+    );
+    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
+    expect(provider.supportsNativeWebSearch).toBe(true);
+    await provider.generateMessage({
+      model: "gemini-3.5-flash",
+      messages: [{ role: "user", content: "search" }],
+      tools: [{ name: "web_search" }, { name: "my tool!" }],
+      toolChoice: "my tool!"
+    });
+    const body = JSON.parse(fetchFn.mock.calls[0][1].body);
+    expect(body.tools).toEqual([
+      { functionDeclarations: [expect.objectContaining({ name: "my_tool_" })] },
+      { googleSearch: {} }
+    ]);
+    expect(body.toolConfig).toEqual({
+      functionCallingConfig: { mode: "ANY", allowedFunctionNames: ["my_tool_"] }
+    });
+  });
+
+  it("maps code-interpreter tools to Gemini code execution", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(
+      makeFetchResponse({
+        candidates: [{ content: { parts: [{ text: "ok" }] } }]
+      })
+    );
+    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
+    await provider.generateMessage({
+      model: "gemini-3.5-flash",
+      messages: [{ role: "user", content: "calculate" }],
+      tools: [{ name: "python", type: "code_interpreter" }]
+    });
+    expect(JSON.parse(fetchFn.mock.calls[0][1].body).tools).toEqual([
+      { codeExecution: {} }
+    ]);
+  });
+
+  it("passes the caller AbortSignal to chat fetch", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(
+      makeFetchResponse({
+        candidates: [{ content: { parts: [{ text: "ok" }] } }]
+      })
+    );
+    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
+    const controller = new AbortController();
+    await provider.generateMessage({
+      model: "gemini-3.5-flash",
+      messages: [{ role: "user", content: "hi" }],
+      signal: controller.signal
+    });
+    expect(fetchFn.mock.calls[0][1].signal).toBe(controller.signal);
+  });
+
+  it("passes the caller AbortSignal to streaming fetch", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(makeSSEStream([]));
+    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
+    const controller = new AbortController();
+    for await (const _item of provider.generateMessages({
+      model: "gemini-3.5-flash",
+      messages: [{ role: "user", content: "hi" }],
+      signal: controller.signal
+    })) {
+      // exhaust the stream
+    }
+    expect(fetchFn.mock.calls[0][1].signal).toBe(controller.signal);
+  });
+
+  it("normalizes non-Error streaming abort reasons", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(makeSSEStream([]));
+    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
+    const controller = new AbortController();
+    controller.abort("stop");
+
+    const consume = async (): Promise<void> => {
+      for await (const _item of provider.generateMessages({
+        model: "gemini-3.5-flash",
+        messages: [{ role: "user", content: "hi" }],
+        signal: controller.signal
+      })) {
+        // Consume the stream.
+      }
+    };
+
+    await expect(consume()).rejects.toMatchObject({ name: "AbortError" });
+  });
+
+  it("accounts for thought tokens as billable output", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(
+      makeFetchResponse({
+        candidates: [{ content: { parts: [{ text: "ok" }] } }],
+        usageMetadata: {
+          promptTokenCount: 10,
+          candidatesTokenCount: 5,
+          thoughtsTokenCount: 20
+        }
+      })
+    );
+    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
+    const emitted: unknown[] = [];
+    provider.setMessageEmitter((message) => emitted.push(message));
+    await provider.generateMessageTraced({
+      model: "gemini-3.5-flash",
+      messages: [{ role: "user", content: "hi" }]
+    });
+    expect(emitted).toContainEqual(
+      expect.objectContaining({ tokens_input: 10, tokens_output: 25 })
+    );
+  });
+
+  it("coalesces adjacent roles and concatenates system instructions", async () => {
+    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" });
+    const converted = await provider.convertMessages([
+      { role: "system", content: "first" },
+      { role: "system", content: "second" },
+      { role: "user", content: "a" },
+      { role: "user", content: "b" },
+      { role: "assistant", content: "c" },
+      { role: "assistant", content: "d" }
+    ]);
+    expect(converted.systemInstruction).toBe("first\nsecond");
+    expect(converted.contents).toEqual([
+      { role: "user", parts: [{ text: "a" }, { text: "b" }] },
+      { role: "model", parts: [{ text: "c" }, { text: "d" }] }
+    ]);
+  });
+
+  it("preserves text-part thought signatures in non-streaming history", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(
+      makeFetchResponse({
+        candidates: [
+          { content: { parts: [{ text: "answer", thoughtSignature: "sig" }] } }
+        ]
+      })
+    );
+    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
+    const message = await provider.generateMessage({
+      model: "gemini-3.5-flash",
+      messages: [{ role: "user", content: "hi" }]
+    });
+    expect(message._rawGeminiParts).toEqual([
+      { text: "answer", thoughtSignature: "sig" }
+    ]);
+  });
+
+  it("throws streamed API and prompt-block errors without a terminal chunk", async () => {
+    for (const event of [
+      { error: { message: "stream failed" } },
+      { promptFeedback: { blockReason: "SAFETY" } }
+    ]) {
+      const provider = new GeminiProvider(
+        { GEMINI_API_KEY: "k" },
+        { fetchFn: vi.fn().mockResolvedValue(makeSSEStream([event])) }
+      );
+      const gen = provider.generateMessages({
+        model: "gemini-3.5-flash",
+        messages: [{ role: "user", content: "hi" }]
+      });
+      await expect(gen.next()).rejects.toThrow();
+    }
+  });
+
+  it("rejects malformed non-streaming response shapes", async () => {
+    const provider = new GeminiProvider(
+      { GEMINI_API_KEY: "k" },
+      {
+        fetchFn: vi
+          .fn()
+          .mockResolvedValue(makeFetchResponse({ candidates: {} }))
+      }
+    );
+    await expect(
+      provider.generateMessage({
+        model: "gemini-3.5-flash",
+        messages: [{ role: "user", content: "hi" }]
+      })
+    ).rejects.toThrow("invalid candidates");
   });
 });

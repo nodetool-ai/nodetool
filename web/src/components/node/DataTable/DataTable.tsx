@@ -129,6 +129,7 @@ const DataTable: React.FC<DataTableProps> = ({
   toolbarEnd
 }) => {
   const theme = useTheme();
+  const memoizedTableStyles = useMemo(() => tableStyles(theme), [theme]);
   const tableRef = useRef<HTMLDivElement>(null);
   const tabulatorRef = useRef<Tabulator | null>(null);
   const [tabulator, setTabulator] = useState<Tabulator>();
@@ -382,7 +383,7 @@ const DataTable: React.FC<DataTableProps> = ({
   }, [searchFilter, isTableReady]);
 
   return (
-    <div className="datatable nowheel nodrag" css={tableStyles(theme)}>
+    <div className="datatable nowheel nodrag" css={memoizedTableStyles}>
       <TableActions
         tabulator={tabulator}
         data={data}

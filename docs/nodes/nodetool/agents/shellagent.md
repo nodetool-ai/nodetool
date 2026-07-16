@@ -11,7 +11,8 @@ namespace: "nodetool.agents"
 
 ## Description
 
-Reusable prompt-driven skill backed by execute_bash.
+Run shell commands to carry out a task you describe in plain language.
+    agent, shell, bash, terminal, automation
 
 ## Properties
 

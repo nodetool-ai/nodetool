@@ -11,8 +11,8 @@ namespace: "nodetool.agents"
 
 ## Description
 
-Prompt-driven spreadsheet skill for CSV/XLSX processing.
-    skills, spreadsheet, csv, xlsx, tabular
+Process and analyze CSV and Excel spreadsheets from a prompt.
+    agent, spreadsheet, csv, xlsx, tabular
 
 ## Properties
 

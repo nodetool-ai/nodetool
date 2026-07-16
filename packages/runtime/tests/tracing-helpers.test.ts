@@ -122,6 +122,33 @@ describe("usage slot capture", () => {
     expect(u?.cost).toBe(0.5);
   });
 
+  it("accumulates repeated usage writes in one provider call", async () => {
+    const { runInSlot, getUsage } = createUsageSlot();
+    await runInSlot(async () => {
+      setLastUsage({
+        inputTokens: 10,
+        outputTokens: 2,
+        cachedInputTokens: 3,
+        cacheWriteTokens: 4,
+        cost: 0.1
+      });
+      setLastUsage({
+        inputTokens: 20,
+        outputTokens: 5,
+        cachedInputTokens: 6,
+        cacheWriteTokens: 7,
+        cost: 0.2
+      });
+    });
+    expect(getUsage()).toMatchObject({
+      inputTokens: 30,
+      outputTokens: 7,
+      cachedInputTokens: 9,
+      cacheWriteTokens: 11
+    });
+    expect(getUsage()?.cost).toBeCloseTo(0.3);
+  });
+
   it("setLastUsage outside any slot is silently dropped", async () => {
     setLastUsage({ inputTokens: 1, outputTokens: 1 });
     expect(peekLastUsage()).toBeNull();

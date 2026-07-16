@@ -439,6 +439,30 @@ function generateNodePage(meta) {
   return lines.join("\n");
 }
 
+function catalogEntry(meta) {
+  const pathParts = nsToPath(meta.namespace);
+  const slug = slugify(meta.title);
+  return {
+    type: meta.nodeType,
+    title: meta.title,
+    namespace: meta.namespace,
+    description: meta.description.trim(),
+    inputs: meta.properties.map((prop) => ({
+      name: prop.name,
+      type: typeToString(prop.type),
+      description: prop.description ?? "",
+      required: prop.default === undefined,
+      ...(prop.default === undefined ? {} : { default: prop.default }),
+    })),
+    outputs: meta.outputs.map((output) => ({
+      name: output.name,
+      type: typeToString(output.type),
+    })),
+    documentation_url: `https://docs.nodetool.ai/nodes/${pathParts}/${slug}`,
+    markdown_url: `https://docs.nodetool.ai/nodes/${pathParts}/${slug}.md`,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Generate namespace index pages
 // ---------------------------------------------------------------------------
@@ -538,6 +562,16 @@ for (const [ns, nodes] of byNamespace) {
 fs.writeFileSync(path.join(outDir, "index.md"), generateMainIndex(byNamespace));
 written++;
 
+const catalog = {
+  schema_version: "1",
+  generated_at: new Date().toISOString(),
+  nodes: [...byNamespace.values()]
+    .flat()
+    .sort((a, b) => a.nodeType.localeCompare(b.nodeType))
+    .map(catalogEntry),
+};
+fs.writeFileSync(path.join(outDir, "catalog.json"), `${JSON.stringify(catalog, null, 2)}\n`);
+
 console.log(
-  `Generated ${written} files across ${byNamespace.size} namespaces to ${outDir}`
+  `Generated ${written} pages and ${catalog.nodes.length} catalog entries across ${byNamespace.size} namespaces to ${outDir}`
 );

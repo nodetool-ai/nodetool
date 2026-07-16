@@ -11,8 +11,8 @@ namespace: "nodetool.agents"
 
 ## Description
 
-Prompt-driven HTTP API skill for calling REST/GraphQL endpoints.
-    skills, http, api, rest, graphql
+Call REST and GraphQL APIs and handle the responses from a prompt.
+    agent, http, api, rest, graphql
 
 ## Properties
 

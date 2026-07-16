@@ -99,6 +99,35 @@ export type AnthropicThinkingBlock =
   | { type: "thinking"; thinking: string; signature: string }
   | { type: "redacted_thinking"; data: string };
 
+export type ProviderThinkingDisplay = "summarized" | "omitted";
+
+export type ProviderThinkingConfig =
+  | {
+      type: "adaptive";
+      display?: ProviderThinkingDisplay;
+    }
+  | {
+      type: "manual";
+      budgetTokens: number;
+      display?: ProviderThinkingDisplay;
+    }
+  | {
+      type: "disabled";
+    };
+
+export type ProviderEffort = "low" | "medium" | "high" | "xhigh" | "max";
+
+export interface ProviderCacheControl {
+  type: "ephemeral";
+  ttl?: "5m" | "1h";
+}
+
+export type ProviderToolCaller =
+  | "direct"
+  | "code_execution_20250825"
+  | "code_execution_20260120"
+  | "code_execution_20260521";
+
 /**
  * Canonical name for the web-search tool. Providers with a built-in web search
  * (`supportsNativeWebSearch`) render a tool with this name as their native
@@ -123,6 +152,11 @@ export interface ProviderTool {
   name: string;
   description?: string;
   inputSchema?: Record<string, unknown>;
+  inputExamples?: Record<string, unknown>[];
+  cacheControl?: ProviderCacheControl;
+  strict?: boolean;
+  deferLoading?: boolean;
+  allowedCallers?: ProviderToolCaller[];
   type?: "function" | "code_interpreter";
   /**
    * Optional self-contained executor for this tool. When present,
@@ -148,6 +182,7 @@ export interface ProviderTool {
 export interface MessageTextContent {
   type: "text";
   text: string;
+  citations?: MessageCitation[];
 }
 
 export interface MessageImageContent {
@@ -168,16 +203,101 @@ export interface MessageAudioContent {
   };
 }
 
+export interface MessageDocumentContent {
+  type: "document";
+  document: {
+    uri?: string;
+    data?: Uint8Array | string;
+    mimeType?: string;
+    title?: string;
+  };
+  citations?: boolean;
+  context?: string;
+}
+
+interface MessageDocumentCitationBase {
+  citedText: string;
+  documentIndex: number;
+  documentTitle?: string | null;
+  fileId?: string | null;
+}
+
+export interface MessageCharCitation extends MessageDocumentCitationBase {
+  type: "char_location";
+  startCharIndex: number;
+  endCharIndex: number;
+}
+
+export interface MessagePageCitation extends MessageDocumentCitationBase {
+  type: "page_location";
+  startPageNumber: number;
+  endPageNumber: number;
+}
+
+export interface MessageContentBlockCitation
+  extends MessageDocumentCitationBase {
+  type: "content_block_location";
+  startBlockIndex: number;
+  endBlockIndex: number;
+}
+
+export interface MessageWebSearchCitation {
+  type: "web_search_result_location";
+  citedText: string;
+  encryptedIndex: string;
+  url: string;
+  title?: string | null;
+}
+
+export interface MessageSearchResultCitation {
+  type: "search_result_location";
+  citedText: string;
+  searchResultIndex: number;
+  source: string;
+  title?: string | null;
+  startBlockIndex: number;
+  endBlockIndex: number;
+}
+
+export type MessageCitation =
+  | MessageCharCitation
+  | MessagePageCitation
+  | MessageContentBlockCitation
+  | MessageWebSearchCitation
+  | MessageSearchResultCitation;
+
 export type MessageContent =
   | MessageTextContent
   | MessageImageContent
-  | MessageAudioContent;
+  | MessageAudioContent
+  | MessageDocumentContent;
+
+export interface ProviderToolErrorResult {
+  content: string | MessageContent[];
+  isError: true;
+}
+
+export type ProviderToolResult =
+  | string
+  | MessageContent[]
+  | ProviderToolErrorResult;
+
+export function isProviderToolErrorResult(
+  result: ProviderToolResult
+): result is ProviderToolErrorResult {
+  return (
+    typeof result === "object" &&
+    !Array.isArray(result) &&
+    result.isError === true
+  );
+}
 
 export interface Message {
   role: "system" | "user" | "assistant" | "tool";
   content?: string | MessageContent[] | null;
   toolCalls?: ToolCall[] | null;
   toolCallId?: string | null;
+  isError?: boolean;
   threadId?: string | null;
   /** Provider-specific raw parts to echo back (e.g., Gemini thought parts). */
   _rawGeminiParts?: unknown[];

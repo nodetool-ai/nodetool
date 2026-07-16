@@ -1,5 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
+import { safeFetch } from "@nodetool-ai/runtime";
 
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
@@ -61,18 +62,16 @@ export class GroundedSearchNode extends BaseNode {
 
   @prop({
     type: "enum",
-    default: "gemini-3-flash-preview",
+    default: "gemini-3.5-flash",
     title: "Model",
     description: "The Gemini model to use for search",
     values: [
+      "gemini-3.5-flash",
       "gemini-3.1-pro-preview",
-      "gemini-3.1-flash-image-preview",
-      "gemini-3-pro-image-preview",
-      "gemini-3-flash-preview",
+      "gemini-3.1-flash-lite",
       "gemini-2.5-pro",
       "gemini-2.5-flash",
-      "gemini-2.5-flash-lite",
-      "gemini-2.0-flash"
+      "gemini-2.5-flash-lite"
     ]
   })
   declare model: any;
@@ -80,7 +79,7 @@ export class GroundedSearchNode extends BaseNode {
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getGeminiApiKey(this._secrets);
     const query = String(this.query ?? "");
-    const model = String(this.model ?? "gemini-3-flash-preview");
+    const model = String(this.model ?? "gemini-3.5-flash");
 
     if (!query) throw new Error("Search query is required");
 
@@ -177,17 +176,17 @@ export class EmbeddingNode extends BaseNode {
 
   @prop({
     type: "enum",
-    default: "text-embedding-004",
+    default: "gemini-embedding-2",
     title: "Model",
     description: "The embedding model to use",
-    values: ["text-embedding-004", "gemini-embedding-001"]
+    values: ["gemini-embedding-2"]
   })
   declare model: any;
 
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getGeminiApiKey(this._secrets);
     const input = String(this.input ?? "");
-    const model = String(this.model ?? "text-embedding-004");
+    const model = String(this.model ?? "gemini-embedding-2");
 
     if (!input)
       throw new Error("Input text is required for embedding generation");
@@ -244,11 +243,13 @@ export class ImageGenerationNode extends BaseNode {
 
   @prop({
     type: "enum",
-    default: "imagen-4.0-generate-001",
+    default: "gemini-3.1-flash-image",
     title: "Model",
     description: "The image generation model to use",
     values: [
-      "gemini-3.1-flash-image-preview",
+      "gemini-3.1-flash-image",
+      "gemini-3.1-flash-lite-image",
+      "gemini-3-pro-image",
       "imagen-4.0-generate-001"
     ]
   })
@@ -268,24 +269,57 @@ export class ImageGenerationNode extends BaseNode {
   })
   declare image: any;
 
+  @prop({
+    type: "enum",
+    default: "1:1",
+    title: "Aspect Ratio",
+    description: "The aspect ratio of the generated image",
+    values: [
+      "1:1",
+      "1:4",
+      "1:8",
+      "2:3",
+      "3:2",
+      "3:4",
+      "4:1",
+      "4:3",
+      "4:5",
+      "5:4",
+      "8:1",
+      "9:16",
+      "16:9",
+      "21:9"
+    ]
+  })
+  declare aspect_ratio: any;
+
+  @prop({
+    type: "enum",
+    default: "1K",
+    title: "Resolution",
+    description: "The output image resolution",
+    values: ["512px", "1K", "2K", "4K"]
+  })
+  declare resolution: any;
+
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getGeminiApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
-    const model = String(this.model ?? "imagen-4.0-generate-001");
+    const model = String(this.model ?? "gemini-3.1-flash-image");
     const image = (this.image ?? {}) as Record<string, unknown>;
+    const aspectRatio = String(this.aspect_ratio ?? "1:1");
+    const resolution = String(this.resolution ?? "1K");
 
     if (!prompt) throw new Error("The input prompt cannot be empty.");
 
-    // Gemini image-capable models use generateContent with IMAGE+TEXT modalities
     if (model.startsWith("gemini-")) {
       const contentParts: Array<Record<string, unknown>> = [{ text: prompt }];
 
-      // Add optional input image
       const imageBytes = getImageBytes(image);
       if (imageBytes) {
         contentParts.push({
-          inline_data: {
-            mime_type: "image/png",
+          inlineData: {
+            mimeType: "image/png",
             data: Buffer.from(imageBytes).toString("base64")
           }
         });
@@ -295,7 +329,11 @@ export class ImageGenerationNode extends BaseNode {
       const body = {
         contents: [{ parts: contentParts }],
         generationConfig: {
-          responseModalities: ["IMAGE", "TEXT"]
+          responseModalities: ["IMAGE", "TEXT"],
+          imageConfig: {
+            aspectRatio,
+            imageSize: resolution
+          }
         }
       };
 
@@ -334,7 +372,6 @@ export class ImageGenerationNode extends BaseNode {
         const inlineData = part.inlineData as
           | Record<string, unknown>
           | undefined;
-        // Also check snake_case variant from API
         const inlineData2 = part.inline_data as
           | Record<string, unknown>
           | undefined;
@@ -347,14 +384,10 @@ export class ImageGenerationNode extends BaseNode {
       throw new Error("No image bytes returned in response");
     }
 
-    // Imagen models use the generateImages (predict) endpoint with the
-    // instances/parameters envelope — the same shape the runtime Gemini
-    // provider uses. The earlier `{ prompt, config }` body is the JS-SDK
-    // shape and is rejected by the REST API.
-    const url = `${GEMINI_API_BASE}/models/${model}:generateImages?key=${apiKey}`;
+    const url = `${GEMINI_API_BASE}/models/${model}:predict?key=${apiKey}`;
     const body = {
       instances: [{ prompt }],
-      parameters: { sampleCount: 1 }
+      parameters: { sampleCount: 1, aspectRatio }
     };
 
     const res = await fetch(url, {
@@ -370,8 +403,6 @@ export class ImageGenerationNode extends BaseNode {
 
     const data = (await res.json()) as Record<string, unknown>;
 
-    // Prefer the Vertex-style `predictions[].bytesBase64Encoded`, falling back
-    // to the SDK-style `generatedImages[].image.imageBytes`.
     const predictionBytes = (
       data.predictions as Array<{ bytesBase64Encoded?: string }> | undefined
     )?.[0]?.bytesBase64Encoded;
@@ -427,7 +458,11 @@ export class TextToVideoGeminiNode extends BaseNode {
     default: "veo-3.1-generate-preview",
     title: "Model",
     description: "The Veo model to use for video generation",
-    values: ["veo-3.1-generate-preview", "veo-2.0-generate-001"]
+    values: [
+      "veo-3.1-generate-preview",
+      "veo-3.1-fast-generate-preview",
+      "veo-3.1-lite-generate-preview"
+    ]
   })
   declare model: any;
 
@@ -448,21 +483,30 @@ export class TextToVideoGeminiNode extends BaseNode {
   })
   declare negative_prompt: any;
 
+  @prop({
+    type: "enum",
+    default: "720p",
+    title: "Resolution",
+    description: "The output video resolution",
+    values: ["720p", "1080p", "4k"]
+  })
+  declare resolution: any;
+
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getGeminiApiKey(this._secrets);
     const prompt = String(this.prompt ?? "");
     const model = String(this.model ?? "veo-3.1-generate-preview");
     const aspectRatio = String(this.aspect_ratio ?? "16:9");
     const negativePrompt = String(this.negative_prompt ?? "");
+    const resolution = String(this.resolution ?? "720p");
 
     if (!prompt) throw new Error("Video generation prompt is required");
 
-    // Start the long-running video generation operation. Veo uses the
-    // instances/parameters envelope (matching the runtime Gemini provider).
-    const url = `${GEMINI_API_BASE}/models/${model}:generateVideos?key=${apiKey}`;
+    const url = `${GEMINI_API_BASE}/models/${model}:predictLongRunning?key=${apiKey}`;
     const parameters: Record<string, unknown> = {};
     if (aspectRatio) parameters.aspectRatio = aspectRatio;
     if (negativePrompt) parameters.negativePrompt = negativePrompt;
+    if (resolution) parameters.resolution = resolution;
 
     const body: Record<string, unknown> = {
       instances: [{ prompt }]
@@ -527,7 +571,11 @@ export class ImageToVideoGeminiNode extends BaseNode {
     default: "veo-3.1-generate-preview",
     title: "Model",
     description: "The Veo model to use for video generation",
-    values: ["veo-3.1-generate-preview", "veo-2.0-generate-001"]
+    values: [
+      "veo-3.1-generate-preview",
+      "veo-3.1-fast-generate-preview",
+      "veo-3.1-lite-generate-preview"
+    ]
   })
   declare model: any;
 
@@ -548,6 +596,15 @@ export class ImageToVideoGeminiNode extends BaseNode {
   })
   declare negative_prompt: any;
 
+  @prop({
+    type: "enum",
+    default: "720p",
+    title: "Resolution",
+    description: "The output video resolution",
+    values: ["720p", "1080p", "4k"]
+  })
+  declare resolution: any;
+
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getGeminiApiKey(this._secrets);
     const image = (this.image ?? {}) as Record<string, unknown>;
@@ -555,6 +612,7 @@ export class ImageToVideoGeminiNode extends BaseNode {
     const model = String(this.model ?? "veo-3.1-generate-preview");
     const aspectRatio = String(this.aspect_ratio ?? "16:9");
     const negativePrompt = String(this.negative_prompt ?? "");
+    const resolution = String(this.resolution ?? "720p");
 
     if (!isRefSet(image)) throw new Error("Input image is required");
 
@@ -564,8 +622,9 @@ export class ImageToVideoGeminiNode extends BaseNode {
     const parameters: Record<string, unknown> = {};
     if (aspectRatio) parameters.aspectRatio = aspectRatio;
     if (negativePrompt) parameters.negativePrompt = negativePrompt;
+    if (resolution) parameters.resolution = resolution;
 
-    const url = `${GEMINI_API_BASE}/models/${model}:generateVideos?key=${apiKey}`;
+    const url = `${GEMINI_API_BASE}/models/${model}:predictLongRunning?key=${apiKey}`;
     const body: Record<string, unknown> = {
       instances: [
         {
@@ -600,12 +659,16 @@ async function pollVideoOperation(
   apiKey: string,
   operation: Record<string, unknown>
 ): Promise<string> {
-  // If the operation already has the result, return it
+  const initialError = operation.error as Record<string, unknown> | undefined;
+  if (initialError) {
+    throw new Error(
+      `Gemini video generation failed: ${String(initialError.message ?? initialError.status ?? "unknown error")}`
+    );
+  }
   if (operation.done) {
     return extractVideoFromResponse(apiKey, operation);
   }
 
-  // Otherwise poll the operation
   const opName = operation.name as string | undefined;
   if (!opName) throw new Error("No operation name in response");
 
@@ -621,6 +684,12 @@ async function pollVideoOperation(
     }
 
     const pollData = (await pollRes.json()) as Record<string, unknown>;
+    const pollError = pollData.error as Record<string, unknown> | undefined;
+    if (pollError) {
+      throw new Error(
+        `Gemini video generation failed: ${String(pollError.message ?? pollError.status ?? "unknown error")}`
+      );
+    }
     if (pollData.done) {
       return extractVideoFromResponse(apiKey, pollData);
     }
@@ -634,9 +703,16 @@ async function extractVideoFromResponse(
   data: Record<string, unknown>
 ): Promise<string> {
   const response = (data.response ?? data) as Record<string, unknown>;
-  const generatedVideos = response.generatedVideos as
+  const directVideos = response.generatedVideos as
     | Array<Record<string, unknown>>
     | undefined;
+  const generateVideoResponse = response.generateVideoResponse as
+    | Record<string, unknown>
+    | undefined;
+  const generatedSamples = generateVideoResponse?.generatedSamples as
+    | Array<Record<string, unknown>>
+    | undefined;
+  const generatedVideos = directVideos ?? generatedSamples;
   if (!generatedVideos || generatedVideos.length === 0) {
     throw new Error("No video generated");
   }
@@ -644,15 +720,18 @@ async function extractVideoFromResponse(
   const video = generatedVideos[0].video as Record<string, unknown> | undefined;
   if (!video) throw new Error("No video in response");
 
-  // Veo may return inline base64 bytes or a download URI. Prefer inline bytes;
-  // otherwise download the file (the URI needs the API key appended).
   const videoBytes = video.videoBytes as string | undefined;
   if (videoBytes) return videoBytes;
 
   const videoUri = video.uri as string | undefined;
   if (videoUri) {
-    const sep = videoUri.includes("?") ? "&" : "?";
-    const dlRes = await fetch(`${videoUri}${sep}key=${apiKey}`);
+    const headers =
+      new URL(videoUri).hostname === "generativelanguage.googleapis.com"
+        ? { "x-goog-api-key": apiKey }
+        : undefined;
+    const dlRes = await safeFetch(videoUri, {
+      headers
+    });
     if (!dlRes.ok) {
       throw new Error(`Gemini video download failed ${dlRes.status}`);
     }
@@ -688,10 +767,14 @@ export class TextToSpeechGeminiNode extends BaseNode {
 
   @prop({
     type: "enum",
-    default: "gemini-2.5-pro-preview-tts",
+    default: "gemini-3.1-flash-tts-preview",
     title: "Model",
     description: "The text-to-speech model to use",
-    values: ["gemini-2.5-pro-preview-tts"]
+    values: [
+      "gemini-3.1-flash-tts-preview",
+      "gemini-2.5-flash-preview-tts",
+      "gemini-2.5-pro-preview-tts"
+    ]
   })
   declare model: any;
 
@@ -747,7 +830,7 @@ export class TextToSpeechGeminiNode extends BaseNode {
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getGeminiApiKey(this._secrets);
     const text = String(this.text ?? "");
-    const model = String(this.model ?? "gemini-2.5-pro-preview-tts");
+    const model = String(this.model ?? "gemini-3.1-flash-tts-preview");
     const stylePrompt = String(this.style_prompt ?? "");
 
     const VALID_VOICES = [
@@ -863,10 +946,10 @@ export class TranscribeGeminiNode extends BaseNode {
 
   @prop({
     type: "enum",
-    default: "gemini-2.5-flash",
+    default: "gemini-3.5-flash",
     title: "Model",
     description: "The Gemini model to use for transcription",
-    values: ["gemini-2.5-flash", "gemini-2.0-flash"]
+    values: ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-flash"]
   })
   declare model: any;
 
@@ -883,7 +966,7 @@ export class TranscribeGeminiNode extends BaseNode {
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getGeminiApiKey(this._secrets);
     const audio = (this.audio ?? {}) as Record<string, unknown>;
-    const model = String(this.model ?? "gemini-2.5-flash");
+    const model = String(this.model ?? "gemini-3.5-flash");
     const prompt = String(
       this.prompt ??
         "Transcribe the following audio accurately. Return only the transcription text without any additional commentary."
@@ -904,8 +987,8 @@ export class TranscribeGeminiNode extends BaseNode {
           parts: [
             { text: prompt },
             {
-              inline_data: {
-                mime_type: mimeType,
+              inlineData: {
+                mimeType,
                 data: Buffer.from(audioBytes).toString("base64")
               }
             }

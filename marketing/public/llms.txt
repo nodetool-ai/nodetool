@@ -18,15 +18,15 @@
 
 ## Key pages
 
-- [Home](https://nodetool.ai/): what NodeTool is, Studio vs Cloud, what you can build.
-- [Studio](https://nodetool.ai/studio): the free, open-source desktop app; local models, offline use.
-- [Cloud](https://nodetool.ai/cloud): the hosted, browser-based edition (alpha).
-- [Pricing](https://nodetool.ai/pricing): edition comparison and how BYOK pricing works.
-- [Agents](https://nodetool.ai/agents): building and running AI agents visually on the canvas.
-- [For creatives](https://nodetool.ai/creatives): artists, motion designers, AI-native illustrators.
-- [For developers](https://nodetool.ai/developers): TypeScript SDK, REST API, custom nodes in TypeScript or Python.
-- [For marketing teams](https://nodetool.ai/marketing): product videos, ad creative, and brand assets at campaign scale.
-- [Documentation](https://docs.nodetool.ai): install guides, key concepts, node reference, API reference, CLI.
+- [Home](https://nodetool.ai/index.md): what NodeTool is, Studio vs Cloud, what you can build.
+- [Studio](https://nodetool.ai/studio.md): the free, open-source desktop app; local models, offline use.
+- [Cloud](https://nodetool.ai/cloud.md): the hosted, browser-based edition (alpha).
+- [Pricing](https://nodetool.ai/pricing.md): edition comparison and how BYOK pricing works.
+- [Agents](https://nodetool.ai/agents.md): building and running AI agents visually on the canvas.
+- [For creatives](https://nodetool.ai/creatives.md): artists, motion designers, AI-native illustrators.
+- [For developers](https://nodetool.ai/developers.md): TypeScript SDK, REST API, custom nodes in TypeScript or Python.
+- [For marketing teams](https://nodetool.ai/marketing.md): product videos, ad creative, and brand assets at campaign scale.
+- [Documentation](https://docs.nodetool.ai/llms.txt): install guides, key concepts, node reference, API reference, CLI.
 
 ## Comparisons
 

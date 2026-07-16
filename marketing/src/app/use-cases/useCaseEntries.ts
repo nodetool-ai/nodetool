@@ -11,7 +11,7 @@ export type UseCaseEntry = {
   teaser: string;
   /** Short pipeline summary, shown as chips on the teaser card. */
   pipeline: string[];
-  /** Looping preview clip for the teaser (muted, autoplay). */
+  /** Preview clip for the teaser. */
   video?: string;
   /** Poster / fallback image for the teaser. */
   poster: string;
@@ -27,7 +27,7 @@ export const useCaseEntries: UseCaseEntry[] = [
       "Type one logline and the canvas builds a cinematic teaser. A showrunner agent writes the treatment, a list generator breaks it into shots, each shot is rendered as key art, animated, and cut into a finished trailer.",
     pipeline: ["Logline", "Treatment", "Shots", "Key art", "Trailer"],
     video: "/movie_trailer_example.mp4",
-    poster: "/trailer-shot-1.png",
+    poster: "/trailer-shot-1.webp",
     accent: "amber",
   },
   {
@@ -38,7 +38,7 @@ export const useCaseEntries: UseCaseEntry[] = [
       "Turn a campaign brief and a single product photo into a cinematic 16:9 product video. Your inputs feed a prompt, an agent directs the shot, and a text-to-video model renders it.",
     pipeline: ["Brief", "Prompt", "Agent", "Text-to-Video"],
     video: "/product_video_example.mp4",
-    poster: "/smartwatch.png",
+    poster: "/smartwatch.webp",
     accent: "sky",
   },
   {
@@ -48,7 +48,7 @@ export const useCaseEntries: UseCaseEntry[] = [
     teaser:
       "From a title, genre, and audience, the canvas writes a creative strategy and renders a batch of cinematic movie poster concepts, title, tagline, billing block and all.",
     pipeline: ["Brief", "Strategy", "Concepts", "Key art"],
-    poster: "/poster-singularity-1.png",
+    poster: "/poster-singularity-1.webp",
     accent: "violet",
   },
 ];

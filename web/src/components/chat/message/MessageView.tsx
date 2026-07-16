@@ -313,28 +313,30 @@ const ToolCallGroup: React.FC<{
     [durationFor]
   );
 
+  const isRunning = toolCalls.some(
+    (tc) => tc.id && runningToolCallId === tc.id
+  );
+
+  const { completedCount, totalDurationMs } = useMemo(() => {
+    let completed = 0;
+    let maxMs: number | null = null;
+    for (const tc of toolCalls) {
+      const { toolResult, durationMs } = durationFor(tc);
+      if (toolResult !== undefined) {
+        completed++;
+      }
+      if (typeof durationMs === "number" && Number.isFinite(durationMs)) {
+        maxMs = maxMs === null ? durationMs : Math.max(maxMs, durationMs);
+      }
+    }
+    return { completedCount: completed, totalDurationMs: maxMs };
+  }, [toolCalls, durationFor]);
+
   // A single tool call keeps the original inline card — no group wrapper.
   if (toolCalls.length <= 1) {
     return <>{toolCalls.map(renderCard)}</>;
   }
 
-  const isRunning = toolCalls.some(
-    (tc) => tc.id && runningToolCallId === tc.id
-  );
-  // A call is completed once a result message arrived — tools may
-  // legitimately return empty/null content.
-  const completedCount = toolCalls.filter(
-    (tc) => durationFor(tc).toolResult !== undefined
-  ).length;
-  // Per-call durations are measured from the message start, so the chain's
-  // total wall-clock time is the longest one.
-  const totalDurationMs = toolCalls.reduce<number | null>((max, tc) => {
-    const { durationMs } = durationFor(tc);
-    if (typeof durationMs !== "number" || !Number.isFinite(durationMs)) {
-      return max;
-    }
-    return max === null ? durationMs : Math.max(max, durationMs);
-  }, null);
   const totalDurationLabel =
     totalDurationMs !== null ? formatDuration(totalDurationMs) : null;
 

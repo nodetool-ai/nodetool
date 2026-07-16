@@ -154,8 +154,8 @@ model:
 # Gemini (google / googleai are aliases for gemini)
 model:
   provider: gemini
-  id: gemini-2.0-flash
-  name: Gemini 2.0 Flash
+  id: gemini-3.5-flash
+  name: Gemini 3.5 Flash
 
 # Local Ollama
 model:

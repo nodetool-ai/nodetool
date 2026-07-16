@@ -4,7 +4,7 @@ title: "Google Gemini: Add Models"
 description: "How to add new Gemini text, Imagen image, and Veo video models to NodeTool's Gemini provider."
 ---
 
-The Gemini provider supports five modalities: text/chat (dynamic), image via Imagen or native Gemini generation (static list), video via Veo (static list), TTS, ASR, and embeddings. Language models are auto-discovered from the API; every other modality is a hand-maintained array in the provider file.
+The Gemini provider supports six modalities: text/chat, image generation, video generation, TTS, ASR, and embeddings. Language models are auto-discovered from the API; every other modality uses a hand-maintained array in the provider file.
 
 > **Audience:** coding agents and contributors who need to add a new Gemini, Imagen, or Veo model to NodeTool.
 
@@ -25,12 +25,12 @@ The Gemini provider supports five modalities: text/chat (dynamic), image via Ima
 | Concern | Path |
 |---|---|
 | Provider (all Gemini logic) | `packages/runtime/src/providers/gemini-provider.ts` |
-| Language model listing (dynamic) | `GeminiProvider.getAvailableLanguageModels()` — line 184 |
-| Image model listing (static) | `GeminiProvider.getAvailableImageModels()` — line 729 |
-| TTS model listing (static) | `GeminiProvider.getAvailableTTSModels()` — line 740 |
-| ASR model listing (static) | `GeminiProvider.getAvailableASRModels()` — line 783 |
-| Video model listing (static) | `GeminiProvider.getAvailableVideoModels()` — line 790 |
-| Embedding model listing (static) | `GeminiProvider.getAvailableEmbeddingModels()` — line 801 |
+| Language model listing (dynamic) | `GeminiProvider.getAvailableLanguageModels()` |
+| Image model listing (static) | `GeminiProvider.getAvailableImageModels()` |
+| TTS model listing (static) | `GeminiProvider.getAvailableTTSModels()` |
+| ASR model listing (static) | `GeminiProvider.getAvailableASRModels()` |
+| Video model listing (static) | `GeminiProvider.getAvailableVideoModels()` |
+| Embedding model listing (static) | `GeminiProvider.getAvailableEmbeddingModels()` |
 | Token/chat cost | `@pydantic/genai-prices` catalog (automatic — no edit needed) |
 | Non-token cost tiers | `packages/runtime/src/providers/cost-calculator.ts` — `PRICING_TIERS` / `MODEL_TO_TIER` |
 | Provider registration | `packages/runtime/src/providers/index.ts` line 211 |
@@ -41,18 +41,18 @@ The Gemini provider supports five modalities: text/chat (dynamic), image via Ima
 
 ### Language models — dynamic
 
-`getAvailableLanguageModels()` (line 184) calls `GET https://generativelanguage.googleapis.com/v1beta/models?key=<GEMINI_API_KEY>`, filters entries whose `supportedGenerationMethods` includes `"generateContent"`, and maps each to `{ id, name, provider: "gemini" }`. No static list exists. A new text/chat model becomes available as soon as Google adds it to that endpoint.
+`getAvailableLanguageModels()` calls `GET https://generativelanguage.googleapis.com/v1beta/models?key=<GEMINI_API_KEY>`, filters entries whose `supportedGenerationMethods` includes `"generateContent"`, and maps each to `{ id, name, provider: "gemini" }`. A new text/chat model becomes available when Google adds it to that endpoint.
 
 ### Image models — static array
 
-`getAvailableImageModels()` (line 729) returns a hardcoded array. Two dispatch paths exist inside `textToImage()` (line 874):
+`getAvailableImageModels()` returns a hardcoded array. Two dispatch paths exist inside `textToImage()`:
 
 - IDs starting with `"gemini-"` — call `POST /models/<id>:generateContent` with `responseModalities: ["IMAGE", "TEXT"]`.
-- All other IDs (Imagen: `"imagen-*"`) — call `POST /models/<id>:generateImages` (Vertex-style endpoint).
+- All other IDs (Imagen: `"imagen-*"`) call `POST /models/<id>:predict`.
 
 ### Video models — static array
 
-`getAvailableVideoModels()` (line 790) returns a hardcoded array. Both `textToVideo()` (line 1242) and `imageToVideo()` (line 1296) guard on `modelId.startsWith("veo-")` and throw if the model ID does not match. All Veo calls use the async `predictLongRunning` endpoint with polling (`waitForVideoOperation`).
+`getAvailableVideoModels()` returns a hardcoded array. Both `textToVideo()` and `imageToVideo()` require a `veo-*` model ID. Veo calls use the async `predictLongRunning` endpoint with polling.
 
 ### TTS / ASR / Embedding — static arrays
 
@@ -71,9 +71,9 @@ curl "https://generativelanguage.googleapis.com/v1beta/models?key=$GEMINI_API_KE
   | jq '[.models[] | select(.supportedGenerationMethods[] | contains("generateContent")) | .name]'
 ```
 
-Token/chat cost is priced automatically via `@pydantic/genai-prices` — NodeTool maps the `"gemini"` provider to `"google"` in `GENAI_PROVIDER_MAP` (cost-calculator.ts line 154).
+Token/chat cost is priced through `@pydantic/genai-prices`. NodeTool maps the `"gemini"` provider to `"google"` in `GENAI_PROVIDER_MAP`.
 
-### 2. Imagen image model
+### 2. Image model
 
 Open `packages/runtime/src/providers/gemini-provider.ts` and add an entry to `getAvailableImageModels()`:
 
@@ -81,38 +81,22 @@ Open `packages/runtime/src/providers/gemini-provider.ts` and add an entry to `ge
 async getAvailableImageModels(): Promise<ImageModel[]> {
   return [
     {
-      id: "gemini-3.1-flash-image-preview",
-      name: "Gemini 3.1 Flash Image Preview",
+      id: "gemini-3.1-flash-image",
+      name: "Gemini 3.1 Flash Image",
       provider: "gemini"
     },
-    { id: "imagen-4.0-generate-001", name: "Imagen 4.0", provider: "gemini" },
-    // Add new Imagen entry here:
-    { id: "imagen-4.1-generate-001", name: "Imagen 4.1", provider: "gemini" }
+    { id: "gemini-3-pro-image", name: "Gemini 3 Pro Image", provider: "gemini" }
   ];
 }
 ```
 
-The model ID determines which dispatch path `textToImage()` uses — `"gemini-"` prefix uses the native `generateContent` endpoint; everything else uses `generateImages`. Imagen IDs start with `"imagen-"` so they route to `generateImages` automatically.
-
-If Imagen 4.1 has a list price per generated image, add a tier to `cost-calculator.ts`:
-
-```typescript
-// PRICING_TIERS (line 56)
-imagen41Standard: { costType: CostType.IMAGE_BASED, perImage: 0.04 },
-
-// MODEL_TO_TIER (line 94)
-"gemini:imagen-4.1-generate-001": "imagen41Standard",
-```
-
-If pricing is token-based (billed per token like chat models), skip the `PRICING_TIERS` entry — `@pydantic/genai-prices` handles it.
+The `"gemini-"` prefix uses the native `generateContent` endpoint. Legacy Imagen IDs use `predict`. Check Google's deprecation table before adding an Imagen model.
 
 ### 3. Gemini native image model (`gemini-*`)
 
 Same as above, but use a `"gemini-"` prefixed ID. The `textToImage()` dispatcher routes it to `generateContent` with `responseModalities: ["IMAGE", "TEXT"]` automatically.
 
-```typescript
-{ id: "gemini-4.0-flash-image-preview", name: "Gemini 4.0 Flash Image Preview", provider: "gemini" }
-```
+Use the exact ID returned by Google. Do not add guessed future IDs.
 
 ### 4. Veo video model
 
@@ -122,32 +106,21 @@ Open `getAvailableVideoModels()` and add an entry:
 override async getAvailableVideoModels(): Promise<VideoModel[]> {
   return [
     { id: "veo-3.1-generate-preview", name: "Veo 3.1 Preview", provider: "gemini" },
-    { id: "veo-2.0-generate-001", name: "Veo 2.0", provider: "gemini" },
-    // Add new Veo entry here:
-    { id: "veo-4.0-generate-001", name: "Veo 4.0", provider: "gemini" }
+    { id: "veo-3.1-fast-generate-preview", name: "Veo 3.1 Fast Preview", provider: "gemini" },
+    { id: "veo-3.1-lite-generate-preview", name: "Veo 3.1 Lite Preview", provider: "gemini" }
   ];
 }
 ```
 
-Veo model IDs must start with `"veo-"`. Both `textToVideo()` (line 1248) and `imageToVideo()` (line 1306) throw if the ID does not match that prefix, so a non-Veo ID will break at runtime. If Veo 4.0 charges per second of video, add a tier:
-
-```typescript
-// PRICING_TIERS
-veo40Standard: { costType: CostType.VIDEO_BASED, perSecondVideo: 0.05 },
-
-// MODEL_TO_TIER
-"gemini:veo-4.0-generate-001": "veo40Standard",
-```
+Veo model IDs must start with `"veo-"`. Check supported durations and resolutions for each variant before adding it.
 
 ### 5. ASR model
 
 ```typescript
 async getAvailableASRModels(): Promise<ASRModel[]> {
   return [
-    { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", provider: "gemini" },
-    { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash", provider: "gemini" },
-    // Add new ASR model here:
-    { id: "gemini-3.0-flash", name: "Gemini 3.0 Flash", provider: "gemini" }
+    { id: "gemini-3.5-flash", name: "Gemini 3.5 Flash", provider: "gemini" },
+    { id: "gemini-3.1-flash-lite", name: "Gemini 3.1 Flash-Lite", provider: "gemini" }
   ];
 }
 ```
@@ -160,9 +133,7 @@ Add the model and its supported voices:
 async getAvailableTTSModels(): Promise<TTSModel[]> {
   const voices = ["Zephyr", "Puck" /*, ... existing voices ... */];
   return [
-    { id: "gemini-2.5-pro-preview-tts", name: "Gemini 2.5 Pro TTS", provider: "gemini", voices },
-    // Add new TTS model here:
-    { id: "gemini-3.0-flash-tts", name: "Gemini 3.0 Flash TTS", provider: "gemini", voices }
+    { id: "gemini-3.1-flash-tts-preview", name: "Gemini 3.1 Flash TTS Preview", provider: "gemini", voices }
   ];
 }
 ```
@@ -172,10 +143,7 @@ async getAvailableTTSModels(): Promise<TTSModel[]> {
 ```typescript
 async getAvailableEmbeddingModels(): Promise<EmbeddingModel[]> {
   return [
-    { id: "text-embedding-004", name: "Text Embedding 004", provider: "gemini", dimensions: 768 },
-    { id: "gemini-embedding-001", name: "Gemini Embedding 001", provider: "gemini", dimensions: 3072 },
-    // Add new embedding model here:
-    { id: "gemini-embedding-002", name: "Gemini Embedding 002", provider: "gemini", dimensions: 4096 }
+    { id: "gemini-embedding-2", name: "Gemini Embedding 2", provider: "gemini", dimensions: 3072 }
   ];
 }
 ```
@@ -196,20 +164,14 @@ npm run test
 
 # 4. Smoke-test a new image node (requires GEMINI_API_KEY in env or DB)
 npm run dev:nodetool -- node run nodetool.image.GenerateImage \
-  --props '{"prompt": "a red apple", "model": {"id": "imagen-4.1-generate-001", "provider": "gemini", "name": "Imagen 4.1"}}'
+  --props '{"prompt": "a red apple", "model": {"id": "gemini-3.1-flash-image", "provider": "gemini", "name": "Gemini 3.1 Flash Image"}}'
 
 # 5. Smoke-test via chat agent (text model — auto-discovered, no list change needed)
-npm run dev:chat -- --provider gemini --model gemini-2.5-flash
+npm run dev:chat -- --provider gemini --model gemini-3.5-flash
 
 # Combined (typecheck + lint + test):
 npm run check
 ```
-
----
-
-## How past commits did it
-
-The Gemini provider and its static image/video lists were present from the initial provider architecture. The most recent structural change is commit **`8871e185`** ("refactor(agents): drive agent tool loops via provider.generateLoop", PR #3948), which updated `gemini-provider.ts` to expose `generateLoop` so agent executors delegate their tool-calling loop to the provider rather than running their own. That commit is the best reference for how the provider's internal dispatch methods are structured — the model list arrays themselves were not touched, confirming that adding models requires only the `getAvailable*` array edits described above.
 
 ---
 

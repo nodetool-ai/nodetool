@@ -3,7 +3,7 @@
  */
 
 import React, { useCallback, useMemo, useState, memo } from "react";
-import { Compare as CompareIcon } from "@mui/icons-material";
+import CompareIcon from "@mui/icons-material/Compare";
 import VersionListItem from "./VersionListItem";
 import { VersionDiff } from "./VersionDiff";
 import { GraphVisualDiff } from "./GraphVisualDiff";

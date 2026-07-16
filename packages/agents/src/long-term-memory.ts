@@ -991,7 +991,7 @@ export interface CreateDefaultLongTermMemoryOptions {
  *
  *   1. `NODETOOL_MEMORY_EMBEDDING_MODEL` env var (explicit override).
  *   2. `OPENAI_API_KEY` set → `text-embedding-3-small`.
- *   3. `GEMINI_API_KEY` set → `text-embedding-004`.
+ *   3. `GEMINI_API_KEY` set → `gemini-embedding-2`.
  *   4. `OLLAMA_API_URL` set → `nomic-embed-text`.
  *
  * Callers that need finer-grained control (custom collection metadata,
@@ -1027,7 +1027,7 @@ export async function createDefaultLongTermMemory(
       embeddingModel = "text-embedding-3-small";
       embeddingProvider = "openai";
     } else if (await getSecret("GEMINI_API_KEY", userId).catch(() => null)) {
-      embeddingModel = "text-embedding-004";
+      embeddingModel = "gemini-embedding-2";
       embeddingProvider = "gemini";
     } else if (process.env["OLLAMA_API_URL"]) {
       embeddingModel = "nomic-embed-text";
