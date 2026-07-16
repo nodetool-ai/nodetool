@@ -52,7 +52,7 @@ export default function ComparisonSection({
             delay={0}
           />
           <ComparisonCard
-            competitor="Weavy / closed canvases"
+            competitor="Figma Weave / closed canvases"
             sentence="Closed canvases lock you into a credit system and a hand-picked list of models. NodeTool is open source — every provider, your own keys, provider prices."
             reducedMotion={reducedMotion}
             delay={0.05}

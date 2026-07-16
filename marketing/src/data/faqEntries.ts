@@ -147,11 +147,21 @@ const seeds: FaqSeed[] = [
   },
   {
     slug: "how-is-nodetool-different-from-closed-canvases",
-    question: "How is NodeTool different from Weavy and other closed canvases?",
+    question:
+      "How is NodeTool different from Weavy (now Figma Weave) and other closed canvases?",
     answerMd:
       "Closed canvases lock you into a credit system and a curated model roster. NodeTool is open source and BYOK. Your workflows, files, and keys belong to you, and you can switch providers the moment a better model ships.",
     category: "comparison",
     relatedRoute: "/vs/weavy",
+    surfaces: ["comparison"],
+  },
+  {
+    slug: "open-source-figma-weave-alternative",
+    question: "Is there an open source alternative to Figma Weave?",
+    answerMd:
+      "Yes. Figma Weave (formerly Weavy, acquired by Figma in October 2025) is closed source, hosted-only, and billed in its own AI credits. NodeTool covers the same node-based media workflows as an **AGPL-3.0** open-source workspace: image, video, audio, and text on one canvas, BYOK at provider prices, running as a desktop app, in the browser, or self-hosted.",
+    category: "comparison",
+    relatedRoute: "/vs/figma-weave",
     surfaces: ["comparison"],
   },
   // --- Glossary (search-demand terms only; not a copy of the docs glossary) ---
