@@ -297,9 +297,11 @@
         "data": {
           "model": {
             "type": "language_model",
-            "id": "",
-            "provider": "",
-            "name": ""
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
           },
           "system": "You are a film trailer director and editor. You write tight, cinematic teaser treatments. Every line is visual and concrete. No fluff, no meta commentary.",
           "max_tokens": 100000
@@ -350,9 +352,11 @@
         "data": {
           "model": {
             "type": "language_model",
-            "id": "",
-            "provider": "",
-            "name": ""
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
           },
           "max_tokens": 100000
         },
@@ -401,10 +405,11 @@
         "data": {
           "model": {
             "type": "image_model",
-            "id": "",
-            "provider": "",
-            "name": "",
-            "path": ""
+            "provider": "huggingface_fal_ai",
+            "id": "fal-ai/flux/schnell",
+            "name": "FLUX.1 Schnell",
+            "path": null,
+            "supported_tasks": []
           },
           "negative_prompt": "",
           "aspect_ratio": "16:9",
@@ -435,9 +440,11 @@
         "data": {
           "model": {
             "type": "video_model",
-            "id": "",
-            "provider": "",
-            "name": ""
+            "provider": "gemini",
+            "id": "veo-3.1-generate-preview",
+            "name": "Veo 3.1 Preview",
+            "path": null,
+            "supported_tasks": []
           },
           "negative_prompt": "",
           "aspect_ratio": "16:9",

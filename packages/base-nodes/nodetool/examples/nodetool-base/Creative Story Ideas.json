@@ -136,9 +136,11 @@
         "data": {
           "model": {
             "type": "language_model",
-            "id": "",
-            "provider": "",
-            "name": ""
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
           },
           "max_tokens": 100000
         },

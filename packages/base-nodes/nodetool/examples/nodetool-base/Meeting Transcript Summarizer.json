@@ -44,7 +44,14 @@
         "parent_id": null,
         "type": "nodetool.agents.Summarizer",
         "data": {
-          "model": {},
+          "model": {
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
+          },
           "max_words": 150
         },
         "ui_properties": {
@@ -87,7 +94,13 @@
         "parent_id": null,
         "type": "nodetool.text.AutomaticSpeechRecognition",
         "data": {
-          "model": {}
+          "model": {
+            "type": "asr_model",
+            "provider": "fal_ai",
+            "id": "openai/whisper-large-v3",
+            "name": "Whisper Large v3",
+            "path": null
+          }
         },
         "ui_properties": {
           "selected": false,

@@ -203,7 +203,14 @@
         "id": "hooks",
         "type": "nodetool.generators.ListGenerator",
         "data": {
-          "model": {},
+          "model": {
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
+          },
           "max_tokens": 100000
         },
         "ui_properties": {
@@ -251,7 +258,14 @@
         "id": "thumbnail",
         "type": "nodetool.image.TextToImage",
         "data": {
-          "model": {},
+          "model": {
+            "type": "image_model",
+            "provider": "huggingface_fal_ai",
+            "id": "fal-ai/flux/schnell",
+            "name": "FLUX.1 Schnell",
+            "path": null,
+            "supported_tasks": []
+          },
           "negative_prompt": "blurry, low contrast, watermark, tiny text, clutter",
           "aspect_ratio": "16:9",
           "resolution": "2K",
