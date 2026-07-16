@@ -279,6 +279,133 @@ export const taskEntries: TaskEntry[] = [
     ],
     accent: "emerald",
   },
+  {
+    route: "/tasks/ai-b-roll",
+    title: title("AI B-Roll"),
+    description:
+      "Generate AI b-roll from a script, prompt, or still image. Compare b-roll models, run ready-made NodeTool workflows, and batch out cutaway shots with your own keys.",
+    priority: 0.6,
+    changeFrequency: "weekly",
+    indexable: true,
+    slug: "ai-b-roll",
+    task: "AI B-Roll",
+    modality: "video",
+    headline: "AI B-Roll Generator: Models & Workflows",
+    subhead:
+      "Skip the stock-footage search. Turn a shot list into cutaways with a text- or image-to-video model, batch out variations on one canvas, and drop the clips straight into your edit — with your own keys.",
+    nodeTypeMatch: ["video.TextToVideo", "video.ImageToVideo", "video.FrameToVideo"],
+    tagMatch: ["video"],
+    models: [
+      { name: "Wan 2.6", provider: "Alibaba", modality: "video", blurb: "Open-weight text- and image-to-video with fine motion control for shot-matching cutaways." },
+      { name: "Seedance", provider: "ByteDance", modality: "video", blurb: "Lite tier for fast, high-volume b-roll batches; pro tier for the keeper shots." },
+      { name: "Kling 2.6", provider: "Kling", modality: "video", blurb: "Image-to-video with strong subject consistency for cutaways that match an existing scene." },
+      { name: "Hailuo 2.3", provider: "MiniMax", modality: "video", blurb: "Fast, energetic motion for short filler clips." },
+    ],
+    faqs: [
+      {
+        q: "What counts as AI b-roll?",
+        a: "Any supplementary clip a model generates from a text prompt or a still image — cutaways, texture shots, establishing shots — instead of footage you shot or licensed.",
+      },
+      {
+        q: "Text-to-video or image-to-video for b-roll?",
+        a: "Text-to-video (Wan, Seedance) when you have no source frame; image-to-video (Kling, Hailuo) when the cutaway needs to match an existing shot's lighting and subject.",
+      },
+      {
+        q: "How do I generate a batch of variations at once?",
+        a: "The templates below fan one prompt or shot list out into several clips in a single run with a list node, so you get options instead of one clip at a time.",
+      },
+      {
+        q: "Do these clips have audio?",
+        a: "Most b-roll models are silent by default — score the clip afterward with a text-to-music or add-audio node in the same graph.",
+      },
+    ],
+    accent: "rose",
+  },
+  {
+    route: "/tasks/ai-storyboard",
+    title: title("AI Storyboard"),
+    description:
+      "Turn a script into a storyboard with AI. Compare storyboard-ready image models, run ready-made NodeTool workflows, and render a full sequence of panels on one canvas.",
+    priority: 0.6,
+    changeFrequency: "weekly",
+    indexable: true,
+    slug: "ai-storyboard",
+    task: "AI Storyboard",
+    modality: "image",
+    headline: "AI Storyboard Generator: Models & Workflows",
+    subhead:
+      "Go from script to panels. Split a script into scenes, render one consistent frame per beat with an image model, and lay out the whole board in a single NodeTool run — with your own keys.",
+    nodeTypeMatch: ["image.TextToImage"],
+    tagMatch: ["image", "design", "concept-art", "storytelling", "creative"],
+    models: [
+      { name: "FLUX.2", provider: "Black Forest Labs", modality: "image", blurb: "Sharp prompt adherence keeps a consistent look from panel to panel." },
+      { name: "Nano Banana Pro", provider: "Google", modality: "image", blurb: "Fast edits for revising one panel without re-rendering the board." },
+      { name: "Seedream", provider: "ByteDance", modality: "image", blurb: "High-resolution frames with bilingual prompt support for shot lists." },
+      { name: "GPT-Image", provider: "OpenAI", modality: "image", blurb: "Strong instruction-following keeps characters and props consistent across panels." },
+    ],
+    faqs: [
+      {
+        q: "What is an AI storyboard generator?",
+        a: "It turns a script or shot list into a sequence of frames — one image per beat — so you can plan composition and pacing before shooting or animating.",
+      },
+      {
+        q: "How do I keep every panel visually consistent?",
+        a: "Reuse the same character and style description in every prompt in the sequence, or chain an image-to-image step after the first frame so later panels reference it directly.",
+      },
+      {
+        q: "Can one script produce the whole board automatically?",
+        a: "Yes — the templates below use a list generator to split a script into scenes, then render one frame per scene in a single run.",
+      },
+      {
+        q: "Can I turn the storyboard into video?",
+        a: "Yes. Feed each panel into an image-to-video node afterward to animate the board scene by scene.",
+      },
+    ],
+    accent: "amber",
+  },
+  {
+    route: "/tasks/consistent-characters",
+    title: title("Consistent Characters"),
+    description:
+      "Keep an AI character consistent across shots. Compare models built for character consistency, run ready-made NodeTool workflows, and chain reference images and clips on one canvas.",
+    priority: 0.6,
+    changeFrequency: "weekly",
+    indexable: true,
+    slug: "consistent-characters",
+    task: "Consistent Characters",
+    modality: "video",
+    headline: "Consistent-Character AI Video Models & Workflows",
+    subhead:
+      "One face, every shot. Build a reference image, chain it through image-to-video and first/last-frame nodes, and hold a character's look across an entire sequence — a workflow problem a node canvas solves better than a single-shot tool.",
+    nodeTypeMatch: ["video.ImageToVideo", "video.FrameToVideo", "image.ImageToImage"],
+    tagMatch: ["video"],
+    models: [
+      { name: "Nano Banana Pro", provider: "Google", modality: "image", blurb: "Fast, consistent edits for building a character's reference sheet before animating." },
+      { name: "Kling 2.6", provider: "Kling", modality: "video", blurb: "Start/end-frame mode chains shots while keeping the subject on-model." },
+      { name: "Veo 3.1", provider: "Google", modality: "video", blurb: "Cinematic image-to-video that holds a subject's likeness across a shot." },
+      { name: "Wan 2.6", provider: "Alibaba", modality: "video", blurb: "Open-weight pose and depth control for steering a character through a sequence." },
+      { name: "Hailuo 2.3", provider: "MiniMax", modality: "video", blurb: "Image-to-video that keeps a subject's likeness across the clip." },
+    ],
+    faqs: [
+      {
+        q: "How do I keep an AI character consistent across shots?",
+        a: "Generate a reference image once, then reuse it as the seed for every clip — feeding the same reference into an image-to-video node keeps the face, outfit, and proportions steady shot to shot.",
+      },
+      {
+        q: "What is a first/last-frame chain?",
+        a: "You generate the last frame of one clip and use it as the first frame of the next. Kling and Wan both expose start/end-frame modes for this, so a sequence reads as one continuous shot instead of visibly restarting.",
+      },
+      {
+        q: "Why not just re-prompt a single-shot tool for every scene?",
+        a: "Single-shot tools regenerate the character from scratch each call, so faces and outfits drift between clips. A node graph passes the same reference image and seed through every shot, which a single-prompt tool doesn't expose.",
+      },
+      {
+        q: "Which models handle character consistency best?",
+        a: "Kling and Hailuo hold a subject's likeness well through image-to-video, Wan adds pose and depth control for precise steering, and an image model like Nano Banana Pro builds the reference sheet first.",
+      },
+    ],
+    accent: "cyan",
+  },
 ];
 
 /** Hub entry for the `/tasks` index — kept in the registry too. */

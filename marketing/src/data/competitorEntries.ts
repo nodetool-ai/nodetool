@@ -1075,6 +1075,310 @@ export const competitors: Competitor[] = [
     limitation:
       "Gumloop is a closed, hosted process-automation platform — no native media generation, and billed in credits and seats.",
   },
+  {
+    slug: "firefly-graph",
+    name: "Adobe Firefly Graph",
+    theme: "amber",
+    category: "Creative canvas",
+    isNew: true,
+    vsTitle: "NodeTool vs Adobe Firefly Graph — open source vs Creative Cloud lock-in",
+    vsDescription:
+      "Adobe Firefly Graph — announced as Project Graph at Adobe MAX in November 2025 — is a node-based workflow tool built into Creative Cloud, billed in Firefly generative credits and currently gated to Enterprise plans (Teams is in beta). NodeTool is the open-source, BYOK version of the same idea: every provider at list price, a desktop app or self-host, and workflows that aren't tied to a single ecosystem.",
+    vsOgTitle: "NodeTool vs Adobe Firefly Graph — open source vs Creative Cloud lock-in",
+    vsOgDescription:
+      "Firefly Graph (formerly Project Graph) ties node workflows to Creative Cloud credits and licensing. NodeTool is open source and BYOK — every provider at list price.",
+    og: {
+      image: "screen_canvas.png",
+      accent: "amber",
+      subtitle: "Node-based creative workflows without the Creative Cloud subscription.",
+    },
+    heroHeading: "Node workflows without the Creative Cloud tax.",
+    heroParagraph:
+      "Adobe unveiled Firefly Graph under the codename Project Graph at Adobe MAX in November 2025: a node-based canvas that chains Adobe and partner models with Creative Cloud editing tools, billed in Firefly generative credits and currently gated to Creative Cloud for Enterprise (Teams customers can join a beta). NodeTool covers the same node-based, multi-modal ground — image, video, audio, and text — as an open-source, BYOK workspace you can run as a desktop app or self-host, with no Creative Cloud subscription required.",
+    competitorTagline: "Node canvas inside Creative Cloud",
+    competitorBullets: [
+      "250+ nodes spanning Adobe and partner models",
+      "Deep integration with Photoshop and Creative Cloud",
+      "Billed in Firefly generative credits",
+      "Closed source, gated to Creative Cloud Enterprise (Teams beta)",
+    ],
+    competitorBulletTone: "negative",
+    nodetoolTagline: "Open source · BYOK",
+    nodetoolBullets: [
+      "Image, video, audio, and text on one canvas",
+      "Every major model from every major provider",
+      "Open source under AGPL-3.0 — desktop app or self-host",
+      "BYOK at provider prices — no credits, no subscription",
+    ],
+    rows: [
+      { label: "Pricing model", competitor: "Firefly generative credits", nodetool: "BYOK / provider prices" },
+      { label: "Model roster", competitor: "Adobe + partner models (curated)", nodetool: "Every major provider" },
+      { label: "Source", competitor: "Closed", nodetool: "AGPL-3.0" },
+      { label: "Availability", competitor: "Creative Cloud Enterprise (Teams beta)", nodetool: "Free download, any plan" },
+      { label: "Photoshop / Creative Cloud integration", competitor: true, nodetool: false },
+      { label: "Self-host", competitor: false, nodetool: true },
+      { label: "Desktop app + local models", competitor: false, nodetool: true },
+    ],
+    explainerHeading: "Deep in Creative Cloud, or open everywhere",
+    explainerParagraph:
+      "If your pipeline already lives in Photoshop and the rest of Creative Cloud, Firefly Graph's node editor plugs straight into tools your team already uses, with Adobe's own models a click away. That depth comes wrapped in Adobe's licensing and generative-credit billing, and — for now — it's gated to Enterprise plans. NodeTool doesn't have that Creative Cloud integration, but it opens the rest of the stack: every major provider at list price with your own keys, local models via Ollama, MLX, and llama.cpp, and a desktop app or self-hosted server running open-source code under AGPL-3.0.",
+    ctaHeading: "Build node workflows without the subscription.",
+    ctaParagraph:
+      "Download Studio and connect every provider at list price — no Creative Cloud plan required.",
+    faq: [
+      {
+        question: "Is Project Graph the same as Firefly Graph?",
+        answer:
+          "Yes. Adobe showed the node-based workflow tool under the codename Project Graph at Adobe MAX in November 2025; it shipped as Firefly Graph, built into Creative Cloud and billed in Firefly generative credits.",
+      },
+      {
+        question: "What is the difference between NodeTool and Firefly Graph?",
+        answer:
+          "Firefly Graph is a node-based canvas built into Creative Cloud, chaining Adobe and partner models with Photoshop-grade editing tools, billed in Firefly generative credits and currently limited to Enterprise plans (with a Teams beta). NodeTool is an open-source (AGPL-3.0), BYOK node canvas for image, video, audio, and text that runs as a desktop app or self-hosted server, independent of any single ecosystem.",
+      },
+      {
+        question: "Do I need a Creative Cloud subscription to use Firefly Graph?",
+        answer:
+          "As of its 2026 rollout, Firefly Graph is available to Creative Cloud for Enterprise subscribers, with a public beta for Creative Cloud for Teams customers. Check Adobe's current plan pages, since enterprise-software availability and credit allotments change over time.",
+      },
+      {
+        question: "When is Firefly Graph the better pick?",
+        answer:
+          "If your team is already deep in Photoshop and Creative Cloud and wants node workflows that plug directly into those tools and assets, Firefly Graph's integration is a real advantage. NodeTool is the better fit if you want an open-source, BYOK canvas that isn't tied to Creative Cloud licensing or Firefly credits.",
+      },
+    ],
+    limitation:
+      "Firefly Graph is closed source, billed in Firefly generative credits, and — as of 2026 — gated to Creative Cloud for Enterprise (Teams is still in beta).",
+  },
+  {
+    slug: "freepik-spaces",
+    name: "Freepik Spaces",
+    theme: "cyan",
+    category: "Creative canvas",
+    isNew: true,
+    vsTitle: "NodeTool vs Freepik Spaces — open source vs a credit-metered canvas",
+    vsDescription:
+      "Freepik Spaces — from Freepik, now Magnific after its April 2026 rebrand — is a browser-only, node-based canvas metered in AI credits, with the stock library built in. NodeTool is the open-source, BYOK alternative: every provider at list price, a desktop app or self-host, and no credit meter running while you work.",
+    vsOgTitle: "NodeTool vs Freepik Spaces — open source vs a credit-metered canvas",
+    vsOgDescription:
+      "Freepik Spaces meters every node in AI credits. NodeTool is open source and BYOK — every provider at list price, no credit meter.",
+    og: {
+      image: "screen_canvas.png",
+      accent: "cyan",
+      subtitle: "A node canvas without the credit meter — open source and BYOK.",
+    },
+    heroHeading: "A node canvas without the credit meter.",
+    heroParagraph:
+      "Freepik Spaces is a browser-only, node-based canvas from Freepik — the company rebranded to Magnific in April 2026 — built around its stock-asset library and metered in AI credits: every generation node draws from a monthly allotment. NodeTool covers the same node-based territory — image, video, audio, and text — as an open-source, BYOK workspace: every provider at list price with your own keys, a desktop app or self-hosted server, and no credit ceiling.",
+    competitorTagline: "Credit-metered canvas with stock integration",
+    competitorBullets: [
+      "Deep integration with Freepik's stock library",
+      "Browser-only, no self-host",
+      "Closed source",
+      "Metered in AI credits, with a limited free tier",
+    ],
+    competitorBulletTone: "negative",
+    nodetoolTagline: "Open source · BYOK",
+    nodetoolBullets: [
+      "Image, video, audio, and text on one canvas",
+      "Every major model from every major provider",
+      "Open source under AGPL-3.0 — desktop app or self-host",
+      "BYOK at provider prices — no credits, no markup",
+    ],
+    rows: [
+      { label: "Pricing model", competitor: "AI credits (annual plans)", nodetool: "BYOK / provider prices" },
+      { label: "Stock asset library", competitor: true, nodetool: false },
+      { label: "Model roster", competitor: "Curated roster", nodetool: "Every major provider" },
+      { label: "Source", competitor: "Closed", nodetool: "AGPL-3.0" },
+      { label: "Self-host", competitor: false, nodetool: true },
+      { label: "Desktop app + local models", competitor: false, nodetool: true },
+    ],
+    explainerHeading: "Stock library plus credits, or your own keys",
+    explainerParagraph:
+      "If your workflow leans on Freepik's stock photos, vectors, and templates, Spaces wires that library directly into node-based generation — a real convenience if you're already a Freepik subscriber. It's browser-only and metered: every node that calls a model spends AI credits from an annual plan, and there's no self-hosting option. NodeTool doesn't bundle a stock library, but it opens the rest of the canvas: image, video, audio, and text with every major provider called on your own keys at list price, plus local models via Ollama, MLX, and llama.cpp, all open source under AGPL-3.0.",
+    ctaHeading: "Build without the credit meter.",
+    ctaParagraph:
+      "Download Studio and call every provider directly, at their list price.",
+    faq: [
+      {
+        question: "What is the difference between NodeTool and Freepik Spaces?",
+        answer:
+          "Freepik Spaces is a browser-only, node-based canvas built around Freepik's stock-asset library and metered in AI credits. NodeTool is an open-source (AGPL-3.0), BYOK node canvas for image, video, audio, and text that runs as a desktop app or self-hosted server, with every major provider called at list price using your own keys.",
+      },
+      {
+        question: "Is Freepik now called Magnific?",
+        answer:
+          "Yes. Freepik rebranded the whole company to Magnific in April 2026, folding its stock library, Spaces canvas, and AI tools under one name. Existing accounts and subscriptions carried over; Spaces remains the node-based canvas inside the platform.",
+      },
+      {
+        question: "Does Freepik Spaces have a free tier?",
+        answer:
+          "Freepik offers a free plan that includes a limited number of Spaces and AI tool usage; heavier generation requires one of its paid, credit-metered annual plans. Check Freepik's current pricing page, since credit allotments and plan tiers change.",
+      },
+      {
+        question: "Can I self-host Freepik Spaces?",
+        answer:
+          "No. Spaces is a closed-source, browser-only product. NodeTool is open source under AGPL-3.0 and can be self-hosted or run as a desktop app.",
+      },
+      {
+        question: "When is Freepik Spaces the better pick?",
+        answer:
+          "If you're already a Freepik subscriber and want node workflows wired directly into its stock photo, vector, and template library without managing API keys, Spaces is a convenient, no-setup option. NodeTool is the better fit if you want to bring your own provider keys, avoid a credit meter, or self-host the whole canvas.",
+      },
+    ],
+    limitation:
+      "Freepik Spaces is closed source, browser-only, and metered in AI credits — there's no self-hosting and no BYOK pricing.",
+  },
+  {
+    slug: "higgsfield",
+    name: "Higgsfield",
+    theme: "violet",
+    category: "Creative canvas",
+    isNew: true,
+    vsTitle: "NodeTool vs Higgsfield — cinematic video vs an open, BYOK canvas",
+    vsDescription:
+      "Higgsfield Canvas is a hosted, node-based canvas built for cinematic AI video, billed in subscription-plus-credits with monthly allotments that expire after 90 days. NodeTool is the open-source, BYOK alternative across image, video, audio, and text: every provider at list price with your own keys, a desktop app or self-host, and no credit expiration to track.",
+    vsOgTitle: "NodeTool vs Higgsfield — cinematic video vs an open, BYOK canvas",
+    vsOgDescription:
+      "Higgsfield metes out cinematic video in expiring credits. NodeTool is open source and BYOK — every provider at list price, no credit balance to run down.",
+    og: {
+      image: "screen_canvas.png",
+      accent: "violet",
+      subtitle: "Cinematic video generation without the expiring credit balance.",
+    },
+    heroHeading: "Cinematic video, without the credit clock.",
+    heroParagraph:
+      "Higgsfield Canvas is a hosted, node-based workspace built around cinematic AI video — camera moves and motion presets on top of a roster that includes Sora, Veo, and Kling — billed on subscription tiers with monthly credit allotments that expire after 90 days. NodeTool covers video generation on the same node-based canvas alongside image, audio, and text, called with your own provider keys at list price — no subscription tier, no expiring balance.",
+    competitorTagline: "Hosted cinematic-video canvas",
+    competitorBullets: [
+      "Motion presets and camera controls built for video",
+      "Access to frontier video models (Sora, Veo, Kling)",
+      "Closed source, hosted only",
+      "Subscription + credits that expire after 90 days",
+    ],
+    competitorBulletTone: "negative",
+    nodetoolTagline: "Open source · BYOK",
+    nodetoolBullets: [
+      "Image, video, audio, and text on one canvas",
+      "Every major model from every major provider",
+      "Open source under AGPL-3.0 — desktop app or self-host",
+      "BYOK at provider prices — no credits, no expiration",
+    ],
+    rows: [
+      { label: "Video-specific tooling (camera moves, motion presets)", competitor: true, nodetool: false },
+      { label: "Modalities", competitor: "Image, video", nodetool: "Image, video, audio, text" },
+      { label: "Pricing model", competitor: "Subscription + credits (expire in 90 days)", nodetool: "BYOK / provider prices" },
+      { label: "Model roster", competitor: "Curated video/image models", nodetool: "Every major provider" },
+      { label: "Source", competitor: "Closed", nodetool: "AGPL-3.0" },
+      { label: "Self-host", competitor: false, nodetool: true },
+      { label: "Desktop app + local models", competitor: false, nodetool: true },
+    ],
+    explainerHeading: "Purpose-built motion tools, or an open pipeline",
+    explainerParagraph:
+      "Higgsfield's canvas is genuinely tuned for cinematic video — camera-move presets, motion controls, and quick access to frontier video models that would otherwise mean juggling separate API accounts. That convenience comes hosted and credit-metered: subscription tiers with monthly credit allotments, and unused top-up credits expire after 90 days. NodeTool doesn't have Higgsfield's dedicated motion-preset UI, but it puts video generation on the same open canvas as image, audio, and text — every provider called with your own keys at list price, local models via Ollama, MLX, and llama.cpp, and the whole workspace open source under AGPL-3.0.",
+    ctaHeading: "Generate video without the expiring balance.",
+    ctaParagraph:
+      "Download Studio and call every video, image, and audio provider at list price.",
+    faq: [
+      {
+        question: "What is the difference between NodeTool and Higgsfield?",
+        answer:
+          "Higgsfield is a hosted, node-based canvas built around cinematic AI video, with motion presets and camera controls on top of a curated model roster, billed on subscription-plus-credits. NodeTool is an open-source (AGPL-3.0), BYOK node canvas spanning image, video, audio, and text, with every major provider called at list price using your own keys.",
+      },
+      {
+        question: "How does Higgsfield's credit system work?",
+        answer:
+          "Higgsfield's paid plans include a monthly credit allotment that generations draw down, plus a limited free tier of daily credits on basic models. Top-up credits expire after 90 days. Check Higgsfield's current pricing page, since credit costs and plan tiers change with model updates.",
+      },
+      {
+        question: "Does NodeTool have Higgsfield's motion presets?",
+        answer:
+          "No — Higgsfield's dedicated camera-move and motion-preset controls are built specifically for its cinematic-video workflow. NodeTool runs the same class of video models as nodes on a general canvas, alongside image, audio, and text, rather than a video-specific preset UI.",
+      },
+      {
+        question: "When is Higgsfield the better pick?",
+        answer:
+          "If cinematic video is the whole job and you want purpose-built motion presets and camera controls with frontier video models pre-wired, Higgsfield is built for exactly that. NodeTool is the better fit if you want video alongside image, audio, and text on one open canvas, BYOK pricing, and the option to self-host.",
+      },
+    ],
+    limitation:
+      "Higgsfield is a closed, hosted canvas billed in credits that expire after 90 days, with no self-hosting or BYOK pricing.",
+  },
+  {
+    slug: "openart",
+    name: "OpenArt",
+    theme: "rose",
+    category: "Creative canvas",
+    isNew: true,
+    vsTitle: "NodeTool vs OpenArt — a large model library vs an open, BYOK canvas",
+    vsDescription:
+      "OpenArt is a hosted, image-led platform with a large aggregated model library (Flux, Kling, Veo, Seedream, and more) and community workflows, billed in credits across per-seat plans. NodeTool is the open-source, BYOK alternative: every provider at list price with your own keys, a desktop app or self-host, and image, video, audio, and text on one canvas.",
+    vsOgTitle: "NodeTool vs OpenArt — a large model library vs an open, BYOK canvas",
+    vsOgDescription:
+      "OpenArt aggregates 100+ models behind per-seat credits. NodeTool is open source and BYOK — every provider at list price, no seat-based credit tiers.",
+    og: {
+      image: "screen_canvas.png",
+      accent: "rose",
+      subtitle: "The same breadth of models, without the seat-based credit tiers.",
+    },
+    heroHeading: "Model breadth, without the seat-based credits.",
+    heroParagraph:
+      "OpenArt is a hosted, image-led platform that aggregates a large model library — Stable Diffusion variants, Flux, Kling, Veo, Seedream, and more — alongside community workflow templates and LoRA training, billed in credits across per-seat monthly plans. NodeTool covers similar ground with a node-based canvas for image, video, audio, and text, calling every major provider with your own keys at list price, on a desktop app or self-hosted server.",
+    competitorTagline: "Hosted image-and-video platform",
+    competitorBullets: [
+      "Large aggregated model library (100+ models)",
+      "Community workflow templates and LoRA training",
+      "Closed source, hosted only",
+      "Per-seat plans billed in credits",
+    ],
+    competitorBulletTone: "negative",
+    nodetoolTagline: "Open source · BYOK",
+    nodetoolBullets: [
+      "Image, video, audio, and text on one canvas",
+      "Every major model from every major provider",
+      "Open source under AGPL-3.0 — desktop app or self-host",
+      "BYOK at provider prices — no seats, no credit tiers",
+    ],
+    rows: [
+      { label: "Community workflow templates / LoRA training", competitor: true, nodetool: false },
+      { label: "Modalities", competitor: "Image, video", nodetool: "Image, video, audio, text" },
+      { label: "Pricing model", competitor: "Per-seat plans + credits", nodetool: "BYOK / provider prices" },
+      { label: "Model roster", competitor: "100+ aggregated models", nodetool: "Every major provider" },
+      { label: "Source", competitor: "Closed", nodetool: "AGPL-3.0" },
+      { label: "Self-host", competitor: false, nodetool: true },
+      { label: "Desktop app + local models", competitor: false, nodetool: true },
+    ],
+    explainerHeading: "A model marketplace, or your own keys",
+    explainerParagraph:
+      "OpenArt's pitch is breadth without setup: a single account gets you 100+ models plus community-built workflow templates and LoRA training, all hosted and billed per seat in credits. That convenience comes with a ceiling — plan tiers cap how many images or videos you generate a month, and there's no self-hosting option. NodeTool doesn't ship OpenArt's community-template gallery or one-click LoRA training, but it opens the model layer directly: every major provider called with your own keys at list price, local models via Ollama, MLX, and llama.cpp, and the whole canvas open source under AGPL-3.0.",
+    ctaHeading: "Bring your own keys to the model library.",
+    ctaParagraph:
+      "Download Studio and call every provider directly, at their list price.",
+    faq: [
+      {
+        question: "What is the difference between NodeTool and OpenArt?",
+        answer:
+          "OpenArt is a hosted, image-led platform that aggregates 100+ models behind per-seat credit plans, with community workflow templates and LoRA training. NodeTool is an open-source (AGPL-3.0), BYOK node canvas for image, video, audio, and text that calls every major provider at list price using your own keys, and can run as a desktop app or self-hosted server.",
+      },
+      {
+        question: "Does OpenArt have a free plan?",
+        answer:
+          "OpenArt offers a limited free plan; paid per-seat tiers scale by credit volume and features like LoRA training and API access. Check OpenArt's current pricing page, since credit allotments and tier names change.",
+      },
+      {
+        question: "Can I self-host OpenArt or bring my own API keys?",
+        answer:
+          "No — OpenArt is a closed-source, hosted platform billed through its own credit system. NodeTool is open source under AGPL-3.0, BYOK, and can be self-hosted or run as a desktop app.",
+      },
+      {
+        question: "When is OpenArt the better pick?",
+        answer:
+          "If you want one account with a very large aggregated model library, ready-made community workflows, and built-in LoRA training without managing provider keys, OpenArt is a fast way to start. NodeTool is the better fit if you want BYOK pricing, video, audio, and text alongside image on one canvas, and the option to self-host.",
+      },
+    ],
+    limitation:
+      "OpenArt is closed source and hosted only, billed in credits across per-seat plans — there's no self-hosting or BYOK pricing.",
+  },
 ];
 
 /** Look up a competitor by slug. */
