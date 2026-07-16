@@ -24,6 +24,20 @@ describe("AnthropicProvider", () => {
     expect(await provider.hasToolSupport("claude-sonnet")).toBe(true);
   });
 
+  it("defaults provider to anthropic and honors the providerId option", () => {
+    const base = new AnthropicProvider(
+      { ANTHROPIC_API_KEY: "k" },
+      { client: {} as any }
+    );
+    expect(base.provider).toBe("anthropic");
+
+    const gateway = new AnthropicProvider(
+      { ANTHROPIC_API_KEY: "k" },
+      { client: {} as any, providerId: "kie" }
+    );
+    expect(gateway.provider).toBe("kie");
+  });
+
   it("formats tools with Anthropic schema preparation", () => {
     const provider = new AnthropicProvider(
       { ANTHROPIC_API_KEY: "k" },

@@ -20,6 +20,7 @@ import type {
   MessageImageContent,
   MessageTextContent,
   ProviderEffort,
+  ProviderId,
   ProviderStreamItem,
   ProviderThinkingConfig,
   ProviderTool,
@@ -37,6 +38,13 @@ interface AnthropicProviderOptions {
   >;
   cacheControl?: { type: "ephemeral"; ttl?: "5m" | "1h" };
   betas?: string[];
+  /**
+   * Provider id reported by this instance. Defaults to `"anthropic"`.
+   * Anthropic-compatible subclasses (gateways pointed at a different base URL)
+   * pass their own id so the readonly `provider` field is set via the base
+   * constructor rather than reassigned afterwards.
+   */
+  providerId?: ProviderId;
 }
 
 type AnthropicRawBlock = Record<string, unknown>;
@@ -336,7 +344,7 @@ export class AnthropicProvider extends BaseProvider {
     secrets: { ANTHROPIC_API_KEY?: string; ANTHROPIC_AUTH_TOKEN?: string },
     options: AnthropicProviderOptions = {}
   ) {
-    super("anthropic");
+    super(options.providerId ?? "anthropic");
 
     const apiKey = secrets.ANTHROPIC_API_KEY?.trim() ?? "";
     const authToken =
