@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Download, ArrowRight, KeyRound, ExternalLink } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
@@ -106,8 +107,8 @@ export default async function ProviderRoutePage({
 
 function ProviderPage({ entry }: { entry: ProviderEntry }) {
   const accent = ACCENT[entry.accent];
-  const { catalog } = entry;
-  const kinds = KIND_ORDER.filter((k) => catalog.counts[k]);
+  const catalog = entry.catalog;
+  const kinds = catalog ? KIND_ORDER.filter((k) => catalog.counts[k]) : [];
 
   const softwareLd = {
     "@context": "https://schema.org",
@@ -166,8 +167,18 @@ function ProviderPage({ entry }: { entry: ProviderEntry }) {
           aria-labelledby="provider-title"
           className="mx-auto max-w-4xl px-6 text-center"
         >
+          <span className="mx-auto flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border border-slate-700/60 bg-white/5 p-3 shadow-lg shadow-black/30">
+            <Image
+              src={entry.logo}
+              alt={`${entry.name} logo`}
+              width={80}
+              height={80}
+              className="h-full w-full object-contain"
+              unoptimized
+            />
+          </span>
           <span
-            className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${accent.badge}`}
+            className={`mt-6 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${accent.badge}`}
           >
             Model provider · Bring your own key
           </span>
@@ -201,19 +212,28 @@ function ProviderPage({ entry }: { entry: ProviderEntry }) {
           </div>
         </section>
 
-        {/* Stat tiles: total + per-modality counts */}
-        <section aria-label="Catalog stats" className="mx-auto mt-14 max-w-4xl px-6">
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-            <StatTile label="Models" value={catalog.total.toLocaleString()} highlight />
-            {kinds.map((k) => (
+        {/* Stat tiles (aggregators) */}
+        {catalog && (
+          <section
+            aria-label="Catalog stats"
+            className="mx-auto mt-14 max-w-4xl px-6"
+          >
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
               <StatTile
-                key={k}
-                label={KIND_LABEL[k]}
-                value={String(catalog.counts[k])}
+                label="Models"
+                value={catalog.total.toLocaleString()}
+                highlight
               />
-            ))}
-          </div>
-        </section>
+              {kinds.map((k) => (
+                <StatTile
+                  key={k}
+                  label={KIND_LABEL[k]}
+                  value={String(catalog.counts[k])}
+                />
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Blurb */}
         <section aria-label="About" className="mx-auto mt-16 max-w-3xl px-6">
@@ -225,7 +245,10 @@ function ProviderPage({ entry }: { entry: ProviderEntry }) {
         </section>
 
         {/* BYOK card */}
-        <section aria-label="Bring your own key" className="mx-auto mt-14 max-w-3xl px-6">
+        <section
+          aria-label="Bring your own key"
+          className="mx-auto mt-14 max-w-3xl px-6"
+        >
           <div className="flex flex-col gap-4 rounded-2xl border border-slate-800/70 bg-slate-950/40 p-6 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -243,9 +266,34 @@ function ProviderPage({ entry }: { entry: ProviderEntry }) {
           </div>
         </section>
 
-        {/* Capability tags */}
-        {catalog.topTags.length > 0 && (
-          <section aria-label="Capabilities" className="mx-auto mt-14 max-w-4xl px-6">
+        {/* Capabilities (curated providers) */}
+        {entry.capabilities && entry.capabilities.length > 0 && (
+          <section
+            aria-label="Capabilities"
+            className="mx-auto mt-14 max-w-4xl px-6"
+          >
+            <h2 className="text-2xl font-semibold tracking-tight text-white">
+              What {entry.name} does in NodeTool
+            </h2>
+            <div className="mt-5 flex flex-wrap gap-2">
+              {entry.capabilities.map((c) => (
+                <span
+                  key={c}
+                  className="rounded-lg border border-slate-800/70 bg-slate-900/40 px-3 py-1.5 text-sm text-slate-300"
+                >
+                  {c}
+                </span>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Capability tags (aggregators) */}
+        {catalog && catalog.topTags.length > 0 && (
+          <section
+            aria-label="Capabilities"
+            className="mx-auto mt-14 max-w-4xl px-6"
+          >
             <h2 className="text-2xl font-semibold tracking-tight text-white">
               What you can build with {entry.name}
             </h2>
@@ -262,35 +310,78 @@ function ProviderPage({ entry }: { entry: ProviderEntry }) {
           </section>
         )}
 
-        {/* Model catalog, grouped by modality */}
-        <section aria-label="Supported models" className="mx-auto mt-20 max-w-5xl px-6">
-          <h2 className="text-2xl font-semibold tracking-tight text-white">
-            Supported {entry.name} models
-          </h2>
-          <p className="mt-3 max-w-2xl leading-relaxed text-slate-400">
-            Each model below is its own node in NodeTool — the id is what{" "}
-            {entry.name} serves it under. This list is generated from{" "}
-            {entry.name}&apos;s node manifest, so it tracks what the provider
-            actually ships.
-          </p>
-          <div className="mt-8 space-y-12">
-            {kinds.map((kind) => (
-              <ModelGroup
-                key={kind}
-                kind={kind}
-                entry={entry}
-                models={catalog.models.filter((m) => m.kind === kind)}
-                total={catalog.counts[kind] ?? 0}
-              />
-            ))}
-          </div>
-        </section>
+        {/* Model highlights (curated providers) */}
+        {entry.highlights && entry.highlights.length > 0 && (
+          <section
+            aria-label="Model highlights"
+            className="mx-auto mt-20 max-w-5xl px-6"
+          >
+            <h2 className="text-2xl font-semibold tracking-tight text-white">
+              Featured {entry.name} models
+            </h2>
+            <p className="mt-3 max-w-2xl leading-relaxed text-slate-400">
+              NodeTool queries {entry.name} for the exact models your key can
+              access and exposes each as a node. These are the families you can
+              build with.
+            </p>
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {entry.highlights.map((m) => (
+                <div
+                  key={m.name}
+                  className="flex flex-col rounded-xl border border-slate-800/70 bg-slate-900/40 p-5"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="font-semibold text-white">{m.name}</div>
+                    <span className="shrink-0 rounded-full border border-slate-700/70 bg-slate-800/40 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-400">
+                      {m.kind}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-400">
+                    {m.desc}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Model catalog (aggregators) */}
+        {catalog && (
+          <section
+            aria-label="Supported models"
+            className="mx-auto mt-20 max-w-5xl px-6"
+          >
+            <h2 className="text-2xl font-semibold tracking-tight text-white">
+              Supported {entry.name} models
+            </h2>
+            <p className="mt-3 max-w-2xl leading-relaxed text-slate-400">
+              Each model below is its own node in NodeTool — the id is what{" "}
+              {entry.name} serves it under. This list is generated from{" "}
+              {entry.name}&apos;s node manifest, so it tracks what the provider
+              actually ships.
+            </p>
+            <div className="mt-8 space-y-12">
+              {kinds.map((kind) => (
+                <ModelGroup
+                  key={kind}
+                  kind={kind}
+                  entry={entry}
+                  models={catalog.models.filter((m) => m.kind === kind)}
+                  total={catalog.counts[kind] ?? 0}
+                />
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* FAQ */}
         <FaqSection faq={entry.faq} />
 
         {/* Related providers */}
-        <section aria-label="Other providers" className="mx-auto mt-20 max-w-5xl px-6">
+        <section
+          aria-label="Other providers"
+          className="mx-auto mt-20 max-w-5xl px-6"
+        >
           <h2 className="text-2xl font-semibold tracking-tight text-white">
             Other providers
           </h2>
@@ -303,6 +394,14 @@ function ProviderPage({ entry }: { entry: ProviderEntry }) {
                   href={p.route}
                   className="inline-flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-900/50 px-4 py-2.5 text-sm text-slate-200 transition-colors hover:bg-slate-800 focus-ring"
                 >
+                  <Image
+                    src={p.logo}
+                    alt=""
+                    width={18}
+                    height={18}
+                    className="h-4 w-4 object-contain"
+                    unoptimized
+                  />
                   {p.name}
                   <ArrowRight className="h-3.5 w-3.5 text-slate-500" />
                 </Link>
@@ -354,7 +453,7 @@ function ModelGroup({
 }: {
   kind: ProviderModelKind;
   entry: ProviderEntry;
-  models: ProviderEntry["catalog"]["models"];
+  models: NonNullable<ProviderEntry["catalog"]>["models"];
   total: number;
 }) {
   if (models.length === 0) return null;

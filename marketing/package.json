@@ -15,6 +15,7 @@
     "seo:upload-videos": "node scripts/upload-videos-r2.mjs",
     "seo:model-coverage": "node scripts/generate-model-coverage.mjs",
     "seo:provider-catalog": "node scripts/generate-provider-catalog.mjs",
+    "seo:provider-logos": "node scripts/fetch-provider-logos.mjs",
     "seo:model-watch": "node scripts/model-watch.mjs",
     "test:model-watch": "node --test scripts/__tests__/model-watch.test.mjs",
     "test:seed-guard": "node --test scripts/__tests__/seed-guard.test.mjs",
