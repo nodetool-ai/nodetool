@@ -1,7 +1,7 @@
 ---
 layout: page
 title: "Why NodeTool: Comparisons vs ComfyUI, n8n & More"
-description: "The problems NodeTool solves for creative teams, plus head-to-head comparisons: NodeTool vs ComfyUI, Dify, Flowise, Langflow, n8n, and Weavy."
+description: "The problems NodeTool solves for creative teams, plus head-to-head comparisons: NodeTool vs ComfyUI, Dify, Flowise, Langflow, n8n, and Figma Weave (formerly Weavy)."
 ---
 
 > NodeTool is the open creative AI workspace — every major model, your keys, one canvas.
@@ -10,7 +10,7 @@ NodeTool replaces the chatbox with a node canvas where image, video, audio, and 
 
 ## Head-to-head comparisons
 
-Full write-ups against six specific tools:
+Full write-ups against specific tools:
 
 - [NodeTool vs ComfyUI](https://nodetool.ai/vs/comfyui) — a diffusion-only node editor vs one canvas for image, video, audio, and text, with editing tools built in.
 - [NodeTool vs Dify](https://nodetool.ai/vs/dify) — a text-first LLM app platform vs the same agent and RAG ground plus native image, video, and music generation.
@@ -18,6 +18,7 @@ Full write-ups against six specific tools:
 - [NodeTool vs Langflow](https://nodetool.ai/vs/langflow) — a low-code builder for chat, RAG, and agents vs the same ground plus native image, video, and music generation.
 - [NodeTool vs n8n](https://nodetool.ai/vs/n8n) — app-to-app automation vs workflows built to generate media and run agents.
 - [NodeTool vs Weavy](https://nodetool.ai/vs/weavy) — SaaS credits and a curated model roster vs open source, BYOK, no lock-in.
+- [NodeTool vs Figma Weave](https://nodetool.ai/vs/figma-weave) — Weavy's new life inside Figma: hosted, credit-billed, ecosystem-bound vs open source and BYOK.
 
 ## The problem
 
@@ -49,7 +50,7 @@ One canvas, every model, your keys:
 
 ## Feature Comparison
 
-| Feature | NodeTool | Weavy | ComfyUI |
+| Feature | NodeTool | Figma Weave (formerly Weavy) | ComfyUI |
 |---------|----------|-------|---------|
 | **Category** | Open creative AI workspace | Closed SaaS creative canvas | Diffusion-focused node editor |
 | **License** | AGPL-3.0 (open source) | Proprietary SaaS | GPL-3.0 (open source) |
@@ -72,7 +73,7 @@ One canvas, every model, your keys:
 
 **NodeTool** — every modality, every provider, on one canvas. Local, cloud, or mixed.
 
-**Weavy** — hosted SaaS if you want a managed product with credits and don't need BYOK, local execution, or open source.
+**Figma Weave** (formerly Weavy) — hosted SaaS if you want a managed product with credits inside the Figma ecosystem and don't need BYOK, local execution, or open source.
 
 **ComfyUI** — deep diffusion control: samplers, VAE, ControlNet, latents.
 

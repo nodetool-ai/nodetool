@@ -30,6 +30,7 @@ export const metadata: Metadata = {
     "AI workflow canvas",
     "ComfyUI alternative",
     "Weavy alternative",
+    "Figma Weave alternative",
     "vendor-neutral AI tool",
     "node-based AI canvas",
     "Flux workflow",
@@ -177,7 +178,7 @@ export default function RootLayout({
                 },
                 {
                   "@type": "Question",
-                  "name": "How is NodeTool different from Weavy or other closed SaaS canvases?",
+                  "name": "How is NodeTool different from Figma Weave (formerly Weavy) or other closed SaaS canvases?",
                   "acceptedAnswer": {
                     "@type": "Answer",
                     "text": "Closed canvases lock you into a credit system and a hand-picked list of models. NodeTool is open source. You bring your own API keys to every provider, pay providers directly at provider prices, and own your workflows and files. Cloud is just our managed hosting of the same open-source code you can run yourself."

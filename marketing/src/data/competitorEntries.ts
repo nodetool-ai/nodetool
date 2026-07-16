@@ -211,10 +211,10 @@ export const competitors: Competitor[] = [
     name: "Weavy",
     theme: "blue",
     category: "Creative canvas",
-    vsTitle: "NodeTool vs Weavy — open source, BYOK, no credits",
+    vsTitle: "NodeTool vs Weavy (now Figma Weave) — open source, BYOK, no credits",
     vsDescription:
-      "Weavy and similar closed SaaS canvases lock you into credits and a curated model roster. NodeTool is open source (AGPL-3.0) and BYOK: every provider, your keys, provider prices, and you own your workflows and files. Cloud is just managed hosting of the same self-hostable code.",
-    vsOgTitle: "NodeTool vs Weavy — open source, BYOK, no credits",
+      "Weavy became Figma Weave after Figma acquired it in October 2025 — still a closed SaaS canvas with credits and a curated model roster. NodeTool is open source (AGPL-3.0) and BYOK: every provider, your keys, provider prices, and you own your workflows and files. Cloud is just managed hosting of the same self-hostable code.",
+    vsOgTitle: "NodeTool vs Weavy (now Figma Weave) — open source, BYOK",
     vsOgDescription:
       "No credits, no curated roster, no lock-in. NodeTool is open source and BYOK: every provider at provider prices, with workflows and files you own.",
     og: {
@@ -224,13 +224,13 @@ export const competitors: Competitor[] = [
     },
     heroHeading: "Open source and BYOK. No credits, no lock-in.",
     heroParagraph:
-      "Weavy and similar closed SaaS canvases lock you into a credit system and a curated model roster. NodeTool is open source and BYOK: every provider, your keys, provider prices, and you own your workflows and files. Cloud is just managed hosting of the same open-source code you can self-host.",
-    competitorTagline: "Closed SaaS canvas",
+      "Weavy is now Figma Weave — Figma acquired it in October 2025 — and it remains a closed SaaS canvas with a credit system and a curated model roster. NodeTool is open source and BYOK: every provider, your keys, provider prices, and you own your workflows and files. Cloud is just managed hosting of the same open-source code you can self-host.",
+    competitorTagline: "Closed SaaS canvas, now Figma Weave",
     competitorBullets: [
       "Credit system you top up and burn",
       "Curated roster of supported models",
       "Closed source, hosted only",
-      "Work lives on their platform",
+      "Now part of Figma — roadmap follows the platform",
     ],
     competitorBulletTone: "negative",
     nodetoolTagline: "Open source · BYOK",
@@ -261,6 +261,11 @@ export const competitors: Competitor[] = [
           "Weavy and similar closed SaaS canvases lock you into a credit system and a curated model roster. NodeTool is open source and BYOK: every provider, your keys, provider prices, and you own your workflows and files. NodeTool Cloud is just managed hosting of the same open-source code you can self-host.",
       },
       {
+        question: "What happened to Weavy?",
+        answer:
+          "Figma acquired Weavy in October 2025 and renamed it Figma Weave. The product runs as a standalone tool at weave.figma.com with its own AI credits and billing, separate from Figma, and is being folded into the Figma platform over time. It remains closed source and hosted-only.",
+      },
+      {
         question: "Does NodeTool use credits?",
         answer:
           "No. NodeTool is BYOK — you bring your own API keys and pay each provider their list price directly. There are no credits, no markup, and no curated roster of models.",
@@ -277,7 +282,82 @@ export const competitors: Competitor[] = [
       },
     ],
     limitation:
-      "Weavy is a closed, hosted canvas billed in credits — you can't self-host it, and your work lives on their platform.",
+      "Weavy — now Figma Weave after Figma's October 2025 acquisition — is a closed, hosted canvas billed in credits: you can't self-host it, and your work lives on their platform.",
+  },
+  {
+    slug: "figma-weave",
+    name: "Figma Weave",
+    theme: "violet",
+    category: "Creative canvas",
+    vsTitle: "NodeTool vs Figma Weave — the open-source alternative",
+    vsDescription:
+      "Figma Weave (formerly Weavy) is a hosted AI canvas billed in its own AI credits, on its way into the Figma platform. NodeTool covers the same node-based media workflows as an open-source, BYOK workspace: every provider, your keys, provider prices, on your desktop or self-hosted — no credits, no ecosystem lock-in.",
+    vsOgTitle: "NodeTool vs Figma Weave — the open-source alternative",
+    vsOgDescription:
+      "Same node-based media workflows, without the credits or the ecosystem. NodeTool is open source and BYOK: every provider at provider prices, workflows you own.",
+    og: {
+      image: "screen_canvas.png",
+      accent: "violet",
+      subtitle: "The open-source, BYOK alternative to Figma Weave.",
+    },
+    heroHeading: "The open-source alternative to Figma Weave.",
+    heroParagraph:
+      "Figma Weave — the canvas formerly known as Weavy — is a polished hosted tool with a curated frontier-model roster, billed in its own AI credits and moving deeper into the Figma platform. NodeTool covers the same node-based media workflows in the open: AGPL-3.0 source, BYOK at provider prices, a desktop app you can run offline with local models, and workflows and files that stay yours.",
+    competitorTagline: "Hosted AI canvas in the Figma ecosystem",
+    competitorBullets: [
+      "Billed in Figma Weave AI credits",
+      "Curated model roster, chosen for you",
+      "Closed source, browser-only, no self-host",
+      "Roadmap follows Figma's platform plans",
+    ],
+    competitorBulletTone: "negative",
+    nodetoolTagline: "Open source · BYOK",
+    nodetoolBullets: [
+      "BYOK — pay providers directly at list prices",
+      "Every major model from every major provider",
+      "Open source under AGPL-3.0 — desktop app or self-host",
+      "Local models via Ollama, MLX, and llama.cpp",
+    ],
+    rows: [
+      { label: "Pricing model", competitor: "AI credits", nodetool: "BYOK / provider prices" },
+      { label: "Model roster", competitor: "Curated roster", nodetool: "Every provider" },
+      { label: "Source", competitor: "Closed", nodetool: "AGPL-3.0" },
+      { label: "Free tier", competitor: true, nodetool: "Studio is free" },
+      { label: "Self-host", competitor: false, nodetool: true },
+      { label: "Desktop app / offline", competitor: false, nodetool: true },
+      { label: "Local models (Ollama, MLX, llama.cpp)", competitor: false, nodetool: true },
+    ],
+    explainerHeading: "Own the canvas, not a seat in an ecosystem",
+    explainerParagraph:
+      "Acquisitions change products: pricing, model rosters, and roadmaps for Figma Weave now follow Figma's platform strategy, and your workflows live on their servers either way. NodeTool takes the opposite bet. The whole workspace is open source under AGPL-3.0, workflows are files you own, and models are called with your own API keys at each provider's published price — or run locally with Ollama, MLX, and llama.cpp. If the tool changes direction, you keep the code, the graphs, and the keys.",
+    ctaHeading: "Build on a canvas nobody can acquire.",
+    ctaParagraph:
+      "Download Studio — open source, BYOK, every provider at provider prices.",
+    faq: [
+      {
+        question: "Is Figma Weave the same as Weavy?",
+        answer:
+          "Yes. Figma acquired Weavy in October 2025 and renamed it Figma Weave. It runs as a standalone product at weave.figma.com with its own AI credits and billing, separate from Figma, and is being integrated into the Figma platform over time.",
+      },
+      {
+        question: "Is there an open source alternative to Figma Weave?",
+        answer:
+          "NodeTool is one: an open-source (AGPL-3.0) node-based canvas for image, video, audio, and text. It is BYOK — you call every major provider with your own keys at provider prices — and runs as a desktop app, in the browser, or self-hosted.",
+      },
+      {
+        question: "Does NodeTool use credits like Figma Weave?",
+        answer:
+          "No. NodeTool is BYOK — you bring your own API keys and pay each provider their list price directly. There are no credits, no markup, and no curated roster. You can also run local models for no per-call cost at all.",
+      },
+      {
+        question: "When is Figma Weave the better pick?",
+        answer:
+          "If your team already lives in Figma and wants a managed, hosted canvas with a curated roster and community workflows — and doesn't need self-hosting, local models, or BYOK pricing — Figma Weave is a polished choice. NodeTool is for teams that want the same workflows with open source, their own keys, and their own machines.",
+      },
+    ],
+    limitation:
+      "Figma Weave is a closed, hosted canvas billed in its own AI credits — you can't self-host it, and its roadmap now follows Figma's platform plans.",
+    isNew: true,
   },
   {
     slug: "langflow",
