@@ -1,5 +1,4 @@
 import React from "react";
-import { motion } from "framer-motion";
 import Image from "next/image";
 import { Download, Play, Code2, KeyRound, Layers } from "lucide-react";
 import { SmartDownloadButton } from "../app/SmartDownloadButton";
@@ -17,12 +16,7 @@ export default function NodeToolHero() {
 
       <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-12 lg:gap-12">
         {/* Left: copy */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          className="lg:col-span-5"
-        >
+        <div className="hero-rise lg:col-span-5">
           <span className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-300">
             <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
             Free &amp; Open Source
@@ -77,15 +71,10 @@ export default function NodeToolHero() {
               Open source, runs anywhere
             </li>
           </ul>
-        </motion.div>
+        </div>
 
         {/* Right: product screenshot */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.15, ease: "easeOut" }}
-          className="relative lg:col-span-7"
-        >
+        <div className="hero-rise-delayed relative lg:col-span-7">
           <div
             aria-hidden
             className="absolute -inset-6 -z-10 rounded-[2rem] opacity-70 blur-3xl"
@@ -105,7 +94,7 @@ export default function NodeToolHero() {
               sizes="(max-width: 1023px) 100vw, 58vw"
             />
           </div>
-        </motion.div>
+        </div>
       </div>
     </div>
   );

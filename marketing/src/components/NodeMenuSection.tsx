@@ -69,7 +69,7 @@ export default function NodeMenuSection({
             <div className="relative rounded-2xl border border-white/10 bg-slate-900/30 shadow-2xl overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/5 to-purple-500/5 pointer-events-none" />
               <Image
-                src="/screen_nodemenu.png"
+                src="/screen_nodemenu.webp"
                 alt="Node menu showing all available node types"
                 width={2086}
                 height={1490}

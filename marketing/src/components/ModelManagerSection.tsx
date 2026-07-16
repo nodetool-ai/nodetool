@@ -76,7 +76,7 @@ export default function ModelManagerSection() {
               </div>
 
               <Image
-                src="/screen_model_manager.png"
+                src="/screen_model_manager.webp"
                 alt="Model manager interface showing Hugging Face integration"
                 width={2000}
                 height={1361}

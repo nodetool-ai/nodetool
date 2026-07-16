@@ -437,6 +437,38 @@
   }
 }
 
+/*
+ * Hero entrance — pure CSS so it plays at first paint instead of waiting for
+ * JS hydration. Framer-motion's `initial={{opacity:0}}` server-renders the LCP
+ * image as opacity:0, which pushed LCP out to ~4s (it only cleared after the
+ * bundle hydrated). A CSS animation reaches the visible state without JS.
+ */
+@keyframes heroRise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero-rise {
+  animation: heroRise 600ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.hero-rise-delayed {
+  animation: heroRise 700ms cubic-bezier(0.2, 0.8, 0.2, 1) 150ms both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-rise,
+  .hero-rise-delayed {
+    animation: none;
+  }
+}
+
 /* Legal pages (Privacy / Terms) — minimal long-form prose styling */
 .legal-article {
   color: rgb(203 213 225);
