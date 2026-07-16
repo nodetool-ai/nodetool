@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useCallback, useEffect, useState, type FC } from "react";
+import { memo, useCallback, useEffect, useMemo, useState, type FC } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -85,6 +85,7 @@ const NodeDependencyWarning: FC<NodeDependencyWarningProps> = ({
   requiredRuntimes,
 }) => {
   const theme = useTheme();
+  const memoizedWarningStyles = useMemo(() => warningStyles(theme), [theme]);
   const [missingRuntimes, setMissingRuntimes] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [installing, setInstalling] = useState(false);
@@ -158,7 +159,7 @@ const NodeDependencyWarning: FC<NodeDependencyWarningProps> = ({
 
   return (
     <div
-      css={warningStyles(theme)}
+      css={memoizedWarningStyles}
       className="node-dependency-warning nodrag nowheel"
     >
       <div className="warning-title">

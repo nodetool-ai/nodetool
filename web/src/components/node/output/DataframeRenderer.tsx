@@ -110,8 +110,9 @@ const DataframeRenderer: React.FC<DataframeRendererProps> = ({ dataframe }) => {
     // Read-only renderer: output values are never edited here.
   }, []);
 
+  const memoizedStyles = useMemo(() => styles(theme), [theme]);
   return (
-    <div css={styles(theme)} className="dataframe-renderer">
+    <div css={memoizedStyles} className="dataframe-renderer">
       <div className="dataframe-action-buttons">
         <ToolbarIconButton title="Open in Full View" size="small" onClick={toggleExpand}>
           <OpenInFullIcon />

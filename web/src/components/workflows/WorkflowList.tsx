@@ -50,6 +50,7 @@ const loadWorkflows = async (cursor?: string, limit?: number) => {
 
 const WorkflowList = () => {
   const theme = useTheme();
+  const memoizedStyles = useMemo(() => styles(theme), [theme]);
   const queryClient = useQueryClient();
   const [filterValue, setFilterValue] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
@@ -63,12 +64,6 @@ const WorkflowList = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
   const [showCheckboxes, setShowCheckboxes] = useState(false);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
-  const shiftKeyPressed = useKeyPressedStore((state) => state.isKeyPressed("Shift"));
-  const controlKeyPressed = useKeyPressedStore((state) => state.isKeyPressed("Control"));
-  const shiftKeyRef = useRef(shiftKeyPressed);
-  shiftKeyRef.current = shiftKeyPressed;
-  const controlKeyRef = useRef(controlKeyPressed);
-  controlKeyRef.current = controlKeyPressed;
   const [selectedWorkflows, setSelectedWorkflows] = useState<string[]>([]);
   const pageSize = 1000;
   const [workflowToEdit, setWorkflowToEdit] = useState<Workflow | null>(null);
@@ -136,7 +131,8 @@ const WorkflowList = () => {
   const onDeselect = useCallback(
     (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (controlKeyRef.current || shiftKeyRef.current) { return; }
+      const keyState = useKeyPressedStore.getState();
+      if (keyState.isKeyPressed("Control") || keyState.isKeyPressed("Shift")) { return; }
       if (
         !target.closest(".workflow") &&
         !target.closest(".MuiDialog-root") &&
@@ -145,7 +141,7 @@ const WorkflowList = () => {
         setSelectedWorkflows([]);
       }
     },
-    [controlKeyRef, shiftKeyRef]
+    []
   );
 
   const onDelete = useCallback((workflow: Workflow) => {
@@ -298,7 +294,7 @@ const WorkflowList = () => {
           availableTags={availableTags}
         />
       )}
-      <FlexColumn gap={0} fullHeight css={styles(theme)}>
+      <FlexColumn gap={0} fullHeight css={memoizedStyles}>
         <CategorySearchBar
           ref={searchRef}
           value={filterValue}
