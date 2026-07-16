@@ -452,12 +452,15 @@ export class AtlasCloudProvider extends BaseProvider {
     }
     const info = this.resolveModel(params.model.id, "image");
     const input = mapImageParams(info, params);
-    // AtlasCloud `*/edit` endpoints accept the input image(s) as `images: [url]`.
-    // Seedance never goes through this method (it's video-only). Other future
-    // image-to-image endpoints that use `image` (singular) get that mapping too.
+    // AtlasCloud `*/edit` endpoints accept the input image(s) as `images: [url]`
+    // (Grok Imagine uses `image_urls`). Seedance never goes through this method
+    // (it's video-only). Other image-to-image endpoints that use `image`
+    // (singular) get that mapping too.
     const dataUris = sources.map((b) => imageDataUri(b));
     if (info.fields.has("images")) {
       input.images = dataUris;
+    } else if (info.fields.has("image_urls")) {
+      input.image_urls = dataUris;
     } else if (info.fields.has("image")) {
       input.image = dataUris[0];
     } else {
@@ -485,11 +488,14 @@ export class AtlasCloudProvider extends BaseProvider {
     }
     const info = this.resolveModel(params.model.id, "video");
     const input = mapVideoParams(info, params);
-    // Seedance image-to-video uses `image` (singular). Reference-to-video has
-    // `reference_images` (list) instead — generic imageToVideo can't target it.
+    // Seedance image-to-video uses `image` (singular); Grok Imagine Video uses
+    // `image_url`. Reference-to-video has `reference_images` (list) instead —
+    // generic imageToVideo can't target it.
     const dataUri = imageDataUri(image);
     if (info.fields.has("image")) {
       input.image = dataUri;
+    } else if (info.fields.has("image_url")) {
+      input.image_url = dataUri;
     } else if (info.fields.has("images")) {
       input.images = [dataUri];
     } else if (info.fields.has("reference_images")) {
