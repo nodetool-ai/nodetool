@@ -140,9 +140,6 @@ const SearchInput: React.FC<SearchInputProps> = ({
   const theme = useTheme();
   const inputRef = useRef<HTMLInputElement>(null);
   const [localSearchTerm, setLocalSearchTerm] = useState(externalSearchTerm);
-  const isControlOrMetaPressed = useKeyPressedStore(
-    (state) => state.isKeyPressed("control") || state.isKeyPressed("meta")
-  );
 
   // Debounced search - store handles search ID management internally
   const debouncedSetSearchTerm = useDebouncedCallback((value: string) => {
@@ -185,9 +182,11 @@ const SearchInput: React.FC<SearchInputProps> = ({
 
       if (!shouldHandleEvent) { return; }
 
+      const isControlOrMeta = useKeyPressedStore.getState().isKeyPressed("control") ||
+        useKeyPressedStore.getState().isKeyPressed("meta");
       if (
         (event.key === "Delete" || event.key === "Backspace") &&
-        isControlOrMetaPressed
+        isControlOrMeta
       ) {
         event.preventDefault();
         clearSearch();
@@ -233,7 +232,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
       }
 
       if (focusOnTyping) {
-        if (isControlOrMetaPressed) { return; }
+        if (isControlOrMeta) { return; }
         if (event.key.length === 1 && /[a-zA-Z0-9]/.test(event.key)) {
           if (document.activeElement !== inputRef.current) {
             event.preventDefault();
@@ -249,7 +248,6 @@ const SearchInput: React.FC<SearchInputProps> = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [
     focusOnTyping,
-    isControlOrMetaPressed,
     onPressSpaceWhenEmpty,
     onPressEscape,
     onPressArrowDown,

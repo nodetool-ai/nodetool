@@ -106,11 +106,12 @@ const ThinkBlock: React.FC<{ content: string }> = memo(({ content }) => {
 export const TextRenderer: React.FC<Props> = memo(({ text, showActions = true }) => {
   const theme = useTheme();
   const sections = useMemo(() => parseThinkSections(text), [text]);
+  const memoizedStyles = useMemo(() => outputStyles(theme, showActions), [theme, showActions]);
   if (!text) {
     return null;
   }
   return (
-    <div className="output value noscroll" css={outputStyles(theme, showActions)}>
+    <div className="output value noscroll" css={memoizedStyles}>
       {showActions && <Actions copyValue={text} />}
       {sections.map((s) =>
         s.type === "think" ? (

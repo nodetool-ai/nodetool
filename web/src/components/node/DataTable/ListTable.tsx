@@ -199,8 +199,9 @@ const ListTable: React.FC<ListTableProps> = ({
   }, [tabulatorData, columns, onCellEdited, data_type]);
 
   const theme = useTheme();
+  const memoizedTableStyles = useMemo(() => tableStyles(theme), [theme]);
   return (
-    <div className="listtable nowheel nodrag" css={tableStyles(theme)}>
+    <div className="listtable nowheel nodrag" css={memoizedTableStyles}>
       <TableActions
         tabulator={tabulator}
         data={data}
