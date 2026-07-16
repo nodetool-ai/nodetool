@@ -1,6 +1,37 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import type { SketchRef, TimelineRef } from "@nodetool-ai/protocol";
+import type {
+  ASRModel,
+  AudioRef,
+  DataframeRef,
+  DocumentRef,
+  EmbeddingModel,
+  ImageModel,
+  ImageRef,
+  LanguageModel,
+  Model3DRef,
+  SketchRef,
+  TimelineRef,
+  TTSModel,
+  VideoModel,
+  VideoRef
+} from "@nodetool-ai/protocol";
 import { tagAsUniversal } from "@nodetool-ai/nodes-utils";
+import {
+  audioRefDefault,
+  dataframeRefDefault,
+  documentRefDefault,
+  imageRefDefault,
+  jsonRefDefault,
+  model3DRefDefault,
+  sketchRefDefault,
+  timelineRefDefault,
+  videoRefDefault
+} from "./ref-defaults.js";
+
+interface ImageSizeValue {
+  width?: number;
+  height?: number;
+}
 
 export class ConstantBaseNode extends BaseNode {
   static readonly nodeType = "nodetool.constant.Constant";
@@ -25,7 +56,7 @@ export class ConstantBoolNode extends BaseNode {
   static readonly inputFields = [];
 
   @prop({ type: "bool", default: false, title: "Value" })
-  declare value: any;
+  declare value: boolean;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? false };
@@ -44,7 +75,7 @@ export class ConstantIntegerNode extends BaseNode {
   static readonly inputFields = [];
 
   @prop({ type: "int", default: 0, title: "Value" })
-  declare value: any;
+  declare value: number;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? 0 };
@@ -63,7 +94,7 @@ export class ConstantFloatNode extends BaseNode {
   static readonly inputFields = [];
 
   @prop({ type: "float", default: 0, title: "Value" })
-  declare value: any;
+  declare value: number;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? 0.0 };
@@ -82,7 +113,7 @@ export class ConstantStringNode extends BaseNode {
   static readonly inputFields = [];
 
   @prop({ type: "str", default: "", title: "Value" })
-  declare value: any;
+  declare value: string;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? "" };
@@ -101,7 +132,7 @@ export class ConstantListNode extends BaseNode {
   static readonly inputFields = [];
 
   @prop({ type: "list[any]", default: [], title: "Value" })
-  declare value: any;
+  declare value: unknown[];
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? [] };
@@ -126,7 +157,7 @@ export class ConstantTextListNode extends BaseNode {
     description: "List of text strings",
     required: true
   })
-  declare value: any;
+  declare value: string[] | null;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? [] };
@@ -145,7 +176,7 @@ export class ConstantDictNode extends BaseNode {
   static readonly inputFields = [];
 
   @prop({ type: "dict[str, any]", default: {}, title: "Value" })
-  declare value: any;
+  declare value: Record<string, unknown>;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
@@ -165,16 +196,10 @@ export class ConstantAudioNode extends BaseNode {
 
   @prop({
     type: "audio",
-    default: {
-      type: "audio",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
+    default: audioRefDefault,
     title: "Value"
   })
-  declare value: any;
+  declare value: AudioRef | null;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
@@ -194,16 +219,10 @@ export class ConstantImageNode extends BaseNode {
 
   @prop({
     type: "image",
-    default: {
-      type: "image",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
+    default: imageRefDefault,
     title: "Value"
   })
-  declare value: any;
+  declare value: ImageRef | null;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
@@ -223,18 +242,10 @@ export class ConstantVideoNode extends BaseNode {
 
   @prop({
     type: "video",
-    default: {
-      type: "video",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null,
-      duration: null,
-      format: null
-    },
+    default: videoRefDefault,
     title: "Value"
   })
-  declare value: any;
+  declare value: VideoRef | null;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
@@ -254,16 +265,10 @@ export class ConstantDocumentNode extends BaseNode {
 
   @prop({
     type: "document",
-    default: {
-      type: "document",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
+    default: documentRefDefault,
     title: "Document"
   })
-  declare value: any;
+  declare value: DocumentRef | null;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
@@ -288,11 +293,7 @@ export class ConstantSketchNode extends BaseNode {
 
   @prop({
     type: "sketch",
-    default: {
-      type: "sketch",
-      id: null,
-      data: null
-    },
+    default: sketchRefDefault,
     title: "Value"
   })
   declare value: SketchRef;
@@ -307,13 +308,7 @@ export class ConstantSketchNode extends BaseNode {
 
   @prop({
     type: "image",
-    default: {
-      type: "image",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
+    default: imageRefDefault,
     title: "Image",
     description: "Flattened composite (filled when you edit in the UI)."
   })
@@ -321,13 +316,7 @@ export class ConstantSketchNode extends BaseNode {
 
   @prop({
     type: "image",
-    default: {
-      type: "image",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
+    default: imageRefDefault,
     title: "Mask",
     description: "Mask output when configured in the editor."
   })
@@ -370,11 +359,7 @@ export class ConstantTimelineNode extends BaseNode {
 
   @prop({
     type: "timeline",
-    default: {
-      type: "timeline",
-      id: null,
-      data: null
-    },
+    default: timelineRefDefault,
     title: "Value"
   })
   declare value: TimelineRef;
@@ -397,16 +382,10 @@ export class ConstantJSONNode extends BaseNode {
 
   @prop({
     type: "json",
-    default: {
-      type: "json",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
+    default: jsonRefDefault,
     title: "Value"
   })
-  declare value: any;
+  declare value: unknown;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
@@ -426,19 +405,10 @@ export class ConstantModel3DNode extends BaseNode {
 
   @prop({
     type: "model_3d",
-    default: {
-      type: "model_3d",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null,
-      format: null,
-      material_file: null,
-      texture_files: []
-    },
+    default: model3DRefDefault,
     title: "Value"
   })
-  declare value: any;
+  declare value: Model3DRef | null;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
@@ -458,17 +428,10 @@ export class ConstantDataFrameNode extends BaseNode {
 
   @prop({
     type: "dataframe",
-    default: {
-      type: "dataframe",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null,
-      columns: null
-    },
+    default: dataframeRefDefault,
     title: "DataFrame"
   })
-  declare value: any;
+  declare value: DataframeRef | null;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
@@ -493,7 +456,7 @@ export class ConstantAudioListNode extends BaseNode {
     description: "List of audio references",
     required: true
   })
-  declare value: any;
+  declare value: AudioRef[] | null;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? [] };
@@ -518,7 +481,7 @@ export class ConstantImageListNode extends BaseNode {
     description: "List of image references",
     required: true
   })
-  declare value: any;
+  declare value: ImageRef[] | null;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? [] };
@@ -543,7 +506,7 @@ export class ConstantVideoListNode extends BaseNode {
     description: "List of video references",
     required: true
   })
-  declare value: any;
+  declare value: VideoRef[] | null;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? [] };
@@ -570,7 +533,7 @@ export class ConstantSelectNode extends BaseNode {
       type: "select"
     }
   })
-  declare value: any;
+  declare value: string;
 
   @prop({
     type: "list[str]",
@@ -578,7 +541,7 @@ export class ConstantSelectNode extends BaseNode {
     title: "Options",
     description: "The list of available options to choose from."
   })
-  declare options: any;
+  declare options: string[];
 
   @prop({
     type: "str",
@@ -587,7 +550,7 @@ export class ConstantSelectNode extends BaseNode {
     description:
       "The enum type name this select corresponds to (for type matching)."
   })
-  declare enum_type_name: any;
+  declare enum_type_name: string;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? "" };
@@ -608,7 +571,7 @@ export class ConstantImageSizeNode extends BaseNode {
   static readonly inputFields = [];
 
   @prop({ type: "image_size", default: null, title: "Value", required: true })
-  declare value: any;
+  declare value: ImageSizeValue | null;
 
   async process(): Promise<Record<string, unknown>> {
     const value = (this.value ?? { width: 1024, height: 1024 }) as {
@@ -640,7 +603,7 @@ export class ConstantDateNode extends BaseNode {
     min: 1,
     max: 9999
   })
-  declare year: any;
+  declare year: number;
 
   @prop({
     type: "int",
@@ -650,7 +613,7 @@ export class ConstantDateNode extends BaseNode {
     min: 1,
     max: 12
   })
-  declare month: any;
+  declare month: number;
 
   @prop({
     type: "int",
@@ -660,10 +623,10 @@ export class ConstantDateNode extends BaseNode {
     min: 1,
     max: 31
   })
-  declare day: any;
+  declare day: number;
 
   async process(): Promise<Record<string, unknown>> {
-    const year = Number(this.year ?? 2024);
+    const year = Number(this.year ?? 1900);
     const month = Number(this.month ?? 1);
     const day = Number(this.day ?? 1);
     return { output: { year, month, day } };
@@ -689,7 +652,7 @@ export class ConstantDateTimeNode extends BaseNode {
     min: 1,
     max: 9999
   })
-  declare year: any;
+  declare year: number;
 
   @prop({
     type: "int",
@@ -699,7 +662,7 @@ export class ConstantDateTimeNode extends BaseNode {
     min: 1,
     max: 12
   })
-  declare month: any;
+  declare month: number;
 
   @prop({
     type: "int",
@@ -709,7 +672,7 @@ export class ConstantDateTimeNode extends BaseNode {
     min: 1,
     max: 31
   })
-  declare day: any;
+  declare day: number;
 
   @prop({
     type: "int",
@@ -719,7 +682,7 @@ export class ConstantDateTimeNode extends BaseNode {
     min: 0,
     max: 23
   })
-  declare hour: any;
+  declare hour: number;
 
   @prop({
     type: "int",
@@ -729,7 +692,7 @@ export class ConstantDateTimeNode extends BaseNode {
     min: 0,
     max: 59
   })
-  declare minute: any;
+  declare minute: number;
 
   @prop({
     type: "int",
@@ -739,7 +702,7 @@ export class ConstantDateTimeNode extends BaseNode {
     min: 0,
     max: 59
   })
-  declare second: any;
+  declare second: number;
 
   @prop({
     type: "int",
@@ -749,7 +712,7 @@ export class ConstantDateTimeNode extends BaseNode {
     min: 0,
     max: 999
   })
-  declare millisecond: any;
+  declare millisecond: number;
 
   @prop({
     type: "str",
@@ -757,7 +720,7 @@ export class ConstantDateTimeNode extends BaseNode {
     title: "Tzinfo",
     description: "Timezone of the datetime"
   })
-  declare tzinfo: any;
+  declare tzinfo: string;
 
   @prop({
     type: "int",
@@ -767,21 +730,21 @@ export class ConstantDateTimeNode extends BaseNode {
     min: -720,
     max: 840
   })
-  declare utc_offset: any;
+  declare utc_offset: number;
 
   async process(): Promise<Record<string, unknown>> {
     const millisecond = Number(this.millisecond ?? 0);
     const utcOffsetMinutes = Number(this.utc_offset ?? 0);
     return {
       output: {
-        year: Number(this.year ?? 2024),
+        year: Number(this.year ?? 1900),
         month: Number(this.month ?? 1),
         day: Number(this.day ?? 1),
         hour: Number(this.hour ?? 0),
         minute: Number(this.minute ?? 0),
         second: Number(this.second ?? 0),
         microsecond: millisecond * 1000,
-        tzinfo: String(this.tzinfo ?? ""),
+        tzinfo: String(this.tzinfo ?? "UTC"),
         utc_offset: utcOffsetMinutes * 60
       }
     };
@@ -800,7 +763,7 @@ export class ConstantASRModelNode extends BaseNode {
   static readonly inputFields = [];
 
   @prop({ type: "asr_model", default: null, title: "Value", required: true })
-  declare value: any;
+  declare value: ASRModel | null;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
@@ -824,7 +787,7 @@ export class ConstantEmbeddingModelNode extends BaseNode {
     title: "Value",
     required: true
   })
-  declare value: any;
+  declare value: EmbeddingModel | null;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
@@ -843,7 +806,7 @@ export class ConstantImageModelNode extends BaseNode {
   static readonly inputFields = [];
 
   @prop({ type: "image_model", default: null, title: "Value", required: true })
-  declare value: any;
+  declare value: ImageModel | null;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
@@ -867,7 +830,7 @@ export class ConstantLanguageModelNode extends BaseNode {
     title: "Value",
     required: true
   })
-  declare value: any;
+  declare value: LanguageModel | null;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
@@ -886,7 +849,7 @@ export class ConstantTTSModelNode extends BaseNode {
   static readonly inputFields = [];
 
   @prop({ type: "tts_model", default: null, title: "Value", required: true })
-  declare value: any;
+  declare value: TTSModel | null;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
@@ -905,7 +868,7 @@ export class ConstantVideoModelNode extends BaseNode {
   static readonly inputFields = [];
 
   @prop({ type: "video_model", default: null, title: "Value", required: true })
-  declare value: any;
+  declare value: VideoModel | null;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
@@ -913,7 +876,6 @@ export class ConstantVideoModelNode extends BaseNode {
 }
 
 export const CONSTANT_NODES = tagAsUniversal([
-  ConstantBaseNode,
   ConstantBoolNode,
   ConstantIntegerNode,
   ConstantFloatNode,

@@ -1,6 +1,54 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
+import type {
+  ASRModel,
+  AudioRef,
+  DataframeRef,
+  DocumentRef,
+  EmbeddingModel,
+  FolderRef,
+  HuggingFaceModel,
+  ImageModel,
+  ImageRef,
+  InputMode,
+  LanguageModel,
+  Message,
+  Model3DRef,
+  OutputCorrelation,
+  TTSModel,
+  VideoModel,
+  VideoRef
+} from "@nodetool-ai/protocol";
 import { tagAsUniversal } from "@nodetool-ai/nodes-utils";
+import {
+  NAME_PROP,
+  INPUT_DESCRIPTION_PROP,
+  asrModelDefault,
+  audioRefDefault,
+  colorDefault,
+  dataframeRefDefault,
+  documentRefDefault,
+  embeddingModelDefault,
+  folderRefDefault,
+  hfModelDefault,
+  imageModelDefault,
+  imageRefDefault,
+  languageModelDefault,
+  messageRefDefault,
+  model3DRefDefault,
+  ttsModelDefault,
+  videoModelDefault,
+  videoRefDefault
+} from "./ref-defaults.js";
+
+interface ColorValue {
+  type: "color";
+  value: string | null;
+}
+
+interface ImageSizeValue {
+  width?: number;
+  height?: number;
+}
 
 export class FloatInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.FloatInput";
@@ -13,33 +61,26 @@ export class FloatInputNode extends BaseNode {
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Name",
-    description: "The parameter name for the workflow."
-  })
-  declare name: any;
+  @prop(NAME_PROP)
+  declare name: string;
 
   @prop({ type: "float", default: 0, title: "Value" })
-  declare value: any;
+  declare value: number;
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Description",
-    description: "The description of the input for the workflow."
-  })
-  declare description: any;
+  @prop(INPUT_DESCRIPTION_PROP)
+  declare description: string;
 
   @prop({ type: "float", default: 0, title: "Min" })
-  declare min: any;
+  declare min: number;
 
   @prop({ type: "float", default: 99999, title: "Max" })
-  declare max: any;
+  declare max: number;
 
   async process(): Promise<Record<string, unknown>> {
-    return { output: this.value ?? 0.0 };
+    const value = this.value ?? 0.0;
+    const min = this.min ?? 0;
+    const max = this.max ?? 99999;
+    return { output: Math.min(Math.max(value, min), max) };
   }
 }
 
@@ -54,24 +95,14 @@ export class BooleanInputNode extends BaseNode {
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Name",
-    description: "The parameter name for the workflow."
-  })
-  declare name: any;
+  @prop(NAME_PROP)
+  declare name: string;
 
   @prop({ type: "bool", default: false, title: "Value" })
-  declare value: any;
+  declare value: boolean;
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Description",
-    description: "The description of the input for the workflow."
-  })
-  declare description: any;
+  @prop(INPUT_DESCRIPTION_PROP)
+  declare description: string;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? false };
@@ -89,33 +120,26 @@ export class IntegerInputNode extends BaseNode {
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Name",
-    description: "The parameter name for the workflow."
-  })
-  declare name: any;
+  @prop(NAME_PROP)
+  declare name: string;
 
   @prop({ type: "int", default: 0, title: "Value" })
-  declare value: any;
+  declare value: number;
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Description",
-    description: "The description of the input for the workflow."
-  })
-  declare description: any;
+  @prop(INPUT_DESCRIPTION_PROP)
+  declare description: string;
 
   @prop({ type: "int", default: 0, title: "Min" })
-  declare min: any;
+  declare min: number;
 
   @prop({ type: "int", default: 99999, title: "Max" })
-  declare max: any;
+  declare max: number;
 
   async process(): Promise<Record<string, unknown>> {
-    return { output: this.value ?? 0 };
+    const value = this.value ?? 0;
+    const min = this.min ?? 0;
+    const max = this.max ?? 99999;
+    return { output: Math.trunc(Math.min(Math.max(value, min), max)) };
   }
 }
 
@@ -130,13 +154,8 @@ export class SelectInputNode extends BaseNode {
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Name",
-    description: "The parameter name for the workflow."
-  })
-  declare name: any;
+  @prop(NAME_PROP)
+  declare name: string;
 
   @prop({
     type: "str",
@@ -147,15 +166,10 @@ export class SelectInputNode extends BaseNode {
       type: "select"
     }
   })
-  declare value: any;
+  declare value: string;
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Description",
-    description: "The description of the input for the workflow."
-  })
-  declare description: any;
+  @prop(INPUT_DESCRIPTION_PROP)
+  declare description: string;
 
   @prop({
     type: "list[str]",
@@ -163,7 +177,7 @@ export class SelectInputNode extends BaseNode {
     title: "Options",
     description: "The list of available options to choose from."
   })
-  declare options: any;
+  declare options: string[];
 
   @prop({
     type: "str",
@@ -172,7 +186,7 @@ export class SelectInputNode extends BaseNode {
     description:
       "The enum type name this select corresponds to (for type matching)."
   })
-  declare enum_type_name: any;
+  declare enum_type_name: string;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? "" };
@@ -190,13 +204,8 @@ export class StringListInputNode extends BaseNode {
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Name",
-    description: "The parameter name for the workflow."
-  })
-  declare name: any;
+  @prop(NAME_PROP)
+  declare name: string;
 
   @prop({
     type: "list[str]",
@@ -204,15 +213,10 @@ export class StringListInputNode extends BaseNode {
     title: "Value",
     description: "The list of strings to use as input."
   })
-  declare value: any;
+  declare value: string[];
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Description",
-    description: "The description of the input for the workflow."
-  })
-  declare description: any;
+  @prop(INPUT_DESCRIPTION_PROP)
+  declare description: string;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? [] };
@@ -230,13 +234,8 @@ export class FolderPathInputNode extends BaseNode {
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Name",
-    description: "The parameter name for the workflow."
-  })
-  declare name: any;
+  @prop(NAME_PROP)
+  declare name: string;
 
   @prop({
     type: "str",
@@ -247,15 +246,10 @@ export class FolderPathInputNode extends BaseNode {
       type: "folder_path"
     }
   })
-  declare value: any;
+  declare value: string;
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Description",
-    description: "The description of the input for the workflow."
-  })
-  declare description: any;
+  @prop(INPUT_DESCRIPTION_PROP)
+  declare description: string;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? "" };
@@ -273,36 +267,19 @@ export class HuggingFaceModelInputNode extends BaseNode {
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Name",
-    description: "The parameter name for the workflow."
-  })
-  declare name: any;
+  @prop(NAME_PROP)
+  declare name: string;
 
   @prop({
     type: "hf.model",
-    default: {
-      type: "hf.model",
-      repo_id: "",
-      path: null,
-      variant: null,
-      allow_patterns: null,
-      ignore_patterns: null
-    },
+    default: hfModelDefault,
     title: "Value",
     description: "The Hugging Face model to use as input."
   })
-  declare value: any;
+  declare value: HuggingFaceModel | null;
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Description",
-    description: "The description of the input for the workflow."
-  })
-  declare description: any;
+  @prop(INPUT_DESCRIPTION_PROP)
+  declare description: string;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
@@ -320,32 +297,19 @@ export class ColorInputNode extends BaseNode {
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Name",
-    description: "The parameter name for the workflow."
-  })
-  declare name: any;
+  @prop(NAME_PROP)
+  declare name: string;
 
   @prop({
     type: "color",
-    default: {
-      type: "color",
-      value: null
-    },
+    default: colorDefault,
     title: "Value",
     description: "The color to use as input."
   })
-  declare value: any;
+  declare value: ColorValue | null;
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Description",
-    description: "The description of the input for the workflow."
-  })
-  declare description: any;
+  @prop(INPUT_DESCRIPTION_PROP)
+  declare description: string;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
@@ -363,13 +327,8 @@ export class ImageSizeInputNode extends BaseNode {
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Name",
-    description: "The parameter name for the workflow."
-  })
-  declare name: any;
+  @prop(NAME_PROP)
+  declare name: string;
 
   @prop({
     type: "image_size",
@@ -378,15 +337,10 @@ export class ImageSizeInputNode extends BaseNode {
     description: "The image size to use as input.",
     required: true
   })
-  declare value: any;
+  declare value: ImageSizeValue | null;
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Description",
-    description: "The description of the input for the workflow."
-  })
-  declare description: any;
+  @prop(INPUT_DESCRIPTION_PROP)
+  declare description: string;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
@@ -404,36 +358,19 @@ export class LanguageModelInputNode extends BaseNode {
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Name",
-    description: "The parameter name for the workflow."
-  })
-  declare name: any;
+  @prop(NAME_PROP)
+  declare name: string;
 
   @prop({
     type: "language_model",
-    default: {
-      type: "language_model",
-      provider: "empty",
-      id: "",
-      name: "",
-      path: null,
-      supported_tasks: []
-    },
+    default: languageModelDefault,
     title: "Value",
     description: "The language model to use as input."
   })
-  declare value: any;
+  declare value: LanguageModel | null;
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Description",
-    description: "The description of the input for the workflow."
-  })
-  declare description: any;
+  @prop(INPUT_DESCRIPTION_PROP)
+  declare description: string;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
@@ -451,36 +388,19 @@ export class ImageModelInputNode extends BaseNode {
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Name",
-    description: "The parameter name for the workflow."
-  })
-  declare name: any;
+  @prop(NAME_PROP)
+  declare name: string;
 
   @prop({
     type: "image_model",
-    default: {
-      type: "image_model",
-      provider: "empty",
-      id: "",
-      name: "",
-      path: null,
-      supported_tasks: []
-    },
+    default: imageModelDefault,
     title: "Value",
     description: "The image generation model to use as input."
   })
-  declare value: any;
+  declare value: ImageModel | null;
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Description",
-    description: "The description of the input for the workflow."
-  })
-  declare description: any;
+  @prop(INPUT_DESCRIPTION_PROP)
+  declare description: string;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
@@ -498,36 +418,19 @@ export class VideoModelInputNode extends BaseNode {
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Name",
-    description: "The parameter name for the workflow."
-  })
-  declare name: any;
+  @prop(NAME_PROP)
+  declare name: string;
 
   @prop({
     type: "video_model",
-    default: {
-      type: "video_model",
-      provider: "empty",
-      id: "",
-      name: "",
-      path: null,
-      supported_tasks: []
-    },
+    default: videoModelDefault,
     title: "Value",
     description: "The video generation model to use as input."
   })
-  declare value: any;
+  declare value: VideoModel | null;
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Description",
-    description: "The description of the input for the workflow."
-  })
-  declare description: any;
+  @prop(INPUT_DESCRIPTION_PROP)
+  declare description: string;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
@@ -545,37 +448,19 @@ export class TTSModelInputNode extends BaseNode {
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Name",
-    description: "The parameter name for the workflow."
-  })
-  declare name: any;
+  @prop(NAME_PROP)
+  declare name: string;
 
   @prop({
     type: "tts_model",
-    default: {
-      type: "tts_model",
-      provider: "empty",
-      id: "",
-      name: "",
-      path: null,
-      voices: [],
-      selected_voice: ""
-    },
+    default: ttsModelDefault,
     title: "Value",
     description: "The text-to-speech model to use as input."
   })
-  declare value: any;
+  declare value: TTSModel | null;
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Description",
-    description: "The description of the input for the workflow."
-  })
-  declare description: any;
+  @prop(INPUT_DESCRIPTION_PROP)
+  declare description: string;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
@@ -593,35 +478,19 @@ export class ASRModelInputNode extends BaseNode {
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Name",
-    description: "The parameter name for the workflow."
-  })
-  declare name: any;
+  @prop(NAME_PROP)
+  declare name: string;
 
   @prop({
     type: "asr_model",
-    default: {
-      type: "asr_model",
-      provider: "empty",
-      id: "",
-      name: "",
-      path: null
-    },
+    default: asrModelDefault,
     title: "Value",
     description: "The speech recognition model to use as input."
   })
-  declare value: any;
+  declare value: ASRModel | null;
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Description",
-    description: "The description of the input for the workflow."
-  })
-  declare description: any;
+  @prop(INPUT_DESCRIPTION_PROP)
+  declare description: string;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
@@ -639,35 +508,19 @@ export class EmbeddingModelInputNode extends BaseNode {
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Name",
-    description: "The parameter name for the workflow."
-  })
-  declare name: any;
+  @prop(NAME_PROP)
+  declare name: string;
 
   @prop({
     type: "embedding_model",
-    default: {
-      type: "embedding_model",
-      provider: "empty",
-      id: "",
-      name: "",
-      dimensions: 0
-    },
+    default: embeddingModelDefault,
     title: "Value",
     description: "The embedding model to use as input."
   })
-  declare value: any;
+  declare value: EmbeddingModel | null;
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Description",
-    description: "The description of the input for the workflow."
-  })
-  declare description: any;
+  @prop(INPUT_DESCRIPTION_PROP)
+  declare description: string;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
@@ -685,36 +538,19 @@ export class DataframeInputNode extends BaseNode {
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Name",
-    description: "The parameter name for the workflow."
-  })
-  declare name: any;
+  @prop(NAME_PROP)
+  declare name: string;
 
   @prop({
     type: "dataframe",
-    default: {
-      type: "dataframe",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null,
-      columns: null
-    },
+    default: dataframeRefDefault,
     title: "Value",
     description: "The dataframe to use as input."
   })
-  declare value: any;
+  declare value: DataframeRef | null;
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Description",
-    description: "The description of the input for the workflow."
-  })
-  declare description: any;
+  @prop(INPUT_DESCRIPTION_PROP)
+  declare description: string;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
@@ -732,35 +568,19 @@ export class DocumentInputNode extends BaseNode {
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Name",
-    description: "The parameter name for the workflow."
-  })
-  declare name: any;
+  @prop(NAME_PROP)
+  declare name: string;
 
   @prop({
     type: "document",
-    default: {
-      type: "document",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
+    default: documentRefDefault,
     title: "Value",
     description: "The document to use as input."
   })
-  declare value: any;
+  declare value: DocumentRef | null;
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Description",
-    description: "The description of the input for the workflow."
-  })
-  declare description: any;
+  @prop(INPUT_DESCRIPTION_PROP)
+  declare description: string;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
@@ -778,35 +598,19 @@ export class ImageInputNode extends BaseNode {
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Name",
-    description: "The parameter name for the workflow."
-  })
-  declare name: any;
+  @prop(NAME_PROP)
+  declare name: string;
 
   @prop({
     type: "image",
-    default: {
-      type: "image",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
+    default: imageRefDefault,
     title: "Value",
     description: "The image to use as input."
   })
-  declare value: any;
+  declare value: ImageRef | null;
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Description",
-    description: "The description of the input for the workflow."
-  })
-  declare description: any;
+  @prop(INPUT_DESCRIPTION_PROP)
+  declare description: string;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
@@ -824,13 +628,8 @@ export class ImageListInputNode extends BaseNode {
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Name",
-    description: "The parameter name for the workflow."
-  })
-  declare name: any;
+  @prop(NAME_PROP)
+  declare name: string;
 
   @prop({
     type: "list[image]",
@@ -838,15 +637,10 @@ export class ImageListInputNode extends BaseNode {
     title: "Value",
     description: "The list of images to use as input."
   })
-  declare value: any;
+  declare value: ImageRef[];
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Description",
-    description: "The description of the input for the workflow."
-  })
-  declare description: any;
+  @prop(INPUT_DESCRIPTION_PROP)
+  declare description: string;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? [] };
@@ -864,13 +658,8 @@ export class VideoListInputNode extends BaseNode {
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Name",
-    description: "The parameter name for the workflow."
-  })
-  declare name: any;
+  @prop(NAME_PROP)
+  declare name: string;
 
   @prop({
     type: "list[video]",
@@ -878,15 +667,10 @@ export class VideoListInputNode extends BaseNode {
     title: "Value",
     description: "The list of videos to use as input."
   })
-  declare value: any;
+  declare value: VideoRef[];
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Description",
-    description: "The description of the input for the workflow."
-  })
-  declare description: any;
+  @prop(INPUT_DESCRIPTION_PROP)
+  declare description: string;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? [] };
@@ -904,13 +688,8 @@ export class AudioListInputNode extends BaseNode {
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Name",
-    description: "The parameter name for the workflow."
-  })
-  declare name: any;
+  @prop(NAME_PROP)
+  declare name: string;
 
   @prop({
     type: "list[audio]",
@@ -918,15 +697,10 @@ export class AudioListInputNode extends BaseNode {
     title: "Value",
     description: "The list of audio files to use as input."
   })
-  declare value: any;
+  declare value: AudioRef[];
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Description",
-    description: "The description of the input for the workflow."
-  })
-  declare description: any;
+  @prop(INPUT_DESCRIPTION_PROP)
+  declare description: string;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? [] };
@@ -944,13 +718,8 @@ export class TextListInputNode extends BaseNode {
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Name",
-    description: "The parameter name for the workflow."
-  })
-  declare name: any;
+  @prop(NAME_PROP)
+  declare name: string;
 
   @prop({
     type: "list[str]",
@@ -958,15 +727,10 @@ export class TextListInputNode extends BaseNode {
     title: "Value",
     description: "The list of text strings to use as input."
   })
-  declare value: any;
+  declare value: string[];
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Description",
-    description: "The description of the input for the workflow."
-  })
-  declare description: any;
+  @prop(INPUT_DESCRIPTION_PROP)
+  declare description: string;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? [] };
@@ -984,37 +748,19 @@ export class VideoInputNode extends BaseNode {
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Name",
-    description: "The parameter name for the workflow."
-  })
-  declare name: any;
+  @prop(NAME_PROP)
+  declare name: string;
 
   @prop({
     type: "video",
-    default: {
-      type: "video",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null,
-      duration: null,
-      format: null
-    },
+    default: videoRefDefault,
     title: "Value",
     description: "The video to use as input."
   })
-  declare value: any;
+  declare value: VideoRef | null;
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Description",
-    description: "The description of the input for the workflow."
-  })
-  declare description: any;
+  @prop(INPUT_DESCRIPTION_PROP)
+  declare description: string;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
@@ -1032,35 +778,19 @@ export class AudioInputNode extends BaseNode {
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Name",
-    description: "The parameter name for the workflow."
-  })
-  declare name: any;
+  @prop(NAME_PROP)
+  declare name: string;
 
   @prop({
     type: "audio",
-    default: {
-      type: "audio",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
+    default: audioRefDefault,
     title: "Value",
     description: "The audio to use as input."
   })
-  declare value: any;
+  declare value: AudioRef | null;
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Description",
-    description: "The description of the input for the workflow."
-  })
-  declare description: any;
+  @prop(INPUT_DESCRIPTION_PROP)
+  declare description: string;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
@@ -1078,38 +808,19 @@ export class Model3DInputNode extends BaseNode {
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Name",
-    description: "The parameter name for the workflow."
-  })
-  declare name: any;
+  @prop(NAME_PROP)
+  declare name: string;
 
   @prop({
     type: "model_3d",
-    default: {
-      type: "model_3d",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null,
-      format: null,
-      material_file: null,
-      texture_files: []
-    },
+    default: model3DRefDefault,
     title: "Value",
     description: "The 3D model to use as input."
   })
-  declare value: any;
+  declare value: Model3DRef | null;
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Description",
-    description: "The description of the input for the workflow."
-  })
-  declare description: any;
+  @prop(INPUT_DESCRIPTION_PROP)
+  declare description: string;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
@@ -1127,35 +838,19 @@ export class AssetFolderInputNode extends BaseNode {
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Name",
-    description: "The parameter name for the workflow."
-  })
-  declare name: any;
+  @prop(NAME_PROP)
+  declare name: string;
 
   @prop({
     type: "folder",
-    default: {
-      type: "folder",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
+    default: folderRefDefault,
     title: "Value",
     description: "The folder to use as input."
   })
-  declare value: any;
+  declare value: FolderRef | null;
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Description",
-    description: "The description of the input for the workflow."
-  })
-  declare description: any;
+  @prop(INPUT_DESCRIPTION_PROP)
+  declare description: string;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
@@ -1173,52 +868,19 @@ export class MessageInputNode extends BaseNode {
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Name",
-    description: "The parameter name for the workflow."
-  })
-  declare name: any;
+  @prop(NAME_PROP)
+  declare name: string;
 
   @prop({
     type: "message",
-    default: {
-      type: "message",
-      id: null,
-      workflow_id: null,
-      graph: null,
-      thread_id: null,
-      tools: null,
-      tool_call_id: null,
-      role: "",
-      name: null,
-      content: null,
-      tool_calls: null,
-      collections: null,
-      input_files: null,
-      created_at: null,
-      provider: null,
-      model: null,
-
-      agent_execution_id: null,
-      execution_event_type: null,
-      workflow_target: null,
-      workflow_message_input_name: null,
-      workflow_messages_input_name: null
-    },
+    default: messageRefDefault,
     title: "Value",
     description: "The message object containing role, content, and metadata."
   })
-  declare value: any;
+  declare value: Message | null;
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Description",
-    description: "The description of the input for the workflow."
-  })
-  declare description: any;
+  @prop(INPUT_DESCRIPTION_PROP)
+  declare description: string;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
@@ -1236,13 +898,8 @@ export class MessageListInputNode extends BaseNode {
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Name",
-    description: "The parameter name for the workflow."
-  })
-  declare name: any;
+  @prop(NAME_PROP)
+  declare name: string;
 
   @prop({
     type: "list[message]",
@@ -1250,15 +907,10 @@ export class MessageListInputNode extends BaseNode {
     title: "Value",
     description: "The list of message objects representing chat history."
   })
-  declare value: any;
+  declare value: Message[];
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Description",
-    description: "The description of the input for the workflow."
-  })
-  declare description: any;
+  @prop(INPUT_DESCRIPTION_PROP)
+  declare description: string;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? [] };
@@ -1276,24 +928,14 @@ export class StringInputNode extends BaseNode {
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Name",
-    description: "The parameter name for the workflow."
-  })
-  declare name: any;
+  @prop(NAME_PROP)
+  declare name: string;
 
   @prop({ type: "str", default: "", title: "Value" })
-  declare value: any;
+  declare value: string;
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Description",
-    description: "The description of the input for the workflow."
-  })
-  declare description: any;
+  @prop(INPUT_DESCRIPTION_PROP)
+  declare description: string;
 
   @prop({
     type: "int",
@@ -1303,7 +945,7 @@ export class StringInputNode extends BaseNode {
     min: 0,
     max: 100000
   })
-  declare max_length: any;
+  declare max_length: number;
 
   @prop({
     type: "str",
@@ -1316,7 +958,7 @@ export class StringInputNode extends BaseNode {
       values: ["single_line", "multi_line"]
     }
   })
-  declare line_mode: any;
+  declare line_mode: string;
 
   async process(): Promise<Record<string, unknown>> {
     const raw = String(this.value ?? "");
@@ -1353,29 +995,18 @@ export class RealtimeAudioInputNode extends BaseNode {
     title: "Name",
     description: "The parameter name for the workflow."
   })
-  declare name: any;
+  declare name: string;
 
   @prop({
     type: "audio",
-    default: {
-      type: "audio",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
+    default: audioRefDefault,
     title: "Value",
     description: "The audio to use as input."
   })
-  declare value: any;
+  declare value: AudioRef | null;
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Description",
-    description: "The description of the input for the workflow."
-  })
-  declare description: any;
+  @prop(INPUT_DESCRIPTION_PROP)
+  declare description: string;
 
   async process(): Promise<Record<string, unknown>> {
     return { chunk: this.value ?? null };
@@ -1394,13 +1025,8 @@ export class DocumentFileInputNode extends BaseNode {
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Name",
-    description: "The parameter name for the workflow."
-  })
-  declare name: any;
+  @prop(NAME_PROP)
+  declare name: string;
 
   @prop({
     type: "str",
@@ -1411,15 +1037,10 @@ export class DocumentFileInputNode extends BaseNode {
       type: "file_path"
     }
   })
-  declare value: any;
+  declare value: string;
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Description",
-    description: "The description of the input for the workflow."
-  })
-  declare description: any;
+  @prop(INPUT_DESCRIPTION_PROP)
+  declare description: string;
 
   async process(): Promise<Record<string, unknown>> {
     const p = String(this.value ?? "");
@@ -1441,13 +1062,8 @@ export class FilePathInputNode extends BaseNode {
   static readonly inlineFields = ["value"];
   static readonly inputFields = [];
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Name",
-    description: "The parameter name for the workflow."
-  })
-  declare name: any;
+  @prop(NAME_PROP)
+  declare name: string;
 
   @prop({
     type: "str",
@@ -1458,15 +1074,10 @@ export class FilePathInputNode extends BaseNode {
       type: "file_path"
     }
   })
-  declare value: any;
+  declare value: string;
 
-  @prop({
-    type: "str",
-    default: "",
-    title: "Description",
-    description: "The description of the input for the workflow."
-  })
-  declare description: any;
+  @prop(INPUT_DESCRIPTION_PROP)
+  declare description: string;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? "" };
@@ -1490,34 +1101,11 @@ export class MessageDeconstructorNode extends BaseNode {
 
   @prop({
     type: "message",
-    default: {
-      type: "message",
-      id: null,
-      workflow_id: null,
-      graph: null,
-      thread_id: null,
-      tools: null,
-      tool_call_id: null,
-      role: "",
-      name: null,
-      content: null,
-      tool_calls: null,
-      collections: null,
-      input_files: null,
-      created_at: null,
-      provider: null,
-      model: null,
-
-      agent_execution_id: null,
-      execution_event_type: null,
-      workflow_target: null,
-      workflow_message_input_name: null,
-      workflow_messages_input_name: null
-    },
+    default: messageRefDefault,
     title: "Value",
     description: "The message object to deconstruct."
   })
-  declare value: any;
+  declare value: Message | null;
 
   async process(): Promise<Record<string, unknown>> {
     const msg = (this.value ?? {}) as Record<string, unknown>;
@@ -1533,7 +1121,8 @@ export class MessageDeconstructorNode extends BaseNode {
         const block = item as Record<string, unknown>;
         const type = String(block.type ?? "");
         if (type === "text") text = String(block.text ?? "");
-        else if (type === "image" || type === "image_url") image = block.image ?? null;
+        else if (type === "image" || type === "image_url")
+          image = block.image_url ?? block.image ?? null;
         else if (type === "audio") audio = block.audio ?? null;
       }
     }
@@ -1544,8 +1133,8 @@ export class MessageDeconstructorNode extends BaseNode {
         ? { provider, id: modelId }
         : null;
     return {
-      id: msg.id ?? null,
-      thread_id: msg.thread_id ?? null,
+      id: msg.id ?? "",
+      thread_id: msg.thread_id ?? "",
       role: String(msg.role ?? ""),
       text,
       image,
