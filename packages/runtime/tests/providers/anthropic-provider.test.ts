@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { AnthropicProvider } from "../../src/providers/anthropic-provider.js";
+import type Anthropic from "@anthropic-ai/sdk";
 import type { Message, ProviderTool } from "../../src/providers/types.js";
 
 function makeAsyncIterable(items: unknown[]) {
@@ -101,6 +102,28 @@ describe("AnthropicProvider", () => {
     // Other tools are still normal function tools.
     expect(formatted[1].name).toBe("extract");
     expect(formatted[1].input_schema).toBeDefined();
+  });
+
+  it("renders web_search as a plain function tool for Anthropic-compatible gateways without native web search", () => {
+    // Subclasses pointed at a non-Anthropic endpoint pass their own providerId;
+    // supportsNativeWebSearch is false for them, so formatTools must not emit
+    // the web_search_20250305 server tool.
+    const provider = new AnthropicProvider(
+      { ANTHROPIC_API_KEY: "k" },
+      { client: {} as unknown as Anthropic, providerId: "moonshot" }
+    );
+    expect(provider.supportsNativeWebSearch).toBe(false);
+
+    const tools: ProviderTool[] = [
+      { name: "web_search", description: "Search the web", inputSchema: { type: "object", properties: {} } }
+    ];
+    const formatted = provider.formatTools(tools);
+    expect(formatted[0]).toEqual({
+      name: "web_search",
+      description: "Search the web",
+      input_schema: { type: "object", additionalProperties: false, properties: {} }
+    });
+    expect(formatted[0].type).toBeUndefined();
   });
 
   it("converts tool and assistant messages", async () => {

@@ -319,9 +319,9 @@ export class AnthropicProvider extends BaseProvider {
   /**
    * Anthropic runs web search server-side via the `web_search_20250305` server
    * tool. Gate on the provider id so subclasses that reuse the Anthropic SDK
-   * against a different endpoint (e.g. Moonshot/Kimi, which does not implement
-   * that server tool) fall back to the SerpAPI WebSearchTool instead of sending
-   * an unsupported tool that silently breaks web search.
+   * against a different endpoint (gateways that don't implement that server
+   * tool) fall back to the SerpAPI WebSearchTool instead of sending an
+   * unsupported tool that silently breaks web search.
    */
   override get supportsNativeWebSearch(): boolean {
     return this.provider === "anthropic";
@@ -837,7 +837,11 @@ export class AnthropicProvider extends BaseProvider {
       // server tool — the search runs server-side and its result blocks stream
       // back within the same turn (our stream parser ignores them), so the
       // model answers from live web data without a client round-trip.
-      if (tool.name === WEB_SEARCH_TOOL_NAME) {
+      // Gated on supportsNativeWebSearch: subclasses that reuse the Anthropic
+      // SDK against a different endpoint don't implement this server tool, so
+      // for them the tool falls through to the plain function-tool shape below
+      // and runs client-side via SerpAPI.
+      if (tool.name === WEB_SEARCH_TOOL_NAME && this.supportsNativeWebSearch) {
         return {
           type: "web_search_20250305",
           name: WEB_SEARCH_TOOL_NAME,
