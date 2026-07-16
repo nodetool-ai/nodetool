@@ -34,7 +34,9 @@ import {
   loadMusicModels,
   loadTTSModels,
   loadVideoModels,
-  sizeEnumToAspect
+  selectPrimaryImageInput,
+  sizeEnumToAspect,
+  type ModelImageInput
 } from "./manifest-models.js";
 import { sniffAudioMime } from "./audio-mime.js";
 import { safeFetch } from "./safe-url.js";
@@ -163,6 +165,40 @@ class FalArgsBuilder {
   }
 
   /**
+   * The `kind`-typed asset inputs the endpoint declares, as {@link
+   * ModelImageInput}s (apiName / isList / name), in manifest order.
+   */
+  private assetInputs(kind: "image" | "video" | "audio"): ModelImageInput[] {
+    return this.fields
+      .filter((f) => {
+        const t = f.propType.toLowerCase();
+        return t === kind || t === `list[${kind}]`;
+      })
+      .map((f) => ({
+        apiName: f.apiParamName ?? f.name,
+        isList: f.propType.toLowerCase().startsWith("list["),
+        name: f.name
+      }));
+  }
+
+  /**
+   * Pick the field a source asset should attach to. For images this is the
+   * primary source field, skipping auxiliary slots (mask/control/reference/
+   * style/pose/end-frame, …) that must never receive the source image — the
+   * same {@link selectPrimaryImageInput} the model picker uses. For video/audio
+   * (endpoints with a single such field) it's the first declared field.
+   */
+  private selectAssetField(
+    kind: "image" | "video" | "audio",
+    count: number
+  ): ModelImageInput | undefined {
+    const inputs = this.assetInputs(kind);
+    if (inputs.length === 0) return undefined;
+    if (kind === "image") return selectPrimaryImageInput(inputs, count);
+    return inputs[0];
+  }
+
+  /**
    * Attach an uploaded asset URL to whatever field (image/video/audio) the
    * endpoint declares. Handles list-typed fields (`list[image]` -> array).
    * If the endpoint isn't in the manifest, falls back to `${kind}_url`.
@@ -172,15 +208,9 @@ class FalArgsBuilder {
     url: string,
     fallbackApiName?: string
   ): this {
-    const field = this.fields.find((f) => {
-      const t = f.propType.toLowerCase();
-      return t === kind || t === `list[${kind}]`;
-    });
+    const field = this.selectAssetField(kind, 1);
     if (field) {
-      const apiName = field.apiParamName ?? field.name;
-      this.args[apiName] = field.propType.toLowerCase().startsWith("list[")
-        ? [url]
-        : url;
+      this.args[field.apiName] = field.isList ? [url] : url;
     } else {
       this.args[fallbackApiName ?? `${kind}_url`] = url;
     }
@@ -191,8 +221,9 @@ class FalArgsBuilder {
    * Attach one or more uploaded asset URLs to whatever field (image/video/
    * audio) the endpoint declares. When the endpoint declares a list-typed field
    * (e.g. `image_urls`), every URL is sent; otherwise only the first URL is
-   * attached to the single-valued field. Falls back to `${kind}_url` (first
-   * URL) for endpoints not in the manifest.
+   * attached to the single-valued field. Auxiliary image slots (mask, control,
+   * reference/style/end-frame, …) are skipped so the source never lands there.
+   * Falls back to `${kind}_url` (first URL) for endpoints not in the manifest.
    */
   attachAssets(
     kind: "image" | "video" | "audio",
@@ -200,19 +231,9 @@ class FalArgsBuilder {
     fallbackApiName?: string
   ): this {
     if (urls.length === 0) return this;
-    // Skip mask-named fields: inpaint endpoints declare both the source
-    // (`image_url`) and the mask (`mask_url`/`mask_image_url`) as `image`, and
-    // the primary asset must never land in the mask slot.
-    const field = this.fields.find((f) => {
-      const t = f.propType.toLowerCase();
-      const apiName = (f.apiParamName ?? f.name).toLowerCase();
-      return (t === kind || t === `list[${kind}]`) && !apiName.includes("mask");
-    });
+    const field = this.selectAssetField(kind, urls.length);
     if (field) {
-      const apiName = field.apiParamName ?? field.name;
-      this.args[apiName] = field.propType.toLowerCase().startsWith("list[")
-        ? urls
-        : urls[0];
+      this.args[field.apiName] = field.isList ? urls : urls[0];
     } else {
       this.args[fallbackApiName ?? `${kind}_url`] = urls[0];
     }

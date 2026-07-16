@@ -638,9 +638,18 @@ export function createFalNodeClass(spec: FalManifestEntry): NodeClass {
     if (field.parentField) continue;
     if (field.name === "num_images") continue;
 
+    // Asset inputs need a proper AssetRef default object. Some manifest entries
+    // carry `default: ""` for asset fields (notably inpaint `mask`s); an empty
+    // string must not shadow the AssetRef default, so ignore non-object
+    // manifest defaults for asset propTypes.
+    const manifestDefault =
+      assetKind(field.propType) !== "none" &&
+      typeof field.default !== "object"
+        ? undefined
+        : field.default;
     const propOptions: PropOptions = {
       type: field.propType,
-      default: field.default ?? defaultForPropType(field.propType)
+      default: manifestDefault ?? defaultForPropType(field.propType)
     };
     if (field.description) propOptions.description = field.description;
     if (field.enumValues?.length) propOptions.values = field.enumValues;
