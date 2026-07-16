@@ -45,9 +45,11 @@ vi.mock("@nodetool-ai/vectorstore", () => ({
 }));
 
 function mockOllamaEmbeddings(embeddings: number[][]) {
-  let callIndex = 0;
-  ollamaGenerateMock.mockImplementation(async () => {
-    return [embeddings[callIndex++] ?? embeddings[0]];
+  // The node now issues a single batched generate(texts) call and expects one
+  // embedding per input text back in that one call.
+  ollamaGenerateMock.mockImplementation(async (texts: string[]) => {
+    const count = Array.isArray(texts) ? texts.length : embeddings.length;
+    return embeddings.slice(0, count);
   });
 }
 

@@ -16,7 +16,10 @@ export function makePlaceholderNode(nodeType: string): NodeClass {
     static readonly inputFields = [];
 
     async process(): Promise<Record<string, unknown>> {
-      return { output: this.getDynamic("value") ?? this.serialize() };
+      const staticValue = (this as unknown as { value?: unknown }).value;
+      return {
+        output: staticValue ?? this.getDynamic("value") ?? this.serialize()
+      };
     }
   }
 
