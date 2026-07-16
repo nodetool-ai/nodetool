@@ -40,7 +40,7 @@ import {
   hasContentType
 } from "./agent-utils.js";
 import {
-  THREAD_STORE,
+  seedFallbackThread,
   loadThreadMessages,
   saveThreadMessage
 } from "./agent-threads.js";
@@ -49,7 +49,7 @@ import {
   extractThinkTags,
   yieldSplitThinkChunks
 } from "./agent-thinking.js";
-import { buildControlTools, isControlTool } from "./agent-control-tools.js";
+import { buildControlTools } from "./agent-control-tools.js";
 import { ToolLikeAdapter } from "./agent-loop.js";
 import {
   SUMMARIZER_RECOMMENDED_MODELS,
@@ -471,25 +471,19 @@ export class CreateThreadNode extends BaseNode {
   })
   declare thread_id: string;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const requested = String(this.thread_id ?? "").trim();
-    if (requested) {
-      if (!THREAD_STORE.has(requested)) {
-        THREAD_STORE.set(requested, {
-          id: requested,
-          title: String(this.title ?? "Agent Conversation"),
-          messages: []
-        });
-      }
-      return { thread_id: requested };
-    }
+    const title = String(this.title ?? "Agent Conversation");
+    const id = requested || makeThreadId();
 
-    const id = makeThreadId();
-    THREAD_STORE.set(id, {
-      id,
-      title: String(this.title ?? "Agent Conversation"),
-      messages: []
-    });
+    // Threads are implicit in the message store: messages are keyed by
+    // thread_id with no separate thread row, so when a real store is wired we
+    // just mint/return the id and the first saved message creates the thread.
+    // Only the in-memory fallback needs an explicit empty thread seeded so a
+    // later loadThreadMessages finds it (and so a reused id survives eviction).
+    if (!context?.hasModelInterface?.("createMessage")) {
+      seedFallbackThread(id, title);
+    }
     return { thread_id: id };
   }
 }
@@ -1070,64 +1064,25 @@ export class AgentNode extends BaseNode {
                   });
                 }
 
+                // Control tools carry their own dispatch logic in `process`
+                // (filter args → sendControlEvent), so they flow through this
+                // generic path like any other tool.
                 let result: unknown;
-
-                if (isControlTool(tool)) {
-                  const callArgs = Object.fromEntries(
-                    Object.entries(args ?? {}).filter(([key]) =>
-                      tool.allowedProperties.has(key)
-                    )
-                  );
-                  log.info("AgentNode dispatching control tool", {
+                log.info("AgentNode executing tool", {
+                  nodeId: this.__node_id ?? null,
+                  toolName: tool.name
+                });
+                try {
+                  result = await tool.process(context, args);
+                } catch (err) {
+                  const message =
+                    err instanceof Error ? err.message : String(err);
+                  log.warn("AgentNode tool execution failed", {
                     nodeId: this.__node_id ?? null,
                     toolName: tool.name,
-                    targetNodeId: tool.targetNodeId,
-                    argKeys: Object.keys(callArgs)
+                    error: message
                   });
-
-                  if (context.hasControlEventSupport) {
-                    try {
-                      const controlResult = await context.sendControlEvent(
-                        tool.targetNodeId,
-                        callArgs
-                      );
-                      result = {
-                        status: "completed",
-                        target_node_id: tool.targetNodeId,
-                        result: controlResult
-                      };
-                    } catch (err) {
-                      result = {
-                        status: "error",
-                        target_node_id: tool.targetNodeId,
-                        error: err instanceof Error ? err.message : String(err)
-                      };
-                    }
-                  } else {
-                    result = {
-                      status: "error",
-                      target_node_id: tool.targetNodeId,
-                      error:
-                        "Control event dispatch is not available in this execution context"
-                    };
-                  }
-                } else {
-                  log.info("AgentNode executing tool", {
-                    nodeId: this.__node_id ?? null,
-                    toolName: tool.name
-                  });
-                  try {
-                    result = await tool.process(context, args);
-                  } catch (err) {
-                    const message =
-                      err instanceof Error ? err.message : String(err);
-                    log.warn("AgentNode tool execution failed", {
-                      nodeId: this.__node_id ?? null,
-                      toolName: tool.name,
-                      error: message
-                    });
-                    result = { status: "error", error: message };
-                  }
+                  result = { status: "error", error: message };
                 }
 
                 return JSON.stringify(serializeToolResult(result));

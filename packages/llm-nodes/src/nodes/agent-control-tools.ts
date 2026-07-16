@@ -1,3 +1,4 @@
+import { createLogger } from "@nodetool-ai/config";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { ToolLike } from "./agent-utils.js";
 
@@ -5,22 +6,20 @@ import type { ToolLike } from "./agent-utils.js";
 // Control tool support for Agent nodes with outgoing control edges
 // ---------------------------------------------------------------------------
 
+const log = createLogger("nodetool.base-nodes.agents");
+
 /**
- * Marker symbol to identify control tools built from _control_context.
+ * A control tool is a normal {@link ToolLike} whose `process` dispatches a
+ * control event to a target node. `targetNodeId` is kept on the object for
+ * diagnostics/logging by the caller; execution flows through the generic
+ * `tool.process` path like any other tool.
  */
-const CONTROL_TOOL_MARKER = Symbol("controlTool");
-
-interface ControlToolLike extends ToolLike {
-  [CONTROL_TOOL_MARKER]: true;
+export interface ControlTool extends ToolLike {
   targetNodeId: string;
-  allowedProperties: ReadonlySet<string>;
-}
-
-export function isControlTool(tool: ToolLike): tool is ControlToolLike {
-  return (
-    CONTROL_TOOL_MARKER in tool &&
-    (tool as ControlToolLike)[CONTROL_TOOL_MARKER] === true
-  );
+  process: (
+    context: ProcessingContext,
+    params: Record<string, unknown>
+  ) => Promise<Record<string, unknown>>;
 }
 
 /**
@@ -45,13 +44,16 @@ function sanitizeControlToolName(name: string): string {
 }
 
 /**
- * Build ControlToolLike instances from `_control_context` input.
- * These tools allow the agent's LLM to call controlled nodes via tool-calling.
+ * Build control tools from `_control_context` input. Each tool's `process`
+ * filters the model's arguments to the node's declared properties, then
+ * dispatches a control event through the context and returns the result — so
+ * control tools run through the same generic `tool.process` path as any other
+ * tool (including plan mode's ToolLikeAdapter).
  */
-export function buildControlTools(controlContext: unknown): ControlToolLike[] {
+export function buildControlTools(controlContext: unknown): ControlTool[] {
   if (!controlContext || typeof controlContext !== "object") return [];
 
-  const tools: ControlToolLike[] = [];
+  const tools: ControlTool[] = [];
   const usedNames = new Set<string>();
 
   for (const [targetId, info] of Object.entries(
@@ -102,16 +104,51 @@ export function buildControlTools(controlContext: unknown): ControlToolLike[] {
       description += `. Available properties: ${propNames.join(", ")}`;
     }
 
+    const allowedProperties = new Set(propNames);
+
     tools.push({
-      [CONTROL_TOOL_MARKER]: true as const,
       targetNodeId: targetId,
-      allowedProperties: new Set(Object.keys(properties)),
       name: toolName,
       description,
       inputSchema,
-      // Stub process — actual execution goes through sendControlEvent
-      async process(_ctx: ProcessingContext, _params: Record<string, unknown>) {
-        return { status: "dispatched", target: targetId };
+      async process(
+        context: ProcessingContext,
+        params: Record<string, unknown>
+      ): Promise<Record<string, unknown>> {
+        const callArgs = Object.fromEntries(
+          Object.entries(params ?? {}).filter(([key]) =>
+            allowedProperties.has(key)
+          )
+        );
+        log.info("Control tool dispatching", {
+          toolName,
+          targetNodeId: targetId,
+          argKeys: Object.keys(callArgs)
+        });
+
+        if (!context.hasControlEventSupport) {
+          return {
+            status: "error",
+            target_node_id: targetId,
+            error:
+              "Control event dispatch is not available in this execution context"
+          };
+        }
+
+        try {
+          const result = await context.sendControlEvent(targetId, callArgs);
+          return {
+            status: "completed",
+            target_node_id: targetId,
+            result
+          };
+        } catch (err) {
+          return {
+            status: "error",
+            target_node_id: targetId,
+            error: err instanceof Error ? err.message : String(err)
+          };
+        }
       },
       toProviderTool() {
         return { name: toolName, description, inputSchema };

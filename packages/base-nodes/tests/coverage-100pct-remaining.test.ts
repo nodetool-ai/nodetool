@@ -320,6 +320,8 @@ describe("agents nodes", () => {
       };
       const mockContext = {
         getProvider: vi.fn().mockResolvedValue(asLoopProvider(mockProvider)),
+        hasModelInterface: (name: string) =>
+          name === "getMessages" || name === "createMessage",
         getThreadMessages: vi.fn().mockResolvedValue({
           messages: [{ role: "user", content: "persisted-user" }],
           next: null

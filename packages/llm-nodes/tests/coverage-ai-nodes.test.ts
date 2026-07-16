@@ -730,6 +730,7 @@ describe("AgentNode", () => {
     });
     const mockContext = {
       getProvider: async () => mockProvider,
+      hasModelInterface: (name: string) => name === "getMessages",
       getThreadMessages: async () => ({
         messages: [
           { role: "user", content: "persisted-user" },
@@ -849,6 +850,7 @@ describe("AgentNode", () => {
     });
     const mockContext = {
       getProvider: async () => mockProvider,
+      hasModelInterface: (name: string) => name === "createMessage",
       createMessage: async (req: any) => {
         created.push(req);
       }
@@ -867,6 +869,35 @@ describe("AgentNode", () => {
       thread_id: "thread-2",
       role: "assistant"
     });
+  });
+
+  it("propagates errors from a wired thread store instead of silently falling back", async () => {
+    const n = new (AgentNode as any)();
+    const mockProvider = withAgentLoop({
+      async *generateMessages(): AsyncGenerator<Record<string, unknown>> {
+        yield {
+          type: "chunk",
+          content: "unused",
+          content_type: "text",
+          done: true
+        };
+      }
+    });
+    const mockContext = {
+      getProvider: async () => mockProvider,
+      hasModelInterface: (name: string) => name === "createMessage",
+      createMessage: async () => {
+        throw new Error("db write failed");
+      }
+    };
+    n.assign({
+      prompt: "persist me",
+      thread_id: "thread-err",
+      model: { provider: "test", id: "m1" }
+    });
+    await expect(n.process(mockContext as any)).rejects.toThrow(
+      "db write failed"
+    );
   });
 
   it("emits thinking and audio updates from provider chunks", async () => {
