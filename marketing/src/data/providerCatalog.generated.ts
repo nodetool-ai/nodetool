@@ -3035,6 +3035,24 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
     ],
     "models": [
       {
+        "id": "ByteDance-Seed/Seedream-3.0",
+        "name": "Seedream 3.0 — Text to Image",
+        "kind": "image",
+        "desc": "Seedream 3.0 — text to image via Together AI serverless.",
+        "tags": [
+          "text to image"
+        ]
+      },
+      {
+        "id": "ByteDance-Seed/Seedream-4.0",
+        "name": "Seedream 4.0 — Text to Image",
+        "kind": "image",
+        "desc": "Seedream 4.0 — text to image via Together AI serverless.",
+        "tags": [
+          "text to image"
+        ]
+      },
+      {
         "id": "black-forest-labs/FLUX.1-kontext-max",
         "name": "FLUX.1 Kontext Max — Text to Image",
         "kind": "image",
@@ -3150,24 +3168,6 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "tags": [
           "text to image",
           "image to image"
-        ]
-      },
-      {
-        "id": "ByteDance-Seed/Seedream-3.0",
-        "name": "Seedream 3.0 — Text to Image",
-        "kind": "image",
-        "desc": "Seedream 3.0 — text to image via Together AI serverless.",
-        "tags": [
-          "text to image"
-        ]
-      },
-      {
-        "id": "ByteDance-Seed/Seedream-4.0",
-        "name": "Seedream 4.0 — Text to Image",
-        "kind": "image",
-        "desc": "Seedream 4.0 — text to image via Together AI serverless.",
-        "tags": [
-          "text to image"
         ]
       },
       {

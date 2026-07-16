@@ -108,6 +108,16 @@ function cleanTag(t) {
   return prettyName(String(t)).toLowerCase();
 }
 
+/**
+ * Locale-independent string comparison (code-unit order). `String.localeCompare`
+ * tie-breaks differently across runtime locales, which would make the generated
+ * file's ordering non-deterministic and fail the CI staleness check on some
+ * runners.
+ */
+function byCodeUnit(a, b) {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
 /** Load a manifest; return [] if the package isn't checked out. */
 function loadManifest(relPath) {
   try {
@@ -148,13 +158,13 @@ function buildCatalog() {
     const models = [];
     for (const kind of KIND_ORDER) {
       const bucket = (byKind[kind] ?? []).sort((a, b) =>
-        a.id.localeCompare(b.id)
+        byCodeUnit(a.id, b.id)
       );
       models.push(...bucket.slice(0, CAP_PER_KIND[kind] ?? 20));
     }
 
     const topTags = Object.entries(tagCounts)
-      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .sort((a, b) => b[1] - a[1] || byCodeUnit(a[0], b[0]))
       .slice(0, 12)
       .map(([t]) => t);
 
