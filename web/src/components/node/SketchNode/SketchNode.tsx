@@ -513,9 +513,16 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
         return lastResult;
       }
       lastEdges = state.edges;
-      lastResult = state.edges.filter(
+      const newResult = state.edges.filter(
         (e) => e.target === props.id || e.source === props.id
       );
+      if (
+        lastResult.length === newResult.length &&
+        lastResult.every((edge, i) => edge === newResult[i])
+      ) {
+        return lastResult;
+      }
+      lastResult = newResult;
       return lastResult;
     };
   }, [props.id]);
