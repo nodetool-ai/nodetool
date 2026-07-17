@@ -30,17 +30,13 @@ import {
   colorValueToVec4,
   floatProp,
   intProp,
+  num,
   premultiplyVec4,
   runShaderNode,
   type RunShaderOptions
 } from "./lib-shader-utils.js";
 import { imageDimensions } from "./image-io.js";
 import { tagAsBrowserGpu, tagAsContentCard } from "@nodetool-ai/nodes-utils";
-
-function num(value: unknown, fallback: number): number {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
-}
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));

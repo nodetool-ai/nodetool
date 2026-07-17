@@ -21,14 +21,10 @@ import {
   colorValueToVec4,
   floatProp,
   intProp,
+  num,
   premultiplyVec4,
   runShaderNode
 } from "./lib-shader-utils.js";
-
-function num(value: unknown, fallback: number): number {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
-}
 
 /**
  * Resolve an output dimension, clamped to [1, 8192] whole pixels. Guards the
@@ -46,7 +42,7 @@ function dim(value: unknown, fallback: number): number {
  * picker emits straight alpha, so we premultiply on the boundary —
  * otherwise translucent gradient stops would brighten the RGB channels.
  */
-function vec4From(value: unknown, fallback: [number, number, number, number]): ReturnType<typeof d.vec4f> {
+function premultipliedVec4From(value: unknown, fallback: [number, number, number, number]): ReturnType<typeof d.vec4f> {
   const [r, g, b, a] = premultiplyVec4(colorValueToVec4(value, fallback));
   return d.vec4f(r, g, b, a);
 }
@@ -69,8 +65,8 @@ class LinearGradientNode extends BaseNode {
     const output = await runShaderNode(
       sourcesLinearGradientV1,
       {
-        colorA: vec4From(props.color_a, [0, 0, 0, 1]),
-        colorB: vec4From(props.color_b, [1, 1, 1, 1]),
+        colorA: premultipliedVec4From(props.color_a, [0, 0, 0, 1]),
+        colorB: premultipliedVec4From(props.color_b, [1, 1, 1, 1]),
         angle: num(props.angle, 0),
         midpoint: num(props.midpoint, 0.5)
       },
@@ -103,8 +99,8 @@ class RadialGradientNode extends BaseNode {
     const output = await runShaderNode(
       sourcesRadialGradientV1,
       {
-        colorInner: vec4From(props.color_inner, [1, 1, 1, 1]),
-        colorOuter: vec4From(props.color_outer, [0, 0, 0, 1]),
+        colorInner: premultipliedVec4From(props.color_inner, [1, 1, 1, 1]),
+        colorOuter: premultipliedVec4From(props.color_outer, [0, 0, 0, 1]),
         radius: num(props.radius, 0.5)
       },
       null,
@@ -135,8 +131,8 @@ class AngularGradientNode extends BaseNode {
     const output = await runShaderNode(
       sourcesAngularGradientV1,
       {
-        colorA: vec4From(props.color_a, [0, 0, 0, 1]),
-        colorB: vec4From(props.color_b, [1, 1, 1, 1]),
+        colorA: premultipliedVec4From(props.color_a, [0, 0, 0, 1]),
+        colorB: premultipliedVec4From(props.color_b, [1, 1, 1, 1]),
         rotation: num(props.rotation, 0)
       },
       null,
@@ -167,8 +163,8 @@ class DiamondGradientNode extends BaseNode {
     const output = await runShaderNode(
       sourcesDiamondGradientV1,
       {
-        colorInner: vec4From(props.color_inner, [1, 1, 1, 1]),
-        colorOuter: vec4From(props.color_outer, [0, 0, 0, 1]),
+        colorInner: premultipliedVec4From(props.color_inner, [1, 1, 1, 1]),
+        colorOuter: premultipliedVec4From(props.color_outer, [0, 0, 0, 1]),
         radius: num(props.radius, 0.5)
       },
       null,
@@ -199,8 +195,8 @@ class CheckerboardNode extends BaseNode {
     const output = await runShaderNode(
       sourcesCheckerboardV1,
       {
-        colorA: vec4From(props.color_a, [1, 1, 1, 1]),
-        colorB: vec4From(props.color_b, [0, 0, 0, 1]),
+        colorA: premultipliedVec4From(props.color_a, [1, 1, 1, 1]),
+        colorB: premultipliedVec4From(props.color_b, [0, 0, 0, 1]),
         // Clamp to >= 1: a 0/negative cell size divides by zero in the shader.
         cellSize: Math.max(1, Math.round(num(props.cell_size, 32)))
       },

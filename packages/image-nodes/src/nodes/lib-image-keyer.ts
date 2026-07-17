@@ -14,13 +14,9 @@ import {
   colorProp,
   colorValueToVec4,
   floatProp,
+  num,
   runShaderNode
 } from "./lib-shader-utils.js";
-
-function num(value: unknown, fallback: number): number {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
-}
 
 class ChromaKeyNode extends BaseNode {
   static readonly nodeType = "lib.image.keyer.ChromaKey";

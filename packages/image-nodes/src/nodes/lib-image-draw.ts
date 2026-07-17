@@ -1,6 +1,6 @@
 /// <reference lib="dom" />
 import { BaseNode, registerDeclaredProperty } from "@nodetool-ai/node-sdk";
-import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
+import type { NodeClass } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   NODE_AND_BROWSER_PLATFORMS,
@@ -12,8 +12,10 @@ import { sourcesSolidV1, sourcesGaussianNoiseV1 } from "@nodetool-ai/gpu/pool";
 import { pickImage } from "./lib-image-utils.js";
 import {
   colorValueToVec4,
+  num,
   premultiplyVec4,
-  runShaderNode
+  runShaderNode,
+  type Desc
 } from "./lib-shader-utils.js";
 import {
   loadImageBytes,
@@ -22,13 +24,6 @@ import {
   loadSharp,
   SHARP_UNAVAILABLE_MESSAGE
 } from "./image-io.js";
-
-// Finite-guarding numeric read (matches the `num` helper used across the
-// package): NaN / non-finite values fall back instead of propagating.
-function num(value: unknown, fallback: number): number {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
-}
 
 // Clamp a requested output dimension to [1, max]. Guards the low end, the NaN
 // case (via num) and the high end so a programmatic graph can't request an
@@ -48,16 +43,6 @@ export function escapeXmlAttr(value: string): string {
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&apos;");
 }
-
-type Desc = {
-  nodeType: string;
-  title: string;
-  description: string;
-  inlineFields: string[];
-  inputFields:  string[];
-  outputs: Record<string, string>;
-  properties: Array<{ name: string; options: PropOptions }>;
-};
 
 // Background (GPU), GaussianNoise (GPU) and RenderText (Canvas in the browser /
 // sharp on Node) all run client-side. The Mask compositor still relies on sharp
@@ -125,11 +110,18 @@ function createDrawNode(desc: Desc): NodeClass {
         const h = clampDim((this as any).height, 512, 1024);
         const mean = num((this as any).mean, 0);
         const stddev = num((this as any).stddev, 1);
-        // A fresh seed per run reproduces the old Math.random() variation.
+        // seed < 0 (the -1 default) → fresh random seed each run, reproducing
+        // the old Math.random() variation. A pinned seed ≥ 0 makes the noise
+        // reproducible across runs.
+        const requestedSeed = Math.floor(num((this as any).seed, -1));
+        const seed =
+          requestedSeed < 0
+            ? Math.floor(Math.random() * 100000)
+            : requestedSeed;
         return {
           output: await runShaderNode(
             sourcesGaussianNoiseV1,
-            { mean, stddev, seed: Math.floor(Math.random() * 100000) },
+            { mean, stddev, seed },
             null,
             { outputWidth: w, outputHeight: h },
             context
@@ -363,6 +355,17 @@ const DESCRIPTORS: readonly Desc[] = [
           title: "Height",
           min: 1,
           max: 1024
+        }
+      },
+      {
+        name: "seed",
+        options: {
+          type: "int",
+          default: -1,
+          title: "Seed",
+          description:
+            "Random seed for reproducibility (-1 for a fresh random seed each run).",
+          min: -1
         }
       }
     ]

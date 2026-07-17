@@ -886,7 +886,7 @@ export class PasteNode extends TransformImageNode {
     title: "Left",
     description: "The left coordinate.",
     min: 0,
-    max: 4096
+    max: 8192
   })
   declare left: any;
 
@@ -896,7 +896,7 @@ export class PasteNode extends TransformImageNode {
     title: "Top",
     description: "The top coordinate.",
     min: 0,
-    max: 4096
+    max: 8192
   })
   declare top: any;
 
@@ -1155,7 +1155,7 @@ export class ResizeNode extends TransformImageNode {
     title: "Width",
     description: "The target width.",
     min: 0,
-    max: 4096
+    max: 8192
   })
   declare width: any;
 
@@ -1165,7 +1165,7 @@ export class ResizeNode extends TransformImageNode {
     title: "Height",
     description: "The target height.",
     min: 0,
-    max: 4096
+    max: 8192
   })
   declare height: any;
 
@@ -1285,7 +1285,7 @@ export class CanvasResizeNode extends TransformImageNode {
     title: "Top",
     description: "Padding above the image.",
     min: 0,
-    max: 4096
+    max: 8192
   })
   declare top: any;
 
@@ -1295,7 +1295,7 @@ export class CanvasResizeNode extends TransformImageNode {
     title: "Bottom",
     description: "Padding below the image.",
     min: 0,
-    max: 4096
+    max: 8192
   })
   declare bottom: any;
 
@@ -1305,7 +1305,7 @@ export class CanvasResizeNode extends TransformImageNode {
     title: "Left",
     description: "Padding to the left of the image.",
     min: 0,
-    max: 4096
+    max: 8192
   })
   declare left: any;
 
@@ -1315,7 +1315,7 @@ export class CanvasResizeNode extends TransformImageNode {
     title: "Right",
     description: "Padding to the right of the image.",
     min: 0,
-    max: 4096
+    max: 8192
   })
   declare right: any;
 
@@ -1449,7 +1449,7 @@ export class CropNode extends TransformImageNode {
     title: "Left",
     description: "The left coordinate.",
     min: 0,
-    max: 4096
+    max: 8192
   })
   declare left: any;
 
@@ -1459,7 +1459,7 @@ export class CropNode extends TransformImageNode {
     title: "Top",
     description: "The top coordinate.",
     min: 0,
-    max: 4096
+    max: 8192
   })
   declare top: any;
 
@@ -1469,7 +1469,7 @@ export class CropNode extends TransformImageNode {
     title: "Right",
     description: "The right coordinate.",
     min: 0,
-    max: 4096
+    max: 8192
   })
   declare right: any;
 
@@ -1479,7 +1479,7 @@ export class CropNode extends TransformImageNode {
     title: "Bottom",
     description: "The bottom coordinate.",
     min: 0,
-    max: 4096
+    max: 8192
   })
   declare bottom: any;
 
@@ -1545,7 +1545,7 @@ export class FitNode extends TransformImageNode {
     title: "Width",
     description: "Width to fit to.",
     min: 1,
-    max: 4096
+    max: 8192
   })
   declare width: any;
 
@@ -1555,7 +1555,7 @@ export class FitNode extends TransformImageNode {
     title: "Height",
     description: "Height to fit to.",
     min: 1,
-    max: 4096
+    max: 8192
   })
   declare height: any;
 
