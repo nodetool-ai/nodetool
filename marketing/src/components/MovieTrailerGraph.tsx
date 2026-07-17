@@ -160,7 +160,7 @@ export default function MovieTrailerGraph() {
 
             <div data-node="keyframe" style={{ position: "absolute", left: 1740, top: 130 }}>
               <FlowNode title="Text To Image" icon={<ImageIcon size={16} />} width={320} style={{ position: "relative" }}>
-                <NodePreview src="/trailer-shot-1.webp" ratio="16 / 9" />
+                <NodePreview src="/trailer-shot-1-800.webp" ratio="16 / 9" />
                 <HandleRow side="in" color="string" label="Shot" anchorId="keyframe.shot" />
                 <HandleRow side="out" color="image" anchorId="keyframe.out" />
               </FlowNode>

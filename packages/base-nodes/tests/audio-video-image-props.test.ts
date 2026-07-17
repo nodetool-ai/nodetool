@@ -206,14 +206,19 @@ describe("FpsNode — uses ffprobe for fps extraction", () => {
     expect(typeof result.output).toBe("number");
   });
 
-  it("returns 0 when ffprobe not available", async () => {
+  it("returns 0 for undecodable data, or throws when ffprobe is missing", async () => {
     const node = new FpsNode();
     node.assign({
       video: videoRef([1, 2, 3])
     });
-    // ffprobe will fail for non-video data, returning 0
-    const result = await node.process();
-    expect(typeof result.output).toBe("number");
+    // A genuine probe failure (garbage bytes) degrades to 0; a missing
+    // ffprobe binary must surface as an actionable error instead.
+    try {
+      const result = await node.process();
+      expect(result.output).toBe(0);
+    } catch (error) {
+      expect((error as Error).message).toContain("ffprobe is not installed");
+    }
   });
 });
 

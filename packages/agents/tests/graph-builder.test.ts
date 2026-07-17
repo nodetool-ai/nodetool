@@ -125,6 +125,89 @@ describe("GraphBuilder", () => {
     expect(ids.indexOf("source")).toBeLessThan(ids.indexOf("sink"));
   });
 
+  it("removes a node and its attached edges", () => {
+    const builder = new GraphBuilder();
+    builder.addNode("a", "test.Node");
+    builder.addNode("b", "test.Node");
+    builder.addNode("c", "test.Node");
+    builder.addEdge("a", "out", "b", "in");
+    builder.addEdge("b", "out", "c", "in");
+
+    expect(builder.removeNode("b")).toEqual([]);
+    expect(builder.nodeCount).toBe(2);
+    expect(builder.edgeCount).toBe(0);
+  });
+
+  it("errors when removing a missing node or edge", () => {
+    const builder = new GraphBuilder();
+    builder.addNode("a", "test.Node");
+    expect(builder.removeNode("nope")[0]).toContain("does not exist");
+    expect(builder.removeEdge("a", "out", "nope", "in")[0]).toContain(
+      "does not exist"
+    );
+  });
+
+  it("removes a specific edge", () => {
+    const builder = new GraphBuilder();
+    builder.addNode("a", "test.Node");
+    builder.addNode("b", "test.Node");
+    builder.addEdge("a", "out", "b", "in");
+    builder.addEdge("a", "out2", "b", "in2");
+
+    expect(builder.removeEdge("a", "out", "b", "in")).toEqual([]);
+    expect(builder.edgeCount).toBe(1);
+  });
+
+  it("allows re-adding an edge that previously closed a cycle after removal", () => {
+    const builder = new GraphBuilder();
+    builder.addNode("a", "test.Node");
+    builder.addNode("b", "test.Node");
+    builder.addEdge("a", "out", "b", "in");
+    expect(builder.addEdge("b", "out", "a", "in")).not.toEqual([]);
+    builder.removeEdge("a", "out", "b", "in");
+    expect(builder.addEdge("b", "out", "a", "in")).toEqual([]);
+  });
+
+  it("refuses removal after build", () => {
+    const builder = new GraphBuilder();
+    builder.addNode("a", "test.Node");
+    builder.build();
+    expect(builder.removeNode("a")[0]).toContain("finalized");
+    expect(builder.removeEdge("a", "o", "b", "i")[0]).toContain("finalized");
+  });
+
+  it("snapshots the current graph without finalizing", () => {
+    const builder = new GraphBuilder();
+    builder.addNode("a", "test.Node");
+    builder.addNode("b", "test.Node");
+    builder.addEdge("a", "out", "b", "in");
+
+    const snap = builder.snapshot();
+    expect(snap.nodes).toHaveLength(2);
+    expect(snap.edges).toHaveLength(1);
+
+    // Snapshot is a copy — mutating it does not affect the builder.
+    snap.nodes.pop();
+    snap.edges.pop();
+    expect(builder.nodeCount).toBe(2);
+    expect(builder.edgeCount).toBe(1);
+    // And the builder is still mutable afterwards.
+    expect(builder.addNode("c", "test.Node")).toEqual([]);
+  });
+
+  it("describes the current graph state", () => {
+    const empty = new GraphBuilder();
+    expect(empty.describe()).toContain("empty graph");
+
+    const builder = new GraphBuilder();
+    builder.addNode("a", "test.NodeA");
+    builder.addNode("b", "test.NodeB");
+    builder.addEdge("a", "out", "b", "in");
+    const text = builder.describe();
+    expect(text).toContain("node a (test.NodeA)");
+    expect(text).toContain("edge a.out → b.in");
+  });
+
   it("resets for reuse", () => {
     const builder = new GraphBuilder();
     builder.addNode("a", "test.Node");

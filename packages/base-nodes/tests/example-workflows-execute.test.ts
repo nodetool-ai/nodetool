@@ -192,6 +192,7 @@ function classifyError(message: string | undefined): string {
   if (!message) return "none";
   const m = message.toLowerCase();
   if (m.includes("graph validation failed")) return "graph-validation";
+  if (m.includes("is not installed or not on path")) return "missing-binary";
   if (m.includes("select a model")) return "missing-model";
   if (m.includes("requires a") && m.includes("model")) return "missing-model";
   if (m.includes("is not configured") || m.includes("must be configured"))

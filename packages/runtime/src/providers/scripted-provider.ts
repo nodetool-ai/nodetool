@@ -247,6 +247,31 @@ export function autoScript(opts: {
   return (messages, tools) => {
     const toolNames = new Set(tools.map((t) => t.name));
 
+    // Generator tool loops (ListGenerator's `add_item`, DataGenerator's
+    // `add_row`): the node calls the provider repeatedly, feeding tool results
+    // back, and gives up if the first call emits no tool calls. Emit a burst of
+    // generator calls on the first invocation, then stop once our own tool
+    // results appear in history so the node's loop terminates.
+    for (const genTool of ["add_item", "add_row"] as const) {
+      if (!toolNames.has(genTool)) continue;
+      const alreadyEmitted = messages.some(
+        (m) =>
+          m.role === "assistant" &&
+          (m.toolCalls ?? []).some((tc) => tc.name === genTool)
+      );
+      if (alreadyEmitted) {
+        return [{ type: "chunk", content: "Done.", done: true }];
+      }
+      return Array.from({ length: 3 }, (_unused, i) => ({
+        type: "tool_call" as const,
+        name: genTool,
+        args:
+          genTool === "add_item"
+            ? { item: `fake item ${i + 1}` }
+            : { row: { id: i + 1, value: `fake row ${i + 1}` } }
+      }));
+    }
+
     // Incremental planner: add_task + finish_plan
     if (
       toolNames.has("add_task") &&

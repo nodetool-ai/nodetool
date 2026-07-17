@@ -13,7 +13,6 @@ import type {
   OutputCorrelation,
   Platform
 } from "@nodetool-ai/protocol";
-import { RAW_RGBA_MIME, isRawRgbaImage } from "@nodetool-ai/protocol";
 import type { ImageRef } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 // Import from browser-safe subpaths (not the runtime barrel, which drags in the
@@ -447,7 +446,8 @@ export class SaveImageFileImageNode extends BaseNode {
   static readonly description =
     "Write an image to disk.\n    image, output, save, file";
   static readonly metadataOutputTypes = {
-    output: "image"
+    output: "image",
+    path: "str"
   };
   static readonly inlineFields = ["filename"];
   static readonly inputFields = ["image"];
@@ -516,8 +516,18 @@ export class SaveImageFileImageNode extends BaseNode {
       }
     }
 
-    await fs.writeFile(p, await imageBytesAsync(this.image));
-    return { output: p };
+    const bytes = await imageBytesAsync(this.image);
+    await fs.writeFile(p, bytes);
+    const meta = await metadataFor(bytes);
+    return {
+      output: imageRef(bytes, {
+        uri: `file://${p}`,
+        mimeType: inferImageMime(p, bytes),
+        width: meta.width,
+        height: meta.height
+      }),
+      path: p
+    };
   }
 }
 
@@ -876,7 +886,7 @@ export class PasteNode extends TransformImageNode {
     title: "Left",
     description: "The left coordinate.",
     min: 0,
-    max: 4096
+    max: 8192
   })
   declare left: any;
 
@@ -886,7 +896,7 @@ export class PasteNode extends TransformImageNode {
     title: "Top",
     description: "The top coordinate.",
     min: 0,
-    max: 4096
+    max: 8192
   })
   declare top: any;
 
@@ -1145,7 +1155,7 @@ export class ResizeNode extends TransformImageNode {
     title: "Width",
     description: "The target width.",
     min: 0,
-    max: 4096
+    max: 8192
   })
   declare width: any;
 
@@ -1155,7 +1165,7 @@ export class ResizeNode extends TransformImageNode {
     title: "Height",
     description: "The target height.",
     min: 0,
-    max: 4096
+    max: 8192
   })
   declare height: any;
 
@@ -1275,7 +1285,7 @@ export class CanvasResizeNode extends TransformImageNode {
     title: "Top",
     description: "Padding above the image.",
     min: 0,
-    max: 4096
+    max: 8192
   })
   declare top: any;
 
@@ -1285,7 +1295,7 @@ export class CanvasResizeNode extends TransformImageNode {
     title: "Bottom",
     description: "Padding below the image.",
     min: 0,
-    max: 4096
+    max: 8192
   })
   declare bottom: any;
 
@@ -1295,7 +1305,7 @@ export class CanvasResizeNode extends TransformImageNode {
     title: "Left",
     description: "Padding to the left of the image.",
     min: 0,
-    max: 4096
+    max: 8192
   })
   declare left: any;
 
@@ -1305,7 +1315,7 @@ export class CanvasResizeNode extends TransformImageNode {
     title: "Right",
     description: "Padding to the right of the image.",
     min: 0,
-    max: 4096
+    max: 8192
   })
   declare right: any;
 
@@ -1347,26 +1357,60 @@ export class CanvasResizeNode extends TransformImageNode {
       offsetY = top;
     }
 
-    // Pad placing the source at (offsetX, offsetY) in the larger canvas. The pad
-    // shader works in normalized-UV units relative to the source; output dims
-    // are derived from those (we also pass the absolute target as the host size).
+    // When the requested canvas is smaller than the source on an axis, padding
+    // alone can't shrink it — crop the source centrally to the canvas on that
+    // axis first (converting px → the crop shader's normalized-UV params the
+    // same way CropNode does), so fixed/scale modes always yield exactly
+    // canvasW × canvasH instead of silently returning the source size.
+    let source: unknown = image;
+    let baseW = srcW;
+    let baseH = srcH;
+    const cropW = Math.min(srcW, canvasW);
+    const cropH = Math.min(srcH, canvasH);
+    if (cropW < srcW || cropH < srcH) {
+      const cropX = Math.floor((srcW - cropW) / 2);
+      const cropY = Math.floor((srcH - cropH) / 2);
+      source = await runShaderNode(
+        transformCropV1,
+        {
+          originX: cropX / srcW,
+          originY: cropY / srcH,
+          width: cropW / srcW,
+          height: cropH / srcH
+        },
+        image,
+        { outputWidth: cropW, outputHeight: cropH },
+        context
+      );
+      baseW = cropW;
+      baseH = cropH;
+      // Re-centre the placement against the cropped source so the pads below
+      // stay non-negative on every axis.
+      offsetX = Math.floor((canvasW - baseW) / 2);
+      offsetY = Math.floor((canvasH - baseH) / 2);
+    }
+
+    // Pad placing the (possibly cropped) source at (offsetX, offsetY) in the
+    // larger canvas. The pad shader works in normalized-UV units relative to the
+    // source; output dims are derived from those (we also pass the absolute
+    // target as the host size).
     const leftPad = Math.max(0, offsetX);
     const topPad = Math.max(0, offsetY);
-    const rightPad = Math.max(0, canvasW - srcW - offsetX);
-    const bottomPad = Math.max(0, canvasH - srcH - offsetY);
+    const rightPad = Math.max(0, canvasW - baseW - offsetX);
+    const bottomPad = Math.max(0, canvasH - baseH - offsetY);
     const output = await runShaderNode(
       transformPadV1,
       {
-        left: leftPad / srcW,
-        top: topPad / srcH,
-        right: rightPad / srcW,
-        bottom: bottomPad / srcH,
+        left: leftPad / baseW,
+        top: topPad / baseH,
+        right: rightPad / baseW,
+        bottom: bottomPad / baseH,
         color: d.vec4f(0, 0, 0, 0)
       },
-      image,
+      source,
       {
-        outputWidth: srcW + leftPad + rightPad,
-        outputHeight: srcH + topPad + bottomPad
+        outputWidth: baseW + leftPad + rightPad,
+        outputHeight: baseH + topPad + bottomPad
       },
       context
     );
@@ -1405,7 +1449,7 @@ export class CropNode extends TransformImageNode {
     title: "Left",
     description: "The left coordinate.",
     min: 0,
-    max: 4096
+    max: 8192
   })
   declare left: any;
 
@@ -1415,7 +1459,7 @@ export class CropNode extends TransformImageNode {
     title: "Top",
     description: "The top coordinate.",
     min: 0,
-    max: 4096
+    max: 8192
   })
   declare top: any;
 
@@ -1425,7 +1469,7 @@ export class CropNode extends TransformImageNode {
     title: "Right",
     description: "The right coordinate.",
     min: 0,
-    max: 4096
+    max: 8192
   })
   declare right: any;
 
@@ -1435,7 +1479,7 @@ export class CropNode extends TransformImageNode {
     title: "Bottom",
     description: "The bottom coordinate.",
     min: 0,
-    max: 4096
+    max: 8192
   })
   declare bottom: any;
 
@@ -1501,7 +1545,7 @@ export class FitNode extends TransformImageNode {
     title: "Width",
     description: "Width to fit to.",
     min: 1,
-    max: 4096
+    max: 8192
   })
   declare width: any;
 
@@ -1511,7 +1555,7 @@ export class FitNode extends TransformImageNode {
     title: "Height",
     description: "Height to fit to.",
     min: 1,
-    max: 4096
+    max: 8192
   })
   declare height: any;
 
@@ -1782,11 +1826,13 @@ export class ImageToImageNode extends BaseNode {
       }
     })) as Uint8Array;
     const meta = await metadataFor(output);
-    const sourceUri = images[0]?.uri ?? "";
+    // The output is freshly generated content — do not carry the source image's
+    // uri onto it (a stale uri shadows `data` wherever a uri is preferred, so
+    // the preview would render the input, not the result). Infer mime from the
+    // output bytes alone.
     return {
       output: imageRef(output, {
-        uri: sourceUri,
-        mimeType: inferImageMime(sourceUri, output),
+        mimeType: inferImageMime(undefined, output),
         width: meta.width,
         height: meta.height
       })
@@ -1860,7 +1906,7 @@ export class RotateAndFlipNode extends TransformImageNode {
     }
 
     let current: unknown = image;
-    let curW = srcW;
+    const curW = srcW;
     const curH = srcH;
 
     // Mirror first (output is same size as source).
@@ -1911,7 +1957,6 @@ export class RotateAndFlipNode extends TransformImageNode {
           { outputWidth: outW, outputHeight: outH },
           context
         );
-        curW = outW;
       }
     }
 

@@ -23,7 +23,48 @@ Shipped from §0 on 2026-07-02: 79 redirect stubs under `docs/redirects/` (§0.5
 three pre-existing stubs, whose trailing-slash `redirect_to` 404s on GitHub Pages); `providers.md`
 and `installation.md` rewrites (§0.6); `comparisons.md` cross-links to `/vs/*` (§0.6); `/agents`
 and `/cloud` retitles (§0.7); `llms.txt` on nodetool.ai and JSON-LD on `/agents`, `/creatives`,
-`/marketing` (§0.8).
+`/marketing` (§0.8). The Weavy → Figma Weave capture plan (§0.9) shipped 2026-07-16.
+
+## 0.9 Weavy → Figma Weave capture plan (2026-07-16)
+
+Figma acquired Weavy in October 2025 and renamed it **Figma Weave** (weave.figma.com, separate
+billing and its own AI credits). The integration is deepening — Weave Workflows on Figma Community
+(April 2026), Weave tools inside Figma Design (Config 2026) — so search demand is splitting into
+two query sets, and the second one is growing:
+
+1. **"weavy alternative"** — the established term. Every ranking page now leads with the rebrand
+   ([Wireflow's "Top 8 Weavy Alternatives (Weavy Is Now Figma Weave)"](https://www.wireflow.ai/blog/top-8-ai-weavy-alternatives),
+   [Chase Jarvis's "Best Weavy Alternatives for Creative Pros"](https://chasejarvis.com/blog/the-best-weavy-alternatives-for-free-and-paid/),
+   [designtools.fyi](https://designtools.fyi/tools/figma-weave)). A `/vs/weavy` page that never
+   mentions Figma reads stale to searchers and to the AI assistants in §0.8.
+2. **"figma weave alternative"** — the new term. Wireflow, Astorie, and Krea already run dedicated
+   pages for it; NodeTool had zero surface.
+
+What shipped 2026-07-16:
+
+- **`/vs/weavy` and `/alternatives/weavy` refreshed** — title, hero, bullets, and a new FAQ row
+  ("What happened to Weavy?") acknowledge the acquisition while keeping the BYOK/open-source
+  argument. The slug and query target stay "weavy".
+- **`/vs/figma-weave` and `/alternatives/figma-weave` added** (`competitorEntries.ts`, `isNew`) —
+  distinct copy angle from the weavy pages: ecosystem lock-in and post-acquisition ownership
+  ("build on a canvas nobody can acquire") rather than a re-tread of the credits argument, with an
+  honest "when is Figma Weave the better pick?" FAQ and a free-tier concession row. Both pages are
+  one product, so watch GSC for cannibalization between the weavy and figma-weave pages; if one set
+  stops earning impressions, fold it into the other with a redirect. Keeping both mirrors how
+  Wireflow serves the two query sets today.
+- **FAQ page** `/faq/open-source-figma-weave-alternative` — targets the question form AI assistants
+  ask (§0.8); JSON-LD comes with the FAQ template.
+- **Metadata**: "Figma Weave alternative" keyword on `/` and `/creatives`; homepage JSON-LD and
+  the homepage comparison card renamed; `docs/comparisons.md` updated; `llms.txt` regenerated.
+
+Distribution follow-ups (the §6 play, with named targets — these pages rank today and take
+listings): request inclusion in Wireflow's "Top 8 Weavy Alternatives", Chase Jarvis's roundup, and
+designtools.fyi's Figma Weave page. The migration audience — Weavy users re-evaluating after the
+acquisition — is the highest-intent segment this site can address, and "your workflows are files
+you own" is the argument acquisitions make for us.
+
+Watch queries (GSC, weekly, alongside the §0.2 set): "weavy alternative", "figma weave
+alternative", "figma weave pricing", "figma weave vs", "open source figma weave".
 
 ## 0. What Search Console actually says (audit 2026-07-02)
 
@@ -130,8 +171,8 @@ to a RAG chatbot; n8n where orchestration (retries, branches, schedules) is the 
 None of these natively render image, video, or audio — they're text/LLM-first, which is NodeTool's
 opening.
 
-**Node-based creative canvases** — ComfyUI (already covered at `/vs/comfyui`), Weavy (already
-covered at `/vs/weavy`, note: acquired by Figma per
+**Node-based creative canvases** — ComfyUI (already covered at `/vs/comfyui`), Weavy (covered at
+`/vs/weavy` and, post-rebrand, `/vs/figma-weave` — see §0.9; acquisition first flagged in
 [Chase Jarvis's review](https://chasejarvis.com/blog/what-the-heck-is-weavy-the-100-honest-review-after-the-figma-acqusition/)),
 plus Flora, Freepik Spaces, Krea, Layer AI, Griptape Nodes, and Reflet.ai — all covered in a single
 ["2026: The Year of the Node-Based Editor"](https://medium.com/@fadimantium/2026-the-year-of-the-node-based-editor-941f0f15d467)

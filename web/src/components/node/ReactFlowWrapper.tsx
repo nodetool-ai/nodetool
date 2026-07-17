@@ -304,40 +304,53 @@ const ReactFlowWrapper = ({
   }, [workflowId]);
 
   const sortedKeysCache = useRef(new WeakMap<object, string>());
+  const perNodeSigCache = useRef(new WeakMap<NodeData, string>());
+  const prevFingerprintRef = useRef("");
 
   // Structural fingerprint: only changes when layout-relevant fields change
   // (height, collapsed, exposed inputs, dynamic props). Position-only drag
   // frames produce the same string, so the effect below stays dormant.
+  // Uses a per-node WeakMap cache keyed on `data` identity to avoid
+  // recomputing string fragments during position-only drags (60fps).
   const nodeLayoutFingerprint = useMemo(() => {
-    const cache = sortedKeysCache.current;
+    const keysCache = sortedKeysCache.current;
+    const sigCache = perNodeSigCache.current;
     const getSortedKeys = (obj: object | null | undefined): string => {
       if (!obj) return "";
-      const cached = cache.get(obj);
+      const cached = keysCache.get(obj);
       if (cached !== undefined) return cached;
       const result = Object.keys(obj).sort().join(",");
-      cache.set(obj, result);
+      keysCache.set(obj, result);
       return result;
     };
 
+    let changed = nodes.length !== prevFingerprintRef.current.split("|").length;
     const parts: string[] = [];
     for (const n of nodes) {
-      const sh = n.style?.height;
-      const stylePart =
-        typeof sh === "number"
-          ? String(sh)
-          : typeof sh === "string"
-            ? sh.trim()
-            : "";
-      const exposedPart = [
-        ...(n.data.exposedInputs ?? []),
-        ...(n.data.exposedInputsLabeled ?? []),
-        ...(n.data.exposedInputsHidden ?? [])
-      ].join(",");
-      parts.push(
-        `${n.id}:${typeof n.height === "number" ? n.height : ""}:${stylePart}:${Boolean(n.data.collapsed)}:${exposedPart}:${getSortedKeys(n.data.dynamic_properties)}:${getSortedKeys(n.data.dynamic_inputs)}:${getSortedKeys(n.data.dynamic_outputs)}`
-      );
+      let sig = sigCache.get(n.data);
+      if (sig === undefined) {
+        changed = true;
+        const sh = n.style?.height;
+        const stylePart =
+          typeof sh === "number"
+            ? String(sh)
+            : typeof sh === "string"
+              ? sh.trim()
+              : "";
+        const exposedPart = [
+          ...(n.data.exposedInputs ?? []),
+          ...(n.data.exposedInputsLabeled ?? []),
+          ...(n.data.exposedInputsHidden ?? [])
+        ].join(",");
+        sig = `${n.id}:${typeof n.height === "number" ? n.height : ""}:${stylePart}:${Boolean(n.data.collapsed)}:${exposedPart}:${getSortedKeys(n.data.dynamic_properties)}:${getSortedKeys(n.data.dynamic_inputs)}:${getSortedKeys(n.data.dynamic_outputs)}`;
+        sigCache.set(n.data, sig);
+      }
+      parts.push(sig);
     }
-    return parts.join("|");
+    if (!changed) return prevFingerprintRef.current;
+    const result = parts.join("|");
+    prevFingerprintRef.current = result;
+    return result;
   }, [nodes]);
 
   useEffect(() => {

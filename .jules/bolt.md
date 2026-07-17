@@ -61,3 +61,6 @@
 ## 2026-05-25 - O(N*M) lookup optimization in node and edge actions
 **Learning:** Found an $O(N \times M)$ performance bottleneck in graph actions (duplication and copy/paste) where `selectedNodeIds.includes(edge.source)` and `selectedNodeIds.includes(edge.target)` were called repeatedly inside `edges.filter(...)` and downstream loops. For large graphs with thousands of nodes and edges, this caused visible UI stalling.
 **Action:** Replaced `.includes()` with a pre-initialized `Set` of the target node IDs. Using `Set.has()` provides $O(1)$ lookups, reducing the algorithm's complexity from $O(N \times M)$ to $O(N + M)$ and noticeably improving the speed of these graph operations.
+## 2026-07-16 - O(N*E) Graph inputNodes and outputNodes Bottleneck
+**Learning:** Found an O(N*E) bottleneck in \`packages/kernel/src/graph.ts\` where \`inputNodes\` and \`outputNodes\` were filtering all nodes and calling \`findDataEdges\` or \`findOutgoingEdges\` internally, leading to nested loops and excessive edge iteration. For large graphs, this caused noticeable delays.
+**Action:** Replaced the iterative approach inside \`.filter()\` with a single pass over \`this.edges\` to pre-compute a \`Set\` of node IDs that have incoming or outgoing data edges, dropping the complexity to O(N + E).

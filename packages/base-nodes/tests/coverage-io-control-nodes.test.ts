@@ -151,32 +151,37 @@ describe("control nodes — full coverage", () => {
     expect(d).toEqual({ condition: false, value: [] });
   });
 
-  it("IfNode process with condition=true passes value to if_true", async () => {
+  it("IfNode process with condition=true passes value to if_true only", async () => {
     const node = new IfNode();
     node.assign({ condition: true, value: "hello" });
     const result = await node.process();
-    expect(result).toEqual({ if_true: "hello", if_false: null });
+    // Only the taken branch is emitted; the untaken key is absent entirely.
+    expect(result).toEqual({ if_true: "hello" });
+    expect(result).not.toHaveProperty("if_false");
   });
 
-  it("IfNode process with condition=false passes value to if_false", async () => {
+  it("IfNode process with condition=false passes value to if_false only", async () => {
     const node = new IfNode();
     node.assign({ condition: false, value: "hello" });
     const result = await node.process();
-    expect(result).toEqual({ if_true: null, if_false: "hello" });
+    expect(result).toEqual({ if_false: "hello" });
+    expect(result).not.toHaveProperty("if_true");
   });
 
-  it("IfNode process with truthy non-boolean condition routes to if_true", async () => {
+  it("IfNode process with truthy non-boolean condition routes to if_true only", async () => {
     const node = new IfNode();
     node.assign({ condition: 1, value: 42 });
     const result = await node.process();
-    expect(result).toEqual({ if_true: 42, if_false: null });
+    expect(result).toEqual({ if_true: 42 });
+    expect(result).not.toHaveProperty("if_false");
   });
 
-  it("IfNode process with falsy non-boolean condition routes to if_false", async () => {
+  it("IfNode process with falsy non-boolean condition routes to if_false only", async () => {
     const node = new IfNode();
     node.assign({ condition: 0, value: 42 });
     const result = await node.process();
-    expect(result).toEqual({ if_true: null, if_false: 42 });
+    expect(result).toEqual({ if_false: 42 });
+    expect(result).not.toHaveProperty("if_true");
   });
 });
 

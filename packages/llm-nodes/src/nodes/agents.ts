@@ -2,61 +2,89 @@ import { createLogger } from "@nodetool-ai/config";
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { ImageRef, AudioRef } from "@nodetool-ai/node-sdk";
 import type {
-  BaseProvider,
   Message,
-  MessageAudioContent,
   MessageContent,
-  MessageImageContent,
   ProcessingContext,
-  ProviderStreamItem,
-  ProviderTool,
-  ToolCall
+  ProviderTool
 } from "@nodetool-ai/runtime";
-import { expandAssetReferences } from "@nodetool-ai/runtime";
-
-// Re-exported so existing consumers of `@nodetool-ai/llm-nodes` keep finding
-// the symbol; the canonical home is `@nodetool-ai/runtime`'s
-// `prompt-asset-refs` module, alongside the shared `findAssetRefs` parser.
-export { expandAssetReferences };
 import type {
   Chunk,
   LanguageModel,
   OutputCorrelation,
   ProcessingMessage
 } from "@nodetool-ai/protocol";
-import { Agent, Tool as AgentTool } from "@nodetool-ai/agents";
-import {
-  hydrateBuiltinAgentTool,
-  hydrateBuiltinAgentTools
-} from "./agent-tool-hydration.js";
+import { Agent } from "@nodetool-ai/agents";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 
-type MessagePart = { type?: string; text?: string };
-type ThreadLike = { id: string; title: string; messages: Message[] };
-type LanguageModelLike = { provider?: string; id?: string; name?: string };
-export type ToolLike = {
-  name: string;
-  description?: string;
-  inputSchema?: Record<string, unknown>;
-  process?: (
-    context: ProcessingContext,
-    params: Record<string, unknown>
-  ) => Promise<unknown>;
-  toProviderTool?: () => {
-    name: string;
-    description?: string;
-    inputSchema?: Record<string, unknown>;
-  };
-};
+import type { ToolLike } from "./agent-utils.js";
+import {
+  asText,
+  makeThreadId,
+  getCategories,
+  getModelConfig,
+  generateStructured,
+  parseCategory,
+  normalizeMessage,
+  buildUserMessage,
+  toRefArray,
+  uniqueToolName,
+  normalizeTools,
+  isChunkItem,
+  isToolCallItem,
+  classifyProviderStream,
+  toProviderTools,
+  serializeToolResult,
+  toolCallChunk,
+  streamProviderMessages,
+  getStructuredOutputSchema,
+  hasContentType
+} from "./agent-utils.js";
+import {
+  seedFallbackThread,
+  loadThreadMessages,
+  saveThreadMessage
+} from "./agent-threads.js";
+import {
+  RedactedThinkingStreamSplitter,
+  extractThinkTags,
+  yieldSplitThinkChunks
+} from "./agent-thinking.js";
+import { buildControlTools } from "./agent-control-tools.js";
+import { ToolLikeAdapter } from "./agent-loop.js";
+import {
+  SUMMARIZER_RECOMMENDED_MODELS,
+  ENHANCE_PROMPT_RECOMMENDED_MODELS,
+  EXTRACTOR_RECOMMENDED_MODELS,
+  CLASSIFIER_RECOMMENDED_MODELS,
+  AGENT_RECOMMENDED_MODELS
+} from "./agent-recommended-models.js";
 
-const THREAD_STORE = new Map<string, ThreadLike>();
+// Re-exports so existing consumers of `@nodetool-ai/llm-nodes` (and the
+// `@nodetool-ai/llm-nodes/agents` subpath) keep finding every symbol this
+// module exported before the split into flat sibling modules.
+//
+// `expandAssetReferences`'s canonical home is `@nodetool-ai/runtime`'s
+// `prompt-asset-refs` module, alongside the shared `findAssetRefs` parser.
+export { expandAssetReferences } from "@nodetool-ai/runtime";
+export type { ToolLike };
+export {
+  streamProviderMessages,
+  isChunkItem,
+  isToolCallItem,
+  toProviderTools,
+  serializeToolResult
+};
+export { runAgentLoop } from "./agent-loop.js";
+export type { AgentLoopOptions, AgentLoopResult } from "./agent-loop.js";
+
 const log = createLogger("nodetool.base-nodes.agents");
+
 const DEFAULT_SYSTEM_PROMPT = "You are a friendly assistant";
 const AGENT_DEFAULT_MAX_TOKENS = 16_384;
 const EXTRACTOR_SYSTEM_PROMPT = [
   "You are a precise structured data extractor.",
-  "Return exactly one JSON object and no additional prose.",
-  "Use only information present in the input."
+  "Call the extraction tool exactly once with the extracted fields.",
+  "Use only information present in the input; do not invent facts."
 ].join(" ");
 const CLASSIFIER_SYSTEM_PROMPT = [
   "You are a precise classifier.",
@@ -86,1212 +114,6 @@ const ENHANCE_PROMPT_GUIDANCE: Record<string, string> = {
   code: "Optimize for a coding model: specify the language, the precise task, inputs and outputs, edge cases, and any libraries or constraints to use."
 };
 const ENHANCE_PROMPT_MAX_TOKENS = 1024;
-function asText(value: unknown): string {
-  if (typeof value === "string") return value;
-  if (typeof value === "number" || typeof value === "boolean")
-    return String(value);
-  if (!value) return "";
-  if (Array.isArray(value)) return value.map(asText).join(" ");
-  if (typeof value === "object") {
-    const msg = value as { content?: string | MessagePart[] };
-    if (typeof msg.content === "string") return msg.content;
-    if (Array.isArray(msg.content)) {
-      return msg.content
-        .map((part) => (part && part.type === "text" ? (part.text ?? "") : ""))
-        .join(" ")
-        .trim();
-    }
-    return JSON.stringify(value);
-  }
-  return "";
-}
-
-function summarize(text: string, maxSentences: number): string {
-  const parts = text
-    .split(/(?<=[.!?])\s+/)
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
-  if (parts.length === 0) return "";
-  return parts.slice(0, Math.max(1, maxSentences)).join(" ");
-}
-
-function tokenize(text: string): string[] {
-  return text
-    .toLowerCase()
-    .split(/[^a-z0-9]+/)
-    .map((t) => t.trim())
-    .filter((t) => t.length > 0);
-}
-
-function extractJson(text: string): Record<string, unknown> | null {
-  try {
-    const parsed = JSON.parse(text);
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
-      ? (parsed as Record<string, unknown>)
-      : null;
-  } catch {
-    const start = text.indexOf("{");
-    const end = text.lastIndexOf("}");
-    if (start >= 0 && end > start) {
-      try {
-        const parsed = JSON.parse(text.slice(start, end + 1));
-        return parsed && typeof parsed === "object" && !Array.isArray(parsed)
-          ? (parsed as Record<string, unknown>)
-          : null;
-      } catch {
-        return null;
-      }
-    }
-    return null;
-  }
-}
-
-function makeThreadId(): string {
-  return `thread_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-}
-
-function getCategories(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  return value.map((v) => String(v)).filter((v) => v.trim().length > 0);
-}
-
-function getModelConfig(props: Record<string, unknown>): {
-  providerId: string;
-  modelId: string;
-} {
-  const model = ((props.model ?? {}) as LanguageModelLike) ?? {};
-  return {
-    providerId: typeof model.provider === "string" ? model.provider : "",
-    modelId: typeof model.id === "string" ? model.id : ""
-  };
-}
-
-function hasProviderSupport(
-  context: ProcessingContext | undefined,
-  providerId: string,
-  modelId: string
-): context is ProcessingContext & {
-  getProvider(providerId: string): Promise<BaseProvider>;
-} {
-  return (
-    !!context &&
-    typeof context.getProvider === "function" &&
-    !!providerId &&
-    !!modelId
-  );
-}
-
-async function generateProviderMessage(
-  provider: BaseProvider,
-  args: {
-    messages: Message[];
-    model: string;
-    maxTokens?: number;
-  }
-): Promise<string> {
-  const call =
-    typeof provider.generateMessageTraced === "function"
-      ? provider.generateMessageTraced.bind(provider)
-      : provider.generateMessage.bind(provider);
-  const result = await call(args);
-  return messageContentText(result.content);
-}
-
-/**
- * Call a provider with a result tool to get structured output.
- * The model is forced to call the tool via toolChoice, and the
- * parsed args are returned directly.
- */
-async function generateStructured(
-  provider: BaseProvider,
-  args: {
-    messages: Message[];
-    model: string;
-    maxTokens?: number;
-    toolName: string;
-    toolDescription: string;
-    schema: Record<string, unknown>;
-  }
-): Promise<Record<string, unknown> | null> {
-  const call =
-    typeof provider.generateMessageTraced === "function"
-      ? provider.generateMessageTraced.bind(provider)
-      : provider.generateMessage.bind(provider);
-  const result = await call({
-    messages: args.messages,
-    model: args.model,
-    maxTokens: args.maxTokens,
-    tools: [
-      {
-        name: args.toolName,
-        description: args.toolDescription,
-        inputSchema: args.schema
-      }
-    ],
-    toolChoice: args.toolName
-  });
-  const tc = result.toolCalls?.[0];
-  if (tc && tc.name === args.toolName) {
-    return tc.args as Record<string, unknown>;
-  }
-  // Fallback: try to parse JSON from text content
-  return extractJson(messageContentText(result.content));
-}
-
-function normalizeProviderStreamItem(
-  item: ProviderStreamItem
-): ProviderStreamItem {
-  if (
-    !item ||
-    typeof item !== "object" ||
-    !("type" in item) ||
-    (item as Chunk).type !== "chunk"
-  ) {
-    return item;
-  }
-
-  const chunk = item as Chunk;
-  if (typeof chunk.content_type === "string" && chunk.content_type.length > 0) {
-    return chunk;
-  }
-
-  return {
-    ...chunk,
-    content_type: "text"
-  } as Chunk;
-}
-
-/**
- * Render a tool-call streaming item as a Chunk so callers see tool dispatches
- * inline with the assistant's text/thinking stream. The structured payload
- * lives in `content_metadata`; `content` is a human-readable summary.
- */
-function toolCallChunk(toolCall: ToolCall): Chunk {
-  const argsJson = (() => {
-    try {
-      return JSON.stringify(toolCall.args ?? {});
-    } catch {
-      return "{}";
-    }
-  })();
-  return {
-    type: "chunk",
-    content: `${toolCall.name}(${argsJson})`,
-    content_type: "tool_call",
-    content_metadata: {
-      tool_call_id: toolCall.id,
-      tool_name: toolCall.name,
-      args: toolCall.args ?? {}
-    },
-    done: false
-  } as Chunk;
-}
-
-export async function* streamProviderMessages(
-  provider: BaseProvider,
-  args: Parameters<BaseProvider["generateMessages"]>[0]
-): AsyncGenerator<ProviderStreamItem> {
-  const request = {
-    ...args,
-    messages: [...args.messages],
-    tools: args.tools ? [...args.tools] : undefined
-  };
-  if (typeof provider.generateMessagesTraced === "function") {
-    for await (const item of provider.generateMessagesTraced(request)) {
-      yield normalizeProviderStreamItem(item);
-    }
-    return;
-  }
-  if (typeof provider.generateMessages === "function") {
-    for await (const item of provider.generateMessages(request)) {
-      yield normalizeProviderStreamItem(item);
-    }
-    return;
-  }
-  const result = await provider.generateMessage(request);
-  const content = messageContentText(result.content);
-  if (content || (result.toolCalls?.length ?? 0) === 0) {
-    yield {
-      type: "chunk",
-      content,
-      content_type: "text",
-      done: true
-    } as Chunk;
-  }
-  for (const toolCall of result.toolCalls ?? []) {
-    yield toolCall;
-  }
-}
-
-function parseCategory(raw: string, categories: string[]): string {
-  if (categories.length === 0) return "Unknown";
-
-  const parsed = extractJson(raw);
-  const categoryValue =
-    typeof parsed?.category === "string" ? parsed.category : "";
-  for (const category of categories) {
-    if (categoryValue.trim().toLowerCase() === category.trim().toLowerCase()) {
-      return category;
-    }
-  }
-
-  const lowered = raw.toLowerCase();
-  for (const category of categories) {
-    if (category.toLowerCase() && lowered.includes(category.toLowerCase())) {
-      return category;
-    }
-  }
-
-  for (const fallback of ["other", "unknown"]) {
-    for (const category of categories) {
-      if (category.trim().toLowerCase() === fallback) return category;
-    }
-  }
-
-  return categories[0];
-}
-
-function messageContentText(content: Message["content"] | unknown): string {
-  if (typeof content === "string") return content;
-  if (!Array.isArray(content)) return asText(content);
-  return content
-    .map((part) => {
-      if (!part || typeof part !== "object") return asText(part);
-      if ((part as { type?: string }).type === "text") {
-        return String((part as { text?: unknown }).text ?? "");
-      }
-      return "";
-    })
-    .join("")
-    .trim();
-}
-
-function normalizeRole(role: unknown): Message["role"] | null {
-  if (
-    role === "system" ||
-    role === "user" ||
-    role === "assistant" ||
-    role === "tool"
-  ) {
-    return role;
-  }
-  return null;
-}
-
-function normalizeBinaryRef(
-  value: unknown
-): { uri?: string; data?: Uint8Array | string; mimeType?: string } | null {
-  if (!value || typeof value !== "object") return null;
-  const record = value as Record<string, unknown>;
-  const out: { uri?: string; data?: Uint8Array | string; mimeType?: string } =
-    {};
-  if (typeof record.uri === "string" && record.uri) out.uri = record.uri;
-  if (record.data instanceof Uint8Array || typeof record.data === "string")
-    out.data = record.data;
-  if (typeof record.mimeType === "string" && record.mimeType)
-    out.mimeType = record.mimeType;
-  if (typeof record.mime_type === "string" && record.mime_type)
-    out.mimeType = record.mime_type;
-  return out.uri || out.data ? out : null;
-}
-
-function normalizeMessageContent(value: unknown): Message["content"] {
-  if (value == null || typeof value === "string") return value ?? null;
-  if (!Array.isArray(value)) return asText(value);
-  const parts: MessageContent[] = [];
-  for (const part of value) {
-    if (!part || typeof part !== "object") {
-      const text = asText(part);
-      if (text) parts.push({ type: "text", text });
-      continue;
-    }
-    const record = part as Record<string, unknown>;
-    const kind = typeof record.type === "string" ? record.type : "";
-    if (kind === "text") {
-      parts.push({ type: "text", text: asText(record.text ?? "") });
-      continue;
-    }
-    if (kind === "image" || kind === "image_url") {
-      const image = normalizeBinaryRef(
-        record.image ?? record.image_url ?? record.imageUrl
-      );
-      if (image)
-        parts.push({ type: "image_url", image } satisfies MessageImageContent);
-      continue;
-    }
-    if (kind === "audio") {
-      const audio = normalizeBinaryRef(record.audio);
-      if (audio)
-        parts.push({ type: "audio", audio } satisfies MessageAudioContent);
-      continue;
-    }
-    const text = asText(part);
-    if (text) parts.push({ type: "text", text });
-  }
-  return parts;
-}
-
-function normalizeToolCalls(value: unknown): ToolCall[] | null {
-  if (!Array.isArray(value)) return null;
-  const toolCalls = value
-    .filter(
-      (item): item is Record<string, unknown> =>
-        !!item && typeof item === "object"
-    )
-    .map((item, index) => ({
-      id:
-        typeof item.id === "string" && item.id ? item.id : `tool_${index + 1}`,
-      name: typeof item.name === "string" ? item.name : "",
-      args:
-        item.args && typeof item.args === "object"
-          ? (item.args as Record<string, unknown>)
-          : {}
-    }))
-    .filter((item) => item.name.length > 0);
-  return toolCalls.length > 0 ? toolCalls : null;
-}
-
-function normalizeMessage(value: unknown): Message | null {
-  if (!value || typeof value !== "object") return null;
-  const record = value as Record<string, unknown>;
-  const role = normalizeRole(record.role);
-  if (!role) return null;
-  return {
-    role,
-    content: normalizeMessageContent(record.content),
-    toolCalls: normalizeToolCalls(record.toolCalls ?? record.tool_calls),
-    toolCallId:
-      typeof record.toolCallId === "string"
-        ? record.toolCallId
-        : typeof record.tool_call_id === "string"
-          ? record.tool_call_id
-          : null,
-    threadId:
-      typeof record.threadId === "string"
-        ? record.threadId
-        : typeof record.thread_id === "string"
-          ? record.thread_id
-          : null
-  };
-}
-
-function threadMessages(threadId: string): Message[] {
-  const thread = THREAD_STORE.get(threadId);
-  if (!thread) return [];
-  return thread.messages.map((message) => ({ ...message }));
-}
-
-function logThreadWarning(
-  message: string,
-  error: unknown,
-  details: Record<string, unknown>
-): void {
-  if (process.env["NODE_ENV"] === "test") return;
-  console.warn(`[AgentNode] ${message}`, {
-    ...details,
-    error: String(error)
-  });
-}
-
-/**
- * Normalize a list-typed media input to an array. Accepts an array (the
- * declared `list[image]`/`list[audio]` shape), a lone ref (defensive, in case
- * coercion didn't run), or null/undefined.
- */
-function toRefArray(value: unknown): unknown[] {
-  if (Array.isArray(value)) return value;
-  if (value === null || value === undefined) return [];
-  return [value];
-}
-
-function buildUserMessage(
-  prompt: string,
-  images: unknown,
-  audios: unknown
-): Message {
-  const content: MessageContent[] = expandAssetReferences(prompt);
-  for (const image of toRefArray(images)) {
-    const imageRef = normalizeBinaryRef(image);
-    if (imageRef) {
-      content.push({ type: "image_url", image: imageRef });
-    }
-  }
-  for (const audio of toRefArray(audios)) {
-    const audioRef = normalizeBinaryRef(audio);
-    if (audioRef) {
-      content.push({ type: "audio", audio: audioRef });
-    }
-  }
-  return { role: "user", content };
-}
-
-async function loadThreadMessages(
-  context: ProcessingContext | undefined,
-  threadId: string
-): Promise<Message[]> {
-  if (!threadId) return [];
-  const threadedContext = context as
-    | (ProcessingContext & {
-        get_messages?: (
-          threadId: string,
-          limit?: number,
-          startKey?: string | null,
-          reverse?: boolean
-        ) => Promise<{ messages: Array<Record<string, unknown>> }>;
-        getThreadMessages?: (
-          threadId: string,
-          limit?: number,
-          startKey?: string | null,
-          reverse?: boolean
-        ) => Promise<{ messages: Array<Record<string, unknown>> }>;
-      })
-    | undefined;
-  const getMessages =
-    threadedContext?.get_messages?.bind(threadedContext) ??
-    threadedContext?.getThreadMessages?.bind(threadedContext);
-  if (getMessages) {
-    try {
-      const result = await getMessages(threadId, 1000, null, false);
-      const messages = (result.messages ?? [])
-        .map((item: Record<string, unknown>) => normalizeMessage(item))
-        .filter(
-          (message: Message | null): message is Message =>
-            message !== null && message.role !== "system"
-        );
-      log.info("Agent thread history loaded from context", {
-        threadId,
-        messageCount: messages.length
-      });
-      return messages;
-    } catch (error) {
-      logThreadWarning("Failed to load thread messages", error, { threadId });
-    }
-  }
-  const fallbackMessages = threadMessages(threadId).filter(
-    (message) => message.role !== "system"
-  );
-  log.info("Agent thread history loaded from fallback store", {
-    threadId,
-    messageCount: fallbackMessages.length
-  });
-  return fallbackMessages;
-}
-
-async function saveThreadMessage(
-  context: ProcessingContext | undefined,
-  threadId: string,
-  message: Message
-): Promise<void> {
-  if (!threadId) return;
-  const threadedContext = context as
-    | (ProcessingContext & {
-        create_message?: (req: Record<string, unknown>) => Promise<unknown>;
-        createMessage?: (req: Record<string, unknown>) => Promise<unknown>;
-      })
-    | undefined;
-  const createMessage =
-    threadedContext?.create_message?.bind(threadedContext) ??
-    threadedContext?.createMessage?.bind(threadedContext);
-  if (createMessage) {
-    try {
-      await createMessage({
-        thread_id: threadId,
-        role: message.role,
-        content: message.content ?? null,
-        tool_calls: message.toolCalls ?? null,
-        tool_call_id: message.toolCallId ?? null
-      });
-      log.info("Agent thread message saved via context", {
-        threadId,
-        role: message.role,
-        hasToolCalls: (message.toolCalls?.length ?? 0) > 0,
-        textLength: messageContentText(message.content).length
-      });
-      return;
-    } catch (error) {
-      logThreadWarning("Failed to save thread message", error, {
-        threadId,
-        role: message.role
-      });
-    }
-  }
-
-  const thread = THREAD_STORE.get(threadId) ?? {
-    id: threadId,
-    title: "Agent Conversation",
-    messages: []
-  };
-  thread.messages.push({
-    ...message,
-    threadId
-  });
-  THREAD_STORE.set(threadId, thread);
-  log.info("Agent thread message saved via fallback store", {
-    threadId,
-    role: message.role,
-    threadSize: thread.messages.length,
-    hasToolCalls: (message.toolCalls?.length ?? 0) > 0,
-    textLength: messageContentText(message.content).length
-  });
-}
-
-export function isChunkItem(item: ProviderStreamItem): item is Chunk {
-  return (
-    !!item &&
-    typeof item === "object" &&
-    "type" in item &&
-    (item as Chunk).type === "chunk"
-  );
-}
-
-export function isToolCallItem(item: ProviderStreamItem): item is ToolCall {
-  return (
-    !!item &&
-    typeof item === "object" &&
-    "id" in item &&
-    "name" in item &&
-    !("type" in item)
-  );
-}
-
-function normalizeTools(value: unknown): ToolLike[] {
-  if (!Array.isArray(value)) return [];
-  return value
-    .filter(
-      (tool): tool is ToolLike =>
-        !!tool &&
-        typeof tool === "object" &&
-        typeof (tool as { name?: unknown }).name === "string"
-    )
-    .map((tool) => hydrateBuiltinAgentTool(tool) as ToolLike);
-}
-
-function uniqueToolName(baseName: string, existingNames: string[]): string {
-  const used = new Set(existingNames);
-  if (!used.has(baseName)) return baseName;
-  let suffix = 2;
-  while (used.has(`${baseName}_${suffix}`)) suffix += 1;
-  return `${baseName}_${suffix}`;
-}
-
-export function toProviderTools(tools: ToolLike[]): Array<{
-  name: string;
-  description?: string;
-  inputSchema?: Record<string, unknown>;
-}> {
-  return tools.map((tool) =>
-    typeof tool.toProviderTool === "function"
-      ? tool.toProviderTool()
-      : {
-          name: tool.name,
-          description: tool.description,
-          inputSchema: tool.inputSchema
-        }
-  );
-}
-
-export function serializeToolResult(value: unknown): unknown {
-  if (value == null) return value;
-  if (Array.isArray(value)) return value.map(serializeToolResult);
-  if (typeof value !== "object") return value;
-  if (value instanceof Uint8Array) {
-    return Buffer.from(value).toString("base64");
-  }
-  const record = value as Record<string, unknown>;
-  return Object.fromEntries(
-    Object.entries(record).map(([key, item]) => [
-      key,
-      serializeToolResult(item)
-    ])
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Control tool support for Agent nodes with outgoing control edges
-// ---------------------------------------------------------------------------
-
-/**
- * Marker symbol to identify control tools built from _control_context.
- */
-const CONTROL_TOOL_MARKER = Symbol("controlTool");
-
-interface ControlToolLike extends ToolLike {
-  [CONTROL_TOOL_MARKER]: true;
-  targetNodeId: string;
-  allowedProperties: ReadonlySet<string>;
-}
-
-function isControlTool(tool: ToolLike): tool is ControlToolLike {
-  return (
-    CONTROL_TOOL_MARKER in tool &&
-    (tool as ControlToolLike)[CONTROL_TOOL_MARKER] === true
-  );
-}
-
-/**
- * Opening tag plus the close tags models may emit. The canonical close is
- * `</redacted_thinking>`; `</think>` is the legacy/typo variant. Both must be
- * recognized so the streaming splitter matches what `extractThinkTags` does.
- */
-const REDACTED_THINKING_OPEN = "<think>";
-const REDACTED_THINKING_CLOSES = ["</redacted_thinking>", "</think>"] as const;
-
-function findEarliestThinkClose(
-  buf: string
-): { idx: number; len: number } | null {
-  let best: { idx: number; len: number } | null = null;
-  for (const c of REDACTED_THINKING_CLOSES) {
-    const i = buf.indexOf(c);
-    if (i !== -1 && (best === null || i < best.idx)) {
-      best = { idx: i, len: c.length };
-    }
-  }
-  return best;
-}
-
-/** Longest suffix of buf that is a proper prefix of one of the candidate strings (for streaming). */
-function holdSuffixForPartialTag(
-  buf: string,
-  candidates: readonly string[]
-): number {
-  const maxCheck = Math.max(
-    0,
-    ...candidates.map((c) => Math.max(0, c.length - 1))
-  );
-  const limit = Math.min(buf.length, maxCheck);
-  for (let len = limit; len >= 1; len--) {
-    const suf = buf.slice(-len);
-    if (candidates.some((c) => c.startsWith(suf))) return len;
-  }
-  return 0;
-}
-
-function extractThinkTags(text: string): { thinking: string; text: string } {
-  const parts: string[] = [];
-  const re = /<think>([\s\S]*?)<\/(?:redacted_thinking|think)>/g;
-  let cleaned = text.replace(re, (_, content: string) => {
-    parts.push(content.trim());
-    return "";
-  });
-  const orphan = cleaned.match(/<think>([\s\S]*)$/);
-  if (orphan && orphan.index !== undefined) {
-    parts.push(orphan[1].trim());
-    cleaned = cleaned.slice(0, orphan.index);
-  }
-  return {
-    thinking: parts.filter((p) => p.length > 0).join("\n\n"),
-    text: cleaned.trim()
-  };
-}
-
-/**
- * Splits streamed text so `<think>…` never appears on the text channel:
- * reasoning goes to `thinking`, user-visible text to `text` chunks only.
- */
-class RedactedThinkingStreamSplitter {
-  private buf = "";
-  private inThink = false;
-
-  *feed(
-    incoming: string
-  ): Generator<
-    { kind: "text"; content: string } | { kind: "thinking"; content: string }
-  > {
-    if (!incoming) return;
-    this.buf += incoming;
-
-    while (true) {
-      if (!this.inThink) {
-        const openIdx = this.buf.indexOf(REDACTED_THINKING_OPEN);
-        if (openIdx === -1) {
-          const keep = holdSuffixForPartialTag(this.buf, [
-            REDACTED_THINKING_OPEN
-          ]);
-          if (this.buf.length > keep) {
-            const emitEnd = this.buf.length - keep;
-            const out = this.buf.slice(0, emitEnd);
-            this.buf = this.buf.slice(emitEnd);
-            if (out) yield { kind: "text", content: out };
-          }
-          return;
-        }
-        if (openIdx > 0) {
-          const out = this.buf.slice(0, openIdx);
-          if (out) yield { kind: "text", content: out };
-        }
-        this.buf = this.buf.slice(openIdx + REDACTED_THINKING_OPEN.length);
-        this.inThink = true;
-        continue;
-      }
-
-      const close = findEarliestThinkClose(this.buf);
-      if (!close) {
-        const keep = holdSuffixForPartialTag(
-          this.buf,
-          REDACTED_THINKING_CLOSES
-        );
-        if (this.buf.length > keep) {
-          const emitEnd = this.buf.length - keep;
-          const out = this.buf.slice(0, emitEnd);
-          this.buf = this.buf.slice(emitEnd);
-          if (out) yield { kind: "thinking", content: out };
-        }
-        return;
-      }
-      const thinkBody = this.buf.slice(0, close.idx);
-      this.buf = this.buf.slice(close.idx + close.len);
-      this.inThink = false;
-      if (thinkBody) yield { kind: "thinking", content: thinkBody };
-    }
-  }
-
-  *flush(): Generator<
-    { kind: "text"; content: string } | { kind: "thinking"; content: string }
-  > {
-    if (!this.buf && !this.inThink) return;
-    if (this.inThink) {
-      if (this.buf) yield { kind: "thinking", content: this.buf };
-    } else if (this.buf) {
-      yield { kind: "text", content: this.buf };
-    }
-    this.buf = "";
-    this.inThink = false;
-  }
-}
-
-function* yieldSplitThinkChunks(
-  item: Chunk,
-  rawPiece: string,
-  splitter: RedactedThinkingStreamSplitter
-): Generator<Record<string, unknown>> {
-  for (const part of splitter.feed(rawPiece)) {
-    if (part.kind === "text" && part.content.length > 0) {
-      yield {
-        chunk: { ...item, content: part.content },
-        thinking: null,
-        text: null,
-        audio: null
-      };
-    } else if (part.kind === "thinking" && part.content.length > 0) {
-      yield {
-        chunk: null,
-        thinking: {
-          type: "chunk",
-          content: part.content,
-          thinking: true
-        },
-        text: null,
-        audio: null
-      };
-    }
-  }
-}
-
-/**
- * Sanitize a node title to a valid tool name (snake_case, max 64 chars).
- * Prefixed with `run_` to avoid collisions with provider-reserved built-in
- * tool names (e.g. Gemini's native `google_search`, which would otherwise
- * shadow our schema and pass `queries` instead of the node's actual props).
- */
-function sanitizeControlToolName(name: string): string {
-  const fallback = "run_node";
-  if (!name) return fallback;
-  let s = name
-    .replace(/[^a-zA-Z0-9]/g, "_")
-    .replace(/([a-z])([A-Z])/g, "$1_$2")
-    .toLowerCase()
-    .replace(/_+/g, "_")
-    .replace(/^_+|_+$/g, "");
-  if (!s) return fallback;
-  s = `run_${s}`;
-  if (s.length > 64) s = s.slice(0, 64);
-  return s;
-}
-
-/**
- * Build ControlToolLike instances from `_control_context` input.
- * These tools allow the agent's LLM to call controlled nodes via tool-calling.
- */
-function buildControlTools(controlContext: unknown): ControlToolLike[] {
-  if (!controlContext || typeof controlContext !== "object") return [];
-
-  const tools: ControlToolLike[] = [];
-  const usedNames = new Set<string>();
-
-  for (const [targetId, info] of Object.entries(
-    controlContext as Record<string, unknown>
-  )) {
-    if (!info || typeof info !== "object") continue;
-    const nodeInfo = info as Record<string, unknown>;
-
-    const nodeTitle = String(
-      nodeInfo.node_title ?? nodeInfo.node_type ?? targetId
-    );
-    const baseName = sanitizeControlToolName(nodeTitle);
-    let toolName = baseName;
-    let suffix = 2;
-    while (usedNames.has(toolName)) {
-      const suffixText = `_${suffix}`;
-      toolName = `${baseName.slice(0, 64 - suffixText.length)}${suffixText}`;
-      suffix++;
-    }
-    usedNames.add(toolName);
-
-    // Build input schema from control_actions.run.properties
-    const actions = (nodeInfo.control_actions ?? {}) as Record<string, unknown>;
-    const runAction = (actions.run ?? {}) as Record<string, unknown>;
-    const rawProperties = (runAction.properties ?? {}) as Record<
-      string,
-      Record<string, unknown>
-    >;
-    const properties: Record<string, Record<string, unknown>> = {};
-    for (const [key, schema] of Object.entries(rawProperties)) {
-      if (typeof schema === "object" && schema !== null) {
-        properties[key] = { ...schema };
-      } else {
-        properties[key] = { type: "string", description: String(schema) };
-      }
-    }
-
-    const inputSchema = {
-      type: "object",
-      properties,
-      required: [] as string[],
-      additionalProperties: false
-    };
-
-    let description = `Control ${nodeTitle}: trigger execution with optional property overrides`;
-    const propNames = Object.keys(properties);
-    if (propNames.length > 0) {
-      description += `. Available properties: ${propNames.join(", ")}`;
-    }
-
-    tools.push({
-      [CONTROL_TOOL_MARKER]: true as const,
-      targetNodeId: targetId,
-      allowedProperties: new Set(Object.keys(properties)),
-      name: toolName,
-      description,
-      inputSchema,
-      // Stub process — actual execution goes through sendControlEvent
-      async process(_ctx: ProcessingContext, _params: Record<string, unknown>) {
-        return { status: "dispatched", target: targetId };
-      },
-      toProviderTool() {
-        return { name: toolName, description, inputSchema };
-      }
-    });
-  }
-
-  return tools;
-}
-
-/**
- * Adapter that wraps a ToolLike (from base-nodes) as an AgentTool (from @nodetool-ai/agents).
- * This bridges the tool systems so Agent can use tools defined in the node graph.
- */
-class ToolLikeAdapter extends AgentTool {
-  readonly name: string;
-  readonly description: string;
-  protected readonly jsonSchema: Record<string, unknown>;
-  private readonly _process: (
-    context: ProcessingContext,
-    params: Record<string, unknown>
-  ) => Promise<unknown>;
-
-  constructor(toolLike: ToolLike) {
-    super();
-    this.name = toolLike.name;
-    this.description = toolLike.description ?? "";
-    this.jsonSchema = toolLike.inputSchema ?? {
-      type: "object",
-      properties: {}
-    };
-    this._process =
-      toolLike.process ??
-      (async () => ({ error: "Tool has no process implementation" }));
-  }
-
-  async process(
-    context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    return this._process(context, params);
-  }
-}
-
-export interface AgentLoopOptions {
-  context: ProcessingContext;
-  providerId: string;
-  modelId: string;
-  systemPrompt: string;
-  prompt: string;
-  /**
-   * Tools the model may call. Each may be a fully-formed {@link ToolLike} (has
-   * `process` + `inputSchema`) OR a bare name-stub (`{ name }`) for a builtin
-   * tool registered via `registerBuiltinAgentToolClasses` — runAgentLoop
-   * hydrates stubs by name. Anything that can't be hydrated (no `process`) is
-   * logged and treated as an unknown tool by the model.
-   */
-  tools: ToolLike[];
-  contentParts?: MessageContent[];
-  maxTokens?: number;
-  maxIterations?: number;
-  threadId?: string;
-  /**
-   * Optional sink for streamed assistant text deltas (non-thinking). Lets a
-   * caller surface incremental output (e.g. a node `chunk` output) without
-   * changing the loop's accumulate-and-return contract.
-   */
-  onText?: (delta: string) => void;
-  /**
-   * Optional sink for each tool call the model makes, formatted as a
-   * `tool_call` {@link Chunk} (same shape the Agent node emits). Fired just
-   * before the tool runs.
-   */
-  onToolCall?: (chunk: Chunk) => void;
-}
-
-export interface AgentLoopResult {
-  text: string;
-  messages: Message[];
-}
-
-/**
- * Run a streaming tool-use loop: the model streams text/tool-calls, tools
- * execute, results feed back, repeat until no more tool calls or
- * `maxIterations`. Returns the final assistant text plus the full message
- * trail. Stream via `onText` / `onToolCall`.
- *
- * Tools (`options.tools`) may be real {@link ToolLike}s or bare `{ name }`
- * stubs for registered builtin tools — they are hydrated here (see the `tools`
- * field doc). This mirrors the AgentNode's `normalizeTools`; both paths now
- * hydrate, so a tool reaches the loop the same way regardless of entry point.
- */
-export async function runAgentLoop(
-  options: AgentLoopOptions
-): Promise<AgentLoopResult> {
-  const {
-    context,
-    providerId,
-    modelId,
-    systemPrompt,
-    prompt,
-    tools,
-    contentParts,
-    maxTokens = 4096,
-    maxIterations = 10
-  } = options;
-
-  if (!context || typeof context.getProvider !== "function") {
-    throw new Error("Processing context with provider access is required");
-  }
-
-  const userContent: MessageContent[] = [{ type: "text", text: prompt }];
-  if (contentParts) {
-    userContent.push(...contentParts);
-  }
-
-  const messages: Message[] = [
-    { role: "system", content: systemPrompt },
-    { role: "user", content: userContent }
-  ];
-
-  // Hydrate builtin tools passed as bare name-stubs ({ name }) into real Tool
-  // instances (same as the AgentNode path's normalizeTools). Without this a
-  // stub has no `process`/`inputSchema`, so the model gets a schemaless tool
-  // and every call is rejected as "Unknown tool". A real Tool passes through
-  // unchanged. Warn for anything still unrunnable so it fails loudly, not
-  // silently.
-  const resolvedTools = hydrateBuiltinAgentTools(tools) as ToolLike[];
-  for (const t of resolvedTools) {
-    if (typeof t.process !== "function") {
-      log.warn(
-        `runAgentLoop received tool '${t.name}' with no process() and could ` +
-          "not hydrate it — the model cannot call it. Pass a real Tool or a " +
-          "registered builtin tool name."
-      );
-    }
-  }
-
-  // The provider drives the tool-calling loop via generateLoop. This is what
-  // makes the Claude Agent SDK provider work: it registers `providerTools` as
-  // an in-process MCP server and runs the SDK's own loop, while normal
-  // providers run the standard completion loop. Each provider tool carries its
-  // own `execute` (generateLoop dispatches to it), so there is no harness-level
-  // executeTool callback. The stream surfaces text chunks (for onText),
-  // tool-call announcements (for onToolCall), and finalized message events
-  // (assistant turns + tool results) that we collect into the returned
-  // conversation. There is no terminal tool here — the loop ends when the model
-  // stops calling tools.
-  const providerTools: ProviderTool[] | undefined =
-    resolvedTools.length > 0
-      ? toProviderTools(resolvedTools).map((pt, i) => {
-          const tool = resolvedTools[i];
-          return {
-            ...pt,
-            execute: async (
-              args: Record<string, unknown>
-            ): Promise<string | MessageContent[]> => {
-              if (typeof tool.process !== "function") {
-                return JSON.stringify({ error: `Unknown tool: ${tool.name}` });
-              }
-              const result = await tool.process(context, args);
-              return JSON.stringify(serializeToolResult(result));
-            }
-          };
-        })
-      : undefined;
-  const provider = await context.getProvider(providerId);
-
-  // generateLoop owns its own copy of the message array internally, so rebuild
-  // the full returned conversation locally from the message events it streams.
-  const outMessages: Message[] = [...messages];
-  let lastAssistantText = "";
-  let currentTurnText = "";
-
-  for await (const raw of provider.generateLoop({
-    messages,
-    model: modelId,
-    tools: providerTools,
-    maxTokens,
-    threadId: options.threadId,
-    maxIterations
-  })) {
-    const item = normalizeProviderStreamItem(raw);
-    if (isToolCallItem(item)) {
-      options.onToolCall?.(toolCallChunk(item));
-      continue;
-    }
-    if (isChunkItem(item)) {
-      // Only genuine text feeds the returned text / onText stream. Tool-call
-      // chunks (and audio, agent_status, etc.) carry content_type !== "text"
-      // and must not leak into the text output.
-      if (!item.thinking && item.content_type === "text") {
-        const delta = typeof item.content === "string" ? item.content : "";
-        if (delta) {
-          currentTurnText += delta;
-          options.onText?.(delta);
-        }
-      }
-      continue;
-    }
-    // A finalized message event (assistant turn or tool result). Append it to
-    // the returned trail; an assistant turn also closes the current text run so
-    // `text` reflects the model's last assistant message, not a concatenation.
-    if ("type" in item && (item as { type?: string }).type === "message") {
-      const message = (item as { message?: Message }).message;
-      if (message) {
-        outMessages.push(message);
-        if (message.role === "assistant") {
-          if (currentTurnText) lastAssistantText = currentTurnText;
-          currentTurnText = "";
-        }
-      }
-    }
-  }
-
-  // A provider that runs its own loop may stream final text without a trailing
-  // assistant message event — keep that text.
-  if (currentTurnText) lastAssistantText = currentTurnText;
-
-  return { text: lastAssistantText, messages: outMessages };
-}
-
-function getStructuredOutputSchema(
-  node: BaseNode
-): Record<string, unknown> | null {
-  const outputs = (node as { _dynamic_outputs?: unknown })._dynamic_outputs;
-  if (!outputs || typeof outputs !== "object" || Array.isArray(outputs))
-    return null;
-  const properties: Record<string, unknown> = {};
-  const required: string[] = [];
-  for (const [name, spec] of Object.entries(
-    outputs as Record<string, unknown>
-  )) {
-    required.push(name);
-    const value =
-      spec && typeof spec === "object" ? (spec as Record<string, unknown>) : {};
-    const declared =
-      typeof value.type === "string" ? value.type.toLowerCase() : "str";
-    let type = "string";
-    if (["int", "integer"].includes(declared)) type = "integer";
-    else if (["float", "number"].includes(declared)) type = "number";
-    else if (["bool", "boolean"].includes(declared)) type = "boolean";
-    else if (["list", "array"].includes(declared)) type = "array";
-    else if (["dict", "object"].includes(declared)) type = "object";
-    properties[name] = { type };
-  }
-  if (required.length === 0) return null;
-  return {
-    type: "object",
-    additionalProperties: false,
-    required,
-    properties
-  };
-}
-
-function hasContentType(
-  message: Message | undefined,
-  type: MessageContent["type"]
-): boolean {
-  return Array.isArray(message?.content)
-    ? message!.content.some((part: MessageContent) => part.type === type)
-    : false;
-}
-
-const GEMMA_3_4B_IT_GGUF_TAGS = [
-  "gguf",
-  "image-text-to-text",
-  "arxiv:1905.07830",
-  "arxiv:1905.10044",
-  "arxiv:1911.11641",
-  "arxiv:1904.09728",
-  "arxiv:1705.03551",
-  "arxiv:1911.01547",
-  "arxiv:1907.10641",
-  "arxiv:1903.00161",
-  "arxiv:2009.03300",
-  "arxiv:2304.06364",
-  "arxiv:2103.03874",
-  "arxiv:2110.14168",
-  "arxiv:2311.12022",
-  "arxiv:2108.07732",
-  "arxiv:2107.03374",
-  "arxiv:2210.03057",
-  "arxiv:2106.03193",
-  "arxiv:1910.11856",
-  "arxiv:2502.12404",
-  "arxiv:2502.21228",
-  "arxiv:2404.16816",
-  "arxiv:2104.12756",
-  "arxiv:2311.16502",
-  "arxiv:2203.10244",
-  "arxiv:2404.12390",
-  "arxiv:1810.12440",
-  "arxiv:1908.02660",
-  "arxiv:2312.11805",
-  "base_model:google/gemma-3-4b-it",
-  "base_model:quantized:google/gemma-3-4b-it",
-  "license:gemma",
-  "endpoints_compatible",
-  "region:us",
-  "conversational"
-] as const;
-
-const GEMMA_3_4B_IT_GGUF_BASE = {
-  id: "ggml-org/gemma-3-4b-it-GGUF:gemma-3-4b-it-Q4_K_M.gguf",
-  type: "llama_cpp_model",
-  name: "Gemma 3 4B IT (GGUF)",
-  repo_id: "ggml-org/gemma-3-4b-it-GGUF",
-  path: "gemma-3-4b-it-Q4_K_M.gguf",
-  size_on_disk: 3113851289,
-  pipeline_tag: "image-text-to-text",
-  tags: GEMMA_3_4B_IT_GGUF_TAGS,
-  has_model_index: false,
-  downloads: 25779,
-  likes: 48
-} as const;
 
 export class SummarizerNode extends BaseNode {
   static readonly nodeType = "nodetool.agents.Summarizer";
@@ -1314,66 +136,7 @@ export class SummarizerNode extends BaseNode {
     text: { kind: "single", source: "__execution__" },
     chunk: { kind: "iteration", source: "__execution__", group: "stream" }
   };
-  static readonly recommendedModels = [
-    {
-      id: "phi3.5:latest",
-      type: "llama_model",
-      name: "Phi3.5",
-      repo_id: "phi3.5:latest",
-      description:
-        "Lightweight 3.8B model tuned for crisp instruction following and compact summaries on modest hardware.",
-      size_on_disk: 2362232012
-    },
-    {
-      id: "mistral-small:latest",
-      type: "llama_model",
-      name: "Mistral Small",
-      repo_id: "mistral-small:latest",
-      description:
-        "Efficient mixture-of-experts model that delivers reliable abstractive summaries with low latency.",
-      size_on_disk: 7730941132
-    },
-    {
-      id: "llama3.2:3b",
-      type: "llama_model",
-      name: "Llama 3.2 - 3B",
-      repo_id: "llama3.2:3b",
-      description:
-        "Compact Llama variant that balances coverage and brevity for everyday summarization workloads.",
-      size_on_disk: 2040109465
-    },
-    {
-      id: "gemma3:4b",
-      type: "llama_model",
-      name: "Gemma3 - 4B",
-      repo_id: "gemma3:4b",
-      description:
-        "Google's 4B multimodal model performs strong factual summaries while staying resource friendly.",
-      size_on_disk: 2791728742
-    },
-    {
-      id: "granite3.1-moe:3b",
-      type: "llama_model",
-      name: "Granite 3.1 MOE - 3B",
-      repo_id: "granite3.1-moe:3b",
-      description:
-        "IBM Granite MoE delivers focused meeting notes and bullet summaries with minimal VRAM needs.",
-      size_on_disk: 1717986918
-    },
-    {
-      id: "qwen3:4b",
-      type: "llama_model",
-      name: "Qwen3 - 4B",
-      repo_id: "qwen3:4b",
-      description:
-        "Qwen3 4B offers multilingual summarization with tight, well-structured outputs.",
-      size_on_disk: 2684354560
-    },
-    {
-      ...GEMMA_3_4B_IT_GGUF_BASE,
-      description: "Efficient Gemma 3 for summarization via llama.cpp."
-    }
-  ];
+  static readonly recommendedModels = SUMMARIZER_RECOMMENDED_MODELS;
 
   @prop({
     type: "str",
@@ -1459,52 +222,63 @@ export class SummarizerNode extends BaseNode {
       asText(this.system_prompt ?? "").trim() || SUMMARIZER_SYSTEM_PROMPT;
     const { providerId, modelId } = getModelConfig(this.serialize());
 
-    if (hasProviderSupport(context, providerId, modelId)) {
-      const provider = await context.getProvider(providerId);
-      let full = "";
-      for await (const item of streamProviderMessages(provider, {
-        messages: [
-          { role: "system", content: systemPrompt },
-          {
-            role: "user",
-            content: `Summarize the following text in about ${maxSentences} sentence(s):\n\n${text}`
+    if (!providerId || !modelId) {
+      throw new Error("Select a model");
+    }
+    if (!context || typeof context.getProvider !== "function") {
+      throw new Error("Processing context is required");
+    }
+
+    const provider = await context.getProvider(providerId);
+    // Route streamed text through the think-tag splitter so a local model that
+    // emits <think>…</think> never leaks reasoning into the summary. This node
+    // has no `thinking` output, so the split-off thinking parts are dropped.
+    const splitter = new RedactedThinkingStreamSplitter();
+    const emitText = (piece: string): Record<string, unknown> | null =>
+      piece
+        ? {
+            chunk: {
+              type: "chunk",
+              content: piece,
+              content_type: "text",
+              done: false
+            },
+            text: null
           }
-        ],
-        model: modelId,
-        maxTokens: Math.max(64, maxSentences * 128)
-      })) {
-        if (isChunkItem(item) && !item.thinking) {
-          const piece = item.content ?? "";
-          if (piece) {
-            full += piece;
-            yield {
-              chunk: {
-                type: "chunk",
-                content: piece,
-                content_type: "text",
-                done: false
-              },
-              text: null
-            };
+        : null;
+    let full = "";
+    for await (const item of streamProviderMessages(provider, {
+      messages: [
+        { role: "system", content: systemPrompt },
+        {
+          role: "user",
+          content: `Summarize the following text in about ${maxSentences} sentence(s):\n\n${text}`
+        }
+      ],
+      model: modelId,
+      maxTokens: Math.max(64, maxSentences * 128)
+    })) {
+      if (isChunkItem(item) && !item.thinking) {
+        const piece = typeof item.content === "string" ? item.content : "";
+        if (piece) {
+          full += piece;
+          for (const part of splitter.feed(piece)) {
+            if (part.kind === "text") {
+              const out = emitText(part.content);
+              if (out) yield out;
+            }
           }
         }
       }
-      const summary = full.trim();
-      yield { chunk: null, text: summary, output: summary };
-      return;
     }
-
-    const summary = summarize(text, maxSentences);
-    yield {
-      chunk: {
-        type: "chunk",
-        content: summary,
-        content_type: "text",
-        done: true
-      },
-      text: summary,
-      output: summary
-    };
+    for (const part of splitter.flush()) {
+      if (part.kind === "text") {
+        const out = emitText(part.content);
+        if (out) yield out;
+      }
+    }
+    const summary = extractThinkTags(full).text.trim();
+    yield { chunk: null, text: summary, output: summary };
   }
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
@@ -1537,39 +311,7 @@ export class EnhancePromptNode extends BaseNode {
     text: { kind: "single", source: "__execution__" },
     chunk: { kind: "iteration", source: "__execution__", group: "stream" }
   };
-  static readonly recommendedModels = [
-    {
-      id: "llama3.2:3b",
-      type: "llama_model",
-      name: "Llama 3.2 - 3B",
-      repo_id: "llama3.2:3b",
-      description:
-        "Compact Llama variant that rewrites prompts with strong instruction following on modest hardware.",
-      size_on_disk: 2040109465
-    },
-    {
-      id: "qwen3:4b",
-      type: "llama_model",
-      name: "Qwen3 - 4B",
-      repo_id: "qwen3:4b",
-      description:
-        "Qwen3 4B produces tight, well-structured prompt rewrites across languages.",
-      size_on_disk: 2684354560
-    },
-    {
-      id: "mistral-small:latest",
-      type: "llama_model",
-      name: "Mistral Small",
-      repo_id: "mistral-small:latest",
-      description:
-        "Efficient model that expands terse prompts into detailed, usable instructions with low latency.",
-      size_on_disk: 7730941132
-    },
-    {
-      ...GEMMA_3_4B_IT_GGUF_BASE,
-      description: "Efficient Gemma 3 for prompt enhancement via llama.cpp."
-    }
-  ];
+  static readonly recommendedModels = ENHANCE_PROMPT_RECOMMENDED_MODELS;
 
   @prop({
     type: "str",
@@ -1631,54 +373,65 @@ export class EnhancePromptNode extends BaseNode {
       return;
     }
 
-    if (hasProviderSupport(context, providerId, modelId)) {
-      const provider = await context.getProvider(providerId);
-      const guidance =
-        ENHANCE_PROMPT_GUIDANCE[target] ?? ENHANCE_PROMPT_GUIDANCE.general;
-      let full = "";
-      for await (const item of streamProviderMessages(provider, {
-        messages: [
-          { role: "system", content: systemPrompt },
-          {
-            role: "user",
-            content: `${guidance}\n\nImprove this prompt and return only the improved version:\n\n${prompt}`
+    if (!providerId || !modelId) {
+      throw new Error("Select a model");
+    }
+    if (!context || typeof context.getProvider !== "function") {
+      throw new Error("Processing context is required");
+    }
+
+    const provider = await context.getProvider(providerId);
+    const guidance =
+      ENHANCE_PROMPT_GUIDANCE[target] ?? ENHANCE_PROMPT_GUIDANCE.general;
+    // Route streamed text through the think-tag splitter so a local model that
+    // emits <think>…</think> never leaks reasoning into the improved prompt.
+    // This node has no `thinking` output, so those parts are dropped.
+    const splitter = new RedactedThinkingStreamSplitter();
+    const emitText = (piece: string): Record<string, unknown> | null =>
+      piece
+        ? {
+            chunk: {
+              type: "chunk",
+              content: piece,
+              content_type: "text",
+              done: false
+            },
+            text: null
           }
-        ],
-        model: modelId,
-        maxTokens: ENHANCE_PROMPT_MAX_TOKENS
-      })) {
-        if (isChunkItem(item) && !item.thinking) {
-          const piece = item.content ?? "";
-          if (piece) {
-            full += piece;
-            yield {
-              chunk: {
-                type: "chunk",
-                content: piece,
-                content_type: "text",
-                done: false
-              },
-              text: null
-            };
+        : null;
+    let full = "";
+    for await (const item of streamProviderMessages(provider, {
+      messages: [
+        { role: "system", content: systemPrompt },
+        {
+          role: "user",
+          content: `${guidance}\n\nImprove this prompt and return only the improved version:\n\n${prompt}`
+        }
+      ],
+      model: modelId,
+      maxTokens: ENHANCE_PROMPT_MAX_TOKENS
+    })) {
+      if (isChunkItem(item) && !item.thinking) {
+        const piece = typeof item.content === "string" ? item.content : "";
+        if (piece) {
+          full += piece;
+          for (const part of splitter.feed(piece)) {
+            if (part.kind === "text") {
+              const out = emitText(part.content);
+              if (out) yield out;
+            }
           }
         }
       }
-      const enhanced = full.trim() || prompt;
-      yield { chunk: null, text: enhanced, output: enhanced };
-      return;
     }
-
-    // No provider available — pass the original prompt through unchanged.
-    yield {
-      chunk: {
-        type: "chunk",
-        content: prompt,
-        content_type: "text",
-        done: true
-      },
-      text: prompt,
-      output: prompt
-    };
+    for (const part of splitter.flush()) {
+      if (part.kind === "text") {
+        const out = emitText(part.content);
+        if (out) yield out;
+      }
+    }
+    const enhanced = extractThinkTags(full).text.trim() || prompt;
+    yield { chunk: null, text: enhanced, output: enhanced };
   }
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
@@ -1718,25 +471,19 @@ export class CreateThreadNode extends BaseNode {
   })
   declare thread_id: string;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const requested = String(this.thread_id ?? "").trim();
-    if (requested) {
-      if (!THREAD_STORE.has(requested)) {
-        THREAD_STORE.set(requested, {
-          id: requested,
-          title: String(this.title ?? "Agent Conversation"),
-          messages: []
-        });
-      }
-      return { thread_id: requested };
-    }
+    const title = String(this.title ?? "Agent Conversation");
+    const id = requested || makeThreadId();
 
-    const id = makeThreadId();
-    THREAD_STORE.set(id, {
-      id,
-      title: String(this.title ?? "Agent Conversation"),
-      messages: []
-    });
+    // Threads are implicit in the message store: messages are keyed by
+    // thread_id with no separate thread row, so when a real store is wired we
+    // just mint/return the id and the first saved message creates the thread.
+    // Only the in-memory fallback needs an explicit empty thread seeded so a
+    // later loadThreadMessages finds it (and so a reused id survives eviction).
+    if (!context?.hasModelInterface?.("createMessage")) {
+      seedFallbackThread(id, title);
+    }
     return { thread_id: id };
   }
 }
@@ -1750,71 +497,12 @@ export class ExtractorNode extends BaseNode {
   static readonly inlineFields = ["text"];
   static readonly inputFields = ["image", "audio", "system_prompt"];
   static readonly supportsDynamicOutputs = true;
-  static readonly recommendedModels = [
-    {
-      id: "phi3.5:latest",
-      type: "llama_model",
-      name: "Phi3.5",
-      repo_id: "phi3.5:latest",
-      description:
-        "Small Phi variant excels at JSON-style outputs and faithful field extraction on laptops.",
-      size_on_disk: 2362232012
-    },
-    {
-      id: "mistral-small:latest",
-      type: "llama_model",
-      name: "Mistral Small",
-      repo_id: "mistral-small:latest",
-      description:
-        "MoE architecture keeps structured extraction consistent while staying resource efficient.",
-      size_on_disk: 7730941132
-    },
-    {
-      id: "granite3.1-moe:3b",
-      type: "llama_model",
-      name: "Granite 3.1 MOE - 3B",
-      repo_id: "granite3.1-moe:3b",
-      description:
-        "Granite MoE models are tuned for business document parsing and schema-following tasks.",
-      size_on_disk: 1717986918
-    },
-    {
-      id: "gemma3:4b",
-      type: "llama_model",
-      name: "Gemma3 - 4B",
-      repo_id: "gemma3:4b",
-      description:
-        "Gemma 3 4B handles multilingual extraction and adheres to required JSON schemas.",
-      size_on_disk: 2791728742
-    },
-    {
-      id: "qwen2.5-coder:3b",
-      type: "llama_model",
-      name: "Qwen2.5-Coder - 3B",
-      repo_id: "qwen2.5-coder:3b",
-      description:
-        "Code-focused Qwen variant generates precise structured outputs and respects schema rules.",
-      size_on_disk: 1932735283
-    },
-    {
-      id: "deepseek-r1:7b",
-      type: "llama_model",
-      name: "Deepseek R1 - 7B",
-      repo_id: "deepseek-r1:7b",
-      description:
-        "Reasoning-oriented DeepSeek shines when extraction needs cross-field validation.",
-      size_on_disk: 4617089843
-    },
-    {
-      ...GEMMA_3_4B_IT_GGUF_BASE,
-      description: "Efficient Gemma 3 for extraction via llama.cpp."
-    }
-  ];
+  static readonly recommendedModels = EXTRACTOR_RECOMMENDED_MODELS;
 
   @prop({
     type: "str",
     default:
-      '\nYou are a precise structured data extractor.\n\nGoal\n- Extract exactly the fields described in <JSON_SCHEMA> from the content in <TEXT> (and any attached media).\n\nOutput format (MANDATORY)\n- Output exactly ONE fenced code block labeled json containing ONLY the JSON object:\n\n  ```json\n  { ...single JSON object matching <JSON_SCHEMA>... }\n  ```\n\n- No additional prose before or after the block.\n\nExtraction rules\n- Use only information found in <TEXT> or attached media. Do not invent facts.\n- Preserve source values; normalize internal whitespace and trim leading/trailing spaces.\n- If a required field is missing or not explicitly stated, return the closest reasonable default consistent with its type:\n  - string: ""\n  - number: 0\n  - boolean: false\n  - array/object: empty value of that type (only if allowed by the schema)\n- Dates/times: prefer ISO 8601 when the schema type is string and the value represents a date/time.\n- If multiple candidates exist, choose the most precise and unambiguous one.\n\nValidation\n- Ensure the final JSON validates against <JSON_SCHEMA> exactly.\n',
+      '\nYou are a precise structured data extractor.\n\nGoal\n- Extract exactly the fields described by the extraction tool\'s schema from the content in <TEXT> (and any attached media).\n\nHow to respond (MANDATORY)\n- Call the extraction tool exactly once, passing the extracted fields as its arguments.\n- Do not answer in prose; the tool call is the only output.\n\nExtraction rules\n- Use only information found in <TEXT> or attached media. Do not invent facts.\n- Preserve source values; normalize internal whitespace and trim leading/trailing spaces.\n- If a required field is missing or not explicitly stated, return the closest reasonable default consistent with its type:\n  - string: ""\n  - number: 0\n  - boolean: false\n  - array/object: empty value of that type (only if allowed by the schema)\n- Dates/times: prefer ISO 8601 when the schema type is string and the value represents a date/time.\n- If multiple candidates exist, choose the most precise and unambiguous one.\n',
     title: "System Prompt",
     description: "The system prompt for the data extractor"
   })
@@ -1884,34 +572,39 @@ export class ExtractorNode extends BaseNode {
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const text = asText(this.text ?? "");
     const { providerId, modelId } = getModelConfig(this.serialize());
-    if (hasProviderSupport(context, providerId, modelId)) {
-      const provider = await context.getProvider(providerId);
-      const schema = getStructuredOutputSchema(this) ?? {
-        type: "object",
-        properties: { output: { type: "string" } },
-        required: ["output"],
-        additionalProperties: true
-      };
-      const result = await generateStructured(provider, {
-        model: modelId,
-        maxTokens: Number((this as any).max_tokens ?? 1024),
-        messages: [
-          {
-            role: "system",
-            content:
-              asText(this.system_prompt ?? "").trim() || EXTRACTOR_SYSTEM_PROMPT
-          },
-          { role: "user", content: text }
-        ],
-        toolName: "extraction_result",
-        toolDescription: "Submit the extracted data.",
-        schema
-      });
-      if (result) return result;
+    if (!providerId || !modelId) {
+      throw new Error("Select a model");
     }
-    const parsed = extractJson(text);
-    if (parsed) return parsed;
-    return { output: text };
+    if (!context || typeof context.getProvider !== "function") {
+      throw new Error("Processing context is required");
+    }
+
+    const provider = await context.getProvider(providerId);
+    const schema = getStructuredOutputSchema(this) ?? {
+      type: "object",
+      properties: { output: { type: "string" } },
+      required: ["output"],
+      additionalProperties: true
+    };
+    const result = await generateStructured(provider, {
+      model: modelId,
+      maxTokens: Number(this.max_tokens ?? 1024),
+      messages: [
+        {
+          role: "system",
+          content:
+            asText(this.system_prompt ?? "").trim() || EXTRACTOR_SYSTEM_PROMPT
+        },
+        { role: "user", content: text }
+      ],
+      toolName: "extraction_result",
+      toolDescription: "Submit the extracted data.",
+      schema
+    });
+    if (result) return result;
+    throw new Error(
+      "Extractor: the model did not return structured data for the extraction tool."
+    );
   }
 }
 
@@ -1929,66 +622,7 @@ export class ClassifierNode extends BaseNode {
   };
   static readonly inlineFields = ["text"];
   static readonly inputFields = ["image", "audio", "system_prompt"];
-  static readonly recommendedModels = [
-    {
-      id: "phi3.5:latest",
-      type: "llama_model",
-      name: "Phi3.5",
-      repo_id: "phi3.5:latest",
-      description:
-        "Reliable small model for intent and sentiment classification when VRAM is tight.",
-      size_on_disk: 2362232012
-    },
-    {
-      id: "mistral-small:latest",
-      type: "llama_model",
-      name: "Mistral Small",
-      repo_id: "mistral-small:latest",
-      description:
-        "Fast MoE model that keeps category predictions consistent across batches.",
-      size_on_disk: 7730941132
-    },
-    {
-      id: "granite3.1-moe:1b",
-      type: "llama_model",
-      name: "Granite 3.1 MOE - 1B",
-      repo_id: "granite3.1-moe:1b",
-      description:
-        "IBM Granite 1B excels at classification and routing tasks on CPUs and edge devices.",
-      size_on_disk: 751619276
-    },
-    {
-      id: "qwen3:1.7b",
-      type: "llama_model",
-      name: "Qwen3 - 1.7B",
-      repo_id: "qwen3:1.7b",
-      description:
-        "Compact Qwen variant provides multilingual label understanding with low latency.",
-      size_on_disk: 1073741824
-    },
-    {
-      id: "gemma3:1b",
-      type: "llama_model",
-      name: "Gemma3 - 1B",
-      repo_id: "gemma3:1b",
-      description:
-        "Gemma 3 1B offers deterministic small-footprint classification for mobile scenarios.",
-      size_on_disk: 805306368
-    },
-    {
-      id: "deepseek-r1:1.5b",
-      type: "llama_model",
-      name: "Deepseek R1 - 1.5B",
-      repo_id: "deepseek-r1:1.5b",
-      description:
-        "Reasoning-focused DeepSeek variant is great for multi-step label decisions.",
-      size_on_disk: 912680550
-    },
-    {
-      ...GEMMA_3_4B_IT_GGUF_BASE,
-      description: "Efficient Gemma 3 for classification via llama.cpp."
-    }
-  ];
+  static readonly recommendedModels = CLASSIFIER_RECOMMENDED_MODELS;
 
   @prop({
     type: "str",
@@ -2077,55 +711,43 @@ export class ClassifierNode extends BaseNode {
     }
 
     const { providerId, modelId } = getModelConfig(this.serialize());
-    if (hasProviderSupport(context, providerId, modelId)) {
-      const provider = await context.getProvider(providerId);
-      const result = await generateStructured(provider, {
-        model: modelId,
-        maxTokens: Number((this as any).max_tokens ?? 256),
-        messages: [
-          {
-            role: "system",
-            content:
-              asText(this.system_prompt ?? "").trim() ||
-              CLASSIFIER_SYSTEM_PROMPT
-          },
-          {
-            role: "user",
-            content: `Allowed categories: ${categories.join(", ")}\n\nText: ${text}`
-          }
-        ],
-        toolName: "classification_result",
-        toolDescription: "Submit the classification result.",
-        schema: {
-          type: "object",
-          properties: {
-            category: { type: "string", enum: categories }
-          },
-          required: ["category"]
-        }
-      });
-      const category = parseCategory(
-        result ? String(result.category ?? "") : "",
-        categories
-      );
-      return { output: category, category };
+    if (!providerId || !modelId) {
+      throw new Error("Select a model");
+    }
+    if (!context || typeof context.getProvider !== "function") {
+      throw new Error("Processing context is required");
     }
 
-    const tokens = tokenize(text);
-    let best = categories[0];
-    let bestScore = -1;
-    for (const category of categories) {
-      const catTokens = tokenize(category);
-      let score = 0;
-      for (const token of catTokens) {
-        if (tokens.includes(token)) score += 1;
+    const provider = await context.getProvider(providerId);
+    const result = await generateStructured(provider, {
+      model: modelId,
+      maxTokens: Number(this.max_tokens ?? 256),
+      messages: [
+        {
+          role: "system",
+          content:
+            asText(this.system_prompt ?? "").trim() || CLASSIFIER_SYSTEM_PROMPT
+        },
+        {
+          role: "user",
+          content: `Allowed categories: ${categories.join(", ")}\n\nText: ${text}`
+        }
+      ],
+      toolName: "classification_result",
+      toolDescription: "Submit the classification result.",
+      schema: {
+        type: "object",
+        properties: {
+          category: { type: "string", enum: categories }
+        },
+        required: ["category"]
       }
-      if (score > bestScore) {
-        best = category;
-        bestScore = score;
-      }
-    }
-    return { output: best, category: best };
+    });
+    const category = parseCategory(
+      result ? String(result.category ?? "") : "",
+      categories
+    );
+    return { output: category, category };
   }
 }
 
@@ -2157,431 +779,7 @@ export class AgentNode extends BaseNode {
     thinking: { kind: "iteration", source: "__execution__", group: "stream" },
     audio: { kind: "iteration", source: "__execution__", group: "stream" }
   };
-  static readonly recommendedModels = [
-    {
-      id: "gpt-oss:20b",
-      type: "llama_model",
-      name: "GPT - OSS",
-      repo_id: "gpt-oss:20b",
-      description:
-        "OpenAI's open-weight model excels at multi-tool routing and reasoning.",
-      size_on_disk: 15032385536
-    },
-    {
-      id: "qwen3-vl:4b",
-      type: "llama_model",
-      name: "Qwen3 VL - 4B",
-      repo_id: "qwen3-vl:4b",
-      description:
-        "The most powerful vision-language model in the Qwen model family to date.",
-      size_on_disk: 3543348019
-    },
-    {
-      id: "qwen3-vl:8b",
-      type: "llama_model",
-      name: "Qwen3 VL - 8B",
-      repo_id: "qwen3-vl:8b",
-      description:
-        "The most powerful vision-language model in the Qwen model family to date.",
-      size_on_disk: 6549825126
-    },
-    {
-      id: "gemma3:1b",
-      type: "llama_model",
-      name: "Gemma3 - 1B",
-      repo_id: "gemma3:1b",
-      description:
-        "Gemma3 1B is a small model that can process text and images.",
-      size_on_disk: 875099586
-    },
-    {
-      id: "gemma3:4b",
-      type: "llama_model",
-      name: "Gemma3 - 4B",
-      repo_id: "gemma3:4b",
-      description:
-        "Gemma3 4B is a small model that can process text and images.",
-      size_on_disk: 3543348019
-    },
-    {
-      id: "llama3.2:3b",
-      type: "llama_model",
-      name: "Llama 3.2 - 3B",
-      repo_id: "llama3.2:3b",
-      description:
-        "Compact Llama 3.2 variant keeps latency low while following tool schemas accurately.",
-      size_on_disk: 2040109465
-    },
-    {
-      id: "qwen3:4b",
-      type: "llama_model",
-      name: "Qwen3 - 4B",
-      repo_id: "qwen3:4b",
-      description:
-        "Qwen3 4B ships strong function-calling primitives and dependable multi-turn tool use.",
-      size_on_disk: 2684354560
-    },
-    {
-      id: "qwen3:8b",
-      type: "llama_model",
-      name: "Qwen3 - 8B",
-      repo_id: "qwen3:8b",
-      description:
-        "Qwen3 8B ships strong function-calling primitives and dependable multi-turn tool use.",
-      size_on_disk: 5583457484
-    },
-    {
-      id: "deepseek-r1:8b",
-      type: "llama_model",
-      name: "Deepseek R1 - 8B",
-      repo_id: "deepseek-r1:8b",
-      description:
-        "DeepSeek R1 8B balances reasoning with precise function calls for iterative agents.",
-      size_on_disk: 5583457484
-    },
-    {
-      id: "ggml-org/gpt-oss-20b-GGUF:gpt-oss-20b-mxfp4.gguf",
-      type: "llama_cpp_model",
-      name: "GPT-OSS 20B (GGUF)",
-      repo_id: "ggml-org/gpt-oss-20b-GGUF",
-      path: "gpt-oss-20b-mxfp4.gguf",
-      description:
-        "OpenAI's open-weight model in efficient MXFP4 format for llama.cpp.",
-      size_on_disk: 9191230013,
-      tags: [
-        "gguf",
-        "base_model:openai/gpt-oss-20b",
-        "base_model:quantized:openai/gpt-oss-20b",
-        "endpoints_compatible",
-        "region:us",
-        "conversational"
-      ],
-      has_model_index: false,
-      downloads: 156909,
-      likes: 135
-    },
-    {
-      ...GEMMA_3_4B_IT_GGUF_BASE,
-      description:
-        "Google's Gemma 3 4B in Q4_K_M quantization for efficient inference."
-    },
-    {
-      id: "ggml-org/gemma-3-12b-it-GGUF:gemma-3-12b-it-Q4_K_M.gguf",
-      type: "llama_cpp_model",
-      name: "Gemma 3 12B IT (GGUF)",
-      repo_id: "ggml-org/gemma-3-12b-it-GGUF",
-      path: "gemma-3-12b-it-Q4_K_M.gguf",
-      description:
-        "Google's Gemma 3 12B in Q4_K_M quantization with strong reasoning.",
-      size_on_disk: 7838315315,
-      pipeline_tag: "image-text-to-text",
-      tags: [
-        "gguf",
-        "image-text-to-text",
-        "arxiv:1905.07830",
-        "arxiv:1905.10044",
-        "arxiv:1911.11641",
-        "arxiv:1904.09728",
-        "arxiv:1705.03551",
-        "arxiv:1911.01547",
-        "arxiv:1907.10641",
-        "arxiv:1903.00161",
-        "arxiv:2009.03300",
-        "arxiv:2304.06364",
-        "arxiv:2103.03874",
-        "arxiv:2110.14168",
-        "arxiv:2311.12022",
-        "arxiv:2108.07732",
-        "arxiv:2107.03374",
-        "arxiv:2210.03057",
-        "arxiv:2106.03193",
-        "arxiv:1910.11856",
-        "arxiv:2502.12404",
-        "arxiv:2502.21228",
-        "arxiv:2404.16816",
-        "arxiv:2104.12756",
-        "arxiv:2311.16502",
-        "arxiv:2203.10244",
-        "arxiv:2404.12390",
-        "arxiv:1810.12440",
-        "arxiv:1908.02660",
-        "arxiv:2312.11805",
-        "base_model:google/gemma-3-12b-it",
-        "base_model:quantized:google/gemma-3-12b-it",
-        "license:gemma",
-        "endpoints_compatible",
-        "region:us",
-        "conversational"
-      ],
-      has_model_index: false,
-      downloads: 214667,
-      likes: 30
-    },
-    {
-      id: "ggml-org/Kimi-VL-A3B-Thinking-2506-GGUF:Kimi-VL-A3B-Thinking-2506-Q4_K_M.gguf",
-      type: "llama_cpp_model",
-      name: "Kimi VL A3B Thinking (GGUF)",
-      repo_id: "ggml-org/Kimi-VL-A3B-Thinking-2506-GGUF",
-      path: "Kimi-VL-A3B-Thinking-2506-Q4_K_M.gguf",
-      description:
-        "Moonshot AI's vision-language model with enhanced reasoning capabilities.",
-      size_on_disk: 2362232012,
-      tags: [
-        "gguf",
-        "base_model:moonshotai/Kimi-VL-A3B-Thinking-2506",
-        "base_model:quantized:moonshotai/Kimi-VL-A3B-Thinking-2506",
-        "endpoints_compatible",
-        "region:us",
-        "conversational"
-      ],
-      has_model_index: false,
-      downloads: 3039,
-      likes: 29
-    },
-    {
-      id: "ggml-org/Qwen3-Coder-30B-A3B-Instruct-Q8_0-GGUF:qwen3-coder-30b-a3b-instruct-q8_0.gguf",
-      type: "llama_cpp_model",
-      name: "Qwen3 Coder 30B A3B (GGUF)",
-      repo_id: "ggml-org/Qwen3-Coder-30B-A3B-Instruct-Q8_0-GGUF",
-      path: "qwen3-coder-30b-a3b-instruct-q8_0.gguf",
-      description:
-        "MoE coding model with 3B active params, excellent for code generation.",
-      size_on_disk: 3865470566,
-      pipeline_tag: "text-generation",
-      tags: [
-        "transformers",
-        "gguf",
-        "llama-cpp",
-        "gguf-my-repo",
-        "text-generation",
-        "base_model:Qwen/Qwen3-Coder-30B-A3B-Instruct",
-        "base_model:quantized:Qwen/Qwen3-Coder-30B-A3B-Instruct",
-        "license:apache-2.0",
-        "endpoints_compatible",
-        "region:us",
-        "conversational"
-      ],
-      has_model_index: false,
-      downloads: 80721,
-      likes: 7
-    },
-    {
-      id: "ggml-org/Qwen3-0.6B-GGUF:Qwen3-0.6B-Q4_0.gguf",
-      type: "llama_cpp_model",
-      name: "Qwen3 0.6B (GGUF)",
-      repo_id: "ggml-org/Qwen3-0.6B-GGUF",
-      path: "Qwen3-0.6B-Q4_0.gguf",
-      description:
-        "Ultra-lightweight Qwen3 for edge devices and fast inference.",
-      size_on_disk: 429496729,
-      tags: [
-        "gguf",
-        "base_model:Qwen/Qwen3-0.6B",
-        "base_model:quantized:Qwen/Qwen3-0.6B",
-        "license:apache-2.0",
-        "endpoints_compatible",
-        "region:us",
-        "conversational"
-      ],
-      has_model_index: false,
-      downloads: 44304,
-      likes: 13
-    },
-    {
-      id: "ggml-org/gemma-3-270m-GGUF:gemma-3-270m-Q8_0.gguf",
-      type: "llama_cpp_model",
-      name: "Gemma 3 270M (GGUF)",
-      repo_id: "ggml-org/gemma-3-270m-GGUF",
-      path: "gemma-3-270m-Q8_0.gguf",
-      description: "Tiny Gemma 3 for ultra-fast inference on CPU.",
-      size_on_disk: 375809638,
-      tags: [
-        "gguf",
-        "base_model:google/gemma-3-270m",
-        "base_model:quantized:google/gemma-3-270m",
-        "endpoints_compatible",
-        "region:us"
-      ],
-      has_model_index: false,
-      downloads: 595,
-      likes: 19
-    },
-    {
-      id: "ggml-org/gemma-3-27b-it-GGUF:gemma-3-27b-it-Q4_K_M.gguf",
-      type: "llama_cpp_model",
-      name: "Gemma 3 27B IT (GGUF)",
-      repo_id: "ggml-org/gemma-3-27b-it-GGUF",
-      path: "gemma-3-27b-it-Q4_K_M.gguf",
-      description:
-        "Google's largest Gemma 3 with strong reasoning and tool use.",
-      size_on_disk: 16965120819,
-      pipeline_tag: "image-text-to-text",
-      tags: [
-        "gguf",
-        "image-text-to-text",
-        "arxiv:1905.07830",
-        "arxiv:1905.10044",
-        "arxiv:1911.11641",
-        "arxiv:1904.09728",
-        "arxiv:1705.03551",
-        "arxiv:1911.01547",
-        "arxiv:1907.10641",
-        "arxiv:1903.00161",
-        "arxiv:2009.03300",
-        "arxiv:2304.06364",
-        "arxiv:2103.03874",
-        "arxiv:2110.14168",
-        "arxiv:2311.12022",
-        "arxiv:2108.07732",
-        "arxiv:2107.03374",
-        "arxiv:2210.03057",
-        "arxiv:2106.03193",
-        "arxiv:1910.11856",
-        "arxiv:2502.12404",
-        "arxiv:2502.21228",
-        "arxiv:2404.16816",
-        "arxiv:2104.12756",
-        "arxiv:2311.16502",
-        "arxiv:2203.10244",
-        "arxiv:2404.12390",
-        "arxiv:1810.12440",
-        "arxiv:1908.02660",
-        "arxiv:2312.11805",
-        "base_model:google/gemma-3-27b-it",
-        "base_model:quantized:google/gemma-3-27b-it",
-        "license:gemma",
-        "endpoints_compatible",
-        "region:us",
-        "conversational"
-      ],
-      has_model_index: false,
-      downloads: 2604,
-      likes: 23
-    },
-    {
-      id: "Qwen/Qwen3-30B-A3B-GGUF:Qwen3-30B-A3B-Q4_K_M.gguf",
-      type: "llama_cpp_model",
-      name: "Qwen3 30B A3B (GGUF)",
-      repo_id: "Qwen/Qwen3-30B-A3B-GGUF",
-      path: "Qwen3-30B-A3B-Q4_K_M.gguf",
-      description: "Qwen3 30B MoE model (3B active) in Q4_K_M quantization.",
-      size_on_disk: 19327352832,
-      pipeline_tag: "text-generation",
-      tags: [
-        "gguf",
-        "text-generation",
-        "arxiv:2309.00071",
-        "arxiv:2505.09388",
-        "base_model:Qwen/Qwen3-30B-A3B",
-        "base_model:quantized:Qwen/Qwen3-30B-A3B",
-        "license:apache-2.0",
-        "endpoints_compatible",
-        "region:us",
-        "conversational"
-      ],
-      has_model_index: false,
-      downloads: 17644,
-      likes: 65
-    },
-    {
-      id: "Qwen/Qwen3-32B-GGUF:Qwen3-32B-Q4_K_M.gguf",
-      type: "llama_cpp_model",
-      name: "Qwen3 32B (GGUF)",
-      repo_id: "Qwen/Qwen3-32B-GGUF",
-      path: "Qwen3-32B-Q4_K_M.gguf",
-      description: "Qwen3 32B dense model in Q4_K_M quantization.",
-      size_on_disk: 20401094656,
-      pipeline_tag: "text-generation",
-      tags: [
-        "gguf",
-        "text-generation",
-        "arxiv:2309.00071",
-        "base_model:Qwen/Qwen3-32B",
-        "base_model:quantized:Qwen/Qwen3-32B",
-        "license:apache-2.0",
-        "endpoints_compatible",
-        "region:us",
-        "conversational"
-      ],
-      has_model_index: false,
-      downloads: 27381,
-      likes: 64
-    },
-    {
-      id: "Qwen/Qwen3-14B-GGUF:Qwen3-14B-Q4_K_M.gguf",
-      type: "llama_cpp_model",
-      name: "Qwen3 14B (GGUF)",
-      repo_id: "Qwen/Qwen3-14B-GGUF",
-      path: "Qwen3-14B-Q4_K_M.gguf",
-      description: "Qwen3 14B dense model in Q4_K_M quantization.",
-      size_on_disk: 9663676416,
-      pipeline_tag: "text-generation",
-      tags: [
-        "gguf",
-        "text-generation",
-        "arxiv:2309.00071",
-        "base_model:Qwen/Qwen3-14B",
-        "base_model:quantized:Qwen/Qwen3-14B",
-        "license:apache-2.0",
-        "endpoints_compatible",
-        "region:us",
-        "conversational"
-      ],
-      has_model_index: false,
-      downloads: 61212,
-      likes: 73
-    },
-    {
-      id: "Qwen/Qwen3-8B-GGUF:Qwen3-8B-Q4_K_M.gguf",
-      type: "llama_cpp_model",
-      name: "Qwen3 8B (GGUF)",
-      repo_id: "Qwen/Qwen3-8B-GGUF",
-      path: "Qwen3-8B-Q4_K_M.gguf",
-      description: "Qwen3 8B dense model in Q4_K_M quantization.",
-      size_on_disk: 5368709120,
-      pipeline_tag: "text-generation",
-      tags: [
-        "gguf",
-        "text-generation",
-        "arxiv:2309.00071",
-        "arxiv:2505.09388",
-        "base_model:Qwen/Qwen3-8B",
-        "base_model:quantized:Qwen/Qwen3-8B",
-        "license:apache-2.0",
-        "endpoints_compatible",
-        "region:us",
-        "conversational"
-      ],
-      has_model_index: false,
-      downloads: 94189,
-      likes: 156
-    },
-    {
-      id: "Qwen/Qwen3-4B-GGUF:Qwen3-4B-Q4_K_M.gguf",
-      type: "llama_cpp_model",
-      name: "Qwen3 4B (GGUF)",
-      repo_id: "Qwen/Qwen3-4B-GGUF",
-      path: "Qwen3-4B-Q4_K_M.gguf",
-      description: "Qwen3 4B dense model in Q4_K_M quantization.",
-      size_on_disk: 2684354560,
-      pipeline_tag: "text-generation",
-      tags: [
-        "gguf",
-        "text-generation",
-        "arxiv:2309.00071",
-        "arxiv:2505.09388",
-        "base_model:Qwen/Qwen3-4B",
-        "base_model:quantized:Qwen/Qwen3-4B",
-        "license:apache-2.0",
-        "endpoints_compatible",
-        "region:us",
-        "conversational"
-      ],
-      has_model_index: false,
-      downloads: 48252,
-      likes: 84
-    }
-  ];
+  static readonly recommendedModels = AGENT_RECOMMENDED_MODELS;
 
   @prop({
     type: "language_model",
@@ -2603,7 +801,7 @@ export class AgentNode extends BaseNode {
     default: "loop",
     title: "Mode",
     description:
-      "How the agent runs.\n\n• loop: standard tool‑calling loop — the LLM responds to the prompt and may iteratively call the connected tools until it produces a final answer. Use this for chat, Q&A, and most tool‑using tasks.\n• plan: the LLM first drafts a multi‑step task plan from the objective, then executes the steps in dependency order (independent steps run in parallel). Best for longer, structured jobs with clear sub‑tasks.",
+      "How the agent runs.\n\n• loop: standard tool‑calling loop — the LLM responds to the prompt and may iteratively call the connected tools until it produces a final answer. Use this for chat, Q&A, and most tool‑using tasks. Only loop mode uses conversation history, threads, and image/audio inputs.\n• plan: the LLM first drafts a multi‑step task plan from the objective, then executes the steps in dependency order (independent steps run in parallel). Best for longer, structured jobs with clear sub‑tasks. Plan mode ignores/rejects the Thread ID, Messages (history), Images, and Audio inputs — it plans purely from the prompt objective.",
     values: ["loop", "plan"]
   })
   declare mode: string;
@@ -2622,7 +820,7 @@ export class AgentNode extends BaseNode {
     default: "",
     title: "Prompt",
     description:
-      "The user message for this run — the actual question, task, or content the agent should act on. Appended after the system prompt and conversation history as the latest user turn. Any connected Image or Audio inputs are attached to this message. In plan and multi-agent modes this is treated as the objective for planning."
+      "The user message for this run — the actual question, task, or content the agent should act on. Appended after the system prompt and conversation history as the latest user turn. Any connected Image or Audio inputs are attached to this message (loop mode). In plan mode this is treated as the objective for planning."
   })
   declare prompt: string;
 
@@ -2640,7 +838,7 @@ export class AgentNode extends BaseNode {
     default: [],
     title: "Images",
     description:
-      "Images to attach to the prompt. Wire a list[image] source to send several at once, or a single Image (auto-wrapped into a one-item list). Each image becomes a separate block in the user message sent to the provider."
+      "Images to attach to the prompt. Loop mode only — plan mode rejects image inputs. Wire a list[image] source to send several at once, or a single Image (auto-wrapped into a one-item list). Each image becomes a separate block in the user message sent to the provider."
   })
   declare image: ImageRef[];
 
@@ -2649,7 +847,7 @@ export class AgentNode extends BaseNode {
     default: [],
     title: "Audio",
     description:
-      "Audio clips to attach to the prompt. Wire a list[audio] source to send several at once, or a single Audio (auto-wrapped into a one-item list). Each clip becomes a separate block in the user message sent to the provider."
+      "Audio clips to attach to the prompt. Loop mode only — plan mode rejects audio inputs. Wire a list[audio] source to send several at once, or a single Audio (auto-wrapped into a one-item list). Each clip becomes a separate block in the user message sent to the provider."
   })
   declare audio: AudioRef[];
 
@@ -2658,7 +856,7 @@ export class AgentNode extends BaseNode {
     default: [],
     title: "Messages",
     description:
-      "Prior conversation turns to include before the current prompt, in chronological order (oldest first). Each item is a Message with a role (user/assistant/tool) and content. Use this to supply ad‑hoc context — for example, few‑shot examples, a previous chat transcript piped in from another node, or the messages output of an upstream Agent. Inserted between the system prompt and the new user prompt. If a Thread ID is also set, history loaded from the thread comes first, then this list, then the current prompt."
+      "Prior conversation turns to include before the current prompt, in chronological order (oldest first). Loop mode only — plan mode rejects a non-empty history. Each item is a Message with a role (user/assistant/tool) and content. Use this to supply ad‑hoc context — for example, few‑shot examples, a previous chat transcript piped in from another node, or the messages output of an upstream Agent. Inserted between the system prompt and the new user prompt. If a Thread ID is also set, history loaded from the thread comes first, then this list, then the current prompt."
   })
   declare history: Message[];
 
@@ -2667,7 +865,7 @@ export class AgentNode extends BaseNode {
     default: "",
     title: "Thread ID",
     description:
-      "Identifier for a persistent conversation thread. When set, the agent loads all earlier messages stored under this ID before this turn and saves the new user message, assistant reply, and any tool messages back to it — giving the agent long‑term memory across runs and across nodes that share the same ID. Leave empty for a stateless one‑shot call. Use the Create Thread node to mint a fresh ID, or wire in the same string from upstream to continue an existing conversation."
+      "Identifier for a persistent conversation thread. Loop mode only — plan mode rejects a thread_id. When set, the agent loads all earlier messages stored under this ID before this turn and saves the new user message, assistant reply, and any tool messages back to it — giving the agent long‑term memory across runs and across nodes that share the same ID. Leave empty for a stateless one‑shot call. Use the Create Thread node to mint a fresh ID, or wire in the same string from upstream to continue an existing conversation."
   })
   declare thread_id: string;
 
@@ -2676,7 +874,7 @@ export class AgentNode extends BaseNode {
     default: AGENT_DEFAULT_MAX_TOKENS,
     title: "Max Tokens",
     description:
-      "Upper bound on generated tokens per response, including visible output and any reasoning/thinking tokens used by reasoning models. Higher values allow longer answers and more thinking headroom but cost more and take longer; very low values may truncate reasoning or the final answer. Typical values: 1024 for short answers, 8192–16384 for normal agent use, 32k+ for long-form or heavy reasoning. Must be within the chosen model's context window.",
+      "Upper bound on generated tokens per response, including visible output and any reasoning/thinking tokens used by reasoning models. Applies in both loop and plan mode (plan mode threads it to every step executor and the final compiler pass). Higher values allow longer answers and more thinking headroom but cost more and take longer; very low values may truncate reasoning or the final answer. Typical values: 1024 for short answers, 8192–16384 for normal agent use, 32k+ for long-form or heavy reasoning. Must be within the chosen model's context window.",
     min: 1,
     max: 100000
   })
@@ -2718,8 +916,7 @@ export class AgentNode extends BaseNode {
       hasGetProvider: Boolean(
         context && typeof context.getProvider === "function"
       ),
-      propKeys: Object.keys(this.serialize()),
-      inputKeys: Object.keys(this.serialize())
+      propKeys: Object.keys(this.serialize())
     });
     if (!providerId || !modelId) {
       log.error("AgentNode missing model selection", {
@@ -2867,64 +1064,25 @@ export class AgentNode extends BaseNode {
                   });
                 }
 
+                // Control tools carry their own dispatch logic in `process`
+                // (filter args → sendControlEvent), so they flow through this
+                // generic path like any other tool.
                 let result: unknown;
-
-                if (isControlTool(tool)) {
-                  const callArgs = Object.fromEntries(
-                    Object.entries(args ?? {}).filter(([key]) =>
-                      tool.allowedProperties.has(key)
-                    )
-                  );
-                  log.info("AgentNode dispatching control tool", {
+                log.info("AgentNode executing tool", {
+                  nodeId: this.__node_id ?? null,
+                  toolName: tool.name
+                });
+                try {
+                  result = await tool.process(context, args);
+                } catch (err) {
+                  const message =
+                    err instanceof Error ? err.message : String(err);
+                  log.warn("AgentNode tool execution failed", {
                     nodeId: this.__node_id ?? null,
                     toolName: tool.name,
-                    targetNodeId: tool.targetNodeId,
-                    argKeys: Object.keys(callArgs)
+                    error: message
                   });
-
-                  if (context.hasControlEventSupport) {
-                    try {
-                      const controlResult = await context.sendControlEvent(
-                        tool.targetNodeId,
-                        callArgs
-                      );
-                      result = {
-                        status: "completed",
-                        target_node_id: tool.targetNodeId,
-                        result: controlResult
-                      };
-                    } catch (err) {
-                      result = {
-                        status: "error",
-                        target_node_id: tool.targetNodeId,
-                        error: err instanceof Error ? err.message : String(err)
-                      };
-                    }
-                  } else {
-                    result = {
-                      status: "error",
-                      target_node_id: tool.targetNodeId,
-                      error:
-                        "Control event dispatch is not available in this execution context"
-                    };
-                  }
-                } else {
-                  log.info("AgentNode executing tool", {
-                    nodeId: this.__node_id ?? null,
-                    toolName: tool.name
-                  });
-                  try {
-                    result = await tool.process(context, args);
-                  } catch (err) {
-                    const message =
-                      err instanceof Error ? err.message : String(err);
-                    log.warn("AgentNode tool execution failed", {
-                      nodeId: this.__node_id ?? null,
-                      toolName: tool.name,
-                      error: message
-                    });
-                    result = { status: "error", error: message };
-                  }
+                  result = { status: "error", error: message };
                 }
 
                 return JSON.stringify(serializeToolResult(result));
@@ -3019,7 +1177,7 @@ export class AgentNode extends BaseNode {
         thinkSplitter = new RedactedThinkingStreamSplitter();
       };
 
-      for await (const raw of provider.generateLoop({
+      const stream = provider.generateLoop({
         messages,
         model: modelId,
         tools: providerTools,
@@ -3027,20 +1185,20 @@ export class AgentNode extends BaseNode {
         maxIterations: maxTurns,
         sequentialTools: true,
         threadId: threadId || undefined
-      })) {
-        const item = normalizeProviderStreamItem(raw);
-
-        if (isToolCallItem(item)) {
+      });
+      for await (const event of classifyProviderStream(stream)) {
+        if (event.kind === "tool_call") {
+          const toolCall = event.toolCall;
           log.info("AgentNode received tool call", {
             nodeId: this.__node_id ?? null,
             providerId,
             modelId,
-            toolCallId: item.id,
-            toolName: item.name,
-            argKeys: Object.keys(item.args ?? {})
+            toolCallId: toolCall.id,
+            toolName: toolCall.name,
+            argKeys: Object.keys(toolCall.args ?? {})
           });
           yield {
-            chunk: toolCallChunk(item),
+            chunk: toolCallChunk(toolCall),
             thinking: null,
             text: null,
             audio: null
@@ -3048,35 +1206,38 @@ export class AgentNode extends BaseNode {
           continue;
         }
 
-        if (isChunkItem(item)) {
-          if (item.thinking) {
-            yield { chunk: null, thinking: item, text: null, audio: null };
-            continue;
-          }
-          if (item.content_type === "audio") {
-            yield { chunk: item, thinking: null, text: null, audio: null };
-            const audioBytes =
-              typeof item.content === "string" && item.content
-                ? Buffer.from(item.content, "base64")
-                : item.content instanceof Float32Array
-                  ? Buffer.from(
-                      item.content.buffer,
-                      item.content.byteOffset,
-                      item.content.byteLength
-                    )
-                  : Buffer.alloc(0);
-            yield {
-              chunk: null,
-              thinking: null,
-              text: null,
-              audio: { data: new Uint8Array(audioBytes) }
-            };
-            continue;
-          }
-          const rawPiece = typeof item.content === "string" ? item.content : "";
+        if (event.kind === "thinking") {
+          yield { chunk: null, thinking: event.chunk, text: null, audio: null };
+          continue;
+        }
+
+        if (event.kind === "audio") {
+          const chunk = event.chunk;
+          yield { chunk, thinking: null, text: null, audio: null };
+          const audioBytes =
+            typeof chunk.content === "string" && chunk.content
+              ? Buffer.from(chunk.content, "base64")
+              : chunk.content instanceof Float32Array
+                ? Buffer.from(
+                    chunk.content.buffer,
+                    chunk.content.byteOffset,
+                    chunk.content.byteLength
+                  )
+                : Buffer.alloc(0);
+          yield {
+            chunk: null,
+            thinking: null,
+            text: null,
+            audio: { data: new Uint8Array(audioBytes) }
+          };
+          continue;
+        }
+
+        if (event.kind === "text") {
+          const rawPiece = event.delta;
           assistantText += rawPiece;
           for (const y of yieldSplitThinkChunks(
-            item,
+            event.chunk,
             rawPiece,
             thinkSplitter
           )) {
@@ -3089,35 +1250,29 @@ export class AgentNode extends BaseNode {
         // A finalized message event (assistant turn or tool result). generateLoop
         // owns the message array; we mirror the old per-turn finalization +
         // thread persistence off these. Each assistant event closes a turn.
-        if (
-          item &&
-          typeof item === "object" &&
-          "type" in item &&
-          (item as { type?: string }).type === "message"
-        ) {
-          const message = (item as { message?: Message }).message;
-          if (!message) continue;
-          if (message.role === "assistant") {
-            // Rebuild the persisted assistant message from our own accumulated
-            // text (which excludes audio chunks) so saved history keeps its old
-            // array shape; carry tool calls / Gemini thought-signature parts from
-            // the event since generateLoop now owns the live message.
-            const hadToolCalls = (message.toolCalls?.length ?? 0) > 0;
-            const persistMessage: Message = {
-              role: "assistant",
-              content: [{ type: "text", text: assistantText }],
-              toolCalls: message.toolCalls ?? null
-            };
-            if (message._rawGeminiParts) {
-              persistMessage._rawGeminiParts = message._rawGeminiParts;
-            }
-            const shouldPersist = Boolean(assistantText) || hadToolCalls;
-            yield* finalizeAssistantTurn();
-            if (threadId && shouldPersist) {
-              await saveThreadMessage(context, threadId, persistMessage);
-            }
-          } else if (threadId) {
-            await saveThreadMessage(context, threadId, message);
+        if (event.kind === "assistant_message") {
+          const message = event.message;
+          // Rebuild the persisted assistant message from our own accumulated
+          // text (which excludes audio chunks) so saved history keeps its old
+          // array shape; carry tool calls / Gemini thought-signature parts from
+          // the event since generateLoop now owns the live message.
+          const hadToolCalls = (message.toolCalls?.length ?? 0) > 0;
+          const persistMessage: Message = {
+            role: "assistant",
+            content: [{ type: "text", text: assistantText }],
+            toolCalls: message.toolCalls ?? null
+          };
+          if (message._rawGeminiParts) {
+            persistMessage._rawGeminiParts = message._rawGeminiParts;
+          }
+          const shouldPersist = Boolean(assistantText) || hadToolCalls;
+          yield* finalizeAssistantTurn();
+          if (threadId && shouldPersist) {
+            await saveThreadMessage(context, threadId, persistMessage);
+          }
+        } else if (event.kind === "tool_message") {
+          if (threadId) {
+            await saveThreadMessage(context, threadId, event.message);
           }
         }
       }
@@ -3198,6 +1353,26 @@ export class AgentNode extends BaseNode {
     providerId: string,
     modelId: string
   ): AsyncGenerator<Record<string, unknown>> {
+    // Plan mode runs a fresh planning agent off the objective — it has no
+    // conversation transcript, thread persistence, or media attachment path.
+    // Reject those inputs loudly instead of silently dropping them (the old
+    // behavior); they only apply in loop mode.
+    const threadId = String(this.thread_id ?? "").trim();
+    const history = Array.isArray(this.history) ? this.history : [];
+    const images = toRefArray(this.image);
+    const audios = toRefArray(this.audio);
+    if (
+      threadId ||
+      history.length > 0 ||
+      images.length > 0 ||
+      audios.length > 0
+    ) {
+      throw new Error(
+        "thread_id, history, image, and audio inputs only apply in loop mode. " +
+          'Set Mode to "loop" to use conversation history, threads, or image/audio inputs.'
+      );
+    }
+
     const prompt = asText(this.prompt ?? "");
     const system = asText(this.system ?? DEFAULT_SYSTEM_PROMPT);
     const rawTools: ToolLike[] = await this.buildTools(context);
@@ -3225,6 +1400,14 @@ export class AgentNode extends BaseNode {
       systemPrompt: system,
       outputSchema: structuredSchema ?? undefined,
       planningModel: modelId,
+      // Per-turn output-token cap, matching loop mode's use of max_tokens.
+      // Threaded to every step executor and the final compiler pass.
+      maxTokens: Number(this.max_tokens ?? AGENT_DEFAULT_MAX_TOKENS),
+      // maxSteps caps the *number of plan steps* the executor will run
+      // (`stepsTaken < maxSteps` in TaskExecutor), not the per-step tool-call
+      // iteration count. The node's `max_turns` is a turn/iteration budget, so
+      // it maps to maxStepIterations semantics, not maxSteps — deriving maxSteps
+      // from max_turns would conflate plan size with turn count. Kept fixed here.
       maxSteps: 10,
       maxStepIterations: 5
     });
@@ -3374,6 +1557,11 @@ export class AgentStepNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
+  // Hidden from the node palette/search: GraphPlanner and AgentWorkflowRunner
+  // insert this node; adding it by hand throws in process(). It stays
+  // registered so the registry, search_nodes, and get_node_info still resolve
+  // it for those agent runners.
+  static readonly hidden = true;
   static readonly inlineFields = ["instructions"];
   static readonly inputFields = ["input"];
 
@@ -3415,11 +1603,12 @@ export class AgentStepNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     throw new Error(
-      "AgentStep cannot run via the standard workflow runner — it depends on " +
-        "the agent runner's configured provider/model. Use this node only in " +
-        "agent-mode workflows (chat in agent mode, or AgentWorkflowRunner). " +
-        "For a standalone LLM step with its own model property, use " +
-        "`nodetool.agents.Agent` instead."
+      "AgentStep is not a standalone node — do not add it to a graph by hand. " +
+        "It is inserted by GraphPlanner and executed by AgentWorkflowRunner, " +
+        "which supplies the workflow's configured provider/model; it has no " +
+        "`model` property of its own, so the standard workflow runner cannot " +
+        "run it. For a standalone LLM step you place yourself, use " +
+        "`nodetool.agents.Agent` (it has its own model property) instead."
     );
   }
 }

@@ -5,24 +5,15 @@
  */
 
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import type { NodeClass } from "@nodetool-ai/node-sdk";
 import { tagAsUniversal } from "@nodetool-ai/nodes-utils";
 import {
   getDefaultVectorProvider,
   OllamaEmbeddingFunction,
   type RecordMetadata,
   type VectorCollection,
-  type VectorMatch
+  type VectorMatch,
+  type VectorRecord
 } from "@nodetool-ai/vectorstore";
-
-async function getOllamaEmbedding(
-  model: string,
-  text: string
-): Promise<number[]> {
-  const ef = new OllamaEmbeddingFunction(model);
-  const result = await ef.generate([text]);
-  return result[0];
-}
 
 async function getCollectionByName(name: string): Promise<VectorCollection> {
   return getDefaultVectorProvider().getCollection({ name });
@@ -45,6 +36,52 @@ function sortMatchesById(matches: VectorMatch[]): VectorMatch[] {
   return [...matches].sort((a, b) => a.id.localeCompare(b.id));
 }
 
+function splitIntoWords(text: string): string[] {
+  return text.split(/\s+/).filter((w) => w.length > 0);
+}
+
+/** Length of the longest word suffix of `words1` that prefixes `words2`. */
+function findWordOverlap(
+  words1: string[],
+  words2: string[],
+  minOverlap: number
+): number {
+  if (words1.length < minOverlap || words2.length < minOverlap) return 0;
+
+  const maxCheck = Math.min(words1.length, words2.length);
+  for (let overlapSize = maxCheck; overlapSize >= minOverlap; overlapSize--) {
+    const tail = words1.slice(words1.length - overlapSize);
+    const head = words2.slice(0, overlapSize);
+    if (tail.every((w, i) => w === head[i])) {
+      return overlapSize;
+    }
+  }
+  return 0;
+}
+
+/** Build a $document keyword filter for the query text, or null if no tokens. */
+function keywordFilter(
+  text: string,
+  minKeywordLength: number
+): Record<string, unknown> | null {
+  const pattern = /[ ,.!?\-_=|]+/;
+  const queryTokens = text
+    .toLowerCase()
+    .split(pattern)
+    .map((t) => t.trim())
+    .filter((t) => t.length >= minKeywordLength);
+
+  if (queryTokens.length === 0) return null;
+  if (queryTokens.length > 1) {
+    return {
+      $document: {
+        $or: queryTokens.map((token) => ({ $contains: token }))
+      }
+    };
+  }
+  return { $document: { $contains: queryTokens[0] } };
+}
+
 export class CollectionNode extends BaseNode {
   static readonly nodeType = "vector.Collection";
   static readonly title = "Collection";
@@ -62,7 +99,7 @@ export class CollectionNode extends BaseNode {
     title: "Name",
     description: "The name of the collection to create"
   })
-  declare name: any;
+  declare name: string;
 
   @prop({
     type: "llama_model",
@@ -79,7 +116,7 @@ export class CollectionNode extends BaseNode {
     description:
       "Model to use for embedding, search for nomic-embed-text and download it"
   })
-  declare embedding_model: any;
+  declare embedding_model: unknown;
 
   async process(): Promise<Record<string, unknown>> {
     const name = String(this.name ?? "");
@@ -103,7 +140,7 @@ export class CollectionNode extends BaseNode {
 
 export class CountNode extends BaseNode {
   static readonly nodeType = "vector.Count";
-  static readonly title = "Count";
+  static readonly title = "Count Documents";
   static readonly description =
     "Count the number of documents in a collection.\n    vector, embedding, collection, RAG";
   static readonly inlineFields = [];
@@ -121,7 +158,7 @@ export class CountNode extends BaseNode {
     title: "Collection",
     description: "The collection to count"
   })
-  declare collection: any;
+  declare collection: unknown;
 
   async process(): Promise<Record<string, unknown>> {
     const collectionInput = (this.collection ?? { name: "" }) as { name: string };
@@ -151,7 +188,7 @@ export class GetDocumentsNode extends BaseNode {
     title: "Collection",
     description: "The collection to get"
   })
-  declare collection: any;
+  declare collection: unknown;
 
   @prop({
     type: "list[str]",
@@ -159,7 +196,7 @@ export class GetDocumentsNode extends BaseNode {
     title: "Ids",
     description: "The ids of the documents to get"
   })
-  declare ids: any;
+  declare ids: string[];
 
   @prop({
     type: "int",
@@ -167,7 +204,7 @@ export class GetDocumentsNode extends BaseNode {
     title: "Limit",
     description: "The limit of the documents to get"
   })
-  declare limit: any;
+  declare limit: number;
 
   @prop({
     type: "int",
@@ -175,7 +212,7 @@ export class GetDocumentsNode extends BaseNode {
     title: "Offset",
     description: "The offset of the documents to get"
   })
-  declare offset: any;
+  declare offset: number;
 
   async process(): Promise<Record<string, unknown>> {
     const collectionInput = (this.collection ?? { name: "" }) as { name: string };
@@ -195,7 +232,7 @@ export class GetDocumentsNode extends BaseNode {
       offset
     });
 
-    return { output: records.map((r) => r.document ?? null) };
+    return { output: records.map((r: VectorRecord) => r.document ?? null) };
   }
 }
 
@@ -216,7 +253,7 @@ export class PeekNode extends BaseNode {
     title: "Collection",
     description: "The collection to peek"
   })
-  declare collection: any;
+  declare collection: unknown;
 
   @prop({
     type: "int",
@@ -224,7 +261,7 @@ export class PeekNode extends BaseNode {
     title: "Limit",
     description: "The limit of the documents to peek"
   })
-  declare limit: any;
+  declare limit: number;
 
   async process(): Promise<Record<string, unknown>> {
     const collectionInput = (this.collection ?? { name: "" }) as { name: string };
@@ -235,7 +272,7 @@ export class PeekNode extends BaseNode {
 
     const collection = await getCollectionByName(name);
     const records = await collection.get({ limit });
-    return { output: records.map((r) => r.document ?? null) };
+    return { output: records.map((r: VectorRecord) => r.document ?? null) };
   }
 }
 
@@ -253,7 +290,7 @@ export class IndexImageNode extends BaseNode {
     title: "Collection",
     description: "The collection to index"
   })
-  declare collection: any;
+  declare collection: unknown;
 
   @prop({
     type: "image",
@@ -267,7 +304,7 @@ export class IndexImageNode extends BaseNode {
     title: "Image",
     description: "The image asset to index"
   })
-  declare image: any;
+  declare image: unknown;
 
   @prop({
     type: "str",
@@ -276,7 +313,7 @@ export class IndexImageNode extends BaseNode {
     description:
       "The ID to associate with the image, defaults to the URI of the image"
   })
-  declare index_id: any;
+  declare index_id: string;
 
   @prop({
     type: "dict",
@@ -284,7 +321,7 @@ export class IndexImageNode extends BaseNode {
     title: "Metadata",
     description: "The metadata to associate with the image"
   })
-  declare metadata: any;
+  declare metadata: Record<string, unknown>;
 
   @prop({
     type: "bool",
@@ -292,7 +329,7 @@ export class IndexImageNode extends BaseNode {
     title: "Upsert",
     description: "Whether to upsert the images"
   })
-  declare upsert: any;
+  declare upsert: boolean;
 
   async process(): Promise<Record<string, unknown>> {
     const collectionInput = (this.collection ?? { name: "" }) as { name: string };
@@ -345,7 +382,7 @@ export class IndexEmbeddingNode extends BaseNode {
     title: "Collection",
     description: "The collection to index"
   })
-  declare collection: any;
+  declare collection: unknown;
 
   @prop({
     type: "list",
@@ -353,7 +390,7 @@ export class IndexEmbeddingNode extends BaseNode {
     title: "Embedding",
     description: "The embedding to index"
   })
-  declare embedding: any;
+  declare embedding: unknown;
 
   @prop({
     type: "union[str, list[str]]",
@@ -361,7 +398,7 @@ export class IndexEmbeddingNode extends BaseNode {
     title: "Index Id",
     description: "The ID to associate with the embedding"
   })
-  declare index_id: any;
+  declare index_id: string | string[];
 
   @prop({
     type: "union[dict, list[dict]]",
@@ -369,7 +406,7 @@ export class IndexEmbeddingNode extends BaseNode {
     title: "Metadata",
     description: "The metadata to associate with the embedding"
   })
-  declare metadata: any;
+  declare metadata: Record<string, unknown> | Record<string, unknown>[];
 
   async process(): Promise<Record<string, unknown>> {
     const collectionInput = (this.collection ?? { name: "" }) as { name: string };
@@ -469,7 +506,7 @@ export class IndexTextChunkNode extends BaseNode {
     title: "Collection",
     description: "The collection to index"
   })
-  declare collection: any;
+  declare collection: unknown;
 
   @prop({
     type: "str",
@@ -477,7 +514,7 @@ export class IndexTextChunkNode extends BaseNode {
     title: "Document Id",
     description: "The document ID to associate with the text chunk"
   })
-  declare document_id: any;
+  declare document_id: string;
 
   @prop({
     type: "str",
@@ -485,7 +522,7 @@ export class IndexTextChunkNode extends BaseNode {
     title: "Text",
     description: "The text to index"
   })
-  declare text: any;
+  declare text: string;
 
   @prop({
     type: "dict",
@@ -493,7 +530,7 @@ export class IndexTextChunkNode extends BaseNode {
     title: "Metadata",
     description: "The metadata to associate with the text chunk"
   })
-  declare metadata: any;
+  declare metadata: Record<string, unknown>;
 
   async process(): Promise<Record<string, unknown>> {
     const collectionInput = (this.collection ?? { name: "" }) as { name: string };
@@ -531,7 +568,7 @@ export class IndexAggregatedTextNode extends BaseNode {
     title: "Collection",
     description: "The collection to index"
   })
-  declare collection: any;
+  declare collection: unknown;
 
   @prop({
     type: "str",
@@ -539,7 +576,7 @@ export class IndexAggregatedTextNode extends BaseNode {
     title: "Document",
     description: "The document to index"
   })
-  declare document: any;
+  declare document: string;
 
   @prop({
     type: "str",
@@ -547,7 +584,7 @@ export class IndexAggregatedTextNode extends BaseNode {
     title: "Document Id",
     description: "The document ID to associate with the text"
   })
-  declare document_id: any;
+  declare document_id: string;
 
   @prop({
     type: "dict",
@@ -555,7 +592,7 @@ export class IndexAggregatedTextNode extends BaseNode {
     title: "Metadata",
     description: "The metadata to associate with the text"
   })
-  declare metadata: any;
+  declare metadata: Record<string, unknown>;
 
   @prop({
     type: "list[union[text_chunk, str]]",
@@ -563,7 +600,7 @@ export class IndexAggregatedTextNode extends BaseNode {
     title: "Text Chunks",
     description: "List of text chunks to index"
   })
-  declare text_chunks: any;
+  declare text_chunks: unknown[];
 
   @prop({
     type: "enum",
@@ -572,7 +609,7 @@ export class IndexAggregatedTextNode extends BaseNode {
     description: "The aggregation method to use for the embeddings.",
     values: ["mean", "max", "min", "sum"]
   })
-  declare aggregation: any;
+  declare aggregation: string;
 
   async process(): Promise<Record<string, unknown>> {
     const collectionInput = (this.collection ?? { name: "" }) as { name: string };
@@ -605,10 +642,9 @@ export class IndexAggregatedTextNode extends BaseNode {
       typeof chunk === "string" ? chunk : chunk.text
     );
 
-    const embeddings: number[][] = [];
-    for (const text of texts) {
-      embeddings.push(await getOllamaEmbedding(model, text));
-    }
+    // Embed all chunks in one batched call against a single Ollama instance.
+    const embeddingFn = new OllamaEmbeddingFunction(model);
+    const embeddings = await embeddingFn.generate(texts);
 
     const dim = embeddings[0].length;
     const aggregated = new Array<number>(dim).fill(0);
@@ -667,7 +703,7 @@ export class IndexStringNode extends BaseNode {
     title: "Collection",
     description: "The collection to index"
   })
-  declare collection: any;
+  declare collection: unknown;
 
   @prop({
     type: "str",
@@ -675,7 +711,7 @@ export class IndexStringNode extends BaseNode {
     title: "Text",
     description: "Text content to index"
   })
-  declare text: any;
+  declare text: string;
 
   @prop({
     type: "str",
@@ -683,7 +719,7 @@ export class IndexStringNode extends BaseNode {
     title: "Document Id",
     description: "Document ID to associate with the text content"
   })
-  declare document_id: any;
+  declare document_id: string;
 
   @prop({
     type: "dict",
@@ -691,7 +727,7 @@ export class IndexStringNode extends BaseNode {
     title: "Metadata",
     description: "The metadata to associate with the text"
   })
-  declare metadata: any;
+  declare metadata: Record<string, unknown>;
 
   async process(): Promise<Record<string, unknown>> {
     const collectionInput = (this.collection ?? { name: "" }) as { name: string };
@@ -730,7 +766,7 @@ export class QueryImageNode extends BaseNode {
     title: "Collection",
     description: "The collection to query"
   })
-  declare collection: any;
+  declare collection: unknown;
 
   @prop({
     type: "image",
@@ -744,7 +780,7 @@ export class QueryImageNode extends BaseNode {
     title: "Image",
     description: "The image to query"
   })
-  declare image: any;
+  declare image: unknown;
 
   @prop({
     type: "int",
@@ -752,7 +788,7 @@ export class QueryImageNode extends BaseNode {
     title: "N Results",
     description: "The number of results to return"
   })
-  declare n_results: any;
+  declare n_results: number;
 
   async process(): Promise<Record<string, unknown>> {
     const collectionInput = (this.collection ?? { name: "" }) as { name: string };
@@ -799,7 +835,7 @@ export class QueryTextNode extends BaseNode {
     title: "Collection",
     description: "The collection to query"
   })
-  declare collection: any;
+  declare collection: unknown;
 
   @prop({
     type: "str",
@@ -807,7 +843,7 @@ export class QueryTextNode extends BaseNode {
     title: "Text",
     description: "The text to query"
   })
-  declare text: any;
+  declare text: string;
 
   @prop({
     type: "int",
@@ -815,7 +851,7 @@ export class QueryTextNode extends BaseNode {
     title: "N Results",
     description: "The number of results to return"
   })
-  declare n_results: any;
+  declare n_results: number;
 
   async process(): Promise<Record<string, unknown>> {
     const collectionInput = (this.collection ?? { name: "" }) as { name: string };
@@ -856,7 +892,7 @@ export class RemoveOverlapNode extends BaseNode {
     title: "Documents",
     description: "List of strings to process for overlap removal"
   })
-  declare documents: any;
+  declare documents: string[];
 
   @prop({
     type: "int",
@@ -864,29 +900,7 @@ export class RemoveOverlapNode extends BaseNode {
     title: "Min Overlap Words",
     description: "Minimum number of words that must overlap to be considered"
   })
-  declare min_overlap_words: any;
-
-  private _splitIntoWords(text: string): string[] {
-    return text.split(/\s+/).filter((w) => w.length > 0);
-  }
-
-  private _findWordOverlap(
-    words1: string[],
-    words2: string[],
-    minOverlap: number
-  ): number {
-    if (words1.length < minOverlap || words2.length < minOverlap) return 0;
-
-    const maxCheck = Math.min(words1.length, words2.length);
-    for (let overlapSize = maxCheck; overlapSize >= minOverlap; overlapSize--) {
-      const tail = words1.slice(words1.length - overlapSize);
-      const head = words2.slice(0, overlapSize);
-      if (tail.every((w, i) => w === head[i])) {
-        return overlapSize;
-      }
-    }
-    return 0;
-  }
+  declare min_overlap_words: number;
 
   async process(): Promise<Record<string, unknown>> {
     const documents = (this.documents ?? []) as string[];
@@ -899,10 +913,10 @@ export class RemoveOverlapNode extends BaseNode {
     const result: string[] = [documents[0]];
 
     for (let i = 1; i < documents.length; i++) {
-      const prevWords = this._splitIntoWords(result[result.length - 1]);
-      const currWords = this._splitIntoWords(documents[i]);
+      const prevWords = splitIntoWords(result[result.length - 1]);
+      const currWords = splitIntoWords(documents[i]);
 
-      const overlapWordCount = this._findWordOverlap(
+      const overlapWordCount = findWordOverlap(
         prevWords,
         currWords,
         minOverlapWords
@@ -924,7 +938,7 @@ export class HybridSearchNode extends BaseNode {
   static readonly nodeType = "vector.HybridSearch";
   static readonly title = "Hybrid Search";
   static readonly description =
-    "Hybrid search combining semantic and keyword-based search for better retrieval. Uses reciprocal rank fusion to combine results from both methods.\n    vector, RAG, query, semantic, text, similarity";
+    "Fuse a semantic ranking with a keyword-filtered semantic ranking via reciprocal rank fusion. The keyword leg runs the same semantic query constrained to documents containing the query tokens, so documents matching on both legs rank higher.\n    vector, RAG, query, semantic, text, similarity";
   static readonly inlineFields = ["text", "n_results"];
   static readonly inputFields = ["collection"];
   static readonly metadataOutputTypes = {
@@ -941,7 +955,7 @@ export class HybridSearchNode extends BaseNode {
     title: "Collection",
     description: "The collection to query"
   })
-  declare collection: any;
+  declare collection: unknown;
 
   @prop({
     type: "str",
@@ -949,7 +963,7 @@ export class HybridSearchNode extends BaseNode {
     title: "Text",
     description: "The text to query"
   })
-  declare text: any;
+  declare text: string;
 
   @prop({
     type: "int",
@@ -957,7 +971,7 @@ export class HybridSearchNode extends BaseNode {
     title: "N Results",
     description: "The number of final results to return"
   })
-  declare n_results: any;
+  declare n_results: number;
 
   @prop({
     type: "float",
@@ -965,7 +979,7 @@ export class HybridSearchNode extends BaseNode {
     title: "K Constant",
     description: "Constant for reciprocal rank fusion (default: 60.0)"
   })
-  declare k_constant: any;
+  declare k_constant: number;
 
   @prop({
     type: "int",
@@ -973,29 +987,7 @@ export class HybridSearchNode extends BaseNode {
     title: "Min Keyword Length",
     description: "Minimum length for keyword tokens"
   })
-  declare min_keyword_length: any;
-
-  private _getKeywordFilter(
-    text: string,
-    minKeywordLength: number
-  ): Record<string, unknown> | null {
-    const pattern = /[ ,.!?\-_=|]+/;
-    const queryTokens = text
-      .toLowerCase()
-      .split(pattern)
-      .map((t) => t.trim())
-      .filter((t) => t.length >= minKeywordLength);
-
-    if (queryTokens.length === 0) return null;
-    if (queryTokens.length > 1) {
-      return {
-        $document: {
-          $or: queryTokens.map((token) => ({ $contains: token }))
-        }
-      };
-    }
-    return { $document: { $contains: queryTokens[0] } };
-  }
+  declare min_keyword_length: number;
 
   async process(): Promise<Record<string, unknown>> {
     const collectionInput = (this.collection ?? { name: "" }) as { name: string };
@@ -1018,12 +1010,12 @@ export class HybridSearchNode extends BaseNode {
 
     // Without a keyword filter there is no second ranking to fuse — fusing
     // the semantic list against itself would only double every score.
-    const keywordFilter = this._getKeywordFilter(text, minKeywordLength);
-    const keywordMatches: VectorMatch[] = keywordFilter
+    const filter = keywordFilter(text, minKeywordLength);
+    const keywordMatches: VectorMatch[] = filter
       ? await collection.query({
           text,
           topK: nResults * 2,
-          filter: keywordFilter
+          filter
         })
       : [];
 
@@ -1072,17 +1064,17 @@ export class HybridSearchNode extends BaseNode {
 }
 
 export const VECTOR_NODES = tagAsUniversal([
-  CollectionNode as unknown as NodeClass,
-  CountNode as unknown as NodeClass,
-  GetDocumentsNode as unknown as NodeClass,
-  PeekNode as unknown as NodeClass,
-  IndexImageNode as unknown as NodeClass,
-  IndexEmbeddingNode as unknown as NodeClass,
-  IndexTextChunkNode as unknown as NodeClass,
-  IndexAggregatedTextNode as unknown as NodeClass,
-  IndexStringNode as unknown as NodeClass,
-  QueryImageNode as unknown as NodeClass,
-  QueryTextNode as unknown as NodeClass,
-  RemoveOverlapNode as unknown as NodeClass,
-  HybridSearchNode as unknown as NodeClass
+  CollectionNode,
+  CountNode,
+  GetDocumentsNode,
+  PeekNode,
+  IndexImageNode,
+  IndexEmbeddingNode,
+  IndexTextChunkNode,
+  IndexAggregatedTextNode,
+  IndexStringNode,
+  QueryImageNode,
+  QueryTextNode,
+  RemoveOverlapNode,
+  HybridSearchNode
 ]);

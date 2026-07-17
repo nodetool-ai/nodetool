@@ -24,6 +24,13 @@ const h = vi.hoisted(() => {
     count,
     metadata: { embedding_model: "test-model" }
   };
+  // Track how the Ollama embedding function is used, so tests can assert the
+  // aggregation node batches (one instance, one generate call) rather than
+  // constructing a fresh instance per chunk.
+  const ollamaConstruct = vi.fn();
+  const ollamaGenerate = vi.fn(async (texts: string[]) =>
+    texts.map((_t, i) => [0.1 * (i + 1), 0.2 * (i + 1)])
+  );
   return {
     query,
     get,
@@ -31,7 +38,9 @@ const h = vi.hoisted(() => {
     count,
     collection,
     getCollection: vi.fn(async () => collection),
-    getOrCreateCollection: vi.fn(async () => collection)
+    getOrCreateCollection: vi.fn(async () => collection),
+    ollamaConstruct,
+    ollamaGenerate
   };
 });
 
@@ -41,8 +50,11 @@ vi.mock("@nodetool-ai/vectorstore", () => ({
     getOrCreateCollection: h.getOrCreateCollection
   }),
   OllamaEmbeddingFunction: class {
-    async generate(texts: string[]): Promise<number[][]> {
-      return texts.map(() => [0.1, 0.2]);
+    constructor(model: string) {
+      h.ollamaConstruct(model);
+    }
+    generate(texts: string[]): Promise<number[][]> {
+      return h.ollamaGenerate(texts);
     }
   }
 }));
@@ -52,7 +64,10 @@ vi.mock("@nodetool-ai/vectorstore", () => ({
 // would load the real provider.
 import {
   CollectionNode,
+  CountNode,
   GetDocumentsNode,
+  HybridSearchNode,
+  IndexAggregatedTextNode,
   IndexEmbeddingNode,
   QueryImageNode,
   QueryTextNode
@@ -62,6 +77,8 @@ beforeEach(() => {
   h.query.mockReset();
   h.get.mockReset();
   h.upsert.mockReset();
+  h.ollamaConstruct.mockClear();
+  h.ollamaGenerate.mockClear();
 });
 
 describe("QueryTextNode", () => {
@@ -153,5 +170,53 @@ describe("CollectionNode", () => {
     expect(out).toEqual({
       output: { type: "collection", name: "my-collection" }
     });
+  });
+});
+
+describe("CountNode", () => {
+  it("is titled 'Count Documents' to avoid colliding with the control Count node", () => {
+    expect(CountNode.title).toBe("Count Documents");
+    expect(CountNode.nodeType).toBe("vector.Count");
+  });
+});
+
+describe("HybridSearchNode", () => {
+  it("describes the reciprocal rank fusion honestly (no false keyword-search claim)", () => {
+    const desc = HybridSearchNode.description.toLowerCase();
+    expect(desc).toContain("reciprocal rank fusion");
+    expect(desc).not.toContain("keyword-based search");
+  });
+});
+
+describe("IndexAggregatedTextNode", () => {
+  it("batches embeddings: one Ollama instance, one generate call for all chunks", async () => {
+    h.upsert.mockResolvedValue(undefined);
+    const node = new IndexAggregatedTextNode();
+    node.assign({
+      collection: { name: "c" },
+      document: "the full document",
+      document_id: "doc-1",
+      text_chunks: ["chunk one", { text: "chunk two" }, "chunk three"],
+      aggregation: "mean"
+    });
+
+    await node.process();
+
+    expect(h.ollamaConstruct).toHaveBeenCalledTimes(1);
+    expect(h.ollamaConstruct).toHaveBeenCalledWith("test-model");
+    expect(h.ollamaGenerate).toHaveBeenCalledTimes(1);
+    expect(h.ollamaGenerate).toHaveBeenCalledWith([
+      "chunk one",
+      "chunk two",
+      "chunk three"
+    ]);
+    expect(h.upsert).toHaveBeenCalledTimes(1);
+    const [records] = h.upsert.mock.calls[0] as [
+      Array<{ id: string; embedding: number[] }>
+    ];
+    expect(records[0].id).toBe("doc-1");
+    // mean of [0.1,0.2],[0.2,0.4],[0.3,0.6] = [0.2,0.4]
+    expect(records[0].embedding[0]).toBeCloseTo(0.2);
+    expect(records[0].embedding[1]).toBeCloseTo(0.4);
   });
 });

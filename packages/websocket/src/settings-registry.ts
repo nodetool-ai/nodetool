@@ -277,7 +277,7 @@ sec(
 sec(
   "KIMI_API_KEY",
   "Kimi",
-  "Kimi (Moonshot) API key for accessing Kimi models via the Claude-compatible endpoint. Get yours at https://platform.moonshot.cn/console/api-keys"
+  "Kimi (Moonshot) API key for accessing Kimi models via the OpenAI-compatible endpoint. Get yours at https://platform.moonshot.ai/console/api-keys"
 );
 sec(
   "MINIMAX_API_KEY",

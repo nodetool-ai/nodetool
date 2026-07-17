@@ -1,4 +1,3 @@
-import { OpenAIProvider } from "./openai-provider.js";
 import {
   OpenAICompatProvider,
   type OpenAICompatProviderOptions
@@ -32,6 +31,15 @@ function detectImageMime(bytes: Uint8Array): string {
     bytes[11] === 0x50
   ) {
     return "image/webp";
+  }
+  if (
+    bytes.length >= 4 &&
+    bytes[0] === 0x47 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x38
+  ) {
+    return "image/gif";
   }
   // PNG and everything else default to PNG — xAI accepts both jpeg and png.
   return "image/png";
@@ -124,8 +132,29 @@ export class XAIProvider extends OpenAICompatProvider {
     return true;
   }
 
-  /** Fetch and validate the rows from xAI's `/v1/models` listing. */
-  private async fetchModelRows(): Promise<XAIModelRow[]> {
+  private _modelRows: Promise<XAIModelRow[]> | null = null;
+
+  /**
+   * Fetch and validate the rows from xAI's `/v1/models` listing. The listing
+   * covers every modality, so the language/image/video getters share one
+   * request per instance. Empty results (bad key, transient failure) are not
+   * cached, so a fixed key recovers without a new provider instance.
+   */
+  private fetchModelRows(): Promise<XAIModelRow[]> {
+    this._modelRows ??= this.requestModelRows().then(
+      (rows) => {
+        if (rows.length === 0) this._modelRows = null;
+        return rows;
+      },
+      (error) => {
+        this._modelRows = null;
+        throw error;
+      }
+    );
+    return this._modelRows;
+  }
+
+  private async requestModelRows(): Promise<XAIModelRow[]> {
     const response = await this._xaiFetch(`${XAI_BASE_URL}/models`, {
       headers: {
         Authorization: `Bearer ${this.apiKey}`
@@ -248,6 +277,11 @@ export class XAIProvider extends OpenAICompatProvider {
     if (sources.length === 0) {
       throw new Error("image must not be empty.");
     }
+    if (sources.length > 3) {
+      throw new Error(
+        `xAI image edits accept at most 3 source images, got ${sources.length}.`
+      );
+    }
     if (!params.prompt) {
       throw new Error("The input prompt cannot be empty.");
     }
@@ -272,6 +306,7 @@ export class XAIProvider extends OpenAICompatProvider {
     };
     // A single input image keeps its own aspect ratio; only override when asked.
     if (params.aspectRatio) request.aspect_ratio = params.aspectRatio;
+    if (params.resolution) request.resolution = params.resolution;
 
     const response = await this._xaiFetch(`${XAI_BASE_URL}/images/edits`, {
       method: "POST",
@@ -310,7 +345,9 @@ export class XAIProvider extends OpenAICompatProvider {
       throw new Error("xAI video create response did not contain a request_id");
     }
 
-    const timeoutMs = (timeoutSeconds ?? 600) * 1000;
+    // Non-positive timeouts mean "unset", not "expire immediately".
+    const timeoutMs =
+      (timeoutSeconds && timeoutSeconds > 0 ? timeoutSeconds : 600) * 1000;
     const intervalMs = 5000;
     const start = Date.now();
 
@@ -351,14 +388,22 @@ export class XAIProvider extends OpenAICompatProvider {
     }
   }
 
-  /** Map our duration/frame params onto xAI's `duration` (1–15 seconds). */
+  /**
+   * Map our duration/frame params onto xAI's `duration` (1–15 seconds).
+   * xAI takes any whole second in that range, so frame counts convert at an
+   * assumed 24fps rather than snapping to another provider's duration grid.
+   */
   private static resolveVideoDuration(params: {
     durationSeconds?: number | null;
     numFrames?: number | null;
   }): number | undefined {
     const seconds =
-      params.durationSeconds ?? OpenAIProvider.secondsFromParams(params);
-    if (!seconds || seconds <= 0) return undefined;
+      params.durationSeconds && params.durationSeconds > 0
+        ? params.durationSeconds
+        : params.numFrames && params.numFrames > 0
+          ? params.numFrames / 24
+          : undefined;
+    if (!seconds || !Number.isFinite(seconds)) return undefined;
     return Math.min(15, Math.max(1, Math.round(seconds)));
   }
 

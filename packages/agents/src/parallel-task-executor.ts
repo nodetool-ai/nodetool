@@ -48,6 +48,8 @@ export interface ParallelTaskExecutorOptions {
   maxIterations?: number;
   /** Maximum iterations per step within a task. */
   maxStepIterations?: number;
+  /** Cap on output tokens per step turn. Forwarded to each TaskExecutor. */
+  maxTokens?: number;
   /**
    * Opt-in checkpoint store. When supplied with a {@link runId}, the executor
    * loads any checkpoint whose `planHash` matches this plan, marks its
@@ -77,6 +79,7 @@ export class ParallelTaskExecutor {
   private readonly systemPrompt: string | undefined;
   private readonly maxIterations: number;
   private readonly maxStepIterations: number;
+  private readonly maxTokens?: number;
   private readonly checkpointStore?: CheckpointStore;
   private readonly runId?: string;
   private readonly planTools?: string[];
@@ -100,6 +103,7 @@ export class ParallelTaskExecutor {
     this.maxIterations = opts.maxIterations ?? DEFAULT_MAX_TASK_ITERATIONS;
     this.maxStepIterations =
       opts.maxStepIterations ?? DEFAULT_MAX_STEP_ITERATIONS;
+    this.maxTokens = opts.maxTokens;
     this.checkpointStore = opts.checkpointStore;
     this.runId = opts.runId;
     this.planTools = opts.planTools;
@@ -307,6 +311,7 @@ export class ParallelTaskExecutor {
       inputs: this.inputs,
       maxSteps: task.steps.length + 5, // Allow some slack
       maxStepIterations: this.maxStepIterations,
+      maxTokens: this.maxTokens,
       parallelExecution: true, // Enable parallel step execution within each task
       upstreamMemoryKeys
     });

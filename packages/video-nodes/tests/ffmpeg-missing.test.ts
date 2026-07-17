@@ -144,15 +144,15 @@ describe("ffmpeg missing (ENOENT) — transform node", () => {
     await expect(node.process()).rejects.toThrowError();
   });
 
-  it("ResizeVideoNode falls back to the input bytes on a non-ENOENT ffmpeg failure", async () => {
-    // A genuine filtergraph failure must keep the legacy `?? bytes` behavior:
-    // ffmpegTransform returns null and the node passes the input through.
+  it("ResizeVideoNode throws (with stderr) on a genuine ffmpeg failure — no silent passthrough", async () => {
+    // A genuine filtergraph failure must surface as an error, not silently
+    // return the unchanged input (a no-op effect indistinguishable from a real
+    // one). ffmpegTransform rejects instead of the old `?? bytes` fallback.
     mode = "fail";
     const node = new ResizeVideoNode();
     node.assign({ video: videoRef([1, 2, 3, 4]), width: 320, height: 240 });
 
-    const result = await node.process();
-    expect(Array.from(bytesOf(result.output))).toEqual([1, 2, 3, 4]);
+    await expect(node.process()).rejects.toThrow(/ffmpeg failed/);
   });
 
   it("ResizeVideoNode returns the transformed bytes when ffmpeg succeeds", async () => {
@@ -197,9 +197,9 @@ describe("ffmpeg missing (ENOENT) — AddAudioVideoNode", () => {
     );
   });
 
-  it("still swallows a genuine (non-ENOENT) mux failure and returns the input video", async () => {
-    // The graceful 'return the input video' fallback must survive for real
-    // ffmpeg/mux failures — only a missing binary should propagate.
+  it("throws on a genuine (non-ENOENT) mux failure — no silent passthrough", async () => {
+    // A real ffmpeg/mux failure must surface, not silently return the unchanged
+    // input video (which would look like the audio was added when it wasn't).
     mode = "fail";
     const node = new AddAudioVideoNode();
     node.assign({
@@ -209,8 +209,7 @@ describe("ffmpeg missing (ENOENT) — AddAudioVideoNode", () => {
       mix: false
     });
 
-    const result = await node.process();
-    expect(Array.from(bytesOf(result.output))).toEqual([1, 2, 3, 4]);
+    await expect(node.process()).rejects.toThrowError();
   });
 
   it("mix=true: a non-ENOENT first failure that retries into a missing binary still rejects clearly", async () => {

@@ -1,20 +1,67 @@
 /**
  * FinishGraphTool -- planner tool that validates and finalizes the graph.
  *
- * Called by the LLM when it's done building the graph. Runs full validation
- * (cycle detection, connectivity) and produces the GraphData.
+ * Called by the LLM when it's done building the graph. Runs structural
+ * validation (cycle detection, connectivity) plus — when a registry is
+ * supplied — the node-sdk's static `validateGraph` (missing required
+ * properties, unknown handles, type mismatches), so property-level breakage
+ * surfaces while the model can still fix it instead of at runtime.
  */
 
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { GraphData } from "@nodetool-ai/protocol";
+import {
+  validateGraph,
+  type GraphValidationRegistry,
+  type NodeMetadata
+} from "@nodetool-ai/node-sdk";
 import { Tool } from "./base-tool.js";
-import type { GraphBuilder } from "../graph-builder.js";
+import { AGENT_STEP_NODE_TYPE, type GraphBuilder } from "../graph-builder.js";
 
 const FINISH_GRAPH_INPUT_SCHEMA = {
   type: "object" as const,
   properties: {},
   required: [] as string[]
 };
+
+/**
+ * Wrap the planner's registry so `validateGraph` treats the virtual AgentStep
+ * node type as known-but-opaque: not an "unknown node", no static metadata, no
+ * property validation. Metadata-only (Python) node types — which `add_node`
+ * accepts — also count as known, mirroring the add-time check. Everything else
+ * passes through.
+ */
+function agentStepAwareRegistry(
+  registry: GraphValidationRegistry
+): GraphValidationRegistry {
+  return {
+    has: (nodeType: string) =>
+      nodeType === AGENT_STEP_NODE_TYPE ||
+      registry.has(nodeType) ||
+      registry.getMetadata(nodeType) != null,
+    getMetadata: (nodeType: string): NodeMetadata | undefined =>
+      nodeType === AGENT_STEP_NODE_TYPE
+        ? undefined
+        : registry.getMetadata(nodeType),
+    validateNode: (descriptor, connectedHandles) =>
+      descriptor.type === AGENT_STEP_NODE_TYPE
+        ? []
+        : registry.validateNode(descriptor, connectedHandles)
+  };
+}
+
+/** True when the registry implements the full validation surface (stubs and mocks often don't). */
+function supportsDeepValidation(
+  registry: unknown
+): registry is GraphValidationRegistry {
+  const r = registry as Partial<GraphValidationRegistry> | null | undefined;
+  return (
+    !!r &&
+    typeof r.has === "function" &&
+    typeof r.getMetadata === "function" &&
+    typeof r.validateNode === "function"
+  );
+}
 
 export class FinishGraphTool extends Tool {
   readonly name = "finish_graph";
@@ -29,7 +76,10 @@ export class FinishGraphTool extends Tool {
     return this._graph;
   }
 
-  constructor(private readonly builder: GraphBuilder) {
+  constructor(
+    private readonly builder: GraphBuilder,
+    private readonly registry?: unknown
+  ) {
     super();
   }
 
@@ -38,10 +88,24 @@ export class FinishGraphTool extends Tool {
     _params: Record<string, unknown>
   ): Promise<unknown> {
     const errors = this.builder.validate();
+    const warnings: string[] = [];
+
+    if (errors.length === 0 && supportsDeepValidation(this.registry)) {
+      const report = validateGraph(
+        this.builder.snapshot(),
+        agentStepAwareRegistry(this.registry)
+      );
+      for (const issue of report.issues) {
+        if (issue.severity === "error") errors.push(issue.message);
+        else warnings.push(issue.message);
+      }
+    }
+
     if (errors.length > 0) {
       return {
         status: "validation_failed",
-        errors
+        errors,
+        ...(warnings.length > 0 ? { warnings } : {})
       };
     }
 
@@ -50,7 +114,8 @@ export class FinishGraphTool extends Tool {
     return {
       status: "graph_finalized",
       nodes: this._graph.nodes.length,
-      edges: this._graph.edges.length
+      edges: this._graph.edges.length,
+      ...(warnings.length > 0 ? { warnings } : {})
     };
   }
 

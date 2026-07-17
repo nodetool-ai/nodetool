@@ -2,6 +2,9 @@ import { describe, it, expect } from "vitest";
 import {
   buildMusicModels,
   buildTTSModels,
+  getManifestNodeMeta,
+  getModelInputFields,
+  isKieMusicNode,
   loadImageModels,
   loadMusicModels,
   loadTTSModels,
@@ -10,6 +13,8 @@ import {
 
 const FAL_PKG = "@nodetool-ai/fal-nodes";
 const FAL_MANIFEST = "fal-manifest.json";
+const KIE_PKG = "@nodetool-ai/kie-nodes";
+const KIE_MANIFEST = "kie-manifest.json";
 
 describe("manifest-models task inference (FAL manifest)", () => {
   const images = loadImageModels(FAL_PKG, FAL_MANIFEST, "fal_ai");
@@ -259,6 +264,153 @@ describe("manifest-models music discovery", () => {
     expect(
       models.every((m) => m.supportedTasks?.includes("text_to_music"))
     ).toBe(true);
+  });
+});
+
+describe("manifest-models Kie `fields` schema support", () => {
+  it("extracts TTS preset voices from a Kie enum `voice` field", () => {
+    const tts = loadTTSModels(KIE_PKG, KIE_MANIFEST, "kie");
+    const multilingual = tts.find(
+      (m) => m.id === "elevenlabs/text-to-speech-multilingual-v2"
+    );
+    expect(multilingual?.voices?.length ?? 0).toBeGreaterThan(10);
+    // A free-form-voice model (voice not required) still lists preset voices.
+    const turbo = tts.find(
+      (m) => m.id === "elevenlabs/text-to-speech-turbo-2-5"
+    );
+    expect(turbo?.voices?.length ?? 0).toBeGreaterThan(10);
+  });
+
+  it("derives video durations from a Kie enum `duration` field", () => {
+    const videos = loadVideoModels(KIE_PKG, KIE_MANIFEST, "kie");
+    const kling = videos.find(
+      (m) => m.id === "kling/v2-1-master-image-to-video"
+    );
+    expect(kling?.durations).toEqual([5, 10]);
+  });
+
+  it("derives image aspect ratios from a Kie enum `aspect_ratio` field", () => {
+    const images = loadImageModels(KIE_PKG, KIE_MANIFEST, "kie");
+    const imagen = images.find((m) => m.id === "google/imagen4");
+    expect(imagen?.aspectRatios).toEqual([
+      "1:1",
+      "16:9",
+      "9:16",
+      "3:4",
+      "4:3"
+    ]);
+  });
+});
+
+describe("getModelInputFields", () => {
+  it("normalizes Kie `fields` (name is the API param, options in `values`)", () => {
+    const fields = getModelInputFields(
+      KIE_PKG,
+      KIE_MANIFEST,
+      "google/imagen4"
+    );
+    const aspect = fields.find((f) => f.name === "aspect_ratio");
+    expect(aspect?.type).toBe("enum");
+    expect(aspect?.enumValues).toContain("16:9");
+    const prompt = fields.find((f) => f.name === "prompt");
+    expect(prompt?.type).toBe("str");
+    expect(prompt?.required).toBe(true);
+  });
+
+  it("normalizes FAL `inputFields` (apiParamName, lowercased propType)", () => {
+    const fields = getModelInputFields(FAL_PKG, FAL_MANIFEST, "fal-ai/dia-tts");
+    expect(fields.length).toBeGreaterThan(0);
+    for (const f of fields) {
+      expect(f.type).toBe(f.type.toLowerCase());
+    }
+  });
+
+  it("returns [] for an unknown model id", () => {
+    expect(getModelInputFields(KIE_PKG, KIE_MANIFEST, "nope/nope")).toEqual([]);
+  });
+});
+
+describe("getManifestNodeMeta", () => {
+  it("reads useSuno / sunoEndpoint / poll settings from the manifest", () => {
+    const meta = getManifestNodeMeta(KIE_PKG, KIE_MANIFEST, "generate-music");
+    expect(meta?.useSuno).toBe(true);
+    expect(meta?.sunoEndpoint).toBe("/api/v1/generate");
+    expect(typeof meta?.pollInterval).toBe("number");
+    expect(typeof meta?.maxAttempts).toBe("number");
+  });
+
+  it("reports useSuno false for a plain (non-Suno) Kie model", () => {
+    const meta = getManifestNodeMeta(KIE_PKG, KIE_MANIFEST, "google/imagen4");
+    expect(meta?.useSuno).toBe(false);
+  });
+
+  it("returns undefined for an unknown model id", () => {
+    expect(
+      getManifestNodeMeta(KIE_PKG, KIE_MANIFEST, "nope/nope")
+    ).toBeUndefined();
+  });
+});
+
+describe("Kie music filter (isKieMusicNode)", () => {
+  it("yields exactly {generate-music, generate-sounds} from the real manifest", () => {
+    const music = loadMusicModels(KIE_PKG, KIE_MANIFEST, "kie");
+    expect(music.map((m) => m.id).sort()).toEqual([
+      "generate-music",
+      "generate-sounds"
+    ]);
+    expect(
+      music.every((m) => m.supportedTasks?.includes("text_to_music"))
+    ).toBe(true);
+  });
+
+  it("accepts a prompt+model generator with no asset-referencing required field", () => {
+    expect(
+      isKieMusicNode({
+        modelId: "generate-music",
+        outputType: "audio",
+        fields: [
+          { name: "prompt", type: "str", required: true },
+          { name: "model", type: "str", required: true }
+        ]
+      })
+    ).toBe(true);
+  });
+
+  it("rejects a generator that requires an existing audio asset", () => {
+    expect(
+      isKieMusicNode({
+        modelId: "extend-music",
+        outputType: "audio",
+        fields: [
+          { name: "prompt", type: "str", required: true },
+          { name: "model", type: "str", required: true },
+          { name: "audioId", type: "str", required: true }
+        ]
+      })
+    ).toBe(false);
+  });
+
+  it("rejects a lyrics endpoint (prompt but no model field)", () => {
+    expect(
+      isKieMusicNode({
+        modelId: "generate-lyrics",
+        outputType: "audio",
+        fields: [{ name: "prompt", type: "str", required: true }]
+      })
+    ).toBe(false);
+  });
+
+  it("rejects a task-only utility (no prompt field)", () => {
+    expect(
+      isKieMusicNode({
+        modelId: "separate-vocals",
+        outputType: "audio",
+        fields: [
+          { name: "taskId", type: "str", required: true },
+          { name: "audioId", type: "str", required: true }
+        ]
+      })
+    ).toBe(false);
   });
 });
 

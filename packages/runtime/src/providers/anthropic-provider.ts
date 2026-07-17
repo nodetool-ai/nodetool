@@ -20,6 +20,7 @@ import type {
   MessageImageContent,
   MessageTextContent,
   ProviderEffort,
+  ProviderId,
   ProviderStreamItem,
   ProviderThinkingConfig,
   ProviderTool,
@@ -37,6 +38,13 @@ interface AnthropicProviderOptions {
   >;
   cacheControl?: { type: "ephemeral"; ttl?: "5m" | "1h" };
   betas?: string[];
+  /**
+   * Provider id reported by this instance. Defaults to `"anthropic"`.
+   * Anthropic-compatible subclasses (gateways pointed at a different base URL)
+   * pass their own id so the readonly `provider` field is set via the base
+   * constructor rather than reassigned afterwards.
+   */
+  providerId?: ProviderId;
 }
 
 type AnthropicRawBlock = Record<string, unknown>;
@@ -311,9 +319,9 @@ export class AnthropicProvider extends BaseProvider {
   /**
    * Anthropic runs web search server-side via the `web_search_20250305` server
    * tool. Gate on the provider id so subclasses that reuse the Anthropic SDK
-   * against a different endpoint (e.g. Moonshot/Kimi, which does not implement
-   * that server tool) fall back to the SerpAPI WebSearchTool instead of sending
-   * an unsupported tool that silently breaks web search.
+   * against a different endpoint (gateways that don't implement that server
+   * tool) fall back to the SerpAPI WebSearchTool instead of sending an
+   * unsupported tool that silently breaks web search.
    */
   override get supportsNativeWebSearch(): boolean {
     return this.provider === "anthropic";
@@ -336,7 +344,7 @@ export class AnthropicProvider extends BaseProvider {
     secrets: { ANTHROPIC_API_KEY?: string; ANTHROPIC_AUTH_TOKEN?: string },
     options: AnthropicProviderOptions = {}
   ) {
-    super("anthropic");
+    super(options.providerId ?? "anthropic");
 
     const apiKey = secrets.ANTHROPIC_API_KEY?.trim() ?? "";
     const authToken =
@@ -829,7 +837,11 @@ export class AnthropicProvider extends BaseProvider {
       // server tool — the search runs server-side and its result blocks stream
       // back within the same turn (our stream parser ignores them), so the
       // model answers from live web data without a client round-trip.
-      if (tool.name === WEB_SEARCH_TOOL_NAME) {
+      // Gated on supportsNativeWebSearch: subclasses that reuse the Anthropic
+      // SDK against a different endpoint don't implement this server tool, so
+      // for them the tool falls through to the plain function-tool shape below
+      // and runs client-side via SerpAPI.
+      if (tool.name === WEB_SEARCH_TOOL_NAME && this.supportsNativeWebSearch) {
         return {
           type: "web_search_20250305",
           name: WEB_SEARCH_TOOL_NAME,

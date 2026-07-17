@@ -3,7 +3,7 @@ import { useShallow } from "zustand/react/shallow";
 import useResultsStore from "../../stores/ResultsStore";
 import { useWorkflowAssetStore } from "../../stores/WorkflowAssetStore";
 import { useNodes } from "../../contexts/NodeContext";
-import { Asset } from "../../stores/ApiTypes";
+import type { Asset } from "../../stores/ApiTypes";
 import {
   assetToGeneration,
   mergeGenerations,
@@ -14,6 +14,17 @@ import {
   type Generation,
   type RunGroup
 } from "../../utils/nodeGenerations";
+
+export interface UseNodeGenerationsResult {
+  generations: Generation[];
+  current: Generation | undefined;
+  select: (id: string) => void;
+  runs: RunGroup[];
+  currentRun: RunGroup | undefined;
+  selectedIds: string[];
+  toggleSelected: (id: string) => void;
+  setSelected: (ids: string[]) => void;
+}
 
 /** Stable empty array for the multi-select set so an unset node never re-renders
  *  consumers on identity churn. */
@@ -28,7 +39,7 @@ const STABLE_EMPTY: string[] = [];
  * (`selected_generations`) fed downstream as a list, independent of the focused
  * `current` selection.
  */
-export const useNodeGenerations = (workflowId: string, nodeId: string) => {
+export const useNodeGenerations = (workflowId: string, nodeId: string): UseNodeGenerationsResult => {
   const nodeAssetsSelector = useMemo(() => {
     let lastSource: Asset[] | undefined;
     let lastResult: Asset[] = [];

@@ -90,6 +90,15 @@ export type NodeClass = {
    */
   requiresGpu?: boolean;
   deprecated: boolean;
+  /**
+   * Hide from node-discovery UIs (palette, search) while keeping the node
+   * registered and runnable. Unlike `deprecated` (which down-ranks and badges
+   * a still-discoverable node), a hidden node is filtered out of the palette
+   * entirely. Used for internal nodes the user never adds by hand — e.g.
+   * `AgentStepNode`, which GraphPlanner/AgentWorkflowRunner insert. Set via a
+   * `static readonly hidden = true` on the node class.
+   */
+  hidden?: boolean;
   replacedBy?: string;
   metadataOutputTypes?: DeclaredOutputTypes;
   outputTypes: DeclaredOutputTypes;
@@ -238,6 +247,11 @@ export abstract class BaseNode {
    */
   static readonly requiresGpu: boolean | undefined = undefined;
   static readonly deprecated: boolean = false;
+  /**
+   * Hidden from node-discovery UIs but still registered/runnable (see the
+   * `hidden` field on NodeClass). Unset/false means normally discoverable.
+   */
+  static readonly hidden: boolean | undefined = undefined;
   static readonly replacedBy: string | undefined = undefined;
   static readonly metadataOutputTypes: DeclaredOutputTypes | undefined =
     undefined;

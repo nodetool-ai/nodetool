@@ -157,7 +157,9 @@ const GENAI_PROVIDER_MAP: Record<string, string> = {
   groq: "groq",
   deepseek: "deepseek",
   xai: "x-ai",
-  grok: "x-ai"
+  grok: "x-ai",
+  moonshot: "moonshotai",
+  moonshotai: "moonshotai"
 };
 // Stryker restore all
 

@@ -141,7 +141,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Agent",
           "x": 750,
           "y": 90,
-          "width": 330
+          "width": 330,
+          "subtitle": "gpt-5-mini"
         },
         {
           "id": "hooks_prompt",
@@ -158,7 +159,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "List Generator",
           "x": 1510,
           "y": 380,
-          "width": 330
+          "width": 330,
+          "subtitle": "gpt-5-mini"
         },
         {
           "id": "preview_hooks",
@@ -183,7 +185,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Image To Image",
           "x": 2290,
           "y": 460,
-          "width": 320
+          "width": 320,
+          "subtitle": "fal-ai/flux/schnell"
         },
         {
           "id": "motion_prompt",
@@ -200,7 +203,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Image To Video",
           "x": 2650,
           "y": 460,
-          "width": 330
+          "width": 330,
+          "subtitle": "veo-3.1-generate-preview"
         },
         {
           "id": "voiceover",
@@ -208,7 +212,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Speech",
           "x": 2650,
           "y": 850,
-          "width": 300
+          "width": 300,
+          "subtitle": "tts-1"
         },
         {
           "id": "mix_voiceover",
@@ -543,7 +548,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Automatic Speech Recognition",
           "x": 340,
           "y": 146,
-          "width": 280
+          "width": 280,
+          "subtitle": "openai/whisper-large-v3"
         },
         {
           "id": "8b07b1ed-2ce9-4581-993e-efad334ab7a8",
@@ -551,7 +557,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 650,
           "y": 86,
-          "width": 384
+          "width": 384,
+          "subtitle": "fal-ai/flux/schnell"
         },
         {
           "id": "output-image",
@@ -702,7 +709,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 960,
           "y": 0,
-          "width": 384
+          "width": 384,
+          "subtitle": "fal-ai/flux/schnell"
         },
         {
           "id": "8",
@@ -710,7 +718,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "List Generator",
           "x": 650,
           "y": 42,
-          "width": 280
+          "width": 280,
+          "subtitle": "gpt-5-mini"
         },
         {
           "id": "9",
@@ -1128,13 +1137,6 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "source": "abb8ee0b-dbf0-4969-8046-c2e690b7d1e4",
-          "sourceHandle": "index",
-          "target": "4ca8874f-5caa-413c-a329-936d90358e8e",
-          "targetHandle": "index",
-          "color": "any"
-        },
-        {
-          "source": "abb8ee0b-dbf0-4969-8046-c2e690b7d1e4",
           "sourceHandle": "fps",
           "target": "4ca8874f-5caa-413c-a329-936d90358e8e",
           "targetHandle": "fps",
@@ -1217,7 +1219,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 2054,
           "y": 95,
-          "width": 461
+          "width": 461,
+          "subtitle": "fal-ai/flux/schnell"
         },
         {
           "id": "5",
@@ -1225,7 +1228,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "List Generator",
           "x": 1634,
           "y": 194,
-          "width": 390
+          "width": 390,
+          "subtitle": "gpt-5-mini"
         },
         {
           "id": "8",
@@ -1233,7 +1237,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Agent",
           "x": 837,
           "y": 329,
-          "width": 319
+          "width": 319,
+          "subtitle": "gpt-5-mini"
         },
         {
           "id": "10",
@@ -1760,7 +1765,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "List Generator",
           "x": 740,
           "y": 65,
-          "width": 405
+          "width": 405,
+          "subtitle": "gpt-5-mini"
         },
         {
           "id": "8132bc91-b872-4976-8bbf-b3548eff3b06",
@@ -2178,7 +2184,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Data Generator",
           "x": 776,
           "y": 65,
-          "width": 280
+          "width": 280,
+          "subtitle": "gpt-5-mini"
         },
         {
           "id": "insert_flashcard",
@@ -2342,7 +2349,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Agent",
           "x": 440,
           "y": 80,
-          "width": 280
+          "width": 280,
+          "subtitle": "gpt-5-mini"
         },
         {
           "id": "4",
@@ -2485,7 +2493,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "List Generator",
           "x": 800,
           "y": 120,
-          "width": 360
+          "width": 360,
+          "subtitle": "gpt-5-mini"
         },
         {
           "id": "thumb_brief",
@@ -2502,7 +2511,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 1580,
           "y": 120,
-          "width": 320
+          "width": 320,
+          "subtitle": "fal-ai/flux/schnell"
         },
         {
           "id": "preview_hooks",
@@ -2764,7 +2774,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Speech",
           "x": 670,
           "y": 196,
-          "width": 340
+          "width": 340,
+          "subtitle": "tts-1"
         },
         {
           "id": "output-narration",
@@ -2862,7 +2873,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Image To Video",
           "x": 1000,
           "y": 165,
-          "width": 416
+          "width": 416,
+          "subtitle": "veo-3.1-generate-preview"
         },
         {
           "id": "3",
@@ -2870,7 +2882,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 500,
           "y": 510,
-          "width": 384
+          "width": 384,
+          "subtitle": "fal-ai/flux/schnell"
         },
         {
           "id": "4",
@@ -3052,7 +3065,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Agent",
           "x": 620,
           "y": 0,
-          "width": 280
+          "width": 280,
+          "subtitle": "gpt-5-mini"
         },
         {
           "id": "4",
@@ -3182,7 +3196,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Summarizer",
           "x": 680,
           "y": 120,
-          "width": 280
+          "width": 280,
+          "subtitle": "gpt-5-mini"
         },
         {
           "id": "5",
@@ -3199,7 +3214,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Automatic Speech Recognition",
           "x": 367,
           "y": 113,
-          "width": 280
+          "width": 280,
+          "subtitle": "openai/whisper-large-v3"
         },
         {
           "id": "summary_output",
@@ -3359,7 +3375,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "List Generator",
           "x": 1662,
           "y": 237,
-          "width": 456
+          "width": 456,
+          "subtitle": "gpt-5-mini"
         },
         {
           "id": "0276f606-d899-4487-be65-4615564507cc",
@@ -3367,7 +3384,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 2608,
           "y": 187,
-          "width": 509
+          "width": 509,
+          "subtitle": "fal-ai/flux/schnell"
         },
         {
           "id": "68bb0948-5e25-485e-81e1-9a1a7f2c1e92",
@@ -3673,7 +3691,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Agent",
           "x": 740,
           "y": 83,
-          "width": 332
+          "width": 332,
+          "subtitle": "gpt-5-mini"
         },
         {
           "id": "shotlist_prompt",
@@ -3690,7 +3709,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "List Generator",
           "x": 1502,
           "y": 380,
-          "width": 331
+          "width": 331,
+          "subtitle": "gpt-5-mini"
         },
         {
           "id": "keyframe_prompt",
@@ -3707,7 +3727,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 2283,
           "y": 467,
-          "width": 320
+          "width": 320,
+          "subtitle": "fal-ai/flux/schnell"
         },
         {
           "id": "e3c7d2b6-dc63-46a0-8e90-3998601e0faf",
@@ -3715,7 +3736,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Image To Video",
           "x": 2633,
           "y": 550,
-          "width": 331
+          "width": 331,
+          "subtitle": "veo-3.1-generate-preview"
         },
         {
           "id": "b8622937-e6d7-445f-bb19-e254b49a23ef",
@@ -3985,7 +4007,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Automatic Speech Recognition",
           "x": 400,
           "y": 255,
-          "width": 280
+          "width": 280,
+          "subtitle": "openai/whisper-large-v3"
         },
         {
           "id": "mood_analyzer",
@@ -4001,7 +4024,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Agent",
           "x": 1050,
           "y": 354,
-          "width": 280
+          "width": 280,
+          "subtitle": "gpt-5-mini"
         },
         {
           "id": "frame_prompt_generator",
@@ -4017,7 +4041,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "List Generator",
           "x": 1700,
           "y": 495,
-          "width": 280
+          "width": 280,
+          "subtitle": "gpt-5-mini"
         },
         {
           "id": "prompt_iterator",
@@ -4033,7 +4058,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 2320,
           "y": 465,
-          "width": 384
+          "width": 384,
+          "subtitle": "fal-ai/flux/schnell"
         },
         {
           "id": "collected_frames",
@@ -4413,7 +4439,7 @@ export const templateEntries: TemplateEntry[] = [
           "source": "11",
           "sourceHandle": "output",
           "target": "7",
-          "targetHandle": "factor",
+          "targetHandle": "contrast",
           "color": "any"
         },
         {
@@ -4427,7 +4453,7 @@ export const templateEntries: TemplateEntry[] = [
           "source": "12",
           "sourceHandle": "output",
           "target": "6",
-          "targetHandle": "factor",
+          "targetHandle": "saturation",
           "color": "any"
         },
         {
@@ -4592,7 +4618,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Automatic Speech Recognition",
           "x": 410,
           "y": 100,
-          "width": 300
+          "width": 300,
+          "subtitle": "openai/whisper-large-v3"
         },
         {
           "id": "shownotes_prompt",
@@ -4609,7 +4636,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Agent",
           "x": 1150,
           "y": -220,
-          "width": 330
+          "width": 330,
+          "subtitle": "gpt-5-mini"
         },
         {
           "id": "preview_shownotes",
@@ -4634,7 +4662,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Agent",
           "x": 1150,
           "y": 200,
-          "width": 330
+          "width": 330,
+          "subtitle": "gpt-5-mini"
         },
         {
           "id": "preview_newsletter",
@@ -4659,7 +4688,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "List Generator",
           "x": 1150,
           "y": 640,
-          "width": 330
+          "width": 330,
+          "subtitle": "gpt-5-mini"
         },
         {
           "id": "preview_posts",
@@ -4684,7 +4714,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "List Generator",
           "x": 1150,
           "y": 1050,
-          "width": 330
+          "width": 330,
+          "subtitle": "gpt-5-mini"
         },
         {
           "id": "card_prompt",
@@ -4701,7 +4732,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 1910,
           "y": 1100,
-          "width": 320
+          "width": 320,
+          "subtitle": "fal-ai/flux/schnell"
         },
         {
           "id": "preview_cards",
@@ -4934,7 +4966,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "List Generator",
           "x": 902,
           "y": 50,
-          "width": 291
+          "width": 291,
+          "subtitle": "gpt-5-mini"
         },
         {
           "id": "b55c474e-e397-44a3-adc7-94bcf61eee35",
@@ -5089,7 +5122,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Image To Image",
           "x": 1680,
           "y": 388,
-          "width": 384
+          "width": 384,
+          "subtitle": "fal-ai/flux/schnell"
         },
         {
           "id": "5",
@@ -5105,7 +5139,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "List Generator",
           "x": 1340,
           "y": 205,
-          "width": 280
+          "width": 280,
+          "subtitle": "gpt-5-mini"
         },
         {
           "id": "7",
@@ -5122,7 +5157,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Agent",
           "x": 670,
           "y": 254,
-          "width": 280
+          "width": 280,
+          "subtitle": "gpt-5-mini"
         },
         {
           "id": "9",
@@ -5174,7 +5210,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 1680,
           "y": 0,
-          "width": 384
+          "width": 384,
+          "subtitle": "fal-ai/flux/schnell"
         },
         {
           "id": "output-mockup",
@@ -5386,7 +5423,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Agent",
           "x": 936,
           "y": 308,
-          "width": 457
+          "width": 457,
+          "subtitle": "gpt-5-mini"
         },
         {
           "id": "5",
@@ -5429,7 +5467,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Image To Video",
           "x": 1443,
           "y": 357,
-          "width": 739
+          "width": 739,
+          "subtitle": "veo-3.1-generate-preview"
         },
         {
           "id": "output-product-video",
@@ -5564,7 +5603,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Agent",
           "x": 800,
           "y": 80,
-          "width": 280
+          "width": 280,
+          "subtitle": "gpt-5-mini"
         },
         {
           "id": "4",
@@ -5590,7 +5630,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Agent",
           "x": 800,
           "y": 300,
-          "width": 280
+          "width": 280,
+          "subtitle": "gpt-5-mini"
         },
         {
           "id": "7",
@@ -5773,7 +5814,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Agent",
           "x": 750,
           "y": 90,
-          "width": 330
+          "width": 330,
+          "subtitle": "gpt-5-mini"
         },
         {
           "id": "preview_plan",
@@ -5798,7 +5840,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "List Generator",
           "x": 1510,
           "y": 180,
-          "width": 330
+          "width": 330,
+          "subtitle": "gpt-5-mini"
         },
         {
           "id": "article_prompt",
@@ -5815,7 +5858,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Agent",
           "x": 2290,
           "y": 60,
-          "width": 330
+          "width": 330,
+          "subtitle": "gpt-5-mini"
         },
         {
           "id": "preview_articles",
@@ -5840,7 +5884,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 2290,
           "y": 520,
-          "width": 320
+          "width": 320,
+          "subtitle": "fal-ai/flux/schnell"
         },
         {
           "id": "preview_heroes",
@@ -6096,7 +6141,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Agent",
           "x": 670,
           "y": 312,
-          "width": 280
+          "width": 280,
+          "subtitle": "gpt-5-mini"
         },
         {
           "id": "content_generator",
@@ -6112,7 +6158,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "List Generator",
           "x": 1320,
           "y": 720,
-          "width": 280
+          "width": 280,
+          "subtitle": "gpt-5-mini"
         },
         {
           "id": "prompt_iterator",
@@ -6128,7 +6175,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 1940,
           "y": 678,
-          "width": 384
+          "width": 384,
+          "subtitle": "fal-ai/flux/schnell"
         },
         {
           "id": "collected_images",
@@ -6152,7 +6200,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "List Generator",
           "x": 1320,
           "y": 126,
-          "width": 280
+          "width": 280,
+          "subtitle": "gpt-5-mini"
         },
         {
           "id": "collected_captions",
@@ -6401,7 +6450,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Agent",
           "x": 800,
           "y": 185,
-          "width": 280
+          "width": 280,
+          "subtitle": "gpt-5-mini"
         },
         {
           "id": "video_generator",
@@ -6409,7 +6459,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Video",
           "x": 1246,
           "y": 664,
-          "width": 416
+          "width": 416,
+          "subtitle": "veo-3.1-generate-preview"
         },
         {
           "id": "7ccd9809-860d-4551-94d1-a0a1c9c6814a",
@@ -6535,7 +6586,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Automatic Speech Recognition",
           "x": 306,
           "y": 205,
-          "width": 280
+          "width": 280,
+          "subtitle": "openai/whisper-large-v3"
         },
         {
           "id": "99c95069-03f6-4f45-bb66-ab3482f79496",
@@ -6746,7 +6798,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Automatic Speech Recognition",
           "x": 360,
           "y": 79,
-          "width": 280
+          "width": 280,
+          "subtitle": "openai/whisper-large-v3"
         },
         {
           "id": "output-transcript",
@@ -6832,7 +6885,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Agent",
           "x": 800,
           "y": 80,
-          "width": 280
+          "width": 280,
+          "subtitle": "gpt-5-mini"
         },
         {
           "id": "3",
@@ -6980,7 +7034,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Agent",
           "x": 830,
           "y": 300,
-          "width": 320
+          "width": 320,
+          "subtitle": "gpt-5-mini"
         },
         {
           "id": "output-research",
@@ -7148,7 +7203,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "List Generator",
           "x": 1100,
           "y": 200,
-          "width": 280
+          "width": 280,
+          "subtitle": "gpt-5-mini"
         },
         {
           "id": "prompt_iterator",
@@ -7164,7 +7220,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Text To Image",
           "x": 1860,
           "y": 200,
-          "width": 384
+          "width": 384,
+          "subtitle": "fal-ai/flux/schnell"
         },
         {
           "id": "enhanced",

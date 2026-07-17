@@ -240,37 +240,38 @@ describe("input/output/workspace nodes", () => {
     });
   });
 
-  it("CompareImagesNode returns score < 1 for different bytes of same length", async () => {
+  it("CompareImagesNode reports not-equal for different inline bytes of same length", async () => {
     const node = new CompareImagesNode();
     node.assign({
       image_a: { data: Uint8Array.from([1, 2, 3, 4]) },
       image_b: { data: Uint8Array.from([1, 2, 0, 0]) }
     });
     const result = await node.process();
-    // 2 of 4 bytes match, same length so no penalty: score = 2/4 = 0.5
-    expect(result.score).toBe(0.5);
+    // Identity semantics: any byte difference → not the same image.
+    expect(result.score).toBe(0);
     expect(result.equal).toBe(false);
   });
 
-  it("CompareImagesNode applies length penalty for different lengths", async () => {
+  it("CompareImagesNode reports not-equal for inline bytes of different lengths", async () => {
     const node = new CompareImagesNode();
     node.assign({
       image_a: { data: Uint8Array.from([1, 2, 3, 4]) },
       image_b: { data: Uint8Array.from([1, 2]) }
     });
     const result = await node.process();
-    // min=2, max=4, all 2 compared bytes match: (2/2) * (2/4) = 0.5
-    expect(result.score).toBe(0.5);
+    // Different byte lengths can never be byte-equal.
+    expect(result.score).toBe(0);
     expect(result.equal).toBe(false);
   });
 
-  it("CompareImagesNode returns score=0 when one image is empty", async () => {
+  it("CompareImagesNode returns score=0 when one image has bytes and the other is empty", async () => {
     const node = new CompareImagesNode();
     node.assign({
       image_a: { data: Uint8Array.from([1, 2, 3]) },
       image_b: { data: new Uint8Array() }
     });
     const result = await node.process();
+    // One ref carries bytes, the other carries none → not comparable → not equal.
     expect(result.score).toBe(0);
     expect(result.equal).toBe(false);
   });
@@ -279,20 +280,53 @@ describe("input/output/workspace nodes", () => {
     const node = new CompareImagesNode();
     node.assign({ image_a: {}, image_b: {} });
     const result = await node.process();
+    // Two genuinely empty (unwired) inputs are treated as equal.
     expect(result.score).toBe(1);
     expect(result.equal).toBe(true);
   });
 
-  it("CompareImagesNode combines byte mismatch and length penalty", async () => {
+  it("CompareImagesNode reports not-equal for different inline bytes of different lengths", async () => {
     const node = new CompareImagesNode();
     node.assign({
       image_a: { data: Uint8Array.from([10, 20, 30, 40, 50, 60]) },
       image_b: { data: Uint8Array.from([10, 20, 99]) }
     });
     const result = await node.process();
-    // min=3, max=6, 2 of 3 compared bytes match: (2/3) * (3/6) = 1/3
-    expect(result.score).toBeCloseTo(1 / 3);
+    expect(result.score).toBe(0);
     expect(result.equal).toBe(false);
+  });
+
+  it("CompareImagesNode reports equal for matching non-data URIs", async () => {
+    const node = new CompareImagesNode();
+    node.assign({
+      image_a: { uri: "https://example.com/same.png" },
+      image_b: { uri: "https://example.com/same.png" }
+    });
+    const result = await node.process();
+    expect(result.score).toBe(1);
+    expect(result.equal).toBe(true);
+  });
+
+  it("CompareImagesNode reports not-equal for different non-data URIs", async () => {
+    const node = new CompareImagesNode();
+    node.assign({
+      image_a: { uri: "https://example.com/a.png" },
+      image_b: { uri: "https://example.com/b.png" }
+    });
+    const result = await node.process();
+    expect(result.score).toBe(0);
+    expect(result.equal).toBe(false);
+  });
+
+  it("CompareImagesNode reports equal for matching asset ids", async () => {
+    const node = new CompareImagesNode();
+    node.assign({
+      image_a: { asset_id: "asset-1" },
+      image_b: { asset_id: "asset-1" }
+    });
+    const result = await node.process();
+    expect(result.score).toBe(1);
+    expect(result.equal).toBe(true);
   });
 
   it("document save/load and split json nodes work", async () => {
@@ -514,16 +548,15 @@ describe("control nodes", () => {
     const node = new IfNode();
     node.assign({ condition: true, value: "x" });
 
-    await expect(node.process({})).resolves.toEqual({
-      if_true: "x",
-      if_false: null
-    });
+    // Only the taken branch is emitted; the untaken key is absent entirely.
+    const trueResult = await node.process({});
+    expect(trueResult).toEqual({ if_true: "x" });
+    expect(trueResult).not.toHaveProperty("if_false");
 
     node.assign({ condition: false, value: 42 });
-    await expect(node.process()).resolves.toEqual({
-      if_true: null,
-      if_false: 42
-    });
+    const falseResult = await node.process();
+    expect(falseResult).toEqual({ if_false: 42 });
+    expect(falseResult).not.toHaveProperty("if_true");
   });
 
   it("ForEachNode streams list items with index", async () => {

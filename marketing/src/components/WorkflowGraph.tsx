@@ -91,7 +91,7 @@ export default function WorkflowGraph() {
             </FlowNode>
 
             <FlowNode title="Image Input" icon={<ImageIcon size={16} />} minHeight={200} style={{ left: 40, top: 690 }}>
-              <NodePreview src="/smartwatch.webp" ratio="4 / 3" />
+              <NodePreview src="/smartwatch-800.webp" ratio="4 / 3" />
               <HandleRow side="out" color="image" />
             </FlowNode>
 
@@ -120,7 +120,7 @@ export default function WorkflowGraph() {
             <FlowNode title="Image To Video" icon={<Film size={16} />} width={400} minHeight={260} style={{ left: 1545, top: 330 }}>
               <NodePreview
                 src="/product_video_example.mp4"
-                poster="/smartwatch.webp"
+                poster="/smartwatch-800.webp"
                 video
                 ratio="16 / 9"
               />

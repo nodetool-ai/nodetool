@@ -2,6 +2,7 @@ import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { StreamingInputs, StreamingOutputs } from "@nodetool-ai/node-sdk";
 import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 import { tagAsUniversal } from "@nodetool-ai/nodes-utils";
+import { compileSafePredicate, compileSafeKey } from "./safe-expression.js";
 
 export class IfNode extends BaseNode {
   static readonly nodeType = "nodetool.control.If";
@@ -26,7 +27,7 @@ export class IfNode extends BaseNode {
     title: "Condition",
     description: "The condition to evaluate"
   })
-  declare condition: any;
+  declare condition: boolean;
 
   @prop({
     type: "any",
@@ -34,16 +35,18 @@ export class IfNode extends BaseNode {
     title: "Value",
     description: "The value to pass to the next node"
   })
-  declare value: any;
+  declare value: unknown;
 
   async process(): Promise<Record<string, unknown>> {
     const condition = Boolean(this.condition ?? false);
     const value = this.value ?? null;
 
+    // Emit only the taken branch. Omitting the other key means no message is
+    // sent on that output, so downstream nodes on the untaken branch don't fire.
     if (condition) {
-      return { if_true: value, if_false: null };
+      return { if_true: value };
     }
-    return { if_true: null, if_false: value };
+    return { if_false: value };
   }
 }
 
@@ -56,7 +59,7 @@ export class ForEachNode extends BaseNode {
     output: "any",
     index: "int"
   };
-  static readonly inlineFields = [];
+  static readonly inlineFields = ["limit"];
   static readonly inputFields = ["input_list"];
 
   static readonly inputMode: InputMode = "buffered";
@@ -70,7 +73,7 @@ export class ForEachNode extends BaseNode {
     title: "Input List",
     description: "The list of items to iterate over."
   })
-  declare input_list: any;
+  declare input_list: unknown[];
 
   @prop({
     type: "int",
@@ -80,7 +83,7 @@ export class ForEachNode extends BaseNode {
       "Maximum number of items to emit. -1 (default) emits the full list. " +
       "Useful for testing pipelines on a small subset."
   })
-  declare limit: any;
+  declare limit: number;
 
   async process(): Promise<Record<string, unknown>> {
     return {};
@@ -126,7 +129,7 @@ export class AssetCollectionNode extends BaseNode {
       "The curated items, all of a single asset type. Emitted one at a time, " +
       "in order. Usually populated by drag-and-drop in the editor."
   })
-  declare items: any;
+  declare items: unknown[];
 
   async process(): Promise<Record<string, unknown>> {
     return {};
@@ -166,7 +169,7 @@ export class RepeatCountNode extends BaseNode {
     title: "Count",
     description: "Number of ticks to emit (0 emits nothing)."
   })
-  declare count: any;
+  declare count: number;
 
   async process(): Promise<Record<string, unknown>> {
     return {};
@@ -204,7 +207,7 @@ export class RepeatValueStreamNode extends BaseNode {
     title: "Value",
     description: "Single value to emit on each tick."
   })
-  declare value: any;
+  declare value: unknown;
 
   @prop({
     type: "int",
@@ -213,7 +216,7 @@ export class RepeatValueStreamNode extends BaseNode {
     title: "Count",
     description: "Number of times to emit the value (0 emits nothing)."
   })
-  declare count: any;
+  declare count: number;
 
   async process(): Promise<Record<string, unknown>> {
     return {};
@@ -253,7 +256,7 @@ export class TakeNode extends BaseNode {
     title: "Input Item",
     description: "Streaming input — each item is forwarded until the limit is reached."
   })
-  declare input_item: any;
+  declare input_item: unknown;
 
   @prop({
     type: "int",
@@ -261,7 +264,7 @@ export class TakeNode extends BaseNode {
     title: "N",
     description: "Number of items to take from the head of the stream."
   })
-  declare n: any;
+  declare n: number;
 
   async process(): Promise<Record<string, unknown>> {
     return {};
@@ -314,7 +317,7 @@ export class CollectNode extends BaseNode {
     title: "Input Item",
     description: "The input item to collect."
   })
-  declare input_item: any;
+  declare input_item: unknown;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: [] };
@@ -353,7 +356,7 @@ export class RerouteNode extends BaseNode {
     title: "Input Value",
     description: "Value to pass through unchanged"
   })
-  declare input_value: any;
+  declare input_value: unknown;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.input_value ?? null };
@@ -371,7 +374,7 @@ export class SwitchNode extends BaseNode {
     index: "int"
   };
   static readonly inlineFields = [];
-  static readonly inputFields = ["value", "input"];
+  static readonly inputFields = ["value", "cases", "input"];
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     matched: { kind: "forward", source: "input" },
@@ -385,7 +388,7 @@ export class SwitchNode extends BaseNode {
     title: "Value",
     description: "The value to match against cases."
   })
-  declare value: any;
+  declare value: unknown;
 
   @prop({
     type: "list[any]",
@@ -393,7 +396,7 @@ export class SwitchNode extends BaseNode {
     title: "Cases",
     description: "List of values to match against. The first match wins."
   })
-  declare cases: any;
+  declare cases: unknown[];
 
   @prop({
     type: "any",
@@ -401,27 +404,29 @@ export class SwitchNode extends BaseNode {
     title: "Input",
     description: "The data to route to the matched output."
   })
-  declare input: any;
+  declare input: unknown;
 
   async process(): Promise<Record<string, unknown>> {
     const value = this.value;
     const cases = Array.isArray(this.cases) ? this.cases : [];
     const input = this.input ?? null;
 
+    // Emit only the relevant branch (matched or default); the other key is
+    // omitted so no message is sent on that output. `index` is always emitted.
     for (let i = 0; i < cases.length; i++) {
-      if (String(value) === String(cases[i])) {
-        return { matched: input, default: null, index: i };
+      if (deepEqual(value, cases[i])) {
+        return { matched: input, index: i };
       }
     }
-    return { matched: null, default: input, index: -1 };
+    return { default: input, index: -1 };
   }
 }
 
 export class TryCatchNode extends BaseNode {
   static readonly nodeType = "nodetool.control.TryCatch";
-  static readonly title = "Try / Catch";
+  static readonly title = "Fallback";
   static readonly description =
-    "Fallback wrapper: passes the value through when present, or emits the fallback with error info when the value is null/undefined (e.g. an upstream step produced nothing).\n    control, error, fallback, default, null, missing, flow-control\n\n    Use cases:\n    - Provide fallback values when an upstream step produced no value\n    - Detect missing values in workflows\n    - Log error details for debugging";
+    "Substitute a fallback value when the input is null or undefined. Does not catch exceptions — it only detects a missing value and swaps in the fallback.\n    control, fallback, default, null, undefined, missing, coalesce, flow-control\n\n    Use cases:\n    - Provide a default when an upstream step produced no value\n    - Detect missing values in workflows\n    - Flag whether the fallback was used";
   static readonly metadataOutputTypes = {
     output: "any",
     error: "str",
@@ -442,7 +447,7 @@ export class TryCatchNode extends BaseNode {
     title: "Value",
     description: "The value to pass through. When null/undefined, the fallback is used."
   })
-  declare value: any;
+  declare value: unknown;
 
   @prop({
     type: "any",
@@ -450,7 +455,7 @@ export class TryCatchNode extends BaseNode {
     title: "Fallback",
     description: "Value to return when the input value is null/undefined."
   })
-  declare fallback: any;
+  declare fallback: unknown;
 
   async process(): Promise<Record<string, unknown>> {
     const value = this.value;
@@ -490,7 +495,7 @@ export class DropNode extends BaseNode {
     title: "Input Item",
     description: "Streaming input — items after the first N are forwarded."
   })
-  declare input_item: any;
+  declare input_item: unknown;
 
   @prop({
     type: "int",
@@ -498,7 +503,7 @@ export class DropNode extends BaseNode {
     title: "N",
     description: "Number of items to drop from the head of the stream."
   })
-  declare n: any;
+  declare n: number;
 
   async process(): Promise<Record<string, unknown>> {
     return {};
@@ -558,7 +563,7 @@ export class FilterEqualNode extends BaseNode {
     title: "Input Item",
     description: "Streaming input — items pass through if they equal the target value."
   })
-  declare input_item: any;
+  declare input_item: unknown;
 
   @prop({
     type: "any",
@@ -566,7 +571,7 @@ export class FilterEqualNode extends BaseNode {
     title: "Value",
     description: "Target value. Items deep-equal to this are passed through."
   })
-  declare value: any;
+  declare value: unknown;
 
   @prop({
     type: "bool",
@@ -574,7 +579,7 @@ export class FilterEqualNode extends BaseNode {
     title: "Invert",
     description: "When true, pass items NOT equal to the target value."
   })
-  declare invert: any;
+  declare invert: boolean;
 
   async process(): Promise<Record<string, unknown>> {
     return {};
@@ -595,27 +600,11 @@ export class FilterEqualNode extends BaseNode {
   }
 }
 
-function compilePredicate(expr: string): (item: unknown) => boolean {
-  const src = (expr ?? "").toString().trim();
-  if (!src) return () => true;
-  const fn = new Function(
-    "item",
-    `"use strict"; return Boolean(${src});`
-  ) as (item: unknown) => unknown;
-  return (item: unknown) => {
-    try {
-      return Boolean(fn(item));
-    } catch {
-      return false;
-    }
-  };
-}
-
 export class FilterCodeNode extends BaseNode {
   static readonly nodeType = "nodetool.control.FilterCode";
-  static readonly title = "Filter (Code)";
+  static readonly title = "Filter (Expression)";
   static readonly description =
-    "Pass items through when a JavaScript predicate returns truthy.\n    filter, predicate, code, javascript, expression, stream, where\n\n    Use cases:\n    - Keep items matching arbitrary criteria (e.g. item.score > 0.5)\n    - Drop empty or malformed records\n    - Custom field-based filtering";
+    "Pass items through when a safe expression returns truthy (comparisons, boolean logic, arithmetic, property access on `item`).\n    filter, predicate, expression, condition, stream, where\n\n    Use cases:\n    - Keep items matching arbitrary criteria (e.g. item.score > 0.5)\n    - Drop empty or malformed records\n    - Custom field-based filtering";
   static readonly metadataOutputTypes = {
     output: "any"
   };
@@ -634,16 +623,16 @@ export class FilterCodeNode extends BaseNode {
     title: "Input Item",
     description: "Streaming input — each item is tested against the predicate."
   })
-  declare input_item: any;
+  declare input_item: unknown;
 
   @prop({
     type: "str",
     default: "true",
     title: "Predicate",
     description:
-      "JavaScript expression evaluated per item. The current value is bound to `item`. Examples: `item > 0`, `item.score > 0.5`, `typeof item === 'string'`."
+      "Safe expression evaluated per item (comparisons, boolean logic, arithmetic, property access). The current value is bound to `item`. Examples: `item > 0`, `item.score > 0.5`, `typeof item === 'string'`."
   })
-  declare predicate: any;
+  declare predicate: string;
 
   async process(): Promise<Record<string, unknown>> {
     return {};
@@ -653,7 +642,7 @@ export class FilterCodeNode extends BaseNode {
     inputs: StreamingInputs,
     outputs: StreamingOutputs
   ): Promise<void> {
-    const test = compilePredicate(String(this.predicate ?? "true"));
+    const test = compileSafePredicate(String(this.predicate ?? "true"));
     for await (const item of inputs.stream("input_item")) {
       if (test(item)) {
         await outputs.emit("output", item);
@@ -687,7 +676,7 @@ export class ChunkNode extends BaseNode {
     title: "Input Item",
     description: "Streaming input — items are buffered into batches of size N."
   })
-  declare input_item: any;
+  declare input_item: unknown;
 
   @prop({
     type: "int",
@@ -695,7 +684,7 @@ export class ChunkNode extends BaseNode {
     title: "Size",
     description: "Number of items per batch."
   })
-  declare size: any;
+  declare size: number;
 
   async process(): Promise<Record<string, unknown>> {
     return {};
@@ -750,7 +739,7 @@ export class LastNode extends BaseNode {
     title: "Input Item",
     description: "Streaming input — only the final value is forwarded."
   })
-  declare input_item: any;
+  declare input_item: unknown;
 
   async process(): Promise<Record<string, unknown>> {
     return {};
@@ -795,7 +784,7 @@ export class CountStreamNode extends BaseNode {
     title: "Input Item",
     description: "Streaming input — items are counted but not forwarded."
   })
-  declare input_item: any;
+  declare input_item: unknown;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: 0 };
@@ -813,32 +802,36 @@ export class CountStreamNode extends BaseNode {
   }
 }
 
-function distinctKey(item: unknown, expr: string): string {
-  const trimmed = expr.trim();
-  if (!trimmed) {
-    try {
-      return JSON.stringify(item);
-    } catch {
-      return String(item);
-    }
-  }
+function wholeItemKey(item: unknown): string {
   try {
-    const fn = new Function(
-      "item",
-      `"use strict"; return (${trimmed});`
-    ) as (item: unknown) => unknown;
-    const key = fn(item);
-    if (typeof key === "string" || typeof key === "number" || typeof key === "boolean") {
-      return String(key);
-    }
-    return JSON.stringify(key);
+    return JSON.stringify(item);
   } catch {
-    try {
-      return JSON.stringify(item);
-    } catch {
-      return String(item);
+    return String(item);
+  }
+}
+
+function distinctKey(
+  item: unknown,
+  keyFn: ((item: unknown) => unknown) | null
+): string {
+  if (keyFn) {
+    const key = keyFn(item);
+    if (key !== undefined) {
+      if (
+        typeof key === "string" ||
+        typeof key === "number" ||
+        typeof key === "boolean"
+      ) {
+        return String(key);
+      }
+      try {
+        return JSON.stringify(key);
+      } catch {
+        // fall through to whole-item key
+      }
     }
   }
+  return wholeItemKey(item);
 }
 
 export class DistinctNode extends BaseNode {
@@ -864,16 +857,16 @@ export class DistinctNode extends BaseNode {
     title: "Input Item",
     description: "Streaming input — duplicate items are dropped."
   })
-  declare input_item: any;
+  declare input_item: unknown;
 
   @prop({
     type: "str",
     default: "",
     title: "Key",
     description:
-      "Optional JavaScript expression for the dedup key. The item is bound to `item`. Examples: `item.id`, `item.url`. Empty means use the whole item."
+      "Optional safe expression for the dedup key (property access on `item`, plus comparisons, boolean logic, and arithmetic). Examples: `item.id`, `item.url`. Empty means use the whole item."
   })
-  declare key: any;
+  declare key: string;
 
   async process(): Promise<Record<string, unknown>> {
     return {};
@@ -883,10 +876,11 @@ export class DistinctNode extends BaseNode {
     inputs: StreamingInputs,
     outputs: StreamingOutputs
   ): Promise<void> {
-    const keyExpr = String(this.key ?? "");
+    const keyExpr = String(this.key ?? "").trim();
+    const keyFn = keyExpr ? compileSafeKey(keyExpr) : null;
     const seen = new Set<string>();
     for await (const item of inputs.stream("input_item")) {
-      const k = distinctKey(item, keyExpr);
+      const k = distinctKey(item, keyFn);
       if (!seen.has(k)) {
         seen.add(k);
         await outputs.emit("output", item);
@@ -918,16 +912,16 @@ export class TakeWhileNode extends BaseNode {
     title: "Input Item",
     description: "Streaming input."
   })
-  declare input_item: any;
+  declare input_item: unknown;
 
   @prop({
     type: "str",
     default: "true",
     title: "Predicate",
     description:
-      "JavaScript expression evaluated per item. The current value is bound to `item`. Stream stops at the first item where the predicate is falsy."
+      "Safe expression evaluated per item (comparisons, boolean logic, arithmetic, property access on `item`). Stream stops at the first item where the predicate is falsy."
   })
-  declare predicate: any;
+  declare predicate: string;
 
   async process(): Promise<Record<string, unknown>> {
     return {};
@@ -937,7 +931,7 @@ export class TakeWhileNode extends BaseNode {
     inputs: StreamingInputs,
     outputs: StreamingOutputs
   ): Promise<void> {
-    const test = compilePredicate(String(this.predicate ?? "true"));
+    const test = compileSafePredicate(String(this.predicate ?? "true"));
     let stopped = false;
     for await (const item of inputs.stream("input_item")) {
       if (stopped) continue;
@@ -974,16 +968,16 @@ export class DropWhileNode extends BaseNode {
     title: "Input Item",
     description: "Streaming input."
   })
-  declare input_item: any;
+  declare input_item: unknown;
 
   @prop({
     type: "str",
     default: "false",
     title: "Predicate",
     description:
-      "JavaScript expression evaluated per item. The current value is bound to `item`. Items are dropped until the predicate first returns falsy; everything after is passed through."
+      "Safe expression evaluated per item (comparisons, boolean logic, arithmetic, property access on `item`). Items are dropped until the predicate first returns falsy; everything after is passed through."
   })
-  declare predicate: any;
+  declare predicate: string;
 
   async process(): Promise<Record<string, unknown>> {
     return {};
@@ -993,7 +987,7 @@ export class DropWhileNode extends BaseNode {
     inputs: StreamingInputs,
     outputs: StreamingOutputs
   ): Promise<void> {
-    const test = compilePredicate(String(this.predicate ?? "false"));
+    const test = compileSafePredicate(String(this.predicate ?? "false"));
     let dropping = true;
     for await (const item of inputs.stream("input_item")) {
       if (dropping) {
@@ -1028,7 +1022,7 @@ export class TapNode extends BaseNode {
     title: "Input Item",
     description: "Streaming input — forwarded unchanged after logging."
   })
-  declare input_item: any;
+  declare input_item: unknown;
 
   @prop({
     type: "str",
@@ -1036,7 +1030,7 @@ export class TapNode extends BaseNode {
     title: "Label",
     description: "Label printed alongside each logged item."
   })
-  declare label: any;
+  declare label: string;
 
   async process(): Promise<Record<string, unknown>> {
     return {};
@@ -1102,7 +1096,7 @@ export class ZipNode extends BaseNode {
     title: "Left",
     description: "Left iteration source."
   })
-  declare left: any;
+  declare left: unknown;
 
   @prop({
     type: "any",
@@ -1110,7 +1104,7 @@ export class ZipNode extends BaseNode {
     title: "Right",
     description: "Right iteration source."
   })
-  declare right: any;
+  declare right: unknown;
 
   @prop({
     type: "int",
@@ -1119,7 +1113,7 @@ export class ZipNode extends BaseNode {
     description:
       "Maximum number of unmatched items to buffer before failing. §7."
   })
-  declare max_unmatched_pairs: any;
+  declare max_unmatched_pairs: number;
 
   async process(): Promise<Record<string, unknown>> {
     return {};
@@ -1291,7 +1285,7 @@ export class CrossNode extends BaseNode {
     title: "Left",
     description: "Left iteration source."
   })
-  declare left: any;
+  declare left: unknown;
 
   @prop({
     type: "any",
@@ -1299,7 +1293,7 @@ export class CrossNode extends BaseNode {
     title: "Right",
     description: "Right iteration source."
   })
-  declare right: any;
+  declare right: unknown;
 
   @prop({
     type: "int",
@@ -1308,7 +1302,7 @@ export class CrossNode extends BaseNode {
     description:
       "Maximum number of pairs to emit. Buffering both sides without a cap can blow memory."
   })
-  declare max_output_count: any;
+  declare max_output_count: number;
 
   async process(): Promise<Record<string, unknown>> {
     return {};

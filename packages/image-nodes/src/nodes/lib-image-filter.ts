@@ -1,5 +1,5 @@
 import { BaseNode, registerDeclaredProperty } from "@nodetool-ai/node-sdk";
-import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
+import type { NodeClass } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import * as d from "typegpu/data";
 import {
@@ -11,19 +11,9 @@ import {
   transformPadV1
 } from "@nodetool-ai/gpu/pool";
 import { pickImage } from "./lib-image-utils.js";
-import { runShaderNode } from "./lib-shader-utils.js";
-import { decodeRgba, rawRgbaImageRef } from "./image-io.js";
+import { runShaderNode, type Desc } from "./lib-shader-utils.js";
+import { decodeRgba, imageDimensions, rawRgbaImageRef } from "./image-io.js";
 import { tagAsBrowserGpu, tagAsContentCard } from "@nodetool-ai/nodes-utils";
-
-type Desc = {
-  nodeType: string;
-  title: string;
-  description: string;
-  inlineFields: string[];
-  inputFields:  string[];
-  outputs: Record<string, string>;
-  properties: Array<{ name: string; options: PropOptions }>;
-};
 
 function createFilterNode(desc: Desc): NodeClass {
   const C = class extends BaseNode {
@@ -165,7 +155,10 @@ function createFilterNode(desc: Desc): NodeClass {
       if (t.endsWith(".Expand")) {
         const border = Number((this as any).border ?? 0);
         const fill = Number((this as any).fill ?? 0) / 255;
-        const { width: srcW, height: srcH } = await decodeRgba(baseObj, context);
+        const { width: srcW, height: srcH } = await imageDimensions(
+          baseObj,
+          context
+        );
         if (!srcW || !srcH) return { output: baseObj ?? {} };
         return {
           output: await runShaderNode(
@@ -206,14 +199,18 @@ function createFilterNode(desc: Desc): NodeClass {
           0.0586, 0.0965, 0.0586, 0.0131, 0.0029, 0.0131, 0.0215, 0.0131,
           0.0029
         ];
-        for (let y = 2; y < h - 2; y++) {
-          for (let x = 2; x < w - 2; x++) {
+        // Blur every pixel, including the border. Kernel taps that fall outside
+        // the image clamp to the nearest edge pixel (clamp-to-edge sampling);
+        // skipping the border would leave a 2px zero frame that the Sobel pass
+        // reads as a spurious edge just inside the image.
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
             let sum = 0;
             for (let ky = -2; ky <= 2; ky++) {
+              const sy = Math.min(h - 1, Math.max(0, y + ky));
               for (let kx = -2; kx <= 2; kx++) {
-                sum +=
-                  grayData[(y + ky) * w + (x + kx)] *
-                  gaussKernel[(ky + 2) * 5 + (kx + 2)];
+                const sx = Math.min(w - 1, Math.max(0, x + kx));
+                sum += grayData[sy * w + sx] * gaussKernel[(ky + 2) * 5 + (kx + 2)];
               }
             }
             blurred[y * w + x] = sum;

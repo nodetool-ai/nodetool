@@ -183,8 +183,10 @@ const cardStyles = (theme: Theme) =>
       overflow: "hidden",
       textOverflow: "ellipsis",
       // Lock to one line of height so the flex parent can't clip the
-      // descender of the line and swallow the ellipsis.
-      maxHeight: "calc(0.9rem * 1.25)",
+      // descender of the line and swallow the ellipsis. Use em (the element's
+      // own font-size) so the cap tracks --fontSizeNormal; a hardcoded rem
+      // smaller than the actual line height clips the whole title away.
+      maxHeight: "1.25em",
       margin: 0
     },
     ".card-description": {
@@ -197,8 +199,10 @@ const cardStyles = (theme: Theme) =>
       overflow: "hidden",
       textOverflow: "ellipsis",
       // Lock the visible description to N full lines so the parent flex
-      // container can't shave the bottom of the last line.
-      maxHeight: "calc(0.75rem * 1.4 * 3)",
+      // container can't shave the bottom of the last line. em tracks the
+      // element's own font-size (--fontSizeSmall); a hardcoded rem below the
+      // real line height clips text.
+      maxHeight: "calc(1.4em * 3)",
       margin: 0
     },
     ".chips-container": {
@@ -372,7 +376,7 @@ const WorkflowCard = ({
               className="card-description"
               style={{
                 WebkitLineClamp: descriptionLines,
-                maxHeight: `calc(0.75rem * 1.4 * ${descriptionLines})`
+                maxHeight: `calc(1.4em * ${descriptionLines})`
               }}
             >
               {workflow.description}

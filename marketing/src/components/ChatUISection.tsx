@@ -74,7 +74,7 @@ export default function ChatUISection() {
               </div>
 
               <Image
-                src="/screen_chat.png"
+                src="/screen_chat.webp"
                 alt="Chat UI with tools, agents and workflow integrations"
                 width={2504}
                 height={1726}

@@ -39,7 +39,7 @@ const clamp = (value: number, min?: number, max?: number) => {
 export function useResizable(
   targetRef: RefObject<HTMLElement | null>,
   options: UseResizableOptions
-) {
+): (direction: ResizeDirection) => (e: ReactPointerEvent) => void {
   const optionsRef = useRef(options);
   optionsRef.current = options;
 

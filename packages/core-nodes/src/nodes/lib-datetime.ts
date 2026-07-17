@@ -40,8 +40,104 @@ const MS = {
   week: 604_800_000
 } as const;
 
-/** Parse an input into a Date. Throws with a friendly error on failure. */
+/**
+ * Shape emitted by the Constant Date node ({year, month, day}) and the
+ * Constant DateTime node (full datetime object; `utc_offset` is in SECONDS,
+ * `microsecond` in microseconds). Fields beyond year/month/day are optional.
+ */
+type DateObject = {
+  year: unknown;
+  month: unknown;
+  day: unknown;
+  hour?: unknown;
+  minute?: unknown;
+  second?: unknown;
+  microsecond?: unknown;
+  tzinfo?: unknown;
+  utc_offset?: unknown;
+};
+
+const isDateObject = (input: unknown): input is DateObject =>
+  typeof input === "object" &&
+  input !== null &&
+  !(input instanceof Date) &&
+  "year" in input &&
+  "month" in input &&
+  "day" in input;
+
+/** Coerce a required numeric field, throwing the friendly error if malformed. */
+function requireNum(value: unknown, field: string, source: unknown): number {
+  const n = Number(value);
+  if (!Number.isFinite(n)) {
+    throw new Error(`Could not parse date: ${JSON.stringify(source)} (${field})`);
+  }
+  return n;
+}
+
+/** Coerce an optional numeric field (defaults to 0), validating if present. */
+function optionalNum(value: unknown, field: string, source: unknown): number {
+  if (value === null || value === undefined) return 0;
+  const n = Number(value);
+  if (!Number.isFinite(n)) {
+    throw new Error(`Could not parse date: ${JSON.stringify(source)} (${field})`);
+  }
+  return n;
+}
+
+/**
+ * Build a Date from a Constant Date / Constant DateTime object.
+ *
+ * - Plain {year, month, day} with no timezone info → local midnight.
+ * - Full datetime shape: if `utc_offset` (seconds) or a non-empty `tzinfo` is
+ *   present, honor it — the wall-clock fields are interpreted at that offset,
+ *   so the instant is `Date.UTC(...) − utc_offset seconds`. With no offset
+ *   info the fields are treated as local time.
+ */
+function parseDateObject(obj: DateObject): Date {
+  const year = requireNum(obj.year, "year", obj);
+  const month = requireNum(obj.month, "month", obj);
+  const day = requireNum(obj.day, "day", obj);
+  const hour = optionalNum(obj.hour, "hour", obj);
+  const minute = optionalNum(obj.minute, "minute", obj);
+  const second = optionalNum(obj.second, "second", obj);
+  const microsecond = optionalNum(obj.microsecond, "microsecond", obj);
+  const ms = microsecond / 1000;
+
+  const hasOffset =
+    obj.utc_offset !== null &&
+    obj.utc_offset !== undefined &&
+    Number.isFinite(Number(obj.utc_offset));
+  const hasTz = typeof obj.tzinfo === "string" && obj.tzinfo.trim() !== "";
+
+  let d: Date;
+  if (hasOffset || hasTz) {
+    const offsetSeconds = hasOffset ? Number(obj.utc_offset) : 0;
+    d = new Date(
+      Date.UTC(year, month - 1, day, hour, minute, second, ms) -
+        offsetSeconds * 1000
+    );
+  } else {
+    d = new Date(year, month - 1, day, hour, minute, second, ms);
+  }
+  if (Number.isNaN(d.getTime())) {
+    throw new Error(`Could not parse date: ${JSON.stringify(obj)}`);
+  }
+  return d;
+}
+
+/**
+ * Parse an input into a Date. Throws with a friendly error on failure.
+ *
+ * A missing input (null/undefined/empty string) is an error, not "now" — a
+ * missing wire must not silently become the current time. Use the Now node
+ * when the current time is what you want.
+ */
 export function parseDate(input: unknown): Date {
+  if (input === null || input === undefined || input === "") {
+    throw new Error(
+      "No date provided — connect a date input or use the Now node"
+    );
+  }
   if (input instanceof Date) {
     if (!Number.isNaN(input.getTime())) return new Date(input.getTime());
     throw new Error("Could not parse date: Invalid Date");
@@ -56,8 +152,8 @@ export function parseDate(input: unknown): Date {
     if (!Number.isNaN(d.getTime())) return d;
     throw new Error(`Could not parse date: ${JSON.stringify(input)}`);
   }
-  if (input === null || input === undefined || input === "") {
-    return new Date();
+  if (isDateObject(input)) {
+    return parseDateObject(input);
   }
   throw new Error(`Could not parse date: ${JSON.stringify(input)}`);
 }
@@ -166,7 +262,10 @@ export function formatDate(date: Date, pattern: string): string {
 
 /**
  * Add (or subtract, when amount is negative) a number of units to a date.
- * Calendar-aware for month and year.
+ * Calendar-aware for day, week, month, and year: day/week arithmetic uses
+ * `setDate`, so it preserves the local wall-clock time across DST transitions
+ * (a fixed-millisecond offset would drift by an hour). Sub-day units are exact
+ * millisecond math.
  */
 export function addUnits(date: Date, amount: number, unit: DateUnit): Date {
   const out = new Date(date.getTime());
@@ -176,6 +275,14 @@ export function addUnits(date: Date, amount: number, unit: DateUnit): Date {
   }
   if (unit === "year") {
     out.setFullYear(out.getFullYear() + amount);
+    return out;
+  }
+  if (unit === "day") {
+    out.setDate(out.getDate() + amount);
+    return out;
+  }
+  if (unit === "week") {
+    out.setDate(out.getDate() + amount * 7);
     return out;
   }
   const ms = MS[unit];
@@ -285,7 +392,7 @@ export class FormatDateNode extends BaseNode {
   static readonly nodeType = "lib.datetime.Format";
   static readonly title = "Format Date";
   static readonly description =
-    "Parse a date string/number/Date and format it. Supports tokens YYYY, MM, DD, HH, mm, ss, SSS, Z. Use [brackets] for literals.\n    date, format, parse, strftime";
+    "Parse a date string/number/Date and format it. Supports tokens YYYY, MM, DD, HH, mm, ss, SSS, Z. Use [brackets] for literals. The date input is required — connect a date or use the Now node.\n    date, format, parse, strftime";
   static readonly metadataOutputTypes = {
     formatted: "str",
     iso: "str",
@@ -300,7 +407,7 @@ export class FormatDateNode extends BaseNode {
     title: "Date",
     description: "Date string, number (epoch ms), or Date."
   })
-  declare date: any;
+  declare date: unknown;
 
   @prop({
     type: "str",
@@ -308,7 +415,7 @@ export class FormatDateNode extends BaseNode {
     title: "Pattern",
     description: "Format pattern (YYYY, MM, DD, HH, mm, ss, SSS, Z)."
   })
-  declare pattern: any;
+  declare pattern: string;
 
   async process(): Promise<Record<string, unknown>> {
     const d = parseDate(this.date);
@@ -325,7 +432,7 @@ export class DateAddNode extends BaseNode {
   static readonly nodeType = "lib.datetime.Add";
   static readonly title = "Add / Subtract Time";
   static readonly description =
-    "Add (or subtract, when amount is negative) a number of time units to a date.\n    date, add, subtract, shift, offset";
+    "Add (or subtract, when amount is negative) a number of time units to a date. Day/week arithmetic is calendar-aware across DST. The date input is required — connect a date or use the Now node.\n    date, add, subtract, shift, offset";
   static readonly metadataOutputTypes = {
     iso: "str",
     epoch_ms: "int",
@@ -340,7 +447,7 @@ export class DateAddNode extends BaseNode {
     title: "Date",
     description: "Input date."
   })
-  declare date: any;
+  declare date: unknown;
 
   @prop({
     type: "int",
@@ -348,7 +455,7 @@ export class DateAddNode extends BaseNode {
     title: "Amount",
     description: "Amount to add (use negative to subtract)."
   })
-  declare amount: any;
+  declare amount: number;
 
   @prop({
     type: "enum",
@@ -357,7 +464,7 @@ export class DateAddNode extends BaseNode {
     description: "Unit of time.",
     values: DATE_UNITS
   })
-  declare unit: any;
+  declare unit: unknown;
 
   async process(): Promise<Record<string, unknown>> {
     const d = parseDate(this.date);
@@ -379,7 +486,7 @@ export class DateDiffNode extends BaseNode {
   static readonly nodeType = "lib.datetime.Diff";
   static readonly title = "Date Difference";
   static readonly description =
-    "Difference between two dates (date_a − date_b) expressed in the given unit.\n    date, diff, difference, between, duration";
+    "Difference between two dates (date_a − date_b) expressed in the given unit. Both date inputs are required — connect dates or use the Now node.\n    date, diff, difference, between, duration";
   static readonly metadataOutputTypes = {
     diff: "int",
     is_before: "bool",
@@ -390,10 +497,10 @@ export class DateDiffNode extends BaseNode {
   static readonly inputFields = ["date_a", "date_b"];
 
   @prop({ type: "any", default: "", title: "Date A" })
-  declare date_a: any;
+  declare date_a: unknown;
 
   @prop({ type: "any", default: "", title: "Date B" })
-  declare date_b: any;
+  declare date_b: unknown;
 
   @prop({
     type: "enum",
@@ -402,7 +509,7 @@ export class DateDiffNode extends BaseNode {
     description: "Unit for the returned diff.",
     values: DATE_UNITS
   })
-  declare unit: any;
+  declare unit: unknown;
 
   async process(): Promise<Record<string, unknown>> {
     const a = parseDate(this.date_a);
@@ -424,7 +531,7 @@ export class DateStartEndNode extends BaseNode {
   static readonly nodeType = "lib.datetime.StartEnd";
   static readonly title = "Start / End of Period";
   static readonly description =
-    "Return the start and end of the given period (day, week, month, year).\n    date, start, end, period, boundary";
+    "Return the start and end of the given period (day, week, month, year). The date input is required — connect a date or use the Now node.\n    date, start, end, period, boundary";
   static readonly metadataOutputTypes = {
     start_iso: "str",
     end_iso: "str",
@@ -435,7 +542,7 @@ export class DateStartEndNode extends BaseNode {
   static readonly inputFields = ["date"];
 
   @prop({ type: "any", default: "", title: "Date" })
-  declare date: any;
+  declare date: unknown;
 
   @prop({
     type: "enum",
@@ -443,7 +550,7 @@ export class DateStartEndNode extends BaseNode {
     title: "Unit",
     values: DATE_UNITS
   })
-  declare unit: any;
+  declare unit: unknown;
 
   async process(): Promise<Record<string, unknown>> {
     const d = parseDate(this.date);

@@ -89,7 +89,7 @@ export default function FeaturesSection({
               </div>
 
               <Image
-                src="/screen_workflow.png"
+                src="/screen_workflow.webp"
                 alt="Node workflow turning a campaign brief and product photo into a generated product video"
                 width={1400}
                 height={892}

@@ -252,6 +252,59 @@ export async function decodeRgba(
   return IS_NODE ? decodeBytesNode(bytes) : decodeBytesBrowser(bytes);
 }
 
+/**
+ * Read just the pixel dimensions of an image input, cheaply. In-flight refs
+ * (raw-RGBA, GPU texture, preview bitmap) all carry their dimensions, so this
+ * returns them without touching pixels — in particular it never triggers a GPU
+ * readback for a texture ref. A ref that already carries positive `width`/
+ * `height` fields is trusted directly. Otherwise it loads the encoded bytes and
+ * reads only the header (sharp metadata on Node, `createImageBitmap` in the
+ * browser), decoding the full image only as a last resort.
+ */
+export async function imageDimensions(
+  image: unknown,
+  context?: ProcessingContext
+): Promise<{ width: number; height: number }> {
+  if (
+    isRawRgbaImage(image) ||
+    isGpuTextureImage(image) ||
+    isBitmapImage(image)
+  ) {
+    return { width: image.width, height: image.height };
+  }
+  if (image && typeof image === "object") {
+    const { width, height } = image as { width?: unknown; height?: unknown };
+    if (
+      typeof width === "number" &&
+      typeof height === "number" &&
+      width > 0 &&
+      height > 0
+    ) {
+      return { width, height };
+    }
+  }
+  const bytes = await loadImageBytes(image, context);
+  if (bytes.length === 0) return { width: 0, height: 0 };
+  if (IS_NODE) {
+    const sharp = await loadSharp();
+    if (sharp) {
+      const meta = await sharp(bytes, { failOn: "none" }).metadata();
+      if (meta.width && meta.height) {
+        return { width: meta.width, height: meta.height };
+      }
+    }
+  } else if (typeof createImageBitmap !== "undefined") {
+    const bitmap = await createImageBitmap(new Blob([toArrayBuffer(bytes)]));
+    const { width, height } = bitmap;
+    bitmap.close();
+    return { width, height };
+  }
+  // Last resort — full decode (also covers Node without sharp).
+  const decoded =
+    IS_NODE ? await decodeBytesNode(bytes) : await decodeBytesBrowser(bytes);
+  return { width: decoded.width, height: decoded.height };
+}
+
 /* --------------------------------- encode --------------------------------- */
 
 /** Encode straight-alpha RGBA to PNG via Canvas (browser). Always 4-channel. */

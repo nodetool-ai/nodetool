@@ -569,16 +569,26 @@ export class Graph {
    * Return nodes that have no incoming data edges (source nodes).
    */
   inputNodes(): NodeDescriptor[] {
-    return this.nodes.filter((n) => this.findDataEdges(n.id).length === 0);
+    const hasIncomingData = new Set<string>();
+    for (const edge of this.edges) {
+      if (isDataEdge(edge)) {
+        hasIncomingData.add(edge.target);
+      }
+    }
+    return this.nodes.filter((n) => !hasIncomingData.has(n.id));
   }
 
   /**
    * Return nodes that have no outgoing data edges (sink nodes).
    */
   outputNodes(): NodeDescriptor[] {
-    return this.nodes.filter(
-      (n) => this.findOutgoingEdges(n.id).filter(isDataEdge).length === 0
-    );
+    const hasOutgoingData = new Set<string>();
+    for (const edge of this.edges) {
+      if (isDataEdge(edge)) {
+        hasOutgoingData.add(edge.source);
+      }
+    }
+    return this.nodes.filter((n) => !hasOutgoingData.has(n.id));
   }
 
   // -----------------------------------------------------------------------

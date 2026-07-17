@@ -52,7 +52,7 @@ export default function ComparisonSection({
             delay={0}
           />
           <ComparisonCard
-            competitor="Weavy / closed canvases"
+            competitor="Figma Weave / closed canvases"
             sentence="Closed canvases lock you into a credit system and a hand-picked list of models. NodeTool is open source — every provider, your own keys, provider prices."
             reducedMotion={reducedMotion}
             delay={0.05}
@@ -87,7 +87,7 @@ export default function ComparisonSection({
             <div className="flex md:block">
               <div className="flex h-20 w-20 items-center justify-center rounded-xl border border-amber-500/25 bg-slate-950">
                 <Image
-                  src="/logo_small.png"
+                  src="/logo_small.webp"
                   alt=""
                   width={48}
                   height={48}

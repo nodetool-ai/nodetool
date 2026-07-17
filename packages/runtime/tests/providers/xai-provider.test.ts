@@ -145,6 +145,36 @@ describe("XAIProvider", () => {
     ]);
   });
 
+  it("shares one /v1/models request across the modality getters", async () => {
+    const mockFetch = mixedModelsFetch();
+    const provider = new XAIProvider(
+      { XAI_API_KEY: "k" },
+      { client: {} as any, fetchFn: mockFetch as any }
+    );
+
+    await provider.getAvailableLanguageModels();
+    await provider.getAvailableImageModels();
+    await provider.getAvailableVideoModels();
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries the model listing after a failed fetch instead of caching the empty result", async () => {
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false })
+      .mockImplementation(mixedModelsFetch());
+    const provider = new XAIProvider(
+      { XAI_API_KEY: "k" },
+      { client: {} as any, fetchFn: mockFetch as any }
+    );
+
+    expect(await provider.getAvailableLanguageModels()).toEqual([]);
+    const retried = await provider.getAvailableLanguageModels();
+    expect(retried.map((m) => m.id)).toEqual(["grok-4", "grok-3-mini"]);
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+  });
+
   it("returns empty image and video lists when model fetch fails", async () => {
     const mockFetch = vi.fn().mockResolvedValue({ ok: false });
     const provider = new XAIProvider(
@@ -314,6 +344,57 @@ describe("XAIProvider", () => {
     expect(body.image).toHaveLength(2);
   });
 
+  it("forwards resolution on image-to-image edits", async () => {
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValue(jsonOk({ data: [{ b64_json: "QQ==" }] }));
+    const provider = new XAIProvider(
+      { XAI_API_KEY: "k" },
+      { client: {} as any, fetchFn: mockFetch as any }
+    );
+
+    await provider.imageToImage([pngBytes], {
+      prompt: "upscale",
+      model: imageModel,
+      resolution: "1080p"
+    });
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.resolution).toBe("1080p");
+  });
+
+  it("rejects image-to-image with more than 3 source images", async () => {
+    const provider = new XAIProvider(
+      { XAI_API_KEY: "k" },
+      { client: {} as any, fetchFn: vi.fn() as any }
+    );
+    await expect(
+      provider.imageToImage([pngBytes, pngBytes, pngBytes, pngBytes], {
+        prompt: "blend",
+        model: imageModel
+      })
+    ).rejects.toThrow("at most 3 source images");
+  });
+
+  it("labels GIF sources with the gif MIME in the data URI", async () => {
+    const gifBytes = new Uint8Array([0x47, 0x49, 0x46, 0x38, 0x39, 0x61]);
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValue(jsonOk({ data: [{ b64_json: "QQ==" }] }));
+    const provider = new XAIProvider(
+      { XAI_API_KEY: "k" },
+      { client: {} as any, fetchFn: mockFetch as any }
+    );
+
+    await provider.imageToImage([gifBytes], {
+      prompt: "animate style",
+      model: imageModel
+    });
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.image.url).toMatch(/^data:image\/gif;base64,/);
+  });
+
   it("rejects image-to-image with no usable source", async () => {
     const provider = new XAIProvider(
       { XAI_API_KEY: "k" },
@@ -370,6 +451,87 @@ describe("XAIProvider", () => {
       resolution: "720p"
     });
     expect(mockFetch.mock.calls[1][0]).toBe("https://api.x.ai/v1/videos/req-1");
+  });
+
+  function videoDoneFetch() {
+    return vi
+      .fn()
+      .mockResolvedValueOnce(jsonOk({ request_id: "req-d" }))
+      .mockResolvedValueOnce(
+        jsonOk({ status: "done", video: { url: "https://vid.x.ai/v.mp4" } })
+      )
+      .mockResolvedValueOnce({
+        ok: true,
+        arrayBuffer: async () => new TextEncoder().encode("mp4").buffer
+      });
+  }
+
+  it("derives video duration from numFrames at 24fps without Sora snapping", async () => {
+    const mockFetch = videoDoneFetch();
+    const provider = new XAIProvider(
+      { XAI_API_KEY: "k" },
+      { client: {} as any, fetchFn: mockFetch as any }
+    );
+
+    // 48 frames = 2 seconds; the old Sora-grid fallback inflated this to 4.
+    await provider.textToVideo({
+      prompt: "a fox",
+      model: videoModel,
+      numFrames: 48
+    });
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.duration).toBe(2);
+  });
+
+  it("clamps frame-derived durations to xAI's 15-second ceiling", async () => {
+    const mockFetch = videoDoneFetch();
+    const provider = new XAIProvider(
+      { XAI_API_KEY: "k" },
+      { client: {} as any, fetchFn: mockFetch as any }
+    );
+
+    await provider.textToVideo({
+      prompt: "a fox",
+      model: videoModel,
+      numFrames: 480
+    });
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.duration).toBe(15);
+  });
+
+  it("treats timeoutSeconds 0 as unset instead of expiring immediately", async () => {
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValueOnce(jsonOk({ request_id: "req-t" }))
+      .mockResolvedValueOnce(jsonOk({ status: "pending" }))
+      .mockResolvedValueOnce(jsonOk({ status: "pending" }))
+      .mockResolvedValueOnce(
+        jsonOk({ status: "done", video: { url: "https://vid.x.ai/v.mp4" } })
+      )
+      .mockResolvedValueOnce({
+        ok: true,
+        arrayBuffer: async () => new TextEncoder().encode("mp4").buffer
+      });
+    const provider = new XAIProvider(
+      { XAI_API_KEY: "k" },
+      { client: {} as any, fetchFn: mockFetch as any }
+    );
+
+    vi.useFakeTimers();
+    try {
+      const pending = provider.textToVideo({
+        prompt: "a fox",
+        model: videoModel,
+        timeoutSeconds: 0
+      });
+      await vi.runAllTimersAsync();
+      const bytes = await pending;
+      expect(Buffer.from(bytes).toString()).toBe("mp4");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("attaches the source frame for image-to-video", async () => {
