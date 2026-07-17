@@ -93,12 +93,12 @@ export default function ModelSupportSection({
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        transition={{ duration: 0.5 }}
+                        transition={{ duration: 0.25 }}
                         className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-6"
                     >
-                        Every model.{" "}
+                        The newest models,{" "}
                         <span className="text-white">
-                            Your keys.
+                            the day they ship.
                         </span>
                     </motion.h2>
 
@@ -106,13 +106,12 @@ export default function ModelSupportSection({
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        transition={{ duration: 0.5, delay: 0.1 }}
+                        transition={{ duration: 0.25, delay: 0.05 }}
                         className="text-lg text-slate-400 leading-relaxed"
                     >
-                        The newest models from every major provider, called
-                        with the keys you already pay for. Swap models the day
-                        they launch. Run them on your own machine when you
-                        want to.
+                        Frontier image, video, audio, and language models from
+                        every major provider — or running on your own machine
+                        when you want them local.
                     </motion.p>
                 </div>
 
@@ -131,6 +130,7 @@ export default function ModelSupportSection({
                             {[...frontierModels, ...frontierModels].map((model, idx) => (
                                 <span
                                     key={`${model.name}-${idx}`}
+                                    aria-hidden={idx >= frontierModels.length || undefined}
                                     className={`flex-shrink-0 mx-4 text-lg font-semibold whitespace-nowrap ${model.color}`}
                                 >
                                     {model.name}
@@ -155,6 +155,8 @@ export default function ModelSupportSection({
                             {[...cloudProviders, ...cloudProviders].map((provider, idx) => (
                                 <a
                                     key={`${provider.title}-${idx}`}
+                                    aria-hidden={idx >= cloudProviders.length || undefined}
+                                    tabIndex={idx >= cloudProviders.length ? -1 : undefined}
                                     href={provider.url}
                                     target="_blank"
                                     rel="noopener noreferrer"
@@ -187,6 +189,8 @@ export default function ModelSupportSection({
                             {[...localEngines, ...localEngines, ...localEngines, ...localEngines].map((engine, idx) => (
                                 <a
                                     key={`${engine.title}-${idx}`}
+                                    aria-hidden={idx >= localEngines.length || undefined}
+                                    tabIndex={idx >= localEngines.length ? -1 : undefined}
                                     href={engine.url}
                                     target="_blank"
                                     rel="noopener noreferrer"

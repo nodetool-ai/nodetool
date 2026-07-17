@@ -54,7 +54,7 @@ export default function UseCasesShowcase() {
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.25 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white"
           >
             From a brief to a finished asset
@@ -63,7 +63,7 @@ export default function UseCasesShowcase() {
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.05 }}
+            transition={{ duration: 0.25, delay: 0.05 }}
             className="mt-4 text-lg text-slate-400 leading-relaxed"
           >
             Real workflows you can open, run, and rewire. Each one is complete,
@@ -81,8 +81,8 @@ export default function UseCasesShowcase() {
                 href={`/use-cases/${item.slug}`}
                 initial={{ opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-80px" }}
-                transition={{ duration: 0.6 }}
+                viewport={{ once: true, margin: "-40px" }}
+                transition={{ duration: 0.3 }}
                 className="group relative grid items-center gap-8 rounded-3xl border border-white/10 bg-slate-900/40 p-6 backdrop-blur-sm transition-all duration-300 hover:border-white/20 hover:bg-slate-900/60 lg:grid-cols-2 lg:gap-12 lg:p-8"
               >
                 {/* Media */}

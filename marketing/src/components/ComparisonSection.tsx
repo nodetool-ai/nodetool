@@ -27,7 +27,7 @@ export default function ComparisonSection({
             initial={reducedMotion ? {} : { opacity: 0, y: 16 }}
             whileInView={reducedMotion ? {} : { opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.25 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white"
           >
             Where NodeTool fits among your tools
@@ -36,7 +36,7 @@ export default function ComparisonSection({
             initial={reducedMotion ? {} : { opacity: 0, y: 16 }}
             whileInView={reducedMotion ? {} : { opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.05 }}
+            transition={{ duration: 0.25, delay: 0.05 }}
             className="mt-4 text-lg text-slate-400 leading-relaxed max-w-2xl"
           >
             You&apos;re probably using two or three of these already. Here&apos;s
@@ -70,7 +70,7 @@ export default function ComparisonSection({
           initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
           whileInView={reducedMotion ? {} : { opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.15 }}
+          transition={{ duration: 0.3, delay: 0.08 }}
           className="relative mt-10 rounded-2xl border border-slate-800/80 bg-slate-950/40 px-8 py-10 md:px-12 md:py-12"
         >
           {/* Warm corner glow — single, subtle */}
@@ -141,7 +141,7 @@ function ComparisonCard({
       initial={reducedMotion ? {} : { opacity: 0, y: 16 }}
       whileInView={reducedMotion ? {} : { opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      transition={{ duration: 0.5, delay }}
+      transition={{ duration: 0.25, delay }}
       className="relative bg-slate-950/70 p-8 lg:p-10 flex flex-col"
     >
       <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 mb-6">

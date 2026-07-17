@@ -23,7 +23,7 @@ export default function DeploySection({
             initial={{ opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.25 }}
           >
             <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6">
               Self host <br />
@@ -111,7 +111,7 @@ export default function DeploySection({
             initial={{ opacity: 0, x: 20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.2 }}
+            transition={{ duration: 0.25, delay: 0.05 }}
             className="relative hidden lg:block"
           >
             <Tilt3D>

@@ -90,7 +90,7 @@ export default function AgentFeaturesSection({
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.25 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
             Built to{" "}
@@ -103,7 +103,7 @@ export default function AgentFeaturesSection({
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.1 }}
+            transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
             Agents are nodes on the same canvas as your image, video, and audio
@@ -117,7 +117,7 @@ export default function AgentFeaturesSection({
           className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3"
           initial="hidden"
           whileInView="show"
-          viewport={{ once: true, margin: "-100px" }}
+          viewport={{ once: true, margin: "-40px" }}
           variants={{
             show: { transition: { staggerChildren: 0.1 } },
           }}
@@ -127,7 +127,7 @@ export default function AgentFeaturesSection({
               key={feature.title}
               variants={{
                 hidden: { opacity: 0, y: 20 },
-                show: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+                show: { opacity: 1, y: 0, transition: { duration: 0.25 } },
               }}
             >
               <Tilt3D className="h-full">
