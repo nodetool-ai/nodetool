@@ -1698,10 +1698,8 @@ export class GeminiProvider extends BaseProvider {
         {
           prompt,
           image: {
-            inlineData: {
-              data: Buffer.from(image).toString("base64"),
-              mimeType: "image/png"
-            }
+            bytesBase64Encoded: Buffer.from(image).toString("base64"),
+            mimeType: "image/png"
           }
         }
       ]
