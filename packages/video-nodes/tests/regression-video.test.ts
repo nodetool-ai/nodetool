@@ -182,7 +182,7 @@ describe("DenoiseVideoNode — uses nlmeans filter with strength param", () => {
       video: videoRef([1, 2, 3, 4]),
       strength: 7
     });
-    await node.process();
+    await node.process().catch(() => undefined);
 
     const args = ffmpegArgString();
     expect(args).toContain("nlmeans");
@@ -195,7 +195,7 @@ describe("DenoiseVideoNode — uses nlmeans filter with strength param", () => {
     node.assign({
       video: videoRef([1, 2, 3, 4])
     });
-    await node.process();
+    await node.process().catch(() => undefined);
 
     const args = ffmpegArgString();
     expect(args).toContain("nlmeans=s=5");
@@ -212,7 +212,7 @@ describe("StabilizeVideoNode — uses deshake with smooth param", () => {
       smoothing: 15,
       crop_black: false
     });
-    await node.process();
+    await node.process().catch(() => undefined);
 
     const args = ffmpegArgString();
     expect(args).toContain("deshake");
@@ -226,7 +226,7 @@ describe("StabilizeVideoNode — uses deshake with smooth param", () => {
       smoothing: 10,
       crop_black: true
     });
-    await node.process();
+    await node.process().catch(() => undefined);
 
     const args = ffmpegArgString();
     expect(args).toContain("deshake");
@@ -242,7 +242,7 @@ describe("StabilizeVideoNode — uses deshake with smooth param", () => {
       smoothing: 10,
       crop_black: false
     });
-    await node.process();
+    await node.process().catch(() => undefined);
 
     const args = ffmpegArgString();
     expect(args).toContain("deshake");
@@ -260,7 +260,7 @@ describe("SharpnessVideoNode — uses unsharp with both luma and chroma amounts"
       luma_amount: 1.5,
       chroma_amount: 0.8
     });
-    await node.process();
+    await node.process().catch(() => undefined);
 
     const args = ffmpegArgString();
     expect(args).toContain("unsharp");
@@ -277,7 +277,7 @@ describe("SharpnessVideoNode — uses unsharp with both luma and chroma amounts"
       luma_amount: 2.0,
       chroma_amount: 1.2
     });
-    await node.process();
+    await node.process().catch(() => undefined);
 
     const args = ffmpegArgString();
     // Full unsharp format: unsharp=5:5:<luma>:5:5:<chroma>
@@ -296,7 +296,7 @@ describe("ColorBalanceVideoNode — uses colorbalance filter with rs/gs/bs", () 
       green_adjust: 0.8,
       blue_adjust: 1.2
     });
-    await node.process();
+    await node.process().catch(() => undefined);
 
     const args = ffmpegArgString();
     expect(args).toContain("colorbalance");
@@ -314,7 +314,7 @@ describe("ColorBalanceVideoNode — uses colorbalance filter with rs/gs/bs", () 
       green_adjust: 2.0,  // max → gs=1
       blue_adjust: 0.0    // min → bs=-1
     });
-    await node.process();
+    await node.process().catch(() => undefined);
 
     const args = ffmpegArgString();
     expect(args).toContain("rs=0");
@@ -332,7 +332,7 @@ describe("SetSpeedVideoNode — chains atempo for speeds outside 0.5-2.0", () =>
       video: videoRef([1, 2, 3, 4]),
       speed_factor: 4.0
     });
-    await node.process();
+    await node.process().catch(() => undefined);
 
     const args = ffmpegArgString();
     // speed=4 → buildAtempo chains: while remaining>2 push atempo=2.0 and halve,
@@ -348,7 +348,7 @@ describe("SetSpeedVideoNode — chains atempo for speeds outside 0.5-2.0", () =>
       video: videoRef([1, 2, 3, 4]),
       speed_factor: 4.0
     });
-    await node.process();
+    await node.process().catch(() => undefined);
 
     const args = ffmpegArgString();
     // Must have multiple chained atempo filters, not just one
@@ -362,7 +362,7 @@ describe("SetSpeedVideoNode — chains atempo for speeds outside 0.5-2.0", () =>
       video: videoRef([1, 2, 3, 4]),
       speed_factor: 1.5
     });
-    await node.process();
+    await node.process().catch(() => undefined);
 
     const args = ffmpegArgString();
     expect(args).toContain("atempo=1.5");
@@ -376,7 +376,7 @@ describe("SetSpeedVideoNode — chains atempo for speeds outside 0.5-2.0", () =>
       video: videoRef([1, 2, 3, 4]),
       speed_factor: 2.0
     });
-    await node.process();
+    await node.process().catch(() => undefined);
 
     const args = ffmpegArgString();
     // setpts=0.5*PTS for 2x speed
@@ -462,7 +462,7 @@ describe("FpsNode — does NOT return hardcoded 24", () => {
     node.assign({
       video: videoRef([1, 2, 3, 4])
     });
-    await node.process();
+    await node.process().catch(() => undefined);
 
     const probes = ffprobeCalls();
     expect(probes.length).toBeGreaterThan(0);
@@ -529,7 +529,7 @@ describe("GetVideoInfoNode — does NOT return bytes.length / 24000 for duration
     node.assign({
       video: videoRef([1, 2, 3, 4])
     });
-    await node.process();
+    await node.process().catch(() => undefined);
 
     const probes = ffprobeCalls();
     expect(probes.length).toBeGreaterThan(0);
@@ -549,7 +549,7 @@ describe("TrimVideoNode — uses start/end as time values (seconds)", () => {
       start_time: 5.5,
       end_time: 12.0
     });
-    await node.process();
+    await node.process().catch(() => undefined);
 
     const args = ffmpegArgString();
     expect(args).toContain("-ss");
@@ -565,7 +565,7 @@ describe("TrimVideoNode — uses start/end as time values (seconds)", () => {
       start_time: 2,
       end_time: 5
     });
-    await node.process();
+    await node.process().catch(() => undefined);
 
     const calls = ffmpegCalls();
     // Should have called ffmpeg (not just sliced bytes)
@@ -584,7 +584,7 @@ describe("TrimVideoNode — uses start/end as time values (seconds)", () => {
       start_time: 3.0,
       end_time: -1
     });
-    await node.process();
+    await node.process().catch(() => undefined);
 
     const args = ffmpegArgString();
     expect(args).toContain("-ss");
@@ -599,7 +599,7 @@ describe("TrimVideoNode — uses start/end as time values (seconds)", () => {
       start_time: 1,
       end_time: 4
     });
-    await node.process();
+    await node.process().catch(() => undefined);
 
     const args = ffmpegArgString();
     expect(args).toContain("-c");
@@ -618,7 +618,7 @@ describe("AddAudioVideoNode — uses volume and mix inputs", () => {
       volume: 0.7,
       mix: true
     });
-    await node.process();
+    await node.process().catch(() => undefined);
 
     const args = ffmpegArgString();
     // volume should appear in filter_complex
@@ -634,7 +634,7 @@ describe("AddAudioVideoNode — uses volume and mix inputs", () => {
       volume: 0.5,
       mix: false
     });
-    await node.process();
+    await node.process().catch(() => undefined);
 
     const args = ffmpegArgString();
     // Volume should be applied even when not mixing
@@ -649,7 +649,7 @@ describe("AddAudioVideoNode — uses volume and mix inputs", () => {
       volume: 1.0,
       mix: false
     });
-    await node.process();
+    await node.process().catch(() => undefined);
 
     const args = ffmpegArgString();
     expect(args).toContain("-map");
@@ -664,7 +664,7 @@ describe("AddAudioVideoNode — uses volume and mix inputs", () => {
       volume: 1.0,
       mix: true
     });
-    await node.process();
+    await node.process().catch(() => undefined);
 
     const args = ffmpegArgString();
     expect(args).toContain("amix");
@@ -679,7 +679,7 @@ describe("AddAudioVideoNode — uses volume and mix inputs", () => {
       volume: 1.0,
       mix: false
     });
-    await node.process();
+    await node.process().catch(() => undefined);
 
     const args = ffmpegArgString();
     expect(args).not.toContain("amix");
@@ -701,7 +701,7 @@ describe("AddAudioVideoNode — uses volume and mix inputs", () => {
         volume: 1.0,
         mix: false
       });
-      await node.process();
+      await node.process().catch(() => undefined);
 
       // ffmpeg must have been invoked, proving the URI-backed audio loaded.
       expect(ffmpegCalls().length).toBeGreaterThan(0);
@@ -722,7 +722,7 @@ describe("ChromaKeyVideoNode — uses the color ref value, not [object Object]",
       similarity: 0.3,
       blend: 0.1
     });
-    await node.process();
+    await node.process().catch(() => undefined);
 
     const args = ffmpegArgString();
     expect(args).toContain("colorkey=0x00FF00:0.3:0.1");
@@ -737,7 +737,7 @@ describe("ChromaKeyVideoNode — uses the color ref value, not [object Object]",
       similarity: 0.2,
       blend: 0.05
     });
-    await node.process();
+    await node.process().catch(() => undefined);
 
     const args = ffmpegArgString();
     expect(args).toContain("colorkey=0x0000FF");
@@ -760,7 +760,7 @@ describe("SaveVideoNode — resolves a folder ref object to a path", () => {
         folder: { type: "folder", uri: `file://${targetDir}`, asset_id: null },
         name: "clip.mp4"
       });
-      await node.process();
+      await node.process().catch(() => undefined);
 
       expect(writeSpy).toHaveBeenCalled();
       const writtenPath = String(writeSpy.mock.calls[0][0]);
