@@ -314,6 +314,12 @@ export interface StepExecutorOptions {
   tools?: Tool[];
   systemPrompt?: string;
   maxIterations?: number;
+  /**
+   * Cap on output tokens per provider turn. Forwarded to `generateLoop`;
+   * undefined lets the provider use its own default. Plan-mode Agent nodes
+   * thread the node's `max_tokens` here for parity with loop mode.
+   */
+  maxTokens?: number;
   useFinishTask?: boolean;
   threadId?: string;
   /**
@@ -337,6 +343,7 @@ export class StepExecutor {
   private context: ProcessingContext;
   private systemPrompt: string;
   private maxIterations: number;
+  private maxTokens?: number;
   private useFinishTask: boolean;
   private result: unknown = null;
   private finishStepTool: FinishStepTool | null = null;
@@ -360,6 +367,7 @@ export class StepExecutor {
     this.model = opts.model;
     this.tools = opts.tools ? [...opts.tools] : [];
     this.maxIterations = opts.maxIterations ?? DEFAULT_MAX_ITERATIONS;
+    this.maxTokens = opts.maxTokens;
     this.useFinishTask = opts.useFinishTask ?? false;
     this.threadId = opts.threadId;
     this.upstreamMemoryKeys = opts.upstreamMemoryKeys ?? [];
@@ -1011,6 +1019,7 @@ export class StepExecutor {
         tools: providerTools.length > 0 ? providerTools : undefined,
         threadId: this.threadId,
         maxIterations: this.maxIterations,
+        maxTokens: this.maxTokens,
         sequentialTools: true,
         signal: abort.signal
       });

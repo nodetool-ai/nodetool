@@ -120,6 +120,8 @@ export interface CompilerAgentOptions {
   /** Optional preamble layered above the default compiler system prompt. */
   systemPrompt?: string;
   maxRounds?: number;
+  /** Cap on output tokens per compile turn. Forwarded to `generateLoop`. */
+  maxTokens?: number;
   threadId?: string;
 }
 
@@ -133,6 +135,7 @@ export class CompilerAgent {
   private readonly taskPlan?: TaskPlan;
   private readonly systemPrompt: string;
   private readonly maxRounds: number;
+  private readonly maxTokens?: number;
   private readonly threadId?: string;
 
   constructor(opts: CompilerAgentOptions) {
@@ -144,6 +147,7 @@ export class CompilerAgent {
     this.context = opts.context;
     this.taskPlan = opts.taskPlan;
     this.maxRounds = opts.maxRounds ?? MAX_COMPILE_ROUNDS;
+    this.maxTokens = opts.maxTokens;
     this.threadId = opts.threadId;
 
     const base = this.outputSchema
@@ -335,6 +339,7 @@ export class CompilerAgent {
       tools: providerTools,
       threadId: this.threadId,
       maxIterations: this.maxRounds,
+      maxTokens: this.maxTokens,
       sequentialTools: true
     });
 

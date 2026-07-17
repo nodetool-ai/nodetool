@@ -874,7 +874,7 @@ export class AgentNode extends BaseNode {
     default: AGENT_DEFAULT_MAX_TOKENS,
     title: "Max Tokens",
     description:
-      "Upper bound on generated tokens per response, including visible output and any reasoning/thinking tokens used by reasoning models. Applies in loop mode; plan mode's step executor does not expose a per-call token budget, so this is ignored there. Higher values allow longer answers and more thinking headroom but cost more and take longer; very low values may truncate reasoning or the final answer. Typical values: 1024 for short answers, 8192–16384 for normal agent use, 32k+ for long-form or heavy reasoning. Must be within the chosen model's context window.",
+      "Upper bound on generated tokens per response, including visible output and any reasoning/thinking tokens used by reasoning models. Applies in both loop and plan mode (plan mode threads it to every step executor and the final compiler pass). Higher values allow longer answers and more thinking headroom but cost more and take longer; very low values may truncate reasoning or the final answer. Typical values: 1024 for short answers, 8192–16384 for normal agent use, 32k+ for long-form or heavy reasoning. Must be within the chosen model's context window.",
     min: 1,
     max: 100000
   })
@@ -1403,6 +1403,9 @@ export class AgentNode extends BaseNode {
       systemPrompt: system,
       outputSchema: structuredSchema ?? undefined,
       planningModel: modelId,
+      // Per-turn output-token cap, matching loop mode's use of max_tokens.
+      // Threaded to every step executor and the final compiler pass.
+      maxTokens: Number(this.max_tokens ?? AGENT_DEFAULT_MAX_TOKENS),
       // maxSteps caps the *number of plan steps* the executor will run
       // (`stepsTaken < maxSteps` in TaskExecutor), not the per-step tool-call
       // iteration count. The node's `max_turns` is a turn/iteration budget, so
