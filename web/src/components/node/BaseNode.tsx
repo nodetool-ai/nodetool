@@ -94,6 +94,12 @@ const SPECIAL_NAMESPACES = ["nodetool.constant", "nodetool.input", "nodetool.out
 const isEmptyResult = (obj: unknown) =>
   obj && typeof obj === "object" && Object.keys(obj as object).length === 0;
 
+const isCreatingControlEdgeSelector = (
+  state: ReturnType<typeof useConnectionStore.getState>
+) =>
+  state.connectType?.type === "control" &&
+  state.connectDirection === "source";
+
 const NODE_CONTENT_CONTAINER_STYLE: React.CSSProperties = {
   flex: "1 1 auto",
   minHeight: 0,
@@ -574,12 +580,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
   // Show control handle when dragging a control edge from an Agent node
   const isCreatingControlEdge = useConnectionStore(
-    (state: ReturnType<typeof useConnectionStore.getState>) => {
-      return (
-        state.connectType?.type === "control" &&
-        state.connectDirection === "source"
-      );
-    }
+    isCreatingControlEdgeSelector
   );
 
   const isConstantInputLockedResult =
