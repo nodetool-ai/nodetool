@@ -10,9 +10,7 @@ import { Tool as AgentTool } from "@nodetool-ai/agents";
 import { hydrateBuiltinAgentTools } from "./agent-tool-hydration.js";
 import type { ToolLike } from "./agent-utils.js";
 import {
-  isChunkItem,
-  isToolCallItem,
-  normalizeProviderStreamItem,
+  classifyProviderStream,
   serializeToolResult,
   toProviderTools,
   toolCallChunk
@@ -184,43 +182,38 @@ export async function runAgentLoop(
   let lastAssistantText = "";
   let currentTurnText = "";
 
-  for await (const raw of provider.generateLoop({
+  const stream = provider.generateLoop({
     messages,
     model: modelId,
     tools: providerTools,
     maxTokens,
     threadId: options.threadId,
     maxIterations
-  })) {
-    const item = normalizeProviderStreamItem(raw);
-    if (isToolCallItem(item)) {
-      options.onToolCall?.(toolCallChunk(item));
+  });
+  for await (const event of classifyProviderStream(stream)) {
+    if (event.kind === "tool_call") {
+      options.onToolCall?.(toolCallChunk(event.toolCall));
       continue;
     }
-    if (isChunkItem(item)) {
+    if (event.kind === "text") {
       // Only genuine text feeds the returned text / onText stream. Tool-call
       // chunks (and audio, agent_status, etc.) carry content_type !== "text"
       // and must not leak into the text output.
-      if (!item.thinking && item.content_type === "text") {
-        const delta = typeof item.content === "string" ? item.content : "";
-        if (delta) {
-          currentTurnText += delta;
-          options.onText?.(delta);
-        }
+      if (event.chunk.content_type === "text" && event.delta) {
+        currentTurnText += event.delta;
+        options.onText?.(event.delta);
       }
       continue;
     }
-    // A finalized message event (assistant turn or tool result). Append it to
-    // the returned trail; an assistant turn also closes the current text run so
-    // `text` reflects the model's last assistant message, not a concatenation.
-    if ("type" in item && (item as { type?: string }).type === "message") {
-      const message = (item as { message?: Message }).message;
-      if (message) {
-        outMessages.push(message);
-        if (message.role === "assistant") {
-          if (currentTurnText) lastAssistantText = currentTurnText;
-          currentTurnText = "";
-        }
+    // thinking / audio events carry no returned text — ignore them here.
+    if (event.kind === "assistant_message" || event.kind === "tool_message") {
+      // A finalized message event. Append it to the returned trail; an assistant
+      // turn also closes the current text run so `text` reflects the model's
+      // last assistant message, not a concatenation.
+      outMessages.push(event.message);
+      if (event.kind === "assistant_message") {
+        if (currentTurnText) lastAssistantText = currentTurnText;
+        currentTurnText = "";
       }
     }
   }

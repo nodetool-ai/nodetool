@@ -441,6 +441,67 @@ export function isToolCallItem(item: ProviderStreamItem): item is ToolCall {
   );
 }
 
+/**
+ * A single classified item from a provider's {@link BaseProvider.generateLoop}
+ * stream. Both {@link runAgentLoop} and the AgentNode's genProcess drive the
+ * same normalize → classify dance off generateLoop; keeping that classification
+ * in one place stops the two from drifting (they did once). Presentation and
+ * per-turn accumulation stay with each consumer — this only untangles the raw
+ * stream into typed events.
+ */
+export type ProviderStreamEvent =
+  | { kind: "tool_call"; toolCall: ToolCall }
+  | { kind: "thinking"; chunk: Chunk }
+  | { kind: "audio"; chunk: Chunk }
+  | { kind: "text"; chunk: Chunk; delta: string }
+  | { kind: "assistant_message"; message: Message }
+  | { kind: "tool_message"; message: Message };
+
+/**
+ * Normalize and classify a provider stream into {@link ProviderStreamEvent}s.
+ * Mirrors the branch structure both consumers previously inlined: tool-call
+ * announcements, thinking chunks, audio chunks, any other content chunk (as
+ * `text`, carrying the original chunk so a consumer can inspect content_type),
+ * and finalized `{ type: "message" }` events split by role. The `text` event's
+ * `delta` is the chunk's string content ("" for non-string payloads).
+ */
+export async function* classifyProviderStream(
+  stream: AsyncIterable<ProviderStreamItem>
+): AsyncGenerator<ProviderStreamEvent> {
+  for await (const raw of stream) {
+    const item = normalizeProviderStreamItem(raw);
+    if (isToolCallItem(item)) {
+      yield { kind: "tool_call", toolCall: item };
+      continue;
+    }
+    if (isChunkItem(item)) {
+      if (item.thinking) {
+        yield { kind: "thinking", chunk: item };
+        continue;
+      }
+      if (item.content_type === "audio") {
+        yield { kind: "audio", chunk: item };
+        continue;
+      }
+      const delta = typeof item.content === "string" ? item.content : "";
+      yield { kind: "text", chunk: item, delta };
+      continue;
+    }
+    if (
+      item &&
+      typeof item === "object" &&
+      "type" in item &&
+      (item as { type?: string }).type === "message"
+    ) {
+      const message = (item as { message?: Message }).message;
+      if (!message) continue;
+      yield message.role === "assistant"
+        ? { kind: "assistant_message", message }
+        : { kind: "tool_message", message };
+    }
+  }
+}
+
 export function normalizeTools(value: unknown): ToolLike[] {
   if (!Array.isArray(value)) return [];
   return value
