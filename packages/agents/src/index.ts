@@ -260,6 +260,8 @@ export {
 // Graph-native planner tools
 export { AddNodeTool } from "./tools/add-node-tool.js";
 export { AddEdgeTool } from "./tools/add-edge-tool.js";
+export { RemoveNodeTool } from "./tools/remove-node-tool.js";
+export { RemoveEdgeTool } from "./tools/remove-edge-tool.js";
 export { FinishGraphTool } from "./tools/finish-graph-tool.js";
 export {
   LocalSearchNodesTool

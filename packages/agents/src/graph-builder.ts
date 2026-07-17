@@ -81,6 +81,85 @@ export class GraphBuilder {
   }
 
   /**
+   * Remove a node and every edge attached to it.
+   * Returns an array of validation errors (empty = success).
+   */
+  removeNode(id: string): string[] {
+    if (this._built) {
+      return ["Graph has already been finalized."];
+    }
+    if (!this._nodes.has(id)) {
+      return [`Node '${id}' does not exist.`];
+    }
+    this._nodes.delete(id);
+    for (let i = this._edges.length - 1; i >= 0; i--) {
+      const e = this._edges[i];
+      if (e.source === id || e.target === id) {
+        this._edges.splice(i, 1);
+      }
+    }
+    return [];
+  }
+
+  /**
+   * Remove one edge identified by its full endpoint tuple.
+   * Returns an array of validation errors (empty = success).
+   */
+  removeEdge(
+    source: string,
+    sourceHandle: string,
+    target: string,
+    targetHandle: string
+  ): string[] {
+    if (this._built) {
+      return ["Graph has already been finalized."];
+    }
+    const index = this._edges.findIndex(
+      (e) =>
+        e.source === source &&
+        e.sourceHandle === sourceHandle &&
+        e.target === target &&
+        e.targetHandle === targetHandle
+    );
+    if (index < 0) {
+      return [
+        `Edge ${source}.${sourceHandle} → ${target}.${targetHandle} does not exist.`
+      ];
+    }
+    this._edges.splice(index, 1);
+    return [];
+  }
+
+  /**
+   * Copy of the current (possibly incomplete) graph. Used for pre-build
+   * validation and for showing the model what it has built so far.
+   */
+  snapshot(): GraphData {
+    return {
+      nodes: [...this._nodes.values()].map((n) => ({ ...n })),
+      edges: this._edges.map((e) => ({ ...e }))
+    };
+  }
+
+  /**
+   * Human/LLM-readable one-line-per-item summary of the current graph.
+   * Injected into retry prompts so the model knows the builder state persists
+   * across attempts.
+   */
+  describe(): string {
+    if (this._nodes.size === 0) return "(empty graph — no nodes yet)";
+    const nodeLines = [...this._nodes.values()].map(
+      (n) => `- node ${n.id} (${n.type})`
+    );
+    const edgeLines = this._edges.map(
+      (e) => `- edge ${e.source}.${e.sourceHandle} → ${e.target}.${e.targetHandle}`
+    );
+    return ["Nodes:", ...nodeLines, "Edges:", ...(edgeLines.length > 0 ? edgeLines : ["- (none)"])].join(
+      "\n"
+    );
+  }
+
+  /**
    * Add an edge connecting two nodes.
    * Returns an array of validation errors (empty = success).
    */
