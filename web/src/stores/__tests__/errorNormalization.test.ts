@@ -127,4 +127,18 @@ describe("nodeErrorToDisplayString", () => {
     const obj = { foo: "bar" };
     expect(nodeErrorToDisplayString(obj)).toBe(JSON.stringify(obj));
   });
+
+  it("returns empty string for object with null message", () => {
+    expect(nodeErrorToDisplayString({ message: null } as unknown as null)).toBe(
+      ""
+    );
+  });
+
+  it("returns empty string for object with blank message", () => {
+    expect(nodeErrorToDisplayString({ message: "  " })).toBe("");
+  });
+
+  it("returns empty string for empty object", () => {
+    expect(nodeErrorToDisplayString({})).toBe("");
+  });
 });
