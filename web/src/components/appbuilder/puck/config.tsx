@@ -24,7 +24,12 @@ import {
   ColumnsWidget,
   DividerWidget
 } from "./widgets";
-import { WorkflowInputWidget } from "./WorkflowInputWidget";
+import {
+  WorkflowInputWidget,
+  FixedKindInputWidget,
+  FixedInputKind,
+  FixedInputWidgetProps
+} from "./WorkflowInputWidget";
 
 const ACTION_OPTIONS = [
   { label: "Run workflow", value: "run" },
@@ -54,6 +59,20 @@ const optionsField: ArrayField = {
   getItemSummary: (item: Record<string, unknown>) => String(item.value ?? "option")
 };
 
+/** Palette entry for a standalone media/color input of a fixed kind. */
+const fixedInputEntry = (label: string, kind: FixedInputKind) => ({
+  label,
+  fields: {
+    binding: bindingField("write", "Workflow input"),
+    label: { type: "text" as const, label: "Label" },
+    events: eventsField("change")
+  },
+  defaultProps: { binding: "", label: "" },
+  render: (props: FixedInputWidgetProps) => (
+    <FixedKindInputWidget {...props} kind={kind} />
+  )
+});
+
 // `Config` is intentionally loosely typed (DefaultComponents): Puck injects
 // `id`/`puck` into render props, and our widget components take optional props.
 export const appConfig: Config = {
@@ -73,7 +92,10 @@ export const appConfig: Config = {
           p: SPACING.xl,
           minHeight: "100%",
           backgroundColor: "background.default",
-          color: "text.primary"
+          color: "text.primary",
+          // Width-responsive widgets (Columns) query this container, so the
+          // editor canvas and the published app share one layout per width.
+          containerType: "inline-size"
         }}
       >
         <FlexColumn gap={SPACING.xxl} sx={{ width: "100%" }}>
@@ -96,7 +118,12 @@ export const appConfig: Config = {
         "NumberInput",
         "Slider",
         "Switch",
-        "Select"
+        "Select",
+        "ImageInput",
+        "AudioInput",
+        "VideoInput",
+        "DocumentInput",
+        "ColorInput"
       ]
     },
     actions: { title: "Actions", components: ["Button"] },
@@ -294,6 +321,11 @@ export const appConfig: Config = {
       },
       render: (props) => <SelectWidget {...props} />
     },
+    ImageInput: fixedInputEntry("Image Input", "image"),
+    AudioInput: fixedInputEntry("Audio Input", "audio"),
+    VideoInput: fixedInputEntry("Video Input", "video"),
+    DocumentInput: fixedInputEntry("Document Input", "document"),
+    ColorInput: fixedInputEntry("Color Input", "color"),
     // ── Actions ──
     Button: {
       label: "Button",

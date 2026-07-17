@@ -25,12 +25,15 @@ import {
 import { AppEvent } from "../types";
 import { useWidgetRuntime, WidgetBindingMode } from "./useWidgetRuntime";
 
-/** Vertical stack styling for a Puck slot's drop zone (spaces its children). */
+/** Vertical stack styling for a Puck slot's drop zone (spaces its children).
+ * `minWidth: 0` lets a zone shrink inside a grid track instead of letting its
+ * content blow the track out (the editor canvas is narrow). */
 const slotStack: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
   gap: `${SPACING_PX.xxl}px`,
-  width: "100%"
+  width: "100%",
+  minWidth: 0
 };
 
 /** A Puck slot — a render function that accepts drop-zone styling props. */
@@ -85,6 +88,102 @@ const useBinding = (
 
 // ── Display widgets ─────────────────────────────────────────────────────────
 
+/** A bound output holds one value or an accumulated list of streamed items —
+ * normalize so display widgets can render each item as its own part. */
+const asItems = (value: unknown): unknown[] =>
+  Array.isArray(value) ? value : value == null ? [] : [value];
+
+const MediaPlaceholder: React.FC<{ height: number; text: string }> = ({
+  height,
+  text
+}) => (
+  <FlexColumn
+    align="center"
+    justify="center"
+    fullWidth
+    sx={{
+      height,
+      border: "1px dashed",
+      borderColor: "divider",
+      borderRadius: BORDER_RADIUS.md,
+      color: "text.secondary"
+    }}
+  >
+    <Caption color="secondary">{text}</Caption>
+  </FlexColumn>
+);
+
+const ImageItem: React.FC<{ src: string; fit?: string; height: number }> = ({
+  src,
+  fit,
+  height
+}) => (
+  <Box
+    component="img"
+    src={src}
+    alt=""
+    sx={{
+      width: "100%",
+      height,
+      objectFit: fit === "cover" ? "cover" : "contain",
+      borderRadius: BORDER_RADIUS.md
+    }}
+  />
+);
+
+const AudioItem: React.FC<{ src: string }> = ({ src }) => (
+  <Box component="audio" controls src={src} sx={{ width: "100%" }} />
+);
+
+const VideoItem: React.FC<{ src: string; height: number }> = ({
+  src,
+  height
+}) => (
+  <Box
+    component="video"
+    controls
+    src={src}
+    sx={{
+      width: "100%",
+      maxHeight: height,
+      borderRadius: BORDER_RADIUS.md,
+      backgroundColor: "common.black"
+    }}
+  />
+);
+
+const MarkdownBlock: React.FC<{ text: string }> = ({ text }) => (
+  <Box className="appbuilder-markdown" sx={{ width: "100%" }}>
+    <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+  </Box>
+);
+
+const JsonBlock: React.FC<{ value: unknown }> = ({ value }) => {
+  let formatted: string;
+  try {
+    formatted = value === undefined ? "" : JSON.stringify(value, null, 2);
+  } catch {
+    formatted = String(value);
+  }
+  return (
+    <Box
+      component="pre"
+      sx={{
+        m: 0,
+        width: "100%",
+        overflow: "auto",
+        fontFamily: "var(--fontFamily2, monospace)",
+        fontSize: "var(--fontSizeSmaller)",
+        backgroundColor: "action.hover",
+        borderRadius: BORDER_RADIUS.md,
+        p: SPACING.md
+      }}
+    >
+      {formatted}
+    </Box>
+  );
+};
+
 export const HeadingWidget: React.FC<WidgetCommon & {
   text?: string;
   level?: string;
@@ -116,11 +215,17 @@ export const MarkdownWidget: React.FC<WidgetCommon & { text?: string }> = (
   props
 ) => {
   const { value } = useBinding(props, "read");
-  const text = value != null ? str(value) : props.text ?? "";
+  const parts =
+    value != null ? asItems(value).map(str) : [props.text ?? ""];
+  if (parts.length <= 1) {
+    return <MarkdownBlock text={parts[0] ?? ""} />;
+  }
   return (
-    <Box className="appbuilder-markdown" sx={{ width: "100%" }}>
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
-    </Box>
+    <FlexColumn gap={SPACING.md} fullWidth>
+      {parts.map((text, index) => (
+        <MarkdownBlock key={index} text={text} />
+      ))}
+    </FlexColumn>
   );
 };
 
@@ -130,38 +235,31 @@ export const ImageWidget: React.FC<WidgetCommon & {
   placeholder?: string;
 }> = (props) => {
   const { value } = useBinding(props, "read");
-  const src = resolveImageSrc(value);
+  const sources = asItems(value)
+    .map(resolveImageSrc)
+    .filter((src): src is string => src !== null);
   const height = numOr(props.height, 240);
-  if (!src) {
+  if (sources.length === 0) {
     return (
-      <FlexColumn
-        align="center"
-        justify="center"
-        fullWidth
-        sx={{
-          height,
-          border: "1px dashed",
-          borderColor: "divider",
-          borderRadius: BORDER_RADIUS.md,
-          color: "text.secondary"
-        }}
-      >
-        <Caption color="secondary">{props.placeholder ?? "No image"}</Caption>
-      </FlexColumn>
+      <MediaPlaceholder height={height} text={props.placeholder ?? "No image"} />
     );
+  }
+  if (sources.length === 1) {
+    return <ImageItem src={sources[0]} fit={props.fit} height={height} />;
   }
   return (
     <Box
-      component="img"
-      src={src}
-      alt=""
       sx={{
         width: "100%",
-        height,
-        objectFit: props.fit === "cover" ? "cover" : "contain",
-        borderRadius: BORDER_RADIUS.md
+        display: "grid",
+        gap: SPACING.sm,
+        gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))"
       }}
-    />
+    >
+      {sources.map((src, index) => (
+        <ImageItem key={index} src={src} fit={props.fit} height={height} />
+      ))}
+    </Box>
   );
 };
 
@@ -169,27 +267,20 @@ export const AudioWidget: React.FC<WidgetCommon & { placeholder?: string }> = (
   props
 ) => {
   const { value } = useBinding(props, "read");
-  const src = resolveMediaSrc(value, "audio/mpeg");
-  if (!src) {
+  const sources = asItems(value)
+    .map((item) => resolveMediaSrc(item, "audio/mpeg"))
+    .filter((src): src is string => src !== null);
+  if (sources.length === 0) {
     return (
-      <FlexColumn
-        align="center"
-        justify="center"
-        fullWidth
-        sx={{
-          height: 56,
-          border: "1px dashed",
-          borderColor: "divider",
-          borderRadius: BORDER_RADIUS.md,
-          color: "text.secondary"
-        }}
-      >
-        <Caption color="secondary">{props.placeholder ?? "No audio yet"}</Caption>
-      </FlexColumn>
+      <MediaPlaceholder height={56} text={props.placeholder ?? "No audio yet"} />
     );
   }
   return (
-    <Box component="audio" controls src={src} sx={{ width: "100%" }} />
+    <FlexColumn gap={SPACING.sm} fullWidth>
+      {sources.map((src, index) => (
+        <AudioItem key={index} src={src} />
+      ))}
+    </FlexColumn>
   );
 };
 
@@ -198,38 +289,21 @@ export const VideoWidget: React.FC<WidgetCommon & {
   placeholder?: string;
 }> = (props) => {
   const { value } = useBinding(props, "read");
-  const src = resolveMediaSrc(value, "video/mp4");
+  const sources = asItems(value)
+    .map((item) => resolveMediaSrc(item, "video/mp4"))
+    .filter((src): src is string => src !== null);
   const height = numOr(props.height, 320);
-  if (!src) {
+  if (sources.length === 0) {
     return (
-      <FlexColumn
-        align="center"
-        justify="center"
-        fullWidth
-        sx={{
-          height,
-          border: "1px dashed",
-          borderColor: "divider",
-          borderRadius: BORDER_RADIUS.md,
-          color: "text.secondary"
-        }}
-      >
-        <Caption color="secondary">{props.placeholder ?? "No video yet"}</Caption>
-      </FlexColumn>
+      <MediaPlaceholder height={height} text={props.placeholder ?? "No video yet"} />
     );
   }
   return (
-    <Box
-      component="video"
-      controls
-      src={src}
-      sx={{
-        width: "100%",
-        maxHeight: height,
-        borderRadius: BORDER_RADIUS.md,
-        backgroundColor: "common.black"
-      }}
-    />
+    <FlexColumn gap={SPACING.sm} fullWidth>
+      {sources.map((src, index) => (
+        <VideoItem key={index} src={src} height={height} />
+      ))}
+    </FlexColumn>
   );
 };
 
@@ -241,61 +315,61 @@ const mediaRefKind = (value: unknown): "image" | "audio" | "video" | null => {
   return null;
 };
 
+/** Render one untyped output item by its runtime shape. */
+const renderOutputItem = (item: unknown, key: number): React.ReactNode => {
+  switch (mediaRefKind(item)) {
+    case "image": {
+      const src = resolveImageSrc(item);
+      return src ? (
+        <ImageItem key={key} src={src} fit="contain" height={280} />
+      ) : null;
+    }
+    case "audio": {
+      const src = resolveMediaSrc(item, "audio/mpeg");
+      return src ? <AudioItem key={key} src={src} /> : null;
+    }
+    case "video": {
+      const src = resolveMediaSrc(item, "video/mp4");
+      return src ? <VideoItem key={key} src={src} height={320} /> : null;
+    }
+    default:
+      break;
+  }
+  if (item && typeof item === "object") {
+    return <JsonBlock key={key} value={item} />;
+  }
+  return <MarkdownBlock key={key} text={str(item)} />;
+};
+
 /**
  * Display widget for untyped sinks (Preview, generic Output): the value's shape
- * is only known at runtime, so dispatch to the matching typed widget then —
- * media refs render as media, strings as markdown, other objects as JSON.
+ * is only known at runtime, so dispatch per item then — media refs render as
+ * media, strings as markdown, other objects as JSON. An accumulated stream of
+ * items renders as separate stacked parts.
  */
 export const OutputWidget: React.FC<WidgetCommon & { placeholder?: string }> = (
   props
 ) => {
   const { value } = useBinding(props, "read");
-  if (value == null || value === "") {
+  const items = asItems(value).filter((item) => item != null && item !== "");
+  if (items.length === 0) {
     return (
       <Caption color="secondary">{props.placeholder ?? "No result yet"}</Caption>
     );
   }
-  switch (mediaRefKind(value)) {
-    case "image":
-      return <ImageWidget {...props} fit="contain" height={280} />;
-    case "audio":
-      return <AudioWidget {...props} />;
-    case "video":
-      return <VideoWidget {...props} />;
-    default:
-      break;
+  if (items.length === 1) {
+    return <>{renderOutputItem(items[0], 0)}</>;
   }
-  if (typeof value === "object") {
-    return <JsonWidget {...props} />;
-  }
-  return <MarkdownWidget {...props} text="" />;
+  return (
+    <FlexColumn gap={SPACING.md} fullWidth>
+      {items.map(renderOutputItem)}
+    </FlexColumn>
+  );
 };
 
 export const JsonWidget: React.FC<WidgetCommon> = (props) => {
   const { value } = useBinding(props, "read");
-  let formatted: string;
-  try {
-    formatted = value === undefined ? "" : JSON.stringify(value, null, 2);
-  } catch {
-    formatted = String(value);
-  }
-  return (
-    <Box
-      component="pre"
-      sx={{
-        m: 0,
-        width: "100%",
-        overflow: "auto",
-        fontFamily: "var(--fontFamily2, monospace)",
-        fontSize: "var(--fontSizeSmaller)",
-        backgroundColor: "action.hover",
-        borderRadius: BORDER_RADIUS.md,
-        p: SPACING.md
-      }}
-    >
-      {formatted}
-    </Box>
-  );
+  return <JsonBlock value={value} />;
 };
 
 export const ProgressWidget: React.FC<WidgetCommon & { label?: string }> = (
@@ -495,10 +569,17 @@ export const ColumnsWidget: React.FC<{
   left?: SlotComponent;
   right?: SlotComponent;
 }> = ({ gap, left: Left, right: Right }) => (
+  // Container query, not an MUI breakpoint: viewport breakpoints read the
+  // window, so the narrow editor canvas would still lay out two columns and
+  // overflow. Querying the app root container keeps the editor preview and
+  // the published app on the exact same layout at the same width.
   <Box
     sx={{
       display: "grid",
-      gridTemplateColumns: "1fr 1fr",
+      gridTemplateColumns: "1fr",
+      "@container (min-width: 700px)": {
+        gridTemplateColumns: "1fr 1fr"
+      },
       gap: `${numOr(gap, SPACING_PX.xl)}px`,
       width: "100%"
     }}
