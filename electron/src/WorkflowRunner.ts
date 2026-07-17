@@ -186,7 +186,7 @@ export const createWorkflowRunner = () =>
               });
             } else if (
               data.result &&
-              data.result.output &&
+              data.result.output !== undefined &&
               data.node_name?.includes("Output")
             ) {
               set({
