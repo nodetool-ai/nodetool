@@ -1,0 +1,34 @@
+name: Example Smoke Debug
+
+# Manual-only execution smoke tier for shipped examples (docs/plans/
+# examples-revamp.md, Phase 0). `nodetool validate` (the "examples" leg of
+# quality-checks.yml) is static and runs on every PR; this job actually
+# executes a curated list of keyless/local examples on the kernel runner
+# (`nodetool debug`, server surface only) to catch runtime drift static
+# validation can't see.
+#
+# Deliberately workflow_dispatch only, never on push/pull_request: unlike
+# validate, this costs real runtime, and any example that isn't genuinely
+# keyless would cost real API spend against repo secrets. The curated list
+# lives in scripts/smoke-examples.mjs — extend it as Phase 3 lands local
+# examples, and never add a paid-model template to it.
+#
+# Local equivalent: `npm run examples:smoke`.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    name: Smoke-run keyless examples
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node, install deps, build packages
+        uses: ./.github/actions/setup-build
+
+      - name: Run example smoke debug
+        run: npm run examples:smoke

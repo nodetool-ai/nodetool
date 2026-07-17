@@ -30,6 +30,7 @@ export const WIDGET_MODES: Record<string, WidgetBindingMode> = {
   Json: "read",
   Output: "read",
   Progress: "read",
+  WorkflowInput: "write",
   TextInput: "write",
   NumberInput: "write",
   Slider: "write",

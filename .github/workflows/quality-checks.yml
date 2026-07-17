@@ -159,6 +159,18 @@ jobs:
             extra-apt: ""
             is-test: "true"
             fetch-depth: "1"
+          # Rot detector for the shipped example workflows: `nodetool validate`
+          # against the current node registry (unknown node types, missing
+          # required properties, unselected models, dangling/mis-typed edges).
+          # --warnings-as-errors so a warning-level drift (e.g. an unselected
+          # model) fails the gate too, not just hard errors. File targets need
+          # no DB, only the built node registry from the `build` job's dist.
+          - check: examples
+            command: npm run validate:examples
+            mobile-deps: "false"
+            extra-apt: ""
+            is-test: "false"
+            fetch-depth: "1"
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
