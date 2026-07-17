@@ -17,7 +17,12 @@ const renderField = (
     </ThemeProvider>
   );
 
-const emptyState: WorkflowState = { inputs: [], outputs: [], variables: [] };
+const emptyState: WorkflowState = {
+  inputs: [],
+  outputs: [],
+  variables: [],
+  nodes: []
+};
 
 // Minimal stand-in for the props Puck passes to a custom field's render.
 const fieldProps = {
@@ -34,7 +39,7 @@ describe("binding fields", () => {
     const field = bindingField("write");
     renderField(field.render(fieldProps), emptyState);
     expect(
-      screen.getByText(/Add an Input node to the workflow/i)
+      screen.getByText(/Add an Input node — or any node with properties/i)
     ).toBeInTheDocument();
   });
 
@@ -51,10 +56,11 @@ describe("binding fields", () => {
         }
       ],
       outputs: [],
-      variables: []
+      variables: [],
+      nodes: []
     });
     expect(
-      screen.queryByText(/Add an Input node to the workflow/i)
+      screen.queryByText(/Add an Input node/i)
     ).not.toBeInTheDocument();
   });
 

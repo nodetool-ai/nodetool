@@ -17,6 +17,10 @@ export interface AppRuntimeContextValue {
   designMode: boolean;
   dispatch: (action: AppAction) => void;
   setValue: (key: string, value: unknown) => void;
+  /** Current value of a graph node's property (saved data, else metadata
+   * default) — the display fallback for node-property bindings the user
+   * hasn't touched yet. */
+  getNodeProperty: (nodeId: string, property: string) => unknown;
 }
 
 export const AppRuntimeContext = createContext<AppRuntimeContextValue | null>(

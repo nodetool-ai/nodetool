@@ -18,6 +18,7 @@ const makeWrapper = (
     designMode: false,
     dispatch: jest.fn(),
     setValue: jest.fn((key, v) => store.getState().setValue(key, v)),
+    getNodeProperty: jest.fn(),
     ...overrides
   };
   return ({ children }) => (

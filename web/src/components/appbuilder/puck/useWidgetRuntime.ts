@@ -10,6 +10,7 @@ import {
   useRuntimeSelector
 } from "../runtime/AppRuntimeContext";
 import { RuntimeRunnerState } from "../runtime/appRuntimeStore";
+import { parseNodePropertyBinding } from "../nodeBinding";
 import { AppEvent, EventTrigger, eventToAction } from "../types";
 
 export type WidgetBindingMode = "none" | "read" | "write";
@@ -36,7 +37,7 @@ export const useWidgetRuntime = ({
   binding,
   events
 }: UseWidgetRuntimeParams): WidgetRuntime => {
-  const { designMode, dispatch, setValue: setStateValue } =
+  const { designMode, dispatch, setValue: setStateValue, getNodeProperty } =
     useAppRuntimeContext();
 
   // Write widgets are controlled and need a key. When the user hasn't bound one
@@ -45,7 +46,14 @@ export const useWidgetRuntime = ({
   const stateKey =
     binding || (bindingMode === "write" ? id : undefined);
 
-  const value = useRuntimeValue(stateKey);
+  const storedValue = useRuntimeValue(stateKey);
+  // A node-property binding the user hasn't touched shows the node's current
+  // property value (saved data, else metadata default).
+  const nodeBinding =
+    storedValue === undefined ? parseNodePropertyBinding(binding) : null;
+  const value = nodeBinding
+    ? getNodeProperty(nodeBinding.nodeId, nodeBinding.property)
+    : storedValue;
   const runnerState = useRuntimeSelector((s) => s.runnerState);
 
   const setValue = useCallback(

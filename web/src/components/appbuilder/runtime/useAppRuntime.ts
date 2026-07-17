@@ -21,9 +21,15 @@ import { graphNodeToReactFlowNode } from "../../../stores/graphNodeToReactFlowNo
 import { graphEdgeToReactFlowEdge } from "../../../stores/graphEdgeToReactFlowEdge";
 import { runBrowserGraphJob } from "../../../lib/workflow/browserWorkflowRunner";
 import useResultsStore from "../../../stores/ResultsStore";
+import useMetadataStore from "../../../stores/MetadataStore";
 import { AppAction } from "../types";
 import { extractWorkflowIO } from "../workflowIO";
 import { seedInputValue } from "../inputProperty";
+import {
+  collectNodePropertyOverlays,
+  isNodePropertyBinding,
+  withNodeProperties
+} from "../nodeBinding";
 import { buildTriggerSubgraph } from "./buildTriggerSubgraph";
 import {
   createAppRuntimeStore,
@@ -146,11 +152,20 @@ export const useAppRuntime = (
             msg.node_name ??
             msg.output_name;
           if (!key) break;
-          // Only string outputs accumulate (streamed text); structured values
-          // like an ImageRef replace, so they aren't coerced to "[object Object]".
-          if (msg.disposition === "append" && typeof msg.value === "string") {
+          // Appended items — text and structured alike — collect into a list
+          // (one part per emitted item, like ResultsStore and the old mini-app
+          // result cards); a single item stays bare. Replace stays replace.
+          // Token-level text streaming arrives as "chunk" messages, which
+          // concatenate below.
+          if (msg.disposition === "append") {
             const prev = store.getState().values[key];
-            store.getState().setValue(key, asString(prev) + msg.value);
+            if (prev === undefined) {
+              store.getState().setValue(key, msg.value);
+            } else if (Array.isArray(prev)) {
+              store.getState().setValue(key, [...prev, msg.value]);
+            } else {
+              store.getState().setValue(key, [prev, msg.value]);
+            }
           } else {
             store.getState().setValue(key, msg.value);
           }
@@ -258,12 +273,9 @@ export const useAppRuntime = (
           output.nodeId
         );
         if (result === undefined) continue;
-        const value = Array.isArray(result)
-          ? result.every((item) => typeof item === "string")
-            ? result.join("")
-            : result[result.length - 1]
-          : result;
-        store.getState().setValue(output.name, value);
+        // ResultsStore accumulates appended items into arrays exactly like the
+        // live fold above, so the value hydrates verbatim.
+        store.getState().setValue(output.name, result);
       }
     }
     const unsubscribeRunner = runnerStore.subscribe((state, prev) => {
@@ -292,9 +304,15 @@ export const useAppRuntime = (
     store.getState().clearOutputs(outputKeysRef.current);
     store.getState().setError(null);
 
-    const nodes = (workflow.graph?.nodes ?? []).map((node) =>
-      graphNodeToReactFlowNode(workflow, node)
-    );
+    // Node-property bindings overlay their live widget values onto the graph
+    // before the run, so a slider bound to e.g. a model's `strength` drives
+    // the actual node property.
+    const overlays = collectNodePropertyOverlays(values);
+    const nodes = (workflow.graph?.nodes ?? []).map((node) => {
+      const rf = graphNodeToReactFlowNode(workflow, node);
+      const overlay = overlays.get(rf.id);
+      return overlay ? withNodeProperties(rf, overlay) : rf;
+    });
     const edges = (workflow.graph?.edges ?? []).map((edge) =>
       graphEdgeToReactFlowEdge(edge)
     );
@@ -342,9 +360,12 @@ export const useAppRuntime = (
 
       // A graph is already running (a long-lived / streaming workflow): feed the
       // new value into the live job instead of starting a fresh subgraph run.
-      // Its streaming input re-propagates downstream without a restart.
+      // Its streaming input re-propagates downstream without a restart. Only
+      // input-name bindings can stream — a node-property change falls through
+      // to a subgraph run.
       const runner = runnerStore.getState();
       if (
+        !isNodePropertyBinding(triggerInput) &&
         runner.job_id &&
         (runner.state === "running" ||
           runner.state === "connecting" ||
@@ -438,8 +459,20 @@ export const useAppRuntime = (
     [store]
   );
 
+  const getNodeProperty = useCallback(
+    (nodeId: string, property: string): unknown => {
+      const node = workflow?.graph?.nodes?.find((n) => n.id === nodeId);
+      if (!node) return undefined;
+      const data = (node.data ?? {}) as Record<string, unknown>;
+      if (data[property] !== undefined) return data[property];
+      const meta = useMetadataStore.getState().getMetadata(node.type);
+      return meta?.properties.find((p) => p.name === property)?.default;
+    },
+    [workflow]
+  );
+
   return useMemo(
-    () => ({ store, io, designMode, dispatch, setValue }),
-    [store, io, designMode, dispatch, setValue]
+    () => ({ store, io, designMode, dispatch, setValue, getNodeProperty }),
+    [store, io, designMode, dispatch, setValue, getNodeProperty]
   );
 };
