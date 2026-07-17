@@ -297,6 +297,7 @@ export function getNodeMetadata(
     model_packs: nodeClass.modelPacks,
     platforms: normalizePlatforms(nodeClass.platforms),
     deprecated: nodeClass.deprecated || undefined,
+    hidden: nodeClass.hidden || undefined,
     replaced_by: nodeClass.replacedBy
   };
 

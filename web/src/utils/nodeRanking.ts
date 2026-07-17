@@ -70,6 +70,11 @@ function buildPrefilter(
   options: ScoreOptions
 ): (meta: NodeMetadata) => boolean {
   return (meta) => {
+    // Internal nodes (e.g. agent-runner-inserted steps) stay registered and
+    // runnable but never appear in the palette or search.
+    if (meta.hidden) {
+      return false;
+    }
     if (
       options.namespacePrefix &&
       !(meta.namespace ?? "").startsWith(options.namespacePrefix)

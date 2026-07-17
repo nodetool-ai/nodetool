@@ -1560,6 +1560,11 @@ export class AgentStepNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
+  // Hidden from the node palette/search: GraphPlanner and AgentWorkflowRunner
+  // insert this node; adding it by hand throws in process(). It stays
+  // registered so the registry, search_nodes, and get_node_info still resolve
+  // it for those agent runners.
+  static readonly hidden = true;
   static readonly inlineFields = ["instructions"];
   static readonly inputFields = ["input"];
 

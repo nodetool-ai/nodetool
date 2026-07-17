@@ -118,6 +118,12 @@ describe("AgentStepNode", () => {
     expect(meta.properties.find((p) => p.name === "model")).toBeUndefined();
   });
 
+  it("is hidden from the palette but stays registered for agent runners", () => {
+    const meta = getNodeMetadata(AgentStepNode);
+    expect(meta.hidden).toBe(true);
+    expect(AGENT_NODES).toContain(AgentStepNode);
+  });
+
   it("process() refuses to run via the standard kernel path", async () => {
     await expect(new AgentStepNode().process()).rejects.toThrow(
       /agent runner|configured provider/i
