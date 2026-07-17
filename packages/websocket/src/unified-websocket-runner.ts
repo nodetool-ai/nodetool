@@ -83,7 +83,11 @@ import type {
   RpcErrorPayload
 } from "@nodetool-ai/protocol";
 import { Tool } from "@nodetool-ai/agents";
-import { RunSubtaskTool, RunSearchTool } from "@nodetool-ai/agents";
+import {
+  RunSubtaskTool,
+  RunSearchTool,
+  PlanWorkflowGraphTool
+} from "@nodetool-ai/agents";
 import {
   ToolSearchTool,
   formatDeferredToolsReminder,
@@ -3511,6 +3515,26 @@ export class UnifiedWebSocketRunner {
         this.runSingleNode(nodeType, inputs, userId, threadId)
       )
     ];
+    // GraphPlanner as a chat tool: builds a workflow graph from an objective
+    // using the session's provider/model. Needs the in-process node registry.
+    if (this.nodeRegistry) {
+      rawToolbelt.push(
+        new PlanWorkflowGraphTool({
+          provider,
+          model,
+          registry: this.nodeRegistry,
+          providers: chatProviders,
+          forwardMessage: async (msg) => {
+            const enriched: Record<string, unknown> = {
+              ...(msg as unknown as Record<string, unknown>)
+            };
+            if (enriched.thread_id == null) enriched.thread_id = threadId;
+            if (enriched.workflow_id == null) enriched.workflow_id = workflowId;
+            await this.sendMessage(enriched);
+          }
+        })
+      );
+    }
     // When the active provider generates images natively (OpenAI Responses
     // `image_generation` tool), drop the redundant provider-specific
     // `openai_image_generation` tool — the native `image_generation` covers it
