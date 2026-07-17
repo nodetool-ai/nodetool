@@ -44,7 +44,13 @@ export const useSidebarDocumentActionsStore =
       set({ onRename: null, onDuplicate: null, onDelete: null })
   }));
 
-export const useSidebarDocumentActions = () =>
+export interface SidebarDocumentActions {
+  onRename: ((item: SidebarDocumentItem) => void) | null;
+  onDuplicate: ((item: SidebarDocumentItem) => void) | null;
+  onDelete: ((item: SidebarDocumentItem) => void) | null;
+}
+
+export const useSidebarDocumentActions = (): SidebarDocumentActions =>
   useSidebarDocumentActionsStore(
     useShallow((state) => ({
       onRename: state.onRename,
