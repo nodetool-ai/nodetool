@@ -109,22 +109,6 @@ export function hasProviderSupport(
   );
 }
 
-export async function generateProviderMessage(
-  provider: BaseProvider,
-  args: {
-    messages: Message[];
-    model: string;
-    maxTokens?: number;
-  }
-): Promise<string> {
-  const call =
-    typeof provider.generateMessageTraced === "function"
-      ? provider.generateMessageTraced.bind(provider)
-      : provider.generateMessage.bind(provider);
-  const result = await call(args);
-  return messageContentText(result.content);
-}
-
 /**
  * Call a provider with a result tool to get structured output.
  * The model is forced to call the tool via toolChoice, and the
