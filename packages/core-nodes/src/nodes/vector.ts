@@ -5,7 +5,6 @@
  */
 
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import type { NodeClass } from "@nodetool-ai/node-sdk";
 import { tagAsUniversal } from "@nodetool-ai/nodes-utils";
 import {
   getDefaultVectorProvider,
@@ -14,15 +13,6 @@ import {
   type VectorCollection,
   type VectorMatch
 } from "@nodetool-ai/vectorstore";
-
-async function getOllamaEmbedding(
-  model: string,
-  text: string
-): Promise<number[]> {
-  const ef = new OllamaEmbeddingFunction(model);
-  const result = await ef.generate([text]);
-  return result[0];
-}
 
 async function getCollectionByName(name: string): Promise<VectorCollection> {
   return getDefaultVectorProvider().getCollection({ name });
@@ -43,6 +33,52 @@ function flattenMetadata(obj: Record<string, unknown>): RecordMetadata {
 /** Sort matches by id ascending — mirrors the legacy Python ordering. */
 function sortMatchesById(matches: VectorMatch[]): VectorMatch[] {
   return [...matches].sort((a, b) => a.id.localeCompare(b.id));
+}
+
+function splitIntoWords(text: string): string[] {
+  return text.split(/\s+/).filter((w) => w.length > 0);
+}
+
+/** Length of the longest word suffix of `words1` that prefixes `words2`. */
+function findWordOverlap(
+  words1: string[],
+  words2: string[],
+  minOverlap: number
+): number {
+  if (words1.length < minOverlap || words2.length < minOverlap) return 0;
+
+  const maxCheck = Math.min(words1.length, words2.length);
+  for (let overlapSize = maxCheck; overlapSize >= minOverlap; overlapSize--) {
+    const tail = words1.slice(words1.length - overlapSize);
+    const head = words2.slice(0, overlapSize);
+    if (tail.every((w, i) => w === head[i])) {
+      return overlapSize;
+    }
+  }
+  return 0;
+}
+
+/** Build a $document keyword filter for the query text, or null if no tokens. */
+function keywordFilter(
+  text: string,
+  minKeywordLength: number
+): Record<string, unknown> | null {
+  const pattern = /[ ,.!?\-_=|]+/;
+  const queryTokens = text
+    .toLowerCase()
+    .split(pattern)
+    .map((t) => t.trim())
+    .filter((t) => t.length >= minKeywordLength);
+
+  if (queryTokens.length === 0) return null;
+  if (queryTokens.length > 1) {
+    return {
+      $document: {
+        $or: queryTokens.map((token) => ({ $contains: token }))
+      }
+    };
+  }
+  return { $document: { $contains: queryTokens[0] } };
 }
 
 export class CollectionNode extends BaseNode {
@@ -103,7 +139,7 @@ export class CollectionNode extends BaseNode {
 
 export class CountNode extends BaseNode {
   static readonly nodeType = "vector.Count";
-  static readonly title = "Count";
+  static readonly title = "Count Documents";
   static readonly description =
     "Count the number of documents in a collection.\n    vector, embedding, collection, RAG";
   static readonly inlineFields = [];
@@ -605,10 +641,9 @@ export class IndexAggregatedTextNode extends BaseNode {
       typeof chunk === "string" ? chunk : chunk.text
     );
 
-    const embeddings: number[][] = [];
-    for (const text of texts) {
-      embeddings.push(await getOllamaEmbedding(model, text));
-    }
+    // Embed all chunks in one batched call against a single Ollama instance.
+    const embeddingFn = new OllamaEmbeddingFunction(model);
+    const embeddings = await embeddingFn.generate(texts);
 
     const dim = embeddings[0].length;
     const aggregated = new Array<number>(dim).fill(0);
@@ -866,28 +901,6 @@ export class RemoveOverlapNode extends BaseNode {
   })
   declare min_overlap_words: any;
 
-  private _splitIntoWords(text: string): string[] {
-    return text.split(/\s+/).filter((w) => w.length > 0);
-  }
-
-  private _findWordOverlap(
-    words1: string[],
-    words2: string[],
-    minOverlap: number
-  ): number {
-    if (words1.length < minOverlap || words2.length < minOverlap) return 0;
-
-    const maxCheck = Math.min(words1.length, words2.length);
-    for (let overlapSize = maxCheck; overlapSize >= minOverlap; overlapSize--) {
-      const tail = words1.slice(words1.length - overlapSize);
-      const head = words2.slice(0, overlapSize);
-      if (tail.every((w, i) => w === head[i])) {
-        return overlapSize;
-      }
-    }
-    return 0;
-  }
-
   async process(): Promise<Record<string, unknown>> {
     const documents = (this.documents ?? []) as string[];
     const minOverlapWords = Number(this.min_overlap_words ?? 2);
@@ -899,10 +912,10 @@ export class RemoveOverlapNode extends BaseNode {
     const result: string[] = [documents[0]];
 
     for (let i = 1; i < documents.length; i++) {
-      const prevWords = this._splitIntoWords(result[result.length - 1]);
-      const currWords = this._splitIntoWords(documents[i]);
+      const prevWords = splitIntoWords(result[result.length - 1]);
+      const currWords = splitIntoWords(documents[i]);
 
-      const overlapWordCount = this._findWordOverlap(
+      const overlapWordCount = findWordOverlap(
         prevWords,
         currWords,
         minOverlapWords
@@ -924,7 +937,7 @@ export class HybridSearchNode extends BaseNode {
   static readonly nodeType = "vector.HybridSearch";
   static readonly title = "Hybrid Search";
   static readonly description =
-    "Hybrid search combining semantic and keyword-based search for better retrieval. Uses reciprocal rank fusion to combine results from both methods.\n    vector, RAG, query, semantic, text, similarity";
+    "Fuse a semantic ranking with a keyword-filtered semantic ranking via reciprocal rank fusion. The keyword leg runs the same semantic query constrained to documents containing the query tokens, so documents matching on both legs rank higher.\n    vector, RAG, query, semantic, text, similarity";
   static readonly inlineFields = ["text", "n_results"];
   static readonly inputFields = ["collection"];
   static readonly metadataOutputTypes = {
@@ -975,28 +988,6 @@ export class HybridSearchNode extends BaseNode {
   })
   declare min_keyword_length: any;
 
-  private _getKeywordFilter(
-    text: string,
-    minKeywordLength: number
-  ): Record<string, unknown> | null {
-    const pattern = /[ ,.!?\-_=|]+/;
-    const queryTokens = text
-      .toLowerCase()
-      .split(pattern)
-      .map((t) => t.trim())
-      .filter((t) => t.length >= minKeywordLength);
-
-    if (queryTokens.length === 0) return null;
-    if (queryTokens.length > 1) {
-      return {
-        $document: {
-          $or: queryTokens.map((token) => ({ $contains: token }))
-        }
-      };
-    }
-    return { $document: { $contains: queryTokens[0] } };
-  }
-
   async process(): Promise<Record<string, unknown>> {
     const collectionInput = (this.collection ?? { name: "" }) as { name: string };
     const name = collectionInput.name ?? "";
@@ -1018,12 +1009,12 @@ export class HybridSearchNode extends BaseNode {
 
     // Without a keyword filter there is no second ranking to fuse — fusing
     // the semantic list against itself would only double every score.
-    const keywordFilter = this._getKeywordFilter(text, minKeywordLength);
-    const keywordMatches: VectorMatch[] = keywordFilter
+    const filter = keywordFilter(text, minKeywordLength);
+    const keywordMatches: VectorMatch[] = filter
       ? await collection.query({
           text,
           topK: nResults * 2,
-          filter: keywordFilter
+          filter
         })
       : [];
 
@@ -1072,17 +1063,17 @@ export class HybridSearchNode extends BaseNode {
 }
 
 export const VECTOR_NODES = tagAsUniversal([
-  CollectionNode as unknown as NodeClass,
-  CountNode as unknown as NodeClass,
-  GetDocumentsNode as unknown as NodeClass,
-  PeekNode as unknown as NodeClass,
-  IndexImageNode as unknown as NodeClass,
-  IndexEmbeddingNode as unknown as NodeClass,
-  IndexTextChunkNode as unknown as NodeClass,
-  IndexAggregatedTextNode as unknown as NodeClass,
-  IndexStringNode as unknown as NodeClass,
-  QueryImageNode as unknown as NodeClass,
-  QueryTextNode as unknown as NodeClass,
-  RemoveOverlapNode as unknown as NodeClass,
-  HybridSearchNode as unknown as NodeClass
+  CollectionNode,
+  CountNode,
+  GetDocumentsNode,
+  PeekNode,
+  IndexImageNode,
+  IndexEmbeddingNode,
+  IndexTextChunkNode,
+  IndexAggregatedTextNode,
+  IndexStringNode,
+  QueryImageNode,
+  QueryTextNode,
+  RemoveOverlapNode,
+  HybridSearchNode
 ]);
