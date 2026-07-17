@@ -902,6 +902,36 @@ function createRuntimeContext(opts: {
       await asset.save();
       return asset;
     },
+    createMessage: async ({ userId, req }) => {
+      // Persist an AgentNode thread message. `content` / `tool_calls` are stored
+      // raw — the `content` column is a jsonText type that serializes them, so
+      // stringifying here would double-encode and break the getMessages read
+      // path (which feeds normalizeMessage, not a JSON-parsing response mapper).
+      return Message.create({
+        user_id: userId,
+        thread_id: req.thread_id,
+        role: req.role,
+        name: req.name ?? null,
+        content: req.content ?? null,
+        tool_calls: req.tool_calls ?? null,
+        tool_call_id: req.tool_call_id ?? null,
+        workflow_id: req.workflow_id ?? null
+      });
+    },
+    getMessages: async ({ userId, threadId, limit, startKey, reverse }) => {
+      const [msgs, cursor] = await Message.paginate(threadId, {
+        limit: limit ?? 1000,
+        startKey: startKey ?? undefined,
+        reverse: reverse ?? false
+      });
+      // Scope to the requesting user — thread_id has no ownership column of its
+      // own, so filter the rows the same way the tRPC messages router does.
+      const owned = msgs.filter((m) => m.user_id === userId);
+      return {
+        messages: owned as unknown as Array<Record<string, unknown>>,
+        next: cursor || null
+      };
+    },
     listFolderAssets: async ({ userId, folderId }) => {
       const folder = await Asset.find(userId, folderId);
       if (!folder || folder.content_type !== "folder") return null;
