@@ -60,7 +60,14 @@ async function importRegistry(): Promise<
 }
 
 async function getRegistry(): Promise<ShaderRegistry> {
-  if (!cachedRegistry) cachedRegistry = importRegistry();
+  // Reset the cache on rejection so a transient dynamic-import failure doesn't
+  // poison every future recipe node in the process (mirrors getGpuContext).
+  if (!cachedRegistry) {
+    cachedRegistry = importRegistry().catch((err) => {
+      cachedRegistry = null;
+      throw err;
+    });
+  }
   return cachedRegistry;
 }
 
@@ -184,55 +191,64 @@ export async function runShaderNode(
   const ctx = await getGpuContext();
   const device = ctx.device;
 
-  const source = sourceImage
-    ? await uploadStraightAlpha(device, sourceImage, context, `${module.id}-source`)
-    : null;
-  if (!source && module.io.inputs.source && !module.io.inputs.source.optional) {
-    // No source bound and module requires one — return an empty ImageRef rather
-    // than fail loud, mirroring lib-image-filter's "no-op when input is empty".
-    return { type: "image", data: "" };
-  }
-
-  const inputs: Record<string, LabeledTexture> = {};
-  if (source) inputs.source = source.texture;
-  // Textures this node OWNS (uploaded here) — freed when it finishes. Borrowed
+  // Textures this node OWNS (uploaded here) — freed in `finally`. Borrowed
   // GPU-texture inputs belong to the run's registry and are never freed here.
+  // Every upload happens inside the try and is pushed onto `owned` the instant
+  // its texture exists, so a later upload that throws (e.g. a second input
+  // fails to decode) can't leak the textures already created.
   const owned: LabeledTexture[] = [];
-  if (source && !source.borrowed) owned.push(source.texture);
-  for (const [name, ref] of Object.entries(opts.extraInputs ?? {})) {
-    const uploaded = await uploadStraightAlpha(
-      device,
-      ref,
-      context,
-      `${module.id}-${name}`
-    );
-    if (uploaded) {
-      inputs[name] = uploaded.texture;
-      if (!uploaded.borrowed) owned.push(uploaded.texture);
-    }
-  }
-  // Bail out before encoding if any *required* declared input is unbound —
-  // executor.encode would throw "missing required input" otherwise. Mirrors
-  // the source-missing no-op above so a stray null upstream produces an
-  // empty image rather than a hard failure.
-  for (const [name, contract] of Object.entries(module.io.inputs)) {
-    if (contract.optional) continue;
-    if (!inputs[name]) {
-      for (const t of owned) t.destroy();
-      return { type: "image", data: "" };
-    }
-  }
-
-  // Keep the output on the GPU when chaining client-side (browser, inside a
-  // run): the next node samples it directly and the run frees it later. On
-  // Node/Dawn (server) or outside a run, read it back to a CPU RGBA buffer.
-  const runId = context?.jobId;
-  const keepOnGpu =
-    GPU_TEXTURES_ENABLED && typeof runId === "string" && runId.length > 0;
-
   let output: LabeledTexture | undefined;
   let handedOff = false;
   try {
+    const source = sourceImage
+      ? await uploadStraightAlpha(device, sourceImage, context, `${module.id}-source`)
+      : null;
+    if (source && !source.borrowed) owned.push(source.texture);
+    if (!source && module.io.inputs.source && !module.io.inputs.source.optional) {
+      // No source bound and module requires one — no-op with an empty ImageRef
+      // rather than fail loud (mirrors lib-image-filter), but warn so the blank
+      // result is visible instead of propagating silently through a chain.
+      console.warn(
+        `${module.id}: required input "source" missing — emitting empty image.`
+      );
+      return { type: "image", data: "" };
+    }
+
+    const inputs: Record<string, LabeledTexture> = {};
+    if (source) inputs.source = source.texture;
+    for (const [name, ref] of Object.entries(opts.extraInputs ?? {})) {
+      const uploaded = await uploadStraightAlpha(
+        device,
+        ref,
+        context,
+        `${module.id}-${name}`
+      );
+      if (uploaded) {
+        inputs[name] = uploaded.texture;
+        if (!uploaded.borrowed) owned.push(uploaded.texture);
+      }
+    }
+    // Bail out before encoding if any *required* declared input is unbound —
+    // executor.encode would throw "missing required input" otherwise. Mirrors
+    // the source-missing no-op above so a stray null upstream produces an
+    // empty image rather than a hard failure.
+    for (const [name, contract] of Object.entries(module.io.inputs)) {
+      if (contract.optional) continue;
+      if (!inputs[name]) {
+        console.warn(
+          `${module.id}: required input "${name}" missing — emitting empty image.`
+        );
+        return { type: "image", data: "" };
+      }
+    }
+
+    // Keep the output on the GPU when chaining client-side (browser, inside a
+    // run): the next node samples it directly and the run frees it later. On
+    // Node/Dawn (server) or outside a run, read it back to a CPU RGBA buffer.
+    const runId = context?.jobId;
+    const keepOnGpu =
+      GPU_TEXTURES_ENABLED && typeof runId === "string" && runId.length > 0;
+
     const dims = resolveOutputDims(module, source, opts);
     output = createLabeledTexture(device, {
       label: `${module.id}-output`,
@@ -299,43 +315,53 @@ export async function runRecipeNode(
   const device = ctx.device;
   const registry = await getRegistry();
 
-  const source = sourceImage
-    ? await uploadStraightAlpha(device, sourceImage, context, `${recipe.id}-source`)
-    : null;
-  if (!source) {
-    return { type: "image", data: "" };
-  }
-
-  const inputs: Record<string, LabeledTexture> = { source: source.texture };
+  // Textures this node OWNS (uploaded here) — freed in `finally`. Every upload
+  // happens inside the try and is pushed onto `owned` the instant its texture
+  // exists, so a later upload that throws can't leak textures already created.
   const owned: LabeledTexture[] = [];
-  if (!source.borrowed) owned.push(source.texture);
-  for (const [name, ref] of Object.entries(opts.extraInputs ?? {})) {
-    const uploaded = await uploadStraightAlpha(
-      device,
-      ref,
-      context,
-      `${recipe.id}-${name}`
-    );
-    if (uploaded) {
-      inputs[name] = uploaded.texture;
-      if (!uploaded.borrowed) owned.push(uploaded.texture);
-    }
-  }
-  for (const [name, contract] of Object.entries(recipe.io.inputs)) {
-    if (contract.optional) continue;
-    if (!inputs[name]) {
-      for (const t of owned) t.destroy();
-      return { type: "image", data: "" };
-    }
-  }
-
-  const runId = context?.jobId;
-  const keepOnGpu =
-    GPU_TEXTURES_ENABLED && typeof runId === "string" && runId.length > 0;
-
   let output: LabeledTexture | undefined;
   let handedOff = false;
   try {
+    const source = sourceImage
+      ? await uploadStraightAlpha(device, sourceImage, context, `${recipe.id}-source`)
+      : null;
+    if (!source) {
+      // No source bound — no-op with an empty ImageRef rather than fail loud,
+      // but warn so the blank result is visible instead of propagating silently.
+      console.warn(
+        `${recipe.id}: required input "source" missing — emitting empty image.`
+      );
+      return { type: "image", data: "" };
+    }
+    if (!source.borrowed) owned.push(source.texture);
+
+    const inputs: Record<string, LabeledTexture> = { source: source.texture };
+    for (const [name, ref] of Object.entries(opts.extraInputs ?? {})) {
+      const uploaded = await uploadStraightAlpha(
+        device,
+        ref,
+        context,
+        `${recipe.id}-${name}`
+      );
+      if (uploaded) {
+        inputs[name] = uploaded.texture;
+        if (!uploaded.borrowed) owned.push(uploaded.texture);
+      }
+    }
+    for (const [name, contract] of Object.entries(recipe.io.inputs)) {
+      if (contract.optional) continue;
+      if (!inputs[name]) {
+        console.warn(
+          `${recipe.id}: required input "${name}" missing — emitting empty image.`
+        );
+        return { type: "image", data: "" };
+      }
+    }
+
+    const runId = context?.jobId;
+    const keepOnGpu =
+      GPU_TEXTURES_ENABLED && typeof runId === "string" && runId.length > 0;
+
     const dims = resolveOutputDims(recipe, source, opts);
     output = createLabeledTexture(device, {
       label: `${recipe.id}-output`,

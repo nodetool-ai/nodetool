@@ -64,11 +64,17 @@ class LumaKeyNode extends BaseNode {
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
     const props = this.serialize() as Record<string, unknown>;
+    // Normalize the band so low <= high: crossed bounds would key out every
+    // pixel and silently produce a blank image.
+    const a = num(props.low, 0);
+    const b = num(props.high, 1);
+    const low = Math.min(a, b);
+    const high = Math.max(a, b);
     const output = await runShaderNode(
       keyerLumaKeyV1,
       {
-        low: num(props.low, 0),
-        high: num(props.high, 1),
+        low,
+        high,
         softness: num(props.softness, 0.05)
       },
       props.image,
