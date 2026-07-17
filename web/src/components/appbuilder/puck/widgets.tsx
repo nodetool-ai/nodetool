@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React from "react";
+import { keyframes } from "@emotion/react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -20,7 +21,8 @@ import {
   BORDER_RADIUS,
   SPACING,
   SPACING_PX,
-  TYPOGRAPHY
+  TYPOGRAPHY,
+  reducedMotion
 } from "../../ui_primitives";
 import { AppEvent } from "../types";
 import { useWidgetRuntime, WidgetBindingMode } from "./useWidgetRuntime";
@@ -519,6 +521,42 @@ export const SelectWidget: React.FC<WidgetCommon & {
 
 // ── Action widget ───────────────────────────────────────────────────────────
 
+// A light sweep travelling across the button face — the "working" signal while
+// the run is in flight.
+const buttonShimmer = keyframes`
+  from { transform: translateX(-100%); }
+  to { transform: translateX(200%); }
+`;
+
+// The trailing ellipsis breathes one dot at a time so the label reads as live.
+const ellipsisPulse = keyframes`
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 1; }
+`;
+
+const RunningLabel: React.FC = () => (
+  <Box
+    component="span"
+    sx={{ display: "inline-flex", alignItems: "baseline", gap: "0.15em" }}
+  >
+    Running
+    <Box component="span" aria-hidden sx={{ display: "inline-flex" }}>
+      {[0, 1, 2].map((i) => (
+        <Box
+          key={i}
+          component="span"
+          sx={{
+            animation: `${ellipsisPulse} 1.2s ease-in-out ${i * 0.18}s infinite`,
+            ...reducedMotion({ animation: "none", opacity: 1 })
+          }}
+        >
+          .
+        </Box>
+      ))}
+    </Box>
+  </Box>
+);
+
 export const ButtonWidget: React.FC<WidgetCommon & {
   label?: string;
   variant?: string;
@@ -526,6 +564,7 @@ export const ButtonWidget: React.FC<WidgetCommon & {
 }> = (props) => {
   const { emit, designMode, runnerState } = useBinding(props, "none");
   const isRunning = runnerState === "running" || runnerState === "connecting";
+  const showRunning = isRunning && !designMode;
   return (
     <EditorButton
       variant={(props.variant as "contained" | "outlined" | "text") ?? "contained"}
@@ -533,16 +572,33 @@ export const ButtonWidget: React.FC<WidgetCommon & {
       density="normal"
       size="medium"
       fullWidth
-      disabled={isRunning && !designMode}
+      disabled={showRunning}
       onClick={() => emit("click")}
       sx={{
         fontSize: TYPOGRAPHY.sans.body.fontSize,
         fontWeight: 600,
         height: "auto",
-        py: SPACING.sm
+        py: SPACING.sm,
+        position: "relative",
+        overflow: "hidden",
+        // Keep the run state vivid rather than dimmed-out while it works.
+        ...(showRunning && {
+          "&.Mui-disabled": { opacity: 1 },
+          "&::after": {
+            content: '""',
+            position: "absolute",
+            inset: 0,
+            background:
+              "linear-gradient(100deg, transparent 20%, rgba(255,255,255,0.28) 50%, transparent 80%)",
+            transform: "translateX(-100%)",
+            animation: `${buttonShimmer} 1.4s ease-in-out infinite`,
+            pointerEvents: "none",
+            ...reducedMotion({ animation: "none", opacity: 0 })
+          }
+        })
       }}
     >
-      {isRunning && !designMode ? "Running…" : props.label ?? "Button"}
+      {showRunning ? <RunningLabel /> : props.label ?? "Button"}
     </EditorButton>
   );
 };
