@@ -553,7 +553,14 @@ export class ConstantSelectNode extends BaseNode {
   declare enum_type_name: string;
 
   async process(): Promise<Record<string, unknown>> {
-    return { output: this.value ?? "" };
+    const value = this.value ?? "";
+    const options = Array.isArray(this.options) ? this.options : [];
+    if (value !== "" && options.length > 0 && !options.includes(value)) {
+      throw new Error(
+        `Select value "${value}" is not one of the allowed options: ${options.join(", ")}`
+      );
+    }
+    return { output: value };
   }
 }
 

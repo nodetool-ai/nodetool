@@ -407,7 +407,7 @@ export class FormatDateNode extends BaseNode {
     title: "Date",
     description: "Date string, number (epoch ms), or Date."
   })
-  declare date: any;
+  declare date: unknown;
 
   @prop({
     type: "str",
@@ -415,7 +415,7 @@ export class FormatDateNode extends BaseNode {
     title: "Pattern",
     description: "Format pattern (YYYY, MM, DD, HH, mm, ss, SSS, Z)."
   })
-  declare pattern: any;
+  declare pattern: string;
 
   async process(): Promise<Record<string, unknown>> {
     const d = parseDate(this.date);
@@ -447,7 +447,7 @@ export class DateAddNode extends BaseNode {
     title: "Date",
     description: "Input date."
   })
-  declare date: any;
+  declare date: unknown;
 
   @prop({
     type: "int",
@@ -455,7 +455,7 @@ export class DateAddNode extends BaseNode {
     title: "Amount",
     description: "Amount to add (use negative to subtract)."
   })
-  declare amount: any;
+  declare amount: number;
 
   @prop({
     type: "enum",
@@ -464,7 +464,7 @@ export class DateAddNode extends BaseNode {
     description: "Unit of time.",
     values: DATE_UNITS
   })
-  declare unit: any;
+  declare unit: unknown;
 
   async process(): Promise<Record<string, unknown>> {
     const d = parseDate(this.date);
@@ -497,10 +497,10 @@ export class DateDiffNode extends BaseNode {
   static readonly inputFields = ["date_a", "date_b"];
 
   @prop({ type: "any", default: "", title: "Date A" })
-  declare date_a: any;
+  declare date_a: unknown;
 
   @prop({ type: "any", default: "", title: "Date B" })
-  declare date_b: any;
+  declare date_b: unknown;
 
   @prop({
     type: "enum",
@@ -509,7 +509,7 @@ export class DateDiffNode extends BaseNode {
     description: "Unit for the returned diff.",
     values: DATE_UNITS
   })
-  declare unit: any;
+  declare unit: unknown;
 
   async process(): Promise<Record<string, unknown>> {
     const a = parseDate(this.date_a);
@@ -542,7 +542,7 @@ export class DateStartEndNode extends BaseNode {
   static readonly inputFields = ["date"];
 
   @prop({ type: "any", default: "", title: "Date" })
-  declare date: any;
+  declare date: unknown;
 
   @prop({
     type: "enum",
@@ -550,7 +550,7 @@ export class DateStartEndNode extends BaseNode {
     title: "Unit",
     values: DATE_UNITS
   })
-  declare unit: any;
+  declare unit: unknown;
 
   async process(): Promise<Record<string, unknown>> {
     const d = parseDate(this.date);
