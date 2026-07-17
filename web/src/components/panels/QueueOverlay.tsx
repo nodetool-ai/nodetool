@@ -404,12 +404,16 @@ const QueueOverlay = memo(function QueueOverlay() {
     queued: liveQueued,
     cancelled: liveCancelled
   } = useMemo(() => {
-    const all = jobs ?? [];
-    return {
-      running: all.filter((j) => RUNNING.has(j.status ?? "")),
-      queued: all.filter((j) => QUEUED.has(j.status ?? "")),
-      cancelled: all.filter((j) => j.status === "cancelled")
-    };
+    const running: typeof jobs = [];
+    const queued: typeof jobs = [];
+    const cancelled: typeof jobs = [];
+    for (const j of jobs ?? []) {
+      const s = j.status ?? "";
+      if (RUNNING.has(s)) running.push(j);
+      else if (QUEUED.has(s)) queued.push(j);
+      else if (s === "cancelled") cancelled.push(j);
+    }
+    return { running, queued, cancelled };
   }, [jobs]);
 
   // Visibility tracks active work only — cancelled jobs are shown as

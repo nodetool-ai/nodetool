@@ -84,6 +84,24 @@ import {
   sketchNodeOutputImageTypeMetadata
 } from "./sketchNodeIO";
 
+const SKETCH_IMAGE_OUTPUT = {
+  name: "image",
+  type: sketchNodeOutputImageTypeMetadata,
+  stream: false
+} as const;
+
+const SKETCH_MASK_OUTPUT = {
+  name: "mask",
+  type: sketchNodeOutputImageTypeMetadata,
+  stream: false
+} as const;
+
+const SKETCH_LAYERS_OUTPUT = {
+  name: SKETCH_OUTPUT_LAYERS_HANDLE,
+  type: sketchNodeOutputImageListTypeMetadata,
+  stream: false
+} as const;
+
 type SketchNodeStyleOptions = {
   selected: boolean;
   isFocused: boolean;
@@ -601,6 +619,20 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     [sketchDoc.layers]
   );
 
+  const exposedOutputLayerOutputs = useMemo(
+    () =>
+      exposedOutputLayers.map((layer) => ({
+        key: `output-${layer.id}`,
+        output: {
+          name: getLayerOutputHandleName(layer.name),
+          type: sketchNodeOutputImageTypeMetadata,
+          stream: false as const
+        },
+        displayName: layer.name
+      })),
+    [exposedOutputLayers]
+  );
+
   // ─── Resolve source node IDs for all image inputs ─────────────────
   // Connected values live on the SOURCE node's result, not this node's own
   // result. Find the relevant incoming edges and subscribe to their results.
@@ -617,16 +649,18 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
   );
 
   const layerInputConnections = useMemo(() => {
+    const edgeByHandle = new Map<string, (typeof edges)[number]>();
+    for (const e of edges) {
+      if (e.target === props.id && e.targetHandle) {
+        edgeByHandle.set(e.targetHandle, e);
+      }
+    }
     const connections: Record<
       string,
       { sourceId: string; sourceHandle: string | null | undefined }
     > = {};
     for (const layer of exposedInputLayers) {
-      const edge = edges.find(
-        (e) =>
-          e.target === props.id &&
-          e.targetHandle === getLayerInputHandleName(layer.name)
-      );
+      const edge = edgeByHandle.get(getLayerInputHandleName(layer.name));
       if (edge?.source) {
         connections[layer.id] = {
           sourceId: edge.source,
@@ -1392,39 +1426,23 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
             <div className="sketch-output-handles">
               <NodeOutput
                 id={props.id}
-                output={{
-                  name: "image",
-                  type: sketchNodeOutputImageTypeMetadata,
-                  stream: false
-                }}
+                output={SKETCH_IMAGE_OUTPUT}
               />
               <NodeOutput
                 id={props.id}
-                output={{
-                  name: "mask",
-                  type: sketchNodeOutputImageTypeMetadata,
-                  stream: false
-                }}
+                output={SKETCH_MASK_OUTPUT}
               />
               <NodeOutput
                 id={props.id}
-                output={{
-                  name: SKETCH_OUTPUT_LAYERS_HANDLE,
-                  type: sketchNodeOutputImageListTypeMetadata,
-                  stream: false
-                }}
+                output={SKETCH_LAYERS_OUTPUT}
                 displayName="Layers"
               />
-              {exposedOutputLayers.map((layer) => (
+              {exposedOutputLayerOutputs.map((item) => (
                 <NodeOutput
-                  key={`output-${layer.id}`}
+                  key={item.key}
                   id={props.id}
-                  output={{
-                    name: getLayerOutputHandleName(layer.name),
-                    type: sketchNodeOutputImageTypeMetadata,
-                    stream: false
-                  }}
-                  displayName={layer.name}
+                  output={item.output}
+                  displayName={item.displayName}
                 />
               ))}
             </div>
