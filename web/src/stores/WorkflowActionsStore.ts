@@ -37,7 +37,14 @@ export const useWorkflowActionsStore = create<WorkflowActionsState>((set) => ({
     }),
 }));
 
-export const useWorkflowActions = () =>
+export interface WorkflowActions {
+  onEdit: ((workflow: Workflow) => void) | null;
+  onDuplicate: ((event: React.MouseEvent, workflow: Workflow) => void) | null;
+  onDelete: ((workflow: Workflow) => void) | null;
+  onOpenAsApp: ((workflow: Workflow) => void) | null;
+}
+
+export const useWorkflowActions = (): WorkflowActions =>
   useWorkflowActionsStore(
     useShallow((state) => ({
       onEdit: state.onEdit,

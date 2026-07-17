@@ -3,10 +3,16 @@ import { useNodes } from "../../contexts/NodeContext";
 import { TypeMetadata } from "../../stores/ApiTypes";
 import { shallow } from "zustand/shallow";
 
+export interface UseDynamicOutputResult {
+  handleDeleteOutput: (outputName: string) => void;
+  handleAddOutput: (outputName: string, typeMetadata: TypeMetadata) => void;
+  handleRenameOutput: (oldName: string, newName: string) => void;
+}
+
 export const useDynamicOutput = (
   nodeId: string,
   dynamicOutputs: Record<string, TypeMetadata> = {}
-) => {
+): UseDynamicOutputResult => {
   const { updateNodeData } = useNodes((state) => ({
     updateNodeData: state.updateNodeData
   }), shallow);
