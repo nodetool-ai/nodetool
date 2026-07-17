@@ -12,6 +12,7 @@ import {
   AudioWidget,
   VideoWidget,
   JsonWidget,
+  OutputWidget,
   ProgressWidget,
   TextInputWidget,
   NumberInputWidget,
@@ -23,6 +24,7 @@ import {
   ColumnsWidget,
   DividerWidget
 } from "./widgets";
+import { WorkflowInputWidget } from "./WorkflowInputWidget";
 
 const ACTION_OPTIONS = [
   { label: "Run workflow", value: "run" },
@@ -88,7 +90,14 @@ export const appConfig: Config = {
   categories: {
     inputs: {
       title: "Inputs",
-      components: ["TextInput", "NumberInput", "Slider", "Switch", "Select"]
+      components: [
+        "WorkflowInput",
+        "TextInput",
+        "NumberInput",
+        "Slider",
+        "Switch",
+        "Select"
+      ]
     },
     actions: { title: "Actions", components: ["Button"] },
     display: {
@@ -101,6 +110,7 @@ export const appConfig: Config = {
         "Audio",
         "Video",
         "Json",
+        "Output",
         "Progress"
       ]
     },
@@ -187,6 +197,15 @@ export const appConfig: Config = {
       defaultProps: {},
       render: (props) => <JsonWidget {...props} />
     },
+    Output: {
+      label: "Output",
+      fields: {
+        binding: bindingField("read"),
+        placeholder: { type: "text", label: "Placeholder" }
+      },
+      defaultProps: { placeholder: "Your result appears here" },
+      render: (props) => <OutputWidget {...props} />
+    },
     Progress: {
       label: "Progress",
       fields: {
@@ -197,6 +216,15 @@ export const appConfig: Config = {
       render: (props) => <ProgressWidget {...props} />
     },
     // ── Inputs ──
+    WorkflowInput: {
+      label: "Workflow Input",
+      fields: {
+        binding: bindingField("write", "Workflow input"),
+        events: eventsField("change")
+      },
+      defaultProps: { binding: "" },
+      render: (props) => <WorkflowInputWidget {...props} />
+    },
     TextInput: {
       label: "Text Input",
       fields: {

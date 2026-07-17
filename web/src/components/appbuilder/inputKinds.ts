@@ -1,6 +1,36 @@
-import { MiniAppInputKind } from "./types";
+/**
+ * Input-kind detection for workflow InputNodes. Each kind maps to the UI
+ * component that edits a value of that input's type.
+ */
+export type WorkflowInputKind =
+  | "string"
+  | "integer"
+  | "float"
+  | "boolean"
+  | "color"
+  | "image"
+  | "video"
+  | "audio"
+  | "document"
+  | "dataframe"
+  | "file_path"
+  | "folder_path"
+  | "folder"
+  | "select"
+  | "language_model"
+  | "image_model"
+  | "video_model"
+  | "tts_model"
+  | "asr_model"
+  | "embedding_model"
+  | "image_list"
+  | "video_list"
+  | "audio_list"
+  | "text_list";
 
-export const getInputKind = (nodeType: string): MiniAppInputKind | null => {
+export const getWorkflowInputKind = (
+  nodeType: string
+): WorkflowInputKind | null => {
   switch (nodeType) {
     case "nodetool.input.StringInput":
     case "nodetool.input.TextInput":
@@ -60,13 +90,13 @@ export const getInputKind = (nodeType: string): MiniAppInputKind | null => {
   }
 };
 
-export const clampNumber = (value: number, min?: number, max?: number) => {
+export const clampNumber = (
+  value: number,
+  min?: number,
+  max?: number
+): number => {
   let result = value;
-  if (typeof min === "number") {
-    result = Math.max(result, min);
-  }
-  if (typeof max === "number") {
-    result = Math.min(result, max);
-  }
+  if (typeof min === "number") result = Math.max(result, min);
+  if (typeof max === "number") result = Math.min(result, max);
   return result;
 };

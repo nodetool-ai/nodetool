@@ -28,6 +28,7 @@ export const WIDGET_MODES: Record<string, WidgetBindingMode> = {
   Audio: "read",
   Video: "read",
   Json: "read",
+  Output: "read",
   Progress: "read",
   TextInput: "write",
   NumberInput: "write",

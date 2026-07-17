@@ -69,6 +69,8 @@ Variable node and wire app state to it.
 
 ## Where it shows up
 
-`MiniAppPage` renders `AppRuntimeView` when the workflow has an app document.
-Without one, Mini App mode renders the generated input/output form. The builder
-lives at `/app-builder/:workflowId`; open it from App mode with **App Builder**.
+`WorkflowAppView` renders `AppRuntimeView` for every workflow: its saved app
+document when present, otherwise a form/results layout generated from the
+graph's Input/Output nodes (`generateAppData`). The builder lives at
+`/app-builder/:workflowId`; open it from a workflow's View mode with
+**App Builder**.

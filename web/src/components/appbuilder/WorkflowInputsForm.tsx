@@ -1,32 +1,32 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Caption, Tooltip } from "../../ui_primitives";
+import { Caption, Tooltip } from "../ui_primitives";
 
-import { Property, Workflow } from "../../../stores/ApiTypes";
-import { getComponentForProperty } from "../../node/PropertyInput.resolver";
-import LanguageModelSelect from "../../properties/LanguageModelSelect";
-import ImageModelSelect from "../../properties/ImageModelSelect";
-import VideoModelSelect from "../../properties/VideoModelSelect";
-import TTSModelSelect from "../../properties/TTSModelSelect";
-import ASRModelSelect from "../../properties/ASRModelSelect";
-import EmbeddingModelSelect from "../../properties/EmbeddingModelSelect";
-import PropertyLabel from "../../node/PropertyLabel";
-import { NodeTextField, editorClassNames, cn } from "../../editor_ui";
+import { Property, Workflow } from "../../stores/ApiTypes";
+import { getComponentForProperty } from "../node/PropertyInput.resolver";
+import LanguageModelSelect from "../properties/LanguageModelSelect";
+import ImageModelSelect from "../properties/ImageModelSelect";
+import VideoModelSelect from "../properties/VideoModelSelect";
+import TTSModelSelect from "../properties/TTSModelSelect";
+import ASRModelSelect from "../properties/ASRModelSelect";
+import EmbeddingModelSelect from "../properties/EmbeddingModelSelect";
+import PropertyLabel from "../node/PropertyLabel";
+import { NodeTextField, editorClassNames, cn } from "../editor_ui";
 import {
-  MiniAppInputDefinition,
-  MiniAppInputKind,
-  MiniAppInputValues
-} from "../types";
+  WorkflowInputDefinition,
+  WorkflowInputFormValues
+} from "./workflowInputForm";
+import { WorkflowInputKind } from "./inputKinds";
 
-interface MiniAppInputsFormProps {
+interface WorkflowInputsFormProps {
   workflow: Workflow;
-  inputDefinitions: MiniAppInputDefinition[];
-  inputValues: MiniAppInputValues;
+  inputDefinitions: WorkflowInputDefinition[];
+  inputValues: WorkflowInputFormValues;
   onInputChange: (name: string, value: unknown) => void;
   onError?: (message: string | null) => void;
 }
 
 const KIND_TO_PROPERTY_TYPE: Record<
-  MiniAppInputKind,
+  WorkflowInputKind,
   Property["type"]["type"]
 > = {
   string: "str",
@@ -56,7 +56,7 @@ const KIND_TO_PROPERTY_TYPE: Record<
 };
 
 const createPropertyFromDefinition = (
-  definition: MiniAppInputDefinition
+  definition: WorkflowInputDefinition
 ): Property => {
   const defaultValue = (() => {
     if (definition.defaultValue !== undefined) {
@@ -91,7 +91,7 @@ const createPropertyFromDefinition = (
   const enumTypeName =
     definition.kind === "select" ? definition.data.enum_type_name ?? null : null;
 
-  const getTypeArgsForKind = (kind: MiniAppInputKind) => {
+  const getTypeArgsForKind = (kind: WorkflowInputKind) => {
     switch (kind) {
       case "image_list":
         return [{ type: "image", optional: false, type_args: [] }];
@@ -141,9 +141,9 @@ const createPropertyFromDefinition = (
 };
 
 const resolveInputValue = (
-  definition: MiniAppInputDefinition,
+  definition: WorkflowInputDefinition,
   property: Property,
-  values: MiniAppInputValues
+  values: WorkflowInputFormValues
 ): unknown => {
   const storedValue = values[definition.data.name];
   if (storedValue !== undefined) {
@@ -170,7 +170,7 @@ const resolveInputValue = (
   }
 };
 
-const getStringInputConfig = (definition: MiniAppInputDefinition) => {
+const getStringInputConfig = (definition: WorkflowInputDefinition) => {
   const data = definition.data as {
     max_length?: unknown;
     line_mode?: unknown;
@@ -192,7 +192,7 @@ const getStringInputConfig = (definition: MiniAppInputDefinition) => {
   return { maxLength, lineMode } as const;
 };
 
-const SPECIAL_RENDER_KINDS: ReadonlySet<MiniAppInputKind> = new Set([
+const SPECIAL_RENDER_KINDS: ReadonlySet<WorkflowInputKind> = new Set([
   "string",
   "language_model",
   "image_model",
@@ -202,7 +202,7 @@ const SPECIAL_RENDER_KINDS: ReadonlySet<MiniAppInputKind> = new Set([
   "embedding_model"
 ]);
 
-const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
+const WorkflowInputsForm: React.FC<WorkflowInputsFormProps> = ({
   inputDefinitions,
   inputValues,
   onInputChange,
@@ -270,7 +270,7 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
       <div className="inputs-shell">
         {propertyEntries.map(
           ({ definition, property, Component, propertyIndex }) => {
-            const inputId = `miniapp-input-${definition.nodeId}`;
+            const inputId = `workflow-input-${definition.nodeId}`;
             const value = resolveInputValue(
               definition,
               property,
@@ -581,6 +581,6 @@ const MiniAppInputsForm: React.FC<MiniAppInputsFormProps> = ({
   );
 };
 
-MiniAppInputsForm.displayName = 'MiniAppInputsForm';
+WorkflowInputsForm.displayName = "WorkflowInputsForm";
 
-export default React.memo(MiniAppInputsForm);
+export default React.memo(WorkflowInputsForm);

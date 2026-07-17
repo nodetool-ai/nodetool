@@ -1,7 +1,7 @@
-import { getInputKind, clampNumber } from "../utils";
+import { getWorkflowInputKind, clampNumber } from "../inputKinds";
 
-describe("miniapps/utils", () => {
-  describe("getInputKind", () => {
+describe("appbuilder/inputKinds", () => {
+  describe("getWorkflowInputKind", () => {
     it.each([
       ["nodetool.input.StringInput", "string"],
       ["nodetool.input.TextInput", "string"],
@@ -33,13 +33,13 @@ describe("miniapps/utils", () => {
       ["nodetool.input.TextListInput", "text_list"],
       ["nodetool.input.StringListInput", "text_list"]
     ] as const)("maps %s to %s", (nodeType, expected) => {
-      expect(getInputKind(nodeType)).toBe(expected);
+      expect(getWorkflowInputKind(nodeType)).toBe(expected);
     });
 
     it("returns null for unknown node types", () => {
-      expect(getInputKind("nodetool.input.Unknown")).toBeNull();
-      expect(getInputKind("")).toBeNull();
-      expect(getInputKind("some.other.Type")).toBeNull();
+      expect(getWorkflowInputKind("nodetool.input.Unknown")).toBeNull();
+      expect(getWorkflowInputKind("")).toBeNull();
+      expect(getWorkflowInputKind("some.other.Type")).toBeNull();
     });
   });
 

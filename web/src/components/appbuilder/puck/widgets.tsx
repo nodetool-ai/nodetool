@@ -233,6 +233,44 @@ export const VideoWidget: React.FC<WidgetCommon & {
   );
 };
 
+const mediaRefKind = (value: unknown): "image" | "audio" | "video" | null => {
+  if (value && typeof value === "object") {
+    const t = (value as { type?: unknown }).type;
+    if (t === "image" || t === "audio" || t === "video") return t;
+  }
+  return null;
+};
+
+/**
+ * Display widget for untyped sinks (Preview, generic Output): the value's shape
+ * is only known at runtime, so dispatch to the matching typed widget then —
+ * media refs render as media, strings as markdown, other objects as JSON.
+ */
+export const OutputWidget: React.FC<WidgetCommon & { placeholder?: string }> = (
+  props
+) => {
+  const { value } = useBinding(props, "read");
+  if (value == null || value === "") {
+    return (
+      <Caption color="secondary">{props.placeholder ?? "No result yet"}</Caption>
+    );
+  }
+  switch (mediaRefKind(value)) {
+    case "image":
+      return <ImageWidget {...props} fit="contain" height={280} />;
+    case "audio":
+      return <AudioWidget {...props} />;
+    case "video":
+      return <VideoWidget {...props} />;
+    default:
+      break;
+  }
+  if (typeof value === "object") {
+    return <JsonWidget {...props} />;
+  }
+  return <MarkdownWidget {...props} text="" />;
+};
+
 export const JsonWidget: React.FC<WidgetCommon> = (props) => {
   const { value } = useBinding(props, "read");
   let formatted: string;

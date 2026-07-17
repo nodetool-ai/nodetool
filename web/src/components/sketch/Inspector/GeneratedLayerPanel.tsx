@@ -21,12 +21,12 @@ import {
   Panel,
   Box
 } from "../../ui_primitives";
-import MiniAppInputsForm from "../../miniapps/components/MiniAppInputsForm";
+import WorkflowInputsForm from "../../appbuilder/WorkflowInputsForm";
 import type {
   InputNodeData,
-  MiniAppInputDefinition
-} from "../../miniapps/types";
-import { getInputKind } from "../../miniapps/utils";
+  WorkflowInputDefinition
+} from "../../appbuilder/workflowInputForm";
+import { getWorkflowInputKind } from "../../appbuilder/inputKinds";
 import { useSketchGenerationStore } from "../../../stores/sketch/SketchGenerationStore";
 import { GeneratedLayerHeader } from "./GeneratedLayerHeader";
 import { LayerActions } from "./LayerActions";
@@ -74,7 +74,7 @@ const inputsContainerStyles = (theme: Theme) =>
       flexDirection: "column",
       gap: theme.spacing(0.5)
     },
-    // Description Caption rendered below each control by MiniAppInputsForm.
+    // Description Caption rendered below each control by WorkflowInputsForm.
     // Make it smaller and more muted so it reads as helper text, not a label.
     ".input-field > .MuiTypography-root": {
       fontSize: theme.fontSizeSmaller,
@@ -96,7 +96,7 @@ export const GeneratedLayerPanel: React.FC<GeneratedLayerPanelProps> = memo(
     const workflowId = binding?.workflowId ?? null;
     const { data: workflow, isLoading, isError } = useWorkflow(workflowId);
 
-    // Property components rendered by MiniAppInputsForm (IntegerProperty,
+    // Property components rendered by WorkflowInputsForm (IntegerProperty,
     // SliderProperty, …) call `useTemporalNodes`, which throws unless a
     // NodeContext is in scope. Reuse the WorkflowManager's node store when
     // the bound workflow is open in the editor; otherwise stand up a
@@ -129,11 +129,11 @@ export const GeneratedLayerPanel: React.FC<GeneratedLayerPanelProps> = memo(
     const jobErrorMessage =
       jobState?.status === "failed" ? jobState.errorMessage : undefined;
 
-    const inputDefinitions = useMemo<MiniAppInputDefinition[]>(() => {
+    const inputDefinitions = useMemo<WorkflowInputDefinition[]>(() => {
       const nodes = (workflow?.graph?.nodes ?? []) as Node[];
       return nodes
         .map((node) => {
-          const kind = getInputKind(node.type);
+          const kind = getWorkflowInputKind(node.type);
           if (!kind) {
             return null;
           }
@@ -142,10 +142,10 @@ export const GeneratedLayerPanel: React.FC<GeneratedLayerPanelProps> = memo(
             nodeType: node.type,
             kind,
             data: node.data as InputNodeData
-          } satisfies MiniAppInputDefinition;
+          } satisfies WorkflowInputDefinition;
         })
         .filter(
-          (definition): definition is MiniAppInputDefinition =>
+          (definition): definition is WorkflowInputDefinition =>
             definition !== null
         );
     }, [workflow]);
@@ -216,7 +216,7 @@ export const GeneratedLayerPanel: React.FC<GeneratedLayerPanelProps> = memo(
                 ) : nodeStoreForForm ? (
                   <NodeContext.Provider value={nodeStoreForForm}>
                     <Box css={inputsContainerStyles(theme)}>
-                      <MiniAppInputsForm
+                      <WorkflowInputsForm
                         workflow={workflow}
                         inputDefinitions={inputDefinitions}
                         inputValues={paramOverrides}

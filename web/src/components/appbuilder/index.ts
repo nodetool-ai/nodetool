@@ -23,5 +23,6 @@ export {
   hasAppSpec,
   toAppDocField
 } from "./persistence";
+export { generateAppDoc, generateAppData } from "./generateAppDoc";
 export { extractWorkflowState } from "./workflowState";
 export type { AppAction, AppEvent } from "./types";

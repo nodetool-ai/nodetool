@@ -1,20 +1,25 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { Puck, useGetPuck, type Data, type Overrides } from "@puckeditor/core";
 import "@puckeditor/core/puck.css";
 import "./puckTheme.css";
 import CloseIcon from "@mui/icons-material/Close";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import SaveIcon from "@mui/icons-material/Save";
 
 import { Workflow } from "../../../stores/ApiTypes";
+import { NodeContext } from "../../../contexts/NodeContext";
+import { useWorkflowManager } from "../../../contexts/WorkflowManagerContext";
 import { extractWorkflowState } from "../workflowState";
 import { useAppRuntime } from "../runtime/useAppRuntime";
 import { AppRuntimeContext } from "../runtime/AppRuntimeContext";
 import { BuilderWorkflowProvider } from "./BuilderWorkflowContext";
 import { appConfig } from "./config";
 import PuckAgentBinder from "./PuckAgentBinder";
-import { Box, EditorButton } from "../../ui_primitives";
+import { generateAppData } from "../generateAppDoc";
+import { isRenderableData } from "../appData";
+import { Box, Dialog, EditorButton } from "../../ui_primitives";
 
 interface PuckAppEditorProps {
   workflow: Workflow;
@@ -50,6 +55,54 @@ const SaveButton: React.FC<{ onSave: (data: Data) => void }> = ({ onSave }) => {
 };
 
 /**
+ * Replaces the editor document with a layout generated from the workflow's
+ * inputs/outputs. Goes through Puck's setData action so undo/redo works;
+ * confirms first when the current document has placed components.
+ */
+const GenerateFromWorkflowButton: React.FC<{ workflow: Workflow }> = ({
+  workflow
+}) => {
+  const getPuck = useGetPuck();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const applyGenerated = useCallback(() => {
+    const { dispatch } = getPuck();
+    dispatch({ type: "setData", data: generateAppData(workflow) });
+    setConfirmOpen(false);
+  }, [getPuck, workflow]);
+
+  const handleClick = useCallback(() => {
+    const { appState } = getPuck();
+    if (isRenderableData(appState.data)) {
+      setConfirmOpen(true);
+    } else {
+      applyGenerated();
+    }
+  }, [getPuck, applyGenerated]);
+
+  return (
+    <>
+      <EditorButton
+        size="small"
+        variant="text"
+        startIcon={<AutoFixHighIcon sx={{ fontSize: 16 }} />}
+        onClick={handleClick}
+      >
+        Generate
+      </EditorButton>
+      <Dialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        title="Replace app layout?"
+        content="Generating from the workflow replaces the current layout with widgets for every workflow input and output. You can undo afterwards."
+        onConfirm={applyGenerated}
+        confirmText="Replace"
+      />
+    </>
+  );
+};
+
+/**
  * The WYSIWYG editor: Puck draws the editing chrome (component drawer, canvas,
  * field inspector) while our contexts supply the bindable workflow surface and
  * an inert design-mode runtime so widget previews render without running.
@@ -68,6 +121,9 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
     [workflow]
   );
   const designRuntime = useAppRuntime(workflow, true);
+  // Property components resolved by WorkflowInputWidget (AudioProperty) read
+  // the workflow's node store via NodeContext — same wrap as WorkflowAppView.
+  const nodeStore = useWorkflowManager((s) => s.nodeStores[workflow.id]);
 
   const overrides = useMemo<Partial<Overrides>>(
     () => ({
@@ -75,6 +131,7 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
         <>
           {/* Lets the agent's ui_app_* tools drive this editor. Renders nothing. */}
           <PuckAgentBinder config={appConfig} />
+          <GenerateFromWorkflowButton workflow={workflow} />
           {onToggleAgent && (
             <EditorButton
               size="small"
@@ -99,24 +156,26 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
         </>
       )
     }),
-    [onClose, onPublish, onToggleAgent, agentOpen]
+    [onClose, onPublish, onToggleAgent, agentOpen, workflow]
   );
 
   return (
-    <BuilderWorkflowProvider value={workflowState}>
-      <AppRuntimeContext.Provider value={designRuntime}>
-        <Box className="appbuilder-editor" sx={{ width: "100%", height: "100%" }}>
-          <Puck
-            config={appConfig}
-            data={data}
-            onPublish={onPublish}
-            onChange={onChange}
-            overrides={overrides}
-            iframe={{ enabled: false }}
-          />
-        </Box>
-      </AppRuntimeContext.Provider>
-    </BuilderWorkflowProvider>
+    <NodeContext.Provider value={nodeStore ?? null}>
+      <BuilderWorkflowProvider value={workflowState}>
+        <AppRuntimeContext.Provider value={designRuntime}>
+          <Box className="appbuilder-editor" sx={{ width: "100%", height: "100%" }}>
+            <Puck
+              config={appConfig}
+              data={data}
+              onPublish={onPublish}
+              onChange={onChange}
+              overrides={overrides}
+              iframe={{ enabled: false }}
+            />
+          </Box>
+        </AppRuntimeContext.Provider>
+      </BuilderWorkflowProvider>
+    </NodeContext.Provider>
   );
 };
 

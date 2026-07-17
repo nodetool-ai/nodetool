@@ -1,3 +1,8 @@
+/**
+ * Shared types for rendering a workflow's InputNodes as a plain edit form
+ * (used by the sketch/timeline "generated" inspector panels, which bind
+ * overrides directly to a workflow rather than going through an app_doc).
+ */
 import {
   AudioRef,
   DataframeRef,
@@ -6,32 +11,7 @@ import {
   ImageRef,
   VideoRef
 } from "../../stores/ApiTypes";
-
-export type MiniAppInputKind =
-  | "string"
-  | "integer"
-  | "float"
-  | "boolean"
-  | "color"
-  | "image"
-  | "video"
-  | "audio"
-  | "document"
-  | "dataframe"
-  | "file_path"
-  | "folder_path"
-  | "folder"
-  | "select"
-  | "language_model"
-  | "image_model"
-  | "video_model"
-  | "tts_model"
-  | "asr_model"
-  | "embedding_model"
-  | "image_list"
-  | "video_list"
-  | "audio_list"
-  | "text_list";
+import { WorkflowInputKind } from "./inputKinds";
 
 export interface InputNodeData {
   name: string;
@@ -52,31 +32,15 @@ export interface InputNodeData {
   enum_type_name?: string;
 }
 
-export interface MiniAppInputDefinition {
+export interface WorkflowInputDefinition {
   nodeId: string;
   nodeType: string;
-  kind: MiniAppInputKind;
+  kind: WorkflowInputKind;
   data: InputNodeData;
   defaultValue?: unknown;
 }
 
-export interface MiniAppResult {
-  id: string;
-  nodeId: string;
-  nodeName: string;
-  outputName: string;
-  outputType: string;
-  value: unknown;
-  metadata?: Record<string, unknown>;
-  receivedAt: number;
-}
-
-export interface MiniAppProgress {
-  current: number;
-  total: number;
-}
-
-export type MiniAppInputValues = Record<
+export type WorkflowInputFormValues = Record<
   string,
   | unknown
   | ImageRef
