@@ -13,14 +13,6 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "🧮 Data Generator",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
             "id": "t-tagline",
@@ -28,42 +20,53 @@
           }
         },
         {
-          "type": "Container",
+          "type": "Columns",
           "props": {
-            "id": "panel-try",
-            "title": "Try it",
-            "content": [
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
               {
-                "type": "Button",
+                "type": "Container",
                 "props": {
-                  "id": "btn-run",
-                  "label": "Generate data",
-                  "variant": "contained",
-                  "color": "primary",
-                  "events": [
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
                     {
-                      "trigger": "click",
-                      "kind": "run",
-                      "key": "",
-                      "value": ""
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Generate data",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
                     }
                   ]
                 }
               }
-            ]
-          }
-        },
-        {
-          "type": "Container",
-          "props": {
-            "id": "panel-results",
-            "title": "Results",
-            "content": [
+            ],
+            "right": [
               {
-                "type": "Json",
+                "type": "Container",
                 "props": {
-                  "id": "out-generated-data",
-                  "binding": "generated_data"
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Json",
+                      "props": {
+                        "id": "out-generated-data",
+                        "binding": "generated_data"
+                      }
+                    }
+                  ]
                 }
               }
             ]

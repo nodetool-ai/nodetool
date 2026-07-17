@@ -349,14 +349,6 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "📺 Product Video Generator",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
             "id": "t-tagline",
@@ -376,43 +368,35 @@
                   "title": "Try it",
                   "content": [
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-campaign-brief",
                         "binding": "campaign_brief",
-                        "label": "Campaign brief",
-                        "placeholder": "Launch video for the Aurora Trail smart fitness watch, highlighting outdoor adve",
-                        "multiline": true,
                         "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-target-audience",
                         "binding": "target_audience",
-                        "label": "Target audience",
-                        "placeholder": "active millennials who enjoy weekend hiking and fitness challenges",
-                        "multiline": true,
                         "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-key-features",
                         "binding": "key_features",
-                        "label": "Key features",
-                        "placeholder": "GPS navigation, heart-rate analytics, adaptive coaching, water resistance",
-                        "multiline": true,
                         "events": []
                       }
                     },
                     {
-                      "type": "Text",
+                      "type": "WorkflowInput",
                       "props": {
-                        "id": "note-media",
-                        "text": "📷 Uses the bundled product image — replace it in NodeTool Studio."
+                        "id": "in-image-input-1",
+                        "binding": "image_input_1",
+                        "events": []
                       }
                     },
                     {

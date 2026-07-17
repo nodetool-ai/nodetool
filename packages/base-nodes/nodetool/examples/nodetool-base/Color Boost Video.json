@@ -221,14 +221,6 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "🌈 Color Boost Video",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
             "id": "t-tagline",
@@ -236,51 +228,55 @@
           }
         },
         {
-          "type": "Container",
+          "type": "Columns",
           "props": {
-            "id": "panel-try",
-            "title": "Try it",
-            "content": [
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
               {
-                "type": "Text",
+                "type": "Container",
                 "props": {
-                  "id": "note-media",
-                  "text": "🎞️ Uses the bundled sample clip — drop in your own in NodeTool Studio."
-                }
-              },
-              {
-                "type": "Button",
-                "props": {
-                  "id": "btn-run",
-                  "label": "Boost my video",
-                  "variant": "contained",
-                  "color": "primary",
-                  "events": [
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
                     {
-                      "trigger": "click",
-                      "kind": "run",
-                      "key": "",
-                      "value": ""
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Boost my video",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
                     }
                   ]
                 }
               }
-            ]
-          }
-        },
-        {
-          "type": "Container",
-          "props": {
-            "id": "panel-results",
-            "title": "Results",
-            "content": [
+            ],
+            "right": [
               {
-                "type": "Video",
+                "type": "Container",
                 "props": {
-                  "id": "out-graded-video",
-                  "binding": "graded_video",
-                  "height": 320,
-                  "placeholder": "Your video appears here"
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-graded-video",
+                        "binding": "graded_video",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    }
+                  ]
                 }
               }
             ]

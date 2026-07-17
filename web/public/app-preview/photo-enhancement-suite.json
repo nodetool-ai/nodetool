@@ -13,14 +13,6 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "🖼️ Photo Enhancement Suite",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
             "id": "t-tagline",
@@ -40,34 +32,27 @@
                   "title": "Try it",
                   "content": [
                     {
-                      "type": "Slider",
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-image-folder",
+                        "binding": "image_folder",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-brightness-adjust",
                         "binding": "brightness_adjust",
-                        "label": "Brightness",
-                        "min": 0.5,
-                        "max": 1.5,
-                        "step": 0.05,
                         "events": []
                       }
                     },
                     {
-                      "type": "Slider",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-color-boost",
                         "binding": "color_boost",
-                        "label": "Color boost",
-                        "min": 0.5,
-                        "max": 2,
-                        "step": 0.05,
                         "events": []
-                      }
-                    },
-                    {
-                      "type": "Text",
-                      "props": {
-                        "id": "note-media",
-                        "text": "📁 Points at the bundled sample folder — choose your own in NodeTool Studio."
                       }
                     },
                     {

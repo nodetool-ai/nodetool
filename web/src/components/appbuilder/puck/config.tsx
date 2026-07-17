@@ -2,7 +2,7 @@
 import React from "react";
 import type { Config, ArrayField } from "@puckeditor/core";
 
-import { Box, Text, FlexColumn, SPACING } from "../../ui_primitives";
+import { Box, Text, FlexColumn, SPACING, SPACING_PX } from "../../ui_primitives";
 import { bindingField, variableField } from "./fields";
 import {
   HeadingWidget,
@@ -38,16 +38,33 @@ const ACTION_OPTIONS = [
   { label: "Toggle variable", value: "toggleState" }
 ];
 
+const PACE_OPTIONS = [
+  { label: "Live", value: "live" },
+  { label: "On release", value: "release" },
+  { label: "Debounced", value: "debounce" }
+];
+
 /** Array field describing a widget's events (each item dispatches an action). */
 const eventsField = (trigger: "click" | "change"): ArrayField => ({
   type: "array",
   label: trigger === "click" ? "On click" : "On change",
   arrayFields: {
     kind: { type: "select", label: "Action", options: ACTION_OPTIONS },
+    // Pacing throttles a run on continuous change (slider drag, typing); it has
+    // no meaning for a one-shot click, so it only appears on change events.
+    ...(trigger === "change"
+      ? { pace: { type: "select" as const, label: "Pacing", options: PACE_OPTIONS } }
+      : {}),
     key: variableField("State variable"),
     value: { type: "text", label: "Value" }
   },
-  defaultItemProps: { trigger, kind: "run", key: "", value: "" },
+  defaultItemProps: {
+    trigger,
+    kind: "run",
+    key: "",
+    value: "",
+    ...(trigger === "change" ? { pace: "live" } : {})
+  },
   getItemSummary: (item: Record<string, unknown>) => String(item.kind ?? "action")
 });
 
@@ -98,7 +115,23 @@ export const appConfig: Config = {
           containerType: "inline-size"
         }}
       >
-        <FlexColumn gap={SPACING.xxl} sx={{ width: "100%" }}>
+        <FlexColumn
+          gap={SPACING.xxl}
+          sx={{
+            width: "100%",
+            // The root zone renders as a single direct div in both the editor
+            // (Puck's DropZone) and the runtime (a plain wrapper div); style
+            // its children as a gapped flex column so top-level widgets get
+            // the same vertical rhythm as slot contents (see slotStack in
+            // widgets.tsx) in both surfaces.
+            "& > div": {
+              display: "flex",
+              flexDirection: "column",
+              gap: `${SPACING_PX.xxl}px`,
+              width: "100%"
+            }
+          }}
+        >
           {title ? (
             <Text size="bigger" weight={600}>
               {title}

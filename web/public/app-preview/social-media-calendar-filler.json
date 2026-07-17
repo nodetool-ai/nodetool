@@ -13,14 +13,6 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "📅 Social Media Calendar Filler",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
             "id": "t-tagline",
@@ -40,58 +32,42 @@
                   "title": "Try it",
                   "content": [
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-brand-name",
                         "binding": "brand_name",
-                        "label": "Brand name",
-                        "placeholder": "TechStartup Pro",
-                        "multiline": false,
                         "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-monthly-theme",
                         "binding": "monthly_theme",
-                        "label": "This month's theme",
-                        "placeholder": "AI productivity tools and workflow automation",
-                        "multiline": true,
                         "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-target-audience",
                         "binding": "target_audience",
-                        "label": "Audience",
-                        "placeholder": "Tech professionals, entrepreneurs, and startup founders aged 25-45",
-                        "multiline": true,
                         "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-brand-voice",
                         "binding": "brand_voice",
-                        "label": "Brand voice",
-                        "placeholder": "Professional yet approachable, educational, inspiring, data-driven",
-                        "multiline": true,
                         "events": []
                       }
                     },
                     {
-                      "type": "Slider",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-posts-per-week",
                         "binding": "posts_per_week",
-                        "label": "Posts per week",
-                        "min": 1,
-                        "max": 7,
-                        "step": 1,
                         "events": []
                       }
                     },

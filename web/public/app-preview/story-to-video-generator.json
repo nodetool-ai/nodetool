@@ -13,14 +13,6 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "🚀 Story to Video Generator",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
             "id": "t-tagline",
@@ -28,55 +20,63 @@
           }
         },
         {
-          "type": "Container",
+          "type": "Columns",
           "props": {
-            "id": "panel-try",
-            "title": "Try it",
-            "content": [
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
               {
-                "type": "TextInput",
+                "type": "Container",
                 "props": {
-                  "id": "in-story-theme",
-                  "binding": "story_theme",
-                  "label": "Your story idea",
-                  "placeholder": "A lone astronaut discovering an ancient alien civilization on Mars",
-                  "multiline": true,
-                  "events": []
-                }
-              },
-              {
-                "type": "Button",
-                "props": {
-                  "id": "btn-run",
-                  "label": "Generate my video",
-                  "variant": "contained",
-                  "color": "primary",
-                  "events": [
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
                     {
-                      "trigger": "click",
-                      "kind": "run",
-                      "key": "",
-                      "value": ""
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-story-theme",
+                        "binding": "story_theme",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Generate my video",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
                     }
                   ]
                 }
               }
-            ]
-          }
-        },
-        {
-          "type": "Container",
-          "props": {
-            "id": "panel-results",
-            "title": "Results",
-            "content": [
+            ],
+            "right": [
               {
-                "type": "Video",
+                "type": "Container",
                 "props": {
-                  "id": "out-video",
-                  "binding": "video",
-                  "height": 320,
-                  "placeholder": "Your video appears here"
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-video",
+                        "binding": "video",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    }
+                  ]
                 }
               }
             ]

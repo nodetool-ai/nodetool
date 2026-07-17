@@ -413,6 +413,7 @@ export const TextInputWidget: React.FC<WidgetCommon & {
         setValue(e.target.value);
         emit("change");
       }}
+      onBlur={() => emit("change", "commit")}
     />
   );
 };
@@ -440,6 +441,7 @@ export const NumberInputWidget: React.FC<WidgetCommon & {
         setValue(e.target.value === "" ? null : Number(e.target.value));
         emit("change");
       }}
+      onBlur={() => emit("change", "commit")}
     />
   );
 };
@@ -466,6 +468,10 @@ export const SliderWidget: React.FC<WidgetCommon & {
         onChange={(_, v) => {
           setValue(Array.isArray(v) ? v[0] : v);
           emit("change");
+        }}
+        onChangeCommitted={(_, v) => {
+          setValue(Array.isArray(v) ? v[0] : v);
+          emit("change", "commit");
         }}
       />
     </FlexColumn>

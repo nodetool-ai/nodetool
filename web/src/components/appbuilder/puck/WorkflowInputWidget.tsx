@@ -17,12 +17,12 @@ import React, { useContext, useEffect, useMemo, useState } from "react";
 import {
   Caption,
   FlexColumn,
+  TextInput,
   BORDER_RADIUS,
   SPACING
 } from "../../ui_primitives";
 import { getComponentForProperty } from "../../node/PropertyInput.resolver";
 import PropertyLabel from "../../node/PropertyLabel";
-import { NodeTextField } from "../../editor_ui";
 import LanguageModelSelect from "../../properties/LanguageModelSelect";
 import ImageModelSelect from "../../properties/ImageModelSelect";
 import VideoModelSelect from "../../properties/VideoModelSelect";
@@ -85,35 +85,25 @@ const ModelSelect: React.FC<{
   }
 };
 
-export const WorkflowInputWidget: React.FC<WorkflowInputWidgetProps> = (
-  props
-) => {
-  const { io } = useAppRuntimeContext();
-  const { value, setValue, emit } = useWidgetRuntime({
-    id: props.id,
-    bindingMode: "write",
-    binding: props.binding,
-    events: props.events
-  });
+/**
+ * The shared control core: renders the right editor for a WorkflowInputIO and
+ * pushes normalized values out. Used by WorkflowInputWidget (input resolved
+ * from the workflow) and the fixed-kind palette widgets (input synthesized
+ * from widget props).
+ */
+const InputControl: React.FC<{
+  input: WorkflowInputIO;
+  value: unknown;
+  onValue: (value: unknown) => void;
+}> = ({ input, value, onValue }) => {
   const nodeStore = useContext(NodeContext);
-
-  const input = useMemo(
-    () => io.inputs.find((i) => i.name === props.binding),
-    [io.inputs, props.binding]
-  );
-  const property = useMemo(
-    () => (input ? createPropertyForInput(input) : null),
-    [input]
-  );
+  const property = useMemo(() => createPropertyForInput(input), [input]);
   const Component = useMemo(
     () =>
-      input &&
-      property &&
-      input.kind !== "string" &&
-      !MODEL_INPUT_KINDS.has(input.kind)
+      input.kind !== "string" && !MODEL_INPUT_KINDS.has(input.kind)
         ? getComponentForProperty(property)
         : null,
-    [input, property]
+    [input.kind, property]
   );
 
   // The visible string draft may exceed maxLength while typing; only the
@@ -121,23 +111,10 @@ export const WorkflowInputWidget: React.FC<WorkflowInputWidgetProps> = (
   const [stringDraft, setStringDraft] = useState<string | null>(null);
   useEffect(() => {
     setStringDraft(null);
-  }, [props.binding]);
-
-  if (!input || !property) {
-    return (
-      <Placeholder
-        text={
-          props.binding
-            ? `Unknown workflow input "${props.binding}"`
-            : "Bind to a workflow input"
-        }
-      />
-    );
-  }
+  }, [input.name]);
 
   const handleChange = (next: unknown) => {
-    setValue(normalizeInputValue(input, next));
-    emit("change");
+    onValue(normalizeInputValue(input, next));
   };
 
   const resolved = resolveInputValue(input, property, value);
@@ -155,12 +132,12 @@ export const WorkflowInputWidget: React.FC<WorkflowInputWidgetProps> = (
           description={property.description}
           id={inputId}
         />
-        <NodeTextField
+        <TextInput
           id={inputId}
           value={draft}
           multiline={multiline}
-          minRows={multiline ? 4 : 1}
-          maxRows={multiline ? 12 : 1}
+          minRows={multiline ? 4 : undefined}
+          maxRows={multiline ? 12 : undefined}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
             const raw = e.target.value ?? "";
             setStringDraft(raw);
@@ -214,5 +191,99 @@ export const WorkflowInputWidget: React.FC<WorkflowInputWidgetProps> = (
         <Caption color="secondary">{input.description}</Caption>
       ) : null}
     </FlexColumn>
+  );
+};
+
+export const WorkflowInputWidget: React.FC<WorkflowInputWidgetProps> = (
+  props
+) => {
+  const { io } = useAppRuntimeContext();
+  const { value, setValue, emit } = useWidgetRuntime({
+    id: props.id,
+    bindingMode: "write",
+    binding: props.binding,
+    events: props.events
+  });
+
+  const input = useMemo(
+    () => io.inputs.find((i) => i.name === props.binding),
+    [io.inputs, props.binding]
+  );
+
+  if (!input) {
+    return (
+      <Placeholder
+        text={
+          props.binding
+            ? `Unknown workflow input "${props.binding}"`
+            : "Bind to a workflow input"
+        }
+      />
+    );
+  }
+
+  return (
+    <InputControl
+      input={input}
+      value={value}
+      onValue={(next) => {
+        setValue(next);
+        emit("change");
+      }}
+    />
+  );
+};
+
+/** Kinds exposed as standalone palette widgets alongside the auto-resolving
+ * WorkflowInput — so an app authored from scratch can offer media pickers. */
+export type FixedInputKind = "image" | "audio" | "video" | "document" | "color";
+
+const FIXED_KIND_NODE_TYPE: Record<FixedInputKind, string> = {
+  image: "nodetool.input.ImageInput",
+  audio: "nodetool.input.AudioInput",
+  video: "nodetool.input.VideoInput",
+  document: "nodetool.input.DocumentInput",
+  color: "nodetool.input.ColorInput"
+};
+
+export interface FixedInputWidgetProps {
+  id: string;
+  binding?: string;
+  label?: string;
+  description?: string;
+  events?: AppEvent[];
+}
+
+export const FixedKindInputWidget: React.FC<
+  FixedInputWidgetProps & { kind: FixedInputKind }
+> = ({ kind, ...props }) => {
+  const { value, setValue, emit } = useWidgetRuntime({
+    id: props.id,
+    bindingMode: "write",
+    binding: props.binding,
+    events: props.events
+  });
+
+  const input = useMemo<WorkflowInputIO>(
+    () => ({
+      nodeId: props.id,
+      nodeType: FIXED_KIND_NODE_TYPE[kind],
+      name: props.binding || props.id,
+      label: props.label || props.binding || kind,
+      kind,
+      description: props.description
+    }),
+    [kind, props.binding, props.description, props.id, props.label]
+  );
+
+  return (
+    <InputControl
+      input={input}
+      value={value}
+      onValue={(next) => {
+        setValue(next);
+        emit("change");
+      }}
+    />
   );
 };

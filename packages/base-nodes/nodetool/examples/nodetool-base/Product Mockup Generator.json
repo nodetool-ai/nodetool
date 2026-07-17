@@ -630,14 +630,6 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "📦 Product Mockup Generator",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
             "id": "t-tagline",
@@ -657,55 +649,43 @@
                   "title": "Try it",
                   "content": [
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-product-image",
+                        "binding": "product_image",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-product-name",
                         "binding": "product_name",
-                        "label": "Product name",
-                        "placeholder": "Premium Wireless Headphones",
-                        "multiline": false,
                         "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-product-description",
                         "binding": "product_description",
-                        "label": "Describe the product",
-                        "placeholder": "Sleek, modern wireless headphones with noise cancellation. Matte black finish wi",
-                        "multiline": true,
                         "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-target-audience",
                         "binding": "target_audience",
-                        "label": "Who's it for?",
-                        "placeholder": "Tech-savvy professionals, music enthusiasts, remote workers",
-                        "multiline": true,
                         "events": []
                       }
                     },
                     {
-                      "type": "Slider",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-num-scenes",
                         "binding": "num_scenes",
-                        "label": "How many scenes?",
-                        "min": 2,
-                        "max": 12,
-                        "step": 1,
                         "events": []
-                      }
-                    },
-                    {
-                      "type": "Text",
-                      "props": {
-                        "id": "note-media",
-                        "text": "📷 Uses the bundled product photo — swap in yours in NodeTool Studio."
                       }
                     },
                     {

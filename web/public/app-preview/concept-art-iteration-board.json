@@ -8,98 +8,90 @@
     "data": {
       "root": {
         "props": {
-          "title": "Concept Art Board"
+          "title": "Concept Art Iteration Board"
         }
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-44",
-            "text": "🎨 Concept Art Board",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
-            "id": "t-45",
-            "text": "Generate concept art from a brief, style, and mood."
+            "id": "t-tagline",
+            "text": "Turn a creative brief, style, and mood into concept art variations"
           }
         },
         {
-          "type": "Container",
+          "type": "Columns",
           "props": {
-            "id": "c-50",
-            "title": "Brief",
-            "content": [
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
               {
-                "type": "TextInput",
+                "type": "Container",
                 "props": {
-                  "id": "in-46",
-                  "binding": "creative_brief",
-                  "label": "Creative Brief",
-                  "placeholder": "e.g. a floating desert city",
-                  "multiline": true,
-                  "events": []
-                }
-              },
-              {
-                "type": "TextInput",
-                "props": {
-                  "id": "in-47",
-                  "binding": "art_style",
-                  "label": "Art Style",
-                  "placeholder": "e.g. painterly, cinematic",
-                  "multiline": false,
-                  "events": []
-                }
-              },
-              {
-                "type": "TextInput",
-                "props": {
-                  "id": "in-48",
-                  "binding": "mood_keywords",
-                  "label": "Mood Keywords",
-                  "placeholder": "e.g. serene, golden hour",
-                  "multiline": false,
-                  "events": []
-                }
-              },
-              {
-                "type": "Button",
-                "props": {
-                  "id": "b-49",
-                  "label": "Generate Concept Art",
-                  "variant": "contained",
-                  "color": "primary",
-                  "events": [
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
                     {
-                      "trigger": "click",
-                      "kind": "run",
-                      "key": "",
-                      "value": ""
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-creative-brief",
+                        "binding": "creative_brief",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-art-style",
+                        "binding": "art_style",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-mood-keywords",
+                        "binding": "mood_keywords",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Run",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
                     }
                   ]
                 }
               }
-            ]
-          }
-        },
-        {
-          "type": "Container",
-          "props": {
-            "id": "c-52",
-            "title": "Concept Art",
-            "content": [
+            ],
+            "right": [
               {
-                "type": "Image",
+                "type": "Container",
                 "props": {
-                  "id": "img-51",
-                  "binding": "Concept Art",
-                  "fit": "contain",
-                  "height": 520,
-                  "placeholder": "Your concept art will appear here"
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-concept-art",
+                        "binding": "Concept Art",
+                        "text": ""
+                      }
+                    }
+                  ]
                 }
               }
             ]

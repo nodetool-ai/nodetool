@@ -1,14 +1,30 @@
 /** @jsxImportSource @emotion/react */
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import type { CustomField } from "@puckeditor/core";
+import { useGetPuck } from "@puckeditor/core";
 
-import { SelectField, Caption, FlexColumn } from "../../ui_primitives";
+import {
+  SelectField,
+  Caption,
+  FlexColumn,
+  Autocomplete
+} from "../../ui_primitives";
+import type { AutocompleteOption } from "../../ui_primitives";
 import useMetadataStore from "../../../stores/MetadataStore";
+import type { Property } from "../../../stores/ApiTypes";
 import {
   makeNodePropertyBinding,
   parseNodePropertyBinding
 } from "../nodeBinding";
+import {
+  computeAutofillProps,
+  NUMERIC_WIDGET_DEFAULTS,
+  type AutofillableProps,
+  type NumericBindingTarget
+} from "../bindingAutofill";
+import { getSlotFields, updateComponentProps } from "./puckDataOps";
 import { useBuilderWorkflow } from "./BuilderWorkflowContext";
+import type { WorkflowInputIO } from "../workflowIO";
 
 type Option = { label: string; value: string };
 const NONE: Option = { label: "— none —", value: "" };
@@ -90,16 +106,52 @@ const ReadBindingPicker: React.FC<{
   );
 };
 
-/** Sentinel option that switches the write picker to node-property mode. */
-const NODE_PROPERTY_SOURCE = "__node_property__";
-
 const typeTail = (nodeType: string): string =>
   nodeType.split(".").pop() ?? nodeType;
 
+/** The numeric constraints a Slider/NumberInput can inherit from a property. */
+const numericTargetFromProperty = (
+  prop: Property
+): NumericBindingTarget | undefined => {
+  const t = prop.type?.type;
+  const isInt = t === "int";
+  const isFloat = t === "float";
+  if (!isInt && !isFloat) return undefined;
+  return {
+    min: typeof prop.min === "number" ? prop.min : undefined,
+    max: typeof prop.max === "number" ? prop.max : undefined,
+    isInt,
+    label: prop.title || prop.name
+  };
+};
+
+/** The same, for a workflow input node. */
+const numericTargetFromInput = (
+  input: WorkflowInputIO
+): NumericBindingTarget | undefined => {
+  const isInt = input.kind === "integer";
+  const isFloat = input.kind === "float";
+  if (!isInt && !isFloat) return undefined;
+  return { min: input.min, max: input.max, isInt, label: input.label };
+};
+
+/** One searchable entry: workflow input or node property. */
+interface BindingOption extends AutocompleteOption {
+  /** Group header (search still matches this via the full label). */
+  group: string;
+  /** Property/input name shown in the dropdown row (group carries the node). */
+  rowLabel: string;
+  /** Numeric constraints to autofill into the widget, when applicable. */
+  target?: NumericBindingTarget;
+}
+
+const INPUTS_GROUP = "Inputs";
+
 /**
- * Write picker: bind to a workflow input, or drill into any node → property.
- * A node-property binding is stored as `node:<nodeId>#<property>`; while the
- * node/property pair is incomplete the binding is cleared, not half-written.
+ * Write picker: a searchable field over workflow inputs and every node
+ * property, grouped by node. Inputs bind by name; node properties bind as
+ * `node:<nodeId>#<property>`. Binding a numeric target into a Slider/NumberInput
+ * also autofills its min/max/step/label (see {@link computeAutofillProps}).
  */
 const WriteBindingPicker: React.FC<{
   label: string;
@@ -109,126 +161,138 @@ const WriteBindingPicker: React.FC<{
 }> = ({ label, value, readOnly, onChange }) => {
   const { inputs, nodes } = useBuilderWorkflow();
   const getMetadata = useMetadataStore((s) => s.getMetadata);
+  const getPuck = useGetPuck();
 
-  const parsed = parseNodePropertyBinding(value);
-  const [nodeSource, setNodeSource] = useState(parsed !== null);
-  const [nodeId, setNodeId] = useState(parsed?.nodeId ?? "");
+  const options = useMemo<BindingOption[]>(() => {
+    const inputOptions: BindingOption[] = inputs.map((input) => ({
+      label: `input · ${input.label}`,
+      value: input.name,
+      group: INPUTS_GROUP,
+      rowLabel: input.label,
+      target: numericTargetFromInput(input)
+    }));
 
-  // Track external value changes (undo, agent edits) without fighting the
-  // intentionally-empty value while the node/property pair is being picked.
-  useEffect(() => {
-    const p = parseNodePropertyBinding(value);
-    if (p) {
-      setNodeSource(true);
-      setNodeId(p.nodeId);
-    } else if (value) {
-      setNodeSource(false);
-      setNodeId("");
-    }
-  }, [value]);
-
-  // Nodes that expose at least one property, labeled by custom title or
-  // metadata title, disambiguated with a short id when titles collide.
-  const nodeOptions: Option[] = useMemo(() => {
-    const candidates = nodes
+    // Node title with the same collision-disambiguation as before: a short id
+    // suffix only when two nodes share a title.
+    const titled = nodes
       .map((node) => {
         const meta = getMetadata(node.type);
         if (!meta || meta.properties.length === 0) return null;
         return {
-          value: node.id,
+          node,
+          meta,
           title: node.title || meta.title || typeTail(node.type)
         };
       })
-      .filter((o): o is { value: string; title: string } => o !== null);
+      .filter(
+        (n): n is NonNullable<typeof n> => n !== null
+      );
     const titleCounts = new Map<string, number>();
-    for (const c of candidates) {
-      titleCounts.set(c.title, (titleCounts.get(c.title) ?? 0) + 1);
+    for (const n of titled) {
+      titleCounts.set(n.title, (titleCounts.get(n.title) ?? 0) + 1);
     }
-    return candidates.map((c) => ({
-      value: c.value,
-      label:
-        (titleCounts.get(c.title) ?? 0) > 1
-          ? `${c.title} · ${c.value.slice(0, 6)}`
-          : c.title
-    }));
-  }, [nodes, getMetadata]);
 
-  const selectedNode = nodes.find((n) => n.id === nodeId);
-  const nodeMeta = selectedNode ? getMetadata(selectedNode.type) : undefined;
-  const propertyOptions: Option[] = (nodeMeta?.properties ?? []).map((p) => ({
-    label: p.title || p.name,
-    value: p.name
-  }));
-  const selectedProperty =
-    parsed && parsed.nodeId === nodeId ? parsed.property : "";
-  const propertyMeta = nodeMeta?.properties.find(
-    (p) => p.name === selectedProperty
-  );
+    const nodeOptions: BindingOption[] = [];
+    for (const { node, meta, title } of titled) {
+      const group =
+        (titleCounts.get(title) ?? 0) > 1
+          ? `${title} · ${node.id.slice(0, 6)}`
+          : title;
+      for (const prop of meta.properties) {
+        const rowLabel = prop.title || prop.name;
+        nodeOptions.push({
+          label: `${group} · ${rowLabel}`,
+          value: makeNodePropertyBinding(node.id, prop.name),
+          group,
+          rowLabel,
+          target: numericTargetFromProperty(prop)
+        });
+      }
+    }
 
-  const sourceOptions: Option[] = [
-    ...inputs.map((i) => ({ label: `input · ${i.label}`, value: i.name })),
-    ...(nodeOptions.length > 0
-      ? [{ label: "Node property…", value: NODE_PROPERTY_SOURCE }]
-      : [])
-  ];
+    return [...inputOptions, ...nodeOptions];
+  }, [inputs, nodes, getMetadata]);
 
-  const handleSourceChange = (next: string) => {
-    if (next === NODE_PROPERTY_SOURCE) {
-      setNodeSource(true);
-      if (value) onChange("");
+  const { selectedOption, resolvedOptions } = useMemo(() => {
+    const found = options.find((o) => o.value === value) ?? null;
+    if (!value || found) {
+      return { selectedOption: found, resolvedOptions: options };
+    }
+    // Stale binding (target node/input removed): keep it legible and selectable.
+    const parsed = parseNodePropertyBinding(value);
+    const label = parsed
+      ? `${parsed.nodeId.slice(0, 6)} · ${parsed.property}`
+      : `input · ${value}`;
+    const orphan: BindingOption = {
+      label,
+      value,
+      group: "Unavailable",
+      rowLabel: label
+    };
+    return {
+      selectedOption: orphan,
+      resolvedOptions: [orphan, ...options]
+    };
+  }, [options, value]);
+
+  const applyBinding = (option: BindingOption | null) => {
+    const nextBinding = option?.value ?? "";
+    const store = getPuck();
+    const selected = store.selectedItem;
+    const defaults = selected?.type
+      ? NUMERIC_WIDGET_DEFAULTS[selected.type]
+      : undefined;
+    const autofill =
+      option?.target && defaults && selected
+        ? computeAutofillProps(
+            option.target,
+            selected.props as AutofillableProps,
+            defaults
+          )
+        : {};
+
+    if (!selected || Object.keys(autofill).length === 0) {
+      onChange(nextBinding);
       return;
     }
-    setNodeSource(false);
-    setNodeId("");
-    onChange(next);
+    // Set the binding and the inherited numeric props in one atomic edit.
+    const slotFields = getSlotFields(store.config);
+    const { data } = updateComponentProps(
+      store.appState.data,
+      slotFields,
+      selected.props.id as string,
+      { ...autofill, binding: nextBinding }
+    );
+    store.dispatch({ type: "setData", data });
   };
+
+  const hasOptions = options.length > 0;
 
   return (
     <FlexColumn gap={0.5}>
-      <SelectField
+      <Autocomplete<BindingOption>
         label={label}
-        value={nodeSource ? NODE_PROPERTY_SOURCE : value}
-        options={[NONE, ...sourceOptions]}
-        disabled={readOnly || sourceOptions.length === 0}
-        onChange={handleSourceChange}
+        placeholder="Search inputs and node properties…"
+        options={resolvedOptions}
+        value={selectedOption}
+        disabled={readOnly || !hasOptions}
+        groupBy={(o) => o.group}
+        getOptionLabel={(o) => o.label}
+        isOptionEqualToValue={(a, b) => a.value === b.value}
+        renderOption={(props, option) => {
+          const { key, ...liProps } = props;
+          return (
+            <li key={key} {...liProps}>
+              {option.rowLabel}
+            </li>
+          );
+        }}
+        onChange={(_event, option) => applyBinding(option)}
       />
-      {sourceOptions.length === 0 && (
+      {!hasOptions && (
         <Caption color="secondary">
-          Add an Input node — or any node with properties — to bind this
-          control.
+          Add an Input node — or any node with properties — to bind this control.
         </Caption>
-      )}
-      {nodeSource && (
-        <>
-          <SelectField
-            label="Node"
-            value={nodeId}
-            options={[NONE, ...nodeOptions]}
-            disabled={readOnly}
-            onChange={(next) => {
-              setNodeId(next);
-              if (value) onChange("");
-            }}
-          />
-          <SelectField
-            label="Property"
-            value={selectedProperty}
-            options={[NONE, ...propertyOptions]}
-            disabled={readOnly || !nodeId}
-            onChange={(next) =>
-              onChange(next ? makeNodePropertyBinding(nodeId, next) : "")
-            }
-          />
-          {propertyMeta && (
-            <Caption color="secondary">
-              {propertyMeta.type.type}
-              {propertyMeta.default !== undefined &&
-              propertyMeta.default !== null
-                ? ` · default ${String(propertyMeta.default)}`
-                : ""}
-            </Caption>
-          )}
-        </>
       )}
     </FlexColumn>
   );

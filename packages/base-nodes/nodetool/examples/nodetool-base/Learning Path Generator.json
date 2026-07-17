@@ -302,69 +302,69 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-41",
-            "text": "🎓 Learning Path Generator",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
-            "id": "t-42",
-            "text": "Enter a topic and get a structured learning path."
+            "id": "t-tagline",
+            "text": "Create a comprehensive learning path for a topic."
           }
         },
         {
-          "type": "Container",
+          "type": "Columns",
           "props": {
-            "id": "c-45",
-            "title": "Topic",
-            "content": [
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
               {
-                "type": "TextInput",
+                "type": "Container",
                 "props": {
-                  "id": "in-43",
-                  "binding": "topic",
-                  "label": "Topic",
-                  "placeholder": "e.g. Machine Learning",
-                  "multiline": false,
-                  "events": []
-                }
-              },
-              {
-                "type": "Button",
-                "props": {
-                  "id": "b-44",
-                  "label": "Generate Learning Path",
-                  "variant": "contained",
-                  "color": "primary",
-                  "events": [
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
                     {
-                      "trigger": "click",
-                      "kind": "run",
-                      "key": "",
-                      "value": ""
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-topic",
+                        "binding": "topic",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Run",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
                     }
                   ]
                 }
               }
-            ]
-          }
-        },
-        {
-          "type": "Container",
-          "props": {
-            "id": "c-47",
-            "title": "Learning Path",
-            "content": [
+            ],
+            "right": [
               {
-                "type": "Markdown",
+                "type": "Container",
                 "props": {
-                  "id": "md-46",
-                  "binding": "Learning Path",
-                  "text": ""
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-learning-path",
+                        "binding": "Learning Path",
+                        "text": ""
+                      }
+                    }
+                  ]
                 }
               }
             ]

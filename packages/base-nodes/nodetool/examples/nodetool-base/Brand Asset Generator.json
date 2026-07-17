@@ -421,14 +421,6 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "🎨 Brand Asset Generator",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
             "id": "t-tagline",
@@ -448,46 +440,34 @@
                   "title": "Try it",
                   "content": [
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-tagline",
                         "binding": "tagline",
-                        "label": "Tagline",
-                        "placeholder": "Streamline Your Workflow",
-                        "multiline": false,
                         "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-brand-name",
                         "binding": "brand_name",
-                        "label": "Brand name",
-                        "placeholder": "TechFlow",
-                        "multiline": false,
                         "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-primary-color",
                         "binding": "primary_color",
-                        "label": "Primary color (hex)",
-                        "placeholder": "#3498db",
-                        "multiline": false,
                         "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-brand-description",
                         "binding": "brand_description",
-                        "label": "Describe your brand",
-                        "placeholder": "A modern tech startup focused on productivity tools. Clean, minimal aesthetic wi",
-                        "multiline": true,
                         "events": []
                       }
                     },

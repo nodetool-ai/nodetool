@@ -13,14 +13,6 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "🎧 Summarize Audio",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
             "id": "t-tagline",
@@ -28,50 +20,62 @@
           }
         },
         {
-          "type": "Container",
+          "type": "Columns",
           "props": {
-            "id": "panel-try",
-            "title": "Try it",
-            "content": [
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
               {
-                "type": "Text",
+                "type": "Container",
                 "props": {
-                  "id": "note-media",
-                  "text": "🎧 Uses the bundled recording — upload any audio in NodeTool Studio."
-                }
-              },
-              {
-                "type": "Button",
-                "props": {
-                  "id": "btn-run",
-                  "label": "Summarize it",
-                  "variant": "contained",
-                  "color": "primary",
-                  "events": [
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
                     {
-                      "trigger": "click",
-                      "kind": "run",
-                      "key": "",
-                      "value": ""
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-audio",
+                        "binding": "audio",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Summarize it",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
                     }
                   ]
                 }
               }
-            ]
-          }
-        },
-        {
-          "type": "Container",
-          "props": {
-            "id": "panel-results",
-            "title": "Results",
-            "content": [
+            ],
+            "right": [
               {
-                "type": "Markdown",
+                "type": "Container",
                 "props": {
-                  "id": "out-summary",
-                  "binding": "summary",
-                  "text": ""
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-summary",
+                        "binding": "summary",
+                        "text": ""
+                      }
+                    }
+                  ]
                 }
               }
             ]

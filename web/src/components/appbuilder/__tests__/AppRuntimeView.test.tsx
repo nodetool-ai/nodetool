@@ -1,5 +1,6 @@
 import React from "react";
 import { act, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import type { Data } from "@puckeditor/core";
 
@@ -7,6 +8,7 @@ import mockTheme from "../../../__mocks__/themeMock";
 import AppRuntimeView from "../AppRuntimeView";
 import { Workflow } from "../../../stores/ApiTypes";
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
+import { getAppRuntimeStore } from "../runtime/appRuntimeStore";
 
 const workflow = {
   id: "wf-puck-runtime",
@@ -63,6 +65,21 @@ describe("AppRuntimeView (Puck Render)", () => {
 
     await waitFor(() =>
       expect(screen.getByText("Hello from the graph")).toBeInTheDocument()
+    );
+  });
+
+  it("surfaces a run error as a dismissible banner", async () => {
+    act(() => {
+      getAppRuntimeStore(workflow.id).getState().setError("Boom: model failed");
+    });
+    renderView();
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("Boom: model failed");
+
+    await userEvent.click(screen.getByRole("button", { name: /close/i }));
+    await waitFor(() =>
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument()
     );
   });
 });

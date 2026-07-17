@@ -539,14 +539,6 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "🎵 Music Video Visualizer",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
             "id": "t-tagline",
@@ -566,43 +558,35 @@
                   "title": "Try it",
                   "content": [
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-audio-track",
+                        "binding": "audio_track",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-genre-hint",
                         "binding": "genre_hint",
-                        "label": "Genre",
-                        "placeholder": "electronic ambient",
-                        "multiline": false,
                         "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-visual-style",
                         "binding": "visual_style",
-                        "label": "Visual style",
-                        "placeholder": "abstract geometric patterns, neon colors, flowing energy",
-                        "multiline": true,
                         "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-num-frames",
                         "binding": "num_frames",
-                        "label": "Number of scenes",
-                        "placeholder": "8",
-                        "multiline": false,
                         "events": []
-                      }
-                    },
-                    {
-                      "type": "Text",
-                      "props": {
-                        "id": "note-media",
-                        "text": "🎧 Uses the bundled track — drop in your own audio in NodeTool Studio."
                       }
                     },
                     {

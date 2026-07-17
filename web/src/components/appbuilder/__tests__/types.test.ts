@@ -63,6 +63,18 @@ describe("eventToAction", () => {
     expect((action as { from?: string }).from).toBeUndefined();
   });
 
+  it("ignores pace — it is timing metadata, not part of the action", () => {
+    const event: AppEvent = {
+      trigger: "change",
+      kind: "run",
+      pace: "debounce"
+    };
+    expect(eventToAction(event, "prompt")).toEqual({
+      kind: "run",
+      from: "prompt"
+    });
+  });
+
   it("falls through to run for unknown kind", () => {
     const event = { trigger: "click", kind: "unknown" } as unknown as AppEvent;
     const action = eventToAction(event, "input1");

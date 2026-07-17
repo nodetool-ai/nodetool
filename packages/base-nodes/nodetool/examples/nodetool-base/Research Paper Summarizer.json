@@ -312,69 +312,69 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-34",
-            "text": "📄 Research Paper Summarizer",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
-            "id": "t-35",
-            "text": "Paste a paper or abstract and extract the key findings."
+            "id": "t-tagline",
+            "text": "Extract and summarize key findings from research papers and technical documents."
           }
         },
         {
-          "type": "Container",
+          "type": "Columns",
           "props": {
-            "id": "c-38",
-            "title": "Paper",
-            "content": [
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
               {
-                "type": "TextInput",
+                "type": "Container",
                 "props": {
-                  "id": "in-36",
-                  "binding": "paper",
-                  "label": "Paper Text",
-                  "placeholder": "Paste the abstract or full text…",
-                  "multiline": true,
-                  "events": []
-                }
-              },
-              {
-                "type": "Button",
-                "props": {
-                  "id": "b-37",
-                  "label": "Summarize",
-                  "variant": "contained",
-                  "color": "primary",
-                  "events": [
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
                     {
-                      "trigger": "click",
-                      "kind": "run",
-                      "key": "",
-                      "value": ""
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-paper",
+                        "binding": "paper",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Run",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
                     }
                   ]
                 }
               }
-            ]
-          }
-        },
-        {
-          "type": "Container",
-          "props": {
-            "id": "c-40",
-            "title": "Summary",
-            "content": [
+            ],
+            "right": [
               {
-                "type": "Markdown",
+                "type": "Container",
                 "props": {
-                  "id": "md-39",
-                  "binding": "Summary",
-                  "text": ""
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-summary",
+                        "binding": "Summary",
+                        "text": ""
+                      }
+                    }
+                  ]
                 }
               }
             ]

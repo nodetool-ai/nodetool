@@ -13,14 +13,6 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "📝 Meeting Transcript Summarizer",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
             "id": "t-tagline",
@@ -40,10 +32,11 @@
                   "title": "Try it",
                   "content": [
                     {
-                      "type": "Text",
+                      "type": "WorkflowInput",
                       "props": {
-                        "id": "note-media",
-                        "text": "🎧 Uses the bundled recording — upload your own in NodeTool Studio."
+                        "id": "in-recording",
+                        "binding": "Recording",
+                        "events": []
                       }
                     },
                     {

@@ -597,54 +597,16 @@ const humanize = (name) =>
     .replace(/\b\w/g, (c) => c.toUpperCase())
     .trim();
 
-function widgetForInput(node, curated) {
-  const type = node.type;
-  const data = node.data ?? {};
-  const name = data.name;
-  const c = curated?.inputs?.[name] ?? {};
-  const label = c.label ?? humanize(name);
-  const id = `in-${slugify(name)}`;
-
-  if (MEDIA_INPUT.test(type)) return null; // covered by the panel note
-
-  if (type === "nodetool.input.BooleanInput") {
-    return { type: "Switch", props: { id, binding: name, label, events: [] } };
-  }
-  if (type === "nodetool.input.SelectInput") {
-    const options = (data.options ?? []).map((o) => ({ value: String(o) }));
-    return { type: "Select", props: { id, binding: name, label, options, events: [] } };
-  }
-  if (
-    type === "nodetool.input.IntegerInput" ||
-    type === "nodetool.input.FloatInput"
-  ) {
-    const isFloat = type.endsWith("FloatInput");
-    if (typeof data.min === "number" && typeof data.max === "number") {
-      return {
-        type: "Slider",
-        props: {
-          id,
-          binding: name,
-          label,
-          min: data.min,
-          max: data.max,
-          step: isFloat ? 0.05 : 1,
-          events: []
-        }
-      };
-    }
-    return {
-      type: "NumberInput",
-      props: { id, binding: name, label, min: 0, max: 100, step: 1, events: [] }
-    };
-  }
-  // Everything string-ish (String/Text/Message/Color inputs).
-  const def = typeof data.value === "string" ? data.value : "";
-  const multiline = c.multiline ?? def.length > 60;
-  const placeholder = c.placeholder ?? (def ? def.slice(0, 80) : `Enter ${label.toLowerCase()}…`);
+// Every input renders as a WorkflowInput widget: the app runtime resolves the
+// right control (text/number/select/media picker/model select) from the
+// InputNode's type, so the doc carries only the binding. Media inputs render
+// real pickers seeded with the bundled asset — no more skip-with-note.
+function widgetForInput(node) {
+  const name = node.data?.name;
+  if (!name) return null;
   return {
-    type: "TextInput",
-    props: { id, binding: name, label, placeholder, multiline, events: [] }
+    type: "WorkflowInput",
+    props: { id: `in-${slugify(name)}`, binding: name, events: [] }
   };
 }
 
@@ -662,7 +624,6 @@ function widgetForOutput(name, spec) {
 function buildAppDoc(example, curated) {
   const name = example.name;
   const graph = example.graph;
-  const emoji = curated?.emoji ?? "⚡";
   const tagline = curated?.tagline ?? example.description?.split(/\.\s/)[0] ?? "";
   const button = curated?.button ?? "Run";
 
@@ -672,13 +633,10 @@ function buildAppDoc(example, curated) {
   );
 
   const inputWidgets = inputNodes
-    .map((n) => widgetForInput(n, curated))
+    .map((n) => widgetForInput(n))
     .filter(Boolean);
 
   const tryItems = [...inputWidgets];
-  if (curated?.note) {
-    tryItems.push({ type: "Text", props: { id: "note-media", text: curated.note } });
-  }
   tryItems.push({
     type: "Button",
     props: {
@@ -714,21 +672,20 @@ function buildAppDoc(example, curated) {
     props: { id: "panel-results", title: "Results", content: resultItems }
   };
 
-  const layout = curated?.layout ?? "columns";
-  const body =
-    layout === "columns"
-      ? [{ type: "Columns", props: { id: "cols-main", gap: 24, left: [tryPanel], right: [resultsPanel] } }]
-      : [tryPanel, resultsPanel];
+  const content = [];
+  if (tagline) {
+    content.push({ type: "Text", props: { id: "t-tagline", text: tagline } });
+  }
+  content.push({
+    type: "Columns",
+    props: { id: "cols-main", gap: 24, left: [tryPanel], right: [resultsPanel] }
+  });
 
   return {
     version: 2,
     data: {
       root: { props: { title: name } },
-      content: [
-        { type: "Heading", props: { id: "h-title", text: `${emoji} ${name}`, level: "1" } },
-        { type: "Text", props: { id: "t-tagline", text: tagline } },
-        ...body
-      ],
+      content,
       zones: {}
     }
   };
@@ -815,10 +772,8 @@ for (const file of fs.readdirSync(EXAMPLES).filter((f) => f.endsWith(".json")).s
 
   if (augmentOutputs(example)) augmented++;
 
-  if (!example.app_doc) {
-    example.app_doc = buildAppDoc(example, curated);
-    generated++;
-  }
+  example.app_doc = buildAppDoc(example, curated);
+  generated++;
 
   fs.writeFileSync(full, JSON.stringify(example, null, 2) + "\n", "utf8");
 

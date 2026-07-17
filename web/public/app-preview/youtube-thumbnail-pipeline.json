@@ -13,14 +13,6 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "🖼️ YouTube Thumbnail Pipeline",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
             "id": "t-tagline",
@@ -40,47 +32,34 @@
                   "title": "Try it",
                   "content": [
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-video-title",
                         "binding": "video_title",
-                        "label": "Video title",
-                        "placeholder": "10 AI Tools That Will Change How You Work in 2024",
-                        "multiline": false,
                         "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-video-topic",
                         "binding": "video_topic",
-                        "label": "What's the video about?",
-                        "placeholder": "A tech review video covering productivity AI tools including ChatGPT, Claude, an",
-                        "multiline": true,
                         "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-thumbnail-text",
                         "binding": "thumbnail_text",
-                        "label": "Text on the thumbnail",
-                        "placeholder": "AI TOOLS 2024",
-                        "multiline": false,
                         "events": []
                       }
                     },
                     {
-                      "type": "Slider",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-num-variations",
                         "binding": "num_variations",
-                        "label": "How many variations?",
-                        "min": 1,
-                        "max": 20,
-                        "step": 1,
                         "events": []
                       }
                     },

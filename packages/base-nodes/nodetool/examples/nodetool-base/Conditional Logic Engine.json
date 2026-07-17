@@ -517,70 +517,69 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-30",
-            "text": "🔀 Conditional Logic Engine",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
-            "id": "t-31",
-            "text": "Enter a value and see how the workflow routes it."
+            "id": "t-tagline",
+            "text": "Workflow that demonstrates multi-branch decision logic with value routing."
           }
         },
         {
-          "type": "Container",
+          "type": "Columns",
           "props": {
-            "id": "c-34",
-            "title": "Input",
-            "content": [
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
               {
-                "type": "NumberInput",
+                "type": "Container",
                 "props": {
-                  "id": "nin-32",
-                  "binding": "value",
-                  "label": "Value",
-                  "min": 0,
-                  "max": 100,
-                  "step": 1,
-                  "events": []
-                }
-              },
-              {
-                "type": "Button",
-                "props": {
-                  "id": "b-33",
-                  "label": "Run",
-                  "variant": "contained",
-                  "color": "primary",
-                  "events": [
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
                     {
-                      "trigger": "click",
-                      "kind": "run",
-                      "key": "",
-                      "value": ""
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-value",
+                        "binding": "value",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Run",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
                     }
                   ]
                 }
               }
-            ]
-          }
-        },
-        {
-          "type": "Container",
-          "props": {
-            "id": "c-36",
-            "title": "Result",
-            "content": [
+            ],
+            "right": [
               {
-                "type": "Markdown",
+                "type": "Container",
                 "props": {
-                  "id": "md-35",
-                  "binding": "Result",
-                  "text": ""
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-result",
+                        "binding": "Result",
+                        "text": ""
+                      }
+                    }
+                  ]
                 }
               }
             ]

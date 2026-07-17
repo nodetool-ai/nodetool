@@ -224,85 +224,82 @@
     "data": {
       "root": {
         "props": {
-          "title": "Wikipedia Research Agent"
+          "title": "Wikipedia Agent"
         }
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-62",
-            "text": "📚 Wikipedia Research Agent",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
-            "id": "t-63",
-            "text": "Point the agent at a seed article and a topic to research."
+            "id": "t-tagline",
+            "text": "Wikipedia style research and documentation agent."
           }
         },
         {
-          "type": "Container",
+          "type": "Columns",
           "props": {
-            "id": "c-67",
-            "title": "Inputs",
-            "content": [
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
               {
-                "type": "TextInput",
+                "type": "Container",
                 "props": {
-                  "id": "in-64",
-                  "binding": "seed_url",
-                  "label": "Seed URL",
-                  "placeholder": "https://en.wikipedia.org/wiki/…",
-                  "multiline": false,
-                  "events": []
-                }
-              },
-              {
-                "type": "TextInput",
-                "props": {
-                  "id": "in-65",
-                  "binding": "topic_label",
-                  "label": "Topic",
-                  "placeholder": "e.g. history of computing",
-                  "multiline": false,
-                  "events": []
-                }
-              },
-              {
-                "type": "Button",
-                "props": {
-                  "id": "b-66",
-                  "label": "Research",
-                  "variant": "contained",
-                  "color": "primary",
-                  "events": [
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
                     {
-                      "trigger": "click",
-                      "kind": "run",
-                      "key": "",
-                      "value": ""
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-seed-url",
+                        "binding": "seed_url",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-topic-label",
+                        "binding": "topic_label",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Run",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
                     }
                   ]
                 }
               }
-            ]
-          }
-        },
-        {
-          "type": "Container",
-          "props": {
-            "id": "c-69",
-            "title": "Findings",
-            "content": [
+            ],
+            "right": [
               {
-                "type": "Markdown",
+                "type": "Container",
                 "props": {
-                  "id": "md-68",
-                  "binding": "Findings",
-                  "text": ""
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-findings",
+                        "binding": "Findings",
+                        "text": ""
+                      }
+                    }
+                  ]
                 }
               }
             ]

@@ -7,10 +7,16 @@ import { bindingField, variableField } from "../puck/fields";
 import { BuilderWorkflowProvider } from "../puck/BuilderWorkflowContext";
 import { WorkflowState } from "../workflowState";
 
-const renderField = (
-  element: React.ReactElement,
-  state: WorkflowState
-) =>
+jest.mock("@puckeditor/core", () => ({
+  useGetPuck: () => () => ({
+    selectedItem: null,
+    appState: { data: { content: [], root: {} } },
+    config: { components: {} },
+    dispatch: () => {}
+  })
+}));
+
+const renderField = (element: React.ReactElement, state: WorkflowState) =>
   render(
     <ThemeProvider theme={mockTheme}>
       <BuilderWorkflowProvider value={state}>{element}</BuilderWorkflowProvider>
@@ -43,7 +49,7 @@ describe("binding fields", () => {
     ).toBeInTheDocument();
   });
 
-  it("write binding offers existing input nodes (no hint)", () => {
+  it("write binding offers a searchable field (no hint) once inputs exist", () => {
     const field = bindingField("write");
     renderField(field.render(fieldProps), {
       inputs: [
@@ -59,9 +65,10 @@ describe("binding fields", () => {
       variables: [],
       nodes: []
     });
+    expect(screen.queryByText(/Add an Input node/i)).not.toBeInTheDocument();
     expect(
-      screen.queryByText(/Add an Input node/i)
-    ).not.toBeInTheDocument();
+      screen.getByPlaceholderText(/Search inputs and node properties/i)
+    ).toBeInTheDocument();
   });
 
   it("variable field prompts to add a Set Variable node when there are none", () => {

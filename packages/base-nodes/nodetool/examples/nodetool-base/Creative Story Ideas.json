@@ -228,80 +228,77 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-17",
-            "text": "✨ Creative Story Ideas",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
-            "id": "t-18",
-            "text": "Generate creative story ideas from a genre and character type."
+            "id": "t-tagline",
+            "text": "A beginner-friendly template demonstrating core NodeTool concepts: inputs, templates, LLM agents, streaming, and outputs"
           }
         },
         {
-          "type": "Container",
+          "type": "Columns",
           "props": {
-            "id": "c-22",
-            "title": "Inputs",
-            "content": [
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
               {
-                "type": "TextInput",
+                "type": "Container",
                 "props": {
-                  "id": "in-19",
-                  "binding": "Genre",
-                  "label": "Genre",
-                  "placeholder": "e.g. Fantasy",
-                  "multiline": false,
-                  "events": []
-                }
-              },
-              {
-                "type": "TextInput",
-                "props": {
-                  "id": "in-20",
-                  "binding": "Character Type",
-                  "label": "Main Character Type",
-                  "placeholder": "e.g. Reluctant Hero",
-                  "multiline": false,
-                  "events": []
-                }
-              },
-              {
-                "type": "Button",
-                "props": {
-                  "id": "b-21",
-                  "label": "Generate Story Ideas",
-                  "variant": "contained",
-                  "color": "primary",
-                  "events": [
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
                     {
-                      "trigger": "click",
-                      "kind": "run",
-                      "key": "",
-                      "value": ""
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-genre",
+                        "binding": "Genre",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-character-type",
+                        "binding": "Character Type",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Run",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
                     }
                   ]
                 }
               }
-            ]
-          }
-        },
-        {
-          "type": "Container",
-          "props": {
-            "id": "c-24",
-            "title": "Generated Ideas",
-            "content": [
+            ],
+            "right": [
               {
-                "type": "Markdown",
+                "type": "Container",
                 "props": {
-                  "id": "md-23",
-                  "binding": "Ideas",
-                  "text": ""
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-ideas",
+                        "binding": "Ideas",
+                        "text": ""
+                      }
+                    }
+                  ]
                 }
               }
             ]

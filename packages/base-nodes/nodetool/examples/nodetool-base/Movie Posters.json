@@ -660,98 +660,90 @@
     "data": {
       "root": {
         "props": {
-          "title": "Movie Poster Studio"
+          "title": "Movie Posters"
         }
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-1",
-            "text": "🎬 Movie Poster Studio",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
-            "id": "t-2",
-            "text": "Describe your film and generate a cinematic poster."
+            "id": "t-tagline",
+            "text": "Create cinematic movie posters using AI image generation"
           }
         },
         {
-          "type": "Container",
+          "type": "Columns",
           "props": {
-            "id": "c-7",
-            "title": "Details",
-            "content": [
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
               {
-                "type": "TextInput",
+                "type": "Container",
                 "props": {
-                  "id": "in-3",
-                  "binding": "Movie Title",
-                  "label": "Movie Title",
-                  "placeholder": "e.g. Singularity",
-                  "multiline": false,
-                  "events": []
-                }
-              },
-              {
-                "type": "TextInput",
-                "props": {
-                  "id": "in-4",
-                  "binding": "Genre",
-                  "label": "Genre",
-                  "placeholder": "e.g. Sci-Fi",
-                  "multiline": false,
-                  "events": []
-                }
-              },
-              {
-                "type": "TextInput",
-                "props": {
-                  "id": "in-5",
-                  "binding": "Primary Audience",
-                  "label": "Primary Audience",
-                  "placeholder": "e.g. AI Enthusiasts",
-                  "multiline": false,
-                  "events": []
-                }
-              },
-              {
-                "type": "Button",
-                "props": {
-                  "id": "b-6",
-                  "label": "Generate Poster",
-                  "variant": "contained",
-                  "color": "primary",
-                  "events": [
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
                     {
-                      "trigger": "click",
-                      "kind": "run",
-                      "key": "",
-                      "value": ""
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-movie-title",
+                        "binding": "Movie Title",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-genre",
+                        "binding": "Genre",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-primary-audience",
+                        "binding": "Primary Audience",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Run",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
                     }
                   ]
                 }
               }
-            ]
-          }
-        },
-        {
-          "type": "Container",
-          "props": {
-            "id": "c-9",
-            "title": "Poster",
-            "content": [
+            ],
+            "right": [
               {
-                "type": "Image",
+                "type": "Container",
                 "props": {
-                  "id": "img-8",
-                  "binding": "Poster",
-                  "fit": "contain",
-                  "height": 520,
-                  "placeholder": "Your poster will appear here"
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-poster",
+                        "binding": "Poster",
+                        "text": ""
+                      }
+                    }
+                  ]
                 }
               }
             ]

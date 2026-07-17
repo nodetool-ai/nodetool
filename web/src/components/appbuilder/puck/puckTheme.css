@@ -50,6 +50,23 @@
 }
 
 /*
+ * Preview-width toggle: caps the canvas at a device width and centers it so
+ * container-query-driven widgets (Columns) can be checked at narrow/wide
+ * breakpoints deliberately. Class is set on `.appbuilder-editor` from
+ * PuckAppEditor's preview-width state; "fit" (no class) leaves the canvas
+ * unconstrained. `[data-puck-preview]` is the element the box-sizing reset
+ * above already targets, so this composes with it.
+ */
+.appbuilder-editor.preview-phone [data-puck-preview] {
+  max-width: 390px;
+  margin-inline: auto;
+}
+.appbuilder-editor.preview-tablet [data-puck-preview] {
+  max-width: 768px;
+  margin-inline: auto;
+}
+
+/*
  * Theme overrides for the Puck editor chrome.
  *
  * Puck draws its UI from `--puck-color-*` CSS variables. These names are

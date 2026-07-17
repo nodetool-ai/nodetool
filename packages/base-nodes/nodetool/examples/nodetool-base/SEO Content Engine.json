@@ -593,14 +593,6 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "📈 SEO Content Engine",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
             "id": "t-tagline",
@@ -620,36 +612,26 @@
                   "title": "Try it",
                   "content": [
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-business",
                         "binding": "business",
-                        "label": "Your business",
-                        "placeholder": "Aurora Gear — a DTC shop for ultralight hiking equipment. The blog lives at auro",
-                        "multiline": true,
                         "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-audience-and-seeds",
                         "binding": "audience_and_seeds",
-                        "label": "Audience & seed topics",
-                        "placeholder": "beginner hikers researching their first serious gear; seed topics: ultralight ba",
-                        "multiline": true,
                         "events": []
                       }
                     },
                     {
-                      "type": "Slider",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-article-count",
                         "binding": "article_count",
-                        "label": "Articles to write",
-                        "min": 2,
-                        "max": 10,
-                        "step": 1,
                         "events": []
                       }
                     },

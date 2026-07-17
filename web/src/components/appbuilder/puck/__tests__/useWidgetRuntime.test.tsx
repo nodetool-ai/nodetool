@@ -189,4 +189,109 @@ describe("useWidgetRuntime", () => {
       expect(dispatch).not.toHaveBeenCalled();
     });
   });
+
+  describe("pacing", () => {
+    it("live (default) dispatches on change and ignores commit — no double fire", () => {
+      const dispatch = jest.fn();
+      const wrapper = makeWrapper({}, { dispatch });
+      const { result } = renderHook(
+        () =>
+          useWidgetRuntime({
+            id: "widget-live",
+            bindingMode: "none",
+            events: [{ trigger: "change", kind: "run" }]
+          }),
+        { wrapper }
+      );
+      act(() => result.current.emit("change", "change"));
+      act(() => result.current.emit("change", "commit"));
+      expect(dispatch).toHaveBeenCalledTimes(1);
+    });
+
+    it("release dispatches only on commit, not on live change", () => {
+      const dispatch = jest.fn();
+      const wrapper = makeWrapper({}, { dispatch });
+      const { result } = renderHook(
+        () =>
+          useWidgetRuntime({
+            id: "widget-release",
+            bindingMode: "none",
+            events: [{ trigger: "change", kind: "run", pace: "release" }]
+          }),
+        { wrapper }
+      );
+      act(() => result.current.emit("change", "change"));
+      expect(dispatch).not.toHaveBeenCalled();
+      act(() => result.current.emit("change", "commit"));
+      expect(dispatch).toHaveBeenCalledTimes(1);
+    });
+
+    describe("debounce", () => {
+      beforeEach(() => jest.useFakeTimers());
+      afterEach(() => jest.useRealTimers());
+
+      it("fires once on the trailing edge after rapid changes", () => {
+        const dispatch = jest.fn();
+        const wrapper = makeWrapper({}, { dispatch });
+        const { result } = renderHook(
+          () =>
+            useWidgetRuntime({
+              id: "widget-debounce",
+              bindingMode: "none",
+              events: [{ trigger: "change", kind: "run", pace: "debounce" }]
+            }),
+          { wrapper }
+        );
+        act(() => result.current.emit("change", "change"));
+        act(() => result.current.emit("change", "change"));
+        act(() => result.current.emit("change", "change"));
+        expect(dispatch).not.toHaveBeenCalled();
+        act(() => {
+          jest.advanceTimersByTime(500);
+        });
+        expect(dispatch).toHaveBeenCalledTimes(1);
+      });
+
+      it("a commit flushes the pending debounced run immediately, once", () => {
+        const dispatch = jest.fn();
+        const wrapper = makeWrapper({}, { dispatch });
+        const { result } = renderHook(
+          () =>
+            useWidgetRuntime({
+              id: "widget-debounce-commit",
+              bindingMode: "none",
+              events: [{ trigger: "change", kind: "run", pace: "debounce" }]
+            }),
+          { wrapper }
+        );
+        act(() => result.current.emit("change", "change"));
+        act(() => result.current.emit("change", "commit"));
+        expect(dispatch).toHaveBeenCalledTimes(1);
+        act(() => {
+          jest.advanceTimersByTime(500);
+        });
+        expect(dispatch).toHaveBeenCalledTimes(1);
+      });
+
+      it("cancels a pending debounced run on unmount", () => {
+        const dispatch = jest.fn();
+        const wrapper = makeWrapper({}, { dispatch });
+        const { result, unmount } = renderHook(
+          () =>
+            useWidgetRuntime({
+              id: "widget-debounce-unmount",
+              bindingMode: "none",
+              events: [{ trigger: "change", kind: "run", pace: "debounce" }]
+            }),
+          { wrapper }
+        );
+        act(() => result.current.emit("change", "change"));
+        unmount();
+        act(() => {
+          jest.advanceTimersByTime(500);
+        });
+        expect(dispatch).not.toHaveBeenCalled();
+      });
+    });
+  });
 });

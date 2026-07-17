@@ -741,14 +741,6 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "🎬 Ad Creative Factory",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
             "id": "t-tagline",
@@ -768,44 +760,35 @@
                   "title": "Try it",
                   "content": [
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-product-offer",
                         "binding": "product_offer",
-                        "label": "Product & offer",
-                        "placeholder": "Aurora Trail smart fitness watch — launch-week offer: 20% off. GPS navigation, h",
-                        "multiline": true,
                         "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-audience",
                         "binding": "audience",
-                        "label": "Who is it for?",
-                        "placeholder": "active millennials who hike on weekends and scroll fitness content at night",
-                        "multiline": true,
                         "events": []
                       }
                     },
                     {
-                      "type": "Slider",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-variant-count",
                         "binding": "variant_count",
-                        "label": "How many ad variants?",
-                        "min": 2,
-                        "max": 12,
-                        "step": 1,
                         "events": []
                       }
                     },
                     {
-                      "type": "Text",
+                      "type": "WorkflowInput",
                       "props": {
-                        "id": "note-media",
-                        "text": "📷 Uses the bundled product photo — swap in your own in NodeTool Studio."
+                        "id": "in-product-photo",
+                        "binding": "product_photo",
+                        "events": []
                       }
                     },
                     {
