@@ -113,6 +113,7 @@ export {
   RunWorkflowTool,
   DebugWorkflowTool,
   ValidateWorkflowTool,
+  PlanWorkflowGraphTool,
   GetExampleWorkflowTool,
   ExportWorkflowDigraphTool,
   ListNodesTool,
@@ -127,6 +128,7 @@ export {
   ListModelsTool,
   getAllMcpTools
 } from "./tools/mcp-tools.js";
+export type { PlanWorkflowGraphToolOptions } from "./tools/mcp-tools.js";
 export {
   ExtractPDFTextTool,
   ExtractPDFTablesTool,

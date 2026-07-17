@@ -83,7 +83,11 @@ import type {
   RpcErrorPayload
 } from "@nodetool-ai/protocol";
 import { Tool } from "@nodetool-ai/agents";
-import { RunSubtaskTool, RunSearchTool } from "@nodetool-ai/agents";
+import {
+  RunSubtaskTool,
+  RunSearchTool,
+  PlanWorkflowGraphTool
+} from "@nodetool-ai/agents";
 import {
   ToolSearchTool,
   formatDeferredToolsReminder,
@@ -1047,6 +1051,8 @@ You start with a resident core, always available without loading:
 - Delegation: \`run_subtask\` (and \`run_search\`).
 - Nodes and workflows: \`run_node\`, \`run_workflow\`, \`search_nodes\`,
   \`list_nodes\`, \`get_node_info\`, \`list_workflows\`, \`get_workflow\`.
+- Workflow building: \`plan_workflow_graph\`, \`validate_workflow\`,
+  \`create_workflow\`, \`debug_workflow\`.
 - Tool discovery: \`ToolSearch\`.
 
 Everything else is a DEFERRED tool you load on demand with \`ToolSearch\` (see
@@ -1069,6 +1075,24 @@ with the \`ToolSearch\` tool.
   - \`+substr words\` — require \`substr\` in the tool name, rank by the rest.
 - Load every tool you intend to use before calling it; one search can load
   several. If a call fails because a tool is unknown, ToolSearch it first.
+
+# Building workflows
+When the user wants a workflow built, drive this loop:
+1. \`plan_workflow_graph\` — turn the objective into a complete graph
+   ({nodes, edges}). Pass \`inputs\` for runtime parameters the workflow
+   should accept; each becomes an input node. Progress streams to the user.
+2. \`validate_workflow\` — statically re-check the graph (pass it inline as
+   \`graph\`) after any manual edit. Fix issues before saving.
+3. \`create_workflow\` — save the graph under a clear name. The returned id
+   is what the run and debug tools take.
+4. \`debug_workflow\` — run it and get final status, outputs, errors, and job
+   logs in one report. Use \`run_workflow\` for a plain run with params, or
+   \`run_node\` to probe a single suspect node in isolation.
+5. On failure, fix the graph JSON — or re-plan with a sharper objective —
+   and save again with \`create_workflow\`. There is no update tool: each fix
+   produces a new workflow, so tell the user which id is current.
+Prefer \`plan_workflow_graph\` over hand-authoring graphs from scratch, but
+hand-fix small issues in a planned graph rather than re-planning.
 
 # Image and media
 When tools return media URLs, embed them as markdown image / link tags.
@@ -1121,7 +1145,13 @@ const RESIDENT_TOOL_NAMES: ReadonlySet<string> = new Set([
   "list_workflows",
   "get_workflow",
   "run_node",
-  "run_workflow"
+  "run_workflow",
+  // Workflow-building loop: plan → validate → create → debug. Resident so
+  // the loop the system prompt teaches needs no ToolSearch round-trip.
+  "plan_workflow_graph",
+  "validate_workflow",
+  "create_workflow",
+  "debug_workflow"
 ]);
 
 /**
@@ -3511,6 +3541,26 @@ export class UnifiedWebSocketRunner {
         this.runSingleNode(nodeType, inputs, userId, threadId)
       )
     ];
+    // GraphPlanner as a chat tool: builds a workflow graph from an objective
+    // using the session's provider/model. Needs the in-process node registry.
+    if (this.nodeRegistry) {
+      rawToolbelt.push(
+        new PlanWorkflowGraphTool({
+          provider,
+          model,
+          registry: this.nodeRegistry,
+          providers: chatProviders,
+          forwardMessage: async (msg) => {
+            const enriched: Record<string, unknown> = {
+              ...(msg as unknown as Record<string, unknown>)
+            };
+            if (enriched.thread_id == null) enriched.thread_id = threadId;
+            if (enriched.workflow_id == null) enriched.workflow_id = workflowId;
+            await this.sendMessage(enriched);
+          }
+        })
+      );
+    }
     // When the active provider generates images natively (OpenAI Responses
     // `image_generation` tool), drop the redundant provider-specific
     // `openai_image_generation` tool — the native `image_generation` covers it

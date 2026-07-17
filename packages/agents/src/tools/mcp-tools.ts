@@ -25,6 +25,9 @@ import {
   EmbedTextTool
 } from "./media-tools.js";
 import { SaveAssetTool, ReadAssetTool } from "./asset-tools.js";
+import type { ProcessingMessage } from "@nodetool-ai/protocol";
+import { GraphPlanner } from "../graph-planner.js";
+import { TOOL_CALL_ID_FIELD } from "./subtask-fields.js";
 
 const DEFAULT_API_URL = "http://localhost:7777";
 
@@ -473,6 +476,119 @@ export class ValidateWorkflowTool extends Tool {
     return params["workflow_id"]
       ? `Validating workflow ${params["workflow_id"]}`
       : "Validating workflow graph";
+  }
+}
+
+export interface PlanWorkflowGraphToolOptions {
+  provider: BaseProvider;
+  model: string;
+  registry: NodeRegistry;
+  /** Configured providers by id — enables the planner's `find_model` tool. */
+  providers?: Record<string, BaseProvider>;
+  /**
+   * Forwards planner progress events (planning_update, tool_call_update,
+   * chunk) to the client. Events arrive tagged with `parent_tool_call_id`
+   * so the UI can nest them under this tool's call card.
+   */
+  forwardMessage?: (msg: ProcessingMessage) => Promise<void> | void;
+}
+
+export class PlanWorkflowGraphTool extends Tool {
+  readonly name = "plan_workflow_graph";
+  readonly needsToolCallId = true;
+  readonly description =
+    "Build a complete workflow graph ({nodes, edges}) from a natural-language " +
+    "objective using the backend GraphPlanner: it searches the node registry, " +
+    "inspects node metadata, and wires a validated DAG node-by-node. Returns " +
+    "the graph without saving or running it — pass the result to " +
+    "`create_workflow` to save, then `run_workflow` to execute.";
+  readonly jsonSchema = {
+    type: "object" as const,
+    properties: {
+      objective: {
+        type: "string" as const,
+        description:
+          "Natural-language description of what the workflow should do."
+      },
+      inputs: {
+        type: "object" as const,
+        description:
+          "Runtime parameters the workflow should accept, keyed by input " +
+          "name with example values. Each becomes an input node in the graph."
+      }
+    },
+    required: ["objective"]
+  };
+
+  constructor(private readonly opts: PlanWorkflowGraphToolOptions) {
+    super();
+  }
+
+  async process(
+    context: ProcessingContext,
+    params: Record<string, unknown>
+  ): Promise<unknown> {
+    const objective =
+      typeof params["objective"] === "string" ? params["objective"].trim() : "";
+    if (!objective) {
+      return {
+        error: "`objective` is required and must be a non-empty string."
+      };
+    }
+    const parentToolCallId =
+      typeof params[TOOL_CALL_ID_FIELD] === "string"
+        ? (params[TOOL_CALL_ID_FIELD] as string)
+        : null;
+
+    const planner = new GraphPlanner({
+      provider: this.opts.provider,
+      model: this.opts.model,
+      registry: this.opts.registry,
+      tools: [],
+      inputs: (params["inputs"] as Record<string, unknown>) ?? {},
+      providers: this.opts.providers
+    });
+
+    const gen = planner.plan(objective, context);
+    let next = await gen.next();
+    while (!next.done) {
+      if (this.opts.forwardMessage) {
+        const tagged = {
+          ...(next.value as unknown as Record<string, unknown>),
+          parent_tool_call_id: parentToolCallId
+        } as unknown as ProcessingMessage;
+        try {
+          await this.opts.forwardMessage(tagged);
+        } catch {
+          // A broken forwarder must not kill planning — the model still gets
+          // the graph via the tool return below.
+        }
+      }
+      next = await gen.next();
+    }
+
+    const graph = next.value;
+    if (!graph) {
+      return {
+        error:
+          "GraphPlanner failed to build a graph after multiple attempts. " +
+          "Refine the objective (name concrete inputs/outputs) and retry."
+      };
+    }
+
+    return {
+      graph,
+      node_count: graph.nodes.length,
+      edge_count: graph.edges.length
+    };
+  }
+
+  userMessage(params: Record<string, unknown>): string {
+    const objective =
+      typeof params["objective"] === "string"
+        ? params["objective"].slice(0, 80)
+        : "workflow";
+    return `Planning workflow graph: ${objective}`;
   }
 }
 
