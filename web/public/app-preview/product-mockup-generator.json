@@ -1,7 +1,8 @@
 {
   "slug": "product-mockup-generator",
   "name": "Product Mockup Generator",
-  "description": "Generate product mockups for a given product.",
+  "description": "Turn one product photo into a whole set of polished lifestyle mockups. An LLM art-director designs a varied shot list from your product description, then each scene is rendered with FLUX and finished with a brightness/contrast polish. Differentiator: the model invents the scenes, so a single input fans out into a coordinated mockup set — not one prompt, one image.",
+  "featured": true,
   "image": "/app-preview/img/product-mockup-generator.jpg",
   "app_doc": {
     "version": 2,
@@ -100,6 +101,14 @@
                   "title": "Results",
                   "content": [
                     {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Staging your mockups…",
+                        "binding": ""
+                      }
+                    },
+                    {
                       "type": "Heading",
                       "props": {
                         "id": "lbl-mockup",
@@ -147,8 +156,8 @@
   },
   "values": {
     "product_name": "Premium Wireless Headphones",
-    "product_description": "Sleek, modern wireless headphones with noise cancellation. Matte black finish with silver accents.",
-    "target_audience": "Tech-savvy professionals, music enthusiasts, remote workers",
+    "product_description": "Sleek, modern over-ear wireless headphones with active noise cancellation. Matte black finish with brushed-silver accents and memory-foam ear cushions.",
+    "target_audience": "Tech-savvy professionals, music enthusiasts, and remote workers",
     "num_scenes": 6,
     "mockup": {
       "$demo": "image"

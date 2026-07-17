@@ -1,7 +1,8 @@
 {
   "slug": "photo-enhancement-suite",
   "name": "Photo Enhancement Suite",
-  "description": "Batch enhance photos with AI-powered improvements including color correction and upscaling.",
+  "description": "Batch-enhance a list of photos through a fixed retouch chain — auto-contrast, color, sharpening, and an AI cinematic-grade pass — with no folder path required, just drop images in.",
+  "featured": false,
   "image": "/app-preview/img/photo-enhancement-suite.jpg",
   "app_doc": {
     "version": 2,
@@ -16,7 +17,7 @@
           "type": "Text",
           "props": {
             "id": "t-tagline",
-            "text": "Batch-enhance a whole folder of photos — color, brightness, upscaling."
+            "text": "Batch-enhance a set of photos — tune brightness and color, run the whole retouch chain."
           }
         },
         {
@@ -34,25 +35,49 @@
                     {
                       "type": "WorkflowInput",
                       "props": {
-                        "id": "in-image-folder",
-                        "binding": "image_folder",
+                        "id": "in-photos",
+                        "binding": "photos",
                         "events": []
                       }
                     },
                     {
-                      "type": "WorkflowInput",
+                      "type": "Slider",
                       "props": {
-                        "id": "in-brightness-adjust",
+                        "id": "slider-brightness-adjust",
                         "binding": "brightness_adjust",
-                        "events": []
+                        "label": "Brightness",
+                        "min": 0.5,
+                        "max": 1.5,
+                        "step": 0.05,
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "run",
+                            "pace": "release",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
                       }
                     },
                     {
-                      "type": "WorkflowInput",
+                      "type": "Slider",
                       "props": {
-                        "id": "in-color-boost",
+                        "id": "slider-color-boost",
                         "binding": "color_boost",
-                        "events": []
+                        "label": "Color boost",
+                        "min": 0,
+                        "max": 2,
+                        "step": 0.05,
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "run",
+                            "pace": "release",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
                       }
                     },
                     {
@@ -84,11 +109,11 @@
                   "title": "Results",
                   "content": [
                     {
-                      "type": "Heading",
+                      "type": "Progress",
                       "props": {
-                        "id": "lbl-enhanced-photos",
-                        "text": "Enhanced",
-                        "level": "3"
+                        "id": "progress-run",
+                        "label": "Retouching each photo…",
+                        "binding": ""
                       }
                     },
                     {
@@ -96,24 +121,6 @@
                       "props": {
                         "id": "out-enhanced-photos",
                         "binding": "enhanced_photos",
-                        "fit": "contain",
-                        "height": 280,
-                        "placeholder": "Your result appears here"
-                      }
-                    },
-                    {
-                      "type": "Heading",
-                      "props": {
-                        "id": "lbl-upscaled-photos",
-                        "text": "Upscaled",
-                        "level": "3"
-                      }
-                    },
-                    {
-                      "type": "Image",
-                      "props": {
-                        "id": "out-upscaled-photos",
-                        "binding": "upscaled_photos",
                         "fit": "contain",
                         "height": 280,
                         "placeholder": "Your result appears here"
@@ -133,9 +140,6 @@
     "brightness_adjust": 1.05,
     "color_boost": 1.2,
     "enhanced_photos": {
-      "$demo": "image"
-    },
-    "upscaled_photos": {
       "$demo": "image"
     }
   }

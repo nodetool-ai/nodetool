@@ -5,7 +5,7 @@
   "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Concept Art Iteration Board",
   "tool_name": null,
-  "description": "Turn a creative brief, style, and mood into concept art variations. An agent sets the art direction, then a batch of images is generated.",
+  "description": "Fan one creative brief into a gallery of concept-art variations. An art-director agent turns your brief, style, and mood into a detailed direction, then a list generator writes N distinct image prompts that all render into an append-style variant gallery. Differentiator: one run, many on-brief variations you can compare side by side and regenerate. Text runs on gpt-5-mini; images on fal-ai/flux/schnell.",
   "tags": [
     "concept-art",
     "planning",
@@ -110,6 +110,17 @@
           "className": "image"
         },
         "edge_type": "data"
+      },
+      {
+        "id": "e_variations_count",
+        "source": "num_variations",
+        "sourceHandle": "output",
+        "target": "c1c46bfe-d52b-445b-b9d4-b0141e5bb944",
+        "targetHandle": "count",
+        "ui_properties": {
+          "className": "int"
+        },
+        "edge_type": "data"
       }
     ],
     "nodes": [
@@ -117,7 +128,7 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🖼️ Concept Art Iteration Board\n\nTurn a brief, style, and mood into concept art variations. An agent sets the art direction, then a batch of images is generated.\n\n**Pipeline:** Brief + Style + Mood → Agent → Build prompts → Text-to-Image\n\n**Try this:** change the style and mood, or edit the prompt to generate more variations."
+          "comment": "# 🖼️ Concept Art Iteration Board\n\nOne brief becomes a gallery of on-brief concept-art variations — the thing a single image prompt can't do.\n\n**Why the graph:** an agent first commits to a coherent art direction, so every variation shares one visual language instead of drifting. The list generator then writes N distinct prompts from that direction, and each one streams into the image node — so the output fills up as a variant gallery rather than a single picture.\n\n**Pipeline:** Brief + Style + Mood → Art-director agent → N prompts → Text-to-Image (one per prompt) → gallery\n\n**Try this:** change Style or Mood for a whole new look, or bump Variations to compare more options in one run."
         },
         "ui_properties": {
           "position": {
@@ -161,7 +172,7 @@
           "zIndex": 0,
           "width": 461,
           "height": 489,
-          "title": "8️⃣ Render concept art",
+          "title": "9️⃣ Render each variation",
           "selectable": true,
           "bypassed": false,
           "selected_generation": "8200a9c8-6d27-4298-9e02-19b2df7abfa0"
@@ -192,7 +203,7 @@
           "zIndex": 0,
           "width": 390,
           "height": 292,
-          "title": "7️⃣ Generate variations",
+          "title": "8️⃣ Generate prompt list",
           "selectable": true,
           "bypassed": false
         },
@@ -211,7 +222,7 @@
             "path": null,
             "supported_tasks": []
           },
-          "system": "You are an experienced concept art director. Provide detailed, inspiring art direction.",
+          "system": "You are a senior concept-art director for games and film. You translate a creative brief into precise, evocative art direction a concept artist can execute immediately. Commit to concrete choices — name colors, framings, and shapes rather than hedging with vague adjectives. Keep the whole direction internally consistent so every downstream variation reads as one coherent world.",
           "image": {
             "type": "image",
             "uri": "",
@@ -238,7 +249,7 @@
           "zIndex": 0,
           "width": 319,
           "height": 207,
-          "title": "5️⃣ Set art direction",
+          "title": "6️⃣ Art-director agent",
           "selectable": true,
           "bypassed": false
         },
@@ -250,8 +261,8 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "creative_brief",
-          "value": "A mystical forest guardian - ancient tree spirit protecting enchanted woods. Fantasy RPG character design.",
-          "description": "The creative brief describing the concept"
+          "value": "An ancient forest guardian: a towering tree-spirit, bark-skinned and moss-cloaked, watching over an enchanted grove. Fantasy RPG character concept.",
+          "description": "The subject to explore, in a sentence or two."
         },
         "ui_properties": {
           "selected": false,
@@ -273,8 +284,8 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "art_style",
-          "value": "Digital painting, concept art style, painterly, dramatic lighting, rich colors",
-          "description": "Desired art style and medium"
+          "value": "Painterly digital concept art, dramatic cinematic lighting, rich saturated color, visible brushwork, AAA game key art",
+          "description": "Art style and medium applied to every variation."
         },
         "ui_properties": {
           "position": {
@@ -295,8 +306,8 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "mood_keywords",
-          "value": "mysterious, ancient, powerful, serene, magical",
-          "description": "Key mood/atmosphere words"
+          "value": "mysterious, ancient, powerful, serene, sacred",
+          "description": "Comma-separated mood and atmosphere words."
         },
         "ui_properties": {
           "position": {
@@ -316,7 +327,12 @@
         "id": "c1c46bfe-d52b-445b-b9d4-b0141e5bb944",
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "\nBased on this art direction, generate 4 unique concept art prompts.\n\nArt Direction: {{ direction }}\nBase Style: {{ style }}\n\nEach prompt should:\n- Explore a different interpretation or angle\n- Maintain the core concept but vary composition/pose/mood\n- Be detailed enough for high-quality image generation\n- Include specific lighting and atmosphere descriptions\n\nOutput format: One prompt per line, no numbering or bullets.\n"
+          "prompt": "Art direction:\n{{ direction }}\n\nBase style: {{ style }}\n\nTask: write exactly {{ count }} distinct text-to-image prompts for concept-art variations. Every prompt must obey the art direction and base style above so the set reads as one coherent gallery.\n\nEach prompt must:\n- Keep the same subject and core concept\n- Explore a different composition, pose, or camera angle\n- Name explicit lighting, color, and atmosphere\n- Be one dense sentence tuned for an image model\n\nOutput format: one prompt per line, exactly {{ count }} lines. No numbering, bullets, quotes, or blank lines.",
+          "dynamic_properties": {
+            "direction": "",
+            "style": "Painterly digital concept art, dramatic cinematic lighting, rich saturated color, visible brushwork, AAA game key art",
+            "count": 4
+          }
         },
         "ui_properties": {
           "position": {
@@ -326,7 +342,7 @@
           "zIndex": 0,
           "width": 418,
           "height": 563,
-          "title": "6️⃣ Build variation prompts",
+          "title": "7️⃣ Write variation prompts",
           "selectable": true,
           "bypassed": false
         },
@@ -340,7 +356,12 @@
         "id": "77560ab1-75f1-4208-aa4f-66732f56e22b",
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "\nYou are a creative director for concept art.\n\nCreative Brief: {{ brief }}\nArt Style: {{ style }}\nMood: {{ mood }}\n\nExpand this brief into detailed art direction including:\n1. Visual composition suggestions\n2. Color palette recommendations\n3. Key design elements to explore\n4. Silhouette and shape language ideas\n5. Reference inspirations (describe, don't link)\n\nBe specific and actionable for a concept artist.\n"
+          "prompt": "Creative brief: {{ brief }}\nArt style: {{ style }}\nMood: {{ mood }}\n\nTask: turn the brief above into a concrete art-direction brief a concept artist could execute without asking a single follow-up question. Interpret the brief — do not restate it.\n\nCover each of these, one tight paragraph each, in order:\n1. Composition and camera framing\n2. Color palette — name 4–6 specific colors and where they fall\n3. Key design elements, silhouette, and shape language\n4. Lighting and atmosphere that carry the mood\n\nWrite in vivid, specific visual language. No preamble, no headings beyond the four numbered points.",
+          "dynamic_properties": {
+            "brief": "An ancient forest guardian: a towering tree-spirit, bark-skinned and moss-cloaked, watching over an enchanted grove. Fantasy RPG character concept.",
+            "style": "Painterly digital concept art, dramatic cinematic lighting, rich saturated color, visible brushwork, AAA game key art",
+            "mood": "mysterious, ancient, powerful, serene, sacred"
+          }
         },
         "ui_properties": {
           "selected": false,
@@ -351,7 +372,7 @@
           "zIndex": 0,
           "width": 377,
           "height": 571,
-          "title": "4️⃣ Build art-direction prompt",
+          "title": "5️⃣ Build art-direction brief",
           "selectable": true,
           "bypassed": false
         },
@@ -376,6 +397,30 @@
           "zIndex": 0,
           "width": 280,
           "title": "Concept Art",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "num_variations",
+        "type": "nodetool.input.IntegerInput",
+        "data": {
+          "name": "variations",
+          "value": 4,
+          "description": "How many concept-art variations to generate in one run.",
+          "min": 2,
+          "max": 8
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 830
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "4️⃣ Variations",
           "selectable": true,
           "bypassed": false
         },
@@ -408,7 +453,7 @@
           "type": "Text",
           "props": {
             "id": "t-tagline",
-            "text": "Turn a creative brief, style, and mood into concept art variations"
+            "text": "Fan one brief into a gallery of concept-art variations — keep the ones you like."
           }
         },
         {
@@ -432,10 +477,28 @@
                       }
                     },
                     {
-                      "type": "WorkflowInput",
+                      "type": "Select",
                       "props": {
                         "id": "in-art-style",
                         "binding": "art_style",
+                        "label": "Art style",
+                        "options": [
+                          {
+                            "value": "Painterly digital concept art, dramatic cinematic lighting, rich saturated color, visible brushwork, AAA game key art"
+                          },
+                          {
+                            "value": "Ink and wash, monochrome, loose gestural linework"
+                          },
+                          {
+                            "value": "Photobash realism, moody atmospheric haze, volumetric light"
+                          },
+                          {
+                            "value": "Flat vector, bold shapes, limited palette"
+                          },
+                          {
+                            "value": "Anime background art, soft gradients, golden-hour light"
+                          }
+                        ],
                         "events": []
                       }
                     },
@@ -448,10 +511,18 @@
                       }
                     },
                     {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-variations",
+                        "binding": "variations",
+                        "events": []
+                      }
+                    },
+                    {
                       "type": "Button",
                       "props": {
                         "id": "btn-run",
-                        "label": "Run",
+                        "label": "Generate concept art",
                         "variant": "contained",
                         "color": "primary",
                         "events": [
@@ -476,11 +547,38 @@
                   "title": "Results",
                   "content": [
                     {
-                      "type": "Markdown",
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Rendering variations…",
+                        "binding": ""
+                      }
+                    },
+                    {
+                      "type": "Image",
                       "props": {
                         "id": "out-concept-art",
                         "binding": "Concept Art",
-                        "text": ""
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-make-another",
+                        "label": "Generate more variations",
+                        "variant": "outlined",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
                       }
                     }
                   ]

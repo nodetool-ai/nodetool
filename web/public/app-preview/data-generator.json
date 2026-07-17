@@ -1,7 +1,8 @@
 {
   "slug": "data-generator",
   "name": "Data Generator",
-  "description": "Generate structured data using AI agents",
+  "description": "Turn a one-line topic into a structured dataset — define the columns once, get validated rows back instead of paragraphs of prose.",
+  "featured": false,
   "image": "/app-preview/img/data-generator.jpg",
   "app_doc": {
     "version": 2,
@@ -32,6 +33,22 @@
                   "title": "Try it",
                   "content": [
                     {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-topic",
+                        "binding": "topic",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-row-count",
+                        "binding": "row_count",
+                        "events": []
+                      }
+                    },
+                    {
                       "type": "Button",
                       "props": {
                         "id": "btn-run",
@@ -60,6 +77,14 @@
                   "title": "Results",
                   "content": [
                     {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Generating rows…",
+                        "binding": ""
+                      }
+                    },
+                    {
                       "type": "Json",
                       "props": {
                         "id": "out-generated-data",
@@ -77,6 +102,8 @@
     }
   },
   "values": {
+    "topic": "fresh vegetables, each with its typical color",
+    "row_count": 8,
     "generated_data": [
       {
         "city": "Lisbon",

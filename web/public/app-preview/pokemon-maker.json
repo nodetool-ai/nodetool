@@ -1,7 +1,8 @@
 {
   "slug": "pokemon-maker",
   "name": "Pokemon Maker",
-  "description": "",
+  "description": "Turn any mix of real animals into a gallery of original collectible creatures. A style dropdown restyles the whole batch, so one Run yields four cohesive variant designs instead of a single image.",
+  "featured": true,
   "image": "/app-preview/img/pokemon-maker.jpg",
   "app_doc": {
     "version": 2,
@@ -16,7 +17,7 @@
           "type": "Text",
           "props": {
             "id": "t-tagline",
-            "text": "Mix any animals you like — meet the creature they become."
+            "text": "Mix any animals you like — meet the gallery of creatures they become."
           }
         },
         {
@@ -40,10 +41,18 @@
                       }
                     },
                     {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-style",
+                        "binding": "style",
+                        "events": []
+                      }
+                    },
+                    {
                       "type": "Button",
                       "props": {
                         "id": "btn-run",
-                        "label": "Create my creature",
+                        "label": "Create my creatures",
                         "variant": "contained",
                         "color": "primary",
                         "events": [
@@ -68,6 +77,14 @@
                   "title": "Results",
                   "content": [
                     {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Designing your creatures…",
+                        "binding": ""
+                      }
+                    },
+                    {
                       "type": "Image",
                       "props": {
                         "id": "out-pokemon",
@@ -75,6 +92,23 @@
                         "fit": "contain",
                         "height": 280,
                         "placeholder": "Your result appears here"
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-make-another",
+                        "label": "Make another batch",
+                        "variant": "outlined",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
                       }
                     }
                   ]
@@ -88,7 +122,8 @@
     }
   },
   "values": {
-    "animals": "lion, eagle, dragon, bear",
+    "animals": "lion, eagle, koi fish",
+    "style": "Classic anime cel-shaded",
     "pokemon": {
       "$demo": "image"
     }

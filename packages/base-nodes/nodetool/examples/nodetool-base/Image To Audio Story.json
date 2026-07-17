@@ -5,7 +5,7 @@
   "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Image To Audio Story",
   "tool_name": null,
-  "description": "Generate and narrate creative stories from images using AI",
+  "description": "Upload any photo and a vision agent narrates a spoken story about it — one image in, one audio clip out",
   "tags": [
     "start",
     "multimodal",
@@ -46,12 +46,14 @@
     "nodes": [
       {
         "id": "1",
-        "type": "nodetool.constant.Image",
+        "type": "nodetool.input.ImageInput",
         "data": {
           "value": {
             "uri": "https://s.abcnews.com/images/International/tiananmen-square-anniversary-01-file-gty-jef-190529_hpMain_16x9_992.jpg?w=992",
             "type": "image"
-          }
+          },
+          "name": "image",
+          "description": "The photo the story should be about"
         },
         "ui_properties": {
           "position": {
@@ -62,7 +64,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "1️⃣ Image"
+          "title": "1️⃣ Load image"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -79,8 +81,8 @@
             "path": null,
             "supported_tasks": []
           },
-          "system": "You are a friendly assistant.",
-          "prompt": "Write a compelling story about the image.",
+          "system": "You are a vision-driven storyteller. Study the image and invent a short, vivid short story inspired by what you see — never a literal description or caption.",
+          "prompt": "Write a 150-250 word short story inspired by this image. Give it a clear beginning, middle, and end, and a one-line title on the first line. Output plain prose only, no headings or bullet points.",
           "messages": [],
           "max_tokens": 100000
         },
@@ -103,7 +105,7 @@
         "id": "9f51da20-90d9-46a7-8131-c79ac63df648",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎙️ Image To Audio Story\n\nA vision agent writes a story about an image, then text-to-speech narrates it aloud.\n\n**Pipeline:** Image → Vision agent (story) → Text-to-Speech\n\n**Try this:** swap the image, or change the agent prompt (\"write a poem\", \"a museum curator's take\"). Pick vision and TTS models first."
+          "comment": "# 🎙️ Image To Audio Story\n\nUpload a photo; a vision agent invents a short story about it, then text-to-speech narrates that story aloud.\n\n**Pipeline:** Image input → Vision agent (story) → Text-to-Speech\n\n**Try this:** swap the image, or change the agent prompt (\"write a poem\", \"a museum curator's take\"). Pick vision and TTS models first."
         },
         "ui_properties": {
           "position": {
@@ -212,6 +214,14 @@
                   "title": "Try it",
                   "content": [
                     {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-image",
+                        "binding": "image",
+                        "events": []
+                      }
+                    },
+                    {
                       "type": "Button",
                       "props": {
                         "id": "btn-run",
@@ -239,6 +249,14 @@
                   "id": "panel-results",
                   "title": "Results",
                   "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Writing & narrating…",
+                        "binding": ""
+                      }
+                    },
                     {
                       "type": "Audio",
                       "props": {

@@ -265,7 +265,10 @@
         "type": "nodetool.input.AudioInput",
         "data": {
           "name": "episode_audio",
-          "value": {},
+          "value": {
+            "type": "audio",
+            "uri": "https://app.nodetool.ai/examples/remove_silence.mp3"
+          },
           "description": "The full episode recording (any common audio format)"
         },
         "ui_properties": {
@@ -820,6 +823,14 @@
                   "id": "panel-results",
                   "title": "Results",
                   "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Repurposing your episode…",
+                        "binding": ""
+                      }
+                    },
                     {
                       "type": "Heading",
                       "props": {

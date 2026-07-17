@@ -2,10 +2,10 @@
   "id": "research_paper_summarizer",
   "access": "public",
   "created_at": "2025-11-22T16:54:18.095690",
-  "updated_at": "2026-06-22T12:00:00.000Z",
+  "updated_at": "2026-07-17T12:00:00.000Z",
   "name": "Research Paper Summarizer",
   "tool_name": null,
-  "description": "Extract and summarize key findings from research papers and technical documents.",
+  "description": "Search a curated index of transformer papers by topic, fetch the matches, and have two agents extract findings and technical methodology into one report.",
   "tags": [
     "research"
   ],
@@ -18,33 +18,323 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🔬 Research Paper Summarizer\n\nPaste a paper; two agents extract the key findings and a technical methodology summary, merged into one report.\n\n**Pipeline:** Paper → Findings agent + Technical agent → report\n\n**Try this:** paste your own paper, or adjust what each agent extracts."
+          "comment": "# 🔬 Research Paper Summarizer\n\nGive it a topic; it searches a curated index of transformer papers, fetches the matches, and two agents extract the key findings and a technical methodology summary, merged into one report.\n\n**Pipeline:** Fetch index → filter lines by topic → extract paper links → fetch each paper's text → Findings agent + Technical agent → report\n\n**Try this:** change the topic, or point the index fetch at a different curated README."
         },
         "ui_properties": {
           "selected": false,
           "position": {
             "x": 80,
-            "y": -200
+            "y": -220
           },
           "zIndex": 0,
           "width": 460,
-          "height": 180,
+          "height": 200,
           "selectable": true
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
       },
       {
-        "id": "2",
+        "id": "topic",
+        "parent_id": null,
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "topic",
+          "value": "attention",
+          "description": "Keyword to search for among paper entries in the curated transformer paper index (case-sensitive substring match against README lines)."
+        },
+        "ui_properties": {
+          "title": "1️⃣ Topic",
+          "position": {
+            "x": 0,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "idx",
+        "parent_id": null,
+        "type": "lib.http.GetText",
+        "data": {
+          "url": "https://raw.githubusercontent.com/abacaj/awesome-transformers/refs/heads/main/README.md"
+        },
+        "ui_properties": {
+          "title": "2️⃣ Fetch paper index",
+          "position": {
+            "x": 280,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "lines",
+        "parent_id": null,
+        "type": "nodetool.text.Split",
+        "data": {
+          "delimiter": "\n"
+        },
+        "ui_properties": {
+          "title": "3️⃣ Split into lines",
+          "position": {
+            "x": 560,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "foreach-line",
+        "parent_id": null,
+        "type": "nodetool.control.ForEach",
+        "data": {},
+        "ui_properties": {
+          "title": "4️⃣ For each line",
+          "position": {
+            "x": 840,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "filter-line",
+        "parent_id": null,
+        "type": "nodetool.text.FilterString",
+        "data": {
+          "filter_type": "contains"
+        },
+        "ui_properties": {
+          "title": "5️⃣ Keep matching lines",
+          "position": {
+            "x": 1110,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 260,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "collect-lines",
+        "parent_id": null,
+        "type": "nodetool.control.Collect",
+        "data": {},
+        "ui_properties": {
+          "title": "6️⃣ Collect matches",
+          "position": {
+            "x": 1400,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "joined-md",
+        "parent_id": null,
+        "type": "nodetool.text.Join",
+        "data": {
+          "separator": "\n"
+        },
+        "ui_properties": {
+          "title": "7️⃣ Rejoin matching lines",
+          "position": {
+            "x": 1670,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 260,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "links",
+        "parent_id": null,
+        "type": "lib.markdown.ExtractLinks",
+        "data": {
+          "include_titles": true
+        },
+        "ui_properties": {
+          "title": "8️⃣ Extract links",
+          "position": {
+            "x": 1960,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "links-df",
+        "parent_id": null,
+        "type": "nodetool.data.FromList",
+        "data": {},
+        "ui_properties": {
+          "title": "9️⃣ To dataframe",
+          "position": {
+            "x": 2260,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "papers",
+        "parent_id": null,
+        "type": "nodetool.data.Filter",
+        "data": {
+          "condition": "title == 'Paper'"
+        },
+        "ui_properties": {
+          "title": "🔟 Keep paper links",
+          "position": {
+            "x": 2560,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "urls",
+        "parent_id": null,
+        "type": "nodetool.data.ExtractColumn",
+        "data": {
+          "column_name": "url"
+        },
+        "ui_properties": {
+          "title": "1️⃣1️⃣ Get URLs",
+          "position": {
+            "x": 2860,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "foreach-url",
+        "parent_id": null,
+        "type": "nodetool.control.ForEach",
+        "data": {},
+        "ui_properties": {
+          "title": "1️⃣2️⃣ For each paper URL",
+          "position": {
+            "x": 3160,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "fetch-text",
+        "parent_id": null,
+        "type": "lib.http.GetText",
+        "data": {},
+        "ui_properties": {
+          "title": "1️⃣3️⃣ Fetch paper text",
+          "position": {
+            "x": 3420,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 260,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "collect-text",
+        "parent_id": null,
+        "type": "nodetool.control.Collect",
+        "data": {},
+        "ui_properties": {
+          "title": "1️⃣4️⃣ Collect paper texts",
+          "position": {
+            "x": 3700,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "paper",
+        "parent_id": null,
+        "type": "nodetool.text.Join",
+        "data": {
+          "separator": "\n\n---\n\n"
+        },
+        "ui_properties": {
+          "title": "1️⃣5️⃣ Combine matched papers",
+          "position": {
+            "x": 3980,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 260,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "4",
         "parent_id": null,
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "# Research Paper Summary Report\n\n## Key Findings:\n{{ findings }}\n\n## Technical Approach:\n{{ technical }}\n\n## Quick Reference:\n- **Type:** Research Paper (Academic)\n- **Field:** Machine Learning\n- **Contribution Level:** High Impact\n- **Methodology:** Novel Architecture\n\n## For Practitioners:\nThis paper presents fundamental concepts that have influenced modern AI development.\nThe techniques are widely applicable across various sequence modeling tasks.\n\n## Further Reading:\nConsider reading related work on:\n- RNN architectures\n- Attention mechanisms\n- Transfer learning approaches\n"
+          "prompt": "Analyze the following paper excerpt(s) about \"{{ topic }}\" and extract, as a bulleted list:\n1. Main research question or contribution\n2. Novel approach or methodology\n3. Key findings and results\n4. Impact and significance\n\nRespond in Markdown with one section per point above. If the excerpts don't mention the topic directly, say so explicitly instead of guessing.\n\nPaper excerpt(s):\n{{ paper }}"
         },
         "ui_properties": {
-          "title": "6️⃣ Assemble report",
+          "title": "1️⃣6️⃣ Build findings prompt",
           "position": {
-            "x": 1160,
+            "x": 4280,
             "y": 80
           },
           "zIndex": 0,
@@ -52,8 +342,8 @@
           "selectable": true
         },
         "dynamic_properties": {
-          "findings": "The Transformer replaces recurrence with self-attention, achieving state-of-the-art translation quality with far better training parallelism.",
-          "technical": "Multi-head self-attention plus position-wise feed-forward layers, positional encodings, and layer normalization, trained without recurrence or convolution."
+          "topic": "attention",
+          "paper": "Attention Is All You Need — proposes the Transformer, a sequence model based solely on attention, achieving state-of-the-art machine translation with faster training."
         },
         "dynamic_outputs": {}
       },
@@ -70,7 +360,7 @@
             "path": null,
             "supported_tasks": []
           },
-          "system": "You are a research analyst. Extract key findings and contributions from academic papers.",
+          "system": "You are a meticulous research analyst. Read the paper excerpt(s) you're given and extract only findings and contributions actually stated in the text — never speculate or invent details. Respond in the exact Markdown structure requested by the prompt.",
           "prompt": "",
           "image": {
             "type": "image",
@@ -89,9 +379,9 @@
           "max_tokens": 100000
         },
         "ui_properties": {
-          "title": "3️⃣ Extract findings",
+          "title": "1️⃣7️⃣ Extract findings",
           "position": {
-            "x": 800,
+            "x": 4620,
             "y": 80
           },
           "zIndex": 0,
@@ -102,47 +392,26 @@
         "dynamic_outputs": {}
       },
       {
-        "id": "4",
+        "id": "7",
         "parent_id": null,
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "Analyze this research paper and extract:\n1. Main research question/contribution\n2. Novel approach or methodology\n3. Key findings and results\n4. Impact and significance\n\nPaper:\n{{ paper }}"
+          "prompt": "Provide a technical summary of the methodology described in this paper excerpt about \"{{ topic }}\":\n{{ paper }}\n\nFocus on: architecture, algorithms, and technical innovations. Respond in Markdown with a short paragraph per focus area. If the excerpts don't cover a focus area, say so explicitly instead of guessing."
         },
         "ui_properties": {
-          "title": "2️⃣ Build findings prompt",
+          "title": "1️⃣6️⃣ Build technical prompt",
           "position": {
-            "x": 440,
-            "y": 80
+            "x": 4280,
+            "y": 320
           },
           "zIndex": 0,
           "width": 280,
           "selectable": true
         },
         "dynamic_properties": {
+          "topic": "attention",
           "paper": "Attention Is All You Need — proposes the Transformer, a sequence model based solely on attention, achieving state-of-the-art machine translation with faster training."
         },
-        "dynamic_outputs": {}
-      },
-      {
-        "id": "5",
-        "parent_id": null,
-        "type": "nodetool.input.StringInput",
-        "data": {
-          "name": "paper",
-          "value": "\nTitle: Attention Is All You Need\n\nAbstract:\nThe dominant sequence transduction models are based on complex recurrent or convolutional neural networks.\nWe propose a new simple network architecture, the Transformer, based solely on attention mechanisms.\n\nIntroduction:\nRecurrent neural networks have long been the standard for sequence modeling tasks.\nHowever, RNNs suffer from parallelization challenges during training.\nOur approach abandons recurrence entirely and relies on attention mechanisms.\n\nMethods:\nThe Transformer architecture consists of:\n1. Multi-head self-attention layers\n2. Feed-forward networks\n3. Positional encoding\n4. Layer normalization\n\nResults:\nOur model achieves state-of-the-art results on machine translation tasks.\nThe architecture enables much faster training compared to RNNs.\nWe demonstrate superior performance on multiple benchmarks.\n\nConclusion:\nThe Transformer architecture represents a major advancement in sequence modeling.\nIt enables faster training and better parallelization.\nFuture work will explore applications beyond sequence transduction.\n",
-          "description": "Research paper text"
-        },
-        "ui_properties": {
-          "title": "1️⃣ Paper text",
-          "position": {
-            "x": 80,
-            "y": 80
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true
-        },
-        "dynamic_properties": {},
         "dynamic_outputs": {}
       },
       {
@@ -158,7 +427,7 @@
             "path": null,
             "supported_tasks": []
           },
-          "system": "You are a technical expert. Summarize research methodologies clearly.",
+          "system": "You are a technical expert. Summarize research methodologies clearly and precisely, grounded only in the excerpt(s) provided. Respond in the exact Markdown structure requested by the prompt.",
           "prompt": "",
           "image": {
             "type": "image",
@@ -177,10 +446,10 @@
           "max_tokens": 100000
         },
         "ui_properties": {
-          "title": "5️⃣ Technical summary",
+          "title": "1️⃣7️⃣ Technical summary",
           "position": {
-            "x": 800,
-            "y": 300
+            "x": 4620,
+            "y": 320
           },
           "zIndex": 0,
           "width": 280,
@@ -190,24 +459,26 @@
         "dynamic_outputs": {}
       },
       {
-        "id": "7",
+        "id": "2",
         "parent_id": null,
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "Provide a technical summary of the methodology described in this paper:\n{{ paper }}\n\nFocus on: Architecture, algorithms, and technical innovations."
+          "prompt": "# Research Digest: {{ topic }}\n\n## Key Findings\n{{ findings }}\n\n## Technical Approach\n{{ technical }}\n\n## Source\nPaper excerpt(s) matching \"{{ topic }}\" from the curated transformer paper index.\n"
         },
         "ui_properties": {
-          "title": "4️⃣ Build technical prompt",
+          "title": "1️⃣8️⃣ Assemble report",
           "position": {
-            "x": 440,
-            "y": 300
+            "x": 4960,
+            "y": 200
           },
           "zIndex": 0,
           "width": 280,
           "selectable": true
         },
         "dynamic_properties": {
-          "paper": "Attention Is All You Need — proposes the Transformer, a sequence model based solely on attention, achieving state-of-the-art machine translation with faster training."
+          "topic": "attention",
+          "findings": "The Transformer replaces recurrence with self-attention, achieving state-of-the-art translation quality with far better training parallelism.",
+          "technical": "Multi-head self-attention plus position-wise feed-forward layers, positional encodings, and layer normalization, trained without recurrence or convolution."
         },
         "dynamic_outputs": {}
       },
@@ -219,8 +490,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1560,
-            "y": 80
+            "x": 5260,
+            "y": 200
           },
           "zIndex": 0,
           "width": 280,
@@ -234,12 +505,194 @@
     ],
     "edges": [
       {
-        "id": "1",
-        "source": "5",
+        "id": "e-topic-idx-line",
+        "source": "topic",
+        "sourceHandle": "output",
+        "target": "filter-line",
+        "targetHandle": "criteria",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "e-idx-lines",
+        "source": "idx",
+        "sourceHandle": "output",
+        "target": "lines",
+        "targetHandle": "text",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "e-lines-foreach",
+        "source": "lines",
+        "sourceHandle": "output",
+        "target": "foreach-line",
+        "targetHandle": "input_list",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "e-foreach-filter",
+        "source": "foreach-line",
+        "sourceHandle": "output",
+        "target": "filter-line",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "e-filter-collect",
+        "source": "filter-line",
+        "sourceHandle": "output",
+        "target": "collect-lines",
+        "targetHandle": "input_item",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "e-collect-join",
+        "source": "collect-lines",
+        "sourceHandle": "output",
+        "target": "joined-md",
+        "targetHandle": "strings",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "e-joined-links",
+        "source": "joined-md",
+        "sourceHandle": "output",
+        "target": "links",
+        "targetHandle": "markdown",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "e-links-df",
+        "source": "links",
+        "sourceHandle": "output",
+        "target": "links-df",
+        "targetHandle": "values",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "e-df-filter",
+        "source": "links-df",
+        "sourceHandle": "output",
+        "target": "papers",
+        "targetHandle": "df",
+        "ui_properties": {
+          "className": "dataframe"
+        }
+      },
+      {
+        "id": "e-papers-urls",
+        "source": "papers",
+        "sourceHandle": "output",
+        "target": "urls",
+        "targetHandle": "dataframe",
+        "ui_properties": {
+          "className": "dataframe"
+        }
+      },
+      {
+        "id": "e-urls-foreach",
+        "source": "urls",
+        "sourceHandle": "output",
+        "target": "foreach-url",
+        "targetHandle": "input_list",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "e-foreach-fetch",
+        "source": "foreach-url",
+        "sourceHandle": "output",
+        "target": "fetch-text",
+        "targetHandle": "url",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "e-fetch-collect",
+        "source": "fetch-text",
+        "sourceHandle": "output",
+        "target": "collect-text",
+        "targetHandle": "input_item",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "e-collect-paper",
+        "source": "collect-text",
+        "sourceHandle": "output",
+        "target": "paper",
+        "targetHandle": "strings",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "e-paper-findings-prompt",
+        "source": "paper",
         "sourceHandle": "output",
         "target": "4",
         "targetHandle": "paper",
-        "ui_properties": null
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "e-paper-technical-prompt",
+        "source": "paper",
+        "sourceHandle": "output",
+        "target": "7",
+        "targetHandle": "paper",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "e-topic-findings-prompt",
+        "source": "topic",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "topic",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "e-topic-technical-prompt",
+        "source": "topic",
+        "sourceHandle": "output",
+        "target": "7",
+        "targetHandle": "topic",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "e-topic-report",
+        "source": "topic",
+        "sourceHandle": "output",
+        "target": "2",
+        "targetHandle": "topic",
+        "ui_properties": {
+          "className": "str"
+        }
       },
       {
         "id": "2",
@@ -255,14 +708,6 @@
         "sourceHandle": "text",
         "target": "2",
         "targetHandle": "findings",
-        "ui_properties": null
-      },
-      {
-        "id": "4",
-        "source": "5",
-        "sourceHandle": "output",
-        "target": "7",
-        "targetHandle": "paper",
         "ui_properties": null
       },
       {
@@ -315,7 +760,7 @@
           "type": "Text",
           "props": {
             "id": "t-tagline",
-            "text": "Extract and summarize key findings from research papers and technical documents."
+            "text": "Name a topic — get the key paper summarized in plain terms."
           }
         },
         {
@@ -333,8 +778,8 @@
                     {
                       "type": "WorkflowInput",
                       "props": {
-                        "id": "in-paper",
-                        "binding": "paper",
+                        "id": "in-topic",
+                        "binding": "topic",
                         "events": []
                       }
                     },
@@ -342,7 +787,7 @@
                       "type": "Button",
                       "props": {
                         "id": "btn-run",
-                        "label": "Run",
+                        "label": "Summarize the research",
                         "variant": "contained",
                         "color": "primary",
                         "events": [
@@ -366,6 +811,14 @@
                   "id": "panel-results",
                   "title": "Results",
                   "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Reading the paper…",
+                        "binding": ""
+                      }
+                    },
                     {
                       "type": "Markdown",
                       "props": {

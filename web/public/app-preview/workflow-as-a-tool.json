@@ -1,14 +1,15 @@
 {
-  "slug": "agent-google-search",
-  "name": "Agent Google Search",
-  "description": "Demonstrates an Agent using dynamic outputs to perform Google searches and display results.",
-  "image": "/app-preview/img/agent-google-search.jpg",
+  "slug": "workflow-as-a-tool",
+  "name": "Workflow As A Tool",
+  "description": "Composition demo: an orchestrator agent delegates to two specialist sub-agents wired in as callable tools via control edges — Research (Gemini) gathers the facts, Copy Editor (Claude) polishes the draft, and the manager (GPT-5 mini) decides when to call each. Shows how a self-contained unit of work becomes a tool another agent can invoke, all inside one graph.",
+  "featured": false,
+  "image": null,
   "app_doc": {
     "version": 2,
     "data": {
       "root": {
         "props": {
-          "title": "Agent Google Search"
+          "title": "Workflow As A Tool"
         }
       },
       "content": [
@@ -16,7 +17,7 @@
           "type": "Text",
           "props": {
             "id": "t-tagline",
-            "text": "Ask anything — an agent runs the Google searches and reports back."
+            "text": "An orchestrator agent delegates to specialist sub-agents wired in as callable tools."
           }
         },
         {
@@ -32,10 +33,18 @@
                   "title": "Try it",
                   "content": [
                     {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-topic",
+                        "binding": "topic",
+                        "events": []
+                      }
+                    },
+                    {
                       "type": "Button",
                       "props": {
                         "id": "btn-run",
-                        "label": "Search with the agent",
+                        "label": "Run the team",
                         "variant": "contained",
                         "color": "primary",
                         "events": [
@@ -60,10 +69,18 @@
                   "title": "Results",
                   "content": [
                     {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Delegating to sub-agents…",
+                        "binding": ""
+                      }
+                    },
+                    {
                       "type": "Markdown",
                       "props": {
-                        "id": "out-results",
-                        "binding": "results",
+                        "id": "out-article",
+                        "binding": "article",
                         "text": ""
                       }
                     }
@@ -78,6 +95,7 @@
     }
   },
   "values": {
-    "results": "**Top findings for “best trail running shoes 2026”:**\n\n- Runner's World crowns the Speedgoat 6 for technical terrain\n- Three independent reviews flag the Norda 005 for durability\n- Reddit threads consistently recommend sizing up half a size"
+    "topic": "The economics of home solar batteries",
+    "article": "**The quiet rise of local-first software.**\n\nResearch (Gemini) gathered the facts; a Copy Editor (Claude) tightened the prose; the manager stitched them into one draft — a composition no single agent wrote alone."
   }
 }

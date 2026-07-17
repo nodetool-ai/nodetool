@@ -1,7 +1,8 @@
 {
   "slug": "image-to-video-animation",
   "name": "Image to Video Animation",
-  "description": "Generate a high-quality still from text, then animate it into a short cinematic clip.",
+  "description": "Generate a high-quality still from text, then animate it into a short cinematic clip. Uses Veo 3.1 for the animation step, which costs more per run than image-only templates.",
+  "featured": false,
   "image": "/app-preview/img/image-to-video-animation.jpg",
   "app_doc": {
     "version": 2,
@@ -92,6 +93,14 @@
                   "title": "Results",
                   "content": [
                     {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Animating your scene…",
+                        "binding": ""
+                      }
+                    },
+                    {
                       "type": "Video",
                       "props": {
                         "id": "out-animation",
@@ -114,7 +123,7 @@
     "scene_prompt": "Moody twilight ocean scene with cinematic lighting",
     "motion_prompt": "Slow dolly push toward the horizon as waves shimmer with reflective highlights",
     "duration_prompt": "8 second dramatic reveal",
-    "negative_prompt": "no watermarks, no text overlays, maintain realistic wave motion",
+    "negative_prompt": "no watermarks, no text overlays, no jump cuts, no warped anatomy",
     "animation": {
       "$demo": "video"
     }

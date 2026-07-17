@@ -1,7 +1,8 @@
 {
   "slug": "social-media-calendar-filler",
   "name": "Social Media Calendar Filler",
-  "description": "Generate a month's worth of social media content with images, captions, and hashtags. Plans content based on monthly themes and brand guidelines.",
+  "description": "Generate a month's worth of social media content as a structured calendar — one row per post with its own image prompt and ready-to-post caption — then render an image for every row.",
+  "featured": false,
   "image": "/app-preview/img/social-media-calendar-filler.jpg",
   "app_doc": {
     "version": 2,
@@ -16,7 +17,7 @@
           "type": "Text",
           "props": {
             "id": "t-tagline",
-            "text": "Fill a month of social posts — images, captions, and hashtags included."
+            "text": "Fill a month of social posts — a structured calendar with an image for every row."
           }
         },
         {
@@ -100,6 +101,29 @@
                   "title": "Results",
                   "content": [
                     {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Filling your calendar…",
+                        "binding": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-content-calendar",
+                        "text": "Content calendar",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Json",
+                      "props": {
+                        "id": "out-content-calendar",
+                        "binding": "content_calendar"
+                      }
+                    },
+                    {
                       "type": "Heading",
                       "props": {
                         "id": "lbl-post-images",
@@ -149,6 +173,18 @@
     "target_audience": "Tech professionals, entrepreneurs, and startup founders aged 25-45",
     "brand_voice": "Professional yet approachable, educational, inspiring, data-driven",
     "posts_per_week": 4,
+    "content_calendar": [
+      {
+        "day": "Mon",
+        "hook": "Your team isn't slow. Your handoffs are.",
+        "format": "carousel"
+      },
+      {
+        "day": "Wed",
+        "hook": "We measured 30 days of context-switching.",
+        "format": "single"
+      }
+    ],
     "post_images": {
       "$demo": "image"
     },

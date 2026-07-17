@@ -1,7 +1,8 @@
 {
   "slug": "ad-creative-factory",
   "name": "Ad Creative Factory",
-  "description": "Turn one product photo and one offer into a batch of ready-to-test vertical video ads. A strategist agent plans a persona × angle test matrix, a list generator writes one spoken hook per cell, and every hook becomes a staged product scene, an animated 9:16 clip, and a voiceover mixed on top.",
+  "description": "Turn one product photo and one offer into a batch of ready-to-test vertical video ads. A strategist agent plans a persona × angle test matrix, a structured data generator emits one variant row per cell — persona, angle, and spoken hook as separate fields, not a prose blob — and every row's hook becomes a staged product scene, an animated 9:16 clip, and a voiceover mixed on top.",
+  "featured": false,
   "image": null,
   "app_doc": {
     "version": 2,
@@ -91,6 +92,14 @@
                   "id": "panel-results",
                   "title": "Results",
                   "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Cutting your ads…",
+                        "binding": ""
+                      }
+                    },
                     {
                       "type": "Heading",
                       "props": {

@@ -1,7 +1,8 @@
 {
   "slug": "cold-outreach-co-pilot",
   "name": "Cold Outreach Co-Pilot",
-  "description": "An autonomous agent researches a prospect on the web and writes a personalized cold email — opening with a real, specific detail — plus a follow-up. Personalization at scale without the copy-paste.",
+  "description": "An autonomous agent researches a prospect on the web and drafts a personalized cold email — opening with a real, specific detail — as structured fields (subject, body, follow-up) instead of one prose blob, ready to drop straight into a CRM or email tool.",
+  "featured": false,
   "image": "/app-preview/img/cold-outreach-co-pilot.jpg",
   "app_doc": {
     "version": 2,
@@ -76,6 +77,14 @@
                   "title": "Results",
                   "content": [
                     {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Researching your prospect…",
+                        "binding": ""
+                      }
+                    },
+                    {
                       "type": "Heading",
                       "props": {
                         "id": "lbl-company-summary",
@@ -110,16 +119,48 @@
                     {
                       "type": "Heading",
                       "props": {
-                        "id": "lbl-personalized-email",
-                        "text": "Your email, ready to send",
+                        "id": "lbl-subject",
+                        "text": "Subject line",
                         "level": "3"
                       }
                     },
                     {
                       "type": "Markdown",
                       "props": {
-                        "id": "out-personalized-email",
-                        "binding": "personalized_email",
+                        "id": "out-subject",
+                        "binding": "subject",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-body",
+                        "text": "Email body",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-body",
+                        "binding": "body",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-follow-up",
+                        "text": "Follow-up",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-follow-up",
+                        "binding": "follow_up",
                         "text": ""
                       }
                     }
@@ -138,6 +179,8 @@
     "Your Offer": "We build NodeTool - a Creative AI workspace.",
     "company_summary": "**AtlasCloud** — Series B infra startup, ~120 people. Just launched a managed Postgres product; hiring 8 platform engineers.",
     "pain_points": "- Docs mention manual failover runbooks\n- Careers page hints at on-call fatigue\n- CTO tweeted about “yak-shaving in CI” last week",
-    "personalized_email": "**Subject: that CI yak-shave your CTO tweeted about**\n\nHi Sara — saw Marcus's thread on CI pipelines eating platform time. We build NodeTool, a visual AI workspace teams use to automate exactly that class of glue work…"
+    "subject": "that CI yak-shave your CTO tweeted about",
+    "body": "Hi Sara — saw Marcus's thread on CI pipelines eating platform time. We build NodeTool, a visual AI workspace teams use to automate exactly that class of glue work…",
+    "follow_up": "Circling back — happy to send a 2-minute Loom of the failover runbook automation if it's useful."
   }
 }

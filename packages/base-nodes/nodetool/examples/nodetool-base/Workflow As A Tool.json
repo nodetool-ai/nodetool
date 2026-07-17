@@ -1,0 +1,350 @@
+{
+  "id": "b098b88d-614a-4f74-8023-57a392fed616",
+  "access": "public",
+  "created_at": "2026-07-17T09:00:00.000Z",
+  "updated_at": "2026-07-17T09:00:00.000Z",
+  "name": "Workflow As A Tool",
+  "tool_name": null,
+  "description": "Composition demo: an orchestrator agent delegates to two specialist sub-agents wired in as callable tools via control edges — Research (Gemini) gathers the facts, Copy Editor (Claude) polishes the draft, and the manager (GPT-5 mini) decides when to call each. Shows how a self-contained unit of work becomes a tool another agent can invoke, all inside one graph.",
+  "tags": [
+    "agents",
+    "composition",
+    "tools",
+    "orchestration"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "comment-intro",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# 🧩 Workflow As A Tool\n\nThe **orchestrator** (center) is an agent that owns the goal but does none of the specialist work itself. Two other agents are wired to it with **control edges** — the dashed connections into their `__control__` port — which turns each one into a *callable tool*. The orchestrator invokes them by name, passing a task string, and reads back their result.\n\n**Why this shape:** each specialist is a small, self-contained workflow with its own model and system prompt. Exposing it as a tool lets you compose capabilities instead of hard-wiring a fixed pipeline — the manager decides *whether* and *in what order* to call research and editing.\n\n**Cross-workflow version:** a workflow saved with `run_mode: \"tool\"` and a `tool_name` can be called from a *different* graph by adding its name to an agent's Tools list. That needs two saved workflows, so this single-file example uses control edges to show the same idea in one place.\n\n**Try this:** change the topic, or edit the orchestrator's system prompt to call only one specialist."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 40,
+            "y": -260
+          },
+          "zIndex": 0,
+          "width": 520,
+          "height": 300,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "topic_input",
+        "parent_id": null,
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "topic",
+          "value": "The economics of home solar batteries",
+          "description": "Subject the orchestrator should research and write a short explainer about."
+        },
+        "ui_properties": {
+          "selected": false,
+          "title": "1️⃣ Topic",
+          "position": {
+            "x": 40,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "brief",
+        "parent_id": null,
+        "type": "nodetool.text.Prompt",
+        "data": {
+          "prompt": "Write a concise, accurate explainer (250-350 words) about the following subject:\n\n{{ topic }}\n\nProcess:\n1. Call the research_specialist tool with a focused question about this subject to gather current facts, figures, and context.\n2. Draft the explainer yourself using those facts. Do not invent numbers — rely on what research returns.\n3. Call the copy_editor tool with your draft to tighten the prose and fix tone.\n4. Return the copy editor's polished version as the final answer, as Markdown."
+        },
+        "ui_properties": {
+          "selected": false,
+          "title": "2️⃣ Objective",
+          "position": {
+            "x": 40,
+            "y": 320
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {
+          "topic": null
+        },
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "orchestrator",
+        "parent_id": null,
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
+          },
+          "tools": [],
+          "max_tokens": 16000,
+          "mode": "loop",
+          "prompt": "",
+          "system": "You are an editorial manager who coordinates specialists rather than doing everything yourself.\n\nYou have two tools, each a specialist agent:\n- research_specialist — give it a single, focused question. It returns facts, figures, and context. Use it before drafting; never invent data.\n- copy_editor — give it a full draft. It returns a tighter, cleaner version. Use it once, on your finished draft.\n\nProcess for every task:\n1. Read the objective and decide what to research.\n2. Call research_specialist with one clear question (pass only the `prompt` argument).\n3. Draft the piece yourself from the returned facts.\n4. Call copy_editor with your draft (pass only the `prompt` argument).\n5. Return the copy editor's polished text verbatim as your final answer.\n\nKeep the final answer in Markdown. Do not describe your tool calls in the answer — just deliver the finished piece."
+        },
+        "ui_properties": {
+          "selected": false,
+          "title": "3️⃣ Orchestrator",
+          "position": {
+            "x": 440,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "research_specialist",
+        "parent_id": null,
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model",
+            "provider": "gemini",
+            "id": "gemini-3.5-flash",
+            "name": "Gemini 3.5 Flash",
+            "path": null,
+            "supported_tasks": []
+          },
+          "tools": [],
+          "max_tokens": 8000,
+          "mode": "loop",
+          "prompt": "",
+          "system": "You are a research specialist. Given a question, return the most relevant facts, figures, comparisons, and context a writer would need — as a compact bulleted brief, not prose. State plainly when something is an estimate or varies by region. Do not write the final article; supply the raw material for it."
+        },
+        "ui_properties": {
+          "selected": false,
+          "title": "🔧 Tool: Research (Gemini)",
+          "position": {
+            "x": 840,
+            "y": 40
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "copy_editor",
+        "parent_id": null,
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model",
+            "provider": "anthropic",
+            "id": "claude-sonnet-5",
+            "name": "Claude Sonnet 5",
+            "path": null,
+            "supported_tasks": []
+          },
+          "tools": [],
+          "max_tokens": 8000,
+          "mode": "loop",
+          "prompt": "",
+          "system": "You are a copy editor. Given a draft, return a polished version: tighten wording, fix grammar and flow, remove hedging and filler, and keep the author's meaning and facts unchanged. Do not add new claims or numbers. Return only the edited text in Markdown, nothing else."
+        },
+        "ui_properties": {
+          "selected": false,
+          "title": "🔧 Tool: Copy Editor (Claude)",
+          "position": {
+            "x": 840,
+            "y": 400
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "output-article",
+        "parent_id": null,
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "article"
+        },
+        "ui_properties": {
+          "selected": false,
+          "title": "4️⃣ Final article",
+          "position": {
+            "x": 1240,
+            "y": 200
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "edge-topic-brief",
+        "source": "topic_input",
+        "sourceHandle": "output",
+        "target": "brief",
+        "targetHandle": "topic",
+        "ui_properties": null
+      },
+      {
+        "id": "edge-brief-orchestrator",
+        "source": "brief",
+        "sourceHandle": "output",
+        "target": "orchestrator",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "edge-control-research",
+        "source": "orchestrator",
+        "sourceHandle": "__control__",
+        "target": "research_specialist",
+        "targetHandle": "__control__",
+        "edge_type": "control",
+        "ui_properties": null
+      },
+      {
+        "id": "edge-control-editor",
+        "source": "orchestrator",
+        "sourceHandle": "__control__",
+        "target": "copy_editor",
+        "targetHandle": "__control__",
+        "edge_type": "control",
+        "ui_properties": null
+      },
+      {
+        "id": "edge-orchestrator-output",
+        "source": "orchestrator",
+        "sourceHandle": "text",
+        "target": "output-article",
+        "targetHandle": "value",
+        "ui_properties": null
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null,
+  "required_providers": null,
+  "required_models": null,
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Workflow As A Tool"
+        }
+      },
+      "content": [
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "An orchestrator agent delegates to specialist sub-agents wired in as callable tools."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-topic",
+                        "binding": "topic",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Run the team",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Delegating to sub-agents…",
+                        "binding": ""
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-article",
+                        "binding": "article",
+                        "text": ""
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
+}

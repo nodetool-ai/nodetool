@@ -1,11 +1,11 @@
 {
   "id": "",
   "access": "private",
-  "created_at": "2026-06-20T20:37:16.758Z",
-  "updated_at": "2026-06-22T12:00:00.000Z",
-  "name": "Creative Story Ideas",
+  "created_at": "2026-07-17T00:00:00.000Z",
+  "updated_at": "2026-07-17T00:00:00.000Z",
+  "name": "Prompt Template",
   "tool_name": null,
-  "description": "A beginner-friendly template demonstrating core NodeTool concepts: inputs, templates, LLM agents, streaming, and outputs. Generate creative story ideas based on your preferences.",
+  "description": "The starter pattern behind almost every NodeTool workflow: typed inputs fill a reusable prompt template, an LLM answers it, the output renders. Explains a topic for any audience — swap the prompt to reuse the pattern for anything.",
   "tags": [
     "start",
     "beginner",
@@ -18,21 +18,32 @@
   "graph": {
     "edges": [
       {
-        "id": "9afc4cec-d75c-4e96-bd12-a59e1daddfdd",
-        "source": "input_character",
+        "id": "e_topic_to_prompt",
+        "source": "input_topic",
         "sourceHandle": "output",
-        "target": "8132bc91-b872-4976-8bbf-b3548eff3b06",
-        "targetHandle": "character",
+        "target": "prompt_template",
+        "targetHandle": "topic",
         "ui_properties": {
           "className": "str"
         },
         "edge_type": "data"
       },
       {
-        "id": "13e055f9-e4f9-4b71-993b-5bb05322a880",
-        "source": "8132bc91-b872-4976-8bbf-b3548eff3b06",
+        "id": "e_audience_to_prompt",
+        "source": "input_audience",
         "sourceHandle": "output",
-        "target": "list_generator",
+        "target": "prompt_template",
+        "targetHandle": "audience",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "e_prompt_to_llm",
+        "source": "prompt_template",
+        "sourceHandle": "output",
+        "target": "llm",
         "targetHandle": "prompt",
         "ui_properties": {
           "className": "str"
@@ -40,21 +51,10 @@
         "edge_type": "data"
       },
       {
-        "id": "4db2e527-5002-4cf9-a2c5-7ebfac318164",
-        "source": "input_genre",
-        "sourceHandle": "output",
-        "target": "8132bc91-b872-4976-8bbf-b3548eff3b06",
-        "targetHandle": "genre",
-        "ui_properties": {
-          "className": "str"
-        },
-        "edge_type": "data"
-      },
-      {
-        "id": "e_ideas_output",
-        "source": "list_generator",
-        "sourceHandle": "item",
-        "target": "ideas_output",
+        "id": "e_llm_to_output",
+        "source": "llm",
+        "sourceHandle": "text",
+        "target": "explanation_output",
         "targetHandle": "value",
         "ui_properties": {
           "className": "str"
@@ -67,72 +67,97 @@
         "id": "comment_tutorial",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 💡 Creative Story Ideas\n\nTurn a genre and character into 5 fresh story ideas, streamed one at a time.\n\n**Pipeline:** Genre + Character → fill template → List Generator\n\n**Try this:** edit the inputs or rewrite the template to ask for different fields (mood, length, ending). Pick a model on the generator first."
+          "comment": "# 📝 Prompt Template\n\nThe pattern behind most NodeTool workflows: **Input → Prompt template → LLM → Output**.\n\n- **Inputs** collect typed values (here: two strings) that the person running the app fills in.\n- **Prompt template** is a Jinja string with `{{ placeholders }}` — it separates *what varies* (the inputs) from *what stays fixed* (your instructions), so you can restyle the whole task without touching the graph.\n- **LLM** (the Agent node) reads the filled-in prompt and answers. It has no tools attached — that's what makes it a plain LLM call instead of a research agent.\n- **Output** exposes the LLM's answer to the app UI.\n\n**Try this:** change Topic and Audience, or rewrite the prompt template to ask for something else entirely (a recipe, a code review, a bedtime story) — the shape of the graph never has to change."
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": -500,
+            "x": -520,
+            "y": 40
+          },
+          "zIndex": 0,
+          "width": 480,
+          "height": 320,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "input_topic",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "Topic",
+          "description": "The concept to explain (e.g., Photosynthesis, Compound Interest, Black Holes)",
+          "value": "Photosynthesis"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 60
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "1️⃣ Topic",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "input_audience",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "Audience",
+          "description": "Who the explanation is for (e.g., curious 10-year-old, first-year med student, busy executive)",
+          "value": "curious 10-year-old"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 320
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "2️⃣ Audience",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "prompt_template",
+        "type": "nodetool.text.Prompt",
+        "data": {
+          "prompt": "Explain the following topic so that the given audience genuinely understands it.\n\nTopic: {{ topic }}\nAudience: {{ audience }}\n\nWrite your explanation in exactly four parts, in this order:\n1. **In one sentence** — the core idea, no jargon.\n2. **Analogy** — compare it to something the audience already knows.\n3. **Example** — a concrete, everyday instance of it in action.\n4. **Common misconception** — one thing people often get wrong about it, corrected.\n\nMatch your vocabulary and tone to the audience. Keep the whole answer under 200 words."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 390,
             "y": 50
           },
           "zIndex": 0,
-          "width": 460,
-          "height": 240,
+          "width": 340,
+          "height": 380,
+          "title": "3️⃣ Fill template",
           "selectable": true,
           "bypassed": false
         },
-        "dynamic_properties": {},
+        "dynamic_properties": {
+          "topic": "Photosynthesis",
+          "audience": "curious 10-year-old"
+        },
         "dynamic_outputs": {}
       },
       {
-        "id": "input_genre",
-        "type": "nodetool.input.StringInput",
-        "data": {
-          "name": "Genre",
-          "description": "The genre of your story (e.g., Fantasy, Sci-Fi, Mystery, Romance)",
-          "value": "Fantasy"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 50,
-            "y": 85
-          },
-          "zIndex": 0,
-          "width": 280,
-          "title": "1️⃣ Genre",
-          "selectable": true,
-          "bypassed": false
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
-      },
-      {
-        "id": "input_character",
-        "type": "nodetool.input.StringInput",
-        "data": {
-          "name": "Character Type",
-          "description": "The type of main character (e.g., Wizard, Detective, Astronaut, Chef)",
-          "value": "Reluctant Hero"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 50,
-            "y": 365
-          },
-          "zIndex": 0,
-          "width": 280,
-          "title": "2️⃣ Main character",
-          "selectable": true,
-          "bypassed": false
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
-      },
-      {
-        "id": "list_generator",
-        "type": "nodetool.generators.ListGenerator",
+        "id": "llm",
+        "type": "nodetool.agents.Agent",
         "data": {
           "model": {
             "type": "language_model",
@@ -142,18 +167,18 @@
             "path": null,
             "supported_tasks": []
           },
-          "max_tokens": 100000
+          "system": "You are a patient, precise teacher. You tailor explanations exactly to the stated audience, use the requested structure, and never pad your answer with filler like \"great question\" or restating the prompt."
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 740,
+            "x": 800,
             "y": 65
           },
           "zIndex": 0,
-          "width": 405,
-          "height": 449,
-          "title": "4️⃣ Generate 5 ideas",
+          "width": 320,
+          "height": 380,
+          "title": "4️⃣ Ask the LLM",
           "selectable": true,
           "bypassed": false
         },
@@ -161,35 +186,10 @@
         "dynamic_outputs": {}
       },
       {
-        "id": "8132bc91-b872-4976-8bbf-b3548eff3b06",
-        "type": "nodetool.text.Prompt",
-        "data": {
-          "prompt": "Generate 5 creative story ideas with the following criteria:\n\nGenre: {{ genre }}\nMain Character: {{ character }}\n\nFor each story idea, provide:\n1. A catchy title\n2. A two-sentence premise\n3. One unique twist or hook\n\nMake each idea distinct and engaging!"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 390,
-            "y": 50
-          },
-          "zIndex": 0,
-          "width": 320,
-          "height": 449,
-          "title": "3️⃣ Fill template",
-          "selectable": true,
-          "bypassed": false
-        },
-        "dynamic_properties": {
-          "genre": "Fantasy",
-          "character": "Reluctant Hero"
-        },
-        "dynamic_outputs": {}
-      },
-      {
-        "id": "ideas_output",
+        "id": "explanation_output",
         "type": "nodetool.output.Output",
         "data": {
-          "name": "Ideas"
+          "name": "Explanation"
         },
         "ui_properties": {
           "position": {
@@ -198,7 +198,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "Ideas",
+          "title": "Explanation",
           "selectable": true,
           "bypassed": false
         },
@@ -217,13 +217,13 @@
   "required_providers": null,
   "required_models": null,
   "html_app": null,
-  "etag": "7257ac13540fb7071a32ea91226d7c8e",
+  "etag": null,
   "app_doc": {
     "version": 2,
     "data": {
       "root": {
         "props": {
-          "title": "Creative Story Ideas"
+          "title": "Prompt Template"
         }
       },
       "content": [
@@ -231,7 +231,7 @@
           "type": "Text",
           "props": {
             "id": "t-tagline",
-            "text": "A beginner-friendly template demonstrating core NodeTool concepts: inputs, templates, LLM agents, streaming, and outputs"
+            "text": "The starter pattern: typed inputs fill a prompt, an LLM answers, the output renders."
           }
         },
         {
@@ -249,16 +249,16 @@
                     {
                       "type": "WorkflowInput",
                       "props": {
-                        "id": "in-genre",
-                        "binding": "Genre",
+                        "id": "in-topic",
+                        "binding": "Topic",
                         "events": []
                       }
                     },
                     {
                       "type": "WorkflowInput",
                       "props": {
-                        "id": "in-character-type",
-                        "binding": "Character Type",
+                        "id": "in-audience",
+                        "binding": "Audience",
                         "events": []
                       }
                     },
@@ -266,7 +266,7 @@
                       "type": "Button",
                       "props": {
                         "id": "btn-run",
-                        "label": "Run",
+                        "label": "Explain it",
                         "variant": "contained",
                         "color": "primary",
                         "events": [
@@ -293,8 +293,8 @@
                     {
                       "type": "Markdown",
                       "props": {
-                        "id": "out-ideas",
-                        "binding": "Ideas",
+                        "id": "out-explanation",
+                        "binding": "Explanation",
                         "text": ""
                       }
                     }

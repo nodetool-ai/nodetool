@@ -5,7 +5,7 @@
   "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Audio To Image",
   "tool_name": null,
-  "description": "Transform spoken descriptions into images with this workflow. Record or upload audio, which is transcribed by Whisper and then visualized by Stable Diffusion. Perfect for quickly generating images from verbal ideas without typing.",
+  "description": "Speak an image into existence: no keyboard needed. Whisper transcribes your audio, then FLUX renders the description as an image — the whole pipeline runs from a single voice note.",
   "tags": [
     "huggingface",
     "multimodal",
@@ -247,6 +247,14 @@
                   "id": "panel-results",
                   "title": "Results",
                   "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Listening & painting…",
+                        "binding": ""
+                      }
+                    },
                     {
                       "type": "Image",
                       "props": {

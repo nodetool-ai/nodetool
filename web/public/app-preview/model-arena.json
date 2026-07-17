@@ -1,7 +1,7 @@
 {
-  "slug": "podcast-repurposing-studio",
-  "name": "Podcast Repurposing Studio",
-  "description": "Drop in one podcast episode and ship the whole content pack: episode titles and show notes, a newsletter edition, five social posts, and quote cards rendered as square images. Whisper transcribes once; four writer branches fan out from the transcript.",
+  "slug": "model-arena",
+  "name": "Model Arena",
+  "description": "One brief, three frontier models, answered side by side. The same prompt fans out to OpenAI, Anthropic, and Google in a single pass, each answering in the same structure — so you compare reasoning, not formatting. Swap the model on any lane to build your own bracket.",
   "featured": false,
   "image": null,
   "app_doc": {
@@ -9,7 +9,7 @@
     "data": {
       "root": {
         "props": {
-          "title": "Podcast Repurposing Studio"
+          "title": "Model Arena"
         }
       },
       "content": [
@@ -17,7 +17,7 @@
           "type": "Text",
           "props": {
             "id": "t-tagline",
-            "text": "One episode in — show notes, a newsletter, social posts, and quote cards out."
+            "text": "One brief, three frontier models, answered side by side."
           }
         },
         {
@@ -35,24 +35,16 @@
                     {
                       "type": "WorkflowInput",
                       "props": {
-                        "id": "in-episode-audio",
-                        "binding": "episode_audio",
+                        "id": "in-brief",
+                        "binding": "brief",
                         "events": []
                       }
                     },
                     {
                       "type": "WorkflowInput",
                       "props": {
-                        "id": "in-show-context",
-                        "binding": "show_context",
-                        "events": []
-                      }
-                    },
-                    {
-                      "type": "WorkflowInput",
-                      "props": {
-                        "id": "in-quote-count",
-                        "binding": "quote_count",
+                        "id": "in-context",
+                        "binding": "context",
                         "events": []
                       }
                     },
@@ -60,7 +52,7 @@
                       "type": "Button",
                       "props": {
                         "id": "btn-run",
-                        "label": "Repurpose my episode",
+                        "label": "Compare the models",
                         "variant": "contained",
                         "color": "primary",
                         "events": [
@@ -88,74 +80,56 @@
                       "type": "Progress",
                       "props": {
                         "id": "progress-run",
-                        "label": "Repurposing your episode…",
+                        "label": "Asking three models…",
                         "binding": ""
                       }
                     },
                     {
                       "type": "Heading",
                       "props": {
-                        "id": "lbl-show-notes",
-                        "text": "Show notes",
+                        "id": "lbl-openai",
+                        "text": "OpenAI",
                         "level": "3"
                       }
                     },
                     {
                       "type": "Markdown",
                       "props": {
-                        "id": "out-show-notes",
-                        "binding": "show_notes",
+                        "id": "out-openai",
+                        "binding": "openai",
                         "text": ""
                       }
                     },
                     {
                       "type": "Heading",
                       "props": {
-                        "id": "lbl-newsletter",
-                        "text": "Newsletter",
+                        "id": "lbl-anthropic",
+                        "text": "Anthropic",
                         "level": "3"
                       }
                     },
                     {
                       "type": "Markdown",
                       "props": {
-                        "id": "out-newsletter",
-                        "binding": "newsletter",
+                        "id": "out-anthropic",
+                        "binding": "anthropic",
                         "text": ""
                       }
                     },
                     {
                       "type": "Heading",
                       "props": {
-                        "id": "lbl-social-posts",
-                        "text": "Social posts",
+                        "id": "lbl-gemini",
+                        "text": "Google",
                         "level": "3"
                       }
                     },
                     {
                       "type": "Markdown",
                       "props": {
-                        "id": "out-social-posts",
-                        "binding": "social_posts",
+                        "id": "out-gemini",
+                        "binding": "gemini",
                         "text": ""
-                      }
-                    },
-                    {
-                      "type": "Heading",
-                      "props": {
-                        "id": "lbl-quote-cards",
-                        "text": "Quote cards",
-                        "level": "3"
-                      }
-                    },
-                    {
-                      "type": "Image",
-                      "props": {
-                        "id": "out-quote-cards",
-                        "binding": "quote_cards",
-                        "fit": "contain",
-                        "height": 280,
-                        "placeholder": "Your result appears here"
                       }
                     }
                   ]
@@ -169,13 +143,10 @@
     }
   },
   "values": {
-    "show_context": "Trailhead — a weekly hiking and outdoor-gear podcast hosted by Maya. Voice: warm, practical, a little irreverent. CTA: subscribe and grab the free gear checklist at trailhead.fm",
-    "quote_count": 4,
-    "show_notes": "**Ep. 42 — Ultralight, Ultra-Right**\nMaya breaks down the 5 lb base-weight myth, when titanium is worth it, and the one luxury item every guest keeps.",
-    "newsletter": "**This week on Trailhead:** the gear-weight episode everyone's been asking for. Maya's take: your fear costs you more ounces than your stove…",
-    "social_posts": "1. Your backpack isn't heavy. Your worst-case-scenario planning is. 🎒 New ep out now.\n2. “Titanium is a lifestyle, not a metal.” — this week's guest",
-    "quote_cards": {
-      "$demo": "image"
-    }
+    "brief": "Should a 12-person B2B SaaS startup build its own customer-facing analytics dashboard, or integrate a third-party embedded-analytics vendor, for its reporting feature? Ship target is one quarter out.",
+    "context": "Audience: the founding team (technical). Constraints: 2 engineers can be spared for 6 weeks; weak reporting is a top-3 reason prospects churn; tooling budget is about $2k/month.",
+    "openai": "**OpenAI (gpt-5-mini):** Leads with a crisp 3-point structure, hedges on the edge case, ships a concrete next step.",
+    "anthropic": "**Anthropic (Claude):** Longer reasoning, names the tradeoff explicitly, flags one risk the others miss.",
+    "gemini": "**Google (Gemini):** Tightest answer, strongest on the factual recall, lightest on caveats."
   }
 }

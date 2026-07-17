@@ -5,7 +5,7 @@
   "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Social Media Calendar Filler",
   "tool_name": null,
-  "description": "Generate a month's worth of social media content with images, captions, and hashtags. Plans content based on monthly themes and brand guidelines.",
+  "description": "Generate a month's worth of social media content as a structured calendar — one row per post with its own image prompt and ready-to-post caption — then render an image for every row.",
   "tags": [
     "content",
     "social media",
@@ -62,85 +62,55 @@
       {
         "id": "e7",
         "source": "content_plan",
-        "sourceHandle": "text",
-        "target": "content_generator",
-        "targetHandle": "plan"
+        "sourceHandle": "dataframe",
+        "target": "output-content-calendar",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "dataframe"
+        },
+        "edge_type": "data"
       },
       {
         "id": "e8",
-        "source": "brand_voice",
-        "sourceHandle": "output",
-        "target": "content_generator",
-        "targetHandle": "voice"
+        "source": "content_plan",
+        "sourceHandle": "dataframe",
+        "target": "extract_image_prompts",
+        "targetHandle": "dataframe",
+        "ui_properties": {
+          "className": "dataframe"
+        },
+        "edge_type": "data"
       },
       {
         "id": "e9",
-        "source": "monthly_theme",
-        "sourceHandle": "output",
-        "target": "content_generator",
-        "targetHandle": "theme"
+        "source": "content_plan",
+        "sourceHandle": "dataframe",
+        "target": "extract_captions",
+        "targetHandle": "dataframe",
+        "ui_properties": {
+          "className": "dataframe"
+        },
+        "edge_type": "data"
       },
       {
         "id": "e10",
-        "source": "content_generator",
+        "source": "extract_image_prompts",
         "sourceHandle": "output",
-        "target": "post_prompts",
-        "targetHandle": "prompt"
-      },
-      {
-        "id": "e11",
-        "source": "post_prompts",
-        "sourceHandle": "item",
         "target": "prompt_iterator",
         "targetHandle": "input_list"
       },
       {
-        "id": "e12",
+        "id": "e11",
         "source": "prompt_iterator",
         "sourceHandle": "output",
         "target": "post_image",
         "targetHandle": "prompt"
       },
       {
-        "id": "e13",
+        "id": "e12",
         "source": "post_image",
         "sourceHandle": "output",
         "target": "collected_images",
-        "targetHandle": "input_item"
-      },
-      {
-        "id": "e14",
-        "source": "content_plan",
-        "sourceHandle": "text",
-        "target": "caption_generator",
-        "targetHandle": "plan"
-      },
-      {
-        "id": "e15",
-        "source": "brand_name",
-        "sourceHandle": "output",
-        "target": "caption_generator",
-        "targetHandle": "brand"
-      },
-      {
-        "id": "e16",
-        "source": "brand_voice",
-        "sourceHandle": "output",
-        "target": "caption_generator",
-        "targetHandle": "voice"
-      },
-      {
-        "id": "e17",
-        "source": "caption_generator",
-        "sourceHandle": "output",
-        "target": "captions",
-        "targetHandle": "prompt"
-      },
-      {
-        "id": "e18",
-        "source": "captions",
-        "sourceHandle": "item",
-        "target": "collected_captions",
         "targetHandle": "input_item"
       },
       {
@@ -153,7 +123,7 @@
       },
       {
         "id": "edge-output-captions",
-        "source": "collected_captions",
+        "source": "extract_captions",
         "sourceHandle": "output",
         "target": "output-captions",
         "targetHandle": "value",
@@ -165,7 +135,7 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 📅 Social Media Calendar Filler\n\nTurn a brand brief into a month of posts: an agent plans the calendar, then images and captions are generated per post.\n\n**Pipeline:** Brand inputs → Plan calendar → Post prompts → Image + Caption per post\n\n**Try this:** change posts-per-week or brand voice, or swap the image model."
+          "comment": "# 📅 Social Media Calendar Filler\n\nTurn a brand brief into a month of posts: one agent call plans the whole calendar as structured rows (day, post type, image prompt, caption) — not a prose blob — then each row's image prompt renders an image and its caption ships as-is.\n\n**Pipeline:** Brand inputs → Plan calendar (structured dataframe) → Extract image prompts / captions per row → Image per post\n\n**Try this:** change posts-per-week or brand voice, or swap the image model. Open the calendar table output to see every row before images render."
         },
         "ui_properties": {
           "selected": false,
@@ -175,7 +145,7 @@
           },
           "zIndex": 0,
           "width": 460,
-          "height": 180,
+          "height": 200,
           "selectable": true,
           "bypassed": false
         },
@@ -298,7 +268,7 @@
         "id": "calendar_prompt",
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": ""
+          "prompt": "You are a social media content planner for {{brand}}.\n\nBrand voice: {{voice}}\nTarget audience: {{audience}}\nMonthly theme: {{theme}}\nPosting frequency: {{frequency}} posts per week\n\nPlan a full 4-week content calendar — {{frequency}} posts per week times 4 weeks, one row per post. For every post decide:\n- day: the week and day it goes out, e.g. \"Week 1, Monday\"\n- post_type: the format, e.g. tip, behind-the-scenes, customer story, product feature, poll\n- image_prompt: a vivid, specific text-to-image prompt describing the visual — describe subject, scene, and style; no brand names or logos in the prompt\n- caption: the ready-to-post caption in the brand voice, tied to the monthly theme, ending with 3-5 relevant hashtags\n\nRules:\n- Vary post_type across the month; never repeat the same type on two consecutive posts.\n- Every image_prompt must be visually distinct from every other row.\n- Every caption must speak directly to {{audience}}.\n- No placeholder text, no commentary outside the rows."
         },
         "ui_properties": {
           "selected": false,
@@ -307,7 +277,7 @@
             "y": 320
           },
           "zIndex": 0,
-          "width": 280,
+          "width": 300,
           "selectable": true,
           "bypassed": false,
           "title": "6️⃣ Build calendar prompt"
@@ -323,7 +293,7 @@
       },
       {
         "id": "content_plan",
-        "type": "nodetool.agents.Agent",
+        "type": "nodetool.generators.DataGenerator",
         "data": {
           "model": {
             "type": "language_model",
@@ -333,68 +303,104 @@
             "path": null,
             "supported_tasks": []
           },
-          "system": "You are a social media strategist."
+          "input_text": "",
+          "max_tokens": 8192,
+          "columns": {
+            "type": "record_type",
+            "columns": [
+              {
+                "name": "day",
+                "data_type": "string",
+                "description": "Week and day this post goes out, e.g. 'Week 1, Monday'"
+              },
+              {
+                "name": "post_type",
+                "data_type": "string",
+                "description": "Content format, e.g. 'behind-the-scenes' or 'customer story'"
+              },
+              {
+                "name": "image_prompt",
+                "data_type": "string",
+                "description": "Text-to-image prompt describing this post's visual"
+              },
+              {
+                "name": "caption",
+                "data_type": "string",
+                "description": "Ready-to-post caption in the brand voice, ending with hashtags"
+              }
+            ]
+          }
         },
         "ui_properties": {
           "position": {
-            "x": 670,
-            "y": 312
+            "x": 700,
+            "y": 320
           },
           "zIndex": 0,
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "7️⃣ Plan calendar"
+          "title": "7️⃣ Plan calendar (structured rows)"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
       },
       {
-        "id": "content_generator",
-        "type": "nodetool.text.Prompt",
-        "data": {},
+        "id": "output-content-calendar",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "content_calendar"
+        },
         "ui_properties": {
           "position": {
-            "x": 1010,
-            "y": 679
+            "x": 1040,
+            "y": 40
           },
           "zIndex": 0,
           "width": 280,
+          "title": "8️⃣ View calendar table",
           "selectable": true,
-          "bypassed": false,
-          "title": "8️⃣ Build image-prompt request"
+          "bypassed": false
         },
-        "dynamic_properties": {
-          "plan": "Week 1: launch teaser, productivity tip, customer story, feature highlight.",
-          "voice": "Professional yet approachable, educational, inspiring, data-driven",
-          "theme": "AI productivity tools and workflow automation"
-        },
+        "dynamic_properties": {},
         "dynamic_outputs": {}
       },
       {
-        "id": "post_prompts",
-        "type": "nodetool.generators.ListGenerator",
+        "id": "extract_image_prompts",
+        "type": "nodetool.data.ExtractColumn",
         "data": {
-          "model": {
-            "type": "language_model",
-            "provider": "openai",
-            "id": "gpt-5-mini",
-            "name": "GPT-5 mini",
-            "path": null,
-            "supported_tasks": []
-          },
-          "max_tokens": 100000
+          "column_name": "image_prompt"
         },
         "ui_properties": {
           "position": {
-            "x": 1320,
-            "y": 720
+            "x": 1040,
+            "y": 320
           },
           "zIndex": 0,
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "9️⃣ Write post prompts"
+          "title": "9️⃣ Extract image prompts"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "extract_captions",
+        "type": "nodetool.data.ExtractColumn",
+        "data": {
+          "column_name": "caption"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1040,
+            "y": 600
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false,
+          "title": "Extract captions & hashtags"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -405,8 +411,8 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 1630,
-            "y": 764
+            "x": 1350,
+            "y": 320
           },
           "zIndex": 0,
           "width": 280,
@@ -436,8 +442,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1940,
-            "y": 678
+            "x": 1660,
+            "y": 280
           },
           "zIndex": 0,
           "width": 384,
@@ -455,85 +461,14 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 2250,
-            "y": 792
+            "x": 2080,
+            "y": 400
           },
           "zIndex": 0,
           "width": 280,
           "selectable": true,
           "bypassed": false,
           "title": "Collect images"
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
-      },
-      {
-        "id": "caption_generator",
-        "type": "nodetool.text.Prompt",
-        "data": {
-          "prompt": ""
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 1010,
-            "y": 85
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true,
-          "bypassed": false,
-          "title": "Build caption prompt"
-        },
-        "dynamic_properties": {
-          "plan": "Week 1: launch teaser, productivity tip, customer story, feature highlight.",
-          "brand": "TechStartup Pro",
-          "voice": "Professional yet approachable, educational, inspiring, data-driven"
-        },
-        "dynamic_outputs": {}
-      },
-      {
-        "id": "captions",
-        "type": "nodetool.generators.ListGenerator",
-        "data": {
-          "model": {
-            "type": "language_model",
-            "provider": "openai",
-            "id": "gpt-5-mini",
-            "name": "GPT-5 mini",
-            "path": null,
-            "supported_tasks": []
-          },
-          "max_tokens": 100000
-        },
-        "ui_properties": {
-          "position": {
-            "x": 1320,
-            "y": 126
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true,
-          "bypassed": false,
-          "title": "Write captions"
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
-      },
-      {
-        "id": "collected_captions",
-        "type": "nodetool.control.Collect",
-        "data": {},
-        "ui_properties": {
-          "position": {
-            "x": 1630,
-            "y": 198
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true,
-          "bypassed": false,
-          "title": "Collect captions"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -546,8 +481,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2570,
-            "y": 792
+            "x": 2400,
+            "y": 400
           },
           "selectable": true
         }
@@ -560,75 +495,16 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1950,
-            "y": 198
+            "x": 1350,
+            "y": 600
           },
           "selectable": true
         }
       }
     ]
   },
-  "input_schema": {
-    "type": "object",
-    "properties": {
-      "brand_name": {
-        "type": "string",
-        "default": "TechStartup Pro",
-        "label": ""
-      },
-      "monthly_theme": {
-        "type": "string",
-        "default": "AI productivity tools and workflow automation",
-        "label": ""
-      },
-      "target_audience": {
-        "type": "string",
-        "default": "Tech professionals, entrepreneurs, and startup founders aged 25-45",
-        "label": ""
-      },
-      "brand_voice": {
-        "type": "string",
-        "default": "Professional yet approachable, educational, inspiring, data-driven",
-        "label": ""
-      },
-      "posts_per_week": {
-        "type": "integer",
-        "minimum": 1,
-        "maximum": 7,
-        "default": 4,
-        "label": ""
-      }
-    },
-    "required": [
-      "brand_name",
-      "monthly_theme",
-      "target_audience",
-      "brand_voice",
-      "posts_per_week"
-    ]
-  },
-  "output_schema": {
-    "type": "object",
-    "properties": {
-      "post_images": {
-        "type": "any",
-        "label": ""
-      },
-      "captions_and_hashtags": {
-        "type": "any",
-        "label": ""
-      },
-      "content_calendar": {
-        "type": "any",
-        "label": ""
-      }
-    },
-    "required": [
-      "post_images",
-      "captions_and_hashtags",
-      "content_calendar"
-    ]
-  },
+  "input_schema": null,
+  "output_schema": null,
   "settings": {},
   "package_name": "nodetool-base",
   "path": null,
@@ -648,7 +524,7 @@
           "type": "Text",
           "props": {
             "id": "t-tagline",
-            "text": "Fill a month of social posts — images, captions, and hashtags included."
+            "text": "Fill a month of social posts — a structured calendar with an image for every row."
           }
         },
         {
@@ -731,6 +607,29 @@
                   "id": "panel-results",
                   "title": "Results",
                   "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Filling your calendar…",
+                        "binding": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-content-calendar",
+                        "text": "Content calendar",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Json",
+                      "props": {
+                        "id": "out-content-calendar",
+                        "binding": "content_calendar"
+                      }
+                    },
                     {
                       "type": "Heading",
                       "props": {

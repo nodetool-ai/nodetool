@@ -1,7 +1,8 @@
 {
   "slug": "image-to-audio-story",
   "name": "Image To Audio Story",
-  "description": "Generate and narrate creative stories from images using AI",
+  "description": "Upload any photo and a vision agent narrates a spoken story about it — one image in, one audio clip out",
+  "featured": false,
   "image": "/app-preview/img/image-to-audio-story.jpg",
   "app_doc": {
     "version": 2,
@@ -32,6 +33,14 @@
                   "title": "Try it",
                   "content": [
                     {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-image",
+                        "binding": "image",
+                        "events": []
+                      }
+                    },
+                    {
                       "type": "Button",
                       "props": {
                         "id": "btn-run",
@@ -59,6 +68,14 @@
                   "id": "panel-results",
                   "title": "Results",
                   "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Writing & narrating…",
+                        "binding": ""
+                      }
+                    },
                     {
                       "type": "Audio",
                       "props": {

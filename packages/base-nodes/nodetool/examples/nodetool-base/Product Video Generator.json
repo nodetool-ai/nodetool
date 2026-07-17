@@ -5,7 +5,7 @@
   "updated_at": "2026-06-21T16:55:51.256Z",
   "name": "Product Video Generator",
   "tool_name": null,
-  "description": "Create a realistic 16:9 marketing video for a new product launch using the ImageToVideo node.",
+  "description": "Turn a campaign brief, audience, features, and a product photo into a realistic 16:9 launch video — an agent writes the motion prompt, then Veo animates the shot. Cost note: Veo is a paid per-second video model, so this run costs noticeably more than an image-only template.",
   "tags": [
     "business",
     "data",
@@ -107,7 +107,7 @@
         "id": "comment-1",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎬 AI Product Launch Video Generator\n\nTurn a campaign brief and product image into a cinematic launch clip. A prompt node combines your inputs, an agent writes an image-to-video prompt, then an Image-to-Video model animates the product shot.\n\n**Pipeline:** Brief + Audience + Features + Image → Prompt → Agent → Image-to-Video\n\n**Try this:** choose a language model and video model, then swap the product image or rewrite the agent's system prompt for a different tone."
+          "comment": "# 🎬 AI Product Launch Video Generator\n\nTurn a campaign brief and product image into a cinematic launch clip. A prompt node combines your inputs, an agent writes an image-to-video prompt, then an Image-to-Video model animates the product shot.\n\n**Pipeline:** Brief + Audience + Features + Image → Build prompt → Write video prompt (agent) → Animate video\n\n**Try this:** choose a language model and video model, then swap the product image or rewrite the agent's system prompt for a different tone.\n\n**Cost note:** the animation step runs on Veo 3.1, a paid per-second video model — each run costs noticeably more than an image-only template."
         },
         "ui_properties": {
           "position": {
@@ -138,7 +138,7 @@
           "zIndex": 0,
           "width": 486,
           "height": 567,
-          "title": "4️⃣ Build prompt",
+          "title": "5️⃣ Build prompt",
           "selectable": true,
           "bypassed": false
         },
@@ -161,7 +161,7 @@
             "path": null,
             "supported_tasks": []
           },
-          "system": "You are a prompt engineer for video models.",
+          "system": "You are a prompt engineer specializing in image-to-video generation models.\n\nTask: read the campaign brief, target audience, and key features, then rewrite them as a single production-ready image-to-video prompt for the attached product photo.\n\nOutput format: plain text, one paragraph, no markdown, no headers, no lists, no preamble. Return only the finished prompt.",
           "audio": {
             "type": "audio",
             "uri": "",
@@ -181,7 +181,7 @@
           "zIndex": 0,
           "width": 457,
           "height": 429,
-          "title": "5️⃣ Write video prompt",
+          "title": "6️⃣ Write video prompt",
           "selectable": true,
           "bypassed": false
         },
@@ -263,7 +263,7 @@
             "uri": "/api/storage/4a816f674eda4358b8140c50917ae78e.bin",
             "type": "image"
           },
-          "description": ""
+          "description": "Product photo to animate into the launch video"
         },
         "ui_properties": {
           "position": {
@@ -272,6 +272,7 @@
           },
           "zIndex": 0,
           "width": 280,
+          "title": "4️⃣ Product image",
           "selectable": true,
           "bypassed": false
         },
@@ -305,6 +306,7 @@
           "zIndex": 0,
           "width": 739,
           "height": 453,
+          "title": "7️⃣ Animate product video",
           "selectable": true,
           "bypassed": false,
           "selected_generation": "2059791e2f4e44e29db7d3424ab0ee18"
@@ -427,6 +429,14 @@
                   "id": "panel-results",
                   "title": "Results",
                   "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Producing your spot…",
+                        "binding": ""
+                      }
+                    },
                     {
                       "type": "Video",
                       "props": {

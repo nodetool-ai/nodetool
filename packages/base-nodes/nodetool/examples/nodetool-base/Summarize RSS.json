@@ -5,7 +5,7 @@
   "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Summarize RSS",
   "tool_name": null,
-  "description": "",
+  "description": "Turn any RSS feed into a topic-grouped digest — point it at a new URL and get headlines organized by theme, not a flat list.",
   "tags": [],
   "thumbnail": null,
   "thumbnail_url": null,
@@ -16,7 +16,7 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 📡 Summarize RSS\n\nFetch an RSS feed, gather the headlines, and summarize what's new.\n\n**Pipeline:** RSS feed → collect titles → summarize\n\n**Try this:** point it at your favorite feed or change the summary length."
+          "comment": "# 📡 Summarize RSS\n\nFetch an RSS feed, gather the headlines, and produce a digest grouped by topic.\n\n**Pipeline:** Feed URL (input) → fetch RSS feed → collect titles → group + summarize by topic\n\n**Try this:** swap the feed URL for any other RSS feed to get a fresh digest."
         },
         "ui_properties": {
           "selected": false,
@@ -33,6 +33,29 @@
         "dynamic_outputs": {}
       },
       {
+        "id": "input-feed-url",
+        "parent_id": null,
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "feed_url",
+          "description": "The RSS feed to fetch and summarize.",
+          "value": "https://feeds.bbci.co.uk/news/world/europe/rss.xml"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 20,
+            "y": 403
+          },
+          "zIndex": 0,
+          "width": 220,
+          "title": "1️⃣ Feed URL",
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "3fd0dc61-7a0f-4a2d-900a-cbbbd35ddfcc",
         "parent_id": null,
         "type": "lib.rss.FetchRSSFeed",
@@ -42,13 +65,13 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 266,
+            "x": 286,
             "y": 403
           },
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "1️⃣ Fetch RSS feed"
+          "title": "2️⃣ Fetch RSS feed"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -63,13 +86,13 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 576,
+            "x": 596,
             "y": 460
           },
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "2️⃣ Collect titles"
+          "title": "3️⃣ Collect titles"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -79,7 +102,7 @@
         "parent_id": null,
         "type": "nodetool.agents.Summarizer",
         "data": {
-          "system_prompt": "\n        You are an expert summarizer. Your task is to create clear, accurate, and concise summaries using Markdown for structuring. \n        Follow these guidelines:\n        1. Identify and include only the most important information.\n        2. Maintain factual accuracy - do not add or modify information.\n        3. Use clear, direct language.\n        4. Aim for approximately {self.max_tokens} tokens.\n        ",
+          "system_prompt": "You are a news editor producing a topic-grouped digest from a list of raw headlines separated by '---'.\n\nFollow these steps:\n1. Read every headline and infer its topic (e.g. Politics, Conflict & Security, Economy, Science & Health, Culture, Other).\n2. Group headlines under 2-6 topic sections — merge sparse topics into \"Other\" rather than creating single-headline sections.\n3. Do not invent facts, dates, or details beyond what the headline states.\n4. Keep each headline to one line; do not summarize sentences, only organize them.\n\nOutput format (Markdown):\n## <Topic>\n- <headline>\n- <headline>\n\nRepeat one section per topic. Aim for approximately {self.max_tokens} tokens.",
           "model": {
             "type": "language_model",
             "provider": "openai",
@@ -93,13 +116,13 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 886,
+            "x": 906,
             "y": 329
           },
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "3️⃣ Summarize"
+          "title": "4️⃣ Group + summarize by topic"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -112,7 +135,7 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1206,
+            "x": 1226,
             "y": 329
           },
           "selectable": true
@@ -120,6 +143,16 @@
       }
     ],
     "edges": [
+      {
+        "id": "edge-feed-url",
+        "source": "input-feed-url",
+        "sourceHandle": "output",
+        "target": "3fd0dc61-7a0f-4a2d-900a-cbbbd35ddfcc",
+        "targetHandle": "url",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
       {
         "id": "291768e5-6f8f-4c37-b3e7-00a466d48aea",
         "source": "3fd0dc61-7a0f-4a2d-900a-cbbbd35ddfcc",
@@ -171,7 +204,7 @@
           "type": "Text",
           "props": {
             "id": "t-tagline",
-            "text": "Your feeds, read for you — one click for a clean daily brief."
+            "text": "Your feed, read for you — paste a URL, get a clean daily brief."
           }
         },
         {
@@ -186,6 +219,14 @@
                   "id": "panel-try",
                   "title": "Try it",
                   "content": [
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-feed-url",
+                        "binding": "feed_url",
+                        "events": []
+                      }
+                    },
                     {
                       "type": "Button",
                       "props": {
@@ -214,6 +255,14 @@
                   "id": "panel-results",
                   "title": "Results",
                   "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Reading your feed…",
+                        "binding": ""
+                      }
+                    },
                     {
                       "type": "Markdown",
                       "props": {

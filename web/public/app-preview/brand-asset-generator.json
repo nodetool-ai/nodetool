@@ -1,7 +1,8 @@
 {
   "slug": "brand-asset-generator",
   "name": "Brand Asset Generator",
-  "description": "Generate brand assets for a given brand.",
+  "description": "Turn a brand name and vibe into a whole social kit in one run: the graph fans out to two branches at once — a streamed gallery of four on-brand, text-overlaid social images (Instagram, LinkedIn, X, product launch) and a one-page brand brief (voice, palette, tagline options). Differentiator: structured multi-asset outputs from a single fan-out graph. Uses fal-ai flux/schnell for images (paid) and gpt-5-mini for text.",
+  "featured": true,
   "image": "/app-preview/img/brand-asset-generator.jpg",
   "app_doc": {
     "version": 2,
@@ -34,14 +35,6 @@
                     {
                       "type": "WorkflowInput",
                       "props": {
-                        "id": "in-tagline",
-                        "binding": "tagline",
-                        "events": []
-                      }
-                    },
-                    {
-                      "type": "WorkflowInput",
-                      "props": {
                         "id": "in-brand-name",
                         "binding": "brand_name",
                         "events": []
@@ -50,16 +43,24 @@
                     {
                       "type": "WorkflowInput",
                       "props": {
-                        "id": "in-primary-color",
-                        "binding": "primary_color",
+                        "id": "in-brand-description",
+                        "binding": "brand_description",
                         "events": []
                       }
                     },
                     {
                       "type": "WorkflowInput",
                       "props": {
-                        "id": "in-brand-description",
-                        "binding": "brand_description",
+                        "id": "in-tagline",
+                        "binding": "tagline",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-primary-color",
+                        "binding": "primary_color",
                         "events": []
                       }
                     },
@@ -92,13 +93,45 @@
                   "title": "Results",
                   "content": [
                     {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Designing your assets…",
+                        "binding": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-social-assets",
+                        "text": "Your brand assets",
+                        "level": "3"
+                      }
+                    },
+                    {
                       "type": "Image",
                       "props": {
-                        "id": "out-brand-asset",
-                        "binding": "brand_asset",
+                        "id": "out-social-assets",
+                        "binding": "social_assets",
                         "fit": "contain",
                         "height": 280,
                         "placeholder": "Your result appears here"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-brand-brief",
+                        "text": "Brand brief",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-brand-brief",
+                        "binding": "brand_brief",
+                        "text": ""
                       }
                     }
                   ]
@@ -112,11 +145,12 @@
     }
   },
   "values": {
-    "tagline": "Streamline Your Workflow",
-    "brand_name": "TechFlow",
-    "brand_description": "A modern tech startup focused on productivity tools. Clean, minimal aesthetic with futuristic vibes.",
-    "brand_asset": {
+    "brand_name": "Aurora Labs",
+    "brand_description": "A climate-tech startup building friendly home-energy tools. Warm, optimistic and human, where nature meets precision engineering.",
+    "tagline": "Power that gives back",
+    "social_assets": {
       "$demo": "image"
-    }
+    },
+    "brand_brief": "**Aurora Labs — brand direction.** Warm, optimistic, human. Nature meets precision engineering. Voice: friendly and confident, never corporate. Palette anchored on `#2F8F6B`."
   }
 }

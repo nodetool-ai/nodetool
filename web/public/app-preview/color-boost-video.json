@@ -1,7 +1,8 @@
 {
   "slug": "color-boost-video",
   "name": "Color Boost Video",
-  "description": "Grade a short video clip by splitting it into frames, applying exposure/contrast and saturation/vibrance adjustments per frame, then reassembling the result for cinematic color.",
+  "description": "Grade a video by splitting it into frames, applying exposure/contrast and saturation/vibrance adjustments per frame, then reassembling the result — differentiator: bring your own clip and a single Grading Intensity slider drives the saturation pass live, no per-node tweaking.",
+  "featured": false,
   "image": "/app-preview/img/color-boost-video.jpg",
   "app_doc": {
     "version": 2,
@@ -16,7 +17,7 @@
           "type": "Text",
           "props": {
             "id": "t-tagline",
-            "text": "Give any clip a cinematic color grade — no editor required."
+            "text": "Give any clip a cinematic color grade — drag one slider, watch it apply."
           }
         },
         {
@@ -31,6 +32,34 @@
                   "id": "panel-try",
                   "title": "Try it",
                   "content": [
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-source-video",
+                        "binding": "source_video",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-grading-intensity",
+                        "binding": "grading_intensity",
+                        "label": "Grading intensity",
+                        "min": 0,
+                        "max": 1,
+                        "step": 0.05,
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "run",
+                            "pace": "release",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    },
                     {
                       "type": "Button",
                       "props": {
@@ -60,6 +89,14 @@
                   "title": "Results",
                   "content": [
                     {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Grading every frame…",
+                        "binding": ""
+                      }
+                    },
+                    {
                       "type": "Video",
                       "props": {
                         "id": "out-graded-video",
@@ -79,6 +116,7 @@
     }
   },
   "values": {
+    "grading_intensity": 0.5,
     "graded_video": {
       "$demo": "video"
     }

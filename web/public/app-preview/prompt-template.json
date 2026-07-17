@@ -1,14 +1,15 @@
 {
-  "slug": "youtube-research-agent",
-  "name": "YouTube Research Agent",
-  "description": "Search YouTube using SerpAPI and analyze results with Claude Agent for deep research insights.",
-  "image": "/app-preview/img/youtube-research-agent.jpg",
+  "slug": "prompt-template",
+  "name": "Prompt Template",
+  "description": "The starter pattern behind almost every NodeTool workflow: typed inputs fill a reusable prompt template, an LLM answers it, the output renders. Explains a topic for any audience — swap the prompt to reuse the pattern for anything.",
+  "featured": false,
+  "image": null,
   "app_doc": {
     "version": 2,
     "data": {
       "root": {
         "props": {
-          "title": "YouTube Research Agent"
+          "title": "Prompt Template"
         }
       },
       "content": [
@@ -16,7 +17,7 @@
           "type": "Text",
           "props": {
             "id": "t-tagline",
-            "text": "An agent scours YouTube and distills what actually matters."
+            "text": "The starter pattern: typed inputs fill a prompt, an LLM answers, the output renders."
           }
         },
         {
@@ -32,10 +33,26 @@
                   "title": "Try it",
                   "content": [
                     {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-topic",
+                        "binding": "Topic",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-audience",
+                        "binding": "Audience",
+                        "events": []
+                      }
+                    },
+                    {
                       "type": "Button",
                       "props": {
                         "id": "btn-run",
-                        "label": "Run the research",
+                        "label": "Explain it",
                         "variant": "contained",
                         "color": "primary",
                         "events": [
@@ -62,8 +79,8 @@
                     {
                       "type": "Markdown",
                       "props": {
-                        "id": "out-research",
-                        "binding": "research",
+                        "id": "out-explanation",
+                        "binding": "Explanation",
                         "text": ""
                       }
                     }
@@ -78,6 +95,8 @@
     }
   },
   "values": {
-    "research": "**Top creators covering “AI agents” this month:**\n- Fireship's explainer (2.1M views) — best beginner framing\n- Three long-form deep dives all cite the same benchmark\n- Gap found: nobody covers deployment costs"
+    "Topic": "Photosynthesis",
+    "Audience": "curious 10-year-old",
+    "Explanation": "**Photosynthesis, for a curious 10-year-old:** plants are tiny chefs. They take sunlight, water, and the air you breathe out, and cook it into sugar — their food. The leftover? The oxygen *you* breathe in."
   }
 }

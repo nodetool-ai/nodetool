@@ -1,7 +1,8 @@
 {
   "slug": "movie-posters",
   "name": "Movie Posters",
-  "description": "Create cinematic movie posters using AI image generation",
+  "description": "Turn a title, genre, and visual style into finished theatrical one-sheet posters. An art-direction agent first writes a key-art brief (positioning, palette, typography), which drives every generated poster — the differentiator is the agent-authored creative strategy, not a raw prompt.",
+  "featured": true,
   "image": "/app-preview/img/movie-posters.jpg",
   "app_doc": {
     "version": 2,
@@ -16,7 +17,7 @@
           "type": "Text",
           "props": {
             "id": "t-tagline",
-            "text": "Create cinematic movie posters using AI image generation"
+            "text": "One title, one genre, one style — get a finished movie poster."
           }
         },
         {
@@ -40,18 +41,48 @@
                       }
                     },
                     {
-                      "type": "WorkflowInput",
+                      "type": "Select",
                       "props": {
                         "id": "in-genre",
                         "binding": "Genre",
+                        "label": "Genre",
+                        "options": [
+                          {
+                            "value": "Sci-Fi Thriller"
+                          },
+                          {
+                            "value": "Action"
+                          },
+                          {
+                            "value": "Horror"
+                          },
+                          {
+                            "value": "Fantasy"
+                          },
+                          {
+                            "value": "Neo-noir"
+                          },
+                          {
+                            "value": "Romance"
+                          },
+                          {
+                            "value": "Comedy"
+                          },
+                          {
+                            "value": "Drama"
+                          },
+                          {
+                            "value": "Documentary"
+                          }
+                        ],
                         "events": []
                       }
                     },
                     {
                       "type": "WorkflowInput",
                       "props": {
-                        "id": "in-primary-audience",
-                        "binding": "Primary Audience",
+                        "id": "in-visual-style",
+                        "binding": "Visual Style",
                         "events": []
                       }
                     },
@@ -59,7 +90,7 @@
                       "type": "Button",
                       "props": {
                         "id": "btn-run",
-                        "label": "Run",
+                        "label": "Make my poster",
                         "variant": "contained",
                         "color": "primary",
                         "events": [
@@ -84,11 +115,21 @@
                   "title": "Results",
                   "content": [
                     {
-                      "type": "Markdown",
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Designing your poster…",
+                        "binding": ""
+                      }
+                    },
+                    {
+                      "type": "Image",
                       "props": {
                         "id": "out-poster",
                         "binding": "Poster",
-                        "text": ""
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
                       }
                     }
                   ]
@@ -103,8 +144,8 @@
   },
   "values": {
     "Movie Title": "Singularity",
-    "Genre": "Sci-Fi",
-    "Primary Audience": "AI Enthusiasts",
+    "Genre": "Sci-Fi Thriller",
+    "Visual Style": "Neo-noir, high-contrast, cinematic",
     "Poster": {
       "$demo": "image"
     }

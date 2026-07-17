@@ -1,7 +1,8 @@
 {
   "slug": "music-video-visualizer",
   "name": "Music Video Visualizer",
-  "description": "Create reactive visuals from audio tracks with mood-matched imagery. Transcribes audio, analyzes mood/energy, and generates visual frames synced to the music.",
+  "description": "Turn any song into a mood-matched music video. Whisper transcribes the lyrics, an LLM creative director reads the emotional arc, writes one image prompt per frame, FLUX renders every frame, and they are stitched back to your original audio. Differentiator: a full transcribe → analyze → fan-out → render → reassemble media pipeline in a single graph — no chat box can do this. Cost note: generates one image per frame (default 8) plus a Whisper transcription, so a run costs several fal-ai calls.",
+  "featured": true,
   "image": "/app-preview/img/music-video-visualizer.jpg",
   "app_doc": {
     "version": 2,
@@ -91,6 +92,14 @@
                   "id": "panel-results",
                   "title": "Results",
                   "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Matching visuals to your track…",
+                        "binding": ""
+                      }
+                    },
                     {
                       "type": "Video",
                       "props": {

@@ -5,7 +5,7 @@
   "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Photo Enhancement Suite",
   "tool_name": null,
-  "description": "Batch enhance photos with AI-powered improvements including color correction and upscaling.",
+  "description": "Batch-enhance a list of photos through a fixed retouch chain — auto-contrast, color, sharpening, and an AI cinematic-grade pass — with no folder path required, just drop images in.",
   "tags": [
     "image",
     "photo",
@@ -19,7 +19,7 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 📷 Photo Enhancement Suite\n\nBatch-enhance a folder of photos through a fixed retouch chain: auto-contrast, color, brightness, sharpening, and an AI polish pass.\n\n**Pipeline:** Folder → Auto-contrast → Color/Brightness → Sharpen → AI enhance\n\n**Try this:** adjust the brightness and color factors to taste."
+          "comment": "# 📷 Photo Enhancement Suite\n\nBatch-enhance a list of photos through a fixed retouch chain: auto-contrast, color, brightness, sharpening, and an AI polish pass.\n\n**Pipeline:** Photo list → Auto-contrast → Color/Brightness → Sharpen → AI enhance → Collect\n\n**Try this:** add a few photos and adjust the brightness and color factors to taste."
         },
         "ui_properties": {
           "selected": false,
@@ -43,7 +43,9 @@
         "data": {
           "input_item": []
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "8️⃣ Collect enhanced batch"
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {}
       },
@@ -193,22 +195,13 @@
       {
         "id": "9",
         "parent_id": null,
-        "type": "nodetool.image.LoadImageFolder",
+        "type": "nodetool.control.ForEach",
         "data": {
-          "folder": "",
-          "include_subdirectories": false,
-          "extensions": [
-            ".png",
-            ".jpg",
-            ".jpeg",
-            ".bmp",
-            ".webp",
-            ".tiff"
-          ],
-          "pattern": ""
+          "input_list": [],
+          "limit": -1
         },
         "ui_properties": {
-          "title": "1️⃣ Load photos"
+          "title": "1️⃣ Iterate photos"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -216,14 +209,14 @@
       {
         "id": "10",
         "parent_id": null,
-        "type": "nodetool.input.FolderPathInput",
+        "type": "nodetool.input.ImageListInput",
         "data": {
-          "name": "image_folder",
-          "value": "./photos",
-          "description": "Folder containing photos to enhance"
+          "name": "photos",
+          "value": [],
+          "description": "Photos to enhance. Add one or more images directly — no folder path or upload step required."
         },
         "ui_properties": {
-          "title": "Photo folder path"
+          "title": "Photos to enhance"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -263,35 +256,10 @@
         "dynamic_outputs": {}
       },
       {
-        "id": "14",
-        "parent_id": null,
-        "type": "nodetool.control.Collect",
-        "data": {
-          "input_item": []
-        },
-        "ui_properties": {},
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
-      },
-      {
         "id": "output-enhanced-photos",
         "type": "nodetool.output.Output",
         "data": {
           "name": "enhanced_photos"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 320,
-            "y": 0
-          },
-          "selectable": true
-        }
-      },
-      {
-        "id": "output-upscaled-photos",
-        "type": "nodetool.output.Output",
-        "data": {
-          "name": "upscaled_photos"
         },
         "ui_properties": {
           "position": {
@@ -308,13 +276,13 @@
         "source": "10",
         "sourceHandle": "output",
         "target": "9",
-        "targetHandle": "folder",
+        "targetHandle": "input_list",
         "ui_properties": null
       },
       {
         "id": "2",
         "source": "9",
-        "sourceHandle": "image",
+        "sourceHandle": "output",
         "target": "8",
         "targetHandle": "image",
         "ui_properties": null
@@ -384,26 +352,10 @@
         "ui_properties": null
       },
       {
-        "id": "12",
-        "source": "9",
-        "sourceHandle": "path",
-        "target": "14",
-        "targetHandle": "input_item",
-        "ui_properties": null
-      },
-      {
         "id": "edge-output-enhanced-photos",
         "source": "2",
         "sourceHandle": "output",
         "target": "output-enhanced-photos",
-        "targetHandle": "value",
-        "ui_properties": null
-      },
-      {
-        "id": "edge-output-upscaled-photos",
-        "source": "14",
-        "sourceHandle": "output",
-        "target": "output-upscaled-photos",
         "targetHandle": "value",
         "ui_properties": null
       }
@@ -430,7 +382,7 @@
           "type": "Text",
           "props": {
             "id": "t-tagline",
-            "text": "Batch-enhance a whole folder of photos — color, brightness, upscaling."
+            "text": "Batch-enhance a set of photos — tune brightness and color, run the whole retouch chain."
           }
         },
         {
@@ -448,25 +400,49 @@
                     {
                       "type": "WorkflowInput",
                       "props": {
-                        "id": "in-image-folder",
-                        "binding": "image_folder",
+                        "id": "in-photos",
+                        "binding": "photos",
                         "events": []
                       }
                     },
                     {
-                      "type": "WorkflowInput",
+                      "type": "Slider",
                       "props": {
-                        "id": "in-brightness-adjust",
+                        "id": "slider-brightness-adjust",
                         "binding": "brightness_adjust",
-                        "events": []
+                        "label": "Brightness",
+                        "min": 0.5,
+                        "max": 1.5,
+                        "step": 0.05,
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "run",
+                            "pace": "release",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
                       }
                     },
                     {
-                      "type": "WorkflowInput",
+                      "type": "Slider",
                       "props": {
-                        "id": "in-color-boost",
+                        "id": "slider-color-boost",
                         "binding": "color_boost",
-                        "events": []
+                        "label": "Color boost",
+                        "min": 0,
+                        "max": 2,
+                        "step": 0.05,
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "run",
+                            "pace": "release",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
                       }
                     },
                     {
@@ -498,11 +474,11 @@
                   "title": "Results",
                   "content": [
                     {
-                      "type": "Heading",
+                      "type": "Progress",
                       "props": {
-                        "id": "lbl-enhanced-photos",
-                        "text": "Enhanced",
-                        "level": "3"
+                        "id": "progress-run",
+                        "label": "Retouching each photo…",
+                        "binding": ""
                       }
                     },
                     {
@@ -510,24 +486,6 @@
                       "props": {
                         "id": "out-enhanced-photos",
                         "binding": "enhanced_photos",
-                        "fit": "contain",
-                        "height": 280,
-                        "placeholder": "Your result appears here"
-                      }
-                    },
-                    {
-                      "type": "Heading",
-                      "props": {
-                        "id": "lbl-upscaled-photos",
-                        "text": "Upscaled",
-                        "level": "3"
-                      }
-                    },
-                    {
-                      "type": "Image",
-                      "props": {
-                        "id": "out-upscaled-photos",
-                        "binding": "upscaled_photos",
                         "fit": "contain",
                         "height": 280,
                         "placeholder": "Your result appears here"

@@ -2,10 +2,10 @@
   "id": "image_enhance",
   "access": "private",
   "created_at": "2026-02-16T11:38:28.263651",
-  "updated_at": "2026-06-22T12:00:00.000Z",
+  "updated_at": "2026-07-17T12:00:00.000Z",
   "name": "Image Enhance",
   "tool_name": null,
-  "description": "Improve image quality with basic enhancement tools like sharpening, contrast and color adjustment",
+  "description": "A live photo editor: five GPU filters chained into one pipeline, each exposing a numeric property the app binds to a slider. Drag Denoise, Brightness, Contrast, Saturation, and Sharpen and the preview updates in place — the filters run in-browser, so there is no model, no API key, and no per-run cost.",
   "tags": [
     "image",
     "start",
@@ -16,29 +16,54 @@
   "graph": {
     "edges": [
       {
-        "id": "b2247412-d88e-4c79-95aa-95ff9120575f",
-        "source": "9d8850a4-c20f-4698-9cb4-e315c956aee6",
-        "sourceHandle": "output",
-        "target": "4c9c6b63-646a-4da9-8794-abd180c59041",
-        "targetHandle": "image"
-      },
-      {
-        "id": "94d6bbc3-1127-441c-8dfb-94a1b7e12e4b",
+        "id": "edge-input-denoise",
         "source": "0c458df1-e2b2-4662-a9aa-00f2ceaae799",
         "sourceHandle": "output",
-        "target": "9d8850a4-c20f-4698-9cb4-e315c956aee6",
+        "target": "denoise-node",
         "targetHandle": "image",
         "ui_properties": {
           "className": "image"
         }
       },
       {
-        "id": "edge-output-enhanced-image",
-        "source": "4c9c6b63-646a-4da9-8794-abd180c59041",
+        "id": "edge-denoise-tone",
+        "source": "denoise-node",
+        "sourceHandle": "output",
+        "target": "tone-node",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "edge-tone-color",
+        "source": "tone-node",
+        "sourceHandle": "output",
+        "target": "color-node",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "edge-color-sharpen",
+        "source": "color-node",
+        "sourceHandle": "output",
+        "target": "sharpen-node",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        }
+      },
+      {
+        "id": "edge-sharpen-output",
+        "source": "sharpen-node",
         "sourceHandle": "output",
         "target": "output-enhanced-image",
         "targetHandle": "value",
-        "ui_properties": null
+        "ui_properties": {
+          "className": "image"
+        }
       }
     ],
     "nodes": [
@@ -46,61 +71,19 @@
         "id": "97876",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# ✨ Image Enhance\n\nQuick image cleanup: sharpen edges, then auto-balance contrast.\n\n**Pipeline:** Image → Unsharp Mask → Auto Contrast\n\n**Try this:** tune the sharpen amount or contrast cutoff. For upscaling, look at the Replicate image nodes."
+          "comment": "# ✨ Image Enhance — a live photo editor\n\nFive GPU filters in a row: **Denoise → Brightness/Contrast → Saturation → Sharpen**. Each filter exposes plain numeric properties (amount, radius, contrast…), so the mini app binds one slider to each and the preview re-renders as you drag.\n\n**Why it's a graph, not a prompt:** the whole chain runs on the GPU in the browser. No LLM, no API key, no per-run cost — which is what makes real-time slider feedback possible. Reorder the filters, add a Vignette or Hue shift, and the app picks up the new controls automatically.\n\n**Defaults** give a gentle all-round lift; push Sharpen and Contrast for punch, or raise Denoise to clean up a noisy phone shot before sharpening."
         },
         "ui_properties": {
           "selected": false,
           "position": {
             "x": 11,
-            "y": -310
+            "y": -300
           },
           "zIndex": 0,
-          "width": 734,
-          "height": 274,
+          "width": 900,
+          "height": 250,
           "selectable": true,
           "bypassed": false
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
-      },
-      {
-        "id": "9d8850a4-c20f-4698-9cb4-e315c956aee6",
-        "type": "lib.image.filter.UnsharpMask",
-        "data": {
-          "amount": 1
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 360,
-            "y": 131
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true,
-          "bypassed": false,
-          "title": "2️⃣ Sharpen"
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
-      },
-      {
-        "id": "4c9c6b63-646a-4da9-8794-abd180c59041",
-        "type": "lib.image.enhance.AutoContrast",
-        "data": {
-          "cutoff": 108
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 670,
-            "y": 113
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true,
-          "bypassed": false,
-          "title": "3️⃣ Auto contrast"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -115,7 +98,7 @@
             "uri": "/api/storage/31cadd9e065711f1818000006beef284.png"
           },
           "name": "image",
-          "description": "The source image to enhance"
+          "description": "The photo to enhance. Ships with a demo image so Run works immediately — drop in your own JPEG or PNG to edit it."
         },
         "ui_properties": {
           "selected": false,
@@ -124,10 +107,112 @@
             "y": 71
           },
           "zIndex": 0,
-          "width": 280,
+          "width": 260,
           "selectable": true,
           "bypassed": false,
-          "title": "1️⃣ Load image"
+          "title": "1️⃣ Source photo"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "denoise-node",
+        "type": "lib.image.filter.GaussianBlur",
+        "data": {
+          "radius": 0,
+          "sigma": 0,
+          "properties": {
+            "radius": 0
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 300,
+            "y": 90
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "bypassed": false,
+          "title": "2️⃣ Denoise (radius)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "tone-node",
+        "type": "lib.image.color.BrightnessContrast",
+        "data": {
+          "brightness": 0.04,
+          "contrast": 1.2,
+          "properties": {
+            "brightness": 0.05,
+            "contrast": 1.15
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 580,
+            "y": 90
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "bypassed": false,
+          "title": "3️⃣ Brightness & contrast"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "color-node",
+        "type": "lib.image.color.HSB",
+        "data": {
+          "hue": 0,
+          "saturation": 1.2,
+          "brightness": 1,
+          "properties": {
+            "saturation": 1.2
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 860,
+            "y": 90
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "bypassed": false,
+          "title": "4️⃣ Saturation & hue"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "sharpen-node",
+        "type": "lib.image.filter.UnsharpMask",
+        "data": {
+          "amount": 1,
+          "threshold": 0.02,
+          "properties": {
+            "amount": 1
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1140,
+            "y": 90
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "bypassed": false,
+          "title": "5️⃣ Sharpen (amount)"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -140,10 +225,11 @@
         },
         "ui_properties": {
           "position": {
-            "x": 990,
-            "y": 113
+            "x": 1420,
+            "y": 100
           },
-          "selectable": true
+          "selectable": true,
+          "title": "Enhanced image"
         }
       }
     ]
@@ -179,13 +265,13 @@
   "output_schema": {
     "type": "object",
     "properties": {
-      "enhanced": {
+      "enhanced_image": {
         "type": "any",
         "label": ""
       }
     },
     "required": [
-      "enhanced"
+      "enhanced_image"
     ]
   },
   "settings": {},
@@ -210,7 +296,7 @@
           "type": "Text",
           "props": {
             "id": "t-tagline",
-            "text": "Sharper, brighter, cleaner — enhance any photo in one click."
+            "text": "A live photo editor: drag Denoise, Brightness, Contrast, Saturation, and Sharpen — the preview re-renders on release."
           }
         },
         {
@@ -231,6 +317,106 @@
                         "id": "in-image",
                         "binding": "image",
                         "events": []
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-denoise-node-radius",
+                        "binding": "node:denoise-node#radius",
+                        "label": "Denoise",
+                        "min": 0,
+                        "max": 16,
+                        "step": 0.5,
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "run",
+                            "pace": "release",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-tone-node-brightness",
+                        "binding": "node:tone-node#brightness",
+                        "label": "Brightness",
+                        "min": -1,
+                        "max": 1,
+                        "step": 0.05,
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "run",
+                            "pace": "release",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-tone-node-contrast",
+                        "binding": "node:tone-node#contrast",
+                        "label": "Contrast",
+                        "min": 0,
+                        "max": 4,
+                        "step": 0.05,
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "run",
+                            "pace": "release",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-color-node-saturation",
+                        "binding": "node:color-node#saturation",
+                        "label": "Saturation",
+                        "min": 0,
+                        "max": 4,
+                        "step": 0.05,
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "run",
+                            "pace": "release",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-sharpen-node-amount",
+                        "binding": "node:sharpen-node#amount",
+                        "label": "Sharpen",
+                        "min": 0,
+                        "max": 4,
+                        "step": 0.05,
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "run",
+                            "pace": "release",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
                       }
                     },
                     {
@@ -261,6 +447,14 @@
                   "id": "panel-results",
                   "title": "Results",
                   "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Running the filter chain…",
+                        "binding": ""
+                      }
+                    },
                     {
                       "type": "Image",
                       "props": {

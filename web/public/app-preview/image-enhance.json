@@ -1,7 +1,8 @@
 {
   "slug": "image-enhance",
   "name": "Image Enhance",
-  "description": "Improve image quality with basic enhancement tools like sharpening, contrast and color adjustment",
+  "description": "A live photo editor: five GPU filters chained into one pipeline, each exposing a numeric property the app binds to a slider. Drag Denoise, Brightness, Contrast, Saturation, and Sharpen and the preview updates in place — the filters run in-browser, so there is no model, no API key, and no per-run cost.",
+  "featured": true,
   "image": "/app-preview/img/image-enhance.jpg",
   "app_doc": {
     "version": 2,
@@ -16,7 +17,7 @@
           "type": "Text",
           "props": {
             "id": "t-tagline",
-            "text": "Sharper, brighter, cleaner — enhance any photo in one click."
+            "text": "A live photo editor: drag Denoise, Brightness, Contrast, Saturation, and Sharpen — the preview re-renders on release."
           }
         },
         {
@@ -37,6 +38,106 @@
                         "id": "in-image",
                         "binding": "image",
                         "events": []
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-denoise-node-radius",
+                        "binding": "node:denoise-node#radius",
+                        "label": "Denoise",
+                        "min": 0,
+                        "max": 16,
+                        "step": 0.5,
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "run",
+                            "pace": "release",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-tone-node-brightness",
+                        "binding": "node:tone-node#brightness",
+                        "label": "Brightness",
+                        "min": -1,
+                        "max": 1,
+                        "step": 0.05,
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "run",
+                            "pace": "release",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-tone-node-contrast",
+                        "binding": "node:tone-node#contrast",
+                        "label": "Contrast",
+                        "min": 0,
+                        "max": 4,
+                        "step": 0.05,
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "run",
+                            "pace": "release",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-color-node-saturation",
+                        "binding": "node:color-node#saturation",
+                        "label": "Saturation",
+                        "min": 0,
+                        "max": 4,
+                        "step": 0.05,
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "run",
+                            "pace": "release",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-sharpen-node-amount",
+                        "binding": "node:sharpen-node#amount",
+                        "label": "Sharpen",
+                        "min": 0,
+                        "max": 4,
+                        "step": 0.05,
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "run",
+                            "pace": "release",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
                       }
                     },
                     {
@@ -68,6 +169,14 @@
                   "title": "Results",
                   "content": [
                     {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Running the filter chain…",
+                        "binding": ""
+                      }
+                    },
+                    {
                       "type": "Image",
                       "props": {
                         "id": "out-enhanced-image",
@@ -88,6 +197,11 @@
     }
   },
   "values": {
+    "node:denoise-node#radius": 0,
+    "node:tone-node#brightness": 0.05,
+    "node:tone-node#contrast": 1.15,
+    "node:color-node#saturation": 1.2,
+    "node:sharpen-node#amount": 1,
     "enhanced_image": {
       "$demo": "image"
     }

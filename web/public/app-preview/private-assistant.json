@@ -1,15 +1,15 @@
 {
-  "slug": "product-video-generator",
-  "name": "Product Video Generator",
-  "description": "Turn a campaign brief, audience, features, and a product photo into a realistic 16:9 launch video — an agent writes the motion prompt, then Veo animates the shot. Cost note: Veo is a paid per-second video model, so this run costs noticeably more than an image-only template.",
+  "slug": "private-assistant",
+  "name": "Private Assistant",
+  "description": "Ask questions about your own notes and documents — fully local, no API keys. Runs end-to-end on a local Ollama model, so the text never leaves your machine. Requires Ollama running with a model pulled (default: llama3.2 — run `ollama pull llama3.2`).",
   "featured": false,
-  "image": "/app-preview/img/product-video-generator.jpg",
+  "image": null,
   "app_doc": {
     "version": 2,
     "data": {
       "root": {
         "props": {
-          "title": "Product Video Generator"
+          "title": "Private Assistant"
         }
       },
       "content": [
@@ -17,7 +17,7 @@
           "type": "Text",
           "props": {
             "id": "t-tagline",
-            "text": "Brief in, launch video out — a realistic 16:9 spot for your product."
+            "text": "Ask questions about your own notes — fully local, no API keys."
           }
         },
         {
@@ -35,32 +35,42 @@
                     {
                       "type": "WorkflowInput",
                       "props": {
-                        "id": "in-campaign-brief",
-                        "binding": "campaign_brief",
+                        "id": "in-document",
+                        "binding": "document",
                         "events": []
                       }
                     },
                     {
                       "type": "WorkflowInput",
                       "props": {
-                        "id": "in-target-audience",
-                        "binding": "target_audience",
+                        "id": "in-question",
+                        "binding": "question",
                         "events": []
                       }
                     },
                     {
-                      "type": "WorkflowInput",
+                      "type": "Select",
                       "props": {
-                        "id": "in-key-features",
-                        "binding": "key_features",
-                        "events": []
-                      }
-                    },
-                    {
-                      "type": "WorkflowInput",
-                      "props": {
-                        "id": "in-image-input-1",
-                        "binding": "image_input_1",
+                        "id": "in-tone",
+                        "binding": "tone",
+                        "label": "Answer tone",
+                        "options": [
+                          {
+                            "value": "concise and neutral"
+                          },
+                          {
+                            "value": "friendly and warm"
+                          },
+                          {
+                            "value": "professional"
+                          },
+                          {
+                            "value": "detailed and thorough"
+                          },
+                          {
+                            "value": "plain and simple"
+                          }
+                        ],
                         "events": []
                       }
                     },
@@ -68,7 +78,7 @@
                       "type": "Button",
                       "props": {
                         "id": "btn-run",
-                        "label": "Generate launch video",
+                        "label": "Ask locally",
                         "variant": "contained",
                         "color": "primary",
                         "events": [
@@ -96,17 +106,16 @@
                       "type": "Progress",
                       "props": {
                         "id": "progress-run",
-                        "label": "Producing your spot…",
+                        "label": "Thinking locally…",
                         "binding": ""
                       }
                     },
                     {
-                      "type": "Video",
+                      "type": "Markdown",
                       "props": {
-                        "id": "out-product-video",
-                        "binding": "product_video",
-                        "height": 320,
-                        "placeholder": "Your video appears here"
+                        "id": "out-answer",
+                        "binding": "answer",
+                        "text": ""
                       }
                     }
                   ]
@@ -120,11 +129,9 @@
     }
   },
   "values": {
-    "campaign_brief": "Launch video for the Aurora Trail smart fitness watch, highlighting outdoor adventure tracking.",
-    "target_audience": "active millennials who enjoy weekend hiking and fitness challenges",
-    "key_features": "GPS navigation, heart-rate analytics, adaptive coaching, water resistance",
-    "product_video": {
-      "$demo": "video"
-    }
+    "document": "Team sync — Thursday\n- Launch date moved to March 14 (was March 7) to finish the accessibility fixes.\n- Priya owns the onboarding rewrite; first draft due Monday.\n- Budget: $8k left for Q1, reserved for the usability study.\n- Open risk: the billing migration hasn't been tested on staging yet.\n- Decision: ship the mobile app in the second wave, not at launch.",
+    "question": "When do we launch, and what's the biggest open risk?",
+    "tone": "concise and neutral",
+    "answer": "Based on your notes: the standup moved to **9:30am on Tuesdays**, and Priya is covering the on-call rotation next week."
   }
 }

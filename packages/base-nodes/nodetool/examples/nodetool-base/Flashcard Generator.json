@@ -5,7 +5,7 @@
   "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Flashcard Generator",
   "tool_name": null,
-  "description": "Generate study flashcards using AI and store them persistently in a database. Enter any topic and get instant flashcards that are saved for future review.",
+  "description": "Generate study flashcards as structured front/back card objects and store them persistently in a database. Enter any topic and get instant flashcards that are saved for future review.",
   "tags": [
     "education",
     "database",
@@ -41,6 +41,31 @@
         "dynamic_outputs": {}
       },
       {
+        "id": "num_cards_input",
+        "parent_id": null,
+        "type": "nodetool.input.IntegerInput",
+        "data": {
+          "name": "num_cards",
+          "value": 5,
+          "min": 3,
+          "max": 15,
+          "description": "How many flashcards to generate"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 76,
+            "y": 291
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2️⃣ Card count"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "create_table",
         "parent_id": null,
         "type": "lib.sqlite.CreateTable",
@@ -55,11 +80,11 @@
                 "data_type": "int"
               },
               {
-                "name": "question",
+                "name": "front",
                 "data_type": "string"
               },
               {
-                "name": "answer",
+                "name": "back",
                 "data_type": "string"
               },
               {
@@ -80,7 +105,7 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "🗄️ Create table"
+          "title": "🗄️ Create card table"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -90,7 +115,7 @@
         "parent_id": null,
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "Generate 5 educational flashcards about {{TOPIC}}. Create clear questions with concise, accurate answers suitable for studying."
+          "prompt": "You are a study-flashcard writer. Create {{NUM_CARDS}} flashcards that teach {{TOPIC}} to a first-time learner.\n\nRules for every card:\n- \"front\": one clear question, term, or prompt — no compound questions.\n- \"back\": a concise, accurate answer, 1-2 sentences, no unexplained jargon.\n- \"category\": a short (2-3 word) tag grouping related cards (e.g. a sub-topic of {{TOPIC}}).\n- Cover distinct sub-topics — no duplicate or near-duplicate fronts.\n\nReturn exactly {{NUM_CARDS}} cards as rows with columns front, back, category. No commentary outside the rows."
         },
         "ui_properties": {
           "selected": false,
@@ -101,10 +126,11 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "2️⃣ Build prompt"
+          "title": "3️⃣ Build prompt"
         },
         "dynamic_properties": {
-          "TOPIC": "Python Programming"
+          "TOPIC": "Python Programming",
+          "NUM_CARDS": "5"
         },
         "dynamic_outputs": {}
       },
@@ -126,11 +152,11 @@
             "type": "record_type",
             "columns": [
               {
-                "name": "question",
+                "name": "front",
                 "data_type": "string"
               },
               {
-                "name": "answer",
+                "name": "back",
                 "data_type": "string"
               },
               {
@@ -149,7 +175,7 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "3️⃣ Generate flashcards"
+          "title": "4️⃣ Generate flashcards"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -168,7 +194,7 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "4️⃣ Save to database"
+          "title": "5️⃣ Save to database"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -191,7 +217,7 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "5️⃣ Read all cards"
+          "title": "6️⃣ Read all cards"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -201,7 +227,7 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🃏 Flashcard Generator\n\nEnter a topic; an AI generates study flashcards, saves them to SQLite, and reads them back for review.\n\n**Pipeline:** Topic → generate cards → insert into SQLite → query all\n\n**Try this:** change the topic or the number of cards. Cards persist across runs."
+          "comment": "# 🃏 Flashcard Generator\n\nEnter a topic; an AI writes each card as a structured front/back/category object (not a markdown blob), so downstream steps can store, query, and render them as real data — then saves the deck to SQLite and reads it back for review.\n\n**Pipeline:** Topic + card count → build prompt → generate card objects → insert into SQLite → query all\n\n**Try this:** change the topic or card count. Cards persist across runs — rerun to add more to the same deck."
         },
         "ui_properties": {
           "selected": false,
@@ -245,6 +271,14 @@
         "sourceHandle": "output",
         "target": "format_prompt",
         "targetHandle": "TOPIC",
+        "ui_properties": null
+      },
+      {
+        "id": "b2b1f9d0-9f1b-4b7a-8e9b-6f2a5b3c9d11",
+        "source": "num_cards_input",
+        "sourceHandle": "output",
+        "target": "format_prompt",
+        "targetHandle": "NUM_CARDS",
         "ui_properties": null
       },
       {
@@ -347,7 +381,7 @@
           "type": "Text",
           "props": {
             "id": "t-tagline",
-            "text": "Generate study flashcards using AI and store them persistently in a database"
+            "text": "Type a topic — get study flashcards as structured cards, saved for review."
           }
         },
         {
@@ -371,10 +405,18 @@
                       }
                     },
                     {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-num-cards",
+                        "binding": "num_cards",
+                        "events": []
+                      }
+                    },
+                    {
                       "type": "Button",
                       "props": {
                         "id": "btn-run",
-                        "label": "Run",
+                        "label": "Make flashcards",
                         "variant": "contained",
                         "color": "primary",
                         "events": [
@@ -399,11 +441,18 @@
                   "title": "Results",
                   "content": [
                     {
-                      "type": "Markdown",
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Writing cards…",
+                        "binding": ""
+                      }
+                    },
+                    {
+                      "type": "Json",
                       "props": {
                         "id": "out-flashcards",
-                        "binding": "Flashcards",
-                        "text": ""
+                        "binding": "Flashcards"
                       }
                     }
                   ]

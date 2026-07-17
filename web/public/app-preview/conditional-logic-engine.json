@@ -1,7 +1,8 @@
 {
   "slug": "conditional-logic-engine",
   "name": "Conditional Logic Engine",
-  "description": "Workflow that demonstrates multi-branch decision logic with value routing.",
+  "description": "Teaching example for control flow: one number drives two independent decision structures — a boolean OR gate and a nested switch tree — built entirely from Compare, LogicalOperator, and ConditionalSwitch nodes, no LLM calls.",
+  "featured": false,
   "image": "/app-preview/img/conditional-logic-engine.jpg",
   "app_doc": {
     "version": 2,
@@ -16,7 +17,7 @@
           "type": "Text",
           "props": {
             "id": "t-tagline",
-            "text": "Workflow that demonstrates multi-branch decision logic with value routing."
+            "text": "A teaching example: one number routes down a high or low branch."
           }
         },
         {
@@ -43,7 +44,7 @@
                       "type": "Button",
                       "props": {
                         "id": "btn-run",
-                        "label": "Run",
+                        "label": "Run the logic",
                         "variant": "contained",
                         "color": "primary",
                         "events": [

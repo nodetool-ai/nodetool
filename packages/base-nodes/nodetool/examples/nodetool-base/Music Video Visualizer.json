@@ -5,7 +5,7 @@
   "updated_at": "2026-07-08T10:44:38.859Z",
   "name": "Music Video Visualizer",
   "tool_name": null,
-  "description": "Create reactive visuals from audio tracks with mood-matched imagery. Transcribes audio, analyzes mood/energy, and generates visual frames synced to the music.",
+  "description": "Turn any song into a mood-matched music video. Whisper transcribes the lyrics, an LLM creative director reads the emotional arc, writes one image prompt per frame, FLUX renders every frame, and they are stitched back to your original audio. Differentiator: a full transcribe → analyze → fan-out → render → reassemble media pipeline in a single graph — no chat box can do this. Cost note: generates one image per frame (default 8) plus a Whisper transcription, so a run costs several fal-ai calls.",
   "tags": [
     "video",
     "audio",
@@ -159,7 +159,7 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎵 Music Video Visualizer\n\nTurn a song into a music video. It transcribes the lyrics, reads the mood, generates frame images, and stitches them back to your audio.\n\n**Pipeline:** Audio → Transcribe → Mood agent → Frame prompts → Images → Video + Audio\n\n**Try this:** tweak visual style or genre, or raise the frame count."
+          "comment": "# 🎵 Music Video Visualizer\n\nTurn a song into a music video. Whisper transcribes the lyrics, a creative-director agent reads the emotional arc, then we fan out one image prompt per frame, render each with FLUX, and stitch the frames back to your audio.\n\n**Why the graph branches:** the mood analysis fans out into N frame prompts (ListGenerator), each prompt is rendered in parallel (ForEach → TextToImage), then Collect + FrameToVideo re-assemble the sequence and AddAudio re-attaches the original track. That fan-out / re-assemble is the part a chat box can't do.\n\n**Pipeline:** Audio → Transcribe → Mood agent → Frame prompts → Images → Video + Audio\n\n**Try this:** change the visual style or genre, or raise the frame count for a longer clip."
         },
         "ui_properties": {
           "position": {
@@ -295,7 +295,9 @@
       {
         "id": "mood_analyzer",
         "type": "nodetool.text.Prompt",
-        "data": {},
+        "data": {
+          "prompt": "Analyze the emotional arc of this song so we can design its music video.\n\nTRANSCRIBED LYRICS\n{{ transcription }}\n\nGENRE: {{ genre }}\nTARGET VISUAL STYLE: {{ style }}\n\nDescribe, in 3-4 vivid sentences:\n1. The dominant mood and how it shifts from opening to end.\n2. The energy level and pacing (calm, building, driving, euphoric...).\n3. A palette of colors, textures, and recurring motifs that match the sound.\n\nWrite it as concrete creative direction a visual artist can act on. No preamble, no headings."
+        },
         "ui_properties": {
           "position": {
             "x": 740,
@@ -303,7 +305,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "Build mood prompt",
+          "title": "Build mood-analysis request",
           "selectable": true,
           "bypassed": false
         },
@@ -326,7 +328,7 @@
             "path": null,
             "supported_tasks": []
           },
-          "system": "You are a creative director specializing in music visualization."
+          "system": "You are an award-winning music-video creative director. You translate how a song feels into concrete visual language — mood, energy, color, and motion. Answer with tight, evocative direction only; never restate or acknowledge the request, and never add headings or lists unless asked."
         },
         "ui_properties": {
           "position": {
@@ -345,7 +347,9 @@
       {
         "id": "frame_prompt_generator",
         "type": "nodetool.text.Prompt",
-        "data": {},
+        "data": {
+          "prompt": "You are writing image-generation prompts for the frames of a music video.\n\nMOOD & VISUAL DIRECTION\n{{ analysis }}\n\nGENRE: {{ genre }}\nVISUAL STYLE: {{ style }}\n\nWrite exactly {{ count }} image prompts, one per frame, that together trace the song's emotional arc from opening to climax. Each prompt must:\n- be a single self-contained sentence describing one striking frame\n- carry the mood, palette, and motifs from the direction above\n- vary composition and intensity across the sequence (earlier frames calmer, later frames more intense)\n- stay in the \"{{ style }}\" aesthetic\n- contain no lyrics, letters, captions, logos, or watermarks\n\nReturn one prompt per item."
+        },
         "ui_properties": {
           "position": {
             "x": 1390,
@@ -353,7 +357,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "Build frame prompt",
+          "title": "Build frame-prompt request",
           "selectable": true,
           "bypassed": false
         },
@@ -426,7 +430,7 @@
           "width": 1920,
           "height": 1080,
           "guidance_scale": 7.5,
-          "num_inference_steps": 30
+          "num_inference_steps": 4
         },
         "ui_properties": {
           "position": {
@@ -617,6 +621,14 @@
                   "id": "panel-results",
                   "title": "Results",
                   "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Matching visuals to your track…",
+                        "binding": ""
+                      }
+                    },
                     {
                       "type": "Video",
                       "props": {

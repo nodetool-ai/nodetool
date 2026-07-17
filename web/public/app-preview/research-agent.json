@@ -1,14 +1,15 @@
 {
-  "slug": "youtube-thumbnail-pipeline",
-  "name": "YouTube Thumbnail Pipeline",
-  "description": "Generate multiple eye-catching YouTube thumbnail variations from video scripts. Creates bold text overlays, dramatic styling, and batch processes variations for A/B testing.",
-  "image": "/app-preview/img/youtube-thumbnail-pipeline.jpg",
+  "slug": "research-agent",
+  "name": "Research Agent",
+  "description": "Give it a topic and an audience; the agent runs real web searches, opens the best sources, and streams back a cited markdown briefing. Differentiator: genuine multi-step tool use (search + browse) with inline citations — not a single prompt call.",
+  "featured": false,
+  "image": null,
   "app_doc": {
     "version": 2,
     "data": {
       "root": {
         "props": {
-          "title": "YouTube Thumbnail Pipeline"
+          "title": "Research Agent"
         }
       },
       "content": [
@@ -16,7 +17,7 @@
           "type": "Text",
           "props": {
             "id": "t-tagline",
-            "text": "Generate a batch of bold, click-worthy thumbnail variations."
+            "text": "Give it a topic and audience — the agent searches, browses, and streams back a cited brief."
           }
         },
         {
@@ -34,32 +35,16 @@
                     {
                       "type": "WorkflowInput",
                       "props": {
-                        "id": "in-video-title",
-                        "binding": "video_title",
+                        "id": "in-topic",
+                        "binding": "topic",
                         "events": []
                       }
                     },
                     {
                       "type": "WorkflowInput",
                       "props": {
-                        "id": "in-video-topic",
-                        "binding": "video_topic",
-                        "events": []
-                      }
-                    },
-                    {
-                      "type": "WorkflowInput",
-                      "props": {
-                        "id": "in-thumbnail-text",
-                        "binding": "thumbnail_text",
-                        "events": []
-                      }
-                    },
-                    {
-                      "type": "WorkflowInput",
-                      "props": {
-                        "id": "in-num-variations",
-                        "binding": "num_variations",
+                        "id": "in-audience",
+                        "binding": "audience",
                         "events": []
                       }
                     },
@@ -67,7 +52,7 @@
                       "type": "Button",
                       "props": {
                         "id": "btn-run",
-                        "label": "Generate thumbnails",
+                        "label": "Run the research",
                         "variant": "contained",
                         "color": "primary",
                         "events": [
@@ -92,13 +77,19 @@
                   "title": "Results",
                   "content": [
                     {
-                      "type": "Image",
+                      "type": "Progress",
                       "props": {
-                        "id": "out-thumbnails",
-                        "binding": "thumbnails",
-                        "fit": "contain",
-                        "height": 280,
-                        "placeholder": "Your result appears here"
+                        "id": "progress-run",
+                        "label": "Searching & browsing sources…",
+                        "binding": ""
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-brief",
+                        "binding": "brief",
+                        "text": ""
                       }
                     }
                   ]
@@ -112,12 +103,8 @@
     }
   },
   "values": {
-    "video_title": "10 AI Tools That Will Change How You Work in 2024",
-    "video_topic": "A tech review video covering productivity AI tools including ChatGPT, Claude, and automation tools.",
-    "thumbnail_text": "AI TOOLS 2024",
-    "num_variations": 6,
-    "thumbnails": {
-      "$demo": "image"
-    }
+    "topic": "Small language models running on-device in 2026",
+    "audience": "a technical product team deciding whether to adopt on-device models",
+    "brief": "**On-device LLMs — briefing for a product team.**\n\n- **State of play:** 3–8B models now run usably on laptops and high-end phones. *[1]*\n- **Tradeoff:** ~half the quality of frontier models, but zero API cost and full privacy. *[2]*\n- **Recommendation:** ship a local tier for privacy-sensitive flows; keep cloud for hard reasoning.\n\n_Sources: [1] ollama.com, [2] arXiv:2404.xxxxx_"
   }
 }
