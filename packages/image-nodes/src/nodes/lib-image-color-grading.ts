@@ -136,8 +136,11 @@ function createColorGradingNode(desc: Desc): NodeClass {
         );
       }
 
-      // Vibrance is folded into saturation as an additive boost — the published
-      // HSB shader has no separate skin-tone-protected channel.
+      // Vibrance is folded into saturation as a milder secondary boost (half
+      // weight) — the published HSB shader has no separate skin-tone-protected
+      // channel. Clamp the combined multiplier at 0 so extreme negatives (e.g.
+      // saturation=-1, vibrance=-1) bottom out at grayscale instead of
+      // inverting past it.
       if (t.endsWith(".SaturationVibrance")) {
         const saturation = num(props.saturation, 0);
         const vibrance = num(props.vibrance, 0);
@@ -146,7 +149,7 @@ function createColorGradingNode(desc: Desc): NodeClass {
             colorHsbV1,
             {
               hue: 0,
-              saturation: 1 + saturation + vibrance * 0.5,
+              saturation: Math.max(0, 1 + saturation + vibrance * 0.5),
               brightness: 1
             },
             baseObj,
@@ -293,6 +296,9 @@ function createColorGradingNode(desc: Desc): NodeClass {
 
       // Shader `intensity` maps to the legacy `amount`; midpoint/feather map
       // onto the shader's `radius` (where the vignette begins) and `softness`.
+      // The shader darkens where `dist > radius - softness`, so `radius` grows
+      // with `midpoint`: midpoint=0 starts the vignette at the center,
+      // midpoint=1 pushes its onset out to the edges.
       if (t.endsWith(".Vignette")) {
         const midpoint = num(props.midpoint, 0.5);
         const feather = Math.max(0.01, num(props.feather, 0.5));
@@ -301,7 +307,7 @@ function createColorGradingNode(desc: Desc): NodeClass {
             vignetteV1,
             {
               intensity: num(props.amount, 0.5),
-              radius: 1 - midpoint,
+              radius: midpoint,
               softness: feather
             },
             baseObj,
@@ -1032,7 +1038,7 @@ const DESCRIPTORS: readonly Desc[] = [
     nodeType: "lib.image.color_grading.SaturationVibrance",
     title: "Saturation Vibrance",
     description:
-      "Adjust color saturation with vibrance protection for skin tones.\n    saturation, vibrance, color intensity, skin tones\n\n    Use cases:\n    - Boost color intensity without clipping\n    - Protect skin tones while increasing saturation\n    - Create desaturated or oversaturated looks\n    - Fine-tune color intensity independently",
+      "Adjust color saturation with a milder secondary vibrance control.\n    saturation, vibrance, color intensity\n\n    Use cases:\n    - Boost or reduce overall color intensity\n    - Apply a gentler saturation nudge via vibrance\n    - Create desaturated or oversaturated looks\n    - Fine-tune color intensity with two strengths\n\n    Vibrance is a half-weight secondary saturation control; it does not\n    protect skin tones or already-saturated colors.",
     inlineFields: [],
     inputFields:  ["image"],
     outputs: {
@@ -1073,7 +1079,7 @@ const DESCRIPTORS: readonly Desc[] = [
           default: 0,
           title: "Vibrance",
           description:
-            "Smart saturation that protects already-saturated colors and skin tones.",
+            "Secondary saturation control applied at half the strength of Saturation. Milder than Saturation; does not protect skin tones.",
           min: -1,
           max: 1
         }

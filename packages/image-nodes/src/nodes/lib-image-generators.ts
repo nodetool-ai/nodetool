@@ -31,6 +31,15 @@ function num(value: unknown, fallback: number): number {
 }
 
 /**
+ * Resolve an output dimension, clamped to [1, 8192] whole pixels. Guards the
+ * texture allocation against a non-finite, zero, negative, or runaway wire
+ * value.
+ */
+function dim(value: unknown, fallback: number): number {
+  return Math.min(8192, Math.max(1, Math.round(num(value, fallback))));
+}
+
+/**
  * Generator shader colour params are declared premultiplied (matches the
  * pool's between-modules invariant) and the WGSL returns them via
  * `mix(...)` / direct assignment without re-premultiplying. The colour
@@ -55,8 +64,8 @@ class LinearGradientNode extends BaseNode {
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
     const props = this.serialize() as Record<string, unknown>;
-    const width = num(props.width, 512);
-    const height = num(props.height, 512);
+    const width = dim(props.width, 512);
+    const height = dim(props.height, 512);
     const output = await runShaderNode(
       sourcesLinearGradientV1,
       {
@@ -89,8 +98,8 @@ class RadialGradientNode extends BaseNode {
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
     const props = this.serialize() as Record<string, unknown>;
-    const width = num(props.width, 512);
-    const height = num(props.height, 512);
+    const width = dim(props.width, 512);
+    const height = dim(props.height, 512);
     const output = await runShaderNode(
       sourcesRadialGradientV1,
       {
@@ -121,8 +130,8 @@ class AngularGradientNode extends BaseNode {
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
     const props = this.serialize() as Record<string, unknown>;
-    const width = num(props.width, 512);
-    const height = num(props.height, 512);
+    const width = dim(props.width, 512);
+    const height = dim(props.height, 512);
     const output = await runShaderNode(
       sourcesAngularGradientV1,
       {
@@ -153,8 +162,8 @@ class DiamondGradientNode extends BaseNode {
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
     const props = this.serialize() as Record<string, unknown>;
-    const width = num(props.width, 512);
-    const height = num(props.height, 512);
+    const width = dim(props.width, 512);
+    const height = dim(props.height, 512);
     const output = await runShaderNode(
       sourcesDiamondGradientV1,
       {
@@ -185,14 +194,15 @@ class CheckerboardNode extends BaseNode {
 
   async process(context?: ProcessingContext): Promise<{ output: ImageRef }> {
     const props = this.serialize() as Record<string, unknown>;
-    const width = num(props.width, 512);
-    const height = num(props.height, 512);
+    const width = dim(props.width, 512);
+    const height = dim(props.height, 512);
     const output = await runShaderNode(
       sourcesCheckerboardV1,
       {
         colorA: vec4From(props.color_a, [1, 1, 1, 1]),
         colorB: vec4From(props.color_b, [0, 0, 0, 1]),
-        cellSize: num(props.cell_size, 32)
+        // Clamp to >= 1: a 0/negative cell size divides by zero in the shader.
+        cellSize: Math.max(1, Math.round(num(props.cell_size, 32)))
       },
       null,
       { outputWidth: width, outputHeight: height },

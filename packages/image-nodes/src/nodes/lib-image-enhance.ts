@@ -74,11 +74,14 @@ function createEnhanceNode(desc: Desc): NodeClass {
       const totalPixels = w * h;
 
       if (t.endsWith(".AutoContrast")) {
+        // `rgba` may alias the upstream node's buffer (decodeRgba borrows raw
+        // refs by reference), so mutate a copy — never the shared input.
+        const out = new Uint8Array(rgba);
         const cutoff = Number((this as any).cutoff ?? 0);
         const cutCount = Math.floor((totalPixels * cutoff) / 100);
         for (let c = 0; c < 3; c++) {
           const hist = new Uint32Array(256);
-          for (let i = c; i < rgba.length; i += channels) hist[rgba[i]]++;
+          for (let i = c; i < out.length; i += channels) hist[out[i]]++;
           let lo = 0;
           let cumLo = 0;
           while (lo < 255 && cumLo + hist[lo] <= cutCount) {
@@ -93,17 +96,20 @@ function createEnhanceNode(desc: Desc): NodeClass {
           }
           if (lo >= hi) continue;
           const scale = 255.0 / (hi - lo);
-          for (let i = c; i < rgba.length; i += channels) {
-            rgba[i] = Math.max(0, Math.min(255, Math.round((rgba[i] - lo) * scale)));
+          for (let i = c; i < out.length; i += channels) {
+            out[i] = Math.max(0, Math.min(255, Math.round((out[i] - lo) * scale)));
           }
         }
-        return { output: rawRgbaImageRef(rgba, w, h) };
+        return { output: rawRgbaImageRef(out, w, h) };
       }
 
       if (t.endsWith(".Equalize")) {
+        // `rgba` may alias the upstream node's buffer (decodeRgba borrows raw
+        // refs by reference), so mutate a copy — never the shared input.
+        const out = new Uint8Array(rgba);
         for (let c = 0; c < 3; c++) {
           const hist = new Uint32Array(256);
-          for (let i = c; i < rgba.length; i += channels) hist[rgba[i]]++;
+          for (let i = c; i < out.length; i += channels) hist[out[i]]++;
           const cdf = new Uint32Array(256);
           cdf[0] = hist[0];
           for (let j = 1; j < 256; j++) cdf[j] = cdf[j - 1] + hist[j];
@@ -121,9 +127,9 @@ function createEnhanceNode(desc: Desc): NodeClass {
               lut[j] = Math.round(((cdf[j] - cdfMin) / denom) * 255);
             }
           }
-          for (let i = c; i < rgba.length; i += channels) rgba[i] = lut[rgba[i]];
+          for (let i = c; i < out.length; i += channels) out[i] = lut[out[i]];
         }
-        return { output: rawRgbaImageRef(rgba, w, h) };
+        return { output: rawRgbaImageRef(out, w, h) };
       }
 
       if (t.endsWith(".AdaptiveContrast")) {
@@ -204,7 +210,12 @@ function createEnhanceNode(desc: Desc): NodeClass {
       }
 
       if (t.endsWith(".RankFilter")) {
-        const size = Math.max(1, Number((this as any).size ?? 3));
+        // Clamp the window size: each pixel allocates and sorts a
+        // (2*floor(size/2)+1)^2-element array per channel, so an unbounded size
+        // (e.g. 512 → ~262k elements/pixel) would hang the process. 25 matches
+        // typical PIL RankFilter usage. `result` is a copy, so `rgba` (which may
+        // alias the upstream buffer) is only ever read here, never mutated.
+        const size = Math.max(1, Math.min(25, Number((this as any).size ?? 3)));
         const rank = Number((this as any).rank ?? 3);
         const half = Math.floor(size / 2);
         const result = new Uint8Array(rgba); // copy preserves alpha
@@ -447,9 +458,10 @@ const DESCRIPTORS: readonly Desc[] = [
           type: "int",
           default: 3,
           title: "Size",
-          description: "Rank filter size.",
+          description:
+            "Rank filter window size (odd values recommended; the effective window is (2*floor(size/2)+1)^2, so an even size behaves like the next odd size up). Clamped to 25 at runtime to bound per-pixel sort cost.",
           min: 1,
-          max: 512
+          max: 25
         }
       },
       {
