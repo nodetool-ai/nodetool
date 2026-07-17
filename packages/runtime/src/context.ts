@@ -1113,6 +1113,16 @@ export class ProcessingContext {
     this._modelInterfaces = modelInterfaces;
   }
 
+  /**
+   * Whether a given model interface is wired on this context. Lets callers
+   * decide between the DB-backed path (interface present — let errors
+   * propagate) and an in-memory fallback (interface absent — hermetic CLI
+   * runs, tests) without invoking a method that would throw when unwired.
+   */
+  hasModelInterface(name: keyof ProcessingContextModelInterfaces): boolean {
+    return typeof this._modelInterfaces?.[name] === "function";
+  }
+
   // -----------------------------------------------------------------------
   // Control event dispatch
   // -----------------------------------------------------------------------
