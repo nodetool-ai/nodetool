@@ -123,6 +123,12 @@ export interface NodeMetadata {
   platforms?: readonly Platform[];
   /** When true, the node remains runnable but should be deprioritized in search. */
   deprecated?: boolean;
+  /**
+   * When true, the node is registered and runnable but hidden from discovery
+   * UIs (palette, search) entirely — for internal nodes a user never adds by
+   * hand (e.g. agent-runner-inserted steps).
+   */
+  hidden?: boolean;
   /** Preferred replacement node_type when deprecated is true. */
   replaced_by?: string;
 }

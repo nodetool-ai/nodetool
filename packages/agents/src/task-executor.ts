@@ -42,6 +42,8 @@ export interface TaskExecutorOptions {
   inputs?: Record<string, unknown>;
   maxSteps?: number;
   maxStepIterations?: number;
+  /** Cap on output tokens per step turn. Forwarded to each StepExecutor. */
+  maxTokens?: number;
   /** ID of the final aggregation step (will use useFinishTask=true). */
   finalStepId?: string;
   /** Execute independent steps in parallel (default: false). */
@@ -64,6 +66,7 @@ export class TaskExecutor {
   private systemPrompt: string | undefined;
   private maxSteps: number;
   private maxStepIterations: number;
+  private maxTokens?: number;
   private finalStepId: string | undefined;
   private parallelExecution: boolean;
   private upstreamMemoryKeys: string[];
@@ -80,6 +83,7 @@ export class TaskExecutor {
     this.maxSteps = opts.maxSteps ?? DEFAULT_MAX_STEPS;
     this.maxStepIterations =
       opts.maxStepIterations ?? DEFAULT_MAX_STEP_ITERATIONS;
+    this.maxTokens = opts.maxTokens;
     this.finalStepId = opts.finalStepId;
     this.parallelExecution = opts.parallelExecution ?? false;
     this.upstreamMemoryKeys = opts.upstreamMemoryKeys ?? [];
@@ -157,6 +161,7 @@ export class TaskExecutor {
           tools: [...this.tools],
           systemPrompt: this.systemPrompt,
           maxIterations: this.maxStepIterations,
+          maxTokens: this.maxTokens,
           useFinishTask: this.isFinishStep(step),
           upstreamMemoryKeys: this.upstreamMemoryKeys
         });
@@ -305,6 +310,7 @@ export class TaskExecutor {
         tools: [...this.tools],
         systemPrompt: this.systemPrompt,
         maxIterations: this.maxStepIterations,
+        maxTokens: this.maxTokens,
         useFinishTask: false,
         upstreamMemoryKeys: this.upstreamMemoryKeys
       });

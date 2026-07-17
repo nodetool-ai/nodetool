@@ -31,9 +31,9 @@ import {
   normalizeTools,
   isChunkItem,
   isToolCallItem,
+  classifyProviderStream,
   toProviderTools,
   serializeToolResult,
-  normalizeProviderStreamItem,
   toolCallChunk,
   streamProviderMessages,
   getStructuredOutputSchema,
@@ -874,7 +874,7 @@ export class AgentNode extends BaseNode {
     default: AGENT_DEFAULT_MAX_TOKENS,
     title: "Max Tokens",
     description:
-      "Upper bound on generated tokens per response, including visible output and any reasoning/thinking tokens used by reasoning models. Applies in loop mode; plan mode's step executor does not expose a per-call token budget, so this is ignored there. Higher values allow longer answers and more thinking headroom but cost more and take longer; very low values may truncate reasoning or the final answer. Typical values: 1024 for short answers, 8192–16384 for normal agent use, 32k+ for long-form or heavy reasoning. Must be within the chosen model's context window.",
+      "Upper bound on generated tokens per response, including visible output and any reasoning/thinking tokens used by reasoning models. Applies in both loop and plan mode (plan mode threads it to every step executor and the final compiler pass). Higher values allow longer answers and more thinking headroom but cost more and take longer; very low values may truncate reasoning or the final answer. Typical values: 1024 for short answers, 8192–16384 for normal agent use, 32k+ for long-form or heavy reasoning. Must be within the chosen model's context window.",
     min: 1,
     max: 100000
   })
@@ -1177,7 +1177,7 @@ export class AgentNode extends BaseNode {
         thinkSplitter = new RedactedThinkingStreamSplitter();
       };
 
-      for await (const raw of provider.generateLoop({
+      const stream = provider.generateLoop({
         messages,
         model: modelId,
         tools: providerTools,
@@ -1185,20 +1185,20 @@ export class AgentNode extends BaseNode {
         maxIterations: maxTurns,
         sequentialTools: true,
         threadId: threadId || undefined
-      })) {
-        const item = normalizeProviderStreamItem(raw);
-
-        if (isToolCallItem(item)) {
+      });
+      for await (const event of classifyProviderStream(stream)) {
+        if (event.kind === "tool_call") {
+          const toolCall = event.toolCall;
           log.info("AgentNode received tool call", {
             nodeId: this.__node_id ?? null,
             providerId,
             modelId,
-            toolCallId: item.id,
-            toolName: item.name,
-            argKeys: Object.keys(item.args ?? {})
+            toolCallId: toolCall.id,
+            toolName: toolCall.name,
+            argKeys: Object.keys(toolCall.args ?? {})
           });
           yield {
-            chunk: toolCallChunk(item),
+            chunk: toolCallChunk(toolCall),
             thinking: null,
             text: null,
             audio: null
@@ -1206,35 +1206,38 @@ export class AgentNode extends BaseNode {
           continue;
         }
 
-        if (isChunkItem(item)) {
-          if (item.thinking) {
-            yield { chunk: null, thinking: item, text: null, audio: null };
-            continue;
-          }
-          if (item.content_type === "audio") {
-            yield { chunk: item, thinking: null, text: null, audio: null };
-            const audioBytes =
-              typeof item.content === "string" && item.content
-                ? Buffer.from(item.content, "base64")
-                : item.content instanceof Float32Array
-                  ? Buffer.from(
-                      item.content.buffer,
-                      item.content.byteOffset,
-                      item.content.byteLength
-                    )
-                  : Buffer.alloc(0);
-            yield {
-              chunk: null,
-              thinking: null,
-              text: null,
-              audio: { data: new Uint8Array(audioBytes) }
-            };
-            continue;
-          }
-          const rawPiece = typeof item.content === "string" ? item.content : "";
+        if (event.kind === "thinking") {
+          yield { chunk: null, thinking: event.chunk, text: null, audio: null };
+          continue;
+        }
+
+        if (event.kind === "audio") {
+          const chunk = event.chunk;
+          yield { chunk, thinking: null, text: null, audio: null };
+          const audioBytes =
+            typeof chunk.content === "string" && chunk.content
+              ? Buffer.from(chunk.content, "base64")
+              : chunk.content instanceof Float32Array
+                ? Buffer.from(
+                    chunk.content.buffer,
+                    chunk.content.byteOffset,
+                    chunk.content.byteLength
+                  )
+                : Buffer.alloc(0);
+          yield {
+            chunk: null,
+            thinking: null,
+            text: null,
+            audio: { data: new Uint8Array(audioBytes) }
+          };
+          continue;
+        }
+
+        if (event.kind === "text") {
+          const rawPiece = event.delta;
           assistantText += rawPiece;
           for (const y of yieldSplitThinkChunks(
-            item,
+            event.chunk,
             rawPiece,
             thinkSplitter
           )) {
@@ -1247,35 +1250,29 @@ export class AgentNode extends BaseNode {
         // A finalized message event (assistant turn or tool result). generateLoop
         // owns the message array; we mirror the old per-turn finalization +
         // thread persistence off these. Each assistant event closes a turn.
-        if (
-          item &&
-          typeof item === "object" &&
-          "type" in item &&
-          (item as { type?: string }).type === "message"
-        ) {
-          const message = (item as { message?: Message }).message;
-          if (!message) continue;
-          if (message.role === "assistant") {
-            // Rebuild the persisted assistant message from our own accumulated
-            // text (which excludes audio chunks) so saved history keeps its old
-            // array shape; carry tool calls / Gemini thought-signature parts from
-            // the event since generateLoop now owns the live message.
-            const hadToolCalls = (message.toolCalls?.length ?? 0) > 0;
-            const persistMessage: Message = {
-              role: "assistant",
-              content: [{ type: "text", text: assistantText }],
-              toolCalls: message.toolCalls ?? null
-            };
-            if (message._rawGeminiParts) {
-              persistMessage._rawGeminiParts = message._rawGeminiParts;
-            }
-            const shouldPersist = Boolean(assistantText) || hadToolCalls;
-            yield* finalizeAssistantTurn();
-            if (threadId && shouldPersist) {
-              await saveThreadMessage(context, threadId, persistMessage);
-            }
-          } else if (threadId) {
-            await saveThreadMessage(context, threadId, message);
+        if (event.kind === "assistant_message") {
+          const message = event.message;
+          // Rebuild the persisted assistant message from our own accumulated
+          // text (which excludes audio chunks) so saved history keeps its old
+          // array shape; carry tool calls / Gemini thought-signature parts from
+          // the event since generateLoop now owns the live message.
+          const hadToolCalls = (message.toolCalls?.length ?? 0) > 0;
+          const persistMessage: Message = {
+            role: "assistant",
+            content: [{ type: "text", text: assistantText }],
+            toolCalls: message.toolCalls ?? null
+          };
+          if (message._rawGeminiParts) {
+            persistMessage._rawGeminiParts = message._rawGeminiParts;
+          }
+          const shouldPersist = Boolean(assistantText) || hadToolCalls;
+          yield* finalizeAssistantTurn();
+          if (threadId && shouldPersist) {
+            await saveThreadMessage(context, threadId, persistMessage);
+          }
+        } else if (event.kind === "tool_message") {
+          if (threadId) {
+            await saveThreadMessage(context, threadId, event.message);
           }
         }
       }
@@ -1403,6 +1400,9 @@ export class AgentNode extends BaseNode {
       systemPrompt: system,
       outputSchema: structuredSchema ?? undefined,
       planningModel: modelId,
+      // Per-turn output-token cap, matching loop mode's use of max_tokens.
+      // Threaded to every step executor and the final compiler pass.
+      maxTokens: Number(this.max_tokens ?? AGENT_DEFAULT_MAX_TOKENS),
       // maxSteps caps the *number of plan steps* the executor will run
       // (`stepsTaken < maxSteps` in TaskExecutor), not the per-step tool-call
       // iteration count. The node's `max_turns` is a turn/iteration budget, so
@@ -1557,6 +1557,11 @@ export class AgentStepNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "str"
   };
+  // Hidden from the node palette/search: GraphPlanner and AgentWorkflowRunner
+  // insert this node; adding it by hand throws in process(). It stays
+  // registered so the registry, search_nodes, and get_node_info still resolve
+  // it for those agent runners.
+  static readonly hidden = true;
   static readonly inlineFields = ["instructions"];
   static readonly inputFields = ["input"];
 

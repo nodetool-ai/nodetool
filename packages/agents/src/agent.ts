@@ -216,6 +216,13 @@ export interface AgentOptions {
   workspace?: string;
   maxSteps?: number;
   maxStepIterations?: number;
+  /**
+   * Cap on output tokens per provider turn, threaded to every step executor
+   * and the final compiler pass. Undefined lets each provider use its own
+   * default. `maxSteps` (plan size) and `maxStepIterations` (tool-call rounds)
+   * are unrelated knobs and stay separate.
+   */
+  maxTokens?: number;
   outputSchema?: Record<string, unknown>;
   /**
    * Format for the agent's final result.
@@ -348,6 +355,7 @@ export class Agent {
   private readonly reasoningModel: string;
   private readonly maxSteps: number;
   private readonly maxStepIterations: number;
+  private readonly maxTokens?: number;
   private readonly outputSchema?: Record<string, unknown>;
   private readonly outputFormat: AgentOutputFormat;
   private readonly workspace?: string;
@@ -385,6 +393,7 @@ export class Agent {
     this.reasoningModel = opts.reasoningModel ?? opts.model;
     this.maxSteps = opts.maxSteps ?? 10;
     this.maxStepIterations = opts.maxStepIterations ?? 15;
+    this.maxTokens = opts.maxTokens;
     this.outputFormat = opts.outputFormat ?? "structured";
     // Non-structured formats imply a string result; outputSchema is ignored.
     this.outputSchema =
@@ -795,6 +804,7 @@ export class Agent {
       systemPrompt: mergedSystemPrompt,
       inputs: this.inputs,
       maxStepIterations: this.maxStepIterations,
+      maxTokens: this.maxTokens,
       checkpointStore: this.checkpointStore,
       runId: this.runId,
       planTools: this.tools.map((t) => t.name)
@@ -815,7 +825,8 @@ export class Agent {
       model: this.reasoningModel ?? this.model,
       context,
       taskPlan,
-      systemPrompt: mergedSystemPrompt
+      systemPrompt: mergedSystemPrompt,
+      maxTokens: this.maxTokens
     });
 
     let compiled: unknown = null;
@@ -1119,6 +1130,7 @@ export class Agent {
       inputs: this.inputs,
       maxSteps: this.maxSteps,
       maxStepIterations: this.maxStepIterations,
+      maxTokens: this.maxTokens,
       parallelExecution: true
     });
 

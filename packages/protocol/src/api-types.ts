@@ -753,6 +753,12 @@ export interface NodeMetadata {
   fal_unit_pricing?: FalUnitPricing | null;
   /** When true, the node remains runnable but is hidden from default discovery. */
   deprecated?: boolean;
+  /**
+   * When true, the node is registered and runnable but filtered out of
+   * discovery UIs (palette, search) entirely — for internal nodes a user never
+   * adds by hand (e.g. agent-runner-inserted steps).
+   */
+  hidden?: boolean;
   /** Preferred replacement node_type when deprecated is true. */
   replaced_by?: string;
   /**
