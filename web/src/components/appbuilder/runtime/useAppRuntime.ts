@@ -1,6 +1,7 @@
 /**
- * The reactive engine. Owns the per-app runtime store, wires the streaming
- * workflow runner into it, and turns widget events into actions.
+ * The reactive engine. Binds the workflow-keyed app runtime store (see
+ * appRuntimeStore registry) to the shared per-workflow runner, folds streaming
+ * messages into reactive values, and turns widget events into actions.
  *
  * Streaming model: as the (browser- or server-) runner emits messages, output
  * values land in `store.values[<output name>]`. Bound widgets re-render live.
@@ -9,20 +10,27 @@
  */
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
-import { Workflow, WorkflowAttributes } from "../../../stores/ApiTypes";
+import { Workflow } from "../../../stores/ApiTypes";
 import {
-  createWorkflowRunnerStore,
-  MessageHandler,
+  getWorkflowRunnerStore,
+  WorkflowRunner,
   MsgpackData
 } from "../../../stores/WorkflowRunner";
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
 import { graphNodeToReactFlowNode } from "../../../stores/graphNodeToReactFlowNode";
 import { graphEdgeToReactFlowEdge } from "../../../stores/graphEdgeToReactFlowEdge";
 import { runBrowserGraphJob } from "../../../lib/workflow/browserWorkflowRunner";
+import useResultsStore from "../../../stores/ResultsStore";
 import { AppAction } from "../types";
 import { extractWorkflowIO } from "../workflowIO";
+import { seedInputValue } from "../inputProperty";
 import { buildTriggerSubgraph } from "./buildTriggerSubgraph";
-import { createAppRuntimeStore, AppRuntimeStore } from "./appRuntimeStore";
+import {
+  createAppRuntimeStore,
+  getAppRuntimeStore,
+  AppRuntimeStore,
+  RuntimeRunnerState
+} from "./appRuntimeStore";
 import { AppRuntimeContextValue } from "./AppRuntimeContext";
 
 interface OutputUpdateMessage {
@@ -46,30 +54,65 @@ interface ChunkMessage {
 const asString = (value: unknown): string =>
   typeof value === "string" ? value : value == null ? "" : String(value);
 
+/** Collapse the shared runner's state machine into the app-facing one. */
+const toRuntimeRunnerState = (
+  state: WorkflowRunner["state"]
+): RuntimeRunnerState => {
+  switch (state) {
+    case "connecting":
+      return "connecting";
+    case "connected":
+    case "running":
+    case "paused":
+    case "suspended":
+      return "running";
+    case "error":
+      return "error";
+    default:
+      return "idle";
+  }
+};
+
 export const useAppRuntime = (
   workflow: Workflow | undefined,
   designMode: boolean
 ): AppRuntimeContextValue => {
   const io = useMemo(() => extractWorkflowIO(workflow), [workflow]);
   const workflowId = workflow?.id;
-  const runnerKey = workflowId ?? "app-runtime";
 
-  // Initial reactive values: workflow input defaults.
+  // The live runtime store comes from the workflow-keyed registry so values
+  // survive unmounts (View↔Edit tab switches, refetches yielding a new
+  // workflow object). Seeding fills only missing keys: workflow input defaults
+  // plus the select/boolean fallbacks the controls display, so an untouched
+  // form runs with what it shows — without clobbering values the user typed or
+  // a previous run streamed. Design canvases get an ephemeral store: widget
+  // writes there must not leak into the published app's state.
   const store: AppRuntimeStore = useMemo(() => {
-    const initial: Record<string, unknown> = {};
+    const target =
+      designMode || !workflowId
+        ? createAppRuntimeStore()
+        : getAppRuntimeStore(workflowId);
+    const values = target.getState().values;
+    const missing: Record<string, unknown> = {};
     for (const input of io.inputs) {
-      if (input.defaultValue !== undefined) {
-        initial[input.name] = input.defaultValue;
+      if (values[input.name] !== undefined) continue;
+      const seed = seedInputValue(input);
+      if (seed !== undefined) {
+        missing[input.name] = seed;
       }
     }
-    return createAppRuntimeStore(initial);
-    // Keyed on workflowId so reactive state survives query refetches; input
-    // defaults are read fresh from `io` inside the factory.
-  }, [workflowId, io]);
+    if (Object.keys(missing).length > 0) {
+      target.getState().setValues(missing);
+    }
+    return target;
+  }, [designMode, workflowId, io]);
 
+  // The shared per-workflow runner (same instance the graph editor, jobs panel
+  // and frontend tools use), so busy/queue/cancel state is consistent across
+  // views and a run started in one surface is visible in the other.
   const runnerStore = useMemo(
-    () => createWorkflowRunnerStore(runnerKey),
-    [runnerKey]
+    () => getWorkflowRunnerStore(workflowId ?? "__app_runtime__"),
+    [workflowId]
   );
 
   // Map output node id -> reactive state key (the node name).
@@ -88,19 +131,13 @@ export const useAppRuntime = (
   outputMapRef.current = outputKeyByNodeId;
 
   useEffect(() => {
-    if (!workflowId) return;
+    if (!workflowId || designMode) return;
 
-    const runtime = store.getState();
-    const baseHandler = runnerStore.getState().messageHandler;
-
-    const handler: MessageHandler = (wf: WorkflowAttributes, data) => {
-      try {
-        baseHandler(wf, data);
-      } catch (error) {
-        console.error("AppRuntime base handler error:", error);
-      }
-      if (wf.id !== workflowId) return;
-
+    // Fold processing messages into the app's reactive values. Protocol-level
+    // handling (runner state machine, ResultsStore, node stores) already runs
+    // via the workflow-manager subscription installed when the workflow was
+    // opened — calling into it here would double-append streamed output.
+    const handler = (data: MsgpackData) => {
       switch (data.type) {
         case "output_update": {
           const msg = data as OutputUpdateMessage;
@@ -167,9 +204,6 @@ export const useAppRuntime = (
             msg.status === "timed_out"
           ) {
             store.getState().setProgress(null);
-            store
-              .getState()
-              .setRunnerState(msg.status === "failed" ? "error" : "idle");
           }
           if (msg.status === "failed" && msg.error) {
             store.getState().setError(msg.error);
@@ -184,14 +218,9 @@ export const useAppRuntime = (
       }
     };
 
-    runnerStore.getState().setMessageHandler(handler);
-
     const unsubscribeWorkflow = globalWebSocketManager.subscribe(
-      runnerKey,
-      (message) => {
-        const wf = runnerStore.getState().workflow || workflow;
-        if (wf) handler(wf, message as MsgpackData);
-      }
+      workflowId,
+      (message) => handler(message as MsgpackData)
     );
 
     let unsubscribeJob: (() => void) | null = null;
@@ -201,23 +230,55 @@ export const useAppRuntime = (
       if (!jobId) return;
       unsubscribeJob = globalWebSocketManager.subscribe(jobId, (message) => {
         if (message?.workflow_id) return;
-        const wf = runnerStore.getState().workflow || workflow;
-        if (wf) handler(wf, message as MsgpackData);
+        handler(message as MsgpackData);
       });
     };
     updateJobSubscription(runnerStore.getState().job_id);
+
+    // Mirror the shared runner's state (mapped to the app vocabulary) so
+    // widgets reflect a run regardless of which surface started it — and,
+    // because the shared runner outlives this component, a remount mid-run
+    // shows "running" again instead of resetting to idle.
+    store.getState().setRunnerState(
+      toRuntimeRunnerState(runnerStore.getState().state)
+    );
+
+    // Backfill outputs the app hasn't seen from the runner's current/last job
+    // (a run started in the graph editor, or finished while this view was
+    // closed). Only empty keys: values the app already holds — a live fold or
+    // a fresher reactive scrub — win over the job-keyed result buffer.
+    const lastJobId = runnerStore.getState().job_id;
+    if (lastJobId) {
+      const results = useResultsStore.getState();
+      for (const output of io.outputs) {
+        if (store.getState().values[output.name] !== undefined) continue;
+        const result = results.getOutputResult(
+          workflowId,
+          lastJobId,
+          output.nodeId
+        );
+        if (result === undefined) continue;
+        const value = Array.isArray(result)
+          ? result.every((item) => typeof item === "string")
+            ? result.join("")
+            : result[result.length - 1]
+          : result;
+        store.getState().setValue(output.name, value);
+      }
+    }
     const unsubscribeRunner = runnerStore.subscribe((state, prev) => {
       if (state.job_id !== prev.job_id) updateJobSubscription(state.job_id);
+      if (state.state !== prev.state) {
+        store.getState().setRunnerState(toRuntimeRunnerState(state.state));
+      }
     });
 
     return () => {
       unsubscribeWorkflow();
       unsubscribeRunner();
       unsubscribeJob?.();
-      runtime.setRunnerState("idle");
-      runnerStore.getState().setMessageHandler(baseHandler);
     };
-  }, [runnerKey, runnerStore, store, workflow, workflowId]);
+  }, [designMode, io, runnerStore, store, workflowId]);
 
   const run = useCallback(async () => {
     if (!workflow || designMode) return;
@@ -230,7 +291,6 @@ export const useAppRuntime = (
 
     store.getState().clearOutputs(outputKeysRef.current);
     store.getState().setError(null);
-    store.getState().setRunnerState("connecting");
 
     const nodes = (workflow.graph?.nodes ?? []).map((node) =>
       graphNodeToReactFlowNode(workflow, node)
@@ -239,11 +299,11 @@ export const useAppRuntime = (
       graphEdgeToReactFlowEdge(edge)
     );
 
+    // Runner state is mirrored from the shared store's transitions
+    // (connecting → running → terminal), so no manual toggling here.
     try {
-      store.getState().setRunnerState("running");
       await runnerStore.getState().run(params, workflow, nodes, edges);
     } catch (error) {
-      store.getState().setRunnerState("error");
       store
         .getState()
         .setError(error instanceof Error ? error.message : "Run failed");
@@ -252,7 +312,6 @@ export const useAppRuntime = (
 
   const cancel = useCallback(async () => {
     await runnerStore.getState().cancel();
-    store.getState().setRunnerState("idle");
     store.getState().setProgress(null);
   }, [runnerStore, store]);
 

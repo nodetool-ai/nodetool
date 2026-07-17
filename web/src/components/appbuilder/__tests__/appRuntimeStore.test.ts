@@ -1,4 +1,8 @@
-import { createAppRuntimeStore } from "../runtime/appRuntimeStore";
+import {
+  createAppRuntimeStore,
+  getAppRuntimeStore,
+  disposeAppRuntimeStore
+} from "../runtime/appRuntimeStore";
 
 describe("appRuntimeStore", () => {
   it("seeds initial values", () => {
@@ -39,5 +43,30 @@ describe("appRuntimeStore", () => {
     expect(store.getState().runnerState).toBe("running");
     store.getState().setLastRunDuration(1.5);
     expect(store.getState().lastRunDuration).toBe(1.5);
+  });
+});
+
+describe("appRuntimeStore registry", () => {
+  afterEach(() => {
+    disposeAppRuntimeStore("wf-1");
+  });
+
+  it("returns the same store per workflow id, so values survive remounts", () => {
+    const first = getAppRuntimeStore("wf-1");
+    first.getState().setValue("result", "streamed text");
+    expect(getAppRuntimeStore("wf-1")).toBe(first);
+    expect(getAppRuntimeStore("wf-1").getState().values.result).toBe(
+      "streamed text"
+    );
+    expect(getAppRuntimeStore("wf-2")).not.toBe(first);
+    disposeAppRuntimeStore("wf-2");
+  });
+
+  it("dispose drops the stored state", () => {
+    getAppRuntimeStore("wf-1").getState().setValue("result", "old");
+    disposeAppRuntimeStore("wf-1");
+    expect(
+      getAppRuntimeStore("wf-1").getState().values.result
+    ).toBeUndefined();
   });
 });
