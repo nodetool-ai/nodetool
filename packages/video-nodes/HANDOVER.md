@@ -16,10 +16,13 @@ file once the items below are ticked off or turned into issues.
   output validation, streaming raw-frame writes. 16 new tests.
 - `a727bc1` — timeline.ts deduped against `ffmpeg-helpers.ts`; base-nodes
   tests updated for the throw-on-missing-binary contract.
+- Small follow-ups (item 5 below): `FrameToVideo` declares `fps` as a wireable
+  input (the previously-dead stream branch is now reachable); Save nodes default
+  the folder to the run's workspace dir instead of the server cwd; `Trim` gained
+  an `accurate` toggle that re-encodes with output-side seeking for frame-exact
+  cuts. 7 new tests.
 
-Verified: video-nodes 144/144; downstream per `nodetool affected` all green
-(base-nodes 1320, cli 357, deploy 851, dsl 138, websocket 1576,
-workflow-runner).
+Verified: video-nodes 151/151; typecheck clean.
 
 ## Remaining work
 
@@ -68,15 +71,22 @@ regardless of what the selected model supports; mismatches surface only as
 provider errors mid-run. The model manifests in `packages/runtime` providers
 know per-model capabilities — validate (or filter the UI choices) against them.
 
-### 5. Small follow-ups
+Note for the next session: none of the current `*-manifest.json` files carry
+per-model aspect-ratio/resolution/duration constraints (checked 2026-07-17), so
+this needs that capability data added to the manifests first — it's a runtime
+change, not a video-nodes drive-by.
 
-- `FrameToVideoNode.run` has an `fps` stream-handle branch but `fps` is not in
-  `inputFields`. Verify whether a wired `fps` ever arrives via `inputs.any()`;
-  either declare the input or delete the branch.
-- Save nodes default `folder` to `"."` (the server cwd). Pick a sane default
-  (workspace dir or assets) instead.
-- Trim keeps `-c copy` (fast, keyframe-aligned). Consider an "accurate"
-  toggle that re-encodes for frame-exact cuts.
+### 5. Small follow-ups — DONE
+
+- ~~`FrameToVideoNode.run` has an `fps` stream-handle branch but `fps` is not in
+  `inputFields`.~~ Declared `fps` in `inputFields`; the branch is now reachable
+  when an `fps` value is wired in.
+- ~~Save nodes default `folder` to `"."` (the server cwd).~~ They now fall back
+  to `context.workspaceDir` (then `"."` only when no workspace is assigned) via
+  the shared `saveFolder()` helper.
+- ~~Trim keeps `-c copy`.~~ Added an `accurate` bool: off keeps the fast
+  keyframe-aligned stream copy; on re-encodes with output-side `-ss`/`-to` for
+  frame-exact cuts.
 
 ## Environment notes for the next session
 
