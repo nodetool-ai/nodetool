@@ -184,7 +184,37 @@ describe("GraphPlanner — coverage", () => {
           target_handle: "input"
         }
       },
-      { id: "t9", name: "finish_graph", args: { title: "G" } }
+      {
+        id: "t9",
+        name: "remove_edge",
+        args: {
+          source: "n1",
+          source_handle: "output",
+          target: "n2",
+          target_handle: "input"
+        }
+      },
+      { id: "t10", name: "remove_node", args: { id: "n2" } },
+      {
+        id: "t11",
+        name: "add_node",
+        args: {
+          id: "n3",
+          type: AGENT_STEP_NODE_TYPE,
+          properties: { instructions: "c" }
+        }
+      },
+      {
+        id: "t12",
+        name: "add_edge",
+        args: {
+          source: "n1",
+          source_handle: "output",
+          target: "n3",
+          target_handle: "input"
+        }
+      },
+      { id: "t13", name: "finish_graph", args: { title: "G" } }
     ];
 
     const provider = createScriptedProvider([script], {
@@ -213,6 +243,8 @@ describe("GraphPlanner — coverage", () => {
     expect(tm).toContain("Calling unknown_tool");
     expect(tm).toContain(`Adding node ${AGENT_STEP_NODE_TYPE} (n1)`);
     expect(tm).toContain("Connecting n1 → n2");
+    expect(tm).toContain("Disconnecting n1 → n2");
+    expect(tm).toContain("Removing node n2");
     expect(tm).toContain("Finalizing graph");
 
     // The streamed non-final chunk is forwarded.
@@ -284,6 +316,70 @@ describe("GraphPlanner — coverage", () => {
     expect(
       planningContents(messages).some((c) => c.includes("Retry attempt 2/3"))
     ).toBe(true);
+  });
+
+  it("preserves the built graph across retry attempts and snapshots it in the retry message", async () => {
+    const capture: ProviderCapture = {};
+    // Attempt 0: adds a node but never finishes. Attempt 1: only finish_graph —
+    // this can only succeed if the builder survived the retry.
+    const attempt0: ToolCall[] = [
+      {
+        id: "a0",
+        name: "add_node",
+        args: {
+          id: "kept",
+          type: AGENT_STEP_NODE_TYPE,
+          properties: { instructions: "x" }
+        }
+      }
+    ];
+    const attempt1: ToolCall[] = [{ id: "f1", name: "finish_graph", args: {} }];
+    const planner = new GraphPlanner({
+      provider: createScriptedProvider([attempt0, attempt1], { capture }),
+      model: "opus",
+      registry: stubRegistry
+    });
+    const { value } = await collect(
+      planner.plan("obj", createMockContext() as ProcessingContext)
+    );
+    expect(value).not.toBeNull();
+    expect(value!.nodes).toHaveLength(1);
+    expect(value!.nodes[0].id).toBe("kept");
+
+    // The retry turn told the model what it already built.
+    const msgs = capture.lastArgs!.messages;
+    const retryMsg = msgs[msgs.length - 1];
+    expect(retryMsg.role).toBe("user");
+    expect(retryMsg.content).toContain("preserved");
+    expect(retryMsg.content).toContain("node kept");
+  });
+
+  it("renders caller inputs into the planning prompt", async () => {
+    const capture: ProviderCapture = {};
+    const script: ToolCall[] = [
+      {
+        id: "a1",
+        name: "add_node",
+        args: {
+          id: "n1",
+          type: AGENT_STEP_NODE_TYPE,
+          properties: { instructions: "x" }
+        }
+      },
+      { id: "f1", name: "finish_graph", args: {} }
+    ];
+    const planner = new GraphPlanner({
+      provider: createScriptedProvider([script], { capture }),
+      model: "opus",
+      registry: stubRegistry,
+      inputs: { prompt: "a red fox", count: 3 }
+    });
+    await collect(planner.plan("obj", createMockContext() as ProcessingContext));
+
+    const userPrompt = capture.lastArgs!.messages[1].content;
+    expect(userPrompt).toContain('- prompt: "a red fox"');
+    expect(userPrompt).toContain("- count: 3");
+    expect(userPrompt).toContain("nodetool.input.");
   });
 
   it("returns null after all attempts fail (no finish_graph)", async () => {

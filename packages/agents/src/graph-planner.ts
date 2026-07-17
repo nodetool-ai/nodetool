@@ -27,6 +27,8 @@ import { Tool } from "./tools/base-tool.js";
 import { GraphBuilder } from "./graph-builder.js";
 import { AddNodeTool } from "./tools/add-node-tool.js";
 import { AddEdgeTool } from "./tools/add-edge-tool.js";
+import { RemoveNodeTool } from "./tools/remove-node-tool.js";
+import { RemoveEdgeTool } from "./tools/remove-edge-tool.js";
 import { FinishGraphTool } from "./tools/finish-graph-tool.js";
 import { LocalSearchNodesTool } from "./tools/local-search-nodes-tool.js";
 import { LocalGetNodeInfoTool } from "./tools/local-get-node-info-tool.js";
@@ -45,6 +47,9 @@ const MAX_TOOL_CALLS_PER_TURN = 50;
 const GRAPH_CREATION_PROMPT_TEMPLATE = `Build a workflow graph to achieve this objective.
 
 Objective: {{objective}}
+
+Workflow inputs (runtime parameters the caller will supply):
+{{inputsInfo}}
 
 Available execution tools for agent step nodes:
 {{toolsInfo}}
@@ -154,6 +159,7 @@ export class GraphPlanner {
       "{{objective}}",
       objective
     )
+      .replace("{{inputsInfo}}", this.formatInputsInfo())
       .replace("{{toolsInfo}}", toolsInfo)
       .replace(
         "{{outputSchema}}",
@@ -184,6 +190,11 @@ export class GraphPlanner {
       executionToolsCount: this.tools.length
     });
 
+    // One builder for the whole plan: retries continue from the graph built so
+    // far (the retry message carries a snapshot of it) instead of silently
+    // starting over while telling the model to "fix the issues".
+    const builder = new GraphBuilder();
+
     for (let attempt = 0; attempt < this.maxRetries; attempt++) {
       log.info("GraphPlanner attempt", {
         objective: objective.slice(0, 60),
@@ -201,7 +212,7 @@ export class GraphPlanner {
             : "Building workflow graph..."
       } satisfies PlanningUpdate;
 
-      const result = yield* this.runToolLoop(messages);
+      const result = yield* this.runToolLoop(messages, builder);
 
       if (result.graph) {
         log.info("Graph built", {
@@ -234,9 +245,17 @@ export class GraphPlanner {
         content: errorMsg
       } satisfies PlanningUpdate;
 
+      // The provider loop copies the message array, so the model has no
+      // memory of its previous attempt — include the preserved builder state
+      // so "fix and finish" is actionable rather than a restart from nothing.
       messages.push({
         role: "user",
-        content: `Error: ${errorMsg}. Please fix the issues and call finish_graph again.`
+        content: `Error: ${errorMsg}
+
+The graph you built so far is preserved:
+${builder.describe()}
+
+Fix the issues (use remove_node / remove_edge to correct mistakes) and call finish_graph again.`
       });
     }
 
@@ -263,15 +282,17 @@ export class GraphPlanner {
    * The LLM can call search/inspect/add tools multiple times before finish_graph.
    */
   private async *runToolLoop(
-    messages: Message[]
+    messages: Message[],
+    builder: GraphBuilder
   ): AsyncGenerator<
     ProcessingMessage,
     { graph?: GraphData; error?: string }
   > {
-    const builder = new GraphBuilder();
     const addNodeTool = new AddNodeTool(builder, this.registry);
     const addEdgeTool = new AddEdgeTool(builder, this.registry);
-    const finishGraphTool = new FinishGraphTool(builder);
+    const removeNodeTool = new RemoveNodeTool(builder);
+    const removeEdgeTool = new RemoveEdgeTool(builder);
+    const finishGraphTool = new FinishGraphTool(builder, this.registry);
     const searchNodesTool = new LocalSearchNodesTool(this.registry);
     const getNodeInfoTool = new LocalGetNodeInfoTool(this.registry);
     const listNodesTool = new LocalListNodesTool(this.registry);
@@ -282,6 +303,8 @@ export class GraphPlanner {
       listNodesTool,
       addNodeTool,
       addEdgeTool,
+      removeNodeTool,
+      removeEdgeTool,
       finishGraphTool
     ];
 
@@ -441,11 +464,40 @@ export class GraphPlanner {
         return `Adding node ${String(args.node_type ?? "")}${args.id ? ` (${String(args.id)})` : ""}`;
       case "add_edge":
         return `Connecting ${String(args.source ?? "")} → ${String(args.target ?? "")}`;
+      case "remove_node":
+        return `Removing node ${String(args.id ?? "")}`;
+      case "remove_edge":
+        return `Disconnecting ${String(args.source ?? "")} → ${String(args.target ?? "")}`;
       case "finish_graph":
         return "Finalizing graph";
       default:
         return `Calling ${name}`;
     }
+  }
+
+  /**
+   * Render caller-supplied inputs for the planning prompt. The kernel
+   * dispatches runtime params to `nodetool.input.*` nodes matched by name, so
+   * the planner must know which keys exist to wire them in.
+   */
+  private formatInputsInfo(): string {
+    const entries = Object.entries(this.inputs);
+    if (entries.length === 0) return "None — the workflow takes no runtime parameters.";
+    const lines = entries.map(([key, value]) => {
+      let preview: string;
+      try {
+        preview = JSON.stringify(value) ?? "undefined";
+      } catch {
+        preview = String(value);
+      }
+      if (preview.length > 200) preview = preview.slice(0, 197) + "...";
+      return `- ${key}: ${preview}`;
+    });
+    return [
+      ...lines,
+      "",
+      "For EACH input above, add a matching `nodetool.input.*` node (e.g. `nodetool.input.StringInput`, `ImageInput`, `FloatInput`) with its `name` property set to the input key EXACTLY — the runtime delivers the value to the node by that name. Wire each input node's output into the nodes that consume it."
+    ].join("\n");
   }
 
   private formatToolsInfo(): string {

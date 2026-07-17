@@ -224,7 +224,7 @@ export function buildGraphPlannerSystemPrompt(
     "- `search_nodes(query, [namespace], [include_provider_nodes])` — deterministic core nodes only by default. Provider-specific nodes are HIDDEN unless `include_provider_nodes: true`. Optional `namespace` restricts results to a single core namespace.",
     "- `get_node_info(node_type)` — fetch full property/output schema. REQUIRED before `add_node` for non-generic nodes.",
     "- `list_nodes([namespace])` — browse a baseline namespace.",
-    "- `add_node`, `add_edge`, `finish_graph` — graph mutation."
+    "- `add_node`, `add_edge`, `remove_node`, `remove_edge`, `finish_graph` — graph mutation. `remove_node` / `remove_edge` correct mistakes in place; do not leave orphan nodes behind."
   ]
     .filter((line): line is string => line !== null)
     .join("\n");
@@ -291,7 +291,8 @@ the same failing call.
 | \`Unknown node type: 'X'\` | Re-run \`search_nodes\` with a broader query or different namespace. |
 | \`Source/Target node 'X' does not exist\` | Add the missing node before the edge. |
 | Wrong handle name | Re-run \`get_node_info\` for exact input/output handle names. |
-| Validation errors from \`finish_graph\` | Fix the specific issue and call \`finish_graph\` again. Do not rebuild from scratch. |
+| Wrong node or wrong wiring | \`remove_node\` / \`remove_edge\` the mistake, then add the correct one. |
+| Validation errors from \`finish_graph\` | Fix the specific issue (missing required property → re-add the node with it set, or wire an edge into that input) and call \`finish_graph\` again. Do not rebuild from scratch. |
 
 # Workflow Patterns (named templates — match user intent to one)
 
@@ -339,6 +340,17 @@ through an AgentStep for transformation logic.
 
 Set required properties at \`add_node\` time. Leave the rest at defaults —
 they get overridden by edges or are fine as-is.
+
+# Workflow Inputs
+
+When the task lists workflow inputs (runtime parameters), the graph MUST
+consume them through \`nodetool.input.*\` nodes: one input node per parameter,
+with the node's \`name\` property set to the parameter key exactly. The runtime
+matches parameters to input nodes by that name — a hardcoded constant instead
+of an input node silently ignores the caller's value. Pick the input node type
+matching the value (\`StringInput\`, \`IntegerInput\`, \`FloatInput\`,
+\`BooleanInput\`, \`ImageInput\`, \`AudioInput\`, ... — search the
+\`nodetool.input\` namespace).
 
 # Final Synthesis Is Not Your Job
 
