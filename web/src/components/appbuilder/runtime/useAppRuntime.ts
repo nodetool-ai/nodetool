@@ -22,6 +22,7 @@ import { graphEdgeToReactFlowEdge } from "../../../stores/graphEdgeToReactFlowEd
 import { runBrowserGraphJob } from "../../../lib/workflow/browserWorkflowRunner";
 import useResultsStore from "../../../stores/ResultsStore";
 import useMetadataStore from "../../../stores/MetadataStore";
+import { nodeErrorToDisplayString } from "../../../stores/ErrorStore";
 import { AppAction } from "../types";
 import { extractWorkflowIO } from "../workflowIO";
 import { seedInputValue } from "../inputProperty";
@@ -201,8 +202,9 @@ export const useAppRuntime = (
         }
         case "node_update": {
           const msg = data as { error?: string };
-          if (msg.error) {
-            store.getState().setError(msg.error);
+          const nodeError = nodeErrorToDisplayString(msg.error);
+          if (nodeError) {
+            store.getState().setError(nodeError);
           }
           break;
         }
@@ -220,8 +222,9 @@ export const useAppRuntime = (
           ) {
             store.getState().setProgress(null);
           }
-          if (msg.status === "failed" && msg.error) {
-            store.getState().setError(msg.error);
+          if (msg.status === "failed") {
+            const jobError = nodeErrorToDisplayString(msg.error);
+            if (jobError) store.getState().setError(jobError);
           }
           if (msg.status === "completed" && msg.duration != null) {
             store.getState().setLastRunDuration(msg.duration);
