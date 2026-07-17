@@ -24,6 +24,9 @@ const EXAMPLES_DIR = path.join(
 );
 const SCREENSHOTS = path.join(MARKETING, "public/apps");
 const OUT_FILE = path.join(MARKETING, "src/data/miniAppEntries.generated.ts");
+// Hero flag from the app-builder curation table (scripts/generate-template-apps.mjs
+// `featured: true`), written per-template to web/public/app-preview/manifest.json.
+const APP_PREVIEW_MANIFEST = path.join(REPO_ROOT, "web/public/app-preview/manifest.json");
 
 const slugify = (name) =>
   name
@@ -100,6 +103,15 @@ function distillApp(appDoc, name) {
   };
 }
 
+const featuredSlugs = new Set(
+  (fs.existsSync(APP_PREVIEW_MANIFEST)
+    ? JSON.parse(fs.readFileSync(APP_PREVIEW_MANIFEST, "utf8"))
+    : []
+  )
+    .filter((m) => m.featured)
+    .map((m) => m.slug),
+);
+
 const entries = [];
 for (const file of fs.readdirSync(EXAMPLES_DIR).filter((f) => f.endsWith(".json")).sort()) {
   const example = JSON.parse(fs.readFileSync(path.join(EXAMPLES_DIR, file), "utf8"));
@@ -125,6 +137,7 @@ for (const file of fs.readdirSync(EXAMPLES_DIR).filter((f) => f.endsWith(".json"
     slug,
     name: example.name,
     summary,
+    featured: featuredSlugs.has(slug),
     templateRoute: `/templates/${slug}`,
     screenshot,
     tags: Array.isArray(example.tags) ? example.tags : [],

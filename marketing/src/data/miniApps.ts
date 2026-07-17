@@ -29,6 +29,8 @@ export interface MiniAppEntry extends PageEntry {
   name: string;
   /** The workflow's own description (may be empty). */
   summary: string;
+  /** Hero app — leads the /apps index (curation table `featured: true`). */
+  featured: boolean;
   /** Route of the matching /templates page. */
   templateRoute: string;
   /** Public path to the app screenshot (`/apps/<slug>.png`) or null. */

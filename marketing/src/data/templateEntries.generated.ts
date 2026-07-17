@@ -6,13 +6,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/ad-creative-factory",
     "title": "Ad Creative Factory — NodeTool AI Workflow Template",
-    "description": "Turn one product photo and one offer into a batch of ready-to-test vertical video ads. A strategist agent plans a persona × angle test matrix, a list generator writes one spoken hook per cell, and every hook becomes a staged product scene, an animated 9:16 clip, and a voiceover mixed on top.",
+    "description": "Turn one product photo and one offer into a batch of ready-to-test vertical video ads. A strategist agent plans a persona × angle test matrix, a structured data generator emits one variant row per cell — persona, angle, and spoken hook as separate fields, not a prose blob — and every row's hook becomes a staged product scene, an animated 9:16 clip, and a voiceover mixed on top.",
     "priority": 0.3,
     "changeFrequency": "monthly",
     "indexable": false,
     "slug": "ad-creative-factory",
     "name": "Ad Creative Factory",
-    "summary": "Turn one product photo and one offer into a batch of ready-to-test vertical video ads. A strategist agent plans a persona × angle test matrix, a list generator writes one spoken hook per cell, and every hook becomes a staged product scene, an animated 9:16 clip, and a voiceover mixed on top.",
+    "summary": "Turn one product photo and one offer into a batch of ready-to-test vertical video ads. A strategist agent plans a persona × angle test matrix, a structured data generator emits one variant row per cell — persona, angle, and spoken hook as separate fields, not a prose blob — and every row's hook becomes a staged product scene, an animated 9:16 clip, and a voiceover mixed on top.",
     "tags": [
       "marketing",
       "advertising",
@@ -49,6 +49,21 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.generators.DataGenerator",
+        "label": "Data Generator",
+        "count": 1
+      },
+      {
+        "type": "nodetool.data.ExtractColumn",
+        "label": "Extract Column",
+        "count": 1
+      },
+      {
+        "type": "nodetool.control.ForEach",
+        "label": "For Each",
+        "count": 1
+      },
+      {
         "type": "nodetool.input.ImageInput",
         "label": "Image Input",
         "count": 1
@@ -69,17 +84,12 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
-        "type": "nodetool.generators.ListGenerator",
-        "label": "List Generator",
-        "count": 1
-      },
-      {
         "type": "nodetool.audio.TextToSpeech",
         "label": "Text To Speech",
         "count": 1
       }
     ],
-    "nodeCount": 16,
+    "nodeCount": 18,
     "thumbnail": null,
     "graph": {
       "nodes": [
@@ -151,12 +161,12 @@ export const templateEntries: TemplateEntry[] = [
           "x": 1130,
           "y": 320,
           "width": 340,
-          "subtitle": "From this creative test plan, write exactly {{ COUNT }} spoken ad hooks, one per line — no numbering, no quotes, no labels. Rules: - One ho…"
+          "subtitle": "From this creative test plan, generate exactly {{ COUNT }} ad variant rows — one row per matrix pairing. Fill every field for every row: -…"
         },
         {
-          "id": "variant_list",
-          "type": "nodetool.generators.ListGenerator",
-          "title": "List Generator",
+          "id": "variant_generator",
+          "type": "nodetool.generators.DataGenerator",
+          "title": "Data Generator",
           "x": 1510,
           "y": 380,
           "width": 330,
@@ -169,6 +179,22 @@ export const templateEntries: TemplateEntry[] = [
           "x": 1510,
           "y": 700,
           "width": 300
+        },
+        {
+          "id": "extract_hooks",
+          "type": "nodetool.data.ExtractColumn",
+          "title": "Extract Column",
+          "x": 1890,
+          "y": 700,
+          "width": 280
+        },
+        {
+          "id": "hook_loop",
+          "type": "nodetool.control.ForEach",
+          "title": "For Each",
+          "x": 1890,
+          "y": 850,
+          "width": 280
         },
         {
           "id": "scene_prompt",
@@ -292,20 +318,34 @@ export const templateEntries: TemplateEntry[] = [
         {
           "source": "hooks_prompt",
           "sourceHandle": "output",
-          "target": "variant_list",
+          "target": "variant_generator",
           "targetHandle": "prompt",
           "color": "string"
         },
         {
-          "source": "variant_list",
-          "sourceHandle": "item",
-          "target": "preview_hooks",
-          "targetHandle": "value",
-          "color": "string"
+          "source": "variant_generator",
+          "sourceHandle": "dataframe",
+          "target": "extract_hooks",
+          "targetHandle": "dataframe",
+          "color": "any"
         },
         {
-          "source": "variant_list",
-          "sourceHandle": "item",
+          "source": "extract_hooks",
+          "sourceHandle": "output",
+          "target": "hook_loop",
+          "targetHandle": "input_list",
+          "color": "list"
+        },
+        {
+          "source": "variant_generator",
+          "sourceHandle": "dataframe",
+          "target": "preview_hooks",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "hook_loop",
+          "sourceHandle": "output",
           "target": "scene_prompt",
           "targetHandle": "HOOK",
           "color": "string"
@@ -346,8 +386,8 @@ export const templateEntries: TemplateEntry[] = [
           "color": "image"
         },
         {
-          "source": "variant_list",
-          "sourceHandle": "item",
+          "source": "hook_loop",
+          "sourceHandle": "output",
           "target": "motion_prompt",
           "targetHandle": "HOOK",
           "color": "string"
@@ -360,8 +400,8 @@ export const templateEntries: TemplateEntry[] = [
           "color": "string"
         },
         {
-          "source": "variant_list",
-          "sourceHandle": "item",
+          "source": "hook_loop",
+          "sourceHandle": "output",
           "target": "voiceover",
           "targetHandle": "text",
           "color": "string"
@@ -391,107 +431,15 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
-    "route": "/templates/agent-google-search",
-    "title": "Agent Google Search — NodeTool AI Workflow Template",
-    "description": "Demonstrates an Agent using dynamic outputs to perform Google searches and display results.",
-    "priority": 0.6,
-    "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "agent-google-search",
-    "name": "Agent Google Search",
-    "summary": "Demonstrates an Agent using dynamic outputs to perform Google searches and display results.",
-    "tags": [
-      "agent",
-      "google",
-      "search",
-      "dynamic-outputs",
-      "example"
-    ],
-    "category": "Agents & Research",
-    "nodeTypes": [
-      {
-        "type": "nodetool.agents.Agent",
-        "label": "Agent",
-        "count": 1
-      },
-      {
-        "type": "search.google.GoogleSearch",
-        "label": "Google Search",
-        "count": 1
-      },
-      {
-        "type": "nodetool.output.Output",
-        "label": "Output",
-        "count": 1
-      }
-    ],
-    "nodeCount": 3,
-    "thumbnail": "/templates/agent-google-search.jpg",
-    "graph": {
-      "nodes": [
-        {
-          "id": "comment-1",
-          "type": "nodetool.workflows.base_node.Comment",
-          "title": "Comment",
-          "x": -473,
-          "y": 81,
-          "width": 437,
-          "isComment": true
-        },
-        {
-          "id": "6ababfd3-5743-4d7c-accd-97242130a8d8",
-          "type": "nodetool.agents.Agent",
-          "title": "Agent",
-          "x": 50,
-          "y": 50,
-          "width": 768,
-          "subtitle": "search for agent libs"
-        },
-        {
-          "id": "d6a1dc18-d26c-45c4-9196-2d6524018b1b",
-          "type": "search.google.GoogleSearch",
-          "title": "Google Search",
-          "x": 299,
-          "y": 685,
-          "width": 280
-        },
-        {
-          "id": "output-results",
-          "type": "nodetool.output.Output",
-          "title": "Output",
-          "x": 619,
-          "y": 685,
-          "width": 280
-        }
-      ],
-      "edges": [
-        {
-          "source": "6ababfd3-5743-4d7c-accd-97242130a8d8",
-          "sourceHandle": "__control__",
-          "target": "d6a1dc18-d26c-45c4-9196-2d6524018b1b",
-          "targetHandle": "__control__",
-          "color": "any"
-        },
-        {
-          "source": "d6a1dc18-d26c-45c4-9196-2d6524018b1b",
-          "sourceHandle": "text",
-          "target": "output-results",
-          "targetHandle": "value",
-          "color": "any"
-        }
-      ]
-    }
-  },
-  {
     "route": "/templates/audio-to-image",
     "title": "Audio To Image — NodeTool AI Workflow Template",
-    "description": "Transform spoken descriptions into images with this workflow. Record or upload audio, which is transcribed by Whisper and then visualized by Stable Diffusion. Perfect for quickly generating images from verbal ideas without typing.",
+    "description": "Speak an image into existence: no keyboard needed. Whisper transcribes your audio, then FLUX renders the description as an image — the whole pipeline runs from a single voice note.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "audio-to-image",
     "name": "Audio To Image",
-    "summary": "Transform spoken descriptions into images with this workflow. Record or upload audio, which is transcribed by Whisper and then visualized by Stable Diffusion. Perfect for quickly generating images from verbal ideas without typing.",
+    "summary": "Speak an image into existence: no keyboard needed. Whisper transcribes your audio, then FLUX renders the description as an image — the whole pipeline runs from a single voice note.",
     "tags": [
       "huggingface",
       "multimodal",
@@ -597,17 +545,18 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/brand-asset-generator",
     "title": "Brand Asset Generator — NodeTool AI Workflow Template",
-    "description": "Generate brand assets for a given brand.",
-    "priority": 0.3,
+    "description": "Turn a brand name and vibe into a whole social kit in one run: the graph fans out to two branches at once — a streamed gallery of four on-brand, text-overlaid social images (Instagram, LinkedIn, X, product launch) and a one-page brand brief (voice, palette, tagline options). Differentiator: structured multi-asset outputs from a single fan-out graph. Uses fal-ai flux/schnell for images (paid) and gpt-5-mini for text.",
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "brand-asset-generator",
     "name": "Brand Asset Generator",
-    "summary": "Generate brand assets for a given brand.",
+    "summary": "Turn a brand name and vibe into a whole social kit in one run: the graph fans out to two branches at once — a streamed gallery of four on-brand, text-overlaid social images (Instagram, LinkedIn, X, product launch) and a one-page brand brief (voice, palette, tagline options). Differentiator: structured multi-asset outputs from a single fan-out graph. Uses fal-ai flux/schnell for images (paid) and gpt-5-mini for text.",
     "tags": [
       "brand-asset",
       "branding",
       "design",
+      "images",
       "example"
     ],
     "category": "Image & Design",
@@ -618,9 +567,29 @@ export const templateEntries: TemplateEntry[] = [
         "count": 3
       },
       {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 2
+      },
+      {
+        "type": "nodetool.text.Prompt",
+        "label": "Prompt",
+        "count": 2
+      },
+      {
         "type": "lib.image.draw.RenderText",
         "label": "Render Text",
         "count": 2
+      },
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.control.Collect",
+        "label": "Collect",
+        "count": 1
       },
       {
         "type": "nodetool.input.ColorInput",
@@ -633,22 +602,12 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
-        "type": "nodetool.output.Output",
-        "label": "Output",
-        "count": 1
-      },
-      {
-        "type": "nodetool.text.Prompt",
-        "label": "Prompt",
-        "count": 1
-      },
-      {
         "type": "nodetool.image.TextToImage",
         "label": "Text To Image",
         "count": 1
       }
     ],
-    "nodeCount": 10,
+    "nodeCount": 14,
     "thumbnail": "/templates/brand-asset-generator.jpg",
     "graph": {
       "nodes": [
@@ -657,165 +616,241 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
           "x": 0,
-          "y": -220,
-          "width": 460,
+          "y": -260,
+          "width": 520,
           "isComment": true
         },
         {
-          "id": "2",
-          "type": "lib.image.draw.RenderText",
-          "title": "Render Text",
-          "x": 1650,
-          "y": 136,
-          "width": 280
-        },
-        {
-          "id": "3",
-          "type": "nodetool.input.StringInput",
-          "title": "String Input",
-          "x": 1310,
-          "y": 516,
-          "width": 280,
-          "subtitle": "Streamline Your Workflow"
-        },
-        {
-          "id": "4",
-          "type": "lib.image.draw.RenderText",
-          "title": "Render Text",
-          "x": 1310,
-          "y": 70,
-          "width": 280
-        },
-        {
-          "id": "5",
+          "id": "in_brand_name",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 0,
-          "y": 454,
+          "y": 40,
           "width": 280,
-          "subtitle": "TechFlow"
+          "subtitle": "Aurora Labs"
         },
         {
-          "id": "6",
+          "id": "in_brand_description",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 200,
+          "width": 280,
+          "subtitle": "A climate-tech startup building friendly home-energy tools. Warm, optimistic and human, where nature meets precision engineering."
+        },
+        {
+          "id": "in_tagline",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 360,
+          "width": 280,
+          "subtitle": "Power that gives back"
+        },
+        {
+          "id": "in_primary_color",
           "type": "nodetool.input.ColorInput",
           "title": "Color Input",
-          "x": 960,
-          "y": 388,
+          "x": 0,
+          "y": 520,
           "width": 280
         },
         {
-          "id": "7",
-          "type": "nodetool.image.TextToImage",
-          "title": "Text To Image",
-          "x": 960,
-          "y": 0,
-          "width": 384,
-          "subtitle": "fal-ai/flux/schnell"
+          "id": "prompt_images",
+          "type": "nodetool.text.Prompt",
+          "title": "Prompt",
+          "x": 360,
+          "y": 60,
+          "width": 300,
+          "subtitle": "You are an art director building a social-media image kit for a brand. BRAND Name: {{ brand_name }} Positioning: {{ brand_description }} TA…"
         },
         {
-          "id": "8",
+          "id": "gen_prompts",
           "type": "nodetool.generators.ListGenerator",
           "title": "List Generator",
-          "x": 650,
-          "y": 42,
+          "x": 720,
+          "y": 60,
           "width": 280,
           "subtitle": "gpt-5-mini"
         },
         {
-          "id": "9",
-          "type": "nodetool.text.Prompt",
-          "title": "Prompt",
-          "x": 340,
+          "id": "txt2img",
+          "type": "nodetool.image.TextToImage",
+          "title": "Text To Image",
+          "x": 1040,
           "y": 20,
-          "width": 280,
-          "subtitle": "You are a creative director generating image prompts for brand assets. Brand: {{ brand_name }} Description: {{ brand_description }} Generat…"
+          "width": 360,
+          "subtitle": "fal-ai/flux/schnell"
         },
         {
-          "id": "10",
-          "type": "nodetool.input.StringInput",
-          "title": "String Input",
-          "x": 0,
-          "y": 16,
-          "width": 280,
-          "subtitle": "A modern tech startup focused on productivity tools. Clean, minimal aesthetic with futuristic vibes."
+          "id": "label",
+          "type": "lib.image.draw.RenderText",
+          "title": "Render Text",
+          "x": 1440,
+          "y": 40,
+          "width": 280
         },
         {
-          "id": "output-brand-asset",
+          "id": "overlay",
+          "type": "lib.image.draw.RenderText",
+          "title": "Render Text",
+          "x": 1780,
+          "y": 60,
+          "width": 280
+        },
+        {
+          "id": "collect_assets",
+          "type": "nodetool.control.Collect",
+          "title": "Collect",
+          "x": 2120,
+          "y": 80,
+          "width": 240
+        },
+        {
+          "id": "out_assets",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1970,
-          "y": 136,
+          "x": 2420,
+          "y": 100,
+          "width": 280
+        },
+        {
+          "id": "prompt_brief",
+          "type": "nodetool.text.Prompt",
+          "title": "Prompt",
+          "x": 360,
+          "y": 560,
+          "width": 300,
+          "subtitle": "Write a one-page brand brief for the brand below. BRAND Name: {{ brand_name }} Positioning: {{ brand_description }} Working tagline: {{ tag…"
+        },
+        {
+          "id": "brief_agent",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 720,
+          "y": 560,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "out_brief",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1080,
+          "y": 600,
           "width": 280
         }
       ],
       "edges": [
         {
-          "source": "3",
+          "source": "in_brand_name",
           "sourceHandle": "output",
-          "target": "2",
-          "targetHandle": "text",
-          "color": "any"
-        },
-        {
-          "source": "5",
-          "sourceHandle": "output",
-          "target": "4",
-          "targetHandle": "text",
-          "color": "any"
-        },
-        {
-          "source": "6",
-          "sourceHandle": "output",
-          "target": "4",
-          "targetHandle": "color",
-          "color": "any"
-        },
-        {
-          "source": "5",
-          "sourceHandle": "output",
-          "target": "9",
+          "target": "prompt_images",
           "targetHandle": "brand_name",
           "color": "any"
         },
         {
-          "source": "10",
+          "source": "in_brand_description",
           "sourceHandle": "output",
-          "target": "9",
+          "target": "prompt_images",
           "targetHandle": "brand_description",
           "color": "any"
         },
         {
-          "source": "9",
+          "source": "prompt_images",
           "sourceHandle": "output",
-          "target": "8",
+          "target": "gen_prompts",
           "targetHandle": "prompt",
           "color": "any"
         },
         {
-          "source": "8",
+          "source": "gen_prompts",
           "sourceHandle": "item",
-          "target": "7",
+          "target": "txt2img",
           "targetHandle": "prompt",
           "color": "any"
         },
         {
-          "source": "7",
+          "source": "txt2img",
           "sourceHandle": "output",
-          "target": "4",
+          "target": "label",
           "targetHandle": "image",
           "color": "any"
         },
         {
-          "source": "4",
+          "source": "in_brand_name",
           "sourceHandle": "output",
-          "target": "2",
+          "target": "label",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "in_primary_color",
+          "sourceHandle": "output",
+          "target": "label",
+          "targetHandle": "color",
+          "color": "any"
+        },
+        {
+          "source": "label",
+          "sourceHandle": "output",
+          "target": "overlay",
           "targetHandle": "image",
           "color": "any"
         },
         {
-          "source": "2",
+          "source": "in_tagline",
           "sourceHandle": "output",
-          "target": "output-brand-asset",
+          "target": "overlay",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "overlay",
+          "sourceHandle": "output",
+          "target": "collect_assets",
+          "targetHandle": "input_item",
+          "color": "any"
+        },
+        {
+          "source": "collect_assets",
+          "sourceHandle": "output",
+          "target": "out_assets",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "in_brand_name",
+          "sourceHandle": "output",
+          "target": "prompt_brief",
+          "targetHandle": "brand_name",
+          "color": "any"
+        },
+        {
+          "source": "in_brand_description",
+          "sourceHandle": "output",
+          "target": "prompt_brief",
+          "targetHandle": "brand_description",
+          "color": "any"
+        },
+        {
+          "source": "in_tagline",
+          "sourceHandle": "output",
+          "target": "prompt_brief",
+          "targetHandle": "tagline",
+          "color": "any"
+        },
+        {
+          "source": "prompt_brief",
+          "sourceHandle": "output",
+          "target": "brief_agent",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "brief_agent",
+          "sourceHandle": "text",
+          "target": "out_brief",
           "targetHandle": "value",
           "color": "any"
         }
@@ -823,15 +858,318 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/chat-with-your-documents",
+    "title": "Chat With Your Documents — NodeTool AI Workflow Template",
+    "description": "Retrieval-augmented Q&A over your own documents. Index a small knowledge base into a vector collection, pull the passages matching a search keyword, and get a Markdown answer that cites its sources and refuses to guess when the answer isn't in the docs. NodeTool's first RAG example. The answer step uses gpt-5-mini (OpenAI key); the collection is configured for Ollama nomic-embed-text embeddings.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "chat-with-your-documents",
+    "name": "Chat With Your Documents",
+    "summary": "Retrieval-augmented Q&A over your own documents. Index a small knowledge base into a vector collection, pull the passages matching a search keyword, and get a Markdown answer that cites its sources and refuses to guess when the answer isn't in the docs. NodeTool's first RAG example. The answer step uses gpt-5-mini (OpenAI key); the collection is configured for Ollama nomic-embed-text embeddings.",
+    "tags": [
+      "rag",
+      "vectorstore",
+      "retrieval",
+      "llm",
+      "citations"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 5
+      },
+      {
+        "type": "vector.IndexTextChunk",
+        "label": "Index Text Chunk",
+        "count": 3
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 2
+      },
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "vector.Collection",
+        "label": "Collection",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.Join",
+        "label": "Join",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.Prompt",
+        "label": "Prompt",
+        "count": 1
+      },
+      {
+        "type": "vector.QueryText",
+        "label": "Query Text",
+        "count": 1
+      }
+    ],
+    "nodeCount": 15,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "comment_intro",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": -620,
+          "y": 40,
+          "width": 520,
+          "isComment": true
+        },
+        {
+          "id": "question_input",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 40,
+          "y": 80,
+          "width": 300,
+          "subtitle": "How long does the Aurora One take to fully charge, and what does its warranty cover?"
+        },
+        {
+          "id": "search_input",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 40,
+          "y": 240,
+          "width": 300,
+          "subtitle": "Aurora"
+        },
+        {
+          "id": "doc_specs",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 40,
+          "y": 400,
+          "width": 300,
+          "subtitle": "# Aurora One — Technical Specifications The Aurora One is a lightweight urban electric bike. It ships with a 500 Wh removable battery and a…"
+        },
+        {
+          "id": "doc_charging",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 40,
+          "y": 560,
+          "width": 300,
+          "subtitle": "# Aurora One — Battery & Charging The Aurora One battery charges from empty to full in about 4 hours with the included standard charger, or…"
+        },
+        {
+          "id": "doc_warranty",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 40,
+          "y": 720,
+          "width": 300,
+          "subtitle": "# Aurora One — Warranty & Support Every Aurora One includes a 2-year limited warranty covering the frame, motor, and battery against manufa…"
+        },
+        {
+          "id": "collection",
+          "type": "vector.Collection",
+          "title": "Collection",
+          "x": 400,
+          "y": 400,
+          "width": 280
+        },
+        {
+          "id": "index_specs",
+          "type": "vector.IndexTextChunk",
+          "title": "Index Text Chunk",
+          "x": 740,
+          "y": 400,
+          "width": 280
+        },
+        {
+          "id": "index_charging",
+          "type": "vector.IndexTextChunk",
+          "title": "Index Text Chunk",
+          "x": 740,
+          "y": 560,
+          "width": 280
+        },
+        {
+          "id": "index_warranty",
+          "type": "vector.IndexTextChunk",
+          "title": "Index Text Chunk",
+          "x": 740,
+          "y": 720,
+          "width": 280
+        },
+        {
+          "id": "retrieve",
+          "type": "vector.QueryText",
+          "title": "Query Text",
+          "x": 740,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "join_context",
+          "type": "nodetool.text.Join",
+          "title": "Join",
+          "x": 1080,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "rag_prompt",
+          "type": "nodetool.text.Prompt",
+          "title": "Prompt",
+          "x": 1420,
+          "y": 120,
+          "width": 300,
+          "subtitle": "Context passages retrieved from the knowledge base: {{ CONTEXT }} -------------------- User question: {{ QUESTION }}"
+        },
+        {
+          "id": "answer",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 1760,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "answer_output",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2100,
+          "y": 120,
+          "width": 260
+        },
+        {
+          "id": "context_output",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1420,
+          "y": 400,
+          "width": 260
+        }
+      ],
+      "edges": [
+        {
+          "source": "collection",
+          "sourceHandle": "output",
+          "target": "index_specs",
+          "targetHandle": "collection",
+          "color": "any"
+        },
+        {
+          "source": "collection",
+          "sourceHandle": "output",
+          "target": "index_charging",
+          "targetHandle": "collection",
+          "color": "any"
+        },
+        {
+          "source": "collection",
+          "sourceHandle": "output",
+          "target": "index_warranty",
+          "targetHandle": "collection",
+          "color": "any"
+        },
+        {
+          "source": "doc_specs",
+          "sourceHandle": "output",
+          "target": "index_specs",
+          "targetHandle": "text",
+          "color": "string"
+        },
+        {
+          "source": "doc_charging",
+          "sourceHandle": "output",
+          "target": "index_charging",
+          "targetHandle": "text",
+          "color": "string"
+        },
+        {
+          "source": "doc_warranty",
+          "sourceHandle": "output",
+          "target": "index_warranty",
+          "targetHandle": "text",
+          "color": "string"
+        },
+        {
+          "source": "collection",
+          "sourceHandle": "output",
+          "target": "retrieve",
+          "targetHandle": "collection",
+          "color": "any"
+        },
+        {
+          "source": "search_input",
+          "sourceHandle": "output",
+          "target": "retrieve",
+          "targetHandle": "text",
+          "color": "string"
+        },
+        {
+          "source": "retrieve",
+          "sourceHandle": "documents",
+          "target": "join_context",
+          "targetHandle": "strings",
+          "color": "list"
+        },
+        {
+          "source": "join_context",
+          "sourceHandle": "output",
+          "target": "rag_prompt",
+          "targetHandle": "CONTEXT",
+          "color": "string"
+        },
+        {
+          "source": "question_input",
+          "sourceHandle": "output",
+          "target": "rag_prompt",
+          "targetHandle": "QUESTION",
+          "color": "string"
+        },
+        {
+          "source": "join_context",
+          "sourceHandle": "output",
+          "target": "context_output",
+          "targetHandle": "value",
+          "color": "string"
+        },
+        {
+          "source": "rag_prompt",
+          "sourceHandle": "output",
+          "target": "answer",
+          "targetHandle": "prompt",
+          "color": "string"
+        },
+        {
+          "source": "answer",
+          "sourceHandle": "text",
+          "target": "answer_output",
+          "targetHandle": "value",
+          "color": "string"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/cold-outreach-co-pilot",
     "title": "Cold Outreach Co-Pilot — NodeTool AI Workflow Template",
-    "description": "An autonomous agent researches a prospect on the web and writes a personalized cold email — opening with a real, specific detail — plus a follow-up. Personalization at scale without the copy-paste.",
+    "description": "An autonomous agent researches a prospect on the web and drafts a personalized cold email — opening with a real, specific detail — as structured fields (subject, body, follow-up) instead of one prose blob, ready to drop straight into a CRM or email tool.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "cold-outreach-co-pilot",
     "name": "Cold Outreach Co-Pilot",
-    "summary": "An autonomous agent researches a prospect on the web and writes a personalized cold email — opening with a real, specific detail — plus a follow-up. Personalization at scale without the copy-paste.",
+    "summary": "An autonomous agent researches a prospect on the web and drafts a personalized cold email — opening with a real, specific detail — as structured fields (subject, body, follow-up) instead of one prose blob, ready to drop straight into a CRM or email tool.",
     "tags": [
       "agents",
       "sales",
@@ -844,7 +1182,7 @@ export const templateEntries: TemplateEntry[] = [
       {
         "type": "nodetool.workflows.base_node.Preview",
         "label": "Preview",
-        "count": 4
+        "count": 6
       },
       {
         "type": "nodetool.input.StringInput",
@@ -862,7 +1200,7 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       }
     ],
-    "nodeCount": 8,
+    "nodeCount": 10,
     "thumbnail": "/templates/cold-outreach-co-pilot.jpg",
     "graph": {
       "nodes": [
@@ -900,7 +1238,7 @@ export const templateEntries: TemplateEntry[] = [
           "x": 390,
           "y": 332,
           "width": 340,
-          "subtitle": "Research the prospect and write outreach. PROSPECT: {{ prospect }} MY OFFER: {{ offer }} Steps: 1. Use google_search and browser to learn w…"
+          "subtitle": "Research the prospect and draft outreach. PROSPECT: {{ prospect }} MY OFFER: {{ offer }} Steps: 1. Use google_search and browser to learn w…"
         },
         {
           "id": "agent",
@@ -928,11 +1266,27 @@ export const templateEntries: TemplateEntry[] = [
           "width": 565
         },
         {
-          "id": "preview_email",
+          "id": "preview_subject",
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
           "x": 1146,
           "y": 1165,
+          "width": 530
+        },
+        {
+          "id": "preview_body",
+          "type": "nodetool.workflows.base_node.Preview",
+          "title": "Preview",
+          "x": 1146,
+          "y": 1310,
+          "width": 530
+        },
+        {
+          "id": "preview_followup",
+          "type": "nodetool.workflows.base_node.Preview",
+          "title": "Preview",
+          "x": 1146,
+          "y": 1635,
           "width": 530
         },
         {
@@ -982,8 +1336,22 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "source": "agent",
-          "sourceHandle": "personalized_email",
-          "target": "preview_email",
+          "sourceHandle": "subject",
+          "target": "preview_subject",
+          "targetHandle": "value",
+          "color": "string"
+        },
+        {
+          "source": "agent",
+          "sourceHandle": "body",
+          "target": "preview_body",
+          "targetHandle": "value",
+          "color": "string"
+        },
+        {
+          "source": "agent",
+          "sourceHandle": "follow_up",
+          "target": "preview_followup",
           "targetHandle": "value",
           "color": "string"
         },
@@ -1000,13 +1368,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/color-boost-video",
     "title": "Color Boost Video — NodeTool AI Workflow Template",
-    "description": "Grade a short video clip by splitting it into frames, applying exposure/contrast and saturation/vibrance adjustments per frame, then reassembling the result for cinematic color.",
+    "description": "Grade a video by splitting it into frames, applying exposure/contrast and saturation/vibrance adjustments per frame, then reassembling the result — differentiator: bring your own clip and a single Grading Intensity slider drives the saturation pass live, no per-node tweaking.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "color-boost-video",
     "name": "Color Boost Video",
-    "summary": "Grade a short video clip by splitting it into frames, applying exposure/contrast and saturation/vibrance adjustments per frame, then reassembling the result for cinematic color.",
+    "summary": "Grade a video by splitting it into frames, applying exposure/contrast and saturation/vibrance adjustments per frame, then reassembling the result — differentiator: bring your own clip and a single Grading Intensity slider drives the saturation pass live, no per-node tweaking.",
     "tags": [
       "video",
       "start"
@@ -1016,6 +1384,11 @@ export const templateEntries: TemplateEntry[] = [
       {
         "type": "lib.image.color_grading.Exposure",
         "label": "Exposure",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.FloatInput",
+        "label": "Float Input",
         "count": 1
       },
       {
@@ -1039,21 +1412,29 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
-        "type": "nodetool.constant.Video",
-        "label": "Video",
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
         "count": 1
       }
     ],
-    "nodeCount": 6,
+    "nodeCount": 7,
     "thumbnail": "/templates/color-boost-video.jpg",
     "graph": {
       "nodes": [
         {
           "id": "7074f109-83b1-4864-8e37-17a89fcbf46d",
-          "type": "nodetool.constant.Video",
-          "title": "Video",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
           "x": 50,
           "y": 50,
+          "width": 280
+        },
+        {
+          "id": "grading-intensity",
+          "type": "nodetool.input.FloatInput",
+          "title": "Float Input",
+          "x": 680,
+          "y": 320,
           "width": 280
         },
         {
@@ -1129,6 +1510,13 @@ export const templateEntries: TemplateEntry[] = [
           "color": "image"
         },
         {
+          "source": "grading-intensity",
+          "sourceHandle": "output",
+          "target": "s41e2d70-1b3b-5d39-0955-4e0b2f1ac96c",
+          "targetHandle": "saturation",
+          "color": "any"
+        },
+        {
           "source": "s41e2d70-1b3b-5d39-0955-4e0b2f1ac96c",
           "sourceHandle": "output",
           "target": "4ca8874f-5caa-413c-a329-936d90358e8e",
@@ -1155,13 +1543,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/concept-art-iteration-board",
     "title": "Concept Art Iteration Board — NodeTool AI Workflow Template",
-    "description": "Turn a creative brief, style, and mood into concept art variations. An agent sets the art direction, then a batch of images is generated.",
+    "description": "Fan one creative brief into a gallery of concept-art variations. An art-director agent turns your brief, style, and mood into a detailed direction, then a list generator writes N distinct image prompts that all render into an append-style variant gallery. Differentiator: one run, many on-brief variations you can compare side by side and regenerate. Text runs on gpt-5-mini; images on fal-ai/flux/schnell.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "concept-art-iteration-board",
     "name": "Concept Art Iteration Board",
-    "summary": "Turn a creative brief, style, and mood into concept art variations. An agent sets the art direction, then a batch of images is generated.",
+    "summary": "Fan one creative brief into a gallery of concept-art variations. An art-director agent turns your brief, style, and mood into a detailed direction, then a list generator writes N distinct image prompts that all render into an append-style variant gallery. Differentiator: one run, many on-brief variations you can compare side by side and regenerate. Text runs on gpt-5-mini; images on fal-ai/flux/schnell.",
     "tags": [
       "concept-art",
       "planning",
@@ -1185,6 +1573,11 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.input.IntegerInput",
+        "label": "Integer Input",
+        "count": 1
+      },
+      {
         "type": "nodetool.generators.ListGenerator",
         "label": "List Generator",
         "count": 1
@@ -1200,7 +1593,7 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       }
     ],
-    "nodeCount": 9,
+    "nodeCount": 10,
     "thumbnail": "/templates/concept-art-iteration-board.jpg",
     "graph": {
       "nodes": [
@@ -1247,7 +1640,7 @@ export const templateEntries: TemplateEntry[] = [
           "x": 50,
           "y": 50,
           "width": 280,
-          "subtitle": "A mystical forest guardian - ancient tree spirit protecting enchanted woods. Fantasy RPG character design."
+          "subtitle": "An ancient forest guardian: a towering tree-spirit, bark-skinned and moss-cloaked, watching over an enchanted grove. Fantasy RPG character…"
         },
         {
           "id": "11",
@@ -1256,7 +1649,7 @@ export const templateEntries: TemplateEntry[] = [
           "x": 50,
           "y": 330,
           "width": 280,
-          "subtitle": "Digital painting, concept art style, painterly, dramatic lighting, rich colors"
+          "subtitle": "Painterly digital concept art, dramatic cinematic lighting, rich saturated color, visible brushwork, AAA game key art"
         },
         {
           "id": "12",
@@ -1265,7 +1658,7 @@ export const templateEntries: TemplateEntry[] = [
           "x": 50,
           "y": 610,
           "width": 280,
-          "subtitle": "mysterious, ancient, powerful, serene, magical"
+          "subtitle": "mysterious, ancient, powerful, serene, sacred"
         },
         {
           "id": "c1c46bfe-d52b-445b-b9d4-b0141e5bb944",
@@ -1274,7 +1667,7 @@ export const templateEntries: TemplateEntry[] = [
           "x": 1186,
           "y": 98,
           "width": 418,
-          "subtitle": "Based on this art direction, generate 4 unique concept art prompts. Art Direction: {{ direction }} Base Style: {{ style }} Each prompt shou…"
+          "subtitle": "Art direction: {{ direction }} Base style: {{ style }} Task: write exactly {{ count }} distinct text-to-image prompts for concept-art varia…"
         },
         {
           "id": "77560ab1-75f1-4208-aa4f-66732f56e22b",
@@ -1283,7 +1676,7 @@ export const templateEntries: TemplateEntry[] = [
           "x": 400,
           "y": 297,
           "width": 377,
-          "subtitle": "You are a creative director for concept art. Creative Brief: {{ brief }} Art Style: {{ style }} Mood: {{ mood }} Expand this brief into det…"
+          "subtitle": "Creative brief: {{ brief }} Art style: {{ style }} Mood: {{ mood }} Task: turn the brief above into a concrete art-direction brief a concep…"
         },
         {
           "id": "concept_art_output",
@@ -1291,6 +1684,14 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Output",
           "x": 2440,
           "y": 95,
+          "width": 280
+        },
+        {
+          "id": "num_variations",
+          "type": "nodetool.input.IntegerInput",
+          "title": "Integer Input",
+          "x": 50,
+          "y": 830,
           "width": 280
         }
       ],
@@ -1357,6 +1758,13 @@ export const templateEntries: TemplateEntry[] = [
           "target": "concept_art_output",
           "targetHandle": "value",
           "color": "image"
+        },
+        {
+          "source": "num_variations",
+          "sourceHandle": "output",
+          "target": "c1c46bfe-d52b-445b-b9d4-b0141e5bb944",
+          "targetHandle": "count",
+          "color": "int"
         }
       ]
     }
@@ -1364,13 +1772,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/conditional-logic-engine",
     "title": "Conditional Logic Engine — NodeTool AI Workflow Template",
-    "description": "Workflow that demonstrates multi-branch decision logic with value routing.",
-    "priority": 0.3,
+    "description": "Teaching example for control flow: one number drives two independent decision structures — a boolean OR gate and a nested switch tree — built entirely from Compare, LogicalOperator, and ConditionalSwitch nodes, no LLM calls.",
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "conditional-logic-engine",
     "name": "Conditional Logic Engine",
-    "summary": "Workflow that demonstrates multi-branch decision logic with value routing.",
+    "summary": "Teaching example for control flow: one number drives two independent decision structures — a boolean OR gate and a nested switch tree — built entirely from Compare, LogicalOperator, and ConditionalSwitch nodes, no LLM calls.",
     "tags": [
       "boolean"
     ],
@@ -1416,6 +1824,24 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
           "x": 0,
+          "y": -220,
+          "width": 460,
+          "isComment": true
+        },
+        {
+          "id": "comment-branch-a",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 1050,
+          "y": 900,
+          "width": 460,
+          "isComment": true
+        },
+        {
+          "id": "comment-branch-b",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 710,
           "y": -220,
           "width": 460,
           "isComment": true
@@ -1689,145 +2115,15 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
-    "route": "/templates/creative-story-ideas",
-    "title": "Creative Story Ideas — NodeTool AI Workflow Template",
-    "description": "A beginner-friendly template demonstrating core NodeTool concepts: inputs, templates, LLM agents, streaming, and outputs. Generate creative story ideas based on your preferences.",
+    "route": "/templates/data-generator",
+    "title": "Data Generator — NodeTool AI Workflow Template",
+    "description": "Turn a one-line topic into a structured dataset — define the columns once, get validated rows back instead of paragraphs of prose.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
-    "slug": "creative-story-ideas",
-    "name": "Creative Story Ideas",
-    "summary": "A beginner-friendly template demonstrating core NodeTool concepts: inputs, templates, LLM agents, streaming, and outputs. Generate creative story ideas based on your preferences.",
-    "tags": [
-      "start",
-      "beginner",
-      "tutorial",
-      "template",
-      "example"
-    ],
-    "category": "Image & Design",
-    "nodeTypes": [
-      {
-        "type": "nodetool.input.StringInput",
-        "label": "String Input",
-        "count": 2
-      },
-      {
-        "type": "nodetool.generators.ListGenerator",
-        "label": "List Generator",
-        "count": 1
-      },
-      {
-        "type": "nodetool.output.Output",
-        "label": "Output",
-        "count": 1
-      },
-      {
-        "type": "nodetool.text.Prompt",
-        "label": "Prompt",
-        "count": 1
-      }
-    ],
-    "nodeCount": 5,
-    "thumbnail": "/templates/creative-story-ideas.jpg",
-    "graph": {
-      "nodes": [
-        {
-          "id": "comment_tutorial",
-          "type": "nodetool.workflows.base_node.Comment",
-          "title": "Comment",
-          "x": -500,
-          "y": 50,
-          "width": 460,
-          "isComment": true
-        },
-        {
-          "id": "input_genre",
-          "type": "nodetool.input.StringInput",
-          "title": "String Input",
-          "x": 50,
-          "y": 85,
-          "width": 280,
-          "subtitle": "Fantasy"
-        },
-        {
-          "id": "input_character",
-          "type": "nodetool.input.StringInput",
-          "title": "String Input",
-          "x": 50,
-          "y": 365,
-          "width": 280,
-          "subtitle": "Reluctant Hero"
-        },
-        {
-          "id": "list_generator",
-          "type": "nodetool.generators.ListGenerator",
-          "title": "List Generator",
-          "x": 740,
-          "y": 65,
-          "width": 405,
-          "subtitle": "gpt-5-mini"
-        },
-        {
-          "id": "8132bc91-b872-4976-8bbf-b3548eff3b06",
-          "type": "nodetool.text.Prompt",
-          "title": "Prompt",
-          "x": 390,
-          "y": 50,
-          "width": 320,
-          "subtitle": "Generate 5 creative story ideas with the following criteria: Genre: {{ genre }} Main Character: {{ character }} For each story idea, provid…"
-        },
-        {
-          "id": "ideas_output",
-          "type": "nodetool.output.Output",
-          "title": "Output",
-          "x": 1200,
-          "y": 65,
-          "width": 280
-        }
-      ],
-      "edges": [
-        {
-          "source": "input_character",
-          "sourceHandle": "output",
-          "target": "8132bc91-b872-4976-8bbf-b3548eff3b06",
-          "targetHandle": "character",
-          "color": "string"
-        },
-        {
-          "source": "8132bc91-b872-4976-8bbf-b3548eff3b06",
-          "sourceHandle": "output",
-          "target": "list_generator",
-          "targetHandle": "prompt",
-          "color": "string"
-        },
-        {
-          "source": "input_genre",
-          "sourceHandle": "output",
-          "target": "8132bc91-b872-4976-8bbf-b3548eff3b06",
-          "targetHandle": "genre",
-          "color": "string"
-        },
-        {
-          "source": "list_generator",
-          "sourceHandle": "item",
-          "target": "ideas_output",
-          "targetHandle": "value",
-          "color": "string"
-        }
-      ]
-    }
-  },
-  {
-    "route": "/templates/data-generator",
-    "title": "Data Generator — NodeTool AI Workflow Template",
-    "description": "Generate structured data using AI agents",
-    "priority": 0.3,
-    "changeFrequency": "monthly",
-    "indexable": false,
     "slug": "data-generator",
     "name": "Data Generator",
-    "summary": "Generate structured data using AI agents",
+    "summary": "Turn a one-line topic into a structured dataset — define the columns once, get validated rows back instead of paragraphs of prose.",
     "tags": [
       "agents"
     ],
@@ -1839,30 +2135,71 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
-        "type": "nodetool.workflows.base_node.Preview",
-        "label": "Preview",
+        "type": "nodetool.input.IntegerInput",
+        "label": "Integer Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.Prompt",
+        "label": "Prompt",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
         "count": 1
       }
     ],
-    "nodeCount": 2,
+    "nodeCount": 5,
     "thumbnail": "/templates/data-generator.jpg",
     "graph": {
       "nodes": [
         {
+          "id": "topic_input",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 54,
+          "y": 20,
+          "width": 280,
+          "subtitle": "fresh vegetables, each with its typical color"
+        },
+        {
+          "id": "row_count_input",
+          "type": "nodetool.input.IntegerInput",
+          "title": "Integer Input",
+          "x": 54,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "build_prompt",
+          "type": "nodetool.text.Prompt",
+          "title": "Prompt",
+          "x": 410,
+          "y": 20,
+          "width": 280,
+          "subtitle": "Generate exactly {{ROW_COUNT}} rows of data about {{TOPIC}}. Rules for every row: - Fill in accurate, realistic values for each column — no…"
+        },
+        {
           "id": "2ed27bde-9299-4088-a169-156b1ea5552f",
           "type": "nodetool.generators.DataGenerator",
           "title": "Data Generator",
-          "x": 54,
-          "y": 71,
+          "x": 766,
+          "y": 20,
           "width": 280,
-          "subtitle": "Generate a table of veggies"
+          "subtitle": "gpt-5-mini"
         },
         {
-          "id": "2",
-          "type": "nodetool.workflows.base_node.Preview",
-          "title": "Preview",
-          "x": 410,
-          "y": 71,
+          "id": "data_output",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1122,
+          "y": 20,
           "width": 280
         },
         {
@@ -1870,225 +2207,39 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
           "x": 45,
-          "y": -164,
+          "y": -200,
           "width": 460,
           "isComment": true
         }
       ],
       "edges": [
+        {
+          "source": "topic_input",
+          "sourceHandle": "output",
+          "target": "build_prompt",
+          "targetHandle": "TOPIC",
+          "color": "any"
+        },
+        {
+          "source": "row_count_input",
+          "sourceHandle": "output",
+          "target": "build_prompt",
+          "targetHandle": "ROW_COUNT",
+          "color": "any"
+        },
+        {
+          "source": "build_prompt",
+          "sourceHandle": "output",
+          "target": "2ed27bde-9299-4088-a169-156b1ea5552f",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
         {
           "source": "2ed27bde-9299-4088-a169-156b1ea5552f",
           "sourceHandle": "dataframe",
-          "target": "2",
+          "target": "data_output",
           "targetHandle": "value",
           "color": "any"
-        }
-      ]
-    }
-  },
-  {
-    "route": "/templates/fetch-papers",
-    "title": "Fetch Papers — NodeTool AI Workflow Template",
-    "description": "This workflow automatically fetches and downloads research papers from the Awesome Transformers GitHub repository. It extracts paper links from the README.md file, filters for actual papers, and downloads them to a specified folder. Ideal for researchers and AI enthusiasts who want to stay updated with the latest transformer model papers.",
-    "priority": 0.6,
-    "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "fetch-papers",
-    "name": "Fetch Papers",
-    "summary": "This workflow automatically fetches and downloads research papers from the Awesome Transformers GitHub repository. It extracts paper links from the README.md file, filters for actual papers, and downloads them to a specified folder. Ideal for researchers and AI enthusiasts who want to stay updated with the latest transformer model papers.",
-    "tags": [
-      "automation"
-    ],
-    "category": "Agents & Research",
-    "nodeTypes": [
-      {
-        "type": "nodetool.control.Collect",
-        "label": "Collect",
-        "count": 1
-      },
-      {
-        "type": "lib.browser.DownloadFile",
-        "label": "Download File",
-        "count": 1
-      },
-      {
-        "type": "nodetool.data.ExtractColumn",
-        "label": "Extract Column",
-        "count": 1
-      },
-      {
-        "type": "lib.markdown.ExtractLinks",
-        "label": "Extract Links",
-        "count": 1
-      },
-      {
-        "type": "nodetool.data.Filter",
-        "label": "Filter",
-        "count": 1
-      },
-      {
-        "type": "nodetool.control.ForEach",
-        "label": "For Each",
-        "count": 1
-      },
-      {
-        "type": "nodetool.data.FromList",
-        "label": "From List",
-        "count": 1
-      },
-      {
-        "type": "lib.http.GetText",
-        "label": "Get Text",
-        "count": 1
-      },
-      {
-        "type": "nodetool.workflows.base_node.Preview",
-        "label": "Preview",
-        "count": 1
-      }
-    ],
-    "nodeCount": 9,
-    "thumbnail": "/templates/fetch-papers.jpg",
-    "graph": {
-      "nodes": [
-        {
-          "id": "5",
-          "type": "nodetool.data.FromList",
-          "title": "From List",
-          "x": 670,
-          "y": 119,
-          "width": 280
-        },
-        {
-          "id": "6",
-          "type": "nodetool.data.Filter",
-          "title": "Filter",
-          "x": 980,
-          "y": 90,
-          "width": 280
-        },
-        {
-          "id": "25",
-          "type": "nodetool.data.ExtractColumn",
-          "title": "Extract Column",
-          "x": 1290,
-          "y": 90,
-          "width": 280
-        },
-        {
-          "id": "32",
-          "type": "lib.markdown.ExtractLinks",
-          "title": "Extract Links",
-          "x": 360,
-          "y": 97,
-          "width": 280
-        },
-        {
-          "id": "42210238-9ee4-4c29-96b8-8c385d439777",
-          "type": "lib.http.GetText",
-          "title": "Get Text",
-          "x": 50,
-          "y": 109,
-          "width": 280
-        },
-        {
-          "id": "24359d28-c3d7-45ec-95e9-30f8cce0d18a",
-          "type": "nodetool.workflows.base_node.Comment",
-          "title": "Comment",
-          "x": 186,
-          "y": -189,
-          "width": 460,
-          "isComment": true
-        },
-        {
-          "id": "foreach",
-          "type": "nodetool.control.ForEach",
-          "title": "For Each",
-          "x": 1580,
-          "y": 90,
-          "width": 240
-        },
-        {
-          "id": "dl",
-          "type": "lib.browser.DownloadFile",
-          "title": "Download File",
-          "x": 1870,
-          "y": 90,
-          "width": 240
-        },
-        {
-          "id": "collect",
-          "type": "nodetool.control.Collect",
-          "title": "Collect",
-          "x": 2160,
-          "y": 90,
-          "width": 240
-        },
-        {
-          "id": "preview",
-          "type": "nodetool.workflows.base_node.Preview",
-          "title": "Preview",
-          "x": 2450,
-          "y": 90,
-          "width": 240
-        }
-      ],
-      "edges": [
-        {
-          "source": "5",
-          "sourceHandle": "output",
-          "target": "6",
-          "targetHandle": "df",
-          "color": "any"
-        },
-        {
-          "source": "32",
-          "sourceHandle": "output",
-          "target": "5",
-          "targetHandle": "values",
-          "color": "list"
-        },
-        {
-          "source": "6",
-          "sourceHandle": "output",
-          "target": "25",
-          "targetHandle": "dataframe",
-          "color": "any"
-        },
-        {
-          "source": "42210238-9ee4-4c29-96b8-8c385d439777",
-          "sourceHandle": "output",
-          "target": "32",
-          "targetHandle": "markdown",
-          "color": "any"
-        },
-        {
-          "source": "25",
-          "sourceHandle": "output",
-          "target": "foreach",
-          "targetHandle": "input_list",
-          "color": "list"
-        },
-        {
-          "source": "foreach",
-          "sourceHandle": "output",
-          "target": "dl",
-          "targetHandle": "url",
-          "color": "string"
-        },
-        {
-          "source": "dl",
-          "sourceHandle": "output",
-          "target": "collect",
-          "targetHandle": "input_item",
-          "color": "any"
-        },
-        {
-          "source": "collect",
-          "sourceHandle": "output",
-          "target": "preview",
-          "targetHandle": "value",
-          "color": "list"
         }
       ]
     }
@@ -2096,13 +2247,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/flashcard-generator",
     "title": "Flashcard Generator — NodeTool AI Workflow Template",
-    "description": "Generate study flashcards using AI and store them persistently in a database. Enter any topic and get instant flashcards that are saved for future review.",
+    "description": "Generate study flashcards as structured front/back card objects and store them persistently in a database. Enter any topic and get instant flashcards that are saved for future review.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "flashcard-generator",
     "name": "Flashcard Generator",
-    "summary": "Generate study flashcards using AI and store them persistently in a database. Enter any topic and get instant flashcards that are saved for future review.",
+    "summary": "Generate study flashcards as structured front/back card objects and store them persistently in a database. Enter any topic and get instant flashcards that are saved for future review.",
     "tags": [
       "education",
       "database",
@@ -2128,6 +2279,11 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.input.IntegerInput",
+        "label": "Integer Input",
+        "count": 1
+      },
+      {
         "type": "nodetool.output.Output",
         "label": "Output",
         "count": 1
@@ -2148,7 +2304,7 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       }
     ],
-    "nodeCount": 7,
+    "nodeCount": 8,
     "thumbnail": "/templates/flashcard-generator.jpg",
     "graph": {
       "nodes": [
@@ -2160,6 +2316,14 @@ export const templateEntries: TemplateEntry[] = [
           "y": 171,
           "width": 280,
           "subtitle": "Python Programming"
+        },
+        {
+          "id": "num_cards_input",
+          "type": "nodetool.input.IntegerInput",
+          "title": "Integer Input",
+          "x": 76,
+          "y": 291,
+          "width": 280
         },
         {
           "id": "create_table",
@@ -2176,7 +2340,7 @@ export const templateEntries: TemplateEntry[] = [
           "x": 386,
           "y": 167,
           "width": 280,
-          "subtitle": "Generate 5 educational flashcards about {{TOPIC}}. Create clear questions with concise, accurate answers suitable for studying."
+          "subtitle": "You are a study-flashcard writer. Create {{NUM_CARDS}} flashcards that teach {{TOPIC}} to a first-time learner. Rules for every card: - \"fr…"
         },
         {
           "id": "generate_flashcards",
@@ -2227,6 +2391,13 @@ export const templateEntries: TemplateEntry[] = [
           "sourceHandle": "output",
           "target": "format_prompt",
           "targetHandle": "TOPIC",
+          "color": "any"
+        },
+        {
+          "source": "num_cards_input",
+          "sourceHandle": "output",
+          "target": "format_prompt",
+          "targetHandle": "NUM_CARDS",
           "color": "any"
         },
         {
@@ -2291,13 +2462,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/hacker-news-agent",
     "title": "Hacker News Agent — NodeTool AI Workflow Template",
-    "description": "Scrape and analyze the front page of Hacker News.",
-    "priority": 0.3,
+    "description": "Scrape the Hacker News front page and get a topic-filtered digest written directly as Markdown — no separate formatting step.",
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "hacker-news-agent",
     "name": "Hacker News Agent",
-    "summary": "Scrape and analyze the front page of Hacker News.",
+    "summary": "Scrape the Hacker News front page and get a topic-filtered digest written directly as Markdown — no separate formatting step.",
     "tags": [
       "hackernews",
       "news",
@@ -2306,11 +2477,6 @@ export const templateEntries: TemplateEntry[] = [
     "category": "Agents & Research",
     "nodeTypes": [
       {
-        "type": "nodetool.text.Prompt",
-        "label": "Prompt",
-        "count": 2
-      },
-      {
         "type": "nodetool.agents.Agent",
         "label": "Agent",
         "count": 1
@@ -2318,6 +2484,16 @@ export const templateEntries: TemplateEntry[] = [
       {
         "type": "nodetool.output.Output",
         "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.Prompt",
+        "label": "Prompt",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
         "count": 1
       }
     ],
@@ -2335,13 +2511,13 @@ export const templateEntries: TemplateEntry[] = [
           "isComment": true
         },
         {
-          "id": "2",
-          "type": "nodetool.text.Prompt",
-          "title": "Prompt",
-          "x": 800,
-          "y": 80,
+          "id": "topic_input",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 80,
+          "y": 300,
           "width": 280,
-          "subtitle": "# Hacker News snapshot ## Overview {{ summary }} {% for p in posts %} ### {{ p.title }} {{ p.url }} Top comments: {% for c in p.top_comment…"
+          "subtitle": "AI and developer tools"
         },
         {
           "id": "3",
@@ -2359,18 +2535,25 @@ export const templateEntries: TemplateEntry[] = [
           "x": 80,
           "y": 80,
           "width": 280,
-          "subtitle": "Scrape the front page of https://news.ycombinator.com/ and analyze activity. Tasks: 1) Identify the top 5 posts on the front page. 2) For e…"
+          "subtitle": "Scrape the front page of https://news.ycombinator.com/ and write a themed Markdown digest. Topic focus: {{ topic }} - Prioritize front-page…"
         },
         {
           "id": "output-analysis",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1120,
+          "x": 800,
           "y": 80,
           "width": 280
         }
       ],
       "edges": [
+        {
+          "source": "topic_input",
+          "sourceHandle": "output",
+          "target": "4",
+          "targetHandle": "topic",
+          "color": "any"
+        },
         {
           "source": "4",
           "sourceHandle": "output",
@@ -2380,21 +2563,7 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "source": "3",
-          "sourceHandle": "summary",
-          "target": "2",
-          "targetHandle": "summary",
-          "color": "any"
-        },
-        {
-          "source": "3",
-          "sourceHandle": "posts",
-          "target": "2",
-          "targetHandle": "posts",
-          "color": "any"
-        },
-        {
-          "source": "2",
-          "sourceHandle": "output",
+          "sourceHandle": "digest_markdown",
           "target": "output-analysis",
           "targetHandle": "value",
           "color": "any"
@@ -2405,13 +2574,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/hook-and-thumbnail-factory",
     "title": "Hook & Thumbnail Factory — NodeTool AI Workflow Template",
-    "description": "Turn a video topic into scroll-stopping hook ideas and a matching AI thumbnail for each — a faceless short-form content starter kit in one run.",
+    "description": "One video topic in, a full thumbnail pack out: scroll-stopping hook lines plus a color-graded, ready-to-post thumbnail for each. The differentiator is the fan-out — one hook stream drives a whole gallery of matching images in a single run. Uses fal-ai/flux/schnell (cheap, fast).",
     "priority": 0.3,
     "changeFrequency": "monthly",
     "indexable": false,
     "slug": "hook-and-thumbnail-factory",
     "name": "Hook & Thumbnail Factory",
-    "summary": "Turn a video topic into scroll-stopping hook ideas and a matching AI thumbnail for each — a faceless short-form content starter kit in one run.",
+    "summary": "One video topic in, a full thumbnail pack out: scroll-stopping hook lines plus a color-graded, ready-to-post thumbnail for each. The differentiator is the fan-out — one hook stream drives a whole gallery of matching images in a single run. Uses fal-ai/flux/schnell (cheap, fast).",
     "tags": [
       "image",
       "content",
@@ -2437,8 +2606,28 @@ export const templateEntries: TemplateEntry[] = [
         "count": 2
       },
       {
+        "type": "lib.image.color.BrightnessContrast",
+        "label": "Brightness Contrast",
+        "count": 1
+      },
+      {
+        "type": "nodetool.control.Collect",
+        "label": "Collect",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.IntegerInput",
+        "label": "Integer Input",
+        "count": 1
+      },
+      {
         "type": "nodetool.generators.ListGenerator",
         "label": "List Generator",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
         "count": 1
       },
       {
@@ -2447,7 +2636,7 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       }
     ],
-    "nodeCount": 8,
+    "nodeCount": 12,
     "thumbnail": null,
     "graph": {
       "nodes": [
@@ -2474,9 +2663,17 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 40,
-          "y": 360,
+          "y": 300,
           "width": 280,
           "subtitle": "Gen Z just starting to invest"
+        },
+        {
+          "id": "input_count",
+          "type": "nodetool.input.IntegerInput",
+          "title": "Integer Input",
+          "x": 40,
+          "y": 540,
+          "width": 280
         },
         {
           "id": "hook_brief",
@@ -2485,7 +2682,7 @@ export const templateEntries: TemplateEntry[] = [
           "x": 420,
           "y": 120,
           "width": 340,
-          "subtitle": "Write 5 scroll-stopping hook ideas for a short-form video. TOPIC: {{ topic }} AUDIENCE: {{ audience }} Rules: - Each hook is one line, said…"
+          "subtitle": "You are a short-form video strategist. Write exactly {{ count }} scroll-stopping hook lines for a video. TOPIC: {{ topic }} AUDIENCE: {{ au…"
         },
         {
           "id": "hooks",
@@ -2503,7 +2700,7 @@ export const templateEntries: TemplateEntry[] = [
           "x": 1200,
           "y": 120,
           "width": 340,
-          "subtitle": "Design a bold, high-contrast YouTube/Shorts thumbnail for a video. VIDEO TOPIC: {{ topic }} HOOK ON SCREEN: {{ hook }} Describe a single ey…"
+          "subtitle": "You are an art director for viral thumbnails. Turn one hook into a single image description. VIDEO TOPIC: {{ topic }} HOOK ON SCREEN: {{ ho…"
         },
         {
           "id": "thumbnail",
@@ -2513,6 +2710,30 @@ export const templateEntries: TemplateEntry[] = [
           "y": 120,
           "width": 320,
           "subtitle": "fal-ai/flux/schnell"
+        },
+        {
+          "id": "punch",
+          "type": "lib.image.color.BrightnessContrast",
+          "title": "Brightness Contrast",
+          "x": 1940,
+          "y": 160,
+          "width": 280
+        },
+        {
+          "id": "collect_thumbs",
+          "type": "nodetool.control.Collect",
+          "title": "Collect",
+          "x": 2260,
+          "y": 160,
+          "width": 280
+        },
+        {
+          "id": "output_gallery",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2580,
+          "y": 160,
+          "width": 280
         },
         {
           "id": "preview_hooks",
@@ -2526,7 +2747,7 @@ export const templateEntries: TemplateEntry[] = [
           "id": "preview_thumb",
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
-          "x": 1580,
+          "x": 1940,
           "y": 540,
           "width": 360
         }
@@ -2545,6 +2766,13 @@ export const templateEntries: TemplateEntry[] = [
           "target": "hook_brief",
           "targetHandle": "audience",
           "color": "string"
+        },
+        {
+          "source": "input_count",
+          "sourceHandle": "output",
+          "target": "hook_brief",
+          "targetHandle": "count",
+          "color": "int"
         },
         {
           "source": "hook_brief",
@@ -2584,9 +2812,30 @@ export const templateEntries: TemplateEntry[] = [
         {
           "source": "thumbnail",
           "sourceHandle": "output",
+          "target": "punch",
+          "targetHandle": "image",
+          "color": "image"
+        },
+        {
+          "source": "punch",
+          "sourceHandle": "output",
           "target": "preview_thumb",
           "targetHandle": "value",
           "color": "image"
+        },
+        {
+          "source": "punch",
+          "sourceHandle": "output",
+          "target": "collect_thumbs",
+          "targetHandle": "input_item",
+          "color": "image"
+        },
+        {
+          "source": "collect_thumbs",
+          "sourceHandle": "output",
+          "target": "output_gallery",
+          "targetHandle": "value",
+          "color": "list"
         }
       ]
     }
@@ -2594,13 +2843,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/image-enhance",
     "title": "Image Enhance — NodeTool AI Workflow Template",
-    "description": "Improve image quality with basic enhancement tools like sharpening, contrast and color adjustment",
+    "description": "A live photo editor: five GPU filters chained into one pipeline, each exposing a numeric property the app binds to a slider. Drag Denoise, Brightness, Contrast, Saturation, and Sharpen and the preview updates in place — the filters run in-browser, so there is no model, no API key, and no per-run cost.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "image-enhance",
     "name": "Image Enhance",
-    "summary": "Improve image quality with basic enhancement tools like sharpening, contrast and color adjustment",
+    "summary": "A live photo editor: five GPU filters chained into one pipeline, each exposing a numeric property the app binds to a slider. Drag Denoise, Brightness, Contrast, Saturation, and Sharpen and the preview updates in place — the filters run in-browser, so there is no model, no API key, and no per-run cost.",
     "tags": [
       "image",
       "start",
@@ -2609,8 +2858,18 @@ export const templateEntries: TemplateEntry[] = [
     "category": "Image & Design",
     "nodeTypes": [
       {
-        "type": "lib.image.enhance.AutoContrast",
-        "label": "Auto Contrast",
+        "type": "lib.image.color.BrightnessContrast",
+        "label": "Brightness Contrast",
+        "count": 1
+      },
+      {
+        "type": "lib.image.filter.GaussianBlur",
+        "label": "Gaussian Blur",
+        "count": 1
+      },
+      {
+        "type": "lib.image.color.HSB",
+        "label": "HSB",
         "count": 1
       },
       {
@@ -2629,7 +2888,7 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       }
     ],
-    "nodeCount": 4,
+    "nodeCount": 6,
     "thumbnail": "/templates/image-enhance.jpg",
     "graph": {
       "nodes": [
@@ -2638,25 +2897,9 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
           "x": 11,
-          "y": -310,
-          "width": 734,
+          "y": -300,
+          "width": 900,
           "isComment": true
-        },
-        {
-          "id": "9d8850a4-c20f-4698-9cb4-e315c956aee6",
-          "type": "lib.image.filter.UnsharpMask",
-          "title": "Unsharp Mask",
-          "x": 360,
-          "y": 131,
-          "width": 280
-        },
-        {
-          "id": "4c9c6b63-646a-4da9-8794-abd180c59041",
-          "type": "lib.image.enhance.AutoContrast",
-          "title": "Auto Contrast",
-          "x": 670,
-          "y": 113,
-          "width": 280
         },
         {
           "id": "0c458df1-e2b2-4662-a9aa-00f2ceaae799",
@@ -2664,38 +2907,84 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Image Input",
           "x": 1,
           "y": 71,
-          "width": 280
+          "width": 260
+        },
+        {
+          "id": "denoise-node",
+          "type": "lib.image.filter.GaussianBlur",
+          "title": "Gaussian Blur",
+          "x": 300,
+          "y": 90,
+          "width": 240
+        },
+        {
+          "id": "tone-node",
+          "type": "lib.image.color.BrightnessContrast",
+          "title": "Brightness Contrast",
+          "x": 580,
+          "y": 90,
+          "width": 240
+        },
+        {
+          "id": "color-node",
+          "type": "lib.image.color.HSB",
+          "title": "HSB",
+          "x": 860,
+          "y": 90,
+          "width": 240
+        },
+        {
+          "id": "sharpen-node",
+          "type": "lib.image.filter.UnsharpMask",
+          "title": "Unsharp Mask",
+          "x": 1140,
+          "y": 90,
+          "width": 240
         },
         {
           "id": "output-enhanced-image",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 990,
-          "y": 113,
+          "x": 1420,
+          "y": 100,
           "width": 280
         }
       ],
       "edges": [
         {
-          "source": "9d8850a4-c20f-4698-9cb4-e315c956aee6",
-          "sourceHandle": "output",
-          "target": "4c9c6b63-646a-4da9-8794-abd180c59041",
-          "targetHandle": "image",
-          "color": "any"
-        },
-        {
           "source": "0c458df1-e2b2-4662-a9aa-00f2ceaae799",
           "sourceHandle": "output",
-          "target": "9d8850a4-c20f-4698-9cb4-e315c956aee6",
+          "target": "denoise-node",
           "targetHandle": "image",
           "color": "image"
         },
         {
-          "source": "4c9c6b63-646a-4da9-8794-abd180c59041",
+          "source": "denoise-node",
+          "sourceHandle": "output",
+          "target": "tone-node",
+          "targetHandle": "image",
+          "color": "image"
+        },
+        {
+          "source": "tone-node",
+          "sourceHandle": "output",
+          "target": "color-node",
+          "targetHandle": "image",
+          "color": "image"
+        },
+        {
+          "source": "color-node",
+          "sourceHandle": "output",
+          "target": "sharpen-node",
+          "targetHandle": "image",
+          "color": "image"
+        },
+        {
+          "source": "sharpen-node",
           "sourceHandle": "output",
           "target": "output-enhanced-image",
           "targetHandle": "value",
-          "color": "any"
+          "color": "image"
         }
       ]
     }
@@ -2703,13 +2992,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/image-to-audio-story",
     "title": "Image To Audio Story — NodeTool AI Workflow Template",
-    "description": "Generate and narrate creative stories from images using AI",
-    "priority": 0.3,
+    "description": "Upload any photo and a vision agent narrates a spoken story about it — one image in, one audio clip out",
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "image-to-audio-story",
     "name": "Image To Audio Story",
-    "summary": "Generate and narrate creative stories from images using AI",
+    "summary": "Upload any photo and a vision agent narrates a spoken story about it — one image in, one audio clip out",
     "tags": [
       "start",
       "multimodal",
@@ -2723,8 +3012,8 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
-        "type": "nodetool.constant.Image",
-        "label": "Image",
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
         "count": 1
       },
       {
@@ -2744,8 +3033,8 @@ export const templateEntries: TemplateEntry[] = [
       "nodes": [
         {
           "id": "1",
-          "type": "nodetool.constant.Image",
-          "title": "Image",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
           "x": 50,
           "y": 222,
           "width": 280
@@ -2757,7 +3046,7 @@ export const templateEntries: TemplateEntry[] = [
           "x": 360,
           "y": 50,
           "width": 280,
-          "subtitle": "Write a compelling story about the image."
+          "subtitle": "Write a 150-250 word short story inspired by this image. Give it a clear beginning, middle, and end, and a one-line title on the first line…"
         },
         {
           "id": "9f51da20-90d9-46a7-8131-c79ac63df648",
@@ -2814,13 +3103,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/image-to-video-animation",
     "title": "Image to Video Animation — NodeTool AI Workflow Template",
-    "description": "Generate a high-quality still from text, then animate it into a short cinematic clip.",
+    "description": "Generate a high-quality still from text, then animate it into a short cinematic clip. Uses Veo 3.1 for the animation step, which costs more per run than image-only templates.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "image-to-video-animation",
     "name": "Image to Video Animation",
-    "summary": "Generate a high-quality still from text, then animate it into a short cinematic clip.",
+    "summary": "Generate a high-quality still from text, then animate it into a short cinematic clip. Uses Veo 3.1 for the animation step, which costs more per run than image-only templates.",
     "tags": [
       "image",
       "video",
@@ -2901,7 +3190,7 @@ export const templateEntries: TemplateEntry[] = [
           "x": 580,
           "y": 228,
           "width": 280,
-          "subtitle": "Transform the reference frame into a cinematic ocean scene. Scene: {{ scene }}. Motion: {{ motion }}. Duration: {{ duration }}. Keep the an…"
+          "subtitle": "Animate the reference still into a short cinematic clip. Scene: {{ scene }} Motion: {{ motion }} Pacing: {{ duration }} Preserve the subjec…"
         },
         {
           "id": "6",
@@ -2928,7 +3217,7 @@ export const templateEntries: TemplateEntry[] = [
           "x": 660,
           "y": 0,
           "width": 280,
-          "subtitle": "no watermarks, no text overlays, maintain realistic wave motion"
+          "subtitle": "no watermarks, no text overlays, no jump cuts, no warped anatomy"
         },
         {
           "id": "output-animation",
@@ -3000,166 +3289,30 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
-    "route": "/templates/learning-path-generator",
-    "title": "Learning Path Generator — NodeTool AI Workflow Template",
-    "description": "Create a comprehensive learning path for a topic.",
-    "priority": 0.3,
-    "changeFrequency": "monthly",
-    "indexable": false,
-    "slug": "learning-path-generator",
-    "name": "Learning Path Generator",
-    "summary": "Create a comprehensive learning path for a topic.",
-    "tags": [
-      "education",
-      "planning",
-      "example"
-    ],
-    "category": "Learning & Productivity",
-    "nodeTypes": [
-      {
-        "type": "nodetool.text.Prompt",
-        "label": "Prompt",
-        "count": 2
-      },
-      {
-        "type": "nodetool.agents.Agent",
-        "label": "Agent",
-        "count": 1
-      },
-      {
-        "type": "nodetool.output.Output",
-        "label": "Output",
-        "count": 1
-      },
-      {
-        "type": "nodetool.input.StringInput",
-        "label": "String Input",
-        "count": 1
-      }
-    ],
-    "nodeCount": 5,
-    "thumbnail": "/templates/learning-path-generator.jpg",
-    "graph": {
-      "nodes": [
-        {
-          "id": "comment-intro",
-          "type": "nodetool.workflows.base_node.Comment",
-          "title": "Comment",
-          "x": 0,
-          "y": -220,
-          "width": 460,
-          "isComment": true
-        },
-        {
-          "id": "2",
-          "type": "nodetool.text.Prompt",
-          "title": "Prompt",
-          "x": 1280,
-          "y": 465,
-          "width": 280,
-          "subtitle": "# Learning path: {{ topic }} ## Overview {{ overview }} {% for m in modules %} ### {{ m.title }} {{ m.description }} Resources: {% for r in…"
-        },
-        {
-          "id": "3",
-          "type": "nodetool.agents.Agent",
-          "title": "Agent",
-          "x": 620,
-          "y": 0,
-          "width": 280,
-          "subtitle": "gpt-5-mini"
-        },
-        {
-          "id": "4",
-          "type": "nodetool.text.Prompt",
-          "title": "Prompt",
-          "x": 310,
-          "y": 465,
-          "width": 280,
-          "subtitle": "Create a comprehensive learning path for the topic \"{{ topic }}\". Requirements: - Structure the path into 3 to 5 modules. - Each module mus…"
-        },
-        {
-          "id": "5",
-          "type": "nodetool.input.StringInput",
-          "title": "String Input",
-          "x": 0,
-          "y": 554,
-          "width": 280,
-          "subtitle": "Getting Started with Docker"
-        },
-        {
-          "id": "learning_path_output",
-          "type": "nodetool.output.Output",
-          "title": "Output",
-          "x": 1680,
-          "y": 465,
-          "width": 280
-        }
-      ],
-      "edges": [
-        {
-          "source": "5",
-          "sourceHandle": "output",
-          "target": "4",
-          "targetHandle": "topic",
-          "color": "any"
-        },
-        {
-          "source": "4",
-          "sourceHandle": "output",
-          "target": "3",
-          "targetHandle": "prompt",
-          "color": "any"
-        },
-        {
-          "source": "3",
-          "sourceHandle": "topic",
-          "target": "2",
-          "targetHandle": "topic",
-          "color": "any"
-        },
-        {
-          "source": "3",
-          "sourceHandle": "overview",
-          "target": "2",
-          "targetHandle": "overview",
-          "color": "any"
-        },
-        {
-          "source": "3",
-          "sourceHandle": "modules",
-          "target": "2",
-          "targetHandle": "modules",
-          "color": "any"
-        },
-        {
-          "source": "2",
-          "sourceHandle": "output",
-          "target": "learning_path_output",
-          "targetHandle": "value",
-          "color": "string"
-        }
-      ]
-    }
-  },
-  {
     "route": "/templates/meeting-transcript-summarizer",
     "title": "Meeting Transcript Summarizer — NodeTool AI Workflow Template",
-    "description": "Automatically transcribe a meeting recording and generate concise notes.",
-    "priority": 0.3,
+    "description": "Summarize a meeting from a recording or a pasted transcript — either input works, and action items come back as structured rows instead of another paragraph to scan.",
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "meeting-transcript-summarizer",
     "name": "Meeting Transcript Summarizer",
-    "summary": "Automatically transcribe a meeting recording and generate concise notes.",
+    "summary": "Summarize a meeting from a recording or a pasted transcript — either input works, and action items come back as structured rows instead of another paragraph to scan.",
     "tags": [
       "audio",
-      "llm"
+      "llm",
+      "dataframe"
     ],
     "category": "Audio & Music",
     "nodeTypes": [
       {
         "type": "nodetool.output.Output",
         "label": "Output",
+        "count": 3
+      },
+      {
+        "type": "nodetool.control.If",
+        "label": "If",
         "count": 2
       },
       {
@@ -3173,93 +3326,440 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.generators.DataGenerator",
+        "label": "Data Generator",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.IsEmpty",
+        "label": "Is Empty",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.Prompt",
+        "label": "Prompt",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      },
+      {
         "type": "nodetool.agents.Summarizer",
         "label": "Summarizer",
         "count": 1
       }
     ],
-    "nodeCount": 5,
+    "nodeCount": 12,
     "thumbnail": "/templates/meeting-transcript-summarizer.jpg",
     "graph": {
       "nodes": [
         {
-          "id": "1",
-          "type": "nodetool.input.AudioInput",
-          "title": "Audio Input",
-          "x": 50,
-          "y": 120,
-          "width": 280
-        },
-        {
-          "id": "3",
-          "type": "nodetool.agents.Summarizer",
-          "title": "Summarizer",
-          "x": 680,
-          "y": 120,
-          "width": 280,
-          "subtitle": "gpt-5-mini"
-        },
-        {
-          "id": "5",
+          "id": "comment_intro",
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
           "x": 30,
-          "y": -210,
-          "width": 280,
+          "y": -260,
+          "width": 520,
           "isComment": true
         },
         {
-          "id": "a2e09377-c0e4-4f7e-8cf0-dbbc5a8ff94c",
+          "id": "recording_input",
+          "type": "nodetool.input.AudioInput",
+          "title": "Audio Input",
+          "x": 50,
+          "y": 40,
+          "width": 280
+        },
+        {
+          "id": "transcript_input",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 50,
+          "y": 300,
+          "width": 280
+        },
+        {
+          "id": "asr",
           "type": "nodetool.text.AutomaticSpeechRecognition",
           "title": "Automatic Speech Recognition",
-          "x": 367,
-          "y": 113,
+          "x": 400,
+          "y": 40,
           "width": 280,
           "subtitle": "openai/whisper-large-v3"
         },
         {
-          "id": "summary_output",
-          "type": "nodetool.output.Output",
-          "title": "Output",
-          "x": 1040,
-          "y": 120,
+          "id": "is_transcript_empty",
+          "type": "nodetool.text.IsEmpty",
+          "title": "Is Empty",
+          "x": 400,
+          "y": 300,
           "width": 280
+        },
+        {
+          "id": "use_transcribed_audio",
+          "type": "nodetool.control.If",
+          "title": "If",
+          "x": 750,
+          "y": 40,
+          "width": 280
+        },
+        {
+          "id": "use_pasted_transcript",
+          "type": "nodetool.control.If",
+          "title": "If",
+          "x": 750,
+          "y": 300,
+          "width": 280
+        },
+        {
+          "id": "summarizer",
+          "type": "nodetool.agents.Summarizer",
+          "title": "Summarizer",
+          "x": 1100,
+          "y": 40,
+          "width": 280,
+          "subtitle": "You are an expert meeting-notes writer. You will be given a raw meeting transcript. Write a summary in Markdown with this exact structure:…"
+        },
+        {
+          "id": "action_items_prompt",
+          "type": "nodetool.text.Prompt",
+          "title": "Prompt",
+          "x": 1100,
+          "y": 300,
+          "width": 280,
+          "subtitle": "Read this meeting transcript and list every action item mentioned: {{TRANSCRIPT}} For each action item capture who owns it and any deadline…"
+        },
+        {
+          "id": "action_items_generator",
+          "type": "nodetool.generators.DataGenerator",
+          "title": "Data Generator",
+          "x": 1450,
+          "y": 300,
+          "width": 280,
+          "subtitle": "gpt-5-mini"
         },
         {
           "id": "transcript_output",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 720,
-          "y": 420,
+          "x": 1100,
+          "y": 560,
+          "width": 280
+        },
+        {
+          "id": "summary_output",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1450,
+          "y": 40,
+          "width": 280
+        },
+        {
+          "id": "action_items_output",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1800,
+          "y": 300,
           "width": 280
         }
       ],
       "edges": [
         {
-          "source": "a2e09377-c0e4-4f7e-8cf0-dbbc5a8ff94c",
-          "sourceHandle": "text",
-          "target": "3",
-          "targetHandle": "text",
-          "color": "string"
-        },
-        {
-          "source": "1",
+          "source": "recording_input",
           "sourceHandle": "output",
-          "target": "a2e09377-c0e4-4f7e-8cf0-dbbc5a8ff94c",
+          "target": "asr",
           "targetHandle": "audio",
           "color": "audio"
         },
         {
-          "source": "3",
+          "source": "transcript_input",
+          "sourceHandle": "output",
+          "target": "is_transcript_empty",
+          "targetHandle": "text",
+          "color": "string"
+        },
+        {
+          "source": "is_transcript_empty",
+          "sourceHandle": "output",
+          "target": "use_transcribed_audio",
+          "targetHandle": "condition",
+          "color": "bool"
+        },
+        {
+          "source": "is_transcript_empty",
+          "sourceHandle": "output",
+          "target": "use_pasted_transcript",
+          "targetHandle": "condition",
+          "color": "bool"
+        },
+        {
+          "source": "asr",
+          "sourceHandle": "text",
+          "target": "use_transcribed_audio",
+          "targetHandle": "value",
+          "color": "string"
+        },
+        {
+          "source": "transcript_input",
+          "sourceHandle": "output",
+          "target": "use_pasted_transcript",
+          "targetHandle": "value",
+          "color": "string"
+        },
+        {
+          "source": "use_transcribed_audio",
+          "sourceHandle": "if_true",
+          "target": "summarizer",
+          "targetHandle": "text",
+          "color": "string"
+        },
+        {
+          "source": "use_pasted_transcript",
+          "sourceHandle": "if_false",
+          "target": "summarizer",
+          "targetHandle": "text",
+          "color": "string"
+        },
+        {
+          "source": "use_transcribed_audio",
+          "sourceHandle": "if_true",
+          "target": "action_items_prompt",
+          "targetHandle": "TRANSCRIPT",
+          "color": "string"
+        },
+        {
+          "source": "use_pasted_transcript",
+          "sourceHandle": "if_false",
+          "target": "action_items_prompt",
+          "targetHandle": "TRANSCRIPT",
+          "color": "string"
+        },
+        {
+          "source": "use_transcribed_audio",
+          "sourceHandle": "if_true",
+          "target": "transcript_output",
+          "targetHandle": "value",
+          "color": "string"
+        },
+        {
+          "source": "use_pasted_transcript",
+          "sourceHandle": "if_false",
+          "target": "transcript_output",
+          "targetHandle": "value",
+          "color": "string"
+        },
+        {
+          "source": "action_items_prompt",
+          "sourceHandle": "output",
+          "target": "action_items_generator",
+          "targetHandle": "prompt",
+          "color": "string"
+        },
+        {
+          "source": "summarizer",
           "sourceHandle": "text",
           "target": "summary_output",
           "targetHandle": "value",
           "color": "string"
         },
         {
-          "source": "a2e09377-c0e4-4f7e-8cf0-dbbc5a8ff94c",
+          "source": "action_items_generator",
+          "sourceHandle": "dataframe",
+          "target": "action_items_output",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/model-arena",
+    "title": "Model Arena — NodeTool AI Workflow Template",
+    "description": "One brief, three frontier models, answered side by side. The same prompt fans out to OpenAI, Anthropic, and Google in a single pass, each answering in the same structure — so you compare reasoning, not formatting. Swap the model on any lane to build your own bracket.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "model-arena",
+    "name": "Model Arena",
+    "summary": "One brief, three frontier models, answered side by side. The same prompt fans out to OpenAI, Anthropic, and Google in a single pass, each answering in the same structure — so you compare reasoning, not formatting. Swap the model on any lane to build your own bracket.",
+    "tags": [
+      "comparison",
+      "llm",
+      "agents",
+      "providers",
+      "example"
+    ],
+    "category": "Agents & Research",
+    "nodeTypes": [
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 3
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 3
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 2
+      },
+      {
+        "type": "nodetool.text.Prompt",
+        "label": "Prompt",
+        "count": 1
+      }
+    ],
+    "nodeCount": 9,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 40,
+          "y": -280,
+          "width": 540,
+          "isComment": true
+        },
+        {
+          "id": "brief",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 50,
+          "y": 60,
+          "width": 300,
+          "subtitle": "Should a 12-person B2B SaaS startup build its own customer-facing analytics dashboard, or integrate a third-party embedded-analytics vendor…"
+        },
+        {
+          "id": "context",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 50,
+          "y": 360,
+          "width": 300,
+          "subtitle": "Audience: the founding team (technical). Constraints: 2 engineers can be spared for 6 weeks; weak reporting is a top-3 reason prospects chu…"
+        },
+        {
+          "id": "arena_prompt",
+          "type": "nodetool.text.Prompt",
+          "title": "Prompt",
+          "x": 430,
+          "y": 80,
+          "width": 320,
+          "subtitle": "Brief: {{ BRIEF }} Audience & constraints: {{ CONTEXT }} Answer in Markdown with exactly these three sections and nothing else: ## Recommen…"
+        },
+        {
+          "id": "openai_lane",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 830,
+          "y": -60,
+          "width": 340,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "anthropic_lane",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 830,
+          "y": 320,
+          "width": 340,
+          "subtitle": "claude-sonnet-5"
+        },
+        {
+          "id": "gemini_lane",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 830,
+          "y": 700,
+          "width": 340,
+          "subtitle": "gemini-3.5-flash"
+        },
+        {
+          "id": "openai_out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1250,
+          "y": -60,
+          "width": 300
+        },
+        {
+          "id": "anthropic_out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1250,
+          "y": 320,
+          "width": 300
+        },
+        {
+          "id": "gemini_out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1250,
+          "y": 700,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "brief",
+          "sourceHandle": "output",
+          "target": "arena_prompt",
+          "targetHandle": "BRIEF",
+          "color": "string"
+        },
+        {
+          "source": "context",
+          "sourceHandle": "output",
+          "target": "arena_prompt",
+          "targetHandle": "CONTEXT",
+          "color": "string"
+        },
+        {
+          "source": "arena_prompt",
+          "sourceHandle": "output",
+          "target": "openai_lane",
+          "targetHandle": "prompt",
+          "color": "string"
+        },
+        {
+          "source": "arena_prompt",
+          "sourceHandle": "output",
+          "target": "anthropic_lane",
+          "targetHandle": "prompt",
+          "color": "string"
+        },
+        {
+          "source": "arena_prompt",
+          "sourceHandle": "output",
+          "target": "gemini_lane",
+          "targetHandle": "prompt",
+          "color": "string"
+        },
+        {
+          "source": "openai_lane",
           "sourceHandle": "text",
-          "target": "transcript_output",
+          "target": "openai_out",
+          "targetHandle": "value",
+          "color": "string"
+        },
+        {
+          "source": "anthropic_lane",
+          "sourceHandle": "text",
+          "target": "anthropic_out",
+          "targetHandle": "value",
+          "color": "string"
+        },
+        {
+          "source": "gemini_lane",
+          "sourceHandle": "text",
+          "target": "gemini_out",
           "targetHandle": "value",
           "color": "string"
         }
@@ -3269,13 +3769,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/movie-posters",
     "title": "Movie Posters — NodeTool AI Workflow Template",
-    "description": "Create cinematic movie posters using AI image generation",
-    "priority": 0.3,
+    "description": "Turn a title, genre, and visual style into finished theatrical one-sheet posters. An art-direction agent first writes a key-art brief (positioning, palette, typography), which drives every generated poster — the differentiator is the agent-authored creative strategy, not a raw prompt.",
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "movie-posters",
     "name": "Movie Posters",
-    "summary": "Create cinematic movie posters using AI image generation",
+    "summary": "Turn a title, genre, and visual style into finished theatrical one-sheet posters. An art-direction agent first writes a key-art brief (positioning, palette, typography), which drives every generated poster — the differentiator is the agent-authored creative strategy, not a raw prompt.",
     "tags": [
       "start",
       "image",
@@ -3331,7 +3831,7 @@ export const templateEntries: TemplateEntry[] = [
           "y": -194,
           "width": 460,
           "isComment": true,
-          "subtitle": "🎬 Movie Posters From a title, genre, and audience, design a batch of movie poster concepts. An agent writes a creative brief, then turns it into image prompts. Pipeline: Inputs → Strategy agent → Prompt list → Text-to-…"
+          "subtitle": "🎬 Movie Posters From a title, genre, and visual style, design a batch of theatrical poster concepts. An art-direction agent writes the key-art brief — positioning, palette, typography — and that brief drives every post…"
         },
         {
           "id": "strategy_prompt_formatter",
@@ -3340,7 +3840,7 @@ export const templateEntries: TemplateEntry[] = [
           "x": 619,
           "y": 123,
           "width": 361,
-          "subtitle": "You are a senior movie-poster strategist. Write a creative strategy for a fictional film: Movie title: {{ MOVIE_TITLE }} Genre: {{ GENRE }}…"
+          "subtitle": "You are the art director on a major studio's key-art team. Film brief: - Title: {{ MOVIE_TITLE }} - Genre: {{ GENRE }} - Visual style: {{ S…"
         },
         {
           "id": "movie_title_input",
@@ -3358,16 +3858,16 @@ export const templateEntries: TemplateEntry[] = [
           "x": 279,
           "y": 330,
           "width": 280,
-          "subtitle": "Sci-Fi"
+          "subtitle": "Sci-Fi Thriller"
         },
         {
-          "id": "audience_input",
+          "id": "style_input",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 279,
           "y": 610,
           "width": 280,
-          "subtitle": "AI Enthusiasts"
+          "subtitle": "Neo-noir, high-contrast, cinematic"
         },
         {
           "id": "prompt_list_generator",
@@ -3394,7 +3894,7 @@ export const templateEntries: TemplateEntry[] = [
           "x": 2148,
           "y": 169,
           "width": 410,
-          "subtitle": "Cinematic movie poster in the genre {{ genre }}. A striking central subject dominates the composition, positioned with strong visual hierar…"
+          "subtitle": "Cinematic {{ genre }} movie poster, theatrical one-sheet. Scene: {{ scene }} Core visual concept: {{ core_visual_concept }} Art direction:…"
         },
         {
           "id": "923fb0f1-8bd4-406a-ba73-9ec3137c20cd",
@@ -3403,7 +3903,7 @@ export const templateEntries: TemplateEntry[] = [
           "x": 1352,
           "y": 304,
           "width": 280,
-          "subtitle": "synopsis for the movie {{ title }} genre: {{ genre }} positioned to: {{ positioning }} audience insight: {{ audience_insight }}"
+          "subtitle": "You are pitching poster concepts for the film \"{{ title }}\" ({{ genre }}). Positioning: {{ positioning }} Audience insight: {{ audience_ins…"
         },
         {
           "id": "04757c8a-dad6-48f3-a45f-459f54e26b7b",
@@ -3412,7 +3912,7 @@ export const templateEntries: TemplateEntry[] = [
           "x": 1010,
           "y": 299,
           "width": 282,
-          "subtitle": "You are a structured data generator focused on JSON outputs. Goal - Produce a high-quality JSON object that matches <JSON_SCHEMA> using the…"
+          "subtitle": "You are a film key-art director turning a creative brief into structured fields. Goal - Read <INSTRUCTIONS> (the art-direction brief) and a…"
         },
         {
           "id": "e28b581f-8dda-4fbc-8365-da9f22aa350d",
@@ -3441,10 +3941,10 @@ export const templateEntries: TemplateEntry[] = [
       ],
       "edges": [
         {
-          "source": "audience_input",
+          "source": "style_input",
           "sourceHandle": "output",
           "target": "strategy_prompt_formatter",
-          "targetHandle": "PRIMARY_AUDIENCE",
+          "targetHandle": "STYLE",
           "color": "string"
         },
         {
@@ -3472,7 +3972,7 @@ export const templateEntries: TemplateEntry[] = [
           "source": "prompt_list_generator",
           "sourceHandle": "item",
           "target": "68bb0948-5e25-485e-81e1-9a1a7f2c1e92",
-          "targetHandle": "plot",
+          "targetHandle": "scene",
           "color": "string"
         },
         {
@@ -3572,13 +4072,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/movie-trailer-generator",
     "title": "Movie Trailer Generator — NodeTool AI Workflow Template",
-    "description": "Type a single logline and get back a cinematic teaser. Prompt nodes template the inputs into a treatment and turn each shot into full cinematic key art; the shots are animated and cut together into the final trailer.",
+    "description": "Type a single logline and get back a cinematic teaser. Prompt nodes template the inputs into a treatment and turn each shot into full cinematic key art; the shots are animated and cut together into the final trailer. Cost note: each shot runs through Veo 3.1 image-to-video, which is metered per second of generated video and is the most expensive step in the pipeline — a 6-shot trailer makes 6 Veo calls.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "movie-trailer-generator",
     "name": "Movie Trailer Generator",
-    "summary": "Type a single logline and get back a cinematic teaser. Prompt nodes template the inputs into a treatment and turn each shot into full cinematic key art; the shots are animated and cut together into the final trailer.",
+    "summary": "Type a single logline and get back a cinematic teaser. Prompt nodes template the inputs into a treatment and turn each shot into full cinematic key art; the shots are animated and cut together into the final trailer. Cost note: each shot runs through Veo 3.1 image-to-video, which is metered per second of generated video and is the most expensive step in the pipeline — a 6-shot trailer makes 6 Veo calls.",
     "tags": [
       "video",
       "generation",
@@ -3876,13 +4376,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/music-video-visualizer",
     "title": "Music Video Visualizer — NodeTool AI Workflow Template",
-    "description": "Create reactive visuals from audio tracks with mood-matched imagery. Transcribes audio, analyzes mood/energy, and generates visual frames synced to the music.",
+    "description": "Turn any song into a mood-matched music video. Whisper transcribes the lyrics, an LLM creative director reads the emotional arc, writes one image prompt per frame, FLUX renders every frame, and they are stitched back to your original audio. Differentiator: a full transcribe → analyze → fan-out → render → reassemble media pipeline in a single graph — no chat box can do this. Cost note: generates one image per frame (default 8) plus a Whisper transcription, so a run costs several fal-ai calls.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "music-video-visualizer",
     "name": "Music Video Visualizer",
-    "summary": "Create reactive visuals from audio tracks with mood-matched imagery. Transcribes audio, analyzes mood/energy, and generates visual frames synced to the music.",
+    "summary": "Turn any song into a mood-matched music video. Whisper transcribes the lyrics, an LLM creative director reads the emotional arc, writes one image prompt per frame, FLUX renders every frame, and they are stitched back to your original audio. Differentiator: a full transcribe → analyze → fan-out → render → reassemble media pipeline in a single graph — no chat box can do this. Cost note: generates one image per frame (default 8) plus a Whisper transcription, so a run costs several fal-ai calls.",
     "tags": [
       "video",
       "audio",
@@ -4016,7 +4516,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Prompt",
           "x": 740,
           "y": 282,
-          "width": 280
+          "width": 280,
+          "subtitle": "Analyze the emotional arc of this song so we can design its music video. TRANSCRIBED LYRICS {{ transcription }} GENRE: {{ genre }} TARGET V…"
         },
         {
           "id": "mood_analysis",
@@ -4033,7 +4534,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Prompt",
           "x": 1390,
           "y": 496,
-          "width": 280
+          "width": 280,
+          "subtitle": "You are writing image-generation prompts for the frames of a music video. MOOD & VISUAL DIRECTION {{ analysis }} GENRE: {{ genre }} VISUAL…"
         },
         {
           "id": "frame_prompts",
@@ -4220,13 +4722,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/photo-enhancement-suite",
     "title": "Photo Enhancement Suite — NodeTool AI Workflow Template",
-    "description": "Batch enhance photos with AI-powered improvements including color correction and upscaling.",
+    "description": "Batch-enhance a list of photos through a fixed retouch chain — auto-contrast, color, sharpening, and an AI cinematic-grade pass — with no folder path required, just drop images in.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "photo-enhancement-suite",
     "name": "Photo Enhancement Suite",
-    "summary": "Batch enhance photos with AI-powered improvements including color correction and upscaling.",
+    "summary": "Batch-enhance a list of photos through a fixed retouch chain — auto-contrast, color, sharpening, and an AI cinematic-grade pass — with no folder path required, just drop images in.",
     "tags": [
       "image",
       "photo",
@@ -4235,18 +4737,8 @@ export const templateEntries: TemplateEntry[] = [
     "category": "Image & Design",
     "nodeTypes": [
       {
-        "type": "nodetool.control.Collect",
-        "label": "Collect",
-        "count": 2
-      },
-      {
         "type": "nodetool.input.FloatInput",
         "label": "Float Input",
-        "count": 2
-      },
-      {
-        "type": "nodetool.output.Output",
-        "label": "Output",
         "count": 2
       },
       {
@@ -4265,8 +4757,13 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
-        "type": "nodetool.input.FolderPathInput",
-        "label": "Folder Path Input",
+        "type": "nodetool.control.Collect",
+        "label": "Collect",
+        "count": 1
+      },
+      {
+        "type": "nodetool.control.ForEach",
+        "label": "For Each",
         "count": 1
       },
       {
@@ -4275,17 +4772,22 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.input.ImageListInput",
+        "label": "Image List Input",
+        "count": 1
+      },
+      {
         "type": "nodetool.image.ImageToImage",
         "label": "Image To Image",
         "count": 1
       },
       {
-        "type": "nodetool.image.LoadImageFolder",
-        "label": "Load Image Folder",
+        "type": "nodetool.output.Output",
+        "label": "Output",
         "count": 1
       }
     ],
-    "nodeCount": 14,
+    "nodeCount": 12,
     "thumbnail": "/templates/photo-enhancement-suite.jpg",
     "graph": {
       "nodes": [
@@ -4357,20 +4859,19 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "id": "9",
-          "type": "nodetool.image.LoadImageFolder",
-          "title": "Load Image Folder",
+          "type": "nodetool.control.ForEach",
+          "title": "For Each",
           "x": 0,
           "y": 0,
           "width": 280
         },
         {
           "id": "10",
-          "type": "nodetool.input.FolderPathInput",
-          "title": "Folder Path Input",
+          "type": "nodetool.input.ImageListInput",
+          "title": "Image List Input",
           "x": 0,
           "y": 0,
-          "width": 280,
-          "subtitle": "./photos"
+          "width": 280
         },
         {
           "id": "11",
@@ -4389,23 +4890,7 @@ export const templateEntries: TemplateEntry[] = [
           "width": 280
         },
         {
-          "id": "14",
-          "type": "nodetool.control.Collect",
-          "title": "Collect",
-          "x": 0,
-          "y": 0,
-          "width": 280
-        },
-        {
           "id": "output-enhanced-photos",
-          "type": "nodetool.output.Output",
-          "title": "Output",
-          "x": 320,
-          "y": 0,
-          "width": 280
-        },
-        {
-          "id": "output-upscaled-photos",
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 320,
@@ -4418,12 +4903,12 @@ export const templateEntries: TemplateEntry[] = [
           "source": "10",
           "sourceHandle": "output",
           "target": "9",
-          "targetHandle": "folder",
+          "targetHandle": "input_list",
           "color": "any"
         },
         {
           "source": "9",
-          "sourceHandle": "image",
+          "sourceHandle": "output",
           "target": "8",
           "targetHandle": "image",
           "color": "any"
@@ -4485,23 +4970,9 @@ export const templateEntries: TemplateEntry[] = [
           "color": "any"
         },
         {
-          "source": "9",
-          "sourceHandle": "path",
-          "target": "14",
-          "targetHandle": "input_item",
-          "color": "any"
-        },
-        {
           "source": "2",
           "sourceHandle": "output",
           "target": "output-enhanced-photos",
-          "targetHandle": "value",
-          "color": "any"
-        },
-        {
-          "source": "14",
-          "sourceHandle": "output",
-          "target": "output-upscaled-photos",
           "targetHandle": "value",
           "color": "any"
         }
@@ -4891,13 +5362,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/pokemon-maker",
     "title": "Pokemon Maker — NodeTool AI Workflow Template",
-    "description": "Pokemon Maker: a ready-to-run NodeTool AI workflow you can open, edit, and run with your own keys.",
-    "priority": 0.3,
+    "description": "Turn any mix of real animals into a gallery of original collectible creatures. A style dropdown restyles the whole batch, so one Run yields four cohesive variant designs instead of a single image.",
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "pokemon-maker",
     "name": "Pokemon Maker",
-    "summary": "",
+    "summary": "Turn any mix of real animals into a gallery of original collectible creatures. A style dropdown restyles the whole batch, so one Run yields four cohesive variant designs instead of a single image.",
     "tags": [
       "example"
     ],
@@ -4906,11 +5377,6 @@ export const templateEntries: TemplateEntry[] = [
       {
         "type": "nodetool.generators.ListGenerator",
         "label": "List Generator",
-        "count": 1
-      },
-      {
-        "type": "kie.image.NanoBanana",
-        "label": "Nano Banana",
         "count": 1
       },
       {
@@ -4924,12 +5390,22 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.input.SelectInput",
+        "label": "Select Input",
+        "count": 1
+      },
+      {
         "type": "nodetool.input.StringInput",
         "label": "String Input",
         "count": 1
+      },
+      {
+        "type": "nodetool.image.TextToImage",
+        "label": "Text To Image",
+        "count": 1
       }
     ],
-    "nodeCount": 5,
+    "nodeCount": 6,
     "thumbnail": "/templates/pokemon-maker.jpg",
     "graph": {
       "nodes": [
@@ -4938,18 +5414,9 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
           "x": 291,
-          "y": -170,
-          "width": 460,
+          "y": -200,
+          "width": 500,
           "isComment": true
-        },
-        {
-          "id": "464a17c1-c916-4b24-8e23-856160732293",
-          "type": "nodetool.text.Prompt",
-          "title": "Prompt",
-          "x": 521,
-          "y": 119,
-          "width": 351,
-          "subtitle": "Create a 3 compelling Pokémons. Define its primary types, signature ability, and a few key moves. How do these elements make it unique and…"
         },
         {
           "id": "2f773f4f-c863-4215-bb89-e8cc09e95472",
@@ -4957,49 +5424,75 @@ export const templateEntries: TemplateEntry[] = [
           "title": "String Input",
           "x": 291,
           "y": 120,
-          "width": 200,
-          "subtitle": "lion, eagle, dragon, bear"
+          "width": 220,
+          "subtitle": "lion, eagle, koi fish"
+        },
+        {
+          "id": "input-style",
+          "type": "nodetool.input.SelectInput",
+          "title": "Select Input",
+          "x": 291,
+          "y": 300,
+          "width": 220,
+          "subtitle": "Classic anime cel-shaded"
+        },
+        {
+          "id": "464a17c1-c916-4b24-8e23-856160732293",
+          "type": "nodetool.text.Prompt",
+          "title": "Prompt",
+          "x": 581,
+          "y": 150,
+          "width": 351,
+          "subtitle": "You are a creature designer for an original monster-collecting game. Invent FOUR distinct collectible creatures, each a believable fusion o…"
         },
         {
           "id": "7613de08-0407-42aa-8dc8-3b7777e9529d",
           "type": "nodetool.generators.ListGenerator",
           "title": "List Generator",
-          "x": 902,
-          "y": 50,
+          "x": 1002,
+          "y": 90,
           "width": 291,
           "subtitle": "gpt-5-mini"
         },
         {
           "id": "b55c474e-e397-44a3-adc7-94bcf61eee35",
-          "type": "kie.image.NanoBanana",
-          "title": "Nano Banana",
-          "x": 1223,
+          "type": "nodetool.image.TextToImage",
+          "title": "Text To Image",
+          "x": 1363,
           "y": 149,
-          "width": 384
+          "width": 384,
+          "subtitle": "fal-ai/flux/schnell"
         },
         {
           "id": "output-pokemon",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1543,
+          "x": 1783,
           "y": 149,
           "width": 280
         }
       ],
       "edges": [
         {
+          "source": "2f773f4f-c863-4215-bb89-e8cc09e95472",
+          "sourceHandle": "output",
+          "target": "464a17c1-c916-4b24-8e23-856160732293",
+          "targetHandle": "animals",
+          "color": "string"
+        },
+        {
+          "source": "input-style",
+          "sourceHandle": "output",
+          "target": "464a17c1-c916-4b24-8e23-856160732293",
+          "targetHandle": "style",
+          "color": "string"
+        },
+        {
           "source": "464a17c1-c916-4b24-8e23-856160732293",
           "sourceHandle": "output",
           "target": "7613de08-0407-42aa-8dc8-3b7777e9529d",
           "targetHandle": "prompt",
           "color": "string"
-        },
-        {
-          "source": "2f773f4f-c863-4215-bb89-e8cc09e95472",
-          "sourceHandle": "output",
-          "target": "464a17c1-c916-4b24-8e23-856160732293",
-          "targetHandle": "animals",
-          "color": "any"
         },
         {
           "source": "7613de08-0407-42aa-8dc8-3b7777e9529d",
@@ -5019,15 +5512,161 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
-    "route": "/templates/product-mockup-generator",
-    "title": "Product Mockup Generator — NodeTool AI Workflow Template",
-    "description": "Generate product mockups for a given product.",
+    "route": "/templates/private-assistant",
+    "title": "Private Assistant — NodeTool AI Workflow Template",
+    "description": "Ask questions about your own notes and documents — fully local, no API keys. Runs end-to-end on a local Ollama model, so the text never leaves your machine. Requires Ollama running with a model pulled (default: llama3.2 — run `ollama pull llama3.2`).",
     "priority": 0.3,
     "changeFrequency": "monthly",
     "indexable": false,
+    "slug": "private-assistant",
+    "name": "Private Assistant",
+    "summary": "Ask questions about your own notes and documents — fully local, no API keys. Runs end-to-end on a local Ollama model, so the text never leaves your machine. Requires Ollama running with a model pulled (default: llama3.2 — run `ollama pull llama3.2`).",
+    "tags": [
+      "local",
+      "privacy",
+      "ollama",
+      "offline",
+      "assistant"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 3
+      },
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.Prompt",
+        "label": "Prompt",
+        "count": 1
+      }
+    ],
+    "nodeCount": 6,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "comment-intro",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 60,
+          "y": -240,
+          "width": 560,
+          "isComment": true
+        },
+        {
+          "id": "document_input",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 60,
+          "y": 80,
+          "width": 300,
+          "subtitle": "Team sync — Thursday - Launch date moved to March 14 (was March 7) to finish the accessibility fixes. - Priya owns the onboarding rewrite;…"
+        },
+        {
+          "id": "question_input",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 60,
+          "y": 360,
+          "width": 300,
+          "subtitle": "When do we launch, and what's the biggest open risk?"
+        },
+        {
+          "id": "tone_input",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 60,
+          "y": 600,
+          "width": 300,
+          "subtitle": "concise and neutral"
+        },
+        {
+          "id": "prompt_template",
+          "type": "nodetool.text.Prompt",
+          "title": "Prompt",
+          "x": 440,
+          "y": 220,
+          "width": 300,
+          "subtitle": "Tone: {{ tone }} Document (the only source you may use): \"\"\" {{ document }} \"\"\" Question: {{ question }} Answer the question using only the…"
+        },
+        {
+          "id": "assistant",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 820,
+          "y": 220,
+          "width": 320,
+          "subtitle": "llama3.2"
+        },
+        {
+          "id": "output-answer",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1220,
+          "y": 220,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "document_input",
+          "sourceHandle": "output",
+          "target": "prompt_template",
+          "targetHandle": "document",
+          "color": "any"
+        },
+        {
+          "source": "question_input",
+          "sourceHandle": "output",
+          "target": "prompt_template",
+          "targetHandle": "question",
+          "color": "any"
+        },
+        {
+          "source": "tone_input",
+          "sourceHandle": "output",
+          "target": "prompt_template",
+          "targetHandle": "tone",
+          "color": "any"
+        },
+        {
+          "source": "prompt_template",
+          "sourceHandle": "output",
+          "target": "assistant",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "assistant",
+          "sourceHandle": "text",
+          "target": "output-answer",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/product-mockup-generator",
+    "title": "Product Mockup Generator — NodeTool AI Workflow Template",
+    "description": "Turn one product photo into a whole set of polished lifestyle mockups. An LLM art-director designs a varied shot list from your product description, then each scene is rendered with FLUX and finished with a brightness/contrast polish. Differentiator: the model invents the scenes, so a single input fans out into a coordinated mockup set — not one prompt, one image.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
     "slug": "product-mockup-generator",
     "name": "Product Mockup Generator",
-    "summary": "Generate product mockups for a given product.",
+    "summary": "Turn one product photo into a whole set of polished lifestyle mockups. An LLM art-director designs a varied shot list from your product description, then each scene is rendered with FLUX and finished with a brightness/contrast polish. Differentiator: the model invents the scenes, so a single input fans out into a coordinated mockup set — not one prompt, one image.",
     "tags": [
       "product-mockup",
       "mockup",
@@ -5185,7 +5824,7 @@ export const templateEntries: TemplateEntry[] = [
           "x": 0,
           "y": 827,
           "width": 280,
-          "subtitle": "Sleek, modern wireless headphones with noise cancellation. Matte black finish with silver accents."
+          "subtitle": "Sleek, modern over-ear wireless headphones with active noise cancellation. Matte black finish with brushed-silver accents and memory-foam e…"
         },
         {
           "id": "12",
@@ -5194,7 +5833,7 @@ export const templateEntries: TemplateEntry[] = [
           "x": 0,
           "y": 583,
           "width": 280,
-          "subtitle": "Tech-savvy professionals, music enthusiasts, remote workers"
+          "subtitle": "Tech-savvy professionals, music enthusiasts, and remote workers"
         },
         {
           "id": "13",
@@ -5349,13 +5988,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/product-video-generator",
     "title": "Product Video Generator — NodeTool AI Workflow Template",
-    "description": "Create a realistic 16:9 marketing video for a new product launch using the ImageToVideo node.",
+    "description": "Turn a campaign brief, audience, features, and a product photo into a realistic 16:9 launch video — an agent writes the motion prompt, then Veo animates the shot. Cost note: Veo is a paid per-second video model, so this run costs noticeably more than an image-only template.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "product-video-generator",
     "name": "Product Video Generator",
-    "summary": "Create a realistic 16:9 marketing video for a new product launch using the ImageToVideo node.",
+    "summary": "Turn a campaign brief, audience, features, and a product photo into a realistic 16:9 launch video — an agent writes the motion prompt, then Veo animates the shot. Cost note: Veo is a paid per-second video model, so this run costs noticeably more than an image-only template.",
     "tags": [
       "business",
       "data",
@@ -5540,15 +6179,277 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/prompt-template",
+    "title": "Prompt Template — NodeTool AI Workflow Template",
+    "description": "The starter pattern behind almost every NodeTool workflow: typed inputs fill a reusable prompt template, an LLM answers it, the output renders. Explains a topic for any audience — swap the prompt to reuse the pattern for anything.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "prompt-template",
+    "name": "Prompt Template",
+    "summary": "The starter pattern behind almost every NodeTool workflow: typed inputs fill a reusable prompt template, an LLM answers it, the output renders. Explains a topic for any audience — swap the prompt to reuse the pattern for anything.",
+    "tags": [
+      "start",
+      "beginner",
+      "tutorial",
+      "template",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 2
+      },
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.Prompt",
+        "label": "Prompt",
+        "count": 1
+      }
+    ],
+    "nodeCount": 5,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "comment_tutorial",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": -520,
+          "y": 40,
+          "width": 480,
+          "isComment": true
+        },
+        {
+          "id": "input_topic",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 50,
+          "y": 60,
+          "width": 280,
+          "subtitle": "Photosynthesis"
+        },
+        {
+          "id": "input_audience",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 50,
+          "y": 320,
+          "width": 280,
+          "subtitle": "curious 10-year-old"
+        },
+        {
+          "id": "prompt_template",
+          "type": "nodetool.text.Prompt",
+          "title": "Prompt",
+          "x": 390,
+          "y": 50,
+          "width": 340,
+          "subtitle": "Explain the following topic so that the given audience genuinely understands it. Topic: {{ topic }} Audience: {{ audience }} Write your exp…"
+        },
+        {
+          "id": "llm",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 800,
+          "y": 65,
+          "width": 320,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "explanation_output",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1200,
+          "y": 65,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "input_topic",
+          "sourceHandle": "output",
+          "target": "prompt_template",
+          "targetHandle": "topic",
+          "color": "string"
+        },
+        {
+          "source": "input_audience",
+          "sourceHandle": "output",
+          "target": "prompt_template",
+          "targetHandle": "audience",
+          "color": "string"
+        },
+        {
+          "source": "prompt_template",
+          "sourceHandle": "output",
+          "target": "llm",
+          "targetHandle": "prompt",
+          "color": "string"
+        },
+        {
+          "source": "llm",
+          "sourceHandle": "text",
+          "target": "explanation_output",
+          "targetHandle": "value",
+          "color": "string"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/research-agent",
+    "title": "Research Agent — NodeTool AI Workflow Template",
+    "description": "Give it a topic and an audience; the agent runs real web searches, opens the best sources, and streams back a cited markdown briefing. Differentiator: genuine multi-step tool use (search + browse) with inline citations — not a single prompt call.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "research-agent",
+    "name": "Research Agent",
+    "summary": "Give it a topic and an audience; the agent runs real web searches, opens the best sources, and streams back a cited markdown briefing. Differentiator: genuine multi-step tool use (search + browse) with inline citations — not a single prompt call.",
+    "tags": [
+      "agent",
+      "research",
+      "search",
+      "browser",
+      "streaming",
+      "citations",
+      "example"
+    ],
+    "category": "Agents & Research",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 2
+      },
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.Prompt",
+        "label": "Prompt",
+        "count": 1
+      }
+    ],
+    "nodeCount": 5,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "comment-intro",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": -480,
+          "y": 40,
+          "width": 420,
+          "isComment": true
+        },
+        {
+          "id": "input-topic",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 40,
+          "y": 60,
+          "width": 280,
+          "subtitle": "Small language models running on-device in 2026"
+        },
+        {
+          "id": "input-audience",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 40,
+          "y": 300,
+          "width": 280,
+          "subtitle": "a technical product team deciding whether to adopt on-device models"
+        },
+        {
+          "id": "compose-objective",
+          "type": "nodetool.text.Prompt",
+          "title": "Prompt",
+          "x": 400,
+          "y": 120,
+          "width": 340,
+          "subtitle": "Research the topic below and write a briefing document for the stated audience. TOPIC: {{ topic }} AUDIENCE: {{ audience }} Method: 1. Brea…"
+        },
+        {
+          "id": "research-agent",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 800,
+          "y": 60,
+          "width": 320,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "output-brief",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1180,
+          "y": 60,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "input-topic",
+          "sourceHandle": "output",
+          "target": "compose-objective",
+          "targetHandle": "topic",
+          "color": "string"
+        },
+        {
+          "source": "input-audience",
+          "sourceHandle": "output",
+          "target": "compose-objective",
+          "targetHandle": "audience",
+          "color": "string"
+        },
+        {
+          "source": "compose-objective",
+          "sourceHandle": "output",
+          "target": "research-agent",
+          "targetHandle": "prompt",
+          "color": "string"
+        },
+        {
+          "source": "research-agent",
+          "sourceHandle": "text",
+          "target": "output-brief",
+          "targetHandle": "value",
+          "color": "string"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/research-paper-summarizer",
     "title": "Research Paper Summarizer — NodeTool AI Workflow Template",
-    "description": "Extract and summarize key findings from research papers and technical documents.",
+    "description": "Search a curated index of transformer papers by topic, fetch the matches, and have two agents extract findings and technical methodology into one report.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "research-paper-summarizer",
     "name": "Research Paper Summarizer",
-    "summary": "Extract and summarize key findings from research papers and technical documents.",
+    "summary": "Search a curated index of transformer papers by topic, fetch the matches, and have two agents extract findings and technical methodology into one report.",
     "tags": [
       "research"
     ],
@@ -5565,8 +6466,58 @@ export const templateEntries: TemplateEntry[] = [
         "count": 2
       },
       {
+        "type": "nodetool.control.Collect",
+        "label": "Collect",
+        "count": 2
+      },
+      {
+        "type": "nodetool.control.ForEach",
+        "label": "For Each",
+        "count": 2
+      },
+      {
+        "type": "lib.http.GetText",
+        "label": "Get Text",
+        "count": 2
+      },
+      {
+        "type": "nodetool.text.Join",
+        "label": "Join",
+        "count": 2
+      },
+      {
+        "type": "nodetool.data.ExtractColumn",
+        "label": "Extract Column",
+        "count": 1
+      },
+      {
+        "type": "lib.markdown.ExtractLinks",
+        "label": "Extract Links",
+        "count": 1
+      },
+      {
+        "type": "nodetool.data.Filter",
+        "label": "Filter",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.FilterString",
+        "label": "Filter String",
+        "count": 1
+      },
+      {
+        "type": "nodetool.data.FromList",
+        "label": "From List",
+        "count": 1
+      },
+      {
         "type": "nodetool.output.Output",
         "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.Split",
+        "label": "Split",
         "count": 1
       },
       {
@@ -5575,7 +6526,7 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       }
     ],
-    "nodeCount": 7,
+    "nodeCount": 21,
     "thumbnail": "/templates/research-paper-summarizer.jpg",
     "graph": {
       "nodes": [
@@ -5584,52 +6535,146 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
           "x": 80,
-          "y": -200,
+          "y": -220,
           "width": 460,
           "isComment": true
         },
         {
-          "id": "2",
-          "type": "nodetool.text.Prompt",
-          "title": "Prompt",
-          "x": 1160,
+          "id": "topic",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
           "y": 80,
           "width": 280,
-          "subtitle": "# Research Paper Summary Report ## Key Findings: {{ findings }} ## Technical Approach: {{ technical }} ## Quick Reference: - **Type:** Rese…"
+          "subtitle": "attention"
         },
         {
-          "id": "3",
-          "type": "nodetool.agents.Agent",
-          "title": "Agent",
-          "x": 800,
+          "id": "idx",
+          "type": "lib.http.GetText",
+          "title": "Get Text",
+          "x": 280,
           "y": 80,
-          "width": 280,
-          "subtitle": "gpt-5-mini"
+          "width": 280
+        },
+        {
+          "id": "lines",
+          "type": "nodetool.text.Split",
+          "title": "Split",
+          "x": 560,
+          "y": 80,
+          "width": 280
+        },
+        {
+          "id": "foreach-line",
+          "type": "nodetool.control.ForEach",
+          "title": "For Each",
+          "x": 840,
+          "y": 80,
+          "width": 240
+        },
+        {
+          "id": "filter-line",
+          "type": "nodetool.text.FilterString",
+          "title": "Filter String",
+          "x": 1110,
+          "y": 80,
+          "width": 260
+        },
+        {
+          "id": "collect-lines",
+          "type": "nodetool.control.Collect",
+          "title": "Collect",
+          "x": 1400,
+          "y": 80,
+          "width": 240
+        },
+        {
+          "id": "joined-md",
+          "type": "nodetool.text.Join",
+          "title": "Join",
+          "x": 1670,
+          "y": 80,
+          "width": 260
+        },
+        {
+          "id": "links",
+          "type": "lib.markdown.ExtractLinks",
+          "title": "Extract Links",
+          "x": 1960,
+          "y": 80,
+          "width": 280
+        },
+        {
+          "id": "links-df",
+          "type": "nodetool.data.FromList",
+          "title": "From List",
+          "x": 2260,
+          "y": 80,
+          "width": 280
+        },
+        {
+          "id": "papers",
+          "type": "nodetool.data.Filter",
+          "title": "Filter",
+          "x": 2560,
+          "y": 80,
+          "width": 280
+        },
+        {
+          "id": "urls",
+          "type": "nodetool.data.ExtractColumn",
+          "title": "Extract Column",
+          "x": 2860,
+          "y": 80,
+          "width": 280
+        },
+        {
+          "id": "foreach-url",
+          "type": "nodetool.control.ForEach",
+          "title": "For Each",
+          "x": 3160,
+          "y": 80,
+          "width": 240
+        },
+        {
+          "id": "fetch-text",
+          "type": "lib.http.GetText",
+          "title": "Get Text",
+          "x": 3420,
+          "y": 80,
+          "width": 260
+        },
+        {
+          "id": "collect-text",
+          "type": "nodetool.control.Collect",
+          "title": "Collect",
+          "x": 3700,
+          "y": 80,
+          "width": 240
+        },
+        {
+          "id": "paper",
+          "type": "nodetool.text.Join",
+          "title": "Join",
+          "x": 3980,
+          "y": 80,
+          "width": 260
         },
         {
           "id": "4",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 440,
+          "x": 4280,
           "y": 80,
           "width": 280,
-          "subtitle": "Analyze this research paper and extract: 1. Main research question/contribution 2. Novel approach or methodology 3. Key findings and result…"
+          "subtitle": "Analyze the following paper excerpt(s) about \"{{ topic }}\" and extract, as a bulleted list: 1. Main research question or contribution 2. No…"
         },
         {
-          "id": "5",
-          "type": "nodetool.input.StringInput",
-          "title": "String Input",
-          "x": 80,
-          "y": 80,
-          "width": 280,
-          "subtitle": "Title: Attention Is All You Need Abstract: The dominant sequence transduction models are based on complex recurrent or convolutional neural…"
-        },
-        {
-          "id": "6",
+          "id": "3",
           "type": "nodetool.agents.Agent",
           "title": "Agent",
-          "x": 800,
-          "y": 300,
+          "x": 4620,
+          "y": 80,
           "width": 280,
           "subtitle": "gpt-5-mini"
         },
@@ -5637,27 +6682,171 @@ export const templateEntries: TemplateEntry[] = [
           "id": "7",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 440,
-          "y": 300,
+          "x": 4280,
+          "y": 320,
           "width": 280,
-          "subtitle": "Provide a technical summary of the methodology described in this paper: {{ paper }} Focus on: Architecture, algorithms, and technical innov…"
+          "subtitle": "Provide a technical summary of the methodology described in this paper excerpt about \"{{ topic }}\": {{ paper }} Focus on: architecture, alg…"
+        },
+        {
+          "id": "6",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 4620,
+          "y": 320,
+          "width": 280,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "2",
+          "type": "nodetool.text.Prompt",
+          "title": "Prompt",
+          "x": 4960,
+          "y": 200,
+          "width": 280,
+          "subtitle": "# Research Digest: {{ topic }} ## Key Findings {{ findings }} ## Technical Approach {{ technical }} ## Source Paper excerpt(s) matching \"{{…"
         },
         {
           "id": "summary_output",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1560,
-          "y": 80,
+          "x": 5260,
+          "y": 200,
           "width": 280
         }
       ],
       "edges": [
         {
-          "source": "5",
+          "source": "topic",
+          "sourceHandle": "output",
+          "target": "filter-line",
+          "targetHandle": "criteria",
+          "color": "string"
+        },
+        {
+          "source": "idx",
+          "sourceHandle": "output",
+          "target": "lines",
+          "targetHandle": "text",
+          "color": "string"
+        },
+        {
+          "source": "lines",
+          "sourceHandle": "output",
+          "target": "foreach-line",
+          "targetHandle": "input_list",
+          "color": "list"
+        },
+        {
+          "source": "foreach-line",
+          "sourceHandle": "output",
+          "target": "filter-line",
+          "targetHandle": "value",
+          "color": "string"
+        },
+        {
+          "source": "filter-line",
+          "sourceHandle": "output",
+          "target": "collect-lines",
+          "targetHandle": "input_item",
+          "color": "string"
+        },
+        {
+          "source": "collect-lines",
+          "sourceHandle": "output",
+          "target": "joined-md",
+          "targetHandle": "strings",
+          "color": "list"
+        },
+        {
+          "source": "joined-md",
+          "sourceHandle": "output",
+          "target": "links",
+          "targetHandle": "markdown",
+          "color": "string"
+        },
+        {
+          "source": "links",
+          "sourceHandle": "output",
+          "target": "links-df",
+          "targetHandle": "values",
+          "color": "list"
+        },
+        {
+          "source": "links-df",
+          "sourceHandle": "output",
+          "target": "papers",
+          "targetHandle": "df",
+          "color": "any"
+        },
+        {
+          "source": "papers",
+          "sourceHandle": "output",
+          "target": "urls",
+          "targetHandle": "dataframe",
+          "color": "any"
+        },
+        {
+          "source": "urls",
+          "sourceHandle": "output",
+          "target": "foreach-url",
+          "targetHandle": "input_list",
+          "color": "list"
+        },
+        {
+          "source": "foreach-url",
+          "sourceHandle": "output",
+          "target": "fetch-text",
+          "targetHandle": "url",
+          "color": "string"
+        },
+        {
+          "source": "fetch-text",
+          "sourceHandle": "output",
+          "target": "collect-text",
+          "targetHandle": "input_item",
+          "color": "string"
+        },
+        {
+          "source": "collect-text",
+          "sourceHandle": "output",
+          "target": "paper",
+          "targetHandle": "strings",
+          "color": "list"
+        },
+        {
+          "source": "paper",
           "sourceHandle": "output",
           "target": "4",
           "targetHandle": "paper",
-          "color": "any"
+          "color": "string"
+        },
+        {
+          "source": "paper",
+          "sourceHandle": "output",
+          "target": "7",
+          "targetHandle": "paper",
+          "color": "string"
+        },
+        {
+          "source": "topic",
+          "sourceHandle": "output",
+          "target": "4",
+          "targetHandle": "topic",
+          "color": "string"
+        },
+        {
+          "source": "topic",
+          "sourceHandle": "output",
+          "target": "7",
+          "targetHandle": "topic",
+          "color": "string"
+        },
+        {
+          "source": "topic",
+          "sourceHandle": "output",
+          "target": "2",
+          "targetHandle": "topic",
+          "color": "string"
         },
         {
           "source": "4",
@@ -5671,13 +6860,6 @@ export const templateEntries: TemplateEntry[] = [
           "sourceHandle": "text",
           "target": "2",
           "targetHandle": "findings",
-          "color": "any"
-        },
-        {
-          "source": "5",
-          "sourceHandle": "output",
-          "target": "7",
-          "targetHandle": "paper",
           "color": "any"
         },
         {
@@ -5707,13 +6889,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/seo-content-engine",
     "title": "SEO Content Engine — NodeTool AI Workflow Template",
-    "description": "One topic in, a keyword-targeted article batch out. A strategist agent plans the topic cluster, a list generator turns it into briefs, and every brief becomes a full Markdown article with an editorial hero image.",
+    "description": "One topic in, a keyword-targeted article batch out — each article lands as typed fields (title, meta description, keywords, body) instead of one markdown blob, ready to paste straight into a CMS. A strategist agent plans the topic cluster, a list generator turns it into briefs, and every brief becomes a full article with an editorial hero image.",
     "priority": 0.3,
     "changeFrequency": "monthly",
     "indexable": false,
     "slug": "seo-content-engine",
     "name": "SEO Content Engine",
-    "summary": "One topic in, a keyword-targeted article batch out. A strategist agent plans the topic cluster, a list generator turns it into briefs, and every brief becomes a full Markdown article with an editorial hero image.",
+    "summary": "One topic in, a keyword-targeted article batch out — each article lands as typed fields (title, meta description, keywords, body) instead of one markdown blob, ready to paste straight into a CMS. A strategist agent plans the topic cluster, a list generator turns it into briefs, and every brief becomes a full article with an editorial hero image.",
     "tags": [
       "seo",
       "content",
@@ -5725,14 +6907,14 @@ export const templateEntries: TemplateEntry[] = [
     "category": "Marketing & Content",
     "nodeTypes": [
       {
+        "type": "nodetool.workflows.base_node.Preview",
+        "label": "Preview",
+        "count": 6
+      },
+      {
         "type": "nodetool.text.Prompt",
         "label": "Prompt",
         "count": 4
-      },
-      {
-        "type": "nodetool.workflows.base_node.Preview",
-        "label": "Preview",
-        "count": 3
       },
       {
         "type": "nodetool.agents.Agent",
@@ -5760,7 +6942,7 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       }
     ],
-    "nodeCount": 14,
+    "nodeCount": 17,
     "thumbnail": null,
     "graph": {
       "nodes": [
@@ -5850,7 +7032,7 @@ export const templateEntries: TemplateEntry[] = [
           "x": 1890,
           "y": 40,
           "width": 360,
-          "subtitle": "Write the full article for this brief. Brief: {{ BRIEF }} Publishing business: {{ BUSINESS }} Rules: - Return Markdown only: a one-line met…"
+          "subtitle": "Write the full article for this brief. Brief: {{ BRIEF }} Publishing business: {{ BUSINESS }} Rules for the body: - 900-1200 words. Use the…"
         },
         {
           "id": "writer",
@@ -5862,12 +7044,36 @@ export const templateEntries: TemplateEntry[] = [
           "subtitle": "gpt-5-mini"
         },
         {
-          "id": "preview_articles",
+          "id": "preview_titles",
           "type": "nodetool.workflows.base_node.Preview",
           "title": "Preview",
           "x": 2680,
           "y": 60,
-          "width": 360
+          "width": 320
+        },
+        {
+          "id": "preview_meta",
+          "type": "nodetool.workflows.base_node.Preview",
+          "title": "Preview",
+          "x": 2680,
+          "y": 190,
+          "width": 320
+        },
+        {
+          "id": "preview_keywords",
+          "type": "nodetool.workflows.base_node.Preview",
+          "title": "Preview",
+          "x": 2680,
+          "y": 320,
+          "width": 320
+        },
+        {
+          "id": "preview_bodies",
+          "type": "nodetool.workflows.base_node.Preview",
+          "title": "Preview",
+          "x": 3080,
+          "y": 60,
+          "width": 380
         },
         {
           "id": "hero_prompt",
@@ -5976,8 +7182,29 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "source": "writer",
-          "sourceHandle": "text",
-          "target": "preview_articles",
+          "sourceHandle": "title",
+          "target": "preview_titles",
+          "targetHandle": "value",
+          "color": "string"
+        },
+        {
+          "source": "writer",
+          "sourceHandle": "meta_description",
+          "target": "preview_meta",
+          "targetHandle": "value",
+          "color": "string"
+        },
+        {
+          "source": "writer",
+          "sourceHandle": "keywords",
+          "target": "preview_keywords",
+          "targetHandle": "value",
+          "color": "list"
+        },
+        {
+          "source": "writer",
+          "sourceHandle": "body",
+          "target": "preview_bodies",
           "targetHandle": "value",
           "color": "string"
         },
@@ -6008,13 +7235,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/social-media-calendar-filler",
     "title": "Social Media Calendar Filler — NodeTool AI Workflow Template",
-    "description": "Generate a month's worth of social media content with images, captions, and hashtags. Plans content based on monthly themes and brand guidelines.",
+    "description": "Generate a month's worth of social media content as a structured calendar — one row per post with its own image prompt and ready-to-post caption — then render an image for every row.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "social-media-calendar-filler",
     "name": "Social Media Calendar Filler",
-    "summary": "Generate a month's worth of social media content with images, captions, and hashtags. Plans content based on monthly themes and brand guidelines.",
+    "summary": "Generate a month's worth of social media content as a structured calendar — one row per post with its own image prompt and ready-to-post caption — then render an image for every row.",
     "tags": [
       "content",
       "social media",
@@ -6030,28 +7257,23 @@ export const templateEntries: TemplateEntry[] = [
         "count": 4
       },
       {
-        "type": "nodetool.text.Prompt",
-        "label": "Prompt",
+        "type": "nodetool.output.Output",
+        "label": "Output",
         "count": 3
+      },
+      {
+        "type": "nodetool.data.ExtractColumn",
+        "label": "Extract Column",
+        "count": 2
       },
       {
         "type": "nodetool.control.Collect",
         "label": "Collect",
-        "count": 2
+        "count": 1
       },
       {
-        "type": "nodetool.generators.ListGenerator",
-        "label": "List Generator",
-        "count": 2
-      },
-      {
-        "type": "nodetool.output.Output",
-        "label": "Output",
-        "count": 2
-      },
-      {
-        "type": "nodetool.agents.Agent",
-        "label": "Agent",
+        "type": "nodetool.generators.DataGenerator",
+        "label": "Data Generator",
         "count": 1
       },
       {
@@ -6065,12 +7287,17 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.text.Prompt",
+        "label": "Prompt",
+        "count": 1
+      },
+      {
         "type": "nodetool.image.TextToImage",
         "label": "Text To Image",
         "count": 1
       }
     ],
-    "nodeCount": 17,
+    "nodeCount": 15,
     "thumbnail": "/templates/social-media-calendar-filler.jpg",
     "graph": {
       "nodes": [
@@ -6133,48 +7360,56 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Prompt",
           "x": 360,
           "y": 320,
-          "width": 280
+          "width": 300,
+          "subtitle": "You are a social media content planner for {{brand}}. Brand voice: {{voice}} Target audience: {{audience}} Monthly theme: {{theme}} Posting…"
         },
         {
           "id": "content_plan",
-          "type": "nodetool.agents.Agent",
-          "title": "Agent",
-          "x": 670,
-          "y": 312,
+          "type": "nodetool.generators.DataGenerator",
+          "title": "Data Generator",
+          "x": 700,
+          "y": 320,
           "width": 280,
           "subtitle": "gpt-5-mini"
         },
         {
-          "id": "content_generator",
-          "type": "nodetool.text.Prompt",
-          "title": "Prompt",
-          "x": 1010,
-          "y": 679,
+          "id": "output-content-calendar",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1040,
+          "y": 40,
           "width": 280
         },
         {
-          "id": "post_prompts",
-          "type": "nodetool.generators.ListGenerator",
-          "title": "List Generator",
-          "x": 1320,
-          "y": 720,
-          "width": 280,
-          "subtitle": "gpt-5-mini"
+          "id": "extract_image_prompts",
+          "type": "nodetool.data.ExtractColumn",
+          "title": "Extract Column",
+          "x": 1040,
+          "y": 320,
+          "width": 280
+        },
+        {
+          "id": "extract_captions",
+          "type": "nodetool.data.ExtractColumn",
+          "title": "Extract Column",
+          "x": 1040,
+          "y": 600,
+          "width": 280
         },
         {
           "id": "prompt_iterator",
           "type": "nodetool.control.ForEach",
           "title": "For Each",
-          "x": 1630,
-          "y": 764,
+          "x": 1350,
+          "y": 320,
           "width": 280
         },
         {
           "id": "post_image",
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
-          "x": 1940,
-          "y": 678,
+          "x": 1660,
+          "y": 280,
           "width": 384,
           "subtitle": "fal-ai/flux/schnell"
         },
@@ -6182,49 +7417,24 @@ export const templateEntries: TemplateEntry[] = [
           "id": "collected_images",
           "type": "nodetool.control.Collect",
           "title": "Collect",
-          "x": 2250,
-          "y": 792,
-          "width": 280
-        },
-        {
-          "id": "caption_generator",
-          "type": "nodetool.text.Prompt",
-          "title": "Prompt",
-          "x": 1010,
-          "y": 85,
-          "width": 280
-        },
-        {
-          "id": "captions",
-          "type": "nodetool.generators.ListGenerator",
-          "title": "List Generator",
-          "x": 1320,
-          "y": 126,
-          "width": 280,
-          "subtitle": "gpt-5-mini"
-        },
-        {
-          "id": "collected_captions",
-          "type": "nodetool.control.Collect",
-          "title": "Collect",
-          "x": 1630,
-          "y": 198,
+          "x": 2080,
+          "y": 400,
           "width": 280
         },
         {
           "id": "output-post-images",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2570,
-          "y": 792,
+          "x": 2400,
+          "y": 400,
           "width": 280
         },
         {
           "id": "output-captions",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1950,
-          "y": 198,
+          "x": 1350,
+          "y": 600,
           "width": 280
         }
       ],
@@ -6273,35 +7483,28 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "source": "content_plan",
-          "sourceHandle": "text",
-          "target": "content_generator",
-          "targetHandle": "plan",
+          "sourceHandle": "dataframe",
+          "target": "output-content-calendar",
+          "targetHandle": "value",
           "color": "any"
         },
         {
-          "source": "brand_voice",
+          "source": "content_plan",
+          "sourceHandle": "dataframe",
+          "target": "extract_image_prompts",
+          "targetHandle": "dataframe",
+          "color": "any"
+        },
+        {
+          "source": "content_plan",
+          "sourceHandle": "dataframe",
+          "target": "extract_captions",
+          "targetHandle": "dataframe",
+          "color": "any"
+        },
+        {
+          "source": "extract_image_prompts",
           "sourceHandle": "output",
-          "target": "content_generator",
-          "targetHandle": "voice",
-          "color": "any"
-        },
-        {
-          "source": "monthly_theme",
-          "sourceHandle": "output",
-          "target": "content_generator",
-          "targetHandle": "theme",
-          "color": "any"
-        },
-        {
-          "source": "content_generator",
-          "sourceHandle": "output",
-          "target": "post_prompts",
-          "targetHandle": "prompt",
-          "color": "any"
-        },
-        {
-          "source": "post_prompts",
-          "sourceHandle": "item",
           "target": "prompt_iterator",
           "targetHandle": "input_list",
           "color": "any"
@@ -6321,41 +7524,6 @@ export const templateEntries: TemplateEntry[] = [
           "color": "any"
         },
         {
-          "source": "content_plan",
-          "sourceHandle": "text",
-          "target": "caption_generator",
-          "targetHandle": "plan",
-          "color": "any"
-        },
-        {
-          "source": "brand_name",
-          "sourceHandle": "output",
-          "target": "caption_generator",
-          "targetHandle": "brand",
-          "color": "any"
-        },
-        {
-          "source": "brand_voice",
-          "sourceHandle": "output",
-          "target": "caption_generator",
-          "targetHandle": "voice",
-          "color": "any"
-        },
-        {
-          "source": "caption_generator",
-          "sourceHandle": "output",
-          "target": "captions",
-          "targetHandle": "prompt",
-          "color": "any"
-        },
-        {
-          "source": "captions",
-          "sourceHandle": "item",
-          "target": "collected_captions",
-          "targetHandle": "input_item",
-          "color": "any"
-        },
-        {
           "source": "collected_images",
           "sourceHandle": "output",
           "target": "output-post-images",
@@ -6363,7 +7531,7 @@ export const templateEntries: TemplateEntry[] = [
           "color": "any"
         },
         {
-          "source": "collected_captions",
+          "source": "extract_captions",
           "sourceHandle": "output",
           "target": "output-captions",
           "targetHandle": "value",
@@ -6373,275 +7541,15 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
-    "route": "/templates/story-to-video-generator",
-    "title": "Story to Video Generator — NodeTool AI Workflow Template",
-    "description": "Transform story ideas into cinematic AI-generated videos. An agent crafts detailed visual prompts optimized for video generation, then creates the video using Gemini Veo.",
+    "route": "/templates/summarize-rss",
+    "title": "Summarize RSS — NodeTool AI Workflow Template",
+    "description": "Turn any RSS feed into a topic-grouped digest — point it at a new URL and get headlines organized by theme, not a flat list.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
-    "slug": "story-to-video-generator",
-    "name": "Story to Video Generator",
-    "summary": "Transform story ideas into cinematic AI-generated videos. An agent crafts detailed visual prompts optimized for video generation, then creates the video using Gemini Veo.",
-    "tags": [
-      "video",
-      "generation",
-      "ai",
-      "storytelling",
-      "creative"
-    ],
-    "category": "Video",
-    "nodeTypes": [
-      {
-        "type": "nodetool.agents.Agent",
-        "label": "Agent",
-        "count": 1
-      },
-      {
-        "type": "nodetool.input.FolderPathInput",
-        "label": "Folder Path Input",
-        "count": 1
-      },
-      {
-        "type": "nodetool.output.Output",
-        "label": "Output",
-        "count": 1
-      },
-      {
-        "type": "nodetool.text.Prompt",
-        "label": "Prompt",
-        "count": 1
-      },
-      {
-        "type": "nodetool.input.StringInput",
-        "label": "String Input",
-        "count": 1
-      },
-      {
-        "type": "nodetool.video.TextToVideo",
-        "label": "Text To Video",
-        "count": 1
-      }
-    ],
-    "nodeCount": 6,
-    "thumbnail": "/templates/story-to-video-generator.jpg",
-    "graph": {
-      "nodes": [
-        {
-          "id": "story_theme_input",
-          "type": "nodetool.input.StringInput",
-          "title": "String Input",
-          "x": 100,
-          "y": 301,
-          "width": 280,
-          "subtitle": "A lone astronaut discovering an ancient alien civilization on Mars"
-        },
-        {
-          "id": "format_prompt",
-          "type": "nodetool.text.Prompt",
-          "title": "Prompt",
-          "x": 410,
-          "y": 300,
-          "width": 280,
-          "subtitle": "Transform this story theme into a cinematic video prompt: {{THEME}}"
-        },
-        {
-          "id": "prompt_engineer_agent",
-          "type": "nodetool.agents.Agent",
-          "title": "Agent",
-          "x": 800,
-          "y": 185,
-          "width": 280,
-          "subtitle": "gpt-5-mini"
-        },
-        {
-          "id": "video_generator",
-          "type": "nodetool.video.TextToVideo",
-          "title": "Text To Video",
-          "x": 1246,
-          "y": 664,
-          "width": 416,
-          "subtitle": "veo-3.1-generate-preview"
-        },
-        {
-          "id": "7ccd9809-860d-4551-94d1-a0a1c9c6814a",
-          "type": "nodetool.workflows.base_node.Comment",
-          "title": "Comment",
-          "x": -510,
-          "y": 33,
-          "width": 280,
-          "isComment": true
-        },
-        {
-          "id": "1ea43f6c-cdba-4194-93db-b0ce982c5456",
-          "type": "nodetool.input.FolderPathInput",
-          "title": "Folder Path Input",
-          "x": 599,
-          "y": 838,
-          "width": 280
-        },
-        {
-          "id": "output-video",
-          "type": "nodetool.output.Output",
-          "title": "Output",
-          "x": 1566,
-          "y": 664,
-          "width": 280
-        }
-      ],
-      "edges": [
-        {
-          "source": "story_theme_input",
-          "sourceHandle": "output",
-          "target": "format_prompt",
-          "targetHandle": "THEME",
-          "color": "any"
-        },
-        {
-          "source": "format_prompt",
-          "sourceHandle": "output",
-          "target": "prompt_engineer_agent",
-          "targetHandle": "prompt",
-          "color": "any"
-        },
-        {
-          "source": "prompt_engineer_agent",
-          "sourceHandle": "text",
-          "target": "video_generator",
-          "targetHandle": "prompt",
-          "color": "any"
-        },
-        {
-          "source": "video_generator",
-          "sourceHandle": "output",
-          "target": "output-video",
-          "targetHandle": "value",
-          "color": "any"
-        }
-      ]
-    }
-  },
-  {
-    "route": "/templates/summarize-audio",
-    "title": "Summarize Audio — NodeTool AI Workflow Template",
-    "description": "Transcribe an audio file and summarize the text.",
-    "priority": 0.3,
-    "changeFrequency": "monthly",
-    "indexable": false,
-    "slug": "summarize-audio",
-    "name": "Summarize Audio",
-    "summary": "Transcribe an audio file and summarize the text.",
-    "tags": [
-      "audio",
-      "start",
-      "huggingface",
-      "example"
-    ],
-    "category": "Audio & Music",
-    "nodeTypes": [
-      {
-        "type": "nodetool.input.AudioInput",
-        "label": "Audio Input",
-        "count": 1
-      },
-      {
-        "type": "nodetool.text.AutomaticSpeechRecognition",
-        "label": "Automatic Speech Recognition",
-        "count": 1
-      },
-      {
-        "type": "nodetool.output.Output",
-        "label": "Output",
-        "count": 1
-      },
-      {
-        "type": "nodetool.agents.Summarizer",
-        "label": "Summarizer",
-        "count": 1
-      }
-    ],
-    "nodeCount": 4,
-    "thumbnail": "/templates/summarize-audio.jpg",
-    "graph": {
-      "nodes": [
-        {
-          "id": "comment-intro",
-          "type": "nodetool.workflows.base_node.Comment",
-          "title": "Comment",
-          "x": 50,
-          "y": -109,
-          "width": 460,
-          "isComment": true
-        },
-        {
-          "id": "12",
-          "type": "nodetool.input.AudioInput",
-          "title": "Audio Input",
-          "x": 50,
-          "y": 151,
-          "width": 226
-        },
-        {
-          "id": "3fb6a37e-7f5f-4cc5-9f13-51402a6e32ef",
-          "type": "nodetool.text.AutomaticSpeechRecognition",
-          "title": "Automatic Speech Recognition",
-          "x": 306,
-          "y": 205,
-          "width": 280,
-          "subtitle": "openai/whisper-large-v3"
-        },
-        {
-          "id": "99c95069-03f6-4f45-bb66-ab3482f79496",
-          "type": "nodetool.agents.Summarizer",
-          "title": "Summarizer",
-          "x": 616,
-          "y": 111,
-          "width": 280,
-          "subtitle": "You are an expert summarizer. Your task is to create clear, accurate, and concise summaries using Markdown for structuring. Follow these gu…"
-        },
-        {
-          "id": "output-summary",
-          "type": "nodetool.output.Output",
-          "title": "Output",
-          "x": 936,
-          "y": 111,
-          "width": 280
-        }
-      ],
-      "edges": [
-        {
-          "source": "12",
-          "sourceHandle": "output",
-          "target": "3fb6a37e-7f5f-4cc5-9f13-51402a6e32ef",
-          "targetHandle": "audio",
-          "color": "audio"
-        },
-        {
-          "source": "3fb6a37e-7f5f-4cc5-9f13-51402a6e32ef",
-          "sourceHandle": "text",
-          "target": "99c95069-03f6-4f45-bb66-ab3482f79496",
-          "targetHandle": "text",
-          "color": "string"
-        },
-        {
-          "source": "99c95069-03f6-4f45-bb66-ab3482f79496",
-          "sourceHandle": "text",
-          "target": "output-summary",
-          "targetHandle": "value",
-          "color": "any"
-        }
-      ]
-    }
-  },
-  {
-    "route": "/templates/summarize-rss",
-    "title": "Summarize RSS — NodeTool AI Workflow Template",
-    "description": "Summarize RSS: a ready-to-run NodeTool AI workflow you can open, edit, and run with your own keys.",
-    "priority": 0.3,
-    "changeFrequency": "monthly",
-    "indexable": false,
     "slug": "summarize-rss",
     "name": "Summarize RSS",
-    "summary": "",
+    "summary": "Turn any RSS feed into a topic-grouped digest — point it at a new URL and get headlines organized by theme, not a flat list.",
     "tags": [],
     "category": "Text & Data",
     "nodeTypes": [
@@ -6661,12 +7569,17 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      },
+      {
         "type": "nodetool.agents.Summarizer",
         "label": "Summarizer",
         "count": 1
       }
     ],
-    "nodeCount": 4,
+    "nodeCount": 5,
     "thumbnail": "/templates/summarize-rss.jpg",
     "graph": {
       "nodes": [
@@ -6680,10 +7593,19 @@ export const templateEntries: TemplateEntry[] = [
           "isComment": true
         },
         {
+          "id": "input-feed-url",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 20,
+          "y": 403,
+          "width": 220,
+          "subtitle": "https://feeds.bbci.co.uk/news/world/europe/rss.xml"
+        },
+        {
           "id": "3fd0dc61-7a0f-4a2d-900a-cbbbd35ddfcc",
           "type": "lib.rss.FetchRSSFeed",
           "title": "Fetch RSS Feed",
-          "x": 266,
+          "x": 286,
           "y": 403,
           "width": 280
         },
@@ -6691,7 +7613,7 @@ export const templateEntries: TemplateEntry[] = [
           "id": "98cc0ca5-7361-44d7-9e74-c47c0def5aeb",
           "type": "nodetool.text.Collect",
           "title": "Collect",
-          "x": 576,
+          "x": 596,
           "y": 460,
           "width": 280
         },
@@ -6699,21 +7621,28 @@ export const templateEntries: TemplateEntry[] = [
           "id": "0659612a-1a3b-471b-b397-6ec97e33882f",
           "type": "nodetool.agents.Summarizer",
           "title": "Summarizer",
-          "x": 886,
+          "x": 906,
           "y": 329,
           "width": 280,
-          "subtitle": "You are an expert summarizer. Your task is to create clear, accurate, and concise summaries using Markdown for structuring. Follow these gu…"
+          "subtitle": "You are a news editor producing a topic-grouped digest from a list of raw headlines separated by '---'. Follow these steps: 1. Read every h…"
         },
         {
           "id": "output-summary",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 1206,
+          "x": 1226,
           "y": 329,
           "width": 280
         }
       ],
       "edges": [
+        {
+          "source": "input-feed-url",
+          "sourceHandle": "output",
+          "target": "3fd0dc61-7a0f-4a2d-900a-cbbbd35ddfcc",
+          "targetHandle": "url",
+          "color": "string"
+        },
         {
           "source": "3fd0dc61-7a0f-4a2d-900a-cbbbd35ddfcc",
           "sourceHandle": "title",
@@ -6741,17 +7670,17 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/transcribe-audio",
     "title": "Transcribe Audio — NodeTool AI Workflow Template",
-    "description": "Convert speech to text using Whisper model with word-level timestamps",
-    "priority": 0.3,
+    "description": "Instant Whisper transcription: drop in an audio clip, get a clean text transcript back — one step, auto-runs on upload.",
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "transcribe-audio",
     "name": "Transcribe Audio",
-    "summary": "Convert speech to text using Whisper model with word-level timestamps",
+    "summary": "Instant Whisper transcription: drop in an audio clip, get a clean text transcript back — one step, auto-runs on upload.",
     "tags": [
       "start",
       "audio",
-      "huggingface"
+      "asr"
     ],
     "category": "Audio & Music",
     "nodeTypes": [
@@ -6807,7 +7736,7 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Output",
           "x": 680,
           "y": 79,
-          "width": 280
+          "width": 260
         }
       ],
       "edges": [
@@ -6829,302 +7758,29 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
-    "route": "/templates/wikipedia-agent",
-    "title": "Wikipedia Agent — NodeTool AI Workflow Template",
-    "description": "Wikipedia style research and documentation agent.",
+    "route": "/templates/workflow-as-a-tool",
+    "title": "Workflow As A Tool — NodeTool AI Workflow Template",
+    "description": "Composition demo: an orchestrator agent delegates to two specialist sub-agents wired in as callable tools via control edges — Research (Gemini) gathers the facts, Copy Editor (Claude) polishes the draft, and the manager (GPT-5 mini) decides when to call each. Shows how a self-contained unit of work becomes a tool another agent can invoke, all inside one graph.",
     "priority": 0.3,
     "changeFrequency": "monthly",
     "indexable": false,
-    "slug": "wikipedia-agent",
-    "name": "Wikipedia Agent",
-    "summary": "Wikipedia style research and documentation agent.",
+    "slug": "workflow-as-a-tool",
+    "name": "Workflow As A Tool",
+    "summary": "Composition demo: an orchestrator agent delegates to two specialist sub-agents wired in as callable tools via control edges — Research (Gemini) gathers the facts, Copy Editor (Claude) polishes the draft, and the manager (GPT-5 mini) decides when to call each. Shows how a self-contained unit of work becomes a tool another agent can invoke, all inside one graph.",
     "tags": [
-      "wikipedia",
-      "research",
-      "writing"
-    ],
-    "category": "Marketing & Content",
-    "nodeTypes": [
-      {
-        "type": "nodetool.input.StringInput",
-        "label": "String Input",
-        "count": 2
-      },
-      {
-        "type": "nodetool.agents.Agent",
-        "label": "Agent",
-        "count": 1
-      },
-      {
-        "type": "nodetool.output.Output",
-        "label": "Output",
-        "count": 1
-      },
-      {
-        "type": "nodetool.text.Prompt",
-        "label": "Prompt",
-        "count": 1
-      }
-    ],
-    "nodeCount": 5,
-    "thumbnail": "/templates/wikipedia-agent.jpg",
-    "graph": {
-      "nodes": [
-        {
-          "id": "comment-intro",
-          "type": "nodetool.workflows.base_node.Comment",
-          "title": "Comment",
-          "x": 80,
-          "y": -200,
-          "width": 460,
-          "isComment": true
-        },
-        {
-          "id": "2",
-          "type": "nodetool.agents.Agent",
-          "title": "Agent",
-          "x": 800,
-          "y": 80,
-          "width": 280,
-          "subtitle": "gpt-5-mini"
-        },
-        {
-          "id": "3",
-          "type": "nodetool.text.Prompt",
-          "title": "Prompt",
-          "x": 440,
-          "y": 80,
-          "width": 280,
-          "subtitle": "You are a Wikipedia style research and documentation agent. Task: 1) Start from {{ url }}. 2) Identify and crawl linked pages that are rele…"
-        },
-        {
-          "id": "4",
-          "type": "nodetool.input.StringInput",
-          "title": "String Input",
-          "x": 80,
-          "y": 80,
-          "width": 280,
-          "subtitle": "https://en.wikipedia.org/wiki/Fine-tuning_(deep_learning)"
-        },
-        {
-          "id": "5",
-          "type": "nodetool.input.StringInput",
-          "title": "String Input",
-          "x": 80,
-          "y": 300,
-          "width": 280,
-          "subtitle": "LLM fine tuning"
-        },
-        {
-          "id": "findings_output",
-          "type": "nodetool.output.Output",
-          "title": "Output",
-          "x": 1180,
-          "y": 80,
-          "width": 280
-        }
-      ],
-      "edges": [
-        {
-          "source": "4",
-          "sourceHandle": "output",
-          "target": "3",
-          "targetHandle": "url",
-          "color": "any"
-        },
-        {
-          "source": "5",
-          "sourceHandle": "output",
-          "target": "3",
-          "targetHandle": "label",
-          "color": "any"
-        },
-        {
-          "source": "3",
-          "sourceHandle": "output",
-          "target": "2",
-          "targetHandle": "prompt",
-          "color": "any"
-        },
-        {
-          "source": "2",
-          "sourceHandle": "text",
-          "target": "findings_output",
-          "targetHandle": "value",
-          "color": "string"
-        }
-      ]
-    }
-  },
-  {
-    "route": "/templates/youtube-research-agent",
-    "title": "YouTube Research Agent — NodeTool AI Workflow Template",
-    "description": "Search YouTube using SerpAPI and analyze results with Claude Agent for deep research insights.",
-    "priority": 0.6,
-    "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "youtube-research-agent",
-    "name": "YouTube Research Agent",
-    "summary": "Search YouTube using SerpAPI and analyze results with Claude Agent for deep research insights.",
-    "tags": [
-      "youtube",
-      "research",
-      "serpapi",
-      "claude",
-      "agent",
-      "search",
-      "analysis"
+      "agents",
+      "composition",
+      "tools",
+      "orchestration"
     ],
     "category": "Agents & Research",
     "nodeTypes": [
       {
         "type": "nodetool.agents.Agent",
         "label": "Agent",
-        "count": 1
-      },
-      {
-        "type": "nodetool.output.Output",
-        "label": "Output",
-        "count": 1
-      },
-      {
-        "type": "nodetool.text.Prompt",
-        "label": "Prompt",
-        "count": 1
-      },
-      {
-        "type": "search.youtube.YouTubeSearch",
-        "label": "You Tube Search",
-        "count": 1
-      }
-    ],
-    "nodeCount": 4,
-    "thumbnail": "/templates/youtube-research-agent.jpg",
-    "graph": {
-      "nodes": [
-        {
-          "id": "comment-1",
-          "type": "nodetool.workflows.base_node.Comment",
-          "title": "Comment",
-          "x": 40,
-          "y": 40,
-          "width": 460,
-          "isComment": true
-        },
-        {
-          "id": "youtube-search-node",
-          "type": "search.youtube.YouTubeSearch",
-          "title": "You Tube Search",
-          "x": 60,
-          "y": 300,
-          "width": 280
-        },
-        {
-          "id": "format-prompt-node",
-          "type": "nodetool.text.Prompt",
-          "title": "Prompt",
-          "x": 400,
-          "y": 300,
-          "width": 350,
-          "subtitle": "You are a YouTube research analyst. I searched YouTube for \"multi-agent frameworks 2026\" and found these results: {{ search_results }} Plea…"
-        },
-        {
-          "id": "claude-agent-node",
-          "type": "nodetool.agents.Agent",
-          "title": "Agent",
-          "x": 830,
-          "y": 300,
-          "width": 320,
-          "subtitle": "gpt-5-mini"
-        },
-        {
-          "id": "output-research",
-          "type": "nodetool.output.Output",
-          "title": "Output",
-          "x": 1150,
-          "y": 300,
-          "width": 280
-        }
-      ],
-      "edges": [
-        {
-          "source": "youtube-search-node",
-          "sourceHandle": "text",
-          "target": "format-prompt-node",
-          "targetHandle": "search_results",
-          "color": "string"
-        },
-        {
-          "source": "format-prompt-node",
-          "sourceHandle": "output",
-          "target": "claude-agent-node",
-          "targetHandle": "prompt",
-          "color": "string"
-        },
-        {
-          "source": "claude-agent-node",
-          "sourceHandle": "text",
-          "target": "output-research",
-          "targetHandle": "value",
-          "color": "any"
-        }
-      ]
-    }
-  },
-  {
-    "route": "/templates/youtube-thumbnail-pipeline",
-    "title": "YouTube Thumbnail Pipeline — NodeTool AI Workflow Template",
-    "description": "Generate multiple eye-catching YouTube thumbnail variations from video scripts. Creates bold text overlays, dramatic styling, and batch processes variations for A/B testing.",
-    "priority": 0.6,
-    "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "youtube-thumbnail-pipeline",
-    "name": "YouTube Thumbnail Pipeline",
-    "summary": "Generate multiple eye-catching YouTube thumbnail variations from video scripts. Creates bold text overlays, dramatic styling, and batch processes variations for A/B testing.",
-    "tags": [
-      "image",
-      "youtube",
-      "content creation",
-      "thumbnails"
-    ],
-    "category": "Image & Design",
-    "nodeTypes": [
-      {
-        "type": "nodetool.input.StringInput",
-        "label": "String Input",
         "count": 3
       },
       {
-        "type": "lib.image.color.BrightnessContrast",
-        "label": "Brightness Contrast",
-        "count": 2
-      },
-      {
-        "type": "lib.image.draw.RenderText",
-        "label": "Render Text",
-        "count": 2
-      },
-      {
-        "type": "nodetool.control.Collect",
-        "label": "Collect",
-        "count": 1
-      },
-      {
-        "type": "nodetool.control.ForEach",
-        "label": "For Each",
-        "count": 1
-      },
-      {
-        "type": "nodetool.input.IntegerInput",
-        "label": "Integer Input",
-        "count": 1
-      },
-      {
-        "type": "nodetool.generators.ListGenerator",
-        "label": "List Generator",
-        "count": 1
-      },
-      {
         "type": "nodetool.output.Output",
         "label": "Output",
         "count": 1
@@ -7135,232 +7791,111 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
-        "type": "nodetool.image.TextToImage",
-        "label": "Text To Image",
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
         "count": 1
       }
     ],
-    "nodeCount": 14,
-    "thumbnail": "/templates/youtube-thumbnail-pipeline.jpg",
+    "nodeCount": 6,
+    "thumbnail": null,
     "graph": {
       "nodes": [
         {
           "id": "comment-intro",
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
-          "x": 100,
-          "y": -120,
-          "width": 460,
+          "x": 40,
+          "y": -260,
+          "width": 520,
           "isComment": true
         },
         {
-          "id": "video_title",
+          "id": "topic_input",
           "type": "nodetool.input.StringInput",
           "title": "String Input",
-          "x": 100,
-          "y": 100,
+          "x": 40,
+          "y": 120,
           "width": 280,
-          "subtitle": "10 AI Tools That Will Change How You Work in 2024"
+          "subtitle": "The economics of home solar batteries"
         },
         {
-          "id": "video_topic",
-          "type": "nodetool.input.StringInput",
-          "title": "String Input",
-          "x": 180,
-          "y": 200,
-          "width": 280,
-          "subtitle": "A tech review video covering productivity AI tools including ChatGPT, Claude, and automation tools."
-        },
-        {
-          "id": "thumbnail_text",
-          "type": "nodetool.input.StringInput",
-          "title": "String Input",
-          "x": 260,
-          "y": 300,
-          "width": 280,
-          "subtitle": "AI TOOLS 2024"
-        },
-        {
-          "id": "num_variations",
-          "type": "nodetool.input.IntegerInput",
-          "title": "Integer Input",
-          "x": 340,
-          "y": 400,
-          "width": 280
-        },
-        {
-          "id": "concept_generator",
+          "id": "brief",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 720,
-          "y": 200,
+          "x": 40,
+          "y": 320,
           "width": 280,
-          "subtitle": "Write {{ count }} distinct YouTube thumbnail image prompts for this video. Video title: {{ title }} Video topic: {{ topic }} Each prompt mu…"
+          "subtitle": "Write a concise, accurate explainer (250-350 words) about the following subject: {{ topic }} Process: 1. Call the research_specialist tool…"
         },
         {
-          "id": "thumbnail_prompts",
-          "type": "nodetool.generators.ListGenerator",
-          "title": "List Generator",
-          "x": 1100,
+          "id": "orchestrator",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 440,
           "y": 200,
-          "width": 280,
+          "width": 300,
           "subtitle": "gpt-5-mini"
         },
         {
-          "id": "prompt_iterator",
-          "type": "nodetool.control.ForEach",
-          "title": "For Each",
-          "x": 1480,
-          "y": 200,
-          "width": 280
+          "id": "research_specialist",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 840,
+          "y": 40,
+          "width": 300,
+          "subtitle": "gemini-3.5-flash"
         },
         {
-          "id": "base_thumbnail",
-          "type": "nodetool.image.TextToImage",
-          "title": "Text To Image",
-          "x": 1860,
-          "y": 200,
-          "width": 384,
-          "subtitle": "fal-ai/flux/schnell"
+          "id": "copy_editor",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 840,
+          "y": 400,
+          "width": 300,
+          "subtitle": "claude-sonnet-5"
         },
         {
-          "id": "enhanced",
-          "type": "lib.image.color.BrightnessContrast",
-          "title": "Brightness Contrast",
-          "x": 2240,
-          "y": 200,
-          "width": 280
-        },
-        {
-          "id": "brightened",
-          "type": "lib.image.color.BrightnessContrast",
-          "title": "Brightness Contrast",
-          "x": 2620,
-          "y": 200,
-          "width": 280
-        },
-        {
-          "id": "with_main_text",
-          "type": "lib.image.draw.RenderText",
-          "title": "Render Text",
-          "x": 3000,
-          "y": 200,
-          "width": 280
-        },
-        {
-          "id": "final_thumbnail",
-          "type": "lib.image.draw.RenderText",
-          "title": "Render Text",
-          "x": 3380,
-          "y": 200,
-          "width": 280
-        },
-        {
-          "id": "collected_thumbnails",
-          "type": "nodetool.control.Collect",
-          "title": "Collect",
-          "x": 3760,
-          "y": 200,
-          "width": 280
-        },
-        {
-          "id": "output-thumbnails",
+          "id": "output-article",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 4080,
+          "x": 1240,
           "y": 200,
           "width": 280
         }
       ],
       "edges": [
         {
-          "source": "num_variations",
+          "source": "topic_input",
           "sourceHandle": "output",
-          "target": "concept_generator",
-          "targetHandle": "count",
-          "color": "any"
-        },
-        {
-          "source": "video_title",
-          "sourceHandle": "output",
-          "target": "concept_generator",
-          "targetHandle": "title",
-          "color": "any"
-        },
-        {
-          "source": "video_topic",
-          "sourceHandle": "output",
-          "target": "concept_generator",
+          "target": "brief",
           "targetHandle": "topic",
           "color": "any"
         },
         {
-          "source": "concept_generator",
+          "source": "brief",
           "sourceHandle": "output",
-          "target": "thumbnail_prompts",
+          "target": "orchestrator",
           "targetHandle": "prompt",
           "color": "any"
         },
         {
-          "source": "thumbnail_prompts",
-          "sourceHandle": "item",
-          "target": "prompt_iterator",
-          "targetHandle": "input_list",
+          "source": "orchestrator",
+          "sourceHandle": "__control__",
+          "target": "research_specialist",
+          "targetHandle": "__control__",
           "color": "any"
         },
         {
-          "source": "prompt_iterator",
-          "sourceHandle": "output",
-          "target": "base_thumbnail",
-          "targetHandle": "prompt",
+          "source": "orchestrator",
+          "sourceHandle": "__control__",
+          "target": "copy_editor",
+          "targetHandle": "__control__",
           "color": "any"
         },
         {
-          "source": "base_thumbnail",
-          "sourceHandle": "output",
-          "target": "enhanced",
-          "targetHandle": "image",
-          "color": "any"
-        },
-        {
-          "source": "enhanced",
-          "sourceHandle": "output",
-          "target": "brightened",
-          "targetHandle": "image",
-          "color": "any"
-        },
-        {
-          "source": "brightened",
-          "sourceHandle": "output",
-          "target": "with_main_text",
-          "targetHandle": "image",
-          "color": "any"
-        },
-        {
-          "source": "thumbnail_text",
-          "sourceHandle": "output",
-          "target": "with_main_text",
-          "targetHandle": "text",
-          "color": "any"
-        },
-        {
-          "source": "with_main_text",
-          "sourceHandle": "output",
-          "target": "final_thumbnail",
-          "targetHandle": "image",
-          "color": "any"
-        },
-        {
-          "source": "final_thumbnail",
-          "sourceHandle": "output",
-          "target": "collected_thumbnails",
-          "targetHandle": "input_item",
-          "color": "any"
-        },
-        {
-          "source": "collected_thumbnails",
-          "sourceHandle": "output",
-          "target": "output-thumbnails",
+          "source": "orchestrator",
+          "sourceHandle": "text",
+          "target": "output-article",
           "targetHandle": "value",
           "color": "any"
         }

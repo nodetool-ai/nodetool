@@ -43,7 +43,6 @@ Full walkthroughs with diagrams live in the
 - [Creative Story Ideas]({{ '/workflows/creative-story-ideas' | relative_url }}) — beginner tutorial for agent generation.
 - [Image Enhance]({{ '/workflows/image-enhance' | relative_url }}) — a simple sharpen-and-contrast pipeline.
 - [Movie Posters]({{ '/workflows/movie-posters' | relative_url }}) — multi-stage generation with strategy and previews.
-- [Story to Video Generator]({{ '/workflows/story-to-video-generator' | relative_url }}) — prompt → storyboard → animated scenes.
 - [Image to Audio Story]({{ '/workflows/image-to-audio-story' | relative_url }}) — picture in, narrated story out.
 - [Chat with Docs]({{ '/workflows/chat-with-docs' | relative_url }}) — RAG document Q&A.
 
