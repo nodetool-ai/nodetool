@@ -1,5 +1,5 @@
 import { BaseNode, registerDeclaredProperty } from "@nodetool-ai/node-sdk";
-import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
+import type { NodeClass } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import * as d from "typegpu/data";
 import {
@@ -15,13 +15,8 @@ import {
   colorFilmLookV1
 } from "@nodetool-ai/gpu/pool";
 import { pickImage, hsvToRgb } from "./lib-image-utils.js";
-import { runShaderNode } from "./lib-shader-utils.js";
+import { num, runShaderNode, type Desc } from "./lib-shader-utils.js";
 import { tagAsBrowserGpu, tagAsContentCard } from "@nodetool-ai/nodes-utils";
-
-function num(value: unknown, fallback: number): number {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
-}
 
 /**
  * Cinematic film-look presets. Each resolves to a shadow/highlight tint plus
@@ -66,16 +61,6 @@ const HUE_RANGES: Record<string, [number, number]> = {
   BLUES: [0.55, 0.72],
   PURPLES: [0.72, 0.83],
   MAGENTAS: [0.83, 0.95]
-};
-
-type Desc = {
-  nodeType: string;
-  title: string;
-  description: string;
-  inlineFields: string[];
-  inputFields:  string[];
-  outputs: Record<string, string>;
-  properties: Array<{ name: string; options: PropOptions }>;
 };
 
 function createColorGradingNode(desc: Desc): NodeClass {

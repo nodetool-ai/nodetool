@@ -396,6 +396,31 @@ export async function runRecipeNode(
   }
 }
 
+/**
+ * Coerce an arbitrary prop value to a finite number, falling back when it is
+ * `NaN`/`Infinity`/non-numeric. Shared by every `lib.image.*` node body that
+ * reads scalar props off `this.serialize()`.
+ */
+export function num(value: unknown, fallback: number): number {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+/**
+ * Declarative descriptor for a generated image node: its type/title/docs, which
+ * fields render inline vs as input handles, its outputs, and its prop schema.
+ * Every `createXNode(desc)` factory in this package consumes this shape.
+ */
+export type Desc = {
+  nodeType: string;
+  title: string;
+  description: string;
+  inlineFields: string[];
+  inputFields: string[];
+  outputs: Record<string, string>;
+  properties: Array<{ name: string; options: PropOptions }>;
+};
+
 /* ------------------------------------------------------------------- *
  * Property factories — translate a module's TypeGPU param defaults    *
  * + paramUi hints into the `@prop` PropOptions shape node-sdk expects.*

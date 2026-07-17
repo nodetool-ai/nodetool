@@ -1,5 +1,5 @@
 import { BaseNode, registerDeclaredProperty } from "@nodetool-ai/node-sdk";
-import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
+import type { NodeClass } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import * as d from "typegpu/data";
 import {
@@ -11,19 +11,9 @@ import {
   transformPadV1
 } from "@nodetool-ai/gpu/pool";
 import { pickImage } from "./lib-image-utils.js";
-import { runShaderNode } from "./lib-shader-utils.js";
+import { runShaderNode, type Desc } from "./lib-shader-utils.js";
 import { decodeRgba, imageDimensions, rawRgbaImageRef } from "./image-io.js";
 import { tagAsBrowserGpu, tagAsContentCard } from "@nodetool-ai/nodes-utils";
-
-type Desc = {
-  nodeType: string;
-  title: string;
-  description: string;
-  inlineFields: string[];
-  inputFields:  string[];
-  outputs: Record<string, string>;
-  properties: Array<{ name: string; options: PropOptions }>;
-};
 
 function createFilterNode(desc: Desc): NodeClass {
   const C = class extends BaseNode {
