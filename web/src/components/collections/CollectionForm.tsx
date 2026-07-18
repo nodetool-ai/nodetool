@@ -20,7 +20,6 @@ import type { Theme } from "@mui/material/styles";
 import { CollectionCreate } from "../../stores/ApiTypes";
 import { trpcClient } from "../../trpc/client";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
-import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import EmbeddingModelSelect from "../properties/EmbeddingModelSelect";
 
 const slideIn = keyframes`
@@ -43,35 +42,6 @@ const styles = (theme: Theme) =>
       position: "relative",
       animation: `${slideIn} ${MOTION.normal}`,
       boxSizing: "border-box"
-    },
-    ".close-button": {
-      position: "absolute",
-      right: theme.spacing(1),
-      top: theme.spacing(1),
-      color: theme.vars.palette.text.secondary,
-      transition: MOTION.all,
-      "&:hover": {
-        color: theme.vars.palette.text.primary,
-        backgroundColor: theme.vars.palette.action.hover
-      }
-    },
-    ".header-icon": {
-      width: 36,
-      height: 36,
-      borderRadius: BORDER_RADIUS.lg,
-      background: `color-mix(in srgb, ${theme.vars.palette.primary.main} 15%, transparent)`,
-      color: theme.vars.palette.primary.main,
-      flexShrink: 0
-    },
-    ".field-label": {
-      gap: theme.spacing(0.5),
-      color: theme.vars.palette.text.secondary,
-      fontWeight: 500,
-      fontSize: "var(--fontSizeSmall)"
-    },
-    ".field-icon": {
-      fontSize: "var(--fontSizeNormal)",
-      opacity: 0.7
     },
     ".text-input": {
       "& .MuiOutlinedInput-root": {
@@ -100,12 +70,6 @@ const styles = (theme: Theme) =>
           borderColor: `${theme.vars.palette.text.secondary} !important`
         }
       }
-    },
-    ".helper-text": {
-      fontSize: "var(--fontSizeSmall)",
-      color: theme.vars.palette.text.secondary,
-      lineHeight: 1.4,
-      opacity: 0.8
     },
     ".error-box": {
       marginTop: theme.spacing(2),
@@ -175,7 +139,12 @@ const CollectionForm = ({ onClose, onSuccess }: CollectionFormProps) => {
       className="collection-form"
     >
       <FlexRow gap={2} align="center" wrap>
-        <FormField label="Collection Name" compact sx={{ flex: 1, minWidth: 180 }}>
+        <FormField
+          label="Collection Name"
+          required
+          compact
+          sx={{ flex: 1, minWidth: 180 }}
+        >
           <TextInput
             className="text-input"
             value={formData.name}
@@ -191,18 +160,17 @@ const CollectionForm = ({ onClose, onSuccess }: CollectionFormProps) => {
           />
         </FormField>
 
-        <FlexColumn sx={{ flex: 1, minWidth: 200 }}>
-          <FlexRow className="field-label" align="center" gap={0.5} sx={{ mb: 0.5 }}>
-            <AutoAwesomeIcon className="field-icon" />
-            Embedding Model
-          </FlexRow>
-          <Box className="model-select">
-            <EmbeddingModelSelect
-              value={formData.embedding_model}
-              onChange={handleEmbeddingModelChange}
-            />
-          </Box>
-        </FlexColumn>
+        <FormField
+          label="Embedding Model"
+          compact
+          className="model-select"
+          sx={{ flex: 1, minWidth: 200 }}
+        >
+          <EmbeddingModelSelect
+            value={formData.embedding_model}
+            onChange={handleEmbeddingModelChange}
+          />
+        </FormField>
 
         <EditorButton
           type="submit"
