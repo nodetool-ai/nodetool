@@ -30,6 +30,7 @@ electron/dist/
 electron/dist-web/
 electron/dist-electron/
 electron/backend-bundle/
+electron/mcpb/
 electron/.node-runtime/
 electron/resources/micromamba
 conda-lock.yml

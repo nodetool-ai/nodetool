@@ -622,9 +622,25 @@ export enum IpcChannels {
   LOCALHOST_PROXY_WS_CLOSE = "localhost-proxy-ws-close",
   LOCALHOST_PROXY_WS_EVENT = "localhost-proxy-ws-event",
   FRONTEND_LOG = "frontend-log",
+  // MCP bundle (.mcpb) install for Claude Desktop
+  MCP_INSTALL_BUNDLE = "mcp-install-bundle",
 }
 
 export type ModelBackend = "ollama" | "llama_cpp" | "none";
+
+/** Result of handing the bundled `.mcpb` to the OS for Claude Desktop. */
+export interface McpBundleInstallResult {
+  /** The bundle existed and was either opened or revealed. */
+  ok: boolean;
+  /** Opened with the default handler (Claude Desktop install dialog). */
+  opened: boolean;
+  /** Revealed in the file manager as a drag-and-drop fallback. */
+  revealed: boolean;
+  /** Absolute path to the bundle. */
+  path: string;
+  /** Present when the bundle was missing or had no default handler. */
+  error?: string;
+}
 
 export interface InstallToLocationData {
   location: string;
@@ -789,6 +805,7 @@ export interface IpcRequest {
   [IpcChannels.LOCALHOST_PROXY_WS_SEND]: LocalhostProxyWsSendRequest;
   [IpcChannels.LOCALHOST_PROXY_WS_CLOSE]: LocalhostProxyWsCloseRequest;
   [IpcChannels.FRONTEND_LOG]: FrontendLogRequest;
+  [IpcChannels.MCP_INSTALL_BUNDLE]: void;
 }
 
 export type WindowCloseAction = "ask" | "quit" | "background";
@@ -899,6 +916,7 @@ export interface IpcResponse {
   [IpcChannels.LOCALHOST_PROXY_WS_SEND]: void;
   [IpcChannels.LOCALHOST_PROXY_WS_CLOSE]: void;
   [IpcChannels.FRONTEND_LOG]: void;
+  [IpcChannels.MCP_INSTALL_BUNDLE]: McpBundleInstallResult;
 }
 
 // Event types for each IPC channel
