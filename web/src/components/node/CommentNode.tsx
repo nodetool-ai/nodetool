@@ -339,15 +339,17 @@ const CommentNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [props.id, props.data, updateNodeData]
   );
 
+  const containerStyle = useMemo<React.CSSProperties>(() => ({
+    backgroundColor: hexToRgba(color, 0.5),
+    color: textColor,
+    paddingRight: "2em"
+  }), [color, textColor]);
+
   return (
     <LexicalComposer initialConfig={editorConfig}>
       <Container
         ref={containerRef}
-        style={{
-          backgroundColor: hexToRgba(color, 0.5),
-          color: textColor,
-          paddingRight: "2em"
-        }}
+        style={containerStyle}
         className={`node-drag-handle comment-node ${
           props.selected ? "selected" : ""
         } ${isEditorFocused ? "focused" : ""}`.trim()}

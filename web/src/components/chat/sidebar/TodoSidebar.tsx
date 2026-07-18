@@ -92,13 +92,13 @@ const STATUS_ICONS = {
 export const TodoSidebar: React.FC<TodoSidebarProps> = memo(({ todos }) => {
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
-  const counts = todos.reduce(
+  const counts = useMemo(() => todos.reduce(
     (acc, t) => {
       acc[t.status] += 1;
       return acc;
     },
     { pending: 0, in_progress: 0, completed: 0 }
-  );
+  ), [todos]);
 
   return (
     <aside className="todo-sidebar" css={cssStyles}>
