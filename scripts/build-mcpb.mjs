@@ -14,9 +14,11 @@
  * Produces (default): dist/nodetool.mcpb
  * Staging dir:        dist/mcpb/ (manifest.json, server/index.mjs, icon.png)
  *
- * --smoke runs an end-to-end check: starts a minimal streamable-HTTP MCP
- * server in-process, launches the bundled bridge against it over stdio, and
- * verifies initialize + tools/list + tools/call round-trips.
+ * --smoke runs two end-to-end checks against the bundled bridge over stdio:
+ * online (initialize + tools/list + tools/call round-trips through a minimal
+ * in-process streamable-HTTP MCP server) and offline recovery (bridge starts
+ * with no server, serves the nodetool_status fallback tool, then picks the
+ * server up once it appears).
  */
 
 import esbuild from "esbuild";
@@ -176,21 +178,17 @@ async function pack(outFile) {
 // Smoke test: fake remote MCP server + bundled bridge over stdio
 // ---------------------------------------------------------------------------
 
-async function smokeTest(bridgePath) {
+/** Start a minimal stateful streamable-HTTP MCP server; 0 = random port. */
+async function startFakeRemote(port = 0) {
   const { McpServer } = await import(
     "@modelcontextprotocol/sdk/server/mcp.js"
   );
   const { WebStandardStreamableHTTPServerTransport } = await import(
     "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js"
   );
-  const { Client } = await import("@modelcontextprotocol/sdk/client/index.js");
-  const { StdioClientTransport } = await import(
-    "@modelcontextprotocol/sdk/client/stdio.js"
-  );
   const { z } = await import("zod");
   const http = await import("http");
 
-  // Minimal stateful streamable-HTTP MCP server on a random port.
   const sessions = new Map();
   const makeServer = () => {
     const remote = new McpServer({ name: "smoke-remote", version: "1.0.0" });
@@ -232,8 +230,27 @@ async function smokeTest(bridgePath) {
     );
     res.end(Buffer.from(await response.arrayBuffer()));
   });
-  await new Promise((resolve) => httpServer.listen(0, "127.0.0.1", resolve));
-  const port = httpServer.address().port;
+  await new Promise((resolve, reject) => {
+    httpServer.once("error", reject);
+    httpServer.listen(port, "127.0.0.1", resolve);
+  });
+  return {
+    port: httpServer.address().port,
+    close: () =>
+      new Promise((resolve) => {
+        httpServer.close(resolve);
+        // Sever open SSE streams from the bridge, or close() never resolves.
+        httpServer.closeAllConnections();
+      })
+  };
+}
+
+/** Launch the bundled bridge over stdio and hand a connected Client to fn. */
+async function withBridgeClient(bridgePath, port, fn) {
+  const { Client } = await import("@modelcontextprotocol/sdk/client/index.js");
+  const { StdioClientTransport } = await import(
+    "@modelcontextprotocol/sdk/client/stdio.js"
+  );
 
   const client = new Client({ name: "smoke-client", version: "1.0.0" });
   const stdio = new StdioClientTransport({
@@ -241,7 +258,8 @@ async function smokeTest(bridgePath) {
     args: [bridgePath],
     env: {
       ...process.env,
-      NODETOOL_MCP_URL: `http://127.0.0.1:${port}/mcp`
+      NODETOOL_MCP_URL: `http://127.0.0.1:${port}/mcp`,
+      NODETOOL_MCP_RETRY_MS: "200"
     },
     stderr: "pipe"
   });
@@ -250,34 +268,111 @@ async function smokeTest(bridgePath) {
     const connectPromise = client.connect(stdio);
     stdio.stderr?.on("data", (c) => stderrChunks.push(c));
     await connectPromise;
-
-    const serverInfo = client.getServerVersion();
-    if (serverInfo?.name !== "smoke-remote") {
-      throw new Error(
-        `bridge did not relay remote server info, got: ${JSON.stringify(serverInfo)}`
-      );
-    }
-    const tools = await client.listTools();
-    if (!tools.tools.some((t) => t.name === "echo")) {
-      throw new Error(
-        `bridge did not relay tools, got: ${tools.tools.map((t) => t.name).join(", ")}`
-      );
-    }
-    const result = await client.callTool({
-      name: "echo",
-      arguments: { text: "mcpb-smoke-ok" }
-    });
-    const text = result.content?.[0]?.text;
-    if (text !== "mcpb-smoke-ok") {
-      throw new Error(`tool call round-trip failed, got: ${JSON.stringify(result)}`);
-    }
+    await fn(client);
   } catch (error) {
     const stderr = Buffer.concat(stderrChunks).toString();
     if (stderr) console.error(`bridge stderr:\n${stderr}`);
     throw error;
   } finally {
     await client.close().catch(() => {});
-    httpServer.close();
+  }
+}
+
+async function smokeTestOnline(bridgePath) {
+  const remote = await startFakeRemote();
+  try {
+    await withBridgeClient(bridgePath, remote.port, async (client) => {
+      const tools = await client.listTools();
+      const names = tools.tools.map((t) => t.name);
+      if (!names.includes("echo") || !names.includes("nodetool_status")) {
+        throw new Error(`bridge did not relay tools, got: ${names.join(", ")}`);
+      }
+      const result = await client.callTool({
+        name: "echo",
+        arguments: { text: "mcpb-smoke-ok" }
+      });
+      const text = result.content?.[0]?.text;
+      if (text !== "mcpb-smoke-ok") {
+        throw new Error(
+          `tool call round-trip failed, got: ${JSON.stringify(result)}`
+        );
+      }
+    });
+  } finally {
+    await remote.close();
+  }
+}
+
+async function smokeTestOfflineRecovery(bridgePath) {
+  // Reserve a free port, then release it so the bridge starts against a
+  // closed port and the fake remote can claim it later.
+  const probe = await startFakeRemote();
+  const port = probe.port;
+  await probe.close();
+
+  let remote = null;
+  try {
+    await withBridgeClient(bridgePath, port, async (client) => {
+      // Offline: only the status fallback tool, and it explains how to start.
+      const offlineTools = await client.listTools();
+      const offlineNames = offlineTools.tools.map((t) => t.name);
+      if (offlineNames.join(",") !== "nodetool_status") {
+        throw new Error(
+          `expected only nodetool_status while offline, got: ${offlineNames.join(", ")}`
+        );
+      }
+      const status = await client.callTool({ name: "nodetool_status" });
+      if (!status.content?.[0]?.text?.includes("not reachable")) {
+        throw new Error(
+          `offline status text unexpected: ${JSON.stringify(status)}`
+        );
+      }
+
+      // Server appears: the bridge must pick it up and expose its tools.
+      remote = await startFakeRemote(port);
+      const deadline = Date.now() + 10_000;
+      for (;;) {
+        const { tools } = await client.listTools();
+        if (tools.some((t) => t.name === "echo")) break;
+        if (Date.now() > deadline) {
+          throw new Error(
+            `bridge did not attach to the server that appeared on port ${port}`
+          );
+        }
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+      const result = await client.callTool({
+        name: "echo",
+        arguments: { text: "recovered" }
+      });
+      if (result.content?.[0]?.text !== "recovered") {
+        throw new Error(
+          `tool call after recovery failed, got: ${JSON.stringify(result)}`
+        );
+      }
+
+      // Server dies mid-session: calls must degrade to the offline surface,
+      // not raw fetch errors, and status must report unreachable again.
+      await remote.close();
+      remote = null;
+      const dead = await client.callTool({
+        name: "echo",
+        arguments: { text: "x" }
+      });
+      if (!dead.isError || !dead.content?.[0]?.text?.includes("not reachable")) {
+        throw new Error(
+          `expected offline fallback after server death, got: ${JSON.stringify(dead)}`
+        );
+      }
+      const statusAfter = await client.callTool({ name: "nodetool_status" });
+      if (!statusAfter.content?.[0]?.text?.includes("not reachable")) {
+        throw new Error(
+          `status did not detect dead server: ${JSON.stringify(statusAfter)}`
+        );
+      }
+    });
+  } finally {
+    await remote?.close();
   }
 }
 
@@ -295,9 +390,11 @@ async function main() {
   );
 
   if (opts.smoke) {
-    console.log("  running smoke test (fake remote + stdio round-trip) ...");
-    await smokeTest(bridgePath);
-    console.log("  smoke test passed.");
+    console.log("  smoke test: online round-trip ...");
+    await smokeTestOnline(bridgePath);
+    console.log("  smoke test: offline fallback + recovery ...");
+    await smokeTestOfflineRecovery(bridgePath);
+    console.log("  smoke tests passed.");
   }
 
   await pack(opts.out);
