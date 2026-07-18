@@ -489,7 +489,9 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
         document.body.appendChild(anchorElement);
         anchorElement.click();
         anchorElement.remove();
-        window.URL.revokeObjectURL(downloadUrl);
+        // Defer the revoke: releasing the blob synchronously cancels the
+        // download in Firefox and for large files (e.g. asset ZIP exports).
+        setTimeout(() => window.URL.revokeObjectURL(downloadUrl), 1000);
       }
 
       get().invalidateQueries(["assets"]);

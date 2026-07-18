@@ -467,7 +467,10 @@ export class StepExecutor {
       if (Array.isArray(requiredKeys)) {
         const obj = normalized as Record<string, unknown>;
         for (const key of requiredKeys) {
-          if (!((key as string) in obj)) {
+          // `requiredKeys` is LLM/planner-authored; use Object.hasOwn so a
+          // required key like "toString"/"constructor" can't be satisfied by
+          // the prototype chain when the model never produced it.
+          if (!Object.hasOwn(obj, key as string)) {
             return [false, `Missing required key: ${key}`, normalized];
           }
         }

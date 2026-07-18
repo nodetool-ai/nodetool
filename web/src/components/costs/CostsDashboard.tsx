@@ -197,7 +197,9 @@ const CostsDashboard: React.FC = () => {
     document.body.appendChild(a);
     a.click();
     a.remove();
-    URL.revokeObjectURL(url);
+    // Defer the revoke: releasing the blob synchronously cancels the download
+    // in Firefox and for large files.
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }, [tableExecs, range]);
 
   return (

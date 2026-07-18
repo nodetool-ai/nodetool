@@ -154,6 +154,9 @@ const WorkflowCommands = memo(function WorkflowCommands() {
     link.download = `${currentWorkflow.name}.json`;
     link.href = url;
     link.click();
+    // Defer the revoke past the download; releasing it synchronously can cancel
+    // the download, and never revoking leaks the blob URL for the page's life.
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }, [workflowJSON, currentWorkflow]);
 
   const copyWorkflow = useCallback(() => {

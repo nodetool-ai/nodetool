@@ -1,4 +1,4 @@
-import { constants, promises as fs } from "fs";
+import { constants, promises as fs, realpathSync } from "fs";
 import os from "os";
 import path from "path";
 import { serverState } from "./state";
@@ -135,14 +135,46 @@ function assertSafeReadablePath(filePath: unknown): string {
     throw new Error("Path must be absolute");
   }
 
+  if (isDeniedPath(resolved)) {
+    throw new Error("Access to this path is not permitted");
+  }
+
+  // Re-check the denylist after resolving symlinks: a symlink at a non-denied
+  // path (e.g. /tmp/x -> ~/.ssh/id_rsa) passes the lexical check above, but the
+  // caller's fs.readFile follows it. Realpath the deepest existing ancestor and
+  // re-run the denylist against the real location. Mirrors the file-api and
+  // tRPC file-router hardening.
+  let probe = resolved;
+  for (;;) {
+    let real: string;
+    try {
+      real = realpathSync.native(probe);
+    } catch {
+      const parent = path.dirname(probe);
+      if (parent === probe) break; // reached fs root without resolving
+      probe = parent;
+      continue;
+    }
+    if (isDeniedPath(real)) {
+      throw new Error("Access to this path is not permitted");
+    }
+    break;
+  }
+
+  return resolved;
+}
+
+/**
+ * True when `resolved` sits at or under a sensitive user-credential directory
+ * or a disallowed absolute system prefix. Callers check both the lexical and
+ * the symlink-resolved path.
+ */
+function isDeniedPath(resolved: string): boolean {
   const home = os.homedir();
   for (const sub of SENSITIVE_HOME_SUBDIRS) {
     const forbidden = path.resolve(home, sub);
-    if (
-      resolved === forbidden ||
-      resolved.startsWith(forbidden + path.sep)
-    ) {
-      throw new Error("Access to this path is not permitted");
+    if (resolved === forbidden || resolved.startsWith(forbidden + path.sep)) {
+      return true;
     }
   }
 
@@ -151,11 +183,11 @@ function assertSafeReadablePath(filePath: unknown): string {
       resolved === prefix ||
       resolved.toLowerCase().startsWith(prefix.toLowerCase() + path.sep)
     ) {
-      throw new Error("Access to this path is not permitted");
+      return true;
     }
   }
 
-  return resolved;
+  return false;
 }
 
 /** Type guard for Node.js errno exceptions (ENOENT, ESRCH, EACCES, etc.). */

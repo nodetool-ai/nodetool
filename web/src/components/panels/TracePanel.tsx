@@ -275,7 +275,9 @@ const TracePanel: React.FC = () => {
     a.href = url;
     a.download = `trace-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
     a.click();
-    URL.revokeObjectURL(url);
+    // Defer the revoke: releasing the blob synchronously cancels the download
+    // in Firefox and for large files.
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }, [exportJSON]);
 
   const copyValue = useMemo(

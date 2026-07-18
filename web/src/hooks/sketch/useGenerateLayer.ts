@@ -82,6 +82,10 @@ const jobSubscriptions = new Map<string, () => void>();
 const jobContexts = new Map<string, JobSubscriptionContext>();
 const jobOutputs = new Map<string, unknown>();
 const jobNodeErrors = new Map<string, string>();
+// Single-flight per layer: covers the async window between generateLayer being
+// called and registerJob writing the job into the store. Mirrors the Timeline's
+// `startingClips` guard in useGenerateClip.
+const startingLayers = new Set<string>();
 
 const loadImageAsDataUrl = (url: string): Promise<string> =>
   new Promise((resolve, reject) => {
@@ -405,12 +409,23 @@ const subscribeJob = async (
     return;
   }
 
-  await globalWebSocketManager.ensureConnection();
+  // Reserve the slot synchronously, before the `ensureConnection` await below,
+  // so a concurrent call for the same jobId sees `has()` return true and bails
+  // instead of both subscribing and leaking a listener.
+  jobSubscriptions.set(jobId, () => {});
   jobContexts.set(jobId, context);
-  const unsubscribe = globalWebSocketManager.subscribe(jobId, (message) => {
-    void handleJobMessage(jobId, message);
-  });
-  jobSubscriptions.set(jobId, unsubscribe);
+
+  try {
+    await globalWebSocketManager.ensureConnection();
+    const unsubscribe = globalWebSocketManager.subscribe(jobId, (message) => {
+      void handleJobMessage(jobId, message);
+    });
+    jobSubscriptions.set(jobId, unsubscribe);
+  } catch (error) {
+    // Undo the reservation so a later retry can subscribe.
+    jobSubscriptions.delete(jobId);
+    throw error;
+  }
 
   if (reconnect) {
     await globalWebSocketManager.send({
@@ -461,54 +476,76 @@ export const useGenerateLayer = (
       throw new Error("Layer is not bound to a workflow");
     }
 
+    // Single-flight per layer: if a job is already queued or running for this
+    // layer, do nothing. Without this guard a rapid double-click registers a
+    // second job that overwrites the first in the store, orphans its
+    // subscription, and leaves the original job running on the server.
+    // `startingLayers` covers the async window before registerJob runs.
+    if (startingLayers.has(binding.layerId)) {
+      return;
+    }
+    const existingJob =
+      useSketchGenerationStore.getState().layerJobs[binding.layerId];
+    if (
+      existingJob &&
+      (existingJob.status === "queued" || existingJob.status === "running")
+    ) {
+      return;
+    }
+
     // No pre-run error clear: each run uses a fresh job id, so its per-job error
     // slice (keyed by workflowId, jobId, nodeId) starts empty and a stale
     // failure can't carry over. A workflow-wide clear here would wipe other
     // concurrent runs' errors, breaking run isolation.
 
-    const workflow = await queryClient.fetchQuery({
-      queryKey: workflowQueryKey(binding.workflowId),
-      queryFn: () => fetchWorkflowById(binding.workflowId),
-      staleTime: 0
-    });
+    startingLayers.add(binding.layerId);
+    try {
+      const workflow = await queryClient.fetchQuery({
+        queryKey: workflowQueryKey(binding.workflowId),
+        queryFn: () => fetchWorkflowById(binding.workflowId),
+        staleTime: 0
+      });
 
-    const graphNodes = workflow.graph?.nodes ?? [];
-    const graphEdges = workflow.graph?.edges ?? [];
-    const nodes = graphNodes.map((node: WorkflowGraphNode) =>
-      graphNodeToReactFlowNode(workflow, node)
-    );
-    const edges = graphEdges.map(graphEdgeToReactFlowEdge);
+      const graphNodes = workflow.graph?.nodes ?? [];
+      const graphEdges = workflow.graph?.edges ?? [];
+      const nodes = graphNodes.map((node: WorkflowGraphNode) =>
+        graphNodeToReactFlowNode(workflow, node)
+      );
+      const edges = graphEdges.map(graphEdgeToReactFlowEdge);
 
-    const runnerStore = getWorkflowRunnerStore(binding.workflowId);
-    // Use the id run() returns, not runnerStore.job_id: when the runner is
-    // already busy the run is queued under a fresh id while the store keeps
-    // pointing at the active run, so reading it back would subscribe this
-    // layer to the wrong job and strand its updates.
-    const jobId = await runnerStore
-      .getState()
-      .run(binding.paramOverrides ?? {}, workflow, nodes, edges, undefined, undefined, true);
+      const runnerStore = getWorkflowRunnerStore(binding.workflowId);
+      // Use the id run() returns, not runnerStore.job_id: when the runner is
+      // already busy the run is queued under a fresh id while the store keeps
+      // pointing at the active run, so reading it back would subscribe this
+      // layer to the wrong job and strand its updates.
+      const jobId = await runnerStore
+        .getState()
+        .run(binding.paramOverrides ?? {}, workflow, nodes, edges, undefined, undefined, true);
 
-    if (!jobId) {
-      throw new Error("Workflow runner did not return a job id");
+      if (!jobId) {
+        throw new Error("Workflow runner did not return a job id");
+      }
+
+      registerJob(binding.layerId, jobId, binding.workflowId);
+      await subscribeJob(
+        jobId,
+        {
+          layerId: binding.layerId,
+          documentId: binding.documentId,
+          workflowId: binding.workflowId,
+          selectedOutputNodeId: binding.selectedOutputNodeId,
+          dependencyHash: binding.dependencyHash,
+          workflowUpdatedAt:
+            binding.workflowUpdatedAt ?? workflow.updated_at ?? "",
+          paramOverridesSnapshot: binding.paramOverrides,
+          onComplete,
+          onFailed
+        },
+        false
+      );
+    } finally {
+      startingLayers.delete(binding.layerId);
     }
-
-    registerJob(binding.layerId, jobId, binding.workflowId);
-    await subscribeJob(
-      jobId,
-      {
-        layerId: binding.layerId,
-        documentId: binding.documentId,
-        workflowId: binding.workflowId,
-        selectedOutputNodeId: binding.selectedOutputNodeId,
-        dependencyHash: binding.dependencyHash,
-        workflowUpdatedAt:
-          binding.workflowUpdatedAt ?? workflow.updated_at ?? "",
-        paramOverridesSnapshot: binding.paramOverrides,
-        onComplete,
-        onFailed
-      },
-      false
-    );
   }, [binding, onComplete, onFailed, registerJob]);
 
   const cancelLayerGeneration = useCallback(async () => {

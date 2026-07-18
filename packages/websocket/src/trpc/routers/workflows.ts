@@ -605,12 +605,15 @@ export const workflowsRouter = router({
           existing.access = input.access === "public" ? "public" : "private";
         }
         existing.graph = graph;
-        existing.settings = input.settings ?? null;
+        // Only touch optional columns when the caller sent them, so a partial
+        // update (a body omitting these keys) doesn't wipe stored values. A
+        // deliberate clear still sends an explicit null.
+        if (input.settings !== undefined) existing.settings = input.settings;
         if (input.run_mode !== undefined && input.run_mode !== null)
           existing.run_mode = input.run_mode;
-        existing.workspace_id = input.workspace_id ?? null;
-        existing.html_app = input.html_app ?? null;
-        // Only touch app_doc when sent, so partial saves don't wipe the app.
+        if (input.workspace_id !== undefined)
+          existing.workspace_id = input.workspace_id;
+        if (input.html_app !== undefined) existing.html_app = input.html_app;
         if (input.app_doc !== undefined) existing.app_doc = input.app_doc;
         await existing.save();
         return toWorkflowResponse(existing);

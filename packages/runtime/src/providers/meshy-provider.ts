@@ -166,29 +166,32 @@ export class MeshyProvider extends BaseProvider {
     if (!this.apiKey) throw new Error("Meshy API key is not configured");
 
     const maxAttempts = this.computeMaxAttempts(params.timeoutSeconds);
-    const previewTaskId = await this.submitTextTo3D(params);
+    const signal = this.timeoutSignal(params.timeoutSeconds);
+    const previewTaskId = await this.submitTextTo3D(params, signal);
     // Stryker disable next-line StringLiteral: diagnostic log message.
     log.debug(`Meshy text-to-3D preview task submitted: ${previewTaskId}`);
 
     const previewResult = await this.pollTaskStatus(
       previewTaskId,
       "/v2/text-to-3d",
-      maxAttempts
+      maxAttempts,
+      signal
     );
 
     if (params.enableTextures) {
-      const refineTaskId = await this.submitRefine(previewTaskId);
+      const refineTaskId = await this.submitRefine(previewTaskId, signal);
       // Stryker disable next-line StringLiteral: diagnostic log message.
       log.debug(`Meshy text-to-3D refine task submitted: ${refineTaskId}`);
       const refineResult = await this.pollTaskStatus(
         refineTaskId,
         "/v2/text-to-3d",
-        maxAttempts
+        maxAttempts,
+        signal
       );
-      return this.downloadResultMesh(refineResult, params.outputFormat);
+      return this.downloadResultMesh(refineResult, params.outputFormat, signal);
     }
 
-    return this.downloadResultMesh(previewResult, params.outputFormat);
+    return this.downloadResultMesh(previewResult, params.outputFormat, signal);
   }
 
   override async imageTo3D(
@@ -200,17 +203,19 @@ export class MeshyProvider extends BaseProvider {
     if (!this.apiKey) throw new Error("Meshy API key is not configured");
 
     const maxAttempts = this.computeMaxAttempts(params.timeoutSeconds);
+    const signal = this.timeoutSignal(params.timeoutSeconds);
     const imageUrl = this.encodeImageAsDataUri(image);
-    const taskId = await this.submitImageTo3D(imageUrl);
+    const taskId = await this.submitImageTo3D(imageUrl, signal);
     // Stryker disable next-line StringLiteral: diagnostic log message.
     log.debug(`Meshy image-to-3D task submitted: ${taskId}`);
 
     const result = await this.pollTaskStatus(
       taskId,
       "/v1/image-to-3d",
-      maxAttempts
+      maxAttempts,
+      signal
     );
-    return this.downloadResultMesh(result, params.outputFormat);
+    return this.downloadResultMesh(result, params.outputFormat, signal);
   }
 
   // --- internals ---
@@ -230,35 +235,68 @@ export class MeshyProvider extends BaseProvider {
     return Math.max(1, Math.floor((timeoutSeconds * 1000) / this.pollIntervalMs));
   }
 
+  /**
+   * Per-call timeout signal (mirrors the gemini provider): threaded into the
+   * submit / poll / download fetches so an expired budget aborts the in-flight
+   * request instead of leaking it. The inter-poll sleep is left on the loop's
+   * own attempt cap, which surfaces the friendly "timed out" message.
+   */
+  private timeoutSignal(
+    timeoutSeconds: number | null | undefined
+  ): AbortSignal | undefined {
+    return timeoutSeconds && timeoutSeconds > 0
+      ? AbortSignal.timeout(timeoutSeconds * 1000)
+      : undefined;
+  }
+
   private encodeImageAsDataUri(image: Uint8Array): string {
     const mime = detectImageMime(image);
     return `data:${mime};base64,${bytesToBase64(image)}`;
   }
 
-  private async submitTextTo3D(params: TextTo3DParams): Promise<string> {
-    return this.submitTask("/v2/text-to-3d", buildTextTo3DPayload(params));
+  private async submitTextTo3D(
+    params: TextTo3DParams,
+    signal?: AbortSignal
+  ): Promise<string> {
+    return this.submitTask(
+      "/v2/text-to-3d",
+      buildTextTo3DPayload(params),
+      signal
+    );
   }
 
-  private async submitImageTo3D(imageUrl: string): Promise<string> {
-    return this.submitTask("/v1/image-to-3d", { image_url: imageUrl });
+  private async submitImageTo3D(
+    imageUrl: string,
+    signal?: AbortSignal
+  ): Promise<string> {
+    return this.submitTask("/v1/image-to-3d", { image_url: imageUrl }, signal);
   }
 
-  private async submitRefine(previewTaskId: string): Promise<string> {
-    return this.submitTask("/v2/text-to-3d", {
-      mode: "refine",
-      preview_task_id: previewTaskId
-    });
+  private async submitRefine(
+    previewTaskId: string,
+    signal?: AbortSignal
+  ): Promise<string> {
+    return this.submitTask(
+      "/v2/text-to-3d",
+      {
+        mode: "refine",
+        preview_task_id: previewTaskId
+      },
+      signal
+    );
   }
 
   private async submitTask(
     endpoint: string,
-    payload: Record<string, unknown>
+    payload: Record<string, unknown>,
+    signal?: AbortSignal
   ): Promise<string> {
     const url = `${MESHY_API_BASE_URL}${endpoint}`;
     const res = await fetch(url, {
       method: "POST",
       headers: this.headers(),
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal
     });
     if (res.status !== 200 && res.status !== 202) {
       const errText = await res.text();
@@ -277,11 +315,12 @@ export class MeshyProvider extends BaseProvider {
   private async pollTaskStatus(
     taskId: string,
     endpoint: string,
-    maxAttempts: number
+    maxAttempts: number,
+    signal?: AbortSignal
   ): Promise<Record<string, unknown>> {
     const url = `${MESHY_API_BASE_URL}${endpoint}/${taskId}`;
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      const res = await fetch(url, { headers: this.headers() });
+      const res = await fetch(url, { headers: this.headers(), signal });
       if (res.status !== 200) {
         const errText = await res.text();
         throw new Error(`Meshy API poll error (${res.status}): ${errText}`);
@@ -310,7 +349,8 @@ export class MeshyProvider extends BaseProvider {
 
   private async downloadResultMesh(
     result: Record<string, unknown>,
-    requestedFormat: string | undefined
+    requestedFormat: string | undefined,
+    signal?: AbortSignal
   ): Promise<Uint8Array> {
     const format = (requestedFormat ?? DEFAULT_OUTPUT_FORMAT).toLowerCase();
     const modelUrls = result.model_urls as
@@ -322,7 +362,7 @@ export class MeshyProvider extends BaseProvider {
         `No model URL found in Meshy response for format: ${format}`
       );
     }
-    const dlRes = await safeFetch(modelUrl);
+    const dlRes = await safeFetch(modelUrl, { signal });
     if (!dlRes.ok) {
       const errText = await dlRes.text().catch(() => "");
       throw new Error(

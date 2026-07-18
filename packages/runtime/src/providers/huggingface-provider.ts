@@ -48,8 +48,14 @@ type HfBinary = Uint8Array | ArrayBuffer | { arrayBuffer(): Promise<ArrayBuffer>
 
 /** Minimal shape of the HfInference client used by this provider. */
 interface HfClient {
-  chatCompletion(params: Record<string, unknown>): Promise<HfChatResponse>;
-  chatCompletionStream(params: Record<string, unknown>): AsyncIterable<HfChatResponse>;
+  chatCompletion(
+    params: Record<string, unknown>,
+    options?: { signal?: AbortSignal }
+  ): Promise<HfChatResponse>;
+  chatCompletionStream(
+    params: Record<string, unknown>,
+    options?: { signal?: AbortSignal }
+  ): AsyncIterable<HfChatResponse>;
   textToImage(params: Record<string, unknown>): Promise<HfBinary>;
   imageToImage(params: Record<string, unknown>): Promise<HfBinary>;
   textToVideo(params: Record<string, unknown>): Promise<HfBinary>;
@@ -306,6 +312,7 @@ export class HuggingFaceProvider extends BaseProvider {
     topP?: number;
     presencePenalty?: number;
     frequencyPenalty?: number;
+    signal?: AbortSignal;
   }): Promise<Message> {
     const client = await this.getClient();
 
@@ -324,7 +331,9 @@ export class HuggingFaceProvider extends BaseProvider {
       ...(args.topP != null ? { top_p: args.topP } : {})
     };
     this.recordRequestPayload(requestPayload);
-    const response = await client.chatCompletion(requestPayload);
+    const response = await client.chatCompletion(requestPayload, {
+      signal: args.signal
+    });
 
     const choice = response?.choices?.[0];
     if (!choice) {
@@ -356,6 +365,7 @@ export class HuggingFaceProvider extends BaseProvider {
     presencePenalty?: number;
     frequencyPenalty?: number;
     audio?: Record<string, unknown>;
+    signal?: AbortSignal;
   }): AsyncGenerator<ProviderStreamItem> {
     const client = await this.getClient();
 
@@ -374,7 +384,9 @@ export class HuggingFaceProvider extends BaseProvider {
       ...(args.topP != null ? { top_p: args.topP } : {})
     };
     this.recordRequestPayload(requestPayload);
-    const stream = client.chatCompletionStream(requestPayload);
+    const stream = client.chatCompletionStream(requestPayload, {
+      signal: args.signal
+    });
 
     for await (const chunk of stream) {
       // OpenAI-compatible streams (which the HF Inference SDK proxies) carry

@@ -48,7 +48,9 @@ function triggerDownload(blob: Blob, filename: string): void {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  // Defer the revoke: releasing the blob synchronously cancels the download in
+  // Firefox and for large files (bundle ZIPs can be large).
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function sanitizeBundleName(name: string): string {

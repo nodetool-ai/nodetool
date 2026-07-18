@@ -2207,6 +2207,11 @@ export class UnifiedWebSocketRunner {
         if (existing.status === "cancelled") {
           log.info("Skipping start of cancelled job", { jobId });
           this.activeJobs.delete(jobId);
+          // Freeing this slot must promote any queued run, matching every
+          // other activeJobs.delete site (streamJobMessages finally, the
+          // chat-run finally). Without it a cancelled-while-queued job leaves
+          // its slot idle and the next queued run stalls.
+          this.drainQueue();
           this.sendDetached({
             type: "job_update",
             status: "cancelled",

@@ -107,7 +107,28 @@ describe("HuggingFaceProvider", () => {
         expect.objectContaining({
           model: "meta-llama/Llama-3.1-8B-Instruct",
           messages: [{ role: "user", content: "hello" }]
-        })
+        }),
+        expect.objectContaining({ signal: undefined })
+      );
+    });
+
+    it("forwards the abort signal to the client", async () => {
+      const mockClient = makeMockHfClient();
+      const provider = new HuggingFaceProvider(
+        { HF_TOKEN: "hf_test" },
+        { hfClient: mockClient }
+      );
+
+      const controller = new AbortController();
+      await provider.generateMessage({
+        messages: [{ role: "user", content: "hello" }],
+        model: "meta-llama/Llama-3.1-8B-Instruct",
+        signal: controller.signal
+      });
+
+      expect(mockClient.chatCompletion).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.objectContaining({ signal: controller.signal })
       );
     });
 
@@ -173,7 +194,8 @@ describe("HuggingFaceProvider", () => {
         expect.objectContaining({
           temperature: 0.5,
           top_p: 0.9
-        })
+        }),
+        expect.objectContaining({ signal: undefined })
       );
     });
 

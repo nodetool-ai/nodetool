@@ -1093,7 +1093,7 @@ export const handleUpdate = (
         workflowName: workflow.name,
         nodeId: update.node_id,
         nodeName: update.node_name || update.node_id,
-        content: `${update.node_name || update.node_id} error: ${update.error}`,
+        content: `${update.node_name || update.node_id} error: ${nodeErrorDisplay}`,
         severity: "error",
         timestamp: Date.now()
       });

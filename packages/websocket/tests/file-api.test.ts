@@ -81,6 +81,24 @@ describe("path traversal protection", () => {
     // The sandbox resolution should catch this
     expect([403, 404]).toContain(res.status);
   });
+
+  it("blocks a symlink under the root that points outside it", async () => {
+    // A symlink living inside the sandbox but resolving to an external target
+    // passes a lexical prefix check yet must be rejected after realpath.
+    const secret = path.join(os.tmpdir(), "file-api-secret.txt");
+    await fs.writeFile(secret, "top secret");
+    const link = path.join(tmpDir, "escape.txt");
+    await fs.symlink(secret, link);
+
+    const res = await handleFileRequest(
+      makeRequest("/api/files/download?path=escape.txt"),
+      { rootDir: tmpDir }
+    );
+    await fs.rm(secret, { force: true });
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.detail).toContain("traversal");
+  });
 });
 
 // ---------------------------------------------------------------------------

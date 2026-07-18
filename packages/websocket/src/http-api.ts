@@ -556,13 +556,15 @@ async function updateWorkflow(
     if (body.thumbnail !== undefined) existing.thumbnail = body.thumbnail;
     existing.access = body.access === "public" ? "public" : "private";
     existing.graph = graph;
-    existing.settings = body.settings ?? null;
+    // Only touch optional columns when the caller sends them, so partial saves
+    // (e.g. graph autosave) don't wipe stored values. A deliberate clear still
+    // sends an explicit null.
+    if (body.settings !== undefined) existing.settings = body.settings ?? null;
     if (body.run_mode !== undefined && body.run_mode !== null)
       existing.run_mode = body.run_mode;
-    existing.workspace_id = body.workspace_id ?? null;
-    existing.html_app = body.html_app ?? null;
-    // Only touch app_doc when the caller sends it, so partial saves (graph
-    // autosave) don't wipe the app-builder document.
+    if (body.workspace_id !== undefined)
+      existing.workspace_id = body.workspace_id ?? null;
+    if (body.html_app !== undefined) existing.html_app = body.html_app ?? null;
     if (body.app_doc !== undefined) existing.app_doc = body.app_doc;
     await existing.save();
     return existing;

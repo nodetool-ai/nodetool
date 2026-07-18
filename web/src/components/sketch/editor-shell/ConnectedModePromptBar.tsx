@@ -254,7 +254,13 @@ const ConnectedModePromptBarInner: React.FC<ConnectedModePromptBarProps> = ({
             "data-testid": "sketch-gen-prompt"
           }}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey && !actionDisabled) {
+            if (
+              e.key === "Enter" &&
+              !e.shiftKey &&
+              !actionDisabled &&
+              !e.nativeEvent.isComposing &&
+              e.nativeEvent.keyCode !== 229
+            ) {
               e.preventDefault();
               void handleGenerate();
             }

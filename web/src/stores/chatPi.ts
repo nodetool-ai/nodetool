@@ -69,6 +69,13 @@ const liveSessions = new Set<string>();
 // Per-thread guard so a "result" message doesn't duplicate the assistant text
 // already streamed in the same turn.
 const turnHasAssistant = new Map<string, boolean>();
+// Per-thread in-flight guard for session creation. Two concurrent
+// sendPiMessage calls for the SAME thread must await ONE createSession, not
+// create two server-side Pi sessions (the second would overwrite the mapping
+// and orphan the first, which keeps streaming and can't be stopped). Mirrors
+// the `connectPromise` idiom in GlobalChatStore.ts; cleared in `finally` so a
+// failed create lets a retry re-create.
+const pendingPiSessions = new Map<string, Promise<string>>();
 
 function upsertMessage(list: Message[], converted: Message): Message[] {
   const idx = list.findLastIndex((m) => m.id === converted.id);
@@ -149,22 +156,40 @@ async function ensurePiSession(
     return existing;
   }
 
-  ensurePiStream(set, get);
+  // A concurrent call for this thread awaits the same createSession instead of
+  // starting a second one.
+  const inFlight = pendingPiSessions.get(threadId);
+  if (inFlight) {
+    return inFlight;
+  }
 
-  const client = getAgentSocketClient();
-  const sessionId = await client.createSession({
-    provider: "pi",
-    model: piModel,
-    workspacePath: piWorkspacePath ?? undefined,
-    // Reattach to a persisted session after reload instead of starting fresh.
-    resumeSessionId: existing ?? undefined
-  });
-  liveSessions.add(sessionId);
-  set((state) => ({
-    piSessionByThread: { ...state.piSessionByThread, [threadId]: sessionId },
-    piThreadBySession: { ...state.piThreadBySession, [sessionId]: threadId }
-  }));
-  return sessionId;
+  const create = (async (): Promise<string> => {
+    ensurePiStream(set, get);
+
+    const client = getAgentSocketClient();
+    const sessionId = await client.createSession({
+      provider: "pi",
+      model: piModel,
+      workspacePath: piWorkspacePath ?? undefined,
+      // Reattach to a persisted session after reload instead of starting fresh.
+      resumeSessionId: existing ?? undefined
+    });
+    liveSessions.add(sessionId);
+    set((state) => ({
+      piSessionByThread: { ...state.piSessionByThread, [threadId]: sessionId },
+      piThreadBySession: { ...state.piThreadBySession, [sessionId]: threadId }
+    }));
+    return sessionId;
+  })();
+
+  pendingPiSessions.set(threadId, create);
+  try {
+    return await create;
+  } finally {
+    // Clear whether it resolved or rejected, so an error lets a retry
+    // re-create rather than awaiting a settled, failed promise.
+    pendingPiSessions.delete(threadId);
+  }
 }
 
 export function createChatPiSlice(set: Set, get: Get): ChatPiSlice {
