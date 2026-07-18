@@ -42,8 +42,8 @@ export interface SelectFieldProps {
   id?: string;
   /** Size variant */
   size?: "small" | "medium";
-  /** MUI variant */
-  variant?: "standard" | "outlined" | "filled";
+  /** MUI variant. `filled` is not part of the token-height contract. */
+  variant?: "standard" | "outlined";
   /** Additional class name for the root element */
   className?: string;
   /** Hide the label entirely (nothing rendered; the control keeps an aria-label) */
@@ -150,19 +150,24 @@ const SelectFieldInternal = React.forwardRef<HTMLDivElement, SelectFieldProps>(
             variant={variant}
             sx={{
               minHeight: `${controlHeight}px`,
-              "& .MuiSelect-select": { fontSize: fieldFontSize },
               // Outlined only: a default field background so fields read as
               // fields. The standard variant keeps its transparent underline
               // look.
               "&.MuiOutlinedInput-root": {
                 backgroundColor: theme.vars.palette.Paper.overlay
               },
-              // Outlined only: MUI's 16.5px / 8.5px vertical padding targets
-              // ~56px / 40px fields — shrink it so the control lands on the
-              // token height. The standard variant keeps its own padding.
-              "& .MuiOutlinedInput-input.MuiSelect-select": {
-                paddingTop: size === "small" ? "3px" : "7px",
-                paddingBottom: size === "small" ? "3px" : "7px"
+              // minHeight is only a floor: MUI's select display carries its own
+              // line-height minimum and vertical padding, which pushed measured
+              // heights past the token (30.6-38.6px). Zero the vertical padding
+              // and flex-center the value so the content always fits under the
+              // floor and every variant lands exactly on the token height.
+              "& .MuiSelect-select": {
+                fontSize: fieldFontSize,
+                display: "flex",
+                alignItems: "center",
+                minHeight: "0px",
+                paddingTop: "0px",
+                paddingBottom: "0px"
               }
             }}
           >

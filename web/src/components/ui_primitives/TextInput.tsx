@@ -18,8 +18,8 @@ import { Label } from "./Label";
 
 export interface TextInputProps
   extends Omit<MuiTextFieldProps, "variant" | "size"> {
-  /** Visual variant */
-  variant?: "outlined" | "filled" | "standard";
+  /** Visual variant. `filled` is not part of the token-height contract. */
+  variant?: "outlined" | "standard";
   /** Size variant */
   size?: "small" | "medium";
   /** Compact mode with reduced padding */
@@ -68,6 +68,7 @@ export const TextInput = memo(
         id,
         hideLabel = false,
         className,
+        style,
         inputProps,
         sx,
         ...props
@@ -92,11 +93,14 @@ export const TextInput = memo(
       return (
         // Block wrapper, never a fragment: callers place <TextInput> inside
         // FlexRow/FlexColumn and a fragment would explode into two flex
-        // children. Caller sx/className land here so layout sizing (width,
-        // flex) and `& .Mui*` descendant overrides keep working.
+        // children. ALL root layout props — className, style, sx — land here
+        // so layout sizing (width, flex) and `& .Mui*` descendant overrides
+        // keep working; splitting them across wrapper and inner field breaks
+        // callers that mix them (e.g. className flex + style width).
         <Box
           ref={ref}
           className={className}
+          style={style}
           sx={{
             display: "block",
             width: fullWidth ? "100%" : undefined,
@@ -150,7 +154,7 @@ export const TextInput = memo(
               "& .MuiInputBase-root:not(.MuiInputBase-multiline)": {
                 minHeight: `${controlHeight}px`,
               },
-              "& .MuiOutlinedInput-root:not(.MuiInputBase-multiline) .MuiOutlinedInput-input":
+              "& .MuiInputBase-root:not(.MuiInputBase-multiline) .MuiInputBase-input":
                 {
                   paddingTop: isSmall ? "3px" : "7px",
                   paddingBottom: isSmall ? "3px" : "7px",
