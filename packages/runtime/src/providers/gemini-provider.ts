@@ -948,7 +948,7 @@ export class GeminiProvider extends BaseProvider {
     const toolCalls: ToolCall[] = [];
 
     for (const part of parts) {
-      if (part.text !== undefined) {
+      if (part.text !== undefined && !part.thought) {
         textParts.push(part.text);
       } else if (part.functionCall) {
         const originalName =

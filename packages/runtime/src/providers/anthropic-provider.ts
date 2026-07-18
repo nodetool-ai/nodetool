@@ -173,6 +173,7 @@ function toAnthropicCitation(citation: MessageCitation): AnthropicRawBlock {
         cited_text: citation.citedText,
         document_index: citation.documentIndex,
         document_title: citation.documentTitle ?? null,
+        file_id: citation.fileId ?? null,
         start_char_index: citation.startCharIndex,
         end_char_index: citation.endCharIndex
       };
@@ -182,6 +183,7 @@ function toAnthropicCitation(citation: MessageCitation): AnthropicRawBlock {
         cited_text: citation.citedText,
         document_index: citation.documentIndex,
         document_title: citation.documentTitle ?? null,
+        file_id: citation.fileId ?? null,
         start_page_number: citation.startPageNumber,
         end_page_number: citation.endPageNumber
       };
@@ -191,6 +193,7 @@ function toAnthropicCitation(citation: MessageCitation): AnthropicRawBlock {
         cited_text: citation.citedText,
         document_index: citation.documentIndex,
         document_title: citation.documentTitle ?? null,
+        file_id: citation.fileId ?? null,
         start_block_index: citation.startBlockIndex,
         end_block_index: citation.endBlockIndex
       };
@@ -199,6 +202,7 @@ function toAnthropicCitation(citation: MessageCitation): AnthropicRawBlock {
         type: citation.type,
         cited_text: citation.citedText,
         encrypted_index: citation.encryptedIndex,
+        url: citation.url,
         title: citation.title ?? null
       };
     case "search_result_location":

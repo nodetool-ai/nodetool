@@ -285,7 +285,11 @@ export class OpenAICompatProvider extends OpenAIProvider {
     const responseMessage = choice.message;
     const toolCalls = Array.isArray(responseMessage?.tool_calls)
       ? responseMessage.tool_calls
-          .filter((tc) => tc.type === "function")
+          // Keep function calls, and entries with no `type` at all — some
+          // gateways omit it (the wire type marks `type` optional). The
+          // streaming path likewise accepts every tool-call delta. Only drop
+          // entries that explicitly declare a non-function type.
+          .filter((tc) => tc.type === "function" || tc.type === undefined)
           .map((tc) =>
             this.buildToolCall(
               String(tc.id ?? ""),
