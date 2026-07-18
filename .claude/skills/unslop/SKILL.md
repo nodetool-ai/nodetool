@@ -9,6 +9,8 @@ A pre-commit pass that removes patterns LLMs add reflexively but humans wouldn't
 
 This skill complements (does not replace) [`AGENTS.md`](../../../AGENTS.md), [`CLAUDE.md`](../../../CLAUDE.md), and [`web/src/components/ui_primitives/STRATEGY.md`](../../../web/src/components/ui_primitives/STRATEGY.md). Those define the rules. This skill defines the patterns to actively hunt and remove.
 
+Unslop is a quality pass, not a bug hunt. For correctness review of a diff, branch, or PR — including the NodeTool-specific landmines — use [`nodetool-code-review`](../nodetool-code-review/SKILL.md); a full pre-merge pass runs both.
+
 ## How to use
 
 1. After making changes, run `git diff` and read every added line through the lenses below.
@@ -243,6 +245,7 @@ NodeTool uses MUI v7 **wrapped by `web/src/components/ui_primitives/`**. Raw MUI
 - `import { Typography, Button, IconButton, Tooltip, CircularProgress, Chip, Dialog, Alert, Divider, Paper, Skeleton, Tabs, Drawer, Breadcrumbs, Select, Switch, TextField } from "@mui/material"` outside `ui_primitives/` and `editor_ui/`. Use the primitives.
 - Inline `sx={{ display: "flex", flexDirection: "column" }}` — use `<FlexColumn>` / `<FlexRow>`.
 - Hardcoded hex colors, pixel paddings, or font sizes — use theme values, `SPACING`, `GAP`, `PADDING`.
+- Hardcoded border radii (`4`, `10`, `18px`), transition strings (`"all 200ms ease"`), or z-indexes (`9999`) — use `BORDER_RADIUS`, `MOTION`, `Z_INDEX` from `ui_primitives` (token reference: [`docs/DESIGN.md`](../../../docs/DESIGN.md)).
 - `styled()` calls in component files — `styled()` only belongs inside `ui_primitives/`.
 - New `<Typography variant="...">` — use `Text`, `Label`, or `Caption`.
 - Reaching past primitives into MUI internals (e.g., `MuiButton-root` overrides) when a primitive prop already exists.
@@ -375,7 +378,7 @@ Run through this before declaring a task done. Treat any "yes" as a slop sightin
 - [ ] Did I add `useEffect` to compute a value from props/state I already have?
 - [ ] Did I `useCallback`/`useMemo`/`React.memo` without a memoized consumer or measurable cost?
 - [ ] Did I subscribe to a whole Zustand store (`const s = useFooStore()`) or skip `useShallow` on a multi-key selector?
-- [ ] Did I import a raw MUI component into a non-primitive file, or hardcode a color/spacing?
+- [ ] Did I import a raw MUI component into a non-primitive file, or hardcode a color, spacing, radius, font size, or transition?
 - [ ] Did I write a `useEffect`+`fetch` instead of `useQuery`?
 - [ ] Does any new test assert implementation rather than user-visible behavior?
 - [ ] Are there `// TODO`, `// removed`, `// added by`, or "useful elsewhere" leftovers?
