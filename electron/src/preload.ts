@@ -658,6 +658,14 @@ const api = {
   },
 
   // ============================================================================
+  // mcp: Model Context Protocol bundle install (Claude Desktop)
+  // ============================================================================
+  mcp: {
+    /** Install the bundled NodeTool `.mcpb` into Claude Desktop. */
+    installBundle: () => ipcRenderer.invoke(IpcChannels.MCP_INSTALL_BUNDLE),
+  },
+
+  // ============================================================================
   // localhostProxy: Generic localhost-only HTTP requests via main process
   // ============================================================================
   localhostProxy: {

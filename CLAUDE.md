@@ -223,6 +223,14 @@ Every release builds and attaches `nodetool-<version>.mcpb` to the GitHub
 Release (`release.yaml`, built once on Linux since the bundle is
 cross-platform).
 
+The desktop app ships the same bundle: the electron build runs `prepare-mcpb`
+and bundles `nodetool.mcpb` as an extra resource (`electron-builder.json`).
+**Settings → MCP → Claude Desktop → Install Extension** hands it to the OS
+(`window.api.mcp.installBundle` → `MCP_INSTALL_BUNDLE` IPC →
+`electron/src/mcpBundle.ts`), which opens Claude Desktop's install dialog
+(falling back to reveal-in-folder when no handler is registered). The button is
+desktop-only — it's hidden in the browser/remote UI.
+
 ### nodetool run (DSL Workflows)
 
 ```bash
