@@ -47,7 +47,11 @@ Confirmed absent: a storyboard/shot-list surface, a character-entity system, a d
 
 ## P0 — the production spine
 
+**Status: shipped (July 2026).** All four P0 features landed as product code on branch `claude/nodetool-creative-agent-j96pji`. Delivered artifacts are listed under each item. P1/P2 remain planned.
+
 ### 1. Direction layer
+
+Shipped: `Screenplay`/`Shot`/`CameraDirection`/`ShotStatus` types in `packages/protocol/src/creative.ts`; three nodes in `packages/llm-nodes/src/nodes/director.ts` (registered via `base-nodes`): `nodetool.creative.Director` (brief → typed Screenplay + narration + music prompt), `nodetool.creative.ScreenplayShots` (streams each shot + a composed per-shot prompt), `nodetool.creative.ApplyEntities` (injects entity descriptors + reference images).
 
 A structured screenplay artifact — scenes and shots with duration, camera, motion, dialogue, characters, and style references — produced by a Director agent from a brief, and consumed by everything downstream.
 
@@ -59,9 +63,13 @@ A structured screenplay artifact — scenes and shots with duration, camera, mot
 
 Reusable Character / Location / Style objects: name, reference images, voice id, optional LoRA. Stored as assets, referenced by shots in the direction artifact, auto-injected into every generation call that names them. The model layer already takes reference images and LoRAs (hundreds of manifest endpoints expose `reference_image`, `first_frame`/`last_frame`, `lora`); what's missing is the abstraction, storage, and UI. This is the single most-complained-about gap in competing products.
 
+Shipped: `Entity`/`EntityRef` types in protocol; entities persist as assets tagged with a `nodetool_entity` metadata marker (no migration) — `web/src/serverState/useEntities.ts`; an Entity library page (`web/src/components/entities/`, opened from the rail menu); `ui_entity_list`/`ui_entity_apply` agent tools; and the `ApplyEntities` node for graph-level injection.
+
 ### 3. Storyboard surface
 
 A workspace tab (peer of Timeline/Sketch in `web/src/components/workspace/`) that renders the direction artifact as shot cards: script text, style frame, generated still, then generated clip, with per-shot status, cost, and approve/regenerate. This is the plan-approve-spend gate: stills are cents, clips are dollars. Agent tools (`ui_storyboard_*`) mirror the existing timeline bridge.
+
+Shipped: `"storyboard"` workspace tab (`web/src/components/workspace/StoryboardSurface.tsx`, `web/src/components/storyboard/`), `StoryboardStore`/`StoryboardGenerationStore`, `useGenerateShot` (keyframe via TextToImage, clip via ImageToVideo through the workflow runner), a `storyboardAgentBridge`, and eight `ui_storyboard_*` tools (get_state, set_screenplay, add/update_shot, generate_keyframe, approve_shot, generate_clip, select_shot). Opened from the "New storyboard" menu item.
 
 ### 4. Cost governance
 
@@ -69,6 +77,8 @@ A workspace tab (peer of Timeline/Sketch in `web/src/components/workspace/`) tha
 - A budget parameter the agent must respect when planning generation.
 - Draft mode: route to cheap/low-res models first, final render on approval.
 - Live cost ticker in Global Chat (the data already flows through OTel; it stops short of the chat UI).
+
+Shipped: `estimateWorkflowCost`/`withinBudget` in `packages/node-sdk/src/cost-estimate.ts` (aggregates fal/kie unit pricing across a graph, surfaces unpriced nodes as "unknown"); `WorkflowCostEstimatePanel` in the right panel and a live `CostTicker` in Global Chat; a persisted `BudgetStore` (cap, currency, draft mode) with over-budget warnings; `useWorkflowCostEstimate`/`useLiveRunCost` hooks. Note: wiring `spent` into a run-completion path is the remaining follow-up.
 
 ## P1 — close the loop
 
