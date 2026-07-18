@@ -89,6 +89,8 @@ function AutocompleteInternal<
   helperText,
   renderInput,
   sx,
+  className,
+  style,
   id,
   ...props
 }: AutocompleteProps<T, Multiple, FreeSolo>) {
@@ -125,8 +127,14 @@ function AutocompleteInternal<
 
   return (
     // Block wrapper, never a fragment: the label above and the combobox must
-    // stay one flex child at call sites.
-    <Box sx={{ display: "block" }}>
+    // stay one flex child at call sites. ALL root layout props — className,
+    // style, sx — land on the wrapper so flex sizing applies to the actual
+    // flex child; descendant `& .Mui*` selectors keep working from here.
+    <Box
+      className={className}
+      style={style}
+      sx={[{ display: "block" }, ...(Array.isArray(sx) ? sx : [sx])]}
+    >
       {label && (
         <Label htmlFor={fieldId} error={error}>
           {label}
@@ -136,7 +144,6 @@ function AutocompleteInternal<
         id={fieldId}
         size={effectiveSize}
         renderInput={renderInput || defaultRenderInput}
-        sx={sx}
         {...props}
       />
     </Box>
