@@ -104,9 +104,13 @@ const MiniMapNavigator: React.FC = () => {
       if (node.selected) {
         return theme.vars.palette.primary.main;
       }
-      return isDarkMode ? "#475569" : "#cbd5e1";
+      // Mid-tone stroke in dark mode, light stroke in light mode (the light
+      // palette's grey scale is inverted, so 600 is the lighter shade there).
+      return isDarkMode
+        ? theme.vars.palette.grey[500]
+        : theme.vars.palette.grey[600];
     },
-    [theme.vars.palette.primary.main, isDarkMode]
+    [theme.vars.palette.primary.main, theme.vars.palette.grey, isDarkMode]
   );
 
   const legendItems = useMemo(

@@ -16,6 +16,7 @@ import {
   getSpacingPx
 } from "../../ui_primitives";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
+import { useNotificationStore } from "../../../stores/NotificationStore";
 import ThreadList from "../thread/ThreadList";
 import type { ThreadInfo } from "../types/thread.types";
 import type { Message, MessageTextContent } from "../../../stores/ApiTypes";
@@ -42,6 +43,9 @@ const ChatPanelHeader: React.FC<ChatPanelHeaderProps> = ({
   const navigate = useNavigate();
   const threadsAnchorRef = useRef<HTMLButtonElement>(null);
   const [threadsOpen, setThreadsOpen] = useState(false);
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
 
   const { threads, currentThreadId, messageCache, switchThread, deleteThread } =
     useGlobalChatStore(
@@ -105,9 +109,13 @@ const ChatPanelHeader: React.FC<ChatPanelHeaderProps> = ({
     (id: string) => {
       deleteThread(id).catch((error) => {
         console.error("Failed to delete thread:", error);
+        addNotification({
+          type: "error",
+          content: "Could not delete the conversation. Please try again."
+        });
       });
     },
-    [deleteThread]
+    [deleteThread, addNotification]
   );
 
   const handleOpenFullscreen = useCallback(() => {

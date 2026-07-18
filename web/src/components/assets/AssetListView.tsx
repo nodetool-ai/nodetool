@@ -423,9 +423,18 @@ const AssetListView: React.FC<AssetListViewProps> = ({
         key={key}
         className={`asset-list-item ${isSelected ? "selected" : ""}`}
         style={style}
+        role="button"
+        tabIndex={0}
+        aria-label={asset.name}
         onClick={(e) => {
           e.stopPropagation();
           handleSelectAsset(asset.id);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleSelectAsset(asset.id);
+          }
         }}
         onDoubleClick={() => onDoubleClick?.(asset)}
         onContextMenu={(e) => handleContextMenu(e, asset.id)}

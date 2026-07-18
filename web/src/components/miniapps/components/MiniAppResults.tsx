@@ -127,7 +127,7 @@ const MiniAppResults: React.FC<MiniAppResultsProps> = ({
       {hasResults && onClear && (
         <ToolbarIconButton
           icon={<ClearIcon fontSize="small" />}
-          tooltip={`Clear ${filteredResults.length} result${filteredResults.length > 1 ? "s" : ""}`}
+          tooltip={`Clear ${filteredResults.length} result${filteredResults.length !== 1 ? "s" : ""}`}
           size="small"
           onClick={onClear}
           aria-label="Clear results"
