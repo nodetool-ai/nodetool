@@ -7,6 +7,7 @@
 import React from "react";
 import { Box, BoxProps, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { Label } from "./Label";
 
 export interface FormFieldProps extends Omit<BoxProps, 'onChange'> {
   /** Field label */
@@ -67,7 +68,6 @@ export const FormField: React.FC<FormFieldProps> = ({
   const theme = useTheme();
 
   const isRow = direction === "row";
-  const gap = compact ? 0.5 : 1;
   const bottomText = error || helperText;
 
   return (
@@ -75,38 +75,25 @@ export const FormField: React.FC<FormFieldProps> = ({
       sx={{
         display: "flex",
         flexDirection: isRow ? "row" : "column",
-        gap,
+        gap: isRow ? (compact ? 0.5 : 1) : 0,
         alignItems: isRow ? "center" : "stretch",
         ...sx,
       }}
       {...props}
     >
       {label && (
-        <Typography
-          component="label"
+        <Label
+          size={compact ? "small" : "normal"}
+          required={required}
+          error={Boolean(error)}
           sx={{
-            fontSize: compact ? theme.fontSizeSmaller : theme.fontSizeSmall,
-            fontWeight: 500,
-            color: error
-              ? theme.vars.palette.error.main
-              : theme.vars.palette.text.secondary,
             minWidth: isRow ? labelWidth : undefined,
             flexShrink: isRow ? 0 : undefined,
+            marginBottom: isRow ? 0 : undefined,
           }}
         >
           {label}
-          {required && (
-            <Typography
-              component="span"
-              sx={{
-                color: theme.vars.palette.error.main,
-                ml: 0.5,
-              }}
-            >
-              *
-            </Typography>
-          )}
-        </Typography>
+        </Label>
       )}
       <Box sx={{ flex: isRow ? 1 : undefined }}>
         {children}

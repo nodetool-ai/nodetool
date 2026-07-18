@@ -250,11 +250,9 @@ const ThemeNodetool = createTheme({
     MuiFormLabel: {
       styleOverrides: {
         root: ({ theme }) => ({
-          textTransform: "capitalize",
           fontSize: theme.fontSizeSmall, // 13px — label
           fontWeight: 500,
           lineHeight: "1em",
-          padding: theme.spacing(0, 0, 2, 0),
           color: theme.vars.palette.grey[0],
           "&.Mui-focused": {
             color: theme.vars.palette.primary.main
