@@ -18,7 +18,6 @@ import {
   FlexRow,
   FlexColumn,
   EditorButton,
-  BORDER_RADIUS,
   SPACING,
   getSpacingPx
 } from "../ui_primitives";
