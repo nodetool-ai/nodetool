@@ -54,6 +54,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: marketing/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('marketing/package-lock.json') }}-${{ hashFiles('marketing/src/**', 'marketing/next.config.mjs') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('marketing/package-lock.json') }}-
+
       - name: Check generated template entries are up to date
         run: |
           npm run gen:templates
@@ -134,6 +142,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: marketing/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('marketing/package-lock.json') }}-${{ hashFiles('marketing/src/**', 'marketing/next.config.mjs') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('marketing/package-lock.json') }}-
+
       - name: Build (Next.js)
         run: npx next build
 
@@ -171,6 +187,19 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      # Restore the incremental build cache so `next build` (run inside
+      # `opennextjs-cloudflare build`) doesn't recompile from scratch on every
+      # deploy — this is the "No build cache found" warning in the deploy log.
+      # The `build` job runs first on the same commit and saves under the same
+      # key, so this is usually an exact hit.
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: marketing/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('marketing/package-lock.json') }}-${{ hashFiles('marketing/src/**', 'marketing/next.config.mjs') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('marketing/package-lock.json') }}-
 
       - name: Build & deploy (OpenNext → Cloudflare Workers)
         run: npm run deploy
