@@ -1235,7 +1235,7 @@ describe("GlobalChatStore", () => {
       expect(messages[0].content).toEqual([
         {
           type: "image_url",
-          image: { type: "image", uri: "blob:mock" }
+          image: { type: "image", uri: "", data: mockData }
         }
       ]);
 
@@ -1260,7 +1260,7 @@ describe("GlobalChatStore", () => {
       expect(messages[0].content).toEqual([
         {
           type: "audio",
-          audio: { type: "audio", uri: "blob:mock" }
+          audio: { type: "audio", uri: "", data: mockData }
         }
       ]);
 
@@ -1285,7 +1285,7 @@ describe("GlobalChatStore", () => {
       expect(messages[0].content).toEqual([
         {
           type: "video",
-          video: { type: "video", uri: "blob:mock" }
+          video: { type: "video", uri: "", data: mockData }
         }
       ]);
     });

@@ -16,7 +16,12 @@ interface UseMessageQueueOptions {
 
 interface UseMessageQueueReturn {
   queuedMessage: QueuedMessage | null;
-  sendMessage: (content: MessageContent[], prompt: string) => void;
+  /**
+   * Send or queue a message. Returns `true` when the message was sent or
+   * queued, `false` when it was dropped because one is already queued (so the
+   * caller can keep the prompt/attachments instead of clearing them).
+   */
+  sendMessage: (content: MessageContent[], prompt: string) => boolean;
   cancelQueued: () => void;
   sendQueuedNow: () => void;
 }
@@ -51,10 +56,11 @@ export function useMessageQueue({
   );
 
   const sendMessage = useCallback(
-    (content: MessageContent[], messagePrompt: string) => {
-      // A queued message is already pending; drop this one.
+    (content: MessageContent[], messagePrompt: string): boolean => {
+      // A queued message is already pending; drop this one and report it so
+      // the caller does not clear the prompt/attachments it still holds.
       if (queuedMessage) {
-        return;
+        return false;
       }
 
       if (!isLoading && !isStreaming) {
@@ -65,6 +71,7 @@ export function useMessageQueue({
           prompt: messagePrompt
         });
       }
+      return true;
     },
     [isLoading, isStreaming, queuedMessage, sendMessageNow]
   );

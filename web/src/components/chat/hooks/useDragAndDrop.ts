@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { Asset } from "../../../stores/ApiTypes";
 import { DroppedFile } from "../types/chat.types";
 import { useAssetGridStore } from "../../../stores/AssetGridStore";
@@ -36,20 +36,43 @@ export const useDragAndDrop = (
   onAssetsDropped?: (files: DroppedFile[]) => void
 ) => {
   const [isDragging, setIsDragging] = useState(false);
+  // Enter/leave depth counter: a dragleave also fires when the pointer crosses
+  // from the drop zone onto one of its children, which would otherwise flip
+  // isDragging off for a frame and flicker the highlight.
+  const dragDepthRef = useRef(0);
+
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    dragDepthRef.current += 1;
+    setIsDragging(true);
+  }, []);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
+    // dragover fires continuously; keep the zone active even for consumers
+    // that don't wire onDragEnter — the depth counter (with the relatedTarget
+    // fallback below) stays authoritative for when to clear.
     setIsDragging(true);
   }, []);
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragging(false);
+    dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+    // Fallback for when onDragEnter isn't wired (depth stays 0): a leave whose
+    // related target is still inside the zone is a child crossing, not a real
+    // exit — don't clear.
+    const related = e.relatedTarget;
+    const stillInside =
+      related instanceof Node && e.currentTarget.contains(related);
+    if (dragDepthRef.current === 0 && !stillInside) {
+      setIsDragging(false);
+    }
   }, []);
 
   const handleDrop = useCallback(
     async (e: React.DragEvent) => {
       e.preventDefault();
+      dragDepthRef.current = 0;
       setIsDragging(false);
 
       const dragData = deserializeDragData(e.dataTransfer);
@@ -123,6 +146,7 @@ export const useDragAndDrop = (
 
   return {
     isDragging,
+    handleDragEnter,
     handleDragOver,
     handleDragLeave,
     handleDrop

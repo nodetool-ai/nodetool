@@ -303,6 +303,8 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   const userHasScrolledUpRef = useRef(false);
   const previousMessageCountRef = useRef(messages.length);
   const lastScrollTopRef = useRef(0);
+  const lastScrollHeightRef = useRef(0);
+  const scrollRafRef = useRef<number | null>(null);
 
   const componentStyles = useMemo(() => createStyles(theme), [theme]);
 
@@ -419,12 +421,20 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     if (!el) return;
     const prev = lastScrollTopRef.current;
     const curr = el.scrollTop;
+    const prevHeight = lastScrollHeightRef.current;
+    const currHeight = el.scrollHeight;
     lastScrollTopRef.current = curr;
+    lastScrollHeightRef.current = currHeight;
 
     // Only a decrease in scrollTop indicates the user scrolled up.
     // A growing distance-to-bottom from content expansion or programmatic
-    // catch-up must not flip this flag.
-    if (curr < prev - 1) userHasScrolledUpRef.current = true;
+    // catch-up must not flip this flag. Nor may a browser-forced downward
+    // clamp when rendered content shrinks (e.g. a thought collapses
+    // mid-stream) — a genuine scroll-up decreases scrollTop while the
+    // scrollHeight is unchanged or larger.
+    if (curr < prev - 1 && currHeight >= prevHeight) {
+      userHasScrolledUpRef.current = true;
+    }
 
     const nearBottom =
       el.scrollHeight - curr - el.clientHeight < SCROLL_THRESHOLD;
@@ -435,9 +445,23 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   useEffect(() => {
     const el = scrollHost;
     if (!el) return;
-    const onScroll = () => updateScrollState();
+    // Coalesce scroll events to at most one measurement per frame — each call
+    // reads scrollTop/scrollHeight/clientHeight (a forced reflow) and setStates.
+    const onScroll = () => {
+      if (scrollRafRef.current != null) return;
+      scrollRafRef.current = requestAnimationFrame(() => {
+        scrollRafRef.current = null;
+        updateScrollState();
+      });
+    };
     el.addEventListener("scroll", onScroll, { passive: true });
-    return () => el.removeEventListener("scroll", onScroll);
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      if (scrollRafRef.current != null) {
+        cancelAnimationFrame(scrollRafRef.current);
+        scrollRafRef.current = null;
+      }
+    };
   }, [scrollHost, updateScrollState]);
 
   const scrollToBottom = useCallback(() => {
