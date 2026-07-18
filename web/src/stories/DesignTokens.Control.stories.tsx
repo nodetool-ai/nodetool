@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Box } from "@mui/material";
+import { Box, FlexColumn, FlexRow } from "../components/ui_primitives";
 import { CONTROL } from "../components/ui_primitives/tokens";
 
 const HEIGHT_ROLES: Record<keyof typeof CONTROL.height, string> = {
@@ -11,13 +11,10 @@ const HEIGHT_ROLES: Record<keyof typeof CONTROL.height, string> = {
 };
 
 const ControlScale = () => (
-  <Box sx={{ display: "flex", flexDirection: "column", gap: 4, maxWidth: 720 }}>
-    <Box sx={{ display: "flex", gap: 3, alignItems: "flex-end", flexWrap: "wrap" }}>
+  <FlexColumn gap={4} sx={{ maxWidth: 720 }}>
+    <FlexRow gap={3} align="flex-end" wrap>
       {Object.entries(CONTROL.height).map(([token, height]) => (
-        <Box
-          key={token}
-          sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}
-        >
+        <FlexColumn key={token} gap={1} align="center">
           <Box
             sx={{
               width: 120,
@@ -47,15 +44,12 @@ const ControlScale = () => (
           >
             {HEIGHT_ROLES[token as keyof typeof CONTROL.height]}
           </Box>
-        </Box>
+        </FlexColumn>
       ))}
-    </Box>
-    <Box sx={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+    </FlexRow>
+    <FlexRow gap={3} wrap>
       {Object.entries(CONTROL.paddingX).map(([token, padding]) => (
-        <Box
-          key={token}
-          sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}
-        >
+        <FlexColumn key={token} gap={1} align="center">
           <Box
             sx={{
               height: CONTROL.height.lg,
@@ -76,10 +70,10 @@ const ControlScale = () => (
           <Box sx={{ fontFamily: "var(--fontFamily2)", fontSize: "var(--fontSizeSmall)" }}>
             {token}
           </Box>
-        </Box>
+        </FlexColumn>
       ))}
-    </Box>
-  </Box>
+    </FlexRow>
+  </FlexColumn>
 );
 
 const meta = {
