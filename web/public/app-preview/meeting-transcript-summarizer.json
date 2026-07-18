@@ -1,7 +1,8 @@
 {
   "slug": "meeting-transcript-summarizer",
   "name": "Meeting Transcript Summarizer",
-  "description": "Automatically transcribe a meeting recording and generate concise notes.",
+  "description": "Summarize a meeting from a recording or a pasted transcript — either input works, and action items come back as structured rows instead of another paragraph to scan.",
+  "featured": false,
   "image": "/app-preview/img/meeting-transcript-summarizer.jpg",
   "app_doc": {
     "version": 2,
@@ -13,18 +14,10 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "📝 Meeting Transcript Summarizer",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
             "id": "t-tagline",
-            "text": "Drop in a meeting recording — get the transcript and crisp notes back."
+            "text": "Drop in a meeting recording — get the transcript, notes, and action items back."
           }
         },
         {
@@ -40,10 +33,19 @@
                   "title": "Try it",
                   "content": [
                     {
-                      "type": "Text",
+                      "type": "WorkflowInput",
                       "props": {
-                        "id": "note-media",
-                        "text": "🎧 Uses the bundled recording — upload your own in NodeTool Studio."
+                        "id": "in-recording",
+                        "binding": "Recording",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-transcript",
+                        "binding": "Transcript",
+                        "events": []
                       }
                     },
                     {
@@ -75,6 +77,30 @@
                   "title": "Results",
                   "content": [
                     {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Transcribing & summarizing…",
+                        "binding": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-transcript",
+                        "text": "Full transcript",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-transcript",
+                        "binding": "Transcript",
+                        "text": ""
+                      }
+                    },
+                    {
                       "type": "Heading",
                       "props": {
                         "id": "lbl-summary",
@@ -93,17 +119,16 @@
                     {
                       "type": "Heading",
                       "props": {
-                        "id": "lbl-transcript",
-                        "text": "Full transcript",
+                        "id": "lbl-action-items",
+                        "text": "Action items",
                         "level": "3"
                       }
                     },
                     {
-                      "type": "Markdown",
+                      "type": "Json",
                       "props": {
-                        "id": "out-transcript",
-                        "binding": "Transcript",
-                        "text": ""
+                        "id": "out-action-items",
+                        "binding": "Action Items"
                       }
                     }
                   ]
@@ -117,7 +142,19 @@
     }
   },
   "values": {
-    "Summary": "**Decisions**\n- Ship the pricing page Friday\n- Maya owns the launch email\n\n**Action items**\n- [ ] Jonas: fix the trial-expiry bug by Wed\n- [ ] Priya: draft FAQ for support",
-    "Transcript": "“…okay so if we're all aligned, let's lock Friday for the pricing page. Jonas, can you take the trial-expiry bug before Wednesday?…”"
+    "Transcript": "“…okay so if we're all aligned, let's lock Friday for the pricing page. Jonas, can you take the trial-expiry bug before Wednesday?…”",
+    "Summary": "**Decisions**\n- Ship the pricing page Friday\n- Maya owns the launch email",
+    "Action Items": [
+      {
+        "owner": "Jonas",
+        "task": "Fix the trial-expiry bug",
+        "due": "Wed"
+      },
+      {
+        "owner": "Priya",
+        "task": "Draft support FAQ",
+        "due": "Fri"
+      }
+    ]
   }
 }

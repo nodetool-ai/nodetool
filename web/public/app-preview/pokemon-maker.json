@@ -1,7 +1,8 @@
 {
   "slug": "pokemon-maker",
   "name": "Pokemon Maker",
-  "description": "",
+  "description": "Turn any mix of real animals into a gallery of original collectible creatures. A style dropdown restyles the whole batch, so one Run yields four cohesive variant designs instead of a single image.",
+  "featured": true,
   "image": "/app-preview/img/pokemon-maker.jpg",
   "app_doc": {
     "version": 2,
@@ -13,71 +14,104 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "🐉 Pokemon Maker",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
             "id": "t-tagline",
-            "text": "Mix any animals you like — meet the creature they become."
+            "text": "Mix any animals you like — meet the gallery of creatures they become."
           }
         },
         {
-          "type": "Container",
+          "type": "Columns",
           "props": {
-            "id": "panel-try",
-            "title": "Try it",
-            "content": [
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
               {
-                "type": "TextInput",
+                "type": "Container",
                 "props": {
-                  "id": "in-animals",
-                  "binding": "animals",
-                  "label": "Mix these animals",
-                  "placeholder": "lion, eagle, dragon, bear",
-                  "multiline": false,
-                  "events": []
-                }
-              },
-              {
-                "type": "Button",
-                "props": {
-                  "id": "btn-run",
-                  "label": "Create my creature",
-                  "variant": "contained",
-                  "color": "primary",
-                  "events": [
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
                     {
-                      "trigger": "click",
-                      "kind": "run",
-                      "key": "",
-                      "value": ""
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-animals",
+                        "binding": "animals",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-style",
+                        "binding": "style",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Create my creatures",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
                     }
                   ]
                 }
               }
-            ]
-          }
-        },
-        {
-          "type": "Container",
-          "props": {
-            "id": "panel-results",
-            "title": "Results",
-            "content": [
+            ],
+            "right": [
               {
-                "type": "Image",
+                "type": "Container",
                 "props": {
-                  "id": "out-pokemon",
-                  "binding": "pokemon",
-                  "fit": "contain",
-                  "height": 280,
-                  "placeholder": "Your result appears here"
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Designing your creatures…",
+                        "binding": ""
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-pokemon",
+                        "binding": "pokemon",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-make-another",
+                        "label": "Make another batch",
+                        "variant": "outlined",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
                 }
               }
             ]
@@ -88,7 +122,8 @@
     }
   },
   "values": {
-    "animals": "lion, eagle, dragon, bear",
+    "animals": "lion, eagle, koi fish",
+    "style": "Classic anime cel-shaded",
     "pokemon": {
       "$demo": "image"
     }

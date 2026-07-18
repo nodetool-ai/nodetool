@@ -1,0 +1,137 @@
+{
+  "slug": "private-assistant",
+  "name": "Private Assistant",
+  "description": "Ask questions about your own notes and documents — fully local, no API keys. Runs end-to-end on a local Ollama model, so the text never leaves your machine. Requires Ollama running with a model pulled (default: llama3.2 — run `ollama pull llama3.2`).",
+  "featured": false,
+  "image": null,
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Private Assistant"
+        }
+      },
+      "content": [
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "Ask questions about your own notes — fully local, no API keys."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-document",
+                        "binding": "document",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-question",
+                        "binding": "question",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Select",
+                      "props": {
+                        "id": "in-tone",
+                        "binding": "tone",
+                        "label": "Answer tone",
+                        "options": [
+                          {
+                            "value": "concise and neutral"
+                          },
+                          {
+                            "value": "friendly and warm"
+                          },
+                          {
+                            "value": "professional"
+                          },
+                          {
+                            "value": "detailed and thorough"
+                          },
+                          {
+                            "value": "plain and simple"
+                          }
+                        ],
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Ask locally",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Thinking locally…",
+                        "binding": ""
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-answer",
+                        "binding": "answer",
+                        "text": ""
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  },
+  "values": {
+    "document": "Team sync — Thursday\n- Launch date moved to March 14 (was March 7) to finish the accessibility fixes.\n- Priya owns the onboarding rewrite; first draft due Monday.\n- Budget: $8k left for Q1, reserved for the usability study.\n- Open risk: the billing migration hasn't been tested on staging yet.\n- Decision: ship the mobile app in the second wave, not at launch.",
+    "question": "When do we launch, and what's the biggest open risk?",
+    "tone": "concise and neutral",
+    "answer": "Based on your notes: the standup moved to **9:30am on Tuesdays**, and Priya is covering the on-call rotation next week."
+  }
+}

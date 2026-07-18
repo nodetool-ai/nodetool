@@ -322,7 +322,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
         selected={props.selected}
         workflowId={nodeData?.workflow_id}
       />
-      <Tooltip title="Try to find a replacement node or write us a fax.">
+      <Tooltip title="This node type is missing. Search the node menu for a replacement or install the package that provides it.">
         <Text size="big" className="missing-node-text">
           Missing Node
         </Text>

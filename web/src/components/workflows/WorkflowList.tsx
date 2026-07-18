@@ -23,6 +23,7 @@ import WorkflowFormModal from "./WorkflowFormModal";
 import { usePanelStore } from "../../stores/PanelStore";
 import { useFavoriteWorkflowIds } from "../../stores/FavoriteWorkflowsStore";
 import { useSelectedTags } from "../../stores/WorkflowListViewStore";
+import { useNotificationStore } from "../../stores/NotificationStore";
 import { EmptyState, FlexColumn, FlexRow, LoadingSpinner } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
@@ -68,7 +69,10 @@ const WorkflowList = () => {
   const pageSize = 1000;
   const [workflowToEdit, setWorkflowToEdit] = useState<Workflow | null>(null);
 
-  const { data, isLoading, error, isError } = useQuery<WorkflowListType, Error>(
+  const { data, isLoading, error, isError, refetch } = useQuery<
+    WorkflowListType,
+    Error
+  >(
     {
       queryKey: ["workflows"],
       queryFn: () => loadWorkflows("", pageSize),
@@ -81,6 +85,16 @@ const WorkflowList = () => {
 
   const favoriteWorkflowIds = useFavoriteWorkflowIds();
   const selectedTags = useSelectedTags();
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
+
+  // Keep the raw error out of the UI but preserve it for debugging.
+  useEffect(() => {
+    if (isError) {
+      console.error("Failed to load workflows:", error);
+    }
+  }, [isError, error]);
 
   // Derive available tags from all workflows
   const availableTags = useMemo(() => {
@@ -250,9 +264,17 @@ const WorkflowList = () => {
         }
       } catch (err) {
         console.error("Failed to rename workflow:", err);
+        addNotification({
+          type: "error",
+          alert: true,
+          content: `Failed to rename "${workflow.name}".`
+        });
+        // Refetch so any optimistically displayed name reverts to the
+        // server's value.
+        queryClient.invalidateQueries({ queryKey: ["workflows"] });
       }
     },
-    [queryClient, getWorkflow, updateWorkflow]
+    [queryClient, getWorkflow, updateWorkflow, addNotification]
   );
 
   const handleToggleFavorites = useCallback(() => {
@@ -325,8 +347,10 @@ const WorkflowList = () => {
           <FlexColumn gap={2} justify="center" align="center" sx={{ flex: 1, px: 2 }}>
             <EmptyState
               variant="error"
-              title="Could not load workflows"
-              description={error?.message ?? "Try again later."}
+              title="Couldn't load workflows"
+              description="Try again later."
+              actionText="Retry"
+              onAction={() => refetch()}
             />
           </FlexColumn>
         ) : workflows.length === 0 ? (

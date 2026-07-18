@@ -178,7 +178,7 @@ export default function EditionsCompareSection({
             initial={reducedMotion ? {} : { opacity: 0, y: 16 }}
             whileInView={reducedMotion ? {} : { opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.25 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white"
           >
             Studio runs on your machine.
@@ -189,7 +189,7 @@ export default function EditionsCompareSection({
             initial={reducedMotion ? {} : { opacity: 0, y: 16 }}
             whileInView={reducedMotion ? {} : { opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.05 }}
+            transition={{ duration: 0.25, delay: 0.05 }}
             className="mt-4 text-lg text-slate-400 leading-relaxed max-w-2xl"
           >
             Same workflows, same nodes, same providers. Pick the runtime that

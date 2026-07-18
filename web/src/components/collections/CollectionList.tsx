@@ -195,18 +195,18 @@ const CollectionList = () => {
       <Dialog
         open={Boolean(deleteTarget)}
         onClose={cancelDelete}
-        title="Confirm Deletion"
+        title="Delete this collection?"
         onConfirm={confirmDelete}
         confirmText="Delete"
         cancelText="Cancel"
         destructive
       >
-        Are you sure you want to delete the collection &quot;{deleteTarget}
-        &quot;?
+        This will permanently delete the collection &quot;{deleteTarget}
+        &quot;.
       </Dialog>
 
       {indexErrors.length > 0 && (
-        <Dialog open={true} onClose={handleClearIndexErrors} title="Indexing Report">
+        <Dialog open={true} onClose={handleClearIndexErrors} title="Indexing report">
           <FlexColumn gap={2}>
             <Text>
               The following files encountered errors during indexing:

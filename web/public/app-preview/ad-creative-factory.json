@@ -1,7 +1,8 @@
 {
   "slug": "ad-creative-factory",
   "name": "Ad Creative Factory",
-  "description": "Turn one product photo and one offer into a batch of ready-to-test vertical video ads. A strategist agent plans a persona × angle test matrix, a list generator writes one spoken hook per cell, and every hook becomes a staged product scene, an animated 9:16 clip, and a voiceover mixed on top.",
+  "description": "Turn one product photo and one offer into a batch of ready-to-test vertical video ads. A strategist agent plans a persona × angle test matrix, a structured data generator emits one variant row per cell — persona, angle, and spoken hook as separate fields, not a prose blob — and every row's hook becomes a staged product scene, an animated 9:16 clip, and a voiceover mixed on top.",
+  "featured": false,
   "image": null,
   "app_doc": {
     "version": 2,
@@ -12,14 +13,6 @@
         }
       },
       "content": [
-        {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "🎬 Ad Creative Factory",
-            "level": "1"
-          }
-        },
         {
           "type": "Text",
           "props": {
@@ -40,44 +33,35 @@
                   "title": "Try it",
                   "content": [
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-product-offer",
                         "binding": "product_offer",
-                        "label": "Product & offer",
-                        "placeholder": "Aurora Trail smart fitness watch — launch-week offer: 20% off. GPS navigation, h",
-                        "multiline": true,
                         "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-audience",
                         "binding": "audience",
-                        "label": "Who is it for?",
-                        "placeholder": "active millennials who hike on weekends and scroll fitness content at night",
-                        "multiline": true,
                         "events": []
                       }
                     },
                     {
-                      "type": "Slider",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-variant-count",
                         "binding": "variant_count",
-                        "label": "How many ad variants?",
-                        "min": 2,
-                        "max": 12,
-                        "step": 1,
                         "events": []
                       }
                     },
                     {
-                      "type": "Text",
+                      "type": "WorkflowInput",
                       "props": {
-                        "id": "note-media",
-                        "text": "📷 Uses the bundled product photo — swap in your own in NodeTool Studio."
+                        "id": "in-product-photo",
+                        "binding": "product_photo",
+                        "events": []
                       }
                     },
                     {
@@ -108,6 +92,14 @@
                   "id": "panel-results",
                   "title": "Results",
                   "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Cutting your ads…",
+                        "binding": ""
+                      }
+                    },
                     {
                       "type": "Heading",
                       "props": {

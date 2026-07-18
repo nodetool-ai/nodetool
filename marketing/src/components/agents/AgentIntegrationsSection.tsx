@@ -100,10 +100,10 @@ export default function AgentIntegrationsSection({
         <div className="mb-16 text-center max-w-3xl mx-auto">
           <motion.h2
             id="integrations-title"
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.25 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
             Every tool in the{" "}
@@ -112,10 +112,10 @@ export default function AgentIntegrationsSection({
             </span>
           </motion.h2>
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.1 }}
+            transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
             The same models the studios use — wired into agents that know when to
@@ -129,7 +129,7 @@ export default function AgentIntegrationsSection({
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
           initial="hidden"
           whileInView="show"
-          viewport={{ once: true, margin: "-100px" }}
+          viewport={{ once: true, margin: "-40px" }}
           variants={{
             show: { transition: { staggerChildren: 0.1 } },
           }}
@@ -138,8 +138,8 @@ export default function AgentIntegrationsSection({
             <motion.div
               key={category.category}
               variants={{
-                hidden: { opacity: 0, y: 20 },
-                show: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+                hidden: { opacity: 1, y: 0 },
+                show: { opacity: 1, y: 0, transition: { duration: 0.25 } },
               }}
               className="group relative rounded-2xl border border-white/5 bg-slate-900/40 backdrop-blur-sm p-6 transition-all duration-300 hover:bg-slate-900/60 hover:border-white/10"
             >
@@ -184,10 +184,10 @@ export default function AgentIntegrationsSection({
 
         {/* Bottom Banner */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={false}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.3 }}
+          transition={{ duration: 0.25, delay: 0.08 }}
           className="mt-16 rounded-2xl border border-white/10 bg-gradient-to-r from-teal-900/20 via-slate-900/50 to-blue-900/20 p-8 md:p-12 text-center"
         >
           <h3 className="text-2xl md:text-3xl font-bold text-white mb-4">

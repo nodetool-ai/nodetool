@@ -8,8 +8,15 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Workflow, WorkflowList as WorkflowListType } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useSettingsStore } from "../../stores/SettingsStore";
+import { useNotificationStore } from "../../stores/NotificationStore";
 import { trpcClient } from "../../trpc/client";
-import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import {
+  EmptyState,
+  MOTION,
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx
+} from "../ui_primitives";
 import RecentWorkflowCard from "./RecentWorkflowCard";
 import WorkflowListView from "../workflows/WorkflowListView";
 import WorkflowDeleteDialog from "../workflows/WorkflowDeleteDialog";
@@ -106,21 +113,6 @@ const styles = (theme: Theme) =>
       borderRadius: BORDER_RADIUS.lg,
       padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.lg)}`, // was 6px 10px
       background: `rgba(${theme.vars.palette.common.whiteChannel} / 0.012)`
-    },
-    ".rec-empty": {
-      padding: `${getSpacingPx(10)} 0`, // was 40px 0
-      textAlign: "center",
-      color: theme.vars.palette.text.secondary,
-      fontSize: 14,
-      "& button": {
-        background: "none",
-        border: "none",
-        padding: 0,
-        font: "inherit",
-        cursor: "pointer",
-        color: theme.vars.palette.primary.main,
-        "&:hover": { color: theme.vars.palette.primary.light }
-      }
     }
   });
 
@@ -142,6 +134,9 @@ const DashboardWorkflows: React.FC<DashboardWorkflowsProps> = ({
   const queryClient = useQueryClient();
   const copyWorkflow = useWorkflowManager((state) => state.copy);
   const createWorkflow = useWorkflowManager((state) => state.create);
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
 
   const view = useSettingsStore((s) => s.settings.dashboardWorkflowView);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
@@ -167,12 +162,21 @@ const DashboardWorkflows: React.FC<DashboardWorkflowsProps> = ({
   const handleDuplicate = useCallback(
     async (event: React.MouseEvent, workflow: Workflow) => {
       event.stopPropagation();
-      const request = await copyWorkflow(workflow);
-      request.name = `${workflow.name} (copy)`.substring(0, 50);
-      const created = await createWorkflow(request);
-      navigate(`/editor/${created.id}`);
+      try {
+        const request = await copyWorkflow(workflow);
+        request.name = `${workflow.name} (copy)`.substring(0, 50);
+        const created = await createWorkflow(request);
+        navigate(`/editor/${created.id}`);
+      } catch (err) {
+        console.error("Failed to duplicate workflow:", err);
+        addNotification({
+          type: "error",
+          alert: true,
+          content: `Failed to duplicate "${workflow.name}".`
+        });
+      }
     },
-    [copyWorkflow, createWorkflow, navigate]
+    [copyWorkflow, createWorkflow, navigate, addNotification]
   );
 
   const handleDelete = useCallback((workflow: Workflow) => {
@@ -199,9 +203,14 @@ const DashboardWorkflows: React.FC<DashboardWorkflowsProps> = ({
         );
       } catch (err) {
         console.error("Failed to rename workflow:", err);
+        addNotification({
+          type: "error",
+          alert: true,
+          content: `Failed to rename "${workflow.name}".`
+        });
       }
     },
-    [queryClient]
+    [queryClient, addNotification]
   );
 
   const noop = useCallback(() => {}, []);
@@ -285,29 +294,32 @@ const DashboardWorkflows: React.FC<DashboardWorkflowsProps> = ({
               ))}
             </div>
             {noMatches && (
-              <div className="rec-empty">
-                No workflows match “{query.trim()}”.{" "}
-                <button type="button" onClick={() => setQuery("")}>
-                  Clear search
-                </button>
-              </div>
+              <EmptyState
+                variant="no-results"
+                size="small"
+                title="No matching workflows"
+                description={`No workflows match “${query.trim()}”.`}
+                actionText="Clear search"
+                onAction={() => setQuery("")}
+              />
             )}
           </>
         ) : noMatches ? (
-          <div className="rec-empty">
-            No workflows match “{query.trim()}”.{" "}
-            <button type="button" onClick={() => setQuery("")}>
-              Clear search
-            </button>
-          </div>
+          <EmptyState
+            variant="no-results"
+            size="small"
+            title="No matching workflows"
+            description={`No workflows match “${query.trim()}”.`}
+            actionText="Clear search"
+            onAction={() => setQuery("")}
+          />
         ) : isEmpty ? (
-          <div className="rec-empty">
-            No workflows yet.{" "}
-            <button type="button" onClick={onCreateNew}>
-              Create one
-            </button>{" "}
-            to get started.
-          </div>
+          <EmptyState
+            title="No workflows yet"
+            description="Create your first workflow to get started."
+            actionText="New workflow"
+            onAction={onCreateNew}
+          />
         ) : (
           <div className="rec-list">
             <WorkflowListView

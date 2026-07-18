@@ -5,7 +5,7 @@
   "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Conditional Logic Engine",
   "tool_name": null,
-  "description": "Workflow that demonstrates multi-branch decision logic with value routing.",
+  "description": "Teaching example for control flow: one number drives two independent decision structures built entirely from If nodes — there is no dedicated numeric-compare or boolean-logic node in NodeTool, so this shows the actual pattern: PadText + Compare + Equals turn the number into a boolean, then pairs of If nodes sharing one condition (each holding its own value, taking the opposite branch) act as the ternary select and OR you'd otherwise reach for. No LLM calls.",
   "tags": [
     "boolean"
   ],
@@ -24,141 +24,106 @@
         "id": "2",
         "source": "3",
         "sourceHandle": "output",
-        "target": "4",
-        "targetHandle": "a"
+        "target": "int_to_str",
+        "targetHandle": "value"
       },
       {
         "id": "3",
-        "source": "4",
+        "source": "pad_value",
+        "sourceHandle": "output",
+        "target": "cmp_low",
+        "targetHandle": "text_a"
+      },
+      {
+        "id": "4",
+        "source": "pad_value",
+        "sourceHandle": "output",
+        "target": "cmp_high",
+        "targetHandle": "text_a"
+      },
+      {
+        "id": "5",
+        "source": "cmp_low",
+        "sourceHandle": "output",
+        "target": "is_low",
+        "targetHandle": "text_a"
+      },
+      {
+        "id": "6",
+        "source": "cmp_high",
+        "sourceHandle": "output",
+        "target": "is_high",
+        "targetHandle": "text_a"
+      },
+      {
+        "id": "11",
+        "source": "is_high",
         "sourceHandle": "output",
         "target": "2",
         "targetHandle": "gt_100"
       },
       {
-        "id": "4",
-        "source": "3",
-        "sourceHandle": "output",
-        "target": "5",
-        "targetHandle": "a"
-      },
-      {
-        "id": "5",
-        "source": "5",
+        "id": "12",
+        "source": "is_low",
         "sourceHandle": "output",
         "target": "2",
         "targetHandle": "lt_50"
       },
       {
-        "id": "6",
-        "source": "4",
-        "sourceHandle": "output",
-        "target": "6",
-        "targetHandle": "a"
-      },
-      {
-        "id": "7",
-        "source": "5",
-        "sourceHandle": "output",
-        "target": "6",
-        "targetHandle": "b"
-      },
-      {
-        "id": "8",
-        "source": "6",
+        "id": "13",
+        "source": "is_low",
         "sourceHandle": "output",
         "target": "2",
         "targetHandle": "combined"
       },
       {
-        "id": "9",
-        "source": "6",
+        "id": "14",
+        "source": "is_low",
         "sourceHandle": "output",
-        "target": "7",
+        "target": "inner_true",
         "targetHandle": "condition"
       },
       {
-        "id": "10",
-        "source": "7",
+        "id": "15",
+        "source": "is_low",
         "sourceHandle": "output",
-        "target": "2",
-        "targetHandle": "route"
-      },
-      {
-        "id": "11",
-        "source": "4",
-        "sourceHandle": "output",
-        "target": "8",
+        "target": "inner_false",
         "targetHandle": "condition"
       },
       {
-        "id": "12",
+        "id": "20",
+        "source": "is_high",
+        "sourceHandle": "output",
+        "target": "outer_true",
+        "targetHandle": "condition"
+      },
+      {
+        "id": "21",
+        "source": "is_high",
+        "sourceHandle": "output",
+        "target": "outer_false",
+        "targetHandle": "condition"
+      },
+      {
+        "id": "26",
         "source": "3",
         "sourceHandle": "output",
         "target": "9",
         "targetHandle": "value"
       },
       {
-        "id": "13",
-        "source": "9",
-        "sourceHandle": "output",
-        "target": "8",
-        "targetHandle": "if_true"
-      },
-      {
-        "id": "14",
-        "source": "5",
-        "sourceHandle": "output",
-        "target": "11",
-        "targetHandle": "condition"
-      },
-      {
-        "id": "15",
+        "id": "27",
         "source": "3",
         "sourceHandle": "output",
         "target": "12",
         "targetHandle": "value"
       },
       {
-        "id": "16",
-        "source": "12",
-        "sourceHandle": "output",
-        "target": "11",
-        "targetHandle": "if_true"
-      },
-      {
-        "id": "17",
+        "id": "28",
         "source": "3",
         "sourceHandle": "output",
         "target": "13",
         "targetHandle": "value"
-      },
-      {
-        "id": "18",
-        "source": "13",
-        "sourceHandle": "output",
-        "target": "11",
-        "targetHandle": "if_false"
-      },
-      {
-        "id": "19",
-        "source": "11",
-        "sourceHandle": "output",
-        "target": "10",
-        "targetHandle": "text"
-      },
-      {
-        "id": "20",
-        "source": "10",
-        "sourceHandle": "output",
-        "target": "8",
-        "targetHandle": "if_false"
-      },
-      {
-        "id": "21",
-        "source": "8",
-        "sourceHandle": "output",
-        "target": "2",
-        "targetHandle": "processing"
       },
       {
         "id": "e_result_output",
@@ -170,6 +135,69 @@
           "className": "str"
         },
         "edge_type": "data"
+      },
+      {
+        "id": "29",
+        "source": "int_to_str",
+        "sourceHandle": "output",
+        "target": "pad_value",
+        "targetHandle": "text"
+      },
+      {
+        "id": "30",
+        "source": "9",
+        "sourceHandle": "output",
+        "target": "outer_true",
+        "targetHandle": "value",
+        "ui_properties": null
+      },
+      {
+        "id": "31",
+        "source": "12",
+        "sourceHandle": "output",
+        "target": "inner_true",
+        "targetHandle": "value",
+        "ui_properties": null
+      },
+      {
+        "id": "32",
+        "source": "13",
+        "sourceHandle": "output",
+        "target": "inner_false",
+        "targetHandle": "value",
+        "ui_properties": null
+      },
+      {
+        "id": "33",
+        "source": "inner_false",
+        "sourceHandle": "if_false",
+        "target": "outer_false",
+        "targetHandle": "value",
+        "ui_properties": null
+      },
+      {
+        "id": "34",
+        "source": "outer_true",
+        "sourceHandle": "if_true",
+        "target": "out_high",
+        "targetHandle": "value",
+        "ui_properties": null
+      },
+      {
+        "id": "35",
+        "source": "inner_true",
+        "sourceHandle": "if_true",
+        "target": "out_low",
+        "targetHandle": "value",
+        "ui_properties": null
+      },
+      {
+        "id": "36",
+        "source": "outer_false",
+        "sourceHandle": "if_false",
+        "target": "out_medium",
+        "targetHandle": "value",
+        "ui_properties": null
       }
     ],
     "nodes": [
@@ -178,17 +206,59 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🔀 Conditional Logic Engine\n\nRoute a number through compare, boolean, and switch nodes to demonstrate multi-branch decision logic, then assemble a report.\n\n**Pipeline:** Number → compare (>100, <50) → OR → conditional switches → report\n\n**Try this:** change the input value (0–100) and watch which branch fires."
+          "comment": "# 🔀 Conditional Logic Engine — control-flow teaching example\n\nNo LLM calls here: every node is a pure text/boolean/routing primitive. NodeTool has no dedicated numeric-compare or boolean-logic node, so the first five nodes below build one from real ones: **Pad to 3 digits** (PadText) zero-pads the number so string ordering matches numeric ordering, two **Compare** nodes report \"less/greater/equal\" against the thresholds, and two **Equals** nodes turn that into a plain boolean (`is_low`, `is_high`).\n\nFrom there, the same input value (0–100) drives **two independent branch structures**, both built from `If` node pairs:\n\n- **Branch A** (bottom row): `route_true`/`route_false` share the `is_low` condition and take opposite output handles, so exactly one of them fires — this is how you do an if/else *select between two different values* in NodeTool, since a single `If` only forwards one value per firing. See the comment near those nodes.\n- **Branch B** (top rows): the same `is_low`/`is_high` booleans each gate their own `If` pair, nested one inside the other, picking between three pre-written messages. See the comment near node 9.\n\n**Try this:** change the input value and watch both branches re-decide independently — 75 sits in the middle band (50–100): Branch A reports \"MEDIUM_VALUE\", Branch B reports the 🟡 medium message. Push it below 50 to flip both (pushing above 100 is not reachable — the input is capped at 100 — so `is_high`/`gt_100` stay false by construction, exactly like the upper bound in the original design)."
         },
         "ui_properties": {
           "selected": false,
           "position": {
             "x": 0,
-            "y": -220
+            "y": -260
           },
           "zIndex": 0,
-          "width": 460,
-          "height": 180,
+          "width": 520,
+          "height": 320,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "comment-branch-a",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "## Branch A — If pair as if/else select → one label\n\n**Pad to 3 digits → Compare: vs 050 / vs 100 → < 50? / > 100?** compute two booleans from the number, the honest way to do numeric thresholds without a dedicated compare node.\n\n**Route: extreme (low)** and **Route: medium** both read the *same* `is_low` condition but take opposite handles (`if_true` / `if_false`) and hold different literal values (\"EXTREME_VALUE\" / \"MEDIUM_VALUE\"). Because the condition is shared and the handles are mutually exclusive, exactly one of the two edges into `route` fires per run — that convergence *is* the if/else select. It is the same trick used by the two `If` nodes in the Meeting Transcript Summarizer example."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1120,
+            "y": 900
+          },
+          "zIndex": 0,
+          "width": 520,
+          "height": 220,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "comment-branch-b",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "## Branch B — nested If-pair tree\n\n**Switch: low (true) / medium (false)** is an `If` pair sharing `is_low`: `inner_true` fires 🔵 Low message on its `if_true` handle, `inner_false` fires 🟡 Medium message on its `if_false` handle — both wired into **Selected message**'s `text` input, so whichever fires becomes that node's output. This is the *inner* pair — it never sees `is_high`.\n\n**Switch: high (true) / other (false)** is the *outer* `If` pair, sharing `is_high`: `outer_true` fires 🔴 High message; `outer_false` fires whatever **Selected message** already resolved to. Both converge on the report's `processing` field.\n\nThis is how you nest conditionals with only `If` nodes: the outer pair's \"else\" value is wired from the *output of the inner pair*, not a literal — three-way branching from two binary `If` pairs."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 710,
+            "y": -260
+          },
+          "zIndex": 0,
+          "width": 520,
+          "height": 260,
           "selectable": true
         },
         "dynamic_properties": {},
@@ -198,11 +268,11 @@
         "id": "2",
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "## Conditional Logic Decision Result\n\n**Input Value:** {{ value }}\n\n**Condition Checks:**\n- Greater than 100? {{ gt_100 }}\n- Less than 50? {{ lt_50 }}\n- Combined (OR): {{ combined }}\n- Route Decision: {{ route }}\n\n**Processing Path:**\n{{ processing }}\n\n**Decision Logic:**\nThis workflow demonstrates:\n- Multiple condition evaluation\n- Logical operations (OR gate)\n- Conditional branching\n- Multi-path routing\n- Result aggregation"
+          "prompt": "## Conditional Logic Decision Result\n\n**Input Value:** {{ value }}\n\n**Condition Checks:**\n- Greater than 100? {{ gt_100 }}\n- Less than 50? {{ lt_50 }}\n- Combined (OR): {{ combined }}\n\n**Decision Logic:**\nThis workflow demonstrates:\n- Deriving a boolean from a number with PadText + Compare + Equals\n- If nodes gating three parallel branches (only the taken path emits)\n- Nested negation by chaining if_false through two If gates\n- Per-branch Output nodes: high_priority / medium_priority / low_priority\n\nBranches never converge into one non-list input — the engine's correlation\nanalysis forbids fan-in except into list-typed handles."
         },
         "ui_properties": {
           "position": {
-            "x": 1730,
+            "x": 2080,
             "y": 401
           },
           "zIndex": 0,
@@ -246,102 +316,139 @@
         "dynamic_outputs": {}
       },
       {
-        "id": "4",
-        "type": "nodetool.boolean.Compare",
+        "id": "pad_value",
+        "type": "nodetool.text.PadText",
         "data": {
-          "b": 100,
-          "comparison": ">"
+          "length": 3,
+          "pad_character": "0",
+          "direction": "left"
         },
         "ui_properties": {
           "position": {
-            "x": 710,
-            "y": 559
+            "x": 280,
+            "y": 560
           },
           "zIndex": 0,
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "Compare: > 100?"
+          "title": "Pad to 3 digits"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
       },
       {
-        "id": "5",
-        "type": "nodetool.boolean.Compare",
+        "id": "cmp_low",
+        "type": "nodetool.text.Compare",
         "data": {
-          "b": 50,
-          "comparison": "<"
+          "text_b": "050"
         },
         "ui_properties": {
           "position": {
-            "x": 360,
-            "y": 671
+            "x": 610,
+            "y": 660
           },
           "zIndex": 0,
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "Compare: < 50?"
+          "title": "Compare: vs 050"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
       },
       {
-        "id": "6",
-        "type": "nodetool.boolean.LogicalOperator",
+        "id": "cmp_high",
+        "type": "nodetool.text.Compare",
         "data": {
-          "operation": "or"
+          "text_b": "100"
         },
         "ui_properties": {
           "position": {
-            "x": 1050,
-            "y": 647
+            "x": 610,
+            "y": 480
           },
           "zIndex": 0,
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "Extreme? (OR)"
+          "title": "Compare: vs 100"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
       },
       {
-        "id": "7",
-        "type": "nodetool.boolean.ConditionalSwitch",
+        "id": "is_low",
+        "type": "nodetool.text.Equals",
         "data": {
-          "if_true": "EXTREME_VALUE",
-          "if_false": "MEDIUM_VALUE"
+          "text_b": "less"
         },
         "ui_properties": {
           "position": {
-            "x": 1390,
-            "y": 688
+            "x": 940,
+            "y": 660
           },
           "zIndex": 0,
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "Route label"
+          "title": "< 50?"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
       },
       {
-        "id": "8",
-        "type": "nodetool.boolean.ConditionalSwitch",
+        "id": "is_high",
+        "type": "nodetool.text.Equals",
+        "data": {
+          "text_b": "greater"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 940,
+            "y": 480
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false,
+          "title": "> 100?"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "outer_true",
+        "type": "nodetool.control.If",
         "data": {},
         "ui_properties": {
           "position": {
             "x": 1390,
-            "y": 334
+            "y": 120
           },
           "zIndex": 0,
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "Switch: high / other"
+          "title": "Switch: high (true)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "outer_false",
+        "type": "nodetool.control.If",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1390,
+            "y": 280
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false,
+          "title": "Switch: other (false)"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -369,41 +476,37 @@
         "dynamic_outputs": {}
       },
       {
-        "id": "10",
-        "type": "nodetool.text.Prompt",
-        "data": {
-          "prompt": "{{ text }}"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 1050,
-            "y": 303
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true,
-          "bypassed": false,
-          "title": "Selected message"
-        },
-        "dynamic_properties": {
-          "text": "🟡 MEDIUM VALUE: 75 is between 50 and 100. Balanced processing selected."
-        },
-        "dynamic_outputs": {}
-      },
-      {
-        "id": "11",
-        "type": "nodetool.boolean.ConditionalSwitch",
+        "id": "inner_true",
+        "type": "nodetool.control.If",
         "data": {},
         "ui_properties": {
           "position": {
             "x": 710,
-            "y": 335
+            "y": 180
           },
           "zIndex": 0,
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "Switch: low / medium"
+          "title": "Switch: low (true)"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "inner_false",
+        "type": "nodetool.control.If",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 710,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false,
+          "title": "Switch: medium (false)"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -460,7 +563,7 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2110,
+            "x": 2460,
             "y": 401
           },
           "zIndex": 0,
@@ -471,6 +574,70 @@
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
+      },
+      {
+        "id": "int_to_str",
+        "type": "nodetool.text.ToString",
+        "data": {
+          "value": "",
+          "mode": "str"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 140,
+            "y": 620
+          },
+          "zIndex": 0,
+          "width": 200,
+          "selectable": true,
+          "bypassed": false,
+          "title": "Number → text (so PadText can format it)"
+        }
+      },
+      {
+        "id": "out_high",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "high_priority"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1710,
+            "y": 120
+          },
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "out_low",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "low_priority"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1030,
+            "y": 180
+          },
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "out_medium",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "medium_priority"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1710,
+            "y": 280
+          },
+          "selectable": true
+        },
+        "dynamic_properties": {}
       }
     ]
   },
@@ -517,70 +684,125 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-30",
-            "text": "🔀 Conditional Logic Engine",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
-            "id": "t-31",
-            "text": "Enter a value and see how the workflow routes it."
+            "id": "t-tagline",
+            "text": "A teaching example: one number routes down a high or low branch."
           }
         },
         {
-          "type": "Container",
+          "type": "Columns",
           "props": {
-            "id": "c-34",
-            "title": "Input",
-            "content": [
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
               {
-                "type": "NumberInput",
+                "type": "Container",
                 "props": {
-                  "id": "nin-32",
-                  "binding": "value",
-                  "label": "Value",
-                  "min": 0,
-                  "max": 100,
-                  "step": 1,
-                  "events": []
-                }
-              },
-              {
-                "type": "Button",
-                "props": {
-                  "id": "b-33",
-                  "label": "Run",
-                  "variant": "contained",
-                  "color": "primary",
-                  "events": [
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
                     {
-                      "trigger": "click",
-                      "kind": "run",
-                      "key": "",
-                      "value": ""
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-value",
+                        "binding": "value",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Run the logic",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
                     }
                   ]
                 }
               }
-            ]
-          }
-        },
-        {
-          "type": "Container",
-          "props": {
-            "id": "c-36",
-            "title": "Result",
-            "content": [
+            ],
+            "right": [
               {
-                "type": "Markdown",
+                "type": "Container",
                 "props": {
-                  "id": "md-35",
-                  "binding": "Result",
-                  "text": ""
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-result",
+                        "text": "Result",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-result",
+                        "binding": "Result",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-high-priority",
+                        "text": "High Priority",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-high-priority",
+                        "binding": "high_priority",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-low-priority",
+                        "text": "Low Priority",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-low-priority",
+                        "binding": "low_priority",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-medium-priority",
+                        "text": "Medium Priority",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-medium-priority",
+                        "binding": "medium_priority",
+                        "text": ""
+                      }
+                    }
+                  ]
                 }
               }
             ]

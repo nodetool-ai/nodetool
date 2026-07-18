@@ -1,7 +1,8 @@
 {
   "slug": "summarize-rss",
   "name": "Summarize RSS",
-  "description": "",
+  "description": "Turn any RSS feed into a topic-grouped digest — point it at a new URL and get headlines organized by theme, not a flat list.",
+  "featured": false,
   "image": "/app-preview/img/summarize-rss.jpg",
   "app_doc": {
     "version": 2,
@@ -13,58 +14,77 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "📰 Summarize RSS",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
             "id": "t-tagline",
-            "text": "Your feeds, read for you — one click for a clean daily brief."
+            "text": "Your feed, read for you — paste a URL, get a clean daily brief."
           }
         },
         {
-          "type": "Container",
+          "type": "Columns",
           "props": {
-            "id": "panel-try",
-            "title": "Try it",
-            "content": [
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
               {
-                "type": "Button",
+                "type": "Container",
                 "props": {
-                  "id": "btn-run",
-                  "label": "Brief me",
-                  "variant": "contained",
-                  "color": "primary",
-                  "events": [
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
                     {
-                      "trigger": "click",
-                      "kind": "run",
-                      "key": "",
-                      "value": ""
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-feed-url",
+                        "binding": "feed_url",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Brief me",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
                     }
                   ]
                 }
               }
-            ]
-          }
-        },
-        {
-          "type": "Container",
-          "props": {
-            "id": "panel-results",
-            "title": "Results",
-            "content": [
+            ],
+            "right": [
               {
-                "type": "Markdown",
+                "type": "Container",
                 "props": {
-                  "id": "out-summary",
-                  "binding": "summary",
-                  "text": ""
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Reading your feed…",
+                        "binding": ""
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-summary",
+                        "binding": "summary",
+                        "text": ""
+                      }
+                    }
+                  ]
                 }
               }
             ]
@@ -75,6 +95,7 @@
     }
   },
   "values": {
-    "summary": "**Today's brief:** EU passes the AI liability directive; OpenAI and Anthropic both ship smaller on-device models; and a solo dev's local-first note app tops Product Hunt."
+    "feed_url": "https://feeds.bbci.co.uk/news/world/europe/rss.xml",
+    "summary": "**Today's brief:** EU passes the AI liability directive; two labs ship smaller on-device models; and a solo dev's local-first note app tops Product Hunt."
   }
 }

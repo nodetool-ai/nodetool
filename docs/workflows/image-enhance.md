@@ -53,4 +53,3 @@ graph TD
 
 - [Movie Posters](movie-posters.md) - Combine enhancement with AI generation
 - [Color Boost Video](color-boost-video.md) - Apply similar enhancements to video
-- [Story to Video](story-to-video-generator.md) - Create multimedia projects

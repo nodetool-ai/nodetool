@@ -9,6 +9,15 @@ export type WidgetPropValue = string | number | boolean | null | string[];
 
 export type EventTrigger = "click" | "change";
 
+/**
+ * How often a change-trigger run event fires while a control is being adjusted:
+ * - "live" (default): every change (current behavior)
+ * - "release": only when the control commits (slider release / input blur)
+ * - "debounce": trailing, after the control has been quiet briefly
+ * Timing lives in the widget runtime; this is a pure declaration.
+ */
+export type EventPace = "live" | "release" | "debounce";
+
 /** Action dispatched by the reactive engine. */
 export type AppAction =
   | { kind: "run"; from?: string }
@@ -29,6 +38,8 @@ export interface AppEvent {
   key?: string;
   /** Literal value for setState. */
   value?: string;
+  /** Run pacing for change events (default "live"). See {@link EventPace}. */
+  pace?: EventPace;
 }
 
 /**

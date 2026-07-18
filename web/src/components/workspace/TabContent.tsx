@@ -1,6 +1,6 @@
 import type { WorkspaceTab } from "../../stores/WorkspaceTabsStore";
 import WorkflowEditorSurface from "./WorkflowEditorSurface";
-import MiniAppPage from "../miniapps/MiniAppPage";
+import WorkflowAppView from "../appbuilder/WorkflowAppView";
 import ImageSurface from "./ImageSurface";
 import SketchSurface from "./SketchSurface";
 import TextSurface from "./TextSurface";
@@ -18,9 +18,9 @@ interface TabContentProps {
 
 /**
  * Resolves a workspace tab's `(type, mode)` to its editor surface. Workflow has
- * a bespoke split (Edit → node editor, View → the MiniApp); every other type
- * delegates to a `{ refId, mode, active }` surface that wraps the existing
- * viewer/editor for that document type.
+ * a bespoke split (Edit → node editor, View → the app runtime); every other
+ * type delegates to a `{ refId, mode, active }` surface that wraps the
+ * existing viewer/editor for that document type.
  */
 const TabContent = ({ tab, active }: TabContentProps) => {
   switch (tab.type) {
@@ -28,7 +28,7 @@ const TabContent = ({ tab, active }: TabContentProps) => {
       return tab.mode === "edit" ? (
         <WorkflowEditorSurface workflowId={tab.ref} active={active} />
       ) : (
-        <MiniAppPage workflowId={tab.ref} embedded />
+        <WorkflowAppView workflowId={tab.ref} embedded />
       );
     case "image":
       return <ImageSurface refId={tab.ref} mode={tab.mode} active={active} />;

@@ -28,6 +28,12 @@ const styles = (theme: Theme) =>
       transition: `border-color ${MOTION.fast}`,
       "&:focus-within": {
         borderColor: theme.vars.palette.primary.main
+      },
+      // Keyboard focus on the inner input gets a visible ring on the wrapper
+      // (the input itself strips its outline below).
+      "&:has(input:focus-visible)": {
+        outline: "2px solid var(--palette-primary-main)",
+        outlineOffset: "1px"
       }
     },
     "& input": {

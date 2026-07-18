@@ -38,10 +38,11 @@ FrontendToolRegistry.register({
   description:
     "Add a widget to the app. Bindings reference workflow nodes that must " +
     "already exist: input widgets bind to Input nodes (props.binding = input " +
-    "name), display widgets to Output nodes or Variables, and other state to " +
-    "Variables. Add those nodes first with the workflow tools. To nest inside a " +
-    "Panel or Columns widget, pass parent_id (and slot: 'content' | 'left' | " +
-    "'right').",
+    "name) or directly to any node property (props.binding = " +
+    "'node:<nodeId>#<property>'), display widgets to Output nodes or " +
+    "Variables, and other state to Variables. Add those nodes first with the " +
+    "workflow tools. To nest inside a Panel or Columns widget, pass parent_id " +
+    "(and slot: 'content' | 'left' | 'right').",
   parameters: z.object({
     type: z
       .string()

@@ -2,6 +2,7 @@ import React, { useState, memo, useCallback } from "react";
 import { Text, FlexRow } from "../../ui_primitives";
 import { ThreadItemProps } from "../types/thread.types";
 import { DeleteButton } from "../../ui_primitives";
+import ConfirmDialog from "../../dialogs/ConfirmDialog";
 
 function formatClockTime(dateStr: string): string {
   const date = new Date(dateStr);
@@ -22,8 +23,9 @@ const ThreadItemBase: React.FC<ThreadItemProps> = ({
   previewText
 }) => {
   const [isDeleting, setIsDeleting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
-  const handleDelete = useCallback(async () => {
+  const handleDelete = useCallback(() => {
     setIsDeleting(true);
     // Wait for animation to complete before actually deleting
     setTimeout(() => {
@@ -44,8 +46,12 @@ const ThreadItemBase: React.FC<ThreadItemProps> = ({
 
   const handleDeleteClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    handleDelete();
-  }, [handleDelete]);
+    setConfirmOpen(true);
+  }, []);
+
+  const handleConfirmClose = useCallback(() => {
+    setConfirmOpen(false);
+  }, []);
 
   return (
     <li
@@ -65,6 +71,15 @@ const ThreadItemBase: React.FC<ThreadItemProps> = ({
       </FlexRow>
       <DeleteButton
         onClick={handleDeleteClick}
+      />
+      <ConfirmDialog
+        open={confirmOpen}
+        onClose={handleConfirmClose}
+        onConfirm={handleDelete}
+        title="Delete conversation"
+        content={`Delete "${thread.title || previewText}"? This cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
       />
     </li>
   );

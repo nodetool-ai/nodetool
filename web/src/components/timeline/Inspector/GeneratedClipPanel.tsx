@@ -30,12 +30,12 @@ import {
   Panel,
   Box
 } from "../../ui_primitives";
-import MiniAppInputsForm from "../../miniapps/components/MiniAppInputsForm";
+import WorkflowInputsForm from "../../appbuilder/WorkflowInputsForm";
 import type {
   InputNodeData,
-  MiniAppInputDefinition
-} from "../../miniapps/types";
-import { getInputKind } from "../../miniapps/utils";
+  WorkflowInputDefinition
+} from "../../appbuilder/workflowInputForm";
+import { getWorkflowInputKind } from "../../appbuilder/inputKinds";
 import { useGenerateClip } from "../../../hooks/timeline/useGenerateClip";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
@@ -50,7 +50,7 @@ export interface GeneratedClipPanelProps {
 }
 
 // Stable identity so `clip.paramOverrides ?? EMPTY_PARAM_OVERRIDES` doesn't
-// hand MiniAppInputsForm a fresh object every render, which would defeat its
+// hand WorkflowInputsForm a fresh object every render, which would defeat its
 // memoization for clips with no overrides.
 const EMPTY_PARAM_OVERRIDES: Record<string, unknown> = {};
 
@@ -121,11 +121,11 @@ export const GeneratedClipPanel: React.FC<GeneratedClipPanelProps> = memo(
     }, [transientNodeStore]);
     const nodeStoreForForm = managerNodeStore ?? transientNodeStore;
 
-    const inputDefinitions = useMemo<MiniAppInputDefinition[]>(() => {
+    const inputDefinitions = useMemo<WorkflowInputDefinition[]>(() => {
       const nodes = (workflow?.graph?.nodes ?? []) as Node[];
       return nodes
         .map((node) => {
-          const kind = getInputKind(node.type);
+          const kind = getWorkflowInputKind(node.type);
           if (!kind) {
             return null;
           }
@@ -134,10 +134,10 @@ export const GeneratedClipPanel: React.FC<GeneratedClipPanelProps> = memo(
             nodeType: node.type,
             kind,
             data: node.data as InputNodeData
-          } satisfies MiniAppInputDefinition;
+          } satisfies WorkflowInputDefinition;
         })
         .filter(
-          (definition): definition is MiniAppInputDefinition =>
+          (definition): definition is WorkflowInputDefinition =>
             definition !== null
         );
     }, [workflow]);
@@ -206,7 +206,7 @@ export const GeneratedClipPanel: React.FC<GeneratedClipPanelProps> = memo(
                   ) : nodeStoreForForm ? (
                     <NodeContext.Provider value={nodeStoreForForm}>
                       <Box css={inputsContainerStyles(theme)}>
-                        <MiniAppInputsForm
+                        <WorkflowInputsForm
                           workflow={workflow}
                           inputDefinitions={inputDefinitions}
                           inputValues={paramOverrides}

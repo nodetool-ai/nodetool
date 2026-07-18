@@ -5,7 +5,7 @@
   "updated_at": "2026-07-01T00:00:00.000000",
   "name": "Ad Creative Factory",
   "tool_name": null,
-  "description": "Turn one product photo and one offer into a batch of ready-to-test vertical video ads. A strategist agent plans a persona × angle test matrix, a list generator writes one spoken hook per cell, and every hook becomes a staged product scene, an animated 9:16 clip, and a voiceover mixed on top.",
+  "description": "Turn one product photo and one offer into a batch of ready-to-test vertical video ads. A strategist agent plans a persona × angle test matrix, a structured data generator emits one variant row per cell — persona, angle, and spoken hook as separate fields, not a prose blob — and every row's hook becomes a staged product scene, an animated 9:16 clip, and a voiceover mixed on top.",
   "tags": [
     "marketing",
     "advertising",
@@ -110,7 +110,7 @@
         "id": "e9",
         "source": "hooks_prompt",
         "sourceHandle": "output",
-        "target": "variant_list",
+        "target": "variant_generator",
         "targetHandle": "prompt",
         "ui_properties": {
           "className": "str"
@@ -118,20 +118,42 @@
         "edge_type": "data"
       },
       {
+        "id": "e9b",
+        "source": "variant_generator",
+        "sourceHandle": "dataframe",
+        "target": "extract_hooks",
+        "targetHandle": "dataframe",
+        "ui_properties": {
+          "className": "dataframe"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "e9c",
+        "source": "extract_hooks",
+        "sourceHandle": "output",
+        "target": "hook_loop",
+        "targetHandle": "input_list",
+        "ui_properties": {
+          "className": "list"
+        },
+        "edge_type": "data"
+      },
+      {
         "id": "e10",
-        "source": "variant_list",
-        "sourceHandle": "item",
+        "source": "variant_generator",
+        "sourceHandle": "dataframe",
         "target": "preview_hooks",
         "targetHandle": "value",
         "ui_properties": {
-          "className": "str"
+          "className": "dataframe"
         },
         "edge_type": "data"
       },
       {
         "id": "e11",
-        "source": "variant_list",
-        "sourceHandle": "item",
+        "source": "hook_loop",
+        "sourceHandle": "output",
         "target": "scene_prompt",
         "targetHandle": "HOOK",
         "ui_properties": {
@@ -196,8 +218,8 @@
       },
       {
         "id": "e17",
-        "source": "variant_list",
-        "sourceHandle": "item",
+        "source": "hook_loop",
+        "sourceHandle": "output",
         "target": "motion_prompt",
         "targetHandle": "HOOK",
         "ui_properties": {
@@ -218,8 +240,8 @@
       },
       {
         "id": "e19",
-        "source": "variant_list",
-        "sourceHandle": "item",
+        "source": "hook_loop",
+        "sourceHandle": "output",
         "target": "voiceover",
         "targetHandle": "text",
         "ui_properties": {
@@ -266,7 +288,7 @@
         "id": "comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎯 Ad Creative Factory\n\nOne product photo and one offer become a batch of ready-to-test vertical video ads. A strategist agent builds a persona × angle test matrix, a list generator writes one spoken hook per cell, and every hook becomes a staged product scene, an animated 9:16 clip, and a voiceover mixed on top.\n\n**Pipeline:** Offer + Audience + Photo → Strategist → Hooks → Product scenes → Image-to-Video → Voiceover → Finished ads\n\n**Try this:** pick the language, image, video, and TTS models, then raise the variant count or sharpen the audience — the test matrix adapts on the next run."
+          "comment": "# 🎯 Ad Creative Factory\n\nOne product photo and one offer become a batch of ready-to-test vertical video ads. A strategist agent builds a persona × angle test matrix, a structured data generator turns each matrix cell into a variant row — persona, angle, and spoken hook as three separate fields, not one prose blob — and every row's hook becomes a staged product scene, an animated 9:16 clip, and a voiceover mixed on top.\n\n**Pipeline:** Offer + Audience + Photo → Strategist → Variant rows (persona/angle/hook) → Product scenes → Image-to-Video → Voiceover → Finished ads\n\n**Try this:** pick the language, image, video, and TTS models, then raise the variant count or sharpen the audience — the test matrix adapts on the next run."
         },
         "ui_properties": {
           "position": {
@@ -452,7 +474,7 @@
         "id": "hooks_prompt",
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "From this creative test plan, write exactly {{ COUNT }} spoken ad hooks, one per line — no numbering, no quotes, no labels.\n\nRules:\n- One hook per matrix pairing: speak to that persona with that angle.\n- 18 words or fewer, written to be said aloud in the first three seconds of a vertical video ad.\n- Plain spoken language for {{ AUDIENCE }}. No hashtags, no emoji, no brand-speak.\n- Every hook lands one concrete benefit or the offer — never a vague promise.\n\nPlan:\n{{ PLAN }}"
+          "prompt": "From this creative test plan, generate exactly {{ COUNT }} ad variant rows — one row per matrix pairing. Fill every field for every row:\n\n- persona: the buyer persona this variant targets, in 3-6 words (e.g. \"weekend trail hiker\").\n- angle: the message angle it plays — pain point, bold claim, social proof, or offer urgency — in 3-6 words.\n- hook: the spoken line for this variant. 18 words or fewer, written to be said aloud in the first three seconds of a vertical video ad. Plain spoken language for {{ AUDIENCE }}. No hashtags, no emoji, no brand-speak. Lands one concrete benefit or the offer — never a vague promise.\n\nPlan:\n{{ PLAN }}"
         },
         "ui_properties": {
           "position": {
@@ -474,8 +496,8 @@
         "dynamic_outputs": {}
       },
       {
-        "id": "variant_list",
-        "type": "nodetool.generators.ListGenerator",
+        "id": "variant_generator",
+        "type": "nodetool.generators.DataGenerator",
         "data": {
           "model": {
             "type": "language_model",
@@ -485,8 +507,27 @@
             "path": null,
             "supported_tasks": []
           },
-          "input_text": "",
-          "max_tokens": 100000
+          "max_tokens": 100000,
+          "columns": {
+            "type": "record_type",
+            "columns": [
+              {
+                "name": "persona",
+                "data_type": "string",
+                "description": "Buyer persona this variant targets, 3-6 words"
+              },
+              {
+                "name": "angle",
+                "data_type": "string",
+                "description": "Message angle this variant plays, 3-6 words"
+              },
+              {
+                "name": "hook",
+                "data_type": "string",
+                "description": "The spoken line for this variant, 18 words or fewer"
+              }
+            ]
+          }
         },
         "ui_properties": {
           "position": {
@@ -495,8 +536,8 @@
           },
           "zIndex": 0,
           "width": 330,
-          "height": 245,
-          "title": "6️⃣ Generate spoken hooks",
+          "height": 260,
+          "title": "6️⃣ Generate variant rows",
           "selectable": true,
           "bypassed": false
         },
@@ -517,7 +558,45 @@
           "zIndex": 0,
           "width": 300,
           "height": 200,
-          "title": "📋 Hook list",
+          "title": "📋 Variant table (persona / angle / hook)",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "extract_hooks",
+        "type": "nodetool.data.ExtractColumn",
+        "data": {
+          "column_name": "hook"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1890,
+            "y": 700
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "Extract hook column",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "hook_loop",
+        "type": "nodetool.control.ForEach",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1890,
+            "y": 850
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "Loop over variants",
           "selectable": true,
           "bypassed": false
         },
@@ -741,14 +820,6 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "🎬 Ad Creative Factory",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
             "id": "t-tagline",
@@ -768,44 +839,35 @@
                   "title": "Try it",
                   "content": [
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-product-offer",
                         "binding": "product_offer",
-                        "label": "Product & offer",
-                        "placeholder": "Aurora Trail smart fitness watch — launch-week offer: 20% off. GPS navigation, h",
-                        "multiline": true,
                         "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-audience",
                         "binding": "audience",
-                        "label": "Who is it for?",
-                        "placeholder": "active millennials who hike on weekends and scroll fitness content at night",
-                        "multiline": true,
                         "events": []
                       }
                     },
                     {
-                      "type": "Slider",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-variant-count",
                         "binding": "variant_count",
-                        "label": "How many ad variants?",
-                        "min": 2,
-                        "max": 12,
-                        "step": 1,
                         "events": []
                       }
                     },
                     {
-                      "type": "Text",
+                      "type": "WorkflowInput",
                       "props": {
-                        "id": "note-media",
-                        "text": "📷 Uses the bundled product photo — swap in your own in NodeTool Studio."
+                        "id": "in-product-photo",
+                        "binding": "product_photo",
+                        "events": []
                       }
                     },
                     {
@@ -836,6 +898,14 @@
                   "id": "panel-results",
                   "title": "Results",
                   "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Cutting your ads…",
+                        "binding": ""
+                      }
+                    },
                     {
                       "type": "Heading",
                       "props": {

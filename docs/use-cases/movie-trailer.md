@@ -111,7 +111,6 @@ See [Models &amp; Providers]({{ '/models-and-providers' | relative_url }}) to se
 
 ## Next steps
 
-- [Story to Video Generator]({{ '/workflows/story-to-video-generator' | relative_url }}) — a related prompt-to-video pipeline
 - [Product Video Generator]({{ '/use-cases/product-video' | relative_url }}) — one product photo to a cinematic clip
 - [All use cases]({{ '/use-cases' | relative_url }})
 </content>

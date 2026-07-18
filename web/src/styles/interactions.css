@@ -32,3 +32,22 @@
 .react-flow .react-flow__pane.dragging {
   cursor: grabbing !important;
 }
+
+/* Keyboard focus baseline. Elements that strip the native outline still show a
+   visible ring when focus comes from the keyboard. :where() keeps specificity
+   at a single pseudo-class so component-level focus styles can override. */
+:where(a, button, input, textarea, select, summary, [role="button"], [tabindex]):focus-visible {
+  outline: 2px solid var(--palette-primary-main);
+  outline-offset: 2px;
+}
+
+/* Mouse/touch focus stays clean — no ring unless :focus-visible matches. */
+:where(a, button, input, textarea, select, summary, [role="button"], [tabindex]):focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* React Flow canvas internals keep their own selection visuals (see the
+   selection-rect rules above) — no baseline ring on pane, nodes, or edges. */
+.react-flow :where(.react-flow__pane, .react-flow__node, .react-flow__edge, .react-flow__nodesselection-rect):focus-visible {
+  outline: none;
+}

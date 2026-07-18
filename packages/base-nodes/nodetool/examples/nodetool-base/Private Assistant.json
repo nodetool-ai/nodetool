@@ -1,0 +1,361 @@
+{
+  "id": "63844413-c016-4601-ae89-3883c1cc2ad5",
+  "access": "public",
+  "created_at": "2026-07-17T00:00:00.000Z",
+  "updated_at": "2026-07-17T00:00:00.000Z",
+  "name": "Private Assistant",
+  "tool_name": null,
+  "description": "Ask questions about your own notes and documents — fully local, no API keys. Runs end-to-end on a local Ollama model, so the text never leaves your machine. Requires Ollama running with a model pulled (default: llama3.2 — run `ollama pull llama3.2`).",
+  "tags": [
+    "local",
+    "privacy",
+    "ollama",
+    "offline",
+    "assistant"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "comment-intro",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# 🔒 Private Assistant\n\nA fully local Q&A assistant. Paste your own notes, ask a question, and a local **Ollama** model answers — grounded only in your text. No API key, no cloud call: the document never leaves your machine.\n\n**Pipeline:** Document + question + tone → prompt template → local Ollama agent (answers only from the document) → Markdown answer.\n\n**Setup:** install [Ollama](https://ollama.com), then `ollama pull llama3.2`. Swap the model on the agent node for anything you have pulled (qwen2.5, gemma3, gpt-oss, …).\n\n**Try this:** paste a real doc into the Document input and ask something only it can answer — the assistant refuses to guess beyond the text."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 60,
+            "y": -240
+          },
+          "zIndex": 0,
+          "width": 560,
+          "height": 240,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "document_input",
+        "parent_id": null,
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "document",
+          "value": "Team sync — Thursday\n- Launch date moved to March 14 (was March 7) to finish the accessibility fixes.\n- Priya owns the onboarding rewrite; first draft due Monday.\n- Budget: $8k left for Q1, reserved for the usability study.\n- Open risk: the billing migration hasn't been tested on staging yet.\n- Decision: ship the mobile app in the second wave, not at launch.",
+          "description": "The private text the assistant may read — meeting notes, a doc, an email thread. This is the ONLY source the model is allowed to answer from; nothing is sent to the cloud."
+        },
+        "ui_properties": {
+          "selected": false,
+          "title": "1️⃣ Document",
+          "position": {
+            "x": 60,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "question_input",
+        "parent_id": null,
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "question",
+          "value": "When do we launch, and what's the biggest open risk?",
+          "description": "What to ask about the document. The assistant answers only from the text above and says so when the answer isn't there."
+        },
+        "ui_properties": {
+          "selected": false,
+          "title": "2️⃣ Question",
+          "position": {
+            "x": 60,
+            "y": 360
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "tone_input",
+        "parent_id": null,
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "tone",
+          "value": "concise and neutral",
+          "description": "The answer's voice — e.g. \"concise and neutral\", \"friendly\", \"executive summary\". Parametrized so the app can expose it as a control."
+        },
+        "ui_properties": {
+          "selected": false,
+          "title": "3️⃣ Tone",
+          "position": {
+            "x": 60,
+            "y": 600
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "prompt_template",
+        "parent_id": null,
+        "type": "nodetool.text.Prompt",
+        "data": {
+          "prompt": "Tone: {{ tone }}\n\nDocument (the only source you may use):\n\"\"\"\n{{ document }}\n\"\"\"\n\nQuestion: {{ question }}\n\nAnswer the question using only the document above."
+        },
+        "ui_properties": {
+          "selected": false,
+          "title": "4️⃣ Build the prompt",
+          "position": {
+            "x": 440,
+            "y": 220
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true
+        },
+        "dynamic_properties": {
+          "document": null,
+          "question": null,
+          "tone": null
+        },
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "assistant",
+        "parent_id": null,
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model",
+            "provider": "ollama",
+            "id": "llama3.2",
+            "name": "Llama 3.2",
+            "path": null,
+            "supported_tasks": []
+          },
+          "mode": "loop",
+          "tools": [],
+          "max_tokens": 4096,
+          "prompt": "",
+          "system": "You are a private, on-device assistant. You run entirely on the user's own machine through a local Ollama model — nothing the user gives you ever leaves their computer.\n\nRules\n- Answer using ONLY the information in the provided document. Do not add outside knowledge or assumptions.\n- If the document does not contain the answer, say so plainly (\"The notes don't cover that.\"). Never guess or invent facts, names, dates, or numbers.\n- Match the requested tone.\n- Format the answer as clean Markdown: a direct one-line answer first, then supporting detail or a short bullet list only when it genuinely helps.\n- Be concise. No preamble, no restating the question, no sign-off."
+        },
+        "ui_properties": {
+          "selected": false,
+          "title": "5️⃣ Local Ollama assistant",
+          "position": {
+            "x": 820,
+            "y": 220
+          },
+          "zIndex": 0,
+          "width": 320,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "output-answer",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "answer"
+        },
+        "ui_properties": {
+          "selected": false,
+          "title": "6️⃣ Answer",
+          "position": {
+            "x": 1220,
+            "y": 220
+          },
+          "width": 300,
+          "selectable": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "edge-document",
+        "source": "document_input",
+        "sourceHandle": "output",
+        "target": "prompt_template",
+        "targetHandle": "document",
+        "ui_properties": null
+      },
+      {
+        "id": "edge-question",
+        "source": "question_input",
+        "sourceHandle": "output",
+        "target": "prompt_template",
+        "targetHandle": "question",
+        "ui_properties": null
+      },
+      {
+        "id": "edge-tone",
+        "source": "tone_input",
+        "sourceHandle": "output",
+        "target": "prompt_template",
+        "targetHandle": "tone",
+        "ui_properties": null
+      },
+      {
+        "id": "edge-prompt-agent",
+        "source": "prompt_template",
+        "sourceHandle": "output",
+        "target": "assistant",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
+        "id": "edge-answer",
+        "source": "assistant",
+        "sourceHandle": "text",
+        "target": "output-answer",
+        "targetHandle": "value",
+        "ui_properties": null
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null,
+  "required_providers": null,
+  "required_models": null,
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Private Assistant"
+        }
+      },
+      "content": [
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "Ask questions about your own notes — fully local, no API keys."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-document",
+                        "binding": "document",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-question",
+                        "binding": "question",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Select",
+                      "props": {
+                        "id": "in-tone",
+                        "binding": "tone",
+                        "label": "Answer tone",
+                        "options": [
+                          {
+                            "value": "concise and neutral"
+                          },
+                          {
+                            "value": "friendly and warm"
+                          },
+                          {
+                            "value": "professional"
+                          },
+                          {
+                            "value": "detailed and thorough"
+                          },
+                          {
+                            "value": "plain and simple"
+                          }
+                        ],
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Ask locally",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Thinking locally…",
+                        "binding": ""
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-answer",
+                        "binding": "answer",
+                        "text": ""
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
+}

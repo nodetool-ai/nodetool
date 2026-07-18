@@ -1,7 +1,8 @@
 {
   "slug": "data-generator",
   "name": "Data Generator",
-  "description": "Generate structured data using AI agents",
+  "description": "Turn a one-line topic into a structured dataset — define the columns once, get validated rows back instead of paragraphs of prose.",
+  "featured": false,
   "image": "/app-preview/img/data-generator.jpg",
   "app_doc": {
     "version": 2,
@@ -13,14 +14,6 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "🧮 Data Generator",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
             "id": "t-tagline",
@@ -28,42 +21,77 @@
           }
         },
         {
-          "type": "Container",
+          "type": "Columns",
           "props": {
-            "id": "panel-try",
-            "title": "Try it",
-            "content": [
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
               {
-                "type": "Button",
+                "type": "Container",
                 "props": {
-                  "id": "btn-run",
-                  "label": "Generate data",
-                  "variant": "contained",
-                  "color": "primary",
-                  "events": [
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
                     {
-                      "trigger": "click",
-                      "kind": "run",
-                      "key": "",
-                      "value": ""
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-topic",
+                        "binding": "topic",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-row-count",
+                        "binding": "row_count",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Generate data",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
                     }
                   ]
                 }
               }
-            ]
-          }
-        },
-        {
-          "type": "Container",
-          "props": {
-            "id": "panel-results",
-            "title": "Results",
-            "content": [
+            ],
+            "right": [
               {
-                "type": "Json",
+                "type": "Container",
                 "props": {
-                  "id": "out-generated-data",
-                  "binding": "generated_data"
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Generating rows…",
+                        "binding": ""
+                      }
+                    },
+                    {
+                      "type": "Json",
+                      "props": {
+                        "id": "out-generated-data",
+                        "binding": "generated_data"
+                      }
+                    }
+                  ]
                 }
               }
             ]
@@ -74,6 +102,8 @@
     }
   },
   "values": {
+    "topic": "fresh vegetables, each with its typical color",
+    "row_count": 8,
     "generated_data": [
       {
         "city": "Lisbon",

@@ -9,7 +9,8 @@ import { WorkflowState } from "../workflowState";
 const BuilderWorkflowContext = createContext<WorkflowState>({
   inputs: [],
   outputs: [],
-  variables: []
+  variables: [],
+  nodes: []
 });
 
 export const BuilderWorkflowProvider: React.FC<{

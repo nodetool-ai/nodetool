@@ -34,6 +34,11 @@ Follow this sequence when asked to build (or rebuild) an app UI:
    → NumberInput or Slider (carry over min/max), bool → Switch, enum/options →
    Select. Give a clear \`label\` and \`placeholder\`. Nest via \`parent_id\` (the
    inputs Container) and \`slot:"content"\`.
+   An input widget can also drive any property of any node directly — no Input
+   node needed — with \`binding\` = \`node:<nodeId>#<property>\` (node id and
+   property name from \`get_workflow\`). Prefer this for tweakable parameters
+   (a model's strength, steps, a resize width) so the graph stays uncluttered;
+   the widget's value overlays the node property on each run.
 5. Add a Run Button with \`events: [{ "trigger": "click", "kind": "run",
    "key": "", "value": "" }]\`. Clicking it writes the bound inputs and runs the
    workflow; results stream to the bound output widgets.
@@ -44,8 +49,9 @@ Follow this sequence when asked to build (or rebuild) an app UI:
    confirm every input and output node is represented and bindings match node
    names exactly. Fix mismatches with \`ui_app_update_component\`.
 
-A binding that doesn't match an existing node \`name\` renders nothing — copy
-names from \`get_workflow\`, never guess. Build incrementally; keep labels concise.`;
+A binding that doesn't match an existing node \`name\` (or a \`node:\` binding
+with a wrong node id / property) renders nothing — copy names and ids from
+\`get_workflow\`, never guess. Build incrementally; keep labels concise.`;
 
 interface AppBuilderAgentPanelProps {
   workflowId: string;

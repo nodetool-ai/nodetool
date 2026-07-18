@@ -72,7 +72,7 @@ export default function DeveloperIntegrationsSection({
             initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.25 }}
             className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-4 py-1.5 text-sm font-medium text-emerald-300 ring-1 ring-inset ring-emerald-500/20 mb-4"
           >
             Integrations
@@ -82,7 +82,7 @@ export default function DeveloperIntegrationsSection({
             initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.1 }}
+            transition={{ duration: 0.25, delay: 0.05 }}
             className="text-3xl sm:text-4xl font-bold text-white"
           >
             Every model. Your keys.
@@ -91,7 +91,7 @@ export default function DeveloperIntegrationsSection({
             initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.2 }}
+            transition={{ duration: 0.25, delay: 0.05 }}
             className="mt-4 text-lg text-slate-400 max-w-2xl mx-auto"
           >
             340+ built-in nodes covering every major provider and media type. Bring your own keys across the board.
@@ -129,7 +129,7 @@ export default function DeveloperIntegrationsSection({
               initial={reducedMotion ? {} : { opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: idx * 0.1 }}
+              transition={{ duration: 0.25, delay: idx * 0.05 }}
               className="rounded-2xl bg-slate-800/40 p-6 ring-1 ring-slate-700/50"
             >
               <div className="flex items-center gap-3 mb-4">
@@ -156,7 +156,7 @@ export default function DeveloperIntegrationsSection({
           initial={reducedMotion ? {} : { opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.25 }}
           className="mt-16 text-center rounded-2xl bg-gradient-to-br from-violet-900/20 to-teal-900/20 p-10 ring-1 ring-violet-500/20"
         >
           <h3 className="text-2xl font-bold text-white mb-4">

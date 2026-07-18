@@ -65,4 +65,3 @@ graph TD
 
 - [Image Enhance](image-enhance.md) - Enhance your poster designs
 - [Creative Story Ideas](creative-story-ideas.md) - Generate movie concepts
-- [Story to Video](story-to-video-generator.md) - Create video trailers

@@ -163,7 +163,7 @@ const SandboxesPanel: React.FC = () => {
   return (
     <FlexColumn gap={0} fullHeight css={panelStyles}>
       <PanelToolbar title="Sandboxes" count={sandboxes.length}>
-        {sandboxesQuery.isLoading && <Caption size="small">Loading…</Caption>}
+        {sandboxesQuery.isLoading && <LoadingSpinner size="small" inline />}
       </PanelToolbar>
       {sandboxesQuery.isError && (
         <AlertBanner severity="error" sx={{ mx: 1.5, mt: 1 }}>

@@ -26,17 +26,18 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "brand-asset-generator",
         "name": "Brand Asset Generator",
-        "description": "Generate brand assets for a given brand.",
+        "description": "Turn a brand name and vibe into a whole social kit in one run: the graph fans out to two branches at once — a streamed gallery of four on-brand, text-overlaid social images (Instagram, LinkedIn, X, product launch) and a one-page brand brief (voice, palette, tagline options). Differentiator: structured multi-asset outputs from a single fan-out graph. Uses fal-ai flux/schnell for images (paid) and gpt-5-mini for text.",
         "tags": [
           "brand-asset",
           "branding",
-          "design"
+          "design",
+          "images"
         ]
       },
       {
         "slug": "concept-art-iteration-board",
         "name": "Concept Art Iteration Board",
-        "description": "Turn a creative brief, style, and mood into concept art variations. An agent sets the art direction, then a batch of images is generated.",
+        "description": "Fan one creative brief into a gallery of concept-art variations. An art-director agent turns your brief, style, and mood into a detailed direction, then a list generator writes N distinct image prompts that all render into an append-style variant gallery. Differentiator: one run, many on-brief variations you can compare side by side and regenerate. Text runs on gpt-5-mini; images on fal-ai/flux/schnell.",
         "tags": [
           "concept-art",
           "planning"
@@ -45,7 +46,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "hook-thumbnail-factory",
         "name": "Hook & Thumbnail Factory",
-        "description": "Turn a video topic into scroll-stopping hook ideas and a matching AI thumbnail for each — a faceless short-form content starter kit in one run.",
+        "description": "One video topic in, a full thumbnail pack out: scroll-stopping hook lines plus a color-graded, ready-to-post thumbnail for each. The differentiator is the fan-out — one hook stream drives a whole gallery of matching images in a single run. Uses fal-ai/flux/schnell (cheap, fast).",
         "tags": [
           "image",
           "content",
@@ -56,7 +57,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "image-enhance",
         "name": "Image Enhance",
-        "description": "Improve image quality with basic enhancement tools like sharpening, contrast and color adjustment",
+        "description": "A live photo editor: five GPU filters chained into one pipeline, each exposing a numeric property the app binds to a slider. Drag Denoise, Brightness, Contrast, Saturation, and Sharpen and the preview updates in place — the filters run in-browser, so there is no model, no API key, and no per-run cost.",
         "tags": [
           "image"
         ]
@@ -64,7 +65,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "image-to-video-animation",
         "name": "Image to Video Animation",
-        "description": "Generate a high-quality still from text, then animate it into a short cinematic clip.",
+        "description": "Generate a high-quality still from text, then animate it into a short cinematic clip. Uses Veo 3.1 for the animation step, which costs more per run than image-only templates.",
         "tags": [
           "image",
           "video"
@@ -73,7 +74,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "movie-posters",
         "name": "Movie Posters",
-        "description": "Create cinematic movie posters using AI image generation",
+        "description": "Turn a title, genre, and visual style into finished theatrical one-sheet posters. An art-direction agent first writes a key-art brief (positioning, palette, typography), which drives every generated poster — the differentiator is the agent-authored creative strategy, not a raw prompt.",
         "tags": [
           "image"
         ]
@@ -81,7 +82,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "photo-enhancement-suite",
         "name": "Photo Enhancement Suite",
-        "description": "Batch enhance photos with AI-powered improvements including color correction and upscaling.",
+        "description": "Batch-enhance a list of photos through a fixed retouch chain — auto-contrast, color, sharpening, and an AI cinematic-grade pass — with no folder path required, just drop images in.",
         "tags": [
           "image",
           "photo",
@@ -91,22 +92,11 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "product-mockup-generator",
         "name": "Product Mockup Generator",
-        "description": "Generate product mockups for a given product.",
+        "description": "Turn one product photo into a whole set of polished lifestyle mockups. An LLM art-director designs a varied shot list from your product description, then each scene is rendered with FLUX and finished with a brightness/contrast polish. Differentiator: the model invents the scenes, so a single input fans out into a coordinated mockup set — not one prompt, one image.",
         "tags": [
           "product-mockup",
           "mockup",
           "design"
-        ]
-      },
-      {
-        "slug": "youtube-thumbnail-pipeline",
-        "name": "YouTube Thumbnail Pipeline",
-        "description": "Generate multiple eye-catching YouTube thumbnail variations from video scripts. Creates bold text overlays, dramatic styling, and batch processes variations for A/B testing.",
-        "tags": [
-          "image",
-          "youtube",
-          "content creation",
-          "thumbnails"
         ]
       }
     ]
@@ -119,7 +109,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "ad-creative-factory",
         "name": "Ad Creative Factory",
-        "description": "Turn one product photo and one offer into a batch of ready-to-test vertical video ads. A strategist agent plans a persona × angle test matrix, a list generator writes one spoken hook per cell, and every hook becomes a staged product scene, an animated 9:16 clip, and a voiceover mixed on top.",
+        "description": "Turn one product photo and one offer into a batch of ready-to-test vertical video ads. A strategist agent plans a persona × angle test matrix, a structured data generator emits one variant row per cell — persona, angle, and spoken hook as separate fields, not a prose blob — and every row's hook becomes a staged product scene, an animated 9:16 clip, and a voiceover mixed on top.",
         "tags": [
           "marketing",
           "advertising",
@@ -131,7 +121,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "color-boost-video",
         "name": "Color Boost Video",
-        "description": "Grade a short video clip by splitting it into frames, applying exposure/contrast and saturation/vibrance adjustments per frame, then reassembling the result for cinematic color.",
+        "description": "Grade a video by splitting it into frames, applying exposure/contrast and saturation/vibrance adjustments per frame, then reassembling the result — differentiator: bring your own clip and a single Grading Intensity slider drives the saturation pass live, no per-node tweaking.",
         "tags": [
           "video"
         ]
@@ -139,7 +129,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "movie-trailer-generator",
         "name": "Movie Trailer Generator",
-        "description": "Type a single logline and get back a cinematic teaser. Prompt nodes template the inputs into a treatment and turn each shot into full cinematic key art; the shots are animated and cut together into the final trailer.",
+        "description": "Type a single logline and get back a cinematic teaser. Prompt nodes template the inputs into a treatment and turn each shot into full cinematic key art; the shots are animated and cut together into the final trailer. Cost note: each shot runs through Veo 3.1 image-to-video, which is metered per second of generated video and is the most expensive step in the pipeline — a 6-shot trailer makes 6 Veo calls.",
         "tags": [
           "video",
           "generation",
@@ -152,7 +142,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "music-video-visualizer",
         "name": "Music Video Visualizer",
-        "description": "Create reactive visuals from audio tracks with mood-matched imagery. Transcribes audio, analyzes mood/energy, and generates visual frames synced to the music.",
+        "description": "Turn any song into a mood-matched music video. Whisper transcribes the lyrics, an LLM creative director reads the emotional arc, writes one image prompt per frame, FLUX renders every frame, and they are stitched back to your original audio. Differentiator: a full transcribe → analyze → fan-out → render → reassemble media pipeline in a single graph — no chat box can do this. Cost note: generates one image per frame (default 8) plus a Whisper transcription, so a run costs several fal-ai calls.",
         "tags": [
           "video",
           "audio",
@@ -163,23 +153,11 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "product-video-generator",
         "name": "Product Video Generator",
-        "description": "Create a realistic 16:9 marketing video for a new product launch using the ImageToVideo node.",
+        "description": "Turn a campaign brief, audience, features, and a product photo into a realistic 16:9 launch video — an agent writes the motion prompt, then Veo animates the shot. Cost note: Veo is a paid per-second video model, so this run costs noticeably more than an image-only template.",
         "tags": [
           "business",
           "data",
           "video"
-        ]
-      },
-      {
-        "slug": "story-to-video-generator",
-        "name": "Story to Video Generator",
-        "description": "Transform story ideas into cinematic AI-generated videos. An agent crafts detailed visual prompts optimized for video generation, then creates the video using Gemini Veo.",
-        "tags": [
-          "video",
-          "generation",
-          "ai",
-          "storytelling",
-          "creative"
         ]
       }
     ]
@@ -192,10 +170,11 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "meeting-transcript-summarizer",
         "name": "Meeting Transcript Summarizer",
-        "description": "Automatically transcribe a meeting recording and generate concise notes.",
+        "description": "Summarize a meeting from a recording or a pasted transcript — either input works, and action items come back as structured rows instead of another paragraph to scan.",
         "tags": [
           "audio",
-          "llm"
+          "llm",
+          "dataframe"
         ]
       },
       {
@@ -211,21 +190,12 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "summarize-audio",
-        "name": "Summarize Audio",
-        "description": "Transcribe an audio file and summarize the text.",
-        "tags": [
-          "audio",
-          "huggingface"
-        ]
-      },
-      {
         "slug": "transcribe-audio",
         "name": "Transcribe Audio",
-        "description": "Convert speech to text using Whisper model with word-level timestamps",
+        "description": "Instant Whisper transcription: drop in an audio clip, get a clean text transcript back — one step, auto-runs on upload.",
         "tags": [
           "audio",
-          "huggingface"
+          "asr"
         ]
       }
     ]
@@ -236,20 +206,9 @@ export const templateCatalog: CatalogCategory[] = [
     "description": "Planning agents that search, gather, and synthesize — news, papers, and web research on the canvas.",
     "templates": [
       {
-        "slug": "agent-google-search",
-        "name": "Agent Google Search",
-        "description": "Demonstrates an Agent using dynamic outputs to perform Google searches and display results.",
-        "tags": [
-          "agent",
-          "google",
-          "search",
-          "dynamic-outputs"
-        ]
-      },
-      {
         "slug": "cold-outreach-co-pilot",
         "name": "Cold Outreach Co-Pilot",
-        "description": "An autonomous agent researches a prospect on the web and writes a personalized cold email — opening with a real, specific detail — plus a follow-up. Personalization at scale without the copy-paste.",
+        "description": "An autonomous agent researches a prospect on the web and drafts a personalized cold email — opening with a real, specific detail — as structured fields (subject, body, follow-up) instead of one prose blob, ready to drop straight into a CRM or email tool.",
         "tags": [
           "agents",
           "sales",
@@ -260,7 +219,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "data-generator",
         "name": "Data Generator",
-        "description": "Generate structured data using AI agents",
+        "description": "Turn a one-line topic into a structured dataset — define the columns once, get validated rows back instead of paragraphs of prose.",
         "tags": [
           "agents"
         ]
@@ -268,7 +227,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "hacker-news-agent",
         "name": "Hacker News Agent",
-        "description": "Scrape and analyze the front page of Hacker News.",
+        "description": "Scrape the Hacker News front page and get a topic-filtered digest written directly as Markdown — no separate formatting step.",
         "tags": [
           "hackernews",
           "news",
@@ -276,9 +235,33 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "model-arena",
+        "name": "Model Arena",
+        "description": "One brief, three frontier models, answered side by side. The same prompt fans out to OpenAI, Anthropic, and Google in a single pass, each answering in the same structure — so you compare reasoning, not formatting. Swap the model on any lane to build your own bracket.",
+        "tags": [
+          "comparison",
+          "llm",
+          "agents",
+          "providers"
+        ]
+      },
+      {
+        "slug": "research-agent",
+        "name": "Research Agent",
+        "description": "Give it a topic and an audience; the agent runs real web searches, opens the best sources, and streams back a cited markdown briefing. Differentiator: genuine multi-step tool use (search + browse) with inline citations — not a single prompt call.",
+        "tags": [
+          "agent",
+          "research",
+          "search",
+          "browser",
+          "streaming",
+          "citations"
+        ]
+      },
+      {
         "slug": "research-paper-summarizer",
         "name": "Research Paper Summarizer",
-        "description": "Extract and summarize key findings from research papers and technical documents.",
+        "description": "Search a curated index of transformer papers by topic, fetch the matches, and have two agents extract findings and technical methodology into one report.",
         "tags": [
           "research"
         ]
@@ -286,7 +269,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "seo-content-engine",
         "name": "SEO Content Engine",
-        "description": "One topic in, a keyword-targeted article batch out. A strategist agent plans the topic cluster, a list generator turns it into briefs, and every brief becomes a full Markdown article with an editorial hero image.",
+        "description": "One topic in, a keyword-targeted article batch out — each article lands as typed fields (title, meta description, keywords, body) instead of one markdown blob, ready to paste straight into a CMS. A strategist agent plans the topic cluster, a list generator turns it into briefs, and every brief becomes a full article with an editorial hero image.",
         "tags": [
           "seo",
           "content",
@@ -296,27 +279,14 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "wikipedia-agent",
-        "name": "Wikipedia Agent",
-        "description": "Wikipedia style research and documentation agent.",
+        "slug": "workflow-as-a-tool",
+        "name": "Workflow As A Tool",
+        "description": "Composition demo: an orchestrator agent delegates to two specialist sub-agents wired in as callable tools via control edges — Research (Gemini) gathers the facts, Copy Editor (Claude) polishes the draft, and the manager (GPT-5 mini) decides when to call each. Shows how a self-contained unit of work becomes a tool another agent can invoke, all inside one graph.",
         "tags": [
-          "wikipedia",
-          "research",
-          "writing"
-        ]
-      },
-      {
-        "slug": "youtube-research-agent",
-        "name": "YouTube Research Agent",
-        "description": "Search YouTube using SerpAPI and analyze results with Claude Agent for deep research insights.",
-        "tags": [
-          "youtube",
-          "research",
-          "serpapi",
-          "claude",
-          "agent",
-          "search",
-          "analysis"
+          "agents",
+          "composition",
+          "tools",
+          "orchestration"
         ]
       }
     ]
@@ -329,24 +299,62 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "audio-to-image",
         "name": "Audio To Image",
-        "description": "Transform spoken descriptions into images with this workflow. Record or upload audio, which is transcribed by Whisper and then visualized by Stable Diffusion. Perfect for quickly generating images from verbal ideas without typing.",
+        "description": "Speak an image into existence: no keyboard needed. Whisper transcribes your audio, then FLUX renders the description as an image — the whole pipeline runs from a single voice note.",
         "tags": [
           "huggingface",
           "multimodal"
         ]
       },
       {
+        "slug": "chat-with-your-documents",
+        "name": "Chat With Your Documents",
+        "description": "Retrieval-augmented Q&A over your own documents. Index a small knowledge base into a vector collection, pull the passages matching a search keyword, and get a Markdown answer that cites its sources and refuses to guess when the answer isn't in the docs. NodeTool's first RAG example. The answer step uses gpt-5-mini (OpenAI key); the collection is configured for Ollama nomic-embed-text embeddings.",
+        "tags": [
+          "rag",
+          "vectorstore",
+          "retrieval",
+          "llm",
+          "citations"
+        ]
+      },
+      {
         "slug": "conditional-logic-engine",
         "name": "Conditional Logic Engine",
-        "description": "Workflow that demonstrates multi-branch decision logic with value routing.",
+        "description": "Teaching example for control flow: one number drives two independent decision structures — a boolean OR gate and a nested switch tree — built entirely from Compare, LogicalOperator, and ConditionalSwitch nodes, no LLM calls.",
         "tags": [
           "boolean"
         ]
       },
       {
-        "slug": "creative-story-ideas",
-        "name": "Creative Story Ideas",
-        "description": "A beginner-friendly template demonstrating core NodeTool concepts: inputs, templates, LLM agents, streaming, and outputs. Generate creative story ideas based on your preferences.",
+        "slug": "image-to-audio-story",
+        "name": "Image To Audio Story",
+        "description": "Upload any photo and a vision agent narrates a spoken story about it — one image in, one audio clip out",
+        "tags": [
+          "multimodal"
+        ]
+      },
+      {
+        "slug": "pokemon-maker",
+        "name": "Pokemon Maker",
+        "description": "Turn any mix of real animals into a gallery of original collectible creatures. A style dropdown restyles the whole batch, so one Run yields four cohesive variant designs instead of a single image.",
+        "tags": []
+      },
+      {
+        "slug": "private-assistant",
+        "name": "Private Assistant",
+        "description": "Ask questions about your own notes and documents — fully local, no API keys. Runs end-to-end on a local Ollama model, so the text never leaves your machine. Requires Ollama running with a model pulled (default: llama3.2 — run `ollama pull llama3.2`).",
+        "tags": [
+          "local",
+          "privacy",
+          "ollama",
+          "offline",
+          "assistant"
+        ]
+      },
+      {
+        "slug": "prompt-template",
+        "name": "Prompt Template",
+        "description": "The starter pattern behind almost every NodeTool workflow: typed inputs fill a reusable prompt template, an LLM answers it, the output renders. Explains a topic for any audience — swap the prompt to reuse the pattern for anything.",
         "tags": [
           "beginner",
           "tutorial",
@@ -354,23 +362,21 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "image-to-audio-story",
-        "name": "Image To Audio Story",
-        "description": "Generate and narrate creative stories from images using AI",
-        "tags": [
-          "multimodal"
-        ]
-      },
-      {
         "slug": "social-media-calendar-filler",
         "name": "Social Media Calendar Filler",
-        "description": "Generate a month's worth of social media content with images, captions, and hashtags. Plans content based on monthly themes and brand guidelines.",
+        "description": "Generate a month's worth of social media content as a structured calendar — one row per post with its own image prompt and ready-to-post caption — then render an image for every row.",
         "tags": [
           "content",
           "social media",
           "marketing",
           "planning"
         ]
+      },
+      {
+        "slug": "summarize-rss",
+        "name": "Summarize RSS",
+        "description": "Turn any RSS feed into a topic-grouped digest — point it at a new URL and get headlines organized by theme, not a flat list.",
+        "tags": []
       }
     ]
   },
@@ -380,32 +386,15 @@ export const templateCatalog: CatalogCategory[] = [
     "description": "Study aids and data workflows — flashcards, learning paths, summaries, and structured generation.",
     "templates": [
       {
-        "slug": "fetch-papers",
-        "name": "Fetch Papers",
-        "description": "This workflow automatically fetches and downloads research papers from the Awesome Transformers GitHub repository. It extracts paper links from the README.md file, filters for actual papers, and downloads them to a specified folder. Ideal for researchers and AI enthusiasts who want to stay updated with the latest transformer model papers.",
-        "tags": [
-          "automation"
-        ]
-      },
-      {
         "slug": "flashcard-generator",
         "name": "Flashcard Generator",
-        "description": "Generate study flashcards using AI and store them persistently in a database. Enter any topic and get instant flashcards that are saved for future review.",
+        "description": "Generate study flashcards as structured front/back card objects and store them persistently in a database. Enter any topic and get instant flashcards that are saved for future review.",
         "tags": [
           "education",
           "database",
           "ai",
           "flashcards",
           "learning"
-        ]
-      },
-      {
-        "slug": "learning-path-generator",
-        "name": "Learning Path Generator",
-        "description": "Create a comprehensive learning path for a topic.",
-        "tags": [
-          "education",
-          "planning"
         ]
       }
     ]

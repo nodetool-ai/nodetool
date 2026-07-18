@@ -4,6 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import Actions from "./Actions";
 import { outputStyles } from "./styles";
 import { Datetime } from "../../../stores/ApiTypes";
+import { formatDateTime } from "../../../utils/formatUtils";
 
 /**
  * Format a Datetime object into a human-readable string.
@@ -21,7 +22,7 @@ const formatDatetime = (dt: Datetime): string => {
     dt.minute,
     dt.second
   );
-  return date.toLocaleString();
+  return formatDateTime(date);
 };
 
 const DatetimeRendererInternal: React.FC<{

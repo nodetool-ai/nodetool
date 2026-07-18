@@ -5,7 +5,12 @@ import PermMediaOutlinedIcon from "@mui/icons-material/PermMediaOutlined";
 import ManagerPageLayout from "../panels/ManagerPageLayout";
 import AssetGrid from "./AssetGrid";
 import StorageAnalytics from "./StorageAnalytics";
-import { Box } from "../ui_primitives";
+import {
+  Box,
+  EmptyState,
+  FlexColumn,
+  LoadingSpinner
+} from "../ui_primitives";
 import useAssets from "../../serverState/useAssets";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 
@@ -37,7 +42,8 @@ const gridFillStyles = css({
  * with the Collections, Models, and Workspaces pages.
  */
 const AssetExplorer: React.FC = memo(() => {
-  const { folderFiles } = useAssets();
+  const { folderFiles, isLoading, error, refetchAssetsAndFolders } =
+    useAssets();
 
   return (
     <ManagerPageLayout
@@ -48,16 +54,32 @@ const AssetExplorer: React.FC = memo(() => {
       actions={<StorageAnalytics assets={folderFiles} />}
     >
       <Box css={gridFillStyles}>
-        <ContextMenuProvider>
-          <AssetGrid
-            maxItemSize={10}
-            itemSpacing={2}
-            isHorizontal={true}
-            isFullscreenAssets={true}
-            initialFoldersPanelWidth={300}
-            sortedAssets={folderFiles}
-          />
-        </ContextMenuProvider>
+        {isLoading ? (
+          <FlexColumn justify="center" align="center" sx={{ flex: 1 }}>
+            <LoadingSpinner size="large" text="Loading assets" />
+          </FlexColumn>
+        ) : error ? (
+          <FlexColumn justify="center" align="center" sx={{ flex: 1 }}>
+            <EmptyState
+              variant="error"
+              title="Could not load assets"
+              description={error.message || "An error occurred. Please try again."}
+              actionText="Retry"
+              onAction={refetchAssetsAndFolders}
+            />
+          </FlexColumn>
+        ) : (
+          <ContextMenuProvider>
+            <AssetGrid
+              maxItemSize={10}
+              itemSpacing={2}
+              isHorizontal={true}
+              isFullscreenAssets={true}
+              initialFoldersPanelWidth={300}
+              sortedAssets={folderFiles}
+            />
+          </ContextMenuProvider>
+        )}
       </Box>
     </ManagerPageLayout>
   );

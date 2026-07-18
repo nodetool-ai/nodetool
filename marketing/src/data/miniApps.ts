@@ -13,7 +13,7 @@ import type { PageEntry } from "./types";
 
 export interface MiniAppInput {
   label: string;
-  /** Presentation kind: text | number | toggle | choice. */
+  /** Presentation kind: text | number | toggle | choice | image | audio | video | color. */
   kind: string;
 }
 
@@ -29,6 +29,8 @@ export interface MiniAppEntry extends PageEntry {
   name: string;
   /** The workflow's own description (may be empty). */
   summary: string;
+  /** Hero app — leads the /apps index (curation table `featured: true`). */
+  featured: boolean;
   /** Route of the matching /templates page. */
   templateRoute: string;
   /** Public path to the app screenshot (`/apps/<slug>.png`) or null. */
