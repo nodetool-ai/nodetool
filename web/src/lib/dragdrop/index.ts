@@ -7,7 +7,6 @@ export type {
   DragData,
   DragMetadata,
   DropZoneConfig,
-  DragImageConfig,
   DragDropState
 } from "./types";
 

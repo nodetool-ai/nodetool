@@ -1,7 +1,6 @@
 import { renderHook } from "@testing-library/react";
 import {
   workflowSharingQueryKey,
-  myWorkflowRoleQueryKey,
   sharedWithMeQueryKey,
   shareUrlForToken
 } from "../useWorkflowSharing";
@@ -39,7 +38,6 @@ jest.mock("../../trpc/client", () => ({
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   useWorkflowSharing,
-  useMyWorkflowRole,
   useSharedWithMe
 } from "../useWorkflowSharing";
 
@@ -66,14 +64,6 @@ describe("useWorkflowSharing", () => {
         "workflow",
         "wf-1",
         "sharing"
-      ]);
-    });
-
-    it("scopes my-role to the workflow", () => {
-      expect(myWorkflowRoleQueryKey("wf-1")).toEqual([
-        "workflow",
-        "wf-1",
-        "my-role"
       ]);
     });
 
@@ -114,13 +104,6 @@ describe("useWorkflowSharing", () => {
     expect(result.current.setRole).toBeDefined();
     expect(result.current.removeCollaborator).toBeDefined();
     expect(mockUseMutation).toHaveBeenCalledTimes(4);
-  });
-
-  it("disables the my-role query without a workflow id", () => {
-    renderHook(() => useMyWorkflowRole(undefined));
-    expect(mockUseQuery).toHaveBeenCalledWith(
-      expect.objectContaining({ enabled: false })
-    );
   });
 
   it("queries shared-with-me under its stable key", () => {

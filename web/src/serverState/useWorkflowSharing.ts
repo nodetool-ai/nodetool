@@ -9,15 +9,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { trpcClient } from "../trpc/client";
 
 export type ShareRole = "viewer" | "editor";
-export type WorkflowRole = "owner" | ShareRole;
 
 export const workflowSharingQueryKey = (workflowId: string) =>
   ["workflow", workflowId, "sharing"] as const;
 
 export const sharedWithMeQueryKey = ["workflows", "shared-with-me"] as const;
-
-export const myWorkflowRoleQueryKey = (workflowId: string) =>
-  ["workflow", workflowId, "my-role"] as const;
 
 /** Build the URL a collaborator opens to redeem a share link. */
 export const shareUrlForToken = (token: string): string =>
@@ -104,14 +100,3 @@ export const useSharedWithMe = () =>
     staleTime: 30 * 1000
   });
 
-/** The current user's effective role on a workflow (read-only UI state). */
-export const useMyWorkflowRole = (workflowId: string | null | undefined) =>
-  useQuery({
-    queryKey: workflowId
-      ? myWorkflowRoleQueryKey(workflowId)
-      : ["workflow", "none", "my-role"],
-    queryFn: () =>
-      trpcClient.workflows.sharing.myRole.query({ id: workflowId as string }),
-    enabled: !!workflowId,
-    staleTime: 60 * 1000
-  });

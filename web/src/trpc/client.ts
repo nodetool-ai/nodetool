@@ -5,14 +5,13 @@ import {
   loggerLink,
   type TRPCClient
 } from "@trpc/client";
-import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
+import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "@nodetool-ai/websocket/trpc";
 import { BASE_URL } from "../stores/BASE_URL";
 import { isAuthRequired } from "../lib/runtimeConfig";
 import { supabase } from "../lib/supabaseClient";
 
 export type RouterOutputs = inferRouterOutputs<AppRouter>;
-export type RouterInputs = inferRouterInputs<AppRouter>;
 
 export const trpc = createTRPCReact<AppRouter>();
 
