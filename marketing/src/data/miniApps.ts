@@ -13,7 +13,7 @@ import type { PageEntry } from "./types";
 
 export interface MiniAppInput {
   label: string;
-  /** Presentation kind: text | number | toggle | choice. */
+  /** Presentation kind: text | number | toggle | choice | image | audio | video | color. */
   kind: string;
 }
 

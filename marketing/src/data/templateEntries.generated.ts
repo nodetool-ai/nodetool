@@ -1772,31 +1772,41 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/conditional-logic-engine",
     "title": "Conditional Logic Engine — NodeTool AI Workflow Template",
-    "description": "Teaching example for control flow: one number drives two independent decision structures — a boolean OR gate and a nested switch tree — built entirely from Compare, LogicalOperator, and ConditionalSwitch nodes, no LLM calls.",
+    "description": "Teaching example for control flow: one number drives two independent decision structures built entirely from If nodes — there is no dedicated numeric-compare or boolean-logic node in NodeTool, so this shows the actual pattern: PadText + Compare + Equals turn the number into a boolean, then pairs of If nodes sharing one condition (each holding its own value, taking the opposite branch) act as the ternary select and OR you'd otherwise reach for. No LLM calls.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "conditional-logic-engine",
     "name": "Conditional Logic Engine",
-    "summary": "Teaching example for control flow: one number drives two independent decision structures — a boolean OR gate and a nested switch tree — built entirely from Compare, LogicalOperator, and ConditionalSwitch nodes, no LLM calls.",
+    "summary": "Teaching example for control flow: one number drives two independent decision structures built entirely from If nodes — there is no dedicated numeric-compare or boolean-logic node in NodeTool, so this shows the actual pattern: PadText + Compare + Equals turn the number into a boolean, then pairs of If nodes sharing one condition (each holding its own value, taking the opposite branch) act as the ternary select and OR you'd otherwise reach for. No LLM calls.",
     "tags": [
       "boolean"
     ],
     "category": "Text & Data",
     "nodeTypes": [
       {
+        "type": "nodetool.control.If",
+        "label": "If",
+        "count": 4
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 4
+      },
+      {
         "type": "nodetool.text.Prompt",
         "label": "Prompt",
-        "count": 5
+        "count": 4
       },
       {
-        "type": "nodetool.boolean.ConditionalSwitch",
-        "label": "Conditional Switch",
-        "count": 3
-      },
-      {
-        "type": "nodetool.boolean.Compare",
+        "type": "nodetool.text.Compare",
         "label": "Compare",
+        "count": 2
+      },
+      {
+        "type": "nodetool.text.Equals",
+        "label": "Equals",
         "count": 2
       },
       {
@@ -1805,17 +1815,17 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
-        "type": "nodetool.boolean.LogicalOperator",
-        "label": "Logical Operator",
+        "type": "nodetool.text.PadText",
+        "label": "Pad Text",
         "count": 1
       },
       {
-        "type": "nodetool.output.Output",
-        "label": "Output",
+        "type": "nodetool.text.ToString",
+        "label": "To String",
         "count": 1
       }
     ],
-    "nodeCount": 13,
+    "nodeCount": 19,
     "thumbnail": "/templates/conditional-logic-engine.jpg",
     "graph": {
       "nodes": [
@@ -1824,17 +1834,17 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
           "x": 0,
-          "y": -220,
-          "width": 460,
+          "y": -260,
+          "width": 520,
           "isComment": true
         },
         {
           "id": "comment-branch-a",
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
-          "x": 1050,
+          "x": 1120,
           "y": 900,
-          "width": 460,
+          "width": 520,
           "isComment": true
         },
         {
@@ -1842,15 +1852,15 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.workflows.base_node.Comment",
           "title": "Comment",
           "x": 710,
-          "y": -220,
-          "width": 460,
+          "y": -260,
+          "width": 520,
           "isComment": true
         },
         {
           "id": "2",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
-          "x": 1730,
+          "x": 2080,
           "y": 401,
           "width": 280,
           "subtitle": "## Conditional Logic Decision Result **Input Value:** {{ value }} **Condition Checks:** - Greater than 100? {{ gt_100 }} - Less than 50? {{…"
@@ -1864,43 +1874,59 @@ export const templateEntries: TemplateEntry[] = [
           "width": 280
         },
         {
-          "id": "4",
-          "type": "nodetool.boolean.Compare",
+          "id": "pad_value",
+          "type": "nodetool.text.PadText",
+          "title": "Pad Text",
+          "x": 280,
+          "y": 560,
+          "width": 280
+        },
+        {
+          "id": "cmp_low",
+          "type": "nodetool.text.Compare",
           "title": "Compare",
-          "x": 710,
-          "y": 559,
+          "x": 610,
+          "y": 660,
           "width": 280
         },
         {
-          "id": "5",
-          "type": "nodetool.boolean.Compare",
+          "id": "cmp_high",
+          "type": "nodetool.text.Compare",
           "title": "Compare",
-          "x": 360,
-          "y": 671,
+          "x": 610,
+          "y": 480,
           "width": 280
         },
         {
-          "id": "6",
-          "type": "nodetool.boolean.LogicalOperator",
-          "title": "Logical Operator",
-          "x": 1050,
-          "y": 647,
+          "id": "is_low",
+          "type": "nodetool.text.Equals",
+          "title": "Equals",
+          "x": 940,
+          "y": 660,
           "width": 280
         },
         {
-          "id": "7",
-          "type": "nodetool.boolean.ConditionalSwitch",
-          "title": "Conditional Switch",
+          "id": "is_high",
+          "type": "nodetool.text.Equals",
+          "title": "Equals",
+          "x": 940,
+          "y": 480,
+          "width": 280
+        },
+        {
+          "id": "outer_true",
+          "type": "nodetool.control.If",
+          "title": "If",
           "x": 1390,
-          "y": 688,
+          "y": 120,
           "width": 280
         },
         {
-          "id": "8",
-          "type": "nodetool.boolean.ConditionalSwitch",
-          "title": "Conditional Switch",
+          "id": "outer_false",
+          "type": "nodetool.control.If",
+          "title": "If",
           "x": 1390,
-          "y": 334,
+          "y": 280,
           "width": 280
         },
         {
@@ -1913,20 +1939,19 @@ export const templateEntries: TemplateEntry[] = [
           "subtitle": "🔴 HIGH VALUE: {{ value }} is greater than 100. Priority processing engaged."
         },
         {
-          "id": "10",
-          "type": "nodetool.text.Prompt",
-          "title": "Prompt",
-          "x": 1050,
-          "y": 303,
-          "width": 280,
-          "subtitle": "{{ text }}"
+          "id": "inner_true",
+          "type": "nodetool.control.If",
+          "title": "If",
+          "x": 710,
+          "y": 180,
+          "width": 280
         },
         {
-          "id": "11",
-          "type": "nodetool.boolean.ConditionalSwitch",
-          "title": "Conditional Switch",
+          "id": "inner_false",
+          "type": "nodetool.control.If",
+          "title": "If",
           "x": 710,
-          "y": 335,
+          "y": 340,
           "width": 280
         },
         {
@@ -1951,8 +1976,40 @@ export const templateEntries: TemplateEntry[] = [
           "id": "result_output",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 2110,
+          "x": 2460,
           "y": 401,
+          "width": 280
+        },
+        {
+          "id": "int_to_str",
+          "type": "nodetool.text.ToString",
+          "title": "To String",
+          "x": 140,
+          "y": 620,
+          "width": 200
+        },
+        {
+          "id": "out_high",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1710,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out_low",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1030,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out_medium",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1710,
+          "y": 280,
           "width": 280
         }
       ],
@@ -1967,70 +2024,84 @@ export const templateEntries: TemplateEntry[] = [
         {
           "source": "3",
           "sourceHandle": "output",
-          "target": "4",
-          "targetHandle": "a",
+          "target": "int_to_str",
+          "targetHandle": "value",
           "color": "any"
         },
         {
-          "source": "4",
+          "source": "pad_value",
+          "sourceHandle": "output",
+          "target": "cmp_low",
+          "targetHandle": "text_a",
+          "color": "any"
+        },
+        {
+          "source": "pad_value",
+          "sourceHandle": "output",
+          "target": "cmp_high",
+          "targetHandle": "text_a",
+          "color": "any"
+        },
+        {
+          "source": "cmp_low",
+          "sourceHandle": "output",
+          "target": "is_low",
+          "targetHandle": "text_a",
+          "color": "any"
+        },
+        {
+          "source": "cmp_high",
+          "sourceHandle": "output",
+          "target": "is_high",
+          "targetHandle": "text_a",
+          "color": "any"
+        },
+        {
+          "source": "is_high",
           "sourceHandle": "output",
           "target": "2",
           "targetHandle": "gt_100",
           "color": "any"
         },
         {
-          "source": "3",
-          "sourceHandle": "output",
-          "target": "5",
-          "targetHandle": "a",
-          "color": "any"
-        },
-        {
-          "source": "5",
+          "source": "is_low",
           "sourceHandle": "output",
           "target": "2",
           "targetHandle": "lt_50",
           "color": "any"
         },
         {
-          "source": "4",
-          "sourceHandle": "output",
-          "target": "6",
-          "targetHandle": "a",
-          "color": "any"
-        },
-        {
-          "source": "5",
-          "sourceHandle": "output",
-          "target": "6",
-          "targetHandle": "b",
-          "color": "any"
-        },
-        {
-          "source": "6",
+          "source": "is_low",
           "sourceHandle": "output",
           "target": "2",
           "targetHandle": "combined",
           "color": "any"
         },
         {
-          "source": "6",
+          "source": "is_low",
           "sourceHandle": "output",
-          "target": "7",
+          "target": "inner_true",
           "targetHandle": "condition",
           "color": "any"
         },
         {
-          "source": "7",
+          "source": "is_low",
           "sourceHandle": "output",
-          "target": "2",
-          "targetHandle": "route",
+          "target": "inner_false",
+          "targetHandle": "condition",
           "color": "any"
         },
         {
-          "source": "4",
+          "source": "is_high",
           "sourceHandle": "output",
-          "target": "8",
+          "target": "outer_true",
+          "targetHandle": "condition",
+          "color": "any"
+        },
+        {
+          "source": "is_high",
+          "sourceHandle": "output",
+          "target": "outer_false",
           "targetHandle": "condition",
           "color": "any"
         },
@@ -2042,31 +2113,10 @@ export const templateEntries: TemplateEntry[] = [
           "color": "any"
         },
         {
-          "source": "9",
-          "sourceHandle": "output",
-          "target": "8",
-          "targetHandle": "if_true",
-          "color": "any"
-        },
-        {
-          "source": "5",
-          "sourceHandle": "output",
-          "target": "11",
-          "targetHandle": "condition",
-          "color": "any"
-        },
-        {
           "source": "3",
           "sourceHandle": "output",
           "target": "12",
           "targetHandle": "value",
-          "color": "any"
-        },
-        {
-          "source": "12",
-          "sourceHandle": "output",
-          "target": "11",
-          "targetHandle": "if_true",
           "color": "any"
         },
         {
@@ -2077,39 +2127,67 @@ export const templateEntries: TemplateEntry[] = [
           "color": "any"
         },
         {
-          "source": "13",
-          "sourceHandle": "output",
-          "target": "11",
-          "targetHandle": "if_false",
-          "color": "any"
-        },
-        {
-          "source": "11",
-          "sourceHandle": "output",
-          "target": "10",
-          "targetHandle": "text",
-          "color": "any"
-        },
-        {
-          "source": "10",
-          "sourceHandle": "output",
-          "target": "8",
-          "targetHandle": "if_false",
-          "color": "any"
-        },
-        {
-          "source": "8",
-          "sourceHandle": "output",
-          "target": "2",
-          "targetHandle": "processing",
-          "color": "any"
-        },
-        {
           "source": "2",
           "sourceHandle": "output",
           "target": "result_output",
           "targetHandle": "value",
           "color": "string"
+        },
+        {
+          "source": "int_to_str",
+          "sourceHandle": "output",
+          "target": "pad_value",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "9",
+          "sourceHandle": "output",
+          "target": "outer_true",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "12",
+          "sourceHandle": "output",
+          "target": "inner_true",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "13",
+          "sourceHandle": "output",
+          "target": "inner_false",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "inner_false",
+          "sourceHandle": "if_false",
+          "target": "outer_false",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "outer_true",
+          "sourceHandle": "if_true",
+          "target": "out_high",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "inner_true",
+          "sourceHandle": "if_true",
+          "target": "out_low",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "outer_false",
+          "sourceHandle": "if_false",
+          "target": "out_medium",
+          "targetHandle": "value",
+          "color": "any"
         }
       ]
     }
@@ -3336,6 +3414,11 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.text.Join",
+        "label": "Join",
+        "count": 1
+      },
+      {
         "type": "nodetool.text.Prompt",
         "label": "Prompt",
         "count": 1
@@ -3351,7 +3434,7 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       }
     ],
-    "nodeCount": 12,
+    "nodeCount": 13,
     "thumbnail": "/templates/meeting-transcript-summarizer.jpg",
     "graph": {
       "nodes": [
@@ -3463,6 +3546,14 @@ export const templateEntries: TemplateEntry[] = [
           "x": 1800,
           "y": 300,
           "width": 280
+        },
+        {
+          "id": "transcript_join",
+          "type": "nodetool.text.Join",
+          "title": "Join",
+          "x": 1030,
+          "y": 40,
+          "width": 280
         }
       ],
       "edges": [
@@ -3511,43 +3602,15 @@ export const templateEntries: TemplateEntry[] = [
         {
           "source": "use_transcribed_audio",
           "sourceHandle": "if_true",
-          "target": "summarizer",
-          "targetHandle": "text",
+          "target": "transcript_join",
+          "targetHandle": "strings",
           "color": "string"
         },
         {
           "source": "use_pasted_transcript",
           "sourceHandle": "if_false",
-          "target": "summarizer",
-          "targetHandle": "text",
-          "color": "string"
-        },
-        {
-          "source": "use_transcribed_audio",
-          "sourceHandle": "if_true",
-          "target": "action_items_prompt",
-          "targetHandle": "TRANSCRIPT",
-          "color": "string"
-        },
-        {
-          "source": "use_pasted_transcript",
-          "sourceHandle": "if_false",
-          "target": "action_items_prompt",
-          "targetHandle": "TRANSCRIPT",
-          "color": "string"
-        },
-        {
-          "source": "use_transcribed_audio",
-          "sourceHandle": "if_true",
-          "target": "transcript_output",
-          "targetHandle": "value",
-          "color": "string"
-        },
-        {
-          "source": "use_pasted_transcript",
-          "sourceHandle": "if_false",
-          "target": "transcript_output",
-          "targetHandle": "value",
+          "target": "transcript_join",
+          "targetHandle": "strings",
           "color": "string"
         },
         {
@@ -3568,6 +3631,27 @@ export const templateEntries: TemplateEntry[] = [
           "source": "action_items_generator",
           "sourceHandle": "dataframe",
           "target": "action_items_output",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "transcript_join",
+          "sourceHandle": "output",
+          "target": "action_items_prompt",
+          "targetHandle": "TRANSCRIPT",
+          "color": "any"
+        },
+        {
+          "source": "transcript_join",
+          "sourceHandle": "output",
+          "target": "summarizer",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "transcript_join",
+          "sourceHandle": "output",
+          "target": "transcript_output",
           "targetHandle": "value",
           "color": "any"
         }

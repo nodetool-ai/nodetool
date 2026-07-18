@@ -120,10 +120,7 @@
         "type": "lib.image.filter.GaussianBlur",
         "data": {
           "radius": 0,
-          "sigma": 0,
-          "properties": {
-            "radius": 0
-          }
+          "sigma": 0
         },
         "ui_properties": {
           "selected": false,
@@ -144,12 +141,8 @@
         "id": "tone-node",
         "type": "lib.image.color.BrightnessContrast",
         "data": {
-          "brightness": 0.04,
-          "contrast": 1.2,
-          "properties": {
-            "brightness": 0.05,
-            "contrast": 1.15
-          }
+          "brightness": 0.05,
+          "contrast": 1.15
         },
         "ui_properties": {
           "selected": false,
@@ -172,10 +165,7 @@
         "data": {
           "hue": 0,
           "saturation": 1.2,
-          "brightness": 1,
-          "properties": {
-            "saturation": 1.2
-          }
+          "brightness": 1
         },
         "ui_properties": {
           "selected": false,
@@ -197,10 +187,7 @@
         "type": "lib.image.filter.UnsharpMask",
         "data": {
           "amount": 1,
-          "threshold": 0.02,
-          "properties": {
-            "amount": 1
-          }
+          "threshold": 0.02
         },
         "ui_properties": {
           "selected": false,

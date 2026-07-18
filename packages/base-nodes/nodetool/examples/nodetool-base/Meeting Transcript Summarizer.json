@@ -333,6 +333,21 @@
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
+      },
+      {
+        "id": "transcript_join",
+        "type": "nodetool.text.Join",
+        "data": {
+          "separator": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1030,
+            "y": 40
+          },
+          "selectable": true
+        },
+        "dynamic_properties": {}
       }
     ],
     "edges": [
@@ -400,8 +415,8 @@
         "id": "e_audio_branch_to_summarizer",
         "source": "use_transcribed_audio",
         "sourceHandle": "if_true",
-        "target": "summarizer",
-        "targetHandle": "text",
+        "target": "transcript_join",
+        "targetHandle": "strings",
         "ui_properties": {
           "className": "str"
         },
@@ -411,52 +426,8 @@
         "id": "e_manual_branch_to_summarizer",
         "source": "use_pasted_transcript",
         "sourceHandle": "if_false",
-        "target": "summarizer",
-        "targetHandle": "text",
-        "ui_properties": {
-          "className": "str"
-        },
-        "edge_type": "data"
-      },
-      {
-        "id": "e_audio_branch_to_action_prompt",
-        "source": "use_transcribed_audio",
-        "sourceHandle": "if_true",
-        "target": "action_items_prompt",
-        "targetHandle": "TRANSCRIPT",
-        "ui_properties": {
-          "className": "str"
-        },
-        "edge_type": "data"
-      },
-      {
-        "id": "e_manual_branch_to_action_prompt",
-        "source": "use_pasted_transcript",
-        "sourceHandle": "if_false",
-        "target": "action_items_prompt",
-        "targetHandle": "TRANSCRIPT",
-        "ui_properties": {
-          "className": "str"
-        },
-        "edge_type": "data"
-      },
-      {
-        "id": "e_audio_branch_to_transcript_out",
-        "source": "use_transcribed_audio",
-        "sourceHandle": "if_true",
-        "target": "transcript_output",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "str"
-        },
-        "edge_type": "data"
-      },
-      {
-        "id": "e_manual_branch_to_transcript_out",
-        "source": "use_pasted_transcript",
-        "sourceHandle": "if_false",
-        "target": "transcript_output",
-        "targetHandle": "value",
+        "target": "transcript_join",
+        "targetHandle": "strings",
         "ui_properties": {
           "className": "str"
         },
@@ -493,6 +464,30 @@
           "className": "dataframe"
         },
         "edge_type": "data"
+      },
+      {
+        "id": "101",
+        "source": "transcript_join",
+        "sourceHandle": "output",
+        "target": "action_items_prompt",
+        "targetHandle": "TRANSCRIPT",
+        "ui_properties": null
+      },
+      {
+        "id": "102",
+        "source": "transcript_join",
+        "sourceHandle": "output",
+        "target": "summarizer",
+        "targetHandle": "text",
+        "ui_properties": null
+      },
+      {
+        "id": "103",
+        "source": "transcript_join",
+        "sourceHandle": "output",
+        "target": "transcript_output",
+        "targetHandle": "value",
+        "ui_properties": null
       }
     ]
   },

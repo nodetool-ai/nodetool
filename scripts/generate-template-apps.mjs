@@ -981,10 +981,12 @@ function applySeeds(example, curated) {
     const node = example.graph.nodes.find((n) => n.id === s.node);
     if (!node) continue;
     node.data = node.data ?? {};
-    node.data.properties = node.data.properties ?? {};
-    if (node.data.properties[s.property] === undefined) {
-      node.data.properties[s.property] = s.default;
-    }
+    // Serialized graph properties live flat on node.data (that's what the
+    // runtime reads); a nested node.data.properties bag is ignored. Curation
+    // is authoritative: a curated default overrides whatever value the graph
+    // happens to carry, otherwise curated sliders silently never take effect
+    // (Image Enhance shipped 0.04/1.2 while curation said 0.05/1.15).
+    node.data[s.property] = s.default;
   }
 }
 

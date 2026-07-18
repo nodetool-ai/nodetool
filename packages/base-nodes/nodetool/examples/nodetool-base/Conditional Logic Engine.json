@@ -56,34 +56,6 @@
         "targetHandle": "text_a"
       },
       {
-        "id": "7",
-        "source": "is_low",
-        "sourceHandle": "output",
-        "target": "route_true",
-        "targetHandle": "condition"
-      },
-      {
-        "id": "8",
-        "source": "is_low",
-        "sourceHandle": "output",
-        "target": "route_false",
-        "targetHandle": "condition"
-      },
-      {
-        "id": "9",
-        "source": "route_true",
-        "sourceHandle": "if_true",
-        "target": "2",
-        "targetHandle": "route"
-      },
-      {
-        "id": "10",
-        "source": "route_false",
-        "sourceHandle": "if_false",
-        "target": "2",
-        "targetHandle": "route"
-      },
-      {
         "id": "11",
         "source": "is_high",
         "sourceHandle": "output",
@@ -119,34 +91,6 @@
         "targetHandle": "condition"
       },
       {
-        "id": "16",
-        "source": "12",
-        "sourceHandle": "output",
-        "target": "inner_true",
-        "targetHandle": "value"
-      },
-      {
-        "id": "17",
-        "source": "13",
-        "sourceHandle": "output",
-        "target": "inner_false",
-        "targetHandle": "value"
-      },
-      {
-        "id": "18",
-        "source": "inner_true",
-        "sourceHandle": "if_true",
-        "target": "10",
-        "targetHandle": "text"
-      },
-      {
-        "id": "19",
-        "source": "inner_false",
-        "sourceHandle": "if_false",
-        "target": "10",
-        "targetHandle": "text"
-      },
-      {
         "id": "20",
         "source": "is_high",
         "sourceHandle": "output",
@@ -159,34 +103,6 @@
         "sourceHandle": "output",
         "target": "outer_false",
         "targetHandle": "condition"
-      },
-      {
-        "id": "22",
-        "source": "9",
-        "sourceHandle": "output",
-        "target": "outer_true",
-        "targetHandle": "value"
-      },
-      {
-        "id": "23",
-        "source": "10",
-        "sourceHandle": "output",
-        "target": "outer_false",
-        "targetHandle": "value"
-      },
-      {
-        "id": "24",
-        "source": "outer_true",
-        "sourceHandle": "if_true",
-        "target": "2",
-        "targetHandle": "processing"
-      },
-      {
-        "id": "25",
-        "source": "outer_false",
-        "sourceHandle": "if_false",
-        "target": "2",
-        "targetHandle": "processing"
       },
       {
         "id": "26",
@@ -226,6 +142,62 @@
         "sourceHandle": "output",
         "target": "pad_value",
         "targetHandle": "text"
+      },
+      {
+        "id": "30",
+        "source": "9",
+        "sourceHandle": "output",
+        "target": "outer_true",
+        "targetHandle": "value",
+        "ui_properties": null
+      },
+      {
+        "id": "31",
+        "source": "12",
+        "sourceHandle": "output",
+        "target": "inner_true",
+        "targetHandle": "value",
+        "ui_properties": null
+      },
+      {
+        "id": "32",
+        "source": "13",
+        "sourceHandle": "output",
+        "target": "inner_false",
+        "targetHandle": "value",
+        "ui_properties": null
+      },
+      {
+        "id": "33",
+        "source": "inner_false",
+        "sourceHandle": "if_false",
+        "target": "outer_false",
+        "targetHandle": "value",
+        "ui_properties": null
+      },
+      {
+        "id": "34",
+        "source": "outer_true",
+        "sourceHandle": "if_true",
+        "target": "out_high",
+        "targetHandle": "value",
+        "ui_properties": null
+      },
+      {
+        "id": "35",
+        "source": "inner_true",
+        "sourceHandle": "if_true",
+        "target": "out_low",
+        "targetHandle": "value",
+        "ui_properties": null
+      },
+      {
+        "id": "36",
+        "source": "outer_false",
+        "sourceHandle": "if_false",
+        "target": "out_medium",
+        "targetHandle": "value",
+        "ui_properties": null
       }
     ],
     "nodes": [
@@ -296,7 +268,7 @@
         "id": "2",
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "## Conditional Logic Decision Result\n\n**Input Value:** {{ value }}\n\n**Condition Checks:**\n- Greater than 100? {{ gt_100 }}\n- Less than 50? {{ lt_50 }}\n- Combined (OR): {{ combined }}\n- Route Decision: {{ route }}\n\n**Processing Path:**\n{{ processing }}\n\n**Decision Logic:**\nThis workflow demonstrates:\n- Deriving a boolean from a number with PadText + Compare + Equals\n- If-pair convergence as an if/else select\n- If-pair convergence as an OR gate\n- Nested conditional branching\n- Result aggregation"
+          "prompt": "## Conditional Logic Decision Result\n\n**Input Value:** {{ value }}\n\n**Condition Checks:**\n- Greater than 100? {{ gt_100 }}\n- Less than 50? {{ lt_50 }}\n- Combined (OR): {{ combined }}\n\n**Decision Logic:**\nThis workflow demonstrates:\n- Deriving a boolean from a number with PadText + Compare + Equals\n- If nodes gating three parallel branches (only the taken path emits)\n- Nested negation by chaining if_false through two If gates\n- Per-branch Output nodes: high_priority / medium_priority / low_priority\n\nBranches never converge into one non-list input — the engine's correlation\nanalysis forbids fan-in except into list-typed handles."
         },
         "ui_properties": {
           "position": {
@@ -446,46 +418,6 @@
         "dynamic_outputs": {}
       },
       {
-        "id": "route_true",
-        "type": "nodetool.control.If",
-        "data": {
-          "value": "EXTREME_VALUE"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 1300,
-            "y": 640
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true,
-          "bypassed": false,
-          "title": "Route: extreme (low)"
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
-      },
-      {
-        "id": "route_false",
-        "type": "nodetool.control.If",
-        "data": {
-          "value": "MEDIUM_VALUE"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 1300,
-            "y": 780
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true,
-          "bypassed": false,
-          "title": "Route: medium"
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
-      },
-      {
         "id": "outer_true",
         "type": "nodetool.control.If",
         "data": {},
@@ -540,28 +472,6 @@
         },
         "dynamic_properties": {
           "value": "75"
-        },
-        "dynamic_outputs": {}
-      },
-      {
-        "id": "10",
-        "type": "nodetool.text.Prompt",
-        "data": {
-          "prompt": "{{ text }}"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 1050,
-            "y": 220
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true,
-          "bypassed": false,
-          "title": "Selected message"
-        },
-        "dynamic_properties": {
-          "text": "🟡 MEDIUM VALUE: 75 is between 50 and 100. Balanced processing selected."
         },
         "dynamic_outputs": {}
       },
@@ -683,6 +593,51 @@
           "bypassed": false,
           "title": "Number → text (so PadText can format it)"
         }
+      },
+      {
+        "id": "out_high",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "high_priority"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1710,
+            "y": 120
+          },
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "out_low",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "low_priority"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1030,
+            "y": 180
+          },
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "out_medium",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "medium_priority"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1710,
+            "y": 280
+          },
+          "selectable": true
+        },
+        "dynamic_properties": {}
       }
     ]
   },
@@ -784,10 +739,66 @@
                   "title": "Results",
                   "content": [
                     {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-result",
+                        "text": "Result",
+                        "level": "3"
+                      }
+                    },
+                    {
                       "type": "Markdown",
                       "props": {
                         "id": "out-result",
                         "binding": "Result",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-high-priority",
+                        "text": "High Priority",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-high-priority",
+                        "binding": "high_priority",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-low-priority",
+                        "text": "Low Priority",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-low-priority",
+                        "binding": "low_priority",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-medium-priority",
+                        "text": "Medium Priority",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-medium-priority",
+                        "binding": "medium_priority",
                         "text": ""
                       }
                     }

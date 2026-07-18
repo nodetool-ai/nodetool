@@ -27,7 +27,24 @@ export const miniAppEntries: MiniAppEntry[] = [
     "heading": "Ad Creative Factory",
     "tagline": "Turn one product photo and one offer into a batch of ready-to-test video ads.",
     "buttonLabel": "Generate my ads",
-    "inputs": [],
+    "inputs": [
+      {
+        "label": "Product Offer",
+        "kind": "text"
+      },
+      {
+        "label": "Audience",
+        "kind": "text"
+      },
+      {
+        "label": "Variant Count",
+        "kind": "number"
+      },
+      {
+        "label": "Product Photo",
+        "kind": "image"
+      }
+    ],
     "outputs": [
       {
         "label": "Hooks",
@@ -62,7 +79,12 @@ export const miniAppEntries: MiniAppEntry[] = [
     "heading": "Audio To Image",
     "tagline": "Describe a scene out loud — get it back as a picture.",
     "buttonLabel": "Turn my voice into art",
-    "inputs": [],
+    "inputs": [
+      {
+        "label": "Description",
+        "kind": "audio"
+      }
+    ],
     "outputs": [
       {
         "label": "Image",
@@ -94,7 +116,24 @@ export const miniAppEntries: MiniAppEntry[] = [
     "heading": "Brand Asset Generator",
     "tagline": "Type your brand name and vibe — get logo-ready visuals in seconds.",
     "buttonLabel": "Generate brand assets",
-    "inputs": [],
+    "inputs": [
+      {
+        "label": "Brand Name",
+        "kind": "text"
+      },
+      {
+        "label": "Brand Description",
+        "kind": "text"
+      },
+      {
+        "label": "Tagline",
+        "kind": "text"
+      },
+      {
+        "label": "Primary Color",
+        "kind": "color"
+      }
+    ],
     "outputs": [
       {
         "label": "Social Assets",
@@ -130,7 +169,28 @@ export const miniAppEntries: MiniAppEntry[] = [
     "heading": "Chat With Your Documents",
     "tagline": "Ask questions about your own documents — answers cite their source and refuse to guess.",
     "buttonLabel": "Ask",
-    "inputs": [],
+    "inputs": [
+      {
+        "label": "Question",
+        "kind": "text"
+      },
+      {
+        "label": "Search",
+        "kind": "text"
+      },
+      {
+        "label": "Doc Specs",
+        "kind": "text"
+      },
+      {
+        "label": "Doc Charging",
+        "kind": "text"
+      },
+      {
+        "label": "Doc Warranty",
+        "kind": "text"
+      }
+    ],
     "outputs": [
       {
         "label": "Answer",
@@ -166,7 +226,16 @@ export const miniAppEntries: MiniAppEntry[] = [
     "heading": "Cold Outreach Co-Pilot",
     "tagline": "An agent researches your prospect and writes a cold email that opens with a real, specific detail.",
     "buttonLabel": "Research & write my email",
-    "inputs": [],
+    "inputs": [
+      {
+        "label": "Prospect / Company",
+        "kind": "text"
+      },
+      {
+        "label": "Your Offer",
+        "kind": "text"
+      }
+    ],
     "outputs": [
       {
         "label": "Company Summary",
@@ -213,6 +282,10 @@ export const miniAppEntries: MiniAppEntry[] = [
     "buttonLabel": "Boost my video",
     "inputs": [
       {
+        "label": "Source Video",
+        "kind": "video"
+      },
+      {
         "label": "Grading intensity",
         "kind": "number"
       }
@@ -248,8 +321,20 @@ export const miniAppEntries: MiniAppEntry[] = [
     "buttonLabel": "Generate concept art",
     "inputs": [
       {
+        "label": "Creative Brief",
+        "kind": "text"
+      },
+      {
         "label": "Art style",
         "kind": "choice"
+      },
+      {
+        "label": "Mood Keywords",
+        "kind": "text"
+      },
+      {
+        "label": "Variations",
+        "kind": "number"
       }
     ],
     "outputs": [
@@ -269,7 +354,7 @@ export const miniAppEntries: MiniAppEntry[] = [
     "indexable": true,
     "slug": "conditional-logic-engine",
     "name": "Conditional Logic Engine",
-    "summary": "Teaching example for control flow: one number drives two independent decision structures — a boolean OR gate and a nested switch tree — built entirely from Compare, LogicalOperator, and ConditionalSwitch nodes, no LLM calls.",
+    "summary": "Teaching example for control flow: one number drives two independent decision structures built entirely from If nodes — there is no dedicated numeric-compare or boolean-logic node in NodeTool, so this shows the actual pattern: PadText + Compare + Equals turn the number into a boolean, then pairs of If nodes sharing one condition (each holding its own value, taking the opposite branch) act as the ternary select and OR you'd otherwise reach for. No LLM calls.",
     "featured": false,
     "templateRoute": "/templates/conditional-logic-engine",
     "screenshot": "/apps/conditional-logic-engine.png",
@@ -279,7 +364,12 @@ export const miniAppEntries: MiniAppEntry[] = [
     "heading": "Conditional Logic Engine",
     "tagline": "A teaching example: one number routes down a high or low branch.",
     "buttonLabel": "Run the logic",
-    "inputs": [],
+    "inputs": [
+      {
+        "label": "Value",
+        "kind": "number"
+      }
+    ],
     "outputs": [
       {
         "label": "Result",
@@ -307,7 +397,16 @@ export const miniAppEntries: MiniAppEntry[] = [
     "heading": "Data Generator",
     "tagline": "Describe the dataset you need — an agent generates it, structured and ready.",
     "buttonLabel": "Generate data",
-    "inputs": [],
+    "inputs": [
+      {
+        "label": "Topic",
+        "kind": "text"
+      },
+      {
+        "label": "Row Count",
+        "kind": "number"
+      }
+    ],
     "outputs": [
       {
         "label": "Generated Data",
@@ -339,7 +438,16 @@ export const miniAppEntries: MiniAppEntry[] = [
     "heading": "Flashcard Generator",
     "tagline": "Type a topic — get study flashcards as structured cards, saved for review.",
     "buttonLabel": "Make flashcards",
-    "inputs": [],
+    "inputs": [
+      {
+        "label": "Topic",
+        "kind": "text"
+      },
+      {
+        "label": "Num Cards",
+        "kind": "number"
+      }
+    ],
     "outputs": [
       {
         "label": "Flashcards",
@@ -369,7 +477,12 @@ export const miniAppEntries: MiniAppEntry[] = [
     "heading": "Hacker News Agent",
     "tagline": "Give it a topic — get a smart digest of what Hacker News is saying about it.",
     "buttonLabel": "Analyze the front page",
-    "inputs": [],
+    "inputs": [
+      {
+        "label": "Topic",
+        "kind": "text"
+      }
+    ],
     "outputs": [
       {
         "label": "Analysis",
@@ -401,7 +514,20 @@ export const miniAppEntries: MiniAppEntry[] = [
     "heading": "Hook & Thumbnail Factory",
     "tagline": "Give it a video topic — get scroll-stopping hooks and a gallery of matching thumbnails.",
     "buttonLabel": "Make hooks & thumbnails",
-    "inputs": [],
+    "inputs": [
+      {
+        "label": "Video Topic",
+        "kind": "text"
+      },
+      {
+        "label": "Target Audience",
+        "kind": "text"
+      },
+      {
+        "label": "Number Of Hooks",
+        "kind": "number"
+      }
+    ],
     "outputs": [
       {
         "label": "Thumbnail Gallery",
@@ -440,6 +566,10 @@ export const miniAppEntries: MiniAppEntry[] = [
     "tagline": "A live photo editor: drag Denoise, Brightness, Contrast, Saturation, and Sharpen — the preview re-renders on release.",
     "buttonLabel": "Enhance my photo",
     "inputs": [
+      {
+        "label": "Image",
+        "kind": "image"
+      },
       {
         "label": "Denoise",
         "kind": "number"
@@ -490,7 +620,12 @@ export const miniAppEntries: MiniAppEntry[] = [
     "heading": "Image To Audio Story",
     "tagline": "Point it at a picture — hear the story it tells, narrated aloud.",
     "buttonLabel": "Tell me its story",
-    "inputs": [],
+    "inputs": [
+      {
+        "label": "Image",
+        "kind": "image"
+      }
+    ],
     "outputs": [
       {
         "label": "Narration",
@@ -520,7 +655,24 @@ export const miniAppEntries: MiniAppEntry[] = [
     "heading": "Image to Video Animation",
     "tagline": "Type a scene — get a still, then watch it come alive as a cinematic clip.",
     "buttonLabel": "Animate my scene",
-    "inputs": [],
+    "inputs": [
+      {
+        "label": "Scene Prompt",
+        "kind": "text"
+      },
+      {
+        "label": "Motion Prompt",
+        "kind": "text"
+      },
+      {
+        "label": "Duration Prompt",
+        "kind": "text"
+      },
+      {
+        "label": "Negative Prompt",
+        "kind": "text"
+      }
+    ],
     "outputs": [
       {
         "label": "Animation",
@@ -550,7 +702,16 @@ export const miniAppEntries: MiniAppEntry[] = [
     "heading": "Meeting Transcript Summarizer",
     "tagline": "Drop in a meeting recording — get the transcript, notes, and action items back.",
     "buttonLabel": "Summarize my meeting",
-    "inputs": [],
+    "inputs": [
+      {
+        "label": "Recording",
+        "kind": "audio"
+      },
+      {
+        "label": "Transcript",
+        "kind": "text"
+      }
+    ],
     "outputs": [
       {
         "label": "Transcript",
@@ -590,7 +751,16 @@ export const miniAppEntries: MiniAppEntry[] = [
     "heading": "Model Arena",
     "tagline": "One brief, three frontier models, answered side by side.",
     "buttonLabel": "Compare the models",
-    "inputs": [],
+    "inputs": [
+      {
+        "label": "Brief",
+        "kind": "text"
+      },
+      {
+        "label": "Context",
+        "kind": "text"
+      }
+    ],
     "outputs": [
       {
         "label": "Openai",
@@ -630,8 +800,16 @@ export const miniAppEntries: MiniAppEntry[] = [
     "buttonLabel": "Make my poster",
     "inputs": [
       {
+        "label": "Movie Title",
+        "kind": "text"
+      },
+      {
         "label": "Genre",
         "kind": "choice"
+      },
+      {
+        "label": "Visual Style",
+        "kind": "text"
       }
     ],
     "outputs": [
@@ -667,7 +845,20 @@ export const miniAppEntries: MiniAppEntry[] = [
     "heading": "Movie Trailer Generator",
     "tagline": "Type one logline — get a cinematic teaser cut shot-by-shot.",
     "buttonLabel": "Cut my trailer",
-    "inputs": [],
+    "inputs": [
+      {
+        "label": "Logline",
+        "kind": "text"
+      },
+      {
+        "label": "Visual Style",
+        "kind": "text"
+      },
+      {
+        "label": "Shot Count",
+        "kind": "text"
+      }
+    ],
     "outputs": [
       {
         "label": "Trailer",
@@ -699,7 +890,24 @@ export const miniAppEntries: MiniAppEntry[] = [
     "heading": "Music Video Visualizer",
     "tagline": "Feed it a track — get mood-matched visuals cut to your music.",
     "buttonLabel": "Visualize my track",
-    "inputs": [],
+    "inputs": [
+      {
+        "label": "Audio Track",
+        "kind": "audio"
+      },
+      {
+        "label": "Genre Hint",
+        "kind": "text"
+      },
+      {
+        "label": "Visual Style",
+        "kind": "text"
+      },
+      {
+        "label": "Num Frames",
+        "kind": "text"
+      }
+    ],
     "outputs": [
       {
         "label": "Music Video",
@@ -730,6 +938,10 @@ export const miniAppEntries: MiniAppEntry[] = [
     "tagline": "Batch-enhance a set of photos — tune brightness and color, run the whole retouch chain.",
     "buttonLabel": "Enhance my photos",
     "inputs": [
+      {
+        "label": "Photos",
+        "kind": "image"
+      },
       {
         "label": "Brightness",
         "kind": "number"
@@ -771,7 +983,20 @@ export const miniAppEntries: MiniAppEntry[] = [
     "heading": "Podcast Repurposing Studio",
     "tagline": "One episode in — show notes, a newsletter, social posts, and quote cards out.",
     "buttonLabel": "Repurpose my episode",
-    "inputs": [],
+    "inputs": [
+      {
+        "label": "Episode Audio",
+        "kind": "audio"
+      },
+      {
+        "label": "Show Context",
+        "kind": "text"
+      },
+      {
+        "label": "Quote Count",
+        "kind": "number"
+      }
+    ],
     "outputs": [
       {
         "label": "Show Notes",
@@ -811,7 +1036,16 @@ export const miniAppEntries: MiniAppEntry[] = [
     "heading": "Pokemon Maker",
     "tagline": "Mix any animals you like — meet the gallery of creatures they become.",
     "buttonLabel": "Create my creatures",
-    "inputs": [],
+    "inputs": [
+      {
+        "label": "Animals",
+        "kind": "text"
+      },
+      {
+        "label": "Style",
+        "kind": "choice"
+      }
+    ],
     "outputs": [
       {
         "label": "Pokemon",
@@ -844,6 +1078,14 @@ export const miniAppEntries: MiniAppEntry[] = [
     "tagline": "Ask questions about your own notes — fully local, no API keys.",
     "buttonLabel": "Ask locally",
     "inputs": [
+      {
+        "label": "Document",
+        "kind": "text"
+      },
+      {
+        "label": "Question",
+        "kind": "text"
+      },
       {
         "label": "Answer tone",
         "kind": "choice"
@@ -879,7 +1121,28 @@ export const miniAppEntries: MiniAppEntry[] = [
     "heading": "Product Mockup Generator",
     "tagline": "Turn one product shot into a set of polished lifestyle mockups.",
     "buttonLabel": "Generate mockups",
-    "inputs": [],
+    "inputs": [
+      {
+        "label": "Product Image",
+        "kind": "image"
+      },
+      {
+        "label": "Product Name",
+        "kind": "text"
+      },
+      {
+        "label": "Product Description",
+        "kind": "text"
+      },
+      {
+        "label": "Target Audience",
+        "kind": "text"
+      },
+      {
+        "label": "Num Scenes",
+        "kind": "number"
+      }
+    ],
     "outputs": [
       {
         "label": "Mockup",
@@ -914,7 +1177,24 @@ export const miniAppEntries: MiniAppEntry[] = [
     "heading": "Product Video Generator",
     "tagline": "Brief in, launch video out — a realistic 16:9 spot for your product.",
     "buttonLabel": "Generate launch video",
-    "inputs": [],
+    "inputs": [
+      {
+        "label": "Campaign Brief",
+        "kind": "text"
+      },
+      {
+        "label": "Target Audience",
+        "kind": "text"
+      },
+      {
+        "label": "Key Features",
+        "kind": "text"
+      },
+      {
+        "label": "Image Input 1",
+        "kind": "image"
+      }
+    ],
     "outputs": [
       {
         "label": "Product Video",
@@ -946,7 +1226,16 @@ export const miniAppEntries: MiniAppEntry[] = [
     "heading": "Prompt Template",
     "tagline": "The starter pattern: typed inputs fill a prompt, an LLM answers, the output renders.",
     "buttonLabel": "Explain it",
-    "inputs": [],
+    "inputs": [
+      {
+        "label": "Topic",
+        "kind": "text"
+      },
+      {
+        "label": "Audience",
+        "kind": "text"
+      }
+    ],
     "outputs": [
       {
         "label": "Explanation",
@@ -980,7 +1269,16 @@ export const miniAppEntries: MiniAppEntry[] = [
     "heading": "Research Agent",
     "tagline": "Give it a topic and audience — the agent searches, browses, and streams back a cited brief.",
     "buttonLabel": "Run the research",
-    "inputs": [],
+    "inputs": [
+      {
+        "label": "Topic",
+        "kind": "text"
+      },
+      {
+        "label": "Audience",
+        "kind": "text"
+      }
+    ],
     "outputs": [
       {
         "label": "Brief",
@@ -1008,7 +1306,12 @@ export const miniAppEntries: MiniAppEntry[] = [
     "heading": "Research Paper Summarizer",
     "tagline": "Name a topic — get the key paper summarized in plain terms.",
     "buttonLabel": "Summarize the research",
-    "inputs": [],
+    "inputs": [
+      {
+        "label": "Topic",
+        "kind": "text"
+      }
+    ],
     "outputs": [
       {
         "label": "Summary",
@@ -1041,7 +1344,20 @@ export const miniAppEntries: MiniAppEntry[] = [
     "heading": "SEO Content Engine",
     "tagline": "One topic in — a keyword-targeted article batch out, with hero images.",
     "buttonLabel": "Plan & write my articles",
-    "inputs": [],
+    "inputs": [
+      {
+        "label": "Business",
+        "kind": "text"
+      },
+      {
+        "label": "Audience And Seeds",
+        "kind": "text"
+      },
+      {
+        "label": "Article Count",
+        "kind": "number"
+      }
+    ],
     "outputs": [
       {
         "label": "Content Plan",
@@ -1093,7 +1409,28 @@ export const miniAppEntries: MiniAppEntry[] = [
     "heading": "Social Media Calendar Filler",
     "tagline": "Fill a month of social posts — a structured calendar with an image for every row.",
     "buttonLabel": "Fill my calendar",
-    "inputs": [],
+    "inputs": [
+      {
+        "label": "Brand Name",
+        "kind": "text"
+      },
+      {
+        "label": "Monthly Theme",
+        "kind": "text"
+      },
+      {
+        "label": "Target Audience",
+        "kind": "text"
+      },
+      {
+        "label": "Brand Voice",
+        "kind": "text"
+      },
+      {
+        "label": "Posts Per Week",
+        "kind": "number"
+      }
+    ],
     "outputs": [
       {
         "label": "Content Calendar",
@@ -1127,7 +1464,12 @@ export const miniAppEntries: MiniAppEntry[] = [
     "heading": "Summarize RSS",
     "tagline": "Your feed, read for you — paste a URL, get a clean daily brief.",
     "buttonLabel": "Brief me",
-    "inputs": [],
+    "inputs": [
+      {
+        "label": "Feed Url",
+        "kind": "text"
+      }
+    ],
     "outputs": [
       {
         "label": "Summary",
@@ -1157,7 +1499,12 @@ export const miniAppEntries: MiniAppEntry[] = [
     "heading": "Transcribe Audio",
     "tagline": "Speech to text with word-level timestamps — paste-ready in seconds.",
     "buttonLabel": "Transcribe",
-    "inputs": [],
+    "inputs": [
+      {
+        "label": "Audio",
+        "kind": "audio"
+      }
+    ],
     "outputs": [
       {
         "label": "Transcript",
@@ -1188,7 +1535,12 @@ export const miniAppEntries: MiniAppEntry[] = [
     "heading": "Workflow As A Tool",
     "tagline": "An orchestrator agent delegates to specialist sub-agents wired in as callable tools.",
     "buttonLabel": "Run the team",
-    "inputs": [],
+    "inputs": [
+      {
+        "label": "Topic",
+        "kind": "text"
+      }
+    ],
     "outputs": [
       {
         "label": "Article",
