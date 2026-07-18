@@ -219,6 +219,10 @@ mid-session app restart. User config in the bundle: server URL (default
 `http://127.0.0.1:7777/mcp`) and an optional bearer token. For CLI agents
 (Claude Code, Codex) use `nodetool mcp install` instead.
 
+Every release builds and attaches `nodetool-<version>.mcpb` to the GitHub
+Release (`release.yaml`, built once on Linux since the bundle is
+cross-platform).
+
 ### nodetool run (DSL Workflows)
 
 ```bash

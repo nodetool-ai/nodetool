@@ -262,6 +262,20 @@ jobs:
           ls -lh nodetool-web-${VERSION_NO_V}.zip
           echo "archive_name=nodetool-web-${VERSION_NO_V}.zip" >> $GITHUB_OUTPUT
 
+      # The .mcpb is a single cross-platform artifact (a stdio<->HTTP bridge, no
+      # native modules), so build it once on Linux. It carries the version synced
+      # into electron/package.json above; --smoke validates the bundle before we
+      # ship it.
+      - name: Build MCP bundle (.mcpb)
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash -l {0}
+        run: |
+          set -euo pipefail
+          VERSION_NO_V="${VERSION#v}"
+          VERSION_NO_V="${VERSION_NO_V//\//-}"
+          node scripts/build-mcpb.mjs --smoke --out "dist/nodetool-${VERSION_NO_V}.mcpb"
+          ls -lh "dist/nodetool-${VERSION_NO_V}.mcpb"
+
       - name: Build Electron (Windows, unpacked)
         if: matrix.os == 'windows-2022'
         shell: bash -l {0}
@@ -688,6 +702,15 @@ jobs:
           if-no-files-found: ignore
           path: nodetool-web-*.zip
 
+      - name: Upload MCP bundle artifact
+        if: matrix.os == 'ubuntu-latest' && always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: nodetool-mcpb
+          retention-days: 7
+          if-no-files-found: ignore
+          path: dist/nodetool-*.mcpb
+
       - name: Upload build artifacts
         if: always()
         uses: actions/upload-artifact@v7
@@ -816,4 +839,5 @@ jobs:
             release-assets/*.exe
             release-assets/*.blockmap
             release-assets/*.yml
+            release-assets/*.mcpb
           fail_on_unmatched_files: true
