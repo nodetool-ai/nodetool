@@ -3,6 +3,7 @@ import type {} from "@mui/material/themeCssVarsAugmentation";
 import { paletteDark } from "./paletteDark";
 import { paletteLight } from "./paletteLight";
 import { editorControlsComponents } from "./components/editorControls";
+import { CONTROL } from "../ui_primitives";
 
 import "@fontsource/inter";
 import "@fontsource/inter/200.css";
@@ -67,13 +68,13 @@ const ThemeNodetool = createTheme({
   // Minimal editor-specific values. Keep this small; expand only when needed.
   // Applied only behind editor marker classes to avoid cross-screen leakage.
   editor: {
-    heightNode: "28px",
-    heightInspector: "32px",
+    heightNode: `${CONTROL.height.sm}px`,
+    heightInspector: `${CONTROL.height.md}px`,
     padXNode: "8px",
     padYNode: "4px",
     padXInspector: "10px",
     padYInspector: "6px",
-    controlRadius: "6px",
+    controlRadius: CONTROL.radius,
     menuRadius: "8px",
     menuShadow: "0 10px 30px rgba(0, 0, 0, 0.5)"
   },
