@@ -24,7 +24,7 @@ export default function ComparisonSection({
           </div>
           <motion.h2
             id="differences-title"
-            initial={reducedMotion ? {} : { opacity: 0, y: 16 }}
+            initial={false}
             whileInView={reducedMotion ? {} : { opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.25 }}
@@ -33,7 +33,7 @@ export default function ComparisonSection({
             Where NodeTool fits among your tools
           </motion.h2>
           <motion.p
-            initial={reducedMotion ? {} : { opacity: 0, y: 16 }}
+            initial={false}
             whileInView={reducedMotion ? {} : { opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.25, delay: 0.05 }}
@@ -67,7 +67,7 @@ export default function ComparisonSection({
 
         {/* Position panel */}
         <motion.div
-          initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+          initial={false}
           whileInView={reducedMotion ? {} : { opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.3, delay: 0.08 }}
@@ -138,7 +138,7 @@ function ComparisonCard({
 
   return (
     <motion.article
-      initial={reducedMotion ? {} : { opacity: 0, y: 16 }}
+      initial={false}
       whileInView={reducedMotion ? {} : { opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.25, delay }}
