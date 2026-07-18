@@ -126,8 +126,10 @@ export interface Shot {
   location_id?: string | null;
   /** Cheap still anchoring the shot (the storyboard frame). */
   keyframe?: ImageRef | null;
-  /** Final animated clip. */
+  /** The selected clip — what assembly/export uses. */
   clip?: VideoRef | null;
+  /** Every rendered take for this shot, oldest first. `clip` is one of them. */
+  clip_versions?: VideoRef[];
   status: ShotStatus;
   /** Estimated cost to render this shot's clip, for the gate. */
   cost_estimate?: number | null;

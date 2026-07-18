@@ -1816,5 +1816,45 @@ export const migrations: MigrationDef[] = [
       await db.execute("DROP INDEX IF EXISTS idx_wshare_workflow_id");
       await db.execute("DROP TABLE IF EXISTS nodetool_workflow_shares");
     }
+  },
+
+  // ── Create storyboards ──────────────────────────────────────
+  {
+    version: "20260718_000000",
+    name: "create_storyboards",
+    createsTables: ["storyboards"],
+    modifiesTables: [],
+    async up(db) {
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS storyboards (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          project_id TEXT NOT NULL,
+          name TEXT NOT NULL,
+          document TEXT NOT NULL,
+          timeline_id TEXT,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_storyboard_user
+        ON storyboards (user_id)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_storyboard_project
+        ON storyboards (project_id)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_storyboard_updated
+        ON storyboards (updated_at)
+      `);
+    },
+    async down(db) {
+      await db.execute("DROP INDEX IF EXISTS idx_storyboard_user");
+      await db.execute("DROP INDEX IF EXISTS idx_storyboard_project");
+      await db.execute("DROP INDEX IF EXISTS idx_storyboard_updated");
+      await db.execute("DROP TABLE IF EXISTS storyboards");
+    }
   }
 ];
