@@ -4,6 +4,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 import { track } from "../lib/analytics";
+import { useGithubStars, formatStars } from "../lib/useGithubStars";
 
 /**
  * Single shared site header used by every route (P3). Replaces the per-page
@@ -53,16 +54,7 @@ function Wordmark() {
 export default function SiteHeader() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [stars, setStars] = useState<number | null>(null);
-
-  useEffect(() => {
-    fetch(`https://api.github.com/repos/nodetool-ai/nodetool`)
-      .then((r) => r.json())
-      .then((j) => {
-        if (typeof j.stargazers_count === "number") setStars(j.stargazers_count);
-      })
-      .catch(() => {});
-  }, []);
+  const stars = useGithubStars();
 
   useEffect(() => {
     if (!mobileOpen) return;
@@ -144,7 +136,7 @@ export default function SiteHeader() {
                 <span>Star on GitHub</span>
                 {stars !== null && (
                   <span className="ml-1 rounded-md bg-slate-800 px-1.5 py-0.5 text-xs font-medium text-slate-300">
-                    {stars >= 1000 ? `${(stars / 1000).toFixed(1)}k` : stars}
+                    {formatStars(stars)}
                   </span>
                 )}
               </a>

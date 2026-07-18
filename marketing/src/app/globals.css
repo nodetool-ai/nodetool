@@ -284,8 +284,8 @@
   .fly-in {
     opacity: 0;
     transform: translateY(16px);
-    transition: transform 600ms cubic-bezier(0.2, 0.8, 0.2, 1),
-      opacity 600ms ease;
+    transition: transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      opacity 300ms ease;
     transition-delay: var(--fly-delay, 0ms);
     will-change: transform, opacity;
   }
@@ -455,11 +455,11 @@
 }
 
 .hero-rise {
-  animation: heroRise 600ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: heroRise 350ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 .hero-rise-delayed {
-  animation: heroRise 700ms cubic-bezier(0.2, 0.8, 0.2, 1) 150ms both;
+  animation: heroRise 400ms cubic-bezier(0.2, 0.8, 0.2, 1) 80ms both;
 }
 
 @media (prefers-reduced-motion: reduce) {

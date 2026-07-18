@@ -19,7 +19,7 @@ export default function ContactSection() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.25 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
             Get in <br />
@@ -32,7 +32,7 @@ export default function ContactSection() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.1 }}
+            transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-300"
           >
             Questions, bug reports, feature requests — we answer.
@@ -83,7 +83,7 @@ export default function ContactSection() {
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
+              transition={{ delay: i * 0.05 }}
             >
               <Tilt3D className="h-full">
                 <div className="group relative h-full flex flex-col items-center justify-center text-center rounded-2xl border border-white/5 bg-slate-900/40 backdrop-blur-sm p-10 transition-all duration-300 hover:bg-slate-900/60 hover:border-white/10 hover:shadow-2xl">

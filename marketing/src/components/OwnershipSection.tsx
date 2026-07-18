@@ -44,7 +44,7 @@ export default function OwnershipSection({
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.25 }}
             className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
             Your keys. Your files. <br />
@@ -54,7 +54,7 @@ export default function OwnershipSection({
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.1 }}
+            transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
             Every closed AI tool ends the same way: a price hike, fewer
@@ -69,7 +69,7 @@ export default function OwnershipSection({
           className="grid grid-cols-1 gap-px sm:grid-cols-2 lg:grid-cols-4 rounded-2xl overflow-hidden bg-white/5 ring-1 ring-white/5"
           initial="hidden"
           whileInView="show"
-          viewport={{ once: true, margin: "-100px" }}
+          viewport={{ once: true, margin: "-40px" }}
           variants={{
             show: { transition: { staggerChildren: 0.08 } },
           }}
@@ -79,7 +79,7 @@ export default function OwnershipSection({
               key={item.title}
               variants={{
                 hidden: { opacity: 0, y: 16 },
-                show: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+                show: { opacity: 1, y: 0, transition: { duration: 0.25 } },
               }}
               className="h-full"
             >

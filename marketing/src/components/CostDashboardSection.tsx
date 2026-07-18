@@ -113,7 +113,7 @@ export default function CostDashboardSection() {
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.7, ease: "easeOut" }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
           className="relative mx-auto max-w-5xl"
         >
           <div className="relative overflow-hidden rounded-xl border border-white/[0.06] bg-[#0b0d12] shadow-strong">
@@ -257,8 +257,8 @@ export default function CostDashboardSection() {
                             whileInView={{ scaleY: 1 }}
                             viewport={{ once: true }}
                             transition={{
-                              duration: 0.5,
-                              delay: 0.2 + i * 0.012,
+                              duration: 0.25,
+                              delay: 0.05 + i * 0.012,
                               ease: [0.2, 0.8, 0.2, 1],
                             }}
                           >
@@ -346,8 +346,8 @@ export default function CostDashboardSection() {
                           whileInView={{ scaleX: 1 }}
                           viewport={{ once: true }}
                           transition={{
-                            duration: 0.6,
-                            delay: 0.3 + i * 0.06,
+                            duration: 0.3,
+                            delay: 0.08 + i * 0.06,
                             ease: [0.2, 0.8, 0.2, 1],
                           }}
                         />

@@ -95,7 +95,7 @@ export default function AgentsGraphHero() {
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5 }}
+                        transition={{ duration: 0.25 }}
                     >
                         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-rose-500/10 border border-rose-500/20 mb-6">
                             <Sparkles className="w-4 h-4 text-rose-300" />
@@ -385,7 +385,7 @@ function Node({ data, index }: { data: NodeData, index: number }) {
         <motion.div
             initial={{ opacity: 0, scale: 0.8, z: 0 }}
             animate={{ opacity: 1, scale: 1, z: 20 }}
-            transition={{ delay: 0.2 + (index * 0.1), duration: 0.5 }}
+            transition={{ delay: 0.05 + (index * 0.05), duration: 0.25 }}
             style={{
                 left: `${data.x}%`,
                 top: `${data.y}%`,
