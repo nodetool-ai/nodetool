@@ -41,7 +41,7 @@ export default function OwnershipSection({
       <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mb-16 text-center max-w-2xl mx-auto">
           <motion.h2
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.25 }}
@@ -51,7 +51,7 @@ export default function OwnershipSection({
             <span className="text-slate-300">Your roadmap.</span>
           </motion.h2>
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.25, delay: 0.05 }}
@@ -78,7 +78,7 @@ export default function OwnershipSection({
             <motion.div
               key={item.title}
               variants={{
-                hidden: { opacity: 0, y: 16 },
+                hidden: { opacity: 1, y: 0 },
                 show: { opacity: 1, y: 0, transition: { duration: 0.25 } },
               }}
               className="h-full"

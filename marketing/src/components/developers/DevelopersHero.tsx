@@ -10,7 +10,7 @@ export default function DevelopersHero() {
       <div className="text-center max-w-4xl mx-auto">
         {/* Badge */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25 }}
           className="mb-6"
@@ -24,7 +24,7 @@ export default function DevelopersHero() {
         {/* Title */}
         <motion.h1
           id="hero-title"
-          initial={{ opacity: 0, y: 20 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25, delay: 0.05 }}
           className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight"
@@ -37,7 +37,7 @@ export default function DevelopersHero() {
 
         {/* Subtitle */}
         <motion.p
-          initial={{ opacity: 0, y: 20 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25, delay: 0.05 }}
           className="mt-6 text-lg sm:text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed"
@@ -50,7 +50,7 @@ export default function DevelopersHero() {
 
         {/* Feature Pills */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25, delay: 0.08 }}
           className="mt-8 flex flex-wrap justify-center gap-3"
@@ -73,7 +73,7 @@ export default function DevelopersHero() {
 
         {/* CTA Buttons */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25, delay: 0.05 }}
           className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4"

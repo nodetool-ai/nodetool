@@ -83,7 +83,7 @@ export default function CommunitySection({
           <div className={v.topBar} />
 
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             className="max-w-2xl mx-auto"

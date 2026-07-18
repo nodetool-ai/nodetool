@@ -28,7 +28,7 @@ export default function UseCasesSection({
         <div className="mb-16 text-center max-w-2xl mx-auto">
           <motion.h2
             id="use-cases-title"
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.25 }}
@@ -37,7 +37,7 @@ export default function UseCasesSection({
             What people build
           </motion.h2>
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.25, delay: 0.05 }}
@@ -60,7 +60,7 @@ export default function UseCasesSection({
             <motion.div
               key={item.name}
               variants={{
-                hidden: { opacity: 0, y: 20 },
+                hidden: { opacity: 1, y: 0 },
                 show: { opacity: 1, y: 0, transition: { duration: 0.25 } },
               }}
             >
@@ -104,7 +104,7 @@ export default function UseCasesSection({
         <div className="mt-16 text-center">
           <motion.a
             href="/templates"
-            initial={{ opacity: 0 }}
+            initial={false}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
             transition={{ delay: 0.05 }}

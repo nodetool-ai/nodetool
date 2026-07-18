@@ -100,7 +100,7 @@ export default function AgentIntegrationsSection({
         <div className="mb-16 text-center max-w-3xl mx-auto">
           <motion.h2
             id="integrations-title"
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.25 }}
@@ -112,7 +112,7 @@ export default function AgentIntegrationsSection({
             </span>
           </motion.h2>
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.25, delay: 0.05 }}
@@ -138,7 +138,7 @@ export default function AgentIntegrationsSection({
             <motion.div
               key={category.category}
               variants={{
-                hidden: { opacity: 0, y: 20 },
+                hidden: { opacity: 1, y: 0 },
                 show: { opacity: 1, y: 0, transition: { duration: 0.25 } },
               }}
               className="group relative rounded-2xl border border-white/5 bg-slate-900/40 backdrop-blur-sm p-6 transition-all duration-300 hover:bg-slate-900/60 hover:border-white/10"
@@ -184,7 +184,7 @@ export default function AgentIntegrationsSection({
 
         {/* Bottom Banner */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={false}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.25, delay: 0.08 }}

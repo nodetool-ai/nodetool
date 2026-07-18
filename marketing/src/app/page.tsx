@@ -118,68 +118,11 @@ function usePrefersReducedMotion() {
   return reduced;
 }
 
-// Legacy reveal hook for backward compatibility
-function useReveal() {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    el.style.opacity = "0";
-    el.style.transform = "translateY(8px)";
-    el.style.willChange = "transform, opacity";
-    const obs = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            el.style.transition = "opacity 300ms ease, transform 300ms ease";
-            el.style.opacity = "1";
-            el.style.transform = "translateY(0)";
-            obs.disconnect();
-          }
-        });
-      },
-      { threshold: 0.15 }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
-  return ref;
-}
-
 export default function Home() {
   const [selectedFeature, setSelectedFeature] = useState<Feature | null>(null);
   const stars = useGithubStars();
   const parallaxRef = useRef<HTMLDivElement>(null);
   const reducedMotion = usePrefersReducedMotion();
-  const heroRevealRef = useReveal();
-
-  // Global section fly-in using IntersectionObserver + CSS transitions
-  useEffect(() => {
-    if (reducedMotion) return;
-    const root = document.getElementById("content");
-    if (!root) return;
-    const sections = Array.from(root.querySelectorAll<HTMLElement>("section"));
-    // Initialize base class + slight stagger via CSS var
-    sections.forEach((el, i) => {
-      el.classList.add("fly-in");
-      const delay = Math.min(i * 30, 120);
-      el.style.setProperty("--fly-delay", `${delay}ms`);
-    });
-    const obs = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const el = entry.target as HTMLElement;
-            el.classList.add("is-visible");
-            obs.unobserve(el);
-          }
-        });
-      },
-      { root: null, threshold: 0.12, rootMargin: "0px 0px -10% 0px" }
-    );
-    sections.forEach((el) => obs.observe(el));
-    return () => obs.disconnect();
-  }, [reducedMotion]);
 
   // Parallax with reduced-motion guard and passive scroll
   useEffect(() => {
@@ -300,7 +243,7 @@ export default function Home() {
         {/* Hero */}
         <section aria-labelledby="hero-title" className="pt-2 relative">
           <div className={`${sectionContainer}`}>
-            <div ref={heroRevealRef}>
+            <div>
               <NodeToolHero />
             </div>
           </div>
@@ -310,7 +253,7 @@ export default function Home() {
         <section id="demo-video" aria-label="NodeTool Demo" className="rhythm-section relative scroll-mt-24">
           <div className={`${sectionContainer}`}>
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
+              initial={false}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35, delay: 0.05, ease: "easeOut" }}
               className="relative group"
