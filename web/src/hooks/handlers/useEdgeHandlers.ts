@@ -1,6 +1,6 @@
 import { useCallback, MouseEvent as ReactMouseEvent } from "react";
 import type { Edge } from "@xyflow/react";
-import { useNodes } from "../../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import useConnectionStore from "../../stores/ConnectionStore";
 import { shallow } from "zustand/shallow";
@@ -28,15 +28,15 @@ export default function useEdgeHandlers(): EdgeHandlersResult {
     findEdge,
     updateEdge,
     deleteEdge,
-    edgeUpdateSuccessful,
     setEdgeUpdateSuccessful
   } = useNodes((state) => ({
     findEdge: state.findEdge,
     updateEdge: state.updateEdge,
     deleteEdge: state.deleteEdge,
-    edgeUpdateSuccessful: state.edgeUpdateSuccessful,
     setEdgeUpdateSuccessful: state.setEdgeUpdateSuccessful
   }), shallow);
+
+  const nodeStoreRef = useNodeStoreRef();
 
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
   const setIsReconnecting = useConnectionStore(
@@ -108,14 +108,14 @@ export default function useEdgeHandlers(): EdgeHandlersResult {
 
   const onEdgeUpdateEnd = useCallback(
     (_event: MouseEvent | TouchEvent, edge: Edge) => {
-      if (!edgeUpdateSuccessful) {
+      if (!nodeStoreRef.getState().edgeUpdateSuccessful) {
         deleteEdge(edge.id);
       }
       setEdgeUpdateSuccessful(true);
       setIsReconnecting(false);
     },
     [
-      edgeUpdateSuccessful,
+      nodeStoreRef,
       setEdgeUpdateSuccessful,
       deleteEdge,
       setIsReconnecting

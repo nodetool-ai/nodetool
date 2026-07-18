@@ -46,7 +46,7 @@ export const useFindInWorkflow = (): UseFindInWorkflowResult => {
   const clearSearch = useFindInWorkflowStore((state) => state.clearSearch);
 
   const nodes = useNodes((state) => (isOpen ? state.nodes : EMPTY_NODES));
-  const { setCenter, fitView } = useReactFlow();
+  const { setCenter } = useReactFlow();
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -153,14 +153,7 @@ export const useFindInWorkflow = (): UseFindInWorkflowResult => {
       node.position.y + (node.height || 100) / 2,
       { zoom: 1, duration: 300 }
     );
-
-    fitView({
-      nodes: [node],
-      duration: 300,
-      minZoom: 0.5,
-      maxZoom: 2
-    });
-  }, [results, selectedIndex, setCenter, fitView]);
+  }, [results, selectedIndex, setCenter]);
 
   const selectNode = useCallback(
     (index: number) => {

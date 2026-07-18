@@ -932,12 +932,25 @@ export const createNodeStore = (
             // editable element is focused), so programmatic callers (ui tools,
             // context menus, grouping) always work here.
             const foundIdSet = new Set(foundIds);
+            const deletedById = new Map(
+              existingNodes
+                .filter((n) => foundIdSet.has(n.id))
+                .map((n) => [n.id, n] as const)
+            );
             const nodes: Node<NodeData>[] = [];
 
             for (const node of existingNodes) {
               if (!foundIdSet.has(node.id)) {
                 if (node.parentId && foundIdSet.has(node.parentId)) {
-                  nodes.push({ ...node, parentId: undefined });
+                  const parent = deletedById.get(node.parentId);
+                  nodes.push({
+                    ...node,
+                    parentId: undefined,
+                    position: {
+                      x: (parent?.position?.x ?? 0) + (node.position?.x ?? 0),
+                      y: (parent?.position?.y ?? 0) + (node.position?.y ?? 0)
+                    }
+                  });
                 } else {
                   nodes.push(node);
                 }
