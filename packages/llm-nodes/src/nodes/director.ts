@@ -157,6 +157,50 @@ export function parseScreenplay(
   return screenplay;
 }
 
+const FALLBACK_FRAMINGS = ["establishing wide", "medium", "close-up"];
+
+/**
+ * Deterministic screenplay used when the model returns no usable screenplay
+ * tool call (e.g. providers without tool support and the fake e2e provider).
+ * Mirrors DataGenerator's synthetic-rows fallback: the pipeline keeps flowing
+ * with placeholder shots derived from the brief instead of failing the run.
+ * Real provider errors still throw — this only covers an empty/unusable result.
+ */
+export function fallbackScreenplay(opts: {
+  brief: string;
+  style: string;
+  shotCount: number;
+  aspectRatio: string;
+}): Screenplay {
+  const brief = opts.brief.trim() || "Untitled film";
+  const style = opts.style.trim();
+  const shotCount = Math.max(1, Math.floor(opts.shotCount));
+  const shots = Array.from({ length: shotCount }, (_, i) =>
+    coerceShot(
+      {
+        slug: `Shot ${i + 1}`,
+        action: `${brief} — beat ${i + 1} of ${shotCount}`,
+        camera: { framing: FALLBACK_FRAMINGS[i % FALLBACK_FRAMINGS.length] },
+        motion: "slow push in"
+      },
+      i
+    )
+  );
+  const screenplay: Screenplay = {
+    type: "screenplay",
+    id: "screenplay-1",
+    title: brief.length > 60 ? `${brief.slice(0, 60)}…` : brief,
+    aspect_ratio: opts.aspectRatio,
+    shots,
+    narration: brief
+  };
+  if (style) {
+    screenplay.style_bible = style;
+    screenplay.music_prompt = `instrumental score to match: ${style}`;
+  }
+  return screenplay;
+}
+
 /** Coerce any screenplay-shaped input to a {@link Screenplay}, keeping its shots. */
 function toScreenplay(raw: unknown): Screenplay {
   const obj = coerceObject(raw);
@@ -424,13 +468,20 @@ export class DirectorNode extends BaseNode {
         "Submit the finished screenplay with exactly the requested number of shots.",
       schema: buildScreenplaySchema(shotCount)
     });
-    if (!raw) {
-      throw new Error(
-        "Director: the model did not return a screenplay for the screenplay tool."
-      );
+    // No tool call, or a tool call with no usable shots → deterministic
+    // placeholder screenplay so downstream shot generation still runs
+    // (fake/tool-less providers). Provider errors above still throw.
+    let screenplay = raw
+      ? parseScreenplay(raw, { shotCount, aspectRatio })
+      : null;
+    if (!screenplay || screenplay.shots.length === 0) {
+      screenplay = fallbackScreenplay({
+        brief,
+        style,
+        shotCount,
+        aspectRatio
+      });
     }
-
-    const screenplay = parseScreenplay(raw, { shotCount, aspectRatio });
     return {
       screenplay,
       narration: screenplay.narration ?? "",

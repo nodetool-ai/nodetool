@@ -4,6 +4,7 @@ import {
   parseScreenplay,
   composeShotPrompt,
   injectEntities,
+  fallbackScreenplay,
   DirectorNode,
   ScreenplayShotsNode,
   ApplyEntitiesNode
@@ -130,5 +131,36 @@ describe("injectEntities", () => {
     const named = injectEntities("Rex sprints", entities);
     expect(named.prompt).toContain("Rex: a black dog");
     expect(named.prompt).not.toContain("Mara: copper hair");
+  });
+});
+
+describe("fallbackScreenplay", () => {
+  it("builds a complete placeholder screenplay from the brief", () => {
+    const sp = fallbackScreenplay({
+      brief: "A lighthouse keeper and a bending beam",
+      style: "amber nocturne",
+      shotCount: 3,
+      aspectRatio: "16:9"
+    });
+    expect(sp.type).toBe("screenplay");
+    expect(sp.shots).toHaveLength(3);
+    expect(sp.shots[0].status).toBe("planned");
+    expect(sp.shots[0].action).toContain("lighthouse keeper");
+    expect(sp.shots.map((s) => s.index)).toEqual([0, 1, 2]);
+    expect(sp.narration).toContain("lighthouse keeper");
+    expect(sp.style_bible).toBe("amber nocturne");
+    expect(sp.music_prompt).toContain("amber nocturne");
+  });
+
+  it("floors the shot count at one and works without a style", () => {
+    const sp = fallbackScreenplay({
+      brief: "x",
+      style: "",
+      shotCount: 0,
+      aspectRatio: "1:1"
+    });
+    expect(sp.shots).toHaveLength(1);
+    expect(sp.aspect_ratio).toBe("1:1");
+    expect(sp.music_prompt).toBeUndefined();
   });
 });
