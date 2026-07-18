@@ -70,12 +70,13 @@ const MIME_TO_EXT: Record<string, string> = {
  * inherited environment; media tools resolve providers via the secret resolver;
  * save/media tools persist artifacts through `createAsset`.
  */
-function buildAgentToolContext(): ProcessingContext {
+function buildAgentToolContext(userId: string): ProcessingContext {
   const storage = getAssetAdapter();
   const context = new ProcessingContextImpl({
     jobId: "mcp-agent-tools",
-    userId: "1",
-    secretResolver: getSecret,
+    userId,
+    // Bind secret lookups to the scoped user — never a global default.
+    secretResolver: (key: string) => getSecret(key, userId),
     storage,
     workspaceStorage: storage
   });
@@ -103,13 +104,19 @@ function buildAgentToolContext(): ProcessingContext {
   return context;
 }
 
+/** Test-only: expose the per-user context construction for scope assertions. */
+export const __buildAgentToolContextForTests = (
+  userId: string
+): ProcessingContext => buildAgentToolContext(userId);
+
 /** Load every configured provider, keyed by id, into `into` (mirrors the runner). */
 async function loadConfiguredProviders(
-  into: Record<string, BaseProvider>
+  into: Record<string, BaseProvider>,
+  userId: string
 ): Promise<void> {
   const providersMod = await import("@nodetool-ai/runtime");
   const getSecretFor = (key: string) =>
-    getSecret(key, "1").then((v) => v ?? undefined);
+    getSecret(key, userId).then((v) => v ?? undefined);
   const ids = providersMod.listRegisteredProviderIds();
   await Promise.all(
     ids.map(async (id) => {
@@ -229,14 +236,26 @@ export function registerAgentMcpTools(
   server: McpServer,
   options?: McpServerOptions
 ): void {
-  const context = buildAgentToolContext();
+  // Every bridged tool runs against one user's secrets and assets, so a
+  // session without an explicit user binding gets no bridged tools at all —
+  // a default user here would cross the tenant boundary on any mount that
+  // serves more than one caller.
+  const scope = options?.agentToolsScope;
+  if (!scope) {
+    log.info(
+      "Agent MCP tools not registered: no agentToolsScope on this session"
+    );
+    return;
+  }
+  const context = buildAgentToolContext(scope.userId);
 
   // Populated lazily on first `find_model` call — provider probing hits the
   // secret store and network, so it's deferred out of server construction.
   const sharedProviders: Record<string, BaseProvider> = {};
   let providersPromise: Promise<void> | null = null;
   const ensureProviders = (): Promise<void> => {
-    if (!providersPromise) providersPromise = loadConfiguredProviders(sharedProviders);
+    if (!providersPromise)
+      providersPromise = loadConfiguredProviders(sharedProviders, scope.userId);
     return providersPromise;
   };
 

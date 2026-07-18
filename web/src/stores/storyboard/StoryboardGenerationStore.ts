@@ -188,21 +188,15 @@ export const useStoryboardGenerationStore =
         return;
       }
 
-      const completedWithoutAsset = status === "completed" && !extra?.assetId;
-      const effectiveStatus: ShotGenerationStatus = completedWithoutAsset
-        ? "failed"
-        : status;
+      // A completed job may legitimately carry no assetId: inline `data`
+      // outputs are usable media refs that were already written to the shot.
+      // Success is decided by the message handler (usable ref or not) — do
+      // NOT reclassify completed-without-asset as failed here, or the
+      // ready/rendered status just written gets overwritten.
       const updated: ShotJobState = {
         ...existing,
-        status: effectiveStatus,
-        ...extra,
-        ...(completedWithoutAsset
-          ? {
-              errorMessage:
-                extra?.errorMessage ??
-                "Job completed without producing an output asset."
-            }
-          : {})
+        status,
+        ...extra
       };
 
       set((state) => {
@@ -213,7 +207,7 @@ export const useStoryboardGenerationStore =
         };
       });
 
-      if (effectiveStatus === "failed") {
+      if (status === "failed") {
         useStoryboardStore
           .getState()
           .setShotStatus(existing.boardId, shotId, "failed");
@@ -322,6 +316,16 @@ export const unsubscribeShotJob = (jobId: string): void => {
   }
   jobContexts.delete(jobId);
   jobOutputs.delete(jobId);
+};
+
+/** Test-only: run the job message handler with a pre-seeded context. */
+export const __handleShotJobMessageForTests = (
+  jobId: string,
+  context: StoryboardJobContext,
+  message: WebSocketMessage
+): void => {
+  jobContexts.set(jobId, context);
+  handleShotJobMessage(jobId, message);
 };
 
 export const __resetStoryboardSubscriptionsForTests = (): void => {

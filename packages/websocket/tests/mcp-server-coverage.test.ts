@@ -505,8 +505,10 @@ describe("bridged agent tools (workflow + creative)", () => {
     return Object.keys(tools);
   }
 
+  const scope = { userId: "1", source: "stdio-local" as const };
+
   it("registers the workflow-building and creative tools alongside native ones", () => {
-    const server = createMcpServer();
+    const server = createMcpServer({ agentToolsScope: scope });
     const names = new Set(toolNames(server));
     // Workflow-building tools bridged from @nodetool-ai/agents.
     for (const t of [
@@ -542,8 +544,30 @@ describe("bridged agent tools (workflow + creative)", () => {
     }
   });
 
+  it("does NOT register bridged tools on a session without a user scope", () => {
+    const server = createMcpServer();
+    const names = new Set(toolNames(server));
+    for (const t of ["generate_image", "save_asset", "create_workflow"]) {
+      expect(names.has(t)).toBe(false);
+    }
+    // Native tools are unaffected — they take user_id per call.
+    for (const t of ["run_workflow", "list_workflows", "list_nodes"]) {
+      expect(names.has(t)).toBe(true);
+    }
+  });
+
+  it("binds bridged tools to the scoped user, not a global default", async () => {
+    const { __buildAgentToolContextForTests } = await import(
+      "../src/mcp-agent-tools.js"
+    );
+    const ctxA = __buildAgentToolContextForTests("user-a");
+    const ctxB = __buildAgentToolContextForTests("user-b");
+    expect(ctxA.userId).toBe("user-a");
+    expect(ctxB.userId).toBe("user-b");
+  });
+
   it("validate_workflow returns an actionable error when given no graph", async () => {
-    const server = createMcpServer({ registry: fakeRegistry([]) });
+    const server = createMcpServer({ registry: fakeRegistry([]), agentToolsScope: scope });
     const res = await callTool(server, "validate_workflow", {});
     expect(res.isError).toBe(true);
     const body = JSON.parse(res.content[0].text!) as { error: string };
@@ -551,7 +575,7 @@ describe("bridged agent tools (workflow + creative)", () => {
   });
 
   it("save_asset reports an actionable error when nothing to save", async () => {
-    const server = createMcpServer();
+    const server = createMcpServer({ agentToolsScope: scope });
     const res = await callTool(server, "save_asset", { name: "x.txt" });
     expect(res.isError).toBe(true);
     const body = JSON.parse(res.content[0].text!) as { error: string };

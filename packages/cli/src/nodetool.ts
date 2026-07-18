@@ -1798,7 +1798,11 @@ mcp
       const { createMcpServer, createMcpStdioTransport } = await import(
         "@nodetool-ai/websocket"
       );
-      const server = createMcpServer({ registry });
+      // stdio serves exactly one local user; "1" is the local single-user id.
+      const server = createMcpServer({
+        registry,
+        agentToolsScope: { userId: "1", source: "stdio-local" }
+      });
       const transport = createMcpStdioTransport();
       await server.connect(transport);
       process.stderr.write("NodeTool MCP server ready on stdio.\n");

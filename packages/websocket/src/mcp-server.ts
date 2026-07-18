@@ -60,6 +60,19 @@ export interface McpServerOptions {
   metadataMaxDepth?: number;
   registry?: NodeRegistry;
   /**
+   * User scope for the bridged agent tools (media generation, assets,
+   * provider secrets). Without a scope those tools are NOT registered — they
+   * must never run against a default user on a session whose caller was not
+   * explicitly bound to one. `source` documents why the binding is safe:
+   * "stdio-local" (single-user `nodetool mcp serve`) or "local-dev-http"
+   * (the non-production /mcp mount). An authenticated multi-user mount must
+   * pass the session's real userId here.
+   */
+  agentToolsScope?: {
+    userId: string;
+    source: "stdio-local" | "local-dev-http" | "http-session";
+  };
+  /**
    * Public base URL (e.g. "http://127.0.0.1:7777") used to rewrite relative
    * asset URLs (`/api/storage/...`) into absolute ones. MCP gallery UIs run
    * inside iframes whose `srcdoc` origin cannot resolve relative paths.

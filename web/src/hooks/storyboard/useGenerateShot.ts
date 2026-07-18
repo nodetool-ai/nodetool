@@ -32,6 +32,26 @@ import {
 const GEN_NODE_ID = "gen";
 const OUT_NODE_ID = "out";
 
+/**
+ * Shots with a start in flight, before `registerJob` marks them active in the
+ * generation store. Without this, two rapid clicks (or concurrent agent
+ * calls) both pass the store check and start two paid jobs, and the second
+ * registration orphans the first subscription. Mirrors the timeline's
+ * `startingClips` guard.
+ */
+const startingShots = new Set<string>();
+
+/** True when the shot already has a queued/running job or a start in flight. */
+const isShotBusy = (shotId: string): boolean => {
+  if (startingShots.has(shotId)) return true;
+  const job = useStoryboardGenerationStore.getState().shotJobs[shotId];
+  return job?.status === "queued" || job?.status === "running";
+};
+
+export const __resetStartingShotsForTests = (): void => {
+  startingShots.clear();
+};
+
 /** A per-shot runner store id (isolates each shot's run from its siblings). */
 const runnerIdForShot = (shotId: string): string => `storyboard:${shotId}`;
 
@@ -111,26 +131,39 @@ export const useGenerateShot = (): UseGenerateShotResult => {
       edges: Edge[],
       workflowId: string
     ): Promise<void> => {
-      const workflow = makeWorkflow(workflowId, shot.slug ?? `Shot ${shot.index + 1}`);
-      const runnerStore = getWorkflowRunnerStore(workflowId);
-      const jobId = await runnerStore
-        .getState()
-        .run({}, workflow, nodes, edges, undefined, undefined, true);
-      if (!jobId) {
-        throw new Error("Workflow runner did not return a job id");
+      // Single-flight per shot: skip when a job is active or a start is
+      // already in the pre-registration window.
+      if (isShotBusy(shot.id)) {
+        return;
       }
-      registerJob(shot.id, boardId, jobId, workflowId, kind);
-      await subscribeShotJob(
-        jobId,
-        {
-          shotId: shot.id,
-          boardId,
+      startingShots.add(shot.id);
+      try {
+        const workflow = makeWorkflow(
           workflowId,
-          kind,
-          outputNodeId: OUT_NODE_ID
-        },
-        false
-      );
+          shot.slug ?? `Shot ${shot.index + 1}`
+        );
+        const runnerStore = getWorkflowRunnerStore(workflowId);
+        const jobId = await runnerStore
+          .getState()
+          .run({}, workflow, nodes, edges, undefined, undefined, true);
+        if (!jobId) {
+          throw new Error("Workflow runner did not return a job id");
+        }
+        registerJob(shot.id, boardId, jobId, workflowId, kind);
+        await subscribeShotJob(
+          jobId,
+          {
+            shotId: shot.id,
+            boardId,
+            workflowId,
+            kind,
+            outputNodeId: OUT_NODE_ID
+          },
+          false
+        );
+      } finally {
+        startingShots.delete(shot.id);
+      }
     },
     [registerJob]
   );
