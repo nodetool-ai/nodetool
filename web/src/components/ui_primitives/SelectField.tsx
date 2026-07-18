@@ -114,13 +114,14 @@ const SelectFieldInternal = React.forwardRef<HTMLDivElement, SelectFieldProps>(
     // `${controlId}-label` convention below stays aligned with FormField.
     const selectId = formField ? formField.controlId : id ?? autoId;
     const labelId = `${selectId}-label`;
-    // Inside a FormField, FormField renders the visible label and gives it
-    // id `${controlId}-label` (its documented convention). The combobox is a
-    // div, so htmlFor can't name it — instead we point labelId at FormField's
-    // label element and let aria-labelledby carry the name. Our own label
-    // stays as an aria-label fallback for a label-less FormField (a dangling
-    // aria-labelledby falls through to aria-label in accname computation).
-    const showLabel = !formField && Boolean(label) && !hideLabel;
+    // Inside a labeled FormField, FormField renders the visible label and
+    // gives it id `${controlId}-label` (its documented convention). The
+    // combobox is a div, so htmlFor can't name it — instead we point labelId
+    // at FormField's label element and let aria-labelledby carry the name.
+    // A label-less FormField suppresses nothing: the own label renders (with
+    // the same `${selectId}-label` id, so labelId still resolves).
+    const suppressed = Boolean(formField?.labeled);
+    const showLabel = !suppressed && Boolean(label) && !hideLabel;
 
     const handleChange = useCallback(
       (event: SelectChangeEvent<string | number>) => {

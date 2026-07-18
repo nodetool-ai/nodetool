@@ -91,14 +91,17 @@ export const TextInput = memo(
       const hasError = error || !!errorMessage;
       const displayHelperText = errorMessage || helperText;
 
-      // Inside a FormField the label is FormField's job: suppress our own
-      // (even when a label prop is passed) and skip aria-label too — the
+      // Inside a labeled FormField the label is FormField's job: suppress our
+      // own (even when a label prop is passed) and skip aria-label too — the
       // FormField label's htmlFor names the input via the adopted id, and an
-      // aria-label here would override it.
-      const showLabel = !formField && !!label && !hideLabel;
+      // aria-label here would override it. A label-LESS FormField suppresses
+      // nothing: the child keeps its own label, or the field would end up
+      // with no accessible name at all.
+      const suppressed = !!formField && formField.labeled;
+      const showLabel = !suppressed && !!label && !hideLabel;
       // A hidden (or absent) visible label still needs an accessible name.
       const ariaLabel =
-        !formField && !showLabel && typeof label === "string"
+        !suppressed && !showLabel && typeof label === "string"
           ? label
           : undefined;
 

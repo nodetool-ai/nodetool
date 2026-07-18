@@ -27,6 +27,34 @@ describe("FormField", () => {
     expect(document.querySelectorAll("label")).toHaveLength(1);
   });
 
+  it("keeps the child's own label when FormField has none", () => {
+    renderWithTheme(
+      <FormField helperText="Pick a name">
+        <TextInput label="Name" />
+      </FormField>
+    );
+    // Suppressing here would leave the input with no accessible name.
+    expect(screen.getByLabelText("Name")).toBeInTheDocument();
+    expect(document.querySelectorAll("label")).toHaveLength(1);
+  });
+
+  it("keeps a SelectField's own label when FormField has none", () => {
+    renderWithTheme(
+      <FormField helperText="Pick a color">
+        <SelectField
+          label="Color"
+          value="red"
+          onChange={jest.fn()}
+          options={options}
+        />
+      </FormField>
+    );
+    expect(
+      screen.getByRole("combobox", { name: "Color" })
+    ).toBeInTheDocument();
+    expect(screen.getByText("Color")).toBeInTheDocument();
+  });
+
   it("links its label to the child input via htmlFor", () => {
     renderWithTheme(
       <FormField label="Name">

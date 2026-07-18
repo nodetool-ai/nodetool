@@ -79,8 +79,8 @@ export const FormField: React.FC<FormFieldProps> = ({
   const reactId = useId();
   const controlId = htmlFor ?? reactId;
   const contextValue = useMemo<FormFieldContextValue>(
-    () => ({ controlId }),
-    [controlId]
+    () => ({ controlId, labeled: Boolean(label) }),
+    [controlId, label]
   );
 
   const isRow = direction === "row";
