@@ -503,7 +503,10 @@ tolerance) but contains zero local form CSS.
   `editor_ui/`, excluding `__tests__/` and `*.md`):
   - no `minHeight: "2[248]px"` / `height: "2[24]px"` control literals
   - no `border-?[rR]adius: "?[468](px)?"` literals (use `BORDER_RADIUS`/`CONTROL.radius`)
-  - no `13px`/`3px`/`5px`/`42px`/`45px` box values
+  - no `13px`/`3px`/`5px`/`42px`/`45px` box values (exception: the 7px/3px
+    vertical paddings inside TextInput/SelectField/SearchInput — they are
+    derived from the CONTROL heights to make MUI's content box land exactly
+    on 36/28px, not layout spacing)
   - no `font-size: 1[04]px` literals
 - After PR 2: `grep -rn "MuiInputLabel" web/src/components/ui_primitives/`
   returns nothing.

@@ -15,6 +15,7 @@ import {
   type SelectChangeEvent
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { CONTROL } from "./tokens";
 
 export interface SelectOption {
   /** Option value */
@@ -112,6 +113,8 @@ const SelectFieldInternal: React.FC<SelectFieldProps> = ({
   );
 
   const fieldFontSize = theme.fontSizeNormal || "15px";
+  const controlHeight =
+    size === "small" ? CONTROL.height.sm : CONTROL.height.lg;
 
   return (
     // No baked outer margin — spacing is the parent's job (e.g. FlexColumn gap),
@@ -137,7 +140,17 @@ const SelectFieldInternal: React.FC<SelectFieldProps> = ({
           onChange={handleChange}
           variant={variant}
           label={variant !== "standard" && !hideLabel ? label : undefined}
-          sx={{ "& .MuiSelect-select": { fontSize: fieldFontSize } }}
+          sx={{
+            minHeight: `${controlHeight}px`,
+            "& .MuiSelect-select": { fontSize: fieldFontSize },
+            // Outlined only: MUI's 16.5px / 8.5px vertical padding targets
+            // ~56px / 40px fields — shrink it so the control lands on the
+            // token height. The standard variant keeps its own padding.
+            "& .MuiOutlinedInput-input.MuiSelect-select": {
+              paddingTop: size === "small" ? "3px" : "7px",
+              paddingBottom: size === "small" ? "3px" : "7px"
+            }
+          }}
         >
           {options.map((option) => (
             <MenuItem

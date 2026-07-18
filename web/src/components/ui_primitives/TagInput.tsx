@@ -35,7 +35,7 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import AddIcon from "@mui/icons-material/Add";
-import { MOTION } from "./tokens";
+import { CONTROL, MOTION } from "./tokens";
 
 const styles = (theme: Theme) =>
   css({
@@ -48,7 +48,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       gap: theme.spacing(1),
       padding: theme.spacing(1),
-      minHeight: "48px",
+      minHeight: `${CONTROL.height.xl}px`,
       border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: theme.shape.borderRadius,
       backgroundColor: theme.vars.palette.background.paper,
