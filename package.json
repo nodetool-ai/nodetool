@@ -78,6 +78,7 @@
     "prebuild:packages:tsc": "node scripts/preflight.mjs",
     "build:packages:tsc": "tsc --build tsconfig.build.json && node scripts/copy-manifests.mjs",
     "build:web": "turbo run build --filter=web",
+    "build:mcpb": "node scripts/build-mcpb.mjs --smoke",
     "build": "turbo run build",
     "test:packages": "turbo run test --filter=\"./packages/*\"",
     "turbo": "turbo",

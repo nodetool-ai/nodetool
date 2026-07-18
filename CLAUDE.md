@@ -201,6 +201,20 @@ npm run dev:nodetool -- serve --host 0.0.0.0      # Bind all interfaces
 npm run dev:nodetool -- serve --port 8080          # Custom port
 ```
 
+### MCP bundle (.mcpb) for Claude Desktop
+
+```bash
+npm run build:mcpb        # → dist/nodetool.mcpb (runs an end-to-end smoke test)
+```
+
+Builds a one-file MCP bundle that Claude Desktop (and other MCPB-aware
+agents) installs by drag-and-drop. The bundle is a stdio↔streamable-HTTP
+bridge (`scripts/mcpb/bridge.mjs`, packed by `scripts/build-mcpb.mjs`) that
+talks to a running NodeTool server's `/mcp` endpoint — no native modules, so
+one artifact covers macOS/Windows/Linux. User config in the bundle: server
+URL (default `http://127.0.0.1:7777/mcp`) and an optional bearer token. For
+CLI agents (Claude Code, Codex) use `nodetool mcp install` instead.
+
 ### nodetool run (DSL Workflows)
 
 ```bash
