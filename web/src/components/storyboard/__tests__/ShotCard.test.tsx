@@ -1,15 +1,18 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import type { Shot, ShotStatus } from "@nodetool-ai/protocol";
 import mockTheme from "../../../__mocks__/themeMock";
 
 // Keep the card's generation hook and image ladder out of the render — this test
 // only asserts the card's presentation and button gating, not generation.
+const generateRevisedClipMock = jest.fn();
 jest.mock("../../../hooks/storyboard/useGenerateShot", () => ({
   useGenerateShot: () => ({
     generateKeyframe: jest.fn(),
-    generateClip: jest.fn()
+    generateClip: jest.fn(),
+    generateRevisedClip: generateRevisedClipMock
   })
 }));
 
@@ -80,6 +83,36 @@ describe("ShotCard", () => {
     renderCard(shot);
     expect(screen.getByRole("button", { name: "Generate clip" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Approve" })).toBeDisabled();
+  });
+
+  it("shows Revise clip only once a clip exists and prompts for an instruction", async () => {
+    generateRevisedClipMock.mockClear();
+    // No clip yet: the revise affordance is absent.
+    const { unmount } = renderCard(makeShot({ status: "approved" }));
+    expect(
+      screen.queryByRole("button", { name: "Revise clip" })
+    ).not.toBeInTheDocument();
+    unmount();
+
+    const shot = makeShot({
+      status: "rendered",
+      clip: { type: "video", uri: "http://example.com/clip.mp4" }
+    });
+    renderCard(shot);
+    const reviseButton = screen.getByRole("button", { name: "Revise clip" });
+    expect(reviseButton).toBeEnabled();
+
+    const promptSpy = jest
+      .spyOn(window, "prompt")
+      .mockReturnValue("make it darker, add rain");
+    await userEvent.click(reviseButton);
+    expect(promptSpy).toHaveBeenCalled();
+    expect(generateRevisedClipMock).toHaveBeenCalledWith(
+      "board-1",
+      shot,
+      "make it darker, add rain"
+    );
+    promptSpy.mockRestore();
   });
 
   it("disables the still button while generating", () => {

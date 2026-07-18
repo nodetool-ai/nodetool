@@ -93,7 +93,8 @@ const cameraLine = (shot: Shot): string =>
 const ShotCardInner: React.FC<ShotCardProps> = ({ boardId, shot, readOnly }) => {
   const theme = useTheme();
   const approveShot = useStoryboardStore((state) => state.approveShot);
-  const { generateKeyframe, generateClip } = useGenerateShot();
+  const { generateKeyframe, generateClip, generateRevisedClip } =
+    useGenerateShot();
 
   const meta = STATUS_META[shot.status];
   const isGenerating =
@@ -112,6 +113,15 @@ const ShotCardInner: React.FC<ShotCardProps> = ({ boardId, shot, readOnly }) => 
   const handleGenerateClip = useCallback(() => {
     void generateClip(boardId, shot);
   }, [generateClip, boardId, shot]);
+
+  const handleRevise = useCallback(() => {
+    const instruction = window.prompt(
+      "Describe the change to make (e.g. 'make it darker, add rain')"
+    );
+    if (instruction && instruction.trim().length > 0) {
+      void generateRevisedClip(boardId, shot, instruction.trim());
+    }
+  }, [generateRevisedClip, boardId, shot]);
 
   return (
     <Card variant="outlined" padding="compact" css={styles(theme)} className="shot-card">
@@ -178,6 +188,15 @@ const ShotCardInner: React.FC<ShotCardProps> = ({ boardId, shot, readOnly }) => 
           >
             Generate clip
           </EditorButton>
+          {shot.clip && (
+            <EditorButton
+              onClick={handleRevise}
+              disabled={isGenerating}
+              fullWidth
+            >
+              Revise clip
+            </EditorButton>
+          )}
         </FlexColumn>
       )}
     </Card>

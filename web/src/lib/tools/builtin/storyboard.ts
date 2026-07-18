@@ -142,6 +142,27 @@ FrontendToolRegistry.register({
 });
 
 FrontendToolRegistry.register({
+  name: "ui_storyboard_revise_shot",
+  description:
+    "Regenerate a shot's video clip via video-to-video using a text instruction, e.g. 'make it darker, add rain'. Seeds the shot's existing clip and swaps the revised result in place. The shot must already have a clip (generate one first). Kicks off the job and returns the shot; poll ui_storyboard_get_state for the resulting status.",
+  parameters: z.object({
+    target: targetParam,
+    instruction: z
+      .string()
+      .describe(
+        "The change to make, phrased as a video edit prompt (e.g. 'make it darker, add rain')."
+      )
+  }),
+  async execute({ target, instruction }) {
+    const shot = await getStoryboardAgentHandler().reviseShot(
+      target,
+      instruction
+    );
+    return { ok: true, shot };
+  }
+});
+
+FrontendToolRegistry.register({
   name: "ui_storyboard_select_shot",
   description:
     "Select a shot on the storyboard (driving the surface's focus). Pass null to clear the selection.",

@@ -53,6 +53,7 @@ import {
   buildWorkspaceExecutionContext
 } from "./lib/workflow-workspace.js";
 import type { AgentTransport } from "./agent/transport.js";
+import { registerAgentMcpTools } from "./mcp-agent-tools.js";
 
 export interface McpServerOptions {
   metadataRoots?: string[];
@@ -827,6 +828,10 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
       }
     }
   );
+
+  // ── Workflow-building + creative tools (bridged from @nodetool-ai/agents) ──
+  // Registered last so any name collision with a native tool throws loudly.
+  registerAgentMcpTools(server, options);
 
   return server;
 }

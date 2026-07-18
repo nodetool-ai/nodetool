@@ -392,6 +392,11 @@ export {
   DIRECTOR_NODES
 } from "@nodetool-ai/llm-nodes/nodes/director";
 export {
+  ShotBatchNode,
+  ShotChainNode,
+  SHOTS_NODES
+} from "@nodetool-ai/llm-nodes/nodes/shots";
+export {
   LoadModel3DFileNode,
   SaveModel3DFileNode,
   SaveModel3DNode,
@@ -758,6 +763,7 @@ import { TIMELINE_NODES } from "@nodetool-ai/video-nodes/nodes/timeline";
 import { AGENT_NODES } from "@nodetool-ai/llm-nodes/nodes/agents";
 import { GENERATOR_NODES } from "@nodetool-ai/llm-nodes/nodes/generators";
 import { DIRECTOR_NODES } from "@nodetool-ai/llm-nodes/nodes/director";
+import { SHOTS_NODES } from "@nodetool-ai/llm-nodes/nodes/shots";
 import { MODEL3D_NODES } from "@nodetool-ai/video-nodes/nodes/model3d";
 import { LIB_OS_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-os";
 import { LIB_APPLE_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-apple";
@@ -848,6 +854,7 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...AGENT_NODES,
   ...GENERATOR_NODES,
   ...DIRECTOR_NODES,
+  ...SHOTS_NODES,
   ...MODEL3D_NODES,
   ...LIB_OS_NODES,
   ...(process.platform === "darwin" ? LIB_APPLE_NODES : []),

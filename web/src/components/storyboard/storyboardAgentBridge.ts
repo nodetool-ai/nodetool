@@ -79,6 +79,15 @@ export interface StoryboardAgentHandler {
   generateKeyframe: (target: string) => Promise<StoryboardShotNode>;
   approveShot: (target: string) => StoryboardShotNode;
   generateClip: (target: string) => Promise<StoryboardShotNode>;
+  /**
+   * Regenerate an existing shot's clip via video-to-video, seeded by its current
+   * clip plus a text instruction (e.g. "make it darker, add rain"). Throws when
+   * the shot has no clip to revise.
+   */
+  reviseShot: (
+    target: string,
+    instruction: string
+  ) => Promise<StoryboardShotNode>;
   selectShot: (target: string | null) => StoryboardShotNode | null;
 }
 

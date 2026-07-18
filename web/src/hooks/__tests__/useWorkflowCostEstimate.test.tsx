@@ -3,11 +3,9 @@
  */
 import { renderHook } from "@testing-library/react";
 
-// Use the real (pure) estimator from source — the built ESM dist is not
-// transformable by ts-jest, so map the package to its TypeScript source module.
-jest.mock("@nodetool-ai/node-sdk", () =>
-  jest.requireActual("../../../../packages/node-sdk/src/cost-estimate")
-);
+// The hook imports the real (pure) estimator from `@nodetool-ai/node-sdk/cost-estimate`,
+// which jest.config maps to the TypeScript source (the ESM dist barrel is not
+// transformable by ts-jest). No mock needed.
 
 const mockNodes = [
   { id: "n1", type: "fal.Image", data: {} },

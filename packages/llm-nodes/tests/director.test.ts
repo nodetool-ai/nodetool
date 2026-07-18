@@ -3,8 +3,25 @@ import type { Screenplay, Shot } from "@nodetool-ai/protocol";
 import {
   parseScreenplay,
   composeShotPrompt,
-  injectEntities
+  injectEntities,
+  DirectorNode,
+  ScreenplayShotsNode,
+  ApplyEntitiesNode
 } from "../src/nodes/director.js";
+
+describe("creative node classes", () => {
+  it("declare their node types and output handles", () => {
+    expect(DirectorNode.nodeType).toBe("nodetool.creative.Director");
+    expect(ScreenplayShotsNode.nodeType).toBe(
+      "nodetool.creative.ScreenplayShots"
+    );
+    expect(ApplyEntitiesNode.nodeType).toBe("nodetool.creative.ApplyEntities");
+    expect(DirectorNode.metadataOutputTypes).toHaveProperty("screenplay");
+    expect(ApplyEntitiesNode.metadataOutputTypes).toHaveProperty(
+      "reference_images"
+    );
+  });
+});
 
 describe("parseScreenplay", () => {
   it("parses a JSON string and assigns ids, indices, and status", () => {

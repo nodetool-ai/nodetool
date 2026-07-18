@@ -11,7 +11,7 @@ import React, { memo, useCallback, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import { useShallow } from "zustand/react/shallow";
 import type { DraftMode } from "@nodetool-ai/protocol";
-import { withinBudget } from "@nodetool-ai/node-sdk";
+import { withinBudget } from "@nodetool-ai/node-sdk/cost-estimate";
 import {
   Panel,
   Card,

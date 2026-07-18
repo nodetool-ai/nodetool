@@ -1772,6 +1772,44 @@ mcp
     console.log();
   });
 
+mcp
+  .command("serve")
+  .description(
+    "Run the NodeTool MCP server over stdio for an external agent " +
+      "(Claude Code, Codex, …). All logging goes to stderr; stdout is the " +
+      "MCP protocol channel."
+  )
+  .action(async () => {
+    try {
+      await setupDb();
+
+      // A local TS-node registry powers list_nodes / search_nodes /
+      // validate_workflow without spinning up a Python worker.
+      const registry = new NodeRegistry();
+      registerBaseNodes(registry);
+      registerElevenLabsNodes(registry);
+      registerMinimaxNodes(registry);
+      registerTransformersJsNodes(registry);
+      registerFalNodes(registry);
+      registerReplicateNodes(registry);
+      registerReveNodes(registry);
+      registerHuggingFaceNodes(registry);
+
+      const { createMcpServer, createMcpStdioTransport } = await import(
+        "@nodetool-ai/websocket"
+      );
+      const server = createMcpServer({ registry });
+      const transport = createMcpStdioTransport();
+      await server.connect(transport);
+      process.stderr.write("NodeTool MCP server ready on stdio.\n");
+      // The stdio transport keeps the event loop alive until the client
+      // closes the connection.
+    } catch (e) {
+      console.error(String(e));
+      process.exit(1);
+    }
+  });
+
 // ---------------------------------------------------------------------------
 // package
 // ---------------------------------------------------------------------------

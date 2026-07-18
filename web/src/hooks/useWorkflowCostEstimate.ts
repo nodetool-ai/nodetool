@@ -9,7 +9,7 @@
 
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 import type { Node } from "@xyflow/react";
-import { estimateWorkflowCost } from "@nodetool-ai/node-sdk";
+import { estimateWorkflowCost } from "@nodetool-ai/node-sdk/cost-estimate";
 import type { WorkflowCostEstimate } from "@nodetool-ai/protocol";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 import useMetadataStore from "../stores/MetadataStore";

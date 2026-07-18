@@ -34,6 +34,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./cost-estimate": {
+      "types": "./dist/cost-estimate.d.ts",
+      "import": "./dist/cost-estimate.js",
+      "default": "./dist/cost-estimate.js"
     }
   },
   "license": "MIT",

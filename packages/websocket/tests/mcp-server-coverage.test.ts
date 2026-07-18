@@ -495,6 +495,70 @@ describe("getLocalMcpServerUrl", () => {
   });
 });
 
+describe("bridged agent tools (workflow + creative)", () => {
+  function toolNames(server: ReturnType<typeof createMcpServer>): string[] {
+    const tools = (
+      server as unknown as {
+        _registeredTools: Record<string, unknown>;
+      }
+    )._registeredTools;
+    return Object.keys(tools);
+  }
+
+  it("registers the workflow-building and creative tools alongside native ones", () => {
+    const server = createMcpServer();
+    const names = new Set(toolNames(server));
+    // Workflow-building tools bridged from @nodetool-ai/agents.
+    for (const t of [
+      "create_workflow",
+      "debug_workflow",
+      "validate_workflow",
+      "list_models",
+      "get_example_workflow",
+      "export_workflow_digraph",
+      "get_job_logs",
+      "start_background_job",
+      "save_asset",
+      "read_asset",
+      "find_model"
+    ]) {
+      expect(names.has(t)).toBe(true);
+    }
+    // Creative media tools.
+    for (const t of [
+      "generate_image",
+      "edit_image",
+      "generate_video",
+      "animate_image",
+      "generate_speech",
+      "transcribe_audio",
+      "embed_text"
+    ]) {
+      expect(names.has(t)).toBe(true);
+    }
+    // Native tools remain registered (not shadowed by the bridge).
+    for (const t of ["run_workflow", "list_workflows", "list_nodes", "get_job"]) {
+      expect(names.has(t)).toBe(true);
+    }
+  });
+
+  it("validate_workflow returns an actionable error when given no graph", async () => {
+    const server = createMcpServer({ registry: fakeRegistry([]) });
+    const res = await callTool(server, "validate_workflow", {});
+    expect(res.isError).toBe(true);
+    const body = JSON.parse(res.content[0].text!) as { error: string };
+    expect(body.error).toContain("No graph to validate");
+  });
+
+  it("save_asset reports an actionable error when nothing to save", async () => {
+    const server = createMcpServer();
+    const res = await callTool(server, "save_asset", { name: "x.txt" });
+    expect(res.isError).toBe(true);
+    const body = JSON.parse(res.content[0].text!) as { error: string };
+    expect(body.error).toContain("content");
+  });
+});
+
 describe("handleMcpHttpRequest routing", () => {
   it("returns null for non-/mcp paths", async () => {
     const res = await handleMcpHttpRequest(

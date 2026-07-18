@@ -43,6 +43,7 @@ const createMockHandler = (): jest.Mocked<StoryboardAgentHandler> => ({
   generateKeyframe: jest.fn(),
   approveShot: jest.fn(),
   generateClip: jest.fn(),
+  reviseShot: jest.fn(),
   selectShot: jest.fn()
 });
 
@@ -65,6 +66,7 @@ describe("ui_storyboard_* tools", () => {
         "ui_storyboard_generate_keyframe",
         "ui_storyboard_approve_shot",
         "ui_storyboard_generate_clip",
+        "ui_storyboard_revise_shot",
         "ui_storyboard_select_shot"
       ])
     );
@@ -147,6 +149,28 @@ describe("ui_storyboard_* tools", () => {
 
     expect(handler.generateKeyframe).toHaveBeenCalledWith("selected");
     expect(result.shot.status).toBe("keyframe_generating");
+  });
+
+  it("revises a shot through the handler with (target, instruction)", async () => {
+    const handler = createMockHandler();
+    handler.reviseShot.mockResolvedValue(
+      shotNode({ status: "clip_generating", hasClip: true })
+    );
+    setStoryboardAgentHandler(handler);
+
+    const result = (await FrontendToolRegistry.call(
+      "ui_storyboard_revise_shot",
+      { target: "0", instruction: "make it darker, add rain" },
+      "tc-revise",
+      ctx
+    )) as { ok: boolean; shot: StoryboardShotNode };
+
+    expect(handler.reviseShot).toHaveBeenCalledWith(
+      "0",
+      "make it darker, add rain"
+    );
+    expect(result.ok).toBe(true);
+    expect(result.shot.status).toBe("clip_generating");
   });
 
   it("rejects an invalid shot status during validation", async () => {

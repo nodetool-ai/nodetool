@@ -39,7 +39,8 @@ export const useStoryboardAgentBridge = (
   boardId: string,
   active: boolean
 ): void => {
-  const { generateKeyframe, generateClip } = useGenerateShot();
+  const { generateKeyframe, generateClip, generateRevisedClip } =
+    useGenerateShot();
 
   const handler = useMemo<StoryboardAgentHandler>(() => {
     const store = () => useStoryboardStore.getState();
@@ -164,6 +165,12 @@ export const useStoryboardAgentBridge = (
         return toShotNode(reRead(shot.id));
       },
 
+      async reviseShot(target, instruction) {
+        const shot = requireShot(target);
+        await generateRevisedClip(boardId, shot, instruction);
+        return toShotNode(reRead(shot.id));
+      },
+
       selectShot(target) {
         if (!target) {
           store().selectShot(boardId, null);
@@ -174,7 +181,7 @@ export const useStoryboardAgentBridge = (
         return toShotNode(shot);
       }
     };
-  }, [boardId, generateKeyframe, generateClip]);
+  }, [boardId, generateKeyframe, generateClip, generateRevisedClip]);
 
   useEffect(() => {
     if (!active) return;

@@ -92,6 +92,11 @@ const clipPrompt = (shot: Shot): string =>
 export interface UseGenerateShotResult {
   generateKeyframe: (boardId: string, shot: Shot) => Promise<void>;
   generateClip: (boardId: string, shot: Shot) => Promise<void>;
+  generateRevisedClip: (
+    boardId: string,
+    shot: Shot,
+    instruction: string
+  ) => Promise<void>;
 }
 
 export const useGenerateShot = (): UseGenerateShotResult => {
@@ -194,7 +199,41 @@ export const useGenerateShot = (): UseGenerateShotResult => {
     [startJob]
   );
 
-  return { generateKeyframe, generateClip };
+  const generateRevisedClip = useCallback(
+    async (boardId: string, shot: Shot, instruction: string): Promise<void> => {
+      if (!shot.clip) {
+        throw new Error("Shot has no clip to revise — generate one first.");
+      }
+      const prompt = instruction.trim();
+      if (prompt.length === 0) {
+        throw new Error("A revision instruction is required.");
+      }
+      const workflowId = runnerIdForShot(shot.id);
+      const nodes: Node<NodeData>[] = [
+        makeNode(
+          GEN_NODE_ID,
+          "nodetool.video.VideoToVideo",
+          0,
+          {
+            video: shot.clip,
+            prompt
+          },
+          workflowId
+        ),
+        makeNode(
+          OUT_NODE_ID,
+          "nodetool.output.Output",
+          400,
+          { name: "clip" },
+          workflowId
+        )
+      ];
+      await startJob(boardId, shot, "clip", nodes, [outputEdge()], workflowId);
+    },
+    [startJob]
+  );
+
+  return { generateKeyframe, generateClip, generateRevisedClip };
 };
 
 export default useGenerateShot;
