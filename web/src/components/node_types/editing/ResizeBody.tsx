@@ -97,9 +97,9 @@ const extractDims = (
   }
   const v = value as Record<string, unknown>;
   return {
-    width: typeof v.width === "number" ? (v.width as number) : undefined,
-    height: typeof v.height === "number" ? (v.height as number) : undefined,
-    uri: typeof v.uri === "string" ? (v.uri as string) : undefined,
+    width: typeof v.width === "number" ? v.width : undefined,
+    height: typeof v.height === "number" ? v.height : undefined,
+    uri: typeof v.uri === "string" ? v.uri : undefined,
     data: v.data
   };
 };

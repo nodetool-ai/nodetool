@@ -98,7 +98,7 @@ const DrawerPanelInternal: React.FC<DrawerPanelProps> = ({
           </Typography>
           {showClose && onClose && (
             <IconButton
-              onClick={onClose as React.MouseEventHandler}
+              onClick={() => onClose?.({}, "escapeKeyDown")}
               size="small"
               aria-label={title ? `Close ${title} drawer` : "Close drawer"}
             >

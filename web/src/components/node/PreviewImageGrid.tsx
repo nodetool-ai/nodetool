@@ -28,7 +28,7 @@ interface ImageTileProps {
   onOpenViewer: (url: string) => void;
   onDownload: (index: number, event: React.MouseEvent) => void;
   onOpenInViewer: (index: number, event: React.MouseEvent) => void;
-  onToggleSelect: (index: number, event: React.MouseEvent) => void;
+  onToggleSelect: (index: number, event: { stopPropagation(): void }) => void;
 }
 
 const ImageTile = memo<ImageTileProps>(({
@@ -70,8 +70,7 @@ const ImageTile = memo<ImageTileProps>(({
           e.preventDefault();
           e.stopPropagation();
           if (selectionMode) {
-            const syntheticEvent = { stopPropagation: () => {}, shiftKey: e.shiftKey } as React.MouseEvent<HTMLDivElement>;
-            onToggleSelect(idx, syntheticEvent);
+            onToggleSelect(idx, { stopPropagation: () => {} });
           } else if (onDoubleClick) {
             onDoubleClick(idx);
           } else if (url) {
@@ -344,7 +343,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
     setSelectionMode(false);
   }, [images.length]);
 
-  const toggleSelect = useCallback((index: number, event: React.MouseEvent) => {
+  const toggleSelect = useCallback((index: number, event: { stopPropagation(): void }) => {
     event.stopPropagation();
     setSelectedIndices((prev) => {
       const next = new Set(prev);

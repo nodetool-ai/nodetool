@@ -7,7 +7,7 @@ import useMetadataStore from "../stores/MetadataStore";
 import { useNodes } from "../contexts/NodeContext";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { NodeMetadata, TypeMetadata, Property } from "../stores/ApiTypes";
+import { NodeMetadata, TypeMetadata, Property, PropertyTypeMetadata } from "../stores/ApiTypes";
 import { findOutputHandle } from "../utils/handleUtils";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import isEqual from "../utils/isEqual";
@@ -573,8 +573,8 @@ const Inspector: React.FC = () => {
       return [];
     }
     const [first, ...rest] = nodesWithMetadata;
-    const signatureCache = new Map<object, string>();
-    const typeSignatureOf = (type: object): string => {
+    const signatureCache = new Map<PropertyTypeMetadata, string>();
+    const typeSignatureOf = (type: PropertyTypeMetadata): string => {
       let sig = signatureCache.get(type);
       if (sig === undefined) {
         sig = JSON.stringify(type);
