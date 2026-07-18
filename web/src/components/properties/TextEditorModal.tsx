@@ -941,7 +941,9 @@ const TextEditorModal = ({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    // Defer the revoke: releasing the blob synchronously cancels the download
+    // in Firefox and for large files.
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }, [currentText, language, propertyName]);
 
   const insertIntoLexical = useCallback(

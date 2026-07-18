@@ -195,9 +195,21 @@ export class PythonNodeExecutor {
     result: ExecuteResult,
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    const outputs: Record<string, unknown> = { ...result.outputs };
+    // Output names come across the Python bridge (node-controlled), so build a
+    // null-prototype object: a blob/output named "__proto__" or "constructor"
+    // then lands as a plain own key and can't reach the prototype setter.
+    // Downstream only does own-key ops (Object.keys, spread, msgpack/JSON), so a
+    // null-prototype object behaves identically for legitimate names.
+    const outputs: Record<string, unknown> = Object.assign(
+      Object.create(null),
+      result.outputs
+    );
     for (const [name, blobData] of Object.entries(result.blobs)) {
-      const mediaType = normalizeMediaOutputType(this.outputTypes[name]);
+      // Guard the outputTypes lookup with Object.hasOwn so an external name like
+      // "constructor" can't resolve to an inherited Object.prototype member.
+      const mediaType = Object.hasOwn(this.outputTypes, name)
+        ? normalizeMediaOutputType(this.outputTypes[name])
+        : null;
       if (mediaType && context?.storage) {
         const ext = EXTENSION_MAP[mediaType] ?? "";
         const contentType = MIME_MAP[mediaType];

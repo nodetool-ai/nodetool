@@ -169,6 +169,19 @@ async function handleLocalFileStream(
     return errorResponse(403, "Access to this path is not permitted");
   }
 
+  // Re-run the denylist against the symlink-resolved path: a symlink at a
+  // non-denied location (e.g. /tmp/x -> ~/.ssh/id_rsa) passes the lexical check
+  // above but the stat/stream below follow it. A missing file still 404s.
+  let realResolved: string;
+  try {
+    realResolved = await fs.realpath(resolved);
+  } catch {
+    return errorResponse(404, "File not found");
+  }
+  if (isDeniedPath(realResolved)) {
+    return errorResponse(403, "Access to this path is not permitted");
+  }
+
   let stat: Awaited<ReturnType<typeof fs.stat>>;
   try {
     stat = await fs.stat(resolved);

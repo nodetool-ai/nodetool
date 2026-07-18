@@ -4,14 +4,75 @@
  * Port of src/nodetool/agents/tools/pdf_tools.py
  */
 
-import { readFile, writeFile, mkdir } from "node:fs/promises";
-import { dirname } from "node:path";
+import { readFile, writeFile, mkdir, lstat, realpath } from "node:fs/promises";
+import { dirname, isAbsolute, relative } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
 
 const execFileAsync = promisify(execFile);
+
+/**
+ * True when `candidate`'s real (symlink-resolved) path stays within the real
+ * workspace root. `context.resolveWorkspacePath` only checks containment
+ * lexically, so an in-workspace symlink pointing outside the root would
+ * otherwise be dereferenced and leak host files. Mirrors the shared helper in
+ * edit-search-tools.ts (kept local — that copy is module-private there).
+ */
+async function isRealPathWithinRoot(
+  root: string,
+  candidate: string
+): Promise<boolean> {
+  try {
+    const realRoot = await realpath(root);
+    const realCandidate = await realpath(candidate);
+    if (realCandidate === realRoot) return true;
+    const rel = relative(realRoot, realCandidate);
+    return rel !== "" && !rel.startsWith("..") && !isAbsolute(rel);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Like {@link isRealPathWithinRoot} but tolerant of a not-yet-created output
+ * file: when the candidate does not exist, its parent directory is
+ * realpath-checked instead, so writing through a symlinked-out directory is
+ * still blocked. Uses lstat (not access) so a dangling in-workspace symlink is
+ * treated as existing-but-out-of-root rather than absent.
+ */
+async function isWriteTargetWithinRoot(
+  root: string,
+  candidate: string
+): Promise<boolean> {
+  if (await isRealPathWithinRoot(root, candidate)) return true;
+  const parent = dirname(candidate);
+  if (parent === candidate) return false;
+  try {
+    await lstat(candidate);
+    return false;
+  } catch {
+    return isRealPathWithinRoot(root, parent);
+  }
+}
+
+/**
+ * Verify a workspace-resolved path stays inside the workspace after resolving
+ * symlinks, throwing on escape. Uses the not-yet-created-tolerant check for
+ * both reads and writes (matching edit-search-tools): a missing read target
+ * passes containment here and then fails naturally with the tool's own
+ * "not found" error, rather than being mislabeled as an escape.
+ */
+async function assertWithinWorkspace(
+  context: ProcessingContext,
+  resolvedPath: string
+): Promise<void> {
+  const root = context.resolveWorkspacePath(".");
+  if (!(await isWriteTargetWithinRoot(root, resolvedPath))) {
+    throw new Error(`Path resolves outside the workspace: ${resolvedPath}`);
+  }
+}
 
 interface PdfExtraction {
   /** Per-page text arrays (one entry per page). */
@@ -61,6 +122,7 @@ export class ExtractPDFTextTool extends Tool {
   ): Promise<unknown> {
     try {
       const filePath = context.resolveWorkspacePath(params["path"] as string);
+      await assertWithinWorkspace(context, filePath);
       const buffer = await readFile(filePath);
       const { pages } = await extractPdfPages(buffer);
 
@@ -123,6 +185,7 @@ export class ExtractPDFTablesTool extends Tool {
       const outputFile = context.resolveWorkspacePath(
         params["output_file"] as string
       );
+      await assertWithinWorkspace(context, filePath);
       const buffer = await readFile(filePath);
       const { pages } = await extractPdfPages(buffer);
 
@@ -166,6 +229,7 @@ export class ExtractPDFTablesTool extends Tool {
         }
       }
 
+      await assertWithinWorkspace(context, outputFile);
       const parentDir = dirname(outputFile);
       await mkdir(parentDir, { recursive: true });
       await writeFile(outputFile, JSON.stringify(allTables), "utf-8");
@@ -226,6 +290,7 @@ export class ConvertPDFToMarkdownTool extends Tool {
         params["output_file"] as string
       );
 
+      await assertWithinWorkspace(context, inputFile);
       const buffer = await readFile(inputFile);
       const { pages } = await extractPdfPages(buffer);
 
@@ -240,6 +305,7 @@ export class ConvertPDFToMarkdownTool extends Tool {
         mdText = pages.join("\n");
       }
 
+      await assertWithinWorkspace(context, outputFile);
       const parentDir = dirname(outputFile);
       await mkdir(parentDir, { recursive: true });
       await writeFile(outputFile, mdText, "utf-8");

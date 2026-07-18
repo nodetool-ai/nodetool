@@ -403,7 +403,9 @@ const TableActions: React.FC<TableActionsProps> = memo(({
     link.href = url;
     link.download = "dataframe.csv";
     link.click();
-    URL.revokeObjectURL(url);
+    // Defer the revoke: releasing the blob synchronously cancels the download
+    // in Firefox and for large files.
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
 
     addNotification({
       content: "Exported as CSV",

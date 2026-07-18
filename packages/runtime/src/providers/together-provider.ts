@@ -166,6 +166,32 @@ function parseWavPCM(bytes: Uint8Array): {
   };
 }
 
+// ─── Abortable sleep ──────────────────────────────────────────────────────────
+
+/** Resolve the abort reason as an Error (mirrors the gemini provider). */
+function abortError(signal?: AbortSignal): Error {
+  return signal?.reason instanceof Error ? signal.reason : new Error("Aborted");
+}
+
+/** Sleep that rejects promptly when `signal` aborts instead of running full. */
+function abortableSleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(abortError(signal));
+      return;
+    }
+    const onAbort = (): void => {
+      clearTimeout(timer);
+      reject(abortError(signal));
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
 export class TogetherProvider extends OpenAICompatProvider {
@@ -577,7 +603,23 @@ export class TogetherProvider extends OpenAICompatProvider {
    * Poll Together's video job endpoint until it reaches a terminal state.
    * Returns the final response payload.
    */
-  private async pollVideoJob(jobId: string): Promise<{
+  /**
+   * Per-call timeout signal (mirrors the gemini provider): threaded into the
+   * poll-loop fetch and sleep so an expired budget aborts the in-flight request
+   * promptly instead of leaking it until the internal poll cap.
+   */
+  private timeoutSignal(
+    timeoutSeconds?: number | null
+  ): AbortSignal | undefined {
+    return timeoutSeconds && timeoutSeconds > 0
+      ? AbortSignal.timeout(timeoutSeconds * 1000)
+      : undefined;
+  }
+
+  private async pollVideoJob(
+    jobId: string,
+    signal?: AbortSignal
+  ): Promise<{
     status: string;
     outputs?: { video_url?: string };
     error?: { message?: string };
@@ -593,11 +635,11 @@ export class TogetherProvider extends OpenAICompatProvider {
         );
       }
 
-      await new Promise<void>((resolve) => setTimeout(resolve, intervalMs));
+      await abortableSleep(intervalMs, signal);
 
       const statusResponse = await this._togetherFetch(
         `https://api.together.xyz/v2/videos/${jobId}`,
-        { headers: { Authorization: `Bearer ${this.apiKey}` } }
+        { headers: { Authorization: `Bearer ${this.apiKey}` }, signal }
       );
 
       if (!statusResponse.ok) {
@@ -626,7 +668,8 @@ export class TogetherProvider extends OpenAICompatProvider {
    */
   private async downloadVideo(
     status: { outputs?: { video_url?: string }; error?: { message?: string } },
-    label: string
+    label: string,
+    signal?: AbortSignal
   ): Promise<Uint8Array> {
     const videoUrl = status.outputs?.video_url;
     if (!videoUrl) {
@@ -634,7 +677,7 @@ export class TogetherProvider extends OpenAICompatProvider {
       throw new Error(`Together ${label} failed: ${reason}`);
     }
 
-    const videoResponse = await this._togetherFetch(videoUrl);
+    const videoResponse = await this._togetherFetch(videoUrl, { signal });
     if (!videoResponse.ok) {
       throw new Error(
         `Failed to download Together video: ${videoResponse.status}`
@@ -673,6 +716,7 @@ export class TogetherProvider extends OpenAICompatProvider {
     if (params.seed != null) body.seed = params.seed;
     if (params.negativePrompt) body.negative_prompt = params.negativePrompt;
 
+    const signal = this.timeoutSignal(params.timeoutSeconds);
     const createResponse = await this._togetherFetch(
       "https://api.together.xyz/v2/videos",
       {
@@ -681,7 +725,8 @@ export class TogetherProvider extends OpenAICompatProvider {
           Authorization: `Bearer ${this.apiKey}`,
           "Content-Type": "application/json"
         },
-        body: JSON.stringify(body)
+        body: JSON.stringify(body),
+        signal
       }
     );
 
@@ -691,7 +736,7 @@ export class TogetherProvider extends OpenAICompatProvider {
     }
 
     const job = (await createResponse.json()) as { id: string; status: string };
-    const finalStatus = await this.pollVideoJob(job.id);
+    const finalStatus = await this.pollVideoJob(job.id, signal);
 
     if (finalStatus.status !== "completed") {
       const reason =
@@ -700,7 +745,7 @@ export class TogetherProvider extends OpenAICompatProvider {
       throw new Error(`Together text-to-video failed: ${reason}`);
     }
 
-    return this.downloadVideo(finalStatus, "text-to-video");
+    return this.downloadVideo(finalStatus, "text-to-video", signal);
   }
 
   /**
@@ -740,6 +785,7 @@ export class TogetherProvider extends OpenAICompatProvider {
     if (params.seed != null) body.seed = params.seed;
     if (params.negativePrompt) body.negative_prompt = params.negativePrompt;
 
+    const signal = this.timeoutSignal(params.timeoutSeconds);
     const createResponse = await this._togetherFetch(
       "https://api.together.xyz/v2/videos",
       {
@@ -748,7 +794,8 @@ export class TogetherProvider extends OpenAICompatProvider {
           Authorization: `Bearer ${this.apiKey}`,
           "Content-Type": "application/json"
         },
-        body: JSON.stringify(body)
+        body: JSON.stringify(body),
+        signal
       }
     );
 
@@ -758,7 +805,7 @@ export class TogetherProvider extends OpenAICompatProvider {
     }
 
     const job = (await createResponse.json()) as { id: string; status: string };
-    const finalStatus = await this.pollVideoJob(job.id);
+    const finalStatus = await this.pollVideoJob(job.id, signal);
 
     if (finalStatus.status !== "completed") {
       const reason =
@@ -767,6 +814,6 @@ export class TogetherProvider extends OpenAICompatProvider {
       throw new Error(`Together image-to-video failed: ${reason}`);
     }
 
-    return this.downloadVideo(finalStatus, "image-to-video");
+    return this.downloadVideo(finalStatus, "image-to-video", signal);
   }
 }

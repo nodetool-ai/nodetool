@@ -318,6 +318,22 @@ const CropBodyInner: React.FC<CropBodyProps> = ({
 
   const sourceSrc = useMemo(() => toSource(sourceImage), [sourceImage]);
 
+  // Revoke the blob URL minted by `toSource` when the source changes / on
+  // unmount. Only revoke URLs we created — passthrough http/data URIs from
+  // `img.uri` must not be revoked.
+  const blobUrlRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (sourceSrc && sourceSrc.startsWith("blob:")) {
+      blobUrlRef.current = sourceSrc;
+    }
+    return () => {
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+        blobUrlRef.current = null;
+      }
+    };
+  }, [sourceSrc]);
+
   // Track the source image's natural dimensions. Prefer the metadata
   // already on the ImageRef; fall back to the `<img>`'s naturalWidth
   // on load (covers URI-only refs without dimension metadata).

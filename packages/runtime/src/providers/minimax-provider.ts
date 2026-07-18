@@ -146,6 +146,30 @@ interface MinimaxBaseResp {
   status_msg?: string;
 }
 
+/** Resolve the abort reason as an Error (mirrors the gemini provider). */
+function abortError(signal?: AbortSignal): Error {
+  return signal?.reason instanceof Error ? signal.reason : new Error("Aborted");
+}
+
+/** Sleep that rejects promptly when `signal` aborts instead of running full. */
+function abortableSleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(abortError(signal));
+      return;
+    }
+    const onAbort = (): void => {
+      clearTimeout(timer);
+      reject(abortError(signal));
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
 /** MiniMax embeds a `base_resp` on most responses; surface failures as errors. */
 function assertBaseResp(data: Record<string, unknown>, context: string): void {
   const baseResp = data.base_resp as MinimaxBaseResp | undefined;
@@ -564,7 +588,8 @@ export class MinimaxProvider extends OpenAICompatProvider {
     return this._generateVideo(params.model.id, {
       prompt: params.prompt,
       durationSeconds: params.durationSeconds,
-      resolution: params.resolution
+      resolution: params.resolution,
+      signal: this._timeoutSignal(params.timeoutSeconds)
     });
   }
 
@@ -576,8 +601,22 @@ export class MinimaxProvider extends OpenAICompatProvider {
       prompt: params.prompt ?? undefined,
       durationSeconds: params.durationSeconds,
       resolution: params.resolution,
-      firstFrame: images[0]
+      firstFrame: images[0],
+      signal: this._timeoutSignal(params.timeoutSeconds)
     });
+  }
+
+  /**
+   * Per-call timeout signal (mirrors the gemini provider): threaded into the
+   * poll-loop fetch and sleep so an expired budget aborts the in-flight request
+   * promptly instead of leaking it until the fixed poll cap.
+   */
+  private _timeoutSignal(
+    timeoutSeconds?: number | null
+  ): AbortSignal | undefined {
+    return timeoutSeconds && timeoutSeconds > 0
+      ? AbortSignal.timeout(timeoutSeconds * 1000)
+      : undefined;
   }
 
   private async _generateVideo(
@@ -587,6 +626,7 @@ export class MinimaxProvider extends OpenAICompatProvider {
       durationSeconds?: number | null;
       resolution?: string | null;
       firstFrame?: Uint8Array;
+      signal?: AbortSignal;
     }
   ): Promise<Uint8Array> {
     const body: Record<string, unknown> = { model: modelId };
@@ -643,7 +683,8 @@ export class MinimaxProvider extends OpenAICompatProvider {
       {
         method: "POST",
         headers: this.headers(),
-        body: JSON.stringify(body)
+        body: JSON.stringify(body),
+        signal: opts.signal
       }
     );
     if (!submit.ok) {
@@ -661,20 +702,24 @@ export class MinimaxProvider extends OpenAICompatProvider {
       );
     }
 
-    const fileId = await this._pollVideoTask(taskId);
-    return this._downloadFile(fileId);
+    const fileId = await this._pollVideoTask(taskId, 5000, 360, opts.signal);
+    return this._downloadFile(fileId, opts.signal);
   }
 
   private async _pollVideoTask(
     taskId: string,
     pollIntervalMs = 5000,
-    maxAttempts = 360
+    maxAttempts = 360,
+    signal?: AbortSignal
   ): Promise<string> {
     const url = `${MINIMAX_BASE_URL}/v1/query/video_generation?task_id=${encodeURIComponent(
       taskId
     )}`;
     for (let i = 0; i < maxAttempts; i++) {
-      const res = await this._minimaxFetch(url, { headers: this.headers() });
+      const res = await this._minimaxFetch(url, {
+        headers: this.headers(),
+        signal
+      });
       if (!res.ok) {
         throw new Error(
           `MiniMax video status failed: ${res.status} ${await res.text()}`
@@ -697,18 +742,24 @@ export class MinimaxProvider extends OpenAICompatProvider {
           `MiniMax video task failed: ${JSON.stringify(data.base_resp ?? data)}`
         );
       }
-      await new Promise((r) => setTimeout(r, pollIntervalMs));
+      await abortableSleep(pollIntervalMs, signal);
     }
     throw new Error(
       `MiniMax video task timed out after ${maxAttempts * pollIntervalMs}ms`
     );
   }
 
-  private async _downloadFile(fileId: string): Promise<Uint8Array> {
+  private async _downloadFile(
+    fileId: string,
+    signal?: AbortSignal
+  ): Promise<Uint8Array> {
     const url = `${MINIMAX_BASE_URL}/v1/files/retrieve?file_id=${encodeURIComponent(
       fileId
     )}`;
-    const res = await this._minimaxFetch(url, { headers: this.headers() });
+    const res = await this._minimaxFetch(url, {
+      headers: this.headers(),
+      signal
+    });
     if (!res.ok) {
       throw new Error(
         `MiniMax files/retrieve failed: ${res.status} ${await res.text()}`
@@ -728,7 +779,7 @@ export class MinimaxProvider extends OpenAICompatProvider {
     // safeFetch: download_url is provider-returned (externally influenced), so
     // route it through the SSRF guard rather than the raw API fetch. Use the
     // injected fetch so the guard stays testable.
-    const dl = await safeFetch(downloadUrl, undefined, 5, this._minimaxFetch);
+    const dl = await safeFetch(downloadUrl, { signal }, 5, this._minimaxFetch);
     if (!dl.ok) {
       throw new Error(`Failed to download MiniMax file from ${downloadUrl}`);
     }

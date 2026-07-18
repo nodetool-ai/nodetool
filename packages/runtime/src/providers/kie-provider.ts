@@ -122,8 +122,28 @@ function headers(apiKey: string): Record<string, string> {
   };
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((r) => setTimeout(r, ms));
+/** Resolve the abort reason as an Error (mirrors the gemini provider). */
+function abortError(signal?: AbortSignal): Error {
+  return signal?.reason instanceof Error ? signal.reason : new Error("Aborted");
+}
+
+/** Sleep that rejects promptly when `signal` aborts instead of running full. */
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(abortError(signal));
+      return;
+    }
+    const onAbort = (): void => {
+      clearTimeout(timer);
+      reject(abortError(signal));
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
 }
 
 /**
@@ -288,7 +308,8 @@ function defaultForField(field: ModelInputField): unknown {
  */
 async function uploadImageBytes(
   apiKey: string,
-  bytes: Uint8Array
+  bytes: Uint8Array,
+  signal?: AbortSignal
 ): Promise<string> {
   const { mime, ext } = sniffImageType(bytes);
   const fileName = `upload-${Date.now()}.${ext}`;
@@ -299,7 +320,8 @@ async function uploadImageBytes(
   const res = await fetch(KIE_UPLOAD_URL, {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}` },
-    body: form
+    body: form,
+    signal
   });
   const data = await parseKieJson(res, "upload");
   if (!res.ok || !data.success) {
@@ -316,12 +338,14 @@ async function uploadImageBytes(
 async function submitTask(
   apiKey: string,
   model: string,
-  input: Record<string, unknown>
+  input: Record<string, unknown>,
+  signal?: AbortSignal
 ): Promise<string> {
   const res = await fetch(`${KIE_API_BASE}/api/v1/jobs/createTask`, {
     method: "POST",
     headers: headers(apiKey),
-    body: JSON.stringify({ model, input })
+    body: JSON.stringify({ model, input }),
+    signal
   });
   const data = await parseKieJson(res, "submit");
   if (!res.ok) {
@@ -338,7 +362,8 @@ async function pollUntilDone(
   apiKey: string,
   taskId: string,
   pollInterval = 4000,
-  maxAttempts = 300
+  maxAttempts = 300,
+  signal?: AbortSignal
 ): Promise<void> {
   const url = `${KIE_API_BASE}/api/v1/jobs/recordInfo?taskId=${taskId}`;
   // KIE reports failures two ways that both look like "still running" to a naive
@@ -350,7 +375,7 @@ async function pollUntilDone(
   const MAX_CONSECUTIVE_ERRORS = 5;
   let consecutiveErrors = 0;
   for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(url, { headers: headers(apiKey) });
+    const res = await fetch(url, { headers: headers(apiKey), signal });
     if (!res.ok) {
       consecutiveErrors += 1;
       if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
@@ -359,7 +384,7 @@ async function pollUntilDone(
           `Kie recordInfo failed ${consecutiveErrors}× (HTTP ${res.status}) for taskId ${taskId}: ${body.slice(0, 200)}`
         );
       }
-      await sleep(pollInterval);
+      await sleep(pollInterval, signal);
       continue;
     }
     consecutiveErrors = 0;
@@ -371,7 +396,7 @@ async function pollUntilDone(
         (data.data as Record<string, unknown>)?.failMsg || "Unknown error";
       throw new Error(`Kie task failed: ${msg} (taskId: ${taskId})`);
     }
-    await sleep(pollInterval);
+    await sleep(pollInterval, signal);
   }
   const timeoutSeconds = (maxAttempts * pollInterval) / 1000;
   throw new Error(
@@ -382,10 +407,11 @@ async function pollUntilDone(
 
 async function downloadResultBytes(
   apiKey: string,
-  taskId: string
+  taskId: string,
+  signal?: AbortSignal
 ): Promise<Uint8Array> {
   const url = `${KIE_API_BASE}/api/v1/jobs/recordInfo?taskId=${taskId}`;
-  const res = await fetch(url, { headers: headers(apiKey) });
+  const res = await fetch(url, { headers: headers(apiKey), signal });
   if (!res.ok) throw new Error(`Failed to get Kie result: ${res.status}`);
   const data = await parseKieJson(res, "recordInfo");
   const resultJsonStr = (data.data as Record<string, unknown>)
@@ -394,7 +420,7 @@ async function downloadResultBytes(
   const resultData = JSON.parse(resultJsonStr) as Record<string, unknown>;
   const resultUrls = resultData.resultUrls as string[];
   if (!resultUrls?.length) throw new Error("No resultUrls in Kie resultJson");
-  const dlRes = await safeFetch(resultUrls[0]);
+  const dlRes = await safeFetch(resultUrls[0], { signal });
   if (!dlRes.ok) {
     throw new Error(`Failed to download from ${resultUrls[0]}`);
   }
@@ -408,13 +434,15 @@ async function downloadResultBytes(
 async function submitSuno(
   apiKey: string,
   endpoint: string,
-  input: Record<string, unknown>
+  input: Record<string, unknown>,
+  signal?: AbortSignal
 ): Promise<string> {
   const body = { ...input, callBackUrl: KIE_SUNO_CALLBACK };
   const res = await fetch(`${KIE_API_BASE}${endpoint}`, {
     method: "POST",
     headers: headers(apiKey),
-    body: JSON.stringify(body)
+    body: JSON.stringify(body),
+    signal
   });
   const data = await parseKieJson(res, "submit");
   if (!res.ok) {
@@ -432,7 +460,8 @@ async function pollSuno(
   apiKey: string,
   taskId: string,
   pollInterval: number,
-  maxAttempts: number
+  maxAttempts: number,
+  signal?: AbortSignal
 ): Promise<Record<string, unknown>> {
   const url = `${KIE_API_BASE}/api/v1/generate/record-info?taskId=${taskId}`;
   const failed = new Set([
@@ -442,14 +471,14 @@ async function pollSuno(
     "SENSITIVE_WORD_ERROR"
   ]);
   for (let i = 0; i < maxAttempts; i++) {
-    const res = await fetch(url, { headers: headers(apiKey) });
+    const res = await fetch(url, { headers: headers(apiKey), signal });
     const data = await parseKieJson(res, "record-info");
     const status = (data.data as Record<string, unknown>)?.status as string;
     if (status === "SUCCESS") return data;
     if (failed.has(status)) {
       throw new Error(`Kie Suno task failed: ${status} (taskId: ${taskId})`);
     }
-    await sleep(pollInterval);
+    await sleep(pollInterval, signal);
   }
   const timeoutSeconds = (maxAttempts * pollInterval) / 1000;
   throw new Error(
@@ -694,6 +723,19 @@ export class KieProvider extends BaseProvider {
   }
 
   /**
+   * Per-call timeout signal (mirrors the gemini provider): threaded into the
+   * poll-loop fetches and sleeps so an expired budget aborts the in-flight
+   * request promptly instead of leaking it until the loop exhausts.
+   */
+  private timeoutSignal(
+    timeoutSeconds?: number | null
+  ): AbortSignal | undefined {
+    return timeoutSeconds && timeoutSeconds > 0
+      ? AbortSignal.timeout(timeoutSeconds * 1000)
+      : undefined;
+  }
+
+  /**
    * Generate music as an encoded audio file. The advertised KIE music models
    * (generate-music, generate-sounds) run through the Suno API — a separate
    * submit endpoint and record-info poll, not the generic jobs task API. A
@@ -707,17 +749,24 @@ export class KieProvider extends BaseProvider {
     const modelId = params.model.id;
     log.debug("Kie textToMusic", { model: modelId });
 
+    const signal = this.timeoutSignal(params.timeoutSeconds);
     const meta = getManifestNodeMeta(KIE_MANIFEST_PKG, KIE_MANIFEST_PATH, modelId);
     if (meta?.useSuno && meta.sunoEndpoint) {
       const input = this.buildSunoInput(modelId, params);
-      const taskId = await submitSuno(apiKey, meta.sunoEndpoint, input);
+      const taskId = await submitSuno(apiKey, meta.sunoEndpoint, input, signal);
       const { pollInterval, maxAttempts } = this.sunoPollConfig(
         meta.pollInterval,
         meta.maxAttempts,
         params.timeoutSeconds
       );
-      const record = await pollSuno(apiKey, taskId, pollInterval, maxAttempts);
-      const bytes = await this.downloadSunoAudio(record);
+      const record = await pollSuno(
+        apiKey,
+        taskId,
+        pollInterval,
+        maxAttempts,
+        signal
+      );
+      const bytes = await this.downloadSunoAudio(record, signal);
       return { data: bytes, mimeType: sniffAudioMime(bytes) };
     }
 
@@ -731,9 +780,9 @@ export class KieProvider extends BaseProvider {
       modelId,
       params.timeoutSeconds
     );
-    const taskId = await submitTask(apiKey, modelId, input);
-    await pollUntilDone(apiKey, taskId, pollInterval, maxAttempts);
-    const bytes = await downloadResultBytes(apiKey, taskId);
+    const taskId = await submitTask(apiKey, modelId, input, signal);
+    await pollUntilDone(apiKey, taskId, pollInterval, maxAttempts, signal);
+    const bytes = await downloadResultBytes(apiKey, taskId, signal);
     return { data: bytes, mimeType: sniffAudioMime(bytes) };
   }
 
@@ -788,7 +837,8 @@ export class KieProvider extends BaseProvider {
 
   /** Download the first audio track from a Suno record-info response. */
   private async downloadSunoAudio(
-    record: Record<string, unknown>
+    record: Record<string, unknown>,
+    signal?: AbortSignal
   ): Promise<Uint8Array> {
     const response = (record.data as Record<string, unknown>)?.response as
       | Record<string, unknown>
@@ -798,7 +848,7 @@ export class KieProvider extends BaseProvider {
       | undefined;
     const audioUrl = sunoData?.[0]?.audioUrl as string | undefined;
     if (!audioUrl) throw new Error("No audioUrl in Kie Suno response");
-    const dlRes = await safeFetch(audioUrl);
+    const dlRes = await safeFetch(audioUrl, { signal });
     if (!dlRes.ok) {
       throw new Error(`Failed to download from ${audioUrl}`);
     }
@@ -842,13 +892,14 @@ export class KieProvider extends BaseProvider {
 
     log.debug("Kie textToVideo", { model: modelId });
     const apiKey = this.requireApiKey();
+    const signal = this.timeoutSignal(params.timeoutSeconds);
     const { pollInterval, maxAttempts } = this.pollConfig(
       modelId,
       params.timeoutSeconds
     );
-    const taskId = await submitTask(apiKey, modelId, input);
-    await pollUntilDone(apiKey, taskId, pollInterval, maxAttempts);
-    return downloadResultBytes(apiKey, taskId);
+    const taskId = await submitTask(apiKey, modelId, input, signal);
+    await pollUntilDone(apiKey, taskId, pollInterval, maxAttempts, signal);
+    return downloadResultBytes(apiKey, taskId, signal);
   }
 
   /**
@@ -1048,7 +1099,8 @@ export class KieProvider extends BaseProvider {
     params: ImageToVideoParams
   ): Promise<Uint8Array> {
     const apiKey = this.requireApiKey();
-    const imageUrls = await this.uploadImages(apiKey, images);
+    const signal = this.timeoutSignal(params.timeoutSeconds);
+    const imageUrls = await this.uploadImages(apiKey, images, signal);
     if (imageUrls.length === 0) {
       throw new Error("The input image is empty.");
     }
@@ -1066,9 +1118,9 @@ export class KieProvider extends BaseProvider {
       modelId,
       params.timeoutSeconds
     );
-    const taskId = await submitTask(apiKey, modelId, input);
-    await pollUntilDone(apiKey, taskId, pollInterval, maxAttempts);
-    return downloadResultBytes(apiKey, taskId);
+    const taskId = await submitTask(apiKey, modelId, input, signal);
+    await pollUntilDone(apiKey, taskId, pollInterval, maxAttempts, signal);
+    return downloadResultBytes(apiKey, taskId, signal);
   }
 
   /**
@@ -1095,9 +1147,10 @@ export class KieProvider extends BaseProvider {
   /** Upload every non-empty image to KIE's file store, returning hosted URLs. */
   private async uploadImages(
     apiKey: string,
-    images: Uint8Array[]
+    images: Uint8Array[],
+    signal?: AbortSignal
   ): Promise<string[]> {
     const valid = images.filter((b) => b && b.length > 0);
-    return Promise.all(valid.map((b) => uploadImageBytes(apiKey, b)));
+    return Promise.all(valid.map((b) => uploadImageBytes(apiKey, b, signal)));
   }
 }
