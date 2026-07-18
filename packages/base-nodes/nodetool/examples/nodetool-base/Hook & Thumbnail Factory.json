@@ -2,10 +2,10 @@
   "id": "",
   "access": "private",
   "created_at": "2026-06-25T12:00:00.000Z",
-  "updated_at": "2026-06-25T12:00:00.000Z",
+  "updated_at": "2026-07-17T12:00:00.000Z",
   "name": "Hook & Thumbnail Factory",
   "tool_name": null,
-  "description": "Turn a video topic into scroll-stopping hook ideas and a matching AI thumbnail for each — a faceless short-form content starter kit in one run.",
+  "description": "One video topic in, a full thumbnail pack out: scroll-stopping hook lines plus a color-graded, ready-to-post thumbnail for each. The differentiator is the fan-out — one hook stream drives a whole gallery of matching images in a single run. Uses fal-ai/flux/schnell (cheap, fast).",
   "tags": [
     "image",
     "content",
@@ -36,6 +36,17 @@
         "targetHandle": "audience",
         "ui_properties": {
           "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "a1b2c3d4-count-brief",
+        "source": "input_count",
+        "sourceHandle": "output",
+        "target": "hook_brief",
+        "targetHandle": "count",
+        "ui_properties": {
+          "className": "int"
         },
         "edge_type": "data"
       },
@@ -95,13 +106,46 @@
         "edge_type": "data"
       },
       {
-        "id": "2806e15a-b3d8-4526-9170-137ca0f9b746",
+        "id": "c5d6e7f8-thumb-grade",
         "source": "thumbnail",
+        "sourceHandle": "output",
+        "target": "punch",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "2806e15a-b3d8-4526-9170-137ca0f9b746",
+        "source": "punch",
         "sourceHandle": "output",
         "target": "preview_thumb",
         "targetHandle": "value",
         "ui_properties": {
           "className": "image"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "d9e0f1a2-grade-collect",
+        "source": "punch",
+        "sourceHandle": "output",
+        "target": "collect_thumbs",
+        "targetHandle": "input_item",
+        "ui_properties": {
+          "className": "image"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "e3f4a5b6-collect-output",
+        "source": "collect_thumbs",
+        "sourceHandle": "output",
+        "target": "output_gallery",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "list"
         },
         "edge_type": "data"
       }
@@ -111,7 +155,7 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎬 Hook & Thumbnail Factory\n\nGive a video topic and audience. The graph writes scroll-stopping hook ideas and, for each one, generates a matching thumbnail image — a full faceless-content starter kit.\n\n**Pipeline:** Topic + audience → hook brief → List Generator (streams hooks) → thumbnail prompt → Text-to-Image\n\n**Try this:** change the topic or audience, ask for more hooks, or tweak the thumbnail style. Pick a text model on the list generator and an image model on Text-to-Image first."
+          "comment": "# 🎬 Hook & Thumbnail Factory\n\nGive a video topic and audience. The graph writes scroll-stopping hook lines and, for **each** hook, generates a matching thumbnail — color-graded for punch and collected into a gallery. A whole thumbnail pack from one run.\n\n**Why a graph, not a chat box:** the hook stream fans out. `List Generator` emits one hook at a time; each hook flows through its own prompt → image → color-grade branch, so N hooks become N finished thumbnails in parallel. A chat box can list hooks; it can't hand you the images.\n\n**Pipeline:** Topic + audience + count → hook brief → List Generator (streams hooks) → per-hook thumbnail prompt → Text-to-Image → color grade → collect gallery\n\n**Try this:** change the topic, audience, or number of hooks; tweak the thumbnail style in the prompt. Pick a text model on the List Generator and an image model on Text-to-Image first."
         },
         "ui_properties": {
           "selected": false,
@@ -121,7 +165,7 @@
           },
           "zIndex": 0,
           "width": 500,
-          "height": 260,
+          "height": 320,
           "selectable": true,
           "bypassed": false
         },
@@ -156,14 +200,14 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "Target Audience",
-          "description": "Who you are making it for.",
+          "description": "Who you are making it for — shapes tone and references.",
           "value": "Gen Z just starting to invest"
         },
         "ui_properties": {
           "selected": false,
           "position": {
             "x": 40,
-            "y": 360
+            "y": 300
           },
           "zIndex": 0,
           "width": 280,
@@ -175,10 +219,35 @@
         "dynamic_outputs": {}
       },
       {
+        "id": "input_count",
+        "type": "nodetool.input.IntegerInput",
+        "data": {
+          "name": "Number of Hooks",
+          "description": "How many hook lines (and thumbnails) to produce. Each thumbnail is one FLUX image, so higher counts cost and take proportionally longer.",
+          "value": 4,
+          "min": 1,
+          "max": 10
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 40,
+            "y": 540
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "3️⃣ How many hooks",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "hook_brief",
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "Write 5 scroll-stopping hook ideas for a short-form video.\n\nTOPIC: {{ topic }}\nAUDIENCE: {{ audience }}\n\nRules:\n- Each hook is one line, said in the first 2 seconds.\n- Use curiosity, a bold claim, or a relatable pain.\n- No clickbait that the video can't pay off.\n- Return the hooks as a plain list, one per line."
+          "prompt": "You are a short-form video strategist. Write exactly {{ count }} scroll-stopping hook lines for a video.\n\nTOPIC: {{ topic }}\nAUDIENCE: {{ audience }}\n\nRules:\n- Each hook is a single line, spoken in the first 2 seconds.\n- Lead with curiosity, a bold claim, or a relatable pain the audience feels.\n- No clickbait the video can't pay off; no emojis; no numbering.\n- Keep each hook under 12 words so it fits on screen.\n\nOutput format: return the {{ count }} hooks as a plain list, one hook per line, nothing else."
         },
         "ui_properties": {
           "selected": false,
@@ -189,13 +258,14 @@
           "zIndex": 0,
           "width": 340,
           "height": 460,
-          "title": "3️⃣ Build hook brief",
+          "title": "4️⃣ Build hook brief",
           "selectable": true,
           "bypassed": false
         },
         "dynamic_properties": {
           "topic": null,
-          "audience": null
+          "audience": null,
+          "count": null
         },
         "dynamic_outputs": {}
       },
@@ -222,7 +292,7 @@
           "zIndex": 0,
           "width": 360,
           "height": 420,
-          "title": "4️⃣ Generate hooks",
+          "title": "5️⃣ Stream hooks",
           "selectable": true,
           "bypassed": false
         },
@@ -233,7 +303,7 @@
         "id": "thumb_brief",
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "Design a bold, high-contrast YouTube/Shorts thumbnail for a video.\n\nVIDEO TOPIC: {{ topic }}\nHOOK ON SCREEN: {{ hook }}\n\nDescribe a single eye-catching image: clear focal subject, punchy colors, dramatic lighting, lots of negative space for big bold text, mobile-legible at thumbnail size. No tiny details, no real logos."
+          "prompt": "You are an art director for viral thumbnails. Turn one hook into a single image description.\n\nVIDEO TOPIC: {{ topic }}\nHOOK ON SCREEN: {{ hook }}\n\nDescribe one bold, high-contrast 16:9 thumbnail: a clear focal subject, punchy saturated colors, dramatic lighting, and generous negative space on one side for a big text headline the creator will add later. Must read at small mobile sizes.\n\nConstraints: no words, letters, numbers, logos, or watermarks rendered in the image. No tiny details, no busy clutter.\n\nOutput format: one vivid paragraph, image description only."
         },
         "ui_properties": {
           "selected": false,
@@ -244,7 +314,7 @@
           "zIndex": 0,
           "width": 340,
           "height": 460,
-          "title": "5️⃣ Build thumbnail prompt",
+          "title": "6️⃣ Build thumbnail prompt",
           "selectable": true,
           "bypassed": false
         },
@@ -266,7 +336,7 @@
             "path": null,
             "supported_tasks": []
           },
-          "negative_prompt": "blurry, low contrast, watermark, tiny text, clutter",
+          "negative_prompt": "blurry, low contrast, watermark, text, letters, tiny details, clutter",
           "aspect_ratio": "16:9",
           "resolution": "2K",
           "timeout_seconds": 0
@@ -280,7 +350,71 @@
           "zIndex": 0,
           "width": 320,
           "height": 360,
-          "title": "6️⃣ Generate thumbnail",
+          "title": "7️⃣ Generate thumbnail",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "punch",
+        "type": "lib.image.color.BrightnessContrast",
+        "data": {
+          "brightness": 0.03,
+          "contrast": 1.18
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1940,
+            "y": 160
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "8️⃣ Color grade for punch",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "collect_thumbs",
+        "type": "nodetool.control.Collect",
+        "data": {
+          "input_item": []
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 2260,
+            "y": 160
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "9️⃣ Collect gallery",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "output_gallery",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "thumbnail_gallery"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 2580,
+            "y": 160
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "🖼️ Thumbnail gallery",
           "selectable": true,
           "bypassed": false
         },
@@ -318,13 +452,13 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1580,
+            "x": 1940,
             "y": 540
           },
           "zIndex": 0,
           "width": 360,
           "height": 320,
-          "title": "🖼️ Thumbnail",
+          "title": "🖼️ Latest thumbnail",
           "selectable": true,
           "bypassed": false
         },
@@ -342,6 +476,10 @@
       },
       "Target Audience": {
         "type": "string",
+        "label": ""
+      },
+      "Number of Hooks": {
+        "type": "integer",
         "label": ""
       }
     },
@@ -368,18 +506,10 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "🪝 Hook & Thumbnail Factory",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
             "id": "t-tagline",
-            "text": "Give it a video topic — get scroll-stopping hooks and a matching thumbnail."
+            "text": "Give it a video topic — get scroll-stopping hooks and a gallery of matching thumbnails."
           }
         },
         {
@@ -395,24 +525,26 @@
                   "title": "Try it",
                   "content": [
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-video-topic",
                         "binding": "Video Topic",
-                        "label": "What's your video about?",
-                        "placeholder": "How compound interest quietly builds wealth",
-                        "multiline": true,
                         "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-target-audience",
                         "binding": "Target Audience",
-                        "label": "Who's watching?",
-                        "placeholder": "Gen Z just starting to invest",
-                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-number-of-hooks",
+                        "binding": "Number of Hooks",
                         "events": []
                       }
                     },
@@ -420,7 +552,7 @@
                       "type": "Button",
                       "props": {
                         "id": "btn-run",
-                        "label": "Make hooks & thumbnail",
+                        "label": "Make hooks & thumbnails",
                         "variant": "contained",
                         "color": "primary",
                         "events": [
@@ -445,6 +577,49 @@
                   "title": "Results",
                   "content": [
                     {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Writing hooks & rendering thumbnails…",
+                        "binding": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-thumbnail-gallery",
+                        "text": "Thumbnail gallery",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-thumbnail-gallery",
+                        "binding": "thumbnail_gallery",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-make-another",
+                        "label": "Make another set",
+                        "variant": "outlined",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    },
+                    {
                       "type": "Heading",
                       "props": {
                         "id": "lbl-hooks",
@@ -464,7 +639,7 @@
                       "type": "Heading",
                       "props": {
                         "id": "lbl-thumbnail",
-                        "text": "Thumbnail",
+                        "text": "Featured thumbnail",
                         "level": "3"
                       }
                     },

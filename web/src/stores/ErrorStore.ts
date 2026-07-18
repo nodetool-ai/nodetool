@@ -71,10 +71,22 @@ export const nodeErrorToDisplayString = (
     typeof normalized === "object" &&
     "message" in normalized
   ) {
-    return String(normalized.message);
+    const message = normalized.message;
+    if (message != null && String(message).trim() !== "") {
+      return String(message);
+    }
+    // A nullish/blank `message` carries no display text — stringifying it yields
+    // the literal "null"/"undefined", which reads as a spurious error. If the
+    // object holds nothing else, it isn't a displayable error at all.
+    const otherKeys = Object.keys(normalized).filter((k) => k !== "message");
+    if (otherKeys.length === 0) {
+      return "";
+    }
   }
 
-  return JSON.stringify(normalized);
+  const json = JSON.stringify(normalized);
+  // `{}` and friends serialize to noise, not an error the user can act on.
+  return json === undefined || json === "{}" || json === "null" ? "" : json;
 };
 
 const useErrorStore = create<ErrorStore>((set, get) => ({

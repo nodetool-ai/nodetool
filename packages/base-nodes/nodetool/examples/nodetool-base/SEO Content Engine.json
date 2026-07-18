@@ -5,7 +5,7 @@
   "updated_at": "2026-07-01T00:00:00.000000",
   "name": "SEO Content Engine",
   "tool_name": null,
-  "description": "One topic in, a keyword-targeted article batch out. A strategist agent plans the topic cluster, a list generator turns it into briefs, and every brief becomes a full Markdown article with an editorial hero image.",
+  "description": "One topic in, a keyword-targeted article batch out — each article lands as typed fields (title, meta description, keywords, body) instead of one markdown blob, ready to paste straight into a CMS. A strategist agent plans the topic cluster, a list generator turns it into briefs, and every brief becomes a full article with an editorial hero image.",
   "tags": [
     "seo",
     "content",
@@ -140,10 +140,43 @@
         "edge_type": "data"
       },
       {
-        "id": "s12",
+        "id": "s12a",
         "source": "writer",
-        "sourceHandle": "text",
-        "target": "preview_articles",
+        "sourceHandle": "title",
+        "target": "preview_titles",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "s12b",
+        "source": "writer",
+        "sourceHandle": "meta_description",
+        "target": "preview_meta",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "s12c",
+        "source": "writer",
+        "sourceHandle": "keywords",
+        "target": "preview_keywords",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "list"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "s12d",
+        "source": "writer",
+        "sourceHandle": "body",
+        "target": "preview_bodies",
         "targetHandle": "value",
         "ui_properties": {
           "className": "str"
@@ -189,7 +222,7 @@
         "id": "comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 📈 SEO Content Engine\n\nOne topic in, a keyword-targeted article batch out. A strategist agent plans the topic cluster, a list generator turns it into briefs, and every brief becomes a full Markdown article with an editorial hero image.\n\n**Pipeline:** Business + Seed topics → Strategist → Briefs → Articles + Hero images\n\n**Try this:** pick the language and image models, then raise the article count or point the seed topics at the next cluster."
+          "comment": "# 📈 SEO Content Engine\n\nOne topic in, a keyword-targeted article batch out — each article comes back as separate title, meta description, keyword list, and body fields (not one markdown blob), ready to drop into a CMS. A strategist agent plans the topic cluster, a list generator turns it into briefs, and every brief becomes a full article with an editorial hero image.\n\n**Pipeline:** Business + Seed topics → Strategist → Briefs → Articles (typed fields) + Hero images\n\n**Try this:** pick the language and image models, then raise the article count or point the seed topics at the next cluster."
         },
         "ui_properties": {
           "position": {
@@ -415,7 +448,7 @@
         "id": "article_prompt",
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "Write the full article for this brief.\n\nBrief: {{ BRIEF }}\nPublishing business: {{ BUSINESS }}\n\nRules:\n- Return Markdown only: a one-line meta description in italics, then the # title, then the article.\n- 900-1200 words. Use the brief's H2 sections; add H3s where they help scanning.\n- Answer the searcher's question in the first two sentences, then earn the depth.\n- Concrete numbers, steps, and examples over generalities. First-hand point of view where credible.\n- The keyword appears where it belongs — write for the reader, not the crawler.\n- End with a short FAQ (3 questions) and one unforced call to action for the business."
+          "prompt": "Write the full article for this brief.\n\nBrief: {{ BRIEF }}\nPublishing business: {{ BUSINESS }}\n\nRules for the body:\n- 900-1200 words. Use the brief's H2 sections; add H3s where they help scanning.\n- Answer the searcher's question in the first two sentences, then earn the depth.\n- Concrete numbers, steps, and examples over generalities. First-hand point of view where credible.\n- The primary keyword appears where it belongs — write for the reader, not the crawler.\n- End with a short FAQ (3 questions) and one unforced call to action for the business."
         },
         "ui_properties": {
           "position": {
@@ -447,7 +480,7 @@
             "path": null,
             "supported_tasks": []
           },
-          "system": "You are a senior content writer for organic search. You write like an expert practitioner sharing what works, never like a content mill. Specific, useful, zero filler.",
+          "system": "You are a senior content writer for organic search. You write like an expert practitioner sharing what works, never like a content mill. Specific, useful, zero filler.\n\nOutput Format\n- Return a single JSON object matching the defined output schema — `title`, `meta_description`, `keywords`, and `body` are separate fields, never merged into one string.\n- `title`: the article's H1, plain text, no Markdown syntax, no surrounding quotes.\n- `meta_description`: a 150-160 character search-result snippet that earns the click, written in sentence case.\n- `keywords`: 3-6 keyword phrases as an array of strings, primary keyword first.\n- `body`: the full article body as Markdown, starting at H2 (no title line, no meta line, no keyword list) — follow the rules given in the brief.",
           "audio": {
             "type": "audio",
             "uri": "",
@@ -471,13 +504,40 @@
           "bypassed": false
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {}
+        "dynamic_outputs": {
+          "title": {
+            "type": "str",
+            "optional": false,
+            "type_args": []
+          },
+          "meta_description": {
+            "type": "str",
+            "optional": false,
+            "type_args": []
+          },
+          "keywords": {
+            "type": "list",
+            "optional": false,
+            "type_args": [
+              {
+                "type": "str",
+                "optional": false,
+                "type_args": []
+              }
+            ]
+          },
+          "body": {
+            "type": "str",
+            "optional": false,
+            "type_args": []
+          }
+        }
       },
       {
-        "id": "preview_articles",
+        "id": "preview_titles",
         "type": "nodetool.workflows.base_node.Preview",
         "data": {
-          "name": "articles"
+          "name": "article_titles"
         },
         "ui_properties": {
           "position": {
@@ -485,9 +545,72 @@
             "y": 60
           },
           "zIndex": 0,
-          "width": 360,
+          "width": 320,
+          "height": 110,
+          "title": "📌 Article titles",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "preview_meta",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "meta_descriptions"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2680,
+            "y": 190
+          },
+          "zIndex": 0,
+          "width": 320,
+          "height": 110,
+          "title": "🏷️ Meta descriptions",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "preview_keywords",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "keywords"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2680,
+            "y": 320
+          },
+          "zIndex": 0,
+          "width": 320,
+          "height": 140,
+          "title": "🔑 Keywords",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "preview_bodies",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "article_bodies"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 3080,
+            "y": 60
+          },
+          "zIndex": 0,
+          "width": 380,
           "height": 420,
-          "title": "📄 Finished articles",
+          "title": "📄 Article bodies",
           "selectable": true,
           "bypassed": false
         },
@@ -593,14 +716,6 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "📈 SEO Content Engine",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
             "id": "t-tagline",
@@ -620,36 +735,26 @@
                   "title": "Try it",
                   "content": [
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-business",
                         "binding": "business",
-                        "label": "Your business",
-                        "placeholder": "Aurora Gear — a DTC shop for ultralight hiking equipment. The blog lives at auro",
-                        "multiline": true,
                         "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-audience-and-seeds",
                         "binding": "audience_and_seeds",
-                        "label": "Audience & seed topics",
-                        "placeholder": "beginner hikers researching their first serious gear; seed topics: ultralight ba",
-                        "multiline": true,
                         "events": []
                       }
                     },
                     {
-                      "type": "Slider",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-article-count",
                         "binding": "article_count",
-                        "label": "Articles to write",
-                        "min": 2,
-                        "max": 10,
-                        "step": 1,
                         "events": []
                       }
                     },
@@ -682,6 +787,14 @@
                   "title": "Results",
                   "content": [
                     {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Planning & drafting…",
+                        "binding": ""
+                      }
+                    },
+                    {
                       "type": "Heading",
                       "props": {
                         "id": "lbl-content-plan",
@@ -700,7 +813,55 @@
                     {
                       "type": "Heading",
                       "props": {
-                        "id": "lbl-articles",
+                        "id": "lbl-article-titles",
+                        "text": "Article titles",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-article-titles",
+                        "binding": "article_titles",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-meta-descriptions",
+                        "text": "Meta descriptions",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-meta-descriptions",
+                        "binding": "meta_descriptions",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-keywords",
+                        "text": "Keywords",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-keywords",
+                        "binding": "keywords",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-article-bodies",
                         "text": "Articles",
                         "level": "3"
                       }
@@ -708,8 +869,8 @@
                     {
                       "type": "Markdown",
                       "props": {
-                        "id": "out-articles",
-                        "binding": "articles",
+                        "id": "out-article-bodies",
+                        "binding": "article_bodies",
                         "text": ""
                       }
                     },

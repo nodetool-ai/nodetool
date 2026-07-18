@@ -24,6 +24,9 @@ const EXAMPLES_DIR = path.join(
 );
 const SCREENSHOTS = path.join(MARKETING, "public/apps");
 const OUT_FILE = path.join(MARKETING, "src/data/miniAppEntries.generated.ts");
+// Hero flag from the app-builder curation table (scripts/generate-template-apps.mjs
+// `featured: true`), written per-template to web/public/app-preview/manifest.json.
+const APP_PREVIEW_MANIFEST = path.join(REPO_ROOT, "web/public/app-preview/manifest.json");
 
 const slugify = (name) =>
   name
@@ -32,8 +35,32 @@ const slugify = (name) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-const WRITE_WIDGETS = new Set(["TextInput", "NumberInput", "Slider", "Switch", "Select"]);
+// WorkflowInput is the unified per-input widget; the older discrete input
+// widgets still appear in hand-built apps. Its kind is resolved from the bound
+// input node's type in the graph (see inputKindFromGraph).
+const WRITE_WIDGETS = new Set([
+  "WorkflowInput",
+  "TextInput",
+  "NumberInput",
+  "Slider",
+  "Switch",
+  "Select",
+]);
 const READ_WIDGETS = new Set(["Heading", "Text", "Markdown", "Image", "Audio", "Video", "Json", "Progress"]);
+
+// nodetool.input.* node type → marketing input kind.
+const INPUT_NODE_KIND = {
+  IntegerInput: "number",
+  FloatInput: "number",
+  BooleanInput: "toggle",
+  SelectInput: "choice",
+  ImageInput: "image",
+  ImageListInput: "image",
+  AudioInput: "audio",
+  VideoInput: "video",
+  ColorInput: "color",
+  StringInput: "text",
+};
 
 /** Human label for what a display widget shows. */
 const OUTPUT_KIND = {
@@ -67,7 +94,16 @@ function flatten(content, out = []) {
   return out;
 }
 
-function distillApp(appDoc, name) {
+/** Map a bound input name → kind via the workflow graph's input node type. */
+function inputKindFromGraph(graph, binding) {
+  const node = (graph?.nodes ?? []).find(
+    (n) => (n.type ?? "").startsWith("nodetool.input.") && n.data?.name === binding,
+  );
+  const bare = (node?.type ?? "").replace(/^nodetool\.input\./, "");
+  return INPUT_NODE_KIND[bare] ?? "text";
+}
+
+function distillApp(appDoc, name, graph) {
   const widgets = flatten(appDoc?.data?.content);
   const headingWidget = widgets.find((w) => w.type === "Heading" && w.props?.level === "1");
   const taglineWidget = widgets.find((w) => w.type === "Text" && !w.props?.binding);
@@ -77,7 +113,16 @@ function distillApp(appDoc, name) {
     .filter((w) => WRITE_WIDGETS.has(w.type))
     .map((w) => ({
       label: w.props?.label || humanize(w.props?.binding ?? ""),
-      kind: w.type === "Slider" || w.type === "NumberInput" ? "number" : w.type === "Switch" ? "toggle" : w.type === "Select" ? "choice" : "text",
+      kind:
+        w.type === "WorkflowInput"
+          ? inputKindFromGraph(graph, w.props?.binding)
+          : w.type === "Slider" || w.type === "NumberInput"
+            ? "number"
+            : w.type === "Switch"
+              ? "toggle"
+              : w.type === "Select"
+                ? "choice"
+                : "text",
     }));
 
   const outputs = [];
@@ -100,12 +145,21 @@ function distillApp(appDoc, name) {
   };
 }
 
+const featuredSlugs = new Set(
+  (fs.existsSync(APP_PREVIEW_MANIFEST)
+    ? JSON.parse(fs.readFileSync(APP_PREVIEW_MANIFEST, "utf8"))
+    : []
+  )
+    .filter((m) => m.featured)
+    .map((m) => m.slug),
+);
+
 const entries = [];
 for (const file of fs.readdirSync(EXAMPLES_DIR).filter((f) => f.endsWith(".json")).sort()) {
   const example = JSON.parse(fs.readFileSync(path.join(EXAMPLES_DIR, file), "utf8"));
   if (!example.app_doc) continue;
   const slug = slugify(example.name);
-  const app = distillApp(example.app_doc, example.name);
+  const app = distillApp(example.app_doc, example.name, example.graph);
   const screenshot = fs.existsSync(path.join(SCREENSHOTS, `${slug}.png`))
     ? `/apps/${slug}.png`
     : null;
@@ -125,6 +179,7 @@ for (const file of fs.readdirSync(EXAMPLES_DIR).filter((f) => f.endsWith(".json"
     slug,
     name: example.name,
     summary,
+    featured: featuredSlugs.has(slug),
     templateRoute: `/templates/${slug}`,
     screenshot,
     tags: Array.isArray(example.tags) ? example.tags : [],

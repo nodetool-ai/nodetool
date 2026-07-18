@@ -127,7 +127,9 @@ const AssetCreateFolderConfirmation: React.FC = () => {
 
         addNotification({
           type: "success",
-          content: `CREATE FOLDER: ${cleanedName} and moved ${selectedAssetIds.length} items`
+          content: `Created folder "${cleanedName}" and moved ${
+            selectedAssetIds.length
+          } item${selectedAssetIds.length === 1 ? "" : "s"}`
         });
 
         setSelectedAssetIds([]);
@@ -135,7 +137,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
       } else {
         addNotification({
           type: "success",
-          content: `CREATE FOLDER: ${cleanedName}`
+          content: `Created folder "${cleanedName}"`
         });
       }
 

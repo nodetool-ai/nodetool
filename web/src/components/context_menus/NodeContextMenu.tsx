@@ -158,7 +158,11 @@ const NodeContextMenu: React.FC = () => {
     <ContextMenuItem
       key="select-all"
       onClick={handlers.handleSelectAllSameType}
-      label={`Select all ${""} nodes`}
+      label={
+        node?.type
+          ? `Select all ${node.type.split(".").pop()} nodes`
+          : "Select all nodes of this type"
+      }
       IconComponent={<FilterListIcon />}
       tooltip="Select all nodes of the same type"
     />,

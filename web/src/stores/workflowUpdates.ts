@@ -25,7 +25,10 @@ import useWorkflowRunsStore, { RunState } from "./WorkflowRunsStore";
 import useResultsStore from "./ResultsStore";
 import useStatusStore from "./StatusStore";
 import useLogsStore from "./LogStore";
-import useErrorStore, { normalizeNodeError } from "./ErrorStore";
+import useErrorStore, {
+  normalizeNodeError,
+  nodeErrorToDisplayString
+} from "./ErrorStore";
 import usePropertyValidationStore from "./PropertyValidationStore";
 import type { WorkflowRunnerStore } from "./WorkflowRunner";
 import { Notification } from "./ApiTypes";
@@ -627,7 +630,17 @@ export const handleUpdate = (
       if (isAudioChunk) {
         queueAudioAppend(workflow.id, messageJobId, data.node_id, normalizedValue);
       } else {
-        setOutputResult(workflow.id, messageJobId, data.node_id, normalizedValue, true);
+        setOutputResult(
+          workflow.id,
+          messageJobId,
+          data.node_id,
+          normalizedValue,
+          // Append accumulates chunks; an explicit "replace" must OVERWRITE the
+          // stored value — appending replace snapshots made hydration
+          // concatenate "H","He","Hel" into "HHeHel" (app opened after a
+          // graph-editor run). Absent disposition appends (protocol default).
+          (data as { disposition?: "append" | "replace" }).disposition !== "replace"
+        );
       }
     }
 
@@ -1052,12 +1065,17 @@ export const handleUpdate = (
     const jobId = extractJobId(data);
 
     const normalizedNodeError = normalizeNodeError(update.error);
-    if (normalizedNodeError) {
+    const nodeErrorDisplay = nodeErrorToDisplayString(normalizedNodeError);
+    // An object-shaped error with no meaningful message (e.g. `{ message: null }`
+    // or `{}`) normalizes to a truthy value but yields no display text. Firing an
+    // error toast for it shows a bare "null"/"[object Object]" with nothing to act
+    // on and wrongly marks the run as errored — treat it as no error.
+    if (normalizedNodeError && nodeErrorDisplay) {
       console.error("WorkflowRunner update error", normalizedNodeError);
       runner.addNotification({
         type: "error",
         alert: true,
-        content: String(normalizedNodeError)
+        content: nodeErrorDisplay
       });
       runnerStore.setState({ state: "error" });
       if (jobId) {
@@ -1067,9 +1085,7 @@ export const handleUpdate = (
         upsertLiveGeneration(workflow.id, update.node_id, jobId, {
           status: "error",
           error:
-            typeof update.error === "string"
-              ? update.error
-              : String(normalizedNodeError)
+            typeof update.error === "string" ? update.error : nodeErrorDisplay
         });
       }
       appendLog({

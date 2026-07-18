@@ -261,11 +261,11 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
       {anyHasParent && (
         <ContextMenuItem
           onClick={handleRemoveFromGroup}
-          label="Remove From Group"
+          label="Remove from Group"
           IconComponent={<GroupWorkIcon />}
           tooltip={
             <div className="tooltip-span">
-              <div className="tooltip-title">Remove From Group</div>
+              <div className="tooltip-title">Remove from Group</div>
               <div className="tooltip-key">
                 <kbd>Right-Click</kbd>
               </div>

@@ -8,6 +8,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import DataObjectIcon from "@mui/icons-material/DataObject";
 import { CopyButton } from "../ui_primitives";
+import { formatTimeOfDay } from "../../utils/formatUtils";
 
 export type Severity = "info" | "warning" | "error";
 
@@ -189,20 +190,6 @@ const tableStyles = (theme: Theme) =>
     }
   });
 
-const formatTime = (ts: number) => {
-  try {
-    const d = new Date(ts);
-    return d.toLocaleTimeString(undefined, { 
-      hour: "2-digit", 
-      minute: "2-digit", 
-      second: "2-digit" 
-    });
-  } catch {
-    // Date formatting failed, return timestamp as string
-    return "" + ts;
-  }
-};
-
 type RowItemProps = {
   row: LogRow;
   rowKey: string;
@@ -227,7 +214,7 @@ const RowItem = memo(({
   const theme = useTheme();
   const colors = SEVERITY_COLORS(theme)[row.severity];
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
-  const timeTooltip = showTimestampColumn ? "" : formatTime(row.timestamp);
+  const timeTooltip = showTimestampColumn ? "" : formatTimeOfDay(row.timestamp);
 
   const wrapperStyle = useMemo<React.CSSProperties>(
     () => ({
@@ -305,7 +292,7 @@ const RowItem = memo(({
           </div>
         </Tooltip>
         {showTimestampColumn && (
-          <div className="cell timestamp">{formatTime(row.timestamp)}</div>
+          <div className="cell timestamp">{formatTimeOfDay(row.timestamp)}</div>
         )}
         <div className="cell actions" onClick={handleActionsClick}>
           <CopyButton

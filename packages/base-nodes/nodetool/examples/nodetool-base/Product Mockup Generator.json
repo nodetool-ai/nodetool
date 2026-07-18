@@ -5,7 +5,7 @@
   "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Product Mockup Generator",
   "tool_name": null,
-  "description": "Generate product mockups for a given product.",
+  "description": "Turn one product photo into a whole set of polished lifestyle mockups. An LLM art-director designs a varied shot list from your product description, then each scene is rendered with FLUX and finished with a brightness/contrast polish. Differentiator: the model invents the scenes, so a single input fans out into a coordinated mockup set — not one prompt, one image.",
   "tags": [
     "product-mockup",
     "mockup",
@@ -136,7 +136,7 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🖼️ Product Mockup Generator\n\nFrom a product description, an agent invents lifestyle scenes, then renders mockups and applies a brightness/contrast polish.\n\n**Pipeline:** Inputs → Scene agent → Prompt list → Image gen → Color polish\n\n**Try this:** raise the scene count or change the target audience."
+          "comment": "# 🖼️ Product Mockup Generator\n\nOne product photo in, a coordinated set of lifestyle mockups out.\n\n**Why the extra stages:** a single image prompt gives you one look. Here an art-director agent first invents *distinct* scene concepts from the product brief (studio, lifestyle, flat-lay, outdoor…), a second prompt turns each concept into a photography-grade image prompt, and a list generator splits them so every scene renders in parallel.\n\n**Two outputs per scene:** a pure text-to-image render (the *scene*), and an image-to-image pass that composites your real product photo into it (the *mockup*), finished with a brightness/contrast polish.\n\n**Try this:** raise the scene count, or change the target audience to shift the whole shot list."
         },
         "ui_properties": {
           "selected": false,
@@ -169,7 +169,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "Final color adjust"
+          "title": "©️ Final color adjust → mockup"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -190,7 +190,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "Brightness/Contrast"
+          "title": "🅱️ Brightness / contrast polish"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -227,7 +227,7 @@
           "selectable": true,
           "bypassed": false,
           "height": 400,
-          "title": "Image-to-image polish"
+          "title": "🅰️ Composite product into scene (image-to-image)"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -284,7 +284,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "9️⃣ Generate scene prompts"
+          "title": "9️⃣ Split into per-scene prompts"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -309,7 +309,7 @@
         "dynamic_properties": {
           "scenes": "Studio shot on a matte black surface with soft key lighting; lifestyle scene on a wooden desk beside a laptop",
           "name": "Premium Wireless Headphones",
-          "description": "Sleek, modern wireless headphones with noise cancellation. Matte black finish with silver accents."
+          "description": "Sleek, modern over-ear wireless headphones with active noise cancellation. Matte black finish with brushed-silver accents and memory-foam ear cushions."
         },
         "dynamic_outputs": {}
       },
@@ -325,7 +325,7 @@
             "path": null,
             "supported_tasks": []
           },
-          "system": "You are a professional product photographer. Create compelling scene concepts.",
+          "system": "You are a professional product photographer and commercial art director.\n\nFrom a product brief you invent distinct, sales-ready photography scene concepts. Follow these rules:\n- Make every concept visibly different in setting, lighting, and mood — no two should read as the same shot.\n- Stay faithful to the product's real materials, colors, and features; never invent capabilities you were not given.\n- Ground each concept for the stated target audience.\n- Be concrete and shootable: name the environment, the light, the props, the camera angle, and the atmosphere.\n\nReturn only the scene concepts, one complete concept per line, no numbering or commentary.",
           "image": {
             "type": "image",
             "uri": "",
@@ -377,8 +377,8 @@
         },
         "dynamic_properties": {
           "name": "Premium Wireless Headphones",
-          "description": "Sleek, modern wireless headphones with noise cancellation. Matte black finish with silver accents.",
-          "audience": "Tech-savvy professionals, music enthusiasts, remote workers",
+          "description": "Sleek, modern over-ear wireless headphones with active noise cancellation. Matte black finish with brushed-silver accents and memory-foam ear cushions.",
+          "audience": "Tech-savvy professionals, music enthusiasts, and remote workers",
           "count": "6"
         },
         "dynamic_outputs": {}
@@ -410,7 +410,7 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "product_description",
-          "value": "Sleek, modern wireless headphones with noise cancellation. Matte black finish with silver accents.",
+          "value": "Sleek, modern over-ear wireless headphones with active noise cancellation. Matte black finish with brushed-silver accents and memory-foam ear cushions.",
           "description": "Brief product description for context"
         },
         "ui_properties": {
@@ -432,7 +432,7 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "target_audience",
-          "value": "Tech-savvy professionals, music enthusiasts, remote workers",
+          "value": "Tech-savvy professionals, music enthusiasts, and remote workers",
           "description": "Target customer demographic"
         },
         "ui_properties": {
@@ -503,7 +503,7 @@
           "selectable": true,
           "bypassed": false,
           "height": 400,
-          "title": "🔟 Render mockups"
+          "title": "🔟 Render scene (text-to-image)"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -559,29 +559,29 @@
           "uri",
           "type"
         ],
-        "label": ""
+        "label": "Product image"
       },
       "product_name": {
         "type": "string",
         "default": "Premium Wireless Headphones",
-        "label": ""
+        "label": "Product name"
       },
       "product_description": {
         "type": "string",
-        "default": "Sleek, modern wireless headphones with noise cancellation. Matte black finish with silver accents.",
-        "label": ""
+        "default": "Sleek, modern over-ear wireless headphones with active noise cancellation. Matte black finish with brushed-silver accents and memory-foam ear cushions.",
+        "label": "Product description"
       },
       "target_audience": {
         "type": "string",
-        "default": "Tech-savvy professionals, music enthusiasts, remote workers",
-        "label": ""
+        "default": "Tech-savvy professionals, music enthusiasts, and remote workers",
+        "label": "Target audience"
       },
       "num_scenes": {
         "type": "integer",
         "minimum": 2,
         "maximum": 12,
         "default": 6,
-        "label": ""
+        "label": "Number of scenes"
       }
     },
     "required": [
@@ -595,23 +595,18 @@
   "output_schema": {
     "type": "object",
     "properties": {
-      "product_mockups": {
+      "mockup": {
         "type": "any",
-        "label": ""
+        "label": "Product mockup"
       },
-      "generated_scenes": {
+      "scene": {
         "type": "any",
-        "label": ""
-      },
-      "scene_concepts": {
-        "type": "any",
-        "label": ""
+        "label": "Lifestyle scene"
       }
     },
     "required": [
-      "product_mockups",
-      "generated_scenes",
-      "scene_concepts"
+      "mockup",
+      "scene"
     ]
   },
   "settings": {},
@@ -629,14 +624,6 @@
         }
       },
       "content": [
-        {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "📦 Product Mockup Generator",
-            "level": "1"
-          }
-        },
         {
           "type": "Text",
           "props": {
@@ -657,55 +644,43 @@
                   "title": "Try it",
                   "content": [
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-product-image",
+                        "binding": "product_image",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-product-name",
                         "binding": "product_name",
-                        "label": "Product name",
-                        "placeholder": "Premium Wireless Headphones",
-                        "multiline": false,
                         "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-product-description",
                         "binding": "product_description",
-                        "label": "Describe the product",
-                        "placeholder": "Sleek, modern wireless headphones with noise cancellation. Matte black finish wi",
-                        "multiline": true,
                         "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-target-audience",
                         "binding": "target_audience",
-                        "label": "Who's it for?",
-                        "placeholder": "Tech-savvy professionals, music enthusiasts, remote workers",
-                        "multiline": true,
                         "events": []
                       }
                     },
                     {
-                      "type": "Slider",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-num-scenes",
                         "binding": "num_scenes",
-                        "label": "How many scenes?",
-                        "min": 2,
-                        "max": 12,
-                        "step": 1,
                         "events": []
-                      }
-                    },
-                    {
-                      "type": "Text",
-                      "props": {
-                        "id": "note-media",
-                        "text": "📷 Uses the bundled product photo — swap in yours in NodeTool Studio."
                       }
                     },
                     {
@@ -736,6 +711,14 @@
                   "id": "panel-results",
                   "title": "Results",
                   "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Staging your mockups…",
+                        "binding": ""
+                      }
+                    },
                     {
                       "type": "Heading",
                       "props": {

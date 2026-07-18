@@ -104,6 +104,8 @@ function getShortcutTooltipFromShortcut(
         return "ESC";
       case "mouseright":
         return "Right-Click";
+      case "click":
+        return "Click";
       default:
         return key.length === 1 ? key.toUpperCase() : key;
     }
@@ -621,6 +623,75 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     registerCombo: true
   })),
 
+  // ---------- ASSETS --------------------------------------------------------
+  {
+    title: "Rename Asset",
+    slug: "renameAsset",
+    keyCombo: ["F2"],
+    category: "assets" as const,
+    description: "Rename selected assets",
+    registerCombo: false
+  },
+  {
+    title: "Select Range",
+    slug: "assetSelectRange",
+    keyCombo: ["Shift", "Click"],
+    category: "assets" as const,
+    description: "Extend selection from the last selected asset",
+    registerCombo: false
+  },
+  {
+    title: "Toggle Selection",
+    slug: "assetToggleSelect",
+    keyCombo: ["Control", "Click"],
+    category: "assets" as const,
+    description: "Add or remove an asset from the selection",
+    registerCombo: false
+  },
+  {
+    title: "Previous Asset",
+    slug: "assetViewerPrev",
+    keyCombo: ["ArrowLeft"],
+    category: "assets" as const,
+    description: "Show the previous asset in the asset viewer",
+    registerCombo: false
+  },
+  {
+    title: "Next Asset",
+    slug: "assetViewerNext",
+    keyCombo: ["ArrowRight"],
+    category: "assets" as const,
+    description: "Show the next asset in the asset viewer",
+    registerCombo: false
+  },
+  {
+    title: "Jump Back 5 Assets",
+    slug: "assetViewerPrevJump",
+    keyCombo: ["Control", "ArrowLeft"],
+    keyComboMac: ["Control", "ArrowLeft"],
+    category: "assets" as const,
+    description: "Jump back five assets in the asset viewer",
+    registerCombo: false
+  },
+  {
+    title: "Jump Forward 5 Assets",
+    slug: "assetViewerNextJump",
+    keyCombo: ["Control", "ArrowRight"],
+    keyComboMac: ["Control", "ArrowRight"],
+    category: "assets" as const,
+    description: "Jump forward five assets in the asset viewer",
+    registerCombo: false
+  },
+  {
+    title: "Clear Asset Search",
+    slug: "clearAssetSearch",
+    keyCombo: ["Control", "Backspace"],
+    altKeyCombos: [["Control", "Delete"]],
+    category: "assets" as const,
+    description: "Clear the asset search field",
+    registerCombo: false
+  },
+
   // ---------- HELP ----------------------------------------------------------
   {
     title: "Show Keyboard Shortcuts",
@@ -792,6 +863,6 @@ export const SHORTCUT_CATEGORIES: Record<Shortcut["category"], string> = {
   workflow: "Workflows",
   panel: "Panels",
   editor: "Node Editor",
-  assets: "Asset Viewer",
+  assets: "Assets",
   "image-editor": "Image Editor"
 };

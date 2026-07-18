@@ -4,7 +4,7 @@
   "created_at": "2025-05-19T06:50:36.746389",
   "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Color Boost Video",
-  "description": "Grade a short video clip by splitting it into frames, applying exposure/contrast and saturation/vibrance adjustments per frame, then reassembling the result for cinematic color.",
+  "description": "Grade a video by splitting it into frames, applying exposure/contrast and saturation/vibrance adjustments per frame, then reassembling the result — differentiator: bring your own clip and a single Grading Intensity slider drives the saturation pass live, no per-node tweaking.",
   "tags": [
     "video",
     "start"
@@ -16,8 +16,10 @@
       {
         "id": "7074f109-83b1-4864-8e37-17a89fcbf46d",
         "parent_id": null,
-        "type": "nodetool.constant.Video",
+        "type": "nodetool.input.VideoInput",
         "data": {
+          "name": "source_video",
+          "description": "The clip to color-grade. Defaults to a short demo clip so Run works immediately.",
           "value": {
             "type": "video",
             "asset_id": "727208e4dbe811ef97c1000071d82eaa",
@@ -29,6 +31,29 @@
           "position": {
             "x": 50,
             "y": 50
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "grading-intensity",
+        "parent_id": null,
+        "type": "nodetool.input.FloatInput",
+        "data": {
+          "name": "grading_intensity",
+          "description": "How strong the saturation pass is. 0 = grayscale, 0.5 = the default boost, 1 = maximum, fully saturated look.",
+          "value": 0.5,
+          "min": -1,
+          "max": 1
+        },
+        "ui_properties": {
+          "title": "Grading intensity",
+          "position": {
+            "x": 680,
+            "y": 320
           },
           "zIndex": 0,
           "width": 280,
@@ -83,7 +108,6 @@
         "parent_id": null,
         "type": "lib.image.color_grading.SaturationVibrance",
         "data": {
-          "saturation": 0.5,
           "vibrance": 0.4
         },
         "ui_properties": {
@@ -121,7 +145,7 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎨 Color Boost Video\n\nGrade a short clip frame-by-frame, then reassemble it. Each frame gets an exposure and saturation pass.\n\n**Pipeline:** Video → Split frames → Exposure → Saturation → Reassemble\n\n**Try this:** tweak the exposure/saturation settings or set a start/end range."
+          "comment": "# 🎨 Color Boost Video\n\nGrade a clip frame-by-frame, then reassemble it. Each frame gets an exposure and saturation pass; the Grading Intensity input feeds the saturation strength so it can be bound to a slider in the app view.\n\n**Pipeline:** Video → Split frames → Exposure → Saturation (driven by Grading intensity) → Reassemble\n\n**Try this:** drag Grading intensity, tweak the exposure settings, or set a start/end frame range."
         },
         "ui_properties": {
           "selected": false,
@@ -138,17 +162,22 @@
       },
       {
         "id": "output-graded-video",
+        "parent_id": null,
         "type": "nodetool.output.Output",
         "data": {
           "name": "graded_video"
         },
         "ui_properties": {
+          "title": "6️⃣ Graded output",
           "position": {
             "x": 1640,
             "y": 112
           },
+          "zIndex": 0,
+          "width": 280,
           "selectable": true
-        }
+        },
+        "dynamic_properties": {}
       }
     ],
     "edges": [
@@ -179,6 +208,14 @@
         "ui_properties": {
           "className": "image"
         }
+      },
+      {
+        "id": "edge-grading-intensity",
+        "source": "grading-intensity",
+        "sourceHandle": "output",
+        "target": "s41e2d70-1b3b-5d39-0955-4e0b2f1ac96c",
+        "targetHandle": "saturation",
+        "ui_properties": null
       },
       {
         "id": "b14f7601-b826-4b1c-8298-90f55b6022e1",
@@ -221,66 +258,98 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "🌈 Color Boost Video",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
             "id": "t-tagline",
-            "text": "Give any clip a cinematic color grade — no editor required."
+            "text": "Give any clip a cinematic color grade — drag one slider, watch it apply."
           }
         },
         {
-          "type": "Container",
+          "type": "Columns",
           "props": {
-            "id": "panel-try",
-            "title": "Try it",
-            "content": [
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
               {
-                "type": "Text",
+                "type": "Container",
                 "props": {
-                  "id": "note-media",
-                  "text": "🎞️ Uses the bundled sample clip — drop in your own in NodeTool Studio."
-                }
-              },
-              {
-                "type": "Button",
-                "props": {
-                  "id": "btn-run",
-                  "label": "Boost my video",
-                  "variant": "contained",
-                  "color": "primary",
-                  "events": [
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
                     {
-                      "trigger": "click",
-                      "kind": "run",
-                      "key": "",
-                      "value": ""
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-source-video",
+                        "binding": "source_video",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Slider",
+                      "props": {
+                        "id": "slider-grading-intensity",
+                        "binding": "grading_intensity",
+                        "label": "Grading intensity",
+                        "min": 0,
+                        "max": 1,
+                        "step": 0.05,
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "run",
+                            "pace": "release",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Boost my video",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
                     }
                   ]
                 }
               }
-            ]
-          }
-        },
-        {
-          "type": "Container",
-          "props": {
-            "id": "panel-results",
-            "title": "Results",
-            "content": [
+            ],
+            "right": [
               {
-                "type": "Video",
+                "type": "Container",
                 "props": {
-                  "id": "out-graded-video",
-                  "binding": "graded_video",
-                  "height": 320,
-                  "placeholder": "Your video appears here"
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Grading every frame…",
+                        "binding": ""
+                      }
+                    },
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-graded-video",
+                        "binding": "graded_video",
+                        "height": 320,
+                        "placeholder": "Your video appears here"
+                      }
+                    }
+                  ]
                 }
               }
             ]

@@ -111,6 +111,97 @@ export const TYPE_FILTERS = [
 export type TypeFilterKey = (typeof TYPE_FILTERS)[number]["key"];
 
 /**
+ * Format a date into a localized "Mar 1, 2023, 09:00 AM" style string.
+ * Accepts ISO strings, epoch milliseconds, or Date objects.
+ * @returns Formatted string, or "—" for invalid input
+ */
+export function formatDateTime(input: string | number | Date): string {
+  const date = input instanceof Date ? input : new Date(input);
+  if (Number.isNaN(date.getTime())) {
+    return "—";
+  }
+  return date.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+/**
+ * Format a date into a localized time-of-day string ("09:00:12 AM").
+ * Compact companion to {@link formatDateTime} for same-day contexts like logs.
+ * @returns Formatted string, or "—" for invalid input
+ */
+export function formatTimeOfDay(input: string | number | Date): string {
+  const date = input instanceof Date ? input : new Date(input);
+  if (Number.isNaN(date.getTime())) {
+    return "—";
+  }
+  return date.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  });
+}
+
+const MIME_TYPE_LABELS: Record<string, string> = {
+  "image/png": "PNG image",
+  "image/jpeg": "JPEG image",
+  "image/gif": "GIF image",
+  "image/webp": "WebP image",
+  "image/svg+xml": "SVG image",
+  "image/tiff": "TIFF image",
+  "image/bmp": "BMP image",
+  "video/mp4": "MP4 video",
+  "video/webm": "WebM video",
+  "video/quicktime": "QuickTime video",
+  "audio/mpeg": "MP3 audio",
+  "audio/wav": "WAV audio",
+  "audio/ogg": "OGG audio",
+  "audio/flac": "FLAC audio",
+  "application/pdf": "PDF document",
+  "application/json": "JSON file",
+  "application/zip": "ZIP archive",
+  "text/plain": "Text file",
+  "text/csv": "CSV file",
+  "text/markdown": "Markdown file",
+  "text/html": "HTML file"
+};
+
+const MIME_KIND_LABELS: Record<string, string> = {
+  image: "image",
+  video: "video",
+  audio: "audio",
+  model: "3D model",
+  font: "font"
+};
+
+/**
+ * Map a MIME type to a friendly label: "image/png" → "PNG image".
+ * Unknown types fall back to the uppercased subtype plus kind
+ * ("image/avif" → "AVIF image"); input without a subtype is returned as-is.
+ */
+export function formatContentType(
+  contentType: string | null | undefined
+): string {
+  if (!contentType) {
+    return "Unknown";
+  }
+  const known = MIME_TYPE_LABELS[contentType];
+  if (known) {
+    return known;
+  }
+  const [kind, subtype] = contentType.split("/");
+  if (!subtype) {
+    return contentType;
+  }
+  const kindLabel = MIME_KIND_LABELS[kind] ?? "file";
+  return `${subtype.replace(/^x-/, "").toUpperCase()} ${kindLabel}`;
+}
+
+/**
  * Format a raw tool name into a human-readable label.
  * Handles MCP-style names like "mcp__nodetool-ui__ui_search_nodes" → "Search Nodes"
  * and plain names like "google_search" → "Google Search".

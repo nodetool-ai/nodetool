@@ -489,8 +489,8 @@ Routes:
 | `/editor/:workflow` | TabsNodeEditor | Multi-tab workflow editor |
 | `/chat/:thread_id?` | GlobalChat | AI chat interface |
 | `/standalone-chat/:thread_id?` | StandaloneChat | Full-screen chat |
-| `/apps/:workflowId?` | MiniAppPage | Mini-app runner |
-| `/miniapp/:workflowId` | StandaloneMiniApp | Standalone mini-app |
+| `/apps/:workflowId?` | WorkflowAppRedirect | Opens the workflow in the workspace, View mode |
+| `/miniapp/:workflowId` | WorkflowAppView | Standalone app runner for one workflow |
 | `/assets` | AssetExplorer | Asset browser |
 | `/collections` | CollectionsExplorer | Vector collection browser |
 | `/templates` | ExampleGrid | Template workflow gallery |
@@ -551,7 +551,6 @@ web/src/components/
 ├── workflows/         # Workflow templates and grid views
 ├── collections/       # Vector collection management
 ├── hugging_face/      # Model browser and download manager
-├── miniapps/          # Mini-app page rendering
 ├── vibecoding/        # AI-assisted coding integration
 ├── terminal/          # Terminal emulator (xterm.js)
 ├── textEditor/        # Rich text editor (Lexical)

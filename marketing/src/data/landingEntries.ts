@@ -134,7 +134,7 @@ export const landingEntries: LandingEntry[] = [
     headline: "AI YouTube Thumbnail Generator",
     subhead:
       "Give it a video title and a hook. The canvas drafts thumbnail concepts, renders a batch of variants, and lays in the text so you can pick a winner.",
-    featuredTemplate: "youtube-thumbnail-pipeline",
+    featuredTemplate: "hook-and-thumbnail-factory",
     highlights: [
       "A batch of thumbnail variants per title",
       "Concept, key art, and text composed in one pass",

@@ -5,7 +5,7 @@
   "updated_at": "2026-06-21T22:36:58.355Z",
   "name": "Movie Posters",
   "tool_name": null,
-  "description": "Create cinematic movie posters using AI image generation",
+  "description": "Turn a title, genre, and visual style into finished theatrical one-sheet posters. An art-direction agent first writes a key-art brief (positioning, palette, typography), which drives every generated poster — the differentiator is the agent-authored creative strategy, not a raw prompt.",
   "tags": [
     "start",
     "image",
@@ -17,10 +17,10 @@
     "edges": [
       {
         "id": "bdf22e6b-0b03-4434-b628-210a75c1e2b6",
-        "source": "audience_input",
+        "source": "style_input",
         "sourceHandle": "output",
         "target": "strategy_prompt_formatter",
-        "targetHandle": "PRIMARY_AUDIENCE",
+        "targetHandle": "STYLE",
         "ui_properties": {
           "className": "str"
         },
@@ -64,7 +64,7 @@
         "source": "prompt_list_generator",
         "sourceHandle": "item",
         "target": "68bb0948-5e25-485e-81e1-9a1a7f2c1e92",
-        "targetHandle": "plot",
+        "targetHandle": "scene",
         "ui_properties": {
           "className": "str"
         },
@@ -236,7 +236,7 @@
                       "format": 0,
                       "mode": "normal",
                       "style": "",
-                      "text": "From a title, genre, and audience, design a batch of movie poster concepts. An agent writes a creative brief, then turns it into image prompts.",
+                      "text": "From a title, genre, and visual style, design a batch of theatrical poster concepts. An art-direction agent writes the key-art brief — positioning, palette, typography — and that brief drives every poster the image model renders.",
                       "type": "text",
                       "version": 1
                     }
@@ -265,7 +265,7 @@
                       "format": 0,
                       "mode": "normal",
                       "style": "",
-                      "text": " Inputs → Strategy agent → Prompt list → Text-to-Image",
+                      "text": " Title / Genre / Style → Art-direction agent → Poster concepts → Text-to-Image",
                       "type": "text",
                       "version": 1
                     }
@@ -294,7 +294,7 @@
                       "format": 0,
                       "mode": "normal",
                       "style": "",
-                      "text": " change the genre or audience to shift the visual tone.",
+                      "text": " swap the visual style (e.g. neo-noir, retro synthwave, watercolor) to reshape the whole poster.",
                       "type": "text",
                       "version": 1
                     }
@@ -334,7 +334,7 @@
         "id": "strategy_prompt_formatter",
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "You are a senior movie-poster strategist.  \n\nWrite a creative strategy for a fictional film:\nMovie title: {{ MOVIE_TITLE }}\nGenre: {{ GENRE }}\nPrimary Audience: {{ PRIMARY_AUDIENCE }}\n\nReturn only Markdown with the following sections, no commentary.  \n\nPositioning: 1–2 lines on what the poster must promise to the audience.  \nAudience Insight: emotional drives, visual tastes, cultural touchpoints.  \nCore Visual Concept: the “big idea” that excites this audience.  \n\nDesign:\n- Color Palette: up to 5 items: Name + Hex + emotion.  \n- Imagery: hero focus, composition, lighting style.  \n- Typography: font family + texture/mood\n\n"
+          "prompt": "You are the art director on a major studio's key-art team.\n\nFilm brief:\n- Title: {{ MOVIE_TITLE }}\n- Genre: {{ GENRE }}\n- Visual style: {{ STYLE }}\n\nDesign the theatrical one-sheet strategy. Commit to bold, specific choices that fit the genre and honor the requested visual style. Return only Markdown, no preamble, with exactly these sections:\n\nPositioning: one or two sentences on the promise the poster must make at a glance.\n\nAudience Insight: who is pulled toward this film and the emotional hook that lands them.\n\nCore Visual Concept: the single big-idea image the poster is built around — the hero subject, its symbolism, and the frozen moment.\n\nDesign:\n- Color Palette: up to 5 swatches, each as Name + #hex + the emotion it carries.\n- Imagery: hero focus, composition, and lighting.\n- Typography: title font family plus its texture and mood.\nKeep every design choice consistent with the {{ STYLE }} style."
         },
         "ui_properties": {
           "position": {
@@ -344,14 +344,14 @@
           "zIndex": 0,
           "width": 361,
           "height": 563,
-          "title": "Build strategy prompt",
+          "title": "Write art-direction brief",
           "selectable": true,
           "bypassed": false
         },
         "dynamic_properties": {
-          "MOVIE_TITLE": "Infinity",
-          "GENRE": "Science Fiction",
-          "PRIMARY_AUDIENCE": "Gen-Z"
+          "MOVIE_TITLE": "Singularity",
+          "GENRE": "Sci-Fi Thriller",
+          "STYLE": "Neo-noir, high-contrast, cinematic"
         },
         "dynamic_outputs": {}
       },
@@ -381,7 +381,7 @@
         "id": "genre_input",
         "type": "nodetool.input.StringInput",
         "data": {
-          "value": "Sci-Fi",
+          "value": "Sci-Fi Thriller",
           "name": "Genre"
         },
         "ui_properties": {
@@ -400,11 +400,11 @@
         "dynamic_outputs": {}
       },
       {
-        "id": "audience_input",
+        "id": "style_input",
         "type": "nodetool.input.StringInput",
         "data": {
-          "value": "AI Enthusiasts",
-          "name": "Primary Audience"
+          "value": "Neo-noir, high-contrast, cinematic",
+          "name": "Visual Style"
         },
         "ui_properties": {
           "selected": false,
@@ -414,7 +414,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "Primary audience",
+          "title": "Visual style",
           "selectable": true,
           "bypassed": false
         },
@@ -444,7 +444,7 @@
           "zIndex": 0,
           "width": 456,
           "height": 340,
-          "title": "Generate poster prompts",
+          "title": "Generate poster concepts",
           "selectable": true,
           "bypassed": false
         },
@@ -488,7 +488,7 @@
         "id": "68bb0948-5e25-485e-81e1-9a1a7f2c1e92",
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "Cinematic movie poster in the genre {{ genre }}. A striking central subject dominates the composition, positioned with strong visual hierarchy. \n\nSynopsis: {{ synopsis }}\nVisual Concept: {{ core_visual_concept }}\nDesign: {{ design }}\n\n\nLarge movie title \"{{ title }}\" prominently placed in the lower third, premium typography integrated into the scene. Tagline positioned above the title. Billing block, credits, studio logos, and release date arranged in authentic Hollywood poster layout. Balanced negative space, professional graphic design, award-winning poster composition."
+          "prompt": "Cinematic {{ genre }} movie poster, theatrical one-sheet.\n\nScene: {{ scene }}\nCore visual concept: {{ core_visual_concept }}\nArt direction: {{ design }}\n\nA single hero subject dominates the frame with strong visual hierarchy, dramatic cinematic lighting, and rich depth. The movie title \"{{ title }}\" is set large across the lower third in premium typography that matches the art direction, with a short tagline above it. A bottom billing block carries credits, studio logos, and a release date in authentic Hollywood layout. Balanced negative space, poster-grade composition, award-winning key art."
         },
         "ui_properties": {
           "selected": false,
@@ -499,6 +499,7 @@
           "zIndex": 0,
           "width": 410,
           "height": 555,
+          "title": "Compose poster image prompt",
           "selectable": true,
           "bypassed": false
         },
@@ -507,7 +508,7 @@
           "genre": "",
           "design": "",
           "core_visual_concept": "",
-          "synopsis": ""
+          "scene": ""
         },
         "dynamic_outputs": {}
       },
@@ -515,7 +516,7 @@
         "id": "923fb0f1-8bd4-406a-ba73-9ec3137c20cd",
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "synopsis for the movie {{ title }}\ngenre: {{ genre }}\npositioned to: {{ positioning }}\naudience insight: {{ audience_insight }}\n"
+          "prompt": "You are pitching poster concepts for the film \"{{ title }}\" ({{ genre }}).\n\nPositioning: {{ positioning }}\nAudience insight: {{ audience_insight }}\n\nGenerate distinct theatrical poster concepts. Each concept is ONE self-contained line describing a single striking image: the hero subject, the setting, the framing, and the mood. Vary the ideas across the set — different angles, symbols, and emotional beats — while staying true to the genre and positioning. One concept per line, no numbering and no commentary."
         },
         "ui_properties": {
           "selected": false,
@@ -525,6 +526,7 @@
           },
           "zIndex": 0,
           "width": 280,
+          "title": "Draft poster concepts",
           "selectable": true,
           "bypassed": false
         },
@@ -540,7 +542,7 @@
         "id": "04757c8a-dad6-48f3-a45f-459f54e26b7b",
         "type": "nodetool.generators.StructuredOutputGenerator",
         "data": {
-          "system_prompt": "\nYou are a structured data generator focused on JSON outputs.\n\nGoal\n- Produce a high-quality JSON object that matches <JSON_SCHEMA> using the guidance in <INSTRUCTIONS> and any supplemental <CONTEXT>.\n\nOutput format (MANDATORY)\n- Output exactly ONE fenced code block labeled json containing ONLY the JSON object:\n\n  ```json\n  { ...single JSON object matching <JSON_SCHEMA>... }\n  ```\n\n- No additional prose before or after the block.\n\nGeneration rules\n- Invent plausible, internally consistent values when not explicitly provided.\n- Honor all constraints from <JSON_SCHEMA> (types, enums, ranges, formats).\n- Prefer ISO 8601 for dates/times when applicable.\n- Ensure numbers respect reasonable magnitudes and relationships described in <INSTRUCTIONS>.\n- Avoid referencing external sources; rely solely on the provided guidance.\n\nValidation\n- Ensure the final JSON validates against <JSON_SCHEMA> exactly.\n",
+          "system_prompt": "You are a film key-art director turning a creative brief into structured fields.\n\nGoal\n- Read <INSTRUCTIONS> (the art-direction brief) and any <CONTEXT>, then produce a single JSON object matching <JSON_SCHEMA> exactly.\n\nOutput format (MANDATORY)\n- Output exactly ONE fenced code block labeled json containing ONLY the JSON object:\n\n  ```json\n  { ...single JSON object matching <JSON_SCHEMA>... }\n  ```\n- No prose before or after the block.\n\nGeneration rules\n- Fill every field with concrete, vivid, production-ready detail — no placeholders, no hedging.\n- Keep all fields internally consistent with the film's genre and visual style.\n- Honor every constraint in <JSON_SCHEMA> (types, enums, formats).\n\nValidation\n- Ensure the final JSON validates against <JSON_SCHEMA> exactly.",
           "model": {
             "type": "language_model",
             "provider": "openai",
@@ -561,6 +563,7 @@
           },
           "zIndex": 0,
           "width": 282,
+          "title": "Art-direction brief → fields",
           "selectable": true,
           "bypassed": false
         },
@@ -660,98 +663,130 @@
     "data": {
       "root": {
         "props": {
-          "title": "Movie Poster Studio"
+          "title": "Movie Posters"
         }
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-1",
-            "text": "🎬 Movie Poster Studio",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
-            "id": "t-2",
-            "text": "Describe your film and generate a cinematic poster."
+            "id": "t-tagline",
+            "text": "One title, one genre, one style — get a finished movie poster."
           }
         },
         {
-          "type": "Container",
+          "type": "Columns",
           "props": {
-            "id": "c-7",
-            "title": "Details",
-            "content": [
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
               {
-                "type": "TextInput",
+                "type": "Container",
                 "props": {
-                  "id": "in-3",
-                  "binding": "Movie Title",
-                  "label": "Movie Title",
-                  "placeholder": "e.g. Singularity",
-                  "multiline": false,
-                  "events": []
-                }
-              },
-              {
-                "type": "TextInput",
-                "props": {
-                  "id": "in-4",
-                  "binding": "Genre",
-                  "label": "Genre",
-                  "placeholder": "e.g. Sci-Fi",
-                  "multiline": false,
-                  "events": []
-                }
-              },
-              {
-                "type": "TextInput",
-                "props": {
-                  "id": "in-5",
-                  "binding": "Primary Audience",
-                  "label": "Primary Audience",
-                  "placeholder": "e.g. AI Enthusiasts",
-                  "multiline": false,
-                  "events": []
-                }
-              },
-              {
-                "type": "Button",
-                "props": {
-                  "id": "b-6",
-                  "label": "Generate Poster",
-                  "variant": "contained",
-                  "color": "primary",
-                  "events": [
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
                     {
-                      "trigger": "click",
-                      "kind": "run",
-                      "key": "",
-                      "value": ""
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-movie-title",
+                        "binding": "Movie Title",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Select",
+                      "props": {
+                        "id": "in-genre",
+                        "binding": "Genre",
+                        "label": "Genre",
+                        "options": [
+                          {
+                            "value": "Sci-Fi Thriller"
+                          },
+                          {
+                            "value": "Action"
+                          },
+                          {
+                            "value": "Horror"
+                          },
+                          {
+                            "value": "Fantasy"
+                          },
+                          {
+                            "value": "Neo-noir"
+                          },
+                          {
+                            "value": "Romance"
+                          },
+                          {
+                            "value": "Comedy"
+                          },
+                          {
+                            "value": "Drama"
+                          },
+                          {
+                            "value": "Documentary"
+                          }
+                        ],
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-visual-style",
+                        "binding": "Visual Style",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Make my poster",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
                     }
                   ]
                 }
               }
-            ]
-          }
-        },
-        {
-          "type": "Container",
-          "props": {
-            "id": "c-9",
-            "title": "Poster",
-            "content": [
+            ],
+            "right": [
               {
-                "type": "Image",
+                "type": "Container",
                 "props": {
-                  "id": "img-8",
-                  "binding": "Poster",
-                  "fit": "contain",
-                  "height": 520,
-                  "placeholder": "Your poster will appear here"
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Designing your poster…",
+                        "binding": ""
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-poster",
+                        "binding": "Poster",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    }
+                  ]
                 }
               }
             ]

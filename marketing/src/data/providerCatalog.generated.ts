@@ -3582,16 +3582,70 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
   },
   "atlascloud": {
     "id": "atlascloud",
-    "total": 42,
+    "total": 70,
     "counts": {
-      "video": 22,
-      "image": 20
+      "video": 35,
+      "image": 35
     },
     "topTags": [
-      "video",
-      "image"
+      "image",
+      "video"
     ],
     "models": [
+      {
+        "id": "alibaba/wan-2.7-pro/image-edit",
+        "name": "Wan 2.7 Pro — Image Edit",
+        "kind": "image",
+        "desc": "AtlasCloud / Alibaba Wan 2.7 Pro — higher-quality image editing from text instructions with multi-image references.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "id": "alibaba/wan-2.7-pro/text-to-image",
+        "name": "Wan 2.7 Pro — Text to Image",
+        "kind": "image",
+        "desc": "AtlasCloud / Alibaba Wan 2.7 Pro — higher-fidelity text-to-image with 4K-ready output.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "id": "alibaba/wan-2.7/image-edit",
+        "name": "Wan 2.7 — Image Edit",
+        "kind": "image",
+        "desc": "AtlasCloud / Alibaba Wan 2.7 — edits and recomposes images from text instructions with multi-image references.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "id": "alibaba/wan-2.7/text-to-image",
+        "name": "Wan 2.7 — Text to Image",
+        "kind": "image",
+        "desc": "AtlasCloud / Alibaba Wan 2.7 — fast text-to-image with strong prompt fidelity for illustration and photorealistic outputs.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "id": "bytedance/seedream-v5.0-lite",
+        "name": "Seedream v5.0 Lite — Text to Image",
+        "kind": "image",
+        "desc": "AtlasCloud / ByteDance Seedream v5.0 Lite — next-generation text-to-image with enhanced typography and poster design.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "id": "bytedance/seedream-v5.0-lite/edit",
+        "name": "Seedream v5.0 Lite — Edit",
+        "kind": "image",
+        "desc": "AtlasCloud / ByteDance Seedream v5.0 Lite — image editing that preserves facial features, lighting, and color tones.",
+        "tags": [
+          "image"
+        ]
+      },
       {
         "id": "bytedance/seedream-v5.0-pro/edit",
         "name": "Seedream v5.0 Pro — Edit",
@@ -3710,6 +3764,24 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         ]
       },
       {
+        "id": "openai/gpt-image-1.5/edit",
+        "name": "GPT Image 1.5 — Edit",
+        "kind": "image",
+        "desc": "AtlasCloud / OpenAI GPT Image 1.5 — precise natural-language image editing (add/remove objects, retouch, swap backgrounds, etc.).",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "id": "openai/gpt-image-1.5/text-to-image",
+        "name": "GPT Image 1.5 — Text to Image",
+        "kind": "image",
+        "desc": "AtlasCloud / OpenAI GPT Image 1.5 — fast, cost-efficient text-to-image powered by GPT-5 guidance.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
         "id": "openai/gpt-image-2/edit",
         "name": "GPT Image 2 — Edit",
         "kind": "image",
@@ -3723,6 +3795,60 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "GPT Image 2 — Text to Image",
         "kind": "image",
         "desc": "AtlasCloud / OpenAI GPT Image 2 — fast, cost-efficient text-to-image powered by GPT-5 guidance.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "id": "qwen/qwen-image-2.0-pro/edit",
+        "name": "Qwen Image 2.0 Pro — Edit",
+        "kind": "image",
+        "desc": "AtlasCloud / Qwen Image 2.0 Pro — professional-grade image editing with advanced instruction understanding, up to 2K.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "id": "qwen/qwen-image-2.0-pro/text-to-image",
+        "name": "Qwen Image 2.0 Pro — Text to Image",
+        "kind": "image",
+        "desc": "AtlasCloud / Qwen Image 2.0 Pro — professional-grade text-to-image with superior quality, up to 2K.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "id": "qwen/qwen-image-2.0/edit",
+        "name": "Qwen Image 2.0 — Edit",
+        "kind": "image",
+        "desc": "AtlasCloud / Qwen Image 2.0 — instruction-driven image editing, up to 2K.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "id": "qwen/qwen-image-2.0/text-to-image",
+        "name": "Qwen Image 2.0 — Text to Image",
+        "kind": "image",
+        "desc": "AtlasCloud / Qwen Image 2.0 — text-to-image with enhanced quality and prompt understanding, up to 2K.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "id": "xai/grok-imagine-image-quality/edit",
+        "name": "Grok Imagine Image Quality — Edit",
+        "kind": "image",
+        "desc": "AtlasCloud / xAI Grok Imagine (Quality) — edits one or more reference images from natural-language instructions at 1K or 2K.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "id": "xai/grok-imagine-image-quality/text-to-image",
+        "name": "Grok Imagine Image Quality — Text to Image",
+        "kind": "image",
+        "desc": "AtlasCloud / xAI Grok Imagine (Quality) — polished text-to-image at 1K or 2K with 13 aspect ratios.",
         "tags": [
           "image"
         ]
@@ -3773,6 +3899,15 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         ]
       },
       {
+        "id": "z-image/turbo",
+        "name": "Z Image Turbo — Text to Image",
+        "kind": "image",
+        "desc": "AtlasCloud / Tongyi-MAI Z-Image Turbo — 6B-parameter text-to-image generating photorealistic images in sub-second time.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
         "id": "alibaba/happyhorse-1.1/image-to-video",
         "name": "Happy Horse 1.1 — Image to Video",
         "kind": "video",
@@ -3795,6 +3930,24 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Happy Horse 1.1 — Text to Video",
         "kind": "video",
         "desc": "AtlasCloud / Alibaba HappyHorse 1.1 — 720P/1080P text-to-video, 3-15 second durations.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
+        "id": "alibaba/wan-2.7/image-to-video",
+        "name": "Wan 2.7 — Image to Video",
+        "kind": "video",
+        "desc": "AtlasCloud / Alibaba Wan 2.7 — animates images into video with first-frame, first-and-last-frame, video continuation, and audio-driven modes.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
+        "id": "alibaba/wan-2.7/text-to-video",
+        "name": "Wan 2.7 — Text to Video",
+        "kind": "video",
+        "desc": "AtlasCloud / Alibaba Wan 2.7 — generates video from text with multi-shot narrative, audio generation, and sound-image synchronization.",
         "tags": [
           "video"
         ]
@@ -3926,6 +4079,96 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         ]
       },
       {
+        "id": "google/veo3.1-fast/image-to-video",
+        "name": "Veo 3.1 Fast — Image to Video",
+        "kind": "video",
+        "desc": "AtlasCloud / Google Veo 3.1 Fast — speed-optimized image-to-video for fast previews and iteration.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
+        "id": "google/veo3.1-fast/text-to-video",
+        "name": "Veo 3.1 Fast — Text to Video",
+        "kind": "video",
+        "desc": "AtlasCloud / Google Veo 3.1 Fast — speed-optimized text-to-video for rapid creative iteration.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
+        "id": "google/veo3.1-lite/image-to-video",
+        "name": "Veo 3.1 Lite — Image to Video",
+        "kind": "video",
+        "desc": "AtlasCloud / Google Veo 3.1 Lite — cost-efficient image-to-video with synchronized audio at 720p/1080p.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
+        "id": "google/veo3.1-lite/text-to-video",
+        "name": "Veo 3.1 Lite — Text to Video",
+        "kind": "video",
+        "desc": "AtlasCloud / Google Veo 3.1 Lite — cost-efficient text-to-video with synchronized audio at 720p/1080p.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
+        "id": "google/veo3.1/image-to-video",
+        "name": "Veo 3.1 — Image to Video",
+        "kind": "video",
+        "desc": "AtlasCloud / Google Veo 3.1 — animates a first (and optional last) frame into cinematic video with realistic continuity and sound.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
+        "id": "google/veo3.1/text-to-video",
+        "name": "Veo 3.1 — Text to Video",
+        "kind": "video",
+        "desc": "AtlasCloud / Google Veo 3.1 — cinematic text-to-video with dynamic camera motion, lifelike detail, and optional audio.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
+        "id": "kwaivgi/kling-v3.0-pro/image-to-video",
+        "name": "Kling v3.0 Pro — Image to Video",
+        "kind": "video",
+        "desc": "AtlasCloud / KwaiVGI Kling v3.0 Pro — premium image-to-video with first/end-frame control and sound.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
+        "id": "kwaivgi/kling-v3.0-pro/text-to-video",
+        "name": "Kling v3.0 Pro — Text to Video",
+        "kind": "video",
+        "desc": "AtlasCloud / KwaiVGI Kling v3.0 Pro — premium text-to-video with multi-shot support and sound.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
+        "id": "kwaivgi/kling-v3.0-std/image-to-video",
+        "name": "Kling v3.0 Std — Image to Video",
+        "kind": "video",
+        "desc": "AtlasCloud / KwaiVGI Kling v3.0 Standard — high-quality image-to-video generation.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
+        "id": "kwaivgi/kling-v3.0-std/text-to-video",
+        "name": "Kling v3.0 Std — Text to Video",
+        "kind": "video",
+        "desc": "AtlasCloud / KwaiVGI Kling v3.0 Standard — high-quality text-to-video generation.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
         "id": "kwaivgi/kling-v3.0-turbo/image-to-video",
         "name": "Kling v3.0 Turbo — Image to Video",
         "kind": "video",
@@ -3957,6 +4200,15 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Kling Video O3 4 K — Text to Video",
         "kind": "video",
         "desc": "AtlasCloud / KwaiVGI Kling Video O3 4K — high-quality 4K text-to-video with optional audio.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
+        "id": "xai/grok-imagine-video-v1.5/image-to-video",
+        "name": "Grok Imagine Video v1.5 — Image to Video",
+        "kind": "video",
+        "desc": "AtlasCloud / xAI Grok Imagine Video v1.5 — animates a starting frame with natural-language motion prompts at 480p/720p/1080p.",
         "tags": [
           "video"
         ]

@@ -280,25 +280,6 @@
     overflow: hidden;
     clip: rect(0, 0, 0, 0);
   }
-  /* Fly-in reveal controlled by IntersectionObserver */
-  .fly-in {
-    opacity: 0;
-    transform: translateY(16px);
-    transition: transform 600ms cubic-bezier(0.2, 0.8, 0.2, 1),
-      opacity 600ms ease;
-    transition-delay: var(--fly-delay, 0ms);
-    will-change: transform, opacity;
-  }
-  .fly-in[data-fly-direction="left"] {
-    transform: translateX(-20px);
-  }
-  .fly-in[data-fly-direction="right"] {
-    transform: translateX(20px);
-  }
-  .fly-in.is-visible {
-    opacity: 1;
-    transform: none;
-  }
   /* Tone down images inside cards */
   .card img,
   .card picture img {
@@ -438,35 +419,12 @@
 }
 
 /*
- * Hero entrance — pure CSS so it plays at first paint instead of waiting for
- * JS hydration. Framer-motion's `initial={{opacity:0}}` server-renders the LCP
- * image as opacity:0, which pushed LCP out to ~4s (it only cleared after the
- * bundle hydrated). A CSS animation reaches the visible state without JS.
+ * Hero entrance animations retired — content renders in place at first paint.
+ * The .hero-rise classes stay as no-ops so section markup doesn't churn.
  */
-@keyframes heroRise {
-  from {
-    opacity: 0;
-    transform: translateY(16px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.hero-rise {
-  animation: heroRise 600ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-}
-
+.hero-rise,
 .hero-rise-delayed {
-  animation: heroRise 700ms cubic-bezier(0.2, 0.8, 0.2, 1) 150ms both;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .hero-rise,
-  .hero-rise-delayed {
-    animation: none;
-  }
+  animation: none;
 }
 
 /* Legal pages (Privacy / Terms) — minimal long-form prose styling */

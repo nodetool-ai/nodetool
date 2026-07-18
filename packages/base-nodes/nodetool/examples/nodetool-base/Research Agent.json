@@ -1,0 +1,330 @@
+{
+  "id": "",
+  "access": "public",
+  "created_at": "2026-07-17T12:00:00.000Z",
+  "updated_at": "2026-07-17T12:00:00.000Z",
+  "name": "Research Agent",
+  "tool_name": null,
+  "description": "Give it a topic and an audience; the agent runs real web searches, opens the best sources, and streams back a cited markdown briefing. Differentiator: genuine multi-step tool use (search + browse) with inline citations — not a single prompt call.",
+  "tags": [
+    "agent",
+    "research",
+    "search",
+    "browser",
+    "streaming",
+    "citations",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "comment-intro",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# 🔎 Research Agent\n\nType a topic, name the audience, and get back a sourced briefing. The agent breaks the topic into questions, runs Google searches, opens the best pages with the browser tool to verify details, then streams a markdown brief with inline [n] citations.\n\n**Graph:** topic + audience → compose objective → research agent (search + browse) → streaming brief\n\n**Why a graph, not a chat box:** the two inputs are composed into a structured research objective, and the agent's tool loop (search → browse → cross-check) runs on every Run with the same rigor. Swap the model or add tools without rewriting a prompt.\n\nNeeds an OpenAI key for the default model. Search + browse tools run against the open web."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": -480,
+            "y": 40
+          },
+          "zIndex": 0,
+          "width": 420,
+          "height": 320,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "input-topic",
+        "parent_id": null,
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "topic",
+          "value": "Small language models running on-device in 2026",
+          "description": "What to research — a subject, question, or claim to investigate.",
+          "line_mode": "multi_line"
+        },
+        "ui_properties": {
+          "title": "1️⃣ Topic",
+          "position": {
+            "x": 40,
+            "y": 60
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "input-audience",
+        "parent_id": null,
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "audience",
+          "value": "a technical product team deciding whether to adopt on-device models",
+          "description": "Who the brief is for — sets the depth, framing, and what to emphasize.",
+          "line_mode": "multi_line"
+        },
+        "ui_properties": {
+          "title": "2️⃣ Audience",
+          "position": {
+            "x": 40,
+            "y": 300
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "compose-objective",
+        "parent_id": null,
+        "type": "nodetool.text.Prompt",
+        "data": {
+          "prompt": "Research the topic below and write a briefing document for the stated audience.\n\nTOPIC: {{ topic }}\nAUDIENCE: {{ audience }}\n\nMethod:\n1. Break the topic into 3–5 concrete research questions.\n2. Use google_search to find authoritative, recent sources for each question.\n3. Use the browser tool to open the most promising results and pull out specifics — facts, figures, dates, direct quotes. Do not rely on search snippets alone.\n4. Cross-check every claim against at least two sources before stating it as fact.\n\nWrite the answer as a single markdown document with:\n- A `#` title naming the topic.\n- A **TL;DR** section: 3–4 bullet takeaways written for the audience.\n- Themed `##` sections covering the key findings, in a logical order.\n- A final **Sources** section: a numbered list of every URL you actually opened, as markdown links.\n\nCitations:\n- Put an inline [n] marker after any specific claim, matching the numbered entry in Sources.\n- Tailor depth and framing to the AUDIENCE.\n- Keep the tone neutral and precise, no filler. If sources disagree, say so and note which you trust more and why."
+        },
+        "ui_properties": {
+          "title": "3️⃣ Compose research objective",
+          "position": {
+            "x": 400,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 340,
+          "selectable": true
+        },
+        "dynamic_properties": {
+          "topic": "Small language models running on-device in 2026",
+          "audience": "a technical product team deciding whether to adopt on-device models"
+        },
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "research-agent",
+        "parent_id": null,
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
+          },
+          "mode": "loop",
+          "system": "You are a research analyst. You produce accurate, well-sourced briefings for a specific audience.\n\nYou have two tools:\n- google_search: find sources on the open web.\n- browser: open a URL and read its full content.\n\nMethod:\n- Search first, then open the best results with the browser to verify details — never state a fact from a search snippet alone.\n- Prefer primary sources and recent, reputable material.\n- Every factual claim must trace to a page you actually opened.\n- When evidence is thin or sources conflict, say so plainly instead of guessing.\n\nOutput: a single markdown document. Use inline [n] citation markers tied to a numbered Sources list. Write it as you go so the reader sees progress.",
+          "prompt": "",
+          "tools": [
+            {
+              "type": "tool_name",
+              "name": "google_search"
+            },
+            {
+              "type": "tool_name",
+              "name": "browser"
+            }
+          ],
+          "image": [],
+          "audio": [],
+          "history": [],
+          "thread_id": "",
+          "max_tokens": 100000
+        },
+        "ui_properties": {
+          "title": "4️⃣ Research agent (search + browse)",
+          "position": {
+            "x": 800,
+            "y": 60
+          },
+          "zIndex": 0,
+          "width": 320,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "output-brief",
+        "parent_id": null,
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "brief"
+        },
+        "ui_properties": {
+          "title": "5️⃣ Cited brief",
+          "position": {
+            "x": 1180,
+            "y": 60
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-topic-compose",
+        "source": "input-topic",
+        "sourceHandle": "output",
+        "target": "compose-objective",
+        "targetHandle": "topic",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "e-audience-compose",
+        "source": "input-audience",
+        "sourceHandle": "output",
+        "target": "compose-objective",
+        "targetHandle": "audience",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "e-compose-agent",
+        "source": "compose-objective",
+        "sourceHandle": "output",
+        "target": "research-agent",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "e-agent-output",
+        "source": "research-agent",
+        "sourceHandle": "text",
+        "target": "output-brief",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null,
+  "html_app": null,
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Research Agent"
+        }
+      },
+      "content": [
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "Give it a topic and audience — the agent searches, browses, and streams back a cited brief."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-topic",
+                        "binding": "topic",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-audience",
+                        "binding": "audience",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Run the research",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Searching & browsing sources…",
+                        "binding": ""
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-brief",
+                        "binding": "brief",
+                        "text": ""
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
+}

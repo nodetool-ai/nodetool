@@ -119,7 +119,8 @@ const AppPreviewApp: React.FC = () => {
             designMode: false,
             dispatch: () => {},
             setValue: (key: string, value: unknown) =>
-              store.getState().setValue(key, value)
+              store.getState().setValue(key, value),
+            getNodeProperty: () => undefined
           }
         : null,
     [store]

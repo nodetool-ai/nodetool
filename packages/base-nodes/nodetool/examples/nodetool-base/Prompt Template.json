@@ -1,0 +1,311 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-07-17T00:00:00.000Z",
+  "updated_at": "2026-07-17T00:00:00.000Z",
+  "name": "Prompt Template",
+  "tool_name": null,
+  "description": "The starter pattern behind almost every NodeTool workflow: typed inputs fill a reusable prompt template, an LLM answers it, the output renders. Explains a topic for any audience — swap the prompt to reuse the pattern for anything.",
+  "tags": [
+    "start",
+    "beginner",
+    "tutorial",
+    "template",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "edges": [
+      {
+        "id": "e_topic_to_prompt",
+        "source": "input_topic",
+        "sourceHandle": "output",
+        "target": "prompt_template",
+        "targetHandle": "topic",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "e_audience_to_prompt",
+        "source": "input_audience",
+        "sourceHandle": "output",
+        "target": "prompt_template",
+        "targetHandle": "audience",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "e_prompt_to_llm",
+        "source": "prompt_template",
+        "sourceHandle": "output",
+        "target": "llm",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "e_llm_to_output",
+        "source": "llm",
+        "sourceHandle": "text",
+        "target": "explanation_output",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "comment_tutorial",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# 📝 Prompt Template\n\nThe pattern behind most NodeTool workflows: **Input → Prompt template → LLM → Output**.\n\n- **Inputs** collect typed values (here: two strings) that the person running the app fills in.\n- **Prompt template** is a Jinja string with `{{ placeholders }}` — it separates *what varies* (the inputs) from *what stays fixed* (your instructions), so you can restyle the whole task without touching the graph.\n- **LLM** (the Agent node) reads the filled-in prompt and answers. It has no tools attached — that's what makes it a plain LLM call instead of a research agent.\n- **Output** exposes the LLM's answer to the app UI.\n\n**Try this:** change Topic and Audience, or rewrite the prompt template to ask for something else entirely (a recipe, a code review, a bedtime story) — the shape of the graph never has to change."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": -520,
+            "y": 40
+          },
+          "zIndex": 0,
+          "width": 480,
+          "height": 320,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "input_topic",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "Topic",
+          "description": "The concept to explain (e.g., Photosynthesis, Compound Interest, Black Holes)",
+          "value": "Photosynthesis"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 60
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "1️⃣ Topic",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "input_audience",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "Audience",
+          "description": "Who the explanation is for (e.g., curious 10-year-old, first-year med student, busy executive)",
+          "value": "curious 10-year-old"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 320
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "2️⃣ Audience",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "prompt_template",
+        "type": "nodetool.text.Prompt",
+        "data": {
+          "prompt": "Explain the following topic so that the given audience genuinely understands it.\n\nTopic: {{ topic }}\nAudience: {{ audience }}\n\nWrite your explanation in exactly four parts, in this order:\n1. **In one sentence** — the core idea, no jargon.\n2. **Analogy** — compare it to something the audience already knows.\n3. **Example** — a concrete, everyday instance of it in action.\n4. **Common misconception** — one thing people often get wrong about it, corrected.\n\nMatch your vocabulary and tone to the audience. Keep the whole answer under 200 words."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 390,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 340,
+          "height": 380,
+          "title": "3️⃣ Fill template",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {
+          "topic": "Photosynthesis",
+          "audience": "curious 10-year-old"
+        },
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "llm",
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
+          },
+          "system": "You are a patient, precise teacher. You tailor explanations exactly to the stated audience, use the requested structure, and never pad your answer with filler like \"great question\" or restating the prompt."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 800,
+            "y": 65
+          },
+          "zIndex": 0,
+          "width": 320,
+          "height": 380,
+          "title": "4️⃣ Ask the LLM",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "explanation_output",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "Explanation"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1200,
+            "y": 65
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "Explanation",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null,
+  "html_app": null,
+  "etag": null,
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Prompt Template"
+        }
+      },
+      "content": [
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "The starter pattern: typed inputs fill a prompt, an LLM answers, the output renders."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-topic",
+                        "binding": "Topic",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-audience",
+                        "binding": "Audience",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Explain it",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-explanation",
+                        "binding": "Explanation",
+                        "text": ""
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
+}

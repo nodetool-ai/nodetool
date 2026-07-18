@@ -1,7 +1,8 @@
 {
   "slug": "image-to-audio-story",
   "name": "Image To Audio Story",
-  "description": "Generate and narrate creative stories from images using AI",
+  "description": "Upload any photo and a vision agent narrates a spoken story about it — one image in, one audio clip out",
+  "featured": false,
   "image": "/app-preview/img/image-to-audio-story.jpg",
   "app_doc": {
     "version": 2,
@@ -13,14 +14,6 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "🔊 Image To Audio Story",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
             "id": "t-tagline",
@@ -28,50 +21,70 @@
           }
         },
         {
-          "type": "Container",
+          "type": "Columns",
           "props": {
-            "id": "panel-try",
-            "title": "Try it",
-            "content": [
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
               {
-                "type": "Text",
+                "type": "Container",
                 "props": {
-                  "id": "note-media",
-                  "text": "🖼️ Uses the bundled sample image — swap in any picture in NodeTool Studio."
-                }
-              },
-              {
-                "type": "Button",
-                "props": {
-                  "id": "btn-run",
-                  "label": "Tell me its story",
-                  "variant": "contained",
-                  "color": "primary",
-                  "events": [
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
                     {
-                      "trigger": "click",
-                      "kind": "run",
-                      "key": "",
-                      "value": ""
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-image",
+                        "binding": "image",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Tell me its story",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
                     }
                   ]
                 }
               }
-            ]
-          }
-        },
-        {
-          "type": "Container",
-          "props": {
-            "id": "panel-results",
-            "title": "Results",
-            "content": [
+            ],
+            "right": [
               {
-                "type": "Audio",
+                "type": "Container",
                 "props": {
-                  "id": "out-narration",
-                  "binding": "narration",
-                  "placeholder": "Your audio appears here"
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Writing & narrating…",
+                        "binding": ""
+                      }
+                    },
+                    {
+                      "type": "Audio",
+                      "props": {
+                        "id": "out-narration",
+                        "binding": "narration",
+                        "placeholder": "Your audio appears here"
+                      }
+                    }
+                  ]
                 }
               }
             ]

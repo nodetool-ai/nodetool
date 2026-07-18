@@ -35,6 +35,38 @@
 }
 
 /*
+ * Puck sets `box-sizing: content-box` on the canvas root for its own chrome,
+ * and the app's global reset is `box-sizing: inherit` — so the whole preview
+ * subtree silently flips to content-box and every padded element (Cards,
+ * inputs, buttons) renders wider/taller than in the published app. Restore
+ * the app's border-box inside the preview so the editor lays out exactly like
+ * the runtime.
+ */
+.appbuilder-editor [data-puck-preview],
+.appbuilder-editor [data-puck-preview] *,
+.appbuilder-editor [data-puck-preview] *::before,
+.appbuilder-editor [data-puck-preview] *::after {
+  box-sizing: border-box;
+}
+
+/*
+ * Preview-width toggle: caps the canvas at a device width and centers it so
+ * container-query-driven widgets (Columns) can be checked at narrow/wide
+ * breakpoints deliberately. Class is set on `.appbuilder-editor` from
+ * PuckAppEditor's preview-width state; "fit" (no class) leaves the canvas
+ * unconstrained. `[data-puck-preview]` is the element the box-sizing reset
+ * above already targets, so this composes with it.
+ */
+.appbuilder-editor.preview-phone [data-puck-preview] {
+  max-width: 390px;
+  margin-inline: auto;
+}
+.appbuilder-editor.preview-tablet [data-puck-preview] {
+  max-width: 768px;
+  margin-inline: auto;
+}
+
+/*
  * Theme overrides for the Puck editor chrome.
  *
  * Puck draws its UI from `--puck-color-*` CSS variables. These names are

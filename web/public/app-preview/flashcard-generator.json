@@ -1,7 +1,8 @@
 {
   "slug": "flashcard-generator",
   "name": "Flashcard Generator",
-  "description": "Generate study flashcards using AI and store them persistently in a database. Enter any topic and get instant flashcards that are saved for future review.",
+  "description": "Generate study flashcards as structured front/back card objects and store them persistently in a database. Enter any topic and get instant flashcards that are saved for future review.",
+  "featured": false,
   "image": "/app-preview/img/flashcard-generator.jpg",
   "app_doc": {
     "version": 2,
@@ -13,68 +14,84 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-10",
-            "text": "🃏 Flashcard Generator",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
-            "id": "t-11",
-            "text": "Enter any topic and generate study flashcards."
+            "id": "t-tagline",
+            "text": "Type a topic — get study flashcards as structured cards, saved for review."
           }
         },
         {
-          "type": "Container",
+          "type": "Columns",
           "props": {
-            "id": "c-14",
-            "title": "Topic",
-            "content": [
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
               {
-                "type": "TextInput",
+                "type": "Container",
                 "props": {
-                  "id": "in-12",
-                  "binding": "topic",
-                  "label": "Topic",
-                  "placeholder": "e.g. Python Programming",
-                  "multiline": false,
-                  "events": []
-                }
-              },
-              {
-                "type": "Button",
-                "props": {
-                  "id": "b-13",
-                  "label": "Generate Flashcards",
-                  "variant": "contained",
-                  "color": "primary",
-                  "events": [
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
                     {
-                      "trigger": "click",
-                      "kind": "run",
-                      "key": "",
-                      "value": ""
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-topic",
+                        "binding": "topic",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-num-cards",
+                        "binding": "num_cards",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Make flashcards",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
                     }
                   ]
                 }
               }
-            ]
-          }
-        },
-        {
-          "type": "Container",
-          "props": {
-            "id": "c-16",
-            "title": "Flashcards",
-            "content": [
+            ],
+            "right": [
               {
-                "type": "Json",
+                "type": "Container",
                 "props": {
-                  "id": "j-15",
-                  "binding": "Flashcards"
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Writing cards…",
+                        "binding": ""
+                      }
+                    },
+                    {
+                      "type": "Json",
+                      "props": {
+                        "id": "out-flashcards",
+                        "binding": "Flashcards"
+                      }
+                    }
+                  ]
                 }
               }
             ]
@@ -86,6 +103,16 @@
   },
   "values": {
     "topic": "Python Programming",
-    "Flashcards": "**Q:** What does `len()` return for a dict?\n**A:** The number of keys.\n\n**Q:** What's the difference between a list and a tuple?\n**A:** Lists are mutable; tuples are not."
+    "num_cards": 5,
+    "Flashcards": [
+      {
+        "front": "What does len() return for a dict?",
+        "back": "The number of keys."
+      },
+      {
+        "front": "List vs tuple?",
+        "back": "Lists are mutable; tuples are not."
+      }
+    ]
   }
 }

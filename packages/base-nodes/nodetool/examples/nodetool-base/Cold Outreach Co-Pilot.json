@@ -5,7 +5,7 @@
   "updated_at": "2026-06-27T23:00:04.049Z",
   "name": "Cold Outreach Co-Pilot",
   "tool_name": null,
-  "description": "An autonomous agent researches a prospect on the web and writes a personalized cold email — opening with a real, specific detail — plus a follow-up. Personalization at scale without the copy-paste.",
+  "description": "An autonomous agent researches a prospect on the web and drafts a personalized cold email — opening with a real, specific detail — as structured fields (subject, body, follow-up) instead of one prose blob, ready to drop straight into a CRM or email tool.",
   "tags": [
     "agents",
     "sales",
@@ -75,8 +75,30 @@
       {
         "id": "c7c5d258-0c5a-4a9e-85f7-579fa3dff9ab",
         "source": "agent",
-        "sourceHandle": "personalized_email",
-        "target": "preview_email",
+        "sourceHandle": "subject",
+        "target": "preview_subject",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "a1f4c9e2-6b3d-4a8e-9c1f-2d5e8b7a0c4f",
+        "source": "agent",
+        "sourceHandle": "body",
+        "target": "preview_body",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "e6d2b4a8-3f7c-41a9-8e2d-5c9f1a6b3d70",
+        "source": "agent",
+        "sourceHandle": "follow_up",
+        "target": "preview_followup",
         "targetHandle": "value",
         "ui_properties": {
           "className": "str"
@@ -100,7 +122,7 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎯 Cold Outreach Co-Pilot\n\nName a prospect or company and an autonomous agent researches them on the web, then writes a personalized cold email that opens with a real, specific detail — plus a follow-up.\n\n**Pipeline:** Prospect + your offer → build objective → Research agent (search + browse) → email + follow-up\n\n**Try this:** change the prospect, paste your real offer, or tell the agent the tone to use. Pick a model on the agent first."
+          "comment": "# 🎯 Cold Outreach Co-Pilot\n\nName a prospect or company and an autonomous agent researches them on the web, then drafts a personalized cold email that opens with a real, specific detail.\n\n**Pipeline:** Prospect + your offer → build objective → Research agent (search + browse) → structured draft\n\nThe agent returns `subject`, `body`, and `follow_up` as separate typed fields (not one prose blob), so each piece can be previewed, edited, or piped into a CRM/email tool on its own.\n\n**Try this:** change the prospect, paste your real offer, or tell the agent the tone to use. Pick a model on the agent first."
         },
         "ui_properties": {
           "position": {
@@ -165,7 +187,7 @@
         "id": "objective",
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "Research the prospect and write outreach.\n\nPROSPECT:\n{{ prospect }}\n\nMY OFFER:\n{{ offer }}\n\nSteps:\n1. Use google_search and browser to learn what the prospect does, their stage, and anything recent (a launch, hire, funding, or post).\n2. Identify 2–4 pain points my offer plausibly solves for them.\n3. Write a cold email under 120 words that OPENS with a specific researched detail, ties it to one pain point, and ends with a low-friction ask.\n4. Write one short follow-up for no-reply.\n\nReturn JSON:\n{\n  \"company_summary\": \"<2–3 sentences on what they do + recent signal>\",\n  \"pain_points\": [\"<pain 1>\", \"<pain 2>\", ...],\n  \"personalized_email\": \"<subject line + body>\",\n  \"follow_up\": \"<short nudge>\"\n}"
+          "prompt": "Research the prospect and draft outreach.\n\nPROSPECT:\n{{ prospect }}\n\nMY OFFER:\n{{ offer }}\n\nSteps:\n1. Use google_search and browser to learn what the prospect does, their stage, and anything recent (a launch, hire, funding, or post).\n2. Identify 2–4 pain points my offer plausibly solves for them.\n3. Write a cold email under 120 words that OPENS with a specific researched detail, ties it to one pain point, and ends with a low-friction ask.\n4. Write one short follow-up for no-reply, 3–5 days later.\n\nReturn JSON with these exact fields (subject and body as separate, structured fields — never combine them into one string):\n{\n  \"company_summary\": \"<2–3 sentences on what they do + recent signal>\",\n  \"pain_points\": [\"<pain 1>\", \"<pain 2>\", ...],\n  \"subject\": \"<email subject line, under 8 words, no clickbait>\",\n  \"body\": \"<email body only, no subject line inside it, under 120 words>\",\n  \"follow_up\": \"<short nudge, under 40 words>\"\n}"
         },
         "ui_properties": {
           "position": {
@@ -206,7 +228,7 @@
             }
           ],
           "max_tokens": 100000,
-          "system": "You are a B2B research assistant and senior cold-outreach copywriter.\n\nGoal\n- Research the given prospect/company using the tools, then write outreach that references something specific and true about them.\n\nTools Available\n- google_search: Search the web for information\n- browser: Open URLs and read content\n\nWorkflow\n1. Search for the prospect/company; identify what they do and recent news.\n2. Browse their site or a recent post to find concrete, current details.\n3. Map their likely pain points to the offer.\n4. Write a short, human, non-salesy email plus one follow-up.\n\nOutput Format\n- Return a single JSON object matching the defined output schema.\n- The email must open with a specific, researched detail (never \"I hope this finds you well\").\n- Keep the email under 120 words. Cite sources where useful.\n",
+          "system": "You are a B2B research assistant and senior cold-outreach copywriter.\n\nGoal\n- Research the given prospect/company using the tools, then draft outreach that references something specific and true about them.\n\nTools Available\n- google_search: Search the web for information\n- browser: Open URLs and read content\n\nWorkflow\n1. Search for the prospect/company; identify what they do and recent news.\n2. Browse their site or a recent post to find concrete, current details.\n3. Map their likely pain points to the offer.\n4. Draft a short, human, non-salesy email plus one follow-up.\n\nOutput Format\n- Return a single JSON object matching the defined output schema — `subject`, `body`, and `follow_up` are separate fields, never merged into one string.\n- The email body must open with a specific, researched detail (never \"I hope this finds you well\").\n- Keep the body under 120 words and the follow-up under 40. Cite sources where useful.\n",
           "mode": "loop"
         },
         "ui_properties": {
@@ -240,7 +262,12 @@
               }
             ]
           },
-          "personalized_email": {
+          "subject": {
+            "type": "str",
+            "optional": false,
+            "type_args": []
+          },
+          "body": {
             "type": "str",
             "optional": false,
             "type_args": []
@@ -296,10 +323,10 @@
         "dynamic_outputs": {}
       },
       {
-        "id": "preview_email",
+        "id": "preview_subject",
         "type": "nodetool.workflows.base_node.Preview",
         "data": {
-          "name": "personalized_email"
+          "name": "subject"
         },
         "ui_properties": {
           "selected": false,
@@ -309,8 +336,52 @@
           },
           "zIndex": 0,
           "width": 530,
-          "height": 341,
-          "title": "✉️ Personalized email",
+          "height": 120,
+          "title": "📌 Subject line",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "preview_body",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "body"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1146,
+            "y": 1310
+          },
+          "zIndex": 0,
+          "width": 530,
+          "height": 300,
+          "title": "✉️ Email body",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "preview_followup",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "follow_up"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1146,
+            "y": 1635
+          },
+          "zIndex": 0,
+          "width": 530,
+          "height": 180,
+          "title": "⏰ Follow-up",
           "selectable": true,
           "bypassed": false
         },
@@ -331,6 +402,7 @@
           "zIndex": 0,
           "width": 400,
           "height": 300,
+          "title": "🔴 Agent thinking (live)",
           "selectable": true,
           "bypassed": false
         },
@@ -359,14 +431,6 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "✉️ Cold Outreach Co-Pilot",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
             "id": "t-tagline",
@@ -386,24 +450,18 @@
                   "title": "Try it",
                   "content": [
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-prospect-company",
                         "binding": "Prospect / Company",
-                        "label": "Who are you reaching out to?",
-                        "placeholder": "AtlasCloud",
-                        "multiline": false,
                         "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-your-offer",
                         "binding": "Your Offer",
-                        "label": "What are you offering?",
-                        "placeholder": "We build NodeTool - a Creative AI workspace.",
-                        "multiline": true,
                         "events": []
                       }
                     },
@@ -435,6 +493,14 @@
                   "id": "panel-results",
                   "title": "Results",
                   "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Researching your prospect…",
+                        "binding": ""
+                      }
+                    },
                     {
                       "type": "Heading",
                       "props": {
@@ -470,16 +536,48 @@
                     {
                       "type": "Heading",
                       "props": {
-                        "id": "lbl-personalized-email",
-                        "text": "Your email, ready to send",
+                        "id": "lbl-subject",
+                        "text": "Subject line",
                         "level": "3"
                       }
                     },
                     {
                       "type": "Markdown",
                       "props": {
-                        "id": "out-personalized-email",
-                        "binding": "personalized_email",
+                        "id": "out-subject",
+                        "binding": "subject",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-body",
+                        "text": "Email body",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-body",
+                        "binding": "body",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-follow-up",
+                        "text": "Follow-up",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-follow-up",
+                        "binding": "follow_up",
                         "text": ""
                       }
                     }

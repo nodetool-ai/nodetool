@@ -50,7 +50,10 @@ function AppCard({ entry }: { entry: MiniAppEntry }) {
 
 export default function AppsHub() {
   const entries = [...miniAppEntries].sort(
-    (a, b) => Number(b.indexable) - Number(a.indexable) || a.name.localeCompare(b.name),
+    (a, b) =>
+      Number(b.featured) - Number(a.featured) ||
+      Number(b.indexable) - Number(a.indexable) ||
+      a.name.localeCompare(b.name),
   );
 
   const itemListLd = {

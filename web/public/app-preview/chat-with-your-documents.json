@@ -1,0 +1,162 @@
+{
+  "slug": "chat-with-your-documents",
+  "name": "Chat With Your Documents",
+  "description": "Retrieval-augmented Q&A over your own documents. Index a small knowledge base into a vector collection, pull the passages matching a search keyword, and get a Markdown answer that cites its sources and refuses to guess when the answer isn't in the docs. NodeTool's first RAG example. The answer step uses gpt-5-mini (OpenAI key); the collection is configured for Ollama nomic-embed-text embeddings.",
+  "featured": false,
+  "image": null,
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Chat With Your Documents"
+        }
+      },
+      "content": [
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "Ask questions about your own documents — answers cite their source and refuse to guess."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-question",
+                        "binding": "question",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-search",
+                        "binding": "search",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-doc-specs",
+                        "binding": "doc_specs",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-doc-charging",
+                        "binding": "doc_charging",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-doc-warranty",
+                        "binding": "doc_warranty",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Ask",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Searching your knowledge base…",
+                        "binding": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-answer",
+                        "text": "Answer",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-answer",
+                        "binding": "Answer",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-retrieved-passages",
+                        "text": "Sources used",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-retrieved-passages",
+                        "binding": "Retrieved Passages",
+                        "text": ""
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  },
+  "values": {
+    "question": "How long does the Aurora One take to fully charge, and what does its warranty cover?",
+    "search": "Aurora",
+    "doc_specs": "# Aurora One — Technical Specifications\n\nThe Aurora One is a lightweight urban electric bike. It ships with a 500 Wh removable battery and a 250 W mid-drive motor. The assisted top speed is 25 km/h and the rated range is up to 80 km per charge in eco mode. The complete bike weighs 17 kg and fits riders from 160 cm to 195 cm tall. Frame material is 6061 aluminium; wheel size is 27.5 inches.",
+    "doc_charging": "# Aurora One — Battery & Charging\n\nThe Aurora One battery charges from empty to full in about 4 hours with the included standard charger, or reaches 80% in roughly 2 hours. An optional fast charger cuts a full charge to about 2.5 hours. The battery is removable, so it can be charged on or off the bike. Aurora recommends storing the battery between 20% and 80% charge when not riding for long periods.",
+    "doc_warranty": "# Aurora One — Warranty & Support\n\nEvery Aurora One includes a 2-year limited warranty covering the frame, motor, and battery against manufacturing defects. The warranty does not cover wear items such as tyres, brake pads, or accidental damage. Warranty service is handled through authorised Aurora dealers; contact support at help@aurorabikes.example within the coverage period to open a claim.",
+    "Answer": "The Aurora Trail is rated for **50 m water resistance** (5 ATM) — fine for swimming and rain, not for diving. *[source: specs]*",
+    "Retrieved Passages": "> **specs** — Water resistance: 5 ATM (50 m). Case: recycled aluminium.\n> **warranty** — Water damage is covered for 2 years under normal use."
+  }
+}

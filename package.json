@@ -134,6 +134,8 @@
     "test:coverage:electron": "npm run test:coverage --workspace=electron",
     "test:coverage:mobile": "npm --prefix mobile run test:coverage",
     "test:integration": "npm test --workspace=@nodetool-ai/base-nodes -- example-workflows-execute",
+    "validate:examples": "node scripts/validate-examples.mjs",
+    "examples:smoke": "node scripts/smoke-examples.mjs",
     "test:mutation": "for pkg in agents auth config kernel node-sdk runtime security storage; do npm run test:mutation --workspace=packages/$pkg || true; done",
     "mutation:score": "node scripts/mutation-score.mjs",
     "lint:web": "npm run lint --workspace=web",

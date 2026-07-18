@@ -1,105 +1,138 @@
 {
   "slug": "movie-posters",
   "name": "Movie Posters",
-  "description": "Create cinematic movie posters using AI image generation",
+  "description": "Turn a title, genre, and visual style into finished theatrical one-sheet posters. An art-direction agent first writes a key-art brief (positioning, palette, typography), which drives every generated poster — the differentiator is the agent-authored creative strategy, not a raw prompt.",
+  "featured": true,
   "image": "/app-preview/img/movie-posters.jpg",
   "app_doc": {
     "version": 2,
     "data": {
       "root": {
         "props": {
-          "title": "Movie Poster Studio"
+          "title": "Movie Posters"
         }
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-1",
-            "text": "🎬 Movie Poster Studio",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
-            "id": "t-2",
-            "text": "Describe your film and generate a cinematic poster."
+            "id": "t-tagline",
+            "text": "One title, one genre, one style — get a finished movie poster."
           }
         },
         {
-          "type": "Container",
+          "type": "Columns",
           "props": {
-            "id": "c-7",
-            "title": "Details",
-            "content": [
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
               {
-                "type": "TextInput",
+                "type": "Container",
                 "props": {
-                  "id": "in-3",
-                  "binding": "Movie Title",
-                  "label": "Movie Title",
-                  "placeholder": "e.g. Singularity",
-                  "multiline": false,
-                  "events": []
-                }
-              },
-              {
-                "type": "TextInput",
-                "props": {
-                  "id": "in-4",
-                  "binding": "Genre",
-                  "label": "Genre",
-                  "placeholder": "e.g. Sci-Fi",
-                  "multiline": false,
-                  "events": []
-                }
-              },
-              {
-                "type": "TextInput",
-                "props": {
-                  "id": "in-5",
-                  "binding": "Primary Audience",
-                  "label": "Primary Audience",
-                  "placeholder": "e.g. AI Enthusiasts",
-                  "multiline": false,
-                  "events": []
-                }
-              },
-              {
-                "type": "Button",
-                "props": {
-                  "id": "b-6",
-                  "label": "Generate Poster",
-                  "variant": "contained",
-                  "color": "primary",
-                  "events": [
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
                     {
-                      "trigger": "click",
-                      "kind": "run",
-                      "key": "",
-                      "value": ""
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-movie-title",
+                        "binding": "Movie Title",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Select",
+                      "props": {
+                        "id": "in-genre",
+                        "binding": "Genre",
+                        "label": "Genre",
+                        "options": [
+                          {
+                            "value": "Sci-Fi Thriller"
+                          },
+                          {
+                            "value": "Action"
+                          },
+                          {
+                            "value": "Horror"
+                          },
+                          {
+                            "value": "Fantasy"
+                          },
+                          {
+                            "value": "Neo-noir"
+                          },
+                          {
+                            "value": "Romance"
+                          },
+                          {
+                            "value": "Comedy"
+                          },
+                          {
+                            "value": "Drama"
+                          },
+                          {
+                            "value": "Documentary"
+                          }
+                        ],
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-visual-style",
+                        "binding": "Visual Style",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Make my poster",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
                     }
                   ]
                 }
               }
-            ]
-          }
-        },
-        {
-          "type": "Container",
-          "props": {
-            "id": "c-9",
-            "title": "Poster",
-            "content": [
+            ],
+            "right": [
               {
-                "type": "Image",
+                "type": "Container",
                 "props": {
-                  "id": "img-8",
-                  "binding": "Poster",
-                  "fit": "contain",
-                  "height": 520,
-                  "placeholder": "Your poster will appear here"
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Designing your poster…",
+                        "binding": ""
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-poster",
+                        "binding": "Poster",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    }
+                  ]
                 }
               }
             ]
@@ -111,8 +144,8 @@
   },
   "values": {
     "Movie Title": "Singularity",
-    "Genre": "Sci-Fi",
-    "Primary Audience": "AI Enthusiasts",
+    "Genre": "Sci-Fi Thriller",
+    "Visual Style": "Neo-noir, high-contrast, cinematic",
     "Poster": {
       "$demo": "image"
     }

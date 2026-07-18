@@ -477,7 +477,9 @@ const VideoPreview: React.FC<{ value: unknown; nodeId: string }> = ({
       await Promise.all(assetFiles.map(({ file }) => createAsset(file)));
       addNotification({
         type: "success",
-        content: `${assetFiles.length} file(s) added to assets`
+        content: `${assetFiles.length} file${
+          assetFiles.length === 1 ? "" : "s"
+        } added to assets`
       });
     } catch (error) {
       console.error("VideoPreview: add to assets failed", error);

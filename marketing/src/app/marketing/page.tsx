@@ -64,9 +64,9 @@ const upcomingWorkflows = [
     icon: Mail,
   },
   {
-    title: "YouTube Thumbnail Pipeline",
+    title: "Hook & Thumbnail Factory",
     description:
-      "Batch-generate and A/B-test thumbnail concepts from a video title and description.",
+      "Batch-generate and A/B-test video hooks and thumbnail concepts from a video title and description.",
     icon: Youtube,
   },
 ];
@@ -118,7 +118,7 @@ export default function MarketingSegmentPage() {
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
             <div className="mx-auto max-w-5xl text-center">
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={false}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6 }}
               >
@@ -186,7 +186,7 @@ export default function MarketingSegmentPage() {
         <section className="py-20 relative">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               className="text-center mb-16 max-w-3xl mx-auto"
@@ -209,7 +209,7 @@ export default function MarketingSegmentPage() {
               {marketingBenefits.map((benefit, index) => (
                 <motion.div
                   key={benefit.title}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={false}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.1 }}
@@ -234,7 +234,7 @@ export default function MarketingSegmentPage() {
         <section id="product-video" className="relative scroll-mt-28 py-20">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
             <motion.div
-              initial={{ opacity: 0, y: 40 }}
+              initial={false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-100px" }}
               transition={{ duration: 0.6 }}
@@ -305,7 +305,7 @@ export default function MarketingSegmentPage() {
         <section className="py-20 relative">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               className="text-center mb-12 max-w-2xl mx-auto"
@@ -323,7 +323,7 @@ export default function MarketingSegmentPage() {
               {upcomingWorkflows.map((wf, index) => (
                 <motion.div
                   key={wf.title}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={false}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.08 }}
@@ -353,7 +353,7 @@ export default function MarketingSegmentPage() {
         <section className="py-24 relative">
           <div className="mx-auto max-w-4xl px-6 lg:px-8 text-center">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
             >

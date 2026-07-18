@@ -129,6 +129,8 @@ export type Competitor = {
 
   /** First-wave addition (drives footer curation and index gating). */
   isNew?: boolean;
+  /** Footer link label override, e.g. to note a product rename. */
+  footerName?: string;
 };
 
 export const competitors: Competitor[] = [
@@ -209,6 +211,7 @@ export const competitors: Competitor[] = [
   {
     slug: "weavy",
     name: "Weavy",
+    footerName: "Weavy (Figma Weave)",
     theme: "blue",
     category: "Creative canvas",
     vsTitle: "NodeTool vs Weavy (now Figma Weave) — open source, BYOK, no credits",
@@ -1162,4 +1165,4 @@ export const competitorEntries: PageEntry[] = [
  */
 export const footerCompareLinks: { name: string; href: string }[] = competitors
   .filter((c) => !c.isNew)
-  .map((c) => ({ name: `vs ${c.name}`, href: `/vs/${c.slug}` }));
+  .map((c) => ({ name: `vs ${c.footerName ?? c.name}`, href: `/vs/${c.slug}` }));

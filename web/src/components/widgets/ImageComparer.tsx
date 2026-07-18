@@ -7,6 +7,7 @@ import { ToolbarIconButton, BORDER_RADIUS, SPACING, Z_INDEX, getSpacingPx } from
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import SwapVertIcon from "@mui/icons-material/SwapVert";
 import { alphaSurfaceBg } from "../../styles/AlphaSurface";
+import { formatFileSize } from "../../utils/formatUtils";
 
 export interface ImageMetadata {
   width?: number;
@@ -145,13 +146,6 @@ const styles = (theme: Theme) =>
     }
   });
 
-const formatFileSize = (bytes?: number): string => {
-  if (bytes === undefined) {return "";}
-  if (bytes < 1024) {return `${bytes} B`;}
-  if (bytes < 1024 * 1024) {return `${(bytes / 1024).toFixed(1)} KB`;}
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-};
-
 const ImageComparer: React.FC<ImageComparerProps> = ({
   imageA,
   imageB,
@@ -261,7 +255,7 @@ const ImageComparer: React.FC<ImageComparerProps> = ({
     if (meta.width && meta.height) {
       parts.push(`${meta.width} × ${meta.height}`);
     }
-    const sizeStr = formatFileSize(meta.size);
+    const sizeStr = meta.size === undefined ? "" : formatFileSize(meta.size);
     if (sizeStr) {
       parts.push(sizeStr);
     }

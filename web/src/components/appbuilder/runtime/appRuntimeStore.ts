@@ -72,3 +72,25 @@ export const createAppRuntimeStore = (
         return { values, progress: null, error: null };
       })
   }));
+
+/**
+ * Registry of live app stores keyed by workflow id. Values persist across
+ * mounts, so switching a workflow tab between Edit and View (or leaving and
+ * revisiting a published app) keeps streamed outputs and typed inputs.
+ * Design-mode canvases use an unregistered ephemeral store instead.
+ */
+const appRuntimeStores = new Map<string, AppRuntimeStore>();
+
+export const getAppRuntimeStore = (workflowId: string): AppRuntimeStore => {
+  let store = appRuntimeStores.get(workflowId);
+  if (!store) {
+    store = createAppRuntimeStore();
+    appRuntimeStores.set(workflowId, store);
+  }
+  return store;
+};
+
+/** Drop a workflow's app state. Call when the workflow is closed/deleted. */
+export const disposeAppRuntimeStore = (workflowId: string): void => {
+  appRuntimeStores.delete(workflowId);
+};

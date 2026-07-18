@@ -1,7 +1,8 @@
 {
   "slug": "music-video-visualizer",
   "name": "Music Video Visualizer",
-  "description": "Create reactive visuals from audio tracks with mood-matched imagery. Transcribes audio, analyzes mood/energy, and generates visual frames synced to the music.",
+  "description": "Turn any song into a mood-matched music video. Whisper transcribes the lyrics, an LLM creative director reads the emotional arc, writes one image prompt per frame, FLUX renders every frame, and they are stitched back to your original audio. Differentiator: a full transcribe → analyze → fan-out → render → reassemble media pipeline in a single graph — no chat box can do this. Cost note: generates one image per frame (default 8) plus a Whisper transcription, so a run costs several fal-ai calls.",
+  "featured": true,
   "image": "/app-preview/img/music-video-visualizer.jpg",
   "app_doc": {
     "version": 2,
@@ -12,14 +13,6 @@
         }
       },
       "content": [
-        {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "🎵 Music Video Visualizer",
-            "level": "1"
-          }
-        },
         {
           "type": "Text",
           "props": {
@@ -40,43 +33,35 @@
                   "title": "Try it",
                   "content": [
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-audio-track",
+                        "binding": "audio_track",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-genre-hint",
                         "binding": "genre_hint",
-                        "label": "Genre",
-                        "placeholder": "electronic ambient",
-                        "multiline": false,
                         "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-visual-style",
                         "binding": "visual_style",
-                        "label": "Visual style",
-                        "placeholder": "abstract geometric patterns, neon colors, flowing energy",
-                        "multiline": true,
                         "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-num-frames",
                         "binding": "num_frames",
-                        "label": "Number of scenes",
-                        "placeholder": "8",
-                        "multiline": false,
                         "events": []
-                      }
-                    },
-                    {
-                      "type": "Text",
-                      "props": {
-                        "id": "note-media",
-                        "text": "🎧 Uses the bundled track — drop in your own audio in NodeTool Studio."
                       }
                     },
                     {
@@ -107,6 +92,14 @@
                   "id": "panel-results",
                   "title": "Results",
                   "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Matching visuals to your track…",
+                        "binding": ""
+                      }
+                    },
                     {
                       "type": "Video",
                       "props": {

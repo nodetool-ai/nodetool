@@ -1,4 +1,5 @@
 import { defineConfig, loadEnv, type Plugin, type ProxyOptions, type UserConfig } from "vite";
+import type { Plugin as EsbuildPlugin } from "esbuild";
 import react from "@vitejs/plugin-react";
 import svgr from "vite-plugin-svgr";
 import { execSync } from "node:child_process";
@@ -96,6 +97,28 @@ function stubNodeProtocolPlugin(includeBare = false): Plugin {
         (includeBare ? BARE_BUILTIN_STUBS[source] : undefined) ??
         null
       );
+    }
+  };
+}
+
+// The esbuild counterpart of stubNodeProtocolPlugin, for Vite's dependency
+// pre-bundle (optimizeDeps). That pass is a separate esbuild run whose module
+// resolution does NOT go through Vite's `resolve.alias` or the `resolveId`
+// plugins above — so a pre-bundled dependency like `@sebastianwessel/quickjs`
+// gets its `node:buffer` import externalized, and the resulting shim throws the
+// moment the code touches `Buffer.allocUnsafe` at module load. Redirect the
+// `node:`-prefixed builtins to the same stub files during pre-bundling so the
+// real polyfill (buffer-stub → npm `buffer`) is bundled instead. Bare builtin
+// names are intentionally left alone: the app externalizes them, and bare
+// `buffer` must resolve to the npm package that buffer-stub.js itself imports.
+function stubNodeBuiltinsEsbuildPlugin(): EsbuildPlugin {
+  return {
+    name: "stub-node-builtins-esbuild",
+    setup(build) {
+      build.onResolve({ filter: /^node:/ }, (args) => {
+        const stub = NODE_BUILTIN_STUBS[args.path];
+        return stub ? { path: stub } : undefined;
+      });
     }
   };
 }
@@ -250,7 +273,10 @@ export default defineConfig(async ({ mode }) => {
         "monaco-editor",
         "@monaco-editor/react",
         "@monaco-editor/loader",
-      ]
+      ],
+      esbuildOptions: {
+        plugins: [stubNodeBuiltinsEsbuildPlugin()]
+      }
     },
     resolve: {
       // Use the `nodetool-dev` export condition so @nodetool-ai/* packages

@@ -20,10 +20,10 @@ export default function DeploySection({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           {/* Left Column: Text Content */}
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
+            initial={false}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.25 }}
           >
             <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6">
               Self host <br />
@@ -108,10 +108,10 @@ export default function DeploySection({
 
           {/* Right Column: Visual */}
           <motion.div
-            initial={{ opacity: 0, x: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.2 }}
+            transition={{ duration: 0.25, delay: 0.05 }}
             className="relative hidden lg:block"
           >
             <Tilt3D>

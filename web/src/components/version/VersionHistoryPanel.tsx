@@ -537,16 +537,13 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
       <Dialog
         open={deleteDialogOpen}
         onClose={handleCloseDeleteDialog}
-        title="Delete Version"
+        title="Delete this version?"
         onConfirm={handleConfirmDelete}
         onCancel={handleCloseDeleteDialog}
         confirmText="Delete"
         destructive
       >
-        <Text color="secondary">
-          Are you sure you want to delete this version? This action cannot be
-          undone.
-        </Text>
+        <Text color="secondary">This action cannot be undone.</Text>
       </Dialog>
     </div>
   );

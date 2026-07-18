@@ -28,7 +28,9 @@ export const WIDGET_MODES: Record<string, WidgetBindingMode> = {
   Audio: "read",
   Video: "read",
   Json: "read",
+  Output: "read",
   Progress: "read",
+  WorkflowInput: "write",
   TextInput: "write",
   NumberInput: "write",
   Slider: "write",
@@ -162,12 +164,13 @@ const isOutputNodeType = (type: string): boolean =>
  * web builder offers in its binding pickers.
  */
 export function extractAppIO(graph: DebugGraph): AppIO {
-  const io: AppIO = { inputs: [], outputs: [], variables: [] };
+  const io: AppIO = { inputs: [], outputs: [], variables: [], nodeIds: [] };
   const variables = new Set<string>();
   for (const node of graph.nodes) {
     const type = str(node.type);
     const id = str(node.id);
     if (!type || !id) continue;
+    io.nodeIds.push(id);
     if (type.startsWith("nodetool.input.")) {
       io.inputs.push({
         nodeId: id,
@@ -193,6 +196,7 @@ export function validateApp(spec: AppSpec, io: AppIO): AppValidation {
   const inputNames = new Set(io.inputs.map((i) => i.name));
   const outputNames = new Set(io.outputs.map((o) => o.name));
   const variableNames = new Set(io.variables);
+  const nodeIds = new Set(io.nodeIds);
 
   let hasRunTrigger = false;
   const boundOutputs = new Set<string>();
@@ -204,7 +208,16 @@ export function validateApp(spec: AppSpec, io: AppIO): AppValidation {
       continue;
     }
     if (w.binding) {
-      if (w.bindingMode === "write" && !inputNames.has(w.binding)) {
+      // `node:<id>#<prop>` write bindings target a graph node's property
+      // directly (the web runtime overlays the value before the run).
+      const nodeBinding = /^node:(.+)#[^#]+$/.exec(w.binding);
+      if (w.bindingMode === "write" && nodeBinding) {
+        if (!nodeIds.has(nodeBinding[1])) {
+          errors.push(
+            `${where}: bound to node property "${w.binding}" but the workflow has no node with id "${nodeBinding[1]}".`
+          );
+        }
+      } else if (w.bindingMode === "write" && !inputNames.has(w.binding)) {
         errors.push(
           `${where}: bound to input "${w.binding}" but the workflow has no input node with that name.`
         );

@@ -1,7 +1,8 @@
 {
   "slug": "image-to-video-animation",
   "name": "Image to Video Animation",
-  "description": "Generate a high-quality still from text, then animate it into a short cinematic clip.",
+  "description": "Generate a high-quality still from text, then animate it into a short cinematic clip. Uses Veo 3.1 for the animation step, which costs more per run than image-only templates.",
+  "featured": false,
   "image": "/app-preview/img/image-to-video-animation.jpg",
   "app_doc": {
     "version": 2,
@@ -12,14 +13,6 @@
         }
       },
       "content": [
-        {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "🎥 Image to Video Animation",
-            "level": "1"
-          }
-        },
         {
           "type": "Text",
           "props": {
@@ -40,46 +33,34 @@
                   "title": "Try it",
                   "content": [
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-scene-prompt",
                         "binding": "scene_prompt",
-                        "label": "Describe the scene",
-                        "placeholder": "Moody twilight ocean scene with cinematic lighting",
-                        "multiline": true,
                         "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-motion-prompt",
                         "binding": "motion_prompt",
-                        "label": "How should it move?",
-                        "placeholder": "Slow dolly push toward the horizon as waves shimmer with reflective highlights",
-                        "multiline": true,
                         "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-duration-prompt",
                         "binding": "duration_prompt",
-                        "label": "Length & pacing",
-                        "placeholder": "8 second dramatic reveal",
-                        "multiline": false,
                         "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-negative-prompt",
                         "binding": "negative_prompt",
-                        "label": "What to avoid",
-                        "placeholder": "no watermarks, no text overlays, maintain realistic wave motion",
-                        "multiline": true,
                         "events": []
                       }
                     },
@@ -112,6 +93,14 @@
                   "title": "Results",
                   "content": [
                     {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Animating your scene…",
+                        "binding": ""
+                      }
+                    },
+                    {
                       "type": "Video",
                       "props": {
                         "id": "out-animation",
@@ -134,7 +123,7 @@
     "scene_prompt": "Moody twilight ocean scene with cinematic lighting",
     "motion_prompt": "Slow dolly push toward the horizon as waves shimmer with reflective highlights",
     "duration_prompt": "8 second dramatic reveal",
-    "negative_prompt": "no watermarks, no text overlays, maintain realistic wave motion",
+    "negative_prompt": "no watermarks, no text overlays, no jump cuts, no warped anatomy",
     "animation": {
       "$demo": "video"
     }

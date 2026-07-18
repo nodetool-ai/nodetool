@@ -5,7 +5,7 @@
   "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Pokemon Maker",
   "tool_name": null,
-  "description": "",
+  "description": "Turn any mix of real animals into a gallery of original collectible creatures. A style dropdown restyles the whole batch, so one Run yields four cohesive variant designs instead of a single image.",
   "tags": [
     "example"
   ],
@@ -14,7 +14,27 @@
   "graph": {
     "edges": [
       {
-        "id": "577c1b9c-4a32-4a45-a69d-f9cf07e789aa",
+        "id": "edge-animals-prompt",
+        "source": "2f773f4f-c863-4215-bb89-e8cc09e95472",
+        "sourceHandle": "output",
+        "target": "464a17c1-c916-4b24-8e23-856160732293",
+        "targetHandle": "animals",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "edge-style-prompt",
+        "source": "input-style",
+        "sourceHandle": "output",
+        "target": "464a17c1-c916-4b24-8e23-856160732293",
+        "targetHandle": "style",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "edge-prompt-listgen",
         "source": "464a17c1-c916-4b24-8e23-856160732293",
         "sourceHandle": "output",
         "target": "7613de08-0407-42aa-8dc8-3b7777e9529d",
@@ -24,17 +44,7 @@
         }
       },
       {
-        "id": "5faf6242-3f30-4842-a6a3-a4f579c1a30f",
-        "source": "2f773f4f-c863-4215-bb89-e8cc09e95472",
-        "sourceHandle": "output",
-        "target": "464a17c1-c916-4b24-8e23-856160732293",
-        "targetHandle": "animals",
-        "ui_properties": {
-          "className": "any"
-        }
-      },
-      {
-        "id": "6f81b658-fda6-432f-881b-1c54ab8b0b20",
+        "id": "edge-listgen-render",
         "source": "7613de08-0407-42aa-8dc8-3b7777e9529d",
         "sourceHandle": "item",
         "target": "b55c474e-e397-44a3-adc7-94bcf61eee35",
@@ -57,17 +67,71 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🐲 Pokemon Maker\n\nName an animal and get a batch of original creature designs. It builds a prompt, generates variations, and renders each one.\n\n**Pipeline:** Animal → Build prompt → Prompt list → Generate image\n\n**Try this:** combine two animals for a hybrid creature."
+          "comment": "# 🐲 Pokemon Maker\n\nName a few animals, pick an art style, and get a batch of four original collectible creatures — each one a believable fusion of the animals you chose, all rendered in the same style.\n\n**Pipeline:** Animals + Style → Design brief → Creature prompts → Render → Gallery\n\n**Try this:** mix an unlikely pair (axolotl + hummingbird) and switch the style to see the whole set restyle at once."
         },
         "ui_properties": {
           "selected": false,
           "position": {
             "x": 291,
-            "y": -170
+            "y": -200
           },
           "zIndex": 0,
-          "width": 460,
-          "height": 180,
+          "width": 500,
+          "height": 210,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "2f773f4f-c863-4215-bb89-e8cc09e95472",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "animals",
+          "description": "Which real animals should the creatures be built from? List two or three, comma-separated — mixing distant species gives the most striking hybrids.",
+          "value": "lion, eagle, koi fish"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 291,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 220,
+          "title": "1️⃣ Animal inspiration",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "input-style",
+        "type": "nodetool.input.SelectInput",
+        "data": {
+          "name": "style",
+          "description": "The art style every creature in the batch is rendered in.",
+          "value": "Classic anime cel-shaded",
+          "options": [
+            "Classic anime cel-shaded",
+            "Glossy 3D render",
+            "Painterly watercolor",
+            "Retro 16-bit pixel art",
+            "Holographic foil trading card"
+          ],
+          "enum_type_name": ""
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 291,
+            "y": 300
+          },
+          "zIndex": 0,
+          "width": 220,
+          "title": "1️⃣ Art style",
           "selectable": true,
           "bypassed": false
         },
@@ -78,46 +142,24 @@
         "id": "464a17c1-c916-4b24-8e23-856160732293",
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "Create a 3 compelling Pokémons. \n\nDefine its primary types, signature ability, and a few key moves. How do these elements make it unique and balanced within the Pokémon world?\n\nDescribe its physical appearance, patterns, colors, and any special features. How does its design reflect its typing, abilities, and the animals it’s inspired by?\n\nTake inspiration from these animals: {{animals}}"
+          "prompt": "You are a creature designer for an original monster-collecting game. Invent FOUR distinct collectible creatures, each a believable fusion of these real animals: {{animals}}.\n\nFor every creature, write ONE self-contained image-generation prompt — a single vivid paragraph, no title, no numbering, no creature name — that describes:\n- Body and silhouette: proportions, stance, and how the source animals fuse into one coherent form\n- Surface detail: dominant colors, patterns, and one or two standout features (horns, fins, glowing markings, plating)\n- Framing: the creature centered on a clean, uncluttered studio background so it reads clearly\n\nRender all four in this consistent art style: {{style}}.\n\nReturn exactly four prompts — one creature each, no two alike."
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 521,
-            "y": 119
+            "x": 581,
+            "y": 150
           },
           "zIndex": 0,
           "width": 351,
-          "title": "2️⃣ Build creature prompt",
+          "title": "2️⃣ Build design brief",
           "selectable": true,
           "bypassed": false
         },
         "dynamic_properties": {
-          "animals": "lion, eagle, dragon, bear"
+          "animals": "lion, eagle, koi fish",
+          "style": "Classic anime cel-shaded"
         },
-        "dynamic_outputs": {}
-      },
-      {
-        "id": "2f773f4f-c863-4215-bb89-e8cc09e95472",
-        "type": "nodetool.input.StringInput",
-        "data": {
-          "name": "animals",
-          "description": "What real animals should it look like? ",
-          "value": "lion, eagle, dragon, bear"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 291,
-            "y": 120
-          },
-          "zIndex": 0,
-          "width": 200,
-          "title": "1️⃣ Animal inspiration",
-          "selectable": true,
-          "bypassed": false
-        },
-        "dynamic_properties": {},
         "dynamic_outputs": {}
       },
       {
@@ -138,28 +180,42 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 902,
-            "y": 50
+            "x": 1002,
+            "y": 90
           },
           "zIndex": 0,
           "width": 291,
           "selectable": true,
           "bypassed": false,
-          "title": "3️⃣ Generate prompts"
+          "title": "3️⃣ Write four creature prompts"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
       },
       {
         "id": "b55c474e-e397-44a3-adc7-94bcf61eee35",
-        "type": "kie.image.NanoBanana",
+        "type": "nodetool.image.TextToImage",
         "data": {
-          "image_size": "1:1"
+          "model": {
+            "type": "image_model",
+            "provider": "huggingface_fal_ai",
+            "id": "fal-ai/flux/schnell",
+            "name": "FLUX.1 Schnell",
+            "path": null,
+            "supported_tasks": []
+          },
+          "negative_prompt": "text, watermark, logo, blurry, distorted anatomy, extra limbs",
+          "width": 1024,
+          "height": 1024,
+          "guidance_scale": 7.5,
+          "num_inference_steps": 30,
+          "seed": -1,
+          "safety_check": true
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1223,
+            "x": 1363,
             "y": 149
           },
           "zIndex": 0,
@@ -167,7 +223,7 @@
           "selectable": true,
           "bypassed": false,
           "height": 400,
-          "title": "4️⃣ Render creature"
+          "title": "4️⃣ Render each creature"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -180,10 +236,11 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1543,
+            "x": 1783,
             "y": 149
           },
-          "selectable": true
+          "selectable": true,
+          "title": "Creature gallery"
         }
       }
     ]
@@ -193,12 +250,25 @@
     "properties": {
       "animals": {
         "type": "string",
-        "default": "lion, eagle, dragon, bear",
-        "label": ""
+        "default": "lion, eagle, koi fish",
+        "label": "Animal inspiration"
+      },
+      "style": {
+        "type": "string",
+        "default": "Classic anime cel-shaded",
+        "label": "Art style",
+        "enum": [
+          "Classic anime cel-shaded",
+          "Glossy 3D render",
+          "Painterly watercolor",
+          "Retro 16-bit pixel art",
+          "Holographic foil trading card"
+        ]
       }
     },
     "required": [
-      "animals"
+      "animals",
+      "style"
     ]
   },
   "output_schema": {
@@ -223,71 +293,104 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "🐉 Pokemon Maker",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
             "id": "t-tagline",
-            "text": "Mix any animals you like — meet the creature they become."
+            "text": "Mix any animals you like — meet the gallery of creatures they become."
           }
         },
         {
-          "type": "Container",
+          "type": "Columns",
           "props": {
-            "id": "panel-try",
-            "title": "Try it",
-            "content": [
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
               {
-                "type": "TextInput",
+                "type": "Container",
                 "props": {
-                  "id": "in-animals",
-                  "binding": "animals",
-                  "label": "Mix these animals",
-                  "placeholder": "lion, eagle, dragon, bear",
-                  "multiline": false,
-                  "events": []
-                }
-              },
-              {
-                "type": "Button",
-                "props": {
-                  "id": "btn-run",
-                  "label": "Create my creature",
-                  "variant": "contained",
-                  "color": "primary",
-                  "events": [
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
                     {
-                      "trigger": "click",
-                      "kind": "run",
-                      "key": "",
-                      "value": ""
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-animals",
+                        "binding": "animals",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-style",
+                        "binding": "style",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Create my creatures",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
                     }
                   ]
                 }
               }
-            ]
-          }
-        },
-        {
-          "type": "Container",
-          "props": {
-            "id": "panel-results",
-            "title": "Results",
-            "content": [
+            ],
+            "right": [
               {
-                "type": "Image",
+                "type": "Container",
                 "props": {
-                  "id": "out-pokemon",
-                  "binding": "pokemon",
-                  "fit": "contain",
-                  "height": 280,
-                  "placeholder": "Your result appears here"
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Designing your creatures…",
+                        "binding": ""
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-pokemon",
+                        "binding": "pokemon",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-make-another",
+                        "label": "Make another batch",
+                        "variant": "outlined",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
                 }
               }
             ]

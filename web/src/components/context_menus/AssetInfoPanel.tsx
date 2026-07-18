@@ -5,7 +5,11 @@ import { Text, Box, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitive
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import type { Asset } from "../../stores/ApiTypes";
-import { formatFileSize } from "../../utils/formatUtils";
+import {
+  formatContentType,
+  formatDateTime,
+  formatFileSize
+} from "../../utils/formatUtils";
 import { secondsToHMS } from "../../utils/formatDateAndTime";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -49,22 +53,6 @@ const styles = (theme: Theme) =>
     }
   });
 
-function formatDate(dateStr: string): string {
-  try {
-    const d = new Date(dateStr);
-    return d.toLocaleString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit"
-    });
-  } catch {
-    // Date formatting failed, return original string
-    return dateStr;
-  }
-}
-
 interface AssetInfoPanelProps {
   asset: Asset;
 }
@@ -103,14 +91,17 @@ const AssetInfoPanel: React.FC<AssetInfoPanelProps> = ({ asset }) => {
       )}
 
       <InfoRow label="Name" value={asset.name} />
-      <InfoRow label="Type" value={asset.content_type} />
+      <InfoRow
+        label="Type"
+        value={asset.content_type ? formatContentType(asset.content_type) : null}
+      />
       {asset.size != null && asset.size > 0 && (
         <InfoRow label="Size" value={formatFileSize(asset.size)} />
       )}
       {asset.duration != null && asset.duration > 0 && (
         <InfoRow label="Duration" value={secondsToHMS(asset.duration)} />
       )}
-      <InfoRow label="Created" value={formatDate(asset.created_at)} />
+      <InfoRow label="Created" value={formatDateTime(asset.created_at)} />
 
       {(folderName || workflowName) && (
         <div className="info-section">

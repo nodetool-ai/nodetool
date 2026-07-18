@@ -71,6 +71,8 @@ export interface AppIO {
   outputs: AppOutputIO[];
   /** SetVariable channel names (free app state). */
   variables: string[];
+  /** All graph node ids — the target space of `node:<id>#<prop>` bindings. */
+  nodeIds: string[];
 }
 
 /** Static wiring check result. */

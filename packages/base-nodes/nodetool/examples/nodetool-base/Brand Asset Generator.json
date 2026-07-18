@@ -5,11 +5,12 @@
   "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Brand Asset Generator",
   "tool_name": null,
-  "description": "Generate brand assets for a given brand.",
+  "description": "Turn a brand name and vibe into a whole social kit in one run: the graph fans out to two branches at once — a streamed gallery of four on-brand, text-overlaid social images (Instagram, LinkedIn, X, product launch) and a one-page brand brief (voice, palette, tagline options). Differentiator: structured multi-asset outputs from a single fan-out graph. Uses fal-ai flux/schnell for images (paid) and gpt-5-mini for text.",
   "tags": [
     "brand-asset",
     "branding",
     "design",
+    "images",
     "example"
   ],
   "thumbnail": "Brand Asset Generator.jpg",
@@ -18,74 +19,115 @@
     "edges": [
       {
         "id": "1",
-        "source": "3",
+        "source": "in_brand_name",
         "sourceHandle": "output",
-        "target": "2",
-        "targetHandle": "text"
-      },
-      {
-        "id": "2",
-        "source": "5",
-        "sourceHandle": "output",
-        "target": "4",
-        "targetHandle": "text"
-      },
-      {
-        "id": "3",
-        "source": "6",
-        "sourceHandle": "output",
-        "target": "4",
-        "targetHandle": "color"
-      },
-      {
-        "id": "4",
-        "source": "5",
-        "sourceHandle": "output",
-        "target": "9",
+        "target": "prompt_images",
         "targetHandle": "brand_name"
       },
       {
-        "id": "5",
-        "source": "10",
+        "id": "2",
+        "source": "in_brand_description",
         "sourceHandle": "output",
-        "target": "9",
+        "target": "prompt_images",
         "targetHandle": "brand_description"
       },
       {
-        "id": "6",
-        "source": "9",
+        "id": "3",
+        "source": "prompt_images",
         "sourceHandle": "output",
-        "target": "8",
+        "target": "gen_prompts",
         "targetHandle": "prompt"
+      },
+      {
+        "id": "4",
+        "source": "gen_prompts",
+        "sourceHandle": "item",
+        "target": "txt2img",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "5",
+        "source": "txt2img",
+        "sourceHandle": "output",
+        "target": "label",
+        "targetHandle": "image"
+      },
+      {
+        "id": "6",
+        "source": "in_brand_name",
+        "sourceHandle": "output",
+        "target": "label",
+        "targetHandle": "text"
       },
       {
         "id": "7",
-        "source": "8",
-        "sourceHandle": "item",
-        "target": "7",
-        "targetHandle": "prompt"
+        "source": "in_primary_color",
+        "sourceHandle": "output",
+        "target": "label",
+        "targetHandle": "color"
       },
       {
         "id": "8",
-        "source": "7",
+        "source": "label",
         "sourceHandle": "output",
-        "target": "4",
+        "target": "overlay",
         "targetHandle": "image"
       },
       {
         "id": "9",
-        "source": "4",
+        "source": "in_tagline",
         "sourceHandle": "output",
-        "target": "2",
-        "targetHandle": "image"
+        "target": "overlay",
+        "targetHandle": "text"
       },
       {
-        "id": "edge-output-brand-asset",
-        "source": "2",
+        "id": "10",
+        "source": "overlay",
         "sourceHandle": "output",
-        "target": "output-brand-asset",
-        "targetHandle": "value",
-        "ui_properties": null
+        "target": "collect_assets",
+        "targetHandle": "input_item"
+      },
+      {
+        "id": "11",
+        "source": "collect_assets",
+        "sourceHandle": "output",
+        "target": "out_assets",
+        "targetHandle": "value"
+      },
+      {
+        "id": "12",
+        "source": "in_brand_name",
+        "sourceHandle": "output",
+        "target": "prompt_brief",
+        "targetHandle": "brand_name"
+      },
+      {
+        "id": "13",
+        "source": "in_brand_description",
+        "sourceHandle": "output",
+        "target": "prompt_brief",
+        "targetHandle": "brand_description"
+      },
+      {
+        "id": "14",
+        "source": "in_tagline",
+        "sourceHandle": "output",
+        "target": "prompt_brief",
+        "targetHandle": "tagline"
+      },
+      {
+        "id": "15",
+        "source": "prompt_brief",
+        "sourceHandle": "output",
+        "target": "brief_agent",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "16",
+        "source": "brief_agent",
+        "sourceHandle": "text",
+        "target": "out_brief",
+        "targetHandle": "value"
       }
     ],
     "nodes": [
@@ -93,17 +135,17 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🏷️ Brand Asset Generator\n\nGenerate a branded logo image from a name and description, then stamp on your brand name in a chosen color.\n\n**Pipeline:** Name + Description → Prompt → Text-to-Image → Add color label → Add text\n\n**Try this:** change the brand color, or edit the prompt template for a different look."
+          "comment": "# 🏷️ Brand Asset Generator\n\nFrom a brand name + vibe, produce a full social kit in one run.\n\n**Two branches fan out from the same inputs:**\n- **Images** → an art director writes 4 prompts, each rendered, stamped with the brand name (in your color) and tagline, then collected into a gallery.\n- **Brief** → a strategist writes a one-page brand guideline (voice, palette, taglines).\n\n**Try this:** change the brand color or edit the two prompt templates to shift the whole kit."
         },
         "ui_properties": {
           "selected": false,
           "position": {
             "x": 0,
-            "y": -220
+            "y": -260
           },
           "zIndex": 0,
-          "width": 460,
-          "height": 180,
+          "width": 520,
+          "height": 210,
           "selectable": true,
           "bypassed": false
         },
@@ -111,103 +153,17 @@
         "dynamic_outputs": {}
       },
       {
-        "id": "2",
-        "type": "lib.image.draw.RenderText",
-        "data": {
-          "font": {
-            "type": "font",
-            "name": "Arial",
-            "source": "system",
-            "url": "",
-            "weight": "regular"
-          },
-          "x": 50,
-          "y": 980,
-          "size": 32,
-          "color": {
-            "type": "color",
-            "value": "#FFFFFF"
-          },
-          "align": "left"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 1650,
-            "y": 136
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true,
-          "bypassed": false,
-          "title": "9️⃣ Add text overlay"
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
-      },
-      {
-        "id": "3",
-        "type": "nodetool.input.StringInput",
-        "data": {
-          "name": "tagline",
-          "value": "Streamline Your Workflow",
-          "description": "Brand tagline for overlays"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 1310,
-            "y": 516
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true,
-          "bypassed": false,
-          "title": "8️⃣ Tagline / extra text"
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
-      },
-      {
-        "id": "4",
-        "type": "lib.image.draw.RenderText",
-        "data": {
-          "font": {
-            "type": "font",
-            "name": "Arial",
-            "source": "system",
-            "url": "",
-            "weight": "regular"
-          },
-          "x": 50,
-          "y": 900,
-          "size": 72,
-          "align": "left"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 1310,
-            "y": 70
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true,
-          "bypassed": false,
-          "title": "7️⃣ Add colored label"
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
-      },
-      {
-        "id": "5",
+        "id": "in_brand_name",
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "brand_name",
-          "value": "TechFlow",
-          "description": "The brand name to feature on assets"
+          "value": "Aurora Labs",
+          "description": "The brand name featured on every asset."
         },
         "ui_properties": {
           "position": {
             "x": 0,
-            "y": 454
+            "y": 40
           },
           "zIndex": 0,
           "width": 280,
@@ -219,67 +175,99 @@
         "dynamic_outputs": {}
       },
       {
-        "id": "6",
-        "type": "nodetool.input.ColorInput",
+        "id": "in_brand_description",
+        "type": "nodetool.input.StringInput",
         "data": {
-          "name": "primary_color",
-          "value": {
-            "type": "color",
-            "value": "#3498db"
-          },
-          "description": "Primary brand color (hex)"
+          "name": "brand_description",
+          "value": "A climate-tech startup building friendly home-energy tools. Warm, optimistic and human, where nature meets precision engineering.",
+          "description": "One line on what the brand is and how it should feel."
         },
         "ui_properties": {
           "position": {
-            "x": 960,
-            "y": 388
+            "x": 0,
+            "y": 200
           },
           "zIndex": 0,
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "6️⃣ Brand color"
+          "title": "2️⃣ Brand vibe"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
       },
       {
-        "id": "7",
-        "type": "nodetool.image.TextToImage",
+        "id": "in_tagline",
+        "type": "nodetool.input.StringInput",
         "data": {
-          "model": {
-            "type": "image_model",
-            "provider": "huggingface_fal_ai",
-            "id": "fal-ai/flux/schnell",
-            "name": "FLUX.1 Schnell",
-            "path": null,
-            "supported_tasks": []
-          },
-          "negative_prompt": "",
-          "width": 1024,
-          "height": 1024,
-          "guidance_scale": 7.5,
-          "num_inference_steps": 30,
-          "seed": -1,
-          "safety_check": true
+          "name": "tagline",
+          "value": "Power that gives back",
+          "description": "Tagline overlaid on each image and fed to the brief."
         },
         "ui_properties": {
           "position": {
-            "x": 960,
-            "y": 0
+            "x": 0,
+            "y": 360
           },
           "zIndex": 0,
-          "width": 384,
+          "width": 280,
           "selectable": true,
           "bypassed": false,
-          "height": 400,
-          "title": "5️⃣ Render logo image"
+          "title": "3️⃣ Tagline"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
       },
       {
-        "id": "8",
+        "id": "in_primary_color",
+        "type": "nodetool.input.ColorInput",
+        "data": {
+          "name": "primary_color",
+          "value": {
+            "type": "color",
+            "value": "#2F8F6B"
+          },
+          "description": "Brand color for the name overlay."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 520
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false,
+          "title": "4️⃣ Brand color"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "prompt_images",
+        "type": "nodetool.text.Prompt",
+        "data": {
+          "prompt": "You are an art director building a social-media image kit for a brand.\n\nBRAND\nName: {{ brand_name }}\nPositioning: {{ brand_description }}\n\nTASK\nWrite 4 distinct text-to-image prompts, one per asset listed below. Every prompt must:\n- describe a concrete scene, composition, lighting and color mood that fits the brand\n- leave clear negative space in the upper or lower third for a headline and logo overlay\n- be fully self-contained (never mention \"the brand\", \"our\", or the other prompts)\n- read as one vivid, comma-separated sentence a text-to-image model can render\n\nASSETS (write one prompt for each, in this exact order)\n1. Instagram square post, a hero product-in-context moment\n2. LinkedIn banner, calm and professional, wide horizon\n3. X / Twitter header, bold and energetic, high contrast\n4. Product announcement, clean studio look on a seamless backdrop\n\nOUTPUT\nReturn exactly 4 lines: one prompt per line, in order. No numbering, labels, quotes, or blank lines."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 360,
+            "y": 60
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "bypassed": false,
+          "title": "5️⃣ Write image prompts"
+        },
+        "dynamic_properties": {
+          "brand_name": "Aurora Labs",
+          "brand_description": "A climate-tech startup building friendly home-energy tools. Warm, optimistic and human, where nature meets precision engineering."
+        },
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "gen_prompts",
         "type": "nodetool.generators.ListGenerator",
         "data": {
           "model": {
@@ -295,73 +283,235 @@
         },
         "ui_properties": {
           "position": {
-            "x": 650,
-            "y": 42
+            "x": 720,
+            "y": 60
           },
           "zIndex": 0,
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "4️⃣ Generate logo prompts"
+          "title": "6️⃣ Split into 4 prompts"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
       },
       {
-        "id": "9",
-        "type": "nodetool.text.Prompt",
+        "id": "txt2img",
+        "type": "nodetool.image.TextToImage",
         "data": {
-          "prompt": "\nYou are a creative director generating image prompts for brand assets.\n\nBrand: {{ brand_name }}\nDescription: {{ brand_description }}\n\nGenerate 4 different image prompts for social media posts. Each prompt should:\n- Be suitable for text-to-image AI generation\n- Reflect the brand's aesthetic and values\n- Work well as a background for text overlays\n- Be professional and eye-catching\n\nOutput format: Return each prompt on a separate line, no numbering or bullets.\nInclude prompts for: Instagram square post, LinkedIn banner, Twitter header, and a product announcement.\n"
+          "model": {
+            "type": "image_model",
+            "provider": "huggingface_fal_ai",
+            "id": "fal-ai/flux/schnell",
+            "name": "FLUX.1 Schnell",
+            "path": null,
+            "supported_tasks": []
+          },
+          "negative_prompt": "text, watermark, logo, blurry, low quality",
+          "width": 1024,
+          "height": 1024,
+          "guidance_scale": 7.5,
+          "num_inference_steps": 30,
+          "seed": -1,
+          "safety_check": true
         },
         "ui_properties": {
           "position": {
-            "x": 340,
+            "x": 1040,
             "y": 20
           },
           "zIndex": 0,
-          "width": 280,
+          "width": 360,
           "selectable": true,
           "bypassed": false,
-          "title": "3️⃣ Build image prompt"
-        },
-        "dynamic_properties": {
-          "brand_name": "TechFlow",
-          "brand_description": "A modern tech startup focused on productivity tools. Clean, minimal aesthetic with futuristic vibes."
-        },
-        "dynamic_outputs": {}
-      },
-      {
-        "id": "10",
-        "type": "nodetool.input.StringInput",
-        "data": {
-          "name": "brand_description",
-          "value": "A modern tech startup focused on productivity tools. Clean, minimal aesthetic with futuristic vibes.",
-          "description": "Description of brand style and values"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 0,
-            "y": 16
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true,
-          "bypassed": false,
-          "title": "2️⃣ Brand description"
+          "title": "7️⃣ Render each image",
+          "height": 400
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
       },
       {
-        "id": "output-brand-asset",
-        "type": "nodetool.output.Output",
+        "id": "label",
+        "type": "lib.image.draw.RenderText",
         "data": {
-          "name": "brand_asset"
+          "font": {
+            "type": "font",
+            "name": "Arial",
+            "source": "system",
+            "url": "",
+            "weight": "regular"
+          },
+          "x": 60,
+          "y": 80,
+          "size": 72,
+          "color": {
+            "type": "color",
+            "value": "#2F8F6B"
+          },
+          "align": "left"
         },
         "ui_properties": {
           "position": {
-            "x": 1970,
-            "y": 136
+            "x": 1440,
+            "y": 40
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false,
+          "title": "8️⃣ Stamp brand name"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "overlay",
+        "type": "lib.image.draw.RenderText",
+        "data": {
+          "font": {
+            "type": "font",
+            "name": "Arial",
+            "source": "system",
+            "url": "",
+            "weight": "regular"
+          },
+          "x": 60,
+          "y": 170,
+          "size": 40,
+          "color": {
+            "type": "color",
+            "value": "#FFFFFF"
+          },
+          "align": "left"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1780,
+            "y": 60
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false,
+          "title": "9️⃣ Overlay tagline"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "collect_assets",
+        "type": "nodetool.control.Collect",
+        "data": {
+          "input_item": []
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2120,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "bypassed": false,
+          "title": "🔟 Collect gallery"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out_assets",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "social_assets"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2420,
+            "y": 100
+          },
+          "selectable": true
+        }
+      },
+      {
+        "id": "prompt_brief",
+        "type": "nodetool.text.Prompt",
+        "data": {
+          "prompt": "Write a one-page brand brief for the brand below.\n\nBRAND\nName: {{ brand_name }}\nPositioning: {{ brand_description }}\nWorking tagline: {{ tagline }}\n\nProduce Markdown with exactly these sections:\n- **Voice & tone** — 3 adjectives, then one sentence on how the brand speaks.\n- **Color palette** — a primary color plus 2 complementary colors as hex codes, each with a one-line usage note.\n- **Tagline options** — 3 alternatives to the working tagline, in the brand's voice.\n- **Do / Don't** — 2 bullets each, covering visuals and copy.\n\nKeep the whole brief under 200 words. Output only the Markdown, with no preamble."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 360,
+            "y": 560
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "bypassed": false,
+          "title": "5️⃣ Write brief prompt"
+        },
+        "dynamic_properties": {
+          "brand_name": "Aurora Labs",
+          "brand_description": "A climate-tech startup building friendly home-energy tools. Warm, optimistic and human, where nature meets precision engineering.",
+          "tagline": "Power that gives back"
+        },
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "brief_agent",
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
+          },
+          "system": "You are a senior brand strategist. You turn a short positioning line into a sharp, usable brand guideline. Commit to concrete choices: name real hex colors, write taglines a copywriter could ship, and keep voice, palette and rules internally consistent so the brand reads as one coherent identity.",
+          "image": {
+            "type": "image",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "audio": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "history": [],
+          "thread_id": "",
+          "max_tokens": 100000
+        },
+        "ui_properties": {
+          "position": {
+            "x": 720,
+            "y": 560
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "bypassed": false,
+          "title": "6️⃣ Draft brand brief",
+          "height": 300
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out_brief",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "brand_brief"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1080,
+            "y": 600
           },
           "selectable": true
         }
@@ -371,38 +521,63 @@
   "input_schema": {
     "type": "object",
     "properties": {
-      "tagline": {
-        "type": "string",
-        "default": "Streamline Your Workflow",
-        "label": ""
-      },
       "brand_name": {
         "type": "string",
-        "default": "TechFlow",
+        "default": "Aurora Labs",
         "label": ""
       },
       "brand_description": {
         "type": "string",
-        "default": "A modern tech startup focused on productivity tools. Clean, minimal aesthetic with futuristic vibes.",
+        "default": "A climate-tech startup building friendly home-energy tools. Warm, optimistic and human, where nature meets precision engineering.",
+        "label": ""
+      },
+      "tagline": {
+        "type": "string",
+        "default": "Power that gives back",
+        "label": ""
+      },
+      "primary_color": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "color"
+            ]
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "default": {
+          "type": "color",
+          "value": "#2F8F6B"
+        },
         "label": ""
       }
     },
     "required": [
-      "tagline",
       "brand_name",
-      "brand_description"
+      "brand_description",
+      "tagline",
+      "primary_color"
     ]
   },
   "output_schema": {
     "type": "object",
     "properties": {
-      "brand_assets": {
+      "social_assets": {
         "type": "any",
+        "label": ""
+      },
+      "brand_brief": {
+        "type": "string",
         "label": ""
       }
     },
     "required": [
-      "brand_assets"
+      "social_assets",
+      "brand_brief"
     ]
   },
   "settings": {},
@@ -420,14 +595,6 @@
         }
       },
       "content": [
-        {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "🎨 Brand Asset Generator",
-            "level": "1"
-          }
-        },
         {
           "type": "Text",
           "props": {
@@ -448,46 +615,34 @@
                   "title": "Try it",
                   "content": [
                     {
-                      "type": "TextInput",
-                      "props": {
-                        "id": "in-tagline",
-                        "binding": "tagline",
-                        "label": "Tagline",
-                        "placeholder": "Streamline Your Workflow",
-                        "multiline": false,
-                        "events": []
-                      }
-                    },
-                    {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-brand-name",
                         "binding": "brand_name",
-                        "label": "Brand name",
-                        "placeholder": "TechFlow",
-                        "multiline": false,
                         "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
-                      "props": {
-                        "id": "in-primary-color",
-                        "binding": "primary_color",
-                        "label": "Primary color (hex)",
-                        "placeholder": "#3498db",
-                        "multiline": false,
-                        "events": []
-                      }
-                    },
-                    {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-brand-description",
                         "binding": "brand_description",
-                        "label": "Describe your brand",
-                        "placeholder": "A modern tech startup focused on productivity tools. Clean, minimal aesthetic wi",
-                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-tagline",
+                        "binding": "tagline",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-primary-color",
+                        "binding": "primary_color",
                         "events": []
                       }
                     },
@@ -520,13 +675,45 @@
                   "title": "Results",
                   "content": [
                     {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Designing your assets…",
+                        "binding": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-social-assets",
+                        "text": "Your brand assets",
+                        "level": "3"
+                      }
+                    },
+                    {
                       "type": "Image",
                       "props": {
-                        "id": "out-brand-asset",
-                        "binding": "brand_asset",
+                        "id": "out-social-assets",
+                        "binding": "social_assets",
                         "fit": "contain",
                         "height": 280,
                         "placeholder": "Your result appears here"
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-brand-brief",
+                        "text": "Brand brief",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-brand-brief",
+                        "binding": "brand_brief",
+                        "text": ""
                       }
                     }
                   ]

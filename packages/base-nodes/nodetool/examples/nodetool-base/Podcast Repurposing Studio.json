@@ -265,7 +265,10 @@
         "type": "nodetool.input.AudioInput",
         "data": {
           "name": "episode_audio",
-          "value": {},
+          "value": {
+            "type": "audio",
+            "uri": "https://app.nodetool.ai/examples/remove_silence.mp3"
+          },
           "description": "The full episode recording (any common audio format)"
         },
         "ui_properties": {
@@ -750,14 +753,6 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "🎙️ Podcast Repurposing Studio",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
             "id": "t-tagline",
@@ -777,33 +772,27 @@
                   "title": "Try it",
                   "content": [
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-episode-audio",
+                        "binding": "episode_audio",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-show-context",
                         "binding": "show_context",
-                        "label": "About your show",
-                        "placeholder": "Trailhead — a weekly hiking and outdoor-gear podcast hosted by Maya. Voice: warm",
-                        "multiline": true,
                         "events": []
                       }
                     },
                     {
-                      "type": "Slider",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-quote-count",
                         "binding": "quote_count",
-                        "label": "Quote cards to make",
-                        "min": 2,
-                        "max": 8,
-                        "step": 1,
                         "events": []
-                      }
-                    },
-                    {
-                      "type": "Text",
-                      "props": {
-                        "id": "note-media",
-                        "text": "🎧 Uses the bundled episode — upload your own audio in NodeTool Studio."
                       }
                     },
                     {
@@ -834,6 +823,14 @@
                   "id": "panel-results",
                   "title": "Results",
                   "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Repurposing your episode…",
+                        "binding": ""
+                      }
+                    },
                     {
                       "type": "Heading",
                       "props": {

@@ -96,6 +96,11 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.grey[900]
     },
     ".expand-gutter": {
+      // Button reset — keep the original gutter look.
+      background: "none",
+      border: "none",
+      padding: 0,
+      cursor: "pointer",
       position: "absolute",
       left: "-22px",
       top: 1,
@@ -348,9 +353,11 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
                 isSelected={!workflowFilter && selectedFolderIds.includes(folder.id)}
               >
                 {!isRoot && (
-                  <span
+                  <button
+                    type="button"
                     className="expand-gutter"
-                    aria-hidden="true"
+                    aria-label={`Toggle ${folder.name} subfolders`}
+                    aria-expanded={expandedFolderIds.has(folder.id)}
                     onClick={(e) => {
                       e.stopPropagation();
                       e.preventDefault();
@@ -358,7 +365,7 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
                     }}
                   >
                     <ExpandMoreIcon />
-                  </span>
+                  </button>
                 )}
               </FolderItem>
             </div>

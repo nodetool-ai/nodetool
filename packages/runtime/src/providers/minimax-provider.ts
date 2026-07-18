@@ -254,7 +254,7 @@ export class MinimaxProvider extends OpenAICompatProvider {
         id: "MiniMax-Hailuo-2.3-Fast",
         name: "MiniMax Hailuo 2.3 Fast",
         provider: "minimax",
-        supportedTasks: both
+        supportedTasks: ["image_to_video"]
       },
       {
         id: "MiniMax-Hailuo-02",
@@ -481,10 +481,16 @@ export class MinimaxProvider extends OpenAICompatProvider {
       ? `${params.prompt.trim()}\n\nDo not include: ${params.negativePrompt.trim()}`
       : params.prompt;
 
+    if (numImages > 9) {
+      throw new Error(
+        `MiniMax image_generation supports at most 9 images per request (got ${numImages})`
+      );
+    }
+
     const body: Record<string, unknown> = {
       model: params.model.id || "image-01",
       prompt,
-      n: Math.max(1, Math.min(9, numImages)),
+      n: Math.max(1, numImages),
       response_format: "base64",
       prompt_optimizer: true
     };
@@ -585,17 +591,49 @@ export class MinimaxProvider extends OpenAICompatProvider {
   ): Promise<Uint8Array> {
     const body: Record<string, unknown> = { model: modelId };
     if (opts.prompt) body.prompt = opts.prompt;
-    if (opts.durationSeconds) {
-      body.duration = opts.durationSeconds >= 9 ? 10 : 6;
+
+    // duration/resolution are Hailuo-only knobs; the 01-series models
+    // (T2V-01-Director, I2V-01-Director, S2V-01) are fixed at 6s/720P and
+    // reject the parameters outright.
+    const isHailuo = modelId.startsWith("MiniMax-Hailuo");
+    if (isHailuo) {
+      let duration: number | null = null;
+      if (opts.durationSeconds) {
+        // Hailuo models only render 6s or 10s clips.
+        duration = opts.durationSeconds >= 9 ? 10 : 6;
+        body.duration = duration;
+      }
+      if (opts.resolution) {
+        const r = opts.resolution.toLowerCase();
+        let resolution: string | null = null;
+        if (r.includes("1080")) resolution = "1080P";
+        else if (r.includes("768") || r.includes("720")) resolution = "768P";
+        else if (r.includes("512")) resolution = "512P";
+        // 512P only exists on Hailuo-02; 1080P only renders 6s clips. Keep the
+        // requested duration and fall back to 768P (the API default) rather
+        // than letting MiniMax reject the combination.
+        if (resolution === "512P" && modelId !== "MiniMax-Hailuo-02") {
+          resolution = "768P";
+        }
+        if (resolution === "1080P" && duration === 10) {
+          log.warn(
+            "MiniMax Hailuo renders 10s clips only at 768P; downgrading from 1080P"
+          );
+          resolution = "768P";
+        }
+        if (resolution) body.resolution = resolution;
+      }
     }
-    if (opts.resolution) {
-      const r = opts.resolution.toLowerCase();
-      if (r.includes("1080")) body.resolution = "1080P";
-      else if (r.includes("768") || r.includes("720")) body.resolution = "768P";
-      else if (r.includes("512")) body.resolution = "512P";
-    }
+
     if (opts.firstFrame) {
-      body.first_frame_image = `data:image/png;base64,${b64(opts.firstFrame)}`;
+      const dataUrl = `data:image/png;base64,${b64(opts.firstFrame)}`;
+      if (modelId === "S2V-01") {
+        // S2V-01 animates a character reference, not a first frame, and
+        // rejects first_frame_image.
+        body.subject_reference = [{ type: "character", image: [dataUrl] }];
+      } else {
+        body.first_frame_image = dataUrl;
+      }
     }
 
     log.debug("MiniMax textToVideo submit", { model: modelId });
@@ -643,6 +681,9 @@ export class MinimaxProvider extends OpenAICompatProvider {
         );
       }
       const data = (await res.json()) as Record<string, unknown>;
+      // Surface API-level failures (expired task, auth, rate limit) instead of
+      // polling an empty status until the timeout.
+      assertBaseResp(data, "video status");
       const status = String(data.status ?? "").toLowerCase();
       if (status === "success") {
         const fileId = data.file_id as string | undefined;
