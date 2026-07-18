@@ -190,7 +190,7 @@ const QuickAddNodeDialog: React.FC<QuickAddNodeDialogProps> = ({
   }, []);
 
   const handleSelectNode = useCallback(() => {
-    const selectedNode = getSelectedNode();
+    const selectedNode = getSelectedNode() ?? searchResults[0];
     if (!selectedNode) {
       return;
     }
@@ -203,15 +203,15 @@ const QuickAddNodeDialog: React.FC<QuickAddNodeDialogProps> = ({
     let y = 0;
 
     if (wrapperBounds) {
-      x = (viewport.x + wrapperBounds.width / 2) / viewport.zoom - 100;
-      y = (viewport.y + wrapperBounds.height / 2) / viewport.zoom - 50;
+      x = (wrapperBounds.width / 2 - viewport.x) / viewport.zoom - 100;
+      y = (wrapperBounds.height / 2 - viewport.y) / viewport.zoom - 50;
     }
 
     const newNode = createNode(selectedNode, { x, y });
     addNode(newNode);
 
     handleClose();
-  }, [getSelectedNode, getViewport, reactFlowWrapper, createNode, addNode, handleClose]);
+  }, [getSelectedNode, getViewport, reactFlowWrapper, createNode, addNode, handleClose, searchResults]);
 
   const handleValueChange = useCallback((value: string) => {
     setSearchTerm(value);
@@ -274,7 +274,7 @@ const QuickAddNodeDialog: React.FC<QuickAddNodeDialogProps> = ({
   return (
     <Dialog open={open} onClose={handleClose} className="quick-add-node-dialog">
       <div css={styles(theme)}>
-        <Command label="Quick Add Node" className="command-menu">
+        <Command label="Quick Add Node" className="command-menu" shouldFilter={false}>
           <div className="command-input">
             <CommandInput
               ref={inputRef}

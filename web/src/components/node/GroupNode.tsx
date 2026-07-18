@@ -438,6 +438,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       setColor(newColor);
       updateNodeData(props.id, {
         properties: {
+          ...propsDataRef.current.properties,
           group_color: newColor
         }
       });

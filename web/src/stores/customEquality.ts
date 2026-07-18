@@ -24,7 +24,8 @@ function compareNode(a: Node<NodeData>, b: Node<NodeData>): boolean {
     shallow(a.data.dynamic_properties, b.data.dynamic_properties) &&
     shallow(a.data.dynamic_outputs, b.data.dynamic_outputs) &&
     a.position.x === b.position.x &&
-    a.position.y === b.position.y
+    a.position.y === b.position.y &&
+    a.parentId === b.parentId
   );
 }
 

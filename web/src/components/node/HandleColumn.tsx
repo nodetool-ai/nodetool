@@ -17,7 +17,8 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import { Property, Edge } from "../../stores/ApiTypes";
+import { Property } from "../../stores/ApiTypes";
+import type { Edge } from "@xyflow/react";
 import HandleOnlyField from "./HandleOnlyField";
 import { Z_INDEX } from "../ui_primitives";
 

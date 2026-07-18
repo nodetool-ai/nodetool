@@ -413,7 +413,7 @@ describe("useFindInWorkflow", () => {
       openFind();
     });
 
-    it("should call setCenter and fitView when result exists", () => {
+    it("should center the selected node at zoom 1 when result exists", () => {
       mockUseNodes.mockImplementation((selector: any) => {
         const state = { nodes: mockNodes, edges: [] };
         return selector ? selector(state) : state;
@@ -436,12 +436,8 @@ describe("useFindInWorkflow", () => {
           50,
           { zoom: 1, duration: 300 }
         );
-        expect(mockFitView).toHaveBeenCalledWith({
-          nodes: expect.arrayContaining([expect.objectContaining({ id: "node-1" })]),
-          duration: 300,
-          minZoom: 0.5,
-          maxZoom: 2
-        });
+        // fitView would override setCenter's zoom, so goToSelected must not call it.
+        expect(mockFitView).not.toHaveBeenCalled();
       }
     });
 

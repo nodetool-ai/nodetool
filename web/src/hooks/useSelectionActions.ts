@@ -282,16 +282,26 @@ export const useSelectionActions = (): SelectionActionsReturn => {
     const offset = 50;
 
     const nodeIdMap: Record<string, string> = {};
+    for (const node of selectedNodes) {
+      nodeIdMap[node.id] = crypto.randomUUID();
+    }
+
     const newNodes = selectedNodes.map((node) => {
-      const newId = crypto.randomUUID();
-      nodeIdMap[node.id] = newId;
+      const newId = nodeIdMap[node.id];
+      const isParentDuplicated = node.parentId
+        ? Object.prototype.hasOwnProperty.call(nodeIdMap, node.parentId)
+        : false;
+      const positionOffset = isParentDuplicated ? 0 : offset;
 
       return {
         ...node,
         id: newId,
+        parentId: isParentDuplicated
+          ? nodeIdMap[node.parentId as string]
+          : node.parentId,
         position: {
-          x: node.position.x + offset,
-          y: node.position.y + offset
+          x: node.position.x + positionOffset,
+          y: node.position.y + positionOffset
         },
         selected: true,
         data: { ...node.data }

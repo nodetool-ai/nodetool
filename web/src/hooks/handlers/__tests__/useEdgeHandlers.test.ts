@@ -2,7 +2,7 @@ import { renderHook } from "@testing-library/react";
 import type { Edge } from "@xyflow/react";
 import { MouseEvent as ReactMouseEvent } from "react";
 import useEdgeHandlers from "../useEdgeHandlers";
-import { useNodes } from "../../../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../../../contexts/NodeContext";
 import useContextMenuStore from "../../../stores/ContextMenuStore";
 import useConnectionStore from "../../../stores/ConnectionStore";
 
@@ -19,11 +19,17 @@ describe("useEdgeHandlers", () => {
   const mockSetIsReconnecting = jest.fn();
 
   const mockedUseNodes = useNodes as unknown as jest.Mock;
+  const mockedUseNodeStoreRef = useNodeStoreRef as unknown as jest.Mock;
   const mockedUseContextMenuStore = useContextMenuStore as unknown as jest.Mock;
   const mockedUseConnectionStore = useConnectionStore as unknown as jest.Mock;
 
+  // onEdgeUpdateEnd reads edgeUpdateSuccessful fresh from the store (not the
+  // subscribed selector value), so the store ref drives that flag.
+  let storeEdgeUpdateSuccessful = true;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    storeEdgeUpdateSuccessful = true;
     mockedUseNodes.mockImplementation((selector: any) => {
       const state = {
         findEdge: mockFindEdge,
@@ -34,6 +40,9 @@ describe("useEdgeHandlers", () => {
       };
       return selector ? selector(state) : state;
     });
+    mockedUseNodeStoreRef.mockImplementation(() => ({
+      getState: () => ({ edgeUpdateSuccessful: storeEdgeUpdateSuccessful })
+    }));
     mockedUseContextMenuStore.mockImplementation((selector: any) => {
       const state = {
         openContextMenu: mockOpenContextMenu
@@ -263,16 +272,7 @@ describe("useEdgeHandlers", () => {
 
   describe("onEdgeUpdateEnd", () => {
     it("deletes edge when update was not successful", () => {
-      mockedUseNodes.mockImplementation((selector: any) => {
-        const state = {
-          findEdge: mockFindEdge,
-          updateEdge: mockUpdateEdge,
-          deleteEdge: mockDeleteEdge,
-          edgeUpdateSuccessful: false,
-          setEdgeUpdateSuccessful: mockSetEdgeUpdateSuccessful
-        };
-        return selector ? selector(state) : state;
-      });
+      storeEdgeUpdateSuccessful = false;
 
       const { result } = renderHook(() => useEdgeHandlers());
       const edge = { id: "edge-10" } as Edge;

@@ -66,6 +66,7 @@ import {
   useNodeResultHistory
 } from "../../hooks/nodes/useNodeResultHistory";
 import { useNodes } from "../../contexts/NodeContext";
+import { useConnectedEdgesSelector } from "../../hooks/nodes/useConnectedEdges";
 
 import {
   getContentCardVariant,
@@ -649,6 +650,9 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
   status,
   isOutputNode
 }) => {
+  const connectedEdgesSelector = useConnectedEdgesSelector(id);
+  const connectedEdges = useNodes(connectedEdgesSelector);
+
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
 
@@ -792,7 +796,7 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
         {/* Handle column lives inside the preview so its vertical extent
             is bounded by the preview — keeps `exposedInputs` handles from
             colliding with inline-field rows below. */}
-        <HandleColumn id={id} properties={handleProps} />
+        <HandleColumn id={id} properties={handleProps} connectedEdges={connectedEdges} />
       </div>
 
       {/* Inline fields: rendered as full editors in normal flow under preview.

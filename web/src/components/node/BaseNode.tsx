@@ -369,6 +369,9 @@ const getNodeColors = (metadata: NodeMetadata | undefined): string[] => {
       allColors.push(color);
     }
   }
+  if (allColors.length === 0) {
+    allColors.push(colorForType("any"));
+  }
   while (allColors.length < 5) {
     allColors.push(allColors[allColors.length - 1]);
   }
