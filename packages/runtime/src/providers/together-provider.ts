@@ -3,6 +3,7 @@ import {
   type OpenAICompatProviderOptions
 } from "./openai-compat-provider.js";
 import { loadImageModels, loadVideoModels } from "./manifest-models.js";
+import { bytesToImageDataUri } from "./image-mime.js";
 import type {
   ASRModel,
   EmbeddingModel,
@@ -335,8 +336,7 @@ export class TogetherProvider extends OpenAICompatProvider {
       throw new Error("The input prompt cannot be empty.");
     }
 
-    const base64 = Buffer.from(image).toString("base64");
-    const imageUrl = `data:image/jpeg;base64,${base64}`;
+    const imageUrl = bytesToImageDataUri(image);
 
     const body: Record<string, unknown> = {
       model: params.model.id,
@@ -569,7 +569,26 @@ export class TogetherProvider extends OpenAICompatProvider {
       return { width: dims[0], height: dims[1] };
     }
 
-    // Together's MiniMax default
+    // Fallback for aspect ratios / resolutions outside the preset table: derive
+    // the pixel size from the requested ratio so orientation is preserved (a
+    // portrait `2:3` request must not silently become a landscape video). Scale
+    // to a ~720p long edge, snapped to an even number as video encoders expect.
+    const ratio = ar.match(/^(\d+):(\d+)$/);
+    if (ratio) {
+      const rw = parseInt(ratio[1], 10);
+      const rh = parseInt(ratio[2], 10);
+      if (rw > 0 && rh > 0) {
+        const longEdge =
+          res === "480p" ? 854 : res === "1080p" ? 1920 : 1280;
+        const even = (n: number) => Math.max(2, Math.round(n / 2) * 2);
+        if (rw >= rh) {
+          return { width: even(longEdge), height: even((longEdge * rh) / rw) };
+        }
+        return { width: even((longEdge * rw) / rh), height: even(longEdge) };
+      }
+    }
+
+    // Together's MiniMax default (landscape) when the ratio can't be parsed.
     return { width: 1366, height: 768 };
   }
 
@@ -721,8 +740,7 @@ export class TogetherProvider extends OpenAICompatProvider {
       params.resolution
     );
 
-    const base64 = Buffer.from(image).toString("base64");
-    const inputImage = `data:image/jpeg;base64,${base64}`;
+    const inputImage = bytesToImageDataUri(image);
 
     const body: Record<string, unknown> = {
       model: params.model.id,

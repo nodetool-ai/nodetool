@@ -402,6 +402,15 @@ export class HuggingFaceProvider extends BaseProvider {
         };
         yield item;
       }
+
+      // Emit a terminal `done: true` chunk for every non-"stop" terminal reason
+      // (length, eos_token, tool_calls, content_filter) too, so consumers that
+      // finalize on `done` get a consistent end-of-stream marker. "stop" already
+      // emitted its terminal chunk above.
+      if (choice.finish_reason && choice.finish_reason !== "stop") {
+        const doneChunk: Chunk = { type: "chunk", content: "", done: true };
+        yield doneChunk;
+      }
     }
   }
 

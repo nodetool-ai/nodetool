@@ -540,7 +540,10 @@ export function buildImageModels(
     const id = nodeId(n);
     if (!id || seen.has(id)) continue;
     const name = nodeName(n);
-    const tasks = explicitTasks(n) ?? inferImageTasks(name, id);
+    // Copy so the mask-input augmentation below never mutates the manifest
+    // node's own `supportedTasks` array (which `loadManifest` memoizes and
+    // shares across every caller).
+    const tasks = [...(explicitTasks(n) ?? inferImageTasks(name, id))];
     // Endpoints that declare a mask image input support inpainting (mask-guided
     // editing). Tag them so the inpaint capability/picker can find them.
     if (

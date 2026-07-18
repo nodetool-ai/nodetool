@@ -1,5 +1,6 @@
 import { createLogger } from "@nodetool-ai/config";
 import { safeFetch } from "./safe-url.js";
+import { detectImageMime } from "./image-mime.js";
 import {
   OpenAICompatProvider,
   type OpenAICompatProviderOptions
@@ -344,7 +345,9 @@ export class EvolinkProvider extends OpenAICompatProvider {
   /** Upload raw image bytes and return a hosted URL Evolink can reference. */
   private async uploadImage(
     image: Uint8Array,
-    mimeType = "image/png"
+    // Sniff the container by default so a JPEG/WebP source isn't mislabeled as
+    // PNG (which a strict file store would reject or store with a wrong type).
+    mimeType = detectImageMime(image)
   ): Promise<string> {
     const base64 = Buffer.from(image).toString("base64");
     const response = await this._evolinkFetch(EVOLINK_FILE_UPLOAD_URL, {

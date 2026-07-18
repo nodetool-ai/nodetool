@@ -180,6 +180,13 @@ export class ElevenLabsProvider extends BaseProvider {
   }): Promise<EncodedAudioResult | null> {
     if (!args.text) throw new Error("text must not be empty");
     log.debug("ElevenLabs textToSpeechEncoded", { model: args.model });
+    const fmt = (args.audioFormat ?? "mp3").toLowerCase();
+    if (fmt !== "mp3" && fmt !== "mpeg") {
+      // This encoded path only produces MP3. For any other requested format
+      // (pcm/wav/flac/…) defer to the streaming PCM path instead of silently
+      // handing back MP3 bytes mislabeled as the requested format.
+      return null;
+    }
     const bytes = await this.requestSpeech(args, "mp3_44100_128");
     return { data: bytes, mimeType: "audio/mpeg" };
   }
