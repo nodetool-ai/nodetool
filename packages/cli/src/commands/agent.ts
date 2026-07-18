@@ -671,7 +671,7 @@ function findDebugBundle(jobId: string): string | null {
     return null;
   }
   const matches = entries
-    .filter((e) => e.isDirectory() && e.name.startsWith(jobId))
+    .filter((e) => e.isDirectory() && e.name.startsWith(`${jobId}-`))
     .map((e) => path.join(root, e.name))
     .sort();
   return matches.length > 0 ? matches[matches.length - 1]! : null;

@@ -270,32 +270,35 @@ describe("FrameToVideoNode — uses frame property (not frames)", () => {
 });
 
 describe("BlurVideoNode — uses strength property (not radius)", () => {
-  // Requires ffmpeg: the node shells out to it. With ffmpeg present, an invalid
-  // (3-byte) input makes ffmpeg fail and the node falls back to the input bytes
-  // (a genuine-failure fallback, distinct from a missing binary), so output is
-  // defined and the `strength` property name is exercised. Skipped when ffmpeg
-  // is absent, where the node now correctly throws instead of passing through.
-  it.skipIf(!HAS_FFMPEG)("accepts strength parameter without error", async () => {
+  // Requires ffmpeg: the node shells out to it. The invalid (3-byte) input makes
+  // ffmpeg fail, which the node surfaces as an error rather than passing the
+  // input through — but the filter args are built from `strength` before that,
+  // so a misread property name would instead give the `radius <= 0` early
+  // return and resolve. Skipped when ffmpeg is absent, where the node throws a
+  // missing-binary error for an unrelated reason.
+  it.skipIf(!HAS_FFMPEG)("reads the blur radius from strength", async () => {
     const node = new BlurVideoNode();
     node.assign({
       video: videoRef([1, 2, 3]),
       strength: 5
     });
-    const result = await node.process();
-    expect(result.output).toBeDefined();
+    await expect(node.process()).rejects.toThrow("ffmpeg failed");
   });
 });
 
 describe("ChromaKeyVideoNode — uses key_color property (not color)", () => {
+  // `key_color` is a color object, not a bare string. The node builds its
+  // colorkey filter from it and then fails on the invalid (3-byte) input, so
+  // reaching the ffmpeg error means assign() accepted the property under its
+  // current name. Skipped without ffmpeg, where the failure is unrelated.
   it.skipIf(!HAS_FFMPEG)("accepts key_color parameter", async () => {
     const node = new ChromaKeyVideoNode();
     node.assign({
       video: videoRef([1, 2, 3]),
-      key_color: "0xFF0000",
+      key_color: { value: "#FF0000" },
       similarity: 0.2
     });
-    const result = await node.process();
-    expect(result.output).toBeDefined();
+    await expect(node.process()).rejects.toThrow("ffmpeg failed");
   });
 });
 
