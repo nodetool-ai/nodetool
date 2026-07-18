@@ -352,10 +352,10 @@ const HeaderCount = ({
 const overlayStyles = (theme: Theme) =>
   css({
     position: "fixed",
-    top: "104px",
+    top: "56px",
     left: "92px",
     width: "304px",
-    maxHeight: "calc(100vh - 160px)",
+    maxHeight: "calc(100vh - 112px)",
     display: "flex",
     flexDirection: "column",
     zIndex: theme.zIndex.drawer,
