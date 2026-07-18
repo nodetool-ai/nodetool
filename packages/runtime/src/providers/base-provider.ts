@@ -1294,7 +1294,9 @@ export abstract class BaseProvider {
    */
   isRateLimitError(error: unknown): boolean {
     const msg = error instanceof Error ? error.message : String(error);
-    return /429|rate.?limit|too many requests/i.test(msg);
+    // Match 429 as a standalone token, not as digits inside a larger number
+    // (e.g. "request 4290", a byte count, or a model id like "gpt-4-0429").
+    return /\b429\b|rate.?limit|too many requests/i.test(msg);
   }
 
   /**
@@ -1303,7 +1305,10 @@ export abstract class BaseProvider {
    */
   isAuthError(error: unknown): boolean {
     const msg = error instanceof Error ? error.message : String(error);
-    return /401|403|unauthorized|forbidden|invalid.*api.*key|authentication/i.test(
+    // Match 401/403 as standalone tokens, not as digits inside a larger number
+    // (e.g. "model gpt-4-0403 not found") which would misclassify unrelated
+    // errors as auth failures and skip a retry that should have happened.
+    return /\b401\b|\b403\b|unauthorized|forbidden|invalid.*api.*key|authentication/i.test(
       msg
     );
   }

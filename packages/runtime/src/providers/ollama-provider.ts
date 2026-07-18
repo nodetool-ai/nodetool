@@ -638,28 +638,45 @@ export class OllamaProvider extends BaseProvider {
 
           const content =
             typeof message.content === "string" ? message.content : "";
-          if (useToolEmulation) {
-            accumulatedText += content;
-          }
 
-          if (content.length > 0 || event.done) {
+          if (useToolEmulation) {
+            // Buffer content instead of streaming it verbatim: the emulated
+            // tool-call syntax (e.g. `get_weather(city='Paris')`) must be
+            // stripped from the visible text before it re-enters history, and
+            // that can only happen once the full response is assembled. Mirrors
+            // the non-streaming generateMessage path, which had this fix (#1)
+            // while the streaming path leaked the raw call syntax as prose.
+            accumulatedText += content;
+            if (event.done) {
+              const [emulatedCalls, cleaned] = this._parseEmulatedToolCalls(
+                accumulatedText,
+                tools
+              );
+              const finalContent =
+                emulatedCalls.length > 0 ? cleaned : accumulatedText;
+              if (finalContent.length > 0) {
+                const contentChunk: Chunk = {
+                  type: "chunk",
+                  content: finalContent,
+                  done: false
+                };
+                yield contentChunk;
+              }
+              // Tool calls before the terminal chunk so consumers that finalize
+              // on `done: true` don't drop them.
+              for (const tc of emulatedCalls) {
+                yield tc;
+              }
+              const doneChunk: Chunk = { type: "chunk", content: "", done: true };
+              yield doneChunk;
+            }
+          } else if (content.length > 0 || event.done) {
             const chunk: Chunk = {
               type: "chunk",
               content,
               done: event.done ?? false
             };
             yield chunk;
-          }
-
-          // When done and using emulation, parse accumulated text for tool calls
-          if (event.done && useToolEmulation) {
-            const [emulatedCalls] = this._parseEmulatedToolCalls(
-              accumulatedText,
-              tools
-            );
-            for (const tc of emulatedCalls) {
-              yield tc;
-            }
           }
         }
       }
