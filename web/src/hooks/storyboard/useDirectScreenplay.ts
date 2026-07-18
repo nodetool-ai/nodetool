@@ -25,19 +25,6 @@ import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 const DIRECTOR_NODE_ID = "director";
 const OUT_NODE_ID = "out";
 
-/**
- * Default language model for the Director run. Matches the model the shipped
- * creative templates use; the node errors without a concrete selection.
- */
-const DEFAULT_DIRECTOR_MODEL = {
-  type: "language_model",
-  provider: "openai",
-  id: "gpt-5-mini",
-  name: "GPT-5 mini",
-  path: null,
-  supported_tasks: []
-};
-
 const makeWorkflow = (id: string): WorkflowAttributes => ({
   id,
   name: "Direct screenplay",
@@ -84,6 +71,11 @@ export const useDirectScreenplay = (): UseDirectScreenplayResult => {
         setError("Write a brief before directing.");
         return;
       }
+      const model = board?.directorModel;
+      if (!model?.id) {
+        setError("Pick a model before directing.");
+        return;
+      }
       setError(null);
       setDirecting(true);
       outputRef.current = undefined;
@@ -96,7 +88,7 @@ export const useDirectScreenplay = (): UseDirectScreenplayResult => {
           position: { x: 0, y: 0 },
           data: {
             properties: {
-              model: DEFAULT_DIRECTOR_MODEL,
+              model,
               brief,
               style: board?.style ?? "",
               shot_count: shotCount,

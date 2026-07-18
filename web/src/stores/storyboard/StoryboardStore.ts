@@ -25,6 +25,7 @@ import type {
   ShotStatus,
   VideoRef
 } from "@nodetool-ai/protocol";
+import type { ImageModelValue, LanguageModelValue } from "../ApiTypes";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -36,6 +37,10 @@ export interface StoryboardBoard {
   brief: string;
   style: string;
   aspectRatio: string;
+  /** Language model the Director run uses. Null until the user picks one. */
+  directorModel: LanguageModelValue | null;
+  /** Image model every keyframe still is generated with. Null = node default. */
+  imageModel: ImageModelValue | null;
   activeShotId: string | null;
   /** Persisted timeline sequence this board was assembled into, if any. */
   timelineId: string | null;
@@ -54,6 +59,8 @@ interface StoryboardStoreState {
   setStyle: (boardId: string, style: string) => void;
   setTitle: (boardId: string, title: string) => void;
   setAspectRatio: (boardId: string, aspectRatio: string) => void;
+  setDirectorModel: (boardId: string, model: LanguageModelValue | null) => void;
+  setImageModel: (boardId: string, model: ImageModelValue | null) => void;
   /** Record the persisted timeline sequence this board assembles into. */
   setTimelineLink: (boardId: string, timelineId: string | null) => void;
 
@@ -83,6 +90,8 @@ const emptyBoard = (id: string): StoryboardBoard => ({
   brief: "",
   style: "",
   aspectRatio: "16:9",
+  directorModel: null,
+  imageModel: null,
   activeShotId: null,
   timelineId: null
 });
@@ -180,6 +189,26 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
     set((state) =>
       withBoard(state, boardId, (b) =>
         b.aspectRatio === aspectRatio ? null : { ...b, aspectRatio }
+      )
+    ),
+
+  setDirectorModel: (boardId, model) =>
+    set((state) =>
+      withBoard(state, boardId, (b) =>
+        b.directorModel?.id === model?.id &&
+        b.directorModel?.provider === model?.provider
+          ? null
+          : { ...b, directorModel: model }
+      )
+    ),
+
+  setImageModel: (boardId, model) =>
+    set((state) =>
+      withBoard(state, boardId, (b) =>
+        b.imageModel?.id === model?.id &&
+        b.imageModel?.provider === model?.provider
+          ? null
+          : { ...b, imageModel: model }
       )
     ),
 
@@ -291,6 +320,8 @@ export const useBoard = (
   brief: string;
   style: string;
   aspectRatio: string;
+  directorModel: LanguageModelValue | null;
+  imageModel: ImageModelValue | null;
   activeShotId: string | null;
 } =>
   useStoryboardStore(
@@ -303,6 +334,8 @@ export const useBoard = (
         brief: b?.brief ?? "",
         style: b?.style ?? "",
         aspectRatio: b?.aspectRatio ?? "16:9",
+        directorModel: b?.directorModel ?? null,
+        imageModel: b?.imageModel ?? null,
         activeShotId: b?.activeShotId ?? null
       };
     })

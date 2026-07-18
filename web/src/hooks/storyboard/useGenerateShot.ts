@@ -170,8 +170,8 @@ export const useGenerateShot = (): UseGenerateShotResult => {
 
   const generateKeyframe = useCallback(
     async (boardId: string, shot: Shot): Promise<void> => {
-      const style = useStoryboardStore.getState().getBoard(boardId)?.style ?? "";
       const board = useStoryboardStore.getState().getBoard(boardId);
+      const style = board?.style ?? "";
       const aspectRatio = board?.aspectRatio ?? "16:9";
       const workflowId = runnerIdForShot(shot.id);
       const nodes: Node<NodeData>[] = [
@@ -181,7 +181,9 @@ export const useGenerateShot = (): UseGenerateShotResult => {
           0,
           {
             prompt: keyframePrompt(shot, style),
-            aspect_ratio: aspectRatio
+            aspect_ratio: aspectRatio,
+            // Board-level still model; omitted = the node's default model.
+            ...(board?.imageModel ? { model: board.imageModel } : {})
           },
           workflowId
         ),

@@ -21,11 +21,14 @@ import {
   SelectField,
   EditorButton,
   EmptyState,
+  Divider,
   Text,
   SPACING,
   getSpacingPx
 } from "../ui_primitives";
 import { useBoard, useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
+import LanguageModelSelect from "../properties/LanguageModelSelect";
+import ImageModelSelect from "../properties/ImageModelSelect";
 import ShotCard from "./ShotCard";
 
 interface StoryboardBoardProps {
@@ -58,6 +61,23 @@ const SHOT_COUNT_OPTIONS = [3, 4, 5, 6, 8, 10, 12].map((n) => ({
   label: `${n} shots`
 }));
 
+/**
+ * One labelled form row. Every control in the header — text inputs, selects,
+ * and the model picker — wears the same label so the two columns read as one
+ * form instead of three different widget styles.
+ */
+const Field: React.FC<{ label: string; children: React.ReactNode }> = ({
+  label,
+  children
+}) => (
+  <FlexColumn gap={1} className="field">
+    <Text size="small" color="secondary" className="field-label">
+      {label}
+    </Text>
+    {children}
+  </FlexColumn>
+);
+
 const styles = (theme: Theme) =>
   css({
     height: "100%",
@@ -72,7 +92,47 @@ const styles = (theme: Theme) =>
       gap: getSpacingPx(SPACING.md)
     },
     ".header-fields": {
-      color: theme.vars.palette.text.secondary
+      color: theme.vars.palette.text.secondary,
+      // Panel clips its content; the shrunk "Title" label sits above the input
+      // box and would be cut off.
+      overflow: "visible",
+      // Keep the writing fields at a readable measure on wide screens.
+      maxWidth: "1100px",
+      // Script on the left, run settings on the right; stacks under 860px.
+      ".header-grid": {
+        display: "grid",
+        gridTemplateColumns: "minmax(0, 1fr) 260px",
+        gap: getSpacingPx(SPACING.xl),
+        alignItems: "start",
+        "@media (max-width: 860px)": {
+          gridTemplateColumns: "minmax(0, 1fr)",
+          gap: getSpacingPx(SPACING.lg)
+        }
+      },
+      ".group-label": {
+        textTransform: "uppercase",
+        letterSpacing: "0.08em",
+        color: theme.vars.palette.text.disabled
+      },
+      // Rule between the columns, dropped when they stack.
+      ".settings": {
+        paddingLeft: getSpacingPx(SPACING.xl),
+        borderLeft: `1px solid ${theme.vars.palette.divider}`,
+        "@media (max-width: 860px)": {
+          paddingLeft: 0,
+          borderLeft: "none"
+        }
+      },
+      // Labels live above every control, so no MUI notch or floating label.
+      ".field-label": {
+        lineHeight: 1.2
+      },
+      // One control height across text inputs, selects, and the model button.
+      ".field .MuiInputBase-root, .field > button": {
+        minHeight: "36px"
+      },
+      ".field > button": { width: "100%" },
+      ".field .MuiInputBase-multiline": { minHeight: 0 }
     }
   });
 
@@ -87,12 +147,15 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   assembleError
 }) => {
   const theme = useTheme();
-  const { title, brief, style, aspectRatio, shots } = useBoard(boardId);
+  const { title, brief, style, aspectRatio, directorModel, imageModel, shots } =
+    useBoard(boardId);
 
   const setTitle = useStoryboardStore((state) => state.setTitle);
   const setBrief = useStoryboardStore((state) => state.setBrief);
   const setStyle = useStoryboardStore((state) => state.setStyle);
   const setAspectRatio = useStoryboardStore((state) => state.setAspectRatio);
+  const setDirectorModel = useStoryboardStore((state) => state.setDirectorModel);
+  const setImageModel = useStoryboardStore((state) => state.setImageModel);
 
   const [shotCount, setShotCount] = useState<number>(6);
 
@@ -108,60 +171,108 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
     <div css={styles(theme)} className="storyboard-board">
       {!readOnly && (
         <Panel padding="normal" className="header-fields">
-          <FlexColumn gap={3}>
-            <TextInput
-              label="Title"
-              value={title}
-              onChange={(e) => setTitle(boardId, e.target.value)}
-            />
-            <TextInput
-              label="Brief"
-              value={brief}
-              placeholder="Your film in one or two sentences"
-              onChange={(e) => setBrief(boardId, e.target.value)}
-              multiline
-              rows={3}
-            />
-            <TextInput
-              label="Style"
-              value={style}
-              placeholder="Palette, light, lens, texture"
-              onChange={(e) => setStyle(boardId, e.target.value)}
-            />
-            <FlexRow gap={3} align="flex-end" wrap>
-              <SelectField
-                label="Aspect ratio"
-                value={aspectRatio}
-                onChange={(value) => setAspectRatio(boardId, value)}
-                options={ASPECT_OPTIONS}
-              />
-              <SelectField
-                label="Shots"
-                value={shotCount}
-                onChange={(value) => setShotCount(Number(value))}
-                options={SHOT_COUNT_OPTIONS}
-              />
-              <EditorButton
-                variant="contained"
-                color="primary"
-                onClick={handleDirect}
-                disabled={!onDirect || directing}
-              >
-                {directing ? "Directing…" : "Direct"}
-              </EditorButton>
-              <EditorButton
-                variant="outlined"
-                onClick={onAssemble}
-                disabled={!onAssemble || assembling || !hasRenderedShot}
-              >
-                {assembling ? "Assembling…" : "Assemble timeline"}
-              </EditorButton>
-            </FlexRow>
-            {(directError || assembleError) && (
-              <Text size="small" color="error">
-                {directError ?? assembleError}
+          <FlexColumn gap={4}>
+            <div className="header-grid">
+              <FlexColumn gap={3}>
+                <Text size="tiny" className="group-label">
+                  Screenplay
+                </Text>
+                <Field label="Title">
+                  <TextInput
+                    value={title}
+                    size="small"
+                    placeholder="Untitled film"
+                    onChange={(e) => setTitle(boardId, e.target.value)}
+                  />
+                </Field>
+                <Field label="Brief">
+                  <TextInput
+                    value={brief}
+                    size="small"
+                    placeholder="Your film in one or two sentences"
+                    onChange={(e) => setBrief(boardId, e.target.value)}
+                    multiline
+                    rows={3}
+                  />
+                </Field>
+                <Field label="Style">
+                  <TextInput
+                    value={style}
+                    size="small"
+                    placeholder="Palette, light, lens, texture"
+                    onChange={(e) => setStyle(boardId, e.target.value)}
+                  />
+                </Field>
+              </FlexColumn>
+
+              <FlexColumn gap={3} className="settings">
+                <Text size="tiny" className="group-label">
+                  Direction
+                </Text>
+                <Field label="Screenplay model">
+                  <LanguageModelSelect
+                    value={directorModel?.id ?? ""}
+                    onChange={(value) => setDirectorModel(boardId, value)}
+                  />
+                </Field>
+                <Field label="Still model">
+                  <ImageModelSelect
+                    value={imageModel?.id ?? ""}
+                    task="text_to_image"
+                    onChange={(value) => setImageModel(boardId, value)}
+                  />
+                </Field>
+                <Field label="Aspect ratio">
+                  <SelectField
+                    label="Aspect ratio"
+                    hideLabel
+                    value={aspectRatio}
+                    size="small"
+                    variant="outlined"
+                    onChange={(value) => setAspectRatio(boardId, value)}
+                    options={ASPECT_OPTIONS}
+                  />
+                </Field>
+                <Field label="Shots">
+                  <SelectField
+                    label="Shots"
+                    hideLabel
+                    value={shotCount}
+                    size="small"
+                    variant="outlined"
+                    onChange={(value) => setShotCount(Number(value))}
+                    options={SHOT_COUNT_OPTIONS}
+                  />
+                </Field>
+              </FlexColumn>
+            </div>
+
+            <Divider />
+
+            <FlexRow gap={2} align="center" justify="space-between" wrap>
+              <Text size="small" color={directError || assembleError ? "error" : "secondary"}>
+                {directError ??
+                  assembleError ??
+                  "Direct writes the screenplay and seeds your shots."}
               </Text>
-            )}
+              <FlexRow gap={2} align="center">
+                <EditorButton
+                  variant="outlined"
+                  onClick={onAssemble}
+                  disabled={!onAssemble || assembling || !hasRenderedShot}
+                >
+                  {assembling ? "Assembling…" : "Assemble timeline"}
+                </EditorButton>
+                <EditorButton
+                  variant="contained"
+                  color="primary"
+                  onClick={handleDirect}
+                  disabled={!onDirect || directing}
+                >
+                  {directing ? "Directing…" : "Direct"}
+                </EditorButton>
+              </FlexRow>
+            </FlexRow>
           </FlexColumn>
         </Panel>
       )}
