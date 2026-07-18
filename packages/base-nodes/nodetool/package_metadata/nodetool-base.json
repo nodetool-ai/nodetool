@@ -531,6 +531,21 @@
         "trailer",
         "example"
       ]
+    },
+    {
+      "id": "script_to_screen",
+      "name": "Script to Screen",
+      "description": "Full production spine: a Director agent turns your brief into a direction document (characters, style bible, shot list, narration, music). A style frame anchors every keyframe for consistency, keyframes form a cheap storyboard you can approve before video spend, then each shot is animated, cut together, and mixed with voiceover and music.",
+      "tags": [
+        "video",
+        "generation",
+        "ai",
+        "storytelling",
+        "creative",
+        "director",
+        "storyboard",
+        "example"
+      ]
     }
   ]
 }
