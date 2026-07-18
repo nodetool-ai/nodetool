@@ -251,7 +251,6 @@ export const MINIMAX_IMAGE_ASPECTS: string[] = [
 
 export const MINIMAX_T2V_MODELS: string[] = [
   "MiniMax-Hailuo-2.3",
-  "MiniMax-Hailuo-2.3-Fast",
   "MiniMax-Hailuo-02",
   "T2V-01-Director"
 ];
@@ -266,6 +265,27 @@ export const MINIMAX_I2V_MODELS: string[] = [
 
 export const MINIMAX_VIDEO_RESOLUTIONS: string[] = ["512P", "768P", "1080P"];
 export const MINIMAX_VIDEO_DURATIONS: number[] = [6, 10];
+
+/**
+ * Sanitize duration/resolution for a video request. They are Hailuo-only
+ * knobs — the 01-series models (T2V-01-Director, I2V-01-Director, S2V-01)
+ * are fixed at 6s/720P and reject both parameters. Within the Hailuo family,
+ * 512P exists only on Hailuo-02 and 10s clips render only at 768P; invalid
+ * combinations fall back to 768P (the API default) so MiniMax doesn't reject
+ * the request.
+ */
+export function videoRenderSettings(
+  model: string,
+  duration: number,
+  resolution: string
+): { duration?: number; resolution?: string } {
+  if (!model.startsWith("MiniMax-Hailuo")) return {};
+  const d = duration >= 9 ? 10 : 6;
+  let r = resolution;
+  if (r === "512P" && model !== "MiniMax-Hailuo-02") r = "768P";
+  if (r === "1080P" && d === 10) r = "768P";
+  return { duration: d, resolution: r };
+}
 
 // ---------------------------------------------------------------------------
 // Async video generation (submit → poll → download)
@@ -328,6 +348,9 @@ async function pollVideoTask(
       );
     }
     const data = (await res.json()) as Record<string, unknown>;
+    // Surface API-level failures (expired task, auth, rate limit) instead of
+    // polling an empty status until the timeout.
+    assertBaseResp(data, "video status");
     const status = String(data.status ?? "").toLowerCase();
     if (status === "success") {
       const fileId = data.file_id as string | undefined;
