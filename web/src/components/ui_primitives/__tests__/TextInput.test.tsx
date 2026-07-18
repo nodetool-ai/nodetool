@@ -60,4 +60,38 @@ describe("TextInput", () => {
     );
     expect(screen.getByPlaceholderText("Search...")).toBeInTheDocument();
   });
+
+  it("renders the label above the input, linked via htmlFor", () => {
+    renderWithTheme(<TextInput label="Name" />);
+    const input = screen.getByLabelText("Name");
+    const label = document.querySelector("label");
+    expect(label).not.toBeNull();
+    expect(label).toHaveAttribute("for", input.id);
+    expect(
+      label!.compareDocumentPosition(input) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+  });
+
+  it("uses a provided id for the input and label", () => {
+    renderWithTheme(<TextInput label="Name" id="custom-id" />);
+    const input = screen.getByLabelText("Name");
+    expect(input).toHaveAttribute("id", "custom-id");
+    expect(document.querySelector("label")).toHaveAttribute(
+      "for",
+      "custom-id"
+    );
+  });
+
+  it("keeps the accessible name when hideLabel is set", () => {
+    renderWithTheme(<TextInput label="Search" hideLabel />);
+    expect(document.querySelector("label")).toBeNull();
+    expect(screen.getByLabelText("Search")).toBeInTheDocument();
+  });
+
+  it("shows an asterisk on required labels", () => {
+    renderWithTheme(<TextInput label="Email" required />);
+    const label = document.querySelector("label");
+    expect(label).toHaveTextContent("*");
+    expect(screen.getByLabelText(/Email/)).toBeRequired();
+  });
 });
