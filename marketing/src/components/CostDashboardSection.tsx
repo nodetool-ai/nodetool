@@ -110,7 +110,7 @@ export default function CostDashboardSection() {
 
         {/* Dashboard window */}
         <motion.div
-          initial={{ opacity: 0, y: 40 }}
+          initial={false}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.3, ease: "easeOut" }}
@@ -253,7 +253,7 @@ export default function CostDashboardSection() {
                             key={i}
                             className="flex flex-1 origin-bottom flex-col-reverse overflow-hidden rounded-t-[2px]"
                             style={{ height: (total / Y_MAX) * CHART_H }}
-                            initial={{ scaleY: 0 }}
+                            initial={false}
                             whileInView={{ scaleY: 1 }}
                             viewport={{ once: true }}
                             transition={{
@@ -342,7 +342,7 @@ export default function CostDashboardSection() {
                         <motion.div
                           className="h-full origin-left rounded-full bg-[#4d8bff]"
                           style={{ width: `${row.share}%` }}
-                          initial={{ scaleX: 0 }}
+                          initial={false}
                           whileInView={{ scaleX: 1 }}
                           viewport={{ once: true }}
                           transition={{

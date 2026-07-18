@@ -93,7 +93,7 @@ export default function AgentsGraphHero() {
                 {/* Header Section */}
                 <div className="mx-auto max-w-3xl text-center mb-24">
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={false}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.25 }}
                     >
@@ -345,7 +345,7 @@ function ConnectionLine({ from, to, containerWidth }: { from: NodeData; to: Node
                 strokeWidth="3"
                 strokeLinecap="round"
                 vectorEffect="non-scaling-stroke"
-                initial={{ strokeDasharray: "0 1", pathLength: 0.3, strokeDashoffset: 0, opacity: 0 }}
+                initial={false}
                 animate={{
                     pathLength: [0.1, 0.3, 0.1], // Pulse length
                     strokeDashoffset: [0, -1], // Moves forward along the path
@@ -383,7 +383,7 @@ function Node({ data, index }: { data: NodeData, index: number }) {
 
     return (
         <motion.div
-            initial={{ opacity: 0, scale: 0.8, z: 0 }}
+            initial={false}
             animate={{ opacity: 1, scale: 1, z: 20 }}
             transition={{ delay: 0.05 + (index * 0.05), duration: 0.25 }}
             style={{

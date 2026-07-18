@@ -51,7 +51,7 @@ export default function UseCasesShowcase() {
           </div>
           <motion.h2
             id="use-cases-title"
-            initial={{ opacity: 0, y: 16 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.25 }}
@@ -60,7 +60,7 @@ export default function UseCasesShowcase() {
             From a brief to a finished asset
           </motion.h2>
           <motion.p
-            initial={{ opacity: 0, y: 16 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.25, delay: 0.05 }}
@@ -79,7 +79,7 @@ export default function UseCasesShowcase() {
               <motion.a
                 key={item.slug}
                 href={`/use-cases/${item.slug}`}
-                initial={{ opacity: 0, y: 24 }}
+                initial={false}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-40px" }}
                 transition={{ duration: 0.3 }}
