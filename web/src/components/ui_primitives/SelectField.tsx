@@ -3,18 +3,19 @@
  *
  * A semantic wrapper around MUI Select with label and description support,
  * replacing the repetitive FormControl + InputLabel + Select + Typography pattern.
+ * The label renders above the control via the shared Label primitive.
  */
 
 import React, { memo, useCallback, useId } from "react";
 import {
   FormControl,
-  InputLabel,
   Select,
   MenuItem,
   Typography,
   type SelectChangeEvent
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { Label } from "./Label";
 import { CONTROL } from "./tokens";
 
 export interface SelectOption {
@@ -45,7 +46,7 @@ export interface SelectFieldProps {
   variant?: "standard" | "outlined" | "filled";
   /** Additional class name for the root element */
   className?: string;
-  /** Hide the label entirely (also removes label margin) */
+  /** Hide the label entirely (nothing rendered; the control keeps an aria-label) */
   hideLabel?: boolean;
 }
 
@@ -88,96 +89,104 @@ export interface SelectFieldProps {
  *   variant="standard"
  * />
  */
-const SelectFieldInternal: React.FC<SelectFieldProps> = ({
-  label,
-  value,
-  onChange,
-  options,
-  description,
-  disabled = false,
-  id,
-  size = "medium",
-  variant = "standard",
-  className,
-  hideLabel = false
-}) => {
-  const theme = useTheme();
-  const autoId = useId();
-  const selectId = id ?? autoId;
-
-  const handleChange = useCallback(
-    (event: SelectChangeEvent<string | number>) => {
-      onChange(String(event.target.value));
+const SelectFieldInternal = React.forwardRef<HTMLDivElement, SelectFieldProps>(
+  function SelectFieldInternal(
+    {
+      label,
+      value,
+      onChange,
+      options,
+      description,
+      disabled = false,
+      id,
+      size = "medium",
+      variant = "standard",
+      className,
+      hideLabel = false
     },
-    [onChange]
-  );
+    ref
+  ) {
+    const theme = useTheme();
+    const autoId = useId();
+    const selectId = id ?? autoId;
+    const labelId = `${selectId}-label`;
+    const showLabel = Boolean(label) && !hideLabel;
 
-  const fieldFontSize = theme.fontSizeNormal || "15px";
-  const controlHeight =
-    size === "small" ? CONTROL.height.sm : CONTROL.height.lg;
+    const handleChange = useCallback(
+      (event: SelectChangeEvent<string | number>) => {
+        onChange(String(event.target.value));
+      },
+      [onChange]
+    );
 
-  return (
-    // No baked outer margin — spacing is the parent's job (e.g. FlexColumn gap),
-    // like every other primitive. The control's value/label render at the same
-    // 15px body token as TextInput so the two line up in a shared form.
-    <div className={className}>
-      <FormControl size={size} disabled={disabled} fullWidth>
-        {!hideLabel && label && (
-          <InputLabel
-            id={`${selectId}-label`}
-            htmlFor={selectId}
-            sx={{ fontSize: fieldFontSize }}
-          >
-            {label}
-          </InputLabel>
-        )}
-        <Select
-          id={selectId}
-          // Associate the label so the control has an accessible name
-          // (getByRole("combobox", { name }) / screen readers).
-          labelId={!hideLabel && label ? `${selectId}-label` : undefined}
-          value={value}
-          onChange={handleChange}
-          variant={variant}
-          label={variant !== "standard" && !hideLabel ? label : undefined}
-          sx={{
-            minHeight: `${controlHeight}px`,
-            "& .MuiSelect-select": { fontSize: fieldFontSize },
-            // Outlined only: MUI's 16.5px / 8.5px vertical padding targets
-            // ~56px / 40px fields — shrink it so the control lands on the
-            // token height. The standard variant keeps its own padding.
-            "& .MuiOutlinedInput-input.MuiSelect-select": {
-              paddingTop: size === "small" ? "3px" : "7px",
-              paddingBottom: size === "small" ? "3px" : "7px"
+    const fieldFontSize = theme.fontSizeNormal || "15px";
+    const controlHeight =
+      size === "small" ? CONTROL.height.sm : CONTROL.height.lg;
+
+    return (
+      // No baked outer margin — spacing is the parent's job (e.g. FlexColumn
+      // gap), like every other primitive. The control's value renders at the
+      // same 15px body token as TextInput so the two line up in a shared form;
+      // the Label above owns its 4px gap to the control.
+      <div ref={ref} className={className}>
+        <FormControl size={size} disabled={disabled} fullWidth>
+          {showLabel && (
+            <Label id={labelId} disabled={disabled}>
+              {label}
+            </Label>
+          )}
+          <Select
+            id={selectId}
+            // The combobox display node takes its accessible name from the
+            // Label via aria-labelledby; with the label hidden it falls back
+            // to aria-label (inputProps reaches the display node, a top-level
+            // aria-label would land on the InputBase root).
+            labelId={showLabel ? labelId : undefined}
+            inputProps={
+              !showLabel && label ? { "aria-label": label } : undefined
             }
-          }}
-        >
-          {options.map((option) => (
-            <MenuItem
-              key={option.value}
-              value={option.value}
-              sx={{ fontSize: fieldFontSize }}
-            >
-              {option.label}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-      {description && (
-        <Typography
-          variant="body2"
-          sx={{
-            color: theme.palette.text.secondary,
-            mt: 0.5,
-            fontSize: theme.fontSizeSmaller
-          }}
-        >
-          {description}
-        </Typography>
-      )}
-    </div>
-  );
-};
+            value={value}
+            onChange={handleChange}
+            variant={variant}
+            sx={{
+              minHeight: `${controlHeight}px`,
+              "& .MuiSelect-select": { fontSize: fieldFontSize },
+              // Outlined only: MUI's 16.5px / 8.5px vertical padding targets
+              // ~56px / 40px fields — shrink it so the control lands on the
+              // token height. The standard variant keeps its own padding.
+              "& .MuiOutlinedInput-input.MuiSelect-select": {
+                paddingTop: size === "small" ? "3px" : "7px",
+                paddingBottom: size === "small" ? "3px" : "7px"
+              }
+            }}
+          >
+            {options.map((option) => (
+              <MenuItem
+                key={option.value}
+                value={option.value}
+                sx={{ fontSize: fieldFontSize }}
+              >
+                {option.label}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        {description && (
+          <Typography
+            variant="body2"
+            sx={{
+              color: theme.palette.text.secondary,
+              mt: 0.5,
+              fontSize: theme.fontSizeSmaller
+            }}
+          >
+            {description}
+          </Typography>
+        )}
+      </div>
+    );
+  }
+);
 
 export const SelectField = memo(SelectFieldInternal);
 SelectField.displayName = "SelectField";
