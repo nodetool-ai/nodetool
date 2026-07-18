@@ -118,7 +118,7 @@ Codex reaches GPT chat models and GPT-Image 2 generation through your logged-in 
 
 ## Claude Agent SDK
 
-Claude Agent SDK reaches Claude by spawning your local, logged-in `claude` CLI instead of calling the Anthropic API directly, billing against your Claude subscription rather than per-token API spend. It supports tool calls through an in-process MCP bridge; images in the prompt are not forwarded to the CLI, so vision input doesn't work through this path. No API key — requires the `claude` CLI installed and logged in. See the [Anthropic provider guide](developer/providers/anthropic.md#claudeagentprovider-separate-path).
+Claude Agent SDK reaches Claude by spawning your local, logged-in `claude` CLI instead of calling the Anthropic API directly, billing against your Claude subscription rather than per-token API spend. It supports tool calls through an in-process MCP bridge; images in the prompt are not forwarded to the CLI, so vision input doesn't work through this path. No API key — requires the `claude` CLI installed and logged in. See the [Anthropic provider guide](developer/providers/anthropic.md).
 
 ## Evolink
 

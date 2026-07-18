@@ -1,25 +1,30 @@
 # Publishes a clean Markdown representation beside every public documentation
 # page. Jekyll renders source Markdown as HTML by default, so source files are
 # otherwise not available at their documented `.md` URLs after deployment.
+#
+# The files are written in a `:post_write` hook, NOT a generator: anything
+# written into the destination during `generate` is deleted by Jekyll's
+# cleaner before the site is written, so a generator here silently produces
+# nothing (and every alternate link 404s).
 require "fileutils"
 require "json"
 
 module Jekyll
   module MarkdownAlternateFilter
+    # Must mirror MarkdownAlternates#markdown_path_for below — the <link>
+    # emitted by the layout has to point at the file the hook writes.
     def markdown_alternate_url(url)
       return "/index.md" if url == "/"
 
-      "#{url.sub(%r{/$}, "")}.md"
+      path = url.sub(/index\.html$/, "").sub(/\.html$/, "")
+      "#{path.sub(%r{/$}, "")}.md"
     end
   end
 
-  class MarkdownAlternates < Generator
-    safe true
-    priority :low
-
+  module MarkdownAlternates
     EXCLUDED_PATHS = %w[404.html llms.txt llms-full.txt robots.txt sitemap.xml].freeze
 
-    def generate(site)
+    def self.write_all(site)
       site.pages.each do |page|
         next unless page.path.end_with?(".md")
         next if page.data["layout"] == "redirect" || EXCLUDED_PATHS.include?(page.path)
@@ -35,21 +40,19 @@ module Jekyll
       end
     end
 
-    private
-
-    def canonical_path_for(page)
+    def self.canonical_path_for(page)
       path = page.url.sub(/index\.html$/, "").sub(/\.html$/, "")
       path.end_with?("/") || path == "/" ? path : path
     end
 
-    def markdown_path_for(page, canonical_path)
+    def self.markdown_path_for(page, canonical_path)
       return "index.md" if canonical_path == "/"
       return "#{canonical_path.sub(%r{/$}, "")}.md" if page.name == "index.md"
 
-      "#{canonical_path}.md"
+      "#{canonical_path.sub(%r{/$}, "")}.md"
     end
 
-    def standalone_markdown(site, page, canonical_path, markdown_path)
+    def self.standalone_markdown(site, page, canonical_path, markdown_path)
       source = File.read(page.path, encoding: "UTF-8")
       body = source.sub(/\A---\s*\n.*?\n---\s*\n/m, "").strip
       title = page.data["title"] || page.name.sub(/\.md$/, "").tr("-", " ")
@@ -74,12 +77,16 @@ module Jekyll
       ].join("\n")
     end
 
-    def write(site, output_path, content)
+    def self.write(site, output_path, content)
       destination = site.in_dest_dir(output_path.sub(%r{\A/}, ""))
       FileUtils.mkdir_p(File.dirname(destination))
       File.write(destination, content)
     end
   end
+end
+
+Jekyll::Hooks.register :site, :post_write do |site|
+  Jekyll::MarkdownAlternates.write_all(site)
 end
 
 Liquid::Template.register_filter(Jekyll::MarkdownAlternateFilter)
