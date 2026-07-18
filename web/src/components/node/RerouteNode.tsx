@@ -187,6 +187,20 @@ const RerouteNode: React.FC<RerouteNodeProps> = (props) => {
 
   useSyncEdgeSelection(id, Boolean(selected));
 
+  const titleCssStyles = useMemo(() => titleStyles(theme), [theme]);
+  const containerSx = useMemo(() => ({
+    boxShadow: selected
+      ? `0 0 12px ${theme.vars.palette.primary.main}60`
+      : "0 0 24px -22px rgba(0,0,0,.65)",
+    borderColor: selected
+      ? theme.vars.palette.primary.main
+      : theme.vars.palette.grey[400]
+  }), [selected, theme.vars.palette.primary.main, theme.vars.palette.grey]);
+  const handleStyle = useMemo<React.CSSProperties>(() => ({
+    top: "50%",
+    backgroundColor: upstreamColor
+  }), [upstreamColor]);
+
   return (
     <Tooltip
       title="Double-click to add a label"
@@ -199,38 +213,25 @@ const RerouteNode: React.FC<RerouteNodeProps> = (props) => {
           selected ? "selected" : ""
         }`}
         onDoubleClick={handleDoubleClick}
-        sx={{
-          boxShadow: selected
-            ? `0 0 12px ${theme.vars.palette.primary.main}60`
-            : "0 0 24px -22px rgba(0,0,0,.65)",
-          borderColor: selected
-            ? theme.vars.palette.primary.main
-            : theme.vars.palette.grey[400]
-        }}
+        sx={containerSx}
       >
         <Handle
           id="input_value"
           type="target"
           position={Position.Left}
           className={upstreamSlug}
-          style={{
-            top: "50%",
-            backgroundColor: upstreamColor
-          }}
+          style={handleStyle}
         />
         <Handle
           id="output"
           type="source"
           position={Position.Right}
           className={upstreamSlug}
-          style={{
-            top: "50%",
-            backgroundColor: upstreamColor
-          }}
+          style={handleStyle}
         />
 
         {(isEditing || title) && (
-          <div css={titleStyles(theme)}>
+          <div css={titleCssStyles}>
             {isEditing ? (
               <input
                 ref={inputRef}

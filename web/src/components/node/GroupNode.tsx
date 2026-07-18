@@ -496,34 +496,68 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   }, [color]);
   const { bodyBg, subtleBorder, labelBg, labelTextColor } = colorTokens;
 
+  const rootStyle = useMemo<React.CSSProperties>(() => ({
+    ...(props.selected
+      ? {
+          border: `2px solid ${theme.vars.palette.primary.main}`,
+          boxShadow: `0 0 0 1px ${theme.vars.palette.primary.main}40, inset 0 0 20px ${theme.vars.palette.primary.main}10`
+        }
+      : nodeHovered
+        ? { border: `2px solid ${theme.vars.palette.primary.main}` }
+        : { border: subtleBorder }),
+    opacity: modifierActive ? 0.5 : nodeHovered ? 0.8 : 1,
+    pointerEvents: modifierActive ? "all" : "none",
+    backgroundColor: bodyBg
+  }), [props.selected, nodeHovered, theme.vars.palette.primary.main, subtleBorder, modifierActive, bodyBg]);
+
+  const headerStyle = useMemo<React.CSSProperties>(() => ({
+    bottom: `calc(100% + ${screenGapPx}px)`,
+    height: `${HEADER_HEIGHT * Math.max(labelScale, actionsScale)}px`
+  }), [screenGapPx, labelScale, actionsScale]);
+
+  const labelDivStyle = useMemo<React.CSSProperties>(() => ({
+    backgroundColor: labelBg,
+    color: labelTextColor,
+    bottom: 0,
+    transform: `scale(${labelScale})`,
+    maxWidth: `${labelMaxCssWidth}px`,
+    overflow: "hidden",
+    transition: `max-width ${MOTION.fast}`
+  }), [labelBg, labelTextColor, labelScale, labelMaxCssWidth]);
+
+  const inputStyle = useMemo<React.CSSProperties>(() => ({
+    width: `${Math.max(headlineTextWidth + 2, 12)}px`,
+    color: labelTextColor,
+    maxWidth: "unset",
+    textShadow: labelTextColor === "#000000" ? "none" : undefined
+  }), [headlineTextWidth, labelTextColor]);
+
+  const actionsStyle = useMemo<React.CSSProperties>(() => ({
+    bottom: 0,
+    transform: `scale(${actionsScale})`,
+    opacity: actionsVisible ? 1 : 0,
+    pointerEvents: actionsVisible ? ("auto" as const) : ("none" as const),
+    transition: `opacity ${MOTION.fast}`
+  }), [actionsScale, actionsVisible]);
+
+  const menuTextStyle = useMemo<React.CSSProperties>(() => ({
+    fontFamily: theme.fontFamily1,
+    fontSize: theme.fontSizeSmall,
+    color: theme.vars.palette.grey[200]
+  }), [theme.fontFamily1, theme.fontSizeSmall, theme.vars.palette.grey]);
+
   return (
     <div
       css={cssStyles}
       ref={nodeRef}
       className={`group-node ${nodeHovered ? "hovered" : ""} ${props.selected ? "selected" : ""}`}
-      style={{
-        ...(props.selected
-          ? {
-              border: `2px solid ${theme.vars.palette.primary.main}`,
-              boxShadow: `0 0 0 1px ${theme.vars.palette.primary.main}40, inset 0 0 20px ${theme.vars.palette.primary.main}10`
-            }
-          : nodeHovered
-            ? { border: `2px solid ${theme.vars.palette.primary.main}` }
-            : { border: subtleBorder }),
-        opacity:
-          modifierActive ? 0.5 : nodeHovered ? 0.8 : 1,
-        pointerEvents: modifierActive ? "all" : "none",
-        backgroundColor: bodyBg
-      }}
+      style={rootStyle}
     >
       <div
         className="group-header"
         onPointerEnter={onHeaderEnter}
         onPointerLeave={onHeaderLeave}
-        style={{
-          bottom: `calc(100% + ${screenGapPx}px)`,
-          height: `${HEADER_HEIGHT * Math.max(labelScale, actionsScale)}px`
-        }}
+        style={headerStyle}
       >
       <Tooltip
         placement="top"
@@ -542,15 +576,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         <div
           className="group-label node-drag-handle"
           onDoubleClick={handlePillDoubleClick}
-          style={{
-            backgroundColor: labelBg,
-            color: labelTextColor,
-            bottom: 0,
-            transform: `scale(${labelScale})`,
-            maxWidth: `${labelMaxCssWidth}px`,
-            overflow: "hidden",
-            transition: `max-width ${MOTION.fast}`
-          }}
+          style={labelDivStyle}
         >
           <input
             ref={headerInputRef}
@@ -561,12 +587,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             value={headline}
             onChange={handleHeadlineChange}
             placeholder="Group"
-            style={{
-              width: `${Math.max(headlineTextWidth + 2, 12)}px`,
-              color: labelTextColor,
-              maxWidth: "unset",
-              textShadow: labelTextColor === "#000000" ? "none" : undefined
-            }}
+            style={inputStyle}
           />
           <span
             ref={headerSizerRef}
@@ -580,13 +601,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
 
       <div
         className="group-actions nodrag"
-        style={{
-          bottom: 0,
-          transform: `scale(${actionsScale})`,
-          opacity: headerHovered || props.selected || menuOpen ? 1 : 0,
-          pointerEvents: headerHovered || props.selected || menuOpen ? "auto" : "none",
-          transition: `opacity ${MOTION.fast}`
-        }}
+        style={actionsStyle}
       >
         <Tooltip title="Group options" delay={TOOLTIP_ENTER_DELAY}>
           <ToolbarIconButton
@@ -616,13 +631,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         <div style={POPOVER_COLUMN_STYLE}>
           {hasChildren && (
             <div style={POPOVER_ROW_STYLE}>
-              <span
-                style={{
-                  fontFamily: theme.fontFamily1,
-                  fontSize: theme.fontSizeSmall,
-                  color: theme.vars.palette.grey[200]
-                }}
-              >
+              <span style={menuTextStyle}>
                 {someChildrenBypassed ? "Enable all nodes" : "Bypass all nodes"}
               </span>
               <BypassGroupButton
@@ -632,13 +641,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             </div>
           )}
           <div style={POPOVER_ROW_STYLE}>
-            <span
-              style={{
-                fontFamily: theme.fontFamily1,
-                fontSize: theme.fontSizeSmall,
-                color: theme.vars.palette.grey[200]
-              }}
-            >
+            <span style={menuTextStyle}>
               Group color
             </span>
             <ColorPicker
