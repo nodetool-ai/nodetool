@@ -40,7 +40,7 @@ export type GraphValidationSeverity = "error" | "warning";
 
 export interface GraphValidationIssue {
   severity: GraphValidationSeverity;
-  /** Stable category: "unknown_node" | "duplicate_id" | "property" | "dangling_edge" | "unknown_handle" | "type_mismatch". */
+  /** Stable category: "unknown_node" | "duplicate_id" | "property" | "dangling_edge" | "unknown_handle" | "type_mismatch" | "fan_in". */
   code: string;
   nodeId?: string;
   nodeType?: string;
@@ -77,7 +77,7 @@ const EDITOR_ONLY_NODE_NAMES: ReadonlySet<string> = new Set([
   "Reroute"
 ]);
 
-function isEditorOnlyType(nodeType: string): boolean {
+export function isEditorOnlyType(nodeType: string): boolean {
   const dot = nodeType.lastIndexOf(".");
   const name = dot >= 0 ? nodeType.slice(dot + 1) : nodeType;
   return (
@@ -217,6 +217,39 @@ export function validateGraph(
         nodeId: id,
         nodeType: type,
         message: pi.message
+      });
+    }
+  }
+
+  // ── Fan-in: >1 edge into a handle is only legal when the handle's declared
+  // type is a list. Mirrors the kernel's correlation-analysis rule so an
+  // example that validates cannot die at run time on exactly this.
+  const fanIn = new Map<string, number>();
+  for (const e of normEdges) {
+    if (!e.target || !e.targetHandle) continue;
+    const key = `${e.target}\u0000${e.targetHandle}`;
+    fanIn.set(key, (fanIn.get(key) ?? 0) + 1);
+  }
+  for (const [key, count] of fanIn) {
+    if (count < 2) continue;
+    const [targetId, handle] = key.split("\u0000");
+    const node = byId.get(targetId);
+    const type = String(node?.type ?? "");
+    if (!type || !registry.has(type)) continue;
+    const propType = registry
+      .getMetadata(type)
+      ?.properties?.find((prop) => prop.name === handle)?.type;
+    const typeStr = typeMetaToString(propType);
+    if (!(typeStr === "list" || typeStr.startsWith("list["))) {
+      issues.push({
+        severity: "error",
+        code: "fan_in",
+        nodeId: targetId,
+        nodeType: type,
+        message:
+          `Handle "${handle}" on node "${targetId}" receives ${count} edges but its ` +
+          `type "${typeStr || "unknown"}" is not a list; the kernel's correlation ` +
+          `analysis rejects this at run time`
       });
     }
   }
