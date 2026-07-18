@@ -16,29 +16,46 @@ export interface ParsedHarmonyContent {
  */
 export const parseHarmonyContent = (content: string): ParsedHarmonyContent => {
   const messages: HarmonyMessage[] = [];
-  let remainingText = content;
 
   // Harmony format pattern: <|start|>role<|channel|>channel<|message|>content<|end|>
   const harmonyPattern = /<\|start\|>([^<]+)(?:<\|channel\|>([^<]+))?<\|message\|>([^]*?)<\|end\|>/g;
   let match;
+  // Collect the text between/around complete blocks by slicing at the matched
+  // ranges rather than string-replacing match[0]. A string `replace` only
+  // removes the first occurrence, so byte-identical blocks would leak a raw
+  // copy; index slicing removes every processed segment exactly.
+  let lastIndex = 0;
+  const rawParts: string[] = [];
 
   while ((match = harmonyPattern.exec(content)) !== null) {
-    const [, role, channel, messageContent] = match;
-    
+    const [full, role, channel, messageContent] = match;
+    rawParts.push(content.slice(lastIndex, match.index));
+    lastIndex = match.index + full.length;
+
     messages.push({
       role: role as HarmonyMessage['role'],
       channel: channel as HarmonyMessage['channel'],
       content: messageContent
     });
-
-    remainingText = remainingText.replace(match[0], '');
   }
 
-  remainingText = remainingText.trim();
-  
+  // Text after the last complete block. During streaming this can be a partial
+  // block ("<|start|>...<|message|>partial" with no closing <|end|> yet). Strip
+  // the control-token scaffolding so the raw markers don't render verbatim,
+  // keeping any prefix text and the partial message body.
+  let trailing = content.slice(lastIndex);
+  const partialMatch =
+    /^([^]*?)<\|start\|>[^<]*(?:<\|channel\|>[^<]*)?(?:<\|message\|>([^]*))?$/.exec(
+      trailing
+    );
+  if (partialMatch) {
+    trailing = partialMatch[1] + (partialMatch[2] ?? "");
+  }
+  rawParts.push(trailing);
+
   return {
     messages,
-    rawText: remainingText
+    rawText: rawParts.join("").trim()
   };
 };
 

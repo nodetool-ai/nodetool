@@ -65,28 +65,37 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
   const objectUrlRef = useRef<string | null>(null);
   const { isCanvasAvailable, addBlocksToCanvas } = useAddMediaToCanvas();
 
-  const createObjectUrl = useCallback(
-    (
-      source: string | Uint8Array | undefined,
-      type: string
-    ): string | undefined => {
-      if (!source) {
-        return undefined;
-      }
-      if (typeof source === "string") {
-        return source;
-      }
+  // Resolve the video source once, at the top level, so the blob URL below can
+  // be memoized on the actual source (Uint8Array/string) identity. A byte
+  // payload uses the inline `data`; otherwise the `uri` is used directly.
+  const videoSource: string | Uint8Array | undefined =
+    content.type === "video"
+      ? content.video?.uri === ""
+        ? (content.video?.data as Uint8Array)
+        : content.video?.uri
+      : undefined;
 
-      if (objectUrlRef.current) {
-        URL.revokeObjectURL(objectUrlRef.current);
-      }
-
-      const newObjectUrl = URL.createObjectURL(new Blob([source as BlobPart], { type }));
-      objectUrlRef.current = newObjectUrl;
-      return newObjectUrl;
-    },
-    []
-  );
+  // Mint the blob URL only when the source actually changes. Doing this in the
+  // render body (as before) revoked and re-created the URL on every render,
+  // resetting the <video> element to 0:00 on any parent re-render. A string uri
+  // passes through untouched — no blob is created or revoked for it.
+  const videoObjectUrl = useMemo<string | undefined>(() => {
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
+    }
+    if (!videoSource) {
+      return undefined;
+    }
+    if (typeof videoSource === "string") {
+      return videoSource;
+    }
+    const url = URL.createObjectURL(
+      new Blob([videoSource as BlobPart], { type: "video/mp4" })
+    );
+    objectUrlRef.current = url;
+    return url;
+  }, [videoSource]);
 
   useEffect(() => {
     return () => {
@@ -193,15 +202,15 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
         </div>
       );
     case "video": {
-      const uri = createObjectUrl(
-        content.video?.uri === ""
-          ? (content.video?.data as Uint8Array)
-          : content.video?.uri,
-        "video/mp4"
-      );
       return (
         <div css={wrapperStyles} {...dragProps}>
-          <video ref={videoRef} controls style={videoStyle} src={uri} aria-label="Video content" />
+          <video
+            ref={videoRef}
+            controls
+            style={videoStyle}
+            src={videoObjectUrl}
+            aria-label="Video content"
+          />
           {addButton}
         </div>
       );

@@ -429,8 +429,11 @@ export const MessageView: React.FC<
     }
     if (Array.isArray(message.content)) {
       return message.content
-        .filter((c) => c.type === "text")
-        .map((c) => (c as MessageTextContent).text)
+        .filter(
+          (c): c is MessageTextContent =>
+            !!c && typeof c === "object" && c.type === "text"
+        )
+        .map((c) => c.text)
         .join("\n");
     }
     return "";
@@ -448,48 +451,13 @@ export const MessageView: React.FC<
     return handler;
   }, []);
 
-  if (message.role === "agent_execution") {
-    const key = message.agent_execution_id || "__ungrouped__";
-    const executionMessages = executionMessagesById?.get(key) ?? [];
-    if (executionMessages.length > 0) {
-      return <AgentExecutionView messages={executionMessages} />;
-    }
-    return null;
-  }
-
-    const baseClass = getMessageClass(message.role);
-    const hasToolCalls =
-      message.role === "assistant" &&
-      Array.isArray(message.tool_calls) &&
-      message.tool_calls.length > 0;
-    const hasNonEmptyContent =
-      (typeof message.content === "string" && message.content.trim().length > 0) ||
-      (Array.isArray(message.content) &&
-        message.content.some((block) => {
-          if (!block || typeof block !== "object") {
-            return false;
-          }
-          const contentBlock = block as MessageContent;
-          if (contentBlock.type === "text") {
-            return typeof (contentBlock as MessageTextContent).text === "string" &&
-              (contentBlock as MessageTextContent).text.trim().length > 0;
-          }
-          return true;
-        }));
-
-    const showRoleMeta =
-      showMeta && (message.role === "assistant" || message.role === "user");
-    const messageClass = [
-      baseClass,
-      (message as Message & { error_type?: string }).error_type ? "error-message" : null,
-      hasToolCalls ? "has-tool-calls" : null,
-      hasToolCalls && !hasNonEmptyContent ? "tool-calls-only" : null,
-      showRoleMeta ? "chat-message--meta" : null
-    ]
-      .filter(Boolean)
-      .join(" ");
-
-    const renderTextContent = (content: string, index: string | number) => {
+  // Memoized so its reference is stable across renders. It is passed to every
+  // React.memo'd MessageContentRenderer; a fresh closure each render would
+  // defeat that memo and force all media children (e.g. <video>) to re-render.
+  // Deps are exactly the non-stable values it closes over — createToggleHandler
+  // is already stable via useCallback.
+  const renderTextContent = useCallback(
+    (content: string, index: string | number) => {
       if (hasHarmonyTokens(content)) {
         const { messages, rawText } = parseHarmonyContent(content);
 
@@ -561,7 +529,50 @@ export const MessageView: React.FC<
         onInsertCode ||
         (insertIntoEditor ? (t: string) => insertIntoEditor(t) : undefined);
       return <ChatMarkdown content={parsedContent} onInsertCode={handler} />;
-    };
+    },
+    [isThoughtExpanded, createToggleHandler, onInsertCode, insertIntoEditor]
+  );
+
+  if (message.role === "agent_execution") {
+    const key = message.agent_execution_id || "__ungrouped__";
+    const executionMessages = executionMessagesById?.get(key) ?? [];
+    if (executionMessages.length > 0) {
+      return <AgentExecutionView messages={executionMessages} />;
+    }
+    return null;
+  }
+
+    const baseClass = getMessageClass(message.role);
+    const hasToolCalls =
+      message.role === "assistant" &&
+      Array.isArray(message.tool_calls) &&
+      message.tool_calls.length > 0;
+    const hasNonEmptyContent =
+      (typeof message.content === "string" && message.content.trim().length > 0) ||
+      (Array.isArray(message.content) &&
+        message.content.some((block) => {
+          if (!block || typeof block !== "object") {
+            return false;
+          }
+          const contentBlock = block as MessageContent;
+          if (contentBlock.type === "text") {
+            return typeof (contentBlock as MessageTextContent).text === "string" &&
+              (contentBlock as MessageTextContent).text.trim().length > 0;
+          }
+          return true;
+        }));
+
+    const showRoleMeta =
+      showMeta && (message.role === "assistant" || message.role === "user");
+    const messageClass = [
+      baseClass,
+      (message as Message & { error_type?: string }).error_type ? "error-message" : null,
+      hasToolCalls ? "has-tool-calls" : null,
+      hasToolCalls && !hasNonEmptyContent ? "tool-calls-only" : null,
+      showRoleMeta ? "chat-message--meta" : null
+    ]
+      .filter(Boolean)
+      .join(" ");
 
     const content = message.content as
       | Array<MessageTextContent | MessageImageContent>
@@ -618,14 +629,21 @@ export const MessageView: React.FC<
                     mediaContents={content as MessageContent[]}
                   />
                 ) : (
-                  content.map((c: MessageContent, i: number) => (
-                    <MessageContentRenderer
-                      key={`${message.id}-content-${c.type}-${i}`}
-                      content={c}
-                      renderTextContent={renderTextContent}
-                      index={i}
-                    />
-                  ))
+                  content.map((c: MessageContent, i: number) => {
+                    // Guard against null / non-object blocks so the renderer's
+                    // switch on `c.type` can't crash on a malformed block.
+                    if (!c || typeof c !== "object") {
+                      return null;
+                    }
+                    return (
+                      <MessageContentRenderer
+                        key={`${message.id}-content-${c.type}-${i}`}
+                        content={c}
+                        renderTextContent={renderTextContent}
+                        index={i}
+                      />
+                    );
+                  })
                 ))}
             </>
           )}

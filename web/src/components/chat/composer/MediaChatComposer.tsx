@@ -76,7 +76,6 @@ import { useTextareaAssetMention } from "./useTextareaAssetMention";
 import { FilePreview } from "./FilePreview";
 import { useFileHandling } from "../hooks/useFileHandling";
 import { useDragAndDrop } from "../hooks/useDragAndDrop";
-import { useKeyPressed } from "../../../stores/KeyPressedStore";
 import { useMessageQueue } from "../../../hooks/useMessageQueue";
 import { createMediaComposerStyles } from "./MediaChatComposer.styles";
 import useModelPreferencesStore from "../../../stores/ModelPreferencesStore";
@@ -228,13 +227,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     useFileHandling();
   const { isDragging, handleDragOver, handleDragLeave, handleDrop } =
     useDragAndDrop(addFiles, addDroppedFiles);
-  const { shiftKeyPressed, metaKeyPressed, altKeyPressed } = useKeyPressed(
-    (state) => ({
-      shiftKeyPressed: state.isKeyPressed("shift"),
-      metaKeyPressed: state.isKeyPressed("meta"),
-      altKeyPressed: state.isKeyPressed("alt")
-    })
-  );
 
   // Typing `@` opens the asset picker; a picked asset is attached as an
   // `asset://` reference (like a drag from the asset library) rather than
@@ -470,9 +462,12 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     }
     const fileContents = getFileContents();
     const fullContent = [...content, ...fileContents];
-    sendMessage(fullContent, prompt);
-    setPrompt("");
-    clearFiles();
+    // Only clear the input when the message was actually sent or queued; a
+    // dropped message (one already queued) keeps its text and attachments.
+    if (sendMessage(fullContent, prompt)) {
+      setPrompt("");
+      clearFiles();
+    }
   }, [
     prompt,
     canGenerate,
@@ -503,21 +498,32 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      // Ignore the Enter that confirms an IME composition candidate — it fires
+      // keydown with isComposing/keyCode 229 and must neither send nor select a
+      // mention. Guard before the mention handler and the send logic.
+      if (
+        e.key === "Enter" &&
+        (e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229)
+      ) {
+        return;
+      }
       // Let the asset-mention picker consume nav / select / dismiss keys first.
       if (handleMentionKeyDown(e)) {
         return;
       }
       if (e.key === "Enter") {
-        if (shiftKeyPressed) {
+        // Read modifiers from the event, not the global KeyPressedStore, which
+        // is stale when the textarea was click-focused with a modifier held.
+        if (e.shiftKey) {
           return;
         }
-        if (!metaKeyPressed && !altKeyPressed) {
+        if (!e.metaKey && !e.altKey) {
           e.preventDefault();
           handleSend();
         }
       }
     },
-    [handleMentionKeyDown, shiftKeyPressed, metaKeyPressed, altKeyPressed, handleSend]
+    [handleMentionKeyDown, handleSend]
   );
 
   const modeIcon = useMemo(() => {

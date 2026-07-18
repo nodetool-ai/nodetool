@@ -1157,6 +1157,22 @@ const useGlobalChatStore = create<GlobalChatState>()(
                 const newCurrentThreadId = threadIds[threadIds.length - 1];
                 newState.currentThreadId = newCurrentThreadId;
                 newState.lastUsedThreadId = newCurrentThreadId;
+                // Project the newly-current thread's runtime onto the legacy
+                // top-level mirrors (status/statusMessage/progress/task etc.).
+                // Without this the mirrors keep reflecting the just-deleted
+                // (possibly streaming) thread — same reason switchThread and
+                // createNewThread call mirrorsForThread.
+                Object.assign(
+                  newState,
+                  mirrorsForThread(
+                    {
+                      ...state,
+                      threadRuntime: remainingRuntime,
+                      currentThreadId: newCurrentThreadId
+                    } as GlobalChatState,
+                    newCurrentThreadId
+                  )
+                );
                 // Clear any existing loadMessages timeout before setting a new one
                 const existingTimeout = get().loadMessagesTimeoutId;
                 if (existingTimeout !== null) {
@@ -1177,6 +1193,19 @@ const useGlobalChatStore = create<GlobalChatState>()(
                 // No threads left, clear current thread (we will create a new one below)
                 newState.currentThreadId = null;
                 newState.lastUsedThreadId = null;
+                // Reset the top-level mirrors to idle defaults so they stop
+                // reflecting the deleted thread's runtime.
+                Object.assign(
+                  newState,
+                  mirrorsForThread(
+                    {
+                      ...state,
+                      threadRuntime: {},
+                      currentThreadId: null
+                    } as GlobalChatState,
+                    "__no_thread__"
+                  )
+                );
               }
             }
             // If the deleted thread was the last used, but not current, pick another if available
@@ -1463,10 +1492,17 @@ const useGlobalChatStore = create<GlobalChatState>()(
               console.error("Failed to send stop signal:", error);
             });
 
+          // Enter "stopping" (not "idle") until the server's `generation_stopped`
+          // arrives. The straggler guard in handleChatWebSocketMessage swallows
+          // queued chunks/outputs for a thread whose runtime status is
+          // "stopping"; going straight to "idle" here would let those late
+          // chunks flip the thread back to "streaming" and re-append text after
+          // the user hit Stop. `applyGenerationStopped` resets the status to
+          // "idle", so a subsequent new generation starts cleanly.
           set((state) => ({
             loadMessagesTimeoutId: null,
             ...threadRuntimeUpdate(state, tid, {
-              status: "idle",
+              status: "stopping",
               progress: { current: 0, total: 0 },
               statusMessage: null,
               planningUpdate: null,

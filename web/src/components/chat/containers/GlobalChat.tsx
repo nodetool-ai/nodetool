@@ -290,8 +290,11 @@ const GlobalChat: React.FC = () => {
       if (viewportTimeoutId !== null) { clearTimeout(viewportTimeoutId); }
       viewportTimeoutId = setTimeout(() => {
         if (chatContainerRef.current) {
+          // The scroll host is the message wrapper (the only overflowY:auto
+          // element, ChatThreadView.styles.ts messageWrapper), not the outer
+          // .chat-thread-container which does not scroll.
           const chatArea = chatContainerRef.current.querySelector(
-            ".chat-thread-container"
+            ".scrollable-message-wrapper"
           );
           if (chatArea) {
             const wasAtBottom =
@@ -407,14 +410,24 @@ const GlobalChat: React.FC = () => {
         (msg: Message) => msg.role === "user"
       );
       if (firstUserMessage) {
-        const content =
-          typeof firstUserMessage.content === "string"
-            ? firstUserMessage.content
-            : Array.isArray(firstUserMessage.content) &&
-              firstUserMessage.content[0]?.type === "text"
-              ? (firstUserMessage.content[0] as MessageTextContent).text
-              : "[Media message]";
-        return content?.substring(0, 50) + (content?.length > 50 ? "..." : "");
+        let content: string;
+        if (typeof firstUserMessage.content === "string") {
+          content = firstUserMessage.content;
+        } else if (
+          Array.isArray(firstUserMessage.content) &&
+          firstUserMessage.content[0]?.type === "text"
+        ) {
+          // `text` can be null/undefined even on a text block — never let that
+          // stringify into the literal "undefined".
+          content =
+            (firstUserMessage.content[0] as MessageTextContent).text ?? "";
+        } else {
+          content = "[Media message]";
+        }
+        if (!content) {
+          return "New conversation";
+        }
+        return content.substring(0, 50) + (content.length > 50 ? "..." : "");
       }
 
       return "New conversation";

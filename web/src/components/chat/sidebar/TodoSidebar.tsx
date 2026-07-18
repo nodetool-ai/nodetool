@@ -128,7 +128,7 @@ export const TodoSidebar: React.FC<TodoSidebarProps> = memo(({ todos }) => {
             {todos.map((todo, i) => {
               const Icon = STATUS_ICONS[todo.status];
               return (
-                <div key={todo.content || i} className={`todo-item ${todo.status}`}>
+                <div key={`${i}-${todo.content}`} className={`todo-item ${todo.status}`}>
                   <Icon className={`todo-icon ${todo.status}`} />
                   <Text size="small" className={`todo-text ${todo.status}`}>
                     {todo.content}

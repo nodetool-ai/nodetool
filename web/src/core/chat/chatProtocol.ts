@@ -11,71 +11,18 @@
 
 import { visibleToolArgs } from "./toolCallFields";
 
-/**
- * Chunk deduplication cache to prevent duplicate chunks from being processed
- * multiple times due to duplicate WebSocket handlers or message routing.
- * Tracks last processed chunk per thread with a short TTL for cleanup.
- */
-const chunkDeduplicationCache = new Map<
-  string, // threadId
-  { content: string; timestamp: number; messageLength: number }
->();
-const CHUNK_DEDUP_TTL_MS = 100; // Short TTL - chunks should arrive in quick succession
-
-/**
- * Check if a chunk is a duplicate of the last processed chunk for a thread.
- * Also cleans up stale cache entries.
- */
-function isChunkDuplicate(
-  threadId: string,
-  chunkContent: string,
-  currentMessageLength: number
-): boolean {
-  const now = Date.now();
-  const cached = chunkDeduplicationCache.get(threadId);
-
-  // Clean up stale entry
-  if (cached && now - cached.timestamp > CHUNK_DEDUP_TTL_MS) {
-    chunkDeduplicationCache.delete(threadId);
-    return false;
-  }
-
-  // Check for duplicate: same content AND same message length (position)
-  if (
-    cached &&
-    cached.content === chunkContent &&
-    cached.messageLength === currentMessageLength
-  ) {
-    console.debug(
-      `Chunk dedup: Skipping duplicate chunk for thread ${threadId}: "${chunkContent.substring(0, 50)}..."`
-    );
-    return true;
-  }
-
-  return false;
-}
-
-/**
- * Record a processed chunk in the deduplication cache.
- */
-function recordProcessedChunk(
-  threadId: string,
-  chunkContent: string,
-  newMessageLength: number
-): void {
-  chunkDeduplicationCache.set(threadId, {
-    content: chunkContent,
-    timestamp: Date.now(),
-    messageLength: newMessageLength
-  });
-}
-
-/**
- * Clear the deduplication cache for a thread (e.g., when streaming ends).
- */
-function clearChunkCache(threadId: string): void {
-  chunkDeduplicationCache.delete(threadId);
-}
+// NOTE: There is deliberately no content-based chunk deduplication here.
+// The old cache keyed a chunk by (content, message-length-before-append) with a
+// 100ms TTL. That collided on genuinely-repeated consecutive tokens — two "\n"
+// deltas, repeated spaces, a "- " list bullet — silently dropping the second and
+// corrupting the streamed text. The Chunk protocol type carries no id/sequence
+// to distinguish a real repeat from an accidental double-delivery, so no
+// content heuristic can tell them apart without false positives.
+// True double-delivery is already prevented upstream: GlobalWebSocketManager
+// routes each message to every handler at most once (see its `calledHandlers`
+// set), and the store keeps exactly one subscription per thread, so a chunk can
+// never reach applyChunk twice. Appending every chunk verbatim is therefore
+// correct.
 
 import {
   Chunk,
@@ -196,37 +143,26 @@ export interface ToolResultMessage {
 }
 
 const makeMessageContent = (type: string, data: Uint8Array): MessageContent => {
-  let mimeType = "application/octet-stream";
-  if (type === "image") {
-    mimeType = "image/png";
-  } else if (type === "audio") {
-    mimeType = "audio/mp3";
-  } else if (type === "video") {
-    mimeType = "video/mp4";
-  }
-
-  const arrayBuffer = data.buffer.slice(
-    data.byteOffset,
-    data.byteOffset + data.byteLength
-  ) as ArrayBuffer;
-  const dataUri = URL.createObjectURL(
-    new Blob([arrayBuffer], { type: mimeType })
-  );
-
+  // Hand the raw bytes to the renderer rather than minting an object URL here.
+  // MessageContentRenderer (via ImageView / AudioPlayer, and its own <video>
+  // blob) creates AND revokes its own object URL, tied to component lifecycle.
+  // A URL created in this reducer could never be revoked — nothing tracks it —
+  // so it would leak for every streamed image/audio/video output. An empty
+  // `uri` makes the renderer take its `data` path.
   if (type === "image") {
     return {
       type: "image_url" as const,
-      image: { type: "image" as const, uri: dataUri }
+      image: { type: "image" as const, uri: "", data }
     };
   } else if (type === "audio") {
     return {
       type: "audio" as const,
-      audio: { type: "audio" as const, uri: dataUri }
+      audio: { type: "audio" as const, uri: "", data }
     };
   } else if (type === "video") {
     return {
       type: "video" as const,
-      video: { type: "video" as const, uri: dataUri }
+      video: { type: "video" as const, uri: "", data }
     };
   }
   throw new Error(`Unknown message content type: ${type}`);
@@ -408,35 +344,10 @@ const applyChunk = (
   // only text contributes to the assistant message stream.
   const chunkText = typeof chunk.content === "string" ? chunk.content : "";
 
-  // Get current message length for deduplication check
-  const currentMessageLength =
-    lastMessage && lastMessage.role === "assistant"
-      ? String(lastMessage.content || "").length
-      : 0;
-
-  // Check for duplicate chunk (can happen with multiple WebSocket handlers)
-  if (isChunkDuplicate(threadId, chunkText, currentMessageLength)) {
-    // Still update status if this is the final chunk
-    if (chunk.done) {
-      clearChunkCache(threadId);
-      return {
-        update: threadRuntimeUpdate(state, threadId, {
-          status: "idle",
-          planningUpdate: null,
-          taskUpdate: null,
-          logUpdate: null
-        })
-      };
-    }
-    return noopUpdate;
-  }
-
   let updatedMessages: Message[];
-  let newMessageLength: number;
 
   if (lastMessage && lastMessage.role === "assistant") {
     const newContent = (lastMessage.content || "") + chunkText;
-    newMessageLength = newContent.length;
     const updatedMessage: Message = {
       ...lastMessage,
       content: newContent
@@ -446,7 +357,6 @@ const applyChunk = (
     const localStreamId = `local-stream-${Date.now()}-${Math.random()
       .toString(16)
       .slice(2)}`;
-    newMessageLength = chunkText.length;
     const message: Message = {
       id: localStreamId,
       role: "assistant",
@@ -455,9 +365,6 @@ const applyChunk = (
     };
     updatedMessages = [...messages, message];
   }
-
-  // Record this chunk as processed for deduplication
-  recordProcessedChunk(threadId, chunkText, newMessageLength);
 
   // Preserve statusMessage during media generation (it's set from
   // content_metadata.media_generation in the chunk handler above).
@@ -489,9 +396,6 @@ const applyChunk = (
   if (!chunk.done) {
     return { update: baseUpdate };
   }
-
-  // Clear deduplication cache when streaming ends
-  clearChunkCache(threadId);
 
   const postAction = (get: ChatStateGetter) => {
     const { selectedModel, summarizeThread, updateThreadTitle } = get();
@@ -566,9 +470,32 @@ const applyOutputUpdate = (
       if (update.value === "<nodetool_end_of_stream>") {
         return noopUpdate;
       }
+      // When the assistant's last message already holds array content (an
+      // image/audio/video block from the media branch below), a string output
+      // must be appended as a text block: `array + string` coerces the array to
+      // "[object Object],…". Merge into a trailing text block when one exists;
+      // otherwise keep the original string-concat behavior.
+      const existingContent = lastMessage.content;
+      let nextContent: Message["content"];
+      if (Array.isArray(existingContent)) {
+        const lastBlock = existingContent[existingContent.length - 1];
+        nextContent =
+          lastBlock && lastBlock.type === "text"
+            ? [
+                ...existingContent.slice(0, -1),
+                { type: "text", text: lastBlock.text + update.value }
+              ]
+            : [...existingContent, { type: "text", text: update.value }];
+      } else if (typeof existingContent === "string" || existingContent == null) {
+        nextContent = (existingContent ?? "") + update.value;
+      } else {
+        // Record-shaped content shouldn't occur for a streaming assistant text
+        // message; leave it untouched rather than coerce it into a string.
+        nextContent = existingContent;
+      }
       const updatedMessage: Message = {
         ...lastMessage,
-        content: lastMessage.content + update.value
+        content: nextContent
       };
       return {
         update: {
