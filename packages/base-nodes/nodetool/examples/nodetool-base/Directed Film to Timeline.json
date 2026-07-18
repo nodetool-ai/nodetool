@@ -1,0 +1,376 @@
+{
+  "id": "directed_film_to_timeline",
+  "access": "public",
+  "created_at": "2026-07-18T00:00:00.000000",
+  "updated_at": "2026-07-18T00:00:00.000000",
+  "name": "Directed Film to Timeline",
+  "tool_name": null,
+  "description": "Turn a one-line brief into an editable rough cut. A Director agent writes a screenplay of shots, each shot is fanned out into a keyframe prompt, rendered as a still, animated into a clip, then all clips are collected, appended to a timeline sequence, and rendered to a single video you can keep editing.",
+  "tags": [
+    "video",
+    "generation",
+    "ai",
+    "timeline",
+    "creative",
+    "director",
+    "storyboard",
+    "example"
+  ],
+  "thumbnail": "Directed Film to Timeline.jpg",
+  "thumbnail_url": null,
+  "graph": {
+    "edges": [
+      {
+        "id": "e_brief_director",
+        "source": "brief",
+        "sourceHandle": "output",
+        "target": "director",
+        "targetHandle": "brief",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "e_director_shots",
+        "source": "director",
+        "sourceHandle": "screenplay",
+        "target": "shots",
+        "targetHandle": "screenplay",
+        "ui_properties": {
+          "className": "dict"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "e_shots_keyframe",
+        "source": "shots",
+        "sourceHandle": "shot_prompt",
+        "target": "keyframe",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "e_keyframe_animate",
+        "source": "keyframe",
+        "sourceHandle": "output",
+        "target": "animate",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "e_animate_collect",
+        "source": "animate",
+        "sourceHandle": "output",
+        "target": "clips_collect",
+        "targetHandle": "input_item",
+        "ui_properties": {
+          "className": "video"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "e_collect_addclips",
+        "source": "clips_collect",
+        "sourceHandle": "output",
+        "target": "add_clips",
+        "targetHandle": "clips",
+        "ui_properties": {
+          "className": "list"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "e_addclips_render",
+        "source": "add_clips",
+        "sourceHandle": "output",
+        "target": "render",
+        "targetHandle": "timeline",
+        "ui_properties": {
+          "className": "timeline"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "e_render_filmout",
+        "source": "render",
+        "sourceHandle": "output",
+        "target": "film_out",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "video"
+        },
+        "edge_type": "data"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "comment_main",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# 🎬 Directed Film to Timeline\n\nA brief becomes an editable rough cut in one graph:\n\n**1. Direct** — the Director agent turns your brief into a typed screenplay (shots with action, camera, and a shared style bible).\n**2. Fan out** — Screenplay Shots streams one composed prompt per shot.\n**3. Storyboard** — each prompt renders a keyframe still.\n**4. Shoot** — each keyframe is animated into a clip.\n**5. Assemble** — clips are collected, appended to a timeline sequence, and rendered to a single video.\n\nThe rendered timeline is a real editable sequence — reopen it in the timeline editor to trim, reorder, or add audio."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 40,
+            "y": -240
+          },
+          "zIndex": 0,
+          "width": 560,
+          "height": 240,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "brief",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "Brief",
+          "value": "A lighthouse keeper discovers the beam of her lamp has started bending toward something beneath the waves — and tonight it refuses to point anywhere else."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 40,
+            "y": 100
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "1️⃣ Brief",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "director",
+        "type": "nodetool.creative.Director",
+        "data": {
+          "model": {
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
+          },
+          "brief": "",
+          "style": "moody coastal nocturne, sodium-lamp amber against deep blue-black sea, drifting fog, anamorphic lens flares, fine film grain, painterly realism",
+          "shot_count": 5,
+          "aspect_ratio": "16:9",
+          "max_tokens": 8192
+        },
+        "ui_properties": {
+          "position": {
+            "x": 400,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 320,
+          "height": 320,
+          "title": "2️⃣ Director — write the screenplay",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "shots",
+        "type": "nodetool.creative.ScreenplayShots",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 780,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "height": 200,
+          "title": "3️⃣ Fan out one prompt per shot",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "keyframe",
+        "type": "nodetool.image.TextToImage",
+        "data": {
+          "model": {
+            "type": "image_model",
+            "provider": "huggingface_fal_ai",
+            "id": "fal-ai/flux/schnell",
+            "name": "FLUX.1 Schnell",
+            "path": null,
+            "supported_tasks": []
+          },
+          "prompt": "",
+          "negative_prompt": "",
+          "aspect_ratio": "16:9",
+          "resolution": "2K",
+          "timeout_seconds": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1120,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 320,
+          "height": 320,
+          "title": "4️⃣ Storyboard keyframes",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "animate",
+        "type": "nodetool.video.ImageToVideo",
+        "data": {
+          "model": {
+            "type": "video_model",
+            "provider": "gemini",
+            "id": "veo-3.1-generate-preview",
+            "name": "Veo 3.1 Preview",
+            "path": null,
+            "supported_tasks": []
+          },
+          "prompt": "Animate this scene with subtle, cinematic motion. Preserve the framing, subjects, and grade of the reference image. No jump cuts, no morphing, no added text.",
+          "negative_prompt": "",
+          "aspect_ratio": "16:9",
+          "resolution": "720p",
+          "duration": 4,
+          "timeout_seconds": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1500,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 330,
+          "height": 240,
+          "title": "5️⃣ Animate each shot",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "clips_collect",
+        "type": "nodetool.control.Collect",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1890,
+            "y": 160
+          },
+          "zIndex": 0,
+          "width": 160,
+          "height": 140,
+          "title": "6️⃣ Collect the clips",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "add_clips",
+        "type": "nodetool.timeline.AddClips",
+        "data": {
+          "timeline": {
+            "type": "timeline",
+            "id": null,
+            "data": null
+          },
+          "name": "Directed Film",
+          "image_duration_ms": 4000
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2110,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "height": 220,
+          "title": "7️⃣ Assemble into a timeline",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "render",
+        "type": "nodetool.timeline.RenderTimeline",
+        "data": {
+          "timeline": {
+            "type": "timeline",
+            "id": null,
+            "data": null
+          },
+          "include_audio": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2470,
+            "y": 140
+          },
+          "zIndex": 0,
+          "width": 300,
+          "height": 200,
+          "title": "8️⃣ Render the rough cut",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "film_out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "film"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2830,
+            "y": 180
+          },
+          "title": "🎬 Rough cut",
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null,
+  "html_app": null,
+  "app_doc": null,
+  "etag": null
+}

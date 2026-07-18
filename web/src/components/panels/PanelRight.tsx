@@ -17,6 +17,7 @@ import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ReactFlowProvider } from "@xyflow/react";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import FrontendToolRuntimeSync from "./FrontendToolRuntimeSync";
+import { WorkflowCostEstimatePanel } from "../costs/WorkflowCostEstimatePanel";
 import type { NodeStore } from "../../stores/NodeStore";
 import { useSubgraphTabsStore } from "../../stores/SubgraphTabsStore";
 
@@ -159,6 +160,10 @@ const PanelRight: React.FC = () => {
   );
   const activeNodeStore = activeSubgraphTab?.store ?? workflowNodeStore;
 
+  const currentWorkflowId = useWorkflowManager(
+    (state) => state.currentWorkflowId
+  );
+
   const handleMobileSheetClose = useCallback(
     () => setVisibility(false),
     [setVisibility]
@@ -227,7 +232,12 @@ const PanelRight: React.FC = () => {
             aria-valuemax={600}
             tabIndex={-1}
           />
-          <div className="panel-inner-content">{inspectorBody}</div>
+          <div className="panel-inner-content">
+            {inspectorBody}
+            {currentWorkflowId && (
+              <WorkflowCostEstimatePanel workflowId={currentWorkflowId} />
+            )}
+          </div>
         </div>
       </div>
     </>

@@ -1,0 +1,161 @@
+{
+  "slug": "script-to-screen",
+  "name": "Script to Screen",
+  "description": "Full production spine: a Director agent turns your brief into a direction document (characters, style bible, shot list, narration, music). A style frame anchors every keyframe for consistency, keyframes form a cheap storyboard you can approve before video spend, then each shot is animated, cut together, and mixed with voiceover and music.",
+  "image": null,
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Script to Screen"
+        }
+      },
+      "content": [
+        {
+          "type": "Heading",
+          "props": {
+            "id": "h-title",
+            "text": "🎬 Script to Screen",
+            "level": "1"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "One brief in — a directed, narrated, scored short film out. The direction document and storyboard land first, so you can check the plan before the video spend."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-brief",
+                  "title": "Brief",
+                  "content": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-brief",
+                        "binding": "Brief",
+                        "label": "Your film in one or two sentences",
+                        "placeholder": "A lighthouse keeper discovers the beam of her lamp has started bending toward s",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-style",
+                        "binding": "Visual Style",
+                        "label": "Visual style",
+                        "placeholder": "moody coastal nocturne, sodium-lamp amber against deep blue-black sea, drifting",
+                        "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-count",
+                        "binding": "Shot Count",
+                        "label": "Number of shots",
+                        "placeholder": "5",
+                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Direct my film",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-direction",
+                  "title": "Direction document",
+                  "content": [
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-direction",
+                        "binding": "direction",
+                        "placeholder": "The Director's plan appears here first — title, characters, shot list, narration, music."
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-film",
+                  "title": "Final film",
+                  "content": [
+                    {
+                      "type": "Video",
+                      "props": {
+                        "id": "out-film",
+                        "binding": "film",
+                        "height": 320,
+                        "placeholder": "Your film appears here"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-storyboard",
+                  "title": "Storyboard",
+                  "content": [
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-storyboard",
+                        "binding": "storyboard",
+                        "placeholder": "Keyframes appear here as they render"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  },
+  "values": {
+    "Brief": "A lighthouse keeper discovers the beam of her lamp has started bending toward something beneath the waves — and tonight it refuses to point anywhere else.",
+    "Visual Style": "moody coastal nocturne, sodium-lamp amber against deep blue-black sea, drifting fog, anamorphic lens flares, fine film grain, painterly realism",
+    "Shot Count": "5"
+  }
+}

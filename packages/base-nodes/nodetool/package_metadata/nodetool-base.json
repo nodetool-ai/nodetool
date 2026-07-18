@@ -187,6 +187,16 @@
       "package_name": "nodetool-base",
       "name": "Movie Trailer Generator.jpg",
       "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Script to Screen.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Directed Film to Timeline.jpg",
+      "path": ""
     }
   ],
   "examples": [
@@ -512,6 +522,21 @@
         "storytelling",
         "creative",
         "trailer",
+        "example"
+      ]
+    },
+    {
+      "id": "script_to_screen",
+      "name": "Script to Screen",
+      "description": "Full production spine: a Director agent turns your brief into a direction document (characters, style bible, shot list, narration, music). A style frame anchors every keyframe for consistency, keyframes form a cheap storyboard you can approve before video spend, then each shot is animated, cut together, and mixed with voiceover and music.",
+      "tags": [
+        "video",
+        "generation",
+        "ai",
+        "storytelling",
+        "creative",
+        "director",
+        "storyboard",
         "example"
       ]
     }

@@ -1144,7 +1144,13 @@ if (!isProduction) {
       ...({ duplex: "half" } as object)
     } as RequestInit);
 
-    const response = await handleMcpHttpRequest(request, { metadataRoots });
+    // This mount is non-production only (see the isProduction guard above)
+    // and serves the local single user. An authenticated multi-user mount
+    // must derive agentToolsScope from the session instead.
+    const response = await handleMcpHttpRequest(request, {
+      metadataRoots,
+      agentToolsScope: { userId: "1", source: "local-dev-http" }
+    });
     if (!response) {
       reply.status(404).send({ error: "Not found" });
       return;

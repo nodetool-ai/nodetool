@@ -128,6 +128,7 @@ function isFakeByClass(nodeType: string): boolean {
 interface FakeMeta {
   node_type?: string;
   required_settings?: string[] | null;
+  required_runtimes?: string[] | null;
   outputs?: Array<{ name: string; type?: { type?: string } }> | null;
   properties?: Array<{ name: string; type?: { type?: string } }> | null;
 }
@@ -158,6 +159,13 @@ function inputsMedia(meta: FakeMeta | undefined): boolean {
 
 function needsSecret(meta: FakeMeta | undefined): boolean {
   return Array.isArray(meta?.required_settings) && meta!.required_settings!.length > 0;
+}
+
+// Nodes that shell out to external runtimes (ffmpeg/ffprobe, …) cannot run on
+// the CI box, regardless of their declared IO types — e.g. timeline.AddClips
+// probes media bytes but is timeline-typed on both sides.
+function needsRuntime(meta: FakeMeta | undefined): boolean {
+  return Array.isArray(meta?.required_runtimes) && meta!.required_runtimes!.length > 0;
 }
 
 function isExternal(nodeType: string): boolean {
@@ -261,13 +269,14 @@ async function main(): Promise<void> {
       const meta = reg.getMetadata(node.type) as FakeMeta | undefined;
       const fake =
         needsSecret(meta) ||
+        needsRuntime(meta) ||
         outputsMedia(meta) ||
         inputsMedia(meta) ||
         isExternal(node.type) ||
         isFakeByClass(node.type);
       // eslint-disable-next-line no-console
       console.error(
-        `[EXEC-DBG] ${node.id} ${node.type} -> ${fake ? "FAKE" : "REAL"} (needsSecret=${needsSecret(meta)} outMedia=${outputsMedia(meta)} inMedia=${inputsMedia(meta)} ext=${isExternal(node.type)})`
+        `[EXEC-DBG] ${node.id} ${node.type} -> ${fake ? "FAKE" : "REAL"} (needsSecret=${needsSecret(meta)} runtime=${needsRuntime(meta)} outMedia=${outputsMedia(meta)} inMedia=${inputsMedia(meta)} ext=${isExternal(node.type)})`
       );
       if (fake) {
         return fakeExecutor(meta);

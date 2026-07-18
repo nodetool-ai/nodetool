@@ -4,6 +4,7 @@ import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import MovieOutlinedIcon from "@mui/icons-material/MovieOutlined";
+import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
 import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
@@ -221,6 +222,17 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
     }
   }, [createTimeline, openTab, close]);
 
+  const handleNewStoryboard = useCallback(() => {
+    // The board is a client-side singleton keyed by ref; no backend document.
+    openTab({
+      type: "storyboard",
+      ref: crypto.randomUUID(),
+      mode: "edit",
+      title: "Untitled storyboard"
+    });
+    close();
+  }, [openTab, close]);
+
   const handleNewChat = useCallback(async () => {
     try {
       const threadId = await createNewThread();
@@ -372,6 +384,11 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
               label="New video"
               icon={<MovieOutlinedIcon fontSize="small" />}
               onClick={() => void handleNewVideo()}
+            />
+            <MenuItemPrimitive
+              label="New storyboard"
+              icon={<DashboardOutlinedIcon fontSize="small" />}
+              onClick={handleNewStoryboard}
             />
             <MenuItemPrimitive
               label="New 3D model"

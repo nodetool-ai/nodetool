@@ -6,7 +6,7 @@
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
 
   {% unless page.path contains '.txt' or page.path contains '.xml' or page.path contains '.json' %}
-  <link rel="alternate" type="text/markdown" href="{{ page.url | markdown_alternate_url | relative_url }}">
+  {% unless page.url == "/404.html" %}<link rel="alternate" type="text/markdown" href="{{ page.url | markdown_alternate_url | relative_url }}">{% endunless %}
   {% endunless %}
 
   {% seo %}
