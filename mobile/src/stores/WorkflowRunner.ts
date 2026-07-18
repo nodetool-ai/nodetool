@@ -366,7 +366,7 @@ function handleMessage(
         statusMessage: `${msg.node_name || msg.node_id} ${msg.status}`,
       };
 
-      if (msg.result) {
+      if (msg.result !== undefined) {
         updates.nodeResults = {
           ...state.nodeResults,
           [msg.node_id]: msg.result,

@@ -359,12 +359,14 @@ export class OllamaProvider extends BaseProvider {
 
   private async postJson<T>(
     path: string,
-    body: Record<string, unknown>
+    body: Record<string, unknown>,
+    signal?: AbortSignal
   ): Promise<T> {
     const response = await this._fetch(`${this.apiUrl}${path}`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      signal
     });
     if (!response.ok) {
       throw new Error(`Ollama API request failed (${response.status})`);
@@ -451,6 +453,7 @@ export class OllamaProvider extends BaseProvider {
     topP?: number;
     presencePenalty?: number;
     frequencyPenalty?: number;
+    signal?: AbortSignal;
   }): Promise<Message> {
     const tools = args.tools ?? [];
     const useToolEmulation =
@@ -477,7 +480,8 @@ export class OllamaProvider extends BaseProvider {
     this.recordRequestPayload(request);
     const response = await this.postJson<{ message?: OllamaChatMessage }>(
       "/api/chat",
-      request
+      request,
+      args.signal
     );
     const message = response.message ?? {};
     const content = typeof message.content === "string" ? message.content : "";
@@ -559,6 +563,7 @@ export class OllamaProvider extends BaseProvider {
     presencePenalty?: number;
     frequencyPenalty?: number;
     audio?: Record<string, unknown>;
+    signal?: AbortSignal;
   }): AsyncGenerator<ProviderStreamItem> {
     const tools = args.tools ?? [];
     const useToolEmulation =
@@ -586,7 +591,8 @@ export class OllamaProvider extends BaseProvider {
     const response = await this._fetch(`${this.apiUrl}/api/chat`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(request)
+      body: JSON.stringify(request),
+      signal: args.signal
     });
 
     if (!response.ok || !response.body) {
@@ -664,6 +670,9 @@ export class OllamaProvider extends BaseProvider {
         }
       }
     } finally {
+      // Stop the underlying connection if the consumer bails early (abort /
+      // break); releasing the lock alone leaves the HTTP body undrained.
+      await reader.cancel().catch(() => undefined);
       reader.releaseLock();
     }
   }

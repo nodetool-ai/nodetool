@@ -34,17 +34,37 @@ function errorResponse(status: number, detail: string): Response {
  * Resolve a user-provided path within the sandbox root.
  * Returns the resolved absolute path, or null if the path escapes the sandbox.
  */
-function resolveSandboxed(rootDir: string, userPath: string): string | null {
+async function resolveSandboxed(
+  rootDir: string,
+  userPath: string
+): Promise<string | null> {
   const resolved = path.resolve(
     rootDir,
     userPath.startsWith("/") ? "." + userPath : userPath
   );
   const normalizedRoot = path.resolve(rootDir);
-  if (
-    !resolved.startsWith(normalizedRoot + path.sep) &&
-    resolved !== normalizedRoot
-  ) {
+  const isContained = (p: string): boolean =>
+    p === normalizedRoot || p.startsWith(normalizedRoot + path.sep);
+  if (!isContained(resolved)) {
     return null;
+  }
+
+  // Resolve symlinks on the deepest existing ancestor and re-check containment:
+  // a symlink that lives under the root but points outside it passes the lexical
+  // prefix check yet resolves elsewhere. Mirrors the tRPC `files` router.
+  let probe = resolved;
+  for (;;) {
+    try {
+      const real = await fs.realpath(probe);
+      if (!isContained(real)) {
+        return null;
+      }
+      break;
+    } catch {
+      const parent = path.dirname(probe);
+      if (parent === probe) break; // reached filesystem root without resolving
+      probe = parent;
+    }
   }
   return resolved;
 }
@@ -53,7 +73,7 @@ async function handleDownload(url: URL, rootDir: string): Promise<Response> {
   const userPath = url.searchParams.get("path");
   if (!userPath) return errorResponse(400, "path parameter is required");
 
-  const resolved = resolveSandboxed(rootDir, userPath);
+  const resolved = await resolveSandboxed(rootDir, userPath);
   if (!resolved) return errorResponse(403, "Path traversal not allowed");
 
   try {

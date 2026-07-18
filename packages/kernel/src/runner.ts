@@ -408,7 +408,9 @@ export class WorkflowRunner {
         if (sourceHandle && edge.sourceHandle !== sourceHandle) {
           continue;
         }
-        const hasHandleValue = nodeOutputs[edge.sourceHandle] !== undefined;
+        const hasHandleValue =
+          Object.hasOwn(nodeOutputs, edge.sourceHandle) &&
+          nodeOutputs[edge.sourceHandle] !== undefined;
         if (!outputsEmpty && !hasHandleValue) continue;
         const targetInbox = this._inboxes.get(edge.target);
         if (!targetInbox) continue;
@@ -1048,7 +1050,9 @@ export class WorkflowRunner {
         .findOutgoingEdges(node.id)
         .filter(isDataEdge);
       for (const edge of outgoing) {
-        const hasHandleValue = nodeOutputs[edge.sourceHandle] !== undefined;
+        const hasHandleValue =
+          Object.hasOwn(nodeOutputs, edge.sourceHandle) &&
+          nodeOutputs[edge.sourceHandle] !== undefined;
         if (!outputsEmpty && !hasHandleValue) continue;
         const targetInbox = this._inboxes.get(edge.target);
         if (targetInbox) {
