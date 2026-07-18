@@ -19,6 +19,7 @@ import {
   Caption,
   SectionHeader,
   BORDER_RADIUS,
+  MOTION,
   SPACING,
   SPACING_PX,
   TYPOGRAPHY,
@@ -377,10 +378,16 @@ export const JsonWidget: React.FC<WidgetCommon> = (props) => {
 export const ProgressWidget: React.FC<WidgetCommon & { label?: string }> = (
   props
 ) => {
-  const { value, runnerState } = useBinding(props, "read");
+  const { value, runnerState, designMode } = useBinding(props, "read");
   const isRunning = runnerState === "running" || runnerState === "connecting";
   const bound = numOr(value, NaN);
   const hasValue = Number.isFinite(bound);
+  // Progress belongs to a run in flight: show it only while the run is active,
+  // and let it disappear the moment the run finishes. A widget bound to a
+  // numeric output keeps that value after completion (only the runtime's own
+  // progress field is cleared), so visibility hangs off the run state, not the
+  // value. Keep it visible in the editor so the widget can be laid out.
+  if (!designMode && !isRunning) return null;
   return (
     <FlexColumn gap={SPACING.micro} fullWidth>
       {props.label ? <Caption color="secondary">{props.label}</Caption> : null}
@@ -546,7 +553,7 @@ const RunningLabel: React.FC = () => (
           key={i}
           component="span"
           sx={{
-            animation: `${ellipsisPulse} 1.2s ease-in-out ${i * 0.18}s infinite`,
+            animation: `${ellipsisPulse} ${MOTION.pulse} ${i * 0.18}s infinite`,
             ...reducedMotion({ animation: "none", opacity: 1 })
           }}
         >
@@ -589,9 +596,9 @@ export const ButtonWidget: React.FC<WidgetCommon & {
             position: "absolute",
             inset: 0,
             background:
-              "linear-gradient(100deg, transparent 20%, rgba(255,255,255,0.28) 50%, transparent 80%)",
+              "linear-gradient(100deg, transparent 20%, rgba(var(--palette-primary-contrastTextChannel) / 0.28) 50%, transparent 80%)",
             transform: "translateX(-100%)",
-            animation: `${buttonShimmer} 1.4s ease-in-out infinite`,
+            animation: `${buttonShimmer} ${MOTION.pulse} infinite`,
             pointerEvents: "none",
             ...reducedMotion({ animation: "none", opacity: 0 })
           }

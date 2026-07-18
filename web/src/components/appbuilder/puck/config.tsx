@@ -44,8 +44,17 @@ const PACE_OPTIONS = [
   { label: "Debounced", value: "debounce" }
 ];
 
+// "On release" only fires for widgets that emit a settled/commit phase (slider
+// release, input blur). Discrete controls — WorkflowInput, media/color pickers,
+// Switch, Select — emit only "change", so offering release there would silently
+// disable the action. They get Live/Debounced only.
+const PACE_OPTIONS_NO_RELEASE = PACE_OPTIONS.filter((o) => o.value !== "release");
+
 /** Array field describing a widget's events (each item dispatches an action). */
-const eventsField = (trigger: "click" | "change"): ArrayField => ({
+const eventsField = (
+  trigger: "click" | "change",
+  { commits = true }: { commits?: boolean } = {}
+): ArrayField => ({
   type: "array",
   label: trigger === "click" ? "On click" : "On change",
   arrayFields: {
@@ -53,7 +62,13 @@ const eventsField = (trigger: "click" | "change"): ArrayField => ({
     // Pacing throttles a run on continuous change (slider drag, typing); it has
     // no meaning for a one-shot click, so it only appears on change events.
     ...(trigger === "change"
-      ? { pace: { type: "select" as const, label: "Pacing", options: PACE_OPTIONS } }
+      ? {
+          pace: {
+            type: "select" as const,
+            label: "Pacing",
+            options: commits ? PACE_OPTIONS : PACE_OPTIONS_NO_RELEASE
+          }
+        }
       : {}),
     key: variableField("State variable"),
     value: { type: "text", label: "Value" }
@@ -82,7 +97,7 @@ const fixedInputEntry = (label: string, kind: FixedInputKind) => ({
   fields: {
     binding: bindingField("write", "Workflow input"),
     label: { type: "text" as const, label: "Label" },
-    events: eventsField("change")
+    events: eventsField("change", { commits: false })
   },
   defaultProps: { binding: "", label: "" },
   render: (props: FixedInputWidgetProps) => (
@@ -280,7 +295,7 @@ export const appConfig: Config = {
       label: "Workflow Input",
       fields: {
         binding: bindingField("write", "Workflow input"),
-        events: eventsField("change")
+        events: eventsField("change", { commits: false })
       },
       defaultProps: { binding: "" },
       render: (props) => <WorkflowInputWidget {...props} />
@@ -335,7 +350,7 @@ export const appConfig: Config = {
       fields: {
         binding: bindingField("write"),
         label: { type: "text", label: "Label" },
-        events: eventsField("change")
+        events: eventsField("change", { commits: false })
       },
       defaultProps: { label: "Toggle" },
       render: (props) => <SwitchWidget {...props} />
@@ -346,7 +361,7 @@ export const appConfig: Config = {
         binding: bindingField("write"),
         label: { type: "text", label: "Label" },
         options: optionsField,
-        events: eventsField("change")
+        events: eventsField("change", { commits: false })
       },
       defaultProps: {
         label: "Select",
