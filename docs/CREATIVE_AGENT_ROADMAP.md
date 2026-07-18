@@ -9,7 +9,7 @@ description: "What NodeTool needs to compete as a full script-to-render creative
 
 > Snapshot: July 2026. Market facts below carry dates; re-verify before building on them.
 
-What has to happen for NodeTool to be the strongest creative agent available: an agent that takes a brief and delivers a finished multi-shot video, with the plan inspectable and editable at every step. This doc records the market context, audits what the codebase already has, and lays out the work in priority order.
+What has to happen for NodeTool to be the strongest creative agent available: an agent that takes a brief and delivers a finished multi-shot video, with the plan inspectable and editable at every step. This doc records the market context, audits what the codebase already has, and lays out the work in priority order. For the user-facing walkthrough of the shipped workflow, see [Creative Agent]({{ '/creative-agent' | relative_url }}).
 
 The first deliverable already exists: the P0 pipeline is shipped as the **Script to Screen** template (`packages/base-nodes/nodetool/examples/nodetool-base/Script to Screen.json`), built entirely from existing nodes. Everything in P0 hardens that pipeline into product features; P1 and P2 extend it.
 
