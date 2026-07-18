@@ -40,6 +40,7 @@ import type { Message, MessageTextContent } from "../../../stores/ApiTypes";
 import { usePanelStore } from "../../../stores/PanelStore";
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
 import { ChatSidebar, SIDEBAR_WIDTH } from "../sidebar/ChatSidebar";
+import { CostTicker } from "../../costs/CostTicker";
 import { useShallow } from "zustand/react/shallow";
 
 // The connection-error banner floats above the whole chat surface (sidebar,
@@ -483,6 +484,19 @@ const GlobalChat: React.FC = () => {
         // Mobile styles handled via separate CSS file
       }}
     >
+      {workflowId && (
+        <FlexRow
+          align="center"
+          sx={{
+            position: "absolute",
+            top: 30,
+            right: 150,
+            zIndex: Z_INDEX.modal
+          }}
+        >
+          <CostTicker workflowId={workflowId} />
+        </FlexRow>
+      )}
       <EditorButton
         className="back-to-editor"
         variant="text"

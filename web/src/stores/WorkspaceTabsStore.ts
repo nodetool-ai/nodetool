@@ -19,6 +19,7 @@ export type WorkspaceTabType =
   | "image"
   | "sketch"
   | "timeline"
+  | "storyboard"
   | "model3d"
   | "audio"
   | "text"

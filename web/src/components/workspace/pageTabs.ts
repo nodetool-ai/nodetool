@@ -9,6 +9,7 @@ export type PageTabKey =
   | "packages"
   | "collections"
   | "workspaces"
+  | "entities"
   | "settings";
 
 export const PAGE_TAB_TITLES: Record<PageTabKey, string> = {
@@ -19,6 +20,7 @@ export const PAGE_TAB_TITLES: Record<PageTabKey, string> = {
   packages: "Package Manager",
   collections: "Collections",
   workspaces: "Workspaces",
+  entities: "Entities",
   settings: "Settings"
 };
 

@@ -34,6 +34,7 @@ const SUPPORTS_BOTH_MODES: Record<WorkspaceTabType, boolean> = {
   image: true,
   sketch: false,
   timeline: true,
+  storyboard: false,
   model3d: true,
   text: true,
   audio: true,
@@ -46,6 +47,7 @@ const RENAMEABLE_TYPES = new Set<WorkspaceTabType>([
   "workflow",
   "sketch",
   "timeline",
+  "storyboard",
   "model3d",
   "chat"
 ]);
@@ -55,6 +57,7 @@ const TYPE_GLYPH: Record<WorkspaceTabType, string> = {
   image: "▦",
   sketch: "✎",
   timeline: "▤",
+  storyboard: "▥",
   model3d: "◈",
   audio: "♪",
   text: "¶",
@@ -68,6 +71,7 @@ const TYPE_COLOR: Record<WorkspaceTabType, string> = {
   image: colorForType("image"),
   sketch: colorForType("image"),
   timeline: colorForType("video"),
+  storyboard: colorForType("video"),
   model3d: colorForType("model_3d"),
   audio: colorForType("audio"),
   text: colorForType("text"),
