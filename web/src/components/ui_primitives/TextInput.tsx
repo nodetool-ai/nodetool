@@ -18,8 +18,8 @@ import { Label } from "./Label";
 
 export interface TextInputProps
   extends Omit<MuiTextFieldProps, "variant" | "size"> {
-  /** Visual variant */
-  variant?: "outlined" | "filled" | "standard";
+  /** Visual variant. `filled` is not part of the token-height contract. */
+  variant?: "outlined" | "standard";
   /** Size variant */
   size?: "small" | "medium";
   /** Compact mode with reduced padding */
@@ -143,7 +143,7 @@ export const TextInput = memo(
               "& .MuiInputBase-root:not(.MuiInputBase-multiline)": {
                 minHeight: `${controlHeight}px`,
               },
-              "& .MuiOutlinedInput-root:not(.MuiInputBase-multiline) .MuiOutlinedInput-input":
+              "& .MuiInputBase-root:not(.MuiInputBase-multiline) .MuiInputBase-input":
                 {
                   paddingTop: isSmall ? "3px" : "7px",
                   paddingBottom: isSmall ? "3px" : "7px",
