@@ -13,7 +13,20 @@
 import React, { Suspense, useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
-import { Text, Caption, LoadingSpinner, Surface, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import {
+  Text,
+  Caption,
+  LoadingSpinner,
+  Surface,
+  Box,
+  FlexColumn,
+  FlexRow,
+  Panel,
+  TextInput,
+  SelectField,
+  MOTION,
+  BORDER_RADIUS
+} from "../ui_primitives";
 import {
   DataframeRef,
   NodeMetadata,
@@ -550,6 +563,59 @@ const PreviewWorkflowDelete: React.FC = () => (
   </Box>
 );
 
+const FORM_CONTROL_OPTIONS = [
+  { value: "widescreen", label: "16:9 — Widescreen" },
+  { value: "square", label: "1:1 — Square" }
+] as const;
+
+// The CONTROL height contract, side by side: a TextInput and a SelectField at
+// each size (and each Select variant) must render at exactly the same height.
+// The visual suite measures what jsdom cannot.
+const PreviewFormControls: React.FC = () => (
+  <Box data-preview="form-controls" sx={{ width: 560, p: 4 }}>
+    <Panel padding="normal">
+      <FlexColumn gap={3}>
+        <FlexRow gap={2} align="flex-end">
+          <TextInput label="Medium text" placeholder="36px" />
+          <SelectField
+            label="Medium outlined"
+            variant="outlined"
+            value="widescreen"
+            onChange={() => undefined}
+            options={FORM_CONTROL_OPTIONS}
+          />
+          <SelectField
+            label="Medium standard"
+            variant="standard"
+            value="widescreen"
+            onChange={() => undefined}
+            options={FORM_CONTROL_OPTIONS}
+          />
+        </FlexRow>
+        <FlexRow gap={2} align="flex-end">
+          <TextInput label="Small text" placeholder="28px" compact />
+          <SelectField
+            label="Small outlined"
+            variant="outlined"
+            size="small"
+            value="square"
+            onChange={() => undefined}
+            options={FORM_CONTROL_OPTIONS}
+          />
+          <SelectField
+            label="Small standard"
+            variant="standard"
+            size="small"
+            value="square"
+            onChange={() => undefined}
+            options={FORM_CONTROL_OPTIONS}
+          />
+        </FlexRow>
+      </FlexColumn>
+    </Panel>
+  </Box>
+);
+
 // ─── Preview index page ────────────────────────────────────────────────────────
 
 const PreviewIndex: React.FC = () => {
@@ -642,7 +708,8 @@ const COMPONENT_MAP: Record<string, React.FC> = {
   "download-manager": PreviewDownloadManager,
   "node-readme": PreviewNodeReadme,
   "workflow-form": PreviewWorkflowForm,
-  "workflow-delete": PreviewWorkflowDelete
+  "workflow-delete": PreviewWorkflowDelete,
+  "form-controls": PreviewFormControls
 };
 
 const ComponentPreview: React.FC = () => {
