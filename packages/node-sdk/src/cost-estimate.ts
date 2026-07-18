@@ -84,16 +84,15 @@ function resolvePrice(metadata: NodeMetadataLike | undefined): ResolvedPrice | n
 
   const kie = metadata?.kie_unit_pricing;
   if (kie) {
-    // Prefer the USD conversion so the total stays in one currency; fall back to
-    // the raw credit price only when no USD figure is available.
+    // Only the USD conversion enters the total. A raw credit price has no
+    // fixed USD value, so folding it in would corrupt the sum — without
+    // usd_price the node is reported but stays "unknown" (cost 0).
     const usd = kie.usd_price;
-    const unitPrice =
-      typeof usd === "number" && Number.isFinite(usd) ? usd : kie.unit_price;
-    if (Number.isFinite(unitPrice)) {
+    if (typeof usd === "number" && Number.isFinite(usd)) {
       return {
         provider: "kie",
         model: kie.model_id ?? null,
-        unitPrice,
+        unitPrice: usd,
         billingUnit: kie.billing_unit,
         confidence: confidenceFromSource(kie.source)
       };

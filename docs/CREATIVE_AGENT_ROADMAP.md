@@ -47,7 +47,7 @@ Confirmed absent: a storyboard/shot-list surface, a character-entity system, a d
 
 ## P0 — the production spine
 
-**Status: shipped (July 2026).** All four P0 features landed as product code on branch `claude/nodetool-creative-agent-j96pji`. Delivered artifacts are listed under each item. P1/P2 remain planned.
+**Status: shipped (July 2026).** All four P0 features and the three P1 items landed as product code on branch `claude/nodetool-creative-agent-j96pji`. Delivered artifacts and known limits are listed under each item. P2 remains planned.
 
 ### 1. Direction layer
 
@@ -63,13 +63,13 @@ A structured screenplay artifact — scenes and shots with duration, camera, mot
 
 Reusable Character / Location / Style objects: name, reference images, voice id, optional LoRA. Stored as assets, referenced by shots in the direction artifact, auto-injected into every generation call that names them. The model layer already takes reference images and LoRAs (hundreds of manifest endpoints expose `reference_image`, `first_frame`/`last_frame`, `lora`); what's missing is the abstraction, storage, and UI. This is the single most-complained-about gap in competing products.
 
-Shipped: `Entity`/`EntityRef` types in protocol; entities persist as assets tagged with a `nodetool_entity` metadata marker (no migration) — `web/src/serverState/useEntities.ts`; an Entity library page (`web/src/components/entities/`, opened from the rail menu); `ui_entity_list`/`ui_entity_apply` agent tools; and the `ApplyEntities` node for graph-level injection.
+Shipped: `Entity`/`EntityRef` types in protocol; entities persist as assets tagged with a `nodetool_entity` metadata marker (no migration) — `web/src/serverState/useEntities.ts`; an Entity library page (`web/src/components/entities/`, opened from the rail menu); `ui_entity_list`/`ui_entity_apply` agent tools; and the `ApplyEntities` node for graph-level injection. Injection is opt-in (wire the node, or call `ui_entity_apply`); automatic injection into every generation call that names an entity is still open.
 
 ### 3. Storyboard surface
 
 A workspace tab (peer of Timeline/Sketch in `web/src/components/workspace/`) that renders the direction artifact as shot cards: script text, style frame, generated still, then generated clip, with per-shot status, cost, and approve/regenerate. This is the plan-approve-spend gate: stills are cents, clips are dollars. Agent tools (`ui_storyboard_*`) mirror the existing timeline bridge.
 
-Shipped: `"storyboard"` workspace tab (`web/src/components/workspace/StoryboardSurface.tsx`, `web/src/components/storyboard/`), `StoryboardStore`/`StoryboardGenerationStore`, `useGenerateShot` (keyframe via TextToImage, clip via ImageToVideo through the workflow runner), a `storyboardAgentBridge`, and eight `ui_storyboard_*` tools (get_state, set_screenplay, add/update_shot, generate_keyframe, approve_shot, generate_clip, select_shot). Opened from the "New storyboard" menu item.
+Shipped: `"storyboard"` workspace tab (`web/src/components/workspace/StoryboardSurface.tsx`, `web/src/components/storyboard/`), `StoryboardStore`/`StoryboardGenerationStore`, `useGenerateShot` (keyframe via TextToImage, clip via ImageToVideo through the workflow runner), a Direct button that runs the Director node from the board (`useDirectScreenplay`), a `storyboardAgentBridge`, and nine `ui_storyboard_*` tools (get_state, set_screenplay, add/update_shot, generate_keyframe, approve_shot, generate_clip, revise_shot, select_shot). Opened from the "New storyboard" menu item. Boards are in-memory (no persistence yet), and the per-shot cost chip has no data source until estimates land per shot.
 
 ### 4. Cost governance
 
@@ -78,13 +78,23 @@ Shipped: `"storyboard"` workspace tab (`web/src/components/workspace/StoryboardS
 - Draft mode: route to cheap/low-res models first, final render on approval.
 - Live cost ticker in Global Chat (the data already flows through OTel; it stops short of the chat UI).
 
-Shipped: `estimateWorkflowCost`/`withinBudget` in `packages/node-sdk/src/cost-estimate.ts` (aggregates fal/kie unit pricing across a graph, surfaces unpriced nodes as "unknown"); `WorkflowCostEstimatePanel` in the right panel and a live `CostTicker` in Global Chat; a persisted `BudgetStore` (cap, currency, draft mode) with over-budget warnings; `useWorkflowCostEstimate`/`useLiveRunCost` hooks. Note: wiring `spent` into a run-completion path is the remaining follow-up.
+Shipped: `estimateWorkflowCost`/`withinBudget` in `packages/node-sdk/src/cost-estimate.ts` (aggregates fal/kie unit pricing across a graph, surfaces unpriced nodes as "unknown"); `WorkflowCostEstimatePanel` in the right panel and a `CostTicker` in Global Chat; a persisted `BudgetStore` (cap, currency, draft mode) with over-budget warnings; `useWorkflowCostEstimate`/`useLiveRunCost` hooks.
+
+Known limits, still open: the estimate counts each node once (fan-out is not multiplied in); the draft-mode toggle stores intent but does not yet route to cheaper models; `spent` is not yet fed from run completions, so budget remaining compares against zero; the ticker reads costs from editor-runner jobs, not chat-initiated ones; and the budget is a UI warning, not an agent-side constraint.
 
 ## P1 — close the loop
 
 5. **Flagship pipeline hardening**: evolve the Script to Screen template from Concat assembly to timeline assembly (`nodetool.timeline.AddClips` → `RenderTimeline`), add a `ShotBatch` node (structured shot list in, N parallel generations out) and a `ShotChain` node (auto last-frame → first-frame continuity between clips).
+
+   Shipped: `nodetool.creative.ShotBatch` and `ShotChain` (`packages/llm-nodes/src/nodes/shots.ts` — sequential clips with ffmpeg last-frame extraction seeding the next shot), plus a new `Directed Film to Timeline` example that assembles onto the timeline via `AddClips` → `RenderTimeline`. Script to Screen keeps its Concat cut (both assembly styles ship as examples), and no shipped example exercises ShotChain yet.
+
 6. **Shot-level revision**: "fix shot 3" as an agent flow — locate the clip via `ui_timeline_get_state`, regenerate through video-to-video endpoints (Aleph-class and Ray3-Modify-class models are already in the fal manifest), swap in place.
+
+   Shipped for the storyboard: `ui_storyboard_revise_shot` + a Revise button on the shot card regenerate a shot's clip via `nodetool.video.VideoToVideo` and swap it in place. The timeline-clip variant is still open.
+
 7. **NodeTool MCP server**: expose the existing internal tools (`list_nodes`, `create_workflow`, `run_workflow`, `debug_workflow`, media tools) over MCP so external agents (Claude Code, ChatGPT) can drive NodeTool. Comfy MCP and vidu-skills show distribution now flows through general agents.
+
+   Shipped: 18 workflow/creative tools bridged into the existing MCP server (`packages/websocket/src/mcp-agent-tools.ts`) and a `nodetool mcp` CLI (`serve` over stdio; `install`/`uninstall`/`status` for Claude Code, Codex, and OpenCode).
 
 ## P2 — polish and differentiation
 

@@ -279,8 +279,12 @@ export class ShotChainNode extends BaseNode {
 
     const videos: VideoRef[] = [];
     let lastFrame: ImageRef | null = null;
-    for (const step of plan) {
-      const spec = specs[step.index] ?? specs[plan.indexOf(step)];
+    // plan[i] describes specs[i] positionally; step.index is the shot's own
+    // label and must not be used as an array subscript (subset/reordered
+    // lists would pair the wrong spec).
+    for (let i = 0; i < plan.length; i += 1) {
+      const step = plan[i];
+      const spec = specs[i];
       if (!spec) continue;
       const startImage =
         step.seedFrom === "keyframe"

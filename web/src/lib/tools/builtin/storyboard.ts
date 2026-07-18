@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Screenplay, ShotStatus } from "@nodetool-ai/protocol";
+import { isScreenplay, type ShotStatus } from "@nodetool-ai/protocol";
 import { FrontendToolRegistry } from "../frontendTools";
 import { getStoryboardAgentHandler } from "../../../components/storyboard/storyboardAgentBridge";
 
@@ -54,11 +54,14 @@ FrontendToolRegistry.register({
   name: "ui_storyboard_set_screenplay",
   description:
     "Load a full screenplay onto the board, replacing its shots. `screenplay` is a Screenplay object ({ type:'screenplay', id, title, shots: Shot[], ... }) — typically the output of the Director node.",
-  parameters: z.object({ screenplay: z.any() }),
+  parameters: z.object({ screenplay: z.record(z.string(), z.unknown()) }),
   async execute({ screenplay }) {
-    const snapshot = getStoryboardAgentHandler().setScreenplay(
-      screenplay as Screenplay
-    );
+    if (!isScreenplay(screenplay)) {
+      throw new Error(
+        "`screenplay` must be a Screenplay object ({ type:'screenplay', shots: [...] })."
+      );
+    }
+    const snapshot = getStoryboardAgentHandler().setScreenplay(screenplay);
     return { ok: true, ...snapshot };
   }
 });

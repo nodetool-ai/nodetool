@@ -489,8 +489,8 @@ const GlobalChat: React.FC = () => {
           align="center"
           sx={{
             position: "absolute",
-            top: 30,
-            right: 150,
+            top: 28,
+            right: 152,
             zIndex: Z_INDEX.modal
           }}
         >

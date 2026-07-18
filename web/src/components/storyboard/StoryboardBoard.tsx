@@ -33,6 +33,10 @@ interface StoryboardBoardProps {
   readOnly?: boolean;
   /** Wired by the parent to a Director run; receives the requested shot count. */
   onDirect?: (shotCount: number) => void;
+  /** True while a Director run is in flight (disables and relabels the button). */
+  directing?: boolean;
+  /** Error from the last Director run, shown under the header fields. */
+  directError?: string | null;
 }
 
 const ASPECT_OPTIONS = [
@@ -69,7 +73,9 @@ const styles = (theme: Theme) =>
 const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   boardId,
   readOnly,
-  onDirect
+  onDirect,
+  directing,
+  directError
 }) => {
   const theme = useTheme();
   const { title, brief, style, aspectRatio, shots } = useBoard(boardId);
@@ -88,8 +94,8 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   return (
     <div css={styles(theme)} className="storyboard-board">
       {!readOnly && (
-        <Panel padding="compact" className="header-fields">
-          <FlexColumn gap={1}>
+        <Panel padding="normal" className="header-fields">
+          <FlexColumn gap={3}>
             <TextInput
               label="Title"
               value={title}
@@ -98,6 +104,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
             <TextInput
               label="Brief"
               value={brief}
+              placeholder="Your film in one or two sentences"
               onChange={(e) => setBrief(boardId, e.target.value)}
               multiline
               rows={3}
@@ -105,9 +112,10 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
             <TextInput
               label="Style"
               value={style}
+              placeholder="Palette, light, lens, texture"
               onChange={(e) => setStyle(boardId, e.target.value)}
             />
-            <FlexRow gap={1} align="flex-end">
+            <FlexRow gap={3} align="flex-end" wrap>
               <SelectField
                 label="Aspect ratio"
                 value={aspectRatio}
@@ -120,10 +128,20 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                 onChange={(value) => setShotCount(Number(value))}
                 options={SHOT_COUNT_OPTIONS}
               />
-              <EditorButton onClick={handleDirect} disabled={!onDirect}>
-                Direct
+              <EditorButton
+                variant="contained"
+                color="primary"
+                onClick={handleDirect}
+                disabled={!onDirect || directing}
+              >
+                {directing ? "Directing…" : "Direct"}
               </EditorButton>
             </FlexRow>
+            {directError && (
+              <Text size="small" color="error">
+                {directError}
+              </Text>
+            )}
           </FlexColumn>
         </Panel>
       )}

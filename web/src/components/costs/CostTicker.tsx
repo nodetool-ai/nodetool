@@ -81,7 +81,7 @@ const CostTickerInternal: React.FC<CostTickerProps> = ({ workflowId }) => {
           color: tier.contrastText,
           px: 1,
           py: 0,
-          height: 22,
+          height: 24,
           borderRadius: BORDER_RADIUS.xs,
           fontSize: "var(--fontSizeSmall)",
           fontWeight: 600,

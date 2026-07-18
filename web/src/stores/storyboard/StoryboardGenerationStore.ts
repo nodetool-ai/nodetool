@@ -386,29 +386,32 @@ const handleShotJobMessage = (jobId: string, message: WebSocketMessage): void =>
 
   if (status === "completed") {
     const value = jobOutputs.get(jobId);
-    const assetId = extractAssetId(value);
-    if (!assetId) {
+    // A usable output is any coercible ref — inline `data` counts, so don't
+    // require an asset_id/uri (in-flight outputs may not be persisted yet).
+    const ref =
+      context.kind === "keyframe" ? toImageRef(value) : toVideoRef(value);
+    if (!ref) {
       generationStore.updateJobStatus(jobId, "failed", {
-        errorMessage: "Workflow finished without producing an output asset."
+        errorMessage: "Workflow finished without producing an output."
       });
       unsubscribeShotJob(jobId);
       return;
     }
     const storyboard = useStoryboardStore.getState();
     if (context.kind === "keyframe") {
-      const ref = toImageRef(value);
-      if (ref) {
-        storyboard.setShotKeyframe(context.boardId, context.shotId, ref);
-      }
+      storyboard.setShotKeyframe(
+        context.boardId,
+        context.shotId,
+        ref as ImageRef
+      );
       storyboard.setShotStatus(context.boardId, context.shotId, "keyframe_ready");
     } else {
-      const ref = toVideoRef(value);
-      if (ref) {
-        storyboard.setShotClip(context.boardId, context.shotId, ref);
-      }
+      storyboard.setShotClip(context.boardId, context.shotId, ref as VideoRef);
       storyboard.setShotStatus(context.boardId, context.shotId, "rendered");
     }
-    generationStore.updateJobStatus(jobId, "completed", { assetId });
+    generationStore.updateJobStatus(jobId, "completed", {
+      assetId: extractAssetId(value)
+    });
     generationStore.clear(context.shotId);
     unsubscribeShotJob(jobId);
     return;

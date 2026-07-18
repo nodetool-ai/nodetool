@@ -1,9 +1,10 @@
 /** @jsxImportSource @emotion/react */
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import type { WorkspaceTabMode } from "../../stores/WorkspaceTabsStore";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import { useStoryboardGenerationSubscriptions } from "../../stores/storyboard/StoryboardGenerationStore";
 import { useStoryboardAgentBridge } from "../../hooks/storyboard/useStoryboardAgentBridge";
+import { useDirectScreenplay } from "../../hooks/storyboard/useDirectScreenplay";
 import StoryboardBoard from "../storyboard/StoryboardBoard";
 
 interface StoryboardSurfaceProps {
@@ -28,7 +29,21 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
   useStoryboardAgentBridge(refId, active);
   useStoryboardGenerationSubscriptions();
 
-  return <StoryboardBoard boardId={refId} readOnly={mode === "view"} />;
+  const { direct, directing, error } = useDirectScreenplay();
+  const handleDirect = useCallback(
+    (shotCount: number) => direct(refId, shotCount),
+    [direct, refId]
+  );
+
+  return (
+    <StoryboardBoard
+      boardId={refId}
+      readOnly={mode === "view"}
+      onDirect={handleDirect}
+      directing={directing}
+      directError={error}
+    />
+  );
 };
 
 export default StoryboardSurface;
