@@ -99,7 +99,8 @@ export class HeadlessAppRuntime {
             (typeof msg.node_name === "string" ? msg.node_name : undefined) ??
             (typeof msg.output_name === "string" ? msg.output_name : undefined);
           if (!key) break;
-          if (msg.disposition === "append" && typeof msg.value === "string") {
+          // Absent disposition appends (protocol default); only explicit "replace" replaces.
+          if (msg.disposition !== "replace" && typeof msg.value === "string") {
             this.values[key] = asString(this.values[key]) + msg.value;
           } else {
             this.values[key] = msg.value;

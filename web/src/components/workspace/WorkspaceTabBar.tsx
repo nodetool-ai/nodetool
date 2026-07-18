@@ -577,18 +577,16 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
         </div>
       )}
 
-      {activeTab &&
-        activeTab.type === "workflow" &&
-        activeTab.mode === "view" && (
-          <button
-            type="button"
-            className="app-builder-button"
-            onClick={() => navigate(`/app-builder/${activeTab.ref}`)}
-          >
-            <DashboardCustomizeIcon />
-            <span className="app-builder-label">App Builder</span>
-          </button>
-        )}
+      {activeTab && activeTab.type === "workflow" && (
+        <button
+          type="button"
+          className="app-builder-button"
+          onClick={() => navigate(`/app-builder/${activeTab.ref}`)}
+        >
+          <DashboardCustomizeIcon />
+          <span className="app-builder-label">App Builder</span>
+        </button>
+      )}
 
       <div className="right-actions">
         <NotificationButton />

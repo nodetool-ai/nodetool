@@ -5,7 +5,7 @@
   "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Hacker News Agent",
   "tool_name": null,
-  "description": "Scrape and analyze the front page of Hacker News.",
+  "description": "Scrape the Hacker News front page and get a topic-filtered digest written directly as Markdown — no separate formatting step.",
   "tags": [
     "hackernews",
     "news",
@@ -20,7 +20,7 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 📰 Hacker News Agent\n\nAn agent scrapes the Hacker News front page, pulls the top posts and comments, and writes a themed snapshot.\n\n**Pipeline:** Instructions → HN agent → formatted snapshot\n\n**Try this:** change how many posts to cover, or ask for a different angle."
+          "comment": "# 📰 Hacker News Agent\n\nAn agent scrapes the Hacker News front page, prioritizes posts matching your topic, and writes the digest straight to Markdown.\n\n**Pipeline:** Topic + instructions → HN agent (writes Markdown directly, no post-processing step) → output\n\n**Try this:** change the topic to steer coverage, or broaden it to cover the whole front page."
         },
         "ui_properties": {
           "selected": false,
@@ -37,26 +37,26 @@
         "dynamic_outputs": {}
       },
       {
-        "id": "2",
+        "id": "topic_input",
         "parent_id": null,
-        "type": "nodetool.text.Prompt",
+        "type": "nodetool.input.StringInput",
         "data": {
-          "prompt": "\n# Hacker News snapshot\n\n## Overview\n{{ summary }}\n\n{% for p in posts %}\n### {{ p.title }}\n{{ p.url }}\n\nTop comments:\n{% for c in p.top_comments %}\n- {{ c.author }}: {{ c.text }}\n{% endfor %}\n\n{% endfor %}\n"
+          "name": "topic",
+          "value": "AI and developer tools",
+          "description": "Focus area for the digest. Posts matching this topic are prioritized; if none match, the agent falls back to the top general front-page posts."
         },
         "ui_properties": {
-          "title": "3️⃣ Format snapshot",
+          "selected": false,
+          "title": "1️⃣ Topic",
           "position": {
-            "x": 800,
-            "y": 80
+            "x": 80,
+            "y": 300
           },
           "zIndex": 0,
           "width": 280,
           "selectable": true
         },
-        "dynamic_properties": {
-          "summary": null,
-          "posts": null
-        },
+        "dynamic_properties": {},
         "dynamic_outputs": {}
       },
       {
@@ -84,11 +84,11 @@
           ],
           "max_tokens": 100000,
           "prompt": "",
-          "system": "You are a research assistant.\n\nGoal\n- Conduct thorough research on the given objective\n- Use tools to gather information from multiple sources\n- Synthesize information into the structured output format specified\n\nTools Available\n- google_search: Search the web for information\n- browser: Navigate to URLs and extract content\n\nWorkflow\n1. Break down the research objective into specific queries\n2. Use google_search to find relevant sources\n3. Use browser to extract content from promising URLs\n4. Synthesize all findings into the requested output format\n\nOutput Format\n- Return a structured JSON object matching the defined output schema\n- Be thorough and cite sources where appropriate\n- Ensure all required fields are populated with accurate information\n",
+          "system": "You are a Hacker News analyst.\n\nGoal\n- Research the current Hacker News front page and write a single Markdown digest.\n- Use tools to gather real data — never invent posts, comments, or authors.\n\nTools Available\n- google_search: Search the web for information\n- browser: Navigate to URLs and extract page content\n\nWorkflow\n1. Open https://news.ycombinator.com/ and select the posts described in the task instructions (topic focus and count).\n2. For each selected post, open its discussion thread with the browser tool and extract the top comments.\n3. Write the final answer as Markdown text — one `##` heading per post, a link, and a bulleted comment list. Do not wrap the answer in JSON.\n\nOutput\n- Call the digest tool exactly once with the finished Markdown in the `digest_markdown` field.\n- Keep it scannable: a one-line overview at the top, then one section per post, no filler.\n",
           "mode": "plan"
         },
         "ui_properties": {
-          "title": "2️⃣ Scrape & analyze",
+          "title": "2️⃣ Scrape & write digest",
           "position": {
             "x": 440,
             "y": 80
@@ -99,41 +99,11 @@
         },
         "dynamic_properties": {},
         "dynamic_outputs": {
-          "summary": {
+          "digest_markdown": {
             "type": "str",
             "optional": false,
             "values": null,
             "type_args": [],
-            "type_name": null
-          },
-          "posts": {
-            "type": "list",
-            "optional": false,
-            "values": null,
-            "type_args": [
-              {
-                "type": "dict",
-                "optional": false,
-                "values": null,
-                "type_args": [
-                  {
-                    "type": "str",
-                    "optional": false,
-                    "values": null,
-                    "type_args": [],
-                    "type_name": null
-                  },
-                  {
-                    "type": "any",
-                    "optional": false,
-                    "values": null,
-                    "type_args": [],
-                    "type_name": null
-                  }
-                ],
-                "type_name": null
-              }
-            ],
             "type_name": null
           }
         }
@@ -143,7 +113,7 @@
         "parent_id": null,
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "\nScrape the front page of https://news.ycombinator.com/ and analyze activity.\n\nTasks:\n1) Identify the top 5 posts on the front page.\n2) For each post:\n   - Record title and url.\n   - Fetch the discussion thread with the browser tool.\n   - Extract the top 3 comments by score or prominence.\n   - For each comment, store text and author.\n\n3) Summarize the overall themes across the selected posts.\n\nOutput format (JSON):\n{\n  \"summary\": \"<high level summary of the 5 posts>\",\n  \"posts\": [\n    {\n      \"title\": \"<title>\",\n      \"url\": \"<url>\",\n      \"top_comments\": [\n        {\"text\": \"<comment text>\", \"author\": \"<username>\"},\n        ...\n      ]\n    },\n    ...\n  ]\n}\n"
+          "prompt": "\nScrape the front page of https://news.ycombinator.com/ and write a themed Markdown digest.\n\nTopic focus: {{ topic }}\n- Prioritize front-page posts related to this topic.\n- If none match, cover the top general front-page posts instead and say so in the overview.\n\nTasks:\n1) Identify the top 5 relevant posts (topic matches first, then highest-ranked).\n2) For each post:\n   - Fetch the discussion thread with the browser tool.\n   - Extract the top 3 comments by score or prominence, with author and text.\n3) Write the final answer as Markdown with this structure:\n\n# Hacker News Digest: {{ topic }}\n\n<1-2 sentence overview of the themes across the selected posts>\n\n## <post title>\n<post url>\n\n**Top comments:**\n- **<author>:** <comment text>\n- **<author>:** <comment text>\n- **<author>:** <comment text>\n\n(repeat the \"## <post title>\" section once per post)\n"
         },
         "ui_properties": {
           "title": "1️⃣ Research instructions",
@@ -155,7 +125,9 @@
           "width": 280,
           "selectable": true
         },
-        "dynamic_properties": {},
+        "dynamic_properties": {
+          "topic": null
+        },
         "dynamic_outputs": {}
       },
       {
@@ -165,8 +137,9 @@
           "name": "analysis"
         },
         "ui_properties": {
+          "title": "3️⃣ Digest",
           "position": {
-            "x": 1120,
+            "x": 800,
             "y": 80
           },
           "selectable": true
@@ -174,6 +147,14 @@
       }
     ],
     "edges": [
+      {
+        "id": "edge-topic",
+        "source": "topic_input",
+        "sourceHandle": "output",
+        "target": "4",
+        "targetHandle": "topic",
+        "ui_properties": null
+      },
       {
         "id": "1",
         "source": "4",
@@ -183,25 +164,9 @@
         "ui_properties": null
       },
       {
-        "id": "2",
-        "source": "3",
-        "sourceHandle": "summary",
-        "target": "2",
-        "targetHandle": "summary",
-        "ui_properties": null
-      },
-      {
-        "id": "3",
-        "source": "3",
-        "sourceHandle": "posts",
-        "target": "2",
-        "targetHandle": "posts",
-        "ui_properties": null
-      },
-      {
         "id": "edge-output-analysis",
-        "source": "2",
-        "sourceHandle": "output",
+        "source": "3",
+        "sourceHandle": "digest_markdown",
         "target": "output-analysis",
         "targetHandle": "value",
         "ui_properties": null
@@ -226,58 +191,77 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "🗞️ Hacker News Agent",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
             "id": "t-tagline",
-            "text": "One click for a smart digest of today's Hacker News front page."
+            "text": "Give it a topic — get a smart digest of what Hacker News is saying about it."
           }
         },
         {
-          "type": "Container",
+          "type": "Columns",
           "props": {
-            "id": "panel-try",
-            "title": "Try it",
-            "content": [
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
               {
-                "type": "Button",
+                "type": "Container",
                 "props": {
-                  "id": "btn-run",
-                  "label": "Analyze today's front page",
-                  "variant": "contained",
-                  "color": "primary",
-                  "events": [
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
                     {
-                      "trigger": "click",
-                      "kind": "run",
-                      "key": "",
-                      "value": ""
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-topic",
+                        "binding": "topic",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Analyze the front page",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
                     }
                   ]
                 }
               }
-            ]
-          }
-        },
-        {
-          "type": "Container",
-          "props": {
-            "id": "panel-results",
-            "title": "Results",
-            "content": [
+            ],
+            "right": [
               {
-                "type": "Markdown",
+                "type": "Container",
                 "props": {
-                  "id": "out-analysis",
-                  "binding": "analysis",
-                  "text": ""
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Reading the front page…",
+                        "binding": ""
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-analysis",
+                        "binding": "analysis",
+                        "text": ""
+                      }
+                    }
+                  ]
                 }
               }
             ]

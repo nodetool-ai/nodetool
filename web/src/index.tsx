@@ -80,8 +80,8 @@ import ChatComposerLayout from "./components/chat/containers/ChatComposerLayout"
 const GlobalChat = React.lazy(
   () => import("./components/chat/containers/GlobalChat")
 );
-const StandaloneMiniApp = React.lazy(
-  () => import("./components/miniapps/StandaloneMiniApp")
+const WorkflowAppView = React.lazy(
+  () => import("./components/appbuilder/WorkflowAppView")
 );
 const AcceptSharePage = React.lazy(
   () => import("./components/workflows/AcceptSharePage")
@@ -308,7 +308,9 @@ function getRoutes() {
       path: "/miniapp/:workflowId",
       element: (
         <ProtectedRoute>
-          <StandaloneMiniApp />
+          <React.Suspense fallback={<LoadingSpinner />}>
+            <WorkflowAppView />
+          </React.Suspense>
         </ProtectedRoute>
       )
     },

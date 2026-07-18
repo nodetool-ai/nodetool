@@ -130,11 +130,6 @@
     },
     {
       "package_name": "nodetool-base",
-      "name": "Story to Video Generator.jpg",
-      "path": ""
-    },
-    {
-      "package_name": "nodetool-base",
       "name": "Image To Audio Story.jpg",
       "path": ""
     },
@@ -230,18 +225,6 @@
       "description": "Workflow that demonstrates multi-branch decision logic with value routing.",
       "tags": [
         "boolean"
-      ]
-    },
-    {
-      "id": "story_to_video_generator",
-      "name": "Story to Video Generator",
-      "description": "Transform story ideas into cinematic AI-generated videos. An agent crafts detailed visual prompts optimized for video generation, then creates the video using Gemini Veo.",
-      "tags": [
-        "video",
-        "generation",
-        "ai",
-        "storytelling",
-        "creative"
       ]
     },
     {

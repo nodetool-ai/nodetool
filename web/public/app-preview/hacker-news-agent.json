@@ -1,7 +1,8 @@
 {
   "slug": "hacker-news-agent",
   "name": "Hacker News Agent",
-  "description": "Scrape and analyze the front page of Hacker News.",
+  "description": "Scrape the Hacker News front page and get a topic-filtered digest written directly as Markdown — no separate formatting step.",
+  "featured": false,
   "image": "/app-preview/img/hacker-news-agent.jpg",
   "app_doc": {
     "version": 2,
@@ -13,58 +14,77 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "🗞️ Hacker News Agent",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
             "id": "t-tagline",
-            "text": "One click for a smart digest of today's Hacker News front page."
+            "text": "Give it a topic — get a smart digest of what Hacker News is saying about it."
           }
         },
         {
-          "type": "Container",
+          "type": "Columns",
           "props": {
-            "id": "panel-try",
-            "title": "Try it",
-            "content": [
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
               {
-                "type": "Button",
+                "type": "Container",
                 "props": {
-                  "id": "btn-run",
-                  "label": "Analyze today's front page",
-                  "variant": "contained",
-                  "color": "primary",
-                  "events": [
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
                     {
-                      "trigger": "click",
-                      "kind": "run",
-                      "key": "",
-                      "value": ""
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-topic",
+                        "binding": "topic",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Analyze the front page",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
                     }
                   ]
                 }
               }
-            ]
-          }
-        },
-        {
-          "type": "Container",
-          "props": {
-            "id": "panel-results",
-            "title": "Results",
-            "content": [
+            ],
+            "right": [
               {
-                "type": "Markdown",
+                "type": "Container",
                 "props": {
-                  "id": "out-analysis",
-                  "binding": "analysis",
-                  "text": ""
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Reading the front page…",
+                        "binding": ""
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-analysis",
+                        "binding": "analysis",
+                        "text": ""
+                      }
+                    }
+                  ]
                 }
               }
             ]
@@ -75,6 +95,7 @@
     }
   },
   "values": {
-    "analysis": "**Today on HN:** local-first software is having a moment — three of the top ten posts cover sync engines. The comment section consensus: SQLite keeps winning.\n\n**Worth your time:** a deep-dive on how Anthropic trains coding agents (412 points)."
+    "topic": "AI and developer tools",
+    "analysis": "**Today on HN:** local-first software is having a moment — three of the top ten posts cover sync engines. The comment section consensus: SQLite keeps winning.\n\n**Worth your time:** a deep-dive on how coding agents are trained (412 points)."
   }
 }

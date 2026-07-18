@@ -2,7 +2,7 @@
 import React from "react";
 import type { Config, ArrayField } from "@puckeditor/core";
 
-import { Box, Text, FlexColumn, SPACING } from "../../ui_primitives";
+import { Box, Text, FlexColumn, SPACING, SPACING_PX } from "../../ui_primitives";
 import { bindingField, variableField } from "./fields";
 import {
   HeadingWidget,
@@ -12,6 +12,7 @@ import {
   AudioWidget,
   VideoWidget,
   JsonWidget,
+  OutputWidget,
   ProgressWidget,
   TextInputWidget,
   NumberInputWidget,
@@ -23,6 +24,12 @@ import {
   ColumnsWidget,
   DividerWidget
 } from "./widgets";
+import {
+  WorkflowInputWidget,
+  FixedKindInputWidget,
+  FixedInputKind,
+  FixedInputWidgetProps
+} from "./WorkflowInputWidget";
 
 const ACTION_OPTIONS = [
   { label: "Run workflow", value: "run" },
@@ -31,16 +38,48 @@ const ACTION_OPTIONS = [
   { label: "Toggle variable", value: "toggleState" }
 ];
 
+const PACE_OPTIONS = [
+  { label: "Live", value: "live" },
+  { label: "On release", value: "release" },
+  { label: "Debounced", value: "debounce" }
+];
+
+// "On release" only fires for widgets that emit a settled/commit phase (slider
+// release, input blur). Discrete controls — WorkflowInput, media/color pickers,
+// Switch, Select — emit only "change", so offering release there would silently
+// disable the action. They get Live/Debounced only.
+const PACE_OPTIONS_NO_RELEASE = PACE_OPTIONS.filter((o) => o.value !== "release");
+
 /** Array field describing a widget's events (each item dispatches an action). */
-const eventsField = (trigger: "click" | "change"): ArrayField => ({
+const eventsField = (
+  trigger: "click" | "change",
+  { commits = true }: { commits?: boolean } = {}
+): ArrayField => ({
   type: "array",
   label: trigger === "click" ? "On click" : "On change",
   arrayFields: {
     kind: { type: "select", label: "Action", options: ACTION_OPTIONS },
+    // Pacing throttles a run on continuous change (slider drag, typing); it has
+    // no meaning for a one-shot click, so it only appears on change events.
+    ...(trigger === "change"
+      ? {
+          pace: {
+            type: "select" as const,
+            label: "Pacing",
+            options: commits ? PACE_OPTIONS : PACE_OPTIONS_NO_RELEASE
+          }
+        }
+      : {}),
     key: variableField("State variable"),
     value: { type: "text", label: "Value" }
   },
-  defaultItemProps: { trigger, kind: "run", key: "", value: "" },
+  defaultItemProps: {
+    trigger,
+    kind: "run",
+    key: "",
+    value: "",
+    ...(trigger === "change" ? { pace: "live" } : {})
+  },
   getItemSummary: (item: Record<string, unknown>) => String(item.kind ?? "action")
 });
 
@@ -51,6 +90,20 @@ const optionsField: ArrayField = {
   defaultItemProps: { value: "Option" },
   getItemSummary: (item: Record<string, unknown>) => String(item.value ?? "option")
 };
+
+/** Palette entry for a standalone media/color input of a fixed kind. */
+const fixedInputEntry = (label: string, kind: FixedInputKind) => ({
+  label,
+  fields: {
+    binding: bindingField("write", "Workflow input"),
+    label: { type: "text" as const, label: "Label" },
+    events: eventsField("change", { commits: false })
+  },
+  defaultProps: { binding: "", label: "" },
+  render: (props: FixedInputWidgetProps) => (
+    <FixedKindInputWidget {...props} kind={kind} />
+  )
+});
 
 // `Config` is intentionally loosely typed (DefaultComponents): Puck injects
 // `id`/`puck` into render props, and our widget components take optional props.
@@ -71,10 +124,29 @@ export const appConfig: Config = {
           p: SPACING.xl,
           minHeight: "100%",
           backgroundColor: "background.default",
-          color: "text.primary"
+          color: "text.primary",
+          // Width-responsive widgets (Columns) query this container, so the
+          // editor canvas and the published app share one layout per width.
+          containerType: "inline-size"
         }}
       >
-        <FlexColumn gap={SPACING.xxl} sx={{ width: "100%" }}>
+        <FlexColumn
+          gap={SPACING.xxl}
+          sx={{
+            width: "100%",
+            // The root zone renders as a single direct div in both the editor
+            // (Puck's DropZone) and the runtime (a plain wrapper div); style
+            // its children as a gapped flex column so top-level widgets get
+            // the same vertical rhythm as slot contents (see slotStack in
+            // widgets.tsx) in both surfaces.
+            "& > div": {
+              display: "flex",
+              flexDirection: "column",
+              gap: `${SPACING_PX.xxl}px`,
+              width: "100%"
+            }
+          }}
+        >
           {title ? (
             <Text size="bigger" weight={600}>
               {title}
@@ -88,7 +160,19 @@ export const appConfig: Config = {
   categories: {
     inputs: {
       title: "Inputs",
-      components: ["TextInput", "NumberInput", "Slider", "Switch", "Select"]
+      components: [
+        "WorkflowInput",
+        "TextInput",
+        "NumberInput",
+        "Slider",
+        "Switch",
+        "Select",
+        "ImageInput",
+        "AudioInput",
+        "VideoInput",
+        "DocumentInput",
+        "ColorInput"
+      ]
     },
     actions: { title: "Actions", components: ["Button"] },
     display: {
@@ -101,6 +185,7 @@ export const appConfig: Config = {
         "Audio",
         "Video",
         "Json",
+        "Output",
         "Progress"
       ]
     },
@@ -187,6 +272,15 @@ export const appConfig: Config = {
       defaultProps: {},
       render: (props) => <JsonWidget {...props} />
     },
+    Output: {
+      label: "Output",
+      fields: {
+        binding: bindingField("read"),
+        placeholder: { type: "text", label: "Placeholder" }
+      },
+      defaultProps: { placeholder: "Your result appears here" },
+      render: (props) => <OutputWidget {...props} />
+    },
     Progress: {
       label: "Progress",
       fields: {
@@ -197,6 +291,15 @@ export const appConfig: Config = {
       render: (props) => <ProgressWidget {...props} />
     },
     // ── Inputs ──
+    WorkflowInput: {
+      label: "Workflow Input",
+      fields: {
+        binding: bindingField("write", "Workflow input"),
+        events: eventsField("change", { commits: false })
+      },
+      defaultProps: { binding: "" },
+      render: (props) => <WorkflowInputWidget {...props} />
+    },
     TextInput: {
       label: "Text Input",
       fields: {
@@ -247,7 +350,7 @@ export const appConfig: Config = {
       fields: {
         binding: bindingField("write"),
         label: { type: "text", label: "Label" },
-        events: eventsField("change")
+        events: eventsField("change", { commits: false })
       },
       defaultProps: { label: "Toggle" },
       render: (props) => <SwitchWidget {...props} />
@@ -258,7 +361,7 @@ export const appConfig: Config = {
         binding: bindingField("write"),
         label: { type: "text", label: "Label" },
         options: optionsField,
-        events: eventsField("change")
+        events: eventsField("change", { commits: false })
       },
       defaultProps: {
         label: "Select",
@@ -266,6 +369,11 @@ export const appConfig: Config = {
       },
       render: (props) => <SelectWidget {...props} />
     },
+    ImageInput: fixedInputEntry("Image Input", "image"),
+    AudioInput: fixedInputEntry("Audio Input", "audio"),
+    VideoInput: fixedInputEntry("Video Input", "video"),
+    DocumentInput: fixedInputEntry("Document Input", "document"),
+    ColorInput: fixedInputEntry("Color Input", "color"),
     // ── Actions ──
     Button: {
       label: "Button",

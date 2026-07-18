@@ -72,9 +72,6 @@ export const designTokenIgnores = [
   // "Add Black/White/Gray layer" swatch buttons — the button color *is* the
   // paint value it creates (color-as-data).
   "src/components/sketch/SketchLayersPanel.tsx",
-  // Decorative multi-hue @keyframes "running" status pulse — a rainbow animation,
-  // not semantic chrome.
-  "src/components/miniapps/StandaloneMiniApp.tsx",
   // Decorative multi-hue @keyframes "generating" wash + shimmer + aura — a
   // rainbow animation overlay, not semantic chrome.
   "src/components/sketch/GeneratingLayerOverlay.tsx",

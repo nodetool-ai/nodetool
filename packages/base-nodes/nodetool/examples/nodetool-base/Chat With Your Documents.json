@@ -1,0 +1,702 @@
+{
+  "id": "chat_with_your_documents",
+  "access": "public",
+  "created_at": "2026-07-17T12:00:00.000Z",
+  "updated_at": "2026-07-17T12:00:00.000Z",
+  "name": "Chat With Your Documents",
+  "tool_name": null,
+  "description": "Retrieval-augmented Q&A over your own documents. Index a small knowledge base into a vector collection, pull the passages matching a search keyword, and get a Markdown answer that cites its sources and refuses to guess when the answer isn't in the docs. NodeTool's first RAG example. The answer step uses gpt-5-mini (OpenAI key); the collection is configured for Ollama nomic-embed-text embeddings.",
+  "tags": [
+    "rag",
+    "vectorstore",
+    "retrieval",
+    "llm",
+    "citations"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "comment_intro",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# 📚 Chat With Your Documents (RAG)\n\nAsk questions against your own documents instead of the model's memory. Each document is indexed into a **vector collection**, a search keyword pulls the matching passages back out, and an LLM writes the answer **only** from what was retrieved — citing the source of every claim.\n\n**Pipeline:** Documents → index into collection · Search keyword → retrieve passages → build grounded prompt → cited answer\n\n**Why a graph:** the retrieval step is separate from the generation step, so you can swap the corpus, inspect exactly which passages were used, and keep the model from inventing facts. A chat box can't show you that.\n\n**Try this:** edit the documents, or change the search keyword to `warranty` to scope retrieval to one topic.\n\n**Retrieval:** the search keyword is matched against the indexed passages — `Aurora` appears in every document, so the whole corpus comes back and the model can answer any question about it. Narrow the keyword to retrieve a subset. The collection is set up with the Ollama `nomic-embed-text` embedding model for semantic vector search.",
+          "headline": "Chat With Your Documents"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": -620,
+            "y": 40
+          },
+          "zIndex": 0,
+          "width": 520,
+          "height": 300,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "question_input",
+        "parent_id": null,
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "question",
+          "value": "How long does the Aurora One take to fully charge, and what does its warranty cover?",
+          "description": "The question to answer from your documents"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 40,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "1️⃣ Question"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "search_input",
+        "parent_id": null,
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "search",
+          "value": "Aurora",
+          "description": "Keyword used to pull matching documents from your knowledge base. 'Aurora' appears in every document, so it retrieves the whole corpus; narrow it (e.g. 'warranty') to scope retrieval to one topic."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 40,
+            "y": 240
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "2️⃣ Search keyword"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "doc_specs",
+        "parent_id": null,
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "doc_specs",
+          "value": "# Aurora One — Technical Specifications\n\nThe Aurora One is a lightweight urban electric bike. It ships with a 500 Wh removable battery and a 250 W mid-drive motor. The assisted top speed is 25 km/h and the rated range is up to 80 km per charge in eco mode. The complete bike weighs 17 kg and fits riders from 160 cm to 195 cm tall. Frame material is 6061 aluminium; wheel size is 27.5 inches.",
+          "description": "Document 1 of your knowledge base"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 40,
+            "y": 400
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "📄 Doc: Specifications"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "doc_charging",
+        "parent_id": null,
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "doc_charging",
+          "value": "# Aurora One — Battery & Charging\n\nThe Aurora One battery charges from empty to full in about 4 hours with the included standard charger, or reaches 80% in roughly 2 hours. An optional fast charger cuts a full charge to about 2.5 hours. The battery is removable, so it can be charged on or off the bike. Aurora recommends storing the battery between 20% and 80% charge when not riding for long periods.",
+          "description": "Document 2 of your knowledge base"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 40,
+            "y": 560
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "📄 Doc: Charging"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "doc_warranty",
+        "parent_id": null,
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "doc_warranty",
+          "value": "# Aurora One — Warranty & Support\n\nEvery Aurora One includes a 2-year limited warranty covering the frame, motor, and battery against manufacturing defects. The warranty does not cover wear items such as tyres, brake pads, or accidental damage. Warranty service is handled through authorised Aurora dealers; contact support at help@aurorabikes.example within the coverage period to open a claim.",
+          "description": "Document 3 of your knowledge base"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 40,
+            "y": 720
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "📄 Doc: Warranty"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "collection",
+        "parent_id": null,
+        "type": "vector.Collection",
+        "data": {
+          "name": "aurora_docs",
+          "embedding_model": {
+            "type": "llama_model",
+            "id": "nomic-embed-text",
+            "name": "nomic-embed-text",
+            "provider": "ollama",
+            "repo_id": "nomic-embed-text",
+            "modified_at": "",
+            "size": 0,
+            "digest": "",
+            "details": {}
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 400,
+            "y": 400
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "🗄️ Vector collection"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "index_specs",
+        "parent_id": null,
+        "type": "vector.IndexTextChunk",
+        "data": {
+          "document_id": "aurora_specs",
+          "metadata": {
+            "source": "Technical Specifications"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 740,
+            "y": 400
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Index: Specifications"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "index_charging",
+        "parent_id": null,
+        "type": "vector.IndexTextChunk",
+        "data": {
+          "document_id": "aurora_charging",
+          "metadata": {
+            "source": "Battery & Charging"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 740,
+            "y": 560
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Index: Charging"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "index_warranty",
+        "parent_id": null,
+        "type": "vector.IndexTextChunk",
+        "data": {
+          "document_id": "aurora_warranty",
+          "metadata": {
+            "source": "Warranty & Support"
+          }
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 740,
+            "y": 720
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Index: Warranty"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "retrieve",
+        "parent_id": null,
+        "type": "vector.QueryText",
+        "data": {
+          "n_results": 5
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 740,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3️⃣ Retrieve passages"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "join_context",
+        "parent_id": null,
+        "type": "nodetool.text.Join",
+        "data": {
+          "separator": "\n\n----------\n\n"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1080,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Merge passages"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "rag_prompt",
+        "parent_id": null,
+        "type": "nodetool.text.Prompt",
+        "data": {
+          "prompt": "Context passages retrieved from the knowledge base:\n\n{{ CONTEXT }}\n\n--------------------\n\nUser question:\n{{ QUESTION }}",
+          "dynamic_properties": {}
+        },
+        "dynamic_properties": {
+          "CONTEXT": "",
+          "QUESTION": ""
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1420,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "4️⃣ Build grounded prompt"
+        },
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "answer",
+        "parent_id": null,
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
+          },
+          "mode": "loop",
+          "tools": [],
+          "max_tokens": 2000,
+          "system": "You are a documentation assistant that answers strictly from the provided context passages.\n\nRules:\n- Use ONLY the information in the context passages. Never use outside knowledge or assumptions.\n- If the answer is not present in the context, reply exactly: \"I couldn't find that in the provided documents.\"\n- After each factual claim, cite its source in parentheses using the passage's Markdown heading, e.g. (Battery & Charging).\n- Answer in concise Markdown — short paragraphs or bullet points.\n- Never fabricate specifications, dates, prices, or contact details."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1760,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "5️⃣ Cited answer"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "answer_output",
+        "parent_id": null,
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "Answer"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 2100,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 260,
+          "selectable": true,
+          "title": "Answer",
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "context_output",
+        "parent_id": null,
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "Retrieved Passages"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1420,
+            "y": 400
+          },
+          "zIndex": 0,
+          "width": 260,
+          "selectable": true,
+          "title": "Retrieved Passages",
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e_collection_index_specs",
+        "source": "collection",
+        "sourceHandle": "output",
+        "target": "index_specs",
+        "targetHandle": "collection",
+        "ui_properties": {
+          "className": "collection"
+        }
+      },
+      {
+        "id": "e_collection_index_charging",
+        "source": "collection",
+        "sourceHandle": "output",
+        "target": "index_charging",
+        "targetHandle": "collection",
+        "ui_properties": {
+          "className": "collection"
+        }
+      },
+      {
+        "id": "e_collection_index_warranty",
+        "source": "collection",
+        "sourceHandle": "output",
+        "target": "index_warranty",
+        "targetHandle": "collection",
+        "ui_properties": {
+          "className": "collection"
+        }
+      },
+      {
+        "id": "e_doc_specs_index",
+        "source": "doc_specs",
+        "sourceHandle": "output",
+        "target": "index_specs",
+        "targetHandle": "text",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "e_doc_charging_index",
+        "source": "doc_charging",
+        "sourceHandle": "output",
+        "target": "index_charging",
+        "targetHandle": "text",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "e_doc_warranty_index",
+        "source": "doc_warranty",
+        "sourceHandle": "output",
+        "target": "index_warranty",
+        "targetHandle": "text",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "e_collection_retrieve",
+        "source": "collection",
+        "sourceHandle": "output",
+        "target": "retrieve",
+        "targetHandle": "collection",
+        "ui_properties": {
+          "className": "collection"
+        }
+      },
+      {
+        "id": "e_search_retrieve",
+        "source": "search_input",
+        "sourceHandle": "output",
+        "target": "retrieve",
+        "targetHandle": "text",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "e_retrieve_join",
+        "source": "retrieve",
+        "sourceHandle": "documents",
+        "target": "join_context",
+        "targetHandle": "strings",
+        "ui_properties": {
+          "className": "list"
+        }
+      },
+      {
+        "id": "e_join_prompt",
+        "source": "join_context",
+        "sourceHandle": "output",
+        "target": "rag_prompt",
+        "targetHandle": "CONTEXT",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "e_question_prompt",
+        "source": "question_input",
+        "sourceHandle": "output",
+        "target": "rag_prompt",
+        "targetHandle": "QUESTION",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "e_join_context_output",
+        "source": "join_context",
+        "sourceHandle": "output",
+        "target": "context_output",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "e_prompt_answer",
+        "source": "rag_prompt",
+        "sourceHandle": "output",
+        "target": "answer",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        }
+      },
+      {
+        "id": "e_answer_output",
+        "source": "answer",
+        "sourceHandle": "text",
+        "target": "answer_output",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null,
+  "required_providers": null,
+  "required_models": null,
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Chat With Your Documents"
+        }
+      },
+      "content": [
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "Ask questions about your own documents — answers cite their source and refuse to guess."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-question",
+                        "binding": "question",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-search",
+                        "binding": "search",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-doc-specs",
+                        "binding": "doc_specs",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-doc-charging",
+                        "binding": "doc_charging",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-doc-warranty",
+                        "binding": "doc_warranty",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Ask",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Searching your knowledge base…",
+                        "binding": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-answer",
+                        "text": "Answer",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-answer",
+                        "binding": "Answer",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-retrieved-passages",
+                        "text": "Sources used",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-retrieved-passages",
+                        "binding": "Retrieved Passages",
+                        "text": ""
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
+}

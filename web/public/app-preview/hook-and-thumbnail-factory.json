@@ -1,7 +1,8 @@
 {
   "slug": "hook-and-thumbnail-factory",
   "name": "Hook & Thumbnail Factory",
-  "description": "Turn a video topic into scroll-stopping hook ideas and a matching AI thumbnail for each — a faceless short-form content starter kit in one run.",
+  "description": "One video topic in, a full thumbnail pack out: scroll-stopping hook lines plus a color-graded, ready-to-post thumbnail for each. The differentiator is the fan-out — one hook stream drives a whole gallery of matching images in a single run. Uses fal-ai/flux/schnell (cheap, fast).",
+  "featured": true,
   "image": null,
   "app_doc": {
     "version": 2,
@@ -13,18 +14,10 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "🪝 Hook & Thumbnail Factory",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
             "id": "t-tagline",
-            "text": "Give it a video topic — get scroll-stopping hooks and a matching thumbnail."
+            "text": "Give it a video topic — get scroll-stopping hooks and a gallery of matching thumbnails."
           }
         },
         {
@@ -40,24 +33,26 @@
                   "title": "Try it",
                   "content": [
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-video-topic",
                         "binding": "Video Topic",
-                        "label": "What's your video about?",
-                        "placeholder": "How compound interest quietly builds wealth",
-                        "multiline": true,
                         "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-target-audience",
                         "binding": "Target Audience",
-                        "label": "Who's watching?",
-                        "placeholder": "Gen Z just starting to invest",
-                        "multiline": false,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-number-of-hooks",
+                        "binding": "Number of Hooks",
                         "events": []
                       }
                     },
@@ -65,7 +60,7 @@
                       "type": "Button",
                       "props": {
                         "id": "btn-run",
-                        "label": "Make hooks & thumbnail",
+                        "label": "Make hooks & thumbnails",
                         "variant": "contained",
                         "color": "primary",
                         "events": [
@@ -90,6 +85,49 @@
                   "title": "Results",
                   "content": [
                     {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Writing hooks & rendering thumbnails…",
+                        "binding": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-thumbnail-gallery",
+                        "text": "Thumbnail gallery",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "out-thumbnail-gallery",
+                        "binding": "thumbnail_gallery",
+                        "fit": "contain",
+                        "height": 280,
+                        "placeholder": "Your result appears here"
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-make-another",
+                        "label": "Make another set",
+                        "variant": "outlined",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    },
+                    {
                       "type": "Heading",
                       "props": {
                         "id": "lbl-hooks",
@@ -109,7 +147,7 @@
                       "type": "Heading",
                       "props": {
                         "id": "lbl-thumbnail",
-                        "text": "Thumbnail",
+                        "text": "Featured thumbnail",
                         "level": "3"
                       }
                     },
@@ -136,7 +174,11 @@
   "values": {
     "Video Topic": "How compound interest quietly builds wealth",
     "Target Audience": "Gen Z just starting to invest",
+    "Number of Hooks": 4,
     "hooks": "1. “You're losing $100/month by not knowing this.”\n2. “Einstein called it the 8th wonder. Banks hope you never learn it.”\n3. “$5 a day → $1M. Here's the math nobody shows you.”",
+    "thumbnail_gallery": {
+      "$demo": "image"
+    },
     "thumbnail": {
       "$demo": "image"
     }

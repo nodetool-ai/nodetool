@@ -1,0 +1,152 @@
+{
+  "slug": "model-arena",
+  "name": "Model Arena",
+  "description": "One brief, three frontier models, answered side by side. The same prompt fans out to OpenAI, Anthropic, and Google in a single pass, each answering in the same structure — so you compare reasoning, not formatting. Swap the model on any lane to build your own bracket.",
+  "featured": false,
+  "image": null,
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Model Arena"
+        }
+      },
+      "content": [
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "One brief, three frontier models, answered side by side."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-brief",
+                        "binding": "brief",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-context",
+                        "binding": "context",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Compare the models",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Asking three models…",
+                        "binding": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-openai",
+                        "text": "OpenAI",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-openai",
+                        "binding": "openai",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-anthropic",
+                        "text": "Anthropic",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-anthropic",
+                        "binding": "anthropic",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-gemini",
+                        "text": "Google",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-gemini",
+                        "binding": "gemini",
+                        "text": ""
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  },
+  "values": {
+    "brief": "Should a 12-person B2B SaaS startup build its own customer-facing analytics dashboard, or integrate a third-party embedded-analytics vendor, for its reporting feature? Ship target is one quarter out.",
+    "context": "Audience: the founding team (technical). Constraints: 2 engineers can be spared for 6 weeks; weak reporting is a top-3 reason prospects churn; tooling budget is about $2k/month.",
+    "openai": "**OpenAI (gpt-5-mini):** Leads with a crisp 3-point structure, hedges on the edge case, ships a concrete next step.",
+    "anthropic": "**Anthropic (Claude):** Longer reasoning, names the tradeoff explicitly, flags one risk the others miss.",
+    "gemini": "**Google (Gemini):** Tightest answer, strongest on the factual recall, lightest on caveats."
+  }
+}

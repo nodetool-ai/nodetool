@@ -40,7 +40,7 @@ const AppBuilderPage: React.FC = () => {
   const queryClient = useQueryClient();
 
   const [data, setData] = useState<Data | null>(null);
-  const [agentOpen, setAgentOpen] = useState(true);
+  const [agentOpen, setAgentOpen] = useState(false);
   const toggleAgent = useCallback(() => setAgentOpen((open) => !open), []);
 
   const {

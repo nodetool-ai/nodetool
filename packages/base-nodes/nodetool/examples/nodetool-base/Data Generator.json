@@ -4,7 +4,7 @@
   "created_at": "2025-07-06T19:05:16.956562",
   "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Data Generator",
-  "description": "Generate structured data using AI agents",
+  "description": "Turn a one-line topic into a structured dataset — define the columns once, get validated rows back instead of paragraphs of prose.",
   "tags": [
     "agents"
   ],
@@ -12,6 +12,78 @@
   "thumbnail_url": "/examples/data_generator.png",
   "graph": {
     "nodes": [
+      {
+        "id": "topic_input",
+        "parent_id": null,
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "topic",
+          "value": "fresh vegetables, each with its typical color",
+          "description": "What kind of data to generate — a topic or dataset description"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 54,
+            "y": 20
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1️⃣ Topic"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "row_count_input",
+        "parent_id": null,
+        "type": "nodetool.input.IntegerInput",
+        "data": {
+          "name": "row_count",
+          "value": 8,
+          "min": 3,
+          "max": 30,
+          "description": "How many rows to generate"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 54,
+            "y": 180
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2️⃣ Row count"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "build_prompt",
+        "parent_id": null,
+        "type": "nodetool.text.Prompt",
+        "data": {
+          "prompt": "Generate exactly {{ROW_COUNT}} rows of data about {{TOPIC}}.\n\nRules for every row:\n- Fill in accurate, realistic values for each column — no placeholders.\n- Every row must be distinct; no duplicates or near-duplicates.\n- Return exactly {{ROW_COUNT}} rows, no more, no fewer.\n- No commentary or extra text outside the rows."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 410,
+            "y": 20
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3️⃣ Build prompt"
+        },
+        "dynamic_properties": {
+          "TOPIC": "fresh vegetables, each with its typical color",
+          "ROW_COUNT": "8"
+        },
+        "dynamic_outputs": {}
+      },
       {
         "id": "2ed27bde-9299-4088-a169-156b1ea5552f",
         "parent_id": null,
@@ -25,7 +97,6 @@
             "path": null,
             "supported_tasks": []
           },
-          "prompt": "Generate a table of veggies",
           "input_text": "",
           "max_tokens": 4096,
           "columns": {
@@ -34,12 +105,12 @@
               {
                 "name": "name",
                 "data_type": "string",
-                "description": ""
+                "description": "The name of the item"
               },
               {
                 "name": "color",
                 "data_type": "string",
-                "description": ""
+                "description": "The item's typical color"
               }
             ]
           }
@@ -47,51 +118,52 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 54,
-            "y": 71
+            "x": 766,
+            "y": 20
           },
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "1️⃣ Generate data"
+          "title": "4️⃣ Generate rows"
         },
         "dynamic_properties": {}
       },
       {
-        "id": "2",
+        "id": "data_output",
         "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
+        "type": "nodetool.output.Output",
         "data": {
           "name": "generated_data"
         },
         "ui_properties": {
           "position": {
-            "x": 410,
-            "y": 71
+            "x": 1122,
+            "y": 20
           },
           "zIndex": 0,
           "width": 280,
-          "height": 378,
+          "title": "5️⃣ View table",
           "selectable": true,
-          "title": "2️⃣ Preview rows"
+          "bypassed": false
         },
-        "dynamic_properties": {}
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
       },
       {
         "id": "b313851f-3dc9-4372-92ba-acd96654dfd5",
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🧮 Data Generator\n\nDescribe the data you want and the AI generates structured rows matching your columns.\n\n**Pipeline:** Data Generator → preview\n\n**Try this:** edit the prompt or add/rename columns to change the shape. Pick a model first."
+          "comment": "# 🧮 Data Generator\n\nDescribe the data you want and pick a row count — an AI agent returns structured rows matching your schema, not a wall of prose.\n\n**Pipeline:** Topic + row count → build prompt → generate rows → table\n\n**Try this:** change the topic, or edit/add columns on the generator node to reshape the dataset. Pick a model first."
         },
         "ui_properties": {
           "position": {
             "x": 45,
-            "y": -164
+            "y": -200
           },
           "zIndex": 0,
           "width": 460,
-          "height": 180,
+          "height": 190,
           "selectable": true
         },
         "dynamic_properties": {}
@@ -99,12 +171,39 @@
     ],
     "edges": [
       {
+        "id": "40602323-e39f-48d6-95fa-26a1d3a17fbc",
+        "source": "topic_input",
+        "sourceHandle": "output",
+        "target": "build_prompt",
+        "targetHandle": "TOPIC",
+        "ui_properties": null
+      },
+      {
+        "id": "b2b1f9d0-9f1b-4b7a-8e9b-6f2a5b3c9d11",
+        "source": "row_count_input",
+        "sourceHandle": "output",
+        "target": "build_prompt",
+        "targetHandle": "ROW_COUNT",
+        "ui_properties": null
+      },
+      {
+        "id": "244c407b-37b4-45d9-8b7d-0aa091c973c5",
+        "source": "build_prompt",
+        "sourceHandle": "output",
+        "target": "2ed27bde-9299-4088-a169-156b1ea5552f",
+        "targetHandle": "prompt",
+        "ui_properties": null
+      },
+      {
         "id": "6046a17f-2fe2-4884-bedc-b995b6e8ffbe",
         "source": "2ed27bde-9299-4088-a169-156b1ea5552f",
         "sourceHandle": "dataframe",
-        "target": "2",
+        "target": "data_output",
         "targetHandle": "value",
-        "ui_properties": null
+        "ui_properties": {
+          "className": "dataframe"
+        },
+        "edge_type": "data"
       }
     ]
   },
@@ -124,14 +223,6 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "🧮 Data Generator",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
             "id": "t-tagline",
@@ -139,42 +230,77 @@
           }
         },
         {
-          "type": "Container",
+          "type": "Columns",
           "props": {
-            "id": "panel-try",
-            "title": "Try it",
-            "content": [
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
               {
-                "type": "Button",
+                "type": "Container",
                 "props": {
-                  "id": "btn-run",
-                  "label": "Generate data",
-                  "variant": "contained",
-                  "color": "primary",
-                  "events": [
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
                     {
-                      "trigger": "click",
-                      "kind": "run",
-                      "key": "",
-                      "value": ""
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-topic",
+                        "binding": "topic",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-row-count",
+                        "binding": "row_count",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Generate data",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
                     }
                   ]
                 }
               }
-            ]
-          }
-        },
-        {
-          "type": "Container",
-          "props": {
-            "id": "panel-results",
-            "title": "Results",
-            "content": [
+            ],
+            "right": [
               {
-                "type": "Json",
+                "type": "Container",
                 "props": {
-                  "id": "out-generated-data",
-                  "binding": "generated_data"
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Generating rows…",
+                        "binding": ""
+                      }
+                    },
+                    {
+                      "type": "Json",
+                      "props": {
+                        "id": "out-generated-data",
+                        "binding": "generated_data"
+                      }
+                    }
+                  ]
                 }
               }
             ]

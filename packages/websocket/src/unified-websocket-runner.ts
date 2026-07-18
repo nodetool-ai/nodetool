@@ -283,6 +283,13 @@ function sanitizeErrorValue(
 }
 
 function formatSanitizedError(error: unknown): string {
+  // A nullish error means "no error" — the kernel stamps `error: null` on every
+  // node/job update. Never serialize that to the literal string "null" (via
+  // JSON.stringify below), which clients would show as a bogus error message.
+  if (error == null) {
+    return "";
+  }
+
   if (typeof error === "string") {
     return sanitizeLargeText(error);
   }
@@ -2337,7 +2344,10 @@ export class UnifiedWebSocketRunner {
             (msg as unknown as Record<string, unknown>).workflow_id ??
             active.workflowId
         };
-        if (outbound.error !== undefined) {
+        // Leave a nullish error untouched (the kernel stamps `error: null` on
+        // every update) — only sanitize a real error value. Formatting null here
+        // would ship the literal string "null" to clients.
+        if (outbound.error != null) {
           outbound.error = formatSanitizedError(outbound.error);
         }
         if (

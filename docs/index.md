@@ -100,7 +100,7 @@ Same code, same workflows. Both AGPL-3.0.
   <article class="pattern-card">
     <h5>Story to video</h5>
     <p>Prompt to storyboard to narration to animation to score.</p>
-    <a href="{{ '/workflows/story-to-video-generator' | relative_url }}">Story to Video →</a>
+    <a href="{{ '/use-cases/movie-trailer' | relative_url }}">Movie Trailer Generator →</a>
   </article>
   <article class="pattern-card">
     <h5>Sound and voice</h5>

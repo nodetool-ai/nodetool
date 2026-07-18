@@ -36,7 +36,29 @@ const nextConfig = {
         destination: 'https://api.nodetool.run/api/:path*',
       },
     ];
-  }
+  },
+  // Slugs retired by the examples catalog revamp (docs/plans/examples-revamp.md,
+  // Phase 2): each was merged into another template, so both its /apps/<slug>
+  // mini-app page and /templates/<slug> template page must keep resolving —
+  // permanent redirects to the absorbing template's pages, which already carry
+  // whatever search equity the retired slug had.
+  redirects: async () => {
+    const merges = {
+      'agent-google-search': 'research-agent',
+      'wikipedia-agent': 'research-agent',
+      'youtube-research-agent': 'research-agent',
+      'creative-story-ideas': 'prompt-template',
+      'learning-path-generator': 'prompt-template',
+      'fetch-papers': 'research-paper-summarizer',
+      'summarize-audio': 'meeting-transcript-summarizer',
+      'youtube-thumbnail-pipeline': 'hook-and-thumbnail-factory',
+      'story-to-video-generator': 'movie-trailer-generator',
+    };
+    return Object.entries(merges).flatMap(([from, to]) => [
+      { source: `/apps/${from}`, destination: `/apps/${to}`, permanent: true },
+      { source: `/templates/${from}`, destination: `/templates/${to}`, permanent: true },
+    ]);
+  },
 };
 
 export default nextConfig;

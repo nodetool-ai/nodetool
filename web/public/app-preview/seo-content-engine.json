@@ -1,7 +1,8 @@
 {
   "slug": "seo-content-engine",
   "name": "SEO Content Engine",
-  "description": "One topic in, a keyword-targeted article batch out. A strategist agent plans the topic cluster, a list generator turns it into briefs, and every brief becomes a full Markdown article with an editorial hero image.",
+  "description": "One topic in, a keyword-targeted article batch out — each article lands as typed fields (title, meta description, keywords, body) instead of one markdown blob, ready to paste straight into a CMS. A strategist agent plans the topic cluster, a list generator turns it into briefs, and every brief becomes a full article with an editorial hero image.",
+  "featured": false,
   "image": null,
   "app_doc": {
     "version": 2,
@@ -12,14 +13,6 @@
         }
       },
       "content": [
-        {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "📈 SEO Content Engine",
-            "level": "1"
-          }
-        },
         {
           "type": "Text",
           "props": {
@@ -40,36 +33,26 @@
                   "title": "Try it",
                   "content": [
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-business",
                         "binding": "business",
-                        "label": "Your business",
-                        "placeholder": "Aurora Gear — a DTC shop for ultralight hiking equipment. The blog lives at auro",
-                        "multiline": true,
                         "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-audience-and-seeds",
                         "binding": "audience_and_seeds",
-                        "label": "Audience & seed topics",
-                        "placeholder": "beginner hikers researching their first serious gear; seed topics: ultralight ba",
-                        "multiline": true,
                         "events": []
                       }
                     },
                     {
-                      "type": "Slider",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-article-count",
                         "binding": "article_count",
-                        "label": "Articles to write",
-                        "min": 2,
-                        "max": 10,
-                        "step": 1,
                         "events": []
                       }
                     },
@@ -102,6 +85,14 @@
                   "title": "Results",
                   "content": [
                     {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Planning & drafting…",
+                        "binding": ""
+                      }
+                    },
+                    {
                       "type": "Heading",
                       "props": {
                         "id": "lbl-content-plan",
@@ -120,7 +111,55 @@
                     {
                       "type": "Heading",
                       "props": {
-                        "id": "lbl-articles",
+                        "id": "lbl-article-titles",
+                        "text": "Article titles",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-article-titles",
+                        "binding": "article_titles",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-meta-descriptions",
+                        "text": "Meta descriptions",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-meta-descriptions",
+                        "binding": "meta_descriptions",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-keywords",
+                        "text": "Keywords",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-keywords",
+                        "binding": "keywords",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-article-bodies",
                         "text": "Articles",
                         "level": "3"
                       }
@@ -128,8 +167,8 @@
                     {
                       "type": "Markdown",
                       "props": {
-                        "id": "out-articles",
-                        "binding": "articles",
+                        "id": "out-article-bodies",
+                        "binding": "article_bodies",
                         "text": ""
                       }
                     },
@@ -166,7 +205,10 @@
     "audience_and_seeds": "beginner hikers researching their first serious gear; seed topics: ultralight backpacking basics, trail runners vs hiking boots, multi-day packing lists",
     "article_count": 4,
     "content_plan": "**Cluster: first-gear decisions**\n1. Ultralight backpacks under $200 (KD 18)\n2. Trail runners vs. hiking boots (KD 22)\n3. The 10 essentials, minimalist edition (KD 12)",
-    "articles": "**Trail runners vs. hiking boots: what beginners actually need**\n\nYou don't need ankle support. You need to stop buying footwear for a hike you're not doing…",
+    "article_titles": "1. Trail Runners vs. Hiking Boots: What Beginners Actually Need\n2. Ultralight Backpacks Under $200 That Don't Cut Corners",
+    "meta_descriptions": "Skip the ankle-support myth. Here's what first-time hikers really need on their feet — and what to save money on.",
+    "keywords": "trail runners for hiking, beginner hiking shoes, ultralight backpack under 200",
+    "article_bodies": "**Trail runners vs. hiking boots: what beginners actually need**\n\nYou don't need ankle support. You need to stop buying footwear for a hike you're not doing…",
     "hero_images": {
       "$demo": "image"
     }

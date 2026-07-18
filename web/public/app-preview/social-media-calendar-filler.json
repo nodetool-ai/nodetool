@@ -1,7 +1,8 @@
 {
   "slug": "social-media-calendar-filler",
   "name": "Social Media Calendar Filler",
-  "description": "Generate a month's worth of social media content with images, captions, and hashtags. Plans content based on monthly themes and brand guidelines.",
+  "description": "Generate a month's worth of social media content as a structured calendar — one row per post with its own image prompt and ready-to-post caption — then render an image for every row.",
+  "featured": false,
   "image": "/app-preview/img/social-media-calendar-filler.jpg",
   "app_doc": {
     "version": 2,
@@ -13,18 +14,10 @@
       },
       "content": [
         {
-          "type": "Heading",
-          "props": {
-            "id": "h-title",
-            "text": "📅 Social Media Calendar Filler",
-            "level": "1"
-          }
-        },
-        {
           "type": "Text",
           "props": {
             "id": "t-tagline",
-            "text": "Fill a month of social posts — images, captions, and hashtags included."
+            "text": "Fill a month of social posts — a structured calendar with an image for every row."
           }
         },
         {
@@ -40,58 +33,42 @@
                   "title": "Try it",
                   "content": [
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-brand-name",
                         "binding": "brand_name",
-                        "label": "Brand name",
-                        "placeholder": "TechStartup Pro",
-                        "multiline": false,
                         "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-monthly-theme",
                         "binding": "monthly_theme",
-                        "label": "This month's theme",
-                        "placeholder": "AI productivity tools and workflow automation",
-                        "multiline": true,
                         "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-target-audience",
                         "binding": "target_audience",
-                        "label": "Audience",
-                        "placeholder": "Tech professionals, entrepreneurs, and startup founders aged 25-45",
-                        "multiline": true,
                         "events": []
                       }
                     },
                     {
-                      "type": "TextInput",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-brand-voice",
                         "binding": "brand_voice",
-                        "label": "Brand voice",
-                        "placeholder": "Professional yet approachable, educational, inspiring, data-driven",
-                        "multiline": true,
                         "events": []
                       }
                     },
                     {
-                      "type": "Slider",
+                      "type": "WorkflowInput",
                       "props": {
                         "id": "in-posts-per-week",
                         "binding": "posts_per_week",
-                        "label": "Posts per week",
-                        "min": 1,
-                        "max": 7,
-                        "step": 1,
                         "events": []
                       }
                     },
@@ -123,6 +100,29 @@
                   "id": "panel-results",
                   "title": "Results",
                   "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Filling your calendar…",
+                        "binding": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-content-calendar",
+                        "text": "Content calendar",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Json",
+                      "props": {
+                        "id": "out-content-calendar",
+                        "binding": "content_calendar"
+                      }
+                    },
                     {
                       "type": "Heading",
                       "props": {
@@ -173,6 +173,18 @@
     "target_audience": "Tech professionals, entrepreneurs, and startup founders aged 25-45",
     "brand_voice": "Professional yet approachable, educational, inspiring, data-driven",
     "posts_per_week": 4,
+    "content_calendar": [
+      {
+        "day": "Mon",
+        "hook": "Your team isn't slow. Your handoffs are.",
+        "format": "carousel"
+      },
+      {
+        "day": "Wed",
+        "hook": "We measured 30 days of context-switching.",
+        "format": "single"
+      }
+    ],
     "post_images": {
       "$demo": "image"
     },

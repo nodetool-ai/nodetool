@@ -64,9 +64,9 @@ const upcomingWorkflows = [
     icon: Mail,
   },
   {
-    title: "YouTube Thumbnail Pipeline",
+    title: "Hook & Thumbnail Factory",
     description:
-      "Batch-generate and A/B-test thumbnail concepts from a video title and description.",
+      "Batch-generate and A/B-test video hooks and thumbnail concepts from a video title and description.",
     icon: Youtube,
   },
 ];

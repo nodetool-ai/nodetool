@@ -24,6 +24,11 @@ import {
 } from "../../../hooks/nodes/buildDownstreamRunGraph";
 import { browserSupportsSync } from "../../../lib/workflow/browserWorkflowRunner";
 import { WorkflowIO } from "../workflowIO";
+import {
+  collectNodePropertyOverlays,
+  parseNodePropertyBinding,
+  withNodeProperties
+} from "../nodeBinding";
 
 export interface TriggerSubgraph {
   /** Browser-runnable graph in runner (graph-node) shape. */
@@ -45,9 +50,11 @@ const withInputValue = (
 });
 
 /**
- * Build the browser-runnable downstream subgraph for a trigger input, or null
- * when the input can't be resolved or nothing downstream runs in the browser
- * (the caller then falls back to a full run).
+ * Build the browser-runnable downstream subgraph for a trigger, or null when
+ * the trigger can't be resolved or nothing downstream runs in the browser
+ * (the caller then falls back to a full run). The trigger is either a workflow
+ * input name or a `node:<id>#<property>` binding — for the latter the bound
+ * node itself is the subgraph root.
  */
 export const buildTriggerSubgraph = (
   workflow: Workflow,
@@ -55,8 +62,12 @@ export const buildTriggerSubgraph = (
   values: Record<string, unknown>,
   triggerInputName: string
 ): TriggerSubgraph | null => {
-  const trigger = io.inputs.find((input) => input.name === triggerInputName);
-  if (!trigger) return null;
+  const nodeTrigger = parseNodePropertyBinding(triggerInputName);
+  const trigger = nodeTrigger
+    ? null
+    : io.inputs.find((input) => input.name === triggerInputName);
+  if (!nodeTrigger && !trigger) return null;
+  const triggerNodeId = nodeTrigger?.nodeId ?? trigger!.nodeId;
 
   // Live UI values keyed by their input node id, so every input in/around the
   // subgraph reflects the current widget state — not the graph's saved default.
@@ -65,18 +76,22 @@ export const buildTriggerSubgraph = (
     const value = values[input.name];
     if (value !== undefined) valueByNodeId.set(input.nodeId, value);
   }
+  // Node-property bindings overlay their live values the same way.
+  const overlays = collectNodePropertyOverlays(values);
 
   const nodes = (workflow.graph?.nodes ?? []).map((node) => {
-    const rf = graphNodeToReactFlowNode(workflow, node);
-    return valueByNodeId.has(rf.id)
-      ? withInputValue(rf, valueByNodeId.get(rf.id))
-      : rf;
+    let rf = graphNodeToReactFlowNode(workflow, node);
+    if (valueByNodeId.has(rf.id)) {
+      rf = withInputValue(rf, valueByNodeId.get(rf.id));
+    }
+    const overlay = overlays.get(rf.id);
+    return overlay ? withNodeProperties(rf, overlay) : rf;
   });
   const edges = (workflow.graph?.edges ?? []).map(graphEdgeToReactFlowEdge);
   const findNode = (id: string) => nodes.find((node) => node.id === id);
 
   const built = buildDownstreamRunGraph({
-    nodeId: trigger.nodeId,
+    nodeId: triggerNodeId,
     nodes,
     edges,
     workflowId: workflow.id,

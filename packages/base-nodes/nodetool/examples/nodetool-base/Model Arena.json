@@ -1,0 +1,526 @@
+{
+  "id": "model_arena",
+  "access": "public",
+  "created_at": "2026-07-17T00:00:00.000000",
+  "updated_at": "2026-07-17T00:00:00.000000",
+  "name": "Model Arena",
+  "tool_name": null,
+  "description": "One brief, three frontier models, answered side by side. The same prompt fans out to OpenAI, Anthropic, and Google in a single pass, each answering in the same structure — so you compare reasoning, not formatting. Swap the model on any lane to build your own bracket.",
+  "tags": [
+    "comparison",
+    "llm",
+    "agents",
+    "providers",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# ⚔️ Model Arena\n\nOne brief, three frontier models, side by side. The same prompt fans out to **OpenAI GPT-5 mini**, **Anthropic Claude Sonnet 5**, and **Google Gemini 3.5 Flash** — each answers in the same structure, so you compare reasoning, not formatting.\n\n**Differentiator:** a fan-out a chat box can't do — run one question against three providers in a single pass and read the answers next to each other.\n\n**Try this:** paste any decision, spec, or judgement call into the brief, then swap the model on any lane to build your own bracket."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 40,
+            "y": -280
+          },
+          "zIndex": 0,
+          "width": 540,
+          "height": 230,
+          "title": null,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "brief",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "brief",
+          "value": "Should a 12-person B2B SaaS startup build its own customer-facing analytics dashboard, or integrate a third-party embedded-analytics vendor, for its reporting feature? Ship target is one quarter out.",
+          "description": "The question, spec, or decision every model should answer"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 60
+          },
+          "zIndex": 0,
+          "width": 300,
+          "height": 260,
+          "title": "1️⃣ The brief",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "context",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "context",
+          "value": "Audience: the founding team (technical). Constraints: 2 engineers can be spared for 6 weeks; weak reporting is a top-3 reason prospects churn; tooling budget is about $2k/month.",
+          "description": "Audience, constraints, and context that shape a good answer"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 360
+          },
+          "zIndex": 0,
+          "width": 300,
+          "height": 240,
+          "title": "2️⃣ Audience & constraints",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "arena_prompt",
+        "type": "nodetool.text.Prompt",
+        "data": {
+          "prompt": "Brief:\n{{ BRIEF }}\n\nAudience & constraints:\n{{ CONTEXT }}\n\nAnswer in Markdown with exactly these three sections and nothing else:\n\n## Recommendation\nOne or two sentences — your single clearest answer.\n\n## Why\n3–5 bullet points of specific reasoning tied to the constraints above.\n\n## Strongest counterargument\nOne honest paragraph on where this recommendation could be wrong."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 430,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 320,
+          "height": 420,
+          "title": "Shared prompt (one format, all lanes)",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {
+          "BRIEF": "",
+          "CONTEXT": ""
+        },
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "openai_lane",
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
+          },
+          "system": "You are a sharp, concise analyst answering a brief for a busy decision-maker. Lead with your single clearest recommendation, defend it with specific reasoning, and name the strongest counterargument honestly. No filler, no hedging, no restating the question.",
+          "audio": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "history": [],
+          "thread_id": null,
+          "max_tokens": 8000
+        },
+        "ui_properties": {
+          "position": {
+            "x": 830,
+            "y": -60
+          },
+          "zIndex": 0,
+          "width": 340,
+          "height": 340,
+          "title": "🟢 OpenAI · GPT-5 mini",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "anthropic_lane",
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model",
+            "provider": "anthropic",
+            "id": "claude-sonnet-5",
+            "name": "Claude Sonnet 5",
+            "path": null,
+            "supported_tasks": []
+          },
+          "system": "You are a sharp, concise analyst answering a brief for a busy decision-maker. Lead with your single clearest recommendation, defend it with specific reasoning, and name the strongest counterargument honestly. No filler, no hedging, no restating the question.",
+          "audio": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "history": [],
+          "thread_id": null,
+          "max_tokens": 8000
+        },
+        "ui_properties": {
+          "position": {
+            "x": 830,
+            "y": 320
+          },
+          "zIndex": 0,
+          "width": 340,
+          "height": 340,
+          "title": "🟣 Anthropic · Claude Sonnet 5",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "gemini_lane",
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model",
+            "provider": "gemini",
+            "id": "gemini-3.5-flash",
+            "name": "Gemini 3.5 Flash",
+            "path": null,
+            "supported_tasks": []
+          },
+          "system": "You are a sharp, concise analyst answering a brief for a busy decision-maker. Lead with your single clearest recommendation, defend it with specific reasoning, and name the strongest counterargument honestly. No filler, no hedging, no restating the question.",
+          "audio": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "history": [],
+          "thread_id": null,
+          "max_tokens": 8000
+        },
+        "ui_properties": {
+          "position": {
+            "x": 830,
+            "y": 700
+          },
+          "zIndex": 0,
+          "width": 340,
+          "height": 340,
+          "title": "🔵 Google · Gemini 3.5 Flash",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "openai_out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "openai"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1250,
+            "y": -60
+          },
+          "zIndex": 0,
+          "width": 300,
+          "title": "🟢 OpenAI answer",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "anthropic_out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "anthropic"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1250,
+            "y": 320
+          },
+          "zIndex": 0,
+          "width": 300,
+          "title": "🟣 Anthropic answer",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "gemini_out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "gemini"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1250,
+            "y": 700
+          },
+          "zIndex": 0,
+          "width": 300,
+          "title": "🔵 Gemini answer",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "brief",
+        "sourceHandle": "output",
+        "target": "arena_prompt",
+        "targetHandle": "BRIEF",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "e2",
+        "source": "context",
+        "sourceHandle": "output",
+        "target": "arena_prompt",
+        "targetHandle": "CONTEXT",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "e3",
+        "source": "arena_prompt",
+        "sourceHandle": "output",
+        "target": "openai_lane",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "e4",
+        "source": "arena_prompt",
+        "sourceHandle": "output",
+        "target": "anthropic_lane",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "e5",
+        "source": "arena_prompt",
+        "sourceHandle": "output",
+        "target": "gemini_lane",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "e6",
+        "source": "openai_lane",
+        "sourceHandle": "text",
+        "target": "openai_out",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "e7",
+        "source": "anthropic_lane",
+        "sourceHandle": "text",
+        "target": "anthropic_out",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "e8",
+        "source": "gemini_lane",
+        "sourceHandle": "text",
+        "target": "gemini_out",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null,
+  "html_app": null,
+  "etag": null,
+  "app_doc": {
+    "version": 2,
+    "data": {
+      "root": {
+        "props": {
+          "title": "Model Arena"
+        }
+      },
+      "content": [
+        {
+          "type": "Text",
+          "props": {
+            "id": "t-tagline",
+            "text": "One brief, three frontier models, answered side by side."
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "cols-main",
+            "gap": 24,
+            "left": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-try",
+                  "title": "Try it",
+                  "content": [
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-brief",
+                        "binding": "brief",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "WorkflowInput",
+                      "props": {
+                        "id": "in-context",
+                        "binding": "context",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-run",
+                        "label": "Compare the models",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "key": "",
+                            "value": ""
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Container",
+                "props": {
+                  "id": "panel-results",
+                  "title": "Results",
+                  "content": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-run",
+                        "label": "Asking three models…",
+                        "binding": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-openai",
+                        "text": "OpenAI",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-openai",
+                        "binding": "openai",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-anthropic",
+                        "text": "Anthropic",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-anthropic",
+                        "binding": "anthropic",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-gemini",
+                        "text": "Google",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-gemini",
+                        "binding": "gemini",
+                        "text": ""
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "zones": {}
+    }
+  }
+}

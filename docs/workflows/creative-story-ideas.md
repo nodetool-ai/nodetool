@@ -62,4 +62,3 @@ graph TD
 
 - [Movie Posters](movie-posters.md) - Generate images from ideas
 - [Image Enhance](image-enhance.md) - Chain image transformations
-- [Story to Video](story-to-video-generator.md) - Create video from stories
