@@ -71,3 +71,46 @@ describe("TrimVideoNode — input-side seeking", () => {
     expect(args).not.toContain("-to");
   });
 });
+
+describe("TrimVideoNode — accurate (re-encode) mode", () => {
+  it("places -ss and -to AFTER -i and drops stream-copy for frame-exact cuts", async () => {
+    const node = new TrimVideoNode();
+    node.assign({
+      video: videoRef([1, 2, 3, 4]),
+      start_time: 5.5,
+      end_time: 12,
+      accurate: true
+    });
+    await node.process().catch(() => undefined);
+
+    const args = ffmpegArgs();
+    const ss = args.indexOf("-ss");
+    const to = args.indexOf("-to");
+    const i = args.indexOf("-i");
+    expect(i).toBeGreaterThanOrEqual(0);
+    expect(ss).toBeGreaterThan(i);
+    expect(to).toBeGreaterThan(ss);
+    expect(args[ss + 1]).toBe("5.5");
+    expect(args[to + 1]).toBe("12");
+    // Re-encoding, not stream-copying.
+    expect(args).not.toContain("copy");
+  });
+
+  it("omits -to when end_time is -1", async () => {
+    const node = new TrimVideoNode();
+    node.assign({
+      video: videoRef([1, 2, 3, 4]),
+      start_time: 3,
+      end_time: -1,
+      accurate: true
+    });
+    await node.process().catch(() => undefined);
+
+    const args = ffmpegArgs();
+    const ss = args.indexOf("-ss");
+    const i = args.indexOf("-i");
+    expect(ss).toBeGreaterThan(i);
+    expect(args).not.toContain("-to");
+    expect(args).not.toContain("copy");
+  });
+});

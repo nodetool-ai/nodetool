@@ -235,6 +235,197 @@ describe("MinimaxProvider", () => {
     expect(urls[4]).toBe("https://cdn.minimax.io/video.mp4");
   });
 
+  it("rejects image requests for more than 9 images", async () => {
+    const provider = new MinimaxProvider(
+      { MINIMAX_API_KEY: "k" },
+      { client: {} as any, fetchFn: vi.fn() as any }
+    );
+    const model: ImageModel = {
+      id: "image-01",
+      name: "image-01",
+      provider: "minimax"
+    };
+    await expect(
+      provider.textToImages({ model, prompt: "cat" }, 10)
+    ).rejects.toThrow(/at most 9 images/);
+  });
+
+  it("marks Hailuo 2.3 Fast as image-to-video only", async () => {
+    const provider = new MinimaxProvider(
+      { MINIMAX_API_KEY: "k" },
+      { client: {} as any }
+    );
+    const models = await provider.getAvailableVideoModels();
+    const fast = models.find((m) => m.id === "MiniMax-Hailuo-2.3-Fast");
+    expect(fast?.supportedTasks).toEqual(["image_to_video"]);
+  });
+
+  it("sends a subject_reference instead of first_frame_image for S2V-01", async () => {
+    const responses: Array<() => Promise<any>> = [
+      async () => ({
+        ok: true,
+        json: async () => ({ task_id: "t", base_resp: { status_code: 0 } })
+      }),
+      async () => ({
+        ok: true,
+        json: async () => ({ status: "Success", file_id: "f" })
+      }),
+      async () => ({
+        ok: true,
+        json: async () => ({
+          file: { download_url: "https://cdn.minimax.io/v.mp4" },
+          base_resp: { status_code: 0 }
+        })
+      }),
+      async () => ({
+        ok: true,
+        headers: { get: () => null },
+        arrayBuffer: async () => new Uint8Array([1]).buffer
+      })
+    ];
+    const mockFetch = vi.fn(async () => {
+      const next = responses.shift();
+      if (!next) throw new Error("unexpected fetch call");
+      return next();
+    });
+    const provider = new MinimaxProvider(
+      { MINIMAX_API_KEY: "k" },
+      { client: {} as any, fetchFn: mockFetch as any }
+    );
+    const model: VideoModel = {
+      id: "S2V-01",
+      name: "Subject",
+      provider: "minimax"
+    };
+    await provider.imageToVideo([new Uint8Array([1, 2, 3])], {
+      model,
+      prompt: "wave",
+      durationSeconds: 10,
+      resolution: "1080p"
+    });
+    const body = JSON.parse(
+      (mockFetch.mock.calls[0][1] as { body: string }).body
+    );
+    expect(body.first_frame_image).toBeUndefined();
+    // S2V-01 is fixed at 6s/720P; the API rejects these parameters.
+    expect(body.duration).toBeUndefined();
+    expect(body.resolution).toBeUndefined();
+    expect(body.subject_reference).toEqual([
+      {
+        type: "character",
+        image: [expect.stringContaining("data:image/png;base64,")]
+      }
+    ]);
+  });
+
+  it("omits duration/resolution for 01-series models and clamps Hailuo combos", async () => {
+    const submitBodies: Array<Record<string, unknown>> = [];
+    const mockFetch = vi.fn(async (url: string, init?: { body?: string }) => {
+      if (url.endsWith("/v1/video_generation")) {
+        submitBodies.push(JSON.parse(init!.body!));
+        return {
+          ok: true,
+          json: async () => ({ task_id: "t", base_resp: { status_code: 0 } })
+        };
+      }
+      if (url.includes("/v1/query/")) {
+        return {
+          ok: true,
+          json: async () => ({ status: "Success", file_id: "f" })
+        };
+      }
+      if (url.includes("/v1/files/retrieve")) {
+        return {
+          ok: true,
+          json: async () => ({
+            file: { download_url: "https://cdn.minimax.io/v.mp4" },
+            base_resp: { status_code: 0 }
+          })
+        };
+      }
+      return {
+        ok: true,
+        headers: { get: () => null },
+        arrayBuffer: async () => new Uint8Array([1]).buffer
+      };
+    });
+    const provider = new MinimaxProvider(
+      { MINIMAX_API_KEY: "k" },
+      { client: {} as any, fetchFn: mockFetch as any }
+    );
+
+    const director: VideoModel = {
+      id: "T2V-01-Director",
+      name: "Director",
+      provider: "minimax"
+    };
+    await provider.textToVideo({
+      model: director,
+      prompt: "x",
+      durationSeconds: 10,
+      resolution: "1080p"
+    });
+    expect(submitBodies[0].duration).toBeUndefined();
+    expect(submitBodies[0].resolution).toBeUndefined();
+
+    const hailuo23: VideoModel = {
+      id: "MiniMax-Hailuo-2.3",
+      name: "Hailuo 2.3",
+      provider: "minimax"
+    };
+    // 10s clips only render at 768P → 1080P downgrades.
+    await provider.textToVideo({
+      model: hailuo23,
+      prompt: "x",
+      durationSeconds: 10,
+      resolution: "1080p"
+    });
+    expect(submitBodies[1].duration).toBe(10);
+    expect(submitBodies[1].resolution).toBe("768P");
+
+    // 512P only exists on Hailuo-02 → falls back to 768P on 2.3.
+    await provider.textToVideo({
+      model: hailuo23,
+      prompt: "x",
+      durationSeconds: 6,
+      resolution: "512p"
+    });
+    expect(submitBodies[2].resolution).toBe("768P");
+  });
+
+  it("aborts polling when the status query reports a base_resp error", async () => {
+    const responses: Array<() => Promise<any>> = [
+      async () => ({
+        ok: true,
+        json: async () => ({ task_id: "t", base_resp: { status_code: 0 } })
+      }),
+      async () => ({
+        ok: true,
+        json: async () => ({
+          base_resp: { status_code: 1004, status_msg: "auth failed" }
+        })
+      })
+    ];
+    const mockFetch = vi.fn(async () => {
+      const next = responses.shift();
+      if (!next) throw new Error("unexpected fetch call");
+      return next();
+    });
+    const provider = new MinimaxProvider(
+      { MINIMAX_API_KEY: "k" },
+      { client: {} as any, fetchFn: mockFetch as any }
+    );
+    const model: VideoModel = {
+      id: "MiniMax-Hailuo-02",
+      name: "Hailuo 02",
+      provider: "minimax"
+    };
+    await expect(
+      provider.textToVideo({ model, prompt: "x" })
+    ).rejects.toThrow(/auth failed/);
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+  });
+
   it("encodes MP3 audio via the t2a_v2 endpoint", async () => {
     const audioHex = "01020304";
     const mockFetch = vi.fn().mockResolvedValueOnce({

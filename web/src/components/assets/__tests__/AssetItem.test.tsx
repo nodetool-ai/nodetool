@@ -61,8 +61,10 @@ describe("AssetItem", () => {
     renderWithTheme(
       <AssetItem asset={baseImageAsset} isSelected={false} showDeleteButton={false} />
     );
-    // Name is rendered in a Typography with aria-label
-    expect(screen.getByLabelText(baseImageAsset.name)).toBeInTheDocument();
+    // The tile is a keyboard-focusable button named after the asset
+    expect(
+      screen.getByRole("button", { name: baseImageAsset.name })
+    ).toBeInTheDocument();
     // Filetype chip may be hidden depending on settings; skip asserting it
   });
 

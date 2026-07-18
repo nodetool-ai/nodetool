@@ -360,36 +360,28 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
   // persisted (`threadWorkflowId`). With no workflow bound, show everything.
   const threadsWithMessages = useMemo<Record<string, ThreadInfo>>(() => {
     const query = searchQuery.trim().toLowerCase();
-    return Object.fromEntries(
-      Object.entries(threads)
-        .filter(([id, thread]) => {
-          if (!workflowId) {
-            return true;
-          }
-          const threadWorkflow =
-            thread.workflow_id ?? threadWorkflowId[id] ?? null;
-          return threadWorkflow === workflowId;
-        })
-        .map(([id, thread]): [string, ThreadInfo] => [
-          id,
-          {
-            id: thread.id,
-            title: thread.title ?? undefined,
-            updatedAt: thread.updated_at,
-            messages: messageCache[id] || []
-          }
-        ])
-        .filter(([id, thread]) => {
-          if (!query) {
-            return true;
-          }
-          const preview = getThreadPreview(id).toLowerCase();
-          return (
-            preview.includes(query) ||
-            (thread.title || "").toLowerCase().includes(query)
-          );
-        })
-    );
+    const result: Record<string, ThreadInfo> = {};
+    for (const [id, thread] of Object.entries(threads)) {
+      if (workflowId) {
+        const threadWorkflow =
+          thread.workflow_id ?? threadWorkflowId[id] ?? null;
+        if (threadWorkflow !== workflowId) continue;
+      }
+      if (query) {
+        const preview = getThreadPreview(id).toLowerCase();
+        if (
+          !preview.includes(query) &&
+          !(thread.title || "").toLowerCase().includes(query)
+        ) continue;
+      }
+      result[id] = {
+        id: thread.id,
+        title: thread.title ?? undefined,
+        updatedAt: thread.updated_at,
+        messages: messageCache[id] || []
+      };
+    }
+    return result;
   }, [
     threads,
     threadWorkflowId,

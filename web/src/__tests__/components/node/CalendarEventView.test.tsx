@@ -4,6 +4,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import CalendarEventView from "../../../components/node/CalendarEventView";
 import { CalendarEvent } from "../../../stores/ApiTypes";
+import { formatDateTime } from "../../../utils/formatUtils";
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <ThemeProvider theme={mockTheme}>{children}</ThemeProvider>
@@ -53,9 +54,12 @@ describe("CalendarEventView", () => {
 
   it("formats dates correctly", () => {
     render(<CalendarEventView event={mockEvent} />, { wrapper });
-    // Locale-independent: accept either MM/DD/YYYY or DD.MM.YYYY (with optional leading zeros)
+    // The view delegates to the shared formatDateTime helper; the start and
+    // end dates render together as "start - end"
     expect(
-      screen.getByText(/(?:0?10\D+0?15|0?15\D+0?10)\D+2023/)
+      screen.getByText(formatDateTime(new Date(2023, 9, 15, 10, 0, 0)), {
+        exact: false
+      })
     ).toBeInTheDocument();
   });
 });

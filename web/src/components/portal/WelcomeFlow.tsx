@@ -198,7 +198,7 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = ({
       </div>
       <h1 className="welcome-heading">What do you want to make today?</h1>
       <p className="welcome-sub">
-        Pick one. We&apos;ll drop a starter graph onto the canvas so you can run
+        Pick one. We&apos;ll drop a starter workflow onto the canvas so you can run
         it and make it your own. You can always change your mind, or skip and
         explore.
       </p>

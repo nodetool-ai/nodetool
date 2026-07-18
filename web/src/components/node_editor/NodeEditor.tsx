@@ -253,7 +253,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
         onClose={handleSaveExampleCancel}
         maxWidth="sm"
         fullWidth
-        title="Save Example"
+        title="Save example"
         onConfirm={handleSaveExampleConfirm}
         onCancel={handleSaveExampleCancel}
         confirmText="Save"

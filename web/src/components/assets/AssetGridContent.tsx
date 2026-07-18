@@ -29,7 +29,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import AssetListView from "./AssetListView";
-import { EmptyState } from "../ui_primitives";
+import { EmptyState, LoadingSpinner } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
@@ -82,7 +82,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
   isHorizontal,
   onDoubleClick
 }) => {
-  const { folderFilesFiltered } = useAssets();
+  const { folderFilesFiltered, isLoading, error, refetchAssets } = useAssets();
   const assetItemSize = useSettingsStore(
     (state) => state.settings.assetItemSize
   );
@@ -343,7 +343,8 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
     );
   }
 
-  // Default grid view
+  // Default grid view. While the folder is loading (or failed to load), show
+  // that instead of a misleading "empty folder" message.
   if (assets.length === 0) {
     return (
       <div
@@ -359,20 +360,33 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
           justifyContent: "center"
         }}
       >
-        <EmptyState
-          variant="no-data"
-          title={
-            workflowFilter
-              ? "No outputs from this workflow yet"
-              : "This folder is empty"
-          }
-          description={
-            workflowFilter
-              ? "Run the workflow to generate assets, or drop files here to add inputs."
-              : "Drop files here or use the upload button to add assets"
-          }
-          size="small"
-        />
+        {isLoading ? (
+          <LoadingSpinner size="small" text="Loading assets" />
+        ) : error ? (
+          <EmptyState
+            variant="error"
+            title="Could not load assets"
+            description={error.message || "An error occurred. Please try again."}
+            actionText="Retry"
+            onAction={refetchAssets}
+            size="small"
+          />
+        ) : (
+          <EmptyState
+            variant="no-data"
+            title={
+              workflowFilter
+                ? "No outputs from this workflow yet"
+                : "This folder is empty"
+            }
+            description={
+              workflowFilter
+                ? "Run the workflow to generate assets, or drop files here to add inputs."
+                : "Drop files here or use the upload button to add assets"
+            }
+            size="small"
+          />
+        )}
       </div>
     );
   }

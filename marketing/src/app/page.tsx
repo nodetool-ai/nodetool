@@ -26,6 +26,7 @@ import { XMarkIcon } from "@heroicons/react/24/outline";
 import { Download } from "lucide-react";
 import { SmartDownloadButton } from "./SmartDownloadButton";
 import { track } from "../lib/analytics";
+import { useGithubStars } from "../lib/useGithubStars";
 
 import { Feature, features } from "./features";
 
@@ -117,80 +118,11 @@ function usePrefersReducedMotion() {
   return reduced;
 }
 
-// Legacy reveal hook for backward compatibility
-function useReveal() {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    el.style.opacity = "0";
-    el.style.transform = "translateY(8px)";
-    el.style.willChange = "transform, opacity";
-    const obs = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            el.style.transition = "opacity 600ms ease, transform 600ms ease";
-            el.style.opacity = "1";
-            el.style.transform = "translateY(0)";
-            obs.disconnect();
-          }
-        });
-      },
-      { threshold: 0.15 }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
-  return ref;
-}
-
 export default function Home() {
   const [selectedFeature, setSelectedFeature] = useState<Feature | null>(null);
-  const [stars, setStars] = useState<number | null>(null);
+  const stars = useGithubStars();
   const parallaxRef = useRef<HTMLDivElement>(null);
   const reducedMotion = usePrefersReducedMotion();
-  const heroRevealRef = useReveal();
-
-  // Global section fly-in using IntersectionObserver + CSS transitions
-  useEffect(() => {
-    if (reducedMotion) return;
-    const root = document.getElementById("content");
-    if (!root) return;
-    const sections = Array.from(root.querySelectorAll<HTMLElement>("section"));
-    // Initialize base class + slight stagger via CSS var
-    sections.forEach((el, i) => {
-      el.classList.add("fly-in");
-      const delay = Math.min(i * 60, 300);
-      el.style.setProperty("--fly-delay", `${delay}ms`);
-    });
-    const obs = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const el = entry.target as HTMLElement;
-            el.classList.add("is-visible");
-            obs.unobserve(el);
-          }
-        });
-      },
-      { root: null, threshold: 0.12, rootMargin: "0px 0px -10% 0px" }
-    );
-    sections.forEach((el) => obs.observe(el));
-    return () => obs.disconnect();
-  }, [reducedMotion]);
-
-  // Fetch GitHub stars (consumed by CommunitySection)
-  useEffect(() => {
-    fetch("https://api.github.com/repos/nodetool-ai/nodetool")
-      .then((r) => r.json())
-      .then((j) => {
-        if (typeof j.stargazers_count === "number") {
-          setStars(j.stargazers_count);
-        }
-      })
-      .catch(() => { });
-  }, []);
 
   // Parallax with reduced-motion guard and passive scroll
   useEffect(() => {
@@ -311,7 +243,7 @@ export default function Home() {
         {/* Hero */}
         <section aria-labelledby="hero-title" className="pt-2 relative">
           <div className={`${sectionContainer}`}>
-            <div ref={heroRevealRef}>
+            <div>
               <NodeToolHero />
             </div>
           </div>
@@ -321,9 +253,9 @@ export default function Home() {
         <section id="demo-video" aria-label="NodeTool Demo" className="rhythm-section relative scroll-mt-24">
           <div className={`${sectionContainer}`}>
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
+              initial={false}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
+              transition={{ duration: 0.35, delay: 0.05, ease: "easeOut" }}
               className="relative group"
             >
               <div
@@ -345,6 +277,10 @@ export default function Home() {
                   preload="none"
                 />
               </div>
+              <p className="mt-4 text-center text-sm text-slate-400">
+                A trailer generated end-to-end in NodeTool — script, key art,
+                animation, and sound from one workflow on the canvas.
+              </p>
             </motion.div>
           </div>
         </section>
@@ -451,14 +387,23 @@ export default function Home() {
               Put every model on one canvas.
             </h2>
             <p className="mt-4 text-lg text-slate-300">
-              Free, open source, and yours to run. Download Studio and build
-              your first workflow in minutes.
+              Free, open source, and yours to run. Download Studio — or try
+              Cloud in the browser, nothing to install.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <SmartDownloadButton
                 icon={<Download className="h-5 w-5" />}
                 classNameOverride="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-900/40 transition-all hover:bg-blue-500 hover:shadow-blue-900/60 focus-ring"
               />
+              <a
+                href="https://app.nodetool.ai"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => track("Try Cloud")}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-500/40 bg-blue-500/10 px-6 py-3.5 text-sm font-semibold text-blue-200 transition-all hover:border-blue-400 hover:bg-blue-500/20 focus-ring"
+              >
+                Try NodeTool Cloud
+              </a>
               <a
                 href="https://github.com/nodetool-ai/nodetool"
                 target="_blank"

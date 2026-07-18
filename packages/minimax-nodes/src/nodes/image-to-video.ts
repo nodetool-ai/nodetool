@@ -10,7 +10,8 @@ import {
   MINIMAX_I2V_MODELS,
   MINIMAX_VIDEO_DURATIONS,
   MINIMAX_VIDEO_RESOLUTIONS,
-  videoRefFromBytes
+  videoRefFromBytes,
+  videoRenderSettings
 } from "../minimax-base.js";
 
 export class MinimaxImageToVideoNode extends BaseNode {
@@ -19,7 +20,8 @@ export class MinimaxImageToVideoNode extends BaseNode {
   static readonly title = "MiniMax Image to Video";
   static readonly description =
     "Animate a still image into a video using MiniMax Hailuo and Director " +
-    "models. The image becomes the first frame.\n" +
+    "models. The image becomes the first frame (or the character reference " +
+    "for S2V-01).\n" +
     "video, generation, image-to-video, i2v, hailuo, minimax\n\n" +
     "Use cases:\n" +
     "- Bring a photo or render to life\n" +
@@ -44,7 +46,9 @@ export class MinimaxImageToVideoNode extends BaseNode {
     type: "image",
     default: { type: "image", uri: "", asset_id: null, data: null },
     title: "Image",
-    description: "The image to use as the first frame of the video."
+    description:
+      "The image to use as the first frame of the video (S2V-01 uses it as " +
+      "a character reference instead)."
   })
   declare image: any;
 
@@ -85,12 +89,23 @@ export class MinimaxImageToVideoNode extends BaseNode {
     }
     const mime = inferImageMime(imageBytes);
 
+    const model = String(this.model ?? "MiniMax-Hailuo-02");
+    const dataUrl = `data:${mime};base64,${bytesToBase64(imageBytes)}`;
     const body: Record<string, unknown> = {
-      model: String(this.model ?? "MiniMax-Hailuo-02"),
-      first_frame_image: `data:${mime};base64,${bytesToBase64(imageBytes)}`,
-      duration: Number(this.duration ?? 6),
-      resolution: String(this.resolution ?? "768P")
+      model,
+      ...videoRenderSettings(
+        model,
+        Number(this.duration ?? 6),
+        String(this.resolution ?? "768P")
+      )
     };
+    if (model === "S2V-01") {
+      // S2V-01 animates a character reference, not a first frame, and
+      // rejects first_frame_image.
+      body.subject_reference = [{ type: "character", image: [dataUrl] }];
+    } else {
+      body.first_frame_image = dataUrl;
+    }
     const prompt = String(this.prompt ?? "");
     if (prompt) body.prompt = prompt;
 

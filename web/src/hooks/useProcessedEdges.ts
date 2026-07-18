@@ -55,25 +55,36 @@ function useStructurallyProcessedEdges({
     activeGradientKeys: new Set()
   });
 
-  // Structural key: only things that affect edge typing / gradients
+  // Structural key: only things that affect edge typing / gradients.
+  // Uses the global WeakMap `structureCache` keyed on `n.data` identity,
+  // so position-only drags (which keep the same `data` ref) hit the cache
+  // for every node and skip the expensive `.join()` entirely.
+  const prevStructureKeyRef = useRef("");
+  const prevStructureCountRef = useRef(0);
   const nodesStructureKey = useMemo(() => {
     if (isSelecting) {return "";} // we’ll reuse cache while dragging
-    return nodes
-      .map((n) => {
-        let cached = structureCache.get(n.data);
-        if (cached === undefined) {
-          const dynamicOutputs = n.data.dynamic_outputs
-            ? Object.keys(n.data.dynamic_outputs).join(",")
-            : "";
-          const dynamicProps = n.data.dynamic_properties
-            ? Object.keys(n.data.dynamic_properties).join(",")
-            : "";
-          cached = `${dynamicOutputs}:${dynamicProps}`;
-          structureCache.set(n.data, cached);
-        }
-        return `${n.id}:${n.type}:${cached}`;
-      })
-      .join("|");
+    let changed = nodes.length !== prevStructureCountRef.current;
+    const parts: string[] = [];
+    for (const n of nodes) {
+      let cached = structureCache.get(n.data);
+      if (cached === undefined) {
+        changed = true;
+        const dynamicOutputs = n.data.dynamic_outputs
+          ? Object.keys(n.data.dynamic_outputs).join(",")
+          : "";
+        const dynamicProps = n.data.dynamic_properties
+          ? Object.keys(n.data.dynamic_properties).join(",")
+          : "";
+        cached = `${dynamicOutputs}:${dynamicProps}`;
+        structureCache.set(n.data, cached);
+      }
+      parts.push(`${n.id}:${n.type}:${cached}`);
+    }
+    if (!changed) return prevStructureKeyRef.current;
+    const result = parts.join("|");
+    prevStructureKeyRef.current = result;
+    prevStructureCountRef.current = nodes.length;
+    return result;
   }, [nodes, isSelecting]);
 
   return useMemo(() => {

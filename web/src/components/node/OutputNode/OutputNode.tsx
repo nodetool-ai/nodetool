@@ -226,6 +226,20 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const nodeMetadata = getMetadata(props.type);
 
+  const { inlineFieldProps, inputFieldProps } = useMemo(() => {
+    if (!nodeMetadata) return { inlineFieldProps: [], inputFieldProps: [] };
+    const inlineNames = nodeMetadata.inline_fields ?? [];
+    const inputNames = nodeMetadata.input_fields ?? [];
+    return {
+      inlineFieldProps: nodeMetadata.properties.filter((p) =>
+        inlineNames.includes(p.name)
+      ),
+      inputFieldProps: nodeMetadata.properties.filter((p) =>
+        inputNames.includes(p.name)
+      )
+    };
+  }, [nodeMetadata]);
+
   // Live display reads the output-node stream buffer (outputResults), which
   // output_update appends to during a run, scoped to the focused job. When no
   // live stream exists (e.g. after reopening the workflow) we fall back to the
@@ -269,7 +283,9 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
 
       addNotification({
         type: "success",
-        content: `${assetFiles.length} file(s) added to assets successfully`
+        content: `${assetFiles.length} file${
+          assetFiles.length === 1 ? "" : "s"
+        } added to assets`
       });
     } catch (error) {
       console.error("Error in handleAddToAssets:", error);
@@ -378,31 +394,21 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
             hideLogs={true}
           />
 
-          {nodeMetadata && (() => {
-            const inlineNames = nodeMetadata.inline_fields ?? [];
-            const inputNames = nodeMetadata.input_fields ?? [];
-            const inlineProps = nodeMetadata.properties.filter((p) =>
-              inlineNames.includes(p.name)
-            );
-            const inputProps = nodeMetadata.properties.filter((p) =>
-              inputNames.includes(p.name)
-            );
-            return (
+          {nodeMetadata && (
               <>
-                <HandleColumn id={props.id} properties={inputProps} />
+                <HandleColumn id={props.id} properties={inputFieldProps} />
                 <NodeInputs
                   id={props.id}
                   nodeMetadata={nodeMetadata}
                   layout={nodeMetadata.layout}
-                  properties={inlineProps}
+                  properties={inlineFieldProps}
                   nodeType={props.type}
                   data={props.data}
                   showHandle={false}
                   showFields={true}
                 />
               </>
-            );
-          })()}
+          )}
 
           {result === null || result === undefined && (
             <Text className="hint">

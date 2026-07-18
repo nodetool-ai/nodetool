@@ -172,7 +172,7 @@ function buildPlan(
   return { innerNodes, innerEdges, outerEdgesToAdd, outerEdgesToRemove };
 }
 
-export function useGroupIntoSubgraph() {
+export function useGroupIntoSubgraph(): (selectedIds: string[]) => { subgraphNodeId: string } | null {
   const reactFlowInstance = useReactFlow();
   const getMetadata = useMetadataStore((s) => s.getMetadata);
   const { createNode, addNode, addEdge, deleteEdges, deleteNodes, nodes, edges } =

@@ -130,10 +130,10 @@ export default function AgentUseCasesSection({
         <div className="mb-16 text-center max-w-2xl mx-auto">
           <motion.h2
             id="use-cases-title"
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.25 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
             Agents your studio{" "}
@@ -142,10 +142,10 @@ export default function AgentUseCasesSection({
             </span>
           </motion.h2>
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.1 }}
+            transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
             Open one, swap in your style guide, point it at the providers you already pay
@@ -165,7 +165,7 @@ export default function AgentUseCasesSection({
           className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
           initial="hidden"
           whileInView="show"
-          viewport={{ once: true, margin: "-100px" }}
+          viewport={{ once: true, margin: "-40px" }}
           variants={{
             show: { transition: { staggerChildren: 0.08 } },
           }}
@@ -174,8 +174,8 @@ export default function AgentUseCasesSection({
             <motion.div
               key={item.name}
               variants={{
-                hidden: { opacity: 0, y: 20 },
-                show: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+                hidden: { opacity: 1, y: 0 },
+                show: { opacity: 1, y: 0, transition: { duration: 0.25 } },
               }}
             >
               <Tilt3D className="h-full">
@@ -213,10 +213,10 @@ export default function AgentUseCasesSection({
         {/* CTA */}
         <motion.div
           className="mt-16 text-center"
-          initial={{ opacity: 0 }}
+          initial={false}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          transition={{ delay: 0.4 }}
+          transition={{ delay: 0.05 }}
         >
           <a
             href="https://github.com/nodetool-ai/nodetool/tree/main/examples/workflows"

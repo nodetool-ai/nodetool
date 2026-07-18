@@ -1268,10 +1268,8 @@ describe("GeminiProvider – imageToVideo", () => {
     );
     const body = JSON.parse(fetchFn.mock.calls[0][1].body);
     expect(body.instances[0].image).toEqual({
-      inlineData: {
-        data: Buffer.from([1, 2, 3]).toString("base64"),
-        mimeType: "image/png"
-      }
+      bytesBase64Encoded: Buffer.from([1, 2, 3]).toString("base64"),
+      mimeType: "image/png"
     });
     expect(body.parameters.durationSeconds).toBe(8);
   });

@@ -1,10 +1,16 @@
 import { useCallback } from "react";
 import { useNodes } from "../../contexts/NodeContext";
 
+export interface UseDynamicPropertyResult {
+  handleDeleteProperty: (propertyName: string) => void;
+  handleAddProperty: (propertyName: string) => void;
+  handleUpdatePropertyName: (oldName: string, newName: string) => void;
+}
+
 export const useDynamicProperty = (
   nodeId: string,
   dynamicProperties: Record<string, unknown>
-) => {
+): UseDynamicPropertyResult => {
   const updateNodeData = useNodes((state) => state.updateNodeData);
 
   const handleDeleteProperty = useCallback(

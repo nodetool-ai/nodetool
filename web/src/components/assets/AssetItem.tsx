@@ -15,6 +15,7 @@ import { secondsToHMS } from "../../utils/formatDateAndTime";
 import { formatFileSize } from "../../utils/formatUtils";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useAssetActions } from "./useAssetActions";
+import { useActivateOnKey } from "../../hooks/useActivateOnKey";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -408,6 +409,8 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
     handleClick(onSelect, onClickParent, isParent);
   }, [handleClick, onSelect, onClickParent, isParent]);
 
+  const handleItemKeyDown = useActivateOnKey(handleItemClick);
+
   const handleDoubleClickWithStop = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     if (onDoubleClick) {
@@ -429,6 +432,10 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
       onDragEnd={handleDragEnd}
       onDoubleClick={handleDoubleClickWithStop}
       onClick={handleItemClick}
+      role="button"
+      tabIndex={0}
+      aria-label={asset.name}
+      onKeyDown={handleItemKeyDown}
       onDrop={handleDrop}
       onDragOver={handleDragOver}
     >

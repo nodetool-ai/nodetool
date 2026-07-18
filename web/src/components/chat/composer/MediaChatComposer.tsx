@@ -21,7 +21,6 @@ import VideocamIcon from "@mui/icons-material/Videocam";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import PsychologyOutlinedIcon from "@mui/icons-material/PsychologyOutlined";
-import SettingsIcon from "@mui/icons-material/Settings";
 import RecordVoiceOverIcon from "@mui/icons-material/RecordVoiceOver";
 import GraphicEqIcon from "@mui/icons-material/GraphicEq";
 import SpeedIcon from "@mui/icons-material/Speed";
@@ -786,12 +785,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     return m.name || m.id;
   }, [selectedModel, languageModel]);
 
-  const handleMoreClick = useCallback(() => {
-    // Placeholder for "More" menu — additional options (seed, negative
-    // prompt, guidance scale, etc.) will live here in a follow-up.
-    console.info("Media composer: More options (coming soon)");
-  }, []);
-
   const isBusy = isLoading || isStreaming;
   const isDisabled = disabled || isBusy;
   const elapsed = useElapsedTime(isBusy);
@@ -1074,13 +1067,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 value={videoParams.aspectRatio}
                 options={videoAspectOptions}
                 onChange={(v) => setVideoParams({ aspectRatio: v })}
-              />
-
-              <MediaControlChip
-                icon={<SettingsIcon fontSize="small" />}
-                label="More"
-                onClick={handleMoreClick}
-                showChevron={false}
               />
             </>
           )}

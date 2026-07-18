@@ -254,7 +254,7 @@ const CollectionItem = ({
               flexShrink: 0
             }}
           >
-            {collection.count} items
+            {collection.count} item{collection.count === 1 ? "" : "s"}
           </Text>
         </Tooltip>
         <Tooltip title="Model used for embedding documents">

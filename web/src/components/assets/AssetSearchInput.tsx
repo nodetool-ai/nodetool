@@ -55,6 +55,12 @@ const styles = (theme: Theme) =>
       borderColor: "var(--palette-primary-main)",
       outline: "none"
     },
+    // Keyboard focus needs a visible ring; inset offset avoids clipping by the
+    // container's overflow: hidden.
+    "input[type='text']:focus-visible": {
+      outline: "2px solid var(--palette-primary-main)",
+      outlineOffset: "-2px"
+    },
     ".clear-search-btn": {
       position: "absolute",
       cursor: "pointer",

@@ -636,6 +636,15 @@ export class LoadVideoFileNode extends BaseNode {
   }
 }
 
+/**
+ * Resolve the destination folder for a save node. An explicit folder wins;
+ * otherwise fall back to the run's workspace directory rather than the server
+ * process cwd (`.`), which is rarely where a user wants their output.
+ */
+function saveFolder(rawFolder: unknown, context?: ProcessingContext): string {
+  return folderPath(rawFolder) || context?.workspaceDir || ".";
+}
+
 export class SaveVideoFileVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.SaveVideoFile";
   static readonly title = "Save Video File";
@@ -673,7 +682,7 @@ export class SaveVideoFileVideoNode extends BaseNode {
   declare filename: string;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const folder = folderPath(this.folder) || ".";
+    const folder = saveFolder(this.folder, context);
     const fname = dateName(String(this.filename || "video.mp4"));
     await fs.mkdir(path.resolve(folder), { recursive: true });
     // dateName resolves to second granularity, so two saves in the same second
@@ -817,7 +826,7 @@ export class SaveVideoNode extends BaseNode {
   declare name: string;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const folder = folderPath(this.folder) || ".";
+    const folder = saveFolder(this.folder, context);
     const filename = dateName(String(this.name || "video.mp4"));
     await fs.mkdir(path.resolve(folder), { recursive: true });
     // dateName resolves to second granularity, so two saves in the same second
@@ -1019,7 +1028,7 @@ export class FrameToVideoNode extends VideoTransformNode {
     output: "video"
   };
   static readonly inlineFields: string[] = [];
-  static readonly inputFields: string[] = ["frame"];
+  static readonly inputFields: string[] = ["frame", "fps"];
 
   @prop({
     type: "image",
@@ -1319,12 +1328,33 @@ export class TrimVideoNode extends VideoTransformNode {
   })
   declare end_time: number;
 
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Accurate",
+    description:
+      "Re-encode for frame-exact cuts. Off (default) stream-copies and snaps to the nearest keyframe — fast, but the cut points may be off by up to one GOP."
+  })
+  declare accurate: boolean;
+
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const bytes = await videoBytesAsync(this.video, context);
     if (bytes.length === 0) return { output: videoRef(bytes) };
 
     const start = Math.max(0, Number(this.start_time ?? 0));
     const end = Number(this.end_time ?? -1);
+
+    if (this.accurate) {
+      // Output-side seek (after -i): ffmpeg decodes every frame up to `start`
+      // and re-encodes, so the cut lands on the exact requested time instead of
+      // the nearest keyframe. Slower, but frame-accurate.
+      const seekArgs: string[] = ["-ss", String(start)];
+      if (end >= 0) {
+        seekArgs.push("-to", String(end));
+      }
+      const transformed = await ffmpegTransform(bytes, seekArgs);
+      return { output: videoRef(transformed) };
+    }
 
     // Input-side seek (before -i): ffmpeg jumps to the nearest keyframe instead
     // of decoding from the start, so trimming a long clip is near-instant.
