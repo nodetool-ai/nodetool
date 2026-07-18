@@ -17,6 +17,7 @@ import {
 import { useTheme } from "@mui/material/styles";
 import { Label } from "./Label";
 import { CONTROL } from "./tokens";
+import { useFormFieldContext } from "./formFieldContext";
 
 export interface SelectOption {
   /** Option value */
@@ -107,10 +108,19 @@ const SelectFieldInternal = React.forwardRef<HTMLDivElement, SelectFieldProps>(
     ref
   ) {
     const theme = useTheme();
+    const formField = useFormFieldContext();
     const autoId = useId();
-    const selectId = id ?? autoId;
+    // Inside a FormField the context id wins (even over a caller `id`) so the
+    // `${controlId}-label` convention below stays aligned with FormField.
+    const selectId = formField ? formField.controlId : id ?? autoId;
     const labelId = `${selectId}-label`;
-    const showLabel = Boolean(label) && !hideLabel;
+    // Inside a FormField, FormField renders the visible label and gives it
+    // id `${controlId}-label` (its documented convention). The combobox is a
+    // div, so htmlFor can't name it — instead we point labelId at FormField's
+    // label element and let aria-labelledby carry the name. Our own label
+    // stays as an aria-label fallback for a label-less FormField (a dangling
+    // aria-labelledby falls through to aria-label in accname computation).
+    const showLabel = !formField && Boolean(label) && !hideLabel;
 
     const handleChange = useCallback(
       (event: SelectChangeEvent<string | number>) => {
@@ -136,12 +146,17 @@ const SelectFieldInternal = React.forwardRef<HTMLDivElement, SelectFieldProps>(
             </Label>
           )}
           <Select
-            id={selectId}
+            // In a FormField the id must NOT land here: MUI puts it on the
+            // hidden native input, FormField's <label htmlFor> would associate
+            // with it, and MUI appends that input to aria-labelledby — the
+            // label text would be counted twice ("Color Color"). The name
+            // flows through labelId alone.
+            id={formField ? undefined : selectId}
             // The combobox display node takes its accessible name from the
             // Label via aria-labelledby; with the label hidden it falls back
             // to aria-label (inputProps reaches the display node, a top-level
             // aria-label would land on the InputBase root).
-            labelId={showLabel ? labelId : undefined}
+            labelId={showLabel || formField ? labelId : undefined}
             inputProps={
               !showLabel && label ? { "aria-label": label } : undefined
             }

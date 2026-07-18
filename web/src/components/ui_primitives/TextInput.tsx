@@ -15,6 +15,7 @@ import {
 import { useTheme } from "@mui/material/styles";
 import { CONTROL } from "./tokens";
 import { Label } from "./Label";
+import { useFormFieldContext } from "./formFieldContext";
 
 export interface TextInputProps
   extends Omit<MuiTextFieldProps, "variant" | "size"> {
@@ -75,8 +76,13 @@ export const TextInput = memo(
       ref
     ) => {
       const theme = useTheme();
+      const formField = useFormFieldContext();
       const reactId = useId();
-      const fieldId = id ?? reactId;
+      // Inside a FormField the context id wins — even over a caller `id` —
+      // because FormField's label htmlFor is fixed to it; honoring a caller
+      // id would silently break the association. Callers needing a specific
+      // id set it on FormField (htmlFor) instead.
+      const fieldId = formField ? formField.controlId : id ?? reactId;
 
       const isSmall = compact || size === "small";
       const controlHeight = isSmall ? CONTROL.height.sm : CONTROL.height.lg;
@@ -84,10 +90,16 @@ export const TextInput = memo(
       const hasError = error || !!errorMessage;
       const displayHelperText = errorMessage || helperText;
 
-      const showLabel = !!label && !hideLabel;
+      // Inside a FormField the label is FormField's job: suppress our own
+      // (even when a label prop is passed) and skip aria-label too — the
+      // FormField label's htmlFor names the input via the adopted id, and an
+      // aria-label here would override it.
+      const showLabel = !formField && !!label && !hideLabel;
       // A hidden (or absent) visible label still needs an accessible name.
       const ariaLabel =
-        !showLabel && typeof label === "string" ? label : undefined;
+        !formField && !showLabel && typeof label === "string"
+          ? label
+          : undefined;
 
       return (
         // Block wrapper, never a fragment: callers place <TextInput> inside

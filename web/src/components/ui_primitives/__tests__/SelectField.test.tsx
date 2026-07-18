@@ -1,6 +1,7 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import { SelectField } from "../SelectField";
+import { FormField } from "../FormField";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import userEvent from "@testing-library/user-event";
@@ -136,6 +137,25 @@ describe("SelectField", () => {
       "aria-disabled",
       "true"
     );
+  });
+
+  it("suppresses its own label inside FormField", () => {
+    renderWithTheme(
+      <FormField label="Color">
+        <SelectField
+          label="Color"
+          value="red"
+          onChange={jest.fn()}
+          options={options}
+        />
+      </FormField>
+    );
+    // Only FormField's label renders; the combobox is named by it through
+    // the `${controlId}-label` aria-labelledby convention.
+    expect(document.querySelectorAll("label")).toHaveLength(1);
+    expect(
+      screen.getByRole("combobox", { name: "Color" })
+    ).toBeInTheDocument();
   });
 
   it("forwards ref to the root element", () => {
