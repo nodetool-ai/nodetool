@@ -84,6 +84,38 @@ test.describe("Design system — component gallery", () => {
     );
   });
 
+  test("form controls share the CONTROL token heights", async ({ page }) => {
+    // The height contract, measured for real: a TextInput and both SelectField
+    // variants must render at exactly 36px (medium) / 28px (small). jsdom
+    // cannot measure layout, so this is the enforcement the unit tests defer
+    // to (see ui_primitives/__tests__/controlHeights.test.tsx).
+    await gotoPage(page, "/preview/form-controls");
+    await waitForPreview(page, (p) =>
+      p
+        .getByText("Medium text")
+        .waitFor({ state: "visible", timeout: 8_000 })
+        .catch(() => {})
+    );
+
+    // DOM order: medium text / outlined select / standard select, then the
+    // small trio.
+    const roots = page.locator(
+      '[data-preview="form-controls"] .MuiInputBase-root'
+    );
+    await expect(roots).toHaveCount(6);
+    const heights: number[] = [];
+    for (let i = 0; i < 6; i++) {
+      const box = await roots.nth(i).boundingBox();
+      heights.push(box?.height ?? 0);
+    }
+    expect(heights).toEqual([36, 36, 36, 28, 28, 28]);
+
+    await expect(page).toHaveScreenshot(
+      "design-form-controls.png",
+      VISUAL_SCREENSHOT_OPTIONS
+    );
+  });
+
   test("layout primitives page", async ({ page }) => {
     // /layouttest exercises the layout primitives (header, routing,
     // breadcrumbs, sidebars) in isolation.

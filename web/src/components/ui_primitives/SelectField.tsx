@@ -144,11 +144,14 @@ const SelectFieldInternal: React.FC<SelectFieldProps> = ({
             minHeight: `${controlHeight}px`,
             // minHeight is only a floor: MUI's select display carries its own
             // line-height minimum and vertical padding, which pushed measured
-            // heights past the token (30.6-38.6px). Zero the vertical padding
-            // and flex-center the value so the content always fits under the
-            // floor and every variant lands exactly on the token height.
+            // heights past the token (30.6-38.6px). Zero the vertical padding,
+            // flex-center the value, and normalize line-height — MUI's
+            // 1.4375em computes against the 16px root font and inherits as a
+            // fixed ~23px into the 15px display; a unitless value tracks the
+            // actual font so the content always fits under the floor.
             "& .MuiSelect-select": {
               fontSize: fieldFontSize,
+              lineHeight: 1.4375,
               display: "flex",
               alignItems: "center",
               minHeight: "0px",
