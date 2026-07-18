@@ -8,7 +8,7 @@
 import React from "react";
 import { Tabs, Tab, TabsProps, Box, BoxProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { MOTION } from "./tokens";
+import { CONTROL, MOTION } from "./tokens";
 
 export interface TabItem {
   /** Unique value for the tab */
@@ -83,7 +83,7 @@ export const TabGroup: React.FC<TabGroupProps> = ({
       variant={fullWidth ? "fullWidth" : "scrollable"}
       scrollButtons="auto"
       sx={{
-        minHeight: isSmall ? "36px" : "42px",
+        minHeight: isSmall ? `${CONTROL.height.lg}px` : "40px",
         "& .MuiTabs-indicator": {
           height: "2px",
           backgroundColor: theme.vars.palette.primary.main,
@@ -102,7 +102,7 @@ export const TabGroup: React.FC<TabGroupProps> = ({
           iconPosition="start"
           sx={{
             minWidth: "auto",
-            minHeight: isSmall ? "36px" : "42px",
+            minHeight: isSmall ? `${CONTROL.height.lg}px` : "40px",
             padding: isSmall ? "6px 12px" : "8px 16px",
             fontSize: isSmall ? "var(--fontSizeSmaller)" : "var(--fontSizeSmall)",
             fontWeight: 600,
