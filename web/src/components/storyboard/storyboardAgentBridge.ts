@@ -89,6 +89,16 @@ export interface StoryboardAgentHandler {
     instruction: string
   ) => Promise<StoryboardShotNode>;
   selectShot: (target: string | null) => StoryboardShotNode | null;
+  /**
+   * Assemble the board's rendered shots into a persisted timeline sequence
+   * (plus draft narration/music clips) and open its tab. Throws when no shot
+   * has a rendered, persisted clip.
+   */
+  assembleTimeline: () => Promise<{
+    sequenceId: string;
+    clipCount: number;
+    skippedShotIds: string[];
+  }>;
 }
 
 let handler: StoryboardAgentHandler | null = null;

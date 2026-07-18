@@ -37,6 +37,12 @@ interface StoryboardBoardProps {
   directing?: boolean;
   /** Error from the last Director run, shown under the header fields. */
   directError?: string | null;
+  /** Wired by the parent to the timeline handoff. */
+  onAssemble?: () => void;
+  /** True while assembly is in flight. */
+  assembling?: boolean;
+  /** Error from the last assembly, shown under the header fields. */
+  assembleError?: string | null;
 }
 
 const ASPECT_OPTIONS = [
@@ -75,7 +81,10 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   readOnly,
   onDirect,
   directing,
-  directError
+  directError,
+  onAssemble,
+  assembling,
+  assembleError
 }) => {
   const theme = useTheme();
   const { title, brief, style, aspectRatio, shots } = useBoard(boardId);
@@ -90,6 +99,10 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   const handleDirect = useCallback(() => {
     onDirect?.(shotCount);
   }, [onDirect, shotCount]);
+
+  const hasRenderedShot = shots.some(
+    (s) => s.status === "rendered" && !!s.clip?.asset_id
+  );
 
   return (
     <div css={styles(theme)} className="storyboard-board">
@@ -136,10 +149,17 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
               >
                 {directing ? "Directing…" : "Direct"}
               </EditorButton>
+              <EditorButton
+                variant="outlined"
+                onClick={onAssemble}
+                disabled={!onAssemble || assembling || !hasRenderedShot}
+              >
+                {assembling ? "Assembling…" : "Assemble timeline"}
+              </EditorButton>
             </FlexRow>
-            {directError && (
+            {(directError || assembleError) && (
               <Text size="small" color="error">
-                {directError}
+                {directError ?? assembleError}
               </Text>
             )}
           </FlexColumn>

@@ -37,6 +37,8 @@ export interface StoryboardBoard {
   style: string;
   aspectRatio: string;
   activeShotId: string | null;
+  /** Persisted timeline sequence this board was assembled into, if any. */
+  timelineId: string | null;
 }
 
 interface StoryboardStoreState {
@@ -52,6 +54,8 @@ interface StoryboardStoreState {
   setStyle: (boardId: string, style: string) => void;
   setTitle: (boardId: string, title: string) => void;
   setAspectRatio: (boardId: string, aspectRatio: string) => void;
+  /** Record the persisted timeline sequence this board assembles into. */
+  setTimelineLink: (boardId: string, timelineId: string | null) => void;
 
   /** Insert a shot, or replace the one with the same id. */
   upsertShot: (boardId: string, shot: Shot) => void;
@@ -79,7 +83,8 @@ const emptyBoard = (id: string): StoryboardBoard => ({
   brief: "",
   style: "",
   aspectRatio: "16:9",
-  activeShotId: null
+  activeShotId: null,
+  timelineId: null
 });
 
 /**
@@ -175,6 +180,13 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
     set((state) =>
       withBoard(state, boardId, (b) =>
         b.aspectRatio === aspectRatio ? null : { ...b, aspectRatio }
+      )
+    ),
+
+  setTimelineLink: (boardId, timelineId) =>
+    set((state) =>
+      withBoard(state, boardId, (b) =>
+        b.timelineId === timelineId ? null : { ...b, timelineId }
       )
     ),
 

@@ -44,7 +44,8 @@ const createMockHandler = (): jest.Mocked<StoryboardAgentHandler> => ({
   approveShot: jest.fn(),
   generateClip: jest.fn(),
   reviseShot: jest.fn(),
-  selectShot: jest.fn()
+  selectShot: jest.fn(),
+  assembleTimeline: jest.fn()
 });
 
 // The storyboard tools never touch the workflow state, so a bare stub satisfies ctx.
@@ -67,6 +68,7 @@ describe("ui_storyboard_* tools", () => {
         "ui_storyboard_approve_shot",
         "ui_storyboard_generate_clip",
         "ui_storyboard_revise_shot",
+        "ui_storyboard_assemble_timeline",
         "ui_storyboard_select_shot"
       ])
     );
@@ -171,6 +173,34 @@ describe("ui_storyboard_* tools", () => {
     );
     expect(result.ok).toBe(true);
     expect(result.shot.status).toBe("clip_generating");
+  });
+
+  it("assembles the board into a timeline through the handler", async () => {
+    const handler = createMockHandler();
+    handler.assembleTimeline.mockResolvedValue({
+      sequenceId: "seq-1",
+      clipCount: 3,
+      skippedShotIds: ["shot-9"]
+    });
+    setStoryboardAgentHandler(handler);
+
+    const result = (await FrontendToolRegistry.call(
+      "ui_storyboard_assemble_timeline",
+      {},
+      "tc-assemble",
+      ctx
+    )) as {
+      ok: boolean;
+      sequenceId: string;
+      clipCount: number;
+      skippedShotIds: string[];
+    };
+
+    expect(handler.assembleTimeline).toHaveBeenCalled();
+    expect(result.ok).toBe(true);
+    expect(result.sequenceId).toBe("seq-1");
+    expect(result.clipCount).toBe(3);
+    expect(result.skippedShotIds).toEqual(["shot-9"]);
   });
 
   it("rejects an invalid shot status during validation", async () => {

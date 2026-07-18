@@ -20,6 +20,7 @@ import {
   type StoryboardSnapshot
 } from "../../components/storyboard/storyboardAgentBridge";
 import { useGenerateShot } from "./useGenerateShot";
+import { useAssembleTimeline } from "./useAssembleTimeline";
 
 const toShotNode = (shot: Shot): StoryboardShotNode => ({
   id: shot.id,
@@ -41,6 +42,7 @@ export const useStoryboardAgentBridge = (
 ): void => {
   const { generateKeyframe, generateClip, generateRevisedClip } =
     useGenerateShot();
+  const { assemble } = useAssembleTimeline();
 
   const handler = useMemo<StoryboardAgentHandler>(() => {
     const store = () => useStoryboardStore.getState();
@@ -171,6 +173,10 @@ export const useStoryboardAgentBridge = (
         return toShotNode(reRead(shot.id));
       },
 
+      async assembleTimeline() {
+        return assemble(boardId);
+      },
+
       selectShot(target) {
         if (!target) {
           store().selectShot(boardId, null);
@@ -181,7 +187,7 @@ export const useStoryboardAgentBridge = (
         return toShotNode(shot);
       }
     };
-  }, [boardId, generateKeyframe, generateClip, generateRevisedClip]);
+  }, [boardId, generateKeyframe, generateClip, generateRevisedClip, assemble]);
 
   useEffect(() => {
     if (!active) return;

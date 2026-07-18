@@ -14,6 +14,7 @@ const makeMockHandler = (): StoryboardAgentHandler => ({
   approveShot: jest.fn(),
   generateClip: jest.fn(),
   reviseShot: jest.fn(),
+  assembleTimeline: jest.fn(),
   selectShot: jest.fn()
 });
 

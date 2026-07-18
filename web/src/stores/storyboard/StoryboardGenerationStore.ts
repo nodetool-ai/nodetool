@@ -23,6 +23,7 @@ import {
 import type { OutputUpdate } from "../ApiTypes";
 import { normalizeOutputUpdateValue } from "../outputUpdateValue";
 import { useStoryboardStore } from "./StoryboardStore";
+import { syncShotClipToTimeline } from "./timelineSync";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -408,6 +409,11 @@ const handleShotJobMessage = (jobId: string, message: WebSocketMessage): void =>
     } else {
       storyboard.setShotClip(context.boardId, context.shotId, ref as VideoRef);
       storyboard.setShotStatus(context.boardId, context.shotId, "rendered");
+      // Round-trip the new clip into an assembled timeline, if one is linked.
+      const syncAssetId = extractAssetId(value);
+      if (syncAssetId) {
+        void syncShotClipToTimeline(context.boardId, context.shotId, syncAssetId);
+      }
     }
     generationStore.updateJobStatus(jobId, "completed", {
       assetId: extractAssetId(value)

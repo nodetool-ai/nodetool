@@ -69,7 +69,9 @@ Shipped: `Entity`/`EntityRef` types in protocol; entities persist as assets tagg
 
 A workspace tab (peer of Timeline/Sketch in `web/src/components/workspace/`) that renders the direction artifact as shot cards: script text, style frame, generated still, then generated clip, with per-shot status, cost, and approve/regenerate. This is the plan-approve-spend gate: stills are cents, clips are dollars. Agent tools (`ui_storyboard_*`) mirror the existing timeline bridge.
 
-Shipped: `"storyboard"` workspace tab (`web/src/components/workspace/StoryboardSurface.tsx`, `web/src/components/storyboard/`), `StoryboardStore`/`StoryboardGenerationStore`, `useGenerateShot` (keyframe via TextToImage, clip via ImageToVideo through the workflow runner), a Direct button that runs the Director node from the board (`useDirectScreenplay`), a `storyboardAgentBridge`, and nine `ui_storyboard_*` tools (get_state, set_screenplay, add/update_shot, generate_keyframe, approve_shot, generate_clip, revise_shot, select_shot). Opened from the "New storyboard" menu item. Boards are in-memory (no persistence yet), and the per-shot cost chip has no data source until estimates land per shot.
+Shipped: `"storyboard"` workspace tab (`web/src/components/workspace/StoryboardSurface.tsx`, `web/src/components/storyboard/`), `StoryboardStore`/`StoryboardGenerationStore`, `useGenerateShot` (keyframe via TextToImage, clip via ImageToVideo through the workflow runner), a Direct button that runs the Director node from the board (`useDirectScreenplay`), a `storyboardAgentBridge`, and ten `ui_storyboard_*` tools (get_state, set_screenplay, add/update_shot, generate_keyframe, approve_shot, generate_clip, revise_shot, assemble_timeline, select_shot). Opened from the "New storyboard" menu item. Boards are in-memory (no persistence yet), and the per-shot cost chip has no data source until estimates land per shot.
+
+Shipped, the timeline handoff: "Assemble timeline" (`useAssembleTimeline` + `buildTimelineDocument`) turns the board's rendered shots into a persisted timeline sequence — asset-backed clips laid end to end, plus draft narration/music text-to-audio clips — and opens the editor. Each clip carries `storyboardBoardId`/`storyboardShotId` (typed on `TimelineClip` and the protocol schema), and a shot revision round-trips into the cut via `syncShotClipToTimeline`. Verified live end to end (assemble click → persisted document → revise → clip asset swapped).
 
 ### 4. Cost governance
 
@@ -90,7 +92,7 @@ Known limits, still open: the estimate counts each node once (fan-out is not mul
 
 6. **Shot-level revision**: "fix shot 3" as an agent flow — locate the clip via `ui_timeline_get_state`, regenerate through video-to-video endpoints (Aleph-class and Ray3-Modify-class models are already in the fal manifest), swap in place.
 
-   Shipped for the storyboard: `ui_storyboard_revise_shot` + a Revise button on the shot card regenerate a shot's clip via `nodetool.video.VideoToVideo` and swap it in place. The timeline-clip variant is still open.
+   Shipped for the storyboard: `ui_storyboard_revise_shot` + a Revise button on the shot card regenerate a shot's clip via `nodetool.video.VideoToVideo` and swap it in place — and when the board has been assembled, the revision also lands in the persisted timeline clip (`syncShotClipToTimeline`). Revising a timeline clip that has no storyboard link is still open.
 
 7. **NodeTool MCP server**: expose the existing internal tools (`list_nodes`, `create_workflow`, `run_workflow`, `debug_workflow`, media tools) over MCP so external agents (Claude Code, ChatGPT) can drive NodeTool. Comfy MCP and vidu-skills show distribution now flows through general agents.
 

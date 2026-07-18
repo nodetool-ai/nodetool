@@ -347,6 +347,14 @@ export interface TimelineClip {
   currentAssetId?: string;
   thumbnailAssetId?: string;
   waveformAssetId?: string;
+  /**
+   * Storyboard provenance: the board/shot this clip was assembled from.
+   * Lets a shot revision on the storyboard round-trip into the cut (the
+   * revised clip asset replaces this clip's currentAssetId). Both fields must
+   * also exist on the protocol zod schema or PATCH would strip them.
+   */
+  storyboardBoardId?: string;
+  storyboardShotId?: string;
   status: ClipStatus;
   locked: boolean;
   muted?: boolean;

@@ -276,6 +276,10 @@ export const timelineClip = z
     currentAssetId: z.string().optional(),
     thumbnailAssetId: z.string().optional(),
     waveformAssetId: z.string().optional(),
+    /** Storyboard provenance (assemble bridge). Without these fields Zod
+     * strips them on every PATCH, breaking shot→clip revision round-trips. */
+    storyboardBoardId: z.string().optional(),
+    storyboardShotId: z.string().optional(),
     status: z.enum([
       "draft",
       "queued",

@@ -166,6 +166,17 @@ FrontendToolRegistry.register({
 });
 
 FrontendToolRegistry.register({
+  name: "ui_storyboard_assemble_timeline",
+  description:
+    "Assemble the storyboard's rendered shots into a persisted timeline sequence and open it in the timeline editor. Shot clips are laid end to end in order; the screenplay's narration and music become draft audio clips ready to generate. Shots without a rendered clip are skipped (returned in skippedShotIds). Each timeline clip stays linked to its shot, so ui_storyboard_revise_shot updates the cut in place.",
+  parameters: z.object({}),
+  async execute() {
+    const result = await getStoryboardAgentHandler().assembleTimeline();
+    return { ok: true, ...result };
+  }
+});
+
+FrontendToolRegistry.register({
   name: "ui_storyboard_select_shot",
   description:
     "Select a shot on the storyboard (driving the surface's focus). Pass null to clear the selection.",

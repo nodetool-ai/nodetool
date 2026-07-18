@@ -5,6 +5,7 @@ import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import { useStoryboardGenerationSubscriptions } from "../../stores/storyboard/StoryboardGenerationStore";
 import { useStoryboardAgentBridge } from "../../hooks/storyboard/useStoryboardAgentBridge";
 import { useDirectScreenplay } from "../../hooks/storyboard/useDirectScreenplay";
+import { useAssembleTimeline } from "../../hooks/storyboard/useAssembleTimeline";
 import StoryboardBoard from "../storyboard/StoryboardBoard";
 
 interface StoryboardSurfaceProps {
@@ -35,6 +36,17 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
     [direct, refId]
   );
 
+  const {
+    assemble,
+    assembling,
+    error: assembleError
+  } = useAssembleTimeline();
+  const handleAssemble = useCallback(() => {
+    void assemble(refId).catch(() => {
+      // Surfaced via assembleError; swallow to keep the click handler quiet.
+    });
+  }, [assemble, refId]);
+
   return (
     <StoryboardBoard
       boardId={refId}
@@ -42,6 +54,9 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
       onDirect={handleDirect}
       directing={directing}
       directError={error}
+      onAssemble={handleAssemble}
+      assembling={assembling}
+      assembleError={assembleError}
     />
   );
 };
