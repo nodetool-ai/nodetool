@@ -68,6 +68,37 @@ describe("AppRuntimeView (Puck Render)", () => {
     );
   });
 
+  it("concatenates streamed text appends into one string", async () => {
+    // The runtime store is a singleton keyed by workflow id — drop any value a
+    // prior test folded so this run starts from an empty "result".
+    act(() => getAppRuntimeStore(workflow.id).getState().clearOutputs(["result"]));
+    renderView();
+
+    const append = (value: string) =>
+      act(() => {
+        globalWebSocketManager.deliverLocal({
+          type: "output_update",
+          workflow_id: workflow.id,
+          node_id: "out1",
+          node_name: "result",
+          output_name: "result",
+          output_type: "string",
+          disposition: "append",
+          value
+        } as unknown as Parameters<
+          typeof globalWebSocketManager.deliverLocal
+        >[0]);
+      });
+
+    append("Hel");
+    append("lo");
+
+    // Concatenated to "Hello" — not split into separate "Hel"/"lo" parts.
+    await waitFor(() =>
+      expect(screen.getByText("Hello")).toBeInTheDocument()
+    );
+  });
+
   it("surfaces a run error as a dismissible banner", async () => {
     act(() => {
       getAppRuntimeStore(workflow.id).getState().setError("Boom: model failed");

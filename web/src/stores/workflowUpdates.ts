@@ -630,7 +630,17 @@ export const handleUpdate = (
       if (isAudioChunk) {
         queueAudioAppend(workflow.id, messageJobId, data.node_id, normalizedValue);
       } else {
-        setOutputResult(workflow.id, messageJobId, data.node_id, normalizedValue, true);
+        setOutputResult(
+          workflow.id,
+          messageJobId,
+          data.node_id,
+          normalizedValue,
+          // Append accumulates chunks; an explicit "replace" must OVERWRITE the
+          // stored value — appending replace snapshots made hydration
+          // concatenate "H","He","Hel" into "HHeHel" (app opened after a
+          // graph-editor run). Absent disposition appends (protocol default).
+          (data as { disposition?: "append" | "replace" }).disposition !== "replace"
+        );
       }
     }
 

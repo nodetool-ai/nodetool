@@ -153,14 +153,19 @@ export const useAppRuntime = (
             msg.node_name ??
             msg.output_name;
           if (!key) break;
-          // Appended items — text and structured alike — collect into a list
-          // (one part per emitted item, like ResultsStore and the old mini-app
-          // result cards); a single item stays bare. Replace stays replace.
-          // Token-level text streaming arrives as "chunk" messages, which
-          // concatenate below.
-          if (msg.disposition === "append") {
+          // Appended text concatenates (protocol semantics — same as the "chunk"
+          // path below and the CLI app runtime); splitting it into a list would
+          // render one streamed string as separate Markdown blocks. Structured
+          // items still collect into a list (one part per emitted item, like
+          // ResultsStore and the old mini-app result cards); a single item stays
+          // bare. Replace stays replace. Per the protocol, an ABSENT
+          // disposition appends — only an explicit "replace" replaces (older
+          // servers omit the field on streamed chunks).
+          if (msg.disposition !== "replace") {
             const prev = store.getState().values[key];
-            if (prev === undefined) {
+            if (typeof msg.value === "string") {
+              store.getState().setValue(key, asString(prev) + msg.value);
+            } else if (prev === undefined) {
               store.getState().setValue(key, msg.value);
             } else if (Array.isArray(prev)) {
               store.getState().setValue(key, [...prev, msg.value]);
@@ -276,9 +281,15 @@ export const useAppRuntime = (
           output.nodeId
         );
         if (result === undefined) continue;
-        // ResultsStore accumulates appended items into arrays exactly like the
-        // live fold above, so the value hydrates verbatim.
-        store.getState().setValue(output.name, result);
+        // ResultsStore accumulates appended items into arrays; the live fold
+        // concatenates streamed text instead, so collapse an all-string buffer
+        // back to one string to hydrate the same value either path produced.
+        // Structured item lists pass through untouched.
+        const hydrated =
+          Array.isArray(result) && result.every((r) => typeof r === "string")
+            ? result.join("")
+            : result;
+        store.getState().setValue(output.name, hydrated);
       }
     }
     const unsubscribeRunner = runnerStore.subscribe((state, prev) => {
