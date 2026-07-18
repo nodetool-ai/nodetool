@@ -227,6 +227,40 @@ export const BORDER_RADIUS = {
 } as const;
 
 /**
+ * Control-chrome tokens: the five control heights, the two horizontal
+ * paddings, and the single field radius. Every interactive control in
+ * ui_primitives/ and editor_ui/ derives its box from these — never invent
+ * a control height or field radius outside this object.
+ *
+ * Height roles:
+ *   xs 24  toolbar-density buttons (EditorButton compact)
+ *   sm 28  node-canvas controls, EditorButton normal
+ *   md 32  inspector controls
+ *   lg 36  default form controls (TextInput, SelectField, SearchInput)
+ *   xl 44  touch targets (MobileBottomSheet actions, TagInput)
+ *
+ * `theme.editor.heightNode` / `heightInspector` / `controlRadius` derive
+ * from these in ThemeNodetool — the two scales cannot drift.
+ */
+export const CONTROL = {
+  /** px, all on the 4px grid */
+  height: {
+    xs: 24,
+    sm: 28,
+    md: 32,
+    lg: 36,
+    xl: 44,
+  },
+  /** horizontal padding inside controls, px, on-grid */
+  paddingX: {
+    compact: 8,
+    normal: 12,
+  },
+  /** the single field/control radius (6px — matches buttons and editor controls) */
+  radius: BORDER_RADIUS.md,
+} as const;
+
+/**
  * Standard themed scrollbar styles using the palette's custom scroll colors.
  * Spread into Emotion css() blocks wherever you need consistent scrollbars.
  *
