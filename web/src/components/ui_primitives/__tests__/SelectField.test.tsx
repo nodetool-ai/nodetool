@@ -30,6 +30,35 @@ describe("SelectField", () => {
     expect(screen.getByRole("combobox")).toBeInTheDocument();
   });
 
+  it("renders the outlined variant by default", () => {
+    renderWithTheme(
+      <SelectField
+        label="Color"
+        value="red"
+        onChange={jest.fn()}
+        options={options}
+      />
+    );
+    const combobox = screen.getByRole("combobox");
+    expect(combobox.closest(".MuiOutlinedInput-root")).not.toBeNull();
+    expect(combobox.closest(".MuiInput-root")).toBeNull();
+  });
+
+  it("still supports the standard variant as an explicit opt-in", () => {
+    renderWithTheme(
+      <SelectField
+        label="Color"
+        value="red"
+        onChange={jest.fn()}
+        options={options}
+        variant="standard"
+      />
+    );
+    const combobox = screen.getByRole("combobox");
+    expect(combobox.closest(".MuiInput-root")).not.toBeNull();
+    expect(combobox.closest(".MuiOutlinedInput-root")).toBeNull();
+  });
+
   it("associates the label with the combobox", () => {
     renderWithTheme(
       <SelectField

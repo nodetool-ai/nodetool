@@ -143,7 +143,6 @@ const SearchProviderSetupDialog: React.FC = () => {
             onChange={handleProviderChange}
             options={PROVIDER_OPTIONS}
             description={config.description}
-            variant="standard"
             size="small"
           />
 
