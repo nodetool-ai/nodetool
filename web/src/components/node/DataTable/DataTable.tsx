@@ -54,11 +54,6 @@ export interface DictTableRow {
 }
 
 /**
- * New data passed to onChangeRows callback (DataFrame-specific)
- */
-export type TableDataChange = DictTableRow[] | Record<string, DictTableRow>;
-
-/**
  * Tabulator filter type for column filtering
  */
 interface TabulatorFilter {

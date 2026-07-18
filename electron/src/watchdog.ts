@@ -22,14 +22,14 @@ interface WatchdogOptionsBase {
 }
 
 /** Spawn an external command (e.g. ollama, llama-server) via child_process. */
-export interface SpawnWatchdogOptions extends WatchdogOptionsBase {
+interface SpawnWatchdogOptions extends WatchdogOptionsBase {
   command: string;
   args: string[];
   modulePath?: never;
 }
 
 /** Fork a Node.js module inside Electron's utilityProcess. */
-export interface ForkWatchdogOptions extends WatchdogOptionsBase {
+interface ForkWatchdogOptions extends WatchdogOptionsBase {
   modulePath: string;
   args?: string[];
   command?: never;

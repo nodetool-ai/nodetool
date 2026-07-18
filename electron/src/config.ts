@@ -313,7 +313,7 @@ const getProcessEnv = (): ProcessEnv => {
 };
 
 /** How to invoke npm: the executable plus any args that must precede the npm subcommand. */
-export interface NpmInvocation {
+interface NpmInvocation {
   command: string;
   baseArgs: string[];
 }

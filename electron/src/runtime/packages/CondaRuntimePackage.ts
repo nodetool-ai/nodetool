@@ -9,7 +9,7 @@ import {
   RuntimeCategory,
 } from "./types";
 
-export interface CondaRuntimePackageOptions {
+interface CondaRuntimePackageOptions {
   id: string;
   name: string;
   description: string;
