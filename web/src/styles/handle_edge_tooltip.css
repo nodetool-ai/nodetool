@@ -99,9 +99,9 @@
   stroke: var(--palette-grey-400);
   stroke-width: 1.5;
   transition:
-    stroke 0.18s ease-in-out,
-    stroke-opacity 0.2s ease-in-out,
-    stroke-width 0.15s ease-in-out;
+    stroke var(--motion-normal) ease-in-out,
+    stroke-opacity var(--motion-normal) ease-in-out,
+    stroke-width var(--motion-fast) ease-in-out;
 }
 
 /* Dim static edges by default */
@@ -230,7 +230,7 @@
 
 /* CONTROL EDGE - dashed edge from Agent nodes to controlled nodes */
 .react-flow .react-flow__edge.control-edge .react-flow__edge-path {
-  stroke: #f59e0b;
+  stroke: var(--palette-warning-main);
   stroke-dasharray: 8 4;
   stroke-width: 2 !important;
   stroke-opacity: 0.7;
@@ -245,10 +245,12 @@
   .react-flow__edges
   .react-flow__edge.control-edge.selected
   .react-flow__edge-path {
-  stroke: #f59e0b !important;
+  stroke: var(--palette-warning-main) !important;
   stroke-width: 3 !important;
   stroke-opacity: 1;
-  filter: drop-shadow(0 0 3px rgba(245, 158, 11, 0.5));
+  filter: drop-shadow(
+    0 0 3px color-mix(in srgb, var(--palette-warning-main) 50%, transparent)
+  );
 }
 
 /* CONTROL HANDLE - special handle at the top/bottom of controlled nodes */
@@ -493,8 +495,8 @@ ul.multi-outputs li::marker {
   transform: translateY(calc(-50% + 2px)) scale(0.92);
   transform-origin: center right;
   transition:
-    opacity 320ms ease-out,
-    transform 320ms cubic-bezier(0.2, 0.7, 0.2, 1);
+    opacity var(--motion-slow) ease-out,
+    transform var(--motion-slow) cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
 .handle-tooltip.handle-left {
@@ -658,7 +660,7 @@ ul.multi-outputs li::marker {
   .react-flow__edge.message-sent[data-type="image"]
   .data-flow-particles
   circle {
-  fill: #3b82f6;
+  fill: var(--palette-primary-main);
 }
 
 /* Audio data particles (purple) */
@@ -666,7 +668,7 @@ ul.multi-outputs li::marker {
   .react-flow__edge.message-sent[data-type="audio"]
   .data-flow-particles
   circle {
-  fill: #a855f7;
+  fill: var(--palette-secondary-main);
 }
 
 /* Text data particles (green) */
@@ -674,7 +676,7 @@ ul.multi-outputs li::marker {
   .react-flow__edge.message-sent[data-type="text"]
   .data-flow-particles
   circle {
-  fill: #22c55e;
+  fill: var(--palette-success-main);
 }
 
 /* Default/unknown data particles (primary color) */

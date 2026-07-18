@@ -3,8 +3,8 @@
 /* Drop zone visual feedback */
 [data-dropzone] {
   transition:
-    box-shadow 0.2s ease,
-    background-color 0.2s ease;
+    box-shadow var(--motion-normal) ease,
+    background-color var(--motion-normal) ease;
 }
 
 /* Global drag-over styling */

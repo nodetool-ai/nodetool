@@ -341,7 +341,14 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
         handleSelectAsset(asset.id);
       },
       onDoubleClick: () => onAssetDoubleClick?.(asset),
-      onContextMenu: (e: React.MouseEvent) => handleContextMenu(e, asset.id)
+      onContextMenu: (e: React.MouseEvent) => handleContextMenu(e, asset.id),
+      onKeyDown: (e: React.KeyboardEvent) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          e.stopPropagation();
+          handleSelectAsset(asset.id);
+        }
+      }
     }),
     [handleDragStart, handleSelectAsset, onAssetDoubleClick, handleContextMenu]
   );
@@ -434,10 +441,14 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
                 key={asset.id}
                 className={`global-search-result-item search-result-item ${isSelected ? "selected global-search-selected" : ""
                   }`}
+                role="button"
+                tabIndex={0}
+                aria-label={asset.name}
                 draggable={true}
                 onDragStart={assetHandlers.onDragStart}
                 onDragEnd={handleDragEnd}
                 onClick={assetHandlers.onClick}
+                onKeyDown={assetHandlers.onKeyDown}
                 onDoubleClick={assetHandlers.onDoubleClick}
                 onContextMenu={assetHandlers.onContextMenu}
                 data-testid={`global-search-result-${asset.id}`}

@@ -3,6 +3,7 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 import RenderNamespaces from "./RenderNamespaces";
 import { NamespaceTree } from "../../hooks/useNamespaceTree";
 import NamespaceIcon from "./NamespaceIcon";
+import { useActivateOnKey } from "../../hooks/useActivateOnKey";
 
 interface NamespaceItemProps {
   namespace: string;
@@ -44,6 +45,16 @@ const NamespaceItem: React.FC<NamespaceItemProps> = ({
     [isSelected, path, setSelectedPath]
   );
 
+  const handleKeyDown = useActivateOnKey<HTMLLIElement>(
+    (e) => {
+      e.stopPropagation();
+      if (isSelected) {
+        return;
+      }
+      setSelectedPath(path);
+    }
+  );
+
   const isTopLevel = path.length === 1;
 
   return (
@@ -52,7 +63,10 @@ const NamespaceItem: React.FC<NamespaceItemProps> = ({
         className={`list-item ${isExpanded ? "expanded" : "collapsed"} ${
           isSelected ? "selected" : ""
         } ${isHighlighted ? "highlighted" : "no-highlight"}`}
+        role="button"
+        tabIndex={0}
         onClick={handleClick}
+        onKeyDown={handleKeyDown}
       >
         <div className="namespace-item">
           {isTopLevel && <NamespaceIcon namespace={namespace} />}

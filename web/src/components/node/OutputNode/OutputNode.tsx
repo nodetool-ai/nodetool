@@ -283,7 +283,9 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
 
       addNotification({
         type: "success",
-        content: `${assetFiles.length} file(s) added to assets successfully`
+        content: `${assetFiles.length} file${
+          assetFiles.length === 1 ? "" : "s"
+        } added to assets`
       });
     } catch (error) {
       console.error("Error in handleAddToAssets:", error);

@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { memo, useMemo } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import FolderIcon from "@mui/icons-material/Folder";
 import NorthWest from "@mui/icons-material/NorthWest";
 import { Asset } from "../../stores/ApiTypes";
@@ -135,6 +135,22 @@ const FolderItem: React.FC<FolderItemProps> = ({
     handleContextMenu,
     handleDelete
   } = useAssetActions(folder);
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.key !== "Enter" && e.key !== " ") {
+        return;
+      }
+      const target = e.target as HTMLElement;
+      if (target.closest(".expand-gutter")) {
+        // Let the expand button handle its own native activation
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      onSelect();
+    },
+    [onSelect]
+  );
 
   return (
     <div
@@ -142,6 +158,10 @@ const FolderItem: React.FC<FolderItemProps> = ({
       className={`folder-item ${isSelected ? "selected" : ""} ${
         isParent ? "parent" : ""
       } ${isDragHovered ? "drag-hover" : ""}`}
+      role="button"
+      tabIndex={0}
+      aria-label={folder.name}
+      onKeyDown={handleKeyDown}
       onClick={(e) => {
         const target = e.target as HTMLElement;
         if (target.closest(".expand-gutter")) {

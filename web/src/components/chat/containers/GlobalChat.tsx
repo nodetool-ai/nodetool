@@ -38,6 +38,7 @@ import useGlobalChatStore, {
 import type { ThreadInfo } from "../types/thread.types";
 import type { Message, MessageTextContent } from "../../../stores/ApiTypes";
 import { usePanelStore } from "../../../stores/PanelStore";
+import { useNotificationStore } from "../../../stores/NotificationStore";
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
 import { ChatSidebar, SIDEBAR_WIDTH } from "../sidebar/ChatSidebar";
 import { useShallow } from "zustand/react/shallow";
@@ -49,6 +50,9 @@ const ERROR_BANNER_Z_INDEX = 1001;
 const GlobalChat: React.FC = () => {
   const { thread_id } = useParams<{ thread_id?: string }>();
   const navigate = useNavigate();
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
 
   const {
     status,
@@ -371,15 +375,19 @@ const GlobalChat: React.FC = () => {
     (id: string) => {
       deleteThread(id).catch((error) => {
         console.error("Failed to delete thread:", error);
+        addNotification({
+          type: "error",
+          content: "Could not delete the conversation. Please try again."
+        });
       });
     },
-    [deleteThread]
+    [deleteThread, addNotification]
   );
 
   const getThreadPreview = useCallback(
     (threadId: string) => {
       if (!threads) {
-        return "Loading...";
+        return "New conversation";
       }
       const thread = threads[threadId];
       if (!thread) {

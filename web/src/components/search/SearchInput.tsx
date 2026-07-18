@@ -69,6 +69,12 @@ const styles = (theme: Theme) =>
       outline: "none",
       boxShadow: `0 0 0 3px rgba(${theme.vars.palette.primary.mainChannel} / 0.15), inset 0 1px 2px rgba(0,0,0,0.05)`
     },
+    // Keyboard focus gets a solid ring on top of the soft :focus glow; inset
+    // offset avoids clipping by the container's overflow: hidden.
+    "input[type='text']:focus-visible": {
+      outline: "2px solid var(--palette-primary-main)",
+      outlineOffset: "-2px"
+    },
     ".clear-search-btn": {
       position: "absolute",
       cursor: "pointer",

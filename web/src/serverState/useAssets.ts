@@ -12,6 +12,7 @@ import { SIZE_FILTERS } from "../utils/formatUtils";
 import { getAssetCategory } from "../components/assets/assetGridUtils";
 import { trpcClient } from "../trpc/client";
 import { normalizeAssetList } from "../utils/normalizeAsset";
+import { useNotificationStore } from "../stores/NotificationStore";
 
 type FilterOptions = {
   searchTerm: string;
@@ -60,6 +61,9 @@ export const useAssets = (_initialFolderId: string | null = null) => {
   const sizeFilter = useAssetGridStore((state) => state.sizeFilter);
   const typeFilter = useAssetGridStore((state) => state.typeFilter);
   const workflowFilter = useAssetGridStore((state) => state.workflowFilter);
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
 
   if (currentUser === null) {
     throw new Error("User not logged");
@@ -236,19 +240,35 @@ export const useAssets = (_initialFolderId: string | null = null) => {
     queryClient.invalidateQueries({ queryKey: ["folderTree"] });
   }, [queryClient, currentFolderId, workflowFilter]);
 
+  const notifyMutationError = useCallback(
+    (content: string) => (err: Error) => {
+      console.error(content, err);
+      addNotification({
+        type: "error",
+        alert: true,
+        content,
+        dismissable: false
+      });
+    },
+    [addNotification]
+  );
+
   const createFolderMutation = useMutation({
     mutationFn: (name: string) => createFolder(currentFolderId, name),
-    onSuccess: invalidateAssetSiblings
+    onSuccess: invalidateAssetSiblings,
+    onError: notifyMutationError("Error creating folder.")
   });
 
   const deleteAssetMutation = useMutation({
     mutationFn: (assetId: string) => deleteAsset(assetId),
-    onSuccess: invalidateAssetSiblings
+    onSuccess: invalidateAssetSiblings,
+    onError: notifyMutationError("Error deleting asset.")
   });
 
   const updateAssetMutation = useMutation({
     mutationFn: (updateData: AssetUpdate) => update(updateData),
-    onSuccess: invalidateAssetSiblings
+    onSuccess: invalidateAssetSiblings,
+    onError: notifyMutationError("Error updating asset.")
   });
 
   const navigateToFolder = useCallback(

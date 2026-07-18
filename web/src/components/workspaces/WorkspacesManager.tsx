@@ -328,11 +328,11 @@ const WorkspacesManager: React.FC = () => {
         open={deleteConfirmOpen}
         onClose={handleCancelDelete}
         onConfirm={handleConfirmDelete}
-        title="Remove Workspace"
+        title="Remove this workspace?"
         content={
           <Text>
-            Remove this workspace from NodeTool? The folder itself will not be
-            deleted.
+            The workspace will be removed from NodeTool. The folder itself will
+            not be deleted.
           </Text>
         }
         confirmText="Remove"
