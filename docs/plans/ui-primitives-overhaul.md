@@ -358,9 +358,10 @@ Five real sizes, five names:
 | small | 13 | unchanged |
 | smaller | 11 | unchanged |
 
-Codemod the aliases: `bigger`→`big` (17 sites), `tiny`→`smaller` (36),
-`tinyer`→`smaller` (4) — mechanical, zero visual change since the values were
-already identical. Then narrow `TextProps["size"]` to the five names and
+Codemod the aliases with ast-grep (see §4 tooling note; pattern
+`<Text size="tiny" $$$REST>$$$C</Text>` verified to match): `bigger`→`big`
+(17 sites), `tiny`→`smaller` (36), `tinyer`→`smaller` (4) — mechanical, zero
+visual change since the values were already identical. Then narrow `TextProps["size"]` to the five names and
 delete `fontSizeGiant`/`fontSizeBigger`/`fontSizeTiny`/`fontSizeTinyer` from
 the theme after adding `fontSizeGiant: "22px"` — grep confirmed nothing
 consumes the legacy CSS vars directly. `Text.tsx`'s size map shrinks to
@@ -387,6 +388,16 @@ themed and which are deliberate raw escape hatches (`MuiAutocomplete`,
 import-policy shim.
 
 ## 4. Implementation plan
+
+**Codemod tooling**: the mechanical rewrites in PRs 3 and 5 (and future
+large migrations — this repo refactors heavily) use **ast-grep**, driven by
+the official agent skill vendored at `.claude/skills/ast-grep/` (plus
+`ast-grep-outline` for structural surveys). Run it via
+`npx --yes --package @ast-grep/cli ast-grep <args>` — it is not a repo
+dependency. For multi-step, test-gated migrations beyond single-pattern
+rewrites (e.g. the raw-MUI → primitives sweep STRATEGY.md tracks), evaluate
+the Codemod CLI + MCP stack (`npx codemod ai`), which layers AST inspection
+and codemod tests on top of ast-grep.
 
 Six PRs, in order. 1–3 change no call-site code (PR 3 removes 12 redundant
 props); every existing screen improves without migration. Each PR:
