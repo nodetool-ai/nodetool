@@ -33,7 +33,11 @@ function describeKind(layer: Layer): string {
 export const PaintedLayerPanel: React.FC<PaintedLayerPanelProps> = memo(
   ({ layer }) => {
     return (
-      <Panel sx={{ width: "100%", overflow: "auto" }}>
+      <Panel
+        background="default"
+        bordered={false}
+        sx={{ width: "100%", overflow: "auto" }}
+      >
         <FlexColumn gap={0}>
           <FlexColumn gap={0.5} sx={{ px: 1, pt: 0.5, pb: 0.5 }}>
             <FlexRow align="center" gap={1}>

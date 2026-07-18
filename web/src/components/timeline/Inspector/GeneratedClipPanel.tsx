@@ -165,7 +165,7 @@ export const GeneratedClipPanel: React.FC<GeneratedClipPanelProps> = memo(
     const generateLabel = clip.currentAssetId ? "Regenerate" : "Generate";
 
     return (
-      <Panel sx={panelSx}>
+      <Panel background="default" bordered={false} sx={panelSx}>
         <FlexColumn gap={0}>
           <GeneratedClipTopBar clip={clip} />
 

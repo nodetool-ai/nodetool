@@ -159,7 +159,11 @@ export const GeneratedLayerPanel: React.FC<GeneratedLayerPanelProps> = memo(
 
     if (!binding) {
       return (
-        <Panel sx={{ width: "100%", p: 1 }}>
+        <Panel
+          background="default"
+          bordered={false}
+          sx={{ width: "100%", p: 1 }}
+        >
           <EmptyState
             variant="empty"
             size="small"
@@ -174,6 +178,7 @@ export const GeneratedLayerPanel: React.FC<GeneratedLayerPanelProps> = memo(
 
     return (
       <Panel
+        bordered={false}
         sx={{
           width: "100%",
           overflow: "auto",
