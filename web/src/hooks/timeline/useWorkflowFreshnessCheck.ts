@@ -59,7 +59,7 @@ export function useWorkflowFreshnessCheck(
     (s) => s.markClipsStaleForWorkflow
   );
   const applyInputDrift = useTimelineStore((s) => s.applyInputDrift);
-  const setClipsOutputNode = useTimelineStore((s) => s.setClipsOutputNode);
+  const patchClip = useTimelineStore((s) => s.patchClip);
 
   const lastCheckedSequenceId = useRef<string | null>(null);
 
@@ -144,15 +144,23 @@ export function useWorkflowFreshnessCheck(
           }
         }
 
-        const hasMissingOutput = affectedClips.some(
+        const clipsWithMissingOutput = affectedClips.filter(
           (c) =>
             c.selectedOutputNodeId &&
             !currentOutputIds.has(c.selectedOutputNodeId)
         );
 
-        if (hasMissingOutput && currentOutputNodes.length > 0) {
-          setClipsOutputNode(workflowId, currentOutputNodes[0]!.id);
-          markClipsStaleForWorkflow(workflowId);
+        // Only re-point clips whose OWN selection is actually missing.
+        // Clips deliberately bound to a different, still-valid output must
+        // not be clobbered by another clip's missing selection.
+        if (clipsWithMissingOutput.length > 0 && currentOutputNodes.length > 0) {
+          const fallbackOutputNodeId = currentOutputNodes[0]!.id;
+          for (const clip of clipsWithMissingOutput) {
+            patchClip(clip.id, {
+              selectedOutputNodeId: fallbackOutputNodeId,
+              status: "stale"
+            });
+          }
         }
       })
     );
@@ -161,7 +169,7 @@ export function useWorkflowFreshnessCheck(
     store,
     markClipsStaleForWorkflow,
     applyInputDrift,
-    setClipsOutputNode
+    patchClip
   ]);
 
   useEffect(() => {

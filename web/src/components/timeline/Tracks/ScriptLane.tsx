@@ -305,7 +305,18 @@ export const ScriptLane: React.FC = () => {
     };
 
     applyHighlight(playbackApi.getState().getTimeMs());
-    return playbackApi.getState().subscribeTime(applyHighlight);
+    const unsubscribe = playbackApi.getState().subscribeTime(applyHighlight);
+
+    return () => {
+      unsubscribe();
+      // Strip whatever this effect instance last marked active — otherwise a
+      // chip/word highlighted just before segmentRanges/wordRanges changes
+      // identity (e.g. transcript edit mid-playback) keeps its stale class,
+      // since the next effect instance starts from lastSegmentId/lastWordKey
+      // = null and has no memory of what the old instance lit up.
+      if (lastSegmentId) chipElsRef.current.get(lastSegmentId)?.classList.remove("is-active");
+      if (lastWordKey) wordElsRef.current.get(lastWordKey)?.classList.remove("w-active");
+    };
   }, [playbackApi, segmentRanges, wordRanges]);
 
   return (

@@ -159,7 +159,13 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
               provider: current.provider,
               model: current.model,
               strength: current.strength,
-              numInferenceSteps: current.numInferenceSteps
+              numInferenceSteps: current.numInferenceSteps,
+              width: current.width,
+              height: current.height,
+              voice: current.voice,
+              aspectRatio: current.aspectRatio,
+              resolution: current.resolution,
+              negativePrompt: current.negativePrompt
             }
           })
         ]

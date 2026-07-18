@@ -52,7 +52,10 @@ function downloadBlob(bytes: Uint8Array, mimeType: string, filename: string): vo
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
-  URL.revokeObjectURL(url);
+  // Defer revoking the object URL so the browser has time to initiate the
+  // download before we release the blob. Without this delay, Firefox and large
+  // files may have the download cancelled before it starts.
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function clipEndMs(clip: { startMs: number; durationMs: number }): number {

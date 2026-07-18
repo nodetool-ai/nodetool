@@ -298,12 +298,25 @@ const subscribeJob = async (
     return;
   }
 
-  await globalWebSocketManager.ensureConnection();
+  // Reserve the slot synchronously, before the `ensureConnection` await
+  // below, so a concurrent call for the same jobId (generateClip's
+  // post-registerJob subscribe racing the `registerJob` store write that
+  // triggers useTimelineGenerationSubscriptions) sees `has()` return true
+  // and bails instead of both subscribing and leaking a listener.
+  jobSubscriptions.set(jobId, () => {});
   jobContexts.set(jobId, context);
-  const unsubscribe = globalWebSocketManager.subscribe(jobId, (message) =>
-    void handleJobMessage(jobId, message)
-  );
-  jobSubscriptions.set(jobId, unsubscribe);
+
+  try {
+    await globalWebSocketManager.ensureConnection();
+    const unsubscribe = globalWebSocketManager.subscribe(jobId, (message) =>
+      void handleJobMessage(jobId, message)
+    );
+    jobSubscriptions.set(jobId, unsubscribe);
+  } catch (error) {
+    // Undo the reservation so a later retry can subscribe.
+    jobSubscriptions.delete(jobId);
+    throw error;
+  }
 
   if (reconnect) {
     await globalWebSocketManager.send({

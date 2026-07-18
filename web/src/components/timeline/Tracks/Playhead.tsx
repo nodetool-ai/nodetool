@@ -248,7 +248,8 @@ export const Playhead: React.FC<PlayheadProps> = memo(
         } else if (e.key === "Home") {
           next = 0;
         } else if (e.key === "End") {
-          next = cap;
+          const endTargetMs = durationMs > 0 ? durationMs : currentTimeMs;
+          next = endTargetMs;
         }
         if (next != null) {
           e.preventDefault();
