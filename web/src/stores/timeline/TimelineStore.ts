@@ -526,26 +526,22 @@ function patchById<T extends { id: string }>(
 
 // ── Scene split/merge helpers (pure) ───────────────────────────────────────
 
-/** Split every clip that strictly contains `timeMs` into two halves. */
+/**
+ * Split every clip that strictly contains `timeMs` into two halves,
+ * link-aware. Delegates to `splitClipsLinkAware` with every clip as a
+ * candidate target so a split through a linked A/V pair mints one fresh
+ * linkId for the LEFT halves and another for the RIGHT halves, rather than
+ * leaving all four halves sharing the original linkId.
+ */
 function splitAllClipsAt(
   clips: TimelineClip[],
   timeMs: number
 ): TimelineClip[] {
-  const next: TimelineClip[] = [];
-  for (const clip of clips) {
-    if (timeMs > clip.startMs && timeMs < clip.startMs + clip.durationMs) {
-      try {
-        const [left, right] = splitClip(clip, timeMs);
-        next.push(left, right);
-      } catch {
-        // Skip clips where the split is invalid (e.g. boundary mismatch).
-        next.push(clip);
-      }
-    } else {
-      next.push(clip);
-    }
-  }
-  return next;
+  return splitClipsLinkAware(
+    clips,
+    timeMs,
+    clips.map((c) => c.id)
+  );
 }
 
 /**
@@ -858,12 +854,23 @@ export const createTimelineStore = (
         reorderTracks: (orderedIds) =>
           set((state) => {
             const byId = new Map(state.tracks.map((t) => [t.id, t]));
+            const orderedIdSet = new Set(orderedIds);
             const reordered = orderedIds
               .map((id, index) => {
                 const t = byId.get(id);
                 return t ? { ...t, index } : null;
               })
               .filter((t): t is TimelineTrack => t !== null);
+            // Tracks missing from `orderedIds` (e.g. a caller passed a stale
+            // subset) are appended in their original relative order rather
+            // than dropped, so their clips are never orphaned.
+            let nextIndex = reordered.length;
+            for (const t of state.tracks) {
+              if (!orderedIdSet.has(t.id)) {
+                reordered.push({ ...t, index: nextIndex });
+                nextIndex += 1;
+              }
+            }
             return { tracks: reordered };
           }),
 
@@ -915,17 +922,32 @@ export const createTimelineStore = (
           })),
 
         updateTrackEffect: (trackId, effectId, patch) =>
-          set((state) => ({
-            tracks: state.tracks.map((t) => {
-              if (t.id !== trackId) return t;
-              const effects = (t.effects ?? []).map((e) =>
-                e.id === effectId
-                  ? ({ ...e, ...patch } as TrackEffect)
-                  : e
-              );
-              return { ...t, effects };
-            })
-          })),
+          set((state) => {
+            const track = state.tracks.find((t) => t.id === trackId);
+            const effect = track?.effects?.find((e) => e.id === effectId);
+            if (!effect) {
+              return state;
+            }
+            const effectRecord = effect as unknown as Record<string, unknown>;
+            const patchRecord = patch as Record<string, unknown>;
+            const unchanged = Object.keys(patch).every((k) =>
+              Object.is(effectRecord[k], patchRecord[k])
+            );
+            if (unchanged) {
+              return state;
+            }
+            return {
+              tracks: state.tracks.map((t) => {
+                if (t.id !== trackId) return t;
+                const effects = (t.effects ?? []).map((e) =>
+                  e.id === effectId
+                    ? ({ ...e, ...patch } as TrackEffect)
+                    : e
+                );
+                return { ...t, effects };
+              })
+            };
+          }),
 
         removeTrackEffect: (trackId, effectId) =>
           set((state) => ({
@@ -1417,22 +1439,48 @@ export const createTimelineStore = (
           }),
 
         setParamOverride: (clipId, inputNodeName, value) =>
-          set((state) => ({
-            clips: state.clips.map((c) => {
-              if (c.id !== clipId) return c;
-              const paramOverrides = { ...(c.paramOverrides ?? {}), [inputNodeName]: value };
-              // Mark as stale only when the clip has already been generated.
-              const status: TimelineClip["status"] =
-                c.lastGeneratedHash ? "stale" : c.status;
-              return { ...c, paramOverrides, status };
-            })
-          })),
+          set((state) => {
+            const clip = state.clips.find((c) => c.id === clipId);
+            if (!clip) {
+              return state;
+            }
+            // Mark as stale only when the clip has already been generated.
+            const status: TimelineClip["status"] = clip.lastGeneratedHash
+              ? "stale"
+              : clip.status;
+            const unchanged =
+              Object.is(clip.paramOverrides?.[inputNodeName], value) &&
+              clip.status === status;
+            if (unchanged) {
+              return state;
+            }
+            return {
+              clips: state.clips.map((c) => {
+                if (c.id !== clipId) return c;
+                const paramOverrides = {
+                  ...(c.paramOverrides ?? {}),
+                  [inputNodeName]: value
+                };
+                return { ...c, paramOverrides, status };
+              })
+            };
+          }),
 
         applyInputDrift: (workflowId, added, removed) =>
-          set((state) => ({
-            clips: state.clips.map((c) => {
+          set((state) => {
+            let changed = false;
+            const clips = state.clips.map((c) => {
               if (c.workflowId !== workflowId) return c;
-              const overrides = { ...(c.paramOverrides ?? {}) };
+              const current = c.paramOverrides ?? {};
+              const hasAddition = added.some(
+                ({ name }) => !(name in current)
+              );
+              const hasRemoval = removed.some((name) => name in current);
+              if (!hasAddition && !hasRemoval) {
+                return c;
+              }
+              changed = true;
+              const overrides = { ...current };
               for (const { name, defaultValue } of added) {
                 if (!(name in overrides)) {
                   overrides[name] = defaultValue;
@@ -1442,8 +1490,9 @@ export const createTimelineStore = (
                 delete overrides[name];
               }
               return { ...c, paramOverrides: overrides };
-            })
-          })),
+            });
+            return changed ? { clips } : state;
+          }),
 
         setClipsOutputNode: (workflowId, selectedOutputNodeId) =>
           set((state) => ({

@@ -621,7 +621,6 @@ export const PreviewCompositor: React.FC = memo(() => {
       const rate = clip?.speedBaked
         ? 1
         : Math.max(0.0001, clip?.speedMultiplier ?? 1);
-      const targetSec = clip ? clipSourceTimeSec(clip, currentTimeMs) : 0;
 
       // Setting currentTime before HAVE_METADATA is silently clamped to 0 and
       // a subsequent play() can reject with AbortError. Defer until the
@@ -629,6 +628,16 @@ export const PreviewCompositor: React.FC = memo(() => {
       // (kept in pendingSeeks) re-runs with fresh state.
       const applySeek = () => {
         if (el.readyState < 1) return;
+        // While playing, `currentTimeMs` (sceneTimeMs) is frozen between
+        // scene bumps — the 2s preload-tick re-run of this effect would
+        // otherwise seek the element BACKWARD to that stale position once
+        // the video's own clock has drifted past the 0.15s threshold.
+        // Read the live transient playhead instead, and do it here (at
+        // call time, not effect-run time) so the loadedmetadata-deferred
+        // path also gets a fresh value rather than a stale closure.
+        const targetSec = clip
+          ? clipSourceTimeSec(clip, isPlaying ? getTimeMs() : currentTimeMs)
+          : 0;
         if (!isPlaying) {
           if (Math.abs(el.currentTime - targetSec) > 0.04) {
             el.currentTime = targetSec;
@@ -710,6 +719,7 @@ export const PreviewCompositor: React.FC = memo(() => {
     activeVideoSlots,
     currentTimeMs,
     isPlaying,
+    getTimeMs,
     clips,
     clipById,
     resolveUrl,

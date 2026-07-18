@@ -306,7 +306,7 @@ const WaveformCanvas: React.FC<WaveformCanvasProps> = ({
     // Decide whether anything beyond a sub-pixel width change actually
     // happened. Width changes during a drag are gated to whole pixels (the
     // canvas can't show finer detail); other inputs force a redraw.
-    const inputsKey = `${durationMs}|${inPointMs}|${outPointMs}|${peaks ? peaks.length : 0}`;
+    const inputsKey = `${durationMs}|${inPointMs}|${outPointMs}|${url || ""}`;
     const otherInputsChanged = inputsKey !== lastInputsKeyRef.current;
     const widthChanged =
       Math.abs(Math.floor(widthPx) - lastDrawnWidthRef.current) >= 1;

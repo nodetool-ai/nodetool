@@ -205,7 +205,8 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       seek,
       seekNonce,
       subscribeTime,
-      getTimeMs
+      getTimeMs,
+      rate
     } = useTimelinePlaybackStore(
       useShallow((s) => ({
         // Reactive position is now discrete-only (seek/scrub/pause/stop). The
@@ -220,7 +221,8 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         seek: s.seek,
         seekNonce: s.seekNonce,
         subscribeTime: s.subscribeTime,
-        getTimeMs: s.getTimeMs
+        getTimeMs: s.getTimeMs,
+        rate: s.rate
       }))
     );
 
@@ -388,7 +390,8 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
           validClips,
           useTimelineStore.getState().tracks,
           getTimeMs(),
-          isStale
+          isStale,
+          useTimelinePlaybackStore.getState().rate
         );
       },
       [getAsset, getTimeMs]
@@ -411,13 +414,20 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
 
       // Read fresh to avoid stale closure when the user scrubs before pressing play.
       let startMs = useTimelinePlaybackStore.getState().currentTimeMs;
-      // Pressing Play while parked at the end restarts from the top.
-      if (durationMs > 0 && startMs >= durationMs - frameDeltaMs(fps)) {
+      // Pressing Play while parked at the end restarts from the top. Uses the
+      // live content end (contentEndMs), not the stale store `durationMs`,
+      // which is only set on load and never recomputed as clips change.
+      if (contentEndMs > 0 && startMs >= contentEndMs - frameDeltaMs(fps)) {
         startMs = 0;
         setCurrentTimeMs(0);
       }
 
       play();
+
+      // Global playback speed, read fresh so a rate set before pressing play
+      // (and the live rate-change restart below) takes effect. Feeds both the
+      // clock and audio scheduling so the visual clock and audio stay locked.
+      const globalRate = useTimelinePlaybackStore.getState().rate;
 
       // Read fresh rather than closing over the reactive `clips` value so
       // this component never needs to subscribe to (and re-render on) the
@@ -433,7 +443,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         // AudioContext creation/resume entirely rather than paying the
         // autoplay-policy round trip for silence.
         graph.stopAll();
-        clock.start(startMs, 1, null, durationMs || Infinity);
+        clock.start(startMs, globalRate, null, contentEndMs || Infinity);
         return;
       }
 
@@ -473,14 +483,14 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       // Clear any sources an older gesture registered, right before
       // scheduling the new ones — so the latest gesture always wins.
       graph.stopAll();
-      await graph.scheduleClips(validClips, tracks, startMs, isStale);
+      await graph.scheduleClips(validClips, tracks, startMs, isStale, globalRate);
       if (isStale()) return;
 
       for (const { clip } of validClips) {
         scheduledClipIdsRef.current.add(clip.id);
       }
 
-      clock.start(startMs, 1, ctx, durationMs || Infinity);
+      clock.start(startMs, globalRate, ctx, contentEndMs || Infinity);
 
       topUpIntervalRef.current = setInterval(() => {
         void topUpAudio(isStale);
@@ -488,7 +498,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
     }, [
       play,
       tracks,
-      durationMs,
+      contentEndMs,
       fps,
       getAsset,
       setCurrentTimeMs,
@@ -539,6 +549,11 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       if (seekNonce === 0 || !isPlaying) {
         return;
       }
+      // Stop the clock immediately — otherwise it keeps ticking off its old
+      // start position and overwrites (via setTimeMs) the liveTimeMs that
+      // seek() just set, so the seek is visually ignored until the debounced
+      // restart below fires and calls handlePlay's own clock.stop().
+      clockRef.current.stop();
       graphRef.current.stopAll();
       stopAudioSession();
 
@@ -551,6 +566,18 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       // handlePlay reads the latest currentTimeMs from the store.
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [seekNonce]);
+
+    // Changing the global rate mid-playback re-aligns the clock and audio.
+    // Seek to the live position (rebasing currentTimeMs and bumping seekNonce)
+    // so the seek-restart effect above re-runs handlePlay, which reads the new
+    // rate. Guarded on isPlaying so a rate set while paused just applies on the
+    // next play.
+    useEffect(() => {
+      if (!isPlaying) return;
+      seek(getTimeMs());
+      // Only restart on an actual rate change, not on play/pause transitions.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [rate]);
 
     const handlePlayPauseToggle = useCallback(() => {
       if (isPlaying) {
