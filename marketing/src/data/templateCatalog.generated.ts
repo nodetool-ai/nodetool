@@ -320,7 +320,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "conditional-logic-engine",
         "name": "Conditional Logic Engine",
-        "description": "Teaching example for control flow: one number drives two independent decision structures — a boolean OR gate and a nested switch tree — built entirely from Compare, LogicalOperator, and ConditionalSwitch nodes, no LLM calls.",
+        "description": "Teaching example for control flow: one number drives two independent decision structures built entirely from If nodes — there is no dedicated numeric-compare or boolean-logic node in NodeTool, so this shows the actual pattern: PadText + Compare + Equals turn the number into a boolean, then pairs of If nodes sharing one condition (each holding its own value, taking the opposite branch) act as the ternary select and OR you'd otherwise reach for. No LLM calls.",
         "tags": [
           "boolean"
         ]

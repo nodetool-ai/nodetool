@@ -7,9 +7,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/ad-creative-factory",
     "title": "Ad Creative Factory — NodeTool AI Workflow Template",
     "description": "Turn one product photo and one offer into a batch of ready-to-test vertical video ads. A strategist agent plans a persona × angle test matrix, a structured data generator emits one variant row per cell — persona, angle, and spoken hook as separate fields, not a prose blob — and every row's hook becomes a staged product scene, an animated 9:16 clip, and a voiceover mixed on top.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "ad-creative-factory",
     "name": "Ad Creative Factory",
     "summary": "Turn one product photo and one offer into a batch of ready-to-test vertical video ads. A strategist agent plans a persona × angle test matrix, a structured data generator emits one variant row per cell — persona, angle, and spoken hook as separate fields, not a prose blob — and every row's hook becomes a staged product scene, an animated 9:16 clip, and a voiceover mixed on top.",
@@ -90,7 +90,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 18,
-    "thumbnail": null,
+    "thumbnail": "/templates/ad-creative-factory.jpg",
     "graph": {
       "nodes": [
         {
@@ -861,9 +861,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/chat-with-your-documents",
     "title": "Chat With Your Documents — NodeTool AI Workflow Template",
     "description": "Retrieval-augmented Q&A over your own documents. Index a small knowledge base into a vector collection, pull the passages matching a search keyword, and get a Markdown answer that cites its sources and refuses to guess when the answer isn't in the docs. NodeTool's first RAG example. The answer step uses gpt-5-mini (OpenAI key); the collection is configured for Ollama nomic-embed-text embeddings.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "chat-with-your-documents",
     "name": "Chat With Your Documents",
     "summary": "Retrieval-augmented Q&A over your own documents. Index a small knowledge base into a vector collection, pull the passages matching a search keyword, and get a Markdown answer that cites its sources and refuses to guess when the answer isn't in the docs. NodeTool's first RAG example. The answer step uses gpt-5-mini (OpenAI key); the collection is configured for Ollama nomic-embed-text embeddings.",
@@ -918,7 +918,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 15,
-    "thumbnail": null,
+    "thumbnail": "/templates/chat-with-your-documents.jpg",
     "graph": {
       "nodes": [
         {
@@ -2653,9 +2653,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/hook-and-thumbnail-factory",
     "title": "Hook & Thumbnail Factory — NodeTool AI Workflow Template",
     "description": "One video topic in, a full thumbnail pack out: scroll-stopping hook lines plus a color-graded, ready-to-post thumbnail for each. The differentiator is the fan-out — one hook stream drives a whole gallery of matching images in a single run. Uses fal-ai/flux/schnell (cheap, fast).",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "hook-and-thumbnail-factory",
     "name": "Hook & Thumbnail Factory",
     "summary": "One video topic in, a full thumbnail pack out: scroll-stopping hook lines plus a color-graded, ready-to-post thumbnail for each. The differentiator is the fan-out — one hook stream drives a whole gallery of matching images in a single run. Uses fal-ai/flux/schnell (cheap, fast).",
@@ -2715,7 +2715,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 12,
-    "thumbnail": null,
+    "thumbnail": "/templates/hook-and-thumbnail-factory.jpg",
     "graph": {
       "nodes": [
         {
@@ -3662,9 +3662,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/model-arena",
     "title": "Model Arena — NodeTool AI Workflow Template",
     "description": "One brief, three frontier models, answered side by side. The same prompt fans out to OpenAI, Anthropic, and Google in a single pass, each answering in the same structure — so you compare reasoning, not formatting. Swap the model on any lane to build your own bracket.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "model-arena",
     "name": "Model Arena",
     "summary": "One brief, three frontier models, answered side by side. The same prompt fans out to OpenAI, Anthropic, and Google in a single pass, each answering in the same structure — so you compare reasoning, not formatting. Swap the model on any lane to build your own bracket.",
@@ -3699,7 +3699,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 9,
-    "thumbnail": null,
+    "thumbnail": "/templates/model-arena.jpg",
     "graph": {
       "nodes": [
         {
@@ -5067,9 +5067,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/podcast-repurposing-studio",
     "title": "Podcast Repurposing Studio — NodeTool AI Workflow Template",
     "description": "Drop in one podcast episode and ship the whole content pack: episode titles and show notes, a newsletter edition, five social posts, and quote cards rendered as square images. Whisper transcribes once; four writer branches fan out from the transcript.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "podcast-repurposing-studio",
     "name": "Podcast Repurposing Studio",
     "summary": "Drop in one podcast episode and ship the whole content pack: episode titles and show notes, a newsletter edition, five social posts, and quote cards rendered as square images. Whisper transcribes once; four writer branches fan out from the transcript.",
@@ -5130,7 +5130,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 18,
-    "thumbnail": null,
+    "thumbnail": "/templates/podcast-repurposing-studio.jpg",
     "graph": {
       "nodes": [
         {
@@ -5599,9 +5599,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/private-assistant",
     "title": "Private Assistant — NodeTool AI Workflow Template",
     "description": "Ask questions about your own notes and documents — fully local, no API keys. Runs end-to-end on a local Ollama model, so the text never leaves your machine. Requires Ollama running with a model pulled (default: llama3.2 — run `ollama pull llama3.2`).",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "private-assistant",
     "name": "Private Assistant",
     "summary": "Ask questions about your own notes and documents — fully local, no API keys. Runs end-to-end on a local Ollama model, so the text never leaves your machine. Requires Ollama running with a model pulled (default: llama3.2 — run `ollama pull llama3.2`).",
@@ -5636,7 +5636,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 6,
-    "thumbnail": null,
+    "thumbnail": "/templates/private-assistant.jpg",
     "graph": {
       "nodes": [
         {
@@ -6266,9 +6266,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/prompt-template",
     "title": "Prompt Template — NodeTool AI Workflow Template",
     "description": "The starter pattern behind almost every NodeTool workflow: typed inputs fill a reusable prompt template, an LLM answers it, the output renders. Explains a topic for any audience — swap the prompt to reuse the pattern for anything.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "prompt-template",
     "name": "Prompt Template",
     "summary": "The starter pattern behind almost every NodeTool workflow: typed inputs fill a reusable prompt template, an LLM answers it, the output renders. Explains a topic for any audience — swap the prompt to reuse the pattern for anything.",
@@ -6303,7 +6303,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 5,
-    "thumbnail": null,
+    "thumbnail": "/templates/prompt-template.jpg",
     "graph": {
       "nodes": [
         {
@@ -6396,9 +6396,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/research-agent",
     "title": "Research Agent — NodeTool AI Workflow Template",
     "description": "Give it a topic and an audience; the agent runs real web searches, opens the best sources, and streams back a cited markdown briefing. Differentiator: genuine multi-step tool use (search + browse) with inline citations — not a single prompt call.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "research-agent",
     "name": "Research Agent",
     "summary": "Give it a topic and an audience; the agent runs real web searches, opens the best sources, and streams back a cited markdown briefing. Differentiator: genuine multi-step tool use (search + browse) with inline citations — not a single prompt call.",
@@ -6435,7 +6435,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 5,
-    "thumbnail": null,
+    "thumbnail": "/templates/research-agent.jpg",
     "graph": {
       "nodes": [
         {
@@ -6974,9 +6974,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/seo-content-engine",
     "title": "SEO Content Engine — NodeTool AI Workflow Template",
     "description": "One topic in, a keyword-targeted article batch out — each article lands as typed fields (title, meta description, keywords, body) instead of one markdown blob, ready to paste straight into a CMS. A strategist agent plans the topic cluster, a list generator turns it into briefs, and every brief becomes a full article with an editorial hero image.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "seo-content-engine",
     "name": "SEO Content Engine",
     "summary": "One topic in, a keyword-targeted article batch out — each article lands as typed fields (title, meta description, keywords, body) instead of one markdown blob, ready to paste straight into a CMS. A strategist agent plans the topic cluster, a list generator turns it into briefs, and every brief becomes a full article with an editorial hero image.",
@@ -7027,7 +7027,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 17,
-    "thumbnail": null,
+    "thumbnail": "/templates/seo-content-engine.jpg",
     "graph": {
       "nodes": [
         {
@@ -7845,9 +7845,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/workflow-as-a-tool",
     "title": "Workflow As A Tool — NodeTool AI Workflow Template",
     "description": "Composition demo: an orchestrator agent delegates to two specialist sub-agents wired in as callable tools via control edges — Research (Gemini) gathers the facts, Copy Editor (Claude) polishes the draft, and the manager (GPT-5 mini) decides when to call each. Shows how a self-contained unit of work becomes a tool another agent can invoke, all inside one graph.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "workflow-as-a-tool",
     "name": "Workflow As A Tool",
     "summary": "Composition demo: an orchestrator agent delegates to two specialist sub-agents wired in as callable tools via control edges — Research (Gemini) gathers the facts, Copy Editor (Claude) polishes the draft, and the manager (GPT-5 mini) decides when to call each. Shows how a self-contained unit of work becomes a tool another agent can invoke, all inside one graph.",
@@ -7881,7 +7881,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 6,
-    "thumbnail": null,
+    "thumbnail": "/templates/workflow-as-a-tool.jpg",
     "graph": {
       "nodes": [
         {
