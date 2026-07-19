@@ -41,10 +41,10 @@ export default function UseCasesShowcase() {
     <section
       id="use-cases"
       aria-labelledby="use-cases-title"
-      className="relative py-24 overflow-hidden"
+      className="relative py-24 overflow-clip-safe"
     >
       <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="mb-16 max-w-2xl">
+        <div className="scroll-fade mb-16 max-w-2xl">
           <div className="mb-3 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-blue-300/80">
             <span className="h-px w-8 bg-amber-300/60" />
             Use cases
@@ -83,7 +83,7 @@ export default function UseCasesShowcase() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-40px" }}
                 transition={{ duration: 0.3 }}
-                className="group relative grid items-center gap-8 rounded-3xl border border-white/10 bg-slate-900/40 p-6 backdrop-blur-sm transition-all duration-300 hover:border-white/20 hover:bg-slate-900/60 lg:grid-cols-2 lg:gap-12 lg:p-8"
+                className="scroll-fade group relative grid items-center gap-8 rounded-3xl border border-white/10 bg-slate-900/40 p-6 backdrop-blur-sm transition-all duration-300 hover:border-white/20 hover:bg-slate-900/60 lg:grid-cols-2 lg:gap-12 lg:p-8"
               >
                 {/* Media */}
                 <div

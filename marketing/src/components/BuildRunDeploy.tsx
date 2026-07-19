@@ -42,7 +42,7 @@ const accents: Record<
 export default function BuildRunDeploy() {
   return (
     <div id="how-title" className="relative w-full py-12">
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+      <div className="scroll-fade grid grid-cols-1 gap-6 md:grid-cols-3">
         <Card
           step="01"
           title="Wire your canvas"
