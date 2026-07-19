@@ -138,6 +138,22 @@ export {
   emptyStoryboardDocument
 } from "./storyboard.js";
 export type { StoryboardDocument, StoryboardResponse } from "./storyboard.js";
+export {
+  Script,
+  ScriptConflictError,
+  emptyScriptDocument,
+  countScriptLines
+} from "./script.js";
+export type {
+  ScriptDocument,
+  ScriptResponse,
+  ScriptSection,
+  ScriptLine,
+  ScriptTake,
+  ScriptSpeaker,
+  VoiceBinding as ScriptVoiceBinding,
+  ScriptCaptionWord
+} from "./script.js";
 export type {
   ImageDocumentData,
   ImageDocumentMutationResult,

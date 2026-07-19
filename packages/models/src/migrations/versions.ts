@@ -1856,5 +1856,45 @@ export const migrations: MigrationDef[] = [
       await db.execute("DROP INDEX IF EXISTS idx_storyboard_updated");
       await db.execute("DROP TABLE IF EXISTS storyboards");
     }
+  },
+
+  // ── Create scripts ──────────────────────────────────────────
+  {
+    version: "20260719_000000",
+    name: "create_scripts",
+    createsTables: ["scripts"],
+    modifiesTables: [],
+    async up(db) {
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS scripts (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          project_id TEXT NOT NULL,
+          name TEXT NOT NULL,
+          document TEXT NOT NULL,
+          timeline_id TEXT,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_script_user
+        ON scripts (user_id)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_script_project
+        ON scripts (project_id)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_script_updated
+        ON scripts (updated_at)
+      `);
+    },
+    async down(db) {
+      await db.execute("DROP INDEX IF EXISTS idx_script_user");
+      await db.execute("DROP INDEX IF EXISTS idx_script_project");
+      await db.execute("DROP INDEX IF EXISTS idx_script_updated");
+      await db.execute("DROP TABLE IF EXISTS scripts");
+    }
   }
 ];
