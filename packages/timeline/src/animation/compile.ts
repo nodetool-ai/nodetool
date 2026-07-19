@@ -25,7 +25,14 @@ export type AnimatedProperty =
   | "scale" // uniform multiplier on ClipTransform.scale
   | "rotation" // radians, added to ClipTransform.rotation
   | "opacity" // multiplier on the layer's resolved opacity
-  | "wipeProgress"; // 0 = fully hidden, 1 = fully revealed (mask presets only)
+  | "wipeProgress" // 0 = fully hidden, 1 = fully revealed (mask presets only)
+  // Effect params applied through the compositor's per-layer effect pre-pass.
+  // The engine stays pure: these values compose into synthesized `ClipEffect`s
+  // at the render site (see `resolveAnimatedLayerProps`), matching what the
+  // `color.grade` / Gaussian-blur pipeline already applies.
+  | "blur" // added to the layer's blur radius, in source px (identity 0)
+  | "brightness" // added to the grade shader's brightness term, -1..1 (identity 0)
+  | "saturation"; // multiplies the grade shader's saturation, 0..4 (identity 1)
 
 export interface Keyframe {
   /** Normalized 0..1 within the animation window. */

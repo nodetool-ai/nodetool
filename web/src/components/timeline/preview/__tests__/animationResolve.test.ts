@@ -115,6 +115,60 @@ describe("resolveAnimatedLayerProps", () => {
   });
 });
 
+describe("animated effect composition", () => {
+  it("composes a blur-in into a synthesized blur effect at the window midpoint", () => {
+    const clip = animatedClip([
+      {
+        id: "a",
+        role: "in",
+        preset: "blur",
+        durationMs: 500,
+        easing: "linear",
+        params: { amount: 12 }
+      }
+    ]);
+    // Window [0,500]; t=0.5 → blur 6px, opacity 0.5.
+    const out = resolveAnimatedLayerProps(layerFor(clip), 250, CANVAS);
+    expect(out.opacity).toBeCloseTo(0.5, 6);
+    const blur = out.effects?.find((e) => e.type === "blur");
+    expect(blur).toMatchObject({ type: "blur", enabled: true, radius: 6 });
+  });
+
+  it("composes a colorFade-in into a synthesized saturation effect", () => {
+    const clip = animatedClip([
+      { id: "a", role: "in", preset: "colorFade", durationMs: 600, easing: "linear" }
+    ]);
+    // t=0.5 → saturation 0.5 (grayscale → color).
+    const out = resolveAnimatedLayerProps(layerFor(clip), 300, CANVAS);
+    const color = out.effects?.find((e) => e.type === "color");
+    expect(color).toMatchObject({ type: "color", enabled: true, saturation: 0.5, brightness: 0 });
+  });
+
+  it("appends the animated blur after a static clip blur effect", () => {
+    const clip = animatedClip([
+      { id: "a", role: "in", preset: "blur", durationMs: 500, easing: "linear", params: { amount: 12 } }
+    ]);
+    clip.effects = [{ id: "static", type: "blur", enabled: true, radius: 4 }];
+    const layer = { ...layerFor(clip), effects: clip.effects };
+    const out = resolveAnimatedLayerProps(layer, 250, CANVAS);
+    const blurs = out.effects?.filter((e) => e.type === "blur") ?? [];
+    // Static blur is preserved and the animated blur is appended; the effect
+    // pre-pass sums the radii (4 + 6).
+    expect(blurs).toHaveLength(2);
+    expect(blurs[0]).toMatchObject({ id: "static", radius: 4 });
+    expect(blurs[1]).toMatchObject({ radius: 6 });
+  });
+
+  it("returns the clip's own effects (no synthesized effect) outside the window", () => {
+    const clip = animatedClip([
+      { id: "a", role: "in", preset: "blur", durationMs: 500 }
+    ]);
+    clip.effects = [{ id: "static", type: "blur", enabled: true, radius: 4 }];
+    const out = resolveAnimatedLayerProps(layerFor(clip), 1000, CANVAS);
+    expect(out.effects).toBe(clip.effects);
+  });
+});
+
 describe("preview / export parity", () => {
   it("resolves identically at window start, mid, end, and past-end", () => {
     const clip = animatedClip([

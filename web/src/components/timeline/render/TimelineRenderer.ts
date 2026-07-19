@@ -298,7 +298,7 @@ export async function renderTimeline(
               transform: anim.transform,
               mask: anim.mask,
               borderRadius: layer.borderRadius,
-              effects: layer.effects,
+              effects: anim.effects ?? layer.effects,
               trackEffects: layer.trackEffects
             };
           }
@@ -319,7 +319,7 @@ export async function renderTimeline(
               transform: anim.transform,
               mask: anim.mask,
               borderRadius: layer.borderRadius,
-              effects: layer.effects,
+              effects: anim.effects ?? layer.effects,
               trackEffects: layer.trackEffects
             };
           }
@@ -345,7 +345,7 @@ export async function renderTimeline(
               transform: anim.transform,
               mask: anim.mask,
               borderRadius: layer.borderRadius,
-              effects: layer.effects,
+              effects: anim.effects ?? layer.effects,
               trackEffects: layer.trackEffects
             };
           }
@@ -361,7 +361,7 @@ export async function renderTimeline(
             transform: anim.transform,
             mask: anim.mask,
             borderRadius: layer.borderRadius,
-            effects: layer.effects,
+            effects: anim.effects ?? layer.effects,
             trackEffects: layer.trackEffects
           };
         })

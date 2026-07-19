@@ -456,6 +456,12 @@ export interface AnimatedLayerProps {
   opacity: number;
   /** Wipe mask to apply in the compositor. Absent means unmasked. */
   mask?: AnimationSampleMask;
+  /**
+   * Effects to feed the compositor's per-layer effect pre-pass: the clip's
+   * static `effects` with any animated blur/brightness/saturation composed in.
+   * Equal to the clip's own `effects` when no effect animation is active.
+   */
+  effects?: ClipEffect[];
 }
 
 interface CompileCacheEntry {
@@ -534,7 +540,7 @@ export function resolveAnimatedLayerProps(
   const clip = layer.clip;
   const compiled = compiledFor(clip, canvas, cache);
   if (compiled.length === 0) {
-    return { transform: layer.transform, opacity: layer.opacity };
+    return { transform: layer.transform, opacity: layer.opacity, effects: clip.effects };
   }
 
   const s = sampleAnimations(compiled, currentTimeMs - clip.startMs);
@@ -544,9 +550,12 @@ export function resolveAnimatedLayerProps(
     s.scale === 1 &&
     s.rotation === 0 &&
     s.opacity === 1 &&
+    s.blur === 0 &&
+    s.brightness === 0 &&
+    s.saturation === 1 &&
     s.mask === undefined
   ) {
-    return { transform: layer.transform, opacity: layer.opacity };
+    return { transform: layer.transform, opacity: layer.opacity, effects: clip.effects };
   }
 
   const base = layer.transform ?? IDENTITY_TRANSFORM;
@@ -561,7 +570,41 @@ export function resolveAnimatedLayerProps(
   };
   // `s.mask` is freshly allocated per sampleAnimations call here (no scratch
   // is passed), so handing it out is safe.
-  return { transform, opacity: layer.opacity * s.opacity, mask: s.mask };
+  return {
+    transform,
+    opacity: layer.opacity * s.opacity,
+    mask: s.mask,
+    effects: composeAnimatedEffects(clip.effects, s.blur, s.brightness, s.saturation)
+  };
+}
+
+/**
+ * Fold the sampled effect values into the clip's static effects for the
+ * compositor pre-pass. The animated blur/brightness ADD to the aggregated blur
+ * radius / grade brightness (both additive terms in the pipeline) and the
+ * animated saturation MULTIPLIES the aggregated saturation — so a synthesized
+ * blur effect and a synthesized color effect appended to the static list land
+ * exactly on those aggregation rules (see `effectsProcessor` / `canvas2d`
+ * `computeFilterForEffects`). Returns the static array unchanged when the
+ * sampled values are identity (no allocation on the steady path).
+ */
+function composeAnimatedEffects(
+  staticEffects: ClipEffect[] | undefined,
+  blur: number,
+  brightness: number,
+  saturation: number
+): ClipEffect[] | undefined {
+  const hasColor = brightness !== 0 || saturation !== 1;
+  const hasBlur = blur > 0;
+  if (!hasColor && !hasBlur) return staticEffects;
+  const out: ClipEffect[] = staticEffects ? [...staticEffects] : [];
+  if (hasColor) {
+    out.push({ id: "anim-color", type: "color", enabled: true, brightness, saturation });
+  }
+  if (hasBlur) {
+    out.push({ id: "anim-blur", type: "blur", enabled: true, radius: blur });
+  }
+  return out;
 }
 
 /**

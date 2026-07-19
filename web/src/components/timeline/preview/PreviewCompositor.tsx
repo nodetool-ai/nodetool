@@ -886,7 +886,7 @@ export const PreviewCompositor: React.FC = memo(() => {
           transform: anim.transform,
           mask: anim.mask,
           borderRadius: slot.borderRadius,
-          effects: slot.effects,
+          effects: anim.effects ?? slot.effects,
           trackEffects: slot.trackEffects
         });
       });
@@ -913,7 +913,7 @@ export const PreviewCompositor: React.FC = memo(() => {
           transform: anim.transform,
           mask: anim.mask,
           borderRadius: layer.borderRadius,
-          effects: layer.effects,
+          effects: anim.effects ?? layer.effects,
           trackEffects: layer.trackEffects
         });
       }
@@ -970,7 +970,7 @@ export const PreviewCompositor: React.FC = memo(() => {
           transform: anim.transform,
           mask: anim.mask,
           borderRadius: layer.borderRadius,
-          effects: layer.effects,
+          effects: anim.effects ?? layer.effects,
           trackEffects: layer.trackEffects
         });
       }
@@ -1000,7 +1000,7 @@ export const PreviewCompositor: React.FC = memo(() => {
           transform: anim.transform,
           mask: anim.mask,
           borderRadius: layer.borderRadius,
-          effects: layer.effects,
+          effects: anim.effects ?? layer.effects,
           trackEffects: layer.trackEffects
         });
       }

@@ -213,6 +213,34 @@ const PRESETS: AnimationPreset[] = [
     }
   },
   {
+    id: "blur",
+    roles: ["in", "out"],
+    defaultDurationMs: 500,
+    // No defaultEasing: role defaults apply (in → easeOut, out → easeIn).
+    params: [{ name: "amount", default: 12, min: 0, max: 40 }],
+    describe:
+      "Rack focus: start blurred and sharpen into place (reversed for out), fading in with it.",
+    curves: (params) => {
+      const amount = Math.max(0, Math.min(40, num(params, "amount", 12)));
+      return [
+        { property: "blur", keyframes: [{ t: 0, value: amount }, { t: 1, value: 0 }] },
+        { property: "opacity", keyframes: [{ t: 0, value: 0 }, { t: 1, value: 1 }] }
+      ];
+    }
+  },
+  {
+    id: "colorFade",
+    roles: ["in", "out"],
+    defaultDurationMs: 600,
+    // No defaultEasing: role defaults apply.
+    params: [],
+    describe:
+      "Desaturate to grayscale then bloom into full color on in (reversed for out).",
+    curves: () => [
+      { property: "saturation", keyframes: [{ t: 0, value: 0 }, { t: 1, value: 1 }] }
+    ]
+  },
+  {
     id: "pulse",
     roles: ["emphasis"],
     defaultDurationMs: 600,
@@ -228,6 +256,27 @@ const PRESETS: AnimationPreset[] = [
             { t: 0, value: 1 },
             { t: 0.5, value: 1 + intensity },
             { t: 1, value: 1 }
+          ]
+        }
+      ];
+    }
+  },
+  {
+    id: "flash",
+    roles: ["emphasis"],
+    defaultDurationMs: 400,
+    defaultEasing: "easeInOut",
+    params: [{ name: "intensity", default: 0.6, min: 0, max: 1 }],
+    describe: "Brief brightness spike and back to normal.",
+    curves: (params) => {
+      const intensity = Math.max(0, Math.min(1, num(params, "intensity", 0.6)));
+      return [
+        {
+          property: "brightness",
+          keyframes: [
+            { t: 0, value: 0 },
+            { t: 0.5, value: intensity },
+            { t: 1, value: 0 }
           ]
         }
       ];

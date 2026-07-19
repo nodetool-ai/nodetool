@@ -37,6 +37,12 @@ export interface AnimationSample {
   rotation: number;
   /** 0..1, multiply layer opacity */
   opacity: number;
+  /** source px, add to the layer's blur radius (identity 0) */
+  blur: number;
+  /** -1..1, add to the color grade's brightness term (identity 0) */
+  brightness: number;
+  /** 0..4, multiply the color grade's saturation (identity 1) */
+  saturation: number;
   /** Wipe mask, when one is active. Absent (undefined) means unmasked. */
   mask?: AnimationSampleMask;
 }
@@ -46,7 +52,10 @@ export const IDENTITY_SAMPLE: Readonly<AnimationSample> = Object.freeze({
   offsetY: 0,
   scale: 1,
   rotation: 0,
-  opacity: 1
+  opacity: 1,
+  blur: 0,
+  brightness: 0,
+  saturation: 1
 });
 
 function resetIdentity(s: AnimationSample): AnimationSample {
@@ -55,6 +64,9 @@ function resetIdentity(s: AnimationSample): AnimationSample {
   s.scale = 1;
   s.rotation = 0;
   s.opacity = 1;
+  s.blur = 0;
+  s.brightness = 0;
+  s.saturation = 1;
   s.mask = undefined;
   return s;
 }
@@ -119,6 +131,19 @@ function foldAnimation(anim: CompiledAnimation, t: number, acc: AnimationSample)
       case "opacity":
         acc.opacity *= value;
         break;
+      // Effect folds mirror how the compositor's effect pre-pass aggregates:
+      // blur radii and the grade's brightness term ADD across effects, so
+      // concurrent animations add too; saturation is a MULTIPLIER, so it
+      // multiplies. Ranges are clamped once at the end of sampleAnimations.
+      case "blur":
+        acc.blur += value;
+        break;
+      case "brightness":
+        acc.brightness += value;
+        break;
+      case "saturation":
+        acc.saturation *= value;
+        break;
       case "wipeProgress": {
         // Mask fold rule: when several wipes overlap (an in and an out on a
         // short clip), the sample with the SMALLER progress wins — more hidden
@@ -151,7 +176,18 @@ export function sampleAnimations(
   localMs: number,
   out?: AnimationSample
 ): AnimationSample {
-  const acc = resetIdentity(out ?? { offsetX: 0, offsetY: 0, scale: 1, rotation: 0, opacity: 1 });
+  const acc = resetIdentity(
+    out ?? {
+      offsetX: 0,
+      offsetY: 0,
+      scale: 1,
+      rotation: 0,
+      opacity: 1,
+      blur: 0,
+      brightness: 0,
+      saturation: 1
+    }
+  );
   for (const anim of compiled) {
     const t = windowT(anim, localMs);
     if (t === null) continue;
@@ -161,6 +197,12 @@ export function sampleAnimations(
   if (acc.opacity < 0) acc.opacity = 0;
   else if (acc.opacity > 1) acc.opacity = 1;
   if (acc.scale < 0) acc.scale = 0;
+  // Clamp effect values to the ranges the grade/blur pipeline accepts.
+  if (acc.blur < 0) acc.blur = 0;
+  if (acc.brightness < -1) acc.brightness = -1;
+  else if (acc.brightness > 1) acc.brightness = 1;
+  if (acc.saturation < 0) acc.saturation = 0;
+  else if (acc.saturation > 4) acc.saturation = 4;
   return acc;
 }
 

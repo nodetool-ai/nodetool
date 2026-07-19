@@ -97,7 +97,11 @@ export type AnimatedProperty =
   | "offsetY" // canvas px, resolved from normalized preset units
   | "scale" // uniform multiplier on ClipTransform.scale
   | "rotation" // radians, added to ClipTransform.rotation
-  | "opacity"; // multiplier on the layer's resolved opacity
+  | "opacity" // multiplier on the layer's resolved opacity
+  | "wipeProgress" // 0 hidden → 1 revealed (drives CompiledAnimation.mask)
+  | "blur" // source px, added to the layer's blur radius
+  | "brightness" // -1..1, added to the color grade's brightness term
+  | "saturation"; // 0..4, multiplies the color grade's saturation
 
 export interface Keyframe {
   t: number;
@@ -197,7 +201,10 @@ default duration/easing, params with defaults, and a curve generator
 | `pop`      | in, out  | `overshoot` (1.08)                                                                         | scale 0.6↔1 with `easeOutBack`, opacity 0↔1                                                                                                                                                                                                           |
 | `spin`     | in, out  | `turns` (0.25)                                                                             | rotation ±turns·2π, opacity 0↔1                                                                                                                                                                                                                       |
 | `wipe`     | in, out  | `direction: "left"\|"right"\|"up"\|"down"` ("left"; the edge the reveal starts from — "up" = top, "down" = bottom), `softness` (0.05 = feather width as fraction of the wipe axis, 0 = hard edge) | directional mask reveal. Added after v1 with per-layer compositor masking: the preset compiles a `wipeProgress` curve (0 = hidden, 1 = revealed), direction/softness ride on `CompiledAnimation.mask`, and `AnimationSample.mask` carries the resolved mask to both compositors. Overlapping wipes fold by keeping the smaller progress (more hidden wins). The mask lives in the layer's own quad space, so the wipe edge rotates with the clip |
+| `blur`     | in, out  | `amount` (12 = blur radius in source px, 0..40)                                             | blur `amount`→0 with an opacity fade (rack focus); reversed for out                                                                                                                                                                                   |
+| `colorFade`| in, out  | —                                                                                          | saturation 0→1 (grayscale → full color); reversed for out                                                                                                                                                                                            |
 | `pulse`    | emphasis | `intensity` (0.06)                                                                         | scale 1→1+i→1                                                                                                                                                                                                                                         |
+| `flash`    | emphasis | `intensity` (0.6, 0..1)                                                                     | brightness 0→+i→0 (brief exposure spike)                                                                                                                                                                                                              |
 | `shake`    | emphasis | `intensity` (0.02), `cycles` (4)                                                           | offsetX zig-zag, fraction of canvas width                                                                                                                                                                                                             |
 | `bounce`   | emphasis | `height` (0.05)                                                                            | offsetY dip with `easeOutBounce`                                                                                                                                                                                                                      |
 | `kenBurns` | loop     | `zoom` (0.12), `direction` ("in"), `driftX`/`driftY` (0.02)                                | slow scale 1→1+z (or reverse) + drift. Compiles `loop:false`, window = full clip, `holdAfter:true` — it runs once over the whole clip, so `durationMs` and `delayMs` are ignored and the monotonic curve is exempt from the loop start==end invariant |
@@ -207,6 +214,15 @@ default duration/easing, params with defaults, and a curve generator
 
 Defaults: `in`/`out` 500 ms, `emphasis` 600 ms, `loop` 3000 ms. `in` defaults
 to `easeOut`, `out` to `easeIn`, others per table.
+
+`blur`, `flash`, and `colorFade` animate GPU effect parameters. They drive
+`blur`/`brightness`/`saturation` curves that the sampler folds like the effect
+pre-pass aggregates (blur and brightness add, saturation multiplies). At the
+render site `resolveAnimatedLayerProps` composes them with the clip's static
+`effects`: animated blur adds to the static blur radius, animated brightness
+adds to the grade's brightness term, animated saturation multiplies the grade's
+saturation — emitted as synthesized `ClipEffect`s so both compositors reuse the
+existing color-grade / Gaussian-blur pipeline, keeping preview/export parity.
 
 ## Rendering integration
 
@@ -359,9 +375,6 @@ draw, so text arrives as a new clip kind, not an animation change:
   exactly as it ignores effects and transitions today.
 - **Per-property keyframe authoring by agents** — presets + params only until
   real demand appears.
-- **Animating GPU effect parameters** (blur amount, color grade) — the
-  substrate allows adding `AnimatedProperty` values later; v1 is transform +
-  opacity.
 
 ## Testing
 
