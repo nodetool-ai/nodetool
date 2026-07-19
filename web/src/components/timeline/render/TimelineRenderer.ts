@@ -26,6 +26,8 @@ import type { CompositeLayer } from "../preview/gpu/types";
 import {
   clipSourceTimeSec,
   computeActiveLayers,
+  createAnimationCompileCache,
+  resolveAnimatedLayerProps,
   trackZ
 } from "../preview/sceneModel";
 import { CaptionRasterizer } from "../preview/captionRender";
@@ -230,6 +232,11 @@ export async function renderTimeline(
       );
     let releasePastIndex = 0;
 
+    // Motion-design animations resolve against the sequence resolution (px),
+    // matching the live preview. The compile cache lives for the whole render.
+    const animCanvas = { width: opts.width, height: opts.height };
+    const animCache = createAnimationCompileCache();
+
     const frameDurationSec = 1 / fps;
     for (let frame = 0; frame < totalFrames; frame++) {
       throwIfAborted(signal);
@@ -254,6 +261,14 @@ export async function renderTimeline(
       // (bottom-to-top) layer order.
       const resolved = await Promise.all(
         layers.map(async (layer): Promise<CompositeLayer | null> => {
+          // Same per-frame animation resolution as the live compositor, so the
+          // exported motion is 1:1 with the preview.
+          const anim = resolveAnimatedLayerProps(
+            layer,
+            timeMs,
+            animCanvas,
+            animCache
+          );
           if (layer.kind === "caption" && layer.caption) {
             const bitmap = captionRasterizer.rasterize(
               layer.caption,
@@ -264,10 +279,10 @@ export async function renderTimeline(
             return {
               id: `c:${layer.clipId}`,
               source: bitmap,
-              opacity: layer.opacity,
+              opacity: anim.opacity,
               blendMode: layer.blendMode,
               zIndex: trackZ(layer.trackIndex),
-              transform: layer.transform
+              transform: anim.transform
             };
           }
 
@@ -286,10 +301,10 @@ export async function renderTimeline(
             return {
               id: `v:${layer.clipId}`,
               source: el,
-              opacity: layer.opacity,
+              opacity: anim.opacity,
               blendMode: layer.blendMode,
               zIndex: trackZ(layer.trackIndex),
-              transform: layer.transform,
+              transform: anim.transform,
               borderRadius: layer.borderRadius,
               effects: layer.effects,
               trackEffects: layer.trackEffects
@@ -301,10 +316,10 @@ export async function renderTimeline(
           return {
             id: `i:${layer.clipId}`,
             source: img,
-            opacity: layer.opacity,
+            opacity: anim.opacity,
             blendMode: layer.blendMode,
             zIndex: trackZ(layer.trackIndex),
-            transform: layer.transform,
+            transform: anim.transform,
             borderRadius: layer.borderRadius,
             effects: layer.effects,
             trackEffects: layer.trackEffects
