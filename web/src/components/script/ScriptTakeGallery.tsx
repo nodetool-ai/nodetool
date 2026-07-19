@@ -17,6 +17,7 @@ import {
   useScriptStore,
   type ScriptTake
 } from "../../stores/script/ScriptStore";
+import { syncLineClipToTimeline } from "../../stores/script/timelineSync";
 import { useAssetStore } from "../../stores/AssetStore";
 import { getAssetUrl } from "../../utils/assetHelpers";
 
@@ -47,6 +48,12 @@ const TakeRow = ({
   const toggleFavorite = useScriptStore((s) => s.toggleTakeFavorite);
   const removeTake = useScriptStore((s) => s.removeTake);
 
+  const useTake = useCallback(() => {
+    setCurrentTake(scriptId, lineId, take.id);
+    // Round-trip the newly-selected take into the assembled timeline, if any.
+    void syncLineClipToTimeline(scriptId, lineId, take);
+  }, [setCurrentTake, scriptId, lineId, take]);
+
   const play = useCallback(async () => {
     if (typeof Audio === "undefined") return;
     try {
@@ -62,7 +69,7 @@ const TakeRow = ({
     <FlexRow align="center" gap={SPACING.sm} fullWidth>
       <ToolbarIconButton
         tooltip={isCurrent ? "Current take" : "Use this take"}
-        onClick={() => setCurrentTake(scriptId, lineId, take.id)}
+        onClick={useTake}
         icon={
           <CheckCircleIcon
             fontSize="small"

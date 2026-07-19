@@ -328,6 +328,11 @@ export const timelineClip = z.object({
    * strips them on every PATCH, breaking shot→clip revision round-trips. */
   storyboardBoardId: z.string().optional(),
   storyboardShotId: z.string().optional(),
+  /** Script provenance (script→timeline assemble bridge). Without these
+   * fields Zod strips them on every PATCH, breaking line→clip re-voice
+   * round-trips. */
+  scriptId: z.string().optional(),
+  scriptLineId: z.string().optional(),
   status: z.enum([
     "draft",
     "queued",

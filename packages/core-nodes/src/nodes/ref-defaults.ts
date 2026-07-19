@@ -101,6 +101,12 @@ export const timelineRefDefault = {
   data: null
 };
 
+export const scriptRefDefault = {
+  type: "script",
+  id: null,
+  data: null
+};
+
 export const hfModelDefault = {
   type: "hf.model",
   repo_id: "",

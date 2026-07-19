@@ -249,6 +249,18 @@ export interface TimelineRef {
   data?: unknown;
 }
 
+/**
+ * Reference to a persisted script (text-owns-audio document), editable in the
+ * script editor and passable between workflow nodes.
+ */
+export interface ScriptRef {
+  type: "script";
+  /** Id of the persisted script. */
+  id?: string | null;
+  /** Optional inline script document payload. */
+  data?: unknown;
+}
+
 export interface WorkflowRef {
   type: "workflow_ref";
   id: string;

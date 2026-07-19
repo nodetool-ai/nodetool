@@ -207,12 +207,31 @@ existing editor is a rewrite, not a feature.
    (`scriptVoicing`, reusing `generate_media` / `transcribe_audio`), take
    gallery, play-through. The document pane is a plain per-line editor rather
    than the Lexical transcript editor — that reuse is deferred to a later pass.
-2. **To timeline** — assemble with linkage keys, staleness, per-line
-   back-sync, re-assemble on structural drift, extract-as-script.
-3. **Automation** — `ui_script_*` agent tools + assistant panel, `ScriptRef` +
-   graph nodes.
-4. **Depth** — dialogue-mode rendering, provider-native timestamps, SRT/VTT
-   export, bundle support.
+2. **To timeline** *(implemented)* — assemble the current takes into a
+   voiceover sequence with `scriptId`/`scriptLineId` linkage keys
+   (`assembleScriptTimeline`, `useAssembleScriptTimeline`, "Send to timeline"),
+   per-line back-sync on re-voice / take switch (`stores/script/timelineSync`),
+   re-assemble in place on structural drift (preserving foreign tracks), and
+   extract-as-script from a timeline transcript (`extractScript`,
+   `useExtractScript`, the transcript panel's "Extract as script").
+3. **Automation** *(implemented)* — `ui_script_*` agent tools
+   (`scriptAgentBridge`, `useScriptAgentBridge`, `builtin/script`:
+   `get_state`, `add_speaker`, `set_speaker_voice`, `add_line`, `set_line_text`,
+   `set_speaker`, `voice_line`, `voice_all`, `send_to_timeline`) + an in-surface
+   assistant panel (`ScriptAgentPanel`, a Cast/Assistant dock toggle),
+   `ScriptRef` in the protocol type system with a `script` data type and
+   property editor, and a graph node family (`ConstantScript`, `LoadScript`,
+   `VoiceScript` — batch TTS over a cast, `ScriptToTimeline`) reading/writing
+   scripts through new `ProcessingContext` script methods.
+4. **Depth** — SRT/VTT export *(implemented)*: a shared, framework-agnostic
+   subtitle codec (`@nodetool-ai/timeline` `assembleSubtitleCues` / `cuesToSrt` /
+   `cuesToVtt`) that lays each line's current take end to end with the authored
+   pauses and renders line- or word-granularity cues from the take word timings,
+   surfaced as a graph node (`ScriptToSubtitles`), an agent tool
+   (`ui_script_export_subtitles`), and an "Export SRT" button on the script
+   surface (`exportScriptSubtitles`). Still open: dialogue-mode rendering,
+   provider-native timestamps, audio-only mixdown, and `.nodetool` bundle
+   support.
 
 Phase 1 is deliberately shippable alone: a script you can write, cast, voice,
 and listen to is already the ElevenLabs-Studio use case, before any timeline

@@ -180,6 +180,9 @@
     "msgpackr": "^1.11.9",
     "ts-node": "^10.9.2"
   },
+  "overrides": {
+    "unzipper": ">=0.12.3"
+  },
   "engines": {
     "node": ">=22.0.0 <23.0.0"
   },

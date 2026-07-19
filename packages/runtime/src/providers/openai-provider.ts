@@ -510,6 +510,63 @@ export class OpenAIProvider extends BaseProvider {
     ];
   }
 
+  /**
+   * gpt-image-2 accepts arbitrary sizes within limits: both edges a multiple of
+   * 16, long edge <= 3840, aspect ratio <= 3:1, and total area between 0.64MP
+   * and 8.3MP. Requested sizes rarely land on that grid (16:9 at 1K is
+   * 1820x1024), so snap to the nearest valid size preserving the aspect ratio
+   * rather than dropping `size` and letting the API default to a square.
+   */
+  static snapToGptImage2Size(width: number, height: number): string | null {
+    const MIN_AREA = 655_360;
+    const MAX_AREA = 8_294_400;
+    const MAX_EDGE = 3840;
+    const MAX_RATIO = 3;
+
+    if (!(width > 0) || !(height > 0)) return null;
+
+    const landscape = width >= height;
+    const ratio = Math.min(
+      MAX_RATIO,
+      landscape ? width / height : height / width
+    );
+
+    // Derive edges from the clamped ratio at the requested area, then pull the
+    // area into range.
+    const area = Math.min(MAX_AREA, Math.max(MIN_AREA, width * height));
+    let long = Math.sqrt(area * ratio);
+    let short = long / ratio;
+    if (long > MAX_EDGE) {
+      short *= MAX_EDGE / long;
+      long = MAX_EDGE;
+    }
+
+    const snap = (v: number): number =>
+      Math.min(MAX_EDGE, Math.max(16, Math.round(v / 16) * 16));
+    let longPx = snap(long);
+    let shortPx = snap(short);
+
+    // Snapping can nudge the area out of range; step it back in.
+    while (longPx * shortPx < MIN_AREA && longPx + 16 <= MAX_EDGE) {
+      longPx += 16;
+      shortPx = snap(longPx / ratio);
+    }
+    while (longPx * shortPx > MAX_AREA && longPx - 16 >= 16) {
+      longPx -= 16;
+      shortPx = snap(longPx / ratio);
+    }
+    // Rounding the short edge down can tip the ratio back over the limit, so
+    // round up here.
+    if (longPx / shortPx > MAX_RATIO) {
+      shortPx = Math.min(longPx, Math.ceil(longPx / MAX_RATIO / 16) * 16);
+    }
+
+    const areaPx = longPx * shortPx;
+    if (areaPx < MIN_AREA || areaPx > MAX_AREA) return null;
+
+    return landscape ? `${longPx}x${shortPx}` : `${shortPx}x${longPx}`;
+  }
+
   resolveImageSize(
     width?: number | null,
     height?: number | null,
@@ -520,21 +577,7 @@ export class OpenAIProvider extends BaseProvider {
     }
 
     if (model === "gpt-image-2" || model?.startsWith("gpt-image-2-") === true) {
-      const area = width * height;
-      const longEdge = Math.max(width, height);
-      const shortEdge = Math.min(width, height);
-      const isValid =
-        Number.isInteger(width) &&
-        Number.isInteger(height) &&
-        width > 0 &&
-        height > 0 &&
-        longEdge <= 3840 &&
-        width % 16 === 0 &&
-        height % 16 === 0 &&
-        longEdge / shortEdge <= 3 &&
-        area >= 655_360 &&
-        area <= 8_294_400;
-      return isValid ? `${width}x${height}` : null;
+      return OpenAIProvider.snapToGptImage2Size(width, height);
     }
 
     const supported: Array<[number, number]> = [

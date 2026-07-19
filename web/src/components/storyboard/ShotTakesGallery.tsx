@@ -46,7 +46,7 @@ const styles = (theme: Theme) =>
     flexDirection: "column",
     gap: getSpacingPx(SPACING.xs),
     ".take-thumb": {
-      width: "64px",
+      width: "96px",
       aspectRatio: "16 / 9",
       padding: 0,
       overflow: "hidden",
@@ -166,7 +166,6 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
 
       {stills.length > 1 && (
         <FlexRow gap={0.5} align="center" wrap className="still-thumbs">
-          <Caption color="secondary">Stills</Caption>
           {stills.map((still, i) => (
             <button
               key={versionKey(still, i)}

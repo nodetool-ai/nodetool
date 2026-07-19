@@ -31,6 +31,7 @@ import FontProperty from "../properties/FontProperty";
 import SelectProperty from "../properties/SelectProperty";
 import SketchProperty from "../properties/SketchProperty";
 import TimelineProperty from "../properties/TimelineProperty";
+import ScriptProperty from "../properties/ScriptProperty";
 import ImageSizeProperty from "../properties/ImageSizeProperty";
 import JSONProperty from "../properties/JSONProperty";
 import StringListProperty from "../properties/StringListProperty";
@@ -176,6 +177,8 @@ function componentForType(type: string): ComponentType<PropertyProps> {
       return SketchProperty;
     case "timeline":
       return TimelineProperty;
+    case "script":
+      return ScriptProperty;
     case "workflow":
       return WorkflowProperty;
     case "dataframe":

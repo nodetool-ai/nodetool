@@ -83,13 +83,62 @@ describe("OpenAIProvider – resolveImageSize", () => {
     ).toBe("2160x3840");
   });
 
-  it("uses the API default for invalid GPT Image 2 dimensions", () => {
+  it("returns null for non-positive GPT Image 2 dimensions", () => {
     expect(provider.resolveImageSize(-1024, -1024, "gpt-image-2")).toBeNull();
-    expect(provider.resolveImageSize(2049, 1152, "gpt-image-2")).toBeNull();
-    expect(provider.resolveImageSize(3856, 1152, "gpt-image-2")).toBeNull();
-    expect(provider.resolveImageSize(2400, 784, "gpt-image-2")).toBeNull();
-    expect(provider.resolveImageSize(800, 800, "gpt-image-2")).toBeNull();
-    expect(provider.resolveImageSize(3840, 2176, "gpt-image-2")).toBeNull();
+  });
+
+  it("snaps off-grid GPT Image 2 dimensions to the 16px grid", () => {
+    expect(provider.resolveImageSize(2049, 1152, "gpt-image-2")).toBe(
+      "2048x1152"
+    );
+    // 16:9 at 1K — the size the TextToImage node actually requests.
+    expect(provider.resolveImageSize(1820, 1024, "gpt-image-2")).toBe(
+      "1824x1024"
+    );
+  });
+
+  it("scales GPT Image 2 dimensions back inside the API limits", () => {
+    // Long edge over 3840 (and over 3:1, so the short edge grows too).
+    expect(provider.resolveImageSize(3856, 1152, "gpt-image-2")).toBe(
+      "3648x1216"
+    );
+    // Area over 8.3MP.
+    expect(provider.resolveImageSize(3840, 2176, "gpt-image-2")).toBe(
+      "3824x2160"
+    );
+    // Area under 0.64MP.
+    expect(provider.resolveImageSize(800, 800, "gpt-image-2")).toBe("816x816");
+  });
+
+  it("clamps GPT Image 2 aspect ratios beyond 3:1", () => {
+    // 6:1 clamps to 3:1, keeping the requested pixel budget.
+    expect(provider.resolveImageSize(2400, 400, "gpt-image-2")).toBe(
+      "1696x576"
+    );
+  });
+
+  it("keeps every TextToImage aspect ratio non-square for GPT Image 2", () => {
+    const ratios: Array<[number, number]> = [
+      [16, 9],
+      [4, 3],
+      [21, 9],
+      [9, 16],
+      [3, 4],
+      [4, 5]
+    ];
+    for (const [aw, ah] of ratios) {
+      const [w, h] =
+        aw >= ah ? [Math.round((1024 * aw) / ah), 1024] : [1024, Math.round((1024 * ah) / aw)];
+      const size = provider.resolveImageSize(w, h, "gpt-image-2");
+      expect(size).not.toBeNull();
+      const [ow, oh] = size!.split("x").map(Number);
+      expect(ow % 16).toBe(0);
+      expect(oh % 16).toBe(0);
+      expect(ow * oh).toBeGreaterThanOrEqual(655_360);
+      expect(ow * oh).toBeLessThanOrEqual(8_294_400);
+      // Ratio preserved within 1%.
+      expect(Math.abs(ow / oh / (w / h) - 1)).toBeLessThan(0.01);
+    }
   });
 });
 
