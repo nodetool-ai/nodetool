@@ -2,12 +2,19 @@
  * FormField Component
  *
  * A composite form field wrapping label, input control, and helper/error text.
+ * Owns the label: it provides FormFieldContext so label-bearing children
+ * (TextInput, SelectField) suppress their own label and adopt the control id —
+ * no double labels by construction.
  */
 
-import React from "react";
+import React, { useId, useMemo } from "react";
 import { Box, BoxProps, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { Label } from "./Label";
+import {
+  FormFieldContext,
+  type FormFieldContextValue
+} from "./formFieldContext";
 
 export interface FormFieldProps extends Omit<BoxProps, 'onChange'> {
   /** Field label */
@@ -24,6 +31,15 @@ export interface FormFieldProps extends Omit<BoxProps, 'onChange'> {
   compact?: boolean;
   /** Label width when direction is "row" */
   labelWidth?: string | number;
+  /**
+   * Explicit control id; defaults to a generated one. Context-aware children
+   * (TextInput, SelectField) adopt it, making the label's htmlFor a real
+   * association. Custom children that don't adopt it leave the htmlFor
+   * dangling — the label is then visual-only (matching the pre-FormField
+   * hand-rolled pattern); such controls can name themselves via
+   * aria-labelledby={`${htmlFor}-label`}.
+   */
+  htmlFor?: string;
 }
 
 /**
@@ -61,11 +77,18 @@ export const FormField: React.FC<FormFieldProps> = ({
   direction = "column",
   compact = false,
   labelWidth,
+  htmlFor,
   sx,
   children,
   ...props
 }) => {
   const theme = useTheme();
+  const reactId = useId();
+  const controlId = htmlFor ?? reactId;
+  const contextValue = useMemo<FormFieldContextValue>(
+    () => ({ controlId, labeled: Boolean(label) }),
+    [controlId, label]
+  );
 
   const isRow = direction === "row";
   const bottomText = error || helperText;
@@ -83,6 +106,12 @@ export const FormField: React.FC<FormFieldProps> = ({
     >
       {label && (
         <Label
+          htmlFor={controlId}
+          // The label id is a documented convention: non-labelable controls
+          // (SelectField's combobox div) name themselves via
+          // aria-labelledby={`${controlId}-label`} since htmlFor only
+          // associates with native form elements.
+          id={`${controlId}-label`}
           size={compact ? "small" : "normal"}
           required={required}
           error={Boolean(error)}
@@ -95,8 +124,21 @@ export const FormField: React.FC<FormFieldProps> = ({
           {label}
         </Label>
       )}
-      <Box sx={{ flex: isRow ? 1 : undefined }}>
-        {children}
+      <Box
+        sx={{
+          flex: isRow ? 1 : undefined,
+          // Children shouldn't normally pass helperText (FormField's own
+          // helper line below is the one that renders), but if they do,
+          // normalize MUI's default 3px 14px 0 helper margin onto the grid.
+          "& .MuiFormHelperText-root": {
+            margin: 0,
+            marginTop: theme.spacing(1),
+          },
+        }}
+      >
+        <FormFieldContext.Provider value={contextValue}>
+          {children}
+        </FormFieldContext.Provider>
         {bottomText && (
           <Typography
             sx={{
@@ -104,7 +146,7 @@ export const FormField: React.FC<FormFieldProps> = ({
               color: error
                 ? theme.vars.palette.error.main
                 : theme.vars.palette.text.secondary,
-              mt: 0.5,
+              marginTop: theme.spacing(1),
               lineHeight: 1.4,
             }}
           >
