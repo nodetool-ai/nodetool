@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import type { Entity } from "@nodetool-ai/protocol";
 import { useAssetStore } from "../../../../stores/AssetStore";
 import { useRecentAssetsStore } from "../../../../stores/RecentAssetsStore";
+import { useEntities } from "../../../../serverState/useEntities";
 import type { Asset } from "../../../../stores/ApiTypes";
 
 export type MentionTab = "recent" | "saved";
@@ -11,6 +13,12 @@ const PAGE_SIZE = 24;
 export interface AssetMentionSearch {
   activeTab: MentionTab;
   setActiveTab: (tab: MentionTab) => void;
+  /**
+   * Library entities matching the query, shown in a row above the asset grid.
+   * In the picker's combined selection order these come first: indices
+   * `0..entities.length-1` are entities, assets follow.
+   */
+  entities: Entity[];
   /** Assets shown for the active tab (recent list or saved-search results). */
   displayedAssets: Asset[];
   /** Whether the Saved tab has more results beyond `displayedAssets`. */
@@ -25,6 +33,38 @@ export interface AssetMentionSearch {
 }
 
 /**
+ * Filter + rank library entities for a mention query: name prefix matches
+ * first, then name substring, then kind / tag matches. An empty query keeps
+ * library order so the row is stable while the picker opens.
+ */
+export const filterEntitiesForMention = (
+  entities: Entity[],
+  query: string
+): Entity[] => {
+  const q = query.trim().toLowerCase();
+  if (!q) {
+    return entities;
+  }
+  const ranked: Array<{ entity: Entity; rank: number }> = [];
+  for (const entity of entities) {
+    const name = (entity.name || "").toLowerCase();
+    const rank = name.startsWith(q)
+      ? 0
+      : name.includes(q)
+        ? 1
+        : entity.kind.startsWith(q) ||
+            (entity.tags ?? []).some((t) => t.toLowerCase().includes(q))
+          ? 2
+          : -1;
+    if (rank >= 0) {
+      ranked.push({ entity, rank });
+    }
+  }
+  ranked.sort((a, b) => a.rank - b.rank);
+  return ranked.map((r) => r.entity);
+};
+
+/**
  * Recent/Saved asset lookup shared by every `@`-mention picker (the Lexical
  * prompt composer and the media chat composer). Given the text typed after `@`
  * (`null` while no mention is active), it exposes the two buckets — **Recent**
@@ -36,6 +76,7 @@ export const useAssetMentionSearch = (
 ): AssetMentionSearch => {
   const search = useAssetStore((state) => state.search);
   const updateAsset = useAssetStore((state) => state.update);
+  const { data: allEntities } = useEntities();
   const recentAssets = useRecentAssetsStore((state) => state.recentAssets);
   const renameRecentAsset = useRecentAssetsStore(
     (state) => state.renameRecentAsset
@@ -131,6 +172,14 @@ export const useAssetMentionSearch = (
 
   const displayedAssets = activeTab === "recent" ? filteredRecent : savedAssets;
 
+  const entities = useMemo(
+    () =>
+      queryString === null
+        ? []
+        : filterEntitiesForMention(allEntities ?? [], queryString),
+    [allEntities, queryString]
+  );
+
   const handleRename = useCallback(
     async (id: string, name: string) => {
       const collision = displayedAssets.some(
@@ -151,6 +200,7 @@ export const useAssetMentionSearch = (
   return {
     activeTab,
     setActiveTab,
+    entities,
     displayedAssets,
     hasMoreSaved: savedCursor !== null,
     loadMoreSaved,

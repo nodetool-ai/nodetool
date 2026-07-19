@@ -23,6 +23,12 @@ jest.mock("../../node/ImageRefPreview", () => ({
   )
 }));
 
+// The entity chips resolve the library through React Query; an empty library
+// keeps them out of these presentation tests.
+jest.mock("../../../serverState/useEntities", () => ({
+  useEntities: () => ({ data: [] })
+}));
+
 import ShotCard from "../ShotCard";
 
 const makeShot = (overrides: Partial<Shot> = {}): Shot => ({

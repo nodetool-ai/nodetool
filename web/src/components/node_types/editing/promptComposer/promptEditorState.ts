@@ -17,6 +17,10 @@ import {
   $createAssetMentionNode,
   type AssetMentionNode
 } from "./AssetMentionNode";
+import {
+  $createEntityMentionNode,
+  type EntityMentionNode
+} from "./EntityMentionNode";
 import { $createVariableNode } from "./VariableNode";
 import { parseAssetUri, tokenizePrompt } from "./promptTokens";
 
@@ -31,12 +35,12 @@ const endsWithSpace = (text: string): boolean => /\s$/.test(text);
 const startsWithSpace = (text: string): boolean => /^\s/.test(text);
 
 /**
- * Insert an asset-mention chip at the current selection (or in place of
- * `nodeToReplace`), guaranteeing the URN ends up surrounded by spaces so it
- * never glues to adjacent text in the serialized prompt.
+ * Insert a mention chip (asset or entity) at the current selection (or in
+ * place of `nodeToReplace`), guaranteeing the URN ends up surrounded by spaces
+ * so it never glues to adjacent text in the serialized prompt.
  */
 export const $insertAssetMention = (
-  node: AssetMentionNode,
+  node: AssetMentionNode | EntityMentionNode,
   nodeToReplace?: LexicalNode | null
 ): void => {
   if (nodeToReplace) {
@@ -91,6 +95,9 @@ export const $setPromptFromString = (text: string): void => {
         paragraph.append(
           $createAssetMentionNode(token.uri, shortAssetLabel(token.uri))
         );
+      } else if (token.kind === "entity") {
+        // Label placeholder only — the chip resolves the live entity name.
+        paragraph.append($createEntityMentionNode(token.uri, token.entityId));
       } else {
         paragraph.append($createVariableNode(token.expr));
       }

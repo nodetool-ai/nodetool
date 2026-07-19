@@ -65,6 +65,26 @@ Each mode swaps in its own controls — resolution, aspect ratio, duration, voic
 
 ---
 
+## Mentions: @ for assets and entities
+
+![Entity Mentions](assets/screenshots/chat-mention-entities.png)
+
+Type `@` in the composer to reference things by name instead of hunting for
+them:
+
+- **Entities** — characters, locations, styles, and props from your entity
+  library appear first. Picking one inlines its name into the message and
+  attaches its reference image, so generations stay consistent with the
+  entity's canonical look.
+- **Assets** — recent and saved library files. Picking one attaches it to the
+  message like a drag from the asset library.
+
+The same picker works inside the workflow editor's Prompt node, where a picked
+entity becomes a chip that expands to its descriptor and reference image at
+generation time.
+
+---
+
 ## Conversation Threads
 
 Chat organizes conversations into threads:

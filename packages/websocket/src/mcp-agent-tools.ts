@@ -99,6 +99,16 @@ function buildAgentToolContext(userId: string): ProcessingContext {
       }
       await asset.save();
       return asset;
+    },
+    getAssetInfo: async ({ userId, assetId }) => {
+      const asset = await Asset.find(userId, assetId);
+      if (!asset) return null;
+      return {
+        id: asset.id,
+        content_type: asset.content_type,
+        name: asset.name,
+        metadata: asset.metadata ?? null
+      };
     }
   });
   return context;

@@ -21,6 +21,7 @@ import {
 } from "../../lib/websocket/GlobalWebSocketManager";
 import { normalizeOutputUpdateValue } from "../../stores/outputUpdateValue";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
+import { useEntities } from "../../serverState/useEntities";
 
 const DIRECTOR_NODE_ID = "director";
 const OUT_NODE_ID = "out";
@@ -60,16 +61,29 @@ export interface UseDirectScreenplayResult {
 export const useDirectScreenplay = (): UseDirectScreenplayResult => {
   const [directing, setDirecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { data: allEntities } = useEntities();
   // The output captured from the run's output_update, keyed per invocation.
   const outputRef = useRef<unknown>(undefined);
 
   const direct = useCallback(
     async (boardId: string, shotCount: number): Promise<void> => {
       const board = useStoryboardStore.getState().getBoard(boardId);
-      const brief = board?.brief?.trim() ?? "";
+      let brief = board?.brief?.trim() ?? "";
       if (brief.length === 0) {
         setError("Write a brief before directing.");
         return;
+      }
+      // Tell the Director about the board's cast so the screenplay references
+      // entities by their exact names (which is what activates them per shot).
+      const cast = (board?.entityIds ?? [])
+        .map((id) => allEntities?.find((e) => e.id === id))
+        .filter((e): e is NonNullable<typeof e> => !!e);
+      if (cast.length > 0) {
+        const lines = cast.map(
+          (e) =>
+            `- ${e.name} (${e.kind})${e.descriptor ? `: ${e.descriptor}` : ""}`
+        );
+        brief += `\n\nCast & ingredients — reference these by exact name in the shots:\n${lines.join("\n")}`;
       }
       const model = board?.directorModel;
       if (!model?.id) {
@@ -184,7 +198,7 @@ export const useDirectScreenplay = (): UseDirectScreenplayResult => {
         setDirecting(false);
       }
     },
-    []
+    [allEntities]
   );
 
   return { direct, directing, error };

@@ -6,6 +6,9 @@
  *
  *   - Asset mentions  → `asset://<id>.<ext>`  (dereferenced to media by the
  *                        runtime before the prompt reaches a provider)
+ *   - Entity mentions → `entity://<id>`       (expanded by the runtime into the
+ *                        entity's descriptor + reference image at generation
+ *                        time, so entity edits propagate to old prompts)
  *   - Variables       → `{{ name }}`          (substituted from the node's
  *                        dynamic inputs at runtime)
  *
@@ -27,16 +30,24 @@ export interface AssetToken {
   ext: string;
 }
 
+export interface EntityToken {
+  kind: "entity";
+  /** Full `entity://<id>` reference, stored verbatim. */
+  uri: string;
+  entityId: string;
+}
+
 export interface VariableToken {
   kind: "variable";
   /** Inner expression, e.g. "name" or "name|upper". */
   expr: string;
 }
 
-export type PromptToken = TextToken | AssetToken | VariableToken;
+export type PromptToken = TextToken | AssetToken | EntityToken | VariableToken;
 
-// Group 1: asset URI. Group 2: variable inner expression.
-const TOKEN_RE = /(asset:\/\/[A-Za-z0-9._~\-/]+)|\{\{\s*([^}]+?)\s*\}\}/g;
+// Group 1: asset URI. Group 2: entity URI. Group 3: variable inner expression.
+const TOKEN_RE =
+  /(asset:\/\/[A-Za-z0-9._~\-/]+)|(entity:\/\/[A-Za-z0-9._~-]+)|\{\{\s*([^}]+?)\s*\}\}/g;
 
 const IMAGE_EXTS = new Set([
   "png",
@@ -113,6 +124,14 @@ export const assetToUri = (asset: {
   return ext ? `asset://${asset.id}.${ext}` : `asset://${asset.id}`;
 };
 
+/** Build the `entity://<id>` URN for a mentioned entity. */
+export const entityToUri = (entity: { id: string }): string =>
+  `entity://${entity.id}`;
+
+/** The entity id inside an `entity://<id>` URN. */
+export const parseEntityUri = (uri: string): string =>
+  uri.startsWith("entity://") ? uri.slice("entity://".length) : uri;
+
 export const parseAssetUri = (
   uri: string
 ): { assetId: string; ext: string } => {
@@ -145,6 +164,19 @@ export const assetMediaKind = (ext: string): AssetMediaKind => {
 };
 
 /**
+ * Trim trailing dots (sentence punctuation) off a token. A character loop, not
+ * `/\.+$/` — that regex backtracks polynomially on long dot runs (a ReDoS
+ * risk on user-typed prompt text).
+ */
+const trimTrailingDots = (token: string): string => {
+  let end = token.length;
+  while (end > 0 && token[end - 1] === ".") {
+    end--;
+  }
+  return token.slice(0, end);
+};
+
+/**
  * Split a single line (no newlines) into ordered tokens. Trailing dots on an
  * asset URI are treated as sentence punctuation, not part of the extension.
  */
@@ -167,18 +199,19 @@ export const tokenizePromptLine = (line: string): PromptToken[] => {
   TOKEN_RE.lastIndex = 0;
   while ((match = TOKEN_RE.exec(line)) !== null) {
     if (match[1] !== undefined) {
-      let uri = match[1];
-      const trailingDots = uri.match(/\.+$/);
-      if (trailingDots) {
-        uri = uri.slice(0, uri.length - trailingDots[0].length);
-      }
+      const uri = trimTrailingDots(match[1]);
       pushText(line.slice(cursor, match.index));
       const { assetId, ext } = parseAssetUri(uri);
       tokens.push({ kind: "asset", uri, assetId, ext });
       cursor = match.index + uri.length;
+    } else if (match[2] !== undefined) {
+      const uri = trimTrailingDots(match[2]);
+      pushText(line.slice(cursor, match.index));
+      tokens.push({ kind: "entity", uri, entityId: parseEntityUri(uri) });
+      cursor = match.index + uri.length;
     } else {
       pushText(line.slice(cursor, match.index));
-      tokens.push({ kind: "variable", expr: (match[2] ?? "").trim() });
+      tokens.push({ kind: "variable", expr: (match[3] ?? "").trim() });
       cursor = match.index + match[0].length;
     }
   }

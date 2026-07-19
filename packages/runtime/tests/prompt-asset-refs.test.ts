@@ -3,6 +3,7 @@ import {
   classifyAssetToken,
   classifyTextToken,
   expandAssetReferences,
+  expandEntityRefs,
   findAssetRefs,
   findImageAssetRefs,
   findTextAssetRefs,
@@ -457,5 +458,120 @@ describe("mapPromptAssetsToInputs — folder mentions", () => {
     );
     expect(overrides.image).toBeUndefined();
     expect(overrides.prompt).toBe("use now");
+  });
+});
+
+/** Context whose getAssetInfo serves the given entity-tagged assets by id. */
+const entityContext = (
+  byId: Record<
+    string,
+    {
+      content_type: string;
+      name: string;
+      metadata: Record<string, unknown> | null;
+    }
+  >,
+  resolveBytes = false
+) =>
+  ({
+    getAssetInfo: async (assetId: string) => {
+      const info = byId[assetId];
+      return info ? { id: assetId, ...info } : null;
+    },
+    resolveAssetBytes: async () =>
+      resolveBytes ? { bytes: new Uint8Array([1, 2, 3]) } : { bytes: null }
+  }) as never;
+
+const marta = {
+  content_type: "image/png",
+  name: "marta.png",
+  metadata: {
+    nodetool_entity: {
+      kind: "character",
+      name: "Marta",
+      descriptor: "red-haired detective in a beige trench coat"
+    }
+  }
+};
+
+describe("expandEntityRefs", () => {
+  it("inlines the name and appends descriptor + reference image token", async () => {
+    const out = await expandEntityRefs(
+      "A shot of entity://e1 walking away.",
+      entityContext({ e1: marta }),
+      true
+    );
+    expect(out).toBe(
+      "A shot of Marta walking away.\n\n" +
+        "Consistency references:\n" +
+        "- Marta: red-haired detective in a beige trench coat\n" +
+        "asset://e1.png"
+    );
+  });
+
+  it("omits the image token when the caller does not accept images", async () => {
+    const out = await expandEntityRefs(
+      "entity://e1 at dusk",
+      entityContext({ e1: marta }),
+      false
+    );
+    expect(out).toBe(
+      "Marta at dusk\n\nConsistency references:\n" +
+        "- Marta: red-haired detective in a beige trench coat"
+    );
+  });
+
+  it("contributes a repeated entity's descriptor and image only once", async () => {
+    const out = await expandEntityRefs(
+      "entity://e1 waves at entity://e1",
+      entityContext({ e1: marta }),
+      true
+    );
+    expect(out).toBe(
+      "Marta waves at Marta\n\nConsistency references:\n" +
+        "- Marta: red-haired detective in a beige trench coat\n" +
+        "asset://e1.png"
+    );
+  });
+
+  it("drops tokens that resolve to no entity", async () => {
+    const out = await expandEntityRefs(
+      "see entity://missing here",
+      entityContext({}),
+      true
+    );
+    expect(out).toBe("see here");
+  });
+
+  it("returns text untouched when no entity token is present", async () => {
+    const out = await expandEntityRefs("plain prompt", undefined, true);
+    expect(out).toBe("plain prompt");
+  });
+});
+
+describe("mapPromptAssetsToInputs entity mentions", () => {
+  it("routes the entity's reference image into an empty image input", async () => {
+    const overrides = await mapPromptAssetsToInputs(
+      [{ name: "prompt", value: "portrait of entity://e1" }],
+      [{ name: "image", kind: "image", hasSource: false }],
+      entityContext({ e1: marta }, true)
+    );
+    expect((overrides.image as InjectedAssetRef).uri).toBe("asset://e1.png");
+    expect(overrides.prompt).toBe(
+      "portrait of Marta\n\nConsistency references:\n" +
+        "- Marta: red-haired detective in a beige trench coat\nimage"
+    );
+  });
+
+  it("inlines only the descriptor for a node without media inputs", async () => {
+    const overrides = await mapPromptAssetsToInputs(
+      [{ name: "prompt", value: "describe entity://e1" }],
+      [],
+      entityContext({ e1: marta })
+    );
+    expect(overrides.prompt).toBe(
+      "describe Marta\n\nConsistency references:\n" +
+        "- Marta: red-haired detective in a beige trench coat"
+    );
   });
 });

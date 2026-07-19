@@ -8,7 +8,7 @@ import React, { memo, useCallback } from "react";
 import { useTheme } from "@mui/material/styles";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import type { Entity, EntityKind } from "@nodetool-ai/protocol";
+import type { Entity } from "@nodetool-ai/protocol";
 import {
   Card,
   Text,
@@ -21,22 +21,13 @@ import {
   SPACING
 } from "../ui_primitives";
 import ImageRefPreview from "../node/ImageRefPreview";
+import { ENTITY_KIND_COLOR } from "./entityKind";
 
 export interface EntityCardProps {
   entity: Entity;
   onEdit?: (entity: Entity) => void;
   onRemove?: (entity: Entity) => void;
 }
-
-const KIND_COLOR: Record<
-  EntityKind,
-  "primary" | "secondary" | "info" | "success"
-> = {
-  character: "primary",
-  location: "info",
-  style: "secondary",
-  prop: "success"
-};
 
 const EntityCardInternal: React.FC<EntityCardProps> = ({
   entity,
@@ -97,7 +88,7 @@ const EntityCardInternal: React.FC<EntityCardProps> = ({
           </Text>
           <Chip
             label={entity.kind}
-            color={KIND_COLOR[entity.kind]}
+            color={ENTITY_KIND_COLOR[entity.kind]}
             compact
             sx={{ borderRadius: BORDER_RADIUS.xs, flexShrink: 0 }}
           />

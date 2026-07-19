@@ -38,6 +38,7 @@ import LanguageModelSelect from "../properties/LanguageModelSelect";
 import ImageModelSelect from "../properties/ImageModelSelect";
 import VideoModelSelect from "../properties/VideoModelSelect";
 import ShotCard from "./ShotCard";
+import StoryboardEntitiesField from "./StoryboardEntitiesField";
 
 interface StoryboardBoardProps {
   boardId: string;
@@ -179,6 +180,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
     title,
     brief,
     style,
+    entityIds,
     aspectRatio,
     directorModel,
     imageModel,
@@ -255,6 +257,12 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                     value={style}
                     placeholder="Palette, light, lens, texture"
                     onChange={(e) => setStyle(boardId, e.target.value)}
+                  />
+                </FormField>
+                <FormField label="Entities">
+                  <StoryboardEntitiesField
+                    boardId={boardId}
+                    entityIds={entityIds}
                   />
                 </FormField>
               </FormSection>

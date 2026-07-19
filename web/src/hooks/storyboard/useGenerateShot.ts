@@ -18,11 +18,16 @@
 
 import { useCallback } from "react";
 import type { Edge, Node } from "@xyflow/react";
-import type { Shot } from "@nodetool-ai/protocol";
+import type { Entity, Shot } from "@nodetool-ai/protocol";
 import type { NodeData } from "../../stores/NodeData";
 import type { WorkflowAttributes } from "../../stores/ApiTypes";
 import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
+import {
+  entitiesForShot,
+  injectShotEntities
+} from "../../stores/storyboard/shotEntities";
+import { useEntities } from "../../serverState/useEntities";
 import {
   subscribeShotJob,
   useStoryboardGenerationStore,
@@ -94,8 +99,15 @@ const outputEdge = (): Edge => ({
   targetHandle: "value"
 });
 
-/** Compose an image prompt from a shot's action, camera framing, and board style. */
-const keyframePrompt = (shot: Shot, style: string): string => {
+/**
+ * Compose an image prompt from a shot's action, camera framing, and board
+ * style, plus the applicable board entities' consistency descriptors.
+ */
+const keyframePrompt = (
+  shot: Shot,
+  style: string,
+  entities: Entity[]
+): string => {
   const parts = [shot.action.trim()];
   if (shot.camera?.framing) {
     parts.push(`${shot.camera.framing} shot`);
@@ -103,11 +115,16 @@ const keyframePrompt = (shot: Shot, style: string): string => {
   if (style.trim().length > 0) {
     parts.push(style.trim());
   }
-  return parts.filter((p) => p.length > 0).join(", ");
+  const base = parts.filter((p) => p.length > 0).join(", ");
+  return injectShotEntities(base, entitiesForShot(shot, entities));
 };
 
-const clipPrompt = (shot: Shot): string =>
-  [shot.motion, shot.action].filter((p) => !!p && p.trim().length > 0).join(", ");
+const clipPrompt = (shot: Shot, entities: Entity[]): string => {
+  const base = [shot.motion, shot.action]
+    .filter((p) => !!p && p.trim().length > 0)
+    .join(", ");
+  return injectShotEntities(base, entitiesForShot(shot, entities));
+};
 
 export interface UseGenerateShotResult {
   generateKeyframe: (boardId: string, shot: Shot) => Promise<void>;
@@ -121,6 +138,21 @@ export interface UseGenerateShotResult {
 
 export const useGenerateShot = (): UseGenerateShotResult => {
   const registerJob = useStoryboardGenerationStore((state) => state.registerJob);
+  // Library entities; a board's `entityIds` picks which ones season prompts.
+  const { data: allEntities } = useEntities();
+
+  const boardEntities = useCallback(
+    (entityIds: string[] | undefined): Entity[] => {
+      if (!entityIds || entityIds.length === 0 || !allEntities) {
+        return [];
+      }
+      const byId = new Map(allEntities.map((e) => [e.id, e]));
+      return entityIds
+        .map((id) => byId.get(id))
+        .filter((e): e is Entity => !!e);
+    },
+    [allEntities]
+  );
 
   const startJob = useCallback(
     async (
@@ -180,7 +212,7 @@ export const useGenerateShot = (): UseGenerateShotResult => {
           "nodetool.image.TextToImage",
           0,
           {
-            prompt: keyframePrompt(shot, style),
+            prompt: keyframePrompt(shot, style, boardEntities(board?.entityIds)),
             aspect_ratio: aspectRatio,
             // Board-level still model; omitted = the node's default model.
             ...(board?.imageModel ? { model: board.imageModel } : {})
@@ -197,7 +229,7 @@ export const useGenerateShot = (): UseGenerateShotResult => {
       ];
       await startJob(boardId, shot, "keyframe", nodes, [outputEdge()], workflowId);
     },
-    [startJob]
+    [startJob, boardEntities]
   );
 
   const generateClip = useCallback(
@@ -215,7 +247,7 @@ export const useGenerateShot = (): UseGenerateShotResult => {
           0,
           {
             image: shot.keyframe,
-            prompt: clipPrompt(shot),
+            prompt: clipPrompt(shot, boardEntities(board?.entityIds)),
             aspect_ratio: aspectRatio,
             duration: shot.duration_seconds,
             // Board-level clip model; omitted = the node's default model.
@@ -233,7 +265,7 @@ export const useGenerateShot = (): UseGenerateShotResult => {
       ];
       await startJob(boardId, shot, "clip", nodes, [outputEdge()], workflowId);
     },
-    [startJob]
+    [startJob, boardEntities]
   );
 
   const generateRevisedClip = useCallback(

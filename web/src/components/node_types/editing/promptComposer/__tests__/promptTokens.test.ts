@@ -1,8 +1,10 @@
 import {
   assetMediaKind,
   assetToUri,
+  entityToUri,
   extForAsset,
   parseAssetUri,
+  parseEntityUri,
   tokenizePrompt,
   tokenizePromptLine,
   variablesInPrompt
@@ -93,6 +95,41 @@ describe("promptTokens", () => {
       expect(
         variablesInPrompt("{{ a }} and {{ b }} and {{ a }}")
       ).toEqual(["a", "b"]);
+    });
+  });
+
+  describe("entity mentions", () => {
+    it("splits an entity mention from surrounding text", () => {
+      expect(tokenizePromptLine("shot of entity://ent1 at dusk")).toEqual([
+        { kind: "text", text: "shot of " },
+        { kind: "entity", uri: "entity://ent1", entityId: "ent1" },
+        { kind: "text", text: " at dusk" }
+      ]);
+    });
+
+    it("treats trailing dots as sentence punctuation", () => {
+      expect(tokenizePromptLine("meet entity://ent1.")).toEqual([
+        { kind: "text", text: "meet " },
+        { kind: "entity", uri: "entity://ent1", entityId: "ent1" },
+        { kind: "text", text: "." }
+      ]);
+    });
+
+    it("keeps asset, entity, and variable tokens on one line", () => {
+      expect(
+        tokenizePromptLine("entity://e asset://a.png {{ v }}")
+      ).toEqual([
+        { kind: "entity", uri: "entity://e", entityId: "e" },
+        { kind: "text", text: " " },
+        { kind: "asset", uri: "asset://a.png", assetId: "a", ext: "png" },
+        { kind: "text", text: " " },
+        { kind: "variable", expr: "v" }
+      ]);
+    });
+
+    it("round-trips the entity URN helpers", () => {
+      expect(entityToUri({ id: "abc" })).toBe("entity://abc");
+      expect(parseEntityUri("entity://abc")).toBe("abc");
     });
   });
 });

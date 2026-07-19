@@ -16,6 +16,11 @@ jest.mock("../../../stores/storyboard/StoryboardGenerationStore", () => {
   );
   return { ...actual, subscribeShotJob: jest.fn().mockResolvedValue(undefined) };
 });
+// The hook resolves board entities through React Query; an empty library
+// keeps these single-flight tests hermetic.
+jest.mock("../../../serverState/useEntities", () => ({
+  useEntities: () => ({ data: [] })
+}));
 
 import { useGenerateShot, __resetStartingShotsForTests } from "../useGenerateShot";
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";

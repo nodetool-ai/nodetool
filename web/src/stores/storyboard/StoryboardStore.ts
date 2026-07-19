@@ -40,6 +40,11 @@ export interface StoryboardBoard {
   title: string;
   brief: string;
   style: string;
+  /**
+   * Library entity (asset) ids applied to this board. Each shot's still/clip
+   * prompt picks up the applicable entities' descriptors for consistency.
+   */
+  entityIds: string[];
   aspectRatio: string;
   /** Language model the Director run uses. Null until the user picks one. */
   directorModel: LanguageModelValue | null;
@@ -75,6 +80,19 @@ interface StoryboardStoreState {
 
   setBrief: (boardId: string, brief: string) => void;
   setStyle: (boardId: string, style: string) => void;
+  /** Replace the board's entity selection. */
+  setEntityIds: (boardId: string, entityIds: string[]) => void;
+  /**
+   * Toggle one entity for one shot. Writes the shot's explicit
+   * `entity_ids` override, seeding it from `currentIds` (the applicable set
+   * shown in the UI) so the first toggle removes/adds exactly one entity.
+   */
+  toggleShotEntity: (
+    boardId: string,
+    shotId: string,
+    entityId: string,
+    currentIds: string[]
+  ) => void;
   setTitle: (boardId: string, title: string) => void;
   setAspectRatio: (boardId: string, aspectRatio: string) => void;
   setDirectorModel: (boardId: string, model: LanguageModelValue | null) => void;
@@ -120,6 +138,7 @@ const emptyBoard = (id: string): StoryboardBoard => ({
   title: "",
   brief: "",
   style: "",
+  entityIds: [],
   aspectRatio: "16:9",
   directorModel: null,
   imageModel: null,
@@ -263,6 +282,31 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
       withBoard(state, boardId, (b) =>
         b.style === style ? null : { ...b, style }
       )
+    ),
+
+  setEntityIds: (boardId, entityIds) =>
+    set((state) =>
+      withBoard(state, boardId, (b) =>
+        b.entityIds.length === entityIds.length &&
+        b.entityIds.every((id, i) => id === entityIds[i])
+          ? null
+          : { ...b, entityIds }
+      )
+    ),
+
+  toggleShotEntity: (boardId, shotId, entityId, currentIds) =>
+    set((state) =>
+      withBoard(state, boardId, (b) => {
+        const target = b.shots.find((s) => s.id === shotId);
+        if (!target) {
+          return null;
+        }
+        const base = target.entity_ids ?? currentIds;
+        const entity_ids = base.includes(entityId)
+          ? base.filter((id) => id !== entityId)
+          : [...base, entityId];
+        return patchShot(b, shotId, { entity_ids });
+      })
     ),
 
   setTitle: (boardId, title) =>
@@ -477,6 +521,7 @@ try {
 // ── Selector hooks ───────────────────────────────────────────────────────────
 
 const EMPTY_SHOTS: Shot[] = [];
+const EMPTY_ENTITY_IDS: string[] = [];
 
 /**
  * Reactive multi-value view of a board. Uses `useShallow` so the returned
@@ -491,6 +536,7 @@ export const useBoard = (
   title: string;
   brief: string;
   style: string;
+  entityIds: string[];
   aspectRatio: string;
   directorModel: LanguageModelValue | null;
   imageModel: ImageModelValue | null;
@@ -506,6 +552,7 @@ export const useBoard = (
         title: b?.title ?? "",
         brief: b?.brief ?? "",
         style: b?.style ?? "",
+        entityIds: b?.entityIds ?? EMPTY_ENTITY_IDS,
         aspectRatio: b?.aspectRatio ?? "16:9",
         directorModel: b?.directorModel ?? null,
         imageModel: b?.imageModel ?? null,

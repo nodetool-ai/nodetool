@@ -18,6 +18,8 @@ export interface StoryboardDocument {
   shots: Shot[];
   brief: string;
   style: string;
+  /** Library entity (asset) ids applied to the board's shot prompts. */
+  entityIds: string[];
   aspectRatio: string;
   /** Model selections; loosely typed — validated by the router schemas. */
   directorModel: Record<string, unknown> | null;
@@ -47,6 +49,7 @@ export const emptyStoryboardDocument = (): StoryboardDocument => ({
   shots: [],
   brief: "",
   style: "",
+  entityIds: [],
   aspectRatio: "16:9",
   directorModel: null,
   imageModel: null,
@@ -98,7 +101,10 @@ export class Storyboard extends DBModel {
   }
 
   toDocument(): StoryboardDocument {
-    return JSON.parse(this.document) as StoryboardDocument;
+    const doc = JSON.parse(this.document) as StoryboardDocument;
+    // Rows persisted before entities existed lack the field.
+    doc.entityIds ??= [];
+    return doc;
   }
 
   toResponse(): StoryboardResponse {

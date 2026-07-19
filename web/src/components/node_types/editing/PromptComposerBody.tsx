@@ -49,6 +49,7 @@ import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropert
 import { useDynamicProperty } from "../../../hooks/nodes/useDynamicProperty";
 
 import { AssetMentionNode } from "./promptComposer/AssetMentionNode";
+import { EntityMentionNode } from "./promptComposer/EntityMentionNode";
 import { VariableNode, $createVariableNode } from "./promptComposer/VariableNode";
 import AssetMentionPlugin from "./promptComposer/AssetMentionPlugin";
 import AssetDropPlugin from "./promptComposer/AssetDropPlugin";
@@ -306,7 +307,7 @@ const PromptComposerBodyInner: React.FC<PromptComposerBodyProps> = ({
   const initialConfig = useMemo<InitialConfigType>(
     () => ({
       namespace: "PromptComposer",
-      nodes: [AssetMentionNode, VariableNode],
+      nodes: [AssetMentionNode, EntityMentionNode, VariableNode],
       theme: composerTheme,
       editorState: () => {
         $setPromptFromString(initialPromptRef.current);

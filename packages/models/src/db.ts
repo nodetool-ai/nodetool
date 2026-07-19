@@ -951,6 +951,20 @@ function getCreateSchemaSql(): string {
     );
     CREATE UNIQUE INDEX IF NOT EXISTS "idx_wshare_token" ON "nodetool_workflow_shares" ("token");
     CREATE INDEX IF NOT EXISTS "idx_wshare_workflow_id" ON "nodetool_workflow_shares" ("workflow_id");
+
+    CREATE TABLE IF NOT EXISTS "storyboards" (
+      "id" text PRIMARY KEY NOT NULL,
+      "user_id" text NOT NULL,
+      "project_id" text NOT NULL,
+      "name" text NOT NULL,
+      "document" text NOT NULL,
+      "timeline_id" text,
+      "created_at" text NOT NULL,
+      "updated_at" text NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS "idx_storyboard_user" ON "storyboards" ("user_id");
+    CREATE INDEX IF NOT EXISTS "idx_storyboard_project" ON "storyboards" ("project_id");
+    CREATE INDEX IF NOT EXISTS "idx_storyboard_updated" ON "storyboards" ("updated_at");
   `;
 }
 

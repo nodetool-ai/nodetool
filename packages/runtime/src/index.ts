@@ -122,6 +122,7 @@ export {
   classifyAssetToken,
   classifyTextToken,
   expandAssetReferences,
+  expandEntityRefs,
   findAssetRefs,
   findImageAssetRefs,
   findTextAssetRefs,
