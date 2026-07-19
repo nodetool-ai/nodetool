@@ -207,8 +207,13 @@ existing editor is a rewrite, not a feature.
    (`scriptVoicing`, reusing `generate_media` / `transcribe_audio`), take
    gallery, play-through. The document pane is a plain per-line editor rather
    than the Lexical transcript editor — that reuse is deferred to a later pass.
-2. **To timeline** — assemble with linkage keys, staleness, per-line
-   back-sync, re-assemble on structural drift, extract-as-script.
+2. **To timeline** *(implemented)* — assemble the current takes into a
+   voiceover sequence with `scriptId`/`scriptLineId` linkage keys
+   (`assembleScriptTimeline`, `useAssembleScriptTimeline`, "Send to timeline"),
+   per-line back-sync on re-voice / take switch (`stores/script/timelineSync`),
+   re-assemble in place on structural drift (preserving foreign tracks), and
+   extract-as-script from a timeline transcript (`extractScript`,
+   `useExtractScript`, the transcript panel's "Extract as script").
 3. **Automation** — `ui_script_*` agent tools + assistant panel, `ScriptRef` +
    graph nodes.
 4. **Depth** — dialogue-mode rendering, provider-native timestamps, SRT/VTT

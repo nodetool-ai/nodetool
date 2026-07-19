@@ -24,6 +24,7 @@ import {
   type ScriptTake,
   type VoiceBinding
 } from "./ScriptStore";
+import { syncLineClipToTimeline } from "./timelineSync";
 
 /** Speech-to-text default for word-level take timing (best-effort). */
 export interface AsrConfig {
@@ -202,6 +203,10 @@ export async function voiceLine(
           : undefined
     };
     store.getState().appendTake(scriptId, lineId, take);
+    // If this script was already assembled into a timeline, round-trip the new
+    // take into the linked clip. Fire-and-forget; a sync miss never fails the
+    // take (the sync logs and returns false).
+    void syncLineClipToTimeline(scriptId, lineId, take);
     return take;
   } finally {
     store.getState().setVoicing(lineId, false);
