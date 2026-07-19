@@ -223,8 +223,15 @@ existing editor is a rewrite, not a feature.
    property editor, and a graph node family (`ConstantScript`, `LoadScript`,
    `VoiceScript` — batch TTS over a cast, `ScriptToTimeline`) reading/writing
    scripts through new `ProcessingContext` script methods.
-4. **Depth** — dialogue-mode rendering, provider-native timestamps, SRT/VTT
-   export, bundle support.
+4. **Depth** — SRT/VTT export *(implemented)*: a shared, framework-agnostic
+   subtitle codec (`@nodetool-ai/timeline` `assembleSubtitleCues` / `cuesToSrt` /
+   `cuesToVtt`) that lays each line's current take end to end with the authored
+   pauses and renders line- or word-granularity cues from the take word timings,
+   surfaced as a graph node (`ScriptToSubtitles`), an agent tool
+   (`ui_script_export_subtitles`), and an "Export SRT" button on the script
+   surface (`exportScriptSubtitles`). Still open: dialogue-mode rendering,
+   provider-native timestamps, audio-only mixdown, and `.nodetool` bundle
+   support.
 
 Phase 1 is deliberately shippable alone: a script you can write, cast, voice,
 and listen to is already the ElevenLabs-Studio use case, before any timeline

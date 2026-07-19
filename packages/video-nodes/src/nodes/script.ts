@@ -10,14 +10,19 @@
  */
 
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import type { ScriptRef, TimelineRef } from "@nodetool-ai/protocol";
+import type { ScriptRef } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { concatBytes, encodePcm16Wav } from "@nodetool-ai/audio-nodes";
 import {
+  assembleSubtitleCues,
+  formatSubtitles,
   makeClip,
   makeSequence,
   makeTrack,
   type CaptionWord,
+  type SubtitleEntry,
+  type SubtitleFormat,
+  type SubtitleGranularity,
   type TimelineClip,
   type TimelineSequence,
   type TimelineTrack
@@ -416,6 +421,81 @@ export class ScriptToTimelineNode extends BaseNode {
   }
 }
 
+export class ScriptToSubtitlesNode extends BaseNode {
+  static readonly nodeType = "nodetool.script.ScriptToSubtitles";
+  static readonly title = "Script To Subtitles";
+  static readonly description =
+    "Export a voiced script as SRT or WebVTT subtitles, straight from each current take's word timings — one cue per line (or per word), laid out end to end with the authored pauses. Voice the script first; unvoiced lines are skipped.\n    script, subtitles, srt, vtt, captions, export\n\n    Use cases:\n    - Produce a subtitle sidecar for a voiced narration\n    - Generate word-timed captions from take timings\n    - Feed subtitles into a burn-in or upload step";
+  static readonly metadataOutputTypes = {
+    subtitles: "str",
+    cue_count: "int"
+  };
+  static readonly inlineFields = ["script", "format", "granularity"];
+  static readonly inputFields = ["script"];
+
+  @prop({
+    type: "script",
+    default: scriptRefDefault,
+    title: "Script",
+    description: "The voiced script to export subtitles from."
+  })
+  declare script: ScriptRef;
+
+  @prop({
+    type: "enum",
+    default: "srt",
+    title: "Format",
+    description: "Subtitle format: SubRip (.srt) or WebVTT (.vtt).",
+    values: ["srt", "vtt"]
+  })
+  declare format: SubtitleFormat;
+
+  @prop({
+    type: "enum",
+    default: "line",
+    title: "Granularity",
+    description:
+      "One cue per line (whole line text) or per word (using take word timings).",
+    values: ["line", "word"]
+  })
+  declare granularity: SubtitleGranularity;
+
+  async process(
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
+    const script = await loadScript(this.script, context);
+    const doc = script.document;
+
+    const entries: SubtitleEntry[] = [];
+    for (const line of allLines(doc)) {
+      const take = currentTake(line);
+      if (!take || !take.assetId) continue;
+      const text = line.text.trim();
+      if (!text) continue;
+      entries.push({
+        text: line.text,
+        durationMs: take.durationMs > 0 ? take.durationMs : PLACEHOLDER_LINE_MS,
+        words: take.words,
+        pauseAfterMs: line.pauseAfterMs
+      });
+    }
+
+    if (entries.length === 0) {
+      throw new Error(
+        "ScriptToSubtitles: no voiced lines to export — voice the script first"
+      );
+    }
+
+    const cues = assembleSubtitleCues(entries, {
+      granularity: this.granularity
+    });
+    return {
+      subtitles: formatSubtitles(cues, this.format),
+      cue_count: cues.length
+    };
+  }
+}
+
 // ── TTS helpers (mirror audio TextToSpeechNode's provider routing) ──
 
 interface SynthResult {
@@ -498,5 +578,6 @@ async function probeDurationMs(
 export const SCRIPT_NODES = tagAsNode([
   LoadScriptNode,
   VoiceScriptNode,
-  ScriptToTimelineNode
+  ScriptToTimelineNode,
+  ScriptToSubtitlesNode
 ]);

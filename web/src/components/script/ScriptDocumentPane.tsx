@@ -5,6 +5,7 @@ import GraphicEqIcon from "@mui/icons-material/GraphicEq";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import MovieIcon from "@mui/icons-material/Movie";
+import SubtitlesIcon from "@mui/icons-material/Subtitles";
 import {
   FlexColumn,
   FlexRow,
@@ -24,6 +25,7 @@ import {
   type ScriptSection
 } from "../../stores/script/ScriptStore";
 import { voiceAll } from "../../stores/script/scriptVoicing";
+import { exportScriptSubtitles } from "../../stores/script/scriptSubtitles";
 import { useScriptPlaythrough } from "../../hooks/script/useScriptPlaythrough";
 import { useAssembleScriptTimeline } from "../../hooks/script/useAssembleScriptTimeline";
 import ScriptLineRow from "./ScriptLineRow";
@@ -126,6 +128,25 @@ const ScriptDocumentPane = ({
     });
   }, [assemble, scriptId]);
 
+  const onExportSubtitles = useCallback(() => {
+    const script = useScriptStore.getState().getScript(scriptId);
+    if (!script) return;
+    const result = exportScriptSubtitles(script, { format: "srt" });
+    if (!result) return;
+    const base =
+      script.title.trim().replace(/[^A-Za-z0-9._-]+/g, "_").replace(/^[._]+/, "") ||
+      "script";
+    const blob = new Blob([result.text], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${base}.${result.format}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }, [scriptId]);
+
   const isEmpty = sections.every((s) => s.lines.length === 0);
   const hasVoicedLine = sections.some((section) =>
     section.lines.some((line) =>
@@ -204,6 +225,22 @@ const ScriptDocumentPane = ({
               : timelineId
                 ? "Update timeline"
                 : "Send to timeline"}
+          </EditorButton>
+        )}
+        {!readOnly && (
+          <EditorButton
+            size="small"
+            variant="outlined"
+            startIcon={<SubtitlesIcon fontSize="small" />}
+            onClick={onExportSubtitles}
+            disabled={!hasVoicedLine}
+            title={
+              hasVoicedLine
+                ? "Download SRT subtitles from the voiced takes"
+                : "Voice at least one line to export subtitles"
+            }
+          >
+            Export SRT
           </EditorButton>
         )}
       </FlexRow>

@@ -19,6 +19,7 @@ import {
   type VoiceBinding
 } from "../../stores/script/ScriptStore";
 import { voiceLine, voiceAll } from "../../stores/script/scriptVoicing";
+import { exportScriptSubtitles } from "../../stores/script/scriptSubtitles";
 import { useAssembleScriptTimeline } from "./useAssembleScriptTimeline";
 import {
   getScriptAgentHandler,
@@ -221,6 +222,21 @@ export const useScriptAgentBridge = (
           clipCount: result.clipCount,
           skippedLineIds: result.skippedLineIds,
           reassembled: result.reassembled
+        };
+      },
+
+      exportSubtitles(options) {
+        const script = requireScript();
+        const result = exportScriptSubtitles(script, options);
+        if (!result) {
+          throw new Error(
+            "No voiced lines to export — voice at least one line first."
+          );
+        }
+        return {
+          text: result.text,
+          format: result.format,
+          cueCount: result.cueCount
         };
       }
     };

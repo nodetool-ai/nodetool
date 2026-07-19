@@ -39,9 +39,12 @@ vi.mock("node:child_process", async (importOriginal) => {
   return { ...original, execFile: mockExecFile };
 });
 
-const { LoadScriptNode, VoiceScriptNode, ScriptToTimelineNode } = await import(
-  "../src/nodes/script.js"
-);
+const {
+  LoadScriptNode,
+  VoiceScriptNode,
+  ScriptToTimelineNode,
+  ScriptToSubtitlesNode
+} = await import("../src/nodes/script.js");
 
 const VOICE = { provider: "openai", model: "tts-1", voice: "alloy" };
 
@@ -248,6 +251,85 @@ describe("ScriptToTimelineNode", () => {
   it("throws when no lines are voiced", async () => {
     const context = stubContext(baseScript());
     const node = new ScriptToTimelineNode();
+    node.assign({ script: { type: "script", id: "script-1" } });
+    await expect(node.process(context as never)).rejects.toThrow(
+      /no voiced lines/
+    );
+  });
+});
+
+describe("ScriptToSubtitlesNode", () => {
+  function voicedScript() {
+    const script = baseScript();
+    const lines = script.document.sections[0].lines;
+    lines[0].takes = [
+      {
+        id: "take-1",
+        assetId: "asset-1",
+        durationMs: 1500,
+        words: [
+          { word: "Hello", startMs: 0, endMs: 700 },
+          { word: "there.", startMs: 800, endMs: 1400 }
+        ],
+        textSnapshot: lines[0].text,
+        voiceSnapshot: VOICE,
+        createdAt: "2026-01-01T00:00:00.000Z"
+      }
+    ];
+    lines[0].currentTakeId = "take-1";
+    lines[0].pauseAfterMs = 500;
+    lines[1].takes = [
+      {
+        id: "take-2",
+        assetId: "asset-2",
+        durationMs: 1000,
+        words: [],
+        textSnapshot: lines[1].text,
+        voiceSnapshot: VOICE,
+        createdAt: "2026-01-01T00:00:00.000Z"
+      }
+    ];
+    lines[1].currentTakeId = "take-2";
+    return script;
+  }
+
+  it("exports SRT line cues offset by durations and pauses", async () => {
+    const context = stubContext(voicedScript());
+    const node = new ScriptToSubtitlesNode();
+    node.assign({ script: { type: "script", id: "script-1" } });
+    const result = (await node.process(context as never)) as {
+      subtitles: string;
+      cue_count: number;
+    };
+    expect(result.cue_count).toBe(2);
+    expect(result.subtitles).toBe(
+      "1\n00:00:00,000 --> 00:00:01,500\nHello there.\n\n" +
+        "2\n00:00:02,000 --> 00:00:03,000\nWelcome.\n"
+    );
+  });
+
+  it("exports WebVTT word cues from take word timings", async () => {
+    const context = stubContext(voicedScript());
+    const node = new ScriptToSubtitlesNode();
+    node.assign({
+      script: { type: "script", id: "script-1" },
+      format: "vtt",
+      granularity: "word"
+    });
+    const result = (await node.process(context as never)) as {
+      subtitles: string;
+      cue_count: number;
+    };
+    // Two timed words on line 1, line 2 falls back to one line cue.
+    expect(result.cue_count).toBe(3);
+    expect(result.subtitles.startsWith("WEBVTT")).toBe(true);
+    expect(result.subtitles).toContain("00:00:00.000 --> 00:00:00.700\nHello");
+    expect(result.subtitles).toContain("00:00:00.800 --> 00:00:01.400\nthere.");
+  });
+
+  it("throws when no lines are voiced", async () => {
+    const context = stubContext(baseScript());
+    const node = new ScriptToSubtitlesNode();
     node.assign({ script: { type: "script", id: "script-1" } });
     await expect(node.process(context as never)).rejects.toThrow(
       /no voiced lines/

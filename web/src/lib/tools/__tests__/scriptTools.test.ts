@@ -52,7 +52,8 @@ const createMockHandler = (): jest.Mocked<ScriptAgentHandler> => ({
   setLineSpeaker: jest.fn(),
   voiceLine: jest.fn(),
   voiceAll: jest.fn(),
-  sendToTimeline: jest.fn()
+  sendToTimeline: jest.fn(),
+  exportSubtitles: jest.fn()
 });
 
 // The script tools never touch the workflow state, so a bare stub satisfies ctx.
@@ -75,7 +76,8 @@ describe("ui_script_* tools", () => {
         "ui_script_set_speaker",
         "ui_script_voice_line",
         "ui_script_voice_all",
-        "ui_script_send_to_timeline"
+        "ui_script_send_to_timeline",
+        "ui_script_export_subtitles"
       ])
     );
   });
@@ -228,6 +230,31 @@ describe("ui_script_* tools", () => {
     expect(result.sequenceId).toBe("seq-1");
     expect(result.clipCount).toBe(3);
     expect(result.skippedLineIds).toEqual(["line-9"]);
+  });
+
+  it("exports subtitles through the handler", async () => {
+    const handler = createMockHandler();
+    handler.exportSubtitles.mockReturnValue({
+      text: "WEBVTT\n\n00:00:00.000 --> 00:00:01.000\nHi.\n",
+      format: "vtt",
+      cueCount: 1
+    });
+    setScriptAgentHandler(handler);
+
+    const result = (await FrontendToolRegistry.call(
+      "ui_script_export_subtitles",
+      { format: "vtt", granularity: "word" },
+      "tc-subs",
+      ctx
+    )) as { ok: boolean; text: string; format: string; cueCount: number };
+
+    expect(handler.exportSubtitles).toHaveBeenCalledWith({
+      format: "vtt",
+      granularity: "word"
+    });
+    expect(result.ok).toBe(true);
+    expect(result.format).toBe("vtt");
+    expect(result.cueCount).toBe(1);
   });
 
   it("clears a line's speaker with null through the handler", async () => {
