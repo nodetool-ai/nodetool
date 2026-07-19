@@ -130,7 +130,7 @@ const styles = (theme: Theme) =>
       borderRadius: BORDER_RADIUS.pill,
       backgroundColor: theme.vars.palette.secondary.main,
       color: theme.vars.palette.secondary.contrastText,
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       display: "inline-flex",
       alignItems: "center",
       justifyContent: "center"

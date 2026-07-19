@@ -125,7 +125,7 @@ const PropertyDropzone = ({
         borderRadius: BORDER_RADIUS.sm
       },
       ".prop-drop": {
-        fontSize: theme.fontSizeTiny,
+        fontSize: theme.fontSizeSmaller,
         lineHeight: "1.1em"
       },
       ".image-dimensions": {

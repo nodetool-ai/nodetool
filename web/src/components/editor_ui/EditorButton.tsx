@@ -51,7 +51,7 @@ export const EditorButton = forwardRef<HTMLButtonElement, EditorButtonProps>(
     const scope = useEditorScope();
 
     const fontSize =
-      scope === "inspector" ? theme.fontSizeSmall : theme.fontSizeTiny;
+      scope === "inspector" ? theme.fontSizeSmall : theme.fontSizeSmaller;
     const densityHeight =
       density === "compact" ? CONTROL.height.xs : CONTROL.height.sm;
     const sizeHeights = {

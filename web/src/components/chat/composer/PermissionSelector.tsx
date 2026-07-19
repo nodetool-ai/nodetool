@@ -181,7 +181,7 @@ const PermissionSelector: React.FC = () => {
                   >
                     {m.label}
                   </Text>
-                  <Caption size="tiny" color="secondary" sx={{ lineHeight: 1.3 }}>
+                  <Caption size="smaller" color="secondary" sx={{ lineHeight: 1.3 }}>
                     {m.description}
                   </Caption>
                 </FlexColumn>

@@ -203,10 +203,8 @@ export const NodePickerDialog: React.FC<NodePickerDialogProps> = ({
             </FlexColumn>
           ) : (
             <FlexColumn gap={0}>
-              <Text size="tiny" color="secondary" sx={{ mb: 0.5, px: 0.5, opacity: 0.5 }}>
-                {searchResults.length}{" "}
-                {searchResults.length === 1 ? "result" : "results"}
-              </Text>
+              <Text size="smaller" color="secondary" sx={{ mb: 0.5, px: 0.5, opacity: 0.5 }}>{searchResults.length}{" "}
+              {searchResults.length === 1 ? "result" : "results"}</Text>
               <div
                 ref={listScrollRef}
                 style={{

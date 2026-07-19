@@ -150,7 +150,7 @@ function MediaOptionMenuInternal<T extends string | number>({
                   {opt.label}
                 </Text>
                 {opt.description && (
-                  <Caption size="tiny" color="secondary">
+                  <Caption size="smaller" color="secondary">
                     {opt.description}
                   </Caption>
                 )}

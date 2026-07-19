@@ -118,7 +118,7 @@ const styles = (theme: Theme) =>
       fontSize: "2.5em"
     },
     p: {
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.grey[0],
       lineHeight: "0.95em",
       margin: `${getSpacingPx(SPACING.micro)} 0 ${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.micro)}`
@@ -126,7 +126,7 @@ const styles = (theme: Theme) =>
     ".info": {
       position: "absolute",
       pointerEvents: "none",
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       fontWeight: 600,
       letterSpacing: "0.02em",
       color: theme.vars.palette.grey[0],
@@ -167,7 +167,7 @@ const styles = (theme: Theme) =>
       padding: "0 0.25em 0.1em 0.35em",
       width: "100%",
       textAlign: "left",
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       fontFamily: theme.fontFamily2,
       lineHeight: "1.2em",
       color: theme.vars.palette.grey[400],
@@ -192,7 +192,7 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.c_scrim,
       backdropFilter: "blur(4px)",
       color: theme.vars.palette.grey[100],
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       fontWeight: FONT_WEIGHT.medium
     },
     ".duration": {
@@ -575,7 +575,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
           {showFiletype && assetFileEnding && assetItemSize > 3 && (
             <Text
               className="filetype info"
-              size="tiny"
+              size="smaller"
               title={asset.content_type || "Unknown content type"}
               style={{
                 color: `var(--c_${assetType}, var(--palette-grey-100))`,

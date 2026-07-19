@@ -109,7 +109,7 @@ const styles = (theme: Theme) =>
     ".metadata": {
       position: "absolute",
       padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.grey[300],
       backgroundColor: theme.vars.palette.c_scrim,
       borderRadius: BORDER_RADIUS.sm,

@@ -297,9 +297,7 @@ const RuntimeRow: React.FC<RuntimeRowProps> = ({ name, status, error }) => {
           </Text>
         </FlexRow>
         {error && (
-          <Text size="tinyer" color="error" sx={{ pl: 3 }}>
-            {error}
-          </Text>
+          <Text size="smaller" color="error" sx={{ pl: 3 }}>{error}</Text>
         )}
       </FlexColumn>
       <Chip

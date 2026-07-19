@@ -41,7 +41,7 @@ const ModelSelectButton = memo(forwardRef<HTMLButtonElement, ModelSelectButtonPr
                 <Caption size="smaller">{secondaryLabel}</Caption>
               )}
               {subLabel && (
-                <Caption size="tiny" color="secondary">
+                <Caption size="smaller" color="secondary">
                   {subLabel}
                 </Caption>
               )}
@@ -114,7 +114,7 @@ const ModelSelectButton = memo(forwardRef<HTMLButtonElement, ModelSelectButtonPr
             {secondaryLabel && (
               <Caption
                 className="model-select-button-label-text-secondary"
-                size={scope === "inspector" ? "small" : "tiny"}
+                size={scope === "inspector" ? "small" : "smaller"}
                 sx={{
                   opacity: 0.6,
                   flexShrink: 0,

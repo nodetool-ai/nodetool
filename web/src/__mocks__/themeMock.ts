@@ -24,14 +24,11 @@ const mockTheme = createTheme({
     c_gray5: "#BDBDBD",
     c_gray6: "#D9D9D9"
   } as any, // Use 'as any' to bypass TypeScript checking for custom properties
-  fontSizeGiant: "2rem",
-  fontSizeBigger: "1.25rem",
-  fontSizeBig: "1.125rem",
-  fontSizeNormal: "16px",
-  fontSizeSmall: "0.875rem",
-  fontSizeSmaller: "0.75rem",
-  fontSizeTiny: "0.65rem",
-  fontSizeTinyer: "0.55rem",
+  fontSizeGiant: "22px",
+  fontSizeBig: "18px",
+  fontSizeNormal: "15px",
+  fontSizeSmall: "13px",
+  fontSizeSmaller: "11px",
   fontFamily1: "'Inter', Arial, sans-serif",
   fontFamily2: "'JetBrains Mono', 'Inter', Arial, sans-serif",
   // TanStack Virtual overscan — mirrors ThemeNodetool so virtualized

@@ -75,7 +75,7 @@ const styles = (theme: Theme) =>
       margin: 0,
       maxWidth: "230px",
       fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       padding: "0"
     },
     ".url-input fieldset": {
@@ -115,7 +115,7 @@ const styles = (theme: Theme) =>
       margin: 0
     },
     ".prop-drop": {
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       lineHeight: "1.1em",
       color: theme.vars.palette.grey[400]
     },

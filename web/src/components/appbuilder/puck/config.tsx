@@ -148,9 +148,7 @@ export const appConfig: Config = {
           }}
         >
           {title ? (
-            <Text size="bigger" weight={600}>
-              {title}
-            </Text>
+            <Text size="big" weight={600}>{title}</Text>
           ) : null}
           {children}
         </FlexColumn>

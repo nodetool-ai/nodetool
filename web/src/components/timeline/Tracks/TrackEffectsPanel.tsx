@@ -886,7 +886,7 @@ const Eq3Editor: React.FC<EffectEditorProps<TrackEq3Effect>> = ({
         </div>
       </FlexRow>
       <Tooltip title="Drag handles to set frequency & gain. Scroll on the mid handle to change Q.">
-        <Text size="tiny" color="secondary">
+        <Text size="smaller" color="secondary">
           Drag bands · scroll mid for Q
         </Text>
       </Tooltip>
@@ -1486,7 +1486,7 @@ const CompressorEditor: React.FC<EffectEditorProps<TrackCompressorEffect>> = ({
         />
       </FlexColumn>
       <Tooltip title="Drag T to set threshold, R to set ratio. Scroll on T to change knee width.">
-        <Text size="tiny" color="secondary">
+        <Text size="smaller" color="secondary">
           Drag T = threshold · R = ratio · scroll T = knee
         </Text>
       </Tooltip>

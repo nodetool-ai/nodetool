@@ -657,7 +657,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                   maxWidth: 76,
                   textAlign: "center",
                   lineHeight: 1.15,
-                  fontSize: (t: Theme) => t.vars.fontSizeTiny,
+                  fontSize: (t: Theme) => t.vars.fontSizeSmaller,
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap"
@@ -729,7 +729,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                         className={`model-menu__provider-badge model-menu__provider-badge--${b.label.toLowerCase()}`}
                         style={{
                           padding: theme.spacing(0.5, 1.5),
-                          fontSize: theme.vars.fontSizeTiny,
+                          fontSize: theme.vars.fontSizeSmaller,
                           lineHeight: 1.1,
                           borderRadius: BORDER_RADIUS.sm,
                           background: "transparent",
@@ -842,7 +842,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                           maxWidth: 76,
                           textAlign: "center",
                           lineHeight: 1.15,
-                          fontSize: (th: Theme) => th.vars.fontSizeTiny
+                          fontSize: (th: Theme) => th.vars.fontSizeSmaller
                         }}
                       >
                         {providerLabel}

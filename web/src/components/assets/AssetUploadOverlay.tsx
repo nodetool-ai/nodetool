@@ -52,7 +52,7 @@ const AssetUploadOverlay = () => {
     <div css={styles(theme)} className="uploading-overlay">
       <div className="uploading-message">
         <Box>
-          <Text size="bigger">Uploading assets</Text>
+          <Text size="big" >Uploading assets</Text>
           <Text size="normal" weight={600}>
             {completed} / {files.length} files completed
           </Text>

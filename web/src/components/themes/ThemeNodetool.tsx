@@ -31,20 +31,17 @@ const ThemeNodetool = createTheme({
       palette: paletteDark
     }
   },
-  // Canonical sans type scale — only four sizes exist (18 / 15 / 13 / 11px).
-  // These eight fields are the SINGLE SOURCE OF TRUTH: MUI emits them as the
-  // `--fontSize*` CSS custom properties that the rest of the app references via
-  // `var(--fontSize*)`. Legacy names collapse onto the four sizes. Change a size
-  // HERE and it propagates everywhere. See ui_primitives/tokens.ts (TYPOGRAPHY)
-  // for the size+weight combinations.
-  fontSizeGiant: "18px", // → title
-  fontSizeBigger: "18px", // → title
+  // Canonical sans type scale — five sizes (22 / 18 / 15 / 13 / 11px), five
+  // names, no aliases. These fields are the SINGLE SOURCE OF TRUTH: MUI emits
+  // them as the `--fontSize*` CSS custom properties that the rest of the app
+  // references via `var(--fontSize*)`. Change a size HERE and it propagates
+  // everywhere. See ui_primitives/tokens.ts (TYPOGRAPHY) for the size+weight
+  // combinations.
+  fontSizeGiant: "22px", // → display
   fontSizeBig: "18px", // → title
   fontSizeNormal: "15px", // → body
   fontSizeSmall: "13px", // → label
   fontSizeSmaller: "11px", // → caption
-  fontSizeTiny: "11px", // → caption
-  fontSizeTinyer: "11px", // → caption
   fontFamily1: "'Inter', Arial, sans-serif",
   fontFamily2: "'JetBrains Mono', 'Inter', Arial, sans-serif",
   // Canonical border-radius tokens. Prefer these over hardcoded values.

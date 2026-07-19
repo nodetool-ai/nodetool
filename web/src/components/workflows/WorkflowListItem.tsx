@@ -218,7 +218,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
             {workflow.tags?.map((tag) => (
               <Text
                 key={tag}
-                size="tiny"
+                size="smaller"
                 weight={600}
                 family="secondary"
                 sx={{

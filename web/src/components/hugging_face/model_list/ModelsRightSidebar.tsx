@@ -55,7 +55,7 @@ const ModelsRightSidebar: React.FC = () => {
               variant={fmt.primary ? "filled" : "outlined"}
               color={fmt.primary ? "success" : "default"}
               sx={{
-                fontSize: theme.fontSizeTiny,
+                fontSize: theme.fontSizeSmaller,
                 fontWeight: 500,
                 height: 22,
                 ...(fmt.primary

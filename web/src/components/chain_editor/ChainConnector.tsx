@@ -24,9 +24,9 @@ export const ChainConnector: React.FC<ChainConnectorProps> = ({
       <Box sx={{ width: 2, height: 12, backgroundColor: `${color}50` }} />
       <FlexRow gap={0.5} align="center" sx={{ mt: -0.5 }}>
         <ArrowDownwardIcon sx={{ fontSize: 12, color: theme.vars.palette.text.disabled }} />
-        <Text size="tiny" color="secondary">{sourceOutput}</Text>
+        <Text size="smaller" color="secondary">{sourceOutput}</Text>
         <ArrowForwardIcon sx={{ fontSize: 10, color: theme.vars.palette.text.disabled }} />
-        <Text size="tiny" color="secondary">{targetInput ?? "auto"}</Text>
+        <Text size="smaller" color="secondary">{targetInput ?? "auto"}</Text>
       </FlexRow>
     </FlexColumn>
   );

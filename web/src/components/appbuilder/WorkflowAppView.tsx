@@ -147,9 +147,7 @@ const WorkflowAppView: React.FC<WorkflowAppViewProps> = ({
             gap={SPACING.md}
             sx={{ height: "100%", minHeight: "60vh", px: SPACING.lg }}
           >
-            <Text size="bigger" weight={500}>
-              {workflow.name}
-            </Text>
+            <Text size="big" weight={500}>{workflow.name}</Text>
             <Caption color="secondary" sx={{ textAlign: "center", maxWidth: 420 }}>
               This workflow has no app yet. Generate one from its inputs and
               outputs, then customize it in the App Builder.

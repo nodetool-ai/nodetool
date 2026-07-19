@@ -3,7 +3,7 @@ import { Text, FlexColumn, Divider, Box } from "../ui_primitives";
 const EmptyCollectionState = () => {
   return (
     <Box sx={{ marginTop: 2, maxWidth: 600 }}>
-      <Text size="bigger" sx={{ margin: "1em 0 .5em 0" }}>
+      <Text size="big" sx={{ margin: "1em 0 .5em 0" }}>
         Vector Collections
       </Text>
       <Text sx={{ marginBottom: 1 }}>

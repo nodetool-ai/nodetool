@@ -27,7 +27,7 @@ const styles = (theme: Theme) =>
       marginBottom: "0.5em"
     },
     button: {
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.grey[100],
       backgroundColor: theme.vars.palette.grey[600],
       border: 0,

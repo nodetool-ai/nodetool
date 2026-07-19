@@ -86,12 +86,12 @@ export const MetadataListRow: React.FC<MetadataListRowProps> = memo(
           {index > 0 && <span aria-hidden="true">{SEPARATOR}</span>}
           {item.label && (
             <>
-              <Caption size="tiny" color="muted">
+              <Caption size="smaller" color="muted">
                 {item.label}
               </Caption>{" "}
             </>
           )}
-          <Caption size="tiny" color="muted">
+          <Caption size="smaller" color="muted">
             {item.value}
           </Caption>
         </Fragment>

@@ -135,7 +135,7 @@ const styles = (theme: Theme) =>
     ".overlay-bottom-left": {
       bottom: 6,
       left: 6,
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       fontFamily: "monospace",
       color: theme.vars.palette.common.white
     },
@@ -227,7 +227,7 @@ const styles = (theme: Theme) =>
       position: "absolute",
       bottom: 2,
       right: 4,
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.common.white,
       textShadow: "0 0 2px rgba(0,0,0,0.8)"
     },
@@ -263,7 +263,7 @@ const styles = (theme: Theme) =>
       borderRadius: BORDER_RADIUS.sm,
       backgroundColor: theme.vars.palette.secondary.main,
       color: theme.vars.palette.secondary.contrastText,
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       fontVariantNumeric: "tabular-nums",
       lineHeight: 1
     },
@@ -628,9 +628,9 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
       alignItems: "center",
       justifyContent: "center",
       color: theme.vars.palette.text.secondary,
-      fontSize: theme.fontSizeTiny
+      fontSize: theme.fontSizeSmaller
     }),
-    [theme.vars.palette.text.secondary, theme.fontSizeTiny]
+    [theme.vars.palette.text.secondary, theme.fontSizeSmaller]
   );
 
   const handleDownload = useCallback(async () => {

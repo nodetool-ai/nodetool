@@ -226,7 +226,7 @@ const Help = ({
         <div css={helpStyles(theme)}>
           <div className="help">
             <div className="top">
-              <Text size="bigger">Help</Text>
+              <Text size="big" >Help</Text>
               <CloseButton onClick={handleClose} />
             </div>
             <div className="tabs-row">

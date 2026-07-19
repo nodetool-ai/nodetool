@@ -201,15 +201,13 @@ const RunningCard = memo(function RunningCard({
             sx={{ flex: "0 0 auto", color: "primary.main" }}
           >
             <VisibilityIcon sx={{ fontSize: 12 }} />
-            <Text size="tiny" sx={{ color: "primary.main" }}>
+            <Text size="smaller" sx={{ color: "primary.main" }}>
               On canvas
             </Text>
           </FlexRow>
         )}
         {elapsed && !isFocused && (
-          <Text size="tiny" color="secondary" family="secondary">
-            {elapsed}
-          </Text>
+          <Text size="smaller" color="secondary" family="secondary">{elapsed}</Text>
         )}
         <Box
           component="span"
@@ -277,14 +275,10 @@ const EnqueuedCard = memo(function EnqueuedCard({
   return (
     <Box sx={cardSx}>
       <FlexRow align="center" gap={1} sx={{ minWidth: 0 }}>
-        <Text
-          size="tiny"
-          color="secondary"
-          family="secondary"
-          sx={{ flex: "0 0 auto" }}
-        >
-          #{index + 1}
-        </Text>
+        <Text size="smaller" color="secondary"
+        family="secondary"
+        sx={{ flex: "0 0 auto" }}>
+          #{index + 1}</Text>
         <Text size="small" truncate sx={{ flex: 1, minWidth: 0 }}>
           {name}
         </Text>
@@ -308,7 +302,7 @@ const CancelledCard = memo(function CancelledCard({ job }: { job: Job }) {
         <Text size="small" truncate sx={{ flex: 1, minWidth: 0 }}>
           {name}
         </Text>
-        <Text size="tiny" color="secondary" family="secondary">
+        <Text size="smaller" color="secondary" family="secondary">
           Cancelled
         </Text>
       </FlexRow>
@@ -317,21 +311,16 @@ const CancelledCard = memo(function CancelledCard({ job }: { job: Job }) {
 });
 
 const SectionLabel = ({ children }: { children: string }) => (
-  <Text
-    size="tinyer"
-    color="secondary"
-    weight={600}
-    sx={{
-      display: "block",
-      px: 0.5,
-      pt: 2,
-      pb: 1,
-      textTransform: "uppercase",
-      letterSpacing: "0.07em"
-    }}
-  >
-    {children}
-  </Text>
+  <Text size="smaller" color="secondary"
+  weight={600}
+  sx={{
+    display: "block",
+    px: 0.5,
+    pt: 2,
+    pb: 1,
+    textTransform: "uppercase",
+    letterSpacing: "0.07em"
+  }}>{children}</Text>
 );
 
 const HeaderCount = ({
@@ -343,9 +332,7 @@ const HeaderCount = ({
 }) => (
   <FlexRow align="center" gap={0.4} sx={{ color: "text.secondary" }}>
     {icon}
-    <Text size="tiny" color="secondary" family="secondary">
-      {count}
-    </Text>
+    <Text size="smaller" color="secondary" family="secondary">{count}</Text>
   </FlexRow>
 );
 
@@ -506,9 +493,7 @@ const QueueOverlay = memo(function QueueOverlay() {
               )}
             </Text>
             {single && (
-              <Text size="tiny" color="secondary" family="secondary">
-                {formatClock(single.started_at, now)}
-              </Text>
+              <Text size="smaller" color="secondary" family="secondary">{formatClock(single.started_at, now)}</Text>
             )}
             <IconButton
               icon={<KeyboardArrowDownIcon sx={{ fontSize: 18 }} />}
@@ -520,9 +505,8 @@ const QueueOverlay = memo(function QueueOverlay() {
           {queued.length > 0 && (
             <FlexRow align="center" gap={0.5} sx={{ color: "text.secondary" }}>
               <ScheduleIcon sx={{ fontSize: 13 }} />
-              <Text size="tiny" color="secondary">
-                {queued.length} queued
-              </Text>
+              <Text size="smaller" color="secondary">{queued.length} queued
+                            </Text>
             </FlexRow>
           )}
         </FlexColumn>

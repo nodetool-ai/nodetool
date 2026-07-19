@@ -116,7 +116,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.grey[400]
     },
     ".dropzone-text": {
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       fontFamily: theme.fontFamily2,
       textTransform: "uppercase",
       letterSpacing: "1px",

@@ -12,7 +12,7 @@ const meta = {
   argTypes: {
     size: {
       control: "select",
-      options: ["giant", "bigger", "big", "normal", "small", "smaller", "tiny", "tinyer"]
+      options: ["giant", "big", "normal", "small", "smaller"]
     },
     color: {
       control: "select",
