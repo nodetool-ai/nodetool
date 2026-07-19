@@ -76,7 +76,7 @@ export const assetMentionMenuStyles = (theme: Theme) =>
     ".mention-entities-label": {
       flex: "0 0 100%",
       fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       textTransform: "uppercase",
       letterSpacing: "0.06em",
       color: theme.vars.palette.text.secondary,

@@ -68,7 +68,7 @@ const styles = (theme: Theme) =>
     ".entity-kind": {
       flex: "0 0 auto",
       fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       textTransform: "uppercase",
       letterSpacing: "0.04em"
     }
