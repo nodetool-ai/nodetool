@@ -34,6 +34,10 @@ import {
 } from "../ui_primitives";
 import { useBoard, useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import { useGenerateShot } from "../../hooks/storyboard/useGenerateShot";
+import {
+  useImageModelsByProvider,
+  type ImageModelTask
+} from "../../hooks/useModelsByProvider";
 import LanguageModelSelect from "../properties/LanguageModelSelect";
 import ImageModelSelect from "../properties/ImageModelSelect";
 import VideoModelSelect from "../properties/VideoModelSelect";
@@ -70,6 +74,10 @@ const SHOT_COUNT_OPTIONS = [3, 4, 5, 6, 8, 10, 12].map((n) => ({
   label: `${n} shots`
 }));
 
+// Stills can come from a plain generator or an editing model; the latter can
+// take entity reference images, so the picker offers both.
+const STILL_MODEL_TASKS: ImageModelTask[] = ["text_to_image", "image_to_image"];
+
 // The model pickers are custom buttons, not InputBase controls; hold them at
 // the shared form-control height. Scoped to the picker's own class so no
 // other button that ends up inside the field is affected.
@@ -85,6 +93,9 @@ const styles = (theme: Theme) =>
     display: "flex",
     flexDirection: "column",
     gap: getSpacingPx(SPACING.lg),
+    // Children must keep their natural height so the container scrolls;
+    // otherwise the header panel gets flex-shrunk under the grid.
+    "> *": { flexShrink: 0 },
     ".grid": {
       display: "grid",
       gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
@@ -114,7 +125,7 @@ const styles = (theme: Theme) =>
     },
     ".ghost-card": {
       border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: theme.shape.borderRadius,
+      borderRadius: BORDER_RADIUS.md,
       padding: getSpacingPx(SPACING.md),
       display: "flex",
       flexDirection: "column",
@@ -198,6 +209,16 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
 
   const [shotCount, setShotCount] = useState<number>(6);
 
+  // Entity reference images only reach generation through an editing model;
+  // warn when entities are attached but the still model can't take them.
+  const { models: imageModels } = useImageModelsByProvider();
+  const stillModelDetails = imageModel?.id
+    ? imageModels.find((m) => m.id === imageModel.id)
+    : undefined;
+  const entitiesNeedEditModel =
+    entityIds.length > 0 &&
+    !stillModelDetails?.supported_tasks?.includes("image_to_image");
+
   const handleDirect = useCallback(() => {
     onDirect?.(shotCount);
   }, [onDirect, shotCount]);
@@ -277,9 +298,15 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                 <FormField label="Still model" sx={modelFieldSx}>
                   <ImageModelSelect
                     value={imageModel?.id ?? ""}
-                    task="text_to_image"
+                    task={STILL_MODEL_TASKS}
                     onChange={(value) => setImageModel(boardId, value)}
                   />
+                  {entitiesNeedEditModel && (
+                    <Text size="small" color="warning">
+                      Entities carry reference images, but this model only
+                      takes text. Pick an image-to-image model to use them.
+                    </Text>
+                  )}
                 </FormField>
                 <FormField label="Clip model" sx={modelFieldSx}>
                   <VideoModelSelect

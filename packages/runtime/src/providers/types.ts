@@ -304,9 +304,28 @@ export interface Message {
   _anthropicThinkingBlocks?: AnthropicThinkingBlock[];
 }
 
+/**
+ * A reusable entity (character, prop, location, style) riding along with a
+ * generation call for cross-shot consistency. Any provider consumer — nodes,
+ * the chat WebSocket, CLI — can attach these to the params; {@link BaseProvider}
+ * expands them centrally before the concrete provider runs: the descriptor
+ * joins the prompt as a `Consistency references:` block, and on image-editing
+ * tasks the reference image bytes are appended to the source-image list.
+ */
+export interface EntityReference {
+  /** Display name, referenced from the prompt text. */
+  name: string;
+  /** Canonical visual descriptor injected into the prompt. */
+  descriptor?: string | null;
+  /** Encoded reference image bytes (routed to image inputs on editing tasks). */
+  image?: Uint8Array | null;
+}
+
 export interface TextToImageParams {
   model: ImageModel;
   prompt: string;
+  /** Consistency entities; descriptors join the prompt (t2i takes no images). */
+  entities?: EntityReference[] | null;
   negativePrompt?: string | null;
   width?: number;
   height?: number;
@@ -323,6 +342,11 @@ export interface TextToImageParams {
 export interface ImageToImageParams {
   model: ImageModel;
   prompt: string;
+  /**
+   * Consistency entities; descriptors join the prompt and reference images are
+   * appended to the source-image list (after the caller's own images).
+   */
+  entities?: EntityReference[] | null;
   negativePrompt?: string | null;
   targetWidth?: number | null;
   targetHeight?: number | null;
@@ -406,6 +430,8 @@ export interface TextToMusicParams {
 export interface TextToVideoParams {
   model: VideoModel;
   prompt: string;
+  /** Consistency entities; descriptors join the prompt (text-only for video). */
+  entities?: EntityReference[] | null;
   negativePrompt?: string | null;
   numFrames?: number | null;
   /** Requested duration in seconds (provider decides fps). */
@@ -422,6 +448,12 @@ export interface TextToVideoParams {
 export interface ImageToVideoParams {
   model: VideoModel;
   prompt?: string | null;
+  /**
+   * Consistency entities; descriptors join the prompt. Images are NOT appended
+   * here — the image list's first frame drives the animation, so extra images
+   * would change its meaning.
+   */
+  entities?: EntityReference[] | null;
   negativePrompt?: string | null;
   numFrames?: number | null;
   /** Requested duration in seconds (provider decides fps). */
@@ -443,6 +475,8 @@ export interface ImageToVideoParams {
 export interface VideoToVideoParams {
   model: VideoModel;
   prompt?: string | null;
+  /** Consistency entities; descriptors join the prompt (text-only for video). */
+  entities?: EntityReference[] | null;
   negativePrompt?: string | null;
   strength?: number | null;
   durationSeconds?: number | null;

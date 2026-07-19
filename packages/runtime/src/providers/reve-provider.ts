@@ -5,11 +5,20 @@
  * in Settings → API Keys.
  *
  *   - textToImage  → POST /v1/image/create
- *   - imageToImage → POST /v1/image/edit
+ *   - imageToImage → POST /v1/image/edit   (one source image)
+ *                  → POST /v1/image/remix  (two or more reference images)
  *
- * The Remix endpoint (1–6 reference images, indexed `<img>` prompt tags) does
- * not map cleanly onto the single-image `imageToImage` shape, so it is exposed
- * only via the `@nodetool-ai/reve-nodes` `reve.RemixImage` node.
+ * imageToImage routes by image count: a single source image uses the Edit
+ * endpoint (`edit_instruction` + one base64 `reference_image`); two or more use
+ * the Remix endpoint (`prompt` + a base64 `reference_images` array, capped at
+ * 6 — the only Reve endpoint that accepts more than one reference image).
+ * Remix's indexed `<img>` prompt tags remain the domain of the
+ * `@nodetool-ai/reve-nodes` `reve.RemixImage` node.
+ *
+ * These are Reve's v1 endpoints. Reve's v2 API
+ * (https://api.reve.com/console/docs/v2/) reportedly lifts the reference-image
+ * ceiling to 8 on a unified create/edit endpoint; migrating there is future
+ * work and is not wired here.
  *
  * Wire spec (https://api.reve.com/console/docs):
  *  - Auth:    `Authorization: Bearer <api_key>`.
@@ -35,6 +44,9 @@ const REVE_API_BASE = "https://api.reve.com";
 /** Model ids exposed to the generic image composer. */
 const REVE_CREATE_MODEL = "reve-create";
 const REVE_EDIT_MODEL = "reve-edit";
+
+/** Max reference images accepted by the Remix endpoint. */
+const REVE_MAX_REMIX_IMAGES = 6;
 
 const VALID_ASPECT_RATIOS = new Set([
   "16:9",
@@ -109,7 +121,7 @@ export class ReveProvider extends BaseProvider {
   }
 
   private async post(
-    endpoint: "create" | "edit",
+    endpoint: "create" | "edit" | "remix",
     body: Record<string, unknown>
   ): Promise<Uint8Array> {
     const response = await fetch(`${REVE_API_BASE}/v1/image/${endpoint}`, {
@@ -150,19 +162,43 @@ export class ReveProvider extends BaseProvider {
     images: Uint8Array[],
     params: ImageToImageParams
   ): Promise<Uint8Array> {
-    const image = images[0];
-    if (!image || image.length === 0) {
+    const sources = images.filter((b) => b && b.length > 0);
+    if (sources.length === 0) {
       throw new Error("image must not be empty");
     }
-    const body: Record<string, unknown> = {
-      edit_instruction: params.prompt,
-      reference_image: Buffer.from(image).toString("base64")
-    };
-    if (params.aspectRatio && VALID_ASPECT_RATIOS.has(params.aspectRatio)) {
-      body.aspect_ratio = params.aspectRatio;
+    if (sources.length > REVE_MAX_REMIX_IMAGES) {
+      throw new Error(
+        `Reve accepts at most ${REVE_MAX_REMIX_IMAGES} reference images, got ${sources.length}.`
+      );
     }
+    const aspectRatio =
+      params.aspectRatio && VALID_ASPECT_RATIOS.has(params.aspectRatio)
+        ? params.aspectRatio
+        : undefined;
+
+    // One source image uses Edit; two or more use Remix — the only Reve
+    // endpoint that accepts multiple reference images.
+    if (sources.length === 1) {
+      const body: Record<string, unknown> = {
+        edit_instruction: params.prompt,
+        reference_image: Buffer.from(sources[0]).toString("base64")
+      };
+      if (aspectRatio) body.aspect_ratio = aspectRatio;
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log, not asserted.
+      log.debug("Reve imageToImage (edit)", { model: params.model.id });
+      return this.post("edit", body);
+    }
+
+    const body: Record<string, unknown> = {
+      prompt: params.prompt,
+      reference_images: sources.map((b) => Buffer.from(b).toString("base64"))
+    };
+    if (aspectRatio) body.aspect_ratio = aspectRatio;
     // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log, not asserted.
-    log.debug("Reve imageToImage", { model: params.model.id });
-    return this.post("edit", body);
+    log.debug("Reve imageToImage (remix)", {
+      model: params.model.id,
+      images: sources.length
+    });
+    return this.post("remix", body);
   }
 }

@@ -19,7 +19,8 @@ import {
   FlexColumn,
   EditorButton,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  BORDER_RADIUS
 } from "../ui_primitives";
 import type { Asset } from "../../stores/ApiTypes";
 import { trpcClient } from "../../trpc/client";
@@ -82,7 +83,7 @@ const AssetPickerDialog: React.FC<{
               onClick={() => onPick(asset.id)}
               style={{
                 border: `1px solid ${theme.vars.palette.divider}`,
-                borderRadius: getSpacingPx(SPACING.xs),
+                borderRadius: BORDER_RADIUS.sm,
                 padding: 0,
                 background: "transparent",
                 cursor: "pointer",

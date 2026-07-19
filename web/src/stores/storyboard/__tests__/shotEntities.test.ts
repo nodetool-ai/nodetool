@@ -1,5 +1,5 @@
 import type { Entity, Shot } from "@nodetool-ai/protocol";
-import { entitiesForShot, injectShotEntities } from "../shotEntities";
+import { entitiesForShot } from "../shotEntities";
 
 const entity = (over: Partial<Entity> & Pick<Entity, "id" | "kind" | "name">): Entity => ({
   type: "entity",
@@ -73,23 +73,5 @@ describe("entitiesForShot", () => {
     expect(entitiesForShot(shot({ entity_ids: [] }), [marta, noir])).toEqual(
       []
     );
-  });
-});
-
-describe("injectShotEntities", () => {
-  it("appends a consistency block with each descriptor", () => {
-    const out = injectShotEntities("a shot, noir style", [marta, noir]);
-    expect(out).toBe(
-      "a shot, noir style\n\nConsistency references:\n" +
-        "- Marta: red-haired detective in a beige trench coat\n" +
-        "- Noir: high-contrast black and white, hard shadows"
-    );
-  });
-
-  it("returns the prompt unchanged with no descriptors to add", () => {
-    expect(injectShotEntities("a shot", [])).toBe("a shot");
-    expect(
-      injectShotEntities("a shot", [entity({ id: "x", kind: "prop", name: "X" })])
-    ).toBe("a shot");
   });
 });

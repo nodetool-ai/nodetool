@@ -345,32 +345,41 @@ export class TogetherProvider extends OpenAICompatProvider {
   }
 
   /**
-   * Image-to-image editing via Together's Kontext models.
-   * The image is encoded as a base64 data URI and passed as `image_url`.
-   * This requires a model that supports the `image_url` parameter
-   * (e.g. FLUX.1-kontext-pro, FLUX.1-kontext-max, FLUX.2-pro/dev/flex).
+   * Image-to-image editing via Together's Kontext / FLUX.2 models.
+   * Images are encoded as base64 data URIs. A single image is sent as
+   * `image_url` (supported by FLUX.1-kontext-pro/max and FLUX.2-pro/flex);
+   * multiple reference images are sent as the `reference_images` array
+   * (supported by FLUX.2 and Google image models). The first image is the
+   * primary subject and the rest are additional references.
    */
   override async imageToImage(
     images: Uint8Array[],
     params: ImageToImageParams
   ): Promise<Uint8Array> {
-    const image = images[0];
-    if (!image || image.length === 0) {
+    const sources = images.filter((b) => b && b.length > 0);
+    if (sources.length === 0) {
       throw new Error("image must not be empty.");
     }
     if (!params.prompt) {
       throw new Error("The input prompt cannot be empty.");
     }
 
-    const imageUrl = bytesToImageDataUri(image);
+    const imageUrls = sources.map((b) => bytesToImageDataUri(b));
 
     const body: Record<string, unknown> = {
       model: params.model.id,
       prompt: params.prompt,
-      image_url: imageUrl,
       n: 1,
       response_format: "b64_json"
     };
+
+    // One image → `image_url` (widest model support); multiple → the
+    // `reference_images` array that FLUX.2 / Google models accept.
+    if (imageUrls.length === 1) {
+      body.image_url = imageUrls[0];
+    } else {
+      body.reference_images = imageUrls;
+    }
 
     if (params.targetWidth != null) body.width = params.targetWidth;
     if (params.targetHeight != null) body.height = params.targetHeight;

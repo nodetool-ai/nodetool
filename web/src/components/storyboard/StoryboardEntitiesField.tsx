@@ -19,7 +19,8 @@ import {
   FlexRow,
   MenuItemPrimitive,
   Popover,
-  Text
+  Text,
+  BORDER_RADIUS
 } from "../ui_primitives";
 import { useEntities } from "../../serverState/useEntities";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
@@ -43,7 +44,7 @@ const EntityAvatar: React.FC<{ entity: Entity; size?: number }> = ({
   const frame: React.CSSProperties = {
     width: size,
     height: size,
-    borderRadius: "50%",
+    borderRadius: BORDER_RADIUS.circle,
     flex: "0 0 auto",
     display: "flex",
     alignItems: "center",

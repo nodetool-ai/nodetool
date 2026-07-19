@@ -457,7 +457,7 @@ export class MinimaxProvider extends OpenAICompatProvider {
   ): Promise<Uint8Array> {
     const [first] = await this._generateImages(
       this._imageToImageAsTextParams(params),
-      images[0] ?? null,
+      images,
       1
     );
     return first;
@@ -470,7 +470,7 @@ export class MinimaxProvider extends OpenAICompatProvider {
   ): Promise<Uint8Array[]> {
     return this._generateImages(
       this._imageToImageAsTextParams(params),
-      images[0] ?? null,
+      images,
       numImages
     );
   }
@@ -494,7 +494,7 @@ export class MinimaxProvider extends OpenAICompatProvider {
 
   private async _generateImages(
     params: TextToImageParams,
-    referenceImage: Uint8Array | null,
+    referenceImages: Uint8Array[] | null,
     numImages: number
   ): Promise<Uint8Array[]> {
     if (!params.prompt) {
@@ -526,13 +526,15 @@ export class MinimaxProvider extends OpenAICompatProvider {
     if (aspect) body.aspect_ratio = aspect;
     if (params.seed != null) body.seed = params.seed;
 
-    if (referenceImage) {
-      body.subject_reference = [
-        {
-          type: "character",
-          image_file: `data:image/png;base64,${b64(referenceImage)}`
-        }
-      ];
+    // MiniMax i2i accepts multiple subject/reference images via a
+    // subject_reference array; each entry carries a base64 Data URL. The first
+    // image is the primary subject, the rest are additional references. The API
+    // docs document no maximum count, so we forward all provided images.
+    if (referenceImages && referenceImages.length > 0) {
+      body.subject_reference = referenceImages.map((image) => ({
+        type: "character",
+        image_file: `data:image/png;base64,${b64(image)}`
+      }));
     }
 
     log.debug("MiniMax textToImage", { model: body.model, n: body.n });

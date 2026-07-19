@@ -103,6 +103,42 @@ describe("ReveProvider — generation", () => {
     expect(body.reference_image).toBe(Buffer.from(input).toString("base64"));
   });
 
+  it("imageToImage posts to /v1/image/remix with N reference images when given multiple", async () => {
+    const fetchMock = mockOkImage();
+    const p = new ReveProvider({ REVE_API_KEY: "secret" });
+    const inputs = [
+      Uint8Array.from([1, 2]),
+      Uint8Array.from([3, 4]),
+      Uint8Array.from([5, 6])
+    ];
+    await p.imageToImage(inputs, {
+      model: EDIT_MODEL,
+      prompt: "blend these",
+      aspectRatio: "1:1"
+    });
+
+    const [url, init] = (fetchMock as unknown as ReturnType<typeof vi.fn>).mock
+      .calls[0];
+    expect(url).toBe("https://api.reve.com/v1/image/remix");
+    const body = JSON.parse((init as RequestInit).body as string);
+    expect(body.prompt).toBe("blend these");
+    expect(body.aspect_ratio).toBe("1:1");
+    expect(body.reference_image).toBeUndefined();
+    expect(body.reference_images).toEqual(
+      inputs.map((b) => Buffer.from(b).toString("base64"))
+    );
+  });
+
+  it("imageToImage throws when given more than 6 reference images", async () => {
+    const p = new ReveProvider({ REVE_API_KEY: "k" });
+    const inputs = Array.from({ length: 7 }, (_, i) =>
+      Uint8Array.from([i + 1])
+    );
+    await expect(
+      p.imageToImage(inputs, { model: EDIT_MODEL, prompt: "too many" })
+    ).rejects.toThrow("Reve accepts at most 6 reference images, got 7.");
+  });
+
   it("textToImage throws on an API error", async () => {
     global.fetch = vi
       .fn()

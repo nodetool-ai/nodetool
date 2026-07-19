@@ -518,6 +518,15 @@ export class ImageToVideoNode extends BaseNode {
   declare negative_prompt: string;
 
   @prop({
+    type: "list[dict]",
+    default: [],
+    title: "Entities",
+    description:
+      "Consistency entities (characters, styles, locations) whose descriptors are injected into the prompt"
+  })
+  declare entities: unknown[];
+
+  @prop({
     type: "str",
     default: "16:9",
     title: "Aspect Ratio",
@@ -597,6 +606,7 @@ export class ImageToVideoNode extends BaseNode {
         images: bytesList,
         prompt,
         negative_prompt: this.negative_prompt,
+        entities: this.entities,
         duration_seconds: Number(this.duration ?? 0) || undefined,
         aspect_ratio: this.aspect_ratio,
         resolution: this.resolution,

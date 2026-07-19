@@ -24,6 +24,7 @@ import {
   LoadingSpinner,
   SPACING,
   getSpacingPx,
+  BORDER_RADIUS,
   MOTION
 } from "../ui_primitives";
 import {
@@ -57,7 +58,7 @@ const styles = (theme: Theme) =>
     },
     ".board-row": {
       padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.md)}`,
-      borderRadius: theme.shape.borderRadius,
+      borderRadius: BORDER_RADIUS.md,
       cursor: "pointer",
       "&:hover": { backgroundColor: theme.vars.palette.action.hover },
       "&.active": { backgroundColor: theme.vars.palette.action.selected },

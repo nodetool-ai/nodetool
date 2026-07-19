@@ -21,6 +21,11 @@ jest.mock("../../../stores/storyboard/StoryboardGenerationStore", () => {
 jest.mock("../../../serverState/useEntities", () => ({
   useEntities: () => ({ data: [] })
 }));
+// Model catalog lookup (still-model image_to_image support) is irrelevant to
+// the single-flight behavior under test.
+jest.mock("../../useModelsByProvider", () => ({
+  useImageModelsByProvider: () => ({ models: [] })
+}));
 
 import { useGenerateShot, __resetStartingShotsForTests } from "../useGenerateShot";
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";

@@ -17,7 +17,7 @@ import ModelSelectButton from "./shared/ModelSelectButton";
 interface ImageModelSelectProps {
   onChange: (value: ImageModelValue) => void;
   value: string;
-  task?: ImageModelTask;
+  task?: ImageModelTask | ImageModelTask[];
   recommendedModels?: UnifiedModel[];
   modelPacks?: ModelPack[];
 }

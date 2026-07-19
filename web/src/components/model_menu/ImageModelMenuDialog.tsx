@@ -11,7 +11,7 @@ export interface ImageModelMenuDialogProps {
   open: boolean;
   onClose: () => void;
   onModelChange?: (model: ImageModel) => void;
-  task?: ImageModelTask;
+  task?: ImageModelTask | ImageModelTask[];
   anchorEl?: HTMLElement | null;
   recommendedModels?: UnifiedModel[];
   modelPacks?: ModelPack[];
