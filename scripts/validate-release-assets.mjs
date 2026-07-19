@@ -43,6 +43,7 @@ const checks = [
     (f) => f.endsWith(".zip") && f.includes("Nodetool-") && !/win-unpacked/i.test(f),
   ],
   ["Linux AppImage", (f) => f.endsWith(".AppImage")],
+  ["Linux Flatpak", (f) => f.endsWith(".flatpak")],
   ["blockmap", (f) => f.endsWith(".blockmap")],
   ["web archive", (f) => /^nodetool-web-.+\.zip$/.test(f)],
   ["MCP bundle", (f) => f.endsWith(".mcpb")],
