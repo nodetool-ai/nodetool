@@ -8,10 +8,15 @@ import {
 import { isSourceReady, shouldPresentFrame, sourceDimensions } from "./source";
 import type {
   CompositeLayer,
+  CompositeSource,
   CompositorInitResult,
   TimelineCompositor
 } from "./types";
-import type { ClipEffect, TrackEffect } from "@nodetool-ai/timeline";
+import type {
+  AnimationSampleMask,
+  ClipEffect,
+  TrackEffect
+} from "@nodetool-ai/timeline";
 
 /**
  * Canvas2D fallback for the timeline preview compositor.
@@ -36,6 +41,8 @@ export class Canvas2DCompositor implements TimelineCompositor {
   private refWidth = 0;
   private refHeight = 0;
   private layers: CompositeLayer[] = [];
+  /** Scratch canvas for feathered wipe masks, reused across layers/frames. */
+  private maskScratch: HTMLCanvasElement | null = null;
 
   async init(canvas: HTMLCanvasElement): Promise<CompositorInitResult> {
     // A canvas can only ever vend one context type. If WebGPU init already
@@ -125,8 +132,21 @@ export class Canvas2DCompositor implements TimelineCompositor {
         clipRoundedRect(ctx, 0, 0, width, height, r);
       }
 
+      // Wipe mask, in the layer's own source-pixel space (rotates with the
+      // layer, same as the GPU shader's quad-space mask). Hard edges are a
+      // rect clip; feathered edges pre-mask the source on a scratch canvas
+      // with a destination-in gradient approximating the shader's smoothstep.
+      const mask = layer.mask;
+      const feathered = mask !== undefined && mask.softness > 0;
+      if (mask && !feathered) {
+        clipWipeRect(ctx, width, height, mask);
+      }
+
       try {
-        ctx.drawImage(layer.source, 0, 0, width, height);
+        const source = feathered
+          ? this.maskSource(layer.source, width, height, mask)
+          : layer.source;
+        if (source) ctx.drawImage(source, 0, 0, width, height);
       } catch {
         // Source not yet usable (e.g. a video element mid-seek). Skip this
         // frame; the next render re-draws once it's ready.
@@ -140,6 +160,57 @@ export class Canvas2DCompositor implements TimelineCompositor {
     ctx.filter = "none";
   }
 
+  /**
+   * Copy `source` onto the scratch canvas and knock out the hidden side of the
+   * wipe with a `destination-in` linear gradient. Returns null when a 2D
+   * context is unavailable. The gradient's stops sample the same
+   * `1 - smoothstep(e - s, e, c)` profile the WebGPU shader evaluates
+   * per-fragment, with the same front position `e = progress * (1 + s)`, so
+   * both backends show the same visible fraction at the same progress.
+   */
+  private maskSource(
+    source: CompositeSource,
+    width: number,
+    height: number,
+    mask: AnimationSampleMask
+  ): HTMLCanvasElement | null {
+    let scratch = this.maskScratch;
+    if (!scratch) {
+      scratch = document.createElement("canvas");
+      this.maskScratch = scratch;
+    }
+    if (scratch.width !== width || scratch.height !== height) {
+      scratch.width = width;
+      scratch.height = height;
+    }
+    const sctx = scratch.getContext("2d");
+    if (!sctx) return null;
+
+    sctx.setTransform(1, 0, 0, 1, 0, 0);
+    sctx.globalCompositeOperation = "source-over";
+    sctx.clearRect(0, 0, width, height);
+    sctx.drawImage(source, 0, 0, width, height);
+
+    const s = mask.softness;
+    const e = mask.progress * (1 + s);
+    // Gradient runs along the wipe axis from c = e - s (fully visible) to
+    // c = e (fully hidden), where c is the normalized distance from the
+    // reveal edge. Regions outside the band clamp to the nearest stop.
+    const from = axisPoint(mask.direction, e - s, width, height);
+    const to = axisPoint(mask.direction, e, width, height);
+    const gradient = sctx.createLinearGradient(from.x, from.y, to.x, to.y);
+    // 5 stops approximate the shader's smoothstep feather.
+    for (const f of [0, 0.25, 0.5, 0.75, 1]) {
+      const alpha = 1 - (3 * f * f - 2 * f * f * f);
+      gradient.addColorStop(f, `rgba(0,0,0,${alpha})`);
+    }
+    sctx.globalCompositeOperation = "destination-in";
+    sctx.fillStyle = gradient;
+    sctx.fillRect(0, 0, width, height);
+    sctx.globalCompositeOperation = "source-over";
+    return scratch;
+  }
+
   async flush(): Promise<void> {
     // Canvas2D draws synchronously; nothing to await.
   }
@@ -147,7 +218,60 @@ export class Canvas2DCompositor implements TimelineCompositor {
   dispose(): void {
     this.ctx = null;
     this.layers = [];
+    this.maskScratch = null;
   }
+}
+
+/**
+ * The source-pixel point at normalized distance `c` from a wipe's reveal edge,
+ * along the wipe axis.
+ */
+function axisPoint(
+  direction: AnimationSampleMask["direction"],
+  c: number,
+  width: number,
+  height: number
+): { x: number; y: number } {
+  switch (direction) {
+    case "left":
+      return { x: c * width, y: 0 };
+    case "right":
+      return { x: (1 - c) * width, y: 0 };
+    case "up":
+      return { x: 0, y: c * height };
+    case "down":
+      return { x: 0, y: (1 - c) * height };
+  }
+}
+
+/**
+ * Clip to a hard-edged wipe's visible region: the rect within normalized
+ * distance `progress` of the reveal edge, in source-pixel space (so it
+ * composes with the active layer transform and any rounded-rect clip).
+ */
+function clipWipeRect(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  mask: AnimationSampleMask
+): void {
+  const p = Math.max(0, Math.min(1, mask.progress));
+  ctx.beginPath();
+  switch (mask.direction) {
+    case "left":
+      ctx.rect(0, 0, p * width, height);
+      break;
+    case "right":
+      ctx.rect((1 - p) * width, 0, p * width, height);
+      break;
+    case "up":
+      ctx.rect(0, 0, width, p * height);
+      break;
+    case "down":
+      ctx.rect(0, (1 - p) * height, width, p * height);
+      break;
+  }
+  ctx.clip();
 }
 
 /** Clip the current path to a rounded rectangle in the active transform space. */

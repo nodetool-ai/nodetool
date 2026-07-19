@@ -47,7 +47,14 @@ export interface ClipAnimation {
 }
 
 /**
- * Union of every preset id in the v1 catalog. Kept in sync with
+ * Edge a wipe reveal starts from, in the layer's own (pre-rotation) space:
+ * `"up"` is the layer's top edge, `"down"` its bottom edge. The wipe edge
+ * rotates with the layer when the clip is rotated.
+ */
+export type WipeDirection = "left" | "right" | "up" | "down";
+
+/**
+ * Union of every preset id in the catalog. Kept in sync with
  * `ANIMATION_PRESETS` in `presets.ts`.
  */
 export type AnimationPresetId =
@@ -55,6 +62,7 @@ export type AnimationPresetId =
   | "slide"
   | "pop"
   | "spin"
+  | "wipe"
   | "pulse"
   | "shake"
   | "bounce"

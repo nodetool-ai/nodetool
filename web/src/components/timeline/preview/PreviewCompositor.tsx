@@ -876,7 +876,7 @@ export const PreviewCompositor: React.FC = memo(() => {
               canvas,
               cache
             )
-          : { transform: slot.transform, opacity: slot.opacity };
+          : { transform: slot.transform, opacity: slot.opacity, mask: undefined };
         out.push({
           id: `v:${slot.clipId}`,
           source: el,
@@ -884,6 +884,7 @@ export const PreviewCompositor: React.FC = memo(() => {
           blendMode: slot.blendMode,
           zIndex: trackZ(slot.trackIndex),
           transform: anim.transform,
+          mask: anim.mask,
           borderRadius: slot.borderRadius,
           effects: slot.effects,
           trackEffects: slot.trackEffects
@@ -902,7 +903,7 @@ export const PreviewCompositor: React.FC = memo(() => {
               canvas,
               cache
             )
-          : { transform: layer.transform, opacity: layer.opacity };
+          : { transform: layer.transform, opacity: layer.opacity, mask: undefined };
         out.push({
           id: `i:${layer.clipId}`,
           source: img,
@@ -910,6 +911,7 @@ export const PreviewCompositor: React.FC = memo(() => {
           blendMode: layer.blendMode,
           zIndex: trackZ(layer.trackIndex),
           transform: anim.transform,
+          mask: anim.mask,
           borderRadius: layer.borderRadius,
           effects: layer.effects,
           trackEffects: layer.trackEffects
@@ -931,14 +933,15 @@ export const PreviewCompositor: React.FC = memo(() => {
               canvas,
               cache
             )
-          : { transform: layer.transform, opacity: layer.opacity };
+          : { transform: layer.transform, opacity: layer.opacity, mask: undefined };
         out.push({
           id: `c:${layer.clipId}`,
           source: bitmap,
           opacity: anim.opacity,
           blendMode: layer.blendMode,
           zIndex: trackZ(layer.trackIndex),
-          transform: anim.transform
+          transform: anim.transform,
+          mask: anim.mask
         });
       }
 
@@ -957,7 +960,7 @@ export const PreviewCompositor: React.FC = memo(() => {
               canvas,
               cache
             )
-          : { transform: layer.transform, opacity: layer.opacity };
+          : { transform: layer.transform, opacity: layer.opacity, mask: undefined };
         out.push({
           id: `t:${layer.clipId}`,
           source: bitmap,
@@ -965,6 +968,7 @@ export const PreviewCompositor: React.FC = memo(() => {
           blendMode: layer.blendMode,
           zIndex: trackZ(layer.trackIndex),
           transform: anim.transform,
+          mask: anim.mask,
           borderRadius: layer.borderRadius,
           effects: layer.effects,
           trackEffects: layer.trackEffects
@@ -986,7 +990,7 @@ export const PreviewCompositor: React.FC = memo(() => {
               canvas,
               cache
             )
-          : { transform: layer.transform, opacity: layer.opacity };
+          : { transform: layer.transform, opacity: layer.opacity, mask: undefined };
         out.push({
           id: `s:${layer.clipId}`,
           source: bitmap,
@@ -994,6 +998,7 @@ export const PreviewCompositor: React.FC = memo(() => {
           blendMode: layer.blendMode,
           zIndex: trackZ(layer.trackIndex),
           transform: anim.transform,
+          mask: anim.mask,
           borderRadius: layer.borderRadius,
           effects: layer.effects,
           trackEffects: layer.trackEffects

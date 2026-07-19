@@ -7,7 +7,12 @@
  * Pure: no DOM, GPU, or store access.
  */
 
-import type { AnimationRole, ClipAnimation, EasingId } from "./types.js";
+import type {
+  AnimationRole,
+  ClipAnimation,
+  EasingId,
+  WipeDirection
+} from "./types.js";
 import {
   getAnimationPreset,
   resolvePresetParams,
@@ -19,7 +24,8 @@ export type AnimatedProperty =
   | "offsetY" // canvas px, added to transform.position.y
   | "scale" // uniform multiplier on ClipTransform.scale
   | "rotation" // radians, added to ClipTransform.rotation
-  | "opacity"; // multiplier on the layer's resolved opacity
+  | "opacity" // multiplier on the layer's resolved opacity
+  | "wipeProgress"; // 0 = fully hidden, 1 = fully revealed (mask presets only)
 
 export interface Keyframe {
   /** Normalized 0..1 within the animation window. */
@@ -33,6 +39,17 @@ export interface PropertyCurve {
   property: AnimatedProperty;
   /** Sorted by `t`; first `t === 0`, last `t === 1`. */
   keyframes: Keyframe[];
+}
+
+/**
+ * Static per-animation mask config for wipe-style presets. Direction and
+ * softness never animate — only the `wipeProgress` curve does — so they ride
+ * on the compiled animation, not on a curve.
+ */
+export interface CompiledAnimationMask {
+  direction: WipeDirection;
+  /** Feathered edge width as a fraction of the wipe axis (0 = hard edge). */
+  softness: number;
 }
 
 export interface CompiledAnimation {
@@ -53,6 +70,8 @@ export interface CompiledAnimation {
   /** Hold the `t=1` values after the window (true for `"out"`). */
   holdAfter: boolean;
   curves: PropertyCurve[];
+  /** Present only when the preset drives a `wipeProgress` curve. */
+  mask?: CompiledAnimationMask;
 }
 
 /** Default segment easing when neither the animation nor the preset pins one. */
@@ -132,6 +151,7 @@ export function compileClipAnimations(
     }
 
     const params = resolvePresetParams(preset, animation.params);
+    const mask = preset.mask?.(params);
     let curves = preset.curves(params, canvas, animation.role);
     if (animation.role === "out") {
       curves = curves.map(reverseCurve);
@@ -189,7 +209,7 @@ export function compileClipAnimations(
       continue;
     }
 
-    out.push({
+    const compiled: CompiledAnimation = {
       role: animation.role,
       windowStartMs,
       windowEndMs,
@@ -197,7 +217,9 @@ export function compileClipAnimations(
       holdBefore: animation.role === "in",
       holdAfter: animation.role === "out",
       curves
-    });
+    };
+    if (mask) compiled.mask = mask;
+    out.push(compiled);
   }
 
   return out;
