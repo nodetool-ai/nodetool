@@ -1,10 +1,11 @@
 /**
  * WorkflowCostEstimatePanel
  *
- * The full plan-before-spend view for a workflow: a per-node estimate table
- * (provider / model / quantity / cost, with unknown-price nodes flagged), the
- * currency total, a budget-cap input, a draft-mode toggle, and a warning banner
- * when the estimate would break the budget.
+ * The full plan-before-spend view for a workflow: a per-node estimate table for
+ * the nodes that use an AI model (provider / model / quantity / cost, with
+ * unknown-price nodes flagged), the currency total, a budget-cap input, a
+ * draft-mode toggle, and a warning banner when the estimate would break the
+ * budget.
  */
 
 import React, { memo, useCallback, useMemo } from "react";
@@ -130,8 +131,8 @@ const WorkflowCostEstimatePanelInternal: React.FC<
         ) : estimate.items.length === 0 ? (
           <EmptyState
             variant="empty"
-            title="No nodes"
-            description="Add nodes to estimate a run's cost."
+            title="No AI-model nodes"
+            description="Add a node that uses an AI model to estimate a run's cost."
             size="small"
           />
         ) : (
