@@ -34,7 +34,7 @@ export interface WorkspaceTabItemProps {
   onCloseAll: () => void;
   onDragStart: (event: DragEvent<HTMLDivElement>, tabId: string) => void;
   onDragOver: (event: DragEvent<HTMLDivElement>, tab: WorkspaceTab) => void;
-  onDragLeave: () => void;
+  onDragLeave: (event: DragEvent<HTMLDivElement>) => void;
   onDrop: (event: DragEvent<HTMLDivElement>, tab: WorkspaceTab) => void;
   onCommitRename: (tab: WorkspaceTab, newName: string) => void;
   onCancelRename: () => void;
@@ -139,7 +139,7 @@ const WorkspaceTabItem = ({
         onAuxClick={handleAuxClick}
         onDragStart={(event) => onDragStart(event, tab.id)}
         onDragOver={(event) => onDragOver(event, tab)}
-        onDragLeave={onDragLeave}
+        onDragLeave={(event) => onDragLeave(event)}
         onDrop={(event) => onDrop(event, tab)}
       >
         <span className="glyph" style={{ color: typeColor }}>
