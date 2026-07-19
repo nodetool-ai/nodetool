@@ -90,6 +90,12 @@ interface StoryboardStoreState {
   setShotStatus: (boardId: string, shotId: string, status: ShotStatus) => void;
   setShotKeyframe: (boardId: string, shotId: string, keyframe: ImageRef) => void;
   setShotClip: (boardId: string, shotId: string, clip: VideoRef) => void;
+  /** Make one of the shot's preserved stills the selected keyframe. */
+  selectKeyframeVersion: (
+    boardId: string,
+    shotId: string,
+    versionIndex: number
+  ) => void;
   /** Make one of the shot's preserved takes the selected/export clip. */
   selectClipVersion: (
     boardId: string,
@@ -145,6 +151,13 @@ const withBoard = (
     boards: { ...state.boards, [boardId]: { ...next, updatedAt: Date.now() } }
   };
 };
+
+/** Same generated asset: matched by asset_id when present, else by uri. */
+export const sameMediaRef = (
+  a: { asset_id?: string | null; uri?: string },
+  b: { asset_id?: string | null; uri?: string }
+): boolean =>
+  b.asset_id ? a.asset_id === b.asset_id : a.uri === b.uri;
 
 /** Patch the single shot with `shotId`; returns the same board on a no-op. */
 const patchShot = (
@@ -326,7 +339,20 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
 
   setShotKeyframe: (boardId, shotId, keyframe) =>
     set((state) =>
-      withBoard(state, boardId, (b) => patchShot(b, shotId, { keyframe }))
+      withBoard(state, boardId, (b) => {
+        const target = b.shots.find((s) => s.id === shotId);
+        if (!target) {
+          return b;
+        }
+        // Preserve every still; the new render becomes the selected keyframe.
+        const versions =
+          target.keyframe_versions ?? (target.keyframe ? [target.keyframe] : []);
+        const exists = versions.some((v) => sameMediaRef(v, keyframe));
+        return patchShot(b, shotId, {
+          keyframe,
+          keyframe_versions: exists ? versions : [...versions, keyframe]
+        });
+      })
     ),
 
   setShotClip: (boardId, shotId, clip) =>
@@ -338,15 +364,26 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
         }
         // Preserve every take; the new render becomes the selected clip.
         const versions = target.clip_versions ?? (target.clip ? [target.clip] : []);
-        const exists = versions.some(
-          (v) =>
-            (clip.asset_id && v.asset_id === clip.asset_id) ||
-            (!clip.asset_id && v.uri === clip.uri)
-        );
+        const exists = versions.some((v) => sameMediaRef(v, clip));
         return patchShot(b, shotId, {
           clip,
           clip_versions: exists ? versions : [...versions, clip]
         });
+      })
+    ),
+
+  selectKeyframeVersion: (boardId, shotId, versionIndex) =>
+    set((state) =>
+      withBoard(state, boardId, (b) => {
+        const target = b.shots.find((s) => s.id === shotId);
+        const versions =
+          target?.keyframe_versions ??
+          (target?.keyframe ? [target.keyframe] : []);
+        const keyframe = versions[versionIndex];
+        if (!keyframe || keyframe === target?.keyframe) {
+          return null;
+        }
+        return patchShot(b, shotId, { keyframe });
       })
     ),
 
