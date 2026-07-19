@@ -15,6 +15,10 @@
  */
 
 import type { VoiceBinding } from "../../stores/script/ScriptStore";
+import type {
+  SubtitleFormat,
+  SubtitleGranularity
+} from "@nodetool-ai/timeline";
 
 /** A voiced take's line status, derived from the current take vs. the line. */
 export type ScriptLineStatus = "draft" | "voiced" | "stale";
@@ -97,6 +101,14 @@ export interface ScriptAgentHandler {
     skippedLineIds: string[];
     reassembled: boolean;
   }>;
+  /**
+   * Render the script's current takes as SRT or WebVTT subtitles (from the take
+   * word timings) and trigger a download. Throws when no line is voiced.
+   */
+  exportSubtitles: (options?: {
+    format?: SubtitleFormat;
+    granularity?: SubtitleGranularity;
+  }) => { text: string; format: SubtitleFormat; cueCount: number };
 }
 
 let handler: ScriptAgentHandler | null = null;

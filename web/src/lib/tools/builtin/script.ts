@@ -142,6 +142,31 @@ FrontendToolRegistry.register({
 });
 
 FrontendToolRegistry.register({
+  name: "ui_script_export_subtitles",
+  description:
+    "Export the script's current takes as SRT or WebVTT subtitles, straight from the take word timings — one cue per line (default) or per word, laid out end to end with the authored pauses. Unvoiced lines are skipped; voice at least one line first. Returns the subtitle file text and cue count.",
+  parameters: z.object({
+    format: z
+      .enum(["srt", "vtt"])
+      .optional()
+      .describe("Subtitle format: SubRip (srt, default) or WebVTT (vtt)."),
+    granularity: z
+      .enum(["line", "word"])
+      .optional()
+      .describe(
+        "One cue per line (default) or per word (using take word timings)."
+      )
+  }),
+  async execute({ format, granularity }) {
+    const result = getScriptAgentHandler().exportSubtitles({
+      format,
+      granularity
+    });
+    return { ok: true, ...result };
+  }
+});
+
+FrontendToolRegistry.register({
   name: "ui_script_send_to_timeline",
   description:
     "Assemble the script's current takes into a persisted timeline sequence and open it in the timeline editor — one voiceover clip per voiced line, laid end to end with the authored pauses. Lines without a current take are skipped (returned in skippedLineIds). If the script is already linked to a timeline, its voiceover track is rewritten in place (reassembled). Voice at least one line first.",

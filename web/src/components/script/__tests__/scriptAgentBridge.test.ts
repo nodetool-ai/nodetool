@@ -14,7 +14,8 @@ const makeMockHandler = (): ScriptAgentHandler => ({
   setLineSpeaker: jest.fn(),
   voiceLine: jest.fn(),
   voiceAll: jest.fn(),
-  sendToTimeline: jest.fn()
+  sendToTimeline: jest.fn(),
+  exportSubtitles: jest.fn()
 });
 
 describe("scriptAgentBridge", () => {
