@@ -352,6 +352,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
 
   const handleDragStart = useCallback(
     (event: DragEvent<HTMLDivElement>, tabId: string) => {
+      event.dataTransfer.effectAllowed = "move";
       event.dataTransfer.setData("text/plain", tabId);
     },
     []
@@ -360,6 +361,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
   const handleDragOver = useCallback(
     (event: DragEvent<HTMLDivElement>, tab: WorkspaceTab) => {
       event.preventDefault();
+      event.dataTransfer.dropEffect = "move";
       const rect = event.currentTarget.getBoundingClientRect();
       const position =
         event.clientX < rect.left + rect.width / 2 ? "left" : "right";
@@ -368,18 +370,28 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
     []
   );
 
-  const handleDragLeave = useCallback(() => {
-    setDropTarget(null);
-  }, []);
+  const handleDragLeave = useCallback(
+    (event: DragEvent<HTMLDivElement>) => {
+      const related = event.relatedTarget as Node | null;
+      if (!related || !event.currentTarget.contains(related)) {
+        setDropTarget(null);
+      }
+    },
+    []
+  );
 
   const handleDrop = useCallback(
     (event: DragEvent<HTMLDivElement>, targetTab: WorkspaceTab) => {
       event.preventDefault();
       const sourceTabId = event.dataTransfer.getData("text/plain");
-      if (!sourceTabId || sourceTabId === targetTab.id || !dropTarget) {
+      if (!sourceTabId || sourceTabId === targetTab.id) {
         setDropTarget(null);
         return;
       }
+
+      const rect = event.currentTarget.getBoundingClientRect();
+      const position =
+        event.clientX < rect.left + rect.width / 2 ? "left" : "right";
 
       const currentTabs = useWorkspaceTabsStore.getState().tabs;
       const sourceIndex = currentTabs.findIndex((tab) => tab.id === sourceTabId);
@@ -389,8 +401,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
         return;
       }
 
-      let toIndex =
-        dropTarget.position === "right" ? targetIndex + 1 : targetIndex;
+      let toIndex = position === "right" ? targetIndex + 1 : targetIndex;
       if (sourceIndex < toIndex) {
         toIndex -= 1;
       }
@@ -404,7 +415,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
 
       setDropTarget(null);
     },
-    [dropTarget, moveTab, syncWorkflowOrderFromTabs]
+    [moveTab, syncWorkflowOrderFromTabs]
   );
 
   const commitRename = useCallback(
