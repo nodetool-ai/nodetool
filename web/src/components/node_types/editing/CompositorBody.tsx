@@ -266,10 +266,10 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
     []
   );
 
-  // Handles render top-to-bottom; highest image_N is the top (frontmost) layer.
+  // Handles render top-to-bottom; lowest image_N is the top (frontmost) layer.
   const handleProperties = useMemo<Property[]>(
     () =>
-      [...imageKeys].reverse().map((key) => ({
+      imageKeys.map((key) => ({
         name: key,
         type: imageType,
         required: false
@@ -412,24 +412,20 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
         {imageKeys.length === 0 ? (
           <div className="empty-state">No layers yet - add one below.</div>
         ) : (
-          imageKeys.map((_, reverseIndex) => {
-            const idx = imageKeys.length - 1 - reverseIndex;
-            const key = imageKeys[idx];
-            return (
-              <LayerRow
-                key={key}
-                index={idx}
-                propertyKey={key}
-                state={layers[idx] ?? DEFAULT_LAYER_STATE}
-                image={upstreamForKey(key)}
-                onOpacityChange={onOpacityChange}
-                onOpacityComplete={onOpacityComplete}
-                onBlendChange={onBlendChange}
-                onToggleVisible={onToggleVisible}
-                onDelete={onDeleteLayer}
-              />
-            );
-          })
+          imageKeys.map((key, idx) => (
+            <LayerRow
+              key={key}
+              index={idx}
+              propertyKey={key}
+              state={layers[idx] ?? DEFAULT_LAYER_STATE}
+              image={upstreamForKey(key)}
+              onOpacityChange={onOpacityChange}
+              onOpacityComplete={onOpacityComplete}
+              onBlendChange={onBlendChange}
+              onToggleVisible={onToggleVisible}
+              onDelete={onDeleteLayer}
+            />
+          ))
         )}
       </FlexColumn>
 

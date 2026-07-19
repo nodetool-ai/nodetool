@@ -104,34 +104,34 @@ describe.skipIf(!hasGpu)("CompositorNode", () => {
   it("composites two layers using 'over' blend with positional layer state", async () => {
     const W = 8;
     const H = 8;
-    const red = await solidPng(W, H, { r: 255, g: 0, b: 0 });
     const blue = await solidPng(W, H, { r: 0, g: 0, b: 255 }, 128); // semi-transparent
+    const red = await solidPng(W, H, { r: 255, g: 0, b: 0 });
     const node = new CompositorNode();
+    // image_0 is the top (frontmost) layer; image_1 is the background.
     node.assign({
       layers: [
-        { opacity: 1, blend_mode: "over", visible: true },
-        { opacity: 0.5, blend_mode: "over", visible: true }
+        { opacity: 0.5, blend_mode: "over", visible: true },
+        { opacity: 1, blend_mode: "over", visible: true }
       ],
-      image_0: asImageRef(red, W, H),
-      image_1: asImageRef(blue, W, H)
+      image_0: asImageRef(blue, W, H),
+      image_1: asImageRef(red, W, H)
     });
     const result = await node.process();
     const out = result.output as Record<string, unknown>;
     expect(out.width).toBe(W);
     expect(out.height).toBe(H);
 
-    // The composite should mix the red base with the half-opacity blue
-    // layer — middle pixel should be neither pure red nor pure blue.
+    // The composite should mix the semi-transparent blue top layer with
+    // the red background — middle pixel should be neither pure red nor pure blue.
     const data = rgbaBytes(out);
-    // Sample centre pixel (RGBA stride = 4 over width W).
     const cx = Math.floor(W / 2);
     const cy = Math.floor(H / 2);
     const off = (cy * W + cx) * 4;
     const r = data[off];
     const g = data[off + 1];
     const b = data[off + 2];
-    expect(r).toBeGreaterThan(0); // red persisted
-    expect(b).toBeGreaterThan(0); // blue mixed in
+    expect(r).toBeGreaterThan(0); // red from background
+    expect(b).toBeGreaterThan(0); // blue from top layer
     expect(g).toBeLessThan(50); // no green in either input
   });
 
@@ -163,24 +163,24 @@ describe.skipIf(!hasGpu)("CompositorNode", () => {
   it("orders layers by numeric suffix, not insertion order", async () => {
     const W = 4;
     const H = 4;
-    const top = await solidPng(W, H, { r: 0, g: 0, b: 255 });
-    const base = await solidPng(W, H, { r: 255, g: 0, b: 0 });
+    const foreground = await solidPng(W, H, { r: 255, g: 0, b: 0 });
+    const background = await solidPng(W, H, { r: 0, g: 0, b: 255 });
     const node = new CompositorNode();
-    // Assign image_10 first, image_2 second — image_2 should be the base.
+    // Assign image_10 first, image_2 second — image_2 (lower index) is on top.
     node.assign({
       layers: [
         { opacity: 1, blend_mode: "over", visible: true },
         { opacity: 1, blend_mode: "over", visible: true }
       ],
-      image_10: asImageRef(top, W, H),
-      image_2: asImageRef(base, W, H)
+      image_10: asImageRef(background, W, H),
+      image_2: asImageRef(foreground, W, H)
     });
     const result = await node.process();
     const out = result.output as Record<string, unknown>;
     const data = rgbaBytes(out);
-    // With image_10 fully opaque blue on top, expect blue dominance.
-    expect(data[2]).toBeGreaterThan(200);
-    expect(data[0]).toBeLessThan(50);
+    // image_2 (lower index) is the foreground — expect red dominance.
+    expect(data[0]).toBeGreaterThan(200);
+    expect(data[2]).toBeLessThan(50);
   });
 
   it("outputs raw RGBA in-flight format", async () => {
@@ -242,16 +242,17 @@ describe.skipIf(!hasGpu)("CompositorNode", () => {
   it("supports 'multiply' blend mode", async () => {
     const W = 4;
     const H = 4;
-    const white = await solidPng(W, H, { r: 255, g: 255, b: 255 });
     const red = await solidPng(W, H, { r: 255, g: 0, b: 0 });
+    const white = await solidPng(W, H, { r: 255, g: 255, b: 255 });
     const node = new CompositorNode();
+    // image_0 (top) uses multiply; image_1 (bottom) is the white base.
     node.assign({
       layers: [
-        { opacity: 1, blend_mode: "over", visible: true },
-        { opacity: 1, blend_mode: "multiply", visible: true }
+        { opacity: 1, blend_mode: "multiply", visible: true },
+        { opacity: 1, blend_mode: "over", visible: true }
       ],
-      image_0: asImageRef(white, W, H),
-      image_1: asImageRef(red, W, H)
+      image_0: asImageRef(red, W, H),
+      image_1: asImageRef(white, W, H)
     });
     const result = await node.process();
     const out = result.output as Record<string, unknown>;
@@ -266,23 +267,24 @@ describe.skipIf(!hasGpu)("CompositorNode", () => {
   it("supports 'add' blend mode", async () => {
     const W = 4;
     const H = 4;
-    const halfRed = await solidPng(W, H, { r: 128, g: 0, b: 0 });
     const halfGreen = await solidPng(W, H, { r: 0, g: 128, b: 0 });
+    const halfRed = await solidPng(W, H, { r: 128, g: 0, b: 0 });
     const node = new CompositorNode();
+    // image_0 (top) uses add; image_1 (bottom) is the red base.
     node.assign({
       layers: [
-        { opacity: 1, blend_mode: "over", visible: true },
-        { opacity: 1, blend_mode: "add", visible: true }
+        { opacity: 1, blend_mode: "add", visible: true },
+        { opacity: 1, blend_mode: "over", visible: true }
       ],
-      image_0: asImageRef(halfRed, W, H),
-      image_1: asImageRef(halfGreen, W, H)
+      image_0: asImageRef(halfGreen, W, H),
+      image_1: asImageRef(halfRed, W, H)
     });
     const result = await node.process();
     const out = result.output as Record<string, unknown>;
     const data = rgbaBytes(out);
     const off = (Math.floor(H / 2) * W + Math.floor(W / 2)) * 4;
-    expect(data[off]).toBeGreaterThan(120); // R preserved
-    expect(data[off + 1]).toBeGreaterThan(120); // G added
+    expect(data[off]).toBeGreaterThan(120); // R from base
+    expect(data[off + 1]).toBeGreaterThan(120); // G added from top
     expect(data[off + 2]).toBeLessThan(10); // B stays 0
   });
 });
