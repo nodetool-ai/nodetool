@@ -1,5 +1,5 @@
 import { createStore } from "zustand";
-import { temporal, WithTemporal } from "./temporal";
+import { temporal, WithTemporal, TemporalOptions } from "./temporal";
 import type { StoreApi } from "zustand";
 
 interface CounterState {
@@ -9,9 +9,11 @@ interface CounterState {
   setLabel: (label: string) => void;
 }
 
-function makeStore(options: Parameters<typeof temporal>[1] = {}) {
+function makeStore(
+  options: TemporalOptions<CounterState, Partial<CounterState>> = {}
+) {
   const store = createStore<CounterState>()(
-    temporal(
+    temporal<CounterState, Partial<CounterState>>(
       (set) => ({
         count: 0,
         label: "init",

@@ -44,9 +44,12 @@ describe("computeHistogramFromRgba", () => {
   });
 
   it("computes expected luminance for a mid-green pixel", () => {
-    const green = new Uint8ClampedArray([0, 128, 0, 255]);
+    const r = 0;
+    const g = 128;
+    const b = 0;
+    const green = new Uint8ClampedArray([r, g, b, 255]);
     const hist = computeHistogramFromRgba(green);
-    const expectedLum = Math.round(0.2126 * 0 + 0.7152 * 128 + 0.0722 * 0);
+    const expectedLum = Math.round(0.2126 * r + 0.7152 * g + 0.0722 * b);
     expect(hist.luminance[expectedLum]).toBe(1);
   });
 
