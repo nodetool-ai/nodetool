@@ -143,7 +143,6 @@ const ProvisionDialog: React.FC<ProvisionDialogProps> = ({
             value={effective}
             onChange={setSelected}
             options={options}
-            variant="standard"
           />
         )}
       </FlexColumn>

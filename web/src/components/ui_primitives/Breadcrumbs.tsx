@@ -14,7 +14,7 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import HomeIcon from "@mui/icons-material/Home";
 import FolderIcon from "@mui/icons-material/Folder";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { MOTION } from "./tokens";
+import { BORDER_RADIUS, MOTION } from "./tokens";
 
 export interface BreadcrumbItem {
   /** Label to display */
@@ -53,7 +53,7 @@ const styles = (theme: Theme) => css`
     text-decoration: none;
     font-size: var(--fontSizeSmall);
     padding: 4px 8px;
-    border-radius: 4px;
+    border-radius: ${BORDER_RADIUS.sm};
     transition: ${MOTION.all};
     cursor: pointer;
     

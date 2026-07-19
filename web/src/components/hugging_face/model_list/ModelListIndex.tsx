@@ -484,9 +484,7 @@ const ModelListIndex: React.FC = () => {
                 />
               </Box>
               <Box sx={{ minWidth: 0 }}>
-                <Text size="bigger" weight={600} sx={{ lineHeight: 1.2 }}>
-                  {prettifyModelType(selectedModelType)}
-                </Text>
+                <Text size="big" weight={600} sx={{ lineHeight: 1.2 }}>{prettifyModelType(selectedModelType)}</Text>
                 <Text
                   size="small"
                   color="secondary"
@@ -529,9 +527,7 @@ const ModelListIndex: React.FC = () => {
                   if (item.type === "header") {
                     return (
                       <Box key={vi.key} style={itemStyle} sx={{ pt: 2, pb: 1 }}>
-                        <Text size="bigger">
-                          {prettifyModelType(item.modelType)}
-                        </Text>
+                        <Text size="big" >{prettifyModelType(item.modelType)}</Text>
                       </Box>
                     );
                   }

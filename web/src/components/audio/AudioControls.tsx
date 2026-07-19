@@ -79,7 +79,7 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeSmall
     },
     ".tiny": {
-      fontSize: theme.fontSizeTiny
+      fontSize: theme.fontSizeSmaller
     },
     ".zoom": {
       display: "flex",

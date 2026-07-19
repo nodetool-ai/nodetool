@@ -16,6 +16,9 @@ import type { Theme } from "@mui/material/styles";
 import {
   FlexColumn,
   FlexRow,
+  FormField,
+  FormGrid,
+  FormSection,
   Panel,
   TextInput,
   SelectField,
@@ -23,6 +26,7 @@ import {
   EmptyState,
   Divider,
   Text,
+  CONTROL,
   SPACING,
   getSpacingPx,
   BORDER_RADIUS,
@@ -66,22 +70,12 @@ const SHOT_COUNT_OPTIONS = [3, 4, 5, 6, 8, 10, 12].map((n) => ({
   label: `${n} shots`
 }));
 
-/**
- * One labelled form row. Every control in the header — text inputs, selects,
- * and the model picker — wears the same label so the two columns read as one
- * form instead of three different widget styles.
- */
-const Field: React.FC<{ label: string; children: React.ReactNode }> = ({
-  label,
-  children
-}) => (
-  <FlexColumn gap={1} className="field">
-    <Text size="small" color="secondary" className="field-label">
-      {label}
-    </Text>
-    {children}
-  </FlexColumn>
-);
+// The model pickers are custom buttons, not InputBase controls; hold them at
+// the shared form-control height. Scoped to the picker's own class so no
+// other button that ends up inside the field is affected.
+const modelFieldSx = {
+  "& .select-model-button": { minHeight: `${CONTROL.height.lg}px` }
+} as const;
 
 const styles = (theme: Theme) =>
   css({
@@ -157,27 +151,8 @@ const styles = (theme: Theme) =>
     },
     ".header-fields": {
       color: theme.vars.palette.text.secondary,
-      // Panel clips its content; the shrunk "Title" label sits above the input
-      // box and would be cut off.
-      overflow: "visible",
       // Keep the writing fields at a readable measure on wide screens.
       maxWidth: "1100px",
-      // Script on the left, run settings on the right; stacks under 860px.
-      ".header-grid": {
-        display: "grid",
-        gridTemplateColumns: "minmax(0, 1fr) 260px",
-        gap: getSpacingPx(SPACING.xl),
-        alignItems: "start",
-        "@media (max-width: 860px)": {
-          gridTemplateColumns: "minmax(0, 1fr)",
-          gap: getSpacingPx(SPACING.lg)
-        }
-      },
-      ".group-label": {
-        textTransform: "uppercase",
-        letterSpacing: "0.08em",
-        color: theme.vars.palette.text.disabled
-      },
       // Rule between the columns, dropped when they stack.
       ".settings": {
         paddingLeft: getSpacingPx(SPACING.xl),
@@ -186,17 +161,7 @@ const styles = (theme: Theme) =>
           paddingLeft: 0,
           borderLeft: "none"
         }
-      },
-      // Labels live above every control, so no MUI notch or floating label.
-      ".field-label": {
-        lineHeight: 1.2
-      },
-      // One control height across text inputs, selects, and the model button.
-      ".field .MuiInputBase-root, .field > button": {
-        minHeight: "36px"
-      },
-      ".field > button": { width: "100%" },
-      ".field .MuiInputBase-multiline": { minHeight: 0 }
+      }
     }
   });
 
@@ -269,93 +234,78 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
       {!readOnly && (
         <Panel padding="normal" className="header-fields">
           <FlexColumn gap={4}>
-            <div className="header-grid">
-              <FlexColumn gap={3}>
-                <Text size="tiny" className="group-label">
-                  Screenplay
-                </Text>
-                <Field label="Title">
+            <FormGrid>
+              <FormSection label="Screenplay">
+                <FormField label="Title">
                   <TextInput
                     value={title}
-                    size="small"
                     placeholder="Untitled film"
                     onChange={(e) => setTitle(boardId, e.target.value)}
                   />
-                </Field>
-                <Field label="Brief">
+                </FormField>
+                <FormField label="Brief">
                   <TextInput
                     value={brief}
-                    size="small"
                     placeholder="Your film in one or two sentences"
                     onChange={(e) => setBrief(boardId, e.target.value)}
                     multiline
                     rows={3}
                   />
-                </Field>
-                <Field label="Style">
+                </FormField>
+                <FormField label="Style">
                   <TextInput
                     value={style}
-                    size="small"
                     placeholder="Palette, light, lens, texture"
                     onChange={(e) => setStyle(boardId, e.target.value)}
                   />
-                </Field>
-                <Field label="Entities">
+                </FormField>
+                <FormField label="Entities">
                   <StoryboardEntitiesField
                     boardId={boardId}
                     entityIds={entityIds}
                   />
-                </Field>
-              </FlexColumn>
+                </FormField>
+              </FormSection>
 
-              <FlexColumn gap={3} className="settings">
-                <Text size="tiny" className="group-label">
-                  Direction
-                </Text>
-                <Field label="Screenplay model">
+              <FormSection label="Direction" className="settings">
+                <FormField label="Screenplay model" sx={modelFieldSx}>
                   <LanguageModelSelect
                     value={directorModel?.id ?? ""}
                     onChange={(value) => setDirectorModel(boardId, value)}
                   />
-                </Field>
-                <Field label="Still model">
+                </FormField>
+                <FormField label="Still model" sx={modelFieldSx}>
                   <ImageModelSelect
                     value={imageModel?.id ?? ""}
                     task="text_to_image"
                     onChange={(value) => setImageModel(boardId, value)}
                   />
-                </Field>
-                <Field label="Clip model">
+                </FormField>
+                <FormField label="Clip model" sx={modelFieldSx}>
                   <VideoModelSelect
                     value={videoModel?.id ?? ""}
                     task="image_to_video"
                     onChange={(value) => setVideoModel(boardId, value)}
                   />
-                </Field>
-                <Field label="Aspect ratio">
+                </FormField>
+                <FormField label="Aspect ratio">
                   <SelectField
                     label="Aspect ratio"
-                    hideLabel
                     value={aspectRatio}
-                    size="small"
-                    variant="outlined"
                     onChange={(value) => setAspectRatio(boardId, value)}
                     options={ASPECT_OPTIONS}
                   />
-                </Field>
-                <Field label="Shots">
+                </FormField>
+                <FormField label="Shots">
                   <SelectField
                     label="Shots"
-                    hideLabel
                     value={shotCount}
-                    size="small"
-                    variant="outlined"
                     onChange={(value) => setShotCount(Number(value))}
                     options={SHOT_COUNT_OPTIONS}
                   />
-                </Field>
-              </FlexColumn>
-            </div>
+                </FormField>
+              </FormSection>
+            </FormGrid>
 
             <Divider />
 

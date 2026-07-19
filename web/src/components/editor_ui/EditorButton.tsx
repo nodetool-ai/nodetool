@@ -15,7 +15,7 @@ import { useTheme } from "@mui/material/styles";
 import { useEditorScope } from "./EditorUiContext";
 import { editorClassNames, cn } from "./editorUtils";
 
-import { BORDER_RADIUS } from "../ui_primitives";
+import { BORDER_RADIUS, CONTROL } from "../ui_primitives";
 export interface EditorButtonProps extends Omit<ButtonProps, "size"> {
   /**
    * Density variant
@@ -51,8 +51,17 @@ export const EditorButton = forwardRef<HTMLButtonElement, EditorButtonProps>(
     const scope = useEditorScope();
 
     const fontSize =
-      scope === "inspector" ? theme.fontSizeSmall : theme.fontSizeTiny;
-    const height = density === "compact" ? 24 : 28;
+      scope === "inspector" ? theme.fontSizeSmall : theme.fontSizeSmaller;
+    const densityHeight =
+      density === "compact" ? CONTROL.height.xs : CONTROL.height.sm;
+    const sizeHeights = {
+      small: CONTROL.height.sm,
+      medium: CONTROL.height.md,
+      large: CONTROL.height.lg
+    } as const;
+    const height = size ? sizeHeights[size] : densityHeight;
+    const paddingX =
+      density === "compact" ? CONTROL.paddingX.compact : CONTROL.paddingX.normal;
 
     return (
       <Button
@@ -62,9 +71,9 @@ export const EditorButton = forwardRef<HTMLButtonElement, EditorButtonProps>(
         {...(href ? { href, target, rel, component: "a" as const } : {})}
         sx={{
           fontSize,
-          height: size ? undefined : height,
+          height,
           minWidth: "auto",
-          padding: "4px 8px",
+          padding: `4px ${paddingX}px`,
           borderRadius: BORDER_RADIUS.md,
           textTransform: "none",
           ...sx

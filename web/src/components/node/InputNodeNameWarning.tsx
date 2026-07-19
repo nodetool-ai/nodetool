@@ -29,7 +29,7 @@ const InputNodeNameWarning: React.FC<InputNodeNameWarningProps> = ({
     >
       <Text
         className="input-name-warning nodrag"
-        size="tiny"
+        size="smaller"
         sx={{
           display: "flex",
           alignItems: "center",

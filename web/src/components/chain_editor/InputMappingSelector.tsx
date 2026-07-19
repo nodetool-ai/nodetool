@@ -176,9 +176,7 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
                 >
                   {prop.title ?? prop.name}
                 </Text>
-                <Text size="tiny" color="secondary">
-                  {formatType(prop.type)}
-                </Text>
+                <Text size="smaller" color="secondary">{formatType(prop.type)}</Text>
               </FlexColumn>
 
               {mapping && sourceNode ? (
@@ -189,14 +187,9 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
                       color: theme.vars.palette.secondary.main,
                     }}
                   />
-                  <Text
-                    size="tiny"
-                    weight={600}
-                    truncate
-                    sx={{ color: theme.vars.palette.secondary.main }}
-                  >
-                    {sourceNode.metadata.title}.{mapping.sourceOutput}
-                  </Text>
+                  <Text size="smaller" weight={600}
+                  truncate
+                  sx={{ color: theme.vars.palette.secondary.main }}>{sourceNode.metadata.title}.{mapping.sourceOutput}</Text>
                   <ToolbarIconButton
                     size="small"
                     ariaLabel="Remove mapping"

@@ -176,9 +176,7 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
         <FlexColumn gap={0.5} sx={{ flex: 1, minWidth: 0 }}>
           <Text size="small" weight={600} truncate>{node.metadata.title}</Text>
           {node.expanded && (
-            <Text size="tiny" weight={600} sx={{ color: nsColor }}>
-              {formatNs(node.metadata.namespace)}
-            </Text>
+            <Text size="smaller" weight={600} sx={{ color: nsColor }}>{formatNs(node.metadata.namespace)}</Text>
           )}
         </FlexColumn>
 

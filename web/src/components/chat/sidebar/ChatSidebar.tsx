@@ -163,25 +163,17 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     }}
                 >
                     <FlexRow align="baseline" gap={1} sx={{ pl: 0.5, minWidth: 0 }}>
-                        <Text
-                            size="tiny"
-                            weight={500}
-                            sx={{
-                                color: theme.vars.palette.grey[400],
-                                textTransform: "uppercase",
-                                letterSpacing: "0.08em"
-                            }}
-                        >
+                        <Text size="smaller" weight={500}
+                        sx={{
+                            color: theme.vars.palette.grey[400],
+                            textTransform: "uppercase",
+                            letterSpacing: "0.08em"
+                        }}>
                             Conversations
                         </Text>
                         {threadCount > 0 && (
-                            <Text
-                                size="tiny"
-                                weight={500}
-                                sx={{ color: theme.vars.palette.grey[600] }}
-                            >
-                                {threadCount}
-                            </Text>
+                            <Text size="smaller" weight={500}
+                            sx={{ color: theme.vars.palette.grey[600] }}>{threadCount}</Text>
                         )}
                     </FlexRow>
                     <ToolbarIconButton
@@ -233,7 +225,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         />
                         <Text
                             aria-hidden
-                            size="tinyer"
+                            size="smaller"
                             sx={{
                                 position: "absolute",
                                 right: 8,

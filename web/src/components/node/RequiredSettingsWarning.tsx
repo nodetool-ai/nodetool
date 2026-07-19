@@ -35,7 +35,7 @@ const RequiredSettingsWarning: React.FC<RequiredSettingsWarningProps> = React.me
         <>
           <Text
             className="node-status required-settings-warning"
-            size="tiny"
+            size="smaller"
             sx={{
               width: "100%",
               textAlign: "center",

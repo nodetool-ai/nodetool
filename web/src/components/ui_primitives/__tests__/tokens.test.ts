@@ -6,7 +6,8 @@ import {
   MOTION,
   reducedMotion,
   Z_INDEX,
-  BORDER_RADIUS
+  BORDER_RADIUS,
+  CONTROL
 } from "../tokens";
 
 describe("design token constants", () => {
@@ -169,6 +170,38 @@ describe("design token constants", () => {
       for (let i = 1; i < values.length; i++) {
         expect(values[i]).toBeGreaterThan(values[i - 1]);
       }
+    });
+  });
+
+  describe("CONTROL", () => {
+    it("defines the five control heights", () => {
+      expect(CONTROL.height.xs).toBe(24);
+      expect(CONTROL.height.sm).toBe(28);
+      expect(CONTROL.height.md).toBe(32);
+      expect(CONTROL.height.lg).toBe(36);
+      expect(CONTROL.height.xl).toBe(44);
+    });
+
+    it("all heights sit on the 4px grid", () => {
+      for (const height of Object.values(CONTROL.height)) {
+        expect(height % 4).toBe(0);
+      }
+    });
+
+    it("heights are strictly ascending", () => {
+      const values = Object.values(CONTROL.height);
+      for (let i = 1; i < values.length; i++) {
+        expect(values[i]).toBeGreaterThan(values[i - 1]);
+      }
+    });
+
+    it("paddings sit on the 4px grid", () => {
+      expect(CONTROL.paddingX.compact).toBe(8);
+      expect(CONTROL.paddingX.normal).toBe(12);
+    });
+
+    it("radius is the md rounded token", () => {
+      expect(CONTROL.radius).toBe(BORDER_RADIUS.md);
     });
   });
 

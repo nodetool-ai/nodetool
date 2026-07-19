@@ -68,7 +68,7 @@ const styles = (theme: Theme) =>
       overflowX: "auto"
     },
     ".editor-heading-h1": {
-      fontSize: theme.fontSizeBigger,
+      fontSize: theme.fontSizeBig,
       lineHeight: "1.2",
       fontWeight: 600,
       margin: "0.5em 0"
@@ -130,7 +130,7 @@ const styles = (theme: Theme) =>
         marginBlockEnd: "0.5em"
       },
       ".font-size-large": {
-        fontSize: theme.fontSizeBigger
+        fontSize: theme.fontSizeBig
       }
     },
     ".editor-placeholder": {

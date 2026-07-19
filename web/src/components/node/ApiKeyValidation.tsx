@@ -23,7 +23,7 @@ const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
         <>
           <Text
             className="node-status"
-            size="tiny"
+            size="smaller"
             sx={{
               width: "100%",
               textAlign: "center",

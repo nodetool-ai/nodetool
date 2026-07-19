@@ -225,12 +225,12 @@ const MediaModeMenu: React.FC<MediaModeMenuProps> = ({
                   {m.label}
                 </Text>
                 {m.description && (
-                  <Caption size="tiny" color="secondary">
+                  <Caption size="smaller" color="secondary">
                     {m.description}
                   </Caption>
                 )}
                 {!m.enabled && (
-                  <Caption size="tiny" color="secondary">
+                  <Caption size="smaller" color="secondary">
                     soon
                   </Caption>
                 )}
@@ -273,7 +273,7 @@ const MediaModeMenu: React.FC<MediaModeMenuProps> = ({
                 <Text size="normal" weight={500} sx={{ color: "inherit" }}>
                   Pi Agent
                 </Text>
-                <Caption size="tiny" color="secondary">
+                <Caption size="smaller" color="secondary">
                   workspace
                 </Caption>
               </FlexRow>

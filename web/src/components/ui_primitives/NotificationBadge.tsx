@@ -53,7 +53,7 @@ const styles = (theme: Theme, animate: boolean) => css`
     }
     
     &.small .MuiBadge-badge {
-      font-size: 10px;
+      font-size: var(--fontSizeSmaller);
       min-width: 16px;
       height: 16px;
       padding: 0 3px;

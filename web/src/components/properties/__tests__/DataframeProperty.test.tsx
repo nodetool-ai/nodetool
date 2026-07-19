@@ -10,7 +10,7 @@ jest.mock("../../themes/ThemeNodetool", () => ({
     fontFamily1: "",
     fontFamily2: "",
     fontSizeSmall: "",
-    fontSizeTiny: ""
+    fontSizeSmaller: ""
   }
 }));
 jest.mock("../../../config/data_types", () => ({}));
@@ -93,7 +93,7 @@ jest.mock("@mui/material/styles", () => ({
     },
     fontFamily1: "Arial",
     fontFamily2: "Arial",
-    fontSizeTiny: "var(--fontSizeSmaller)",
+    fontSizeSmaller: "var(--fontSizeSmaller)",
     fontSizeNormal: "14px",
     fontSizeSmall: "12px",
     spacing: (value: number) => `${value * 8}px`

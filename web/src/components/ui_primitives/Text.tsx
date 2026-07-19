@@ -10,8 +10,8 @@ import { Typography, TypographyProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
 export interface TextProps extends Omit<TypographyProps, 'variant'> {
-  /** Text size variant */
-  size?: "giant" | "bigger" | "big" | "normal" | "small" | "smaller" | "tiny" | "tinyer";
+  /** Text size variant — five sizes (22/18/15/13/11px), no aliases */
+  size?: "giant" | "big" | "normal" | "small" | "smaller";
   /** Text color variant */
   color?: "primary" | "secondary" | "error" | "warning" | "success" | "inherit" | string;
   /**
@@ -81,26 +81,23 @@ export const Text = forwardRef<HTMLElement, TextProps>(({
   const theme = useTheme();
 
   // Font sizes are driven by the theme CSS variables (single source of truth
-  // in ThemeNodetool). The eight legacy size names collapse onto the four vars.
+  // in ThemeNodetool). Five names, five real values — no aliases.
   const getFontSize = () => {
     const sizeMap = {
-      giant: "var(--fontSizeBig)",
-      bigger: "var(--fontSizeBig)",
+      giant: "var(--fontSizeGiant)",
       big: "var(--fontSizeBig)",
       normal: "var(--fontSizeNormal)",
       small: "var(--fontSizeSmall)",
-      smaller: "var(--fontSizeSmaller)",
-      tiny: "var(--fontSizeSmaller)",
-      tinyer: "var(--fontSizeSmaller)"
+      smaller: "var(--fontSizeSmaller)"
     };
     return sizeMap[size];
   };
 
   // Default weight follows the sanctioned size+weight combo for the size.
-  // sans: 18→600 (title), 15→400 (body), 13→500 (label), 11→400 (caption)
+  // sans: 22/18→600 (display/title), 15→400 (body), 13→500 (label), 11→400 (caption)
   // mono: 13→400 (code), 12→500 (label), 11→400 (caption)
   const getDefaultWeight = (): 400 | 500 | 600 => {
-    const titleSizes = ["giant", "bigger", "big"];
+    const titleSizes = ["giant", "big"];
     const labelSizes = ["small"];
     if (titleSizes.includes(size)) {
       return family === "secondary" ? 400 : 600;

@@ -184,7 +184,7 @@ const ChatMarkdownTest: React.FC = () => {
   return (
     <div css={pageStyles(theme)}>
       <div css={containerStyles}>
-        <Text size="bigger" weight={600} sx={{ mb: 2 }}>
+        <Text size="big" weight={600} sx={{ mb: 2 }}>
           Chat Markdown Test
         </Text>
         <Text size="small" color="secondary" sx={{ mb: 2 }}>

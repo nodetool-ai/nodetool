@@ -31,13 +31,10 @@ declare module "@mui/material/styles" {
      */
     colorSchemes?: Partial<Record<string, { palette: PaletteOptions }>>;
     fontSizeGiant?: string;
-    fontSizeBigger?: string;
     fontSizeBig?: string;
     fontSizeNormal?: string;
     fontSizeSmall?: string;
     fontSizeSmaller?: string;
-    fontSizeTiny?: string;
-    fontSizeTinyer?: string;
     fontFamily1?: string;
     fontFamily2?: string;
     rounded?: {
@@ -81,13 +78,10 @@ declare module "@mui/material/styles" {
 
   interface Theme {
     fontSizeGiant: string;
-    fontSizeBigger: string;
     fontSizeBig: string;
     fontSizeNormal: string;
     fontSizeSmall: string;
     fontSizeSmaller: string;
-    fontSizeTiny: string;
-    fontSizeTinyer: string;
     fontFamily1: string;
     fontFamily2: string;
     rounded: {
@@ -129,13 +123,10 @@ declare module "@mui/material/styles" {
   // Merge our custom fields there as well to satisfy callback typings
   interface CssVarsThemeOptions {
     fontSizeGiant?: string;
-    fontSizeBigger?: string;
     fontSizeBig?: string;
     fontSizeNormal?: string;
     fontSizeSmall?: string;
     fontSizeSmaller?: string;
-    fontSizeTiny?: string;
-    fontSizeTinyer?: string;
     fontFamily1?: string;
     fontFamily2?: string;
     rounded?: {
@@ -174,13 +165,10 @@ declare module "@mui/material/styles" {
   }
   interface CssVarsTheme {
     fontSizeGiant: string;
-    fontSizeBigger: string;
     fontSizeBig: string;
     fontSizeNormal: string;
     fontSizeSmall: string;
     fontSizeSmaller: string;
-    fontSizeTiny: string;
-    fontSizeTinyer: string;
     fontFamily1: string;
     fontFamily2: string;
     rounded: {
@@ -235,13 +223,10 @@ declare module "@mui/material/styles" {
 
   interface ThemeVars {
     fontSizeGiant: string;
-    fontSizeBigger: string;
     fontSizeBig: string;
     fontSizeNormal: string;
     fontSizeSmall: string;
     fontSizeSmaller: string;
-    fontSizeTiny: string;
-    fontSizeTinyer: string;
     fontFamily1: string;
     fontFamily2: string;
     rounded: {

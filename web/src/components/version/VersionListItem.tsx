@@ -166,16 +166,16 @@ const VersionListItem = React.memo(function VersionListItem({
         <div style={{ display: "flex", alignItems: "center", gap: getSpacingPx(SPACING.xs) }}>
           <Tooltip title={fullDate}>
             <span>
-              <Caption size="tiny" color="muted">{timeAgo}</Caption>
+              <Caption size="smaller" color="muted">{timeAgo}</Caption>
             </span>
           </Tooltip>
-          <Caption size="tiny" color="muted">
+          <Caption size="smaller" color="muted">
             {" · "}{formatBytes(version.size_bytes)}
           </Caption>
         </div>
         {version.description && (
           <Caption
-            size="tiny"
+            size="smaller"
             color="muted"
             sx={{
               overflow: "hidden",

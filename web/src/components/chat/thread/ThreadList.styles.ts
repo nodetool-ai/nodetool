@@ -28,7 +28,7 @@ export const createStyles = (theme: Theme) =>
       gap: theme.spacing(1),
       padding: "0.4em 0.75em 0.3em",
       marginTop: "1em",
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.grey[400],
       textTransform: "uppercase",
       letterSpacing: "0.08em",
@@ -101,7 +101,7 @@ export const createStyles = (theme: Theme) =>
 
     ".thread-time": {
       flexShrink: 0,
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       lineHeight: 1.2,
       color: theme.vars.palette.grey[500],
       whiteSpace: "nowrap",

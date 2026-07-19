@@ -79,7 +79,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       gap: "0.85em",
       color: theme.vars.palette.grey[400],
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       ".info-item": {
         whiteSpace: "nowrap"
       }
@@ -90,7 +90,7 @@ const styles = (theme: Theme) =>
       gap: "0.25em",
       padding: theme.spacing(0.5, 2),
       borderRadius: BORDER_RADIUS.md,
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       fontWeight: 500,
       letterSpacing: "0.03em",
       textTransform: "uppercase",

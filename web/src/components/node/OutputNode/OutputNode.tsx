@@ -99,7 +99,7 @@ const styles = (theme: Theme) =>
       },
       // table
       ".output-node-content .content .tabulator-cell": {
-        fontSize: theme.vars.fontSizeTiny + " !important"
+        fontSize: theme.vars.fontSizeSmaller + " !important"
       },
       ".output-node-content .content .tabulator-col-resize-handle,.output-node-content .content .tabulator-row":
       {

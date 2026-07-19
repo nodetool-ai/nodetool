@@ -97,7 +97,7 @@ const RecommendedDownloadRow: React.FC<RecommendedDownloadRowProps> = ({
             <Text
               component="div"
               sx={{
-                fontSize: theme.vars.fontSizeTiny,
+                fontSize: theme.vars.fontSizeSmaller,
                 color: theme.vars.palette.text.secondary,
                 lineHeight: 1.2,
                 overflow: "hidden",

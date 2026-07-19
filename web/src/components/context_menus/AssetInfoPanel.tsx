@@ -27,14 +27,14 @@ const styles = (theme: Theme) =>
       lineHeight: 1.4
     },
     "& .info-label": {
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.grey[400],
       flexShrink: 0,
       minWidth: "55px",
       textAlign: "right"
     },
     "& .info-value": {
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.grey[100],
       wordBreak: "break-all"
     },

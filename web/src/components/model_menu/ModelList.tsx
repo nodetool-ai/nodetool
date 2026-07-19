@@ -211,12 +211,12 @@ function ModelList<TModel extends ModelSelectorModel>({
     display: "flex",
     alignItems: "center",
     gap: 4,
-    fontSize: theme.vars.fontSizeTiny,
+    fontSize: theme.vars.fontSizeSmaller,
     color: theme.vars.palette.text.secondary,
     overflow: "hidden",
     textOverflow: "ellipsis",
     whiteSpace: "nowrap"
-  }), [theme.vars.fontSizeTiny, theme.vars.palette.text.secondary]);
+  }), [theme.vars.fontSizeSmaller, theme.vars.palette.text.secondary]);
 
   // Flatten selectable models + recommended downloads into one virtualized
   // list. Model rows stay first and 1:1 with `models`, so a model's flat index

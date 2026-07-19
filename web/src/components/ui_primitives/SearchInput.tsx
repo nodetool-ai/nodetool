@@ -3,7 +3,7 @@ import React, { useCallback, useRef, useState, memo, forwardRef } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { SxProps, Theme } from "@mui/material/styles";
-import { MOTION } from "./tokens";
+import { CONTROL, MOTION } from "./tokens";
 import { IconButton, Tooltip, InputAdornment, TextField } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
@@ -45,9 +45,14 @@ export interface SearchInputProps {
 const styles = (theme: Theme) => css`
   .search-input {
     .MuiInputBase-root {
-      border-radius: 8px;
-      background-color: ${theme.vars.palette.action.hover};
+      border-radius: ${CONTROL.radius};
+      background-color: ${theme.vars.palette.Paper.overlay};
       transition: ${MOTION.all};
+      min-height: ${CONTROL.height.lg}px;
+
+      &.MuiInputBase-sizeSmall {
+        min-height: ${CONTROL.height.sm}px;
+      }
 
       &:hover {
         background-color: ${theme.vars.palette.action.selected};
@@ -57,6 +62,17 @@ const styles = (theme: Theme) => css`
         background-color: ${theme.vars.palette.action.selected};
         box-shadow: 0 0 0 2px ${theme.vars.palette.primary.main}40;
       }
+    }
+
+    /* MUI's outlined vertical padding targets ~56px / 40px fields; shrink it
+       so the control lands on the CONTROL token heights (36 / 28). */
+    .MuiOutlinedInput-input {
+      padding-top: 7px;
+      padding-bottom: 7px;
+    }
+    .MuiInputBase-sizeSmall .MuiOutlinedInput-input {
+      padding-top: 3px;
+      padding-bottom: 3px;
     }
 
     /* Shared form-control sizing: value at the 15px body token, placeholder

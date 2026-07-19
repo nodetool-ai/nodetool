@@ -61,7 +61,7 @@ const createPathPropertyStyles = (theme: Theme) =>
       alignItems: "center",
       flex: 1,
       color: theme.vars.palette.grey[400],
-      fontSize: theme.vars.fontSizeTinyer,
+      fontSize: theme.vars.fontSizeSmaller,
       marginLeft: ".5em",
       wordBreak: "break-all",
       minHeight: "20px"

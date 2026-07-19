@@ -175,7 +175,12 @@ export const TimelineInspector: React.FC = memo(() => {
 
   if (selectedCount === 0) {
     return (
-      <Panel css={containerStyles} sx={inspectorPanelSx}>
+      <Panel
+        background="default"
+        bordered={false}
+        css={containerStyles}
+        sx={inspectorPanelSx}
+      >
         <InspectorHeader eyebrow="Inspector" />
         <EmptyState
           variant="empty"
@@ -189,7 +194,12 @@ export const TimelineInspector: React.FC = memo(() => {
 
   if (selectedCount > 1) {
     return (
-      <Panel css={containerStyles} sx={inspectorPanelSx}>
+      <Panel
+        background="default"
+        bordered={false}
+        css={containerStyles}
+        sx={inspectorPanelSx}
+      >
         <InspectorHeader
           eyebrow={`${selectedCount} Clips`}
           actions={[
@@ -226,7 +236,12 @@ export const TimelineInspector: React.FC = memo(() => {
   // ── Imported-clip inspector ─────────────────────────────────────────────
 
   return (
-    <Panel css={containerStyles} sx={inspectorPanelSx}>
+    <Panel
+      background="default"
+      bordered={false}
+      css={containerStyles}
+      sx={inspectorPanelSx}
+    >
       <div css={stickyTopStyles(theme)}>
         <InspectorHeader
           eyebrow="Clip"

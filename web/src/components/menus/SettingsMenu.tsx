@@ -746,7 +746,6 @@ function SettingsPage() {
                           <SelectField
                             label="Update Channel"
                             value={updateChannel}
-                            variant="standard"
                             onChange={handleUpdateChannelChange}
                             options={UPDATE_CHANNEL_OPTIONS}
                           />
@@ -765,7 +764,6 @@ function SettingsPage() {
                           <SelectField
                             label="On Close Behavior"
                             value={closeBehavior}
-                            variant="standard"
                             onChange={(v) =>
                               handleCloseBehaviorChange(
                                 v as "ask" | "quit" | "background"
@@ -928,7 +926,6 @@ function SettingsPage() {
                         <SelectField
                           label="Left-Click Drag"
                           value={settings.panControls}
-                          variant="standard"
                           onChange={handlePanControlsChange}
                           options={PAN_CONTROLS_OPTIONS}
                         />
@@ -954,7 +951,6 @@ function SettingsPage() {
                         <SelectField
                           label="Node Selection Mode"
                           value={settings.selectionMode}
-                          variant="standard"
                           onChange={handleSelectionModeChange}
                           options={SELECTION_MODE_OPTIONS}
                         />
@@ -1041,7 +1037,6 @@ function SettingsPage() {
                         <SelectField
                           label="Autosave Interval (minutes)"
                           value={settings.autosave?.intervalMinutes ?? 10}
-                          variant="standard"
                           onChange={(v) =>
                             updateAutosaveSettings({
                               intervalMinutes: Number(v)
@@ -1094,7 +1089,6 @@ function SettingsPage() {
                           value={
                             settings.autosave?.maxVersionsPerWorkflow ?? 50
                           }
-                          variant="standard"
                           onChange={(v) =>
                             updateAutosaveSettings({
                               maxVersionsPerWorkflow: Number(v)
@@ -1121,7 +1115,6 @@ function SettingsPage() {
                         <SelectField
                           label="Time Format"
                           value={settings.timeFormat}
-                          variant="standard"
                           onChange={handleTimeFormatChange}
                           options={TIME_FORMAT_OPTIONS}
                           description="Display time in 12h or 24h format."

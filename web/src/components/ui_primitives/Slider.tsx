@@ -42,7 +42,7 @@ export const Slider = forwardRef<HTMLSpanElement, SliderProps>(
         applyDensity
           ? {
               // Keep a comfortable vertical hit area so the thumb is easy to grab.
-              padding: resolvedDensity === "compact" ? "8px 0" : "13px 0",
+              padding: resolvedDensity === "compact" ? "8px 0" : "12px 0",
               "& .MuiSlider-rail": {
                 backgroundColor: theme.vars.palette.grey[500],
                 opacity: 0.4,

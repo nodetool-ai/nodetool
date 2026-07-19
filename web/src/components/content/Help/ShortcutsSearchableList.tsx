@@ -93,10 +93,8 @@ export const ShortcutsSearchableList: React.FC<ShortcutsSearchableListProps> = (
           }
           return (
             <Box key={cat} sx={{ mb: 3 }}>
-              <Text size="bigger" color="secondary" sx={{ mb: 4 }}>
-                {SHORTCUT_CATEGORIES[cat] ??
-                  cat.charAt(0).toUpperCase() + cat.slice(1)}
-              </Text>
+              <Text size="big" color="secondary" sx={{ mb: 4 }}>{SHORTCUT_CATEGORIES[cat] ??
+                cat.charAt(0).toUpperCase() + cat.slice(1)}</Text>
               {list.map((s) => (
                 <FlexRow
                   key={s.slug}

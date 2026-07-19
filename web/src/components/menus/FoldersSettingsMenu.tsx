@@ -191,10 +191,7 @@ const FoldersSettings = () => {
 
           {canOpenSystemFolders && (
             <div className="settings-section">
-              <Text
-                size="bigger"
-                id="system-folders"
-              >
+              <Text size="big" id="system-folders">
                 System Folders
               </Text>
               <Text className="description" sx={{ mb: 2 }}>
@@ -219,10 +216,7 @@ const FoldersSettings = () => {
 
           {canOpenFolders && (
             <div className="settings-section">
-              <Text
-                size="bigger"
-                id="model-folders"
-              >
+              <Text size="big" id="model-folders">
                 Model Folders
               </Text>
               <Text className="description" sx={{ mb: 2 }}>
@@ -251,12 +245,7 @@ const FoldersSettings = () => {
                   
                   return (
                     <div key={groupName} className="settings-section">
-                      <Text
-                        size="bigger"
-                        id={groupName.toLowerCase().replace(/\s+/g, "-")}
-                      >
-                        {sectionTitle}
-                      </Text>
+                      <Text size="big" id={groupName.toLowerCase().replace(/\s+/g, "-")}>{sectionTitle}</Text>
                       {groupSettings.map((setting) => (
                         <div key={setting.env_var} className="settings-item large">
                           <FlexRow align="flex-end" fullWidth>

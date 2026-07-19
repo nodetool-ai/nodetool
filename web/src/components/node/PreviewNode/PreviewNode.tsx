@@ -124,7 +124,7 @@ const styles = (theme: Theme) =>
       },
       // table
       ".preview-node-content .content .tabulator-cell": {
-        fontSize: theme.vars.fontSizeTiny + " !important"
+        fontSize: theme.vars.fontSizeSmaller + " !important"
       },
       ".preview-node-content .content .tabulator-col-resize-handle,.preview-node-content .content .tabulator-row":
         {

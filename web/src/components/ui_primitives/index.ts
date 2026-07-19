@@ -242,6 +242,7 @@ export {
   MOTION,
   Z_INDEX,
   BORDER_RADIUS,
+  CONTROL,
   TYPOGRAPHY,
   FONT_WEIGHT,
   FONT_SIZE_SANS,
@@ -275,8 +276,15 @@ export type { AlertBannerProps } from "./AlertBanner";
 export { TabGroup, TabPanel } from "./TabGroup";
 export type { TabGroupProps, TabPanelProps, TabItem } from "./TabGroup";
 
+// Form composition
 export { FormField } from "./FormField";
 export type { FormFieldProps } from "./FormField";
+
+export { FormSection } from "./FormSection";
+export type { FormSectionProps } from "./FormSection";
+
+export { FormGrid } from "./FormGrid";
+export type { FormGridProps } from "./FormGrid";
 
 export { SectionHeader } from "./SectionHeader";
 export type { SectionHeaderProps } from "./SectionHeader";

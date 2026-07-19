@@ -211,7 +211,7 @@ export const createStyles = (theme: Theme) => ({
       display: "flex",
       alignItems: "center",
       gap: theme.spacing(0.5),
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       lineHeight: 1
     },
 
