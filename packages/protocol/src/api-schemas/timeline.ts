@@ -240,6 +240,28 @@ export const clipBindingKind = z.enum([
 ]);
 export type ClipBindingKind = z.infer<typeof clipBindingKind>;
 
+// ── Motion-design animations ─────────────────────────────────────────────────
+
+/**
+ * One motion-design animation attached to a clip. `preset` and `easing` are
+ * plain strings on the wire by design (forward compat): a document saved by a
+ * newer client may carry ids this build doesn't know — they parse fine and are
+ * skipped at compile time. Validation of preset/role is the engine's job, not
+ * the schema's. Without this field on the clip schema Zod would strip
+ * `animations` on every PATCH, silently losing motion on save.
+ */
+export const clipAnimation = z.object({
+  id: z.string(),
+  role: z.enum(["in", "out", "emphasis", "loop"]),
+  preset: z.string(),
+  durationMs: z.number(),
+  delayMs: z.number().optional(),
+  easing: z.string().optional(),
+  enabled: z.boolean().optional(),
+  params: z.record(z.string(), z.union([z.number(), z.string(), z.boolean()])).optional()
+});
+export type ClipAnimation = z.infer<typeof clipAnimation>;
+
 export const timelineClip = z
   .object({
     id: z.string(),
@@ -313,7 +335,10 @@ export const timelineClip = z
     speaker: z.string().optional(),
     /** Paragraph grouping id for transcript clips. Without this field Zod strips
      * it on every PATCH, so autosave silently breaks paragraph grouping. */
-    paragraphId: z.string().optional()
+    paragraphId: z.string().optional(),
+    /** Motion-design animations. Without this field Zod strips it on every
+     * PATCH, so autosave erases animations. */
+    animations: z.array(clipAnimation).optional()
   });
 export type TimelineClip = z.infer<typeof timelineClip>;
 
