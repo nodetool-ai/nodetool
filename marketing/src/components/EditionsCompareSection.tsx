@@ -175,7 +175,7 @@ export default function EditionsCompareSection({
           </div>
           <motion.h2
             id="editions-title"
-            initial={reducedMotion ? {} : { opacity: 0, y: 16 }}
+            initial={false}
             whileInView={reducedMotion ? {} : { opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.25 }}
@@ -186,7 +186,7 @@ export default function EditionsCompareSection({
             <span className="text-slate-300">Cloud runs in your browser.</span>
           </motion.h2>
           <motion.p
-            initial={reducedMotion ? {} : { opacity: 0, y: 16 }}
+            initial={false}
             whileInView={reducedMotion ? {} : { opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.25, delay: 0.05 }}

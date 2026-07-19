@@ -2323,6 +2323,224 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/directed-film-to-timeline",
+    "title": "Directed Film to Timeline — NodeTool AI Workflow Template",
+    "description": "Turn a one-line brief into an editable rough cut. A Director agent writes a screenplay of shots, each shot is fanned out into a keyframe prompt, rendered as a still, animated into a clip, then all clips are collected, appended to a timeline sequence, and rendered to a single video you can keep editing.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "directed-film-to-timeline",
+    "name": "Directed Film to Timeline",
+    "summary": "Turn a one-line brief into an editable rough cut. A Director agent writes a screenplay of shots, each shot is fanned out into a keyframe prompt, rendered as a still, animated into a clip, then all clips are collected, appended to a timeline sequence, and rendered to a single video you can keep editing.",
+    "tags": [
+      "video",
+      "generation",
+      "ai",
+      "timeline",
+      "creative",
+      "director",
+      "storyboard",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.timeline.AddClips",
+        "label": "Add Clips",
+        "count": 1
+      },
+      {
+        "type": "nodetool.control.Collect",
+        "label": "Collect",
+        "count": 1
+      },
+      {
+        "type": "nodetool.creative.Director",
+        "label": "Director",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.ImageToVideo",
+        "label": "Image To Video",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.timeline.RenderTimeline",
+        "label": "Render Timeline",
+        "count": 1
+      },
+      {
+        "type": "nodetool.creative.ScreenplayShots",
+        "label": "Screenplay Shots",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.TextToImage",
+        "label": "Text To Image",
+        "count": 1
+      }
+    ],
+    "nodeCount": 9,
+    "thumbnail": "/templates/directed-film-to-timeline.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "comment_main",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 40,
+          "y": -240,
+          "width": 560,
+          "isComment": true
+        },
+        {
+          "id": "brief",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 40,
+          "y": 100,
+          "width": 280,
+          "subtitle": "A lighthouse keeper discovers the beam of her lamp has started bending toward something beneath the waves — and tonight it refuses to point…"
+        },
+        {
+          "id": "director",
+          "type": "nodetool.creative.Director",
+          "title": "Director",
+          "x": 400,
+          "y": 80,
+          "width": 320,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "shots",
+          "type": "nodetool.creative.ScreenplayShots",
+          "title": "Screenplay Shots",
+          "x": 780,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "keyframe",
+          "type": "nodetool.image.TextToImage",
+          "title": "Text To Image",
+          "x": 1120,
+          "y": 80,
+          "width": 320,
+          "subtitle": "fal-ai/flux/schnell"
+        },
+        {
+          "id": "animate",
+          "type": "nodetool.video.ImageToVideo",
+          "title": "Image To Video",
+          "x": 1500,
+          "y": 120,
+          "width": 330,
+          "subtitle": "Animate this scene with subtle, cinematic motion. Preserve the framing, subjects, and grade of the reference image. No jump cuts, no morphi…"
+        },
+        {
+          "id": "clips_collect",
+          "type": "nodetool.control.Collect",
+          "title": "Collect",
+          "x": 1890,
+          "y": 160,
+          "width": 160
+        },
+        {
+          "id": "add_clips",
+          "type": "nodetool.timeline.AddClips",
+          "title": "Add Clips",
+          "x": 2110,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "render",
+          "type": "nodetool.timeline.RenderTimeline",
+          "title": "Render Timeline",
+          "x": 2470,
+          "y": 140,
+          "width": 300
+        },
+        {
+          "id": "film_out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2830,
+          "y": 180,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "brief",
+          "sourceHandle": "output",
+          "target": "director",
+          "targetHandle": "brief",
+          "color": "string"
+        },
+        {
+          "source": "director",
+          "sourceHandle": "screenplay",
+          "target": "shots",
+          "targetHandle": "screenplay",
+          "color": "dict"
+        },
+        {
+          "source": "shots",
+          "sourceHandle": "shot_prompt",
+          "target": "keyframe",
+          "targetHandle": "prompt",
+          "color": "string"
+        },
+        {
+          "source": "keyframe",
+          "sourceHandle": "output",
+          "target": "animate",
+          "targetHandle": "image",
+          "color": "image"
+        },
+        {
+          "source": "animate",
+          "sourceHandle": "output",
+          "target": "clips_collect",
+          "targetHandle": "input_item",
+          "color": "video"
+        },
+        {
+          "source": "clips_collect",
+          "sourceHandle": "output",
+          "target": "add_clips",
+          "targetHandle": "clips",
+          "color": "list"
+        },
+        {
+          "source": "add_clips",
+          "sourceHandle": "output",
+          "target": "render",
+          "targetHandle": "timeline",
+          "color": "any"
+        },
+        {
+          "source": "render",
+          "sourceHandle": "output",
+          "target": "film_out",
+          "targetHandle": "value",
+          "color": "video"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/flashcard-generator",
     "title": "Flashcard Generator — NodeTool AI Workflow Template",
     "description": "Generate study flashcards as structured front/back card objects and store them persistently in a database. Enter any topic and get instant flashcards that are saved for future review.",
@@ -7312,6 +7530,512 @@ export const templateEntries: TemplateEntry[] = [
           "target": "preview_heroes",
           "targetHandle": "value",
           "color": "image"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/script-to-screen",
+    "title": "Script to Screen — NodeTool AI Workflow Template",
+    "description": "Full production spine: a Director agent turns your brief into a direction document (characters, style bible, shot list, narration, music). A style frame anchors every keyframe for consistency, keyframes form a cheap storyboard you can approve before video spend, then each shot is animated, cut together, and mixed with voiceover and music.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "script-to-screen",
+    "name": "Script to Screen",
+    "summary": "Full production spine: a Director agent turns your brief into a direction document (characters, style bible, shot list, narration, music). A style frame anchors every keyframe for consistency, keyframes form a cheap storyboard you can approve before video spend, then each shot is animated, cut together, and mixed with voiceover and music.",
+    "tags": [
+      "video",
+      "generation",
+      "ai",
+      "storytelling",
+      "creative",
+      "director",
+      "storyboard",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.text.Prompt",
+        "label": "Prompt",
+        "count": 4
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 3
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 3
+      },
+      {
+        "type": "nodetool.video.AddAudio",
+        "label": "Add Audio",
+        "count": 2
+      },
+      {
+        "type": "nodetool.control.Collect",
+        "label": "Collect",
+        "count": 2
+      },
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.Concat",
+        "label": "Concat",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.ImageToImage",
+        "label": "Image To Image",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.ImageToVideo",
+        "label": "Image To Video",
+        "count": 1
+      },
+      {
+        "type": "nodetool.generators.ListGenerator",
+        "label": "List Generator",
+        "count": 1
+      },
+      {
+        "type": "nodetool.generators.StructuredOutputGenerator",
+        "label": "Structured Output Generator",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.TextToImage",
+        "label": "Text To Image",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.TextToMusic",
+        "label": "Text To Music",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.TextToSpeech",
+        "label": "Text To Speech",
+        "count": 1
+      }
+    ],
+    "nodeCount": 23,
+    "thumbnail": "/templates/script-to-screen.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "comment_main",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 40,
+          "y": -260,
+          "width": 520,
+          "isComment": true
+        },
+        {
+          "id": "brief",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 40,
+          "y": 60,
+          "width": 280,
+          "subtitle": "A lighthouse keeper discovers the beam of her lamp has started bending toward something beneath the waves — and tonight it refuses to point…"
+        },
+        {
+          "id": "style",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 40,
+          "y": 320,
+          "width": 280,
+          "subtitle": "moody coastal nocturne, sodium-lamp amber against deep blue-black sea, drifting fog, anamorphic lens flares, fine film grain, painterly rea…"
+        },
+        {
+          "id": "shot_count",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 40,
+          "y": 580,
+          "width": 280,
+          "subtitle": "5"
+        },
+        {
+          "id": "director_prompt",
+          "type": "nodetool.text.Prompt",
+          "title": "Prompt",
+          "x": 400,
+          "y": 60,
+          "width": 320,
+          "subtitle": "You are directing a short film. Write a complete DIRECTION DOCUMENT for this brief. Brief: {{ BRIEF }} Visual style: {{ STYLE }} Shot count…"
+        },
+        {
+          "id": "director",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 770,
+          "y": 100,
+          "width": 330,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "direction_out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1160,
+          "y": -60,
+          "width": 280
+        },
+        {
+          "id": "production_data",
+          "type": "nodetool.generators.StructuredOutputGenerator",
+          "title": "Structured Output Generator",
+          "x": 1160,
+          "y": 140,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "style_frame",
+          "type": "nodetool.image.TextToImage",
+          "title": "Text To Image",
+          "x": 1540,
+          "y": 480,
+          "width": 300,
+          "subtitle": "fal-ai/flux/schnell"
+        },
+        {
+          "id": "shotlist_prompt",
+          "type": "nodetool.text.Prompt",
+          "title": "Prompt",
+          "x": 1160,
+          "y": 520,
+          "width": 320,
+          "subtitle": "From the direction document below, output exactly {{ COUNT }} lines, one per shot from the SHOT LIST, in order. No numbering, no labels, no…"
+        },
+        {
+          "id": "shot_list",
+          "type": "nodetool.generators.ListGenerator",
+          "title": "List Generator",
+          "x": 1540,
+          "y": 100,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "keyframe_prompt",
+          "type": "nodetool.text.Prompt",
+          "title": "Prompt",
+          "x": 1900,
+          "y": 100,
+          "width": 320,
+          "subtitle": "Cinematic film still, 16:9. Shot: {{ SHOT }} Visual style: {{ STYLE }}. Dramatic volumetric lighting, rich cinematic color grading, fine fi…"
+        },
+        {
+          "id": "keyframe",
+          "type": "nodetool.image.ImageToImage",
+          "title": "Image To Image",
+          "x": 2280,
+          "y": 300,
+          "width": 320,
+          "subtitle": "fal-ai/flux/schnell"
+        },
+        {
+          "id": "storyboard_collect",
+          "type": "nodetool.control.Collect",
+          "title": "Collect",
+          "x": 2660,
+          "y": 80,
+          "width": 160
+        },
+        {
+          "id": "storyboard_out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2880,
+          "y": 80,
+          "width": 280
+        },
+        {
+          "id": "motion_prompt",
+          "type": "nodetool.text.Prompt",
+          "title": "Prompt",
+          "x": 2280,
+          "y": 700,
+          "width": 320,
+          "subtitle": "Animate this exact scene. {{ SHOT }} Follow the MOTION direction precisely: move only what it names, keep everything else stable. Preserve…"
+        },
+        {
+          "id": "animate",
+          "type": "nodetool.video.ImageToVideo",
+          "title": "Image To Video",
+          "x": 2660,
+          "y": 420,
+          "width": 330,
+          "subtitle": "veo-3.1-generate-preview"
+        },
+        {
+          "id": "clips_collect",
+          "type": "nodetool.control.Collect",
+          "title": "Collect",
+          "x": 3050,
+          "y": 460,
+          "width": 160
+        },
+        {
+          "id": "cut",
+          "type": "nodetool.video.Concat",
+          "title": "Concat",
+          "x": 3270,
+          "y": 420,
+          "width": 300
+        },
+        {
+          "id": "narration_tts",
+          "type": "nodetool.audio.TextToSpeech",
+          "title": "Text To Speech",
+          "x": 3270,
+          "y": 720,
+          "width": 300,
+          "subtitle": "tts-1"
+        },
+        {
+          "id": "music",
+          "type": "nodetool.audio.TextToMusic",
+          "title": "Text To Music",
+          "x": 3650,
+          "y": 900,
+          "width": 300,
+          "subtitle": "meta/musicgen"
+        },
+        {
+          "id": "mix_vo",
+          "type": "nodetool.video.AddAudio",
+          "title": "Add Audio",
+          "x": 3650,
+          "y": 480,
+          "width": 280
+        },
+        {
+          "id": "mix_music",
+          "type": "nodetool.video.AddAudio",
+          "title": "Add Audio",
+          "x": 4000,
+          "y": 540,
+          "width": 280
+        },
+        {
+          "id": "film_out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 4350,
+          "y": 560,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "brief",
+          "sourceHandle": "output",
+          "target": "director_prompt",
+          "targetHandle": "BRIEF",
+          "color": "string"
+        },
+        {
+          "source": "style",
+          "sourceHandle": "output",
+          "target": "director_prompt",
+          "targetHandle": "STYLE",
+          "color": "string"
+        },
+        {
+          "source": "shot_count",
+          "sourceHandle": "output",
+          "target": "director_prompt",
+          "targetHandle": "COUNT",
+          "color": "string"
+        },
+        {
+          "source": "director_prompt",
+          "sourceHandle": "output",
+          "target": "director",
+          "targetHandle": "prompt",
+          "color": "string"
+        },
+        {
+          "source": "director",
+          "sourceHandle": "text",
+          "target": "direction_out",
+          "targetHandle": "value",
+          "color": "string"
+        },
+        {
+          "source": "director",
+          "sourceHandle": "text",
+          "target": "production_data",
+          "targetHandle": "context",
+          "color": "string"
+        },
+        {
+          "source": "director",
+          "sourceHandle": "text",
+          "target": "shotlist_prompt",
+          "targetHandle": "DIRECTION",
+          "color": "string"
+        },
+        {
+          "source": "shot_count",
+          "sourceHandle": "output",
+          "target": "shotlist_prompt",
+          "targetHandle": "COUNT",
+          "color": "string"
+        },
+        {
+          "source": "shotlist_prompt",
+          "sourceHandle": "output",
+          "target": "shot_list",
+          "targetHandle": "prompt",
+          "color": "string"
+        },
+        {
+          "source": "production_data",
+          "sourceHandle": "style_frame_prompt",
+          "target": "style_frame",
+          "targetHandle": "prompt",
+          "color": "string"
+        },
+        {
+          "source": "shot_list",
+          "sourceHandle": "item",
+          "target": "keyframe_prompt",
+          "targetHandle": "SHOT",
+          "color": "string"
+        },
+        {
+          "source": "style",
+          "sourceHandle": "output",
+          "target": "keyframe_prompt",
+          "targetHandle": "STYLE",
+          "color": "string"
+        },
+        {
+          "source": "style_frame",
+          "sourceHandle": "output",
+          "target": "keyframe",
+          "targetHandle": "image",
+          "color": "image"
+        },
+        {
+          "source": "keyframe_prompt",
+          "sourceHandle": "output",
+          "target": "keyframe",
+          "targetHandle": "prompt",
+          "color": "string"
+        },
+        {
+          "source": "keyframe",
+          "sourceHandle": "output",
+          "target": "storyboard_collect",
+          "targetHandle": "input_item",
+          "color": "image"
+        },
+        {
+          "source": "storyboard_collect",
+          "sourceHandle": "output",
+          "target": "storyboard_out",
+          "targetHandle": "value",
+          "color": "list"
+        },
+        {
+          "source": "shot_list",
+          "sourceHandle": "item",
+          "target": "motion_prompt",
+          "targetHandle": "SHOT",
+          "color": "string"
+        },
+        {
+          "source": "keyframe",
+          "sourceHandle": "output",
+          "target": "animate",
+          "targetHandle": "image",
+          "color": "image"
+        },
+        {
+          "source": "motion_prompt",
+          "sourceHandle": "output",
+          "target": "animate",
+          "targetHandle": "prompt",
+          "color": "string"
+        },
+        {
+          "source": "animate",
+          "sourceHandle": "output",
+          "target": "clips_collect",
+          "targetHandle": "input_item",
+          "color": "video"
+        },
+        {
+          "source": "clips_collect",
+          "sourceHandle": "output",
+          "target": "cut",
+          "targetHandle": "clips",
+          "color": "list"
+        },
+        {
+          "source": "production_data",
+          "sourceHandle": "narration",
+          "target": "narration_tts",
+          "targetHandle": "text",
+          "color": "string"
+        },
+        {
+          "source": "production_data",
+          "sourceHandle": "music_prompt",
+          "target": "music",
+          "targetHandle": "prompt",
+          "color": "string"
+        },
+        {
+          "source": "cut",
+          "sourceHandle": "output",
+          "target": "mix_vo",
+          "targetHandle": "video",
+          "color": "video"
+        },
+        {
+          "source": "narration_tts",
+          "sourceHandle": "audio",
+          "target": "mix_vo",
+          "targetHandle": "audio",
+          "color": "audio"
+        },
+        {
+          "source": "mix_vo",
+          "sourceHandle": "output",
+          "target": "mix_music",
+          "targetHandle": "video",
+          "color": "video"
+        },
+        {
+          "source": "music",
+          "sourceHandle": "audio",
+          "target": "mix_music",
+          "targetHandle": "audio",
+          "color": "audio"
+        },
+        {
+          "source": "mix_music",
+          "sourceHandle": "output",
+          "target": "film_out",
+          "targetHandle": "value",
+          "color": "video"
         }
       ]
     }

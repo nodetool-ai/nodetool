@@ -16,6 +16,7 @@ export { teamTasks } from "./team-tasks.js";
 export { appSettings } from "./settings.js";
 export { timelineSequences } from "./timeline-sequences.js";
 export { imageDocuments } from "./image-documents.js";
+export { storyboards } from "./storyboards.js";
 export { workerProfiles, workerInstances } from "./workers.js";
 export { triggerInputs } from "./trigger-inputs.js";
 export { runInboxMessages } from "./run-inbox-messages.js";

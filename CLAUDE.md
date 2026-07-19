@@ -201,6 +201,36 @@ npm run dev:nodetool -- serve --host 0.0.0.0      # Bind all interfaces
 npm run dev:nodetool -- serve --port 8080          # Custom port
 ```
 
+### MCP bundle (.mcpb) for Claude Desktop
+
+```bash
+npm run build:mcpb        # → dist/nodetool.mcpb (runs an end-to-end smoke test)
+```
+
+Builds a one-file MCP bundle that Claude Desktop (and other MCPB-aware
+agents) installs by drag-and-drop. The bundle is a stdio↔streamable-HTTP
+bridge (`scripts/mcpb/bridge.mjs`, packed by `scripts/build-mcpb.mjs`) that
+talks to a running NodeTool server's `/mcp` endpoint — no native modules, so
+one artifact covers macOS/Windows/Linux. When the server isn't running the
+bridge starts anyway in offline mode: it serves a `nodetool_status` tool with
+startup instructions, retries in the background, and hot-attaches (with
+`list_changed` notifications) when the server appears — including after a
+mid-session app restart. User config in the bundle: server URL (default
+`http://127.0.0.1:7777/mcp`) and an optional bearer token. For CLI agents
+(Claude Code, Codex) use `nodetool mcp install` instead.
+
+Every release builds and attaches `nodetool-<version>.mcpb` to the GitHub
+Release (`release.yaml`, built once on Linux since the bundle is
+cross-platform).
+
+The desktop app ships the same bundle: the electron build runs `prepare-mcpb`
+and bundles `nodetool.mcpb` as an extra resource (`electron-builder.json`).
+**Settings → MCP → Claude Desktop → Install Extension** hands it to the OS
+(`window.api.mcp.installBundle` → `MCP_INSTALL_BUNDLE` IPC →
+`electron/src/mcpBundle.ts`), which opens Claude Desktop's install dialog
+(falling back to reveal-in-folder when no handler is registered). The button is
+desktop-only — it's hidden in the browser/remote UI.
+
 ### nodetool run (DSL Workflows)
 
 ```bash

@@ -217,7 +217,9 @@ export const useGenerateShot = (): UseGenerateShotResult => {
             image: shot.keyframe,
             prompt: clipPrompt(shot),
             aspect_ratio: aspectRatio,
-            duration: shot.duration_seconds
+            duration: shot.duration_seconds,
+            // Board-level clip model; omitted = the node's default model.
+            ...(board?.videoModel ? { model: board.videoModel } : {})
           },
           workflowId
         ),
@@ -243,6 +245,7 @@ export const useGenerateShot = (): UseGenerateShotResult => {
       if (prompt.length === 0) {
         throw new Error("A revision instruction is required.");
       }
+      const board = useStoryboardStore.getState().getBoard(boardId);
       const workflowId = runnerIdForShot(shot.id);
       const nodes: Node<NodeData>[] = [
         makeNode(
@@ -251,7 +254,9 @@ export const useGenerateShot = (): UseGenerateShotResult => {
           0,
           {
             video: shot.clip,
-            prompt
+            prompt,
+            // Board-level clip model; omitted = the node's default model.
+            ...(board?.videoModel ? { model: board.videoModel } : {})
           },
           workflowId
         ),

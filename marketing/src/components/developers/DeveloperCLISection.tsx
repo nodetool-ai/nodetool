@@ -102,13 +102,7 @@ const tsExamples = [
   },
 ];
 
-interface DeveloperCLISectionProps {
-  reducedMotion: boolean;
-}
-
-export default function DeveloperCLISection({
-  reducedMotion,
-}: DeveloperCLISectionProps) {
+export default function DeveloperCLISection() {
   return (
     <section
       id="cli-api"
@@ -119,7 +113,7 @@ export default function DeveloperCLISection({
         {/* Section Header */}
         <div className="text-center mb-16">
           <motion.span
-            initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.25 }}
@@ -130,7 +124,7 @@ export default function DeveloperCLISection({
           </motion.span>
           <motion.h2
             id="cli-api-title"
-            initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.25, delay: 0.05 }}
@@ -139,7 +133,7 @@ export default function DeveloperCLISection({
 Build, run, and extend from code
           </motion.h2>
           <motion.p
-            initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.25, delay: 0.05 }}
@@ -153,7 +147,7 @@ Build, run, and extend from code
 
         {/* DSL Example */}
         <motion.div
-          initial={reducedMotion ? {} : { opacity: 0, y: 30 }}
+          initial={false}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.25 }}
@@ -177,7 +171,7 @@ Build, run, and extend from code
 
         {/* CLI Commands */}
         <motion.div
-          initial={reducedMotion ? {} : { opacity: 0, y: 30 }}
+          initial={false}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.25 }}
@@ -193,7 +187,7 @@ Build, run, and extend from code
             {cliCommands.map((cmd, idx) => (
               <motion.div
                 key={cmd.title}
-                initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+                initial={false}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: idx * 0.05 }}
@@ -212,7 +206,7 @@ Build, run, and extend from code
           {tsExamples.map((example, idx) => (
             <motion.div
               key={example.title}
-              initial={reducedMotion ? {} : { opacity: 0, y: 30 }}
+              initial={false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.25, delay: idx * 0.08 }}
@@ -234,7 +228,7 @@ Build, run, and extend from code
 
         {/* Get Started */}
         <motion.div
-          initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+          initial={false}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.25 }}

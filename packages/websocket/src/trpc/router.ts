@@ -17,6 +17,7 @@ import { skillsRouter, fontsRouter } from "./routers/skills.js";
 import { storageRouter } from "./routers/storage.js";
 import { threadsRouter } from "./routers/threads.js";
 import { sketchRouter } from "./routers/sketch.js";
+import { storyboardsRouter } from "./routers/storyboards.js";
 import { timelineRouter } from "./routers/timeline.js";
 import { usersRouter } from "./routers/users.js";
 import { workerRouter } from "./routers/worker.js";
@@ -42,6 +43,7 @@ export const appRouter = router({
   sandboxes: sandboxesRouter,
   settings: settingsRouter,
   sketch: sketchRouter,
+  storyboards: storyboardsRouter,
   skills: skillsRouter,
   storage: storageRouter,
   threads: threadsRouter,

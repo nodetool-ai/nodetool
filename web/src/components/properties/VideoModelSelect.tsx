@@ -2,18 +2,16 @@ import React, { useState, useCallback, useMemo, useRef } from "react";
 import isEqual from "../../utils/isEqual";
 import VideoModelMenuDialog from "../model_menu/VideoModelMenuDialog";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
-import type { ModelPack, UnifiedModel, VideoModel } from "../../stores/ApiTypes";
+import type {
+  ModelPack,
+  UnifiedModel,
+  VideoModel,
+  VideoModelValue
+} from "../../stores/ApiTypes";
 import { trpc } from "../../lib/trpc";
 import { useQuery } from "@tanstack/react-query";
 import type { VideoModelTask } from "../../hooks/useModelsByProvider";
 import ModelSelectButton from "./shared/ModelSelectButton";
-
-interface VideoModelValue {
-  type: "video_model";
-  id: string;
-  provider: string;
-  name: string;
-}
 
 interface VideoModelSelectProps {
   onChange: (value: VideoModelValue) => void;

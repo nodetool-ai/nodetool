@@ -85,6 +85,37 @@ function scrollElementToBottom(el: HTMLElement | null): void {
   }
 }
 
+const STATUS_ROW_STYLE: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: getSpacingPx(SPACING.md),
+  padding: `${getSpacingPx(SPACING.xs)} 0`
+};
+
+const STATUS_TEXT_STYLE: React.CSSProperties = {
+  fontSize: FONT_SIZE_SANS.body,
+  fontStyle: "italic"
+};
+
+const ELAPSED_STYLE: React.CSSProperties = {
+  fontSize: FONT_SIZE_SANS.label,
+  fontVariantNumeric: "tabular-nums",
+  marginLeft: "auto"
+};
+
+const LOG_WRAPPER_STYLE: React.CSSProperties = {
+  position: "relative",
+  paddingLeft: "1.5rem"
+};
+
+const LOG_DOT_BASE_STYLE: React.CSSProperties = {
+  position: "absolute",
+  left: "-21px",
+  top: "12px",
+  width: "10px",
+  height: "10px"
+};
+
 interface StatusFooterProps {
   status: ChatThreadViewProps["status"];
   progress: number;
@@ -127,22 +158,14 @@ const StatusFooter = memo<StatusFooterProps>(
         )}
         {isBusy && !hasAgentExecutionMessages && !pendingMediaMessage && (
           <div className="chat-message-list-item">
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: getSpacingPx(SPACING.md),
-                padding: `${getSpacingPx(SPACING.xs)} 0`
-              }}
-            >
+            <div style={STATUS_ROW_STYLE}>
               {status === "loading" && progress === 0 ? (
                 <LoadingIndicator />
               ) : null}
               <span
                 style={{
-                  fontSize: FONT_SIZE_SANS.body,
-                  color: theme.vars.palette.text.secondary,
-                  fontStyle: "italic"
+                  ...STATUS_TEXT_STYLE,
+                  color: theme.vars.palette.text.secondary
                 }}
               >
                 {progressMessage && !runningToolCallId
@@ -153,10 +176,8 @@ const StatusFooter = memo<StatusFooterProps>(
               </span>
               <span
                 style={{
-                  fontSize: FONT_SIZE_SANS.label,
-                  color: theme.vars.palette.text.disabled,
-                  fontVariantNumeric: "tabular-nums",
-                  marginLeft: "auto"
+                  ...ELAPSED_STYLE,
+                  color: theme.vars.palette.text.disabled
                 }}
               >
                 {formatElapsed(elapsed)}
@@ -181,7 +202,7 @@ const StatusFooter = memo<StatusFooterProps>(
         )}
         {!hasAgentExecutionMessages && currentLogUpdate && (
           <div className="chat-message-list-item">
-            <div style={{ position: "relative", paddingLeft: "1.5rem" }}>
+            <div style={LOG_WRAPPER_STYLE}>
               <div
                 style={{
                   position: "absolute",
@@ -195,11 +216,7 @@ const StatusFooter = memo<StatusFooterProps>(
               />
               <div
                 style={{
-                  position: "absolute",
-                  left: "-21px",
-                  top: "12px",
-                  width: "10px",
-                  height: "10px",
+                  ...LOG_DOT_BASE_STYLE,
                   borderRadius: BORDER_RADIUS.circle,
                   backgroundColor: theme.vars.palette.primary.main,
                   border: `2px solid ${theme.vars.palette.background.default}`,
