@@ -30,7 +30,7 @@ function formatMoney(amount: number, currency: string): string {
  * proportional billing may diverge strongly from what users expect one image/run to cost.
  */
 export function isFalVagueBillingSummary(p: { billing_unit: string }): boolean {
-  return /\bunits?\b/i.test(p.billing_unit.trim());
+  return /\bunits?\b|\bcredits?\b/i.test(p.billing_unit.trim());
 }
 
 /** Label for historical per-run estimate from fal.ai pricing/estimate API. */
@@ -40,6 +40,9 @@ export function formatFalPerRunEstimate(totalCost: number, currency: string): st
 
 /** Compact label for node chrome (fal monetary `unit_price`). */
 export function formatFalUnitPricingShort(p: FalUnitPricing): string {
+  if (isFalVagueBillingSummary(p)) {
+    return "pricing varies";
+  }
   return formatMoney(p.unit_price, p.currency);
 }
 

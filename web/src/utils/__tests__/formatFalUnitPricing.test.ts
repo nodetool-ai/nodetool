@@ -16,6 +16,12 @@ describe("isFalVagueBillingSummary", () => {
     expect(isFalVagueBillingSummary({ billing_unit: "Units" })).toBe(true);
   });
 
+  it('returns true for "credit" and "credits"', () => {
+    expect(isFalVagueBillingSummary({ billing_unit: "credit" })).toBe(true);
+    expect(isFalVagueBillingSummary({ billing_unit: "credits" })).toBe(true);
+    expect(isFalVagueBillingSummary({ billing_unit: "Credits" })).toBe(true);
+  });
+
   it("returns false for specific billing units", () => {
     expect(isFalVagueBillingSummary({ billing_unit: "image" })).toBe(false);
     expect(isFalVagueBillingSummary({ billing_unit: "second" })).toBe(false);
@@ -24,6 +30,7 @@ describe("isFalVagueBillingSummary", () => {
 
   it("handles whitespace-padded values", () => {
     expect(isFalVagueBillingSummary({ billing_unit: "  units  " })).toBe(true);
+    expect(isFalVagueBillingSummary({ billing_unit: "  credits  " })).toBe(true);
   });
 });
 
@@ -59,6 +66,26 @@ describe("formatFalUnitPricingShort", () => {
     } as FalUnitPricing;
     const result = formatFalUnitPricingShort(p);
     expect(result).toContain("0.00");
+  });
+
+  it('returns "pricing varies" for vague billing units', () => {
+    const p = {
+      unit_price: 1,
+      currency: "USD",
+      billing_unit: "units",
+      endpoint_id: "openai/gpt-image-2",
+    } as FalUnitPricing;
+    expect(formatFalUnitPricingShort(p)).toBe("pricing varies");
+  });
+
+  it('returns "pricing varies" for credits billing', () => {
+    const p = {
+      unit_price: 1,
+      currency: "USD",
+      billing_unit: "credits",
+      endpoint_id: "fal-ai/gpt-image-1-mini",
+    } as FalUnitPricing;
+    expect(formatFalUnitPricingShort(p)).toBe("pricing varies");
   });
 });
 

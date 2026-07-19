@@ -69,10 +69,17 @@ interface ResolvedPrice {
   confidence: CostConfidence;
 }
 
+function isVagueBillingUnit(unit: string): boolean {
+  return /\bunits?\b|\bcredits?\b/i.test(unit.trim());
+}
+
 /** Resolve a node's unit price from metadata: FAL first, then kie, else none. */
 function resolvePrice(metadata: NodeMetadataLike | undefined): ResolvedPrice | null {
   const fal = metadata?.fal_unit_pricing;
   if (fal && Number.isFinite(fal.unit_price)) {
+    if (isVagueBillingUnit(fal.billing_unit)) {
+      return null;
+    }
     return {
       provider: "fal",
       model: fal.endpoint_id ?? null,

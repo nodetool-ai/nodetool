@@ -18,6 +18,14 @@ describe("estimateFalCost", () => {
     expect(estimateFalCost("fal.nope.DoesNotExist", {})).toBeNull();
   });
 
+  it("returns null for vague billing units (units/credits)", () => {
+    // fal.3d_to_3d.Sam33DAlign has billing_unit: "units"
+    const pricing = getFalPricing("fal.3d_to_3d.Sam33DAlign");
+    expect(pricing).not.toBeNull();
+    expect(pricing!.billing_unit).toBe("units");
+    expect(estimateFalCost("fal.3d_to_3d.Sam33DAlign", {})).toBeNull();
+  });
+
   it("treats per-generation calls as a single unit", () => {
     const pricing = getFalPricing(GENERATIONS)!;
     expect(pricing.billing_unit).toBe("generations");

@@ -7,6 +7,7 @@ import {
 import type { Budget } from "@nodetool-ai/protocol";
 
 const FAL_TYPE = "fal.image.FluxSchnell";
+const FAL_VAGUE_TYPE = "fal.text_to_image.GptImage2";
 const KIE_TYPE = "kie.video.Veo";
 const LLM_TYPE = "nodetool.agents.Agent";
 
@@ -16,6 +17,15 @@ const metadataByType: Record<string, NodeMetadataLike> = {
       endpoint_id: "fal-ai/flux/schnell",
       unit_price: 0.02,
       billing_unit: "images",
+      currency: "USD",
+      source: "bundle"
+    }
+  },
+  [FAL_VAGUE_TYPE]: {
+    fal_unit_pricing: {
+      endpoint_id: "openai/gpt-image-2",
+      unit_price: 1,
+      billing_unit: "units",
       currency: "USD",
       source: "bundle"
     }
@@ -71,6 +81,21 @@ describe("estimateWorkflowCost", () => {
     expect(item.confidence).toBe("exact");
     expect(item.estimated_cost).toBeCloseTo(2.5, 10);
     expect(estimate.total).toBeCloseTo(2.5, 10);
+  });
+
+  it("treats fal nodes with vague billing (units/credits) as unknown", () => {
+    const estimate = estimateWorkflowCost({
+      nodes: [{ id: "v1", type: FAL_VAGUE_TYPE }],
+      getMetadata
+    });
+
+    expect(estimate.unknown_count).toBe(1);
+    expect(estimate.total).toBe(0);
+
+    const item = estimate.items[0];
+    expect(item.confidence).toBe("unknown");
+    expect(item.estimated_cost).toBe(0);
+    expect(item.provider).toBeNull();
   });
 
   it("reports unpriced nodes as unknown without affecting the total", () => {
