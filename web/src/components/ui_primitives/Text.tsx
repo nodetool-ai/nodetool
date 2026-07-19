@@ -94,7 +94,7 @@ export const Text = forwardRef<HTMLElement, TextProps>(({
   };
 
   // Default weight follows the sanctioned size+weight combo for the size.
-  // sans: 18→600 (title), 15→400 (body), 13→500 (label), 11→400 (caption)
+  // sans: 22/18→600 (display/title), 15→400 (body), 13→500 (label), 11→400 (caption)
   // mono: 13→400 (code), 12→500 (label), 11→400 (caption)
   const getDefaultWeight = (): 400 | 500 | 600 => {
     const titleSizes = ["giant", "big"];
