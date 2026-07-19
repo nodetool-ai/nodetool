@@ -55,7 +55,9 @@ Script
 └─ sections: Section[]    { id, title? }          // scene / chapter breaks
    └─ lines: Line[]
       ├─ id, speakerId?, text
-      ├─ direction?                // tone/emotion note or provider audio tags
+      ├─ direction?                // freeform performance note ("whispering,
+      │                            // tired"), passed through to providers
+      │                            // that accept it — no structured tag schema
       ├─ pauseAfterMs?             // authored silence between lines
       ├─ takes: Take[]
       │    { id, assetId, durationMs, words: CaptionWord[],
@@ -121,14 +123,12 @@ Identical to `generateBeat`, minus the timeline coupling:
 1. line text (+ direction) → `generate_media` RPC (mode `audio`, speaker's
    provider/model/voice) → asset id
 2. probe duration
-3. `transcribe_audio` RPC → `CaptionWord[]` onto the take (best-effort, as
-   today)
+3. word timings onto the take: providers that declare a `ttsTimestamps`
+   capability return them natively with the synthesis (ElevenLabs
+   `with-timestamps` endpoints — more accurate, one call fewer); everything
+   else falls back to the `transcribe_audio` RPC (best-effort, as today —
+   a failed transcription still leaves a playable take)
 4. append take, set `currentTakeId`
-
-One improvement worth a provider capability flag: ElevenLabs returns
-character/word timestamps natively (`with-timestamps` endpoints), which are
-more accurate than round-tripping through ASR and save a call. Providers that
-declare `ttsTimestamps` skip step 3.
 
 ## Timeline import ("Send to timeline")
 
@@ -192,9 +192,6 @@ existing editor is a rewrite, not a feature.
   asset spanning many lines — it breaks the line↔take 1:1. Likely modeled as a
   section-level "dialogue take" whose word timings are split back onto lines.
   Phase 4 at the earliest.
-- **Direction vs. audio tags.** Freeform direction text ("whispering, tired")
-  vs. structured provider tags. Start freeform, pass through to providers that
-  accept it.
 - **Take retention.** Takes are cheap to keep (assets already exist); surface
   `costCredits` per take like clip versions do, revisit pruning only if it
   hurts.
