@@ -72,6 +72,8 @@ const createMockHandler = (): jest.Mocked<TimelineAgentHandler> => ({
   duplicateClip: jest.fn(),
   setClipParams: jest.fn(),
   setClipBinding: jest.fn(),
+  setClipAnimations: jest.fn(),
+  clearClipAnimations: jest.fn(),
   getClipFrames: jest.fn(),
   selectClip: jest.fn(),
   seek: jest.fn()
@@ -99,6 +101,9 @@ describe("ui_timeline_* tools", () => {
         "ui_timeline_duplicate_clip",
         "ui_timeline_set_clip_params",
         "ui_timeline_set_clip_binding",
+        "ui_timeline_animate_clip",
+        "ui_timeline_clear_animations",
+        "ui_timeline_list_animation_presets",
         "ui_timeline_get_clip_frames",
         "ui_timeline_select_clip",
         "ui_timeline_seek"
@@ -297,5 +302,97 @@ describe("ui_timeline_* tools", () => {
 
     expect(handler.seek).toHaveBeenCalledWith(1500);
     expect(result.playheadMs).toBe(1500);
+  });
+
+  it("animates a clip, defaulting mode to replace", async () => {
+    const handler = createMockHandler();
+    handler.setClipAnimations.mockReturnValue(clipNode());
+    setTimelineAgentHandler(handler);
+
+    await FrontendToolRegistry.call(
+      "ui_timeline_animate_clip",
+      {
+        target: "selected",
+        animations: [{ role: "in", preset: "pop", durationMs: 400 }]
+      },
+      "tc-anim",
+      ctx
+    );
+
+    expect(handler.setClipAnimations).toHaveBeenCalledWith(
+      "selected",
+      [{ role: "in", preset: "pop", durationMs: 400 }],
+      "replace"
+    );
+  });
+
+  it("passes mode add through to the handler", async () => {
+    const handler = createMockHandler();
+    handler.setClipAnimations.mockReturnValue(clipNode());
+    setTimelineAgentHandler(handler);
+
+    await FrontendToolRegistry.call(
+      "ui_timeline_animate_clip",
+      {
+        target: "clip-1",
+        mode: "add",
+        animations: [{ role: "loop", preset: "float" }]
+      },
+      "tc-anim-add",
+      ctx
+    );
+
+    expect(handler.setClipAnimations).toHaveBeenCalledWith(
+      "clip-1",
+      [{ role: "loop", preset: "float" }],
+      "add"
+    );
+  });
+
+  it("rejects an animation with an unknown role during validation", async () => {
+    setTimelineAgentHandler(createMockHandler());
+    await expect(
+      FrontendToolRegistry.call(
+        "ui_timeline_animate_clip",
+        { target: "clip-1", animations: [{ role: "wiggle", preset: "pop" }] },
+        "tc-anim-bad",
+        ctx
+      )
+    ).rejects.toThrow();
+  });
+
+  it("clears animations, forwarding an optional role filter", async () => {
+    const handler = createMockHandler();
+    handler.clearClipAnimations.mockReturnValue(clipNode());
+    setTimelineAgentHandler(handler);
+
+    await FrontendToolRegistry.call(
+      "ui_timeline_clear_animations",
+      { target: "clip-1", role: "out" },
+      "tc-clear",
+      ctx
+    );
+
+    expect(handler.clearClipAnimations).toHaveBeenCalledWith("clip-1", "out");
+  });
+
+  it("lists the animation preset catalog without needing an editor", async () => {
+    const result = (await FrontendToolRegistry.call(
+      "ui_timeline_list_animation_presets",
+      {},
+      "tc-presets",
+      ctx
+    )) as {
+      ok: boolean;
+      presets: Array<{ id: string; roles: string[]; describe: string }>;
+    };
+
+    expect(result.ok).toBe(true);
+    const ids = result.presets.map((p) => p.id);
+    expect(ids).toEqual(
+      expect.arrayContaining(["fade", "slide", "pop", "kenBurns", "float"])
+    );
+    const kenBurns = result.presets.find((p) => p.id === "kenBurns");
+    expect(kenBurns?.roles).toContain("loop");
   });
 });

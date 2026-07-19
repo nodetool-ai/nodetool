@@ -66,6 +66,20 @@ export interface TimelineClipNode {
   hidden: boolean;
   muted: boolean;
   locked: boolean;
+  /** Motion-design animations attached to the clip, when any. */
+  animations?: TimelineAnimationNode[];
+}
+
+/** Serializable view of one motion-design animation on a clip. */
+export interface TimelineAnimationNode {
+  id: string;
+  role: "in" | "out" | "emphasis" | "loop";
+  preset: string;
+  durationMs: number;
+  delayMs?: number;
+  easing?: string;
+  enabled?: boolean;
+  params?: Record<string, number | string | boolean>;
 }
 
 /** Full snapshot of the open sequence the agent reads to plan edits. */
@@ -192,6 +206,21 @@ export interface TimelineClipFramesResult {
   frames: TimelineClipFrameNode[];
 }
 
+/** One animation the agent asks to apply. Ids and defaults are filled in by
+ *  the handler from the preset catalog. */
+export interface ClipAnimationInput {
+  role: "in" | "out" | "emphasis" | "loop";
+  preset: string;
+  durationMs?: number;
+  delayMs?: number;
+  easing?: string;
+  enabled?: boolean;
+  params?: Record<string, number | string | boolean>;
+}
+
+/** How {@link TimelineAgentHandler.setClipAnimations} applies its inputs. */
+export type ClipAnimationMode = "add" | "replace";
+
 /**
  * Operations the live {@link TimelineEditor} exposes to the agent tooling
  * layer. Clips and tracks are addressed by id or by (case-insensitive) name;
@@ -221,6 +250,21 @@ export interface TimelineAgentHandler {
     target: string,
     patch: TimelineClipBindingPatch
   ) => Promise<TimelineClipNode>;
+  /**
+   * Apply motion-design animations to a clip. `replace` (default) swaps the
+   * clip's animations; `add` appends. Throws with the valid options when a
+   * preset is unknown or a role is not allowed for the preset.
+   */
+  setClipAnimations: (
+    target: string,
+    animations: ClipAnimationInput[],
+    mode: ClipAnimationMode
+  ) => TimelineClipNode;
+  /** Remove a clip's animations, optionally only those of one role. */
+  clearClipAnimations: (
+    target: string,
+    role?: ClipAnimationInput["role"]
+  ) => TimelineClipNode;
   getClipFrames: (
     target: string,
     opts: TimelineClipFramesOptions

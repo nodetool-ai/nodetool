@@ -16,6 +16,8 @@ const makeMockHandler = (): TimelineAgentHandler => ({
   duplicateClip: jest.fn(),
   setClipParams: jest.fn(),
   setClipBinding: jest.fn(),
+  setClipAnimations: jest.fn(),
+  clearClipAnimations: jest.fn(),
   getClipFrames: jest.fn(),
   selectClip: jest.fn(),
   seek: jest.fn()

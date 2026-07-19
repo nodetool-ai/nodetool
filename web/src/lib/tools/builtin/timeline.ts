@@ -1,6 +1,9 @@
 import { z } from "zod";
+import { ANIMATION_PRESETS } from "@nodetool-ai/timeline";
 import { FrontendToolRegistry } from "../frontendTools";
 import { getTimelineAgentHandler } from "../../../components/timeline/timelineAgentBridge";
+
+const animationRole = z.enum(["in", "out", "emphasis", "loop"]);
 
 /**
  * Frontend tools that let the agent drive the live timeline / video editor —
@@ -196,6 +199,72 @@ FrontendToolRegistry.register({
   async execute({ target, ...patch }) {
     const clip = await getTimelineAgentHandler().setClipBinding(target, patch);
     return { ok: true, clip };
+  }
+});
+
+FrontendToolRegistry.register({
+  name: "ui_timeline_animate_clip",
+  description:
+    "Attach motion-design animations to a clip — no keyframing, just named presets. Roles: `in` (entrance: fade, slide, pop, spin), `out` (exit: fade, slide, pop, spin), `emphasis` (mid-clip: pulse, shake, bounce), `loop` (continuous: kenBurns, float, breathe, rotate). Each animation: `role`, `preset`, optional `durationMs` (defaults per preset), `delayMs`, `easing`, and preset `params`. `mode` \"replace\" (default) swaps the clip's animations; \"add\" appends. Call ui_timeline_list_animation_presets for the full param list. Recommended loop: ui_timeline_get_state -> animate -> ui_timeline_get_clip_frames at the window boundaries -> adjust.",
+  parameters: z.object({
+    target: targetParam,
+    mode: z.enum(["add", "replace"]).optional(),
+    animations: z
+      .array(
+        z.object({
+          role: animationRole,
+          preset: z
+            .string()
+            .describe("Preset id, e.g. fade, slide, pop, kenBurns, float."),
+          durationMs: z.number().optional(),
+          delayMs: z.number().optional(),
+          easing: z.string().optional(),
+          params: z
+            .record(z.string(), z.union([z.number(), z.string(), z.boolean()]))
+            .optional()
+        })
+      )
+      .min(1)
+  }),
+  async execute({ target, mode, animations }) {
+    const clip = getTimelineAgentHandler().setClipAnimations(
+      target,
+      animations,
+      mode ?? "replace"
+    );
+    return { ok: true, clip };
+  }
+});
+
+FrontendToolRegistry.register({
+  name: "ui_timeline_clear_animations",
+  description:
+    "Remove motion-design animations from a clip. Pass `role` to clear only that role (in/out/emphasis/loop); omit it to clear all.",
+  parameters: z.object({
+    target: targetParam,
+    role: animationRole.optional()
+  }),
+  async execute({ target, role }) {
+    const clip = getTimelineAgentHandler().clearClipAnimations(target, role);
+    return { ok: true, clip };
+  }
+});
+
+FrontendToolRegistry.register({
+  name: "ui_timeline_list_animation_presets",
+  description:
+    "List the motion-design animation presets: id, allowed roles, params (with defaults and ranges), default duration/easing, and a one-line description. Use this to discover the exact preset names and params for ui_timeline_animate_clip.",
+  parameters: z.object({}),
+  async execute() {
+    const presets = ANIMATION_PRESETS.map((p) => ({
+      id: p.id,
+      roles: p.roles,
+      defaultDurationMs: p.defaultDurationMs,
+      defaultEasing: p.defaultEasing,
+      params: p.params,
+      describe: p.describe
+    }));
+    return { ok: true, presets };
   }
 });
 

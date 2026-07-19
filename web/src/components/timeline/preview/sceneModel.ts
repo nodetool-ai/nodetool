@@ -11,11 +11,18 @@
  */
 
 import type {
+  ClipAnimation,
   ClipEffect,
   ClipTransform,
+  CompiledAnimation,
   TimelineClip,
   TimelineTrack,
   TrackEffect
+} from "@nodetool-ai/timeline";
+import {
+  compileClipAnimations,
+  hasActiveAnimationWindow,
+  sampleAnimations
 } from "@nodetool-ai/timeline";
 import type { CompositorBlendMode } from "./gpu/types";
 
@@ -394,4 +401,138 @@ export function computeActiveLayers(
 ): ActiveLayer[] {
   return computeActiveLayersWithHorizon(tracks, clips, currentTimeMs, options)
     .layers;
+}
+
+// ── Motion-design animation resolution ───────────────────────────────────────
+
+/**
+ * The animated transform/opacity a layer should render with at a point in time.
+ * Composed from the layer's static `transform`/`opacity` and its animation
+ * sample. Identical fields to the layer when it has no active animation.
+ */
+export interface AnimatedLayerProps {
+  transform?: ClipTransform;
+  opacity: number;
+}
+
+interface CompileCacheEntry {
+  /** The `animations` array reference this entry was compiled from. */
+  animationsRef: ClipAnimation[];
+  /** Recompile when the clip is trimmed (window math depends on duration). */
+  durationMs: number;
+  canvasW: number;
+  canvasH: number;
+  compiled: CompiledAnimation[];
+}
+
+/**
+ * Per-clip memoized compilation so the rAF loop never compiles. Invalidated
+ * when the clip's `animations` array reference, its duration, or the canvas
+ * size changes. Keyed by clip id.
+ */
+export type AnimationCompileCache = Map<string, CompileCacheEntry>;
+
+export function createAnimationCompileCache(): AnimationCompileCache {
+  return new Map();
+}
+
+function compiledFor(
+  clip: TimelineClip,
+  canvas: { width: number; height: number },
+  cache?: AnimationCompileCache
+): CompiledAnimation[] {
+  const animations = clip.animations;
+  if (!animations || animations.length === 0) return [];
+  if (cache) {
+    const hit = cache.get(clip.id);
+    if (
+      hit &&
+      hit.animationsRef === animations &&
+      hit.durationMs === clip.durationMs &&
+      hit.canvasW === canvas.width &&
+      hit.canvasH === canvas.height
+    ) {
+      return hit.compiled;
+    }
+    const compiled = compileClipAnimations(animations, clip.durationMs, canvas);
+    cache.set(clip.id, {
+      animationsRef: animations,
+      durationMs: clip.durationMs,
+      canvasW: canvas.width,
+      canvasH: canvas.height,
+      compiled
+    });
+    return compiled;
+  }
+  return compileClipAnimations(animations, clip.durationMs, canvas);
+}
+
+const IDENTITY_TRANSFORM: ClipTransform = {
+  position: { x: 0, y: 0 },
+  scale: { x: 1, y: 1 },
+  rotation: 0,
+  anchor: { x: 0.5, y: 0.5 }
+};
+
+/**
+ * Compose a layer's static transform/opacity with its animation sample at
+ * `currentTimeMs`. Returns the layer's existing values (no allocation) when the
+ * clip has no enabled animations or the sample is identity at this time.
+ *
+ * `sample.opacity` multiplies the already-resolved layer opacity (base ×
+ * crossfade), so animations compose with `transitionIn` rather than fight it.
+ */
+export function resolveAnimatedLayerProps(
+  layer: { clip: TimelineClip; transform?: ClipTransform; opacity: number },
+  currentTimeMs: number,
+  canvas: { width: number; height: number },
+  cache?: AnimationCompileCache
+): AnimatedLayerProps {
+  const clip = layer.clip;
+  const compiled = compiledFor(clip, canvas, cache);
+  if (compiled.length === 0) {
+    return { transform: layer.transform, opacity: layer.opacity };
+  }
+
+  const s = sampleAnimations(compiled, currentTimeMs - clip.startMs);
+  if (
+    s.offsetX === 0 &&
+    s.offsetY === 0 &&
+    s.scale === 1 &&
+    s.rotation === 0 &&
+    s.opacity === 1
+  ) {
+    return { transform: layer.transform, opacity: layer.opacity };
+  }
+
+  const base = layer.transform ?? IDENTITY_TRANSFORM;
+  const transform: ClipTransform = {
+    position: { x: base.position.x + s.offsetX, y: base.position.y + s.offsetY },
+    scale: { x: base.scale.x * s.scale, y: base.scale.y * s.scale },
+    rotation: base.rotation + s.rotation,
+    anchor: base.anchor
+  };
+  return { transform, opacity: layer.opacity * s.opacity };
+}
+
+/**
+ * True when any active layer has an animation whose window covers
+ * `currentTimeMs`. The live preview uses this to keep redrawing every rAF tick
+ * while motion is in flight, even though the cached layer *set* is unchanged.
+ */
+export function hasActiveAnimation(
+  layers: ActiveLayer[],
+  currentTimeMs: number,
+  canvas: { width: number; height: number },
+  cache?: AnimationCompileCache
+): boolean {
+  for (const layer of layers) {
+    const clip = layer.clip;
+    if (!clip.animations || clip.animations.length === 0) continue;
+    const compiled = compiledFor(clip, canvas, cache);
+    if (hasActiveAnimationWindow(compiled, currentTimeMs - clip.startMs)) {
+      return true;
+    }
+  }
+  return false;
 }

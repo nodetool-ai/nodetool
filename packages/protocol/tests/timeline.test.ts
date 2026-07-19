@@ -79,4 +79,54 @@ describe("timelineClip schema", () => {
     };
     expect(timelineClip.safeParse(clip).success).toBe(false);
   });
+
+  it("preserves clip animations through a parse round-trip", () => {
+    const clip = {
+      ...baseClip,
+      animations: [
+        {
+          id: "anim-1",
+          role: "in" as const,
+          preset: "slide",
+          durationMs: 500,
+          delayMs: 200,
+          easing: "easeOut",
+          enabled: true,
+          params: { direction: "left", distance: 0.3 }
+        },
+        {
+          id: "anim-2",
+          role: "loop" as const,
+          preset: "kenBurns",
+          durationMs: 3000
+        }
+      ]
+    };
+    const parsed = timelineClip.parse(clip);
+    expect(parsed.animations).toEqual(clip.animations);
+  });
+
+  it("parses a clip with no animations field", () => {
+    const parsed = timelineClip.parse(baseClip);
+    expect(parsed.animations).toBeUndefined();
+  });
+
+  it("accepts an unknown preset string (validation is the engine's job)", () => {
+    const clip = {
+      ...baseClip,
+      animations: [
+        { id: "a", role: "in" as const, preset: "future-preset-99", durationMs: 400 }
+      ]
+    };
+    const result = timelineClip.safeParse(clip);
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an animation with an unknown role", () => {
+    const clip = {
+      ...baseClip,
+      animations: [{ id: "a", role: "bogus", preset: "fade", durationMs: 400 }]
+    };
+    expect(timelineClip.safeParse(clip).success).toBe(false);
+  });
 });
