@@ -197,8 +197,7 @@ const VideoRecorder = (props: VideoRecorderProps) => {
         <div className="device-list" style={{ margin: theme.spacing(1.5) }}>
           {videoInputDevices.length > 0 ? (
             <>
-              <Text size="big" sx={{
-                fontSize: "var(--fontSizeSmaller)",
+              <Text size="smaller" weight={600} sx={{
                 margin: "0 0 .5em 0",
                 color: "var(--palette-grey-100)"
               }}>
@@ -240,8 +239,7 @@ const VideoRecorder = (props: VideoRecorderProps) => {
 
           {audioInputDevices.length > 0 && (
             <>
-              <Text size="big" sx={{
-                fontSize: "var(--fontSizeSmaller)",
+              <Text size="smaller" weight={600} sx={{
                 margin: "1em 0 .5em 0",
                 color: "var(--palette-grey-100)"
               }}>
