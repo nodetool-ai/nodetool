@@ -12,7 +12,12 @@
  */
 
 import { useEffect, useMemo } from "react";
-import type { TimelineClip, TimelineTrack } from "@nodetool-ai/timeline";
+import type {
+  ClipAnimation,
+  TimelineClip,
+  TimelineTrack
+} from "@nodetool-ai/timeline";
+import { buildClipAnimation } from "./buildClipAnimation";
 
 import { useTimelineStoreApi } from "../../stores/timeline/TimelineStore";
 import { useTimelineUIStoreApi } from "../../stores/timeline/TimelineUIStore";
@@ -26,6 +31,7 @@ import {
   hasTimelineAgentHandler,
   setTimelineAgentHandler,
   type TimelineAgentHandler,
+  type TimelineAnimationNode,
   type TimelineClipNode,
   type TimelineClipFrameNode,
   type TimelineGenerateKind,
@@ -120,7 +126,21 @@ function toClipNode(
     fadeOutMs: clip.fadeOutMs,
     hidden: !!clip.hidden,
     muted: !!clip.muted,
-    locked: clip.locked
+    locked: clip.locked,
+    animations: clip.animations?.map(toAnimationNode)
+  };
+}
+
+function toAnimationNode(anim: ClipAnimation): TimelineAnimationNode {
+  return {
+    id: anim.id,
+    role: anim.role,
+    preset: anim.preset,
+    durationMs: anim.durationMs,
+    delayMs: anim.delayMs,
+    easing: anim.easing,
+    enabled: anim.enabled,
+    params: anim.params
   };
 }
 
@@ -445,6 +465,25 @@ export const useTimelineAgentBridge = (active: boolean): void => {
         if (patch.regenerate) {
           await startDirectGen(clip.id);
         }
+        return clipNode(reReadClip(clip.id));
+      },
+
+      setClipAnimations(target, animations, mode) {
+        const clip = requireClip(target);
+        const built = animations.map(buildClipAnimation);
+        const next =
+          mode === "add" ? [...(clip.animations ?? []), ...built] : built;
+        doc.getState().setClipAnimations(clip.id, next);
+        return clipNode(reReadClip(clip.id));
+      },
+
+      clearClipAnimations(target, role) {
+        const clip = requireClip(target);
+        const current = clip.animations ?? [];
+        const next = role
+          ? current.filter((a) => a.role !== role)
+          : [];
+        doc.getState().setClipAnimations(clip.id, next);
         return clipNode(reReadClip(clip.id));
       },
 
