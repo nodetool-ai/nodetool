@@ -48,6 +48,7 @@ import { getRunSignature, clearRunSignatures } from "./runSignatures";
 import { computeStampSignature } from "../utils/computeRunSignatures";
 import { getNodeGenerations } from "./nodeGenerationAccessor";
 import useMetadataStore from "./MetadataStore";
+import { syncBudgetSpentFromProviderCosts } from "../hooks/useLiveRunCost";
 
 /**
  * Pending audio-chunk store appends, coalesced per node and flushed on a
@@ -1160,6 +1161,11 @@ export const handleUpdate = (
           update.node_id,
           update.provider_cost
         );
+        // Reflect real recorded provider spend into the session budget so the
+        // over-budget banner and the ticker's "remaining" are meaningful.
+        // Recompute from ResultsStore (source of truth) to stay idempotent if a
+        // node re-emits its provider_cost.
+        syncBudgetSpentFromProviderCosts();
       }
 
       if (jobId) {

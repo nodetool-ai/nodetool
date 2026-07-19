@@ -21,6 +21,13 @@ interface BudgetState {
   setCap: (cap: number) => void;
   setDraftMode: (mode: DraftMode) => void;
   addSpent: (amount: number) => void;
+  /**
+   * Set the running spend to an absolute total. Used by the update pipeline to
+   * mirror the sum of recorded provider costs (recompute-from-source avoids the
+   * double-counting a node re-emitting `provider_cost` would cause). A
+   * non-finite or negative total is ignored.
+   */
+  setSpent: (total: number) => void;
   reset: () => void;
 }
 
@@ -43,6 +50,11 @@ export const useBudgetStore = create<BudgetState>()(
             Number.isFinite(amount) && amount > 0
               ? state.spent + amount
               : state.spent
+        })),
+      setSpent: (total) =>
+        set((state) => ({
+          spent:
+            Number.isFinite(total) && total >= 0 ? total : state.spent
         })),
       reset: () => set({ spent: 0 })
     }),

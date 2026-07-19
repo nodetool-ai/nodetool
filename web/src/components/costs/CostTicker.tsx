@@ -18,6 +18,7 @@ import {
   FlexColumn,
   FlexRow,
   StatusIndicator,
+  TextLink,
   BORDER_RADIUS,
   Z_INDEX
 } from "../ui_primitives";
@@ -42,6 +43,7 @@ const CostTickerInternal: React.FC<CostTickerProps> = ({ workflowId }) => {
   const live = useLiveRunCost(workflowId);
   const estimate = useWorkflowCostEstimate(workflowId);
   const budget = useBudgetStore(useShallow(selectBudget));
+  const resetSpent = useBudgetStore((s) => s.reset);
 
   const remaining = useMemo(() => budgetRemaining(budget), [budget]);
   const overBudget = remaining <= 0 || (estimate ? estimate.total > remaining : false);
@@ -63,6 +65,14 @@ const CostTickerInternal: React.FC<CostTickerProps> = ({ workflowId }) => {
   }, []);
 
   const handleClose = useCallback(() => setAnchorEl(null), []);
+
+  const handleResetSpent = useCallback(
+    (e: React.MouseEvent<HTMLElement>) => {
+      e.stopPropagation();
+      resetSpent();
+    },
+    [resetSpent]
+  );
 
   const tier = overBudget
     ? theme.vars.palette.warning
@@ -225,14 +235,31 @@ const CostTickerInternal: React.FC<CostTickerProps> = ({ workflowId }) => {
               size="small"
             />
           </FlexRow>
-          <Text
-            sx={{
-              fontSize: "var(--fontSizeSmaller)",
-              color: theme.vars.palette.text.secondary
-            }}
-          >
-            Cap {formatMoney(budget.cap)} · spent {formatMoney(budget.spent)}
-          </Text>
+          <FlexRow align="center" justify="space-between" gap={1}>
+            <Text
+              sx={{
+                fontSize: "var(--fontSizeSmaller)",
+                color: theme.vars.palette.text.secondary
+              }}
+            >
+              Cap {formatMoney(budget.cap)} · spent {formatMoney(budget.spent)}
+            </Text>
+            {budget.spent > 0 && (
+              <TextLink
+                asButton
+                underline="hover"
+                onClick={handleResetSpent}
+                sx={{
+                  fontSize: "var(--fontSizeSmaller)",
+                  color: theme.vars.palette.text.secondary,
+                  flexShrink: 0,
+                  "&:hover": { color: theme.vars.palette.text.primary }
+                }}
+              >
+                Reset spent
+              </TextLink>
+            )}
+          </FlexRow>
         </FlexColumn>
       </Popover>
     </>

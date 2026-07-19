@@ -7,7 +7,9 @@ import { renderHook } from "@testing-library/react";
 // which jest.config maps to the TypeScript source (the ESM dist barrel is not
 // transformable by ts-jest). No mock needed.
 
-const mockNodes = [
+type MockNode = { id: string; type: string; data: Record<string, unknown> };
+
+const baseNodes: MockNode[] = [
   { id: "n1", type: "fal.Image", data: {} },
   { id: "n2", type: "kie.Video", data: {} },
   // Uses an AI model via a language_model property but has no unit pricing.
@@ -15,6 +17,9 @@ const mockNodes = [
   // Plain data node — no model, no pricing. Excluded from the estimate.
   { id: "n4", type: "nodetool.text.Concat", data: {} }
 ];
+
+// Reassigned per-test to vary the graph the hook sees.
+let mockNodes: MockNode[] = baseNodes;
 
 const mockNodeStore = {
   subscribe: () => () => {},
@@ -63,8 +68,15 @@ jest.mock("../../stores/MetadataStore", () => ({
 }));
 
 import { useWorkflowCostEstimate } from "../useWorkflowCostEstimate";
+import { useBudgetStore } from "../../stores/BudgetStore";
 
 describe("useWorkflowCostEstimate", () => {
+  beforeEach(() => {
+    mockNodes = baseNodes;
+    // "off" so derived fan-out quantities are applied (the default is "draft").
+    useBudgetStore.setState({ draftMode: "off" });
+  });
+
   it("estimates cost from AI-model nodes + metadata", () => {
     const { result } = renderHook(() => useWorkflowCostEstimate("wf1"));
 
@@ -84,5 +96,29 @@ describe("useWorkflowCostEstimate", () => {
       (i) => i.node_type === "nodetool.llm.Agent"
     );
     expect(unknown?.confidence).toBe("unknown");
+  });
+
+  it("multiplies a node's cost by its fan-out output count", () => {
+    // fal.Image at 0.05/image with num_images: 3 → quantity 3, cost 0.15.
+    mockNodes = [{ id: "n1", type: "fal.Image", data: { num_images: 3 } }];
+
+    const { result } = renderHook(() => useWorkflowCostEstimate("wf1"));
+
+    const item = result.current!.items.find((i) => i.node_id === "n1");
+    expect(item?.quantity).toBe(3);
+    expect(item?.estimated_cost).toBeCloseTo(0.15, 5);
+    expect(result.current!.total).toBeCloseTo(0.15, 5);
+  });
+
+  it("draft mode forces every quantity to 1, ignoring fan-out", () => {
+    mockNodes = [{ id: "n1", type: "fal.Image", data: { num_images: 3 } }];
+    useBudgetStore.setState({ draftMode: "draft" });
+
+    const { result } = renderHook(() => useWorkflowCostEstimate("wf1"));
+
+    const item = result.current!.items.find((i) => i.node_id === "n1");
+    expect(item?.quantity).toBe(1);
+    expect(item?.estimated_cost).toBeCloseTo(0.05, 5);
+    expect(result.current!.total).toBeCloseTo(0.05, 5);
   });
 });

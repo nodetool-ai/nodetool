@@ -24,8 +24,13 @@ import {
   Thread,
   LanguageModel,
   TodoItem,
-  PermissionMode
+  PermissionMode,
+  NodeUpdate
 } from "./ApiTypes";
+import useResultsStore from "./ResultsStore";
+import useWorkflowRunsStore from "./WorkflowRunsStore";
+import { syncBudgetSpentFromProviderCosts } from "../hooks/useLiveRunCost";
+import type { WebSocketMessage } from "../lib/websocket/GlobalWebSocketManager";
 import {
   sendPlanApprovalResponse,
   sendToolApprovalResponse
@@ -350,6 +355,52 @@ let connectPromise: Promise<void> | null = null;
 //   proceed independently.
 const inFlightMessageLoads = new Map<string, Promise<Message[]>>();
 
+/**
+ * Chat-initiated workflow runs stream `node_update`s over the chat socket, not
+ * through the editor's `handleUpdate` pipeline — so their run never registers as
+ * the focused job and their provider costs never land in ResultsStore under the
+ * workflow id. That left the CostTicker (rendered in Global Chat) stuck at $0.
+ *
+ * Mirror the editor path here: register the run so `useLiveRunCost(workflowId)`
+ * follows it, record any provider charge, and refresh the session budget spend.
+ */
+const captureChatRunSpend = (
+  data: WebSocketMessage,
+  threadId: string,
+  get: () => GlobalChatState
+): void => {
+  if (data.type !== "node_update") {
+    return;
+  }
+  // job_id / workflow_id are stamped onto the wire message by the relay; the
+  // NodeUpdate type carries provider_cost and node_id.
+  const update = data as unknown as NodeUpdate;
+  const jobId = data.job_id;
+  const workflowId =
+    data.workflow_id ?? get().threadWorkflowId[threadId] ?? undefined;
+  if (!workflowId || !jobId) {
+    return;
+  }
+
+  const runsStore = useWorkflowRunsStore.getState();
+  if (!runsStore.hasRun(workflowId, jobId)) {
+    runsStore.recordRun({
+      jobId,
+      workflowId,
+      state: "running",
+      startedAt: Date.now(),
+      label: jobId
+    });
+  }
+
+  if (update.provider_cost) {
+    useResultsStore
+      .getState()
+      .setProviderCost(workflowId, jobId, update.node_id, update.provider_cost);
+    syncBudgetSpentFromProviderCosts();
+  }
+};
+
 const useGlobalChatStore = create<GlobalChatState>()(
   persist<GlobalChatState>(
     (set, get) => ({
@@ -629,6 +680,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           threadSubscriptions[threadId] = globalWebSocketManager.subscribe(
             threadId,
             (data) => {
+              captureChatRunSpend(data, threadId, get);
               handleChatWebSocketMessage(data, set, get, threadId);
             }
           );
@@ -806,6 +858,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
         // otherwise streamed chunks/messages will be routed with no handler.
         if (!get().wsThreadSubscriptions[threadId]) {
           const unsub = globalWebSocketManager.subscribe(tid, (data) => {
+            captureChatRunSpend(data, tid, get);
             handleChatWebSocketMessage(data, set, get, tid);
           });
           set((state) => {
@@ -1045,6 +1098,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
           existingUnsub();
         }
         const newUnsub = globalWebSocketManager.subscribe(id, (data) => {
+          captureChatRunSpend(data, id, get);
           handleChatWebSocketMessage(data, set, get, id);
         });
 
@@ -1085,6 +1139,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
         if (!get().wsThreadSubscriptions[threadId]) {
           const unsub = globalWebSocketManager.subscribe(threadId, (data) => {
+            captureChatRunSpend(data, threadId, get);
             handleChatWebSocketMessage(data, set, get, threadId);
           });
           set((state) => {
