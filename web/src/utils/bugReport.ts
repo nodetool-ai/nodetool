@@ -22,35 +22,39 @@ const DATA_URI_RE = /^data:([\w/+.-]+)?(;base64)?,/i;
 
 const REDACTED = "«redacted»";
 
+/** Narrow an unknown to an indexable object (excludes null; arrays pass). */
+function isObjectLike(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && !!value;
+}
+
 /** True for model-selection values like { type: "image_model", provider, id, name }. */
 function isModelValue(
   value: unknown
 ): value is { type: string; provider?: unknown; id?: unknown; name?: unknown } {
   return (
-    typeof value === "object" &&
-    value !== null &&
-    typeof (value as { type?: unknown }).type === "string" &&
-    (value as { type: string }).type.endsWith("_model")
+    isObjectLike(value) &&
+    typeof value.type === "string" &&
+    value.type.endsWith("_model")
   );
 }
+
+const ASSET_TYPES = new Set([
+  "image",
+  "video",
+  "audio",
+  "document",
+  "folder",
+  "asset"
+]);
 
 /** True for asset refs like { type: "image", uri, asset_id }. */
 function isAssetRef(
   value: unknown
 ): value is { type: string; uri?: unknown; asset_id?: unknown } {
-  const assetTypes = new Set([
-    "image",
-    "video",
-    "audio",
-    "document",
-    "folder",
-    "asset"
-  ]);
   return (
-    typeof value === "object" &&
-    value !== null &&
-    typeof (value as { type?: unknown }).type === "string" &&
-    assetTypes.has((value as { type: string }).type)
+    isObjectLike(value) &&
+    typeof value.type === "string" &&
+    ASSET_TYPES.has(value.type)
   );
 }
 
