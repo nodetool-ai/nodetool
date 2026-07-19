@@ -49,7 +49,7 @@ import {
   mixerOverV1
 } from "@nodetool-ai/gpu/pool";
 import { IS_NODE } from "@nodetool-ai/config";
-import { runShaderNode, runRecipeNode } from "./lib-shader-utils.js";
+import { runShaderNode, runRecipeNode, colorValueToVec4, premultiplyVec4 } from "./lib-shader-utils.js";
 import {
   decodeRgba,
   rawRgbaImageRef,
@@ -1196,16 +1196,35 @@ export class ResizeNode extends TransformImageNode {
   }
 }
 
+function anchorOffset(
+  anchor: string,
+  canvasW: number,
+  canvasH: number,
+  srcW: number,
+  srcH: number
+): [number, number] {
+  let x: number;
+  let y: number;
+  if (anchor.includes("left")) x = 0;
+  else if (anchor.includes("right")) x = canvasW - srcW;
+  else x = Math.floor((canvasW - srcW) / 2);
+  if (anchor.includes("top")) y = 0;
+  else if (anchor.includes("bottom")) y = canvasH - srcH;
+  else y = Math.floor((canvasH - srcH) / 2);
+  return [x, y];
+}
+
 export class CanvasResizeNode extends TransformImageNode {
   static readonly nodeType = "nodetool.image.CanvasResize";
   static readonly title = "Canvas Resize";
   static readonly description =
-    "Expand the canvas around an image without scaling its pixels.\n    canvas, resize, pad, outpaint, expand";
+    "Expand the canvas around an image without scaling its pixels.\n    canvas, resize, pad, outpaint, expand, anchor";
   static readonly metadataOutputTypes = {
     output: "image"
   };
   static readonly inlineFields = [
     "mode",
+    "anchor",
     "width",
     "height",
     "scale",
@@ -1213,7 +1232,8 @@ export class CanvasResizeNode extends TransformImageNode {
     "top",
     "bottom",
     "left",
-    "right"
+    "right",
+    "color"
   ];
   static readonly inputFields = ["image"];
 
@@ -1239,6 +1259,26 @@ export class CanvasResizeNode extends TransformImageNode {
     description: "How to resize the canvas."
   })
   declare mode: any;
+
+  @prop({
+    type: "enum",
+    default: "center",
+    values: [
+      "top-left",
+      "top",
+      "top-right",
+      "left",
+      "center",
+      "right",
+      "bottom-left",
+      "bottom",
+      "bottom-right"
+    ],
+    title: "Anchor",
+    description:
+      "Where to place the original image on the new canvas (fixed/scale modes)."
+  })
+  declare anchor: any;
 
   @prop({
     type: "int",
@@ -1319,11 +1359,20 @@ export class CanvasResizeNode extends TransformImageNode {
   })
   declare right: any;
 
+  @prop({
+    type: "color",
+    default: { type: "color", value: "#00000000" },
+    title: "Fill Color",
+    description: "Background color for the expanded canvas area."
+  })
+  declare color: any;
+
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const image = (this.image ?? {}) as ImageRefLike;
     const { width: srcW, height: srcH } = await decodeRgba(image, context);
     if (!srcW || !srcH) return { output: image };
     const mode = String(this.mode ?? "padding");
+    const anchor = String(this.anchor ?? "center");
 
     let canvasW: number;
     let canvasH: number;
@@ -1333,14 +1382,12 @@ export class CanvasResizeNode extends TransformImageNode {
     if (mode === "fixed") {
       canvasW = Math.max(1, Math.floor(Number(this.width ?? srcW)));
       canvasH = Math.max(1, Math.floor(Number(this.height ?? srcH)));
-      offsetX = Math.floor((canvasW - srcW) / 2);
-      offsetY = Math.floor((canvasH - srcH) / 2);
+      [offsetX, offsetY] = anchorOffset(anchor, canvasW, canvasH, srcW, srcH);
     } else if (mode === "scale") {
       const scale = Number(this.scale ?? 0) > 0 ? Number(this.scale ?? 1) : 1;
       canvasW = Math.max(1, Math.round(srcW * scale));
       canvasH = Math.max(1, Math.round(srcH * scale));
-      offsetX = Math.floor((canvasW - srcW) / 2);
-      offsetY = Math.floor((canvasH - srcH) / 2);
+      [offsetX, offsetY] = anchorOffset(anchor, canvasW, canvasH, srcW, srcH);
     } else {
       const unit = String(this.padding_unit ?? "px");
       const toPx = (val: number, dim: number): number =>
@@ -1357,19 +1404,28 @@ export class CanvasResizeNode extends TransformImageNode {
       offsetY = top;
     }
 
-    // When the requested canvas is smaller than the source on an axis, padding
-    // alone can't shrink it — crop the source centrally to the canvas on that
-    // axis first (converting px → the crop shader's normalized-UV params the
-    // same way CropNode does), so fixed/scale modes always yield exactly
-    // canvasW × canvasH instead of silently returning the source size.
+    const [cr, cg, cb, ca] = premultiplyVec4(
+      colorValueToVec4(this.color, [0, 0, 0, 0])
+    );
+    const fillColor = d.vec4f(cr, cg, cb, ca);
+
+    // When the requested canvas is smaller than the source on an axis, crop
+    // the source to fit, anchored according to the anchor setting.
     let source: unknown = image;
     let baseW = srcW;
     let baseH = srcH;
     const cropW = Math.min(srcW, canvasW);
     const cropH = Math.min(srcH, canvasH);
     if (cropW < srcW || cropH < srcH) {
-      const cropX = Math.floor((srcW - cropW) / 2);
-      const cropY = Math.floor((srcH - cropH) / 2);
+      const [cropOffX, cropOffY] = anchorOffset(
+        anchor,
+        srcW,
+        srcH,
+        cropW,
+        cropH
+      );
+      const cropX = cropOffX;
+      const cropY = cropOffY;
       source = await runShaderNode(
         transformCropV1,
         {
@@ -1384,16 +1440,15 @@ export class CanvasResizeNode extends TransformImageNode {
       );
       baseW = cropW;
       baseH = cropH;
-      // Re-centre the placement against the cropped source so the pads below
-      // stay non-negative on every axis.
-      offsetX = Math.floor((canvasW - baseW) / 2);
-      offsetY = Math.floor((canvasH - baseH) / 2);
+      [offsetX, offsetY] = anchorOffset(
+        anchor,
+        canvasW,
+        canvasH,
+        baseW,
+        baseH
+      );
     }
 
-    // Pad placing the (possibly cropped) source at (offsetX, offsetY) in the
-    // larger canvas. The pad shader works in normalized-UV units relative to the
-    // source; output dims are derived from those (we also pass the absolute
-    // target as the host size).
     const leftPad = Math.max(0, offsetX);
     const topPad = Math.max(0, offsetY);
     const rightPad = Math.max(0, canvasW - baseW - offsetX);
@@ -1405,7 +1460,7 @@ export class CanvasResizeNode extends TransformImageNode {
         top: topPad / baseH,
         right: rightPad / baseW,
         bottom: bottomPad / baseH,
-        color: d.vec4f(0, 0, 0, 0)
+        color: fillColor
       },
       source,
       {
