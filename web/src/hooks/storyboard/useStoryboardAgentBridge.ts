@@ -155,12 +155,6 @@ export const useStoryboardAgentBridge = (
         return toShotNode(reRead(shot.id));
       },
 
-      approveShot(target) {
-        const shot = requireShot(target);
-        store().approveShot(boardId, shot.id);
-        return toShotNode(reRead(shot.id));
-      },
-
       async generateClip(target) {
         const shot = requireShot(target);
         await generateClip(boardId, shot);

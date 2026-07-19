@@ -6,8 +6,9 @@
  * clip, viewable in place. The galleries reuse {@link OutputRenderer} — the
  * same component that renders node results — so an array of stills gets the
  * asset grid (double-click opens the fullscreen viewer) and clips get the
- * standard video players. Chips above each gallery pick the selected
- * still/clip the card and export use.
+ * standard video players. Still thumbnails and take chips above each gallery
+ * pick the selected still/clip — the one the card shows, the clip render
+ * animates, and export uses.
  */
 
 import React, { memo, useCallback, useMemo, useState } from "react";
@@ -23,7 +24,8 @@ import {
   FlexColumn,
   FlexRow,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  BORDER_RADIUS
 } from "../ui_primitives";
 import OutputRenderer from "../node/OutputRenderer";
 import {
@@ -43,6 +45,32 @@ const styles = (theme: Theme) =>
     display: "flex",
     flexDirection: "column",
     gap: getSpacingPx(SPACING.xs),
+    ".take-thumb": {
+      width: "64px",
+      aspectRatio: "16 / 9",
+      padding: 0,
+      overflow: "hidden",
+      cursor: "pointer",
+      borderRadius: BORDER_RADIUS.sm,
+      border: `1px solid ${theme.vars.palette.divider}`,
+      backgroundColor: theme.vars.palette.c_overlay_subtle,
+      display: "grid",
+      placeItems: "center",
+      color: theme.vars.palette.text.secondary,
+      "& img": {
+        width: "100%",
+        height: "100%",
+        objectFit: "cover",
+        display: "block"
+      },
+      "&[aria-pressed='true']": {
+        borderColor: theme.vars.palette.primary.main,
+        boxShadow: `0 0 0 1px ${theme.vars.palette.primary.main}`
+      },
+      "&:disabled": {
+        cursor: "default"
+      }
+    },
     ".takes-viewer": {
       display: "flex",
       flexDirection: "column",
@@ -137,17 +165,20 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
       </FlexRow>
 
       {stills.length > 1 && (
-        <FlexRow gap={0.5} align="center" wrap className="still-chips">
+        <FlexRow gap={0.5} align="center" wrap className="still-thumbs">
           <Caption color="secondary">Stills</Caption>
           {stills.map((still, i) => (
-            <Chip
+            <button
               key={versionKey(still, i)}
-              compact
-              clickable={!readOnly}
-              color={i === selectedStill ? "primary" : "default"}
-              label={`${i + 1}`}
-              onClick={readOnly ? undefined : () => handleSelectStill(i)}
-            />
+              type="button"
+              className="take-thumb"
+              aria-label={`Use still ${i + 1}`}
+              aria-pressed={i === selectedStill}
+              disabled={readOnly}
+              onClick={() => handleSelectStill(i)}
+            >
+              {still.uri ? <img src={still.uri} alt="" /> : <span>{i + 1}</span>}
+            </button>
           ))}
         </FlexRow>
       )}
@@ -161,7 +192,7 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
               compact
               clickable={!readOnly}
               color={i === selectedClip ? "primary" : "default"}
-              label={`${i + 1}`}
+              label={`Take ${i + 1}`}
               onClick={readOnly ? undefined : () => handleSelectClip(i)}
             />
           ))}

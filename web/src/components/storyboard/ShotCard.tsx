@@ -4,8 +4,10 @@
  *
  * One shot in the storyboard grid: its slug + index, action text, camera line,
  * the keyframe still (or a placeholder), the rendered clip when present, a
- * status indicator, an optional cost chip, and the plan → still → approve →
- * clip action buttons.
+ * status indicator, an optional cost chip, and the still → clip action
+ * buttons. There is no approval step: the selected still (see
+ * {@link ShotTakesGallery}) is what the clip render uses, so a shot is ready
+ * for video as soon as it has a still.
  */
 
 import React, { memo, useCallback } from "react";
@@ -48,7 +50,8 @@ const STATUS_META: Record<ShotStatus, { status: StatusType; label: string; pulse
   planned: { status: "default", label: "Planned" },
   keyframe_generating: { status: "pending", label: "Generating still…", pulse: true },
   keyframe_ready: { status: "info", label: "Still ready" },
-  approved: { status: "success", label: "Approved" },
+  // Legacy status from the removed approval step; same meaning as a ready still.
+  approved: { status: "info", label: "Still ready" },
   clip_generating: { status: "pending", label: "Rendering…", pulse: true },
   rendered: { status: "success", label: "Rendered" },
   failed: { status: "error", label: "Failed" }
@@ -138,7 +141,6 @@ const EMPTY_IDS: string[] = [];
 
 const ShotCardInner: React.FC<ShotCardProps> = ({ boardId, shot, readOnly }) => {
   const theme = useTheme();
-  const approveShot = useStoryboardStore((state) => state.approveShot);
   const toggleShotEntity = useStoryboardStore((state) => state.toggleShotEntity);
   const boardEntityIds = useStoryboardStore(
     (state) => state.boards[boardId]?.entityIds ?? EMPTY_IDS
@@ -163,10 +165,6 @@ const ShotCardInner: React.FC<ShotCardProps> = ({ boardId, shot, readOnly }) => 
   const handleGenerateStill = useCallback(() => {
     void generateKeyframe(boardId, shot);
   }, [generateKeyframe, boardId, shot]);
-
-  const handleApprove = useCallback(() => {
-    approveShot(boardId, shot.id);
-  }, [approveShot, boardId, shot.id]);
 
   const handleGenerateClip = useCallback(() => {
     void generateClip(boardId, shot);
@@ -276,26 +274,20 @@ const ShotCardInner: React.FC<ShotCardProps> = ({ boardId, shot, readOnly }) => 
               onClick={handleGenerateStill}
               disabled={isGenerating}
             >
-              {shot.keyframe ? "Regenerate" : "Generate still"}
+              {shot.keyframe ? "New still" : "Generate still"}
             </EditorButton>
             <EditorButton
-              onClick={handleApprove}
-              disabled={shot.status !== "keyframe_ready"}
+              onClick={handleGenerateClip}
+              disabled={isGenerating || !shot.keyframe}
+              title={
+                shot.keyframe
+                  ? "Animate the selected still into a clip"
+                  : "Generate a still first"
+              }
             >
-              Approve
+              {shot.clip ? "New clip" : "Generate clip"}
             </EditorButton>
           </FlexRow>
-          <EditorButton
-            onClick={handleGenerateClip}
-            disabled={
-              isGenerating ||
-              !shot.keyframe ||
-              (shot.status !== "approved" && shot.status !== "rendered")
-            }
-            fullWidth
-          >
-            {shot.clip ? "New take" : "Generate clip"}
-          </EditorButton>
           {shot.clip && (
             <EditorButton
               onClick={handleRevise}

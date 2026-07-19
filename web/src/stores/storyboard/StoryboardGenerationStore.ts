@@ -332,7 +332,7 @@ export const settleCancelledShotJob = (shotId: string): void => {
           : "planned"
         : shot.clip
           ? "rendered"
-          : "approved";
+          : "keyframe_ready";
     storyboard.setShotStatus(job.boardId, shotId, status);
   }
   useStoryboardGenerationStore.getState().clear(shotId);

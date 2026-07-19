@@ -77,14 +77,16 @@ export function isEntity(value: unknown): value is Entity {
 // ---------------------------------------------------------------------------
 
 /**
- * Lifecycle of a single shot as it moves through plan → cheap still → approval
- * → expensive render. Drives the storyboard card state and cost gating.
+ * Lifecycle of a single shot as it moves through plan → cheap still →
+ * expensive render. Drives the storyboard card state and cost gating: the
+ * user picks the still they like (`keyframe`), and the clip render animates
+ * that selection.
  */
 export type ShotStatus =
   | "planned" // exists in the direction, nothing generated yet
   | "keyframe_generating"
-  | "keyframe_ready" // still rendered — cheap, awaiting approval
-  | "approved" // user approved the still; cleared for video spend
+  | "keyframe_ready" // still rendered — cheap; pick one, then spend on video
+  | "approved" // legacy (pre-selection approval step); treated as keyframe_ready
   | "clip_generating"
   | "rendered" // final clip generated
   | "failed";
