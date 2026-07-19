@@ -342,7 +342,7 @@ const ThemeNodetool = createTheme({
           // minHeight, so padding and minWidth come along too.
           minHeight: "40px",
           minWidth: "auto",
-          padding: "8px 16px",
+          padding: theme.spacing(2, 4), // 8px 16px — matches TabGroup
           fontSize: theme.fontSizeSmall, // 13px — label
           fontWeight: 600, // matches TabGroup
           textTransform: "none"
