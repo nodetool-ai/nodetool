@@ -50,6 +50,7 @@ import {
   hasActiveAnimation,
   isClipActive,
   resolveAnimatedLayerProps,
+  resolveTextStaggerContext,
   trackZ,
   PREVIEW_OVERLAY_Z,
   MAX_VIDEO_LAYERS
@@ -886,7 +887,7 @@ export const PreviewCompositor: React.FC = memo(() => {
           transform: anim.transform,
           mask: anim.mask,
           borderRadius: slot.borderRadius,
-          effects: slot.effects,
+          effects: anim.effects ?? slot.effects,
           trackEffects: slot.trackEffects
         });
       });
@@ -913,7 +914,7 @@ export const PreviewCompositor: React.FC = memo(() => {
           transform: anim.transform,
           mask: anim.mask,
           borderRadius: layer.borderRadius,
-          effects: layer.effects,
+          effects: anim.effects ?? layer.effects,
           trackEffects: layer.trackEffects
         });
       }
@@ -946,13 +947,19 @@ export const PreviewCompositor: React.FC = memo(() => {
       }
 
       for (const layer of activeTextLayers) {
+        const clip = clipById.get(layer.clipId);
+        // Staggered per-word motion is drawn into the raster itself; block
+        // animations still resolve at the layer below.
+        const stagger = clip
+          ? resolveTextStaggerContext(clip, atMs, canvas, cache)
+          : null;
         const bitmap = textRasterizerRef.current.rasterize(
           layer.textStyle,
           sequenceWidth,
-          sequenceHeight
+          sequenceHeight,
+          stagger
         );
         if (!bitmap) continue;
-        const clip = clipById.get(layer.clipId);
         const anim = clip
           ? resolveAnimatedLayerProps(
               { clip, transform: layer.transform, opacity: layer.opacity },
@@ -970,7 +977,7 @@ export const PreviewCompositor: React.FC = memo(() => {
           transform: anim.transform,
           mask: anim.mask,
           borderRadius: layer.borderRadius,
-          effects: layer.effects,
+          effects: anim.effects ?? layer.effects,
           trackEffects: layer.trackEffects
         });
       }
@@ -1000,7 +1007,7 @@ export const PreviewCompositor: React.FC = memo(() => {
           transform: anim.transform,
           mask: anim.mask,
           borderRadius: layer.borderRadius,
-          effects: layer.effects,
+          effects: anim.effects ?? layer.effects,
           trackEffects: layer.trackEffects
         });
       }

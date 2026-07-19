@@ -260,6 +260,17 @@ export const clipAnimation = z.object({
   enabled: z.boolean().optional(),
   params: z
     .record(z.string(), z.union([z.number(), z.string(), z.boolean()]))
+    .optional(),
+  /** Per-word stagger on a text clip's animation. `unit` is a plain string on
+   * the wire (only "word" is implemented; unknown units compile un-staggered)
+   * for the same forward compat as `preset`. Without this field Zod strips it
+   * on every PATCH, silently flattening staggered titles into block motion. */
+  stagger: z
+    .object({
+      unit: z.string(),
+      offsetMs: z.number(),
+      from: z.enum(["start", "end", "center"]).optional()
+    })
     .optional()
 });
 export type ClipAnimation = z.infer<typeof clipAnimation>;

@@ -45,6 +45,23 @@ describe("buildClipAnimation", () => {
     ).toThrow(/delayMs must be a non-negative finite number/);
   });
 
+  it("passes a valid stagger through and rejects bad ones", () => {
+    const anim = buildClipAnimation({
+      role: "in",
+      preset: "pop",
+      stagger: { unit: "word", offsetMs: 120, from: "center" }
+    });
+    expect(anim.stagger).toEqual({ unit: "word", offsetMs: 120, from: "center" });
+
+    expect(() =>
+      buildClipAnimation({
+        role: "in",
+        preset: "fade",
+        stagger: { unit: "word", offsetMs: 0 }
+      })
+    ).toThrow(/offsetMs must be a positive finite number/);
+  });
+
   it("generates a distinct id per call", () => {
     const a = buildClipAnimation({ role: "loop", preset: "float" });
     const b = buildClipAnimation({ role: "loop", preset: "float" });

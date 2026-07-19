@@ -22,7 +22,9 @@ import type {
 } from "@nodetool-ai/timeline";
 import {
   compileClipAnimations,
+  countStaggerUnits,
   hasActiveAnimationWindow,
+  hasStaggeredAnimation,
   sampleAnimations
 } from "@nodetool-ai/timeline";
 import type { CompositorBlendMode } from "./gpu/types";
@@ -456,6 +458,12 @@ export interface AnimatedLayerProps {
   opacity: number;
   /** Wipe mask to apply in the compositor. Absent means unmasked. */
   mask?: AnimationSampleMask;
+  /**
+   * Effects to feed the compositor's per-layer effect pre-pass: the clip's
+   * static `effects` with any animated blur/brightness/saturation composed in.
+   * Equal to the clip's own `effects` when no effect animation is active.
+   */
+  effects?: ClipEffect[];
 }
 
 interface CompileCacheEntry {
@@ -465,6 +473,8 @@ interface CompileCacheEntry {
   durationMs: number;
   canvasW: number;
   canvasH: number;
+  /** Word count of a text clip (stagger span math depends on it). 0 otherwise. */
+  staggerCount: number;
   compiled: CompiledAnimation[];
 }
 
@@ -479,6 +489,13 @@ export function createAnimationCompileCache(): AnimationCompileCache {
   return new Map();
 }
 
+/** Stagger unit count for a clip: text clips split into words, others 0. */
+function clipStaggerCount(clip: TimelineClip): number {
+  return clip.mediaType === "text" && clip.textStyle
+    ? countStaggerUnits(clip.textStyle.text)
+    : 0;
+}
+
 function compiledFor(
   clip: TimelineClip,
   canvas: { width: number; height: number },
@@ -486,6 +503,7 @@ function compiledFor(
 ): CompiledAnimation[] {
   const animations = clip.animations;
   if (!animations || animations.length === 0) return [];
+  const staggerCount = clipStaggerCount(clip);
   if (cache) {
     const hit = cache.get(clip.id);
     if (
@@ -493,21 +511,27 @@ function compiledFor(
       hit.animationsRef === animations &&
       hit.durationMs === clip.durationMs &&
       hit.canvasW === canvas.width &&
-      hit.canvasH === canvas.height
+      hit.canvasH === canvas.height &&
+      hit.staggerCount === staggerCount
     ) {
       return hit.compiled;
     }
-    const compiled = compileClipAnimations(animations, clip.durationMs, canvas);
+    const compiled = compileClipAnimations(animations, clip.durationMs, canvas, {
+      staggerCount
+    });
     cache.set(clip.id, {
       animationsRef: animations,
       durationMs: clip.durationMs,
       canvasW: canvas.width,
       canvasH: canvas.height,
+      staggerCount,
       compiled
     });
     return compiled;
   }
-  return compileClipAnimations(animations, clip.durationMs, canvas);
+  return compileClipAnimations(animations, clip.durationMs, canvas, {
+    staggerCount
+  });
 }
 
 const IDENTITY_TRANSFORM: ClipTransform = {
@@ -534,7 +558,7 @@ export function resolveAnimatedLayerProps(
   const clip = layer.clip;
   const compiled = compiledFor(clip, canvas, cache);
   if (compiled.length === 0) {
-    return { transform: layer.transform, opacity: layer.opacity };
+    return { transform: layer.transform, opacity: layer.opacity, effects: clip.effects };
   }
 
   const s = sampleAnimations(compiled, currentTimeMs - clip.startMs);
@@ -544,9 +568,12 @@ export function resolveAnimatedLayerProps(
     s.scale === 1 &&
     s.rotation === 0 &&
     s.opacity === 1 &&
+    s.blur === 0 &&
+    s.brightness === 0 &&
+    s.saturation === 1 &&
     s.mask === undefined
   ) {
-    return { transform: layer.transform, opacity: layer.opacity };
+    return { transform: layer.transform, opacity: layer.opacity, effects: clip.effects };
   }
 
   const base = layer.transform ?? IDENTITY_TRANSFORM;
@@ -561,7 +588,69 @@ export function resolveAnimatedLayerProps(
   };
   // `s.mask` is freshly allocated per sampleAnimations call here (no scratch
   // is passed), so handing it out is safe.
-  return { transform, opacity: layer.opacity * s.opacity, mask: s.mask };
+  return {
+    transform,
+    opacity: layer.opacity * s.opacity,
+    mask: s.mask,
+    effects: composeAnimatedEffects(clip.effects, s.blur, s.brightness, s.saturation)
+  };
+}
+
+/**
+ * Fold the sampled effect values into the clip's static effects for the
+ * compositor pre-pass. The animated blur/brightness ADD to the aggregated blur
+ * radius / grade brightness (both additive terms in the pipeline) and the
+ * animated saturation MULTIPLIES the aggregated saturation — so a synthesized
+ * blur effect and a synthesized color effect appended to the static list land
+ * exactly on those aggregation rules (see `effectsProcessor` / `canvas2d`
+ * `computeFilterForEffects`). Returns the static array unchanged when the
+ * sampled values are identity (no allocation on the steady path).
+ */
+function composeAnimatedEffects(
+  staticEffects: ClipEffect[] | undefined,
+  blur: number,
+  brightness: number,
+  saturation: number
+): ClipEffect[] | undefined {
+  const hasColor = brightness !== 0 || saturation !== 1;
+  const hasBlur = blur > 0;
+  if (!hasColor && !hasBlur) return staticEffects;
+  const out: ClipEffect[] = staticEffects ? [...staticEffects] : [];
+  if (hasColor) {
+    out.push({ id: "anim-color", type: "color", enabled: true, brightness, saturation });
+  }
+  if (hasBlur) {
+    out.push({ id: "anim-blur", type: "blur", enabled: true, radius: blur });
+  }
+  return out;
+}
+
+/**
+ * Per-frame input the text rasterizer needs to draw a staggered text clip:
+ * the clip's compiled animations (at least one staggered) and the clip-local
+ * time. `null`/absent means the block raster path applies (cache by style).
+ */
+export interface TextStaggerContext {
+  compiled: CompiledAnimation[];
+  localMs: number;
+}
+
+/**
+ * Resolve the stagger context for a text layer at `currentTimeMs`, or `null`
+ * when the clip has no staggered animation. Shared by the live preview, the
+ * export renderer, and the agent frame harness so per-word motion is drawn
+ * from one code path (preview == export).
+ */
+export function resolveTextStaggerContext(
+  clip: TimelineClip,
+  currentTimeMs: number,
+  canvas: { width: number; height: number },
+  cache?: AnimationCompileCache
+): TextStaggerContext | null {
+  if (clip.mediaType !== "text") return null;
+  const compiled = compiledFor(clip, canvas, cache);
+  if (compiled.length === 0 || !hasStaggeredAnimation(compiled)) return null;
+  return { compiled, localMs: currentTimeMs - clip.startMs };
 }
 
 /**

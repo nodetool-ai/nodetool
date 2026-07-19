@@ -567,6 +567,14 @@ export const useTimelineAgentBridge = (active: boolean): void => {
 
       setClipAnimations(target, animations, mode) {
         const clip = requireClip(target);
+        if (
+          clip.mediaType !== "text" &&
+          animations.some((a) => a.stagger !== undefined)
+        ) {
+          throw new Error(
+            `Stagger applies only to text clips; "${clip.name}" is a ${clip.mediaType} clip. Omit stagger or target a text clip.`
+          );
+        }
         const built = animations.map(buildClipAnimation);
         const next =
           mode === "add" ? [...(clip.animations ?? []), ...built] : built;

@@ -283,7 +283,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_timeline_animate_clip",
   description:
-    'Attach motion-design animations to a clip — no keyframing, just named presets. Roles: `in` (entrance: fade, slide, pop, spin, wipe), `out` (exit: fade, slide, pop, spin, wipe), `emphasis` (mid-clip: pulse, shake, bounce), `loop` (continuous: kenBurns, float, breathe, rotate). Each animation: `role`, `preset`, optional `durationMs` (defaults per preset), `delayMs`, `easing`, and preset `params`. `mode` "replace" (default) swaps the clip\'s animations; "add" appends. Call ui_timeline_list_animation_presets for the full param list. Recommended loop: ui_timeline_get_state -> animate -> ui_timeline_get_clip_frames at the window boundaries -> adjust.',
+    'Attach motion-design animations to a clip — no keyframing, just named presets. Roles: `in` (entrance: fade, slide, pop, spin, wipe, blur, colorFade), `out` (exit: fade, slide, pop, spin, wipe, blur, colorFade), `emphasis` (mid-clip: pulse, flash, shake, bounce), `loop` (continuous: kenBurns, float, breathe, rotate). Each animation: `role`, `preset`, optional `durationMs` (defaults per preset), `delayMs`, `easing`, and preset `params`. On text clips, add `stagger` for per-word motion typography: each word runs the animation for `durationMs`, offset `stagger.offsetMs` from the previous word (`from`: start|end|center picks the leading word) — e.g. a pop-in title whose words land one after another. `mode` "replace" (default) swaps the clip\'s animations; "add" appends. Call ui_timeline_list_animation_presets for the full param list. Recommended loop: ui_timeline_get_state -> animate -> ui_timeline_get_clip_frames at the window boundaries -> adjust.',
   parameters: z.object({
     target: targetParam,
     mode: z.enum(["add", "replace"]).optional(),
@@ -299,7 +299,20 @@ FrontendToolRegistry.register({
           easing: z.string().optional(),
           params: z
             .record(z.string(), z.union([z.number(), z.string(), z.boolean()]))
+            .optional(),
+          stagger: z
+            .object({
+              unit: z.literal("word"),
+              offsetMs: z
+                .number()
+                .positive()
+                .describe("Delay between successive words in ms."),
+              from: z.enum(["start", "end", "center"]).optional()
+            })
             .optional()
+            .describe(
+              "Per-word stagger — text clips only. The animation runs once per word, each word offset from the previous."
+            )
         })
       )
       .min(1)

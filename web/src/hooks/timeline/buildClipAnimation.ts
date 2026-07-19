@@ -39,6 +39,19 @@ export function buildClipAnimation(input: ClipAnimationInput): ClipAnimation {
   ) {
     throw new Error("Animation delayMs must be a non-negative finite number.");
   }
+  if (input.stagger !== undefined) {
+    if (input.stagger.unit !== "word") {
+      throw new Error(
+        `Unknown stagger unit "${input.stagger.unit}". Only "word" is supported.`
+      );
+    }
+    if (
+      !Number.isFinite(input.stagger.offsetMs) ||
+      input.stagger.offsetMs <= 0
+    ) {
+      throw new Error("Stagger offsetMs must be a positive finite number.");
+    }
+  }
 
   const anim: ClipAnimation = {
     id: crypto.randomUUID(),
@@ -54,5 +67,12 @@ export function buildClipAnimation(input: ClipAnimationInput): ClipAnimation {
   }
   if (input.enabled !== undefined) anim.enabled = input.enabled;
   if (input.params !== undefined) anim.params = input.params;
+  if (input.stagger !== undefined) {
+    anim.stagger = {
+      unit: input.stagger.unit,
+      offsetMs: input.stagger.offsetMs,
+      ...(input.stagger.from !== undefined ? { from: input.stagger.from } : {})
+    };
+  }
   return anim;
 }
