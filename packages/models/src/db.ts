@@ -965,6 +965,20 @@ function getCreateSchemaSql(): string {
     CREATE INDEX IF NOT EXISTS "idx_storyboard_user" ON "storyboards" ("user_id");
     CREATE INDEX IF NOT EXISTS "idx_storyboard_project" ON "storyboards" ("project_id");
     CREATE INDEX IF NOT EXISTS "idx_storyboard_updated" ON "storyboards" ("updated_at");
+
+    CREATE TABLE IF NOT EXISTS "scripts" (
+      "id" text PRIMARY KEY NOT NULL,
+      "user_id" text NOT NULL,
+      "project_id" text NOT NULL,
+      "name" text NOT NULL,
+      "document" text NOT NULL,
+      "timeline_id" text,
+      "created_at" text NOT NULL,
+      "updated_at" text NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS "idx_script_user" ON "scripts" ("user_id");
+    CREATE INDEX IF NOT EXISTS "idx_script_project" ON "scripts" ("project_id");
+    CREATE INDEX IF NOT EXISTS "idx_script_updated" ON "scripts" ("updated_at");
   `;
 }
 

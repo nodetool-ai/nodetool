@@ -20,6 +20,7 @@ export type WorkspaceTabType =
   | "sketch"
   | "timeline"
   | "storyboard"
+  | "script"
   | "model3d"
   | "audio"
   | "text"

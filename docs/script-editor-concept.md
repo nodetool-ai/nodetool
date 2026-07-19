@@ -200,9 +200,13 @@ existing editor is a rewrite, not a feature.
 
 ## Phasing
 
-1. **Author + voice** — protocol schema, `scripts` table + tRPC, store +
-   autosave, workspace surface, cast panel, per-line voicing, take gallery,
-   play-through.
+1. **Author + voice** *(implemented)* — protocol schema
+   (`api-schemas/scripts.ts`), `scripts` table + tRPC (`scripts` router), store
+   + autosave (`ScriptStore`, `useScriptServerSync`), workspace surface
+   (`ScriptSurface`, `script` tab type), cast panel, per-line voicing
+   (`scriptVoicing`, reusing `generate_media` / `transcribe_audio`), take
+   gallery, play-through. The document pane is a plain per-line editor rather
+   than the Lexical transcript editor — that reuse is deferred to a later pass.
 2. **To timeline** — assemble with linkage keys, staleness, per-line
    back-sync, re-assemble on structural drift, extract-as-script.
 3. **Automation** — `ui_script_*` agent tools + assistant panel, `ScriptRef` +

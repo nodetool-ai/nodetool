@@ -12,6 +12,7 @@ import { modelsRouter } from "./routers/models.js";
 import { nodesRouter } from "./routers/nodes.js";
 import { packsRouter } from "./routers/packs.js";
 import { sandboxesRouter } from "./routers/sandboxes.js";
+import { scriptsRouter } from "./routers/scripts.js";
 import { settingsRouter } from "./routers/settings.js";
 import { skillsRouter, fontsRouter } from "./routers/skills.js";
 import { storageRouter } from "./routers/storage.js";
@@ -41,6 +42,7 @@ export const appRouter = router({
   nodes: nodesRouter,
   packs: packsRouter,
   sandboxes: sandboxesRouter,
+  scripts: scriptsRouter,
   settings: settingsRouter,
   sketch: sketchRouter,
   storyboards: storyboardsRouter,
