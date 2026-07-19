@@ -430,7 +430,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
       const response = await fetch(url, {
         method: "POST",
         headers: {
-          ...(headers as Record<string, string>),
+          ...headers,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({ asset_ids: ids })

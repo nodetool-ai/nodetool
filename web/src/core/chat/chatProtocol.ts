@@ -1256,7 +1256,7 @@ export async function handleChatWebSocketMessage(
   // wins, else the subscription key it was routed under (every chat handler
   // is registered per thread), else the current thread.
   const tid: string | null =
-    (data as { thread_id?: string | null }).thread_id ??
+    msg.thread_id ??
     routedThreadId ??
     currentState.currentThreadId ??
     null;

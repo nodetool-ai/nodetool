@@ -7,7 +7,7 @@
  */
 
 import { create } from "zustand";
-import { NodeMetadata } from "./ApiTypes";
+import { NodeMetadata, TypeName } from "./ApiTypes";
 import useMetadataStore from "./MetadataStore";
 
 interface QuickAddNodeState {
@@ -16,16 +16,16 @@ interface QuickAddNodeState {
   searchResults: NodeMetadata[];
   /** Currently selected result index for keyboard navigation */
   selectedIndex: number;
-  selectedInputType: string;
-  selectedOutputType: string;
+  selectedInputType: TypeName;
+  selectedOutputType: TypeName;
   /** Position where the node should be placed */
   position?: { x: number; y: number };
 
   openDialog: (params?: { x?: number; y?: number }) => void;
   closeDialog: () => void;
   setSearchTerm: (term: string) => void;
-  setSelectedInputType: (inputType: string) => void;
-  setSelectedOutputType: (outputType: string) => void;
+  setSelectedInputType: (inputType: TypeName) => void;
+  setSelectedOutputType: (outputType: TypeName) => void;
   setSelectedIndex: (index: number) => void;
   moveSelectionUp: () => void;
   moveSelectionDown: () => void;
