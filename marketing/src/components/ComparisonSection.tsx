@@ -17,7 +17,7 @@ export default function ComparisonSection({
       className="relative py-24"
     >
       <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
-        <header className="mb-14 max-w-3xl">
+        <header className="scroll-fade mb-14 max-w-3xl">
           <div className="mb-3 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-blue-300/80">
             <span className="h-px w-8 bg-amber-300/60" />
             Comparison
@@ -44,7 +44,7 @@ export default function ComparisonSection({
           </motion.p>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-slate-800/60 border border-slate-800/80 rounded-2xl overflow-hidden">
+        <div className="scroll-fade grid grid-cols-1 md:grid-cols-3 gap-px bg-slate-800/60 border border-slate-800/80 rounded-2xl overflow-hidden">
           <ComparisonCard
             competitor="ComfyUI"
             sentence="ComfyUI is a node editor for image-generation models. NodeTool is the studio around it: image, video, music, and words on one canvas, every major model a click away."
@@ -71,7 +71,7 @@ export default function ComparisonSection({
           whileInView={reducedMotion ? {} : { opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.3, delay: 0.08 }}
-          className="relative mt-10 rounded-2xl border border-slate-800/80 bg-slate-950/40 px-8 py-10 md:px-12 md:py-12"
+          className="scroll-fade relative mt-10 rounded-2xl border border-slate-800/80 bg-slate-950/40 px-8 py-10 md:px-12 md:py-12"
         >
           {/* Warm corner glow — single, subtle */}
           <div

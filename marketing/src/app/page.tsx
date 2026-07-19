@@ -162,7 +162,7 @@ export default function Home() {
 
   return (
     <main
-      className="relative min-h-screen overflow-hidden text-white"
+      className="relative min-h-screen overflow-clip-safe text-white"
       onKeyDown={onKeyDown}
     >
       {/* Background */}
@@ -238,7 +238,7 @@ export default function Home() {
 
       <div
         id="content"
-        className="relative isolate overflow-hidden pt-24 sm:pt-36 md:pt-24"
+        className="relative isolate overflow-clip-safe pt-24 sm:pt-36 md:pt-24"
       >
         {/* Hero */}
         <section aria-labelledby="hero-title" className="pt-2 relative">
@@ -256,7 +256,7 @@ export default function Home() {
               initial={false}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35, delay: 0.05, ease: "easeOut" }}
-              className="relative group"
+              className="scroll-fade relative group"
             >
               <div
                 className="absolute -inset-4 rounded-3xl opacity-60 blur-3xl transition-opacity duration-500 group-hover:opacity-80"
@@ -379,7 +379,7 @@ export default function Home() {
 
         {/* Closing CTA — end the page on the product, not the mailbox */}
         <section aria-labelledby="closing-cta-title" className="relative py-24">
-          <div className={`${sectionNarrow} text-center`}>
+          <div className={`scroll-fade ${sectionNarrow} text-center`}>
             <h2
               id="closing-cta-title"
               className="text-3xl md:text-4xl font-bold tracking-tight text-white"

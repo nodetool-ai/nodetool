@@ -44,9 +44,9 @@ export default function AssetManagerSection() {
     <section
       id="asset-manager"
       aria-labelledby="asset-title"
-      className="section-relative isolate overflow-hidden pb-16 pt-14 sm:pb-20"
+      className="section-relative isolate overflow-clip-safe pb-16 pt-14 sm:pb-20"
     >
-      <div className={`${sectionNarrow} text-center`}>
+      <div className={`scroll-fade ${sectionNarrow} text-center`}>
         <h2 className="text-base font-medium leading-7 text-blue-400">
           Organize Everything
         </h2>
@@ -59,7 +59,7 @@ export default function AssetManagerSection() {
       </div>
 
       <div className={`${sectionContainer} relative mt-12`}>
-        <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2">
+        <div className="scroll-fade grid grid-cols-1 items-center gap-12 lg:grid-cols-2">
           <div>
             <div
               className={`overflow-hidden rounded-lg border border-blue-800/30 ${strongShadow}`}
@@ -107,7 +107,7 @@ export default function AssetManagerSection() {
           </div>
         </div>
 
-        <div className="mt-16 grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div className="scroll-fade mt-16 grid grid-cols-1 gap-6 md:grid-cols-3">
           {[
             {
               icon: PhotoIcon,

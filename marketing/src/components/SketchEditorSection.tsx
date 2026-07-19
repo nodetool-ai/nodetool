@@ -31,13 +31,13 @@ export default function SketchEditorSection() {
     <section
       id="sketch-editor"
       aria-labelledby="sketch-title"
-      className="relative py-24 overflow-hidden"
+      className="relative py-24 overflow-clip-safe"
     >
       {/* Background glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[500px] bg-violet-900/20 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="mb-12 text-center max-w-3xl mx-auto">
+        <div className="scroll-fade mb-12 text-center max-w-3xl mx-auto">
           <motion.div
             initial={false}
             whileInView={{ opacity: 1, scale: 1 }}
@@ -77,7 +77,7 @@ export default function SketchEditorSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.3 }}
-          className="relative"
+          className="scroll-fade relative"
         >
           <div className="relative rounded-2xl border border-slate-700/60 bg-slate-900/80 overflow-hidden shadow-2xl shadow-violet-900/20 ring-1 ring-white/5 backdrop-blur-sm">
             <Image
