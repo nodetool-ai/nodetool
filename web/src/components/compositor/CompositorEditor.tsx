@@ -165,7 +165,7 @@ const CompositorEditorInner: React.FC<CompositorEditorProps> = ({
 
   const canvasLayers = useMemo<CanvasLayer[]>(
     () =>
-      layers.map((l) => ({
+      [...layers].reverse().map((l) => ({
         id: l.id,
         opacity: l.opacity,
         blendModeId: blendModeGpuId(l.blendMode),
@@ -232,9 +232,9 @@ const CompositorEditorInner: React.FC<CompositorEditorProps> = ({
     canvasHeight
   ]);
 
-  // Render the stack top-first (highest index on top of the composite).
+  // Render the stack top-first (lowest index on top of the composite).
   const stack = useMemo(
-    () => layers.map((l, i) => ({ layer: l, index: i })).reverse(),
+    () => layers.map((l, i) => ({ layer: l, index: i })),
     [layers]
   );
 
