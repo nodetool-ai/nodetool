@@ -116,6 +116,10 @@ const WorkflowCostEstimatePanelInternal: React.FC<
                 </ToggleOption>
               ))}
             </ToggleGroup>
+            <Caption sx={{ maxWidth: 320, opacity: 0.7 }}>
+              Affects the estimate only: Draft assumes one preview per node;
+              Off / Final use each node&apos;s configured output count.
+            </Caption>
           </FlexColumn>
         </FlexRow>
 

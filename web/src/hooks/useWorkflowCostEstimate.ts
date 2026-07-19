@@ -14,8 +14,12 @@ import { estimateWorkflowCost } from "@nodetool-ai/node-sdk/cost-estimate";
 import type { WorkflowCostEstimate } from "@nodetool-ai/protocol";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 import useMetadataStore from "../stores/MetadataStore";
+import { useBudgetStore } from "../stores/BudgetStore";
 import type { NodeData } from "../stores/NodeData";
-import { nodeMetadataUsesAiModel } from "../utils/aiModelNodes";
+import {
+  nodeExpectedQuantity,
+  nodeMetadataUsesAiModel
+} from "../utils/aiModelNodes";
 
 const EMPTY_NODES: Node<NodeData>[] = [];
 
@@ -26,6 +30,7 @@ export function useWorkflowCostEstimate(
     state.getNodeStore(workflowId)
   );
   const getMetadata = useMetadataStore((state) => state.getMetadata);
+  const draftMode = useBudgetStore((state) => state.draftMode);
 
   const subscribe = useCallback(
     (onChange: () => void) =>
@@ -45,6 +50,20 @@ export function useWorkflowCostEstimate(
     const aiNodes = nodes.filter((node) =>
       node.type ? nodeMetadataUsesAiModel(getMetadata(node.type)) : false
     );
+    // Draft mode estimates a single cheap preview (one output per node); off /
+    // final use each node's configured fan-out. Branching lives here so the
+    // estimator itself stays pure.
+    const quantities: Record<string, number> =
+      draftMode === "draft"
+        ? {}
+        : Object.fromEntries(
+            aiNodes.map((node) => [
+              node.id,
+              nodeExpectedQuantity(
+                node.data as Record<string, unknown> | undefined
+              )
+            ])
+          );
     return estimateWorkflowCost({
       nodes: aiNodes.map((node) => ({
         id: node.id,
@@ -52,9 +71,10 @@ export function useWorkflowCostEstimate(
         data: node.data as Record<string, unknown> | undefined
       })),
       getMetadata: (nodeType) => getMetadata(nodeType),
+      quantities,
       currency: "USD"
     });
-  }, [nodeStore, nodes, getMetadata]);
+  }, [nodeStore, nodes, getMetadata, draftMode]);
 }
 
 export default useWorkflowCostEstimate;

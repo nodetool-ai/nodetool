@@ -30,3 +30,37 @@ export function nodeMetadataUsesAiModel(
     prop.type?.type ? PROVIDER_MODEL_TYPES.has(prop.type.type) : false
   );
 }
+
+/**
+ * Property names that multiply a node's output count (fan-out), in priority
+ * order — the first one present with a valid value wins. Confirmed against the
+ * generator manifests: `num_images` (280 FAL endpoints), `num_outputs` (33
+ * Replicate models), plus `num_samples` and `batch_size` (both FAL + Replicate).
+ * `num_frames` is deliberately excluded: it sets the length of a single video,
+ * not a batch of separate outputs.
+ */
+export const FAN_OUT_PROPERTY_NAMES = [
+  "num_images",
+  "num_outputs",
+  "num_samples",
+  "batch_size"
+] as const;
+
+/**
+ * Expected number of outputs a node produces, read from its data. Returns the
+ * first fan-out property present with a finite value greater than zero (floored
+ * to a whole count); otherwise 1. Conservative by design — an absent or invalid
+ * count falls back to a single output so the estimate never over-counts.
+ */
+export function nodeExpectedQuantity(
+  data: Record<string, unknown> | undefined
+): number {
+  if (!data) return 1;
+  for (const name of FAN_OUT_PROPERTY_NAMES) {
+    const value = data[name];
+    if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+      return Math.floor(value);
+    }
+  }
+  return 1;
+}
