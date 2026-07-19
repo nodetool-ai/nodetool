@@ -87,8 +87,8 @@ export const Panel: React.FC<PanelProps> = ({
   headerAction,
   footer,
   padding = "normal",
-  bordered = false,
-  background = "default",
+  bordered = true,
+  background = "paper",
   collapsible = false,
   collapsed = false,
   onToggleCollapse,
@@ -133,7 +133,7 @@ export const Panel: React.FC<PanelProps> = ({
       sx={{
         backgroundColor: getBackgroundColor(),
         border: bordered ? `1px solid ${theme.vars.palette.divider}` : undefined,
-        borderRadius: theme.shape.borderRadius,
+        borderRadius: theme.rounded.md,
         overflow: "hidden",
         ...sx
       }}

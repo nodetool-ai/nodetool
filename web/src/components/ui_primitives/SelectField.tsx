@@ -100,7 +100,7 @@ const SelectFieldInternal = React.forwardRef<HTMLDivElement, SelectFieldProps>(
       disabled = false,
       id,
       size = "medium",
-      variant = "standard",
+      variant = "outlined",
       className,
       hideLabel = false
     },
@@ -150,6 +150,12 @@ const SelectFieldInternal = React.forwardRef<HTMLDivElement, SelectFieldProps>(
             variant={variant}
             sx={{
               minHeight: `${controlHeight}px`,
+              // Outlined only: a default field background so fields read as
+              // fields. The standard variant keeps its transparent underline
+              // look.
+              "&.MuiOutlinedInput-root": {
+                backgroundColor: theme.vars.palette.Paper.overlay
+              },
               // minHeight is only a floor: MUI's select display carries its own
               // line-height minimum and vertical padding, which pushed measured
               // heights past the token (30.6-38.6px). Zero the vertical padding,

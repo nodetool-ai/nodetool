@@ -84,6 +84,8 @@ export const TranscriptPanel: React.FC = memo(() => {
   return (
     <Panel
       data-testid="transcript-panel"
+      background="default"
+      bordered={false}
       sx={{
         height: "100%",
         minHeight: 0,

@@ -668,7 +668,6 @@ const PropertiesPanel = ({ object, tick, onChanged }: PropertiesPanelProps) => {
                   hideLabel
                   label="Side"
                   size="small"
-                  variant="standard"
                   value={String(material.side)}
                   options={SIDE_OPTIONS}
                   onChange={(v) => {

@@ -139,6 +139,13 @@ export const TextInput = memo(
               "& .MuiInputBase-input": {
                 fontSize: theme.fontSizeNormal || "15px",
               },
+              // Fields read as fields: the outlined root (single-line and
+              // multiline) gets the same constant field background the editor
+              // controls use. Filled/standard variants keep MUI's own surface
+              // treatment. Hover/focus stay border-emphasis only.
+              "& .MuiOutlinedInput-root": {
+                backgroundColor: theme.vars.palette.Paper.overlay,
+              },
               // Deterministic control height from the CONTROL token. MUI's
               // outlined padding (16.5px / 8.5px vertical) is calibrated for
               // ~56px / 40px fields; shrink it so the 1.4375em content box plus

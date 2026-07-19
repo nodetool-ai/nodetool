@@ -46,7 +46,7 @@ const styles = (theme: Theme) => css`
   .search-input {
     .MuiInputBase-root {
       border-radius: ${CONTROL.radius};
-      background-color: ${theme.vars.palette.action.hover};
+      background-color: ${theme.vars.palette.Paper.overlay};
       transition: ${MOTION.all};
       min-height: ${CONTROL.height.lg}px;
 

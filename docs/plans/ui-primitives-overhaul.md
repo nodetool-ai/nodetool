@@ -103,8 +103,11 @@ Surfaces:
 
 - `Panel.tsx:89-90` → `bordered=false`, `background="default"`. Dark
   `background.default` is `#08090A` (`paletteDark.ts:268`) — same as the page.
-  **A default Panel is invisible.** 42 call sites outside the primitives use
-  Panel; none pass `background`.
+  **A default Panel is invisible.** (Corrected during PR 3: the "42 call
+  sites" here was a `<Panel` prefix-grep artifact matching `PanelLeft`,
+  `PanelHeadline`, etc. — the primitive is actually used at 13 sites across
+  10 files. Also found: Panel's numeric `borderRadius: 6` went through the
+  sx multiplier and rendered 36px, not 6px.)
 - `Surface.tsx:64-68` → `background="paper"`, `bordered=false`,
   `elevation=0` with explicit `boxShadow: "none"`. Different background AND a
   different radius source (`theme.rounded[...]`, `Surface.tsx:92-95`) than
@@ -514,10 +517,11 @@ tolerance) but contains zero local form CSS.
 
 ## 6. Risks and open decisions
 
-- **Panel default flip is the widest blast radius** (42 sites, docked
-  workspace chrome included). Mitigation: the PR-3 audit step; if the audit
-  finds mostly-flush usage, invert the decision — keep `background="default"`
-  and only default `bordered=true` — and record it here.
+- **Panel default flip** — resolved in PR 3. The audit found 13 real sites
+  (not 42); 10 docked inspector/transcript sites were pinned to the flush
+  look explicitly, content panels (cost estimate, storyboard header) inherit
+  the new visible default. Rendered radius corrected from the accidental
+  36px to a true 6px (`theme.rounded.md`).
 - **Label-above changes every labelled field's geometry** (~85 sites gain
   ~17px of height). Dialogs and dense inspectors may need spot re-layout;
   the visual suite will surface them.
