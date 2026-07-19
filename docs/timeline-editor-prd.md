@@ -2,7 +2,9 @@
 
 Status: Draft, scoped for Slice 1 + Slice 2.
 Owner: Timeline Editor feature team.
-Last updated: 2026-05-04.
+Last updated: 2026-07-19.
+
+Implementation note (July 2026): the shipped editor now extends this Slice 1 + 2 scope with offline export, authored text and shape clips, and preset-based motion. Motion uses the same resolver in preview and export, exposes controls in the clip Inspector and timeline agent tools, and marks timing windows on track clips. See [Motion Design for the Timeline](plans/motion-design.md) for the implemented data model and preset catalog.
 
 ## 1. Summary
 
@@ -17,6 +19,7 @@ Positioning: **NodeTool Timeline is a generation-aware editor for AI media workf
 ### 2.1 In scope (this PRD)
 
 **Slice 1 — Timeline shell and imported clips**
+
 - Standalone route `/timeline/:sequenceId`.
 - New `timeline_sequence` table.
 - Tracks (V1–V3, A1–A3, overlay), playhead, ruler, zoom, multi-track rendering.
@@ -26,6 +29,7 @@ Positioning: **NodeTool Timeline is a generation-aware editor for AI media workf
 - Project persistence and autosave.
 
 **Slice 2 — Generation binding**
+
 - `GenerationBinding` on clips: graphId, graphVersionId, selectedOutputNodeId, nodeStates, dependencyHash.
 - Node-stack inspector (vertical list of bound nodes) reusing `PropertyField`.
 - Dirty/stale tracking via dependency hash; downstream invalidation.
@@ -54,26 +58,26 @@ The original PR built parallel infrastructure for things NodeTool already has. T
 
 > Reuse first. Build only what genuinely doesn't exist.
 
-| Concern | Reuse | Build |
-| --- | --- | --- |
-| Audio waveform | `web/src/components/audio/AudioPlayer.tsx` (WaveSurfer) | Track-lane waveform overlay that calls into AudioPlayer's renderer |
-| Video preview | `web/src/components/asset_viewer/VideoViewer.tsx` | `<video>` sync to playhead |
-| Image preview | `web/src/components/asset_viewer/ImageViewer.tsx` | Pan/zoom container if needed |
-| Output dispatch | `web/src/components/node/OutputRenderer.tsx` | — |
-| Asset library | `AssetExplorer`, `AssetGrid`, `Dropzone`, `WorkflowAssetStore` | Drag-to-clip adapter |
-| **Per-clip graph** | **`Workflow` model — each generated clip is a workflow row** with `run_mode = "clip"` | — |
-| **Exposed parameters** | **Existing `*InputNode` classes** (`FloatInputNode`, `StringInputNode`, `IntegerInputNode`, `BooleanInputNode`, `SelectInputNode`, `ImageSizeInputNode`, `ColorInputNode`, `LanguageModelInputNode`, etc.) — the workflow's `Input*` nodes ARE the exposed parameters | — |
-| Inspector frame | `web/src/components/Inspector.tsx`, `InspectedNodeStore` | Slim wrapper that swaps target between clip / clip-bound node |
-| Property editing | `web/src/components/node/PropertyField.tsx`, `web/src/components/properties/*` | — (Input-node properties already render through these) |
-| Workflow templates | Existing template/preset infrastructure + `tags` | Three timeline-targeted seeded workflows tagged `"timeline-template"` |
-| Open in Node Editor | Existing workflow editor at `/editor/:workflowId` | Just navigate; no remap |
-| Execution | `WorkflowRunner.run(workflow, paramOverrides)`, `GlobalWebSocketManager`, `Job` | Clip-scoped subscription, hash-based stale detection |
-| Status / errors | `StatusStore`, `ErrorStore`, `StatusIndicator`, `WarningBanner` | Clip-status mapping |
-| Past outputs | `ResultsStore`, `NodeResultHistoryStore`, `MediaGenerationStore`, `Job.outputs` | Clip-version index (jobId + assetId per version) |
-| Top bar | `AppHeader`, `AppToolbar` | Timeline-scoped action set |
-| Undo/redo | `NodeStore` zundo pattern | Apply same pattern in `TimelineStore` |
-| UI primitives | `web/src/components/ui_primitives/*` (mandatory; no raw MUI) | — |
-| Data models | `Workflow`, `Job`, `Asset`, `Prediction` in `packages/models` | New `TimelineSequence` only |
+| Concern                | Reuse                                                                                                                                                                                                                                                                 | Build                                                                 |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Audio waveform         | `web/src/components/audio/AudioPlayer.tsx` (WaveSurfer)                                                                                                                                                                                                               | Track-lane waveform overlay that calls into AudioPlayer's renderer    |
+| Video preview          | `web/src/components/asset_viewer/VideoViewer.tsx`                                                                                                                                                                                                                     | `<video>` sync to playhead                                            |
+| Image preview          | `web/src/components/asset_viewer/ImageViewer.tsx`                                                                                                                                                                                                                     | Pan/zoom container if needed                                          |
+| Output dispatch        | `web/src/components/node/OutputRenderer.tsx`                                                                                                                                                                                                                          | —                                                                     |
+| Asset library          | `AssetExplorer`, `AssetGrid`, `Dropzone`, `WorkflowAssetStore`                                                                                                                                                                                                        | Drag-to-clip adapter                                                  |
+| **Per-clip graph**     | **`Workflow` model — each generated clip is a workflow row** with `run_mode = "clip"`                                                                                                                                                                                 | —                                                                     |
+| **Exposed parameters** | **Existing `*InputNode` classes** (`FloatInputNode`, `StringInputNode`, `IntegerInputNode`, `BooleanInputNode`, `SelectInputNode`, `ImageSizeInputNode`, `ColorInputNode`, `LanguageModelInputNode`, etc.) — the workflow's `Input*` nodes ARE the exposed parameters | —                                                                     |
+| Inspector frame        | `web/src/components/Inspector.tsx`, `InspectedNodeStore`                                                                                                                                                                                                              | Slim wrapper that swaps target between clip / clip-bound node         |
+| Property editing       | `web/src/components/node/PropertyField.tsx`, `web/src/components/properties/*`                                                                                                                                                                                        | — (Input-node properties already render through these)                |
+| Workflow templates     | Existing template/preset infrastructure + `tags`                                                                                                                                                                                                                      | Three timeline-targeted seeded workflows tagged `"timeline-template"` |
+| Open in Node Editor    | Existing workflow editor at `/editor/:workflowId`                                                                                                                                                                                                                     | Just navigate; no remap                                               |
+| Execution              | `WorkflowRunner.run(workflow, paramOverrides)`, `GlobalWebSocketManager`, `Job`                                                                                                                                                                                       | Clip-scoped subscription, hash-based stale detection                  |
+| Status / errors        | `StatusStore`, `ErrorStore`, `StatusIndicator`, `WarningBanner`                                                                                                                                                                                                       | Clip-status mapping                                                   |
+| Past outputs           | `ResultsStore`, `NodeResultHistoryStore`, `MediaGenerationStore`, `Job.outputs`                                                                                                                                                                                       | Clip-version index (jobId + assetId per version)                      |
+| Top bar                | `AppHeader`, `AppToolbar`                                                                                                                                                                                                                                             | Timeline-scoped action set                                            |
+| Undo/redo              | `NodeStore` zundo pattern                                                                                                                                                                                                                                             | Apply same pattern in `TimelineStore`                                 |
+| UI primitives          | `web/src/components/ui_primitives/*` (mandatory; no raw MUI)                                                                                                                                                                                                          | —                                                                     |
+| Data models            | `Workflow`, `Job`, `Asset`, `Prediction` in `packages/models`                                                                                                                                                                                                         | New `TimelineSequence` only                                           |
 
 PR #309 is **not** kept in-tree. All timeline code is written from scratch using primitives and existing stores.
 
@@ -91,8 +95,8 @@ PR #309 is **not** kept in-tree. All timeline code is written from scratch using
     - `"workflow"` — standalone workflow (existing default; unchanged). Any standalone workflow whose graph terminates in an `ImageOutputNode` / `VideoOutputNode` / `AudioOutputNode` can be used as a clip source.
     - `"clip"` — clip-private clone owned by a single clip; hidden from the standalone workflow list.
     - `"sequence"` — reserved for Slice 3 (whole-timeline export workflow).
-    The standalone workflow listing filters to `run_mode IN ("workflow", null)`. No schema migration needed for `run_mode`; it already exists.
-    Curated clip templates are tagged (existing `tags` field), e.g. `"timeline-template"`. The Add-Generated-Clip menu shows tagged workflows by default with an "All workflows" option to browse the rest.
+      The standalone workflow listing filters to `run_mode IN ("workflow", null)`. No schema migration needed for `run_mode`; it already exists.
+      Curated clip templates are tagged (existing `tags` field), e.g. `"timeline-template"`. The Add-Generated-Clip menu shows tagged workflows by default with an "All workflows" option to browse the rest.
   - **Add `timeline_sequence` table**:
   ```
   timeline_sequence (
@@ -164,6 +168,7 @@ Every generated clip is backed by exactly one `Workflow` row.
 - The clip stores **`selectedOutputNodeId`** — which terminal node's output becomes the clip's media. Workflows with one obvious media-output node default to it; multi-output workflows force a choice on creation.
 
 **Lifecycle**:
+
 - Creating a generated clip from any standalone workflow (via the Add-Generated-Clip menu, or "Use as clip" from a workflow's context menu): the timeline **clones** that workflow into a new `run_mode = "clip"` row owned by the clip. The clone is independent — editing the source workflow later does not affect existing clips. (Linked-duplicate behavior is opt-in per clip-pair, see below.)
 - **Duplicate as Variation** clones the clip's workflow into another `run_mode = "clip"` row.
 - **Duplicate Linked** keeps the same `workflowId` for both clips; both regenerate together.
@@ -229,16 +234,16 @@ Selecting a node in the stack drives `SelectedClipNodeStore`, which `NodePropert
 
 ### 5.5 Status badges
 
-| Status | Source | Display |
-| --- | --- | --- |
-| `draft` | binding exists, no version | dim border, "Draft" |
-| `queued` | job queued | spinner outline |
-| `generating` | `JobUpdate.status = running` | progress bar in clip body |
-| `generated` | latest hash matches | normal |
-| `stale` | hash mismatch | yellow badge "Stale" |
-| `failed` | `JobUpdate.status = failed` | red badge, error tooltip |
-| `locked` | user-set | lock icon |
-| `missing` | currentAssetId asset not found | gray placeholder |
+| Status       | Source                         | Display                   |
+| ------------ | ------------------------------ | ------------------------- |
+| `draft`      | binding exists, no version     | dim border, "Draft"       |
+| `queued`     | job queued                     | spinner outline           |
+| `generating` | `JobUpdate.status = running`   | progress bar in clip body |
+| `generated`  | latest hash matches            | normal                    |
+| `stale`      | hash mismatch                  | yellow badge "Stale"      |
+| `failed`     | `JobUpdate.status = failed`    | red badge, error tooltip  |
+| `locked`     | user-set                       | lock icon                 |
+| `missing`    | currentAssetId asset not found | gray placeholder          |
 
 Badges use `StatusIndicator` and tokenized colors.
 
@@ -261,8 +266,14 @@ Badges use `StatusIndicator` and tokenized colors.
 
 ```ts
 type ClipStatus =
-  | "draft" | "queued" | "generating" | "generated"
-  | "stale" | "failed" | "locked" | "missing";
+  | "draft"
+  | "queued"
+  | "generating"
+  | "generated"
+  | "stale"
+  | "failed"
+  | "locked"
+  | "missing";
 
 interface TimelineSequence {
   id: string;
@@ -323,11 +334,11 @@ interface TimelineClip {
   versions: ClipVersion[];
 
   // rendering transforms — consumed by preview compositor (§11.1) and export compiler (§11.2)
-  opacity?: number;            // 0..1, default 1
-  blendMode?: BlendMode;       // overlay tracks; default "normal"
-  speedMultiplier?: number;    // default 1; affects timeline duration; source-time refs unchanged
-  speedBaked?: boolean;        // true if generated asset already encodes speed; export skips speed step
-  volumeDb?: number;           // audio clips; default 0
+  opacity?: number; // 0..1, default 1
+  blendMode?: BlendMode; // overlay tracks; default "normal"
+  speedMultiplier?: number; // default 1; affects timeline duration; source-time refs unchanged
+  speedBaked?: boolean; // true if generated asset already encodes speed; export skips speed step
+  volumeDb?: number; // audio clips; default 0
   fadeInMs?: number;
   fadeOutMs?: number;
 }
@@ -337,8 +348,8 @@ type BlendMode = "normal" | "screen" | "multiply" | "add" | "overlay";
 interface ClipVersion {
   id: string;
   createdAt: string;
-  jobId: string;             // FK to existing Job model
-  assetId: string;           // FK to existing Asset model
+  jobId: string; // FK to existing Job model
+  assetId: string; // FK to existing Asset model
   workflowUpdatedAt: string; // snapshot of workflow.updated_at at generation time
   dependencyHash: string;
   paramOverridesSnapshot: Record<string, unknown>;
@@ -361,11 +372,11 @@ interface TimelineMarker {
 
 Three ordinary `Workflow` rows (`run_mode = "workflow"`) are seeded with the tag `"timeline-template"` so they surface in the Add-Generated-Clip menu by default. Authors publish their own clip templates by adding the `"timeline-template"` tag to any workflow they own. Untagged standalone workflows that produce media output are still selectable via the menu's "All workflows" expander.
 
-| Seeded workflow | Graph (Input nodes → processing → output) |
-| --- | --- |
-| **Text-to-Image** | `StringInputNode("prompt") → TextToImageNode → ImageOutputNode`<br>plus optional `StringInputNode("negative_prompt")`, `IntegerInputNode("steps")`, `FloatInputNode("cfg")`, `IntegerInputNode("seed")`, `LanguageModelInputNode("model")` |
-| **Image-to-Video** | `StringInputNode("prompt") + ImageInputNode("source_image") + IntegerInputNode("duration_ms") → ImageToVideoNode → VideoOutputNode` |
-| **Text-to-Speech** | `StringInputNode("text") + SelectInputNode("voice") → TextToSpeechNode → AudioOutputNode` |
+| Seeded workflow    | Graph (Input nodes → processing → output)                                                                                                                                                                                                  |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Text-to-Image**  | `StringInputNode("prompt") → TextToImageNode → ImageOutputNode`<br>plus optional `StringInputNode("negative_prompt")`, `IntegerInputNode("steps")`, `FloatInputNode("cfg")`, `IntegerInputNode("seed")`, `LanguageModelInputNode("model")` |
+| **Image-to-Video** | `StringInputNode("prompt") + ImageInputNode("source_image") + IntegerInputNode("duration_ms") → ImageToVideoNode → VideoOutputNode`                                                                                                        |
+| **Text-to-Speech** | `StringInputNode("text") + SelectInputNode("voice") → TextToSpeechNode → AudioOutputNode`                                                                                                                                                  |
 
 When a user picks a template, the timeline clones it into a new `run_mode = "clip"` workflow owned by the clip. No template registry; the menu is just a tag-filtered query against the workflow table.
 
@@ -407,15 +418,18 @@ Goal: play the timeline at the playhead with all visible tracks composited and a
 **Audio mixing**: a single shared `AudioContext`. Each audio clip routes through a per-clip `GainNode` (volume, fades) → per-track `GainNode` (track volume, mute/solo) → master. Solo on any audio track mutes all non-solo audio tracks. WaveSurfer is **not** used for playback — only for waveform visualization in clip bodies (its render path is decoupled from playback).
 
 **Components**:
+
 - `web/src/components/timeline/preview/PreviewCompositor.tsx` — owns the element pool and z-index stack; reads `TimelineStore` (clips at time t) via a memoized selector + `shallow`.
 - `web/src/components/timeline/preview/AudioGraph.ts` — pure TS module; constructs and updates the WebAudio graph from clip lists.
 - `web/src/components/timeline/preview/PlaybackClock.ts` — RAF-driven clock; emits `currentTimeMs` to `TimelinePlaybackStore`. Drift-corrected against `AudioContext.currentTime` so audio stays the master clock.
 
 **Reuse**:
+
 - Existing `OutputRenderer` is used only for "single clip preview" (e.g. preview of an unplaced asset), not the playhead compositor.
 - Existing `AudioPlayer` (WaveSurfer) is the visualization source for clip-body waveforms; its peaks are extracted once per asset and cached on the clip.
 
 **Limits accepted**:
+
 - Generated overlays declared as compositing-only (e.g. fog, light leaks) play directly via DOM blending.
 - Color grade / LUT effects are previewed approximately via CSS `filter` if the node type maps to a CSS-expressible transform; otherwise they are baked into the generated asset and displayed as-is. No WebGL pipeline in Slice 1+2.
 - Speed > 4× or < 0.25× falls back to "scrub still frame" instead of resampled playback.
@@ -423,6 +437,7 @@ Goal: play the timeline at the playhead with all visible tracks composited and a
 - Frame-stepping uses `currentTime` snapping; not frame-accurate for variable-FPS sources.
 
 **Stale and missing clips during preview**:
+
 - `stale` clips play their last successful asset with a "stale" overlay.
 - `failed` / `missing` / `draft` clips render the placeholder body; audio is silent for that range.
 - `generating` clips show progress overlay; if a previous asset exists, it plays, otherwise placeholder.
@@ -453,12 +468,14 @@ Final mux step: a new `MuxVideoAudioNode` in `packages/base-nodes` (single ffmpe
 **Outputs**: a `Job` (existing `packages/models` `Job`) producing a `VideoRef` asset. The export job appears in the existing job list; cancel/retry/log access works without timeline-specific code.
 
 **Determinism and caching**:
+
 - Each compiled subgraph is content-hashed by clip's `dependencyHash` + transform params; if an export was previously run with the same hashes, the existing `ResultsStore`/`Asset` cache returns the prior intermediate (per-track concatenated video/audio).
 - Re-export after editing only one clip rebuilds that clip's track lane and the final mux; the other track lanes hit cache.
 
-**Out of scope for Slice 1+2**: the export *graph compiler*, the preflight dialog, and `MuxVideoAudioNode` are Slice 3. Slice 1+2 ship preview only. The compiler is specified here so Slice 1+2 designs the data model with export in mind (e.g. clip transforms must be representable as ffmpeg-expressible parameters; opacity/blend modes must round-trip; speed changes carry a flag for whether the generated asset is already speed-baked).
+**Out of scope for Slice 1+2**: the export _graph compiler_, the preflight dialog, and `MuxVideoAudioNode` are Slice 3. Slice 1+2 ship preview only. The compiler is specified here so Slice 1+2 designs the data model with export in mind (e.g. clip transforms must be representable as ffmpeg-expressible parameters; opacity/blend modes must round-trip; speed changes carry a flag for whether the generated asset is already speed-baked).
 
 **Constraints flowing back into Slice 1+2 data model**:
+
 - `TimelineClip` must carry `transformMs` fields (`opacity`, `blendMode`, `speedMultiplier`, `volumeDb`) even though export consumes them in Slice 3. Adding them later would force a migration of every saved sequence.
 - `TimelineTrack.type === "overlay"` clips must declare `blendMode: "normal" | "screen" | "multiply" | "add" | "overlay"` — a fixed enum that maps to both CSS `mix-blend-mode` (preview) and ffmpeg `blend=` (export).
 - `TimelineClip.speedMultiplier` is multiplicative on `durationMs` and `inPointMs`/`outPointMs` reference source-time, not timeline-time. The compiler and the preview use the same convention.

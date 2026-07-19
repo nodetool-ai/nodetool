@@ -36,7 +36,7 @@ const SERVER_SCRIPT = resolve(
 const TSX_BIN = resolve(REPO_ROOT, "node_modules/.bin/tsx");
 
 const BACKEND_HOST = "127.0.0.1";
-const BACKEND_PORT = 7777;
+const BACKEND_PORT = Number(process.env.SCREENSHOT_BACKEND_PORT ?? 7777);
 const STARTUP_TIMEOUT_MS = 90_000;
 // Base64-encoded 32-byte placeholder key used only for screenshot tests.
 // Never use this value in production.
@@ -74,7 +74,10 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
 
   // CI/headless Linux often has no keychain backend (libsecret). Provide a
   // deterministic test-only master key so screenshot-server can boot reliably.
-  if (process.env.NODE_ENV === "production" && !process.env.SECRETS_MASTER_KEY) {
+  if (
+    process.env.NODE_ENV === "production" &&
+    !process.env.SECRETS_MASTER_KEY
+  ) {
     throw new Error(
       "[globalSetup] SECRETS_MASTER_KEY must be set when NODE_ENV=production"
     );

@@ -230,6 +230,12 @@ const zIndexScale = {
 (mockTheme as any).Switch = {
   defaultColor: "#9e9e9e"
 };
+(mockTheme as any).vars.palette.Switch = {
+  defaultColor: "#9e9e9e"
+};
+(mockTheme as any).palette.Switch = {
+  defaultColor: "#9e9e9e"
+};
 
 // Add theme.alpha() method for MUI v7 CSS variables mode
 (mockTheme as any).alpha = (color: string, opacity: number) => {

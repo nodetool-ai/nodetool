@@ -53,9 +53,62 @@ FrontendToolRegistry.register({
 });
 
 FrontendToolRegistry.register({
+  name: "ui_timeline_add_text_clip",
+  description:
+    "Add authored text to the timeline. It goes on an overlay track, creating one when needed, lasts 3000ms by default, and accepts the same motion presets as media clips.",
+  parameters: z.object({
+    text: z.string().trim().min(1),
+    trackId: z.string().optional(),
+    startMs: z.number().optional(),
+    durationMs: z.number().optional(),
+    style: z
+      .object({
+        fontFamily: z.string().optional(),
+        fontSizePx: z.number().optional(),
+        fontWeight: z.number().optional(),
+        color: z.string().optional(),
+        align: z.enum(["left", "center", "right"]).optional(),
+        maxWidthFrac: z.number().optional()
+      })
+      .optional()
+  }),
+  async execute(args) {
+    const clip = getTimelineAgentHandler().addTextClip(args);
+    return { ok: true, clip };
+  }
+});
+
+FrontendToolRegistry.register({
+  name: "ui_timeline_add_shape_clip",
+  description:
+    "Add a rectangle, ellipse, or line on an overlay track. Omitted colors use a visible white fill for rectangles/ellipses or a visible white stroke for lines. Shapes are rasterized for preview/export and can use the standard motion presets.",
+  parameters: z.object({
+    shape: z.object({
+      kind: z.enum(["rect", "ellipse", "line"]),
+      fill: z.string().optional(),
+      stroke: z.string().optional(),
+      strokeWidthPx: z.number().optional(),
+      x: z.number().optional(),
+      y: z.number().optional(),
+      width: z.number().optional(),
+      height: z.number().optional(),
+      x2: z.number().optional(),
+      y2: z.number().optional()
+    }),
+    trackId: z.string().optional(),
+    startMs: z.number().optional(),
+    durationMs: z.number().optional()
+  }),
+  async execute(args) {
+    const clip = getTimelineAgentHandler().addShapeClip(args);
+    return { ok: true, clip };
+  }
+});
+
+FrontendToolRegistry.register({
   name: "ui_timeline_generate_clip",
   description:
-    "Generate a new media clip from a text prompt and place it on the timeline. `kind` is text-to-video, text-to-image, or text-to-audio (TTS). Provide `provider` and `model` (discover valid ones with the model-search tool); when omitted the last-used model for that media kind is reused. `voice` is required for text-to-audio. Without a track the clip lands on a sensible track for its media kind; without `startMs` it is appended after the track's existing content. Generation starts immediately unless `autoGenerate` is false. For text-to-video, `aspectRatio` (e.g. \"16:9\") and `resolution` (e.g. \"720p\") and `durationMs` are honoured by video models.",
+    'Generate a new media clip from a text prompt and place it on the timeline. `kind` is text-to-video, text-to-image, or text-to-audio (TTS). Provide `provider` and `model` (discover valid ones with the model-search tool); when omitted the last-used model for that media kind is reused. `voice` is required for text-to-audio. Without a track the clip lands on a sensible track for its media kind; without `startMs` it is appended after the track\'s existing content. Generation starts immediately unless `autoGenerate` is false. For text-to-video, `aspectRatio` (e.g. "16:9") and `resolution` (e.g. "720p") and `durationMs` are honoured by video models.',
   parameters: z.object({
     kind: z.enum(["text-to-video", "text-to-image", "text-to-audio"]),
     prompt: z.string(),
@@ -156,7 +209,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_timeline_set_clip_params",
   description:
-    "Change a clip's render/audio params: `name`, `opacity` (0..1), `speedMultiplier` (0.1..8), `volumeDb`, `fadeInMs`, `fadeOutMs`, `blendMode`, `borderRadius`, `hidden`, `muted`, `locked`. Omit a field to leave it unchanged.",
+    "Change a clip's render/audio params: `name`, `opacity` (0..1), `speedMultiplier` (0.1..8), `volumeDb`, `fadeInMs`, `fadeOutMs`, `blendMode`, `borderRadius`, `hidden`, `muted`, `locked`, a text clip's `textStyle`, or a shape clip's `shapeStyle`. Omit a field to leave it unchanged.",
   parameters: z.object({
     target: targetParam,
     name: z.string().optional(),
@@ -169,7 +222,32 @@ FrontendToolRegistry.register({
     borderRadius: z.number().optional(),
     hidden: z.boolean().optional(),
     muted: z.boolean().optional(),
-    locked: z.boolean().optional()
+    locked: z.boolean().optional(),
+    textStyle: z
+      .object({
+        text: z.string(),
+        fontFamily: z.string().optional(),
+        fontSizePx: z.number(),
+        fontWeight: z.number().optional(),
+        color: z.string(),
+        align: z.enum(["left", "center", "right"]).optional(),
+        maxWidthFrac: z.number().optional()
+      })
+      .optional(),
+    shapeStyle: z
+      .object({
+        kind: z.enum(["rect", "ellipse", "line"]),
+        fill: z.string().optional(),
+        stroke: z.string().optional(),
+        strokeWidthPx: z.number().optional(),
+        x: z.number().optional(),
+        y: z.number().optional(),
+        width: z.number().optional(),
+        height: z.number().optional(),
+        x2: z.number().optional(),
+        y2: z.number().optional()
+      })
+      .optional()
   }),
   async execute({ target, ...patch }) {
     const clip = getTimelineAgentHandler().setClipParams(target, patch);
@@ -205,7 +283,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_timeline_animate_clip",
   description:
-    "Attach motion-design animations to a clip — no keyframing, just named presets. Roles: `in` (entrance: fade, slide, pop, spin), `out` (exit: fade, slide, pop, spin), `emphasis` (mid-clip: pulse, shake, bounce), `loop` (continuous: kenBurns, float, breathe, rotate). Each animation: `role`, `preset`, optional `durationMs` (defaults per preset), `delayMs`, `easing`, and preset `params`. `mode` \"replace\" (default) swaps the clip's animations; \"add\" appends. Call ui_timeline_list_animation_presets for the full param list. Recommended loop: ui_timeline_get_state -> animate -> ui_timeline_get_clip_frames at the window boundaries -> adjust.",
+    'Attach motion-design animations to a clip — no keyframing, just named presets. Roles: `in` (entrance: fade, slide, pop, spin), `out` (exit: fade, slide, pop, spin), `emphasis` (mid-clip: pulse, shake, bounce), `loop` (continuous: kenBurns, float, breathe, rotate). Each animation: `role`, `preset`, optional `durationMs` (defaults per preset), `delayMs`, `easing`, and preset `params`. `mode` "replace" (default) swaps the clip\'s animations; "add" appends. Call ui_timeline_list_animation_presets for the full param list. Recommended loop: ui_timeline_get_state -> animate -> ui_timeline_get_clip_frames at the window boundaries -> adjust.',
   parameters: z.object({
     target: targetParam,
     mode: z.enum(["add", "replace"]).optional(),
@@ -216,8 +294,8 @@ FrontendToolRegistry.register({
           preset: z
             .string()
             .describe("Preset id, e.g. fade, slide, pop, kenBurns, float."),
-          durationMs: z.number().optional(),
-          delayMs: z.number().optional(),
+          durationMs: z.number().positive().optional(),
+          delayMs: z.number().nonnegative().optional(),
           easing: z.string().optional(),
           params: z
             .record(z.string(), z.union([z.number(), z.string(), z.boolean()]))

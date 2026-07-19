@@ -29,11 +29,22 @@ export function buildClipAnimation(input: ClipAnimationInput): ClipAnimation {
         `Allowed roles: ${preset.roles.join(", ")}.`
     );
   }
+  const durationMs = input.durationMs ?? preset.defaultDurationMs;
+  if (!Number.isFinite(durationMs) || durationMs <= 0) {
+    throw new Error("Animation durationMs must be a positive finite number.");
+  }
+  if (
+    input.delayMs !== undefined &&
+    (!Number.isFinite(input.delayMs) || input.delayMs < 0)
+  ) {
+    throw new Error("Animation delayMs must be a non-negative finite number.");
+  }
+
   const anim: ClipAnimation = {
     id: crypto.randomUUID(),
     role: input.role,
     preset: input.preset,
-    durationMs: input.durationMs ?? preset.defaultDurationMs
+    durationMs
   };
   if (input.delayMs !== undefined) anim.delayMs = input.delayMs;
   // Easing is validated at sample time (unknown ids fall back to linear), so

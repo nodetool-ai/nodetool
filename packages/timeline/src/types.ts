@@ -88,6 +88,35 @@ export interface ClipCaption {
 }
 
 /**
+ * Authored text drawn by a timeline text clip. Font size is in sequence
+ * pixels, keeping preview and export independent of the editor's CSS scale.
+ */
+export interface ClipTextStyle {
+  text: string;
+  fontFamily?: string;
+  fontSizePx: number;
+  fontWeight?: number;
+  color: string;
+  align?: "left" | "center" | "right";
+  maxWidthFrac?: number;
+}
+
+/** Authored vector-like geometry drawn by a rasterized shape clip. */
+export interface ClipShapeStyle {
+  kind: "rect" | "ellipse" | "line";
+  fill?: string;
+  stroke?: string;
+  strokeWidthPx?: number;
+  /** Normalized canvas coordinates for the shape's bounds or line endpoints. */
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  x2?: number;
+  y2?: number;
+}
+
+/**
  * One line of the Studio transcript. Each line owns the clips generated from
  * it (`clipIds` — typically a voiceover audio clip and a caption clip).
  * `beatStartMs` is the line's position on the timeline, recomputed whenever
@@ -302,7 +331,7 @@ export interface TimelineClip {
   durationMs: number;
   inPointMs?: number;
   outPointMs?: number;
-  mediaType: "image" | "video" | "audio" | "overlay";
+  mediaType: "image" | "video" | "audio" | "overlay" | "text" | "shape";
   sourceType: "imported" | "generated";
   /** Defaults to "workflow" when absent on legacy persisted data. */
   bindingKind?: ClipBindingKind;
@@ -394,6 +423,10 @@ export interface TimelineClip {
    * editor projects its document from these words.
    */
   caption?: ClipCaption;
+  /** Authored content for a rasterized text clip. */
+  textStyle?: ClipTextStyle;
+  /** Authored geometry for a rasterized shape clip. */
+  shapeStyle?: ClipShapeStyle;
   /** 2D placement on the preview canvas. Default: identity (centered, contain-fit). */
   transform?: ClipTransform;
   /** Rounded-corner radius in source pixels. 0 = sharp corners. */

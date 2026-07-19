@@ -324,3 +324,35 @@ describe("resolveCaptionAtTime", () => {
     ]);
   });
 });
+
+describe("text clips", () => {
+  it("adds a drawable text layer without an asset id", () => {
+    const tracks = [track({ id: "overlay", type: "overlay", index: 0 })];
+    const clips = [
+      clip({
+        id: "title",
+        trackId: "overlay",
+        mediaType: "text",
+        currentAssetId: undefined,
+        textStyle: { text: "Hello", fontSizePx: 96, color: "#ffffff" }
+      })
+    ];
+    const layers = computeActiveLayers(tracks, clips, 100);
+    expect(layers).toHaveLength(1);
+    expect(layers[0]).toMatchObject({
+      kind: "text",
+      clipId: "title",
+      assetId: undefined,
+      textStyle: clips[0].textStyle
+    });
+  });
+});
+
+describe("shape clips", () => {
+  it("adds a drawable shape layer without an asset id", () => {
+    const tracks = [track({ id: "overlay", type: "overlay", index: 0 })];
+    const clips = [clip({ id: "shape", trackId: "overlay", mediaType: "shape", currentAssetId: undefined, shapeStyle: { kind: "rect", fill: "#334455" } })];
+    const layers = computeActiveLayers(tracks, clips, 100);
+    expect(layers[0]).toMatchObject({ kind: "shape", clipId: "shape", assetId: undefined, shapeStyle: clips[0].shapeStyle });
+  });
+});

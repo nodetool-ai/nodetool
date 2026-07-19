@@ -1,6 +1,6 @@
 # Motion Design for the Timeline — Technical Design
 
-Status: approved design, not yet implemented.
+Status: implemented (July 2026).
 Companion doc: [motion-design-tasks.md](motion-design-tasks.md) (implementation plan, agent-consumable tasks).
 
 ## Goal
@@ -17,20 +17,20 @@ a thin layer over the same data.
 Presets compile to an internal keyframe/curve form evaluated by one sampler, so
 a curve editor or per-keyframe tools can be added later without a schema break.
 
-## Current state
+## Implementation baseline
 
-The timeline is a non-linear cut editor. Nothing varies over time except
-crossfades, audio fades, and playback speed.
+The timeline supports preset motion on visual clips, including authored text
+and shapes. The table below records the baseline that this design extended.
 
-| Concern | Where it lives today |
-|---|---|
-| Data model | `packages/timeline/src/types.ts` — `TimelineSequence`, `TimelineTrack`, `TimelineClip`. Clips carry a **static** `transform?: ClipTransform` (position px from canvas center, scale multiplier on contain-fit, rotation radians, anchor normalized), `opacity`, `effects[]`, `transitionIn` (crossfade), `fadeInMs`/`fadeOutMs` (audio-only, applied in `web/src/components/timeline/preview/AudioGraph.ts`). |
-| Scene resolution | `web/src/components/timeline/preview/sceneModel.ts` — pure `computeActiveLayersWithHorizon(tracks, clips, currentTimeMs)` returns `ActiveLayer[]` plus `nextChangeMs`, the change horizon that lets the rAF loop skip recomputation between boundaries. |
-| Live preview | `web/src/components/timeline/preview/PreviewCompositor.tsx` + `preview/gpu/` (WebGPU with Canvas2D fallback; affine math in `preview/gpu/transform.ts`). |
-| Export | `web/src/components/timeline/render/TimelineRenderer.ts` — steps in exact 1/fps increments, composites via the **same** scene model and GPU compositor, encodes MP4 via WebCodecs (`mediabunny`). Server ffmpeg path (`packages/video-nodes/src/nodes/timeline.ts`) is an explicit rough cut and stays one. |
-| Edit ops | `packages/timeline/src/splitClip.ts`, `trimClip.ts` (pure); Zustand `web/src/stores/timeline/TimelineStore.ts` (`patchClip(clipId, patch)`), temporal undo/redo. |
-| Persistence | `TimelineDocument` JSON blob in `timeline-sequences` (`packages/models/src/timeline-sequence.ts`); zod wire schema `packages/protocol/src/api-schemas/timeline.ts`. **Fields absent from the zod schema are stripped on PATCH.** |
-| Agent surface | `web/src/lib/tools/builtin/timeline.ts` (13 `ui_timeline_*` tools) → `TimelineAgentHandler` interface in `web/src/components/timeline/timelineAgentBridge.ts`, implemented by `web/src/hooks/timeline/useTimelineAgentBridge.ts`. `ui_timeline_get_clip_frames` already lets the agent see rendered frames. |
+| Concern          | Where it lives today                                                                                                                                                                                                                                                                                                                                                                                          |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Data model       | `packages/timeline/src/types.ts` — `TimelineSequence`, `TimelineTrack`, `TimelineClip`. Clips carry a **static** `transform?: ClipTransform` (position px from canvas center, scale multiplier on contain-fit, rotation radians, anchor normalized), `opacity`, `effects[]`, `transitionIn` (crossfade), `fadeInMs`/`fadeOutMs` (audio-only, applied in `web/src/components/timeline/preview/AudioGraph.ts`). |
+| Scene resolution | `web/src/components/timeline/preview/sceneModel.ts` — pure `computeActiveLayersWithHorizon(tracks, clips, currentTimeMs)` returns `ActiveLayer[]` plus `nextChangeMs`, the change horizon that lets the rAF loop skip recomputation between boundaries.                                                                                                                                                       |
+| Live preview     | `web/src/components/timeline/preview/PreviewCompositor.tsx` + `preview/gpu/` (WebGPU with Canvas2D fallback; affine math in `preview/gpu/transform.ts`).                                                                                                                                                                                                                                                      |
+| Export           | `web/src/components/timeline/render/TimelineRenderer.ts` — steps in exact 1/fps increments, composites via the **same** scene model and GPU compositor, encodes MP4 via WebCodecs (`mediabunny`). Server ffmpeg path (`packages/video-nodes/src/nodes/timeline.ts`) is an explicit rough cut and stays one.                                                                                                   |
+| Edit ops         | `packages/timeline/src/splitClip.ts`, `trimClip.ts` (pure); Zustand `web/src/stores/timeline/TimelineStore.ts` (`patchClip(clipId, patch)`), temporal undo/redo.                                                                                                                                                                                                                                              |
+| Persistence      | `TimelineDocument` JSON blob in `timeline-sequences` (`packages/models/src/timeline-sequence.ts`); zod wire schema `packages/protocol/src/api-schemas/timeline.ts`. **Fields absent from the zod schema are stripped on PATCH.**                                                                                                                                                                              |
+| Agent surface    | `web/src/lib/tools/builtin/timeline.ts` (13 `ui_timeline_*` tools) → `TimelineAgentHandler` interface in `web/src/components/timeline/timelineAgentBridge.ts`, implemented by `web/src/hooks/timeline/useTimelineAgentBridge.ts`. `ui_timeline_get_clip_frames` already lets the agent see rendered frames.                                                                                                   |
 
 ## Data model
 
@@ -44,13 +44,15 @@ export type AnimationRole = "in" | "out" | "emphasis" | "loop";
 
 export type EasingId =
   | "linear"
-  | "easeIn" | "easeOut" | "easeInOut"        // cubic
-  | "easeOutBack"                              // overshoot (pop)
+  | "easeIn"
+  | "easeOut"
+  | "easeInOut" // cubic
+  | "easeOutBack" // overshoot (pop)
   | "easeOutElastic"
   | "easeOutBounce";
 
 export interface ClipAnimation {
-  id: string;                 // crypto.randomUUID() at creation
+  id: string; // crypto.randomUUID() at creation
   role: AnimationRole;
   /** An AnimationPresetId. Typed `string` on purpose: documents saved by a
    *  newer client may carry ids this build doesn't know — they parse fine and
@@ -65,7 +67,7 @@ export interface ClipAnimation {
    * Default 0.
    */
   delayMs?: number;
-  easing?: EasingId;          // default per preset
+  easing?: EasingId; // default per preset
   /** Default true. Disabled animations are kept but not evaluated. */
   enabled?: boolean;
   /** Preset-specific knobs; unknown keys ignored. See catalog. */
@@ -91,29 +93,37 @@ point for a future curve editor and for baked custom motion.
 // packages/timeline/src/animation/compile.ts
 
 export type AnimatedProperty =
-  | "offsetX" | "offsetY"   // canvas px, resolved from normalized preset units
-  | "scale"                 // uniform multiplier on ClipTransform.scale
-  | "rotation"              // radians, added to ClipTransform.rotation
-  | "opacity";              // multiplier on the layer's resolved opacity
+  | "offsetX"
+  | "offsetY" // canvas px, resolved from normalized preset units
+  | "scale" // uniform multiplier on ClipTransform.scale
+  | "rotation" // radians, added to ClipTransform.rotation
+  | "opacity"; // multiplier on the layer's resolved opacity
 
-export interface Keyframe { t: number; value: number; easing?: EasingId }
+export interface Keyframe {
+  t: number;
+  value: number;
+  easing?: EasingId;
+}
 // t normalized 0..1 within the animation window; keyframes sorted by t;
 // first t === 0, last t === 1.
 
-export interface PropertyCurve { property: AnimatedProperty; keyframes: Keyframe[] }
+export interface PropertyCurve {
+  property: AnimatedProperty;
+  keyframes: Keyframe[];
+}
 
 export interface CompiledAnimation {
   role: AnimationRole;
-  windowStartMs: number;   // clip-local, resolved from role + delay + duration
+  windowStartMs: number; // clip-local, resolved from role + delay + duration
   windowEndMs: number;
-  loop: boolean;           // repeat the window until clip end. Set by the
-                           // preset's compile, not derived from role alone:
-                           // most "loop"-role presets compile loop:true, but
-                           // kenBurns compiles loop:false (one-shot full clip)
+  loop: boolean; // repeat the window until clip end. Set by the
+  // preset's compile, not derived from role alone:
+  // most "loop"-role presets compile loop:true, but
+  // kenBurns compiles loop:false (one-shot full clip)
   /** Hold curve endpoint values outside the window (in: hold t=0 before window;
    *  out: hold t=1 after window). false → identity outside the window. */
-  holdBefore: boolean;     // true for "in"
-  holdAfter: boolean;      // true for "out"
+  holdBefore: boolean; // true for "in"
+  holdAfter: boolean; // true for "out"
   curves: PropertyCurve[];
 }
 
@@ -135,11 +145,11 @@ stay unit-free.
 // packages/timeline/src/animation/sample.ts
 
 export interface AnimationSample {
-  offsetX: number;  // px, add to transform.position.x
+  offsetX: number; // px, add to transform.position.x
   offsetY: number;
-  scale: number;    // multiply transform.scale.x and .y
+  scale: number; // multiply transform.scale.x and .y
   rotation: number; // radians, add to transform.rotation
-  opacity: number;  // 0..1, multiply layer opacity
+  opacity: number; // 0..1, multiply layer opacity
 }
 
 export const IDENTITY_SAMPLE: AnimationSample; // {0, 0, 1, 0, 1}
@@ -159,7 +169,7 @@ Composition rules (deterministic, order-independent across roles):
   `easeOutElastic`) may push individual samples past 1. Scale is clamped to
   ≥ 0.
 - Within a window: map `localMs` to normalized `t`, find the bracketing
-  keyframes, apply the segment's easing (the easing stored on the *right*
+  keyframes, apply the segment's easing (the easing stored on the _right_
   keyframe of the segment; `ClipAnimation.easing` overrides every segment),
   lerp.
 - `"in"` before its window: hold the `t=0` value — a delayed `fadeIn` keeps the
@@ -168,7 +178,7 @@ Composition rules (deterministic, order-independent across roles):
   identity.
 - `"emphasis"` outside its window: identity.
 - `"loop"`: identity before `windowStartMs`; from there, `t = ((localMs - start)
-  % durationMs) / durationMs` until clip end. Loop curves must start and end at
+% durationMs) / durationMs` until clip end. Loop curves must start and end at
   the same value to avoid pops (catalog invariant, asserted in tests).
 - Speed (`speedMultiplier`) does **not** rescale animation time: animations run
   on the timeline clock, not the source clock. (Matches how fades and
@@ -180,27 +190,27 @@ Composition rules (deterministic, order-independent across roles):
 default duration/easing, params with defaults, and a curve generator
 `(params, canvas) => PropertyCurve[]`. `AnimationPresetId` is the union of ids.
 
-| Preset | Roles | Params (defaults) | Motion |
-|---|---|---|---|
-| `fade` | in, out | — | opacity 0↔1 |
-| `slide` | in, out | `direction: "left"\|"right"\|"up"\|"down"` ("left"), `distance` (0.3 = fraction of canvas) | offset from/to direction, opacity 0↔1 |
-| `pop` | in, out | `overshoot` (1.08) | scale 0.6↔1 with `easeOutBack`, opacity 0↔1 |
-| `spin` | in, out | `turns` (0.25) | rotation ±turns·2π, opacity 0↔1 |
-| `wipe` | — | — | **deferred** — needs per-layer masking in the compositor; not in v1 |
-| `pulse` | emphasis | `intensity` (0.06) | scale 1→1+i→1 |
-| `shake` | emphasis | `intensity` (0.02), `cycles` (4) | offsetX zig-zag, fraction of canvas width |
-| `bounce` | emphasis | `height` (0.05) | offsetY dip with `easeOutBounce` |
-| `kenBurns` | loop | `zoom` (0.12), `direction` ("in"), `driftX`/`driftY` (0.02) | slow scale 1→1+z (or reverse) + drift. Compiles `loop:false`, window = full clip, `holdAfter:true` — it runs once over the whole clip, so `durationMs` and `delayMs` are ignored and the monotonic curve is exempt from the loop start==end invariant |
-| `float` | loop | `amplitude` (0.015), `periodMs` via durationMs | offsetY sine bob (piecewise-cubic approximation over ≥8 keyframes) |
-| `breathe` | loop | `intensity` (0.03) | scale sine |
-| `rotate` | loop | `rpm` via durationMs | rotation 0→2π per cycle |
+| Preset     | Roles    | Params (defaults)                                                                          | Motion                                                                                                                                                                                                                                                |
+| ---------- | -------- | ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fade`     | in, out  | —                                                                                          | opacity 0↔1                                                                                                                                                                                                                                           |
+| `slide`    | in, out  | `direction: "left"\|"right"\|"up"\|"down"` ("left"), `distance` (0.3 = fraction of canvas) | offset from/to direction, opacity 0↔1                                                                                                                                                                                                                 |
+| `pop`      | in, out  | `overshoot` (1.08)                                                                         | scale 0.6↔1 with `easeOutBack`, opacity 0↔1                                                                                                                                                                                                           |
+| `spin`     | in, out  | `turns` (0.25)                                                                             | rotation ±turns·2π, opacity 0↔1                                                                                                                                                                                                                       |
+| `wipe`     | —        | —                                                                                          | **deferred** — needs per-layer masking in the compositor; not in v1                                                                                                                                                                                   |
+| `pulse`    | emphasis | `intensity` (0.06)                                                                         | scale 1→1+i→1                                                                                                                                                                                                                                         |
+| `shake`    | emphasis | `intensity` (0.02), `cycles` (4)                                                           | offsetX zig-zag, fraction of canvas width                                                                                                                                                                                                             |
+| `bounce`   | emphasis | `height` (0.05)                                                                            | offsetY dip with `easeOutBounce`                                                                                                                                                                                                                      |
+| `kenBurns` | loop     | `zoom` (0.12), `direction` ("in"), `driftX`/`driftY` (0.02)                                | slow scale 1→1+z (or reverse) + drift. Compiles `loop:false`, window = full clip, `holdAfter:true` — it runs once over the whole clip, so `durationMs` and `delayMs` are ignored and the monotonic curve is exempt from the loop start==end invariant |
+| `float`    | loop     | `amplitude` (0.015), `periodMs` via durationMs                                             | offsetY sine bob (piecewise-cubic approximation over ≥8 keyframes)                                                                                                                                                                                    |
+| `breathe`  | loop     | `intensity` (0.03)                                                                         | scale sine                                                                                                                                                                                                                                            |
+| `rotate`   | loop     | `rpm` via durationMs                                                                       | rotation 0→2π per cycle                                                                                                                                                                                                                               |
 
 Defaults: `in`/`out` 500 ms, `emphasis` 600 ms, `loop` 3000 ms. `in` defaults
 to `easeOut`, `out` to `easeIn`, others per table.
 
 ## Rendering integration
 
-The layer *set* stays cacheable; animated *properties* are resolved per frame.
+The layer _set_ stays cacheable; animated _properties_ are resolved per frame.
 `computeActiveLayersWithHorizon` and its change-horizon contract are untouched
 — animation windows never add or remove layers, so `nextChangeMs` stays
 correct for set membership.
@@ -209,7 +219,10 @@ New pure helper (in `sceneModel.ts`, since it is shared preview/export
 vocabulary):
 
 ```ts
-export interface AnimatedLayerProps { transform?: ClipTransform; opacity: number }
+export interface AnimatedLayerProps {
+  transform?: ClipTransform;
+  opacity: number;
+}
 
 /** Compose a layer's static transform/opacity with its animation sample at t.
  *  Returns the inputs unchanged when the clip has no enabled animations. */
@@ -217,7 +230,7 @@ export function resolveAnimatedLayerProps(
   layer: ActiveLayer,
   currentTimeMs: number,
   canvas: { width: number; height: number },
-  cache?: AnimationCompileCache            // keyed by clip id + animations ref
+  cache?: AnimationCompileCache // keyed by clip id + animations ref
 ): AnimatedLayerProps;
 ```
 
@@ -290,7 +303,7 @@ Extend `TimelineAgentHandler`
 `web/src/lib/tools/builtin/timeline.ts`:
 
 - **`ui_timeline_animate_clip`** — `{ target, animations: ClipAnimationInput[],
-  mode?: "add" | "replace" }` (`replace` default; `add` appends). Each input:
+mode?: "add" | "replace" }` (`replace` default; `add` appends). Each input:
   `{ role, preset, durationMs?, delayMs?, easing?, params? }` — ids and
   defaults filled in by the handler. Returns the updated clip including
   resolved animations. On validation errors (unknown preset, role not allowed
@@ -308,7 +321,7 @@ Also: include `animations` in `getSnapshot()` clip entries so
 
 The critique loop needs no new tools: `ui_timeline_get_clip_frames` +
 `ui_timeline_seek` already exist. Tool descriptions should state the intended
-loop: *get state → animate → get frames at window boundaries → adjust*.
+loop: _get state → animate → get frames at window boundaries → adjust_.
 
 ## Manual UI (thin, after the agent surface)
 

@@ -47,7 +47,12 @@ describe("timelineClip schema", () => {
     const clip = {
       ...baseClip,
       effects: [
-        { id: "inspector:blur", type: "blur" as const, enabled: true, radius: 5 }
+        {
+          id: "inspector:blur",
+          type: "blur" as const,
+          enabled: true,
+          radius: 5
+        }
       ]
     };
     const parsed = timelineClip.parse(clip);
@@ -115,7 +120,12 @@ describe("timelineClip schema", () => {
     const clip = {
       ...baseClip,
       animations: [
-        { id: "a", role: "in" as const, preset: "future-preset-99", durationMs: 400 }
+        {
+          id: "a",
+          role: "in" as const,
+          preset: "future-preset-99",
+          durationMs: 400
+        }
       ]
     };
     const result = timelineClip.safeParse(clip);
@@ -128,5 +138,39 @@ describe("timelineClip schema", () => {
       animations: [{ id: "a", role: "bogus", preset: "fade", durationMs: 400 }]
     };
     expect(timelineClip.safeParse(clip).success).toBe(false);
+  });
+
+  it("preserves an authored text clip and its style", () => {
+    const clip = {
+      ...baseClip,
+      mediaType: "text" as const,
+      textStyle: {
+        text: "Opening title",
+        fontSizePx: 96,
+        color: "#ffffff",
+        align: "center" as const,
+        maxWidthFrac: 0.8
+      }
+    };
+    const parsed = timelineClip.parse(clip);
+    expect(parsed.mediaType).toBe("text");
+    expect(parsed.textStyle).toEqual(clip.textStyle);
+  });
+
+  it("preserves an authored shape clip and its style", () => {
+    const clip = {
+      ...baseClip,
+      mediaType: "shape" as const,
+      shapeStyle: {
+        kind: "ellipse" as const,
+        fill: "#334455",
+        x: 0.2,
+        y: 0.2,
+        width: 0.6,
+        height: 0.6
+      }
+    };
+    const parsed = timelineClip.parse(clip);
+    expect(parsed.shapeStyle).toEqual(clip.shapeStyle);
   });
 });

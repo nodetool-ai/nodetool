@@ -12,17 +12,25 @@
  */
 
 import { useEffect, useMemo } from "react";
+import { makeClip } from "@nodetool-ai/timeline";
 import type {
   ClipAnimation,
   TimelineClip,
   TimelineTrack
 } from "@nodetool-ai/timeline";
 import { buildClipAnimation } from "./buildClipAnimation";
+import {
+  shapeStyleWithDefaults,
+  textStyleWithDefaults
+} from "./authoredClipStyles";
 
 import { useTimelineStoreApi } from "../../stores/timeline/TimelineStore";
 import { useTimelineUIStoreApi } from "../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStoreApi } from "../../stores/timeline/TimelinePlaybackStore";
-import { getRememberedModel, type ModelKind } from "../../stores/lastModelStore";
+import {
+  getRememberedModel,
+  type ModelKind
+} from "../../stores/lastModelStore";
 import { useAssetStore } from "../../stores/AssetStore";
 import { getAssetUrl } from "../../utils/assetHelpers";
 import { useTimelineDirectGenJob } from "./useTimelineDirectGenJob";
@@ -34,11 +42,14 @@ import {
   type TimelineAnimationNode,
   type TimelineClipNode,
   type TimelineClipFrameNode,
+  type TimelineAddTextClipOptions,
+  type TimelineAddShapeClipOptions,
   type TimelineGenerateKind,
   type TimelineSnapshot,
   type TimelineTrackNode
 } from "../../components/timeline/timelineAgentBridge";
 import { extractVideoFrames } from "../../components/timeline/Tracks/clipThumbnails";
+import { renderRasterClipFrames } from "../../components/timeline/preview/rasterClipFrames";
 
 const KIND_TO_MODEL_KIND: Record<TimelineGenerateKind, ModelKind> = {
   "text-to-video": "video",
@@ -48,7 +59,7 @@ const KIND_TO_MODEL_KIND: Record<TimelineGenerateKind, ModelKind> = {
 
 const KIND_TO_MEDIA_TYPE: Record<
   TimelineGenerateKind,
-  TimelineClip["mediaType"]
+  "image" | "video" | "audio" | "overlay"
 > = {
   "text-to-video": "video",
   "text-to-image": "image",
@@ -64,10 +75,7 @@ function clampNumber(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
-function sampleClipTimelineTimes(
-  clip: TimelineClip,
-  count: number
-): number[] {
+function sampleClipTimelineTimes(clip: TimelineClip, count: number): number[] {
   const n = clampNumber(Math.round(count), 1, MAX_FRAME_COUNT);
   const start = clip.startMs;
   const end = Math.max(start, start + clip.durationMs - 1);
@@ -77,7 +85,10 @@ function sampleClipTimelineTimes(
   );
 }
 
-function sourceTimeForTimelineTime(clip: TimelineClip, timelineTimeMs: number): number {
+function sourceTimeForTimelineTime(
+  clip: TimelineClip,
+  timelineTimeMs: number
+): number {
   const clipStart = clip.startMs;
   const clipEnd = clip.startMs + clip.durationMs;
   if (timelineTimeMs < clipStart || timelineTimeMs > clipEnd) {
@@ -127,7 +138,9 @@ function toClipNode(
     hidden: !!clip.hidden,
     muted: !!clip.muted,
     locked: clip.locked,
-    animations: clip.animations?.map(toAnimationNode)
+    animations: clip.animations?.map(toAnimationNode),
+    textStyle: clip.textStyle,
+    shapeStyle: clip.shapeStyle
   };
 }
 
@@ -226,7 +239,10 @@ export const useTimelineAgentBridge = (active: boolean): void => {
         const map = trackMap();
         const clipCountByTrack = new Map<string, number>();
         for (const c of state.clips) {
-          clipCountByTrack.set(c.trackId, (clipCountByTrack.get(c.trackId) ?? 0) + 1);
+          clipCountByTrack.set(
+            c.trackId,
+            (clipCountByTrack.get(c.trackId) ?? 0) + 1
+          );
         }
         return {
           sequenceId: state.sequenceId,
@@ -336,6 +352,81 @@ export const useTimelineAgentBridge = (active: boolean): void => {
         return { clip: clipNode(reReadClip(clipId)), generationStarted, note };
       },
 
+      addTextClip(opts: TimelineAddTextClipOptions) {
+        const store = doc.getState();
+        let trackId: string;
+        if (opts.trackId) {
+          const track = requireTrack(opts.trackId);
+          if (track.type !== "video" && track.type !== "overlay") {
+            throw new Error(
+              `Text clips require a video or overlay track; "${track.name}" is ${track.type}.`
+            );
+          }
+          trackId = track.id;
+        } else {
+          const overlay = store.tracks.find(
+            (track) => track.type === "overlay"
+          );
+          if (overlay) {
+            trackId = overlay.id;
+          } else {
+            store.addTrack("overlay", "Text");
+            const created = doc.getState().tracks.at(-1);
+            if (!created) {
+              throw new Error("Could not create an overlay track for text.");
+            }
+            trackId = created.id;
+          }
+        }
+        const textStyle = textStyleWithDefaults(opts);
+        const clip = makeClip({
+          trackId,
+          name: opts.text.trim().slice(0, 40) || "Text",
+          startMs: Math.max(0, opts.startMs ?? trackEndMs(trackId)),
+          durationMs: Math.max(1, opts.durationMs ?? 3000),
+          mediaType: "text",
+          sourceType: "imported",
+          status: "generated",
+          textStyle
+        });
+        store.addClip(clip);
+        ui.getState().selectClip(clip.id);
+        return clipNode(reReadClip(clip.id));
+      },
+
+      addShapeClip(opts: TimelineAddShapeClipOptions) {
+        const store = doc.getState();
+        const overlay = opts.trackId
+          ? requireTrack(opts.trackId)
+          : store.tracks.find((track) => track.type === "overlay");
+        if (overlay && overlay.type !== "video" && overlay.type !== "overlay") {
+          throw new Error(
+            `Shape clips require a video or overlay track; "${overlay.name}" is ${overlay.type}.`
+          );
+        }
+        if (!overlay) {
+          store.addTrack("overlay", "Shapes");
+        }
+        const track = overlay ?? doc.getState().tracks.at(-1);
+        if (!track) {
+          throw new Error("Could not create an overlay track for a shape.");
+        }
+        const shapeStyle = shapeStyleWithDefaults(opts.shape);
+        const clip = makeClip({
+          trackId: track.id,
+          name: opts.shape.kind,
+          startMs: Math.max(0, opts.startMs ?? trackEndMs(track.id)),
+          durationMs: Math.max(1, opts.durationMs ?? 3000),
+          mediaType: "shape",
+          sourceType: "imported",
+          status: "generated",
+          shapeStyle
+        });
+        store.addClip(clip);
+        ui.getState().selectClip(clip.id);
+        return clipNode(reReadClip(clip.id));
+      },
+
       splitClip(target, atMs) {
         const clip = requireClip(target);
         const at = atMs ?? Math.round(playback.getState().getTimeMs());
@@ -414,6 +505,10 @@ export const useTimelineAgentBridge = (active: boolean): void => {
         if (patch.hidden !== undefined) next.hidden = patch.hidden;
         if (patch.muted !== undefined) next.muted = patch.muted;
         if (patch.locked !== undefined) next.locked = patch.locked;
+        if (patch.textStyle !== undefined) next.textStyle = patch.textStyle;
+        if (patch.shapeStyle !== undefined) {
+          next.shapeStyle = shapeStyleWithDefaults(patch.shapeStyle);
+        }
         doc.getState().patchClip(clip.id, next);
         return clipNode(reReadClip(clip.id));
       },
@@ -427,8 +522,10 @@ export const useTimelineAgentBridge = (active: boolean): void => {
         }
         // aspectRatio / resolution aren't part of patchClipBinding's fields.
         const direct: Partial<TimelineClip> = {};
-        if (patch.aspectRatio !== undefined) direct.aspectRatio = patch.aspectRatio;
-        if (patch.resolution !== undefined) direct.resolution = patch.resolution;
+        if (patch.aspectRatio !== undefined)
+          direct.aspectRatio = patch.aspectRatio;
+        if (patch.resolution !== undefined)
+          direct.resolution = patch.resolution;
         if (Object.keys(direct).length > 0) {
           doc.getState().patchClip(clip.id, direct);
         }
@@ -480,15 +577,47 @@ export const useTimelineAgentBridge = (active: boolean): void => {
       clearClipAnimations(target, role) {
         const clip = requireClip(target);
         const current = clip.animations ?? [];
-        const next = role
-          ? current.filter((a) => a.role !== role)
-          : [];
+        const next = role ? current.filter((a) => a.role !== role) : [];
         doc.getState().setClipAnimations(clip.id, next);
         return clipNode(reReadClip(clip.id));
       },
 
       async getClipFrames(target, opts) {
         const clip = requireClip(target);
+        const timelineTimes =
+          opts.timesMs && opts.timesMs.length > 0
+            ? opts.timesMs
+                .slice(0, MAX_FRAME_COUNT)
+                .map((time) => Math.round(time))
+            : sampleClipTimelineTimes(clip, opts.count ?? DEFAULT_FRAME_COUNT);
+        timelineTimes.forEach((time) => sourceTimeForTimelineTime(clip, time));
+        const width = clampNumber(
+          Math.round(opts.width ?? DEFAULT_FRAME_WIDTH),
+          1,
+          MAX_FRAME_WIDTH
+        );
+
+        if (clip.mediaType === "text" || clip.mediaType === "shape") {
+          const state = doc.getState();
+          const frames = await renderRasterClipFrames(
+            clip,
+            timelineTimes,
+            width,
+            state.width,
+            state.height
+          );
+          return {
+            clip: clipNode(clip),
+            frames: frames.map((frame, index) => ({
+              clipId: clip.id,
+              clipName: clip.name,
+              timelineTimeMs: timelineTimes[index],
+              sourceTimeMs: timelineTimes[index] - clip.startMs,
+              ...frame
+            }))
+          };
+        }
+
         if (clip.mediaType !== "video" && clip.mediaType !== "overlay") {
           throw new Error(
             `Clip "${clip.name}" is ${clip.mediaType}; frame inspection requires a video clip.`
@@ -501,20 +630,13 @@ export const useTimelineAgentBridge = (active: boolean): void => {
         const asset = await useAssetStore.getState().get(clip.currentAssetId);
         const url = getAssetUrl(asset);
         if (!url) {
-          throw new Error(`Could not resolve video URL for clip "${clip.name}".`);
+          throw new Error(
+            `Could not resolve video URL for clip "${clip.name}".`
+          );
         }
 
-        const timelineTimes =
-          opts.timesMs && opts.timesMs.length > 0
-            ? opts.timesMs.slice(0, MAX_FRAME_COUNT).map((time) => Math.round(time))
-            : sampleClipTimelineTimes(clip, opts.count ?? DEFAULT_FRAME_COUNT);
         const sourceTimes = timelineTimes.map((time) =>
           sourceTimeForTimelineTime(clip, time)
-        );
-        const width = clampNumber(
-          Math.round(opts.width ?? DEFAULT_FRAME_WIDTH),
-          1,
-          MAX_FRAME_WIDTH
         );
         const frames = await extractVideoFrames(
           url,

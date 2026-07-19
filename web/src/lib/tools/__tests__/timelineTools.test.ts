@@ -64,6 +64,8 @@ const snapshot = (): TimelineSnapshot => ({
 const createMockHandler = (): jest.Mocked<TimelineAgentHandler> => ({
   getSnapshot: jest.fn(),
   addTrack: jest.fn(),
+  addTextClip: jest.fn(),
+  addShapeClip: jest.fn(),
   generateClip: jest.fn(),
   splitClip: jest.fn(),
   trimClip: jest.fn(),
@@ -93,6 +95,8 @@ describe("ui_timeline_* tools", () => {
       expect.arrayContaining([
         "ui_timeline_get_state",
         "ui_timeline_add_track",
+        "ui_timeline_add_text_clip",
+        "ui_timeline_add_shape_clip",
         "ui_timeline_generate_clip",
         "ui_timeline_split_clip",
         "ui_timeline_trim_clip",
@@ -186,6 +190,68 @@ describe("ui_timeline_* tools", () => {
     expect(result.clip.name).toBe("city at night");
   });
 
+  it("adds authored text with optional styling", async () => {
+    const handler = createMockHandler();
+    handler.addTextClip.mockReturnValue(
+      clipNode({
+        mediaType: "text",
+        textStyle: {
+          text: "Launch",
+          fontSizePx: 72,
+          color: "#fff"
+        }
+      })
+    );
+    setTimelineAgentHandler(handler);
+
+    await FrontendToolRegistry.call(
+      "ui_timeline_add_text_clip",
+      { text: "Launch", style: { fontSizePx: 72, color: "#fff" } },
+      "tc-text",
+      ctx
+    );
+
+    expect(handler.addTextClip).toHaveBeenCalledWith({
+      text: "Launch",
+      style: { fontSizePx: 72, color: "#fff" }
+    });
+  });
+
+  it("rejects blank authored text", async () => {
+    setTimelineAgentHandler(createMockHandler());
+
+    await expect(
+      FrontendToolRegistry.call(
+        "ui_timeline_add_text_clip",
+        { text: "   " },
+        "tc-blank-text",
+        ctx
+      )
+    ).rejects.toThrow();
+  });
+
+  it("accepts a minimal shape and forwards it to the handler", async () => {
+    const handler = createMockHandler();
+    handler.addShapeClip.mockReturnValue(
+      clipNode({
+        mediaType: "shape",
+        shapeStyle: { kind: "rect", fill: "#fff" }
+      })
+    );
+    setTimelineAgentHandler(handler);
+
+    await FrontendToolRegistry.call(
+      "ui_timeline_add_shape_clip",
+      { shape: { kind: "rect" } },
+      "tc-shape",
+      ctx
+    );
+
+    expect(handler.addShapeClip).toHaveBeenCalledWith({
+      shape: { kind: "rect" }
+    });
+  });
+
   it("rejects an unknown generation kind during validation", async () => {
     setTimelineAgentHandler(createMockHandler());
     await expect(
@@ -232,6 +298,28 @@ describe("ui_timeline_* tools", () => {
     expect(handler.setClipParams).toHaveBeenCalledWith("selected", {
       opacity: 0.5,
       fadeOutMs: 500
+    });
+  });
+
+  it("forwards shape style patches to the handler", async () => {
+    const handler = createMockHandler();
+    handler.setClipParams.mockReturnValue(
+      clipNode({ mediaType: "shape", shapeStyle: { kind: "ellipse" } })
+    );
+    setTimelineAgentHandler(handler);
+
+    await FrontendToolRegistry.call(
+      "ui_timeline_set_clip_params",
+      {
+        target: "selected",
+        shapeStyle: { kind: "ellipse", fill: "#123456" }
+      },
+      "tc-shape-style",
+      ctx
+    );
+
+    expect(handler.setClipParams).toHaveBeenCalledWith("selected", {
+      shapeStyle: { kind: "ellipse", fill: "#123456" }
     });
   });
 

@@ -24,16 +24,25 @@ describe("buildClipAnimation", () => {
   });
 
   it("throws listing valid presets for an unknown preset", () => {
-    expect(() =>
-      buildClipAnimation({ role: "in", preset: "sparkle" })
-    ).toThrow(/Valid presets:.*fade.*kenBurns/s);
+    expect(() => buildClipAnimation({ role: "in", preset: "sparkle" })).toThrow(
+      /Valid presets:.*fade.*kenBurns/s
+    );
   });
 
   it("throws listing allowed roles when the role is not supported", () => {
     // pulse is emphasis-only.
+    expect(() => buildClipAnimation({ role: "in", preset: "pulse" })).toThrow(
+      /Allowed roles: emphasis/
+    );
+  });
+
+  it("rejects invalid timing values", () => {
     expect(() =>
-      buildClipAnimation({ role: "in", preset: "pulse" })
-    ).toThrow(/Allowed roles: emphasis/);
+      buildClipAnimation({ role: "in", preset: "fade", durationMs: 0 })
+    ).toThrow(/durationMs must be a positive finite number/);
+    expect(() =>
+      buildClipAnimation({ role: "in", preset: "fade", delayMs: -1 })
+    ).toThrow(/delayMs must be a non-negative finite number/);
   });
 
   it("generates a distinct id per call", () => {
