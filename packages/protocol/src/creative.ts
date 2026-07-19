@@ -124,8 +124,10 @@ export interface Shot {
   entity_ids?: string[];
   /** Location entity for this shot. */
   location_id?: string | null;
-  /** Cheap still anchoring the shot (the storyboard frame). */
+  /** The selected still anchoring the shot (the storyboard frame). */
   keyframe?: ImageRef | null;
+  /** Every generated still for this shot, oldest first. `keyframe` is one of them. */
+  keyframe_versions?: ImageRef[];
   /** The selected clip — what assembly/export uses. */
   clip?: VideoRef | null;
   /** Every rendered take for this shot, oldest first. `clip` is one of them. */
