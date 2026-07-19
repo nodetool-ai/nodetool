@@ -127,6 +127,20 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "directed-film-to-timeline",
+        "name": "Directed Film to Timeline",
+        "description": "Turn a one-line brief into an editable rough cut. A Director agent writes a screenplay of shots, each shot is fanned out into a keyframe prompt, rendered as a still, animated into a clip, then all clips are collected, appended to a timeline sequence, and rendered to a single video you can keep editing.",
+        "tags": [
+          "video",
+          "generation",
+          "ai",
+          "timeline",
+          "creative",
+          "director",
+          "storyboard"
+        ]
+      },
+      {
         "slug": "movie-trailer-generator",
         "name": "Movie Trailer Generator",
         "description": "Type a single logline and get back a cinematic teaser. Prompt nodes template the inputs into a treatment and turn each shot into full cinematic key art; the shots are animated and cut together into the final trailer. Cost note: each shot runs through Veo 3.1 image-to-video, which is metered per second of generated video and is the most expensive step in the pipeline — a 6-shot trailer makes 6 Veo calls.",
@@ -158,6 +172,20 @@ export const templateCatalog: CatalogCategory[] = [
           "business",
           "data",
           "video"
+        ]
+      },
+      {
+        "slug": "script-to-screen",
+        "name": "Script to Screen",
+        "description": "Full production spine: a Director agent turns your brief into a direction document (characters, style bible, shot list, narration, music). A style frame anchors every keyframe for consistency, keyframes form a cheap storyboard you can approve before video spend, then each shot is animated, cut together, and mixed with voiceover and music.",
+        "tags": [
+          "video",
+          "generation",
+          "ai",
+          "storytelling",
+          "creative",
+          "director",
+          "storyboard"
         ]
       }
     ]

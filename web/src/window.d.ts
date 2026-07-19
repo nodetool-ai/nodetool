@@ -159,6 +159,14 @@ interface VaultListResult {
   activeVaultId: string;
 }
 
+interface McpBundleInstallResult {
+  ok: boolean;
+  opened: boolean;
+  revealed: boolean;
+  path: string;
+  error?: string;
+}
+
 declare global {
   interface Window {
     api: {
@@ -224,6 +232,9 @@ declare global {
       onUpdateWorkflow: (workflow: Workflow) => Promise<void>;
       onDeleteWorkflow: (workflow: Workflow) => Promise<void>;
       restartLlamaServer?: () => Promise<void>;
+      mcp?: {
+        installBundle: () => Promise<McpBundleInstallResult>;
+      };
       windowControls: WindowControls;
       platform: string;
       logging?: {

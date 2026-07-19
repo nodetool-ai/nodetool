@@ -45,6 +45,7 @@ const checks = [
   ["Linux AppImage", (f) => f.endsWith(".AppImage")],
   ["blockmap", (f) => f.endsWith(".blockmap")],
   ["web archive", (f) => /^nodetool-web-.+\.zip$/.test(f)],
+  ["MCP bundle", (f) => f.endsWith(".mcpb")],
 ];
 const missingArtifacts = [];
 for (const [label, predicate] of checks) {

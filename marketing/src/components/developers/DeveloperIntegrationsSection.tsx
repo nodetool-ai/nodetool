@@ -52,13 +52,7 @@ const nodeCategories = [
   { name: "Utils", count: "60+", icon: Search },
 ];
 
-interface DeveloperIntegrationsSectionProps {
-  reducedMotion: boolean;
-}
-
-export default function DeveloperIntegrationsSection({
-  reducedMotion,
-}: DeveloperIntegrationsSectionProps) {
+export default function DeveloperIntegrationsSection() {
   return (
     <section
       id="integrations"
@@ -69,7 +63,7 @@ export default function DeveloperIntegrationsSection({
         {/* Section Header */}
         <div className="text-center mb-16">
           <motion.span
-            initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.25 }}
@@ -79,7 +73,7 @@ export default function DeveloperIntegrationsSection({
           </motion.span>
           <motion.h2
             id="integrations-title"
-            initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.25, delay: 0.05 }}
@@ -88,7 +82,7 @@ export default function DeveloperIntegrationsSection({
             Every model. Your keys.
           </motion.h2>
           <motion.p
-            initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.25, delay: 0.05 }}
@@ -100,7 +94,7 @@ export default function DeveloperIntegrationsSection({
 
         {/* Node Categories Stats */}
         <motion.div
-          initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+          initial={false}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           className="grid grid-cols-4 sm:grid-cols-8 gap-4 mb-16"
@@ -108,7 +102,7 @@ export default function DeveloperIntegrationsSection({
           {nodeCategories.map((cat, idx) => (
             <motion.div
               key={cat.name}
-              initial={reducedMotion ? {} : { opacity: 0, scale: 0.9 }}
+              initial={false}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.3, delay: idx * 0.05 }}
@@ -126,7 +120,7 @@ export default function DeveloperIntegrationsSection({
           {integrations.map((integration, idx) => (
             <motion.div
               key={integration.category}
-              initial={reducedMotion ? {} : { opacity: 0, y: 30 }}
+              initial={false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.25, delay: idx * 0.05 }}
@@ -153,7 +147,7 @@ export default function DeveloperIntegrationsSection({
 
         {/* Open Source CTA */}
         <motion.div
-          initial={reducedMotion ? {} : { opacity: 0, y: 30 }}
+          initial={false}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.25 }}

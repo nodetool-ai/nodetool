@@ -1,12 +1,17 @@
 /** @jsxImportSource @emotion/react */
 import { useCallback, useEffect } from "react";
-import type { WorkspaceTabMode } from "../../stores/WorkspaceTabsStore";
+import {
+  useWorkspaceTabsStore,
+  type WorkspaceTabMode
+} from "../../stores/WorkspaceTabsStore";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import { useStoryboardGenerationSubscriptions } from "../../stores/storyboard/StoryboardGenerationStore";
 import { useStoryboardAgentBridge } from "../../hooks/storyboard/useStoryboardAgentBridge";
 import { useDirectScreenplay } from "../../hooks/storyboard/useDirectScreenplay";
+import { useStoryboardServerSync } from "../../hooks/storyboard/useStoryboardServerSync";
 import { useAssembleTimeline } from "../../hooks/storyboard/useAssembleTimeline";
 import StoryboardBoard from "../storyboard/StoryboardBoard";
+import StoryboardSidebar from "../storyboard/StoryboardSidebar";
 
 interface StoryboardSurfaceProps {
   refId: string;
@@ -22,10 +27,21 @@ interface StoryboardSurfaceProps {
  */
 const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
   const ensureBoard = useStoryboardStore((state) => state.ensureBoard);
+  const boardTitle = useStoryboardStore(
+    (state) => state.boards[refId]?.title ?? ""
+  );
+  const setTabTitle = useWorkspaceTabsStore((state) => state.setTitle);
 
   useEffect(() => {
     ensureBoard(refId);
   }, [ensureBoard, refId]);
+
+  useStoryboardServerSync(refId);
+
+  // Keep the tab label in sync with the board's title field.
+  useEffect(() => {
+    setTabTitle(refId, "storyboard", boardTitle || "Untitled storyboard");
+  }, [setTabTitle, refId, boardTitle]);
 
   useStoryboardAgentBridge(refId, active);
   useStoryboardGenerationSubscriptions();
@@ -48,16 +64,21 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
   }, [assemble, refId]);
 
   return (
-    <StoryboardBoard
-      boardId={refId}
-      readOnly={mode === "view"}
-      onDirect={handleDirect}
-      directing={directing}
-      directError={error}
-      onAssemble={handleAssemble}
-      assembling={assembling}
-      assembleError={assembleError}
-    />
+    <div style={{ display: "flex", height: "100%", minHeight: 0 }}>
+      {mode !== "view" && <StoryboardSidebar activeBoardId={refId} />}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <StoryboardBoard
+          boardId={refId}
+          readOnly={mode === "view"}
+          onDirect={handleDirect}
+          directing={directing}
+          directError={error}
+          onAssemble={handleAssemble}
+          assembling={assembling}
+          assembleError={assembleError}
+        />
+      </div>
+    </div>
   );
 };
 

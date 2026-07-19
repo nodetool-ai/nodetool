@@ -44,6 +44,7 @@ import {
   getVaultList,
 } from "./vaults";
 import { applyVaultSwitch } from "./vaultSwitch";
+import { installMcpBundle } from "./mcpBundle";
 import { IpcRequest } from "./types.d";
 import { registerWorkflowShortcut, setupWorkflowShortcuts } from "./shortcuts";
 import { emitWorkflowsChanged, emitServerStateChanged } from "./tray";
@@ -1237,6 +1238,12 @@ export function initializeIpcHandlers(): void {
   createIpcMainHandler(IpcChannels.SHELL_TRASH_ITEM, async (_event, path) => {
     logMessage(`Moving to trash: ${path}`);
     await shell.trashItem(path);
+  });
+
+  // Hand the bundled NodeTool .mcpb to the OS so Claude Desktop can install it.
+  createIpcMainHandler(IpcChannels.MCP_INSTALL_BUNDLE, async () => {
+    logMessage("Installing NodeTool MCP bundle (.mcpb)");
+    return installMcpBundle();
   });
 
   createIpcMainHandler(IpcChannels.SHELL_BEEP, async () => {

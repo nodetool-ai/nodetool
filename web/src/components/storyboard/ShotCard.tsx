@@ -27,9 +27,11 @@ import {
   SPACING,
   getSpacingPx,
   BORDER_RADIUS,
+  MOTION,
   type StatusType
 } from "../ui_primitives";
 import ImageRefPreview from "../node/ImageRefPreview";
+import ShotTakesGallery from "./ShotTakesGallery";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import { useGenerateShot } from "../../hooks/storyboard/useGenerateShot";
 
@@ -77,6 +79,45 @@ const styles = (theme: Theme) =>
     },
     ".camera": {
       color: theme.vars.palette.text.secondary
+    },
+    // ── Generating: shimmer sweep + spark over the preview, glow on the card ──
+    "@keyframes shot-shimmer": {
+      from: { backgroundPosition: "200% 0" },
+      to: { backgroundPosition: "-200% 0" }
+    },
+    "@keyframes shot-spark": {
+      "0%, 100%": { opacity: 0.4, transform: "scale(0.9) rotate(0deg)" },
+      "50%": { opacity: 1, transform: "scale(1.2) rotate(90deg)" }
+    },
+    "@keyframes shot-breathe": {
+      "0%, 100%": { boxShadow: `0 0 0 1px ${theme.vars.palette.primary.main}33` },
+      "50%": { boxShadow: `0 0 14px 1px ${theme.vars.palette.primary.main}55` }
+    },
+    "&.generating": {
+      animation: `shot-breathe ${MOTION.pulse} infinite`
+    },
+    ".conjure": {
+      position: "absolute",
+      inset: 0,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: getSpacingPx(SPACING.sm),
+      backgroundImage: `linear-gradient(100deg, transparent 40%, ${theme.vars.palette.action.selected} 50%, transparent 60%)`,
+      backgroundSize: "200% 100%",
+      animation: `shot-shimmer ${MOTION.spin} infinite`,
+      ".spark": {
+        fontSize: "1.5em",
+        color: theme.vars.palette.primary.main,
+        animation: `shot-spark ${MOTION.pulse} infinite`
+      },
+      ".conjure-label": {
+        color: theme.vars.palette.text.secondary
+      }
+    },
+    "@media (prefers-reduced-motion: reduce)": {
+      "&.generating, .conjure, .conjure .spark": { animation: "none" }
     }
   });
 
@@ -124,7 +165,12 @@ const ShotCardInner: React.FC<ShotCardProps> = ({ boardId, shot, readOnly }) => 
   }, [generateRevisedClip, boardId, shot]);
 
   return (
-    <Card variant="outlined" padding="compact" css={styles(theme)} className="shot-card">
+    <Card
+      variant="outlined"
+      padding="compact"
+      css={styles(theme)}
+      className={`shot-card${isGenerating ? " generating" : ""}`}
+    >
       <FlexRow align="center" justify="space-between" gap={1}>
         <Text size="small" weight={600} truncate>
           {`${shot.index + 1}. ${shot.slug ?? "Untitled shot"}`}
@@ -147,6 +193,16 @@ const ShotCardInner: React.FC<ShotCardProps> = ({ boardId, shot, readOnly }) => 
             }
           />
         )}
+        {isGenerating && (
+          <div className="conjure">
+            <span className="spark">✦</span>
+            <Caption className="conjure-label">
+              {shot.status === "clip_generating"
+                ? "Rendering clip…"
+                : "Conjuring still…"}
+            </Caption>
+          </div>
+        )}
       </div>
 
       <Text size="small" lineClamp={3}>
@@ -158,6 +214,8 @@ const ShotCardInner: React.FC<ShotCardProps> = ({ boardId, shot, readOnly }) => 
           {camera}
         </Caption>
       )}
+
+      <ShotTakesGallery boardId={boardId} shot={shot} readOnly={readOnly} />
 
       {typeof shot.cost_estimate === "number" && (
         <FlexRow>
@@ -183,10 +241,14 @@ const ShotCardInner: React.FC<ShotCardProps> = ({ boardId, shot, readOnly }) => 
           </FlexRow>
           <EditorButton
             onClick={handleGenerateClip}
-            disabled={shot.status !== "approved"}
+            disabled={
+              isGenerating ||
+              !shot.keyframe ||
+              (shot.status !== "approved" && shot.status !== "rendered")
+            }
             fullWidth
           >
-            Generate clip
+            {shot.clip ? "New take" : "Generate clip"}
           </EditorButton>
           {shot.clip && (
             <EditorButton

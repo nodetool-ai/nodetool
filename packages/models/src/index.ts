@@ -132,6 +132,12 @@ export type {
 } from "./timeline-sequence.js";
 
 export { ImageDocument, ImageDocumentConflictError } from "./image-document.js";
+export {
+  Storyboard,
+  StoryboardConflictError,
+  emptyStoryboardDocument
+} from "./storyboard.js";
+export type { StoryboardDocument, StoryboardResponse } from "./storyboard.js";
 export type {
   ImageDocumentData,
   ImageDocumentMutationResult,

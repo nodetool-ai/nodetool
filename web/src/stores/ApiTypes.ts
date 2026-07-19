@@ -409,6 +409,13 @@ export interface ImageModelValue {
   resolutions?: string[];
 }
 
+export interface VideoModelValue {
+  type: "video_model";
+  id: string;
+  provider: Provider;
+  name: string;
+}
+
 export interface TTSModelValue {
   type: "tts_model";
   id: string;
