@@ -156,6 +156,10 @@ describe("VoiceScriptNode", () => {
     expect(result.output).toMatchObject({ type: "script", id: "script-1" });
     expect(context.createAsset).toHaveBeenCalledTimes(2);
     expect(context.updateScript).toHaveBeenCalledTimes(1);
+    expect(context.updateScript).toHaveBeenCalledWith(
+      "script-1",
+      expect.objectContaining({ baseUpdatedAt: script.updatedAt })
+    );
     const lines = script.document.sections[0].lines;
     expect(lines[0].takes).toHaveLength(1);
     expect(lines[0].currentTakeId).toBe(lines[0].takes[0].id);

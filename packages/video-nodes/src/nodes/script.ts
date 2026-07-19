@@ -273,7 +273,8 @@ export class VoiceScriptNode extends BaseNode {
 
     if (voiced > 0) {
       const saved = (await context.updateScript(script.id, {
-        document: doc
+        document: doc,
+        baseUpdatedAt: script.updatedAt
       })) as { id: string } | null;
       if (!saved) {
         throw new Error(

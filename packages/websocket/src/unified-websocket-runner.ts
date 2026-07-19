@@ -1052,7 +1052,13 @@ function createRuntimeContext(opts: {
       await script.save();
       return script.toResponse();
     },
-    updateScript: async ({ userId, id, document, timelineId }) => {
+    updateScript: async ({
+      userId,
+      id,
+      document,
+      timelineId,
+      baseUpdatedAt
+    }) => {
       const existing = await Script.findById(id);
       if (!existing || existing.user_id !== userId) return null;
       const fields: Partial<{
@@ -1063,7 +1069,7 @@ function createRuntimeContext(opts: {
       if (timelineId !== undefined) fields.timeline_id = timelineId;
       const updated = await Script.updateFieldsIfUnchanged(
         id,
-        existing.updated_at,
+        baseUpdatedAt ?? existing.updated_at,
         fields
       );
       return updated ? updated.toResponse() : null;

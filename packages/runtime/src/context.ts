@@ -418,6 +418,7 @@ export interface ProcessingContextModelInterfaces {
     id: string;
     document?: unknown;
     timelineId?: string | null;
+    baseUpdatedAt?: string;
   }) => Promise<unknown | null>;
 }
 
@@ -1995,7 +1996,11 @@ export class ProcessingContext {
   /** Replace a persisted script's document (and optional timeline link). */
   async updateScript(
     id: string,
-    args: { document?: unknown; timelineId?: string | null }
+    args: {
+      document?: unknown;
+      timelineId?: string | null;
+      baseUpdatedAt?: string;
+    }
   ): Promise<unknown | null> {
     const fn = this.requireModelInterface("updateScript");
     return fn({ userId: this.userId, id, ...args });

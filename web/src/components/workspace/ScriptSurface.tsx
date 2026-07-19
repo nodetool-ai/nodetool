@@ -10,7 +10,7 @@ import {
 import { useScriptStore, useScript } from "../../stores/script/ScriptStore";
 import { useScriptServerSync } from "../../hooks/script/useScriptServerSync";
 import { useScriptAgentBridge } from "../../hooks/script/useScriptAgentBridge";
-import { FlexColumn, TabGroup } from "../ui_primitives";
+import { FlexColumn, FlexRow, TabGroup } from "../ui_primitives";
 import ScriptDocumentPane from "../script/ScriptDocumentPane";
 import ScriptCastPanel from "../script/ScriptCastPanel";
 import ScriptAgentPanel from "../script/ScriptAgentPanel";
@@ -59,14 +59,7 @@ const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
   );
 
   return (
-    <div
-      style={{
-        display: "flex",
-        height: "100%",
-        minHeight: 0,
-        position: "relative"
-      }}
-    >
+    <FlexRow fullHeight sx={{ minHeight: 0, position: "relative" }}>
       <ScriptDocumentPane scriptId={refId} readOnly={readOnly} />
       {!readOnly && (
         <FlexColumn
@@ -102,7 +95,7 @@ const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
           </FlexColumn>
         </FlexColumn>
       )}
-    </div>
+    </FlexRow>
   );
 };
 

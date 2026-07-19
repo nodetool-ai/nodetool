@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { useCallback } from "react";
+import { useTheme } from "@mui/material/styles";
 import PersonAddIcon from "@mui/icons-material/PersonAddAlt";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import {
@@ -11,7 +12,9 @@ import {
   ToolbarIconButton,
   Divider,
   EmptyState,
-  SPACING
+  SPACING,
+  BORDER_RADIUS,
+  getSpacingPx
 } from "../ui_primitives";
 import TTSModelSelect from "../properties/TTSModelSelect";
 import type { TTSModelValue } from "../../stores/ApiTypes";
@@ -26,15 +29,6 @@ interface ScriptCastPanelProps {
   cast: ScriptSpeaker[];
   readOnly: boolean;
 }
-
-const SPEAKER_COLORS = [
-  "#6ea8fe",
-  "#f7a072",
-  "#a0e7a0",
-  "#e79ad0",
-  "#f2d17c",
-  "#8fd6d6"
-];
 
 let speakerCounter = 0;
 const newSpeakerId = (): string =>
@@ -82,10 +76,10 @@ const SpeakerRow = ({
         <span
           aria-hidden
           style={{
-            width: 12,
-            height: 12,
-            borderRadius: "50%",
-            backgroundColor: speaker.color ?? "#888",
+            width: getSpacingPx(SPACING.lg),
+            height: getSpacingPx(SPACING.lg),
+            borderRadius: BORDER_RADIUS.circle,
+            backgroundColor: speaker.color ?? "action.disabled",
             flexShrink: 0
           }}
         />
@@ -128,16 +122,24 @@ const ScriptCastPanel = ({
   cast,
   readOnly
 }: ScriptCastPanelProps) => {
+  const theme = useTheme();
   const addSpeaker = useScriptStore((s) => s.addSpeaker);
 
   const onAdd = useCallback(() => {
     addSpeaker(scriptId, {
       id: newSpeakerId(),
       name: `Speaker ${cast.length + 1}`,
-      color: SPEAKER_COLORS[cast.length % SPEAKER_COLORS.length],
+      color: [
+        theme.vars.palette.primary.main,
+        theme.vars.palette.secondary.main,
+        theme.vars.palette.success.main,
+        theme.vars.palette.warning.main,
+        theme.vars.palette.info.main,
+        theme.vars.palette.error.main
+      ][cast.length % 6],
       voice: null
     });
-  }, [addSpeaker, scriptId, cast.length]);
+  }, [addSpeaker, scriptId, cast.length, theme]);
 
   return (
     <FlexColumn

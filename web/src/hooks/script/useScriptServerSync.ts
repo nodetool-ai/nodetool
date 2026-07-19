@@ -48,6 +48,7 @@ export const useScriptServerSync = (scriptId: string): void => {
   const utils = trpc.useUtils();
   const syncedRef = useRef<ScriptDraft | null>(null);
   const inFlightRef = useRef(false);
+  const flushAfterSaveRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const utilsRef = useRef(utils);
   utilsRef.current = utils;
@@ -89,13 +90,18 @@ export const useScriptServerSync = (scriptId: string): void => {
       }
     };
 
-    const save = async (): Promise<void> => {
-      if (disposed || inFlightRef.current) return;
+    const save = async (flush = false): Promise<void> => {
+      if (inFlightRef.current) {
+        if (flush) flushAfterSaveRef.current = true;
+        return;
+      }
+      if (disposed && !flush) return;
       const script = store.getState().scripts[scriptId];
       const revision = store.getState().serverRevisions[scriptId];
       if (!script || !revision || script === syncedRef.current) return;
 
       inFlightRef.current = true;
+      let saved = false;
       try {
         const updated = await trpcClient.scripts.update.mutate({
           id: scriptId,
@@ -104,13 +110,17 @@ export const useScriptServerSync = (scriptId: string): void => {
           document: scriptToDocument(script),
           timelineId: script.timelineId
         });
-        if (disposed) return;
         store.getState().setServerRevision(scriptId, updated.updatedAt);
         syncedRef.current = script;
+        saved = true;
         void utilsRef.current.scripts.list.invalidate();
         // Edits landed while the save was in flight — go again.
         if (store.getState().scripts[scriptId] !== syncedRef.current) {
-          schedule();
+          if (disposed || flushAfterSaveRef.current) {
+            flushAfterSaveRef.current = true;
+          } else {
+            schedule();
+          }
         }
       } catch (error) {
         if (disposed) return;
@@ -122,6 +132,10 @@ export const useScriptServerSync = (scriptId: string): void => {
         }
       } finally {
         inFlightRef.current = false;
+        if (saved && flushAfterSaveRef.current) {
+          flushAfterSaveRef.current = false;
+          void save(true);
+        }
       }
     };
 
@@ -145,6 +159,8 @@ export const useScriptServerSync = (scriptId: string): void => {
       disposed = true;
       unsubscribe();
       if (timerRef.current) clearTimeout(timerRef.current);
+      if (inFlightRef.current) flushAfterSaveRef.current = true;
+      else void save(true);
     };
   }, [scriptId]);
 };

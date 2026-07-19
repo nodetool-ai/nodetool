@@ -22,38 +22,80 @@ import type { TimelineClip } from "@nodetool-ai/timeline";
 export async function syncLineClipToTimeline(
   scriptId: string,
   lineId: string,
-  take: ScriptTake
+  take: ScriptTake | null
 ): Promise<boolean> {
-  const timelineId = useScriptStore.getState().getScript(scriptId)?.timelineId;
+  const script = useScriptStore.getState().getScript(scriptId);
+  const timelineId = script?.timelineId;
   if (!timelineId) {
     return false;
   }
   try {
     const sequence = await trpcClient.timeline.get.query({ id: timelineId });
     const clips = sequence.clips as TimelineClip[];
+    const targetIndex = clips.findIndex(
+      (clip) => clip.scriptLineId === lineId && clip.scriptId === scriptId
+    );
+    if (targetIndex < 0) return false;
+
+    if (!take) {
+      const next = clips.filter((_, index) => index !== targetIndex);
+      await trpcClient.timeline.update.mutate({
+        id: timelineId,
+        baseUpdatedAt: sequence.updatedAt,
+        document: {
+          tracks: sequence.tracks,
+          clips: next,
+          markers: sequence.markers ?? []
+        }
+      });
+      return true;
+    }
+
+    const target = clips[targetIndex];
     const words = takeCaptionWords(take);
-    const durationMs = take.durationMs > 0 ? take.durationMs : undefined;
-    let changed = false;
-    const next = clips.map((clip) => {
-      if (clip.scriptLineId !== lineId || clip.scriptId !== scriptId) {
-        return clip;
+    const durationMs = take.durationMs > 0 ? take.durationMs : target.durationMs;
+    const caption = words.length ? { words } : undefined;
+    const deltaMs = durationMs - target.durationMs;
+    const lineOrder = script
+      ? new Map(
+          script.sections
+            .flatMap((section) => section.lines)
+            .map((line, index) => [line.id, index])
+        )
+      : new Map<string, number>();
+    const targetOrder = lineOrder.get(lineId);
+    const next = clips.map((clip, index) => {
+      if (index === targetIndex) {
+        if (
+          clip.currentAssetId === take.assetId &&
+          clip.durationMs === durationMs &&
+          JSON.stringify(clip.caption) === JSON.stringify(caption)
+        ) {
+          return clip;
+        }
+        return {
+          ...clip,
+          currentAssetId: take.assetId,
+          durationMs,
+          caption,
+          status: "generated" as const
+        };
       }
-      const nextDuration = durationMs ?? clip.durationMs;
+      const clipOrder = clip.scriptLineId
+        ? lineOrder.get(clip.scriptLineId)
+        : undefined;
       if (
-        clip.currentAssetId === take.assetId &&
-        clip.durationMs === nextDuration
+        deltaMs !== 0 &&
+        targetOrder !== undefined &&
+        clip.scriptId === scriptId &&
+        clipOrder !== undefined &&
+        clipOrder > targetOrder
       ) {
-        return clip;
+        return { ...clip, startMs: clip.startMs + deltaMs };
       }
-      changed = true;
-      return {
-        ...clip,
-        currentAssetId: take.assetId,
-        durationMs: nextDuration,
-        caption: words.length ? { words } : clip.caption,
-        status: "generated" as const
-      };
+      return clip;
     });
+    const changed = next.some((clip, index) => clip !== clips[index]);
     if (!changed) {
       return false;
     }

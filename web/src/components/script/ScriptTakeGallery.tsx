@@ -54,6 +54,19 @@ const TakeRow = ({
     void syncLineClipToTimeline(scriptId, lineId, take);
   }, [setCurrentTake, scriptId, lineId, take]);
 
+  const deleteTake = useCallback(() => {
+    removeTake(scriptId, lineId, take.id);
+    const line = useScriptStore
+      .getState()
+      .getScript(scriptId)
+      ?.sections.flatMap((section) => section.lines)
+      .find((candidate) => candidate.id === lineId);
+    const currentTake = line?.takes.find(
+      (candidate) => candidate.id === line.currentTakeId
+    );
+    void syncLineClipToTimeline(scriptId, lineId, currentTake ?? null);
+  }, [removeTake, scriptId, lineId, take.id]);
+
   const play = useCallback(async () => {
     if (typeof Audio === "undefined") return;
     try {
@@ -112,7 +125,7 @@ const TakeRow = ({
       />
       <ToolbarIconButton
         tooltip="Delete take"
-        onClick={() => removeTake(scriptId, lineId, take.id)}
+        onClick={deleteTake}
         icon={<DeleteOutlineIcon fontSize="small" />}
       />
     </FlexRow>

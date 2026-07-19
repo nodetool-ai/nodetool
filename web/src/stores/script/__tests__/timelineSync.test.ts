@@ -64,13 +64,27 @@ describe("syncLineClipToTimeline", () => {
     expect(getQuery).not.toHaveBeenCalled();
   });
 
-  it("patches the linked clip's asset, duration, and caption via CAS update", async () => {
+  it("patches the linked clip and shifts later script clips by the duration delta", async () => {
     seedScript("tl-1");
+    useScriptStore.getState().loadScript("script-1", {
+      title: "S",
+      cast: [],
+      sections: [
+        { id: "sec-1", lines: [
+          { id: "line-1", text: "One", takes: [], currentTakeId: null },
+          { id: "line-2", text: "Two", takes: [], currentTakeId: null }
+        ] }
+      ],
+      timelineId: "tl-1"
+    });
     getQuery.mockResolvedValue({
       id: "tl-1",
       updatedAt: "rev-1",
       tracks: [track],
-      clips: [linkedClip(), linkedClip({ id: "other", scriptLineId: "line-2" })],
+      clips: [
+        linkedClip(),
+        linkedClip({ id: "other", scriptLineId: "line-2", startMs: 1000 })
+      ],
       markers: []
     });
     updateMutate.mockResolvedValue({});
@@ -93,6 +107,40 @@ describe("syncLineClipToTimeline", () => {
       (c: TimelineClip) => c.scriptLineId === "line-2"
     );
     expect(untouched.currentAssetId).toBe("old-asset");
+    expect(untouched.startMs).toBe(2500);
+  });
+
+  it("clears stale captions when the selected take has no word timings", async () => {
+    seedScript("tl-1");
+    getQuery.mockResolvedValue({
+      id: "tl-1",
+      updatedAt: "rev-1",
+      tracks: [track],
+      clips: [linkedClip({ caption: { words: [{ word: "old", startMs: 0, endMs: 100 }] } })],
+      markers: []
+    });
+    updateMutate.mockResolvedValue({});
+
+    await syncLineClipToTimeline("script-1", "line-1", take({ words: [] }));
+
+    expect(updateMutate.mock.calls[0][0].document.clips[0].caption).toBeUndefined();
+  });
+
+  it("removes the linked clip when a line no longer has a current take", async () => {
+    seedScript("tl-1");
+    getQuery.mockResolvedValue({
+      id: "tl-1",
+      updatedAt: "rev-1",
+      tracks: [track],
+      clips: [linkedClip()],
+      markers: []
+    });
+    updateMutate.mockResolvedValue({});
+
+    const result = await syncLineClipToTimeline("script-1", "line-1", null);
+
+    expect(result).toBe(true);
+    expect(updateMutate.mock.calls[0][0].document.clips).toEqual([]);
   });
 
   it("skips the update when the linked clip already has the take", async () => {
@@ -101,7 +149,13 @@ describe("syncLineClipToTimeline", () => {
       id: "tl-1",
       updatedAt: "rev-1",
       tracks: [track],
-      clips: [linkedClip({ currentAssetId: "new-asset", durationMs: 2500 })],
+      clips: [
+        linkedClip({
+          currentAssetId: "new-asset",
+          durationMs: 2500,
+          caption: { words: [{ word: "hi", startMs: 0, endMs: 300 }] }
+        })
+      ],
       markers: []
     });
 
