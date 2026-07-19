@@ -15,7 +15,7 @@
 
 import { useEffect } from "react";
 import { create } from "zustand";
-import type { ImageRef, VideoRef } from "@nodetool-ai/protocol";
+import type { ImageRef, ShotStatus, VideoRef } from "@nodetool-ai/protocol";
 import {
   globalWebSocketManager,
   type WebSocketMessage
@@ -309,6 +309,36 @@ const extractAssetId = (value: unknown): string | undefined => {
   return undefined;
 };
 
+/**
+ * Settle a shot whose job was cancelled: restore the shot's status from what
+ * it already holds (a kept keyframe/clip beats resetting to planned), drop
+ * the job from the store, and tear down the WebSocket subscription. Safe to
+ * call for a shot with no tracked job.
+ */
+export const settleCancelledShotJob = (shotId: string): void => {
+  const job = useStoryboardGenerationStore.getState().shotJobs[shotId];
+  if (!job) {
+    return;
+  }
+  const storyboard = useStoryboardStore.getState();
+  const shot = storyboard
+    .getBoard(job.boardId)
+    ?.shots.find((s) => s.id === shotId);
+  if (shot) {
+    const status: ShotStatus =
+      job.kind === "keyframe"
+        ? shot.keyframe
+          ? "keyframe_ready"
+          : "planned"
+        : shot.clip
+          ? "rendered"
+          : "approved";
+    storyboard.setShotStatus(job.boardId, shotId, status);
+  }
+  useStoryboardGenerationStore.getState().clear(shotId);
+  unsubscribeShotJob(job.jobId);
+};
+
 export const unsubscribeShotJob = (jobId: string): void => {
   const unsubscribe = jobSubscriptions.get(jobId);
   if (unsubscribe) {
@@ -439,7 +469,9 @@ const handleShotJobMessage = (jobId: string, message: WebSocketMessage): void =>
   }
 
   if (status === "cancelled") {
-    generationStore.clear(context.shotId);
+    // Settle restores the shot's status (a cancelled regenerate keeps its
+    // existing still/clip) besides clearing the job and subscription.
+    settleCancelledShotJob(context.shotId);
     unsubscribeShotJob(jobId);
   }
 };
