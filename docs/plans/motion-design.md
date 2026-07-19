@@ -52,7 +52,11 @@ export type EasingId =
 export interface ClipAnimation {
   id: string;                 // crypto.randomUUID() at creation
   role: AnimationRole;
-  preset: AnimationPresetId;  // union of catalog ids, see below
+  /** An AnimationPresetId. Typed `string` on purpose: documents saved by a
+   *  newer client may carry ids this build doesn't know — they parse fine and
+   *  are skipped at compile time (forward compat). Tool inputs and the UI
+   *  constrain to the catalog union. */
+  preset: string;
   /** Animation length in ms. For "loop", the period of one cycle. */
   durationMs: number;
   /**
@@ -72,8 +76,9 @@ export interface ClipAnimation {
 `TimelineClip` gains one optional field (after `transitionIn`):
 
 ```ts
-  /** Motion-design animations evaluated at render time. Order matters only
-   *  within a role; roles compose deterministically (see animation/sample.ts). */
+  /** Motion-design animations evaluated at render time. Evaluation is
+   *  order-independent (the fold is commutative — see animation/sample.ts);
+   *  array order is presentation order in the UI only. */
   animations?: ClipAnimation[];
 ```
 
@@ -101,7 +106,10 @@ export interface CompiledAnimation {
   role: AnimationRole;
   windowStartMs: number;   // clip-local, resolved from role + delay + duration
   windowEndMs: number;
-  loop: boolean;           // role === "loop": repeat until clip end
+  loop: boolean;           // repeat the window until clip end. Set by the
+                           // preset's compile, not derived from role alone:
+                           // most "loop"-role presets compile loop:true, but
+                           // kenBurns compiles loop:false (one-shot full clip)
   /** Hold curve endpoint values outside the window (in: hold t=0 before window;
    *  out: hold t=1 after window). false → identity outside the window. */
   holdBefore: boolean;     // true for "in"
@@ -146,7 +154,10 @@ export function sampleAnimations(
 Composition rules (deterministic, order-independent across roles):
 
 - Evaluate every compiled animation independently, then fold: offsets and
-  rotation **add**, scale and opacity **multiply**.
+  rotation **add**, scale and opacity **multiply**. After the fold, clamp the
+  resulting opacity to [0,1] — overshoot easings (`easeOutBack`,
+  `easeOutElastic`) may push individual samples past 1. Scale is clamped to
+  ≥ 0.
 - Within a window: map `localMs` to normalized `t`, find the bracketing
   keyframes, apply the segment's easing (the easing stored on the *right*
   keyframe of the segment; `ClipAnimation.easing` overrides every segment),
@@ -179,7 +190,7 @@ default duration/easing, params with defaults, and a curve generator
 | `pulse` | emphasis | `intensity` (0.06) | scale 1→1+i→1 |
 | `shake` | emphasis | `intensity` (0.02), `cycles` (4) | offsetX zig-zag, fraction of canvas width |
 | `bounce` | emphasis | `height` (0.05) | offsetY dip with `easeOutBounce` |
-| `kenBurns` | loop | `zoom` (0.12), `direction` ("in"), `driftX`/`driftY` (0.02) | slow scale 1→1+z (or reverse) + drift. Curve is monotonic; exempt from the loop start==end invariant via `loop:false` compile (it runs once over the whole clip: window = full clip, holdAfter true) |
+| `kenBurns` | loop | `zoom` (0.12), `direction` ("in"), `driftX`/`driftY` (0.02) | slow scale 1→1+z (or reverse) + drift. Compiles `loop:false`, window = full clip, `holdAfter:true` — it runs once over the whole clip, so `durationMs` and `delayMs` are ignored and the monotonic curve is exempt from the loop start==end invariant |
 | `float` | loop | `amplitude` (0.015), `periodMs` via durationMs | offsetY sine bob (piecewise-cubic approximation over ≥8 keyframes) |
 | `breathe` | loop | `intensity` (0.03) | scale sine |
 | `rotate` | loop | `rpm` via durationMs | rotation 0→2π per cycle |
@@ -282,8 +293,10 @@ Extend `TimelineAgentHandler`
   mode?: "add" | "replace" }` (`replace` default; `add` appends). Each input:
   `{ role, preset, durationMs?, delayMs?, easing?, params? }` — ids and
   defaults filled in by the handler. Returns the updated clip including
-  resolved animations. Validation errors (unknown preset, role not allowed for
-  preset) return `ok: false` with the catalog row so the agent self-corrects.
+  resolved animations. On validation errors (unknown preset, role not allowed
+  for the preset) the handler **throws** with a message listing the valid
+  options — the tool layer surfaces handler throws back to the agent, same as
+  every existing `ui_timeline_*` tool.
 - **`ui_timeline_clear_animations`** — `{ target, role? }`.
 - **`ui_timeline_list_animation_presets`** — no args; returns the catalog
   (id, roles, params with defaults and ranges, one-line description, default
@@ -352,8 +365,12 @@ draw, so text arrives as a new clip kind, not an animation change:
 
 ## Risks
 
-- **Paused-preview redraw**: missing the `hasActiveAnimation` redraw hook makes
-  animations invisible while scrubbing paused. Caught by the Jest parity test.
+- **Skipped redraws during playback**: the preview skips redraws while the
+  cached layer set is valid (`nextChangeMs` horizon). With animations, any tick
+  where the playhead moved must redraw even though the set is cached, or motion
+  freezes mid-clip. A paused playhead needs only one draw — samples are pure
+  functions of time. Caught by the T8 visual test and manual check, not by
+  unit tests.
 - **Schema strip**: forgetting the protocol zod field silently loses animations
   on save. Caught by a round-trip test in the protocol package.
 - **Perf**: per-frame sampling is O(active animated layers × curves); with

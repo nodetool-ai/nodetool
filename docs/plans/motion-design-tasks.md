@@ -28,11 +28,10 @@ Model key (suggested per task):
 Dependency graph:
 
 ```
-M1: T1 ──► T2 (schema)      T1 ──► T3 (render) ──► T6, T7 (UI)
-            │                T1 ──► T4 (edit ops)
-            └──────────────► T5 (agent tools, needs T1+T3)
-M2: T8 (verification) after T3+T5
-M3: T9 (text clips) after T3;  T10 (text agent+UI) after T9
+M1: T1 ──► T2 (schema)   T1 ──► T3 (render)   T1 ──► T4 (edit ops)
+    T3 + T4 ──► T5 (agent tools)
+M2: T3 + T4 ──► T6 (inspector)   T3 ──► T7 (chips)   T3 + T5 ──► T8 (verify)
+M3: T3 ──► T9 (text clips) ──► T10 (text agent + UI, also needs T5, T6)
 ```
 
 ---
@@ -92,8 +91,9 @@ standard Vitest config used by sibling packages):
 - window math per role, incl. `out` measured from clip end, delays, clamping
   when duration > clip length.
 - sampler: identity outside windows, hold semantics, fold of `in`+`loop`
-  concurrently, loop wraparound continuity (start==end value for every loop
-  preset except kenBurns), delayed `fade`-in holds opacity 0 during delay.
+  concurrently, loop wraparound continuity (start==end value for every
+  compiled animation with `loop: true`), delayed `fade`-in holds opacity 0
+  during delay, folded opacity clamped to [0,1] under `easeOutBack`.
 - split semantics as above.
 - determinism: same inputs → deeply equal compiled output.
 
@@ -164,12 +164,14 @@ from center, scale multiplies contain-fit, rotation radians).
 **Wire up:**
 
 - `PreviewCompositor.tsx`: where each `ActiveLayer`'s `transform`/`opacity`
-  feed the GPU layer list, route through `resolveAnimatedLayerProps`. Find the
-  paused/idle short-circuit that skips redraws and force per-tick redraw while
-  `hasActiveAnimation(...)` is true (paused scrubbing must show the animated
-  pose at the playhead; a *paused* playhead on an animated frame is still a
-  single static draw — the force applies to ticks where time changed or the
-  first paint after layers changed, and to continuous playback).
+  feed the GPU layer list, route through `resolveAnimatedLayerProps`. Then fix
+  the redraw condition: the compositor skips redraws while the cached layer
+  set is valid (`nextChangeMs` horizon) and nothing else changed. With
+  animations, any tick where the playhead time changed and
+  `hasActiveAnimation(...)` is true must redraw even though the layer set is
+  cached — otherwise motion freezes mid-clip. A paused playhead needs only the
+  one draw after the last seek: samples are pure functions of time, so a
+  static frame stays correct.
 - `render/TimelineRenderer.ts`: apply the same resolver at each stepped frame.
   The cache can live for the whole render.
 - Caption layers get the same resolution (they already carry `transform`).
@@ -181,8 +183,10 @@ from center, scale multiplies contain-fit, rotation radians).
 - parity: for a seeded clip set, `resolveAnimatedLayerProps` output at
   t = {window start, mid, end, past-end} is identical when called the way the
   compositor calls it and the way the renderer calls it.
-- horizon: layer set from `computeActiveLayersWithHorizon` is reference-stable
-  across an animation window (animations must not affect `nextChangeMs`).
+- horizon: `nextChangeMs` from `computeActiveLayersWithHorizon` is identical
+  with and without animations on a clip — animations must never shrink the
+  horizon; callers keep reusing cached layers and re-resolve properties per
+  frame instead.
 
 **Acceptance:** `cd web && npm test -- --testPathPattern=preview` green; manual
 check via the debug harness or `cd web && npm start` optional; typecheck/lint
@@ -262,8 +266,8 @@ see `setClipParams` at ~line 377 for the patch pattern).
 **Tests:** Jest tests beside existing frontend-tool tests (find the pattern
 under `web/src/lib/tools/`): registering is side-effectful on import, so test
 through `FrontendToolRegistry.call` with a stubbed handler — animate applies
-defaults, unknown preset returns the catalog row in the error, clear with role
-filter keeps other roles.
+defaults, an unknown preset produces an error whose message lists the valid
+preset ids, clear with role filter keeps other roles.
 
 **Acceptance:** `cd web && npm test -- --testPathPattern=tools` green;
 typecheck/lint green; tool count in the manifest grows by 3.
@@ -335,7 +339,8 @@ the export contains the motion.
   repo tests): build a two-clip sequence in code (image clip + `slide` in +
   `kenBurns` loop; second clip `pop` in with delay), render frames at fixed
   timestamps through the real compositor, snapshot-compare.
-- Export parity: run `renderTimeline` for the same sequence at 1 fps for 3 s
+- Export parity: run `renderTimeline` for the same sequence at a low fps
+  (e.g. 5) for 3 s
   and assert frame N's decoded pixels match the preview compositor's output
   within tolerance (reuse whatever the existing export tests do — locate them
   under `web/src/components/timeline/render/`).
@@ -420,7 +425,7 @@ shows animated text; `npm run check` green.
 | 2 | T2 protocol schema | Haiku 4.5 | T3, T4 |
 | 2 | T3 render integration | Opus 4.8 | T2, T4 |
 | 2 | T4 store + edit ops | Sonnet 5 | T2, T3 |
-| 3 | T5 agent tools | Sonnet 5 | T6 after T4/T3 |
+| 3 | T5 agent tools | Sonnet 5 | — |
 | 4 | T6 inspector | Sonnet 5 | T7 |
 | 4 | T7 clip chips | Haiku 4.5 | T6 |
 | 5 | T8 verification | Sonnet 5 | — |
