@@ -102,6 +102,15 @@ export const createStyles = (theme: Theme) => ({
       padding: ".5em 1em"
     },
 
+    // A user's own referenced/attached image renders as a thumbnail, not a
+    // full-width preview. ImageView fills its container (width: 100%), so a
+    // max cap on the `.image-output` root is what constrains it — the inline
+    // width leaves maxWidth/maxHeight free for the stylesheet to set.
+    ".chat-message.user .message-content .image-output": {
+      maxWidth: "220px",
+      maxHeight: "220px"
+    },
+
     ".assistant": {
       alignItems: "flex-start",
       background: "transparent"
