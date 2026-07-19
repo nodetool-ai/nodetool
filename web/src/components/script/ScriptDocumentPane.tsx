@@ -9,14 +9,16 @@ import SubtitlesIcon from "@mui/icons-material/Subtitles";
 import {
   FlexColumn,
   FlexRow,
+  Box,
   Text,
   TextInput,
   EditorButton,
   ToolbarIconButton,
-  Divider,
   EmptyState,
   LoadingSpinner,
   SPACING,
+  TYPOGRAPHY,
+  MOTION,
   Z_INDEX
 } from "../ui_primitives";
 import {
@@ -28,7 +30,7 @@ import { voiceAll } from "../../stores/script/scriptVoicing";
 import { exportScriptSubtitles } from "../../stores/script/scriptSubtitles";
 import { useScriptPlaythrough } from "../../hooks/script/useScriptPlaythrough";
 import { useAssembleScriptTimeline } from "../../hooks/script/useAssembleScriptTimeline";
-import ScriptLineRow from "./ScriptLineRow";
+import ScriptLineRow, { GUTTER } from "./ScriptLineRow";
 
 interface ScriptDocumentPaneProps {
   scriptId: string;
@@ -52,29 +54,58 @@ const SectionBlock = ({
   const removeSection = useScriptStore((s) => s.removeSection);
 
   return (
-    <FlexColumn gap={SPACING.xs} fullWidth>
-      <FlexRow align="center" gap={SPACING.sm} fullWidth>
+    <FlexColumn
+      gap={SPACING.xs}
+      fullWidth
+      sx={{
+        "& .section-remove": { opacity: 0, transition: MOTION.opacity },
+        "&:hover .section-remove, &:focus-within .section-remove": {
+          opacity: 1
+        }
+      }}
+    >
+      <FlexRow
+        align="center"
+        gap={SPACING.sm}
+        fullWidth
+        sx={{
+          borderBottom: "1px solid",
+          borderColor: "divider",
+          paddingBottom: SPACING.xs,
+          marginBottom: SPACING.sm
+        }}
+      >
         <TextInput
           value={section.title ?? ""}
           onChange={(e) =>
             setSectionTitle(scriptId, section.id, e.target.value)
           }
-          placeholder="Section title (optional)…"
+          placeholder="Untitled section"
           hideLabel
           label="Section title"
           compact
           fullWidth
           disabled={readOnly}
+          sx={{
+            "& .MuiOutlinedInput-root": { backgroundColor: "transparent" },
+            "& .MuiOutlinedInput-notchedOutline": { border: "none" },
+            "& .MuiOutlinedInput-input": {
+              paddingLeft: SPACING.none,
+              ...TYPOGRAPHY.sans.title,
+              letterSpacing: "0.02em"
+            }
+          }}
         />
         {!readOnly && (
-          <ToolbarIconButton
-            tooltip="Remove section"
-            onClick={() => removeSection(scriptId, section.id)}
-            icon={<Text size="smaller">✕</Text>}
-          />
+          <Box className="section-remove">
+            <ToolbarIconButton
+              tooltip="Remove section"
+              onClick={() => removeSection(scriptId, section.id)}
+              icon={<Text size="smaller">✕</Text>}
+            />
+          </Box>
         )}
       </FlexRow>
-      <Divider />
       {section.lines.map((line) => (
         <ScriptLineRow
           key={line.id}
@@ -86,7 +117,7 @@ const SectionBlock = ({
         />
       ))}
       {!readOnly && (
-        <FlexRow>
+        <FlexRow sx={{ marginLeft: `${GUTTER + 8}px` }}>
           <EditorButton
             size="small"
             variant="text"
@@ -163,7 +194,8 @@ const ScriptDocumentPane = ({
         align="center"
         gap={SPACING.sm}
         sx={{
-          padding: SPACING.sm,
+          paddingY: SPACING.sm,
+          paddingX: SPACING.md,
           borderBottom: "1px solid",
           borderColor: "divider",
           position: "sticky",
@@ -181,7 +213,7 @@ const ScriptDocumentPane = ({
           ) : (
             <EditorButton
               size="small"
-              variant="outlined"
+              variant="contained"
               startIcon={<GraphicEqIcon fontSize="small" />}
               onClick={() => void onVoiceAll()}
             >
@@ -191,7 +223,7 @@ const ScriptDocumentPane = ({
         {playing ? (
           <EditorButton
             size="small"
-            variant="outlined"
+            variant="text"
             startIcon={<StopIcon fontSize="small" />}
             onClick={stop}
           >
@@ -200,17 +232,18 @@ const ScriptDocumentPane = ({
         ) : (
           <EditorButton
             size="small"
-            variant="outlined"
+            variant="text"
             startIcon={<PlayArrowIcon fontSize="small" />}
             onClick={play}
           >
             Play through
           </EditorButton>
         )}
+        <Box sx={{ flex: 1 }} />
         {!readOnly && (
           <EditorButton
             size="small"
-            variant="outlined"
+            variant="text"
             startIcon={<MovieIcon fontSize="small" />}
             onClick={onSendToTimeline}
             disabled={assembling || !hasVoicedLine}
@@ -230,7 +263,7 @@ const ScriptDocumentPane = ({
         {!readOnly && (
           <EditorButton
             size="small"
-            variant="outlined"
+            variant="text"
             startIcon={<SubtitlesIcon fontSize="small" />}
             onClick={onExportSubtitles}
             disabled={!hasVoicedLine}
@@ -246,8 +279,9 @@ const ScriptDocumentPane = ({
       </FlexRow>
 
       <FlexColumn
-        gap={SPACING.lg}
-        sx={{ padding: SPACING.md, maxWidth: 860, width: "100%" }}
+        gap={SPACING.xxl}
+        style={{ maxWidth: 780, width: "100%", margin: "0 auto" }}
+        sx={{ paddingX: SPACING.xl, paddingY: SPACING.xl }}
       >
         {isEmpty && (
           <EmptyState
@@ -267,15 +301,7 @@ const ScriptDocumentPane = ({
           />
         ))}
         {!readOnly && !isEmpty && (
-          <FlexRow gap={SPACING.sm}>
-            <EditorButton
-              size="small"
-              variant="text"
-              startIcon={<AddIcon fontSize="small" />}
-              onClick={() => addLine(scriptId)}
-            >
-              Add line
-            </EditorButton>
+          <FlexRow gap={SPACING.sm} sx={{ marginLeft: `${GUTTER + 8}px` }}>
             <EditorButton
               size="small"
               variant="text"

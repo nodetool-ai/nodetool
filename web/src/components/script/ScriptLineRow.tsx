@@ -5,18 +5,20 @@ import GraphicEqIcon from "@mui/icons-material/GraphicEq";
 import HistoryIcon from "@mui/icons-material/History";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import TheaterComedyIcon from "@mui/icons-material/TheaterComedy";
 import {
   FlexColumn,
   FlexRow,
+  Box,
   Text,
   TextInput,
-  Chip,
   Tooltip,
   ToolbarIconButton,
   LoadingSpinner,
   Popover,
   SPACING,
   BORDER_RADIUS,
+  TYPOGRAPHY,
   MOTION
 } from "../ui_primitives";
 import {
@@ -40,17 +42,27 @@ interface ScriptLineRowProps {
   readOnly: boolean;
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  draft: "Draft",
-  voiced: "Voiced",
-  stale: "Stale"
-};
+/** Width of the screenplay speaker gutter. */
+export const GUTTER = 104;
 
-const STATUS_COLOR: Record<string, "default" | "success" | "warning"> = {
-  draft: "default",
-  voiced: "success",
-  stale: "warning"
-};
+/**
+ * Borderless field styling: the script reads as a document, so the input
+ * chrome only materializes on hover/focus.
+ */
+const quietField = {
+  "& .MuiOutlinedInput-root": {
+    backgroundColor: "transparent",
+    transition: MOTION.background,
+    "& .MuiOutlinedInput-notchedOutline": {
+      borderColor: "transparent",
+      transition: MOTION.border
+    },
+    "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "divider" },
+    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+      borderColor: "primary.main"
+    }
+  }
+} as const;
 
 const ScriptLineRow = ({
   scriptId,
@@ -64,6 +76,7 @@ const ScriptLineRow = ({
   const voicing = useLineVoicing(line.id);
   const [galleryAnchor, setGalleryAnchor] = useState<HTMLElement | null>(null);
   const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [directionOpen, setDirectionOpen] = useState(false);
 
   const voice = effectiveVoice(line, cast);
   const status = lineStatus(line, voice);
@@ -112,35 +125,72 @@ const ScriptLineRow = ({
   }, [line.takes, line.currentTakeId]);
 
   const hasCurrentTake = !!line.takes.find((t) => t.id === line.currentTakeId);
+  // A direction is opt-in: an empty one stays out of the reading flow until
+  // the author asks for it, so untouched lines sit as tight as printed dialogue.
+  const hasDirection = !!line.direction?.trim();
+  const showDirection = hasDirection || directionOpen;
+
+  const toggleDirection = useCallback(() => {
+    setDirectionOpen((open) => {
+      if (open || hasDirection) {
+        patchLine(scriptId, line.id, { direction: "" });
+        return false;
+      }
+      return true;
+    });
+  }, [hasDirection, patchLine, scriptId, line.id]);
 
   return (
     <FlexRow
       align="flex-start"
-      gap={SPACING.sm}
+      gap={SPACING.md}
       fullWidth
       sx={{
         padding: SPACING.sm,
+        paddingLeft: SPACING.none,
         borderRadius: BORDER_RADIUS.sm,
         backgroundColor: highlighted ? "action.selected" : "transparent",
-        transition: MOTION.background
+        transition: MOTION.background,
+        "&:hover": {
+          backgroundColor: highlighted ? "action.selected" : "action.hover"
+        },
+        "& .script-line-actions": {
+          opacity: 0,
+          transition: MOTION.opacity
+        },
+        "&:hover .script-line-actions, &:focus-within .script-line-actions": {
+          opacity: 1
+        }
       }}
     >
       <Tooltip title={cast.length ? "Change speaker" : "Add a speaker first"}>
-        <span>
-          <Chip
-            label={speaker?.name ?? "No speaker"}
-            size="small"
-            onClick={readOnly ? undefined : cycleSpeaker}
-            sx={{
-              minWidth: 84,
-              cursor: readOnly || !cast.length ? "default" : "pointer",
-              backgroundColor: speaker?.color ?? undefined
-            }}
-          />
-        </span>
+        <Box
+          component="button"
+          type="button"
+          disabled={readOnly || !cast.length}
+          onClick={readOnly ? undefined : cycleSpeaker}
+          sx={{
+            flexShrink: 0,
+            width: GUTTER,
+            marginTop: SPACING.sm,
+            padding: SPACING.none,
+            border: "none",
+            background: "none",
+            textAlign: "right",
+            cursor: readOnly || !cast.length ? "default" : "pointer",
+            ...TYPOGRAPHY.sans.label,
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+            color: speaker ? speaker.color ?? "text.primary" : "text.disabled",
+            transition: MOTION.fast,
+            "&:hover:not(:disabled)": { color: "primary.main" }
+          }}
+        >
+          {speaker?.name ?? "no speaker"}
+        </Box>
       </Tooltip>
 
-      <FlexColumn gap={SPACING.micro} style={{ flex: 1, minWidth: 0 }}>
+      <FlexColumn gap={SPACING.none} style={{ flex: 1, minWidth: 0 }}>
         <TextInput
           value={line.text}
           onChange={onTextChange}
@@ -151,32 +201,67 @@ const ScriptLineRow = ({
           compact
           fullWidth
           disabled={readOnly}
+          sx={{
+            ...quietField,
+            "& .MuiOutlinedInput-input": { ...TYPOGRAPHY.sans.body }
+          }}
         />
-        <TextInput
-          value={line.direction ?? ""}
-          onChange={onDirectionChange}
-          placeholder="Direction (e.g. whispering, tired)…"
-          hideLabel
-          label="Direction"
-          compact
-          fullWidth
-          disabled={readOnly}
-        />
+        {showDirection && (
+          <TextInput
+            autoFocus={!hasDirection}
+            value={line.direction ?? ""}
+            onChange={onDirectionChange}
+            placeholder="Direction (e.g. whispering, tired)…"
+            hideLabel
+            label="Direction"
+            compact
+            fullWidth
+            disabled={readOnly}
+            sx={{
+              ...quietField,
+              "& .MuiOutlinedInput-input": {
+                fontStyle: "italic",
+                color: "text.secondary"
+              }
+            }}
+          />
+        )}
         {voiceError && (
-          <Text size="smaller" color="error">
+          <Text size="smaller" color="error" sx={{ paddingLeft: SPACING.sm }}>
             {voiceError}
           </Text>
         )}
       </FlexColumn>
 
-      <FlexColumn align="center" gap={SPACING.micro}>
-        <Chip
-          label={STATUS_LABEL[status]}
-          size="small"
-          color={STATUS_COLOR[status]}
-          compact
-        />
-        <FlexRow gap={SPACING.none} align="center">
+      <FlexRow
+        align="center"
+        justify="flex-end"
+        gap={SPACING.xs}
+        sx={{ flexShrink: 0, marginTop: SPACING.xs }}
+      >
+        {status === "stale" ? (
+          <Text size="smaller" color="warning">
+            Stale
+          </Text>
+        ) : (
+          <Tooltip title={status === "voiced" ? "Voiced" : "Not voiced yet"}>
+            <Box
+              sx={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                backgroundColor:
+                  status === "voiced" ? "success.main" : "action.disabled"
+              }}
+            />
+          </Tooltip>
+        )}
+        <FlexRow
+          className="script-line-actions"
+          gap={SPACING.none}
+          align="center"
+          sx={voicing ? { opacity: "1 !important" } : undefined}
+        >
           {voicing ? (
             <LoadingSpinner size={20} />
           ) : (
@@ -199,6 +284,14 @@ const ScriptLineRow = ({
               </span>
             </Tooltip>
           )}
+          {!readOnly && (
+            <ToolbarIconButton
+              tooltip={showDirection ? "Remove direction" : "Add direction"}
+              onClick={toggleDirection}
+              icon={<TheaterComedyIcon fontSize="small" />}
+              sx={showDirection ? { color: "primary.main" } : undefined}
+            />
+          )}
           <ToolbarIconButton
             tooltip="Play current take"
             disabled={!hasCurrentTake}
@@ -220,7 +313,7 @@ const ScriptLineRow = ({
             />
           )}
         </FlexRow>
-      </FlexColumn>
+      </FlexRow>
 
       <Popover
         open={!!galleryAnchor}
