@@ -37,7 +37,8 @@ export const PACKAGE_RUNTIME_ASSETS: readonly PackageAssetRef[] = [
   { pkg: "@nodetool-ai/replicate-nodes", path: "replicate-manifest.json" },
   { pkg: "@nodetool-ai/runtime", path: "providers/aki-manifest.json" },
   { pkg: "@nodetool-ai/together-nodes", path: "together-manifest.json" },
-  { pkg: "@nodetool-ai/topaz-nodes", path: "topaz-manifest.json" }
+  { pkg: "@nodetool-ai/topaz-nodes", path: "topaz-manifest.json" },
+  { pkg: "@nodetool-ai/video-nodes", path: "render3d-page.js" }
 ];
 
 /** Registry lookup by exact pkg + path. */

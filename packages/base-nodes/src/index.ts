@@ -411,6 +411,7 @@ export {
   MergeMeshesNode,
   TextTo3DNode,
   ImageTo3DNode,
+  RenderToImageNode,
   MODEL3D_NODES
 } from "@nodetool-ai/video-nodes/nodes/model3d";
 export {

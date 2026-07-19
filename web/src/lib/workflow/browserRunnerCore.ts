@@ -197,6 +197,15 @@ const NODE_MODULE_GROUPS: ReadonlyArray<
   // nodes; the latter are tagged server, so createBrowserRegistry keeps only
   // the transforms. It's sharp-free (lazy) and de-barreled, so it bundles.
   ["image", () => import("@nodetool-ai/image-nodes/nodes/image")],
+  // RenderToImage (nodetool.model3d) renders GLB → PNG with three.js on an
+  // OffscreenCanvas — a genuinely browser-native path (the server drives a
+  // headless Chromium for the same core). Imported via its own subpath so the
+  // rest of the model3d family (node:fs loaders, manifold/meshoptimizer ops —
+  // all node-platform-only) stays out of the browser bundle.
+  [
+    "model3d-render",
+    () => import("@nodetool-ai/video-nodes/nodes/model3d/render")
+  ],
   // Preview is a pure pass-through that renders any value; its own browser-safe
   // module (no audio-codec deps) lets pass-through graphs ending in a Preview
   // run client-side instead of forcing a server round-trip.
