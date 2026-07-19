@@ -31,7 +31,14 @@ export interface FormFieldProps extends Omit<BoxProps, 'onChange'> {
   compact?: boolean;
   /** Label width when direction is "row" */
   labelWidth?: string | number;
-  /** Explicit control id; defaults to a generated one. The child control adopts it via context. */
+  /**
+   * Explicit control id; defaults to a generated one. Context-aware children
+   * (TextInput, SelectField) adopt it, making the label's htmlFor a real
+   * association. Custom children that don't adopt it leave the htmlFor
+   * dangling — the label is then visual-only (matching the pre-FormField
+   * hand-rolled pattern); such controls can name themselves via
+   * aria-labelledby={`${htmlFor}-label`}.
+   */
   htmlFor?: string;
 }
 

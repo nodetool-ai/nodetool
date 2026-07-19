@@ -66,9 +66,10 @@ const SHOT_COUNT_OPTIONS = [3, 4, 5, 6, 8, 10, 12].map((n) => ({
 }));
 
 // The model pickers are custom buttons, not InputBase controls; hold them at
-// the shared form-control height.
+// the shared form-control height. Scoped to the picker's own class so no
+// other button that ends up inside the field is affected.
 const modelFieldSx = {
-  "& button": { minHeight: `${CONTROL.height.lg}px` }
+  "& .select-model-button": { minHeight: `${CONTROL.height.lg}px` }
 } as const;
 
 const styles = (theme: Theme) =>
