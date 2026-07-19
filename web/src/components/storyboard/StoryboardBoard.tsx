@@ -25,7 +25,8 @@ import {
   Text,
   SPACING,
   getSpacingPx,
-  BORDER_RADIUS
+  BORDER_RADIUS,
+  MOTION
 } from "../ui_primitives";
 import { useBoard, useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import { useGenerateShot } from "../../hooks/storyboard/useGenerateShot";
@@ -114,7 +115,7 @@ const styles = (theme: Theme) =>
       backgroundClip: "text",
       WebkitBackgroundClip: "text",
       WebkitTextFillColor: "transparent",
-      animation: "storyboard-shimmer 2.4s linear infinite"
+      animation: `storyboard-shimmer ${MOTION.spin} infinite`
     },
     ".ghost-card": {
       border: `1px solid ${theme.vars.palette.divider}`,
@@ -124,7 +125,7 @@ const styles = (theme: Theme) =>
       flexDirection: "column",
       gap: getSpacingPx(SPACING.sm),
       opacity: 0,
-      animation: "storyboard-ghost-in 500ms ease both"
+      animation: `storyboard-ghost-in ${MOTION.slow} both`
     },
     ".ghost-frame": {
       aspectRatio: "16 / 9",
@@ -133,19 +134,19 @@ const styles = (theme: Theme) =>
       placeItems: "center",
       backgroundImage: `linear-gradient(100deg, ${theme.vars.palette.c_overlay_subtle} 40%, ${theme.vars.palette.action.selected} 50%, ${theme.vars.palette.c_overlay_subtle} 60%)`,
       backgroundSize: "200% 100%",
-      animation: "storyboard-shimmer 1.8s linear infinite"
+      animation: `storyboard-shimmer ${MOTION.spin} infinite`
     },
     ".ghost-line": {
       height: "10px",
-      borderRadius: "5px",
+      borderRadius: BORDER_RADIUS.pill,
       backgroundImage: `linear-gradient(100deg, ${theme.vars.palette.c_overlay_subtle} 40%, ${theme.vars.palette.action.selected} 50%, ${theme.vars.palette.c_overlay_subtle} 60%)`,
       backgroundSize: "200% 100%",
-      animation: "storyboard-shimmer 1.8s linear infinite"
+      animation: `storyboard-shimmer ${MOTION.spin} infinite`
     },
     ".spark": {
-      fontSize: "20px",
+      fontSize: "1.5em",
       color: theme.vars.palette.primary.main,
-      animation: "storyboard-spark 1.8s ease-in-out infinite"
+      animation: `storyboard-spark ${MOTION.pulse} infinite`
     },
     "@media (prefers-reduced-motion: reduce)": {
       ".ghost-frame, .ghost-line, .directing-line, .spark": {

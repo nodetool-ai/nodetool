@@ -23,7 +23,8 @@ import {
   ToolbarIconButton,
   LoadingSpinner,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  MOTION
 } from "../ui_primitives";
 import {
   useStoryboards,
@@ -60,7 +61,7 @@ const styles = (theme: Theme) =>
       cursor: "pointer",
       "&:hover": { backgroundColor: theme.vars.palette.action.hover },
       "&.active": { backgroundColor: theme.vars.palette.action.selected },
-      ".delete-button": { opacity: 0, transition: "opacity 120ms ease" },
+      ".delete-button": { opacity: 0, transition: MOTION.opacity },
       "&:hover .delete-button": { opacity: 1 }
     }
   });

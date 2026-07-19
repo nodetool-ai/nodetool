@@ -27,6 +27,7 @@ import {
   SPACING,
   getSpacingPx,
   BORDER_RADIUS,
+  MOTION,
   type StatusType
 } from "../ui_primitives";
 import ImageRefPreview from "../node/ImageRefPreview";
@@ -93,7 +94,7 @@ const styles = (theme: Theme) =>
       "50%": { boxShadow: `0 0 14px 1px ${theme.vars.palette.primary.main}55` }
     },
     "&.generating": {
-      animation: "shot-breathe 2s ease-in-out infinite"
+      animation: `shot-breathe ${MOTION.pulse} infinite`
     },
     ".conjure": {
       position: "absolute",
@@ -105,11 +106,11 @@ const styles = (theme: Theme) =>
       gap: getSpacingPx(SPACING.sm),
       backgroundImage: `linear-gradient(100deg, transparent 40%, ${theme.vars.palette.action.selected} 50%, transparent 60%)`,
       backgroundSize: "200% 100%",
-      animation: "shot-shimmer 1.8s linear infinite",
+      animation: `shot-shimmer ${MOTION.spin} infinite`,
       ".spark": {
-        fontSize: "22px",
+        fontSize: "1.5em",
         color: theme.vars.palette.primary.main,
-        animation: "shot-spark 1.8s ease-in-out infinite"
+        animation: `shot-spark ${MOTION.pulse} infinite`
       },
       ".conjure-label": {
         color: theme.vars.palette.text.secondary
