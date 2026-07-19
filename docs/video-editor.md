@@ -144,7 +144,7 @@ Clips and tracks carry an effects chain that runs in the same compositor as the 
 
 Motion presets add animation without a keyframe editor. Select a visual clip, open **Animate** in the Inspector, choose a role and preset, then adjust duration or period, delay, easing, and preset parameters.
 
-- **In / Out** — fade, slide, pop, and wipe at a clip boundary.
+- **In / Out** — fade, slide, pop, spin, and wipe at a clip boundary. Wipe reveals the clip behind a directional mask with an adjustable feathered edge.
 - **Emphasis / Loop** — pulse, shake, float, breathe, spin, or Ken Burns motion while the clip is active.
 - **Track markers** — shaded edge wedges show entrance and exit windows; a loop icon marks emphasis or repeating motion. Select a marker to open its controls.
 - **Agent authoring** — timeline tools can list presets, apply or clear motion, and inspect fixed-time frames before export.

@@ -79,6 +79,40 @@ describe("resolveAnimatedLayerProps", () => {
     const out = resolveAnimatedLayerProps(layerFor(clip), 100, CANVAS);
     expect(out.opacity).toBe(0);
   });
+
+  it("returns the wipe mask at the window midpoint with hand-computed progress", () => {
+    const clip = animatedClip([
+      {
+        id: "a",
+        role: "in",
+        preset: "wipe",
+        durationMs: 500,
+        easing: "linear",
+        params: { direction: "up", softness: 0.1 }
+      }
+    ]);
+    // Window [0,500]; midpoint t=0.5 with linear easing → progress 0.5.
+    const out = resolveAnimatedLayerProps(layerFor(clip), 250, CANVAS);
+    expect(out.mask).toEqual({ direction: "up", progress: 0.5, softness: 0.1 });
+    // A wipe leaves transform and opacity alone.
+    expect(out.opacity).toBe(1);
+  });
+
+  it("returns no mask outside the wipe window", () => {
+    const clip = animatedClip([
+      { id: "a", role: "in", preset: "wipe", durationMs: 500 }
+    ]);
+    const layer = layerFor(clip);
+    const after = resolveAnimatedLayerProps(layer, 1000, CANVAS);
+    expect(after.mask).toBeUndefined();
+    expect(after.transform).toBe(layer.transform);
+    // Before the window (with a delay) the mask holds fully hidden.
+    const delayed = animatedClip([
+      { id: "a", role: "in", preset: "wipe", durationMs: 500, delayMs: 400 }
+    ]);
+    const held = resolveAnimatedLayerProps(layerFor(delayed), 100, CANVAS);
+    expect(held.mask?.progress).toBe(0);
+  });
 });
 
 describe("preview / export parity", () => {

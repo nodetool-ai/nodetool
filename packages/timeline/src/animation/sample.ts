@@ -1,6 +1,7 @@
 /**
  * Sampler. Folds a clip's `CompiledAnimation[]` into a single `AnimationSample`
- * at a clip-local time. Offsets and rotation add; scale and opacity multiply.
+ * at a clip-local time. Offsets and rotation add; scale and opacity multiply;
+ * overlapping wipe masks keep the smaller progress (more hidden wins).
  * Order-independent across animations (the fold is commutative).
  *
  * Pure; supports an optional scratch `out` object so the render loop allocates
@@ -9,6 +10,21 @@
 
 import { ease } from "./easing.js";
 import type { CompiledAnimation, Keyframe, PropertyCurve } from "./compile.js";
+import type { WipeDirection } from "./types.js";
+
+/**
+ * Resolved wipe mask at a point in time. Absent from a sample means unmasked.
+ * The mask lives in the layer's own normalized quad space, so the wipe edge
+ * rotates with the layer.
+ */
+export interface AnimationSampleMask {
+  /** Edge the reveal starts from (see {@link WipeDirection}). */
+  direction: WipeDirection;
+  /** 0 = fully hidden, 1 = fully revealed. */
+  progress: number;
+  /** Feathered edge width as a fraction of the wipe axis (0 = hard edge). */
+  softness: number;
+}
 
 export interface AnimationSample {
   /** px, add to transform.position.x */
@@ -21,6 +37,8 @@ export interface AnimationSample {
   rotation: number;
   /** 0..1, multiply layer opacity */
   opacity: number;
+  /** Wipe mask, when one is active. Absent (undefined) means unmasked. */
+  mask?: AnimationSampleMask;
 }
 
 export const IDENTITY_SAMPLE: Readonly<AnimationSample> = Object.freeze({
@@ -37,6 +55,7 @@ function resetIdentity(s: AnimationSample): AnimationSample {
   s.scale = 1;
   s.rotation = 0;
   s.opacity = 1;
+  s.mask = undefined;
   return s;
 }
 
@@ -100,6 +119,25 @@ function foldAnimation(anim: CompiledAnimation, t: number, acc: AnimationSample)
       case "opacity":
         acc.opacity *= value;
         break;
+      case "wipeProgress": {
+        // Mask fold rule: when several wipes overlap (an in and an out on a
+        // short clip), the sample with the SMALLER progress wins — more hidden
+        // wins, so the layer never pops back to visible mid-overlap. A fully
+        // revealed wipe (progress >= 1) contributes nothing: the layer is
+        // unmasked and the compositor pays no mask cost.
+        const config = anim.mask;
+        if (!config) break;
+        const progress = value < 0 ? 0 : value;
+        if (progress >= 1) break;
+        if (!acc.mask || progress < acc.mask.progress) {
+          acc.mask = {
+            direction: config.direction,
+            progress,
+            softness: config.softness
+          };
+        }
+        break;
+      }
     }
   }
 }

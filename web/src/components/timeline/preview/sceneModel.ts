@@ -11,6 +11,7 @@
  */
 
 import type {
+  AnimationSampleMask,
   ClipAnimation,
   ClipEffect,
   ClipTransform,
@@ -453,6 +454,8 @@ export function computeActiveLayers(
 export interface AnimatedLayerProps {
   transform?: ClipTransform;
   opacity: number;
+  /** Wipe mask to apply in the compositor. Absent means unmasked. */
+  mask?: AnimationSampleMask;
 }
 
 interface CompileCacheEntry {
@@ -540,7 +543,8 @@ export function resolveAnimatedLayerProps(
     s.offsetY === 0 &&
     s.scale === 1 &&
     s.rotation === 0 &&
-    s.opacity === 1
+    s.opacity === 1 &&
+    s.mask === undefined
   ) {
     return { transform: layer.transform, opacity: layer.opacity };
   }
@@ -555,7 +559,9 @@ export function resolveAnimatedLayerProps(
     rotation: base.rotation + s.rotation,
     anchor: base.anchor
   };
-  return { transform, opacity: layer.opacity * s.opacity };
+  // `s.mask` is freshly allocated per sampleAnimations call here (no scratch
+  // is passed), so handing it out is safe.
+  return { transform, opacity: layer.opacity * s.opacity, mask: s.mask };
 }
 
 /**

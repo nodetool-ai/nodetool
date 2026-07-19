@@ -12,8 +12,18 @@
  * Pure: no DOM, GPU, or store access.
  */
 
-import type { AnimationPresetId, AnimationRole, EasingId } from "./types.js";
-import type { AnimatedProperty, Keyframe, PropertyCurve } from "./compile.js";
+import type {
+  AnimationPresetId,
+  AnimationRole,
+  EasingId,
+  WipeDirection
+} from "./types.js";
+import type {
+  AnimatedProperty,
+  CompiledAnimationMask,
+  Keyframe,
+  PropertyCurve
+} from "./compile.js";
 import { ease } from "./easing.js";
 
 export interface Canvas {
@@ -48,6 +58,12 @@ export interface AnimationPreset {
    */
   fullClip?: boolean;
   curves(params: ResolvedParams, canvas: Canvas, role: AnimationRole): PropertyCurve[];
+  /**
+   * Static mask config for presets that drive a `wipeProgress` curve. Carried
+   * on the `CompiledAnimation` (direction/softness never animate). Only `wipe`
+   * sets this.
+   */
+  mask?(params: ResolvedParams): CompiledAnimationMask;
 }
 
 // ── param helpers ─────────────────────────────────────────────────────────
@@ -165,6 +181,35 @@ const PRESETS: AnimationPreset[] = [
         { property: "rotation", keyframes: [{ t: 0, value: -turns * TWO_PI }, { t: 1, value: 0 }] },
         { property: "opacity", keyframes: [{ t: 0, value: 0 }, { t: 1, value: 1 }] }
       ];
+    }
+  },
+  {
+    id: "wipe",
+    roles: ["in", "out"],
+    defaultDurationMs: 500,
+    // No defaultEasing: the role defaults apply (in → easeOut, out → easeIn),
+    // matching fade/slide.
+    params: [
+      { name: "direction", default: "left", options: ["left", "right", "up", "down"] },
+      { name: "softness", default: 0.05, min: 0, max: 0.5 }
+    ],
+    describe:
+      "Reveal the layer with a directional mask sweep (feathered edge via softness).",
+    curves: () => [
+      {
+        property: "wipeProgress",
+        keyframes: [
+          { t: 0, value: 0 },
+          { t: 1, value: 1 }
+        ]
+      }
+    ],
+    mask: (params) => {
+      const raw = str(params, "direction", "left");
+      const direction: WipeDirection =
+        raw === "right" || raw === "up" || raw === "down" ? raw : "left";
+      const softness = Math.min(0.5, Math.max(0, num(params, "softness", 0.05)));
+      return { direction, softness };
     }
   },
   {

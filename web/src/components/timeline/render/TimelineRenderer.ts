@@ -277,7 +277,8 @@ export async function renderTimeline(
               opacity: anim.opacity,
               blendMode: layer.blendMode,
               zIndex: trackZ(layer.trackIndex),
-              transform: anim.transform
+              transform: anim.transform,
+              mask: anim.mask
             };
           }
 
@@ -295,6 +296,7 @@ export async function renderTimeline(
               blendMode: layer.blendMode,
               zIndex: trackZ(layer.trackIndex),
               transform: anim.transform,
+              mask: anim.mask,
               borderRadius: layer.borderRadius,
               effects: layer.effects,
               trackEffects: layer.trackEffects
@@ -315,6 +317,7 @@ export async function renderTimeline(
               blendMode: layer.blendMode,
               zIndex: trackZ(layer.trackIndex),
               transform: anim.transform,
+              mask: anim.mask,
               borderRadius: layer.borderRadius,
               effects: layer.effects,
               trackEffects: layer.trackEffects
@@ -340,6 +343,7 @@ export async function renderTimeline(
               blendMode: layer.blendMode,
               zIndex: trackZ(layer.trackIndex),
               transform: anim.transform,
+              mask: anim.mask,
               borderRadius: layer.borderRadius,
               effects: layer.effects,
               trackEffects: layer.trackEffects
@@ -355,6 +359,7 @@ export async function renderTimeline(
             blendMode: layer.blendMode,
             zIndex: trackZ(layer.trackIndex),
             transform: anim.transform,
+            mask: anim.mask,
             borderRadius: layer.borderRadius,
             effects: layer.effects,
             trackEffects: layer.trackEffects
