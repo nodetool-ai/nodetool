@@ -111,6 +111,37 @@ describe("timelineClip schema", () => {
     expect(parsed.animations).toEqual(clip.animations);
   });
 
+  it("preserves an animation's stagger through a parse round-trip", () => {
+    const clip = {
+      ...baseClip,
+      animations: [
+        {
+          id: "anim-1",
+          role: "in" as const,
+          preset: "pop",
+          durationMs: 400,
+          stagger: { unit: "word", offsetMs: 120, from: "center" as const }
+        }
+      ]
+    };
+    const parsed = timelineClip.parse(clip);
+    expect(parsed.animations).toEqual(clip.animations);
+    // A future unit id must parse (compiles un-staggered on old builds).
+    const future = timelineClip.safeParse({
+      ...baseClip,
+      animations: [
+        {
+          id: "a",
+          role: "in",
+          preset: "fade",
+          durationMs: 400,
+          stagger: { unit: "character", offsetMs: 40 }
+        }
+      ]
+    });
+    expect(future.success).toBe(true);
+  });
+
   it("parses a clip with no animations field", () => {
     const parsed = timelineClip.parse(baseClip);
     expect(parsed.animations).toBeUndefined();

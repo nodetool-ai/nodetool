@@ -3,7 +3,8 @@ import type { TimelineClip } from "@nodetool-ai/timeline";
 import { Canvas2DCompositor } from "./gpu/canvas2dCompositor";
 import {
   createAnimationCompileCache,
-  resolveAnimatedLayerProps
+  resolveAnimatedLayerProps,
+  resolveTextStaggerContext
 } from "./sceneModel";
 import { ShapeRasterizer } from "./shapeRender";
 import { TextRasterizer } from "./textRender";
@@ -76,10 +77,30 @@ export async function renderRasterClipFrames(
         { width: sequenceWidth, height: sequenceHeight },
         animationCache
       );
+      // A staggered text clip re-rasterizes per requested time so the agent
+      // sees the per-word motion mid-window, same draw path as preview/export.
+      let frameSource = source;
+      if (clip.mediaType === "text" && clip.textStyle) {
+        const stagger = resolveTextStaggerContext(
+          clip,
+          timelineTimeMs,
+          { width: sequenceWidth, height: sequenceHeight },
+          animationCache
+        );
+        if (stagger) {
+          frameSource =
+            textRasterizer.rasterize(
+              clip.textStyle,
+              sequenceWidth,
+              sequenceHeight,
+              stagger
+            ) ?? source;
+        }
+      }
       compositor.setLayers([
         {
           id: clip.id,
-          source,
+          source: frameSource,
           opacity: animated.opacity,
           blendMode: clip.blendMode ?? "normal",
           zIndex: 0,

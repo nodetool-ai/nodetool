@@ -28,6 +28,7 @@ import {
   computeActiveLayers,
   createAnimationCompileCache,
   resolveAnimatedLayerProps,
+  resolveTextStaggerContext,
   trackZ
 } from "../preview/sceneModel";
 import { CaptionRasterizer } from "../preview/captionRender";
@@ -283,10 +284,19 @@ export async function renderTimeline(
           }
 
           if (layer.kind === "text" && layer.textStyle) {
+            // Staggered per-word motion is drawn into the raster itself,
+            // through the same rasterizer the live preview uses.
+            const stagger = resolveTextStaggerContext(
+              layer.clip,
+              timeMs,
+              animCanvas,
+              animCache
+            );
             const bitmap = textRasterizer.rasterize(
               layer.textStyle,
               width,
-              height
+              height,
+              stagger
             );
             if (!bitmap) return null;
             return {

@@ -19,6 +19,29 @@ export type EasingId =
   | "easeOutElastic"
   | "easeOutBounce";
 
+/** Which unit of a staggered animation starts first. */
+export type StaggerFrom = "start" | "end" | "center";
+
+/**
+ * Per-unit stagger config: the animation's window applies once per unit
+ * (word), each unit's window delayed from the previous by `offsetMs`.
+ * Only meaningful on text clips — the text rasterizer draws each word with
+ * its own sample. On other clips (and for unknown `unit`s) the animation
+ * falls back to the whole-block behavior.
+ */
+export interface AnimationStagger {
+  /**
+   * Unit the animation splits into. Only `"word"` is implemented; unknown
+   * units (a future `"character"`) compile as un-staggered block animations
+   * for forward compat, mirroring how unknown presets are handled.
+   */
+  unit: string;
+  /** Delay between successive units in ms. Must be > 0 to take effect. */
+  offsetMs: number;
+  /** Which unit animates first. Default `"start"` (first word first). */
+  from?: StaggerFrom;
+}
+
 export interface ClipAnimation {
   /** `crypto.randomUUID()` at creation. */
   id: string;
@@ -44,6 +67,13 @@ export interface ClipAnimation {
   enabled?: boolean;
   /** Preset-specific knobs; unknown keys ignored. See the preset catalog. */
   params?: Record<string, number | string | boolean>;
+  /**
+   * Per-word stagger. When set on a text clip, this animation's
+   * transform/opacity curves run once per word with a per-word time offset
+   * (see `sampleStaggeredAnimations`); effect/mask curves stay block-level.
+   * Ignored (block animation) on non-text clips and full-clip presets.
+   */
+  stagger?: AnimationStagger;
 }
 
 /**

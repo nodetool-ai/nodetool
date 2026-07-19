@@ -146,6 +146,7 @@ Motion presets add animation without a keyframe editor. Select a visual clip, op
 
 - **In / Out** — fade, slide, pop, spin, wipe, blur, and colorFade at a clip boundary. Wipe reveals the clip behind a directional mask with an adjustable feathered edge; blur racks from soft to sharp; colorFade blooms grayscale into full color.
 - **Emphasis / Loop** — pulse, flash, shake, bounce, float, breathe, spin, or Ken Burns motion while the clip is active.
+- **Word stagger** — on text clips, any animation can run once per word, each word offset in time from the previous (offset and on/off in the inspector; `stagger` on `ui_timeline_animate_clip` for the agent). Words pop, slide, or fade in sequence — motion typography without keyframes. See [plans/motion-typography.md](plans/motion-typography.md).
 - **Track markers** — shaded edge wedges show entrance and exit windows; a loop icon marks emphasis or repeating motion. Select a marker to open its controls.
 - **Agent authoring** — timeline tools can list presets, apply or clear motion, and inspect fixed-time frames before export.
 

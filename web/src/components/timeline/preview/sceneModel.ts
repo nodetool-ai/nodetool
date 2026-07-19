@@ -22,7 +22,9 @@ import type {
 } from "@nodetool-ai/timeline";
 import {
   compileClipAnimations,
+  countStaggerUnits,
   hasActiveAnimationWindow,
+  hasStaggeredAnimation,
   sampleAnimations
 } from "@nodetool-ai/timeline";
 import type { CompositorBlendMode } from "./gpu/types";
@@ -471,6 +473,8 @@ interface CompileCacheEntry {
   durationMs: number;
   canvasW: number;
   canvasH: number;
+  /** Word count of a text clip (stagger span math depends on it). 0 otherwise. */
+  staggerCount: number;
   compiled: CompiledAnimation[];
 }
 
@@ -485,6 +489,13 @@ export function createAnimationCompileCache(): AnimationCompileCache {
   return new Map();
 }
 
+/** Stagger unit count for a clip: text clips split into words, others 0. */
+function clipStaggerCount(clip: TimelineClip): number {
+  return clip.mediaType === "text" && clip.textStyle
+    ? countStaggerUnits(clip.textStyle.text)
+    : 0;
+}
+
 function compiledFor(
   clip: TimelineClip,
   canvas: { width: number; height: number },
@@ -492,6 +503,7 @@ function compiledFor(
 ): CompiledAnimation[] {
   const animations = clip.animations;
   if (!animations || animations.length === 0) return [];
+  const staggerCount = clipStaggerCount(clip);
   if (cache) {
     const hit = cache.get(clip.id);
     if (
@@ -499,21 +511,27 @@ function compiledFor(
       hit.animationsRef === animations &&
       hit.durationMs === clip.durationMs &&
       hit.canvasW === canvas.width &&
-      hit.canvasH === canvas.height
+      hit.canvasH === canvas.height &&
+      hit.staggerCount === staggerCount
     ) {
       return hit.compiled;
     }
-    const compiled = compileClipAnimations(animations, clip.durationMs, canvas);
+    const compiled = compileClipAnimations(animations, clip.durationMs, canvas, {
+      staggerCount
+    });
     cache.set(clip.id, {
       animationsRef: animations,
       durationMs: clip.durationMs,
       canvasW: canvas.width,
       canvasH: canvas.height,
+      staggerCount,
       compiled
     });
     return compiled;
   }
-  return compileClipAnimations(animations, clip.durationMs, canvas);
+  return compileClipAnimations(animations, clip.durationMs, canvas, {
+    staggerCount
+  });
 }
 
 const IDENTITY_TRANSFORM: ClipTransform = {
@@ -605,6 +623,34 @@ function composeAnimatedEffects(
     out.push({ id: "anim-blur", type: "blur", enabled: true, radius: blur });
   }
   return out;
+}
+
+/**
+ * Per-frame input the text rasterizer needs to draw a staggered text clip:
+ * the clip's compiled animations (at least one staggered) and the clip-local
+ * time. `null`/absent means the block raster path applies (cache by style).
+ */
+export interface TextStaggerContext {
+  compiled: CompiledAnimation[];
+  localMs: number;
+}
+
+/**
+ * Resolve the stagger context for a text layer at `currentTimeMs`, or `null`
+ * when the clip has no staggered animation. Shared by the live preview, the
+ * export renderer, and the agent frame harness so per-word motion is drawn
+ * from one code path (preview == export).
+ */
+export function resolveTextStaggerContext(
+  clip: TimelineClip,
+  currentTimeMs: number,
+  canvas: { width: number; height: number },
+  cache?: AnimationCompileCache
+): TextStaggerContext | null {
+  if (clip.mediaType !== "text") return null;
+  const compiled = compiledFor(clip, canvas, cache);
+  if (compiled.length === 0 || !hasStaggeredAnimation(compiled)) return null;
+  return { compiled, localMs: currentTimeMs - clip.startMs };
 }
 
 /**

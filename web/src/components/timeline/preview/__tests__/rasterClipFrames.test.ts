@@ -33,7 +33,8 @@ jest.mock("../gpu/canvas2dCompositor", () => ({
 
 jest.mock("../sceneModel", () => ({
   createAnimationCompileCache: jest.fn(() => new Map()),
-  resolveAnimatedLayerProps
+  resolveAnimatedLayerProps,
+  resolveTextStaggerContext: jest.fn(() => null)
 }));
 
 jest.mock("../textRender", () => ({

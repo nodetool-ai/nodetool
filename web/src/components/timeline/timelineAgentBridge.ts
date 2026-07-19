@@ -258,6 +258,17 @@ export interface ClipAnimationInput {
   easing?: string;
   enabled?: boolean;
   params?: Record<string, number | string | boolean>;
+  /**
+   * Per-word stagger — text clips only. Each word runs the animation for
+   * `durationMs`, delayed `offsetMs` from the previous word (`from` picks
+   * which word leads; default "start"). The handler throws when the target
+   * clip is not a text clip.
+   */
+  stagger?: {
+    unit: "word";
+    offsetMs: number;
+    from?: "start" | "end" | "center";
+  };
 }
 
 /** How {@link TimelineAgentHandler.setClipAnimations} applies its inputs. */

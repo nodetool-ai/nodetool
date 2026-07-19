@@ -9,7 +9,13 @@
  */
 
 import { ease } from "./easing.js";
-import type { CompiledAnimation, Keyframe, PropertyCurve } from "./compile.js";
+import {
+  staggerUnitDelayMs,
+  type CompiledAnimation,
+  type CompiledStagger,
+  type Keyframe,
+  type PropertyCurve
+} from "./compile.js";
 import type { WipeDirection } from "./types.js";
 
 /**
@@ -112,8 +118,33 @@ function windowT(anim: CompiledAnimation, localMs: number): number | null {
   return span > 0 ? (localMs - anim.windowStartMs) / span : 0;
 }
 
-function foldAnimation(anim: CompiledAnimation, t: number, acc: AnimationSample): void {
+/**
+ * Which of an animation's curves a fold pass applies. A staggered animation is
+ * split across two passes: the block-level sampler folds its effect/mask
+ * curves over the full span (`"effects"`), the per-word sampler folds its
+ * transform/opacity curves at the word's own time (`"motion"`).
+ */
+type FoldMode = "all" | "motion" | "effects";
+
+function foldAnimation(
+  anim: CompiledAnimation,
+  t: number,
+  acc: AnimationSample,
+  mode: FoldMode = "all"
+): void {
   for (const curve of anim.curves) {
+    switch (curve.property) {
+      case "offsetX":
+      case "offsetY":
+      case "rotation":
+      case "scale":
+      case "opacity":
+        if (mode === "effects") continue;
+        break;
+      default:
+        if (mode === "motion") continue;
+        break;
+    }
     const value = evalCurve(curve, t);
     switch (curve.property) {
       case "offsetX":
@@ -191,8 +222,15 @@ export function sampleAnimations(
   for (const anim of compiled) {
     const t = windowT(anim, localMs);
     if (t === null) continue;
-    foldAnimation(anim, t, acc);
+    // A staggered animation's transform/opacity curves run per word (see
+    // `sampleStaggeredAnimations`); only its effect/mask curves apply at the
+    // block level, over the full stagger span.
+    foldAnimation(anim, t, acc, anim.stagger ? "effects" : "all");
   }
+  return clampSample(acc);
+}
+
+function clampSample(acc: AnimationSample): AnimationSample {
   // Overshoot easings can push these past their natural range.
   if (acc.opacity < 0) acc.opacity = 0;
   else if (acc.opacity > 1) acc.opacity = 1;
@@ -204,6 +242,72 @@ export function sampleAnimations(
   if (acc.saturation < 0) acc.saturation = 0;
   else if (acc.saturation > 4) acc.saturation = 4;
   return acc;
+}
+
+/** True when any compiled animation carries a per-unit stagger. */
+export function hasStaggeredAnimation(compiled: CompiledAnimation[]): boolean {
+  return compiled.some((anim) => anim.stagger !== undefined);
+}
+
+/**
+ * Resolve the normalized `t` for `unitIndex` of a staggered animation at
+ * `localMs`, or `null` when the unit contributes identity. Mirrors
+ * {@link windowT} with the unit's own window: shifted by the unit's delay and
+ * `unitDurationMs` long (a pure phase shift for loops).
+ */
+function staggerUnitT(
+  anim: CompiledAnimation,
+  stagger: CompiledStagger,
+  localMs: number,
+  unitIndex: number
+): number | null {
+  const delay = staggerUnitDelayMs(stagger, unitIndex);
+  if (anim.loop) {
+    const period = anim.periodMs ?? anim.windowEndMs - anim.windowStartMs;
+    if (period <= 0) return null;
+    if (localMs < anim.windowStartMs || localMs >= anim.windowEndMs) return null;
+    const phase = localMs - anim.windowStartMs - delay;
+    return (((phase % period) + period) % period) / period;
+  }
+  const startMs = anim.windowStartMs + delay;
+  const endMs = startMs + stagger.unitDurationMs;
+  if (localMs < startMs) return anim.holdBefore ? 0 : null;
+  if (localMs > endMs) return anim.holdAfter ? 1 : null;
+  const span = endMs - startMs;
+  return span > 0 ? (localMs - startMs) / span : 0;
+}
+
+/**
+ * Fold the staggered animations' transform/opacity curves for one unit (word)
+ * at `localMs`. Un-staggered animations are skipped — they already applied at
+ * the block level — as are effect/mask curves (block-level in v1). Pass `out`
+ * to reuse a scratch object.
+ */
+export function sampleStaggeredAnimations(
+  compiled: CompiledAnimation[],
+  localMs: number,
+  unitIndex: number,
+  out?: AnimationSample
+): AnimationSample {
+  const acc = resetIdentity(
+    out ?? {
+      offsetX: 0,
+      offsetY: 0,
+      scale: 1,
+      rotation: 0,
+      opacity: 1,
+      blur: 0,
+      brightness: 0,
+      saturation: 1
+    }
+  );
+  for (const anim of compiled) {
+    if (!anim.stagger) continue;
+    const t = staggerUnitT(anim, anim.stagger, localMs, unitIndex);
+    if (t === null) continue;
+    foldAnimation(anim, t, acc, "motion");
+  }
+  return clampSample(acc);
 }
 
 /** True when any compiled animation is inside an actively-animating window. */

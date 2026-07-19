@@ -144,14 +144,19 @@ const AnimationParamControl: React.FC<AnimationParamControlProps> = ({
   return null;
 };
 
+const DEFAULT_STAGGER_OFFSET_MS = 120;
+
 interface ClipAnimationEditorProps {
   animation: ClipAnimation;
+  /** True on text clips — the only place per-word stagger applies. */
+  staggerAvailable: boolean;
   onPatch: (patch: Partial<ClipAnimation>) => void;
   onDelete: () => void;
 }
 
 const ClipAnimationEditor: React.FC<ClipAnimationEditorProps> = ({
   animation,
+  staggerAvailable,
   onPatch,
   onDelete
 }) => {
@@ -274,6 +279,39 @@ const ClipAnimationEditor: React.FC<ClipAnimationEditorProps> = ({
           ))}
         </NodeSelect>
       </InspectorRow>
+
+      {staggerAvailable && !preset?.fullClip && (
+        <>
+          <InspectorToggleRow
+            label="Stagger words"
+            checked={animation.stagger !== undefined}
+            onChange={(on) =>
+              onPatch({
+                stagger: on
+                  ? { unit: "word", offsetMs: DEFAULT_STAGGER_OFFSET_MS }
+                  : undefined
+              })
+            }
+          />
+          {animation.stagger !== undefined && (
+            <InspectorRow label="Word offset">
+              <InspectorPillInput
+                value={String(animation.stagger.offsetMs)}
+                unit="ms"
+                onCommit={(raw) => {
+                  const offsetMs = Number(raw);
+                  if (Number.isFinite(offsetMs) && offsetMs > 0) {
+                    onPatch({
+                      stagger: { ...animation.stagger, unit: "word", offsetMs }
+                    });
+                  }
+                }}
+                ariaLabel={`${animation.role} animation word stagger offset`}
+              />
+            </InspectorRow>
+          )}
+        </>
+      )}
 
       {preset?.params.map((spec) => (
         <AnimationParamControl
@@ -405,6 +443,7 @@ export const ClipAnimations: React.FC<ClipAnimationsProps> = ({ clip }) => {
               <ClipAnimationEditor
                 key={animation.id}
                 animation={animation}
+                staggerAvailable={clip.mediaType === "text"}
                 onPatch={(patch) => patchAnimation(animation.id, patch)}
                 onDelete={() => removeAnimation(animation.id)}
               />
