@@ -355,6 +355,14 @@ export interface TimelineClip {
    */
   storyboardBoardId?: string;
   storyboardShotId?: string;
+  /**
+   * Script provenance: the script/line this voiceover clip was assembled from.
+   * Lets a re-voiced line round-trip its new take into the assembled sequence
+   * (the take asset replaces this clip's currentAssetId, duration, caption).
+   * Both fields must also exist on the protocol zod schema or PATCH strips them.
+   */
+  scriptId?: string;
+  scriptLineId?: string;
   status: ClipStatus;
   locked: boolean;
   muted?: boolean;

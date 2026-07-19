@@ -4,6 +4,7 @@ import AddIcon from "@mui/icons-material/Add";
 import GraphicEqIcon from "@mui/icons-material/GraphicEq";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
+import MovieIcon from "@mui/icons-material/Movie";
 import {
   FlexColumn,
   FlexRow,
@@ -24,6 +25,7 @@ import {
 } from "../../stores/script/ScriptStore";
 import { voiceAll } from "../../stores/script/scriptVoicing";
 import { useScriptPlaythrough } from "../../hooks/script/useScriptPlaythrough";
+import { useAssembleScriptTimeline } from "../../hooks/script/useAssembleScriptTimeline";
 import ScriptLineRow from "./ScriptLineRow";
 
 interface ScriptDocumentPaneProps {
@@ -101,12 +103,13 @@ const ScriptDocumentPane = ({
   scriptId,
   readOnly
 }: ScriptDocumentPaneProps) => {
-  const { sections } = useScript(scriptId);
+  const { sections, timelineId } = useScript(scriptId);
   const addLine = useScriptStore((s) => s.addLine);
   const addSection = useScriptStore((s) => s.addSection);
   const { playing, currentLineId, play, stop } =
     useScriptPlaythrough(scriptId);
   const [voicingAll, setVoicingAll] = useState(false);
+  const { assemble, assembling } = useAssembleScriptTimeline();
 
   const onVoiceAll = useCallback(async () => {
     setVoicingAll(true);
@@ -117,7 +120,18 @@ const ScriptDocumentPane = ({
     }
   }, [scriptId]);
 
+  const onSendToTimeline = useCallback(() => {
+    void assemble(scriptId).catch(() => {
+      // Errors surface via the hook's `error`; swallow to keep the click quiet.
+    });
+  }, [assemble, scriptId]);
+
   const isEmpty = sections.every((s) => s.lines.length === 0);
+  const hasVoicedLine = sections.some((section) =>
+    section.lines.some((line) =>
+      line.takes.some((t) => t.id === line.currentTakeId)
+    )
+  );
 
   return (
     <FlexColumn
@@ -170,6 +184,26 @@ const ScriptDocumentPane = ({
             onClick={play}
           >
             Play through
+          </EditorButton>
+        )}
+        {!readOnly && (
+          <EditorButton
+            size="small"
+            variant="outlined"
+            startIcon={<MovieIcon fontSize="small" />}
+            onClick={onSendToTimeline}
+            disabled={assembling || !hasVoicedLine}
+            title={
+              hasVoicedLine
+                ? undefined
+                : "Voice at least one line to send it to a timeline"
+            }
+          >
+            {assembling
+              ? "Assembling…"
+              : timelineId
+                ? "Update timeline"
+                : "Send to timeline"}
           </EditorButton>
         )}
       </FlexRow>
