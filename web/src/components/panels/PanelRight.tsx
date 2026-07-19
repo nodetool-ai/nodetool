@@ -86,11 +86,25 @@ const styles = (theme: Theme, bottomOffset: number, isVisible: boolean) =>
       }
     },
 
+    // Stack the inspector on top and the cost estimate panel underneath it.
     ".panel-inner-content": {
       display: "flex",
+      flexDirection: "column",
       flex: 1,
       height: "100%",
       overflow: "hidden"
+    },
+    ".inspector-region": {
+      flex: "1 1 auto",
+      minHeight: 0,
+      display: "flex",
+      overflow: "hidden"
+    },
+    ".cost-region": {
+      flex: "0 1 auto",
+      maxHeight: "45%",
+      overflow: "auto",
+      borderTop: `1px solid ${theme.vars.palette.divider}`
     }
   });
 
@@ -233,9 +247,11 @@ const PanelRight: React.FC = () => {
             tabIndex={-1}
           />
           <div className="panel-inner-content">
-            {inspectorBody}
+            <div className="inspector-region">{inspectorBody}</div>
             {currentWorkflowId && (
-              <WorkflowCostEstimatePanel workflowId={currentWorkflowId} />
+              <div className="cost-region">
+                <WorkflowCostEstimatePanel workflowId={currentWorkflowId} />
+              </div>
             )}
           </div>
         </div>
