@@ -1,6 +1,32 @@
 import { createTimeOrderedUuid } from "./defaults.js";
 import { sourceRate } from "./sourceRate.js";
+import type { ClipAnimation } from "./animation/types.js";
 import type { CaptionWord, TimelineClip } from "./types.js";
+
+/**
+ * Partition a clip's animations across a split. `"in"` animations stay on the
+ * left half (they play at the clip's original start); `"out"` on the right (they
+ * play at the original end); `"emphasis"` and `"loop"` are copied to both halves
+ * — their windows re-derive from each half's own duration at compile time.
+ * Right-half animations get fresh ids so the two clips edit independently.
+ */
+function splitAnimations(
+  animations: ReadonlyArray<ClipAnimation>
+): { left: ClipAnimation[]; right: ClipAnimation[] } {
+  const left: ClipAnimation[] = [];
+  const right: ClipAnimation[] = [];
+  for (const anim of animations) {
+    if (anim.role === "in") {
+      left.push({ ...anim });
+    } else if (anim.role === "out") {
+      right.push({ ...anim, id: createTimeOrderedUuid() });
+    } else {
+      left.push({ ...anim });
+      right.push({ ...anim, id: createTimeOrderedUuid() });
+    }
+  }
+  return { left, right };
+}
 
 /**
  * Partition clip-local caption words at `splitMs` — the split point measured in
@@ -57,6 +83,8 @@ export function splitClip(clip: TimelineClip, atMs: number): [TimelineClip, Time
     ? splitCaptionWords(clip.caption.words, leftDurationMs, rightDurationMs)
     : null;
 
+  const animations = clip.animations ? splitAnimations(clip.animations) : null;
+
   const leftClip: TimelineClip = {
     ...clip,
     id: createTimeOrderedUuid(),
@@ -69,6 +97,9 @@ export function splitClip(clip: TimelineClip, atMs: number): [TimelineClip, Time
   delete leftClip.fadeOutMs;
   if (captions) {
     leftClip.caption = { words: captions.left };
+  }
+  if (animations) {
+    leftClip.animations = animations.left;
   }
 
   const rightClip: TimelineClip = {
@@ -86,6 +117,9 @@ export function splitClip(clip: TimelineClip, atMs: number): [TimelineClip, Time
   delete rightClip.transitionIn;
   if (captions) {
     rightClip.caption = { words: captions.right };
+  }
+  if (animations) {
+    rightClip.animations = animations.right;
   }
 
   return [leftClip, rightClip];

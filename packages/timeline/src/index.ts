@@ -13,3 +13,4 @@ export * from "./snap.js";
 export * from "./staleSet.js";
 export * from "./placement/index.js";
 export * from "./snapping/index.js";
+export * from "./animation/index.js";

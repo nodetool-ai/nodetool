@@ -20,6 +20,11 @@ export type ClipStatus =
 import type { BlendMode } from "@nodetool-ai/gpu";
 export type { BlendMode };
 
+// Motion-design animations attached to a clip (pure engine in ./animation).
+// Re-exported from the package root via ./animation/index.js, so only imported
+// here (not re-exported) to avoid a duplicate star-export.
+import type { ClipAnimation } from "./animation/types.js";
+
 export interface TimelineSequence {
   id: string;
   projectId: string;
@@ -393,6 +398,13 @@ export interface TimelineClip {
    * `durationMs` for the transition to be visible.
    */
   transitionIn?: ClipTransition;
+  /**
+   * Motion-design animations evaluated at render time (see
+   * `animation/`). Evaluation is order-independent (the fold is commutative —
+   * see `animation/sample.ts`); array order is presentation order in the UI
+   * only. Must also exist on the protocol zod schema or PATCH would strip it.
+   */
+  animations?: ClipAnimation[];
 }
 
 /**
