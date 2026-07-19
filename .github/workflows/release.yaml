@@ -221,15 +221,6 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: sudo apt-get update && sudo apt-get install -y libsecret-1-dev
 
-      - name: Install Flatpak SDK and runtime (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get install -y flatpak flatpak-builder elfutils
-          sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-          sudo flatpak install -y flathub org.freedesktop.Platform//24.08
-          sudo flatpak install -y flathub org.freedesktop.Sdk//24.08
-          sudo flatpak install -y flathub org.electronjs.Electron2.BaseApp//24.08
-
       - name: Configure node-gyp Python path
         shell: bash
         run: |
@@ -733,7 +724,6 @@ jobs:
             electron/dist/*.dmg
             electron/dist/*.zip
             electron/dist/*.AppImage
-            electron/dist/*.flatpak
             electron/dist/*.exe
             electron/dist/*.blockmap
             electron/dist/*.yml
@@ -848,7 +838,6 @@ jobs:
             release-assets/*.zip
             release-assets/*.dmg
             release-assets/*.AppImage
-            release-assets/*.flatpak
             release-assets/*.exe
             release-assets/*.blockmap
             release-assets/*.yml
