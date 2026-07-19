@@ -444,6 +444,130 @@ async function expandFolderRefs(
     .trim();
 }
 
+/** Matches an inline `entity://<id>` token (an entity mention from `@`). */
+const ENTITY_URI_RE = /entity:\/\/[A-Za-z0-9._~\-]+/g;
+
+/** The prompt-relevant fields of an asset's `nodetool_entity` marker. */
+interface EntityMarkerLike {
+  name: string;
+  descriptor: string;
+}
+
+/** Read the entity marker off asset metadata, or null when absent/malformed. */
+function readEntityMarker(
+  metadata: Record<string, unknown> | null
+): EntityMarkerLike | null {
+  const raw = metadata?.["nodetool_entity"];
+  if (!raw || typeof raw !== "object") return null;
+  const obj = raw as Record<string, unknown>;
+  const name = typeof obj.name === "string" ? obj.name.trim() : "";
+  if (!name) return null;
+  const descriptor =
+    typeof obj.descriptor === "string" ? obj.descriptor.trim() : "";
+  return { name, descriptor };
+}
+
+/**
+ * Expand `entity://<id>` mentions (entities are library assets tagged with a
+ * `nodetool_entity` marker; the `@`-mention pickers encode them as this token).
+ *
+ * Each token is replaced inline with the entity's **name** so the sentence
+ * still reads naturally, and every mentioned entity contributes once to a
+ * trailing `Consistency references:` block carrying its canonical descriptor —
+ * the same shape the Apply Entities node produces. With `includeImageRefs`,
+ * each entity's reference image is appended as an `asset://<id>.<ext>` token so
+ * the normal media-mention machinery routes it into a typed image input.
+ *
+ * Resolution happens here, at generation time, so later edits to an entity's
+ * descriptor or image propagate to every prompt that mentions it. A token that
+ * cannot be resolved (unknown id, no marker, no context) is dropped.
+ */
+export async function expandEntityRefs(
+  text: string,
+  context: ProcessingContext | undefined,
+  includeImageRefs: boolean
+): Promise<string> {
+  if (!text.includes("entity://")) return text;
+
+  const tokens: Array<{ index: number; length: number; id: string }> = [];
+  ENTITY_URI_RE.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = ENTITY_URI_RE.exec(text)) !== null) {
+    let token = match[0];
+    // Trailing dots are sentence punctuation, not part of the id.
+    const trailingDots = token.match(/\.+$/);
+    if (trailingDots) {
+      token = token.slice(0, token.length - trailingDots[0].length);
+    }
+    tokens.push({
+      index: match.index,
+      length: token.length,
+      id: token.slice("entity://".length)
+    });
+  }
+  if (tokens.length === 0) return text;
+
+  // Resolve each unique id once; a mention of the same entity twice reads as
+  // its name twice but contributes a single consistency line / image ref.
+  const resolved = new Map<
+    string,
+    { marker: EntityMarkerLike; imageToken: string | null } | null
+  >();
+  for (const token of tokens) {
+    if (resolved.has(token.id)) continue;
+    const info =
+      typeof context?.getAssetInfo === "function"
+        ? await context.getAssetInfo(token.id)
+        : null;
+    const marker = info ? readEntityMarker(info.metadata) : null;
+    if (!info || !marker) {
+      resolved.set(token.id, null);
+      continue;
+    }
+    const ext = extForContentType(info.content_type);
+    resolved.set(token.id, {
+      marker,
+      imageToken: ext ? `asset://${info.id}.${ext}` : null
+    });
+  }
+
+  let result = "";
+  let cursor = 0;
+  const consistencyLines: string[] = [];
+  const imageTokens: string[] = [];
+  const contributed = new Set<string>();
+  for (const token of tokens) {
+    result += text.slice(cursor, token.index);
+    cursor = token.index + token.length;
+    const entity = resolved.get(token.id);
+    if (!entity) continue; // unresolvable mention → dropped
+    result += entity.marker.name;
+    if (contributed.has(token.id)) continue;
+    contributed.add(token.id);
+    if (entity.marker.descriptor) {
+      consistencyLines.push(
+        `- ${entity.marker.name}: ${entity.marker.descriptor}`
+      );
+    }
+    if (includeImageRefs && entity.imageToken) {
+      imageTokens.push(entity.imageToken);
+    }
+  }
+  result += text.slice(cursor);
+  result = result
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/[ \t]+\n/g, "\n")
+    .trim();
+
+  if (consistencyLines.length > 0) {
+    result += `\n\nConsistency references:\n${consistencyLines.join("\n")}`;
+  }
+  if (imageTokens.length > 0) {
+    result += `\n${imageTokens.join(" ")}`;
+  }
+  return result;
+}
+
 /**
  * Map media mentioned inline in a node's text inputs onto its typed media
  * inputs. This is the generalized form of what text-generation tasks do when
@@ -482,17 +606,24 @@ export async function mapPromptAssetsToInputs(
   const overrides: Record<string, unknown> = {};
   const acceptedKinds = new Set(assetFields.map((f) => f.kind));
 
-  // Expand any folder mentions into their member assets first (only meaningful
-  // when the node has media inputs to receive them), then work off the expanded
-  // text. The original value is kept to decide whether the field actually
-  // changed (a folder that expanded to nothing still rewrites text).
+  // Expand entity mentions first (they inject descriptor text and, when the
+  // node accepts images, an `asset://` reference-image token), then folder
+  // mentions (only meaningful when the node has media inputs to receive them),
+  // and work off the expanded text. The original value is kept to decide
+  // whether the field actually changed (a folder that expanded to nothing
+  // still rewrites text).
   const expandedByField = new Map<string, string>();
   for (const tf of textFields) {
+    const withEntities = await expandEntityRefs(
+      tf.value,
+      context,
+      acceptedKinds.has("image")
+    );
     expandedByField.set(
       tf.name,
       assetFields.length > 0
-        ? await expandFolderRefs(tf.value, context, acceptedKinds)
-        : tf.value
+        ? await expandFolderRefs(withEntities, context, acceptedKinds)
+        : withEntities
     );
   }
 

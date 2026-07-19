@@ -326,6 +326,14 @@ export interface FolderAssetEntry {
   name: string;
 }
 
+/** An asset's identity + metadata, as surfaced by {@link ProcessingContext.getAssetInfo}. */
+export interface AssetInfoEntry {
+  id: string;
+  content_type: string;
+  name: string;
+  metadata: Record<string, unknown> | null;
+}
+
 export interface ProcessingContextModelInterfaces {
   getJob?: (args: { userId: string; jobId: string }) => Promise<unknown | null>;
   createAsset?: (args: AssetCreateParamsLike) => Promise<unknown>;
@@ -338,6 +346,14 @@ export interface ProcessingContextModelInterfaces {
     userId: string;
     folderId: string;
   }) => Promise<FolderAssetEntry[] | null>;
+  /**
+   * Look up one owned asset's identity + metadata (no bytes). Returns `null`
+   * when the asset does not exist or is not owned by the user.
+   */
+  getAssetInfo?: (args: {
+    userId: string;
+    assetId: string;
+  }) => Promise<AssetInfoEntry | null>;
   createMessage?: (args: {
     userId: string;
     req: MessageCreateRequestLike;
@@ -1900,6 +1916,23 @@ export class ProcessingContext {
     }
     try {
       return await fn({ userId: this.userId, folderId });
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Look up one owned asset's identity + metadata, or `null` when missing /
+   * not owned. Backed by the optional `getAssetInfo` model interface; returns
+   * `null` when that interface is not configured.
+   */
+  async getAssetInfo(assetId: string): Promise<AssetInfoEntry | null> {
+    const fn = this._modelInterfaces?.getAssetInfo;
+    if (!fn) {
+      return null;
+    }
+    try {
+      return await fn({ userId: this.userId, assetId });
     } catch {
       return null;
     }

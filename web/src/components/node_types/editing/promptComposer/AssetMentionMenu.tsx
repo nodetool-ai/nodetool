@@ -6,7 +6,9 @@ import type { Theme } from "@mui/material/styles";
 
 import { BORDER_RADIUS, Z_INDEX } from "../../../ui_primitives";
 import type { Asset } from "../../../../stores/ApiTypes";
+import type { Entity } from "@nodetool-ai/protocol";
 import { MentionAssetTile } from "./MentionAssetTile";
+import { MentionEntityTile } from "./MentionEntityTile";
 import type { MentionTab } from "./useAssetMentionSearch";
 
 export const assetMentionMenuStyles = (theme: Theme) =>
@@ -59,6 +61,26 @@ export const assetMentionMenuStyles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary,
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmall
+    },
+    ".mention-entities": {
+      flex: "0 0 auto",
+      display: "flex",
+      flexWrap: "wrap",
+      alignItems: "center",
+      gap: theme.spacing(0.5),
+      padding: theme.spacing(0.75),
+      maxHeight: 96,
+      overflowY: "auto",
+      borderBottom: `1px solid ${theme.vars.palette.divider}`
+    },
+    ".mention-entities-label": {
+      flex: "0 0 100%",
+      fontFamily: theme.fontFamily1,
+      fontSize: theme.fontSizeTiny,
+      textTransform: "uppercase",
+      letterSpacing: "0.06em",
+      color: theme.vars.palette.text.secondary,
+      padding: `0 ${theme.spacing(0.5)}`
     }
   });
 
@@ -66,11 +88,18 @@ export interface AssetMentionMenuProps {
   activeTab: MentionTab;
   /** Switch buckets. Callers should reset the highlighted index to 0. */
   onTabChange: (tab: MentionTab) => void;
+  /**
+   * Library entities matching the query, rendered as a row above the asset
+   * grid. They occupy the head of the combined selection order: indices
+   * `0..entities.length-1`, with assets following.
+   */
+  entities?: Entity[];
   assets: Asset[];
+  /** Highlight index in the combined entities-then-assets order. */
   selectedIndex: number;
-  /** Commit the asset at `index` (keyboard Enter or click). */
+  /** Commit the item at `index` in combined order (keyboard Enter or click). */
   onSelect: (index: number) => void;
-  /** Move the highlight to `index` (hover / keyboard nav). */
+  /** Move the highlight to `index` in combined order (hover / keyboard nav). */
   onHighlight: (index: number) => void;
   onRename: (id: string, name: string) => Promise<void>;
   /** Text typed after `@`, or `null` when the mention was just opened. */
@@ -92,6 +121,7 @@ export interface AssetMentionMenuProps {
 export const AssetMentionMenu: React.FC<AssetMentionMenuProps> = ({
   activeTab,
   onTabChange,
+  entities = [],
   assets,
   selectedIndex,
   onSelect,
@@ -103,6 +133,7 @@ export const AssetMentionMenu: React.FC<AssetMentionMenuProps> = ({
   className
 }) => {
   const theme = useTheme();
+  const entityCount = entities.length;
   const emptyMessage =
     activeTab === "recent"
       ? queryString
@@ -127,6 +158,20 @@ export const AssetMentionMenu: React.FC<AssetMentionMenuProps> = ({
       css={assetMentionMenuStyles(theme)}
       className={`asset-mention-menu nowheel${className ? ` ${className}` : ""}`}
     >
+      {entityCount > 0 && (
+        <div className="mention-entities" role="listbox" aria-label="Entities">
+          <span className="mention-entities-label">Entities</span>
+          {entities.map((entity, index) => (
+            <MentionEntityTile
+              key={entity.id}
+              entity={entity}
+              selected={index === selectedIndex}
+              onSelect={() => onSelect(index)}
+              onMouseEnter={() => onHighlight(index)}
+            />
+          ))}
+        </div>
+      )}
       <div className="mention-tabs" role="tablist">
         {(["recent", "saved"] as const).map((tab) => (
           <button
@@ -154,9 +199,9 @@ export const AssetMentionMenu: React.FC<AssetMentionMenuProps> = ({
             <MentionAssetTile
               key={asset.id}
               asset={asset}
-              selected={index === selectedIndex}
-              onSelect={() => onSelect(index)}
-              onMouseEnter={() => onHighlight(index)}
+              selected={entityCount + index === selectedIndex}
+              onSelect={() => onSelect(entityCount + index)}
+              onMouseEnter={() => onHighlight(entityCount + index)}
               onRename={onRename}
             />
           ))

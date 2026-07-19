@@ -70,6 +70,7 @@ import type {
   TTSModel,
   VideoModel
 } from "../../../stores/ApiTypes";
+import type { Entity } from "@nodetool-ai/protocol";
 import type { MediaGenerationRequest } from "../types/media.types";
 import { assetToUri } from "../../node_types/editing/promptComposer/promptTokens";
 import { useTextareaAssetMention } from "./useTextareaAssetMention";
@@ -246,12 +247,40 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     [addDroppedFiles]
   );
 
+  // A picked entity reads as part of the message: the hook inlines its name
+  // into the text; here its reference image is attached for consistency.
+  const handleSelectEntity = useCallback(
+    (entity: Entity) => {
+      const refUri = entity.reference_images?.[0]?.uri ?? "";
+      if (!refUri) {
+        return;
+      }
+      // Entity reference images are stored as `<id>.<ext>` keys, so the URL
+      // path carries the extension the asset URI needs.
+      const extMatch = refUri.split(/[?#]/)[0].match(/\.([A-Za-z0-9]+)$/);
+      const ext = extMatch ? extMatch[1].toLowerCase() : "";
+      addDroppedFiles([
+        {
+          id: "",
+          dataUri: refUri,
+          type: ext ? `image/${ext === "jpg" ? "jpeg" : ext}` : "image/png",
+          name: entity.name || entity.id,
+          assetUri: ext
+            ? `asset://${entity.id}.${ext}`
+            : `asset://${entity.id}`
+        }
+      ]);
+    },
+    [addDroppedFiles]
+  );
+
   const { mentionMenu, handleKeyDown: handleMentionKeyDown } =
     useTextareaAssetMention({
       textareaRef,
       value: prompt,
       setValue: setPrompt,
-      onSelectAsset: handleSelectAsset
+      onSelectAsset: handleSelectAsset,
+      onSelectEntity: handleSelectEntity
     });
 
   const adjustHeight = useCallback(() => {
