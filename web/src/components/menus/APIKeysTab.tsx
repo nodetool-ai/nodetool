@@ -62,6 +62,9 @@ import minimaxColorIcon from "../../icons/providers/minimax-color.svg";
 import meshyColorIcon from "../../icons/providers/meshy-color.svg";
 import githubIcon from "../../icons/providers/github.svg";
 import googleColorIcon from "../../icons/providers/google-color.svg";
+import cohereColorIcon from "../../icons/providers/cohere-color.svg";
+import jinaIcon from "../../icons/providers/jina.svg";
+import voyageColorIcon from "../../icons/providers/voyage-color.svg";
 import evolinkIcon from "../../icons/evolink.svg";
 import gmiIcon from "../../icons/gmi.svg";
 
@@ -205,6 +208,31 @@ const PROVIDER_META: ProviderMeta[] = [
     docsUrl: "https://huggingface.co/docs",
     icon: huggingfaceColorIcon,
     oauth: "hf"
+  },
+  {
+    key: "COHERE_API_KEY",
+    name: "Cohere",
+    description: "Embed v4 text embeddings and reranking.",
+    section: "language",
+    docsUrl: "https://docs.cohere.com/",
+    icon: cohereColorIcon
+  },
+  {
+    key: "JINA_API_KEY",
+    name: "Jina AI",
+    description: "Jina embeddings and reranker models.",
+    section: "language",
+    docsUrl: "https://jina.ai/",
+    icon: jinaIcon,
+    mono: true
+  },
+  {
+    key: "VOYAGE_API_KEY",
+    name: "Voyage AI",
+    description: "High-quality text and multimodal embeddings.",
+    section: "language",
+    docsUrl: "https://docs.voyageai.com/",
+    icon: voyageColorIcon
   },
   {
     key: "FAL_API_KEY",
@@ -708,6 +736,88 @@ export const ProviderCard = memo(function ProviderCard({
 });
 
 /* ------------------------------------------------------------------ */
+//  Hero — provider logo wall
+/* ------------------------------------------------------------------ */
+
+// A curated row of recognizable provider logos, shown at the top of the page
+// to make the empty/first-run state feel alive. Purely decorative.
+const HERO_LOGOS: Array<{ name: string; icon: string; mono?: boolean }> = [
+  { name: "OpenAI", icon: openaiIcon, mono: true },
+  { name: "Anthropic", icon: anthropicIcon, mono: true },
+  { name: "Gemini", icon: geminiColorIcon },
+  { name: "Mistral", icon: mistralColorIcon },
+  { name: "Groq", icon: groqIcon, mono: true },
+  { name: "HuggingFace", icon: huggingfaceColorIcon },
+  { name: "xAI", icon: xaiIcon, mono: true },
+  { name: "DeepSeek", icon: deepseekColorIcon },
+  { name: "Cohere", icon: cohereColorIcon },
+  { name: "FAL", icon: falColorIcon },
+  { name: "Replicate", icon: replicateIcon, mono: true },
+  { name: "ElevenLabs", icon: elevenlabsIcon, mono: true }
+];
+
+const ProviderHero = memo(function ProviderHero({ theme }: { theme: Theme }) {
+  return (
+    <Card
+      variant="outlined"
+      padding="comfortable"
+      sx={{
+        borderRadius: BORDER_RADIUS.xl,
+        border: `1px solid ${theme.vars.palette.divider}`,
+        background: `linear-gradient(135deg, rgba(${theme.vars.palette.primary.mainChannel} / 0.1) 0%, rgba(${theme.vars.palette.primary.mainChannel} / 0.02) 45%, ${theme.vars.palette.background.paper} 100%)`,
+        overflow: "hidden"
+      }}
+    >
+      <FlexColumn gap={2}>
+        <Text size="big" weight={700}>
+          Models &amp; Providers
+        </Text>
+        <Caption sx={{ opacity: 0.65, lineHeight: 1.5, maxWidth: 520 }}>
+          Connect the AI providers you want to use. NodeTool unlocks their
+          language, image, video, audio, and embedding models across the editor
+          and your workflows.
+        </Caption>
+        <FlexRow gap={1.5} sx={{ flexWrap: "wrap", marginTop: theme.spacing(1) }}>
+          {HERO_LOGOS.map((logo) => (
+            <Tooltip key={logo.name} title={logo.name}>
+              <FlexRow
+                align="center"
+                justify="center"
+                sx={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: BORDER_RADIUS.lg,
+                  border: `1px solid ${theme.vars.palette.divider}`,
+                  backgroundColor: theme.vars.palette.background.paper,
+                  transition: `${MOTION.transform}, ${MOTION.border}`,
+                  "&:hover": {
+                    transform: "translateY(-2px)",
+                    borderColor: theme.vars.palette.primary.main
+                  }
+                }}
+              >
+                <Box
+                  component="img"
+                  src={logo.icon}
+                  alt={logo.name}
+                  sx={{
+                    width: 22,
+                    height: 22,
+                    objectFit: "contain",
+                    ...(logo.mono &&
+                      theme.applyStyles("dark", { filter: "invert(1)" }))
+                  }}
+                />
+              </FlexRow>
+            </Tooltip>
+          ))}
+        </FlexRow>
+      </FlexColumn>
+    </Card>
+  );
+});
+
+/* ------------------------------------------------------------------ */
 //  Get Started banner
 /* ------------------------------------------------------------------ */
 
@@ -1095,6 +1205,8 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
 
   return (
     <FlexColumn sx={{ gap: "1.5rem" }}>
+      <ProviderHero theme={theme} />
+
       {/* Show the onboarding banner only until the user connects their first
           provider — once anything is configured, the Connected Providers
           section above makes the banner redundant. */}
