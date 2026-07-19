@@ -195,6 +195,7 @@ export type {
   InpaintingParams,
   TextToVideoParams,
   ImageToVideoParams,
+  EntityReference,
   ProviderStreamItem,
   ProviderSession,
   ProviderSessionUpdate,
@@ -204,6 +205,10 @@ export type {
   AudioChunk,
   ASRResult
 } from "./types.js";
+export {
+  applyEntityReferences,
+  injectEntityDescriptors
+} from "./entity-references.js";
 export {
   isProviderSessionUpdate,
   isProviderMessageEvent,

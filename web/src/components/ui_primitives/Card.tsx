@@ -98,7 +98,10 @@ const CardInternal = forwardRef<HTMLDivElement, CardProps>(({
         padding: theme.spacing(paddingValue),
         backgroundColor: theme.vars.palette.background.paper,
         border: getBorder(),
-        borderRadius: theme.shape.borderRadius,
+        // String token, not the numeric theme.shape.borderRadius: sx multiplies
+        // bare numbers by the theme radius (6 × 6 = 36px), which is what made
+        // cards balloon off-brand.
+        borderRadius: theme.rounded.md,
         boxShadow: getBoxShadow(),
         cursor: clickable ? "pointer" : undefined,
         transition: hoverable || clickable

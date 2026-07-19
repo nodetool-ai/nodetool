@@ -54,6 +54,7 @@ import {
   type LlmUsage
 } from "../tracing-helpers.js";
 import { logProviderRequestFailure } from "./provider-request-log.js";
+import { applyEntityReferences } from "./entity-references.js";
 import type { Span } from "@opentelemetry/api";
 import { SpanStatusCode } from "@opentelemetry/api";
 import { createLogger, getDefaultAssetsPath } from "@nodetool-ai/config";
@@ -313,8 +314,11 @@ export abstract class BaseProvider {
       const fn = self[name];
       if (typeof fn !== "function" || fn === proto[name]) continue;
       const original = fn as (...args: unknown[]) => Promise<unknown>;
-      self[name] = (...args: unknown[]): Promise<unknown> =>
+      self[name] = (...rawArgs: unknown[]): Promise<unknown> =>
         withModalityCapture(async (alreadyActive) => {
+          // Central entity expansion: descriptors into the prompt, reference
+          // images onto the source list, before the concrete provider runs.
+          const args = applyEntityReferences(name, rawArgs);
           try {
             return await original.apply(this, args);
           } catch (err) {

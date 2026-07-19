@@ -1627,6 +1627,15 @@ export class TextToImageNode extends BaseNode {
   declare negative_prompt: any;
 
   @prop({
+    type: "list[dict]",
+    default: [],
+    title: "Entities",
+    description:
+      "Consistency entities (characters, styles, locations) whose descriptors are injected into the prompt"
+  })
+  declare entities: any;
+
+  @prop({
     type: "str",
     default: "1:1",
     title: "Aspect Ratio",
@@ -1665,7 +1674,8 @@ export class TextToImageNode extends BaseNode {
         height,
         aspect_ratio: aspectRatio,
         resolution,
-        negative_prompt: this.negative_prompt
+        negative_prompt: this.negative_prompt,
+        entities: this.entities
       }
     })) as Uint8Array;
     const meta = await metadataFor(output);
@@ -1731,6 +1741,15 @@ export class ImageToImageNode extends BaseNode {
     description: "Text prompt describing what to avoid"
   })
   declare negative_prompt: any;
+
+  @prop({
+    type: "list[dict]",
+    default: [],
+    title: "Entities",
+    description:
+      "Consistency entities (characters, styles, locations) whose descriptors are injected into the prompt and whose reference images are appended to the input images"
+  })
+  declare entities: any;
 
   @prop({
     type: "float",
@@ -1799,7 +1818,14 @@ export class ImageToImageNode extends BaseNode {
     const bytesList = (
       await Promise.all(images.map((img) => imageBytesAsync(img, context)))
     ).filter((b) => b.length > 0);
-    if (bytesList.length === 0) {
+    // Entities may supply the source images: their reference images are
+    // appended to the list at the provider layer, so an empty wired input is
+    // fine as long as an entity carries an image.
+    const entities = Array.isArray(this.entities) ? this.entities : [];
+    const entityHasImage = entities.some(
+      (e: any) => !!e?.image || (e?.reference_images?.length ?? 0) > 0
+    );
+    if (bytesList.length === 0 && !entityHasImage) {
       throw new Error("The input image is empty.");
     }
     const aspectRatio = String(this.aspect_ratio ?? "1:1");
@@ -1817,6 +1843,7 @@ export class ImageToImageNode extends BaseNode {
         images: bytesList,
         prompt,
         negative_prompt: this.negative_prompt,
+        entities,
         target_width: width,
         target_height: height,
         aspect_ratio: aspectRatio,

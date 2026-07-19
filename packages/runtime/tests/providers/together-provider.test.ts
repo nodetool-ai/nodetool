@@ -369,8 +369,45 @@ describe("TogetherProvider", () => {
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
     expect(body.image_url).toMatch(/^data:image\/jpeg;base64,/);
+    expect(body.reference_images).toBeUndefined();
     expect(body.prompt).toBe("make it blue");
     expect(body.guidance_scale).toBe(3.5);
+  });
+
+  it("imageToImage sends reference_images array for multiple inputs", async () => {
+    const imageBytes = new Uint8Array([13, 14, 15, 16]);
+    const b64 = Buffer.from(imageBytes).toString("base64");
+
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: [{ b64_json: b64 }] })
+    });
+
+    const provider = new TogetherProvider(
+      { TOGETHER_API_KEY: "k" },
+      { client: {} as any, fetchFn: mockFetch as any }
+    );
+
+    const first = new Uint8Array([0xff, 0xd8, 0xff]); // fake JPEG header
+    const second = new Uint8Array([0x89, 0x50, 0x4e, 0x47]); // fake PNG header
+    const params: ImageToImageParams = {
+      model: {
+        id: "black-forest-labs/FLUX.2-pro",
+        name: "FLUX.2 Pro",
+        provider: "together"
+      },
+      prompt: "combine these"
+    };
+
+    const result = await provider.imageToImage([first, second], params);
+    expect(result).toEqual(imageBytes);
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+    expect(body.image_url).toBeUndefined();
+    expect(body.reference_images).toHaveLength(2);
+    expect(body.reference_images[0]).toMatch(/^data:image\/jpeg;base64,/);
+    expect(body.reference_images[1]).toMatch(/^data:image\/png;base64,/);
+    expect(body.prompt).toBe("combine these");
   });
 
   // ─── TTS ────────────────────────────────────────────────────────────────────

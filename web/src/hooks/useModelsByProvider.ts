@@ -193,7 +193,7 @@ const modelMatchesTask = (
   return supportedTasks.includes(task);
 };
 
-export const useImageModelsByProvider = (opts?: { task?: ImageModelTask }): ModelsByProviderResult<ImageModel> => {
+export const useImageModelsByProvider = (opts?: { task?: ImageModelTask | ImageModelTask[] }): ModelsByProviderResult<ImageModel> => {
   const { providers, isLoading: providersLoading, error: providersError } = useImageModelProviders();
 
   const queries = useQueries({
@@ -226,12 +226,18 @@ export const useImageModelsByProvider = (opts?: { task?: ImageModelTask }): Mode
   const error = providersError || queries.find((q) => q.error)?.error;
 
   const task = opts?.task;
+  // Key by content so an inline task array doesn't recompute every render.
+  const taskKey = Array.isArray(task) ? task.join(",") : task;
   const allModels = useMemo(() => {
     const aggregated = queries.flatMap((q) => q.data?.models ?? []);
-    return task
-      ? aggregated.filter((m) => modelMatchesTask(m.supported_tasks, task))
-      : aggregated;
-  }, [queries, task]);
+    if (!taskKey) {
+      return aggregated;
+    }
+    const tasks = taskKey.split(",");
+    return aggregated.filter((m) =>
+      tasks.some((t) => modelMatchesTask(m.supported_tasks, t))
+    );
+  }, [queries, taskKey]);
 
   const refetch = useMemo(
     () => async () => {

@@ -14,6 +14,10 @@ import type { AssetRef, ProcessingMessage, ProviderCost } from "@nodetool-ai/pro
 import { packageAssetHttpPath, parsePackageAssetUri } from "@nodetool-ai/protocol";
 import { AgentMemory } from "./agent-memory.js";
 import { VariableChannel } from "./variable-channel.js";
+import {
+  loadMediaRefBytes,
+  type MediaRefValue
+} from "./media-ref-bytes.js";
 import { encodeRawImageRef } from "./image-codec.js";
 import {
   expandAssetReferences,
@@ -115,6 +119,7 @@ const pathToFileURL = (p: string): URL =>
 import type { BaseProvider } from "./providers/base-provider.js";
 import type {
   EncodedAudioResult,
+  EntityReference,
   Message,
   MessageContent,
   ProviderStreamItem
@@ -438,6 +443,56 @@ function coerceImageList(params: Record<string, unknown>): Uint8Array[] {
   }
   const single = params.image;
   return single instanceof Uint8Array ? [single] : [];
+}
+
+/**
+ * Normalize `params.entities` into provider-level {@link EntityReference}s.
+ *
+ * Consumers send entities in whatever shape they hold: a full protocol Entity
+ * (`reference_images` list), a lean `{name, descriptor, image}` where `image`
+ * is bytes, an ImageRef-like object, or a bare URI string. Images are resolved
+ * to bytes here — the last point with a ProcessingContext — so providers only
+ * ever see `Uint8Array`s. Entities without a name are dropped; an unresolvable
+ * image degrades to a text-only entity (the descriptor still applies).
+ */
+async function coerceEntityList(
+  params: Record<string, unknown>,
+  context: ProcessingContext
+): Promise<EntityReference[] | undefined> {
+  const raw = params.entities;
+  if (!Array.isArray(raw) || raw.length === 0) return undefined;
+
+  const out: EntityReference[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const entity = item as Record<string, unknown>;
+    const name = typeof entity.name === "string" ? entity.name.trim() : "";
+    if (!name) continue;
+    const descriptor =
+      typeof entity.descriptor === "string" ? entity.descriptor : undefined;
+
+    const imageSource =
+      entity.image ??
+      (Array.isArray(entity.reference_images)
+        ? entity.reference_images[0]
+        : undefined);
+    let image: Uint8Array | undefined;
+    if (imageSource instanceof Uint8Array) {
+      image = imageSource;
+    } else if (typeof imageSource === "string" && imageSource.length > 0) {
+      image =
+        (await loadMediaRefBytes(
+          { type: "image", uri: imageSource },
+          context
+        )) ?? undefined;
+    } else if (imageSource && typeof imageSource === "object") {
+      image =
+        (await loadMediaRefBytes(imageSource as MediaRefValue, context)) ??
+        undefined;
+    }
+    out.push({ name, descriptor, image });
+  }
+  return out.length > 0 ? out : undefined;
 }
 
 function normalizeStorageKey(key: string): string {
@@ -2518,6 +2573,7 @@ export class ProcessingContext {
       case "text_to_image":
         return provider.textToImage({
           prompt: String(params.prompt ?? ""),
+          entities: await coerceEntityList(params, this),
           model: { id: req.model, name: req.model, provider: req.provider },
           width: params.width as number | undefined,
           height: params.height as number | undefined,
@@ -2529,6 +2585,7 @@ export class ProcessingContext {
       case "image_to_image":
         return provider.imageToImage(coerceImageList(params), {
           prompt: String(params.prompt ?? ""),
+          entities: await coerceEntityList(params, this),
           model: { id: req.model, name: req.model, provider: req.provider },
           negativePrompt: params.negative_prompt as string | undefined,
           targetWidth: params.target_width as number | undefined,
@@ -2541,6 +2598,7 @@ export class ProcessingContext {
       case "inpainting":
         return provider.inpaint(coerceImageList(params), {
           prompt: String(params.prompt ?? ""),
+          entities: await coerceEntityList(params, this),
           model: { id: req.model, name: req.model, provider: req.provider },
           mask: params.mask as Uint8Array,
           negativePrompt: params.negative_prompt as string | undefined,
@@ -2554,6 +2612,7 @@ export class ProcessingContext {
       case "text_to_video":
         return provider.textToVideo({
           prompt: String(params.prompt ?? ""),
+          entities: await coerceEntityList(params, this),
           model: { id: req.model, name: req.model, provider: req.provider },
           negativePrompt: params.negative_prompt as string | undefined,
           numFrames: params.num_frames as number | undefined,
@@ -2565,6 +2624,7 @@ export class ProcessingContext {
       case "image_to_video":
         return provider.imageToVideo(coerceImageList(params), {
           prompt: params.prompt as string | undefined,
+          entities: await coerceEntityList(params, this),
           model: { id: req.model, name: req.model, provider: req.provider },
           negativePrompt: params.negative_prompt as string | undefined,
           numFrames: params.num_frames as number | undefined,
@@ -2600,6 +2660,7 @@ export class ProcessingContext {
         return provider.videoToVideo(params.video as Uint8Array, {
           model: { id: req.model, name: req.model, provider: req.provider },
           prompt: params.prompt as string | undefined,
+          entities: await coerceEntityList(params, this),
           negativePrompt: params.negative_prompt as string | undefined,
           strength: params.strength as number | undefined,
           durationSeconds: params.duration_seconds as number | undefined,

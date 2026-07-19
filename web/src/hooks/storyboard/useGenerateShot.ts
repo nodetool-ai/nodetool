@@ -23,11 +23,9 @@ import type { NodeData } from "../../stores/NodeData";
 import type { WorkflowAttributes } from "../../stores/ApiTypes";
 import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
-import {
-  entitiesForShot,
-  injectShotEntities
-} from "../../stores/storyboard/shotEntities";
+import { entitiesForShot } from "../../stores/storyboard/shotEntities";
 import { useEntities } from "../../serverState/useEntities";
+import { useImageModelsByProvider } from "../useModelsByProvider";
 import {
   subscribeShotJob,
   useStoryboardGenerationStore,
@@ -101,13 +99,10 @@ const outputEdge = (): Edge => ({
 
 /**
  * Compose an image prompt from a shot's action, camera framing, and board
- * style, plus the applicable board entities' consistency descriptors.
+ * style. Entity descriptors/reference images are NOT injected here — they ride
+ * along as an `entities` node property and expand at the provider layer.
  */
-const keyframePrompt = (
-  shot: Shot,
-  style: string,
-  entities: Entity[]
-): string => {
+const keyframePrompt = (shot: Shot, style: string): string => {
   const parts = [shot.action.trim()];
   if (shot.camera?.framing) {
     parts.push(`${shot.camera.framing} shot`);
@@ -115,16 +110,27 @@ const keyframePrompt = (
   if (style.trim().length > 0) {
     parts.push(style.trim());
   }
-  const base = parts.filter((p) => p.length > 0).join(", ");
-  return injectShotEntities(base, entitiesForShot(shot, entities));
+  return parts.filter((p) => p.length > 0).join(", ");
 };
 
-const clipPrompt = (shot: Shot, entities: Entity[]): string => {
-  const base = [shot.motion, shot.action]
+const clipPrompt = (shot: Shot): string =>
+  [shot.motion, shot.action]
     .filter((p) => !!p && p.trim().length > 0)
     .join(", ");
-  return injectShotEntities(base, entitiesForShot(shot, entities));
-};
+
+/**
+ * The wire shape of an entity attached to a generation node: name +
+ * descriptor + at most one reference image. The runtime resolves the ref to
+ * bytes and the provider layer injects descriptor text / appends the image.
+ */
+const wireEntity = (entity: Entity) => ({
+  name: entity.name,
+  descriptor: entity.descriptor,
+  reference_images: entity.reference_images?.slice(0, 1) ?? []
+});
+
+const hasReferenceImage = (entities: Entity[]): boolean =>
+  entities.some((e) => (e.reference_images?.length ?? 0) > 0);
 
 export interface UseGenerateShotResult {
   generateKeyframe: (boardId: string, shot: Shot) => Promise<void>;
@@ -140,6 +146,9 @@ export const useGenerateShot = (): UseGenerateShotResult => {
   const registerJob = useStoryboardGenerationStore((state) => state.registerJob);
   // Library entities; a board's `entityIds` picks which ones season prompts.
   const { data: allEntities } = useEntities();
+  // Model catalog, for checking whether the still model can take entity
+  // reference images (image_to_image support).
+  const { models: imageModels } = useImageModelsByProvider();
 
   const boardEntities = useCallback(
     (entityIds: string[] | undefined): Entity[] => {
@@ -206,13 +215,27 @@ export const useGenerateShot = (): UseGenerateShotResult => {
       const style = board?.style ?? "";
       const aspectRatio = board?.aspectRatio ?? "16:9";
       const workflowId = runnerIdForShot(shot.id);
+      const entities = entitiesForShot(shot, boardEntities(board?.entityIds));
+      // Entities with reference images route through Image To Image when the
+      // board's still model can edit — the provider layer appends the images
+      // as references. Otherwise stay on Text To Image (descriptors only).
+      const stillModel = board?.imageModel?.id
+        ? imageModels.find((m) => m.id === board.imageModel?.id)
+        : undefined;
+      const useEditModel =
+        hasReferenceImage(entities) &&
+        !!stillModel?.supported_tasks?.includes("image_to_image");
       const nodes: Node<NodeData>[] = [
         makeNode(
           GEN_NODE_ID,
-          "nodetool.image.TextToImage",
+          useEditModel
+            ? "nodetool.image.ImageToImage"
+            : "nodetool.image.TextToImage",
           0,
           {
-            prompt: keyframePrompt(shot, style, boardEntities(board?.entityIds)),
+            ...(useEditModel ? { image: [] } : {}),
+            prompt: keyframePrompt(shot, style),
+            entities: entities.map(wireEntity),
             aspect_ratio: aspectRatio,
             // Board-level still model; omitted = the node's default model.
             ...(board?.imageModel ? { model: board.imageModel } : {})
@@ -229,7 +252,7 @@ export const useGenerateShot = (): UseGenerateShotResult => {
       ];
       await startJob(boardId, shot, "keyframe", nodes, [outputEdge()], workflowId);
     },
-    [startJob, boardEntities]
+    [startJob, boardEntities, imageModels]
   );
 
   const generateClip = useCallback(
@@ -247,7 +270,11 @@ export const useGenerateShot = (): UseGenerateShotResult => {
           0,
           {
             image: shot.keyframe,
-            prompt: clipPrompt(shot, boardEntities(board?.entityIds)),
+            prompt: clipPrompt(shot),
+            entities: entitiesForShot(
+              shot,
+              boardEntities(board?.entityIds)
+            ).map(wireEntity),
             aspect_ratio: aspectRatio,
             duration: shot.duration_seconds,
             // Board-level clip model; omitted = the node's default model.

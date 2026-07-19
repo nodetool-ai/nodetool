@@ -140,6 +140,42 @@ describe("MinimaxProvider", () => {
     expect(body.response_format).toBe("base64");
   });
 
+  it("forwards every reference image as a subject_reference entry for image-to-image", async () => {
+    const base64Png = Buffer.from("abcd").toString("base64");
+    const mockFetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        data: { image_base64: [base64Png] },
+        base_resp: { status_code: 0 }
+      })
+    });
+
+    const provider = new MinimaxProvider(
+      { MINIMAX_API_KEY: "k" },
+      { client: {} as any, fetchFn: mockFetch as any }
+    );
+
+    const model: ImageModel = {
+      id: "image-01",
+      name: "image-01",
+      provider: "minimax"
+    };
+    await provider.imageToImage(
+      [new Uint8Array([1]), new Uint8Array([2]), new Uint8Array([3])],
+      { model, prompt: "restyle" }
+    );
+
+    const body = JSON.parse(
+      (mockFetch.mock.calls[0][1] as { body: string }).body
+    );
+    expect(body.subject_reference).toHaveLength(3);
+    expect(body.subject_reference).toEqual([
+      { type: "character", image_file: expect.stringContaining("data:image/png;base64,") },
+      { type: "character", image_file: expect.stringContaining("data:image/png;base64,") },
+      { type: "character", image_file: expect.stringContaining("data:image/png;base64,") }
+    ]);
+  });
+
   it("surfaces MiniMax base_resp errors", async () => {
     const mockFetch = vi.fn().mockResolvedValueOnce({
       ok: true,
