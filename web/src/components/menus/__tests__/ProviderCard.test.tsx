@@ -2,7 +2,8 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom";
-import { ThemeProvider, createTheme } from "@mui/material/styles";
+import { ThemeProvider } from "@mui/material/styles";
+import mockTheme from "../../../__mocks__/themeMock";
 
 import { ProviderCard } from "../APIKeysTab";
 import type { SecretResponse } from "../../../stores/ApiTypes";
@@ -56,7 +57,7 @@ const plainMeta = {
 
 const renderCard = (meta: typeof oauthMeta | typeof plainMeta, isConfigured = false) =>
   render(
-    <ThemeProvider theme={createTheme({ cssVariables: true })}>
+    <ThemeProvider theme={mockTheme}>
       <ProviderCard
         secret={secret(isConfigured)}
         meta={meta}
