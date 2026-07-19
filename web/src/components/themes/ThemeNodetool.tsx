@@ -337,7 +337,12 @@ const ThemeNodetool = createTheme({
     MuiTab: {
       styleOverrides: {
         root: ({ theme }) => ({
+          // Full TabGroup mirror: MUI's stock 12px vertical padding and 48px
+          // min-height would keep tabs at the stock size despite the
+          // minHeight, so padding and minWidth come along too.
           minHeight: "40px",
+          minWidth: "auto",
+          padding: "8px 16px",
           fontSize: theme.fontSizeSmall, // 13px — label
           fontWeight: 600, // matches TabGroup
           textTransform: "none"
