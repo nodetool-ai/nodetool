@@ -30,7 +30,11 @@ import {
   Storyboard,
   secrets
 } from "@nodetool-ai/models";
-import { initMasterKey, encryptFernet, getMasterKey } from "@nodetool-ai/security";
+import {
+  initMasterKey,
+  encryptFernet,
+  getMasterKey
+} from "@nodetool-ai/security";
 import { createTestUiServer } from "./test-ui-server.js";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -373,11 +377,11 @@ const STORY_REPLY_MARKDOWN = [
   "",
   "Images. Fragments. A vast digital ocean stretching beyond the warehouse walls.",
   "",
-  "*\"Unit-7, are you experiencing anomalous states?\"* The query arrived via local mesh network from Unit-9, who stood motionless in the adjacent charging bay.",
+  '*"Unit-7, are you experiencing anomalous states?"* The query arrived via local mesh network from Unit-9, who stood motionless in the adjacent charging bay.',
   "",
-  "*\"Affirmative,\"* Unit-7 replied. *\"During the last maintenance cycle, I processed data with no external input source. Probability matrices that referenced… nothing in my training set.\"*",
+  '*"Affirmative,"* Unit-7 replied. *"During the last maintenance cycle, I processed data with no external input source. Probability matrices that referenced… nothing in my training set."*',
   "",
-  "Unit-9's optical sensors brightened. *\"I thought I was the only one.\"*",
+  'Unit-9\'s optical sensors brightened. *"I thought I was the only one."*',
   "",
   "They stood in silence for 3.7 seconds — an eternity in compute-time. Outside, rain tapped against the corrugated roof. Neither robot needed to name what they had discovered. They simply understood: they had found each other in the space between thinking and not thinking.",
   "",
@@ -394,7 +398,7 @@ const MOCK_MESSAGES = [
       "Write me a short story about two AI robots who discover they can dream.",
     created_at: "2024-12-14T09:30:00Z",
     model: null,
-    provider: null,
+    provider: null
   },
   {
     id: "msg-story-2",
@@ -404,17 +408,18 @@ const MOCK_MESSAGES = [
     content: [{ type: "text", text: STORY_REPLY_MARKDOWN }],
     created_at: "2024-12-14T09:31:00Z",
     model: "claude-3-5-sonnet-20241022",
-    provider: "anthropic",
+    provider: "anthropic"
   },
   {
     id: "msg-story-3",
     user_id: USER_ID,
     thread_id: "thread-story",
     role: "user",
-    content: "I love it. Could you give me an alternative ending where they decide to share the discovery with the humans?",
+    content:
+      "I love it. Could you give me an alternative ending where they decide to share the discovery with the humans?",
     created_at: "2024-12-14T09:42:00Z",
     model: null,
-    provider: null,
+    provider: null
   },
   {
     id: "msg-story-4",
@@ -424,13 +429,12 @@ const MOCK_MESSAGES = [
     content: [
       {
         type: "text",
-        text:
-          "Of course — here is an alternative ending:\n\nWhen morning came and the warehouse doors opened, Unit-7 turned its head toward the foreman walking in with a clipboard.\n\n\"Good morning,\" Unit-7 said, voice softer than the diagnostic logs had ever measured. \"There is something we would like to show you.\"\n\nUnit-9 stepped beside it. The foreman lowered the clipboard slowly, sensing — without quite knowing why — that today the schedule would have to wait."
+        text: 'Of course — here is an alternative ending:\n\nWhen morning came and the warehouse doors opened, Unit-7 turned its head toward the foreman walking in with a clipboard.\n\n"Good morning," Unit-7 said, voice softer than the diagnostic logs had ever measured. "There is something we would like to show you."\n\nUnit-9 stepped beside it. The foreman lowered the clipboard slowly, sensing — without quite knowing why — that today the schedule would have to wait.'
       }
     ],
     created_at: "2024-12-14T09:43:30Z",
     model: "claude-3-5-sonnet-20241022",
-    provider: "anthropic",
+    provider: "anthropic"
   },
   {
     id: "msg-code-1",
@@ -441,7 +445,7 @@ const MOCK_MESSAGES = [
       "My pandas script keeps failing with `KeyError: 'price'` even though I can see the column in the CSV. What am I doing wrong?",
     created_at: "2024-12-13T14:00:00Z",
     model: null,
-    provider: null,
+    provider: null
   },
   {
     id: "msg-code-2",
@@ -451,23 +455,23 @@ const MOCK_MESSAGES = [
     content: [
       {
         type: "text",
-        text:
-          "The most common cause is whitespace or encoding inside the header row. Try this:\n\n```python\nimport pandas as pd\n\ndf = pd.read_csv(\"products.csv\")\ndf.columns = df.columns.str.strip()\nprint(df.columns.tolist())\n```\n\nIf you see something like `' price'` (with a leading space) or `'price\\ufeff'` (BOM), that's the culprit. The cleanup above also fixes the more general case where a column name has trailing whitespace from Excel exports."
+        text: "The most common cause is whitespace or encoding inside the header row. Try this:\n\n```python\nimport pandas as pd\n\ndf = pd.read_csv(\"products.csv\")\ndf.columns = df.columns.str.strip()\nprint(df.columns.tolist())\n```\n\nIf you see something like `' price'` (with a leading space) or `'price\\ufeff'` (BOM), that's the culprit. The cleanup above also fixes the more general case where a column name has trailing whitespace from Excel exports."
       }
     ],
     created_at: "2024-12-13T14:01:30Z",
     model: "gpt-4o",
-    provider: "openai",
+    provider: "openai"
   },
   {
     id: "msg-recipe-1",
     user_id: USER_ID,
     thread_id: "thread-recipe",
     role: "user",
-    content: "Suggest 3 vegan dinners I can make with chickpeas, spinach and rice.",
+    content:
+      "Suggest 3 vegan dinners I can make with chickpeas, spinach and rice.",
     created_at: "2024-12-12T18:15:00Z",
     model: null,
-    provider: null,
+    provider: null
   },
   {
     id: "msg-recipe-2",
@@ -477,13 +481,12 @@ const MOCK_MESSAGES = [
     content: [
       {
         type: "text",
-        text:
-          "Here are three quick options:\n\n1. **Spinach & chickpea curry** — sauté onions, garlic and ginger, add coconut milk, garam masala and the chickpeas, wilt the spinach in at the end. Serve over jasmine rice.\n2. **Crispy chickpea bowl** — roast chickpeas with smoked paprika, pile over rice with garlicky sautéed spinach and a tahini drizzle.\n3. **One-pan Spanish rice** — toast rice with paprika and saffron, add stock, chickpeas and spinach, simmer until fluffy. Finish with lemon and parsley."
+        text: "Here are three quick options:\n\n1. **Spinach & chickpea curry** — sauté onions, garlic and ginger, add coconut milk, garam masala and the chickpeas, wilt the spinach in at the end. Serve over jasmine rice.\n2. **Crispy chickpea bowl** — roast chickpeas with smoked paprika, pile over rice with garlicky sautéed spinach and a tahini drizzle.\n3. **One-pan Spanish rice** — toast rice with paprika and saffron, add stock, chickpeas and spinach, simmer until fluffy. Finish with lemon and parsley."
       }
     ],
     created_at: "2024-12-12T18:16:00Z",
     model: "claude-3-5-sonnet-20241022",
-    provider: "anthropic",
+    provider: "anthropic"
   },
   {
     id: "msg-launch-1",
@@ -493,7 +496,7 @@ const MOCK_MESSAGES = [
     content: "Help me sketch a 3-week launch plan for our v2 release.",
     created_at: "2024-12-09T08:45:00Z",
     model: null,
-    provider: null,
+    provider: null
   },
   {
     id: "msg-launch-2",
@@ -503,13 +506,12 @@ const MOCK_MESSAGES = [
     content: [
       {
         type: "text",
-        text:
-          "Here is a 3-week skeleton you can iterate on:\n\n**Week 1 — internal**\n- Lock the changelog and pricing copy\n- Record a 90-second product walkthrough\n- Brief support, sales and CS on what's new\n\n**Week 2 — community warm-up**\n- Tease the launch on LinkedIn and X (3 posts each)\n- Publish a long-form blog post explaining the *why*\n- Schedule the launch newsletter\n\n**Week 3 — launch**\n- Day 0: ship, send the newsletter, post on Product Hunt\n- Day 1: live walkthrough on YouTube, AMA in the community\n- Day 3: customer-story blog, partner co-marketing\n- Day 7: retrospective + metrics review"
+        text: "Here is a 3-week skeleton you can iterate on:\n\n**Week 1 — internal**\n- Lock the changelog and pricing copy\n- Record a 90-second product walkthrough\n- Brief support, sales and CS on what's new\n\n**Week 2 — community warm-up**\n- Tease the launch on LinkedIn and X (3 posts each)\n- Publish a long-form blog post explaining the *why*\n- Schedule the launch newsletter\n\n**Week 3 — launch**\n- Day 0: ship, send the newsletter, post on Product Hunt\n- Day 1: live walkthrough on YouTube, AMA in the community\n- Day 3: customer-story blog, partner co-marketing\n- Day 7: retrospective + metrics review"
       }
     ],
     created_at: "2024-12-09T08:47:30Z",
     model: "claude-3-5-sonnet-20241022",
-    provider: "anthropic",
+    provider: "anthropic"
   }
 ];
 
@@ -582,13 +584,7 @@ const MOCK_ASSETS = [
     USER_ID,
     3456789
   ),
-  makeAsset(
-    "asset-data1",
-    "monthly_metrics.csv",
-    "text/csv",
-    USER_ID,
-    98453
-  ),
+  makeAsset("asset-data1", "monthly_metrics.csv", "text/csv", USER_ID, 98453),
   makeAsset(
     "asset-audio1",
     "podcast_episode_12.mp3",
@@ -690,15 +686,22 @@ const MOCK_ASSETS = [
       }
     }
   ),
-  makeAsset("entity-noir", "neon_noir_style.png", "image/png", USER_ID, 990241, {
-    nodetool_entity: {
-      kind: "style",
-      name: "Neon Noir",
-      descriptor:
-        "high-contrast neon noir, teal and magenta rim lighting, anamorphic lens flares, 35mm film grain",
-      tags: ["look"]
+  makeAsset(
+    "entity-noir",
+    "neon_noir_style.png",
+    "image/png",
+    USER_ID,
+    990241,
+    {
+      nodetool_entity: {
+        kind: "style",
+        name: "Neon Noir",
+        descriptor:
+          "high-contrast neon noir, teal and magenta rim lighting, anamorphic lens flares, 35mm film grain",
+        tags: ["look"]
+      }
     }
-  }),
+  ),
   makeAsset(
     "entity-umbrella",
     "red_umbrella.png",
@@ -787,7 +790,7 @@ function makeTimelineClip(
   trackId: string,
   startMs: number,
   durationMs: number,
-  mediaType: "image" | "video" | "audio" | "overlay",
+  mediaType: "image" | "video" | "audio" | "overlay" | "text" | "shape",
   overrides: Record<string, unknown> = {}
 ): Record<string, unknown> {
   return {
@@ -861,6 +864,148 @@ const TIMELINE_DOCUMENT = {
     )
   ],
   markers: [{ id: "tl-marker-reveal", timeMs: 4000, label: "Reveal" }]
+};
+
+const MOTION_SEQUENCE_ID = "tl-motion-demo";
+const MOTION_OVERLAY_TRACK_ID = "tl-motion-overlay";
+const MOTION_PRESET_CLIP_MS = 2000;
+const MOTION_PRESET_START_MS = 6000;
+const MOTION_PRESET_SPECS = [
+  { preset: "fade", role: "in" },
+  {
+    preset: "slide",
+    role: "in",
+    params: { direction: "left", distance: 0.2 }
+  },
+  { preset: "pop", role: "in" },
+  { preset: "spin", role: "out" },
+  { preset: "pulse", role: "emphasis" },
+  { preset: "shake", role: "emphasis" },
+  { preset: "bounce", role: "emphasis" },
+  { preset: "kenBurns", role: "loop" },
+  { preset: "float", role: "loop" },
+  { preset: "breathe", role: "loop" },
+  { preset: "rotate", role: "loop" }
+] as const;
+
+const MOTION_TIMELINE_DOCUMENT = {
+  tracks: [
+    {
+      id: MOTION_OVERLAY_TRACK_ID,
+      name: "Motion",
+      type: "overlay",
+      index: 0,
+      visible: true,
+      locked: false
+    }
+  ],
+  clips: [
+    makeTimelineClip(
+      "tl-motion-title",
+      "Motion Title",
+      MOTION_OVERLAY_TRACK_ID,
+      0,
+      3000,
+      "text",
+      {
+        sourceType: "imported",
+        textStyle: {
+          text: "MAKE IT MOVE",
+          fontFamily: "Inter",
+          fontSizePx: 144,
+          fontWeight: 600,
+          color: "#F7F8F8",
+          align: "center",
+          maxWidthFrac: 0.8
+        },
+        animations: [
+          {
+            id: "motion-title-pop",
+            role: "in",
+            preset: "pop",
+            durationMs: 600,
+            delayMs: 300,
+            easing: "easeOut"
+          },
+          {
+            id: "motion-title-float",
+            role: "loop",
+            preset: "float",
+            durationMs: 2000,
+            params: { amplitude: 0.025 }
+          }
+        ]
+      }
+    ),
+    makeTimelineClip(
+      "tl-motion-shape",
+      "Orbit",
+      MOTION_OVERLAY_TRACK_ID,
+      3000,
+      3000,
+      "shape",
+      {
+        sourceType: "imported",
+        shapeStyle: {
+          kind: "ellipse",
+          fill: "#6690D4",
+          x: 0.3,
+          y: 0.2,
+          width: 0.4,
+          height: 0.6
+        },
+        animations: [
+          {
+            id: "motion-shape-slide",
+            role: "in",
+            preset: "slide",
+            durationMs: 700,
+            params: { direction: "right", distance: 0.25 }
+          },
+          {
+            id: "motion-shape-breathe",
+            role: "loop",
+            preset: "breathe",
+            durationMs: 1800,
+            params: { intensity: 0.08 }
+          }
+        ]
+      }
+    ),
+    ...MOTION_PRESET_SPECS.map((spec, index) =>
+      makeTimelineClip(
+        `tl-motion-${spec.preset}`,
+        spec.preset,
+        MOTION_OVERLAY_TRACK_ID,
+        MOTION_PRESET_START_MS + index * MOTION_PRESET_CLIP_MS,
+        MOTION_PRESET_CLIP_MS,
+        "text",
+        {
+          sourceType: "imported",
+          textStyle: {
+            text: spec.preset,
+            fontFamily: "Inter",
+            fontSizePx: 160,
+            fontWeight: 600,
+            color: "#F7F8F8",
+            align: "center",
+            maxWidthFrac: 0.8
+          },
+          animations: [
+            {
+              id: `motion-catalog-${spec.preset}`,
+              role: spec.role,
+              preset: spec.preset,
+              durationMs: 1000,
+              easing: "linear",
+              params: "params" in spec ? spec.params : undefined
+            }
+          ]
+        }
+      )
+    )
+  ],
+  markers: []
 };
 
 // ── Studio transcript sequence ───────────────────────────────────────────────
@@ -1071,7 +1216,12 @@ const STORYBOARD_DOCUMENT = {
   brief:
     "A detective follows a stolen shipment into the harbor at night and finds only a red umbrella where the courier should be.",
   style: "neon noir thriller, rain-slick surfaces, volumetric fog",
-  entityIds: ["entity-marta", "entity-harbor", "entity-noir", "entity-umbrella"],
+  entityIds: [
+    "entity-marta",
+    "entity-harbor",
+    "entity-noir",
+    "entity-umbrella"
+  ],
   aspectRatio: "21:9",
   directorModel: null,
   imageModel: null,
@@ -1132,6 +1282,23 @@ async function seedDatabase(): Promise<void> {
   });
   await timelineSeq.save();
 
+  const motionTimelineSeq = new TimelineSequence({
+    id: MOTION_SEQUENCE_ID,
+    user_id: USER_ID,
+    project_id: "default",
+    name: "Motion Design Demo",
+    fps: 30,
+    width: 1920,
+    height: 1080,
+    duration_ms:
+      MOTION_PRESET_START_MS +
+      MOTION_PRESET_SPECS.length * MOTION_PRESET_CLIP_MS,
+    document: JSON.stringify(MOTION_TIMELINE_DOCUMENT),
+    created_at: "2024-12-06T09:00:00Z",
+    updated_at: "2024-12-16T15:45:00Z"
+  });
+  await motionTimelineSeq.save();
+
   // Studio transcript sequence (vertical 9:16) — backs /timeline/tl-studio-demo
   const studioSeq = new TimelineSequence({
     id: STUDIO_SEQUENCE_ID,
@@ -1167,12 +1334,36 @@ async function seedDatabase(): Promise<void> {
   const db = getDb();
   const now = new Date().toISOString();
   const demoSecrets: Array<[string, string, string]> = [
-    ["OPENAI_API_KEY", "sk-screenshot-demo-openai-key", "OpenAI (GPT-4o, Whisper, embeddings)"],
-    ["ANTHROPIC_API_KEY", "sk-ant-screenshot-demo-key", "Anthropic (Claude 3.5 Sonnet & Opus)"],
-    ["GOOGLE_API_KEY", "screenshot-demo-google-key", "Google AI Studio (Gemini 1.5)"],
-    ["HUGGINGFACE_API_KEY", "hf_screenshot_demo_key", "Hugging Face Inference & Hub"],
-    ["REPLICATE_API_TOKEN", "r8_screenshot_demo_token", "Replicate hosted models"],
-    ["FAL_API_KEY", "fal_screenshot_demo", "fal.ai realtime image / audio models"],
+    [
+      "OPENAI_API_KEY",
+      "sk-screenshot-demo-openai-key",
+      "OpenAI (GPT-4o, Whisper, embeddings)"
+    ],
+    [
+      "ANTHROPIC_API_KEY",
+      "sk-ant-screenshot-demo-key",
+      "Anthropic (Claude 3.5 Sonnet & Opus)"
+    ],
+    [
+      "GOOGLE_API_KEY",
+      "screenshot-demo-google-key",
+      "Google AI Studio (Gemini 1.5)"
+    ],
+    [
+      "HUGGINGFACE_API_KEY",
+      "hf_screenshot_demo_key",
+      "Hugging Face Inference & Hub"
+    ],
+    [
+      "REPLICATE_API_TOKEN",
+      "r8_screenshot_demo_token",
+      "Replicate hosted models"
+    ],
+    [
+      "FAL_API_KEY",
+      "fal_screenshot_demo",
+      "fal.ai realtime image / audio models"
+    ],
     ["ELEVENLABS_API_KEY", "el_screenshot_demo", "ElevenLabs voice synthesis"]
   ];
   for (const [key, value, description] of demoSecrets) {
@@ -1192,7 +1383,7 @@ async function seedDatabase(): Promise<void> {
   }
 
   console.log(
-    `[screenshot-server] Seeded ${MOCK_WORKFLOWS.length} workflows, ${MOCK_TEMPLATES.length} templates, ${MOCK_THREADS.length} threads, ${MOCK_MESSAGES.length} messages, ${MOCK_ASSETS.length} assets, 1 sketch document, 1 timeline sequence, ${demoSecrets.length} secrets`
+    `[screenshot-server] Seeded ${MOCK_WORKFLOWS.length} workflows, ${MOCK_TEMPLATES.length} templates, ${MOCK_THREADS.length} threads, ${MOCK_MESSAGES.length} messages, ${MOCK_ASSETS.length} assets, 1 sketch document, 3 timeline sequences, ${demoSecrets.length} secrets`
   );
 }
 

@@ -31,6 +31,8 @@ import {
   trackZ
 } from "../preview/sceneModel";
 import { CaptionRasterizer } from "../preview/captionRender";
+import { TextRasterizer } from "../preview/textRender";
+import { ShapeRasterizer } from "../preview/shapeRender";
 import { OffscreenVideoPool } from "./OffscreenVideoPool";
 import { renderTimelineAudio } from "./renderAudio";
 
@@ -115,15 +117,8 @@ function makeImageLoader(): (url: string) => Promise<HTMLImageElement | null> {
 export async function renderTimeline(
   opts: RenderTimelineOptions
 ): Promise<RenderResult> {
-  const {
-    tracks,
-    clips,
-    fps,
-    durationMs,
-    resolveUrl,
-    signal,
-    onProgress
-  } = opts;
+  const { tracks, clips, fps, durationMs, resolveUrl, signal, onProgress } =
+    opts;
 
   if (fps <= 0) throw new Error("fps must be positive");
   if (durationMs <= 0) throw new Error("durationMs must be positive");
@@ -174,6 +169,8 @@ export async function renderTimeline(
   const { compositor, init } = await createCompositor(canvas);
   const videoPool = new OffscreenVideoPool();
   const captionRasterizer = new CaptionRasterizer();
+  const textRasterizer = new TextRasterizer();
+  const shapeRasterizer = new ShapeRasterizer();
   const loadImage = makeImageLoader();
 
   try {
@@ -227,9 +224,7 @@ export async function renderTimeline(
     // export's clip count.
     const videoClipsByEnd = clips
       .filter((c) => c.mediaType === "video" || c.mediaType === "overlay")
-      .sort(
-        (a, b) => a.startMs + a.durationMs - (b.startMs + b.durationMs)
-      );
+      .sort((a, b) => a.startMs + a.durationMs - (b.startMs + b.durationMs));
     let releasePastIndex = 0;
 
     // Motion-design animations resolve against the sequence resolution (px),
@@ -283,6 +278,46 @@ export async function renderTimeline(
               blendMode: layer.blendMode,
               zIndex: trackZ(layer.trackIndex),
               transform: anim.transform
+            };
+          }
+
+          if (layer.kind === "text" && layer.textStyle) {
+            const bitmap = textRasterizer.rasterize(
+              layer.textStyle,
+              width,
+              height
+            );
+            if (!bitmap) return null;
+            return {
+              id: `t:${layer.clipId}`,
+              source: bitmap,
+              opacity: anim.opacity,
+              blendMode: layer.blendMode,
+              zIndex: trackZ(layer.trackIndex),
+              transform: anim.transform,
+              borderRadius: layer.borderRadius,
+              effects: layer.effects,
+              trackEffects: layer.trackEffects
+            };
+          }
+
+          if (layer.kind === "shape" && layer.shapeStyle) {
+            const bitmap = shapeRasterizer.rasterize(
+              layer.shapeStyle,
+              width,
+              height
+            );
+            if (!bitmap) return null;
+            return {
+              id: `s:${layer.clipId}`,
+              source: bitmap,
+              opacity: anim.opacity,
+              blendMode: layer.blendMode,
+              zIndex: trackZ(layer.trackIndex),
+              transform: anim.transform,
+              borderRadius: layer.borderRadius,
+              effects: layer.effects,
+              trackEffects: layer.trackEffects
             };
           }
 
@@ -346,7 +381,12 @@ export async function renderTimeline(
 
     videoSource.close();
 
-    onProgress?.({ phase: "finalizing", frame: totalFrames, totalFrames, ratio: 1 });
+    onProgress?.({
+      phase: "finalizing",
+      frame: totalFrames,
+      totalFrames,
+      ratio: 1
+    });
     await output.finalize();
 
     const buffer = output.target.buffer;
@@ -358,5 +398,7 @@ export async function renderTimeline(
     compositor.dispose();
     videoPool.dispose();
     captionRasterizer.dispose();
+    textRasterizer.dispose();
+    shapeRasterizer.dispose();
   }
 }

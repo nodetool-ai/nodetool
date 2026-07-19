@@ -46,7 +46,7 @@ export const trackZ = (uiIndex: number): number => LAYER_Z_BASE - uiIndex;
 export const PREVIEW_OVERLAY_Z = {
   magicWash: 9998,
   badge: 9999,
-  gizmo: 10000,
+  gizmo: 10000
 } as const;
 
 /**
@@ -145,9 +145,7 @@ export function effectiveAssetId(clip: TimelineClip): string | undefined {
   }
 }
 
-function resolveBlendMode(
-  b: TimelineClip["blendMode"]
-): CompositorBlendMode {
+function resolveBlendMode(b: TimelineClip["blendMode"]): CompositorBlendMode {
   return b ?? "normal";
 }
 
@@ -205,7 +203,7 @@ export function resolveCaptionAtTime(
 
 /** A visual layer active at a point in time, in bottom-to-top composite order. */
 export interface ActiveLayer {
-  kind: "video" | "image" | "caption";
+  kind: "video" | "image" | "text" | "shape" | "caption";
   clip: TimelineClip;
   clipId: string;
   trackIndex: number;
@@ -220,6 +218,10 @@ export interface ActiveLayer {
   trackEffects?: TrackEffect[];
   /** Present only when `kind === "caption"`: the words to draw this frame. */
   caption?: ResolvedCaption;
+  /** Present only when `kind === "text"`: authored text to rasterize. */
+  textStyle?: TimelineClip["textStyle"];
+  /** Present only when `kind === "shape"`: authored geometry to rasterize. */
+  shapeStyle?: TimelineClip["shapeStyle"];
 }
 
 export interface ComputeActiveLayersOptions {
@@ -353,6 +355,44 @@ export function computeActiveLayersWithHorizon(
       // Only visual tracks draw picture; audio clips never do.
       if (!isVisual) continue;
       if (clip.mediaType === "audio") continue;
+
+      if (clip.mediaType === "text") {
+        if (!clip.textStyle) continue;
+        mediaLayers.push({
+          kind: "text",
+          clip,
+          clipId: clip.id,
+          trackIndex: track.index,
+          blendMode: resolveBlendMode(clip.blendMode),
+          opacity,
+          assetId: undefined,
+          transform: clip.transform,
+          borderRadius: clip.borderRadius,
+          effects: clip.effects,
+          trackEffects: track.effects,
+          textStyle: clip.textStyle
+        });
+        continue;
+      }
+
+      if (clip.mediaType === "shape") {
+        if (!clip.shapeStyle) continue;
+        mediaLayers.push({
+          kind: "shape",
+          clip,
+          clipId: clip.id,
+          trackIndex: track.index,
+          blendMode: resolveBlendMode(clip.blendMode),
+          opacity,
+          assetId: undefined,
+          transform: clip.transform,
+          borderRadius: clip.borderRadius,
+          effects: clip.effects,
+          trackEffects: track.effects,
+          shapeStyle: clip.shapeStyle
+        });
+        continue;
+      }
 
       const assetId = effectiveAssetId(clip);
       // A caption-only clip (no drawable asset) contributes just its caption.
@@ -507,7 +547,10 @@ export function resolveAnimatedLayerProps(
 
   const base = layer.transform ?? IDENTITY_TRANSFORM;
   const transform: ClipTransform = {
-    position: { x: base.position.x + s.offsetX, y: base.position.y + s.offsetY },
+    position: {
+      x: base.position.x + s.offsetX,
+      y: base.position.y + s.offsetY
+    },
     scale: { x: base.scale.x * s.scale, y: base.scale.y * s.scale },
     rotation: base.rotation + s.rotation,
     anchor: base.anchor

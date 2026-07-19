@@ -21,7 +21,11 @@ import {
   Toast,
   SPACING,
   getSpacingPx,
-  Z_INDEX
+  Z_INDEX,
+  TextInput,
+  NodeSelect,
+  NodeMenuItem,
+  type SelectChangeEvent
 } from "../../ui_primitives";
 import { trackTypeAccent } from "../Tracks/trackVisuals";
 import {
@@ -41,6 +45,7 @@ import {
 } from "./InspectorPrimitives.helpers";
 import { ClipActions } from "./ClipActions";
 import { ClipAdjustments } from "./ClipAdjustments";
+import { ClipAnimations } from "./ClipAnimations";
 import { GeneratedClipPanel } from "./GeneratedClipPanel";
 import { DirectGenClipPanel } from "./DirectGenClipPanel";
 
@@ -104,11 +109,13 @@ export const TimelineInspector: React.FC = memo(() => {
   // Persisted fold state — closed by default, remembered across selections
   // and reloads via localStorage.
   const [mediaOpen, setMediaOpen] = usePersistedFold("media");
+  const [textOpen, setTextOpen] = usePersistedFold("text");
   const [timingOpen, setTimingOpen] = usePersistedFold("timing");
 
   const clip = useTimelineStore((s) =>
     clipId ? (findClipById(s.clips, clipId) ?? null) : null
   );
+  const textStyle = clip?.mediaType === "text" ? clip.textStyle : undefined;
   const track = useTimelineStore((s) =>
     clip ? s.tracks.find((t) => t.id === clip.trackId) : null
   );
@@ -333,9 +340,7 @@ export const TimelineInspector: React.FC = memo(() => {
               value={(clip.speedMultiplier ?? 1).toFixed(2)}
               unit="×"
               scrub={{ step: 0.01, min: 0.1, max: 8 }}
-              onCommit={(raw) =>
-                onPatchNumber("speedMultiplier", raw, 0.1, 8)
-              }
+              onCommit={(raw) => onPatchNumber("speedMultiplier", raw, 0.1, 8)}
               ariaLabel="Playback speed"
             />
           </InspectorRow>
@@ -348,6 +353,97 @@ export const TimelineInspector: React.FC = memo(() => {
       </CollapsibleSection>
 
       <ClipAdjustments clip={clip} />
+
+      <ClipAnimations clip={clip} />
+
+      {textStyle && (
+        <>
+          <InspectorDivider />
+          <CollapsibleSection
+            title={
+              <InspectorSectionTitle
+                title="Text"
+                icon={<PermMediaOutlinedIcon />}
+              />
+            }
+            open={textOpen}
+            onToggle={setTextOpen}
+            unmountOnExit
+          >
+            <FlexColumn css={sectionContentStyles(theme)}>
+              <TextInput
+                value={textStyle.text}
+                multiline
+                minRows={3}
+                fullWidth
+                onChange={(event) =>
+                  patchClip(clip.id, {
+                    textStyle: { ...textStyle, text: event.target.value }
+                  })
+                }
+                inputProps={{ "aria-label": "Text content" }}
+              />
+              <InspectorRow label="Font size">
+                <InspectorPillInput
+                  value={String(textStyle.fontSizePx)}
+                  unit="px"
+                  onCommit={(raw) => {
+                    const fontSizePx = Number(raw);
+                    if (!Number.isFinite(fontSizePx) || fontSizePx < 1) return;
+                    patchClip(clip.id, {
+                      textStyle: { ...textStyle, fontSizePx }
+                    });
+                  }}
+                  ariaLabel="Text font size"
+                />
+              </InspectorRow>
+              <InspectorRow label="Weight">
+                <InspectorPillInput
+                  value={String(textStyle.fontWeight ?? 400)}
+                  onCommit={(raw) => {
+                    const fontWeight = Number(raw);
+                    if (!Number.isFinite(fontWeight) || fontWeight < 1) return;
+                    patchClip(clip.id, {
+                      textStyle: { ...textStyle, fontWeight }
+                    });
+                  }}
+                  ariaLabel="Text font weight"
+                />
+              </InspectorRow>
+              <InspectorRow label="Color">
+                <TextInput
+                  type="color"
+                  value={textStyle.color}
+                  onChange={(event) =>
+                    patchClip(clip.id, {
+                      textStyle: { ...textStyle, color: event.target.value }
+                    })
+                  }
+                  inputProps={{ "aria-label": "Text color" }}
+                />
+              </InspectorRow>
+              <InspectorRow label="Align">
+                <NodeSelect
+                  value={textStyle.align ?? "center"}
+                  onChange={(event: SelectChangeEvent<unknown>) =>
+                    patchClip(clip.id, {
+                      textStyle: {
+                        ...textStyle,
+                        align: event.target.value as "left" | "center" | "right"
+                      }
+                    })
+                  }
+                  inputProps={{ "aria-label": "Text alignment" }}
+                >
+                  <NodeMenuItem value="left">Left</NodeMenuItem>
+                  <NodeMenuItem value="center">Center</NodeMenuItem>
+                  <NodeMenuItem value="right">Right</NodeMenuItem>
+                </NodeSelect>
+              </InspectorRow>
+            </FlexColumn>
+          </CollapsibleSection>
+        </>
+      )}
 
       <Toast
         open={toast !== null}

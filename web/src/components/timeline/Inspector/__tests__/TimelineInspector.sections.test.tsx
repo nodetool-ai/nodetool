@@ -5,7 +5,7 @@
  */
 
 import React from "react";
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { MemoryRouter } from "react-router-dom";
@@ -39,6 +39,46 @@ function seedImportedClip() {
   act(() => {
     useTimelineStore.setState({ tracks: [track], clips: [clip] });
     useTimelineUIStore.getState().setSelection([clip.id]);
+  });
+  return clip;
+}
+
+function seedTextClip() {
+  const track = makeTrack({ type: "overlay", name: "Titles" });
+  const clip = makeClip({
+    trackId: track.id,
+    name: "Title",
+    sourceType: "imported",
+    mediaType: "text",
+    startMs: 0,
+    durationMs: 2000,
+    textStyle: {
+      text: "Original title",
+      fontSizePx: 72,
+      color: "#ffffff",
+      align: "center"
+    }
+  });
+  act(() => {
+    useTimelineStore.setState({ tracks: [track], clips: [clip] });
+    useTimelineUIStore.getState().setSelection([clip.id]);
+  });
+  return clip;
+}
+
+function seedAnimatedClip() {
+  const clip = seedImportedClip();
+  act(() => {
+    useTimelineStore.getState().setClipAnimations(clip.id, [
+      {
+        id: "pop-in",
+        role: "in",
+        preset: "pop",
+        durationMs: 500,
+        enabled: true,
+        params: { overshoot: 1.08 }
+      }
+    ]);
   });
   return clip;
 }
@@ -100,5 +140,73 @@ describe("TimelineInspector section headers", () => {
       .getState()
       .clips.find((c) => c.id === clip.id);
     expect(updated?.transform).toBeUndefined();
+  });
+
+  it("edits authored text without opening the media fold", async () => {
+    const user = userEvent.setup();
+    renderInspector();
+    const clip = seedTextClip();
+
+    const mediaFold = screen.getByRole("button", { name: /^media$/i });
+    const textFold = screen.getByRole("button", { name: /^text$/i });
+    expect(mediaFold).toHaveAttribute("aria-expanded", "false");
+    expect(textFold).toHaveAttribute("aria-expanded", "false");
+
+    await user.click(textFold);
+    const input = screen.getByRole("textbox", { name: /text content/i });
+    await user.clear(input);
+    await user.type(input, "Updated title");
+
+    expect(mediaFold).toHaveAttribute("aria-expanded", "false");
+    expect(
+      useTimelineStore.getState().clips.find((item) => item.id === clip.id)
+        ?.textStyle?.text
+    ).toBe("Updated title");
+  });
+
+  it("adds an in animation with the selected preset defaults", async () => {
+    const user = userEvent.setup();
+    renderInspector();
+    const clip = seedImportedClip();
+
+    await user.click(screen.getByRole("button", { name: /^animate$/i }));
+    await user.click(
+      screen.getByRole("combobox", { name: /new animation preset/i })
+    );
+    await user.click(screen.getByRole("option", { name: "pop" }));
+    await user.click(screen.getByRole("button", { name: /^add$/i }));
+
+    expect(
+      useTimelineStore.getState().clips.find((item) => item.id === clip.id)
+        ?.animations
+    ).toEqual([
+      expect.objectContaining({
+        role: "in",
+        preset: "pop",
+        durationMs: 500,
+        enabled: true,
+        params: { overshoot: 1.08 }
+      })
+    ]);
+  });
+
+  it("patches preset parameters from the animation slider", async () => {
+    const user = userEvent.setup();
+    renderInspector();
+    const clip = seedAnimatedClip();
+
+    await user.click(screen.getByRole("button", { name: /^animate$/i }));
+    const slider = screen.getByRole("slider", { name: "overshoot" });
+    act(() => slider.focus());
+    await user.keyboard("{ArrowRight}");
+
+    await waitFor(() => {
+      const overshoot = useTimelineStore
+        .getState()
+        .clips.find((item) => item.id === clip.id)?.animations?.[0].params
+        ?.overshoot;
+      expect(typeof overshoot).toBe("number");
+      expect(overshoot as number).toBeGreaterThan(1.08);
+    });
   });
 });

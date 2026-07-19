@@ -14,7 +14,12 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useShallow } from "zustand/react/shallow";
 
-import type { TimelineClip, TrackEffect } from "@nodetool-ai/timeline";
+import type {
+  ClipShapeStyle,
+  ClipTextStyle,
+  TimelineClip,
+  TrackEffect
+} from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
@@ -51,6 +56,8 @@ import {
 } from "./sceneModel";
 import type { ActiveLayer, ResolvedCaption } from "./sceneModel";
 import { CaptionRasterizer } from "./captionRender";
+import { TextRasterizer } from "./textRender";
+import { ShapeRasterizer } from "./shapeRender";
 
 interface PlaceholderLayer {
   clipId: string;
@@ -179,6 +186,22 @@ interface ActiveCaptionLayer {
   caption: ResolvedCaption;
 }
 
+interface ActiveTextLayer {
+  clipId: string;
+  trackIndex: number;
+  blendMode: CompositorBlendMode;
+  opacity: number;
+  transform?: TimelineClip["transform"];
+  borderRadius?: number;
+  effects?: TimelineClip["effects"];
+  trackEffects?: TrackEffect[];
+  textStyle: ClipTextStyle;
+}
+
+interface ActiveShapeLayer extends Omit<ActiveTextLayer, "textStyle"> {
+  shapeStyle: ClipShapeStyle;
+}
+
 function isClipUpcoming(clip: TimelineClip, currentTimeMs: number): boolean {
   return (
     clip.startMs > currentTimeMs &&
@@ -281,7 +304,11 @@ export const PreviewCompositor: React.FC = memo(() => {
   const frameRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const compositorRef = useRef<TimelineCompositor | null>(null);
-  const captionRasterizerRef = useRef<CaptionRasterizer>(new CaptionRasterizer());
+  const captionRasterizerRef = useRef<CaptionRasterizer>(
+    new CaptionRasterizer()
+  );
+  const textRasterizerRef = useRef<TextRasterizer>(new TextRasterizer());
+  const shapeRasterizerRef = useRef<ShapeRasterizer>(new ShapeRasterizer());
   const [gpuReady, setGpuReady] = useState(false);
   const [gpuFailed, setGpuFailed] = useState(false);
 
@@ -353,11 +380,15 @@ export const PreviewCompositor: React.FC = memo(() => {
       });
 
     const rasterizer = captionRasterizerRef.current;
+    const textRasterizer = textRasterizerRef.current;
+    const shapeRasterizer = shapeRasterizerRef.current;
     return () => {
       cancelled = true;
       compositorRef.current?.dispose();
       compositorRef.current = null;
       rasterizer.dispose();
+      textRasterizer.dispose();
+      shapeRasterizer.dispose();
       setGpuReady(false);
     };
   }, []);
@@ -418,10 +449,7 @@ export const PreviewCompositor: React.FC = memo(() => {
     setSceneTimeMs(reactiveTimeMs);
   }, [reactiveTimeMs, isPlaying]);
 
-  const clipById = useMemo(
-    () => new Map(clips.map((c) => [c.id, c])),
-    [clips]
-  );
+  const clipById = useMemo(() => new Map(clips.map((c) => [c.id, c])), [clips]);
 
   // Memoized preset→curve compilation for motion-design animations, so the
   // rAF loop only samples (never compiles). Invalidated internally when a
@@ -429,7 +457,10 @@ export const PreviewCompositor: React.FC = memo(() => {
   const animCacheRef = useRef(createAnimationCompileCache());
   // Latest sequence resolution, read by the rAF loop (whose closure only
   // rebinds on [gpuReady, isPlaying]) to resolve animation offsets in px.
-  const canvasSizeRef = useRef({ width: sequenceWidth, height: sequenceHeight });
+  const canvasSizeRef = useRef({
+    width: sequenceWidth,
+    height: sequenceHeight
+  });
   canvasSizeRef.current = { width: sequenceWidth, height: sequenceHeight };
   // Active layers from the last scene computation, valid until the next
   // clip/word boundary — used per tick to test for in-flight animation.
@@ -471,11 +502,15 @@ export const PreviewCompositor: React.FC = memo(() => {
     activeVideoSlots,
     activeImageLayers,
     activeCaptionLayers,
+    activeTextLayers,
+    activeShapeLayers,
     placeholderLayers
   } = useMemo(() => {
     const videoSlots: ActiveVideoSlot[] = [];
     const imageLayers: ActiveImageLayer[] = [];
     const captionLayers: ActiveCaptionLayer[] = [];
+    const textLayers: ActiveTextLayer[] = [];
+    const shapeLayers: ActiveShapeLayer[] = [];
     const placeholders: PlaceholderLayer[] = [];
 
     // Same scene description the offline renderer consumes — so the preview
@@ -493,6 +528,36 @@ export const PreviewCompositor: React.FC = memo(() => {
           opacity: layer.opacity,
           transform: layer.transform,
           caption: layer.caption
+        });
+        continue;
+      }
+
+      if (layer.kind === "text" && layer.textStyle) {
+        textLayers.push({
+          clipId: layer.clipId,
+          trackIndex: layer.trackIndex,
+          blendMode: layer.blendMode,
+          opacity: layer.opacity,
+          transform: layer.transform,
+          borderRadius: layer.borderRadius,
+          effects: layer.effects,
+          trackEffects: layer.trackEffects,
+          textStyle: layer.textStyle
+        });
+        continue;
+      }
+
+      if (layer.kind === "shape" && layer.shapeStyle) {
+        shapeLayers.push({
+          clipId: layer.clipId,
+          trackIndex: layer.trackIndex,
+          blendMode: layer.blendMode,
+          opacity: layer.opacity,
+          transform: layer.transform,
+          borderRadius: layer.borderRadius,
+          effects: layer.effects,
+          trackEffects: layer.trackEffects,
+          shapeStyle: layer.shapeStyle
         });
         continue;
       }
@@ -540,6 +605,8 @@ export const PreviewCompositor: React.FC = memo(() => {
       activeVideoSlots: videoSlots,
       activeImageLayers: imageLayers,
       activeCaptionLayers: captionLayers,
+      activeTextLayers: textLayers,
+      activeShapeLayers: shapeLayers,
       placeholderLayers: placeholders
     };
   }, [tracks, clips, currentTimeMs, resolveUrl, urlCacheVersion]);
@@ -875,12 +942,72 @@ export const PreviewCompositor: React.FC = memo(() => {
         });
       }
 
+      for (const layer of activeTextLayers) {
+        const bitmap = textRasterizerRef.current.rasterize(
+          layer.textStyle,
+          sequenceWidth,
+          sequenceHeight
+        );
+        if (!bitmap) continue;
+        const clip = clipById.get(layer.clipId);
+        const anim = clip
+          ? resolveAnimatedLayerProps(
+              { clip, transform: layer.transform, opacity: layer.opacity },
+              atMs,
+              canvas,
+              cache
+            )
+          : { transform: layer.transform, opacity: layer.opacity };
+        out.push({
+          id: `t:${layer.clipId}`,
+          source: bitmap,
+          opacity: anim.opacity,
+          blendMode: layer.blendMode,
+          zIndex: trackZ(layer.trackIndex),
+          transform: anim.transform,
+          borderRadius: layer.borderRadius,
+          effects: layer.effects,
+          trackEffects: layer.trackEffects
+        });
+      }
+
+      for (const layer of activeShapeLayers) {
+        const bitmap = shapeRasterizerRef.current.rasterize(
+          layer.shapeStyle,
+          sequenceWidth,
+          sequenceHeight
+        );
+        if (!bitmap) continue;
+        const clip = clipById.get(layer.clipId);
+        const anim = clip
+          ? resolveAnimatedLayerProps(
+              { clip, transform: layer.transform, opacity: layer.opacity },
+              atMs,
+              canvas,
+              cache
+            )
+          : { transform: layer.transform, opacity: layer.opacity };
+        out.push({
+          id: `s:${layer.clipId}`,
+          source: bitmap,
+          opacity: anim.opacity,
+          blendMode: layer.blendMode,
+          zIndex: trackZ(layer.trackIndex),
+          transform: anim.transform,
+          borderRadius: layer.borderRadius,
+          effects: layer.effects,
+          trackEffects: layer.trackEffects
+        });
+      }
+
       return out;
     },
     [
       activeVideoSlots,
       activeImageLayers,
       activeCaptionLayers,
+      activeTextLayers,
+      activeShapeLayers,
       clipById,
       ensureImageElement,
       sequenceWidth,
@@ -1055,6 +1182,9 @@ export const PreviewCompositor: React.FC = memo(() => {
   const hasAnything =
     activeVideoSlots.length > 0 ||
     activeImageLayers.length > 0 ||
+    activeCaptionLayers.length > 0 ||
+    activeTextLayers.length > 0 ||
+    activeShapeLayers.length > 0 ||
     placeholderLayers.length > 0;
 
   const generatingClips = useMemo(
@@ -1079,7 +1209,11 @@ export const PreviewCompositor: React.FC = memo(() => {
   );
 
   return (
-    <div ref={containerRef} css={compositorStyles} data-testid="preview-compositor">
+    <div
+      ref={containerRef}
+      css={compositorStyles}
+      data-testid="preview-compositor"
+    >
       <div ref={frameRef} css={frameStyles}>
         <canvas ref={canvasRef} css={canvasStyles} aria-hidden />
 
@@ -1169,7 +1303,10 @@ export const PreviewCompositor: React.FC = memo(() => {
         )}
 
         {!hasAnything && !gpuFailed && (
-          <div css={placeholderLayerStyles(theme)} style={{ zIndex: Z_INDEX.raised }}>
+          <div
+            css={placeholderLayerStyles(theme)}
+            style={{ zIndex: Z_INDEX.raised }}
+          >
             <span style={{ fontSize: 32, opacity: 0.15 }}>▶</span>
             <span style={{ fontSize: theme.fontSizeSmall, opacity: 0.25 }}>
               No media at {Math.round(currentTimeMs / 1000)}s

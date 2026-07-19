@@ -36,7 +36,7 @@ export interface TimelineClipNode {
   trackId: string;
   /** Name of the clip's track, or null when the track is gone. */
   trackName: string | null;
-  mediaType: "image" | "video" | "audio" | "overlay";
+  mediaType: "image" | "video" | "audio" | "overlay" | "text" | "shape";
   sourceType: "imported" | "generated";
   bindingKind?: string;
   /** Absolute start on the sequence timeline (ms). */
@@ -68,6 +68,31 @@ export interface TimelineClipNode {
   locked: boolean;
   /** Motion-design animations attached to the clip, when any. */
   animations?: TimelineAnimationNode[];
+  textStyle?: TimelineTextStyle;
+  shapeStyle?: TimelineShapeStyle;
+}
+
+export interface TimelineTextStyle {
+  text: string;
+  fontFamily?: string;
+  fontSizePx: number;
+  fontWeight?: number;
+  color: string;
+  align?: "left" | "center" | "right";
+  maxWidthFrac?: number;
+}
+
+export interface TimelineShapeStyle {
+  kind: "rect" | "ellipse" | "line";
+  fill?: string;
+  stroke?: string;
+  strokeWidthPx?: number;
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  x2?: number;
+  y2?: number;
 }
 
 /** Serializable view of one motion-design animation on a clip. */
@@ -132,6 +157,21 @@ export interface TimelineGenerateResult {
   note?: string;
 }
 
+export interface TimelineAddTextClipOptions {
+  text: string;
+  trackId?: string;
+  startMs?: number;
+  durationMs?: number;
+  style?: Omit<TimelineTextStyle, "text">;
+}
+
+export interface TimelineAddShapeClipOptions {
+  shape: TimelineShapeStyle;
+  trackId?: string;
+  startMs?: number;
+  durationMs?: number;
+}
+
 /** Render/audio params the agent can patch on any clip. */
 export interface TimelineClipParamsPatch {
   name?: string;
@@ -145,6 +185,8 @@ export interface TimelineClipParamsPatch {
   hidden?: boolean;
   muted?: boolean;
   locked?: boolean;
+  textStyle?: TimelineTextStyle;
+  shapeStyle?: TimelineShapeStyle;
 }
 
 /** Generation-binding fields the agent can change on a generated clip. */
@@ -236,6 +278,8 @@ export interface TimelineAgentHandler {
   generateClip: (
     opts: TimelineGenerateOptions
   ) => Promise<TimelineGenerateResult>;
+  addTextClip: (opts: TimelineAddTextClipOptions) => TimelineClipNode;
+  addShapeClip: (opts: TimelineAddShapeClipOptions) => TimelineClipNode;
   /** Split a clip at the given time (defaults to the playhead). */
   splitClip: (target: string, atMs?: number) => TimelineClipNode[];
   trimClip: (target: string, patch: TimelineTrimPatch) => TimelineClipNode;

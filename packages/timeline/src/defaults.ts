@@ -30,6 +30,14 @@ import type {
   TrackChromaKeyEffect
 } from "./types.js";
 
+/** Default fill for authored text clips, stored as canvas-ready color data. */
+export const DEFAULT_TEXT_CLIP_COLOR = "#FFFFFF";
+
+/** Default authored-shape colors, stored as canvas-ready color data. */
+export const DEFAULT_SHAPE_FILL_COLOR = "#FFFFFF";
+export const DEFAULT_SHAPE_STROKE_COLOR = "#FFFFFF";
+export const DEFAULT_SHAPE_STROKE_WIDTH_PX = 8;
+
 // ── Helpers ───────────────────────────────────────────────────────────
 
 /**
