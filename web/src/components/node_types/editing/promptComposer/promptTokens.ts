@@ -164,6 +164,19 @@ export const assetMediaKind = (ext: string): AssetMediaKind => {
 };
 
 /**
+ * Trim trailing dots (sentence punctuation) off a token. A character loop, not
+ * `/\.+$/` — that regex backtracks polynomially on long dot runs (a ReDoS
+ * risk on user-typed prompt text).
+ */
+const trimTrailingDots = (token: string): string => {
+  let end = token.length;
+  while (end > 0 && token[end - 1] === ".") {
+    end--;
+  }
+  return token.slice(0, end);
+};
+
+/**
  * Split a single line (no newlines) into ordered tokens. Trailing dots on an
  * asset URI are treated as sentence punctuation, not part of the extension.
  */
@@ -186,21 +199,13 @@ export const tokenizePromptLine = (line: string): PromptToken[] => {
   TOKEN_RE.lastIndex = 0;
   while ((match = TOKEN_RE.exec(line)) !== null) {
     if (match[1] !== undefined) {
-      let uri = match[1];
-      const trailingDots = uri.match(/\.+$/);
-      if (trailingDots) {
-        uri = uri.slice(0, uri.length - trailingDots[0].length);
-      }
+      const uri = trimTrailingDots(match[1]);
       pushText(line.slice(cursor, match.index));
       const { assetId, ext } = parseAssetUri(uri);
       tokens.push({ kind: "asset", uri, assetId, ext });
       cursor = match.index + uri.length;
     } else if (match[2] !== undefined) {
-      let uri = match[2];
-      const trailingDots = uri.match(/\.+$/);
-      if (trailingDots) {
-        uri = uri.slice(0, uri.length - trailingDots[0].length);
-      }
+      const uri = trimTrailingDots(match[2]);
       pushText(line.slice(cursor, match.index));
       tokens.push({ kind: "entity", uri, entityId: parseEntityUri(uri) });
       cursor = match.index + uri.length;

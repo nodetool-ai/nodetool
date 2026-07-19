@@ -162,6 +162,52 @@ export interface PromptAssetRef {
 }
 
 /**
+ * Trim trailing dots (sentence punctuation) off a token. A character loop, not
+ * `/\.+$/` — that regex backtracks polynomially on long dot runs, which CodeQL
+ * flags as a ReDoS risk on prompt-derived input.
+ */
+function trimTrailingDots(token: string): string {
+  let end = token.length;
+  while (end > 0 && token[end - 1] === ".") {
+    end--;
+  }
+  return token.slice(0, end);
+}
+
+/**
+ * Collapse horizontal-whitespace gaps left behind by token substitution:
+ * runs of 2+ spaces/tabs become one space, horizontal whitespace before a
+ * newline is dropped, and the result is trimmed. A single pass instead of
+ * `/[ \t]{2,}/` + `/[ \t]+\n/` — those backtrack polynomially on long
+ * space/tab runs (a ReDoS risk on prompt-derived input).
+ */
+function collapseGapWhitespace(text: string): string {
+  let out = "";
+  let run = ""; // pending run of spaces/tabs
+  for (const ch of text) {
+    if (ch === " " || ch === "\t") {
+      run += ch;
+      continue;
+    }
+    if (ch === "\n") {
+      // Drop horizontal whitespace before a newline.
+      run = "";
+      out += "\n";
+      continue;
+    }
+    if (run) {
+      out += run.length > 1 ? " " : run;
+      run = "";
+    }
+    out += ch;
+  }
+  if (run) {
+    out += run.length > 1 ? " " : run;
+  }
+  return out.trim();
+}
+
+/**
  * Scan a prompt for `asset://` tokens in source order, yielding each token with
  * its source offset. Trailing dots are treated as sentence punctuation (not
  * part of the extension), so `asset://a.png.` yields `asset://a.png` and leaves
@@ -174,11 +220,7 @@ function scanAssetTokens(
   ASSET_URI_RE.lastIndex = 0;
   let match: RegExpExecArray | null;
   while ((match = ASSET_URI_RE.exec(prompt)) !== null) {
-    let token = match[0];
-    const trailingDots = token.match(/\.+$/);
-    if (trailingDots) {
-      token = token.slice(0, token.length - trailingDots[0].length);
-    }
+    const token = trimTrailingDots(match[0]);
     out.push({ token, index: match.index });
   }
   return out;
@@ -334,10 +376,7 @@ function replaceAssetRefs(
     cursor = ref.index + ref.length;
   }
   result += prompt.slice(cursor);
-  return result
-    .replace(/[ \t]{2,}/g, " ")
-    .replace(/[ \t]+\n/g, "\n")
-    .trim();
+  return collapseGapWhitespace(result);
 }
 
 /**
@@ -438,14 +477,11 @@ async function expandFolderRefs(
     cursor = candidate.index + candidate.length;
   }
   result += text.slice(cursor);
-  return result
-    .replace(/[ \t]{2,}/g, " ")
-    .replace(/[ \t]+\n/g, "\n")
-    .trim();
+  return collapseGapWhitespace(result);
 }
 
 /** Matches an inline `entity://<id>` token (an entity mention from `@`). */
-const ENTITY_URI_RE = /entity:\/\/[A-Za-z0-9._~\-]+/g;
+const ENTITY_URI_RE = /entity:\/\/[A-Za-z0-9._~-]+/g;
 
 /** The prompt-relevant fields of an asset's `nodetool_entity` marker. */
 interface EntityMarkerLike {
@@ -493,12 +529,8 @@ export async function expandEntityRefs(
   ENTITY_URI_RE.lastIndex = 0;
   let match: RegExpExecArray | null;
   while ((match = ENTITY_URI_RE.exec(text)) !== null) {
-    let token = match[0];
     // Trailing dots are sentence punctuation, not part of the id.
-    const trailingDots = token.match(/\.+$/);
-    if (trailingDots) {
-      token = token.slice(0, token.length - trailingDots[0].length);
-    }
+    const token = trimTrailingDots(match[0]);
     tokens.push({
       index: match.index,
       length: token.length,
@@ -554,10 +586,7 @@ export async function expandEntityRefs(
     }
   }
   result += text.slice(cursor);
-  result = result
-    .replace(/[ \t]{2,}/g, " ")
-    .replace(/[ \t]+\n/g, "\n")
-    .trim();
+  result = collapseGapWhitespace(result);
 
   if (consistencyLines.length > 0) {
     result += `\n\nConsistency references:\n${consistencyLines.join("\n")}`;
