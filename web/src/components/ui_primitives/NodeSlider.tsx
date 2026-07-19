@@ -53,7 +53,7 @@ export const NodeSlider = forwardRef<HTMLSpanElement, NodeSliderProps>(
     useEditorScope();
 
     const sliderSx = useMemo(() => ({
-      marginTop: density === "compact" ? "3px" : "6px",
+      marginTop: density === "compact" ? "4px" : "6px",
       padding: 0,
       "& .MuiSlider-rail": {
         backgroundColor: theme.vars.palette.grey[500],

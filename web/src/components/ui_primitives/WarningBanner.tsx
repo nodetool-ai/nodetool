@@ -9,7 +9,7 @@ import ErrorIcon from "@mui/icons-material/Error";
 import InfoIcon from "@mui/icons-material/Info";
 import CloseIcon from "@mui/icons-material/Close";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { MOTION } from "./tokens";
+import { BORDER_RADIUS, MOTION } from "./tokens";
 
 export type BannerVariant = "warning" | "error" | "info";
 
@@ -70,7 +70,7 @@ const styles = (theme: Theme, variant: BannerVariant, animate: boolean) => {
     align-items: flex-start;
     gap: 12px;
     padding: 12px 16px;
-    border-radius: 8px;
+    border-radius: ${BORDER_RADIUS.lg};
     background-color: ${c.bg};
     border: 1px solid ${c.border}40;
     animation: ${animate ? css`${pulseAnimation} ${MOTION.pulse} infinite` : "none"};

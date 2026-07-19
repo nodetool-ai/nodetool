@@ -7,7 +7,7 @@ import { IconButton, Tooltip, Box, Divider } from "@mui/material";
 import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { MOTION } from "./tokens";
+import { BORDER_RADIUS, CONTROL, MOTION } from "./tokens";
 
 export interface UndoRedoButtonsProps {
   /** Whether undo is available */
@@ -49,7 +49,7 @@ const styles = (theme: Theme) => css`
   .undo-redo-button {
     color: ${theme.vars.palette.text.secondary};
     padding: 6px;
-    border-radius: 6px;
+    border-radius: ${BORDER_RADIUS.md};
     transition: ${MOTION.all};
     
     &:hover:not(.Mui-disabled) {
@@ -65,12 +65,12 @@ const styles = (theme: Theme) => css`
   
   .divider {
     &.horizontal {
-      height: 24px;
+      height: ${CONTROL.height.xs}px;
       margin: 0 4px;
     }
     
     &.vertical {
-      width: 24px;
+      width: ${CONTROL.height.xs}px;
       margin: 4px 0;
     }
   }

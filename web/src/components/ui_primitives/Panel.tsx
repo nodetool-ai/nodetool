@@ -8,6 +8,7 @@
 import React, { useCallback, useRef } from "react";
 import { Box, BoxProps, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { snapSpacing } from "./spacing";
 
 export interface PanelProps extends BoxProps {
   /** Panel title */
@@ -36,7 +37,7 @@ const PADDING_VARIANTS = {
   none: 0,
   compact: 1,
   normal: 2,
-  comfortable: 2.5,
+  comfortable: 3,
   spacious: 3
 };
 
@@ -148,7 +149,7 @@ export const Panel: React.FC<PanelProps> = ({
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            padding: theme.spacing(paddingValue, paddingValue, paddingValue / 2, paddingValue),
+            padding: theme.spacing(paddingValue, paddingValue, snapSpacing(paddingValue / 2), paddingValue),
             borderBottom: collapsed ? undefined : `1px solid ${theme.vars.palette.divider}`,
             cursor: collapsible ? "pointer" : undefined,
             ...(collapsible && {
@@ -220,7 +221,7 @@ export const Panel: React.FC<PanelProps> = ({
           {footer && (
             <Box
               sx={{
-                padding: theme.spacing(paddingValue / 2, paddingValue, paddingValue, paddingValue),
+                padding: theme.spacing(snapSpacing(paddingValue / 2), paddingValue, paddingValue, paddingValue),
                 borderTop: `1px solid ${theme.vars.palette.divider}`
               }}
             >

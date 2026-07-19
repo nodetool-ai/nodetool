@@ -11,11 +11,12 @@ import {
   TextFieldProps as MuiTextFieldProps,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { CONTROL } from "./tokens";
 
 export interface TextInputProps
   extends Omit<MuiTextFieldProps, "variant" | "size"> {
-  /** Visual variant */
-  variant?: "outlined" | "filled" | "standard";
+  /** Visual variant. `filled` is not part of the token-height contract. */
+  variant?: "outlined" | "standard";
   /** Size variant */
   size?: "small" | "medium";
   /** Compact mode with reduced padding */
@@ -63,6 +64,9 @@ export const TextInput = memo(
     ) => {
       const theme = useTheme();
 
+      const isSmall = compact || size === "small";
+      const controlHeight = isSmall ? CONTROL.height.sm : CONTROL.height.lg;
+
       const hasError = error || !!errorMessage;
       const displayHelperText = errorMessage || helperText;
 
@@ -82,6 +86,22 @@ export const TextInput = memo(
             "& .MuiInputBase-input": {
               fontSize: theme.fontSizeNormal || "15px",
             },
+            // Deterministic control height from the CONTROL token. MUI's
+            // outlined padding (16.5px / 8.5px vertical) is calibrated for
+            // ~56px / 40px fields; shrink it so the 1.4375em content box plus
+            // padding fits inside the token height, and let the centered
+            // inline-flex root make up the sub-pixel remainder.
+            "& .MuiInputBase-root:not(.MuiInputBase-multiline)": {
+              minHeight: `${controlHeight}px`,
+            },
+            "& .MuiInputBase-root:not(.MuiInputBase-multiline) .MuiInputBase-input":
+              {
+                paddingTop: isSmall ? "3px" : "7px",
+                paddingBottom: isSmall ? "3px" : "7px",
+              },
+            "& .MuiInputBase-multiline": {
+              minHeight: 0,
+            },
             // The resting label doubles as the placeholder, so it must sit ON the
             // input text it morphs into. Match its font to the 15px input value
             // (a 16px label over 15px text reads as floating high) and soften the
@@ -90,14 +110,16 @@ export const TextInput = memo(
               fontSize: theme.fontSizeNormal || "15px",
               opacity: 0.6,
             },
-            // MUI's outlined resting transform is calibrated for 16px; at 15px the
-            // label lands a touch high. Nudge it down onto the text baseline.
+            // MUI's outlined resting transform is calibrated for its stock
+            // ~56px/40px fields; at the CONTROL heights (36/28) the label must
+            // sit at the input's vertical padding to land on the text it morphs
+            // into.
             "& .MuiInputLabel-outlined:not(.MuiInputLabel-shrink)": {
-              transform: "translate(14px, 17px) scale(1)",
+              transform: "translate(14px, 7px) scale(1)",
             },
             "& .MuiInputLabel-outlined.MuiInputLabel-sizeSmall:not(.MuiInputLabel-shrink)":
               {
-                transform: "translate(14px, 10px) scale(1)",
+                transform: "translate(14px, 3px) scale(1)",
               },
             ...sx,
           }}

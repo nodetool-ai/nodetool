@@ -8,7 +8,7 @@ import ZoomInIcon from "@mui/icons-material/ZoomIn";
 import ZoomOutIcon from "@mui/icons-material/ZoomOut";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { MOTION } from "./tokens";
+import { CONTROL, MOTION } from "./tokens";
 
 const styles = (theme: Theme) =>
   css({
@@ -31,7 +31,7 @@ const styles = (theme: Theme) =>
     ".zoom-value": {
       fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary,
-      minWidth: "45px",
+      minWidth: `${CONTROL.height.xl}px`,
       textAlign: "center",
       fontFamily: "monospace"
     }

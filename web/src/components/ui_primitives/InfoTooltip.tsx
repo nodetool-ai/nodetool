@@ -74,7 +74,7 @@ const popoverStyles = (theme: Theme) => css`
     
     .popover-body {
       color: ${theme.vars.palette.text.secondary};
-      font-size: 14px;
+      font-size: var(--fontSizeSmall);
       line-height: 1.5;
     }
   }
