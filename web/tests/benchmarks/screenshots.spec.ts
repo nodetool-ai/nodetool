@@ -241,6 +241,48 @@ async function seedLocalStorage(
 }
 
 /**
+ * Pre-open workspace tabs (the tabbed-document shell at /workspace) by seeding
+ * the WorkspaceTabsStore persist slot. `active` must be one of the seeded
+ * tabs' ids (`${type}:${ref}`). Must run before navigation.
+ */
+async function seedWorkspaceTabs(
+  page: Page,
+  tabs: Array<{ type: string; ref: string; title: string }>,
+  active: string
+): Promise<void> {
+  await page.addInitScript(
+    (args: {
+      tabs: Array<{ type: string; ref: string; title: string }>;
+      active: string;
+    }) => {
+      try {
+        window.localStorage.setItem(
+          "workspace-tabs-storage",
+          JSON.stringify({
+            state: {
+              tabs: args.tabs.map((t) => ({
+                id: `${t.type}:${t.ref}`,
+                type: t.type,
+                ref: t.ref,
+                mode: "edit",
+                title: t.title
+              })),
+              activeTabId: args.active
+            },
+            // Must match WorkspaceTabsStore's persist `version` or zustand
+            // discards the seeded state on rehydrate.
+            version: 1
+          })
+        );
+      } catch {
+        /* ignore — localStorage may be unavailable */
+      }
+    },
+    { tabs, active }
+  );
+}
+
+/**
  * Navigate to a page and wait for the app shell to finish loading.
  *
  * The app renders a "Loading NodeTool…" spinner until /api/nodes/metadata
@@ -1036,6 +1078,86 @@ if (process.env.JEST_WORKER_ID) {
       });
       await waitForAnimation(page, 800);
       await saveScreenshot(page, "editor-workflow-assistant.png");
+    });
+
+    // ── Entities (ingredients library) ─────────────────────────────────────
+    //
+    // Entities are image assets tagged as characters / locations / styles /
+    // props (seeded in screenshot-server.ts). They surface in three places,
+    // each with its own capture: the Entities library page, the `@`-mention
+    // picker's Entities row, and the storyboard's Entities field.
+
+    test("Entities – library page", async ({ page }) => {
+      test.skip(shouldSkip("entity-library.png"), "Already captured");
+      await seedWorkspaceTabs(
+        page,
+        [{ type: "page", ref: "entities", title: "Entities" }],
+        "page:entities"
+      );
+      await gotoPage(page, "/workspace");
+      // The seeded entity cards carry these names.
+      await page
+        .getByText("Marta")
+        .first()
+        .waitFor({ state: "visible", timeout: 15000 })
+        .catch(() => {});
+      await ensureNoVisibleProgress(page);
+      await waitForAnimation(page, 600);
+      await saveScreenshot(page, "entity-library.png");
+    });
+
+    test("Chat – entity mentions (@)", async ({ page }) => {
+      test.skip(shouldSkip("chat-mention-entities.png"), "Already captured");
+      await gotoPage(page, "/chat/thread-story");
+      await waitForScreenshotReady(page, "global-chat-interface.png");
+      const composer = page
+        .locator('textarea, [contenteditable="true"]')
+        .first();
+      await composer.click();
+      await composer.type("A rainy chase scene with @", { delay: 30 });
+      // The shared mention menu opens with the Entities row on top.
+      await page
+        .locator(".asset-mention-menu")
+        .first()
+        .waitFor({ state: "visible", timeout: 10000 })
+        .catch(() => {});
+      await page
+        .locator(".mention-entity-tile")
+        .first()
+        .waitFor({ state: "visible", timeout: 10000 })
+        .catch(() => {});
+      await waitForAnimation(page, 500);
+      await saveScreenshot(page, "chat-mention-entities.png");
+    });
+
+    // ── Storyboard ─────────────────────────────────────────────────────────
+    // Backed by the seeded Storyboard "sb-demo-noir" (screenshot-server),
+    // whose board carries the four seeded entities and shots that mention
+    // them by name — so the Entities field and per-shot entity chips are
+    // both populated.
+    test("Storyboard – board with entities", async ({ page }) => {
+      test.skip(shouldSkip("storyboard-board.png"), "Already captured");
+      await seedWorkspaceTabs(
+        page,
+        [{ type: "storyboard", ref: "sb-demo-noir", title: "Harbor Noir" }],
+        "storyboard:sb-demo-noir"
+      );
+      await gotoPage(page, "/workspace");
+      // The board header's Direct button and the seeded entity chips are the
+      // stable landmarks.
+      await page
+        .getByRole("button", { name: /^direct$/i })
+        .first()
+        .waitFor({ state: "visible", timeout: 20000 })
+        .catch(() => {});
+      await page
+        .getByText("Neon Noir")
+        .first()
+        .waitFor({ state: "visible", timeout: 15000 })
+        .catch(() => {});
+      await ensureNoVisibleProgress(page);
+      await waitForAnimation(page, 800);
+      await saveScreenshot(page, "storyboard-board.png");
     });
 
     // ── Component-preview captures ─────────────────────────────────────────

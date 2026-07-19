@@ -27,6 +27,7 @@ import {
   Asset,
   ImageDocument,
   TimelineSequence,
+  Storyboard,
   secrets
 } from "@nodetool-ai/models";
 import { initMasterKey, encryptFernet, getMasterKey } from "@nodetool-ai/security";
@@ -517,7 +518,8 @@ function makeAsset(
   name: string,
   contentType: string,
   parentId: string | null,
-  size: number
+  size: number,
+  metadata: Record<string, unknown> | null = null
 ): Record<string, unknown> {
   return {
     id,
@@ -527,7 +529,7 @@ function makeAsset(
     content_type: contentType,
     size,
     duration: null,
-    metadata: null,
+    metadata,
     workflow_id: null,
     node_id: null,
     job_id: null,
@@ -657,6 +659,60 @@ const MOCK_ASSETS = [
     "application/json",
     "folder-data",
     341290
+  ),
+  // Entity-tagged assets — the "ingredients" library (characters, locations,
+  // styles, props). The `nodetool_entity` marker is what turns an ordinary
+  // image asset into an entity; these back the Entities page, the `@`-mention
+  // picker's Entities row, and the storyboard's Entities field.
+  makeAsset("entity-marta", "marta_ref.png", "image/png", USER_ID, 1830212, {
+    nodetool_entity: {
+      kind: "character",
+      name: "Marta",
+      descriptor:
+        "red-haired detective in a beige trench coat, mid-30s, sharp green eyes, weathered expression",
+      voice_id: "voice-marta-01",
+      tags: ["protagonist", "detective"]
+    }
+  }),
+  makeAsset(
+    "entity-harbor",
+    "harbor_district.png",
+    "image/png",
+    USER_ID,
+    2264410,
+    {
+      nodetool_entity: {
+        kind: "location",
+        name: "Harbor District",
+        descriptor:
+          "foggy industrial harbor at night, rusted cranes, wet cobblestones reflecting sodium lights",
+        tags: ["exterior", "night"]
+      }
+    }
+  ),
+  makeAsset("entity-noir", "neon_noir_style.png", "image/png", USER_ID, 990241, {
+    nodetool_entity: {
+      kind: "style",
+      name: "Neon Noir",
+      descriptor:
+        "high-contrast neon noir, teal and magenta rim lighting, anamorphic lens flares, 35mm film grain",
+      tags: ["look"]
+    }
+  }),
+  makeAsset(
+    "entity-umbrella",
+    "red_umbrella.png",
+    "image/png",
+    USER_ID,
+    412009,
+    {
+      nodetool_entity: {
+        kind: "prop",
+        name: "Red Umbrella",
+        descriptor: "a battered red umbrella with a bent brass handle",
+        tags: ["macguffin"]
+      }
+    }
   )
 ];
 
@@ -948,6 +1004,80 @@ const STUDIO_DOCUMENT = {
   }))
 };
 
+// ── Storyboard ────────────────────────────────────────────────────────────────
+// Backs the workspace storyboard tab (storyboard:sb-demo-noir). Shots mention
+// the seeded entities by name so the per-shot entity chips show a mix of
+// applied and inactive states in the documentation screenshot.
+
+const STORYBOARD_ID = "sb-demo-noir";
+
+const storyboardShot = (
+  id: string,
+  index: number,
+  slug: string,
+  action: string,
+  motion: string,
+  framing: string
+): Record<string, unknown> => ({
+  type: "shot",
+  id,
+  index,
+  slug,
+  action,
+  motion,
+  camera: { framing },
+  duration_seconds: 4,
+  status: "planned",
+  keyframe: null,
+  clip: null
+});
+
+const STORYBOARD_DOCUMENT = {
+  screenplay: null,
+  shots: [
+    storyboardShot(
+      "shot-1",
+      0,
+      "Arrival",
+      "Marta steps off the night ferry into the Harbor District, collar turned up against the drizzle",
+      "slow push-in as she scans the pier",
+      "wide"
+    ),
+    storyboardShot(
+      "shot-2",
+      1,
+      "The find",
+      "A Red Umbrella lies abandoned against a mooring post, its brass handle catching the light",
+      "rack focus from rain to the umbrella",
+      "close-up"
+    ),
+    storyboardShot(
+      "shot-3",
+      2,
+      "Pursuit",
+      "Marta runs between shipping containers, footsteps echoing",
+      "handheld tracking shot, hard whip at the corner",
+      "medium"
+    ),
+    storyboardShot(
+      "shot-4",
+      3,
+      "Vanish",
+      "The pier stands empty; only fog and the hum of cranes remain",
+      "slow drone pull-back over the water",
+      "aerial"
+    )
+  ],
+  brief:
+    "A detective follows a stolen shipment into the harbor at night and finds only a red umbrella where the courier should be.",
+  style: "neon noir thriller, rain-slick surfaces, volumetric fog",
+  entityIds: ["entity-marta", "entity-harbor", "entity-noir", "entity-umbrella"],
+  aspectRatio: "21:9",
+  directorModel: null,
+  imageModel: null,
+  videoModel: null
+};
+
 // ── Seed database ─────────────────────────────────────────────────────────────
 
 async function seedDatabase(): Promise<void> {
@@ -1017,6 +1147,18 @@ async function seedDatabase(): Promise<void> {
     updated_at: "2024-12-16T16:00:00Z"
   });
   await studioSeq.save();
+
+  // Storyboard — backs the workspace storyboard tab (storyboard:sb-demo-noir)
+  const storyboard = new Storyboard({
+    id: STORYBOARD_ID,
+    user_id: USER_ID,
+    project_id: "default",
+    name: "Harbor Noir",
+    document: JSON.stringify(STORYBOARD_DOCUMENT),
+    created_at: "2024-12-12T09:00:00Z",
+    updated_at: "2024-12-16T17:00:00Z"
+  });
+  await storyboard.save();
 
   // Secrets — stored encrypted so the settings API shows them as configured.
   // Cover the providers the UI checks for "configured" status so the dashboard
