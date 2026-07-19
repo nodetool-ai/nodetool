@@ -77,4 +77,85 @@ describe("CanvasResizeNode", () => {
     expect(data[centerIdx]).toBeGreaterThan(200); // centre is red
     expect(data[3]).toBe(0); // top-left corner is transparent padding
   });
+
+  it("anchor top-left places source at top-left corner", async () => {
+    const node = new CanvasResizeNode();
+    node.assign({
+      image: await makeTestImage(4, 4, 255, 0, 0),
+      mode: "fixed",
+      width: 8,
+      height: 8,
+      anchor: "top-left"
+    });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+    expect(output.width).toBe(8);
+    expect(output.height).toBe(8);
+    const data = output.data as Uint8Array;
+    // Top-left pixel should be the source (red)
+    expect(data[0]).toBeGreaterThan(200);
+    expect(data[3]).toBeGreaterThan(200);
+    // Bottom-right pixel should be padding (transparent)
+    const brIdx = (7 * 8 + 7) * 4;
+    expect(data[brIdx + 3]).toBe(0);
+  });
+
+  it("anchor bottom-right places source at bottom-right corner", async () => {
+    const node = new CanvasResizeNode();
+    node.assign({
+      image: await makeTestImage(4, 4, 255, 0, 0),
+      mode: "fixed",
+      width: 8,
+      height: 8,
+      anchor: "bottom-right"
+    });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+    expect(output.width).toBe(8);
+    expect(output.height).toBe(8);
+    const data = output.data as Uint8Array;
+    // Top-left pixel should be padding (transparent)
+    expect(data[3]).toBe(0);
+    // Bottom-right area should be the source (red)
+    const brIdx = (7 * 8 + 7) * 4;
+    expect(data[brIdx]).toBeGreaterThan(200);
+    expect(data[brIdx + 3]).toBeGreaterThan(200);
+  });
+
+  it("fill color applies to expanded area", async () => {
+    const node = new CanvasResizeNode();
+    node.assign({
+      image: await makeTestImage(4, 4, 255, 0, 0),
+      mode: "fixed",
+      width: 8,
+      height: 8,
+      color: { type: "color", value: "#0000FFFF" }
+    });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+    expect(output.width).toBe(8);
+    expect(output.height).toBe(8);
+    const data = output.data as Uint8Array;
+    // Top-left corner should be blue fill (not transparent)
+    expect(data[2]).toBeGreaterThan(200); // blue channel
+    expect(data[3]).toBeGreaterThan(200); // alpha
+  });
+
+  it("padding percent mode with fill color", async () => {
+    const node = new CanvasResizeNode();
+    node.assign({
+      image: await makeTestImage(10, 10),
+      mode: "padding",
+      padding_unit: "percent",
+      top: 50,
+      bottom: 50,
+      left: 50,
+      right: 50,
+      color: { type: "color", value: "#FF0000FF" }
+    });
+    const result = await node.process();
+    const output = result.output as Record<string, unknown>;
+    expect(output.width).toBe(20);
+    expect(output.height).toBe(20);
+  });
 });
