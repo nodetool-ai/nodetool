@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useCallback } from "react";
+import { memo, useCallback, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@mui/material/styles";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -122,6 +122,49 @@ const MCPSettingsMenu = () => {
   const allInstalled = data?.targets.every((t) => t.installed) ?? false;
   const busy = installMutation.isPending || uninstallMutation.isPending;
 
+  // Claude Desktop installs the bundled `.mcpb` extension, which only the
+  // desktop app can hand to the OS. Hidden in the browser/remote UI.
+  const installBundle = window.api?.mcp?.installBundle;
+  const [bundleBusy, setBundleBusy] = useState(false);
+
+  const handleInstallBundle = useCallback(async () => {
+    if (!installBundle) return;
+    setBundleBusy(true);
+    try {
+      const result = await installBundle();
+      if (!result.ok) {
+        addNotification({
+          type: "error",
+          alert: true,
+          content:
+            result.error ?? "Could not find the NodeTool extension bundle."
+        });
+      } else if (result.opened) {
+        addNotification({
+          type: "success",
+          alert: true,
+          content:
+            "Opening the NodeTool extension in Claude Desktop — confirm the install there."
+        });
+      } else {
+        addNotification({
+          type: "info",
+          alert: true,
+          content:
+            "Revealed nodetool.mcpb — drag it into Claude Desktop → Settings → Extensions."
+        });
+      }
+    } catch (err) {
+      addNotification({
+        type: "error",
+        alert: true,
+        content: `Extension install failed: ${err}`
+      });
+    } finally {
+      setBundleBusy(false);
+    }
+  }, [installBundle, addNotification]);
+
   return (
     <div
       className="remote-settings-content"
@@ -228,6 +271,26 @@ const MCPSettingsMenu = () => {
               </FlexRow>
             )}
           </>
+        )}
+
+        {installBundle && (
+          <div className="settings-section" style={{ marginTop: "1.5em" }}>
+            <Text sx={{ fontWeight: 500, mb: 0.5 }}>Claude Desktop</Text>
+            <Text className="description" sx={{ mb: 1 }}>
+              Install the NodeTool extension bundled with this app. Claude
+              Desktop opens its install dialog; confirm it there.
+            </Text>
+            <FlexRow justify="flex-start">
+              <NavButton
+                icon={<InstallDesktopIcon />}
+                label="Install Extension"
+                color="primary"
+                disabled={bundleBusy}
+                onClick={handleInstallBundle}
+                sx={{ padding: "0.4em 2em" }}
+              />
+            </FlexRow>
+          </div>
         )}
       </div>
     </div>

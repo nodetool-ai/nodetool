@@ -99,13 +99,7 @@ const coreFeatures = [
   },
 ];
 
-interface DeveloperCoreSectionProps {
-  reducedMotion: boolean;
-}
-
-export default function DeveloperCoreSection({
-  reducedMotion,
-}: DeveloperCoreSectionProps) {
+export default function DeveloperCoreSection() {
   return (
     <section
       id="core"
@@ -116,7 +110,7 @@ export default function DeveloperCoreSection({
         {/* Section Header */}
         <div className="text-center mb-16">
           <motion.span
-            initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.25 }}
@@ -127,7 +121,7 @@ export default function DeveloperCoreSection({
           </motion.span>
           <motion.h2
             id="core-title"
-            initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.25, delay: 0.05 }}
@@ -136,7 +130,7 @@ export default function DeveloperCoreSection({
             Open source, end to end
           </motion.h2>
           <motion.p
-            initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.25, delay: 0.05 }}
@@ -146,7 +140,7 @@ export default function DeveloperCoreSection({
             the CLI, or run the same code that powers Studio and Cloud on your own boxes.
           </motion.p>
           <motion.div
-            initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.25, delay: 0.08 }}
@@ -184,7 +178,7 @@ export default function DeveloperCoreSection({
           {coreFeatures.map((feature, idx) => (
             <motion.div
               key={feature.title}
-              initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+              initial={false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.4, delay: idx * 0.05 }}
@@ -205,7 +199,7 @@ export default function DeveloperCoreSection({
         <div className="grid gap-8 lg:grid-cols-2">
           {/* Installation */}
           <motion.div
-            initial={reducedMotion ? {} : { opacity: 0, x: -30 }}
+            initial={false}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.25 }}
@@ -236,7 +230,7 @@ export default function DeveloperCoreSection({
 
           {/* Basic Usage */}
           <motion.div
-            initial={reducedMotion ? {} : { opacity: 0, x: 30 }}
+            initial={false}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.25 }}
@@ -262,7 +256,7 @@ export default function DeveloperCoreSection({
 
         {/* DSL Explanation */}
         <motion.div
-          initial={reducedMotion ? {} : { opacity: 0, y: 30 }}
+          initial={false}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.25 }}
@@ -281,7 +275,7 @@ export default function DeveloperCoreSection({
             {dslExplanation.map((point, idx) => (
               <motion.div
                 key={point.title}
-                initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+                initial={false}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.3, delay: idx * 0.05 }}
@@ -296,7 +290,7 @@ export default function DeveloperCoreSection({
 
 {/* Links */}
         <motion.div
-          initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+          initial={false}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.25 }}

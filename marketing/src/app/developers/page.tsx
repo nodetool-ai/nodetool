@@ -55,33 +55,6 @@ export default function DevelopersPage() {
   const parallaxRef = useRef<HTMLDivElement>(null);
   const reducedMotion = usePrefersReducedMotion();
 
-  // Global section fly-in using IntersectionObserver + CSS transitions
-  useEffect(() => {
-    if (reducedMotion) return;
-    const root = document.getElementById("content");
-    if (!root) return;
-    const sections = Array.from(root.querySelectorAll<HTMLElement>("section"));
-    sections.forEach((el, i) => {
-      el.classList.add("fly-in");
-      const delay = Math.min(i * 60, 300);
-      el.style.setProperty("--fly-delay", `${delay}ms`);
-    });
-    const obs = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const el = entry.target as HTMLElement;
-            el.classList.add("is-visible");
-            obs.unobserve(el);
-          }
-        });
-      },
-      { root: null, threshold: 0.12, rootMargin: "0px 0px -10% 0px" }
-    );
-    sections.forEach((el) => obs.observe(el));
-    return () => obs.disconnect();
-  }, [reducedMotion]);
-
   // Fetch GitHub stars
   useEffect(() => {
     fetch("https://api.github.com/repos/nodetool-ai/nodetool")
@@ -198,16 +171,16 @@ export default function DevelopersPage() {
         </section>
 
         {/* Features */}
-        <DeveloperFeaturesSection reducedMotion={reducedMotion} />
+        <DeveloperFeaturesSection />
 
         {/* Core Engine */}
-        <DeveloperCoreSection reducedMotion={reducedMotion} />
+        <DeveloperCoreSection />
 
         {/* CLI & API */}
-        <DeveloperCLISection reducedMotion={reducedMotion} />
+        <DeveloperCLISection />
 
         {/* Integrations */}
-        <DeveloperIntegrationsSection reducedMotion={reducedMotion} />
+        <DeveloperIntegrationsSection />
 
         {/* Community */}
         <CommunitySection stars={stars} />

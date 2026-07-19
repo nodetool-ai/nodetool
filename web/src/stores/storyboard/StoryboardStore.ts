@@ -25,7 +25,11 @@ import type {
   ShotStatus,
   VideoRef
 } from "@nodetool-ai/protocol";
-import type { ImageModelValue, LanguageModelValue } from "../ApiTypes";
+import type {
+  ImageModelValue,
+  LanguageModelValue,
+  VideoModelValue
+} from "../ApiTypes";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -41,16 +45,30 @@ export interface StoryboardBoard {
   directorModel: LanguageModelValue | null;
   /** Image model every keyframe still is generated with. Null = node default. */
   imageModel: ImageModelValue | null;
+  /** Video model every clip is generated with. Null = node default. */
+  videoModel: VideoModelValue | null;
   activeShotId: string | null;
   /** Persisted timeline sequence this board was assembled into, if any. */
   timelineId: string | null;
+  /** Epoch ms of the last mutation; drives the sidebar's recency sort. */
+  updatedAt: number;
 }
 
 interface StoryboardStoreState {
   boards: Record<string, StoryboardBoard>;
+  /** Server `updated_at` token per board — the CAS base for the next save. */
+  serverRevisions: Record<string, string>;
+  setServerRevision: (boardId: string, revision: string | null) => void;
 
   /** Create an empty board for `id` if one does not already exist. */
   ensureBoard: (id: string) => void;
+  /** Delete a board outright (its generated assets stay in the asset library). */
+  removeBoard: (id: string) => void;
+  /**
+   * Hydrate a board from its server document. Overwrites local state for that
+   * board and records the server revision for CAS autosaves.
+   */
+  loadBoard: (id: string, board: Omit<StoryboardBoard, "id" | "updatedAt">) => void;
 
   /** Load a screenplay into a board, seeding `shots` from `screenplay.shots`. */
   setScreenplay: (boardId: string, screenplay: Screenplay) => void;
@@ -61,6 +79,7 @@ interface StoryboardStoreState {
   setAspectRatio: (boardId: string, aspectRatio: string) => void;
   setDirectorModel: (boardId: string, model: LanguageModelValue | null) => void;
   setImageModel: (boardId: string, model: ImageModelValue | null) => void;
+  setVideoModel: (boardId: string, model: VideoModelValue | null) => void;
   /** Record the persisted timeline sequence this board assembles into. */
   setTimelineLink: (boardId: string, timelineId: string | null) => void;
 
@@ -71,6 +90,18 @@ interface StoryboardStoreState {
   setShotStatus: (boardId: string, shotId: string, status: ShotStatus) => void;
   setShotKeyframe: (boardId: string, shotId: string, keyframe: ImageRef) => void;
   setShotClip: (boardId: string, shotId: string, clip: VideoRef) => void;
+  /** Make one of the shot's preserved stills the selected keyframe. */
+  selectKeyframeVersion: (
+    boardId: string,
+    shotId: string,
+    versionIndex: number
+  ) => void;
+  /** Make one of the shot's preserved takes the selected/export clip. */
+  selectClipVersion: (
+    boardId: string,
+    shotId: string,
+    versionIndex: number
+  ) => void;
   approveShot: (boardId: string, shotId: string) => void;
   removeShot: (boardId: string, shotId: string) => void;
   /** Reorder shots to match `orderedIds`; re-stamps each shot's `index`. */
@@ -92,8 +123,10 @@ const emptyBoard = (id: string): StoryboardBoard => ({
   aspectRatio: "16:9",
   directorModel: null,
   imageModel: null,
+  videoModel: null,
   activeShotId: null,
-  timelineId: null
+  timelineId: null,
+  updatedAt: Date.now()
 });
 
 /**
@@ -114,8 +147,17 @@ const withBoard = (
   if (!next || next === board) {
     return state;
   }
-  return { boards: { ...state.boards, [boardId]: next } };
+  return {
+    boards: { ...state.boards, [boardId]: { ...next, updatedAt: Date.now() } }
+  };
 };
+
+/** Same generated asset: matched by asset_id when present, else by uri. */
+export const sameMediaRef = (
+  a: { asset_id?: string | null; uri?: string },
+  b: { asset_id?: string | null; uri?: string }
+): boolean =>
+  b.asset_id ? a.asset_id === b.asset_id : a.uri === b.uri;
 
 /** Patch the single shot with `shotId`; returns the same board on a no-op. */
 const patchShot = (
@@ -142,6 +184,40 @@ const patchShot = (
 
 export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
   boards: {},
+  serverRevisions: {},
+
+  setServerRevision: (boardId, revision) =>
+    set((state) => {
+      const serverRevisions = { ...state.serverRevisions };
+      if (revision === null) {
+        delete serverRevisions[boardId];
+      } else {
+        serverRevisions[boardId] = revision;
+      }
+      return { serverRevisions };
+    }),
+
+  loadBoard: (id, board) =>
+    set((state) => ({
+      boards: {
+        ...state.boards,
+        [id]: {
+          ...emptyBoard(id),
+          ...board,
+          id,
+          // Jobs don't survive a reload — settle in-flight statuses back to
+          // the state they'd retry from.
+          shots: board.shots.map((s) =>
+            s.status === "keyframe_generating"
+              ? { ...s, status: "planned" as const }
+              : s.status === "clip_generating"
+                ? { ...s, status: "approved" as const }
+                : s
+          ),
+          updatedAt: Date.now()
+        }
+      }
+    })),
 
   ensureBoard: (id) =>
     set((state) =>
@@ -149,6 +225,16 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
         ? state
         : { boards: { ...state.boards, [id]: emptyBoard(id) } }
     ),
+
+  removeBoard: (id) =>
+    set((state) => {
+      if (!state.boards[id]) {
+        return state;
+      }
+      const boards = { ...state.boards };
+      delete boards[id];
+      return { boards };
+    }),
 
   setScreenplay: (boardId, screenplay) =>
     set((state) => {
@@ -159,7 +245,8 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
         shots: [...screenplay.shots],
         title: screenplay.title || board.title,
         aspectRatio: screenplay.aspect_ratio ?? board.aspectRatio,
-        style: screenplay.style_bible ?? board.style
+        style: screenplay.style_bible ?? board.style,
+        updatedAt: Date.now()
       };
       return { boards: { ...state.boards, [boardId]: next } };
     }),
@@ -212,6 +299,16 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
       )
     ),
 
+  setVideoModel: (boardId, model) =>
+    set((state) =>
+      withBoard(state, boardId, (b) =>
+        b.videoModel?.id === model?.id &&
+        b.videoModel?.provider === model?.provider
+          ? null
+          : { ...b, videoModel: model }
+      )
+    ),
+
   setTimelineLink: (boardId, timelineId) =>
     set((state) =>
       withBoard(state, boardId, (b) =>
@@ -242,12 +339,66 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
 
   setShotKeyframe: (boardId, shotId, keyframe) =>
     set((state) =>
-      withBoard(state, boardId, (b) => patchShot(b, shotId, { keyframe }))
+      withBoard(state, boardId, (b) => {
+        const target = b.shots.find((s) => s.id === shotId);
+        if (!target) {
+          return b;
+        }
+        // Preserve every still; the new render becomes the selected keyframe.
+        const versions =
+          target.keyframe_versions ?? (target.keyframe ? [target.keyframe] : []);
+        const exists = versions.some((v) => sameMediaRef(v, keyframe));
+        return patchShot(b, shotId, {
+          keyframe,
+          keyframe_versions: exists ? versions : [...versions, keyframe]
+        });
+      })
     ),
 
   setShotClip: (boardId, shotId, clip) =>
     set((state) =>
-      withBoard(state, boardId, (b) => patchShot(b, shotId, { clip }))
+      withBoard(state, boardId, (b) => {
+        const target = b.shots.find((s) => s.id === shotId);
+        if (!target) {
+          return b;
+        }
+        // Preserve every take; the new render becomes the selected clip.
+        const versions = target.clip_versions ?? (target.clip ? [target.clip] : []);
+        const exists = versions.some((v) => sameMediaRef(v, clip));
+        return patchShot(b, shotId, {
+          clip,
+          clip_versions: exists ? versions : [...versions, clip]
+        });
+      })
+    ),
+
+  selectKeyframeVersion: (boardId, shotId, versionIndex) =>
+    set((state) =>
+      withBoard(state, boardId, (b) => {
+        const target = b.shots.find((s) => s.id === shotId);
+        const versions =
+          target?.keyframe_versions ??
+          (target?.keyframe ? [target.keyframe] : []);
+        const keyframe = versions[versionIndex];
+        if (!keyframe || keyframe === target?.keyframe) {
+          return null;
+        }
+        return patchShot(b, shotId, { keyframe });
+      })
+    ),
+
+  selectClipVersion: (boardId, shotId, versionIndex) =>
+    set((state) =>
+      withBoard(state, boardId, (b) => {
+        const target = b.shots.find((s) => s.id === shotId);
+        const versions =
+          target?.clip_versions ?? (target?.clip ? [target.clip] : []);
+        const clip = versions[versionIndex];
+        if (!clip || clip === target?.clip) {
+          return null;
+        }
+        return patchShot(b, shotId, { clip });
+      })
     ),
 
   approveShot: (boardId, shotId) =>
@@ -302,6 +453,27 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
   getBoard: (id) => get().boards[id]
 }));
 
+/**
+ * One-time migration: boards saved by the short-lived localStorage
+ * persistence land in the in-memory store, and the server-sync upsert
+ * publishes them the next time their tab is opened.
+ */
+try {
+  const legacy = localStorage.getItem("storyboard-boards");
+  if (legacy) {
+    const parsed = JSON.parse(legacy) as {
+      state?: { boards?: Record<string, StoryboardBoard> };
+    };
+    const boards = parsed.state?.boards ?? {};
+    for (const [id, b] of Object.entries(boards)) {
+      useStoryboardStore.getState().loadBoard(id, { ...emptyBoard(id), ...b });
+    }
+    localStorage.removeItem("storyboard-boards");
+  }
+} catch {
+  // Corrupt legacy blob — nothing worth keeping.
+}
+
 // ── Selector hooks ───────────────────────────────────────────────────────────
 
 const EMPTY_SHOTS: Shot[] = [];
@@ -322,6 +494,7 @@ export const useBoard = (
   aspectRatio: string;
   directorModel: LanguageModelValue | null;
   imageModel: ImageModelValue | null;
+  videoModel: VideoModelValue | null;
   activeShotId: string | null;
 } =>
   useStoryboardStore(
@@ -336,6 +509,7 @@ export const useBoard = (
         aspectRatio: b?.aspectRatio ?? "16:9",
         directorModel: b?.directorModel ?? null,
         imageModel: b?.imageModel ?? null,
+        videoModel: b?.videoModel ?? null,
         activeShotId: b?.activeShotId ?? null
       };
     })

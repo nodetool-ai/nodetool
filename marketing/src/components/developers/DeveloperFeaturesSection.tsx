@@ -62,13 +62,7 @@ export class MyNode extends BaseNode {
   },
 ];
 
-interface DeveloperFeaturesSectionProps {
-  reducedMotion: boolean;
-}
-
-export default function DeveloperFeaturesSection({
-  reducedMotion,
-}: DeveloperFeaturesSectionProps) {
+export default function DeveloperFeaturesSection() {
   return (
     <section
       id="features"
@@ -79,7 +73,7 @@ export default function DeveloperFeaturesSection({
         {/* Section Header */}
         <div className="text-center mb-16">
           <motion.span
-            initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.25 }}
@@ -89,7 +83,7 @@ export default function DeveloperFeaturesSection({
           </motion.span>
           <motion.h2
             id="features-title"
-            initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.25, delay: 0.05 }}
@@ -98,7 +92,7 @@ export default function DeveloperFeaturesSection({
             Drive the workspace from code
           </motion.h2>
           <motion.p
-            initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
+            initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.25, delay: 0.05 }}
@@ -115,7 +109,7 @@ export default function DeveloperFeaturesSection({
           {features.map((feature, idx) => (
             <motion.div
               key={feature.title}
-              initial={reducedMotion ? {} : { opacity: 0, y: 30 }}
+              initial={false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.25, delay: idx * 0.05 }}
