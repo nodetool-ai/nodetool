@@ -124,7 +124,7 @@ const StoryboardSidebarInner: React.FC<StoryboardSidebarProps> = ({
   return (
     <div css={styles(theme)} className="storyboard-sidebar">
       <FlexRow align="center" justify="space-between">
-        <Text size="tiny" className="sidebar-title">
+        <Text size="smaller" className="sidebar-title">
           Storyboards
         </Text>
         <ToolbarIconButton
@@ -151,7 +151,7 @@ const StoryboardSidebarInner: React.FC<StoryboardSidebarProps> = ({
                 <Text size="small" truncate>
                   {board.name || "Untitled storyboard"}
                 </Text>
-                <Caption size="tiny" color="secondary">
+                <Caption size="smaller" color="secondary">
                   {board.shotCount > 0
                     ? `${board.shotCount} shots · ${formatter.format(new Date(board.updatedAt))}`
                     : formatter.format(new Date(board.updatedAt))}
@@ -169,7 +169,7 @@ const StoryboardSidebarInner: React.FC<StoryboardSidebarProps> = ({
             </FlexRow>
           ))}
           {(boards ?? []).length === 0 && (
-            <Caption size="tiny" color="secondary">
+            <Caption size="smaller" color="secondary">
               No storyboards yet.
             </Caption>
           )}
