@@ -321,6 +321,67 @@ const ThemeNodetool = createTheme({
         })
       }
     },
+    // The raw re-exports in ui_primitives/muiReexports.ts lean on these
+    // overrides — every override here matches the equivalent styled
+    // primitive so the two systems agree.
+    MuiTabs: {
+      styleOverrides: {
+        root: {
+          minHeight: "40px",
+          "& .MuiTabs-indicator": {
+            height: "2px"
+          }
+        }
+      }
+    },
+    MuiTab: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          minHeight: "40px",
+          fontSize: theme.fontSizeSmall, // 13px — label
+          fontWeight: 600, // matches TabGroup
+          textTransform: "none"
+        })
+      }
+    },
+    MuiToggleButton: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          minHeight: `${CONTROL.height.md}px`,
+          padding: `0 ${CONTROL.paddingX.normal}px`,
+          borderRadius: theme.rounded.md,
+          fontSize: theme.fontSizeSmall, // 13px — label
+          fontWeight: 500,
+          textTransform: "none"
+        })
+      }
+    },
+    MuiAccordion: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          backgroundColor: theme.vars.palette.Paper.paper,
+          border: `1px solid ${theme.vars.palette.divider}`,
+          borderRadius: theme.rounded.md,
+          boxShadow: "none",
+          // MUI's default hairline between stacked accordions doubles up
+          // with the border.
+          "&::before": {
+            display: "none"
+          }
+        })
+      }
+    },
+    MuiLinearProgress: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          // Matches the ProgressBar primitive: 6px pill-ish track on the
+          // hover tint, primary bar.
+          height: 6,
+          borderRadius: theme.rounded.sm,
+          backgroundColor: theme.vars.palette.action.hover
+        })
+      }
+    },
     ...editorControlsComponents
   }
 });
