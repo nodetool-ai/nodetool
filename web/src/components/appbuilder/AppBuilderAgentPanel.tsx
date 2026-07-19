@@ -134,7 +134,7 @@ const AppBuilderAgentPanel: React.FC<AppBuilderAgentPanelProps> = ({
 
   const messages = getCurrentMessagesSync();
   const viewStatus: ChatViewStatus =
-    status === "stopping" ? "loading" : (status as ChatViewStatus);
+    status === "stopping" ? "connected" : (status as ChatViewStatus);
 
   return (
     <FlexColumn

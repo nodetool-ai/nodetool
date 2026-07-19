@@ -326,7 +326,7 @@ const GlobalChat: React.FC = () => {
   }, [isMobile]);
 
   const getChatViewStatus = () => {
-    if (status === "stopping") { return "loading"; }
+    if (status === "stopping") { return "connected"; }
     return status;
   };
 

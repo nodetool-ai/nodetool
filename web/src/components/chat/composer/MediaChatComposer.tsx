@@ -425,15 +425,16 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     audioParams.format
   ]);
 
-  const { queuedMessage, sendMessage, cancelQueued } = useMessageQueue({
-    isLoading,
-    isStreaming,
-    onSendMessage: (content, promptText) => {
-      onSendMessage(content, promptText, buildMediaGeneration());
-    },
-    onStop,
-    textareaRef
-  });
+  const { queuedMessage, sendMessage, cancelQueued, sendQueuedNow } =
+    useMessageQueue({
+      isLoading,
+      isStreaming,
+      onSendMessage: (content, promptText) => {
+        onSendMessage(content, promptText, buildMediaGeneration());
+      },
+      onStop,
+      textareaRef
+    });
 
   const placeholder = useMemo(() => {
     if (placeholderOverride) {
@@ -874,10 +875,23 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
             <Text size="small" color="secondary">
               Message queued - {queuedMessage.prompt.slice(0, 60)}
             </Text>
+            {onStop && (
+              <Text
+                size="small"
+                sx={{
+                  ml: "auto",
+                  cursor: "pointer",
+                  color: "primary.main"
+                }}
+                onClick={sendQueuedNow}
+              >
+                Send now
+              </Text>
+            )}
             <Text
               size="small"
               sx={{
-                ml: "auto",
+                ml: onStop ? 0 : "auto",
                 cursor: "pointer",
                 color: "error.main"
               }}
