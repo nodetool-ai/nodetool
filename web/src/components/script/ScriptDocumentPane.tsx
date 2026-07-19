@@ -14,7 +14,8 @@ import {
   Divider,
   EmptyState,
   LoadingSpinner,
-  SPACING
+  SPACING,
+  Z_INDEX
 } from "../ui_primitives";
 import {
   useScript,
@@ -133,7 +134,7 @@ const ScriptDocumentPane = ({
           position: "sticky",
           top: 0,
           backgroundColor: "background.paper",
-          zIndex: 1
+          zIndex: Z_INDEX.sticky
         }}
       >
         {!readOnly &&

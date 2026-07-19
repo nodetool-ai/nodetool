@@ -15,7 +15,9 @@ import {
   ToolbarIconButton,
   LoadingSpinner,
   Popover,
-  SPACING
+  SPACING,
+  BORDER_RADIUS,
+  MOTION
 } from "../ui_primitives";
 import {
   useScriptStore,
@@ -118,9 +120,9 @@ const ScriptLineRow = ({
       fullWidth
       sx={{
         padding: SPACING.sm,
-        borderRadius: 1,
+        borderRadius: BORDER_RADIUS.sm,
         backgroundColor: highlighted ? "action.selected" : "transparent",
-        transition: "background-color 120ms ease"
+        transition: MOTION.background
       }}
     >
       <Tooltip title={cast.length ? "Change speaker" : "Add a speaker first"}>
