@@ -214,8 +214,15 @@ existing editor is a rewrite, not a feature.
    re-assemble in place on structural drift (preserving foreign tracks), and
    extract-as-script from a timeline transcript (`extractScript`,
    `useExtractScript`, the transcript panel's "Extract as script").
-3. **Automation** — `ui_script_*` agent tools + assistant panel, `ScriptRef` +
-   graph nodes.
+3. **Automation** *(implemented)* — `ui_script_*` agent tools
+   (`scriptAgentBridge`, `useScriptAgentBridge`, `builtin/script`:
+   `get_state`, `add_speaker`, `set_speaker_voice`, `add_line`, `set_line_text`,
+   `set_speaker`, `voice_line`, `voice_all`, `send_to_timeline`) + an in-surface
+   assistant panel (`ScriptAgentPanel`, a Cast/Assistant dock toggle),
+   `ScriptRef` in the protocol type system with a `script` data type and
+   property editor, and a graph node family (`ConstantScript`, `LoadScript`,
+   `VoiceScript` — batch TTS over a cast, `ScriptToTimeline`) reading/writing
+   scripts through new `ProcessingContext` script methods.
 4. **Depth** — dialogue-mode rendering, provider-native timestamps, SRT/VTT
    export, bundle support.
 

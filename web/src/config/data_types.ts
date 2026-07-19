@@ -149,6 +149,18 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     icon: "MovieFilter"
   },
   {
+    value: "script",
+    label: "Script",
+    description:
+      "Reference to a script. Can be opened and edited in the script editor and passed between nodes.",
+    color: colour("audio"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "Description"
+  },
+  {
     value: "bool",
     label: "Boolean",
     description:
