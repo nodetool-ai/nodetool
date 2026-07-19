@@ -9,7 +9,8 @@
 
 import React from "react";
 import { render, fireEvent, waitFor } from "@testing-library/react";
-import { ThemeProvider, createTheme } from "@mui/material/styles";
+import { ThemeProvider } from "@mui/material/styles";
+import mockTheme from "../../../__mocks__/themeMock";
 
 import { ConnectedModePromptBar } from "../editor-shell/ConnectedModePromptBar";
 import { useSketchStore } from "../state";
@@ -35,7 +36,9 @@ jest.mock("../../../hooks/useModelsByProvider", () => ({
 }));
 
 function renderBar() {
-  const theme = createTheme({ cssVariables: true });
+  // The app theme mock carries the custom palette (Paper.overlay etc.)
+  // the primitives style against; a bare createTheme lacks it.
+  const theme = mockTheme;
   return render(
     <ThemeProvider theme={theme}>
       <ConnectedModePromptBar />
