@@ -18,7 +18,6 @@ import type { StoreApi } from "zustand";
 import type { Message } from "./ApiTypes";
 import type { GlobalChatState } from "./GlobalChatStore";
 import type {
-  AgentMessage as ProtocolAgentMessage,
   AgentModelDescriptor,
   AgentStreamEvent
 } from "../lib/agent/agentTypes";
@@ -107,7 +106,7 @@ function handlePiStream(event: AgentStreamEvent, set: Set, get: Get): void {
     return;
   }
 
-  const converted = agentMessageToNodeToolMessage(message as ProtocolAgentMessage);
+  const converted = agentMessageToNodeToolMessage(message);
   if (!converted) {
     return;
   }

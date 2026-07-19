@@ -270,13 +270,18 @@ const jobOutputs = new Map<string, unknown>();
 const isActiveStatus = (status: ShotGenerationStatus): boolean =>
   status === "queued" || status === "running";
 
+function isMediaRefLike(
+  value: unknown
+): value is Record<string, unknown> & { uri?: string; asset_id?: string; data?: unknown } {
+  if (!value || typeof value !== "object") return false;
+  const v = value as Record<string, unknown>;
+  return Boolean(v.uri || v.asset_id || v.data);
+}
+
 /** Coerce an output-node value into an ImageRef (best-effort). */
 const toImageRef = (value: unknown): ImageRef | null => {
-  if (value && typeof value === "object") {
-    const v = value as Record<string, unknown>;
-    if (v.uri || v.asset_id || v.data) {
-      return { type: "image", ...v } as ImageRef;
-    }
+  if (isMediaRefLike(value)) {
+    return { ...value, type: "image" } as ImageRef;
   }
   if (typeof value === "string" && value) {
     return { type: "image", uri: value };
@@ -286,11 +291,8 @@ const toImageRef = (value: unknown): ImageRef | null => {
 
 /** Coerce an output-node value into a VideoRef (best-effort). */
 const toVideoRef = (value: unknown): VideoRef | null => {
-  if (value && typeof value === "object") {
-    const v = value as Record<string, unknown>;
-    if (v.uri || v.asset_id || v.data) {
-      return { type: "video", ...v } as VideoRef;
-    }
+  if (isMediaRefLike(value)) {
+    return { ...value, type: "video" } as VideoRef;
   }
   if (typeof value === "string" && value) {
     return { type: "video", uri: value };
@@ -299,12 +301,11 @@ const toVideoRef = (value: unknown): VideoRef | null => {
 };
 
 const extractAssetId = (value: unknown): string | undefined => {
-  if (!value || typeof value !== "object") {
+  if (!isMediaRefLike(value)) {
     return undefined;
   }
-  const v = value as Record<string, unknown>;
-  if (typeof v.asset_id === "string") return v.asset_id;
-  if (typeof v.uri === "string") return v.uri;
+  if (typeof value.asset_id === "string") return value.asset_id;
+  if (typeof value.uri === "string") return value.uri;
   return undefined;
 };
 
