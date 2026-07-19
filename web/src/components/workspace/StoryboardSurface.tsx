@@ -12,6 +12,7 @@ import { useStoryboardServerSync } from "../../hooks/storyboard/useStoryboardSer
 import { useAssembleTimeline } from "../../hooks/storyboard/useAssembleTimeline";
 import StoryboardBoard from "../storyboard/StoryboardBoard";
 import StoryboardSidebar from "../storyboard/StoryboardSidebar";
+import StoryboardQueueOverlay from "../storyboard/StoryboardQueueOverlay";
 
 interface StoryboardSurfaceProps {
   refId: string;
@@ -64,8 +65,16 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
   }, [assemble, refId]);
 
   return (
-    <div style={{ display: "flex", height: "100%", minHeight: 0 }}>
+    <div
+      style={{
+        display: "flex",
+        height: "100%",
+        minHeight: 0,
+        position: "relative"
+      }}
+    >
       {mode !== "view" && <StoryboardSidebar activeBoardId={refId} />}
+      <StoryboardQueueOverlay boardId={refId} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <StoryboardBoard
           boardId={refId}

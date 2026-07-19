@@ -15,6 +15,7 @@ jest.mock("../../../lib/websocket/GlobalWebSocketManager", () => ({
 
 import {
   useStoryboardGenerationStore,
+  settleCancelledShotJob,
   __handleShotJobMessageForTests,
   __resetStoryboardSubscriptionsForTests,
   type StoryboardJobContext
@@ -97,6 +98,75 @@ describe("inline data outputs", () => {
     expect(
       useStoryboardGenerationStore.getState().failedShotIds
     ).not.toContain("s-vid");
+  });
+});
+
+describe("cancelled jobs", () => {
+  it("settles a cancelled keyframe job back to planned when the shot has no still", () => {
+    seedShot("s-cxl");
+    const gen = useStoryboardGenerationStore.getState();
+    gen.registerJob("s-cxl", BOARD, "job-cxl", "wf", "keyframe");
+
+    __handleShotJobMessageForTests("job-cxl", context("s-cxl", "keyframe"), {
+      type: "job_update",
+      status: "cancelled"
+    } as never);
+
+    const shot = useStoryboardStore
+      .getState()
+      .getBoard(BOARD)
+      ?.shots.find((s) => s.id === "s-cxl");
+    expect(shot?.status).toBe("planned");
+    expect(
+      useStoryboardGenerationStore.getState().shotJobs["s-cxl"]
+    ).toBeUndefined();
+  });
+
+  it("keeps an existing still when a cancelled regenerate settles", () => {
+    const store = useStoryboardStore.getState();
+    store.ensureBoard(BOARD);
+    store.upsertShot(BOARD, {
+      type: "shot",
+      id: "s-regen",
+      index: 0,
+      action: "test shot",
+      status: "keyframe_ready",
+      keyframe: { type: "image", uri: "asset://still" }
+    } as never);
+    const gen = useStoryboardGenerationStore.getState();
+    gen.registerJob("s-regen", BOARD, "job-regen", "wf", "keyframe");
+
+    settleCancelledShotJob("s-regen");
+
+    const shot = useStoryboardStore
+      .getState()
+      .getBoard(BOARD)
+      ?.shots.find((s) => s.id === "s-regen");
+    expect(shot?.status).toBe("keyframe_ready");
+    expect(shot?.keyframe?.uri).toBe("asset://still");
+  });
+
+  it("settles a cancelled clip job back to approved", () => {
+    const store = useStoryboardStore.getState();
+    store.ensureBoard(BOARD);
+    store.upsertShot(BOARD, {
+      type: "shot",
+      id: "s-clip-cxl",
+      index: 0,
+      action: "test shot",
+      status: "approved",
+      keyframe: { type: "image", uri: "asset://still" }
+    } as never);
+    const gen = useStoryboardGenerationStore.getState();
+    gen.registerJob("s-clip-cxl", BOARD, "job-clip-cxl", "wf", "clip");
+
+    settleCancelledShotJob("s-clip-cxl");
+
+    const shot = useStoryboardStore
+      .getState()
+      .getBoard(BOARD)
+      ?.shots.find((s) => s.id === "s-clip-cxl");
+    expect(shot?.status).toBe("approved");
   });
 });
 
