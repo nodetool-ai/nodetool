@@ -233,9 +233,13 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
       !s.keyframe && (s.status === "planned" || s.status === "failed")
   );
 
-  // Approved shots with a still, cleared for video spend but not yet rendered.
+  // Shots with a still selected but no clip yet (and no job in flight).
   const pendingClips = shots.filter(
-    (s) => s.status === "approved" && !!s.keyframe
+    (s) =>
+      !!s.keyframe &&
+      !s.clip &&
+      s.status !== "keyframe_generating" &&
+      s.status !== "clip_generating"
   );
 
   const { generateKeyframe, generateClip } = useGenerateShot();

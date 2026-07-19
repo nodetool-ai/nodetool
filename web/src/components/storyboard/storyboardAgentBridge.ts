@@ -77,7 +77,6 @@ export interface StoryboardAgentHandler {
     patch: StoryboardUpdateShotPatch
   ) => StoryboardShotNode;
   generateKeyframe: (target: string) => Promise<StoryboardShotNode>;
-  approveShot: (target: string) => StoryboardShotNode;
   generateClip: (target: string) => Promise<StoryboardShotNode>;
   /**
    * Regenerate an existing shot's clip via video-to-video, seeded by its current

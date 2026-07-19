@@ -5,8 +5,8 @@ import { getStoryboardAgentHandler } from "../../../components/storyboard/storyb
 
 /**
  * Frontend tools that let the agent direct the live Storyboard surface — load a
- * screenplay, add and edit shots, generate stills and clips, approve, and
- * select. Each delegates to the handler the open StoryboardSurface registers on
+ * screenplay, add and edit shots, generate stills and clips, and select. Each
+ * delegates to the handler the open StoryboardSurface registers on
  * the {@link storyboardAgentBridge}; when no board is open the handler getter
  * throws "No storyboard is open." which the tool layer surfaces to the agent.
  *
@@ -123,20 +123,9 @@ FrontendToolRegistry.register({
 });
 
 FrontendToolRegistry.register({
-  name: "ui_storyboard_approve_shot",
-  description:
-    "Approve a shot's keyframe still, clearing it for the (more expensive) clip render. Only meaningful once the still is ready.",
-  parameters: z.object({ target: targetParam }),
-  async execute({ target }) {
-    const shot = getStoryboardAgentHandler().approveShot(target);
-    return { ok: true, shot };
-  }
-});
-
-FrontendToolRegistry.register({
   name: "ui_storyboard_generate_clip",
   description:
-    "Render the final clip for an approved shot, animating its keyframe. Kicks off the job and returns the shot; poll ui_storyboard_get_state for the resulting status.",
+    "Render the final clip for a shot, animating its selected keyframe still. The shot must have a still. Kicks off the job and returns the shot; poll ui_storyboard_get_state for the resulting status.",
   parameters: z.object({ target: targetParam }),
   async execute({ target }) {
     const shot = await getStoryboardAgentHandler().generateClip(target);

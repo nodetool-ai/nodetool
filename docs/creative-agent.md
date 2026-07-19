@@ -8,9 +8,9 @@ image: /assets/creative-agent/storyboard-surface.png
 
 NodeTool turns a one-line brief into a finished film through a pipeline you
 can inspect and steer at every step: a Director agent writes a typed
-screenplay, a storyboard renders cheap stills you approve before video spend,
-each shot becomes a clip you can revise in place, and one click assembles the
-cut into the timeline editor for finishing and export.
+screenplay, a storyboard renders cheap stills you pick from before video
+spend, each shot becomes a clip you can revise in place, and one click
+assembles the cut into the timeline editor for finishing and export.
 
 The whole chain is drivable three ways: from the UI, from chat (the agent
 uses the same `ui_*` tools), or from an external agent such as Claude Code
@@ -23,20 +23,21 @@ graph LR
   brief["Brief"]
   direct["Direct<br/>(Director agent)"]
   stills["Stills<br/>(cents)"]
-  approve["Approve"]
+  pick["Pick a still"]
   clips["Clips<br/>(dollars)"]
   revise["Revise<br/>(video-to-video)"]
   assemble["Assemble<br/>timeline"]
   nle["Timeline editor<br/>(trim, mix, captions)"]
   export["Export"]
-  brief --> direct --> stills --> approve --> clips --> assemble --> nle --> export
+  brief --> direct --> stills --> pick --> clips --> assemble --> nle --> export
   clips --> revise --> clips
   revise -. "round-trips into the cut" .-> nle
 {% endmermaid %}
 
-Cheap stages come first. A still costs cents; a clip costs dollars; the
-approval gate sits between them. Nothing renders twice unless you ask for it,
-and a revision made after assembly lands in the persisted cut automatically.
+Cheap stages come first. A still costs cents; a clip costs dollars; you pick
+the still you like before paying for the clip. Nothing renders twice unless
+you ask for it, and a revision made after assembly lands in the persisted cut
+automatically.
 
 ## Direct: brief in, screenplay out
 
@@ -51,21 +52,20 @@ Two sibling nodes make the screenplay usable inside any workflow graph:
 image-generation prompt, and `nodetool.creative.ApplyEntities` injects entity
 descriptors for consistency (below).
 
-## The storyboard: plan, approve, then spend
+## The storyboard: plan, pick a still, then spend
 
 <img src="{{ '/assets/creative-agent/storyboard-surface.png' | relative_url }}" alt="Storyboard surface with five shot cards across every status">
 
 Each card walks one shot through its lifecycle (**Planned → Still ready →
-Approved → Rendering → Rendered**) with the actions that fit its state:
-generate a still, approve it, generate the clip, revise the clip with a text
-instruction ("make it darker, add rain"). Revision runs video-to-video on the
-existing clip and swaps the result in place, so fixing shot 3 never means
-re-rolling shots 1–5.
+Rendering → Rendered**) with the actions that fit its state: generate stills
+until one looks right, click the one to use, generate the clip from it,
+revise the clip with a text instruction ("make it darker, add rain").
+Revision runs video-to-video on the existing clip and swaps the result in
+place, so fixing shot 3 never means re-rolling shots 1–5.
 
-Agents drive the same surface through ten `ui_storyboard_*` tools:
+Agents drive the same surface through nine `ui_storyboard_*` tools:
 `get_state`, `set_screenplay`, `add_shot`, `update_shot`, `generate_keyframe`,
-`approve_shot`, `generate_clip`, `revise_shot`, `assemble_timeline`, and
-`select_shot`.
+`generate_clip`, `revise_shot`, `assemble_timeline`, and `select_shot`.
 
 ## Assemble: from storyboard to timeline
 

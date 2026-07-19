@@ -120,7 +120,7 @@ describe("StoryboardQueueOverlay", () => {
       .getState()
       .getBoard(BOARD)
       ?.shots.find((s) => s.id === "s2");
-    expect(shot?.status).toBe("approved");
+    expect(shot?.status).toBe("keyframe_ready");
   });
 
   it("cancels every active job via Cancel all", async () => {

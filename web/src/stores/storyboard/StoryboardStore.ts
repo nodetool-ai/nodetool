@@ -8,12 +8,12 @@
  *
  * A board is the editable spine the Director produces and the shot cards render:
  * a {@link Screenplay} plus a flat `shots` array (the direction the surface
- * mutates as stills/clips are generated and approved).
+ * mutates as stills/clips are generated and selected).
  *
  * Usage:
  *   const board = useBoard(boardId);           // reactive board view
  *   const shot = useShot(boardId, shotId);     // reactive single shot
- *   useStoryboardStore.getState().approveShot(boardId, shotId);
+ *   useStoryboardStore.getState().selectKeyframeVersion(boardId, shotId, 0);
  */
 
 import { create } from "zustand";
@@ -120,7 +120,6 @@ interface StoryboardStoreState {
     shotId: string,
     versionIndex: number
   ) => void;
-  approveShot: (boardId: string, shotId: string) => void;
   removeShot: (boardId: string, shotId: string) => void;
   /** Reorder shots to match `orderedIds`; re-stamps each shot's `index`. */
   reorderShots: (boardId: string, orderedIds: string[]) => void;
@@ -230,7 +229,7 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
             s.status === "keyframe_generating"
               ? { ...s, status: "planned" as const }
               : s.status === "clip_generating"
-                ? { ...s, status: "approved" as const }
+                ? { ...s, status: "keyframe_ready" as const }
                 : s
           ),
           updatedAt: Date.now()
@@ -443,13 +442,6 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
         }
         return patchShot(b, shotId, { clip });
       })
-    ),
-
-  approveShot: (boardId, shotId) =>
-    set((state) =>
-      withBoard(state, boardId, (b) =>
-        patchShot(b, shotId, { status: "approved" })
-      )
     ),
 
   removeShot: (boardId, shotId) =>
