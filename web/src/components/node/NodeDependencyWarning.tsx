@@ -38,14 +38,14 @@ const warningStyles = (theme: Theme) =>
 
     ".warning-text": {
       fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.warning.dark,
       lineHeight: "1.3em",
     },
 
     ".install-link": {
       fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.primary.main,
       cursor: "pointer",
       textDecoration: "underline",
@@ -59,7 +59,7 @@ const warningStyles = (theme: Theme) =>
 
     ".install-btn": {
       fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.common.white,
       backgroundColor: theme.vars.palette.primary.main,
       border: "none",

@@ -1152,7 +1152,7 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
           <div className="header-title">
             <div className="logo-accent">NT</div>
             <div>
-              <Text size="bigger" weight={600} color="text.primary">
+              <Text size="big" weight={600} color="text.primary">
                 UI Primitives
               </Text>
               <Text size="small" color="secondary">

@@ -452,9 +452,7 @@ const PropertiesPanel = ({ object, tick, onChanged }: PropertiesPanelProps) => {
               onChange={handleNameChange}
             />
           </FlexRow>
-          <Text size="tiny" color="secondary" sx={{ padding: `0 ${getSpacingPx(SPACING.md)}` }}>
-            {object.type}
-          </Text>
+          <Text size="smaller" color="secondary" sx={{ padding: `0 ${getSpacingPx(SPACING.md)}` }}>{object.type}</Text>
           <CheckboxRow
             label="Visible"
             checked={object.visible}
@@ -565,9 +563,7 @@ const PropertiesPanel = ({ object, tick, onChanged }: PropertiesPanelProps) => {
           <TabPanel value="geometry" activeValue={effectiveTab}>
           {mesh && geometryParams && isEditableGeometryType(geometryType) && (
             <>
-              <Text size="tiny" color="secondary" sx={{ padding: `0 ${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xs)}` }}>
-                {geometryType}
-              </Text>
+              <Text size="smaller" color="secondary" sx={{ padding: `0 ${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xs)}` }}>{geometryType}</Text>
               {GEOMETRY_PARAM_SPECS[geometryType].map((spec) => {
                 const isAngle = spec.kind === "angle";
                 const stored = geometryParams[spec.key];
@@ -593,9 +589,7 @@ const PropertiesPanel = ({ object, tick, onChanged }: PropertiesPanelProps) => {
           <TabPanel value="material" activeValue={effectiveTab}>
           {material && (
             <>
-              <Text size="tiny" color="secondary" sx={{ padding: `0 ${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xs)}` }}>
-                {material.type}
-              </Text>
+              <Text size="smaller" color="secondary" sx={{ padding: `0 ${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xs)}` }}>{material.type}</Text>
 
               {MATERIAL_COLOR_FIELDS.map(({ key, label }) => {
                 const color = getColorProp(material, key);

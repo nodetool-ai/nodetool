@@ -108,7 +108,7 @@ const styles = (theme: Theme) =>
     ".sort-assets": {
       margin: "0 .5em",
       color: "var(--palette-primary-main)",
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       textTransform: "uppercase",
       position: "relative"
     },
@@ -156,7 +156,7 @@ const styles = (theme: Theme) =>
       margin: "0",
       padding: "0 0.25em",
       color: "var(--palette-primary-main)",
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       textTransform: "uppercase",
       position: "relative"
     },

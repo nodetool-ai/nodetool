@@ -208,9 +208,7 @@ const AssetThumb = memo(function AssetThumb({ asset }: { asset: Asset }) {
             sx={{ width: "100%", height: "100%", objectFit: "cover" }}
           />
         ) : (
-          <Text size="tinyer" color="secondary" truncate sx={{ px: 0.5 }}>
-            {asset.content_type?.split("/")[1] || "file"}
-          </Text>
+          <Text size="smaller" color="secondary" truncate sx={{ px: 0.5 }}>{asset.content_type?.split("/")[1] || "file"}</Text>
         )}
       </Box>
     </Tooltip>
@@ -343,19 +341,12 @@ const JobItem = ({ job }: { job: Job }) => {
             {workflowName}
           </Text>
           <Tooltip title={job.id}>
-            <Text
-              size="tiny"
-              color="secondary"
-              family="secondary"
-              sx={{ flex: "0 0 auto" }}
-            >
-              {shortId}
-            </Text>
+            <Text size="smaller" color="secondary"
+            family="secondary"
+            sx={{ flex: "0 0 auto" }}>{shortId}</Text>
           </Tooltip>
         </FlexRow>
-        <Text size="tiny" color={isError ? "error" : "secondary"} truncate>
-          {metaText}
-        </Text>
+        <Text size="smaller" color={isError ? "error" : "secondary"} truncate>{metaText}</Text>
       </FlexColumn>
       {/* All outputs, shown inline across the available width. */}
       <FlexRow

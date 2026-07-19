@@ -194,7 +194,7 @@ export const HeadingWidget: React.FC<WidgetCommon & {
   const { value } = useBinding(props, "read");
   const text = value != null ? str(value) : props.text ?? "";
   const level = props.level ?? "1";
-  const size = level === "1" ? "giant" : level === "2" ? "bigger" : "big";
+  const size = level === "1" ? "giant" : "big";
   return (
     <Text size={size} weight={600}>
       {text}

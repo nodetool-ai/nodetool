@@ -81,7 +81,7 @@
          : editorUiClasses.scopeNode;
 
      const fontSize =
-       scope === "inspector" ? theme.fontSizeSmall : theme.fontSizeTiny;
+       scope === "inspector" ? theme.fontSizeSmall : theme.fontSizeSmaller;
      const height = density === "compact" ? 24 : 28;
 
      const selectSx = useMemo(() => ({

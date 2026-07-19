@@ -84,7 +84,7 @@ const VideoRecorder = (props: VideoRecorderProps) => {
       ".device-list": {
         position: "relative",
         maxWidth: "200px",
-        fontSize: theme.fontSizeTiny,
+        fontSize: theme.fontSizeSmaller,
         color: theme.vars.palette.grey[200]
       },
       ".device-select": {
@@ -124,7 +124,7 @@ const VideoRecorder = (props: VideoRecorderProps) => {
       },
       "& .error": {
         color: theme.vars.palette.error.main,
-        fontSize: theme.fontSizeTiny,
+        fontSize: theme.fontSizeSmaller,
         lineHeight: "1.1em"
       }
     });
@@ -197,14 +197,11 @@ const VideoRecorder = (props: VideoRecorderProps) => {
         <div className="device-list" style={{ margin: theme.spacing(1.5) }}>
           {videoInputDevices.length > 0 ? (
             <>
-              <Text
-                size="bigger"
-                sx={{
-                  fontSize: "var(--fontSizeSmaller)",
-                  margin: "0 0 .5em 0",
-                  color: "var(--palette-grey-100)"
-                }}
-              >
+              <Text size="big" sx={{
+                fontSize: "var(--fontSizeSmaller)",
+                margin: "0 0 .5em 0",
+                color: "var(--palette-grey-100)"
+              }}>
                 Camera
               </Text>
               <div
@@ -243,14 +240,11 @@ const VideoRecorder = (props: VideoRecorderProps) => {
 
           {audioInputDevices.length > 0 && (
             <>
-              <Text
-                size="bigger"
-                sx={{
-                  fontSize: "var(--fontSizeSmaller)",
-                  margin: "1em 0 .5em 0",
-                  color: "var(--palette-grey-100)"
-                }}
-              >
+              <Text size="big" sx={{
+                fontSize: "var(--fontSizeSmaller)",
+                margin: "1em 0 .5em 0",
+                color: "var(--palette-grey-100)"
+              }}>
                 Microphone
               </Text>
               <div

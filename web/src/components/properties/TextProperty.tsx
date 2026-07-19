@@ -17,7 +17,7 @@ const styles = (theme: Theme) =>
       border: "none",
       borderRadius: "0",
       fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       lineHeight: "1.2"
     },
     ".container": {

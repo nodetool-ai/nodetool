@@ -57,9 +57,7 @@ export const OutputSelector: React.FC<OutputSelectorProps> = React.memo(function
         <Text size="smaller" weight={600} sx={{ color: theme.vars.palette.primary.main }}>
           Output: {selected?.name ?? selectedOutput}
         </Text>
-        <Text size="tiny" sx={{ color: `${theme.vars.palette.primary.main}99` }}>
-          {selected ? formatType(selected.type) : ""}
-        </Text>
+        <Text size="smaller" sx={{ color: `${theme.vars.palette.primary.main}99` }}>{selected ? formatType(selected.type) : ""}</Text>
         <ExpandMoreIcon sx={{ fontSize: 14, color: theme.vars.palette.primary.main }} />
       </Box>
 

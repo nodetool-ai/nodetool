@@ -36,7 +36,7 @@ const styles = (theme: Theme) =>
     },
     ".stat-label": {
       color: theme.vars.palette.grey[400],
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       textTransform: "uppercase",
       letterSpacing: "0.06em",
       lineHeight: 1

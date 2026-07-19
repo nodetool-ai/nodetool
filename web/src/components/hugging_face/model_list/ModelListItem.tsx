@@ -172,7 +172,7 @@ const ModelListItem: React.FC<
                   component="span"
                   sx={{
                     height: 20,
-                    fontSize: theme.vars.fontSizeTiny,
+                    fontSize: theme.vars.fontSizeSmaller,
                     color: theme.vars.palette.c_provider_local,
                     borderColor: theme.vars.palette.c_provider_local,
                     background: "transparent",
@@ -190,7 +190,7 @@ const ModelListItem: React.FC<
                   component="span"
                   sx={{
                     height: 20,
-                    fontSize: theme.vars.fontSizeTiny,
+                    fontSize: theme.vars.fontSizeSmaller,
                     color: theme.vars.palette.grey[50],
                     borderColor: "currentColor",
                     background: "transparent",
@@ -227,7 +227,7 @@ const ModelListItem: React.FC<
                   icon={<VisibilityIcon style={{ fontSize: "var(--fontSizeNormal)" }} />}
                   sx={{
                     height: 20,
-                    fontSize: theme.vars.fontSizeTiny,
+                    fontSize: theme.vars.fontSizeSmaller,
                     borderColor: theme.vars.palette.primary.main,
                     color: theme.vars.palette.primary.main,
                     background: "rgba(var(--palette-primary-main-channel) / 0.1)",

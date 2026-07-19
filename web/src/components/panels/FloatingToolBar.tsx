@@ -62,8 +62,8 @@ const RunningTime: React.FC<{ isRunning: boolean; timerKey?: string }> = memo(
     const { text, sizeKey } = formatRunningTime(elapsedSeconds);
     const fontSizeMap = {
       smaller: theme.fontSizeSmaller,
-      tiny: theme.fontSizeTiny,
-      tinyer: theme.fontSizeTinyer
+      tiny: theme.fontSizeSmaller,
+      tinyer: theme.fontSizeSmaller
     };
     return (
       <span

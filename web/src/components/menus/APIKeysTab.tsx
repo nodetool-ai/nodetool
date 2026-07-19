@@ -546,7 +546,7 @@ export const ProviderCard = memo(function ProviderCard({
         </Caption>
         {meta.note && (
           <Caption
-            size="tiny"
+            size="smaller"
             sx={{
               opacity: 0.45,
               lineHeight: 1.4
@@ -620,13 +620,13 @@ export const ProviderCard = memo(function ProviderCard({
             </FlexRow>
           )}
           {isConnected && secret.updated_at && (
-            <Caption size="tiny" sx={{ opacity: 0.45, whiteSpace: "nowrap" }}>
+            <Caption size="smaller" sx={{ opacity: 0.45, whiteSpace: "nowrap" }}>
               Last used{" "}
               {new Date(secret.updated_at).toLocaleDateString()}
             </Caption>
           )}
           {!isConnected && (
-            <Caption size="tiny" sx={{ opacity: 0.45, whiteSpace: "nowrap" }}>
+            <Caption size="smaller" sx={{ opacity: 0.45, whiteSpace: "nowrap" }}>
               Add your API key to get started.
             </Caption>
           )}
@@ -773,10 +773,8 @@ const GetStartedBanner = memo(function GetStartedBanner({
                 {step.num}
               </FlexRow>
               <FlexColumn sx={{ maxWidth: 160 }}>
-                <Text size="tiny" weight={600}>
-                  {step.title}
-                </Text>
-                <Caption sx={{ opacity: 0.5, lineHeight: 1.4, fontSize: theme.fontSizeTinyer }}>
+                <Text size="smaller" weight={600}>{step.title}</Text>
+                <Caption sx={{ opacity: 0.5, lineHeight: 1.4, fontSize: theme.fontSizeSmaller }}>
                   {step.desc}
                 </Caption>
               </FlexColumn>
@@ -1327,10 +1325,10 @@ export const SecurityNotice = memo(function SecurityNotice() {
           }}
         />
         <FlexColumn sx={{ minWidth: 0 }}>
-          <Text size="tiny" weight={600}>
+          <Text size="smaller" weight={600}>
             Your secrets are safe
           </Text>
-          <Caption size="tiny" sx={{ opacity: 0.6, lineHeight: 1.4, marginTop: theme.spacing(0.5) }}>
+          <Caption size="smaller" sx={{ opacity: 0.6, lineHeight: 1.4, marginTop: theme.spacing(0.5) }}>
             All API keys are encrypted in the database and never exposed.
           </Caption>
           <EditorButton
@@ -1442,10 +1440,8 @@ export const APIKeysRightSidebar = memo(function APIKeysRightSidebar() {
                 {link.icon}
               </FlexRow>
               <FlexColumn sx={{ flex: 1, minWidth: 0 }}>
-                <Text size="tiny" weight={500}>
-                  {link.title}
-                </Text>
-                <Caption sx={{ opacity: 0.5, fontSize: theme.fontSizeTinyer, lineHeight: 1.3 }}>
+                <Text size="smaller" weight={500}>{link.title}</Text>
+                <Caption sx={{ opacity: 0.5, fontSize: theme.fontSizeSmaller, lineHeight: 1.3 }}>
                   {link.subtitle}
                 </Caption>
               </FlexColumn>
