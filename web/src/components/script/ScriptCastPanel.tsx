@@ -143,10 +143,7 @@ const ScriptCastPanel = ({
     <FlexColumn
       gap={SPACING.md}
       sx={{
-        width: 300,
-        flexShrink: 0,
-        borderLeft: "1px solid",
-        borderColor: "divider",
+        width: "100%",
         padding: SPACING.md,
         height: "100%",
         overflowY: "auto"

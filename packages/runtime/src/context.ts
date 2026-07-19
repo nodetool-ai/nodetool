@@ -400,6 +400,25 @@ export interface ProcessingContextModelInterfaces {
     id: string;
     sequence: unknown;
   }) => Promise<unknown | null>;
+  /** Load a persisted script by id; null when missing or not owned. */
+  getScript?: (args: {
+    userId: string;
+    id: string;
+  }) => Promise<unknown | null>;
+  /** Create a persisted script from a name + document. */
+  createScript?: (args: {
+    userId: string;
+    name?: string;
+    projectId?: string;
+    document: unknown;
+  }) => Promise<unknown>;
+  /** Replace a persisted script's document (and optional timeline link); null when missing or not owned. */
+  updateScript?: (args: {
+    userId: string;
+    id: string;
+    document?: unknown;
+    timelineId?: string | null;
+  }) => Promise<unknown | null>;
 }
 
 function isWithinRoot(root: string, target: string): boolean {
@@ -1955,6 +1974,31 @@ export class ProcessingContext {
   ): Promise<unknown | null> {
     const fn = this.requireModelInterface("updateTimelineSequence");
     return fn({ userId: this.userId, id, sequence });
+  }
+
+  /** Load a persisted script owned by the current user. */
+  async getScript(id: string): Promise<unknown | null> {
+    const fn = this.requireModelInterface("getScript");
+    return fn({ userId: this.userId, id });
+  }
+
+  /** Create a persisted script owned by the current user. */
+  async createScript(args: {
+    name?: string;
+    projectId?: string;
+    document: unknown;
+  }): Promise<unknown> {
+    const fn = this.requireModelInterface("createScript");
+    return fn({ userId: this.userId, ...args });
+  }
+
+  /** Replace a persisted script's document (and optional timeline link). */
+  async updateScript(
+    id: string,
+    args: { document?: unknown; timelineId?: string | null }
+  ): Promise<unknown | null> {
+    const fn = this.requireModelInterface("updateScript");
+    return fn({ userId: this.userId, id, ...args });
   }
 
   /**

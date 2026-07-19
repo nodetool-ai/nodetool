@@ -39,6 +39,7 @@ import {
   ModelChangeEvent,
   ModelObserver,
   Prediction,
+  Script,
   Thread,
   TimelineSequence,
   Workflow,
@@ -1035,6 +1036,37 @@ function createRuntimeContext(opts: {
         }
       );
       return updated ? updated.toTimelineSequence() : null;
+    },
+    getScript: async ({ userId, id }) => {
+      const script = await Script.findById(id);
+      if (!script || script.user_id !== userId) return null;
+      return script.toResponse();
+    },
+    createScript: async ({ userId, name, projectId, document }) => {
+      const script = new Script({
+        user_id: userId,
+        name: name ?? "Untitled script",
+        project_id: projectId ?? "default",
+        document: JSON.stringify(document)
+      });
+      await script.save();
+      return script.toResponse();
+    },
+    updateScript: async ({ userId, id, document, timelineId }) => {
+      const existing = await Script.findById(id);
+      if (!existing || existing.user_id !== userId) return null;
+      const fields: Partial<{
+        document: string;
+        timeline_id: string | null;
+      }> = {};
+      if (document !== undefined) fields.document = JSON.stringify(document);
+      if (timelineId !== undefined) fields.timeline_id = timelineId;
+      const updated = await Script.updateFieldsIfUnchanged(
+        id,
+        existing.updated_at,
+        fields
+      );
+      return updated ? updated.toResponse() : null;
     }
   });
 

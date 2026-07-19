@@ -9,6 +9,7 @@ import type {
   ImageRef,
   LanguageModel,
   Model3DRef,
+  ScriptRef,
   SketchRef,
   TimelineRef,
   TTSModel,
@@ -23,6 +24,7 @@ import {
   imageRefDefault,
   jsonRefDefault,
   model3DRefDefault,
+  scriptRefDefault,
   sketchRefDefault,
   timelineRefDefault,
   videoRefDefault
@@ -363,6 +365,29 @@ export class ConstantTimelineNode extends BaseNode {
     title: "Value"
   })
   declare value: TimelineRef;
+
+  async process(): Promise<Record<string, unknown>> {
+    return { output: this.value ?? {} };
+  }
+}
+
+export class ConstantScriptNode extends BaseNode {
+  static readonly nodeType = "nodetool.constant.Script";
+  static readonly title = "Script";
+  static readonly description =
+    "References a script in the workflow.\n    script, voiceover, narration, cast, tts\n\n    Use cases:\n    - Pass a script between nodes for voicing or timeline assembly\n    - Open and edit the referenced script in the script editor\n    - Provide a fixed script input for downstream nodes";
+  static readonly metadataOutputTypes = {
+    output: "script"
+  };
+  static readonly inlineFields = ["value"];
+  static readonly inputFields = [];
+
+  @prop({
+    type: "script",
+    default: scriptRefDefault,
+    title: "Value"
+  })
+  declare value: ScriptRef;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
@@ -896,6 +921,7 @@ export const CONSTANT_NODES = tagAsUniversal([
   ConstantDocumentNode,
   ConstantSketchNode,
   ConstantTimelineNode,
+  ConstantScriptNode,
   ConstantJSONNode,
   ConstantModel3DNode,
   ConstantDataFrameNode,

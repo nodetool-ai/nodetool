@@ -368,6 +368,12 @@ export {
   TIMELINE_NODES
 } from "@nodetool-ai/video-nodes/nodes/timeline";
 export {
+  LoadScriptNode,
+  VoiceScriptNode,
+  ScriptToTimelineNode,
+  SCRIPT_NODES
+} from "@nodetool-ai/video-nodes/nodes/script";
+export {
   SummarizerNode,
   EnhancePromptNode,
   CreateThreadNode,
@@ -761,6 +767,7 @@ import { IMAGE_NODES } from "@nodetool-ai/image-nodes/nodes/image";
 import { SKETCH_NODES } from "@nodetool-ai/image-nodes/nodes/sketch";
 import { VIDEO_NODES } from "@nodetool-ai/video-nodes/nodes/video";
 import { TIMELINE_NODES } from "@nodetool-ai/video-nodes/nodes/timeline";
+import { SCRIPT_NODES } from "@nodetool-ai/video-nodes/nodes/script";
 import { AGENT_NODES } from "@nodetool-ai/llm-nodes/nodes/agents";
 import { GENERATOR_NODES } from "@nodetool-ai/llm-nodes/nodes/generators";
 import { DIRECTOR_NODES } from "@nodetool-ai/llm-nodes/nodes/director";
@@ -852,6 +859,7 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...SKETCH_NODES,
   ...VIDEO_NODES,
   ...TIMELINE_NODES,
+  ...SCRIPT_NODES,
   ...AGENT_NODES,
   ...GENERATOR_NODES,
   ...DIRECTOR_NODES,
