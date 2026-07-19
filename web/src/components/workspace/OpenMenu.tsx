@@ -21,6 +21,7 @@ import {
 import { trpcClient } from "../../trpc/client";
 import { useAssetSearch } from "../../serverState/useAssetSearch";
 import { useCreateTimeline } from "../../hooks/useTimelineSequence";
+import { useCreateStoryboard } from "../../hooks/storyboard/useStoryboards";
 import { useAssetStore } from "../../stores/AssetStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
@@ -146,6 +147,7 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
   const createNewThread = useGlobalChatStore((state) => state.createNewThread);
   const createAsset = useAssetStore((state) => state.createAsset);
   const createTimeline = useCreateTimeline();
+  const createStoryboard = useCreateStoryboard();
   const { searchAssets } = useAssetSearch();
 
   const close = useCallback(() => {
@@ -222,16 +224,23 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
     }
   }, [createTimeline, openTab, close]);
 
-  const handleNewStoryboard = useCallback(() => {
-    // The board is a client-side singleton keyed by ref; no backend document.
-    openTab({
-      type: "storyboard",
-      ref: crypto.randomUUID(),
-      mode: "edit",
-      title: "Untitled storyboard"
-    });
-    close();
-  }, [openTab, close]);
+  const handleNewStoryboard = useCallback(async () => {
+    try {
+      const created = await createStoryboard.mutateAsync({
+        name: "Untitled storyboard",
+        projectId: "default"
+      });
+      openTab({
+        type: "storyboard",
+        ref: created.id,
+        mode: "edit",
+        title: created.name
+      });
+      close();
+    } catch (error) {
+      console.error("Failed to create storyboard", error);
+    }
+  }, [createStoryboard, openTab, close]);
 
   const handleNewChat = useCallback(async () => {
     try {
@@ -388,7 +397,7 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
             <MenuItemPrimitive
               label="New storyboard"
               icon={<DashboardOutlinedIcon fontSize="small" />}
-              onClick={handleNewStoryboard}
+              onClick={() => void handleNewStoryboard()}
             />
             <MenuItemPrimitive
               label="New 3D model"

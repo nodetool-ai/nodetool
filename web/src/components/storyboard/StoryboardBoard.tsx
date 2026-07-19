@@ -24,11 +24,15 @@ import {
   Divider,
   Text,
   SPACING,
-  getSpacingPx
+  getSpacingPx,
+  BORDER_RADIUS,
+  MOTION
 } from "../ui_primitives";
 import { useBoard, useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
+import { useGenerateShot } from "../../hooks/storyboard/useGenerateShot";
 import LanguageModelSelect from "../properties/LanguageModelSelect";
 import ImageModelSelect from "../properties/ImageModelSelect";
+import VideoModelSelect from "../properties/VideoModelSelect";
 import ShotCard from "./ShotCard";
 
 interface StoryboardBoardProps {
@@ -91,6 +95,65 @@ const styles = (theme: Theme) =>
       gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
       gap: getSpacingPx(SPACING.md)
     },
+    // ── Directing: ghost cards materializing while the screenplay is written ──
+    "@keyframes storyboard-ghost-in": {
+      from: { opacity: 0, transform: "translateY(8px) scale(0.98)" },
+      to: { opacity: 1, transform: "translateY(0) scale(1)" }
+    },
+    "@keyframes storyboard-shimmer": {
+      from: { backgroundPosition: "200% 0" },
+      to: { backgroundPosition: "-200% 0" }
+    },
+    "@keyframes storyboard-spark": {
+      "0%, 100%": { opacity: 0.35, transform: "scale(0.9) rotate(0deg)" },
+      "50%": { opacity: 0.9, transform: "scale(1.15) rotate(90deg)" }
+    },
+    ".directing-line": {
+      color: theme.vars.palette.primary.main,
+      backgroundImage: `linear-gradient(90deg, ${theme.vars.palette.primary.main}, ${theme.vars.palette.text.secondary}, ${theme.vars.palette.primary.main})`,
+      backgroundSize: "200% 100%",
+      backgroundClip: "text",
+      WebkitBackgroundClip: "text",
+      WebkitTextFillColor: "transparent",
+      animation: `storyboard-shimmer ${MOTION.spin} infinite`
+    },
+    ".ghost-card": {
+      border: `1px solid ${theme.vars.palette.divider}`,
+      borderRadius: theme.shape.borderRadius,
+      padding: getSpacingPx(SPACING.md),
+      display: "flex",
+      flexDirection: "column",
+      gap: getSpacingPx(SPACING.sm),
+      opacity: 0,
+      animation: `storyboard-ghost-in ${MOTION.slow} both`
+    },
+    ".ghost-frame": {
+      aspectRatio: "16 / 9",
+      borderRadius: BORDER_RADIUS.sm,
+      display: "grid",
+      placeItems: "center",
+      backgroundImage: `linear-gradient(100deg, ${theme.vars.palette.c_overlay_subtle} 40%, ${theme.vars.palette.action.selected} 50%, ${theme.vars.palette.c_overlay_subtle} 60%)`,
+      backgroundSize: "200% 100%",
+      animation: `storyboard-shimmer ${MOTION.spin} infinite`
+    },
+    ".ghost-line": {
+      height: "10px",
+      borderRadius: BORDER_RADIUS.pill,
+      backgroundImage: `linear-gradient(100deg, ${theme.vars.palette.c_overlay_subtle} 40%, ${theme.vars.palette.action.selected} 50%, ${theme.vars.palette.c_overlay_subtle} 60%)`,
+      backgroundSize: "200% 100%",
+      animation: `storyboard-shimmer ${MOTION.spin} infinite`
+    },
+    ".spark": {
+      fontSize: "1.5em",
+      color: theme.vars.palette.primary.main,
+      animation: `storyboard-spark ${MOTION.pulse} infinite`
+    },
+    "@media (prefers-reduced-motion: reduce)": {
+      ".ghost-frame, .ghost-line, .directing-line, .spark": {
+        animation: "none"
+      },
+      ".ghost-card": { animation: "none", opacity: 1 }
+    },
     ".header-fields": {
       color: theme.vars.palette.text.secondary,
       // Panel clips its content; the shrunk "Title" label sits above the input
@@ -147,8 +210,16 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   assembleError
 }) => {
   const theme = useTheme();
-  const { title, brief, style, aspectRatio, directorModel, imageModel, shots } =
-    useBoard(boardId);
+  const {
+    title,
+    brief,
+    style,
+    aspectRatio,
+    directorModel,
+    imageModel,
+    videoModel,
+    shots
+  } = useBoard(boardId);
 
   const setTitle = useStoryboardStore((state) => state.setTitle);
   const setBrief = useStoryboardStore((state) => state.setBrief);
@@ -156,6 +227,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   const setAspectRatio = useStoryboardStore((state) => state.setAspectRatio);
   const setDirectorModel = useStoryboardStore((state) => state.setDirectorModel);
   const setImageModel = useStoryboardStore((state) => state.setImageModel);
+  const setVideoModel = useStoryboardStore((state) => state.setVideoModel);
 
   const [shotCount, setShotCount] = useState<number>(6);
 
@@ -166,6 +238,29 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   const hasRenderedShot = shots.some(
     (s) => s.status === "rendered" && !!s.clip?.asset_id
   );
+
+  // Shots still waiting for their first still (or whose last attempt failed).
+  const pendingStills = shots.filter(
+    (s) =>
+      !s.keyframe && (s.status === "planned" || s.status === "failed")
+  );
+
+  // Approved shots with a still, cleared for video spend but not yet rendered.
+  const pendingClips = shots.filter(
+    (s) => s.status === "approved" && !!s.keyframe
+  );
+
+  const { generateKeyframe, generateClip } = useGenerateShot();
+  const handleGenerateAllStills = useCallback(() => {
+    for (const shot of pendingStills) {
+      void generateKeyframe(boardId, shot);
+    }
+  }, [pendingStills, generateKeyframe, boardId]);
+  const handleGenerateAllClips = useCallback(() => {
+    for (const shot of pendingClips) {
+      void generateClip(boardId, shot);
+    }
+  }, [pendingClips, generateClip, boardId]);
 
   return (
     <div css={styles(theme)} className="storyboard-board">
@@ -222,6 +317,13 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                     onChange={(value) => setImageModel(boardId, value)}
                   />
                 </Field>
+                <Field label="Clip model">
+                  <VideoModelSelect
+                    value={videoModel?.id ?? ""}
+                    task="image_to_video"
+                    onChange={(value) => setVideoModel(boardId, value)}
+                  />
+                </Field>
                 <Field label="Aspect ratio">
                   <SelectField
                     label="Aspect ratio"
@@ -258,6 +360,20 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
               <FlexRow gap={2} align="center">
                 <EditorButton
                   variant="outlined"
+                  onClick={handleGenerateAllStills}
+                  disabled={pendingStills.length === 0 || directing}
+                >
+                  {`✦ Generate all stills${pendingStills.length > 0 ? ` (${pendingStills.length})` : ""}`}
+                </EditorButton>
+                <EditorButton
+                  variant="outlined"
+                  onClick={handleGenerateAllClips}
+                  disabled={pendingClips.length === 0 || directing}
+                >
+                  {`✦ Generate all clips${pendingClips.length > 0 ? ` (${pendingClips.length})` : ""}`}
+                </EditorButton>
+                <EditorButton
+                  variant="outlined"
                   onClick={onAssemble}
                   disabled={!onAssemble || assembling || !hasRenderedShot}
                 >
@@ -277,7 +393,28 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
         </Panel>
       )}
 
-      {shots.length === 0 ? (
+      {directing ? (
+        <>
+          <Text size="small" className="directing-line">
+            ✦ The director is writing your screenplay…
+          </Text>
+          <div className="grid">
+            {Array.from({ length: shotCount }).map((_, i) => (
+              <div
+                key={i}
+                className="ghost-card"
+                style={{ animationDelay: `${i * 140}ms` }}
+              >
+                <div className="ghost-frame">
+                  <span className="spark">✦</span>
+                </div>
+                <div className="ghost-line" style={{ width: "80%" }} />
+                <div className="ghost-line" style={{ width: "55%" }} />
+              </div>
+            ))}
+          </div>
+        </>
+      ) : shots.length === 0 ? (
         <EmptyState
           variant="empty"
           title="No shots yet"
