@@ -769,7 +769,7 @@ const ProviderHero = memo(function ProviderHero({ theme }: { theme: Theme }) {
       }}
     >
       <FlexColumn gap={2}>
-        <Text size="big" weight={700}>
+        <Text size="big" weight={600}>
           Models &amp; Providers
         </Text>
         <Caption sx={{ opacity: 0.65, lineHeight: 1.5, maxWidth: 520 }}>
