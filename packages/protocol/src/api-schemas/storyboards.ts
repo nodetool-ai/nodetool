@@ -55,6 +55,8 @@ export const storyboardDocument = z.object({
   shots: z.array(storyboardShot),
   brief: z.string(),
   style: z.string(),
+  /** Library entity (asset) ids whose descriptors season every shot prompt. */
+  entityIds: z.array(z.string()).default([]),
   aspectRatio: z.string(),
   directorModel: modelSelection.nullable(),
   imageModel: modelSelection.nullable(),

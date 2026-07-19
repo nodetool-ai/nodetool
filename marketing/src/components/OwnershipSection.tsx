@@ -35,11 +35,11 @@ export default function OwnershipSection({
   reducedMotion: _reducedMotion = false,
 }: OwnershipSectionProps) {
   return (
-    <section className="relative py-24 overflow-hidden">
+    <section className="relative py-24 overflow-clip-safe">
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-slate-500/5 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="mb-16 text-center max-w-2xl mx-auto">
+        <div className="scroll-fade mb-16 text-center max-w-2xl mx-auto">
           <motion.h2
             initial={false}
             whileInView={{ opacity: 1, y: 0 }}
@@ -66,7 +66,7 @@ export default function OwnershipSection({
         </div>
 
         <motion.div
-          className="grid grid-cols-1 gap-px sm:grid-cols-2 lg:grid-cols-4 rounded-2xl overflow-hidden bg-white/5 ring-1 ring-white/5"
+          className="scroll-fade grid grid-cols-1 gap-px sm:grid-cols-2 lg:grid-cols-4 rounded-2xl overflow-hidden bg-white/5 ring-1 ring-white/5"
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, margin: "-40px" }}

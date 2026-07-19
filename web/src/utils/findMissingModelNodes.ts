@@ -1,23 +1,7 @@
 import { Edge, Node } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
 import { NodeMetadata } from "../stores/ApiTypes";
-
-/**
- * Provider-backed model property types. A node with one of these set to an
- * empty value can't run without a provider + model — the backend rejects it
- * with "Please specify a provider". These are the same types that
- * {@link applyDefaultModels} fills in. Local/HF model types (llama_model,
- * hf.*, tjs.*) are intentionally excluded: they aren't provider-keyed and
- * have a different empty-state story.
- */
-const PROVIDER_MODEL_TYPES = new Set([
-  "language_model",
-  "image_model",
-  "embedding_model",
-  "tts_model",
-  "asr_model",
-  "video_model"
-]);
+import { PROVIDER_MODEL_TYPES } from "./aiModelNodes";
 
 export interface MissingModelNode {
   nodeId: string;

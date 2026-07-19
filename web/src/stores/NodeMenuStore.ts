@@ -52,10 +52,10 @@ export type NodeMenuStore = {
   setMenuUserSize: (size: { width: number; height: number } | null) => void;
   searchTerm: string;
   setSearchTerm: (term: string) => void;
-  selectedInputType: string;
-  setSelectedInputType: (inputType: string) => void;
-  selectedOutputType: string;
-  setSelectedOutputType: (outputType: string) => void;
+  selectedInputType: TypeName;
+  setSelectedInputType: (inputType: TypeName) => void;
+  selectedOutputType: TypeName;
+  setSelectedOutputType: (outputType: TypeName) => void;
   selectedProviderType: ProviderFilterType;
   setSelectedProviderType: (providerType: ProviderFilterType) => void;
   selectedPath: string[];
@@ -198,7 +198,7 @@ export const createNodeMenuStore = () =>
       },
       connectDirection: null,
       setConnectDirection: (direction) => {
-        set({ connectDirection: direction as ConnectDirection });
+        set({ connectDirection: direction });
       },
       menuPosition: { x: 0, y: 0 },
       setMenuPosition: (x, y) => {
@@ -274,8 +274,8 @@ export const createNodeMenuStore = () =>
             metadata,
             searchTerm,
             newPath,
-            selectedInputType as TypeName,
-            selectedOutputType as TypeName,
+            selectedInputType,
+            selectedOutputType,
             true,
             selectedProviderType,
             recentNodeTypes
@@ -340,8 +340,8 @@ export const createNodeMenuStore = () =>
             metadata,
             term,
             store.selectedPath,
-            store.selectedInputType as TypeName,
-            store.selectedOutputType as TypeName,
+            store.selectedInputType,
+            store.selectedOutputType,
             true,
             store.selectedProviderType,
             recentNodeTypes

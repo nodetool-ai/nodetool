@@ -10,7 +10,10 @@ import { renderHook } from "@testing-library/react";
 const mockNodes = [
   { id: "n1", type: "fal.Image", data: {} },
   { id: "n2", type: "kie.Video", data: {} },
-  { id: "n3", type: "nodetool.text.Concat", data: {} }
+  // Uses an AI model via a language_model property but has no unit pricing.
+  { id: "n3", type: "nodetool.llm.Agent", data: {} },
+  // Plain data node — no model, no pricing. Excluded from the estimate.
+  { id: "n4", type: "nodetool.text.Concat", data: {} }
 ];
 
 const mockNodeStore = {
@@ -42,6 +45,12 @@ const mockMetadata: Record<string, unknown> = {
       usd_price: 0.02,
       source: "bundle"
     }
+  },
+  "nodetool.llm.Agent": {
+    properties: [{ name: "model", type: { type: "language_model" } }]
+  },
+  "nodetool.text.Concat": {
+    properties: [{ name: "a", type: { type: "str" } }]
   }
 };
 
@@ -56,19 +65,23 @@ jest.mock("../../stores/MetadataStore", () => ({
 import { useWorkflowCostEstimate } from "../useWorkflowCostEstimate";
 
 describe("useWorkflowCostEstimate", () => {
-  it("estimates cost from nodes + metadata", () => {
+  it("estimates cost from AI-model nodes + metadata", () => {
     const { result } = renderHook(() => useWorkflowCostEstimate("wf1"));
 
     const estimate = result.current;
     expect(estimate).not.toBeNull();
     expect(estimate!.currency).toBe("USD");
+    // Only the three AI-model nodes are listed; the plain Concat node is dropped.
     expect(estimate!.items).toHaveLength(3);
+    expect(
+      estimate!.items.some((i) => i.node_type === "nodetool.text.Concat")
+    ).toBe(false);
     // fal 0.05 (USD) + kie 0.02 (usd_price preferred over credits)
     expect(estimate!.total).toBeCloseTo(0.07, 5);
-    // the concat node has no pricing metadata
+    // the agent node uses a model but has no pricing metadata
     expect(estimate!.unknown_count).toBe(1);
     const unknown = estimate!.items.find(
-      (i) => i.node_type === "nodetool.text.Concat"
+      (i) => i.node_type === "nodetool.llm.Agent"
     );
     expect(unknown?.confidence).toBe("unknown");
   });

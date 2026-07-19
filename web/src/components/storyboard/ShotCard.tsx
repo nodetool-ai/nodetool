@@ -33,7 +33,10 @@ import {
 import ImageRefPreview from "../node/ImageRefPreview";
 import ShotTakesGallery from "./ShotTakesGallery";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
+import { entitiesForShot } from "../../stores/storyboard/shotEntities";
 import { useGenerateShot } from "../../hooks/storyboard/useGenerateShot";
+import { useEntities } from "../../serverState/useEntities";
+import { ENTITY_KIND_COLOR } from "../entities/entityKind";
 
 interface ShotCardProps {
   boardId: string;
@@ -131,11 +134,25 @@ const cameraLine = (shot: Shot): string =>
     .filter((p): p is string => !!p && p.trim().length > 0)
     .join(" · ");
 
+const EMPTY_IDS: string[] = [];
+
 const ShotCardInner: React.FC<ShotCardProps> = ({ boardId, shot, readOnly }) => {
   const theme = useTheme();
   const approveShot = useStoryboardStore((state) => state.approveShot);
+  const toggleShotEntity = useStoryboardStore((state) => state.toggleShotEntity);
+  const boardEntityIds = useStoryboardStore(
+    (state) => state.boards[boardId]?.entityIds ?? EMPTY_IDS
+  );
+  const { data: allEntities } = useEntities();
   const { generateKeyframe, generateClip, generateRevisedClip } =
     useGenerateShot();
+
+  // The board's cast, and which of it this shot's prompt will actually use.
+  const boardEntities = (allEntities ?? []).filter((e) =>
+    boardEntityIds.includes(e.id)
+  );
+  const appliedEntities = entitiesForShot(shot, boardEntities);
+  const appliedIds = appliedEntities.map((e) => e.id);
 
   const meta = STATUS_META[shot.status];
   const isGenerating =
@@ -213,6 +230,35 @@ const ShotCardInner: React.FC<ShotCardProps> = ({ boardId, shot, readOnly }) => 
         <Caption className="camera" noWrap>
           {camera}
         </Caption>
+      )}
+
+      {boardEntities.length > 0 && (
+        <FlexRow gap={0.5} wrap>
+          {boardEntities.map((entity) => {
+            const applied = appliedIds.includes(entity.id);
+            return (
+              <Chip
+                key={entity.id}
+                compact
+                label={entity.name || "Untitled"}
+                color={applied ? ENTITY_KIND_COLOR[entity.kind] : "default"}
+                variant={applied ? "filled" : "outlined"}
+                sx={applied ? undefined : { opacity: 0.55 }}
+                title={
+                  applied
+                    ? `${entity.descriptor || entity.name} — click to exclude from this shot`
+                    : `Click to include ${entity.name} in this shot`
+                }
+                onClick={
+                  readOnly
+                    ? undefined
+                    : () =>
+                        toggleShotEntity(boardId, shot.id, entity.id, appliedIds)
+                }
+              />
+            );
+          })}
+        </FlexRow>
       )}
 
       <ShotTakesGallery boardId={boardId} shot={shot} readOnly={readOnly} />

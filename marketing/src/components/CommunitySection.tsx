@@ -68,7 +68,7 @@ export default function CommunitySection({
     <section
       id={id}
       aria-labelledby="community-title"
-      className="relative py-24 overflow-hidden"
+      className="relative py-24 overflow-clip-safe"
     >
       {variant === "home" && (
         <>
@@ -86,7 +86,7 @@ export default function CommunitySection({
             initial={false}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="max-w-2xl mx-auto"
+            className="scroll-fade max-w-2xl mx-auto"
           >
             <h2
               id="community-title"

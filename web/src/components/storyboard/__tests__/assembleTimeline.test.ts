@@ -33,6 +33,7 @@ const board = (overrides: Partial<StoryboardBoard>): StoryboardBoard => ({
   title: "My film",
   brief: "",
   style: "",
+  entityIds: [],
   aspectRatio: "16:9",
   directorModel: null,
   imageModel: null,

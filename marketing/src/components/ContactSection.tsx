@@ -10,10 +10,10 @@ export default function ContactSection() {
     <section
       id="contact"
       aria-labelledby="contact-title"
-      className="relative py-24 overflow-hidden"
+      className="relative py-24 overflow-clip-safe"
     >
       <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="mb-16 text-center max-w-3xl mx-auto">
+        <div className="scroll-fade mb-16 text-center max-w-3xl mx-auto">
           <motion.h2
             id="contact-title"
             initial={false}
@@ -39,7 +39,7 @@ export default function ContactSection() {
           </motion.p>
         </div>
 
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 max-w-4xl mx-auto">
+        <div className="scroll-fade grid grid-cols-1 gap-8 md:grid-cols-2 max-w-4xl mx-auto">
           {[
             {
               icon: Mail,

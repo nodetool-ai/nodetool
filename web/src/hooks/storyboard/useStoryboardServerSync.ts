@@ -32,6 +32,7 @@ const boardToDocument = (board: StoryboardBoard): StoryboardWireDocument =>
     shots: board.shots,
     brief: board.brief,
     style: board.style,
+    entityIds: board.entityIds,
     aspectRatio: board.aspectRatio,
     directorModel: board.directorModel,
     imageModel: board.imageModel,
@@ -48,6 +49,7 @@ const responseToBoard = (
     title: res.name === "Untitled storyboard" ? "" : res.name,
     brief: doc.brief,
     style: doc.style,
+    entityIds: (doc.entityIds as string[] | undefined) ?? [],
     aspectRatio: doc.aspectRatio,
     directorModel:
       doc.directorModel as StoryboardBoard["directorModel"],

@@ -39,6 +39,28 @@ const DEMO_IMAGE_PNG = Buffer.from(
   "base64"
 );
 
+// 1×1 solid-color PNGs served for the seeded entity assets, so entity avatars
+// and cards render as clean color swatches (scaled by object-fit) instead of
+// broken images in documentation screenshots.
+const ENTITY_IMAGE_PNGS: Record<string, Buffer> = {
+  "entity-marta": Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNY5msGAALGASqvcSOBAAAAAElFTkSuQmCC",
+    "base64"
+  ),
+  "entity-harbor": Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGMw8YwDAAGQANyfP6qhAAAAAElFTkSuQmCC",
+    "base64"
+  ),
+  "entity-noir": Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGOYrVUDAAKlAULCKC3dAAAAAElFTkSuQmCC",
+    "base64"
+  ),
+  "entity-umbrella": Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGPYpGQCAAKSAQkGlyO/AAAAAElFTkSuQmCC",
+    "base64"
+  )
+};
+
 function htmlPage(): string {
   return `<!doctype html>
 <html lang="en">
@@ -1349,6 +1371,20 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
       res.setHeader("cache-control", "no-store");
       res.end(DEMO_IMAGE_PNG);
       return;
+    }
+    {
+      // Entity reference images (color swatches) for the seeded entities.
+      const entityMatch = url.pathname.match(
+        /^\/api\/storage\/(entity-[a-z]+)(?:_thumb)?\.(?:jpg|jpeg|png)$/i
+      );
+      const entityPng = entityMatch ? ENTITY_IMAGE_PNGS[entityMatch[1]] : null;
+      if (entityPng) {
+        res.statusCode = 200;
+        res.setHeader("content-type", "image/png");
+        res.setHeader("cache-control", "no-store");
+        res.end(entityPng);
+        return;
+      }
     }
     if (
       url.pathname.startsWith("/trpc")

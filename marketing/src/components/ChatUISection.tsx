@@ -10,13 +10,13 @@ export default function ChatUISection() {
     <section
       id="chat"
       aria-labelledby="chat-title"
-      className="relative py-24 overflow-hidden"
+      className="relative py-24 overflow-clip-safe"
     >
       {/* Background Glow */}
       <div className="absolute top-1/2 left-0 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-900/20 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="mb-16 text-center max-w-3xl mx-auto">
+        <div className="scroll-fade mb-16 text-center max-w-3xl mx-auto">
           <motion.div
             initial={false}
             whileInView={{ opacity: 1, scale: 1 }}
@@ -56,7 +56,7 @@ export default function ChatUISection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.3, ease: "easeOut" }}
-          className="relative mx-auto max-w-5xl"
+          className="scroll-fade relative mx-auto max-w-5xl"
         >
           <Tilt3D>
             <div className="relative rounded-xl border border-white/10 bg-slate-900/50 backdrop-blur-xl shadow-2xl overflow-hidden group">

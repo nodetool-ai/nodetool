@@ -70,7 +70,7 @@ export default function ModelSupportSection({
     return (
         <section
             aria-labelledby="model-support-title"
-            className="relative py-16 overflow-hidden"
+            className="relative py-16 overflow-clip-safe"
         >
             {/* Background Glow */}
             <div className="absolute top-1/2 left-0 -translate-y-1/2 w-[800px] h-[500px] bg-emerald-900/20 blur-[120px] rounded-full pointer-events-none" />
@@ -78,7 +78,7 @@ export default function ModelSupportSection({
 
             <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
                 {/* Header */}
-                <div className="mb-12 text-center max-w-3xl mx-auto">
+                <div className="scroll-fade mb-12 text-center max-w-3xl mx-auto">
                     <motion.div
                         initial={false}
                         whileInView={{ opacity: 1, scale: 1 }}

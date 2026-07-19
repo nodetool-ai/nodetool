@@ -10,6 +10,7 @@ import React, {
 import { createPortal } from "react-dom";
 
 import type { Asset } from "../../../stores/ApiTypes";
+import type { Entity } from "@nodetool-ai/protocol";
 import { Z_INDEX } from "../../ui_primitives";
 import { useRecentAssetsStore } from "../../../stores/RecentAssetsStore";
 import { AssetMentionMenu } from "../../node_types/editing/promptComposer/AssetMentionMenu";
@@ -85,6 +86,11 @@ export interface UseTextareaAssetMentionOptions {
   setValue: (next: string) => void;
   /** Called with the picked asset once the `@query` has been removed. */
   onSelectAsset: (asset: Asset) => void;
+  /**
+   * Called with the picked entity after its name has replaced the `@query`
+   * in the text. When omitted, entities are not offered in the picker.
+   */
+  onSelectEntity?: (entity: Entity) => void;
 }
 
 /**
@@ -98,7 +104,8 @@ export const useTextareaAssetMention = ({
   textareaRef,
   value,
   setValue,
-  onSelectAsset
+  onSelectAsset,
+  onSelectEntity
 }: UseTextareaAssetMentionOptions): UseTextareaAssetMention => {
   const addRecentAsset = useRecentAssetsStore((state) => state.addRecentAsset);
 
@@ -116,11 +123,14 @@ export const useTextareaAssetMention = ({
   const {
     activeTab,
     setActiveTab,
+    entities: matchedEntities,
     displayedAssets,
     hasMoreSaved,
     loadMoreSaved,
     handleRename
   } = useAssetMentionSearch(trigger ? trigger.query : null);
+  // Entities are only offered when the host can do something with one.
+  const entities = (onSelectEntity && matchedEntities) || [];
 
   const measure = useCallback(() => {
     const el = textareaRef.current;
@@ -243,7 +253,39 @@ export const useTextareaAssetMention = ({
     [trigger, value, setValue, onSelectAsset, addRecentAsset, close]
   );
 
-  const optionCount = displayedAssets.length;
+  // An entity reads as part of the sentence: its name replaces the typed
+  // `@query` inline, then the host attaches its reference image.
+  const selectEntity = useCallback(
+    (entity: Entity) => {
+      if (trigger) {
+        const inserted = `${entity.name} `;
+        pendingCaretRef.current = trigger.start + inserted.length;
+        setValue(
+          value.slice(0, trigger.start) + inserted + value.slice(trigger.end)
+        );
+      }
+      onSelectEntity?.(entity);
+      close();
+    },
+    [trigger, value, setValue, onSelectEntity, close]
+  );
+
+  // Combined selection order: entities first, then the active asset bucket.
+  const optionCount = entities.length + displayedAssets.length;
+
+  const selectIndex = useCallback(
+    (index: number) => {
+      if (index < entities.length) {
+        selectEntity(entities[index]);
+        return;
+      }
+      const asset = displayedAssets[index - entities.length];
+      if (asset) {
+        selectAsset(asset);
+      }
+    },
+    [entities, displayedAssets, selectEntity, selectAsset]
+  );
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>): boolean => {
@@ -271,16 +313,13 @@ export const useTextareaAssetMention = ({
         return true;
       }
       if (e.key === "Enter" || e.key === "Tab") {
-        const asset = displayedAssets[Math.min(selectedIndex, optionCount - 1)];
-        if (asset) {
-          e.preventDefault();
-          selectAsset(asset);
-          return true;
-        }
+        e.preventDefault();
+        selectIndex(Math.min(selectedIndex, optionCount - 1));
+        return true;
       }
       return false;
     },
-    [trigger, optionCount, displayedAssets, selectedIndex, selectAsset, close]
+    [trigger, optionCount, selectedIndex, selectIndex, close]
   );
 
   const mentionMenu = useMemo(() => {
@@ -295,14 +334,10 @@ export const useTextareaAssetMention = ({
             setActiveTab(tab);
             setSelectedIndex(0);
           }}
+          entities={entities}
           assets={displayedAssets}
           selectedIndex={selectedIndex}
-          onSelect={(index) => {
-            const asset = displayedAssets[index];
-            if (asset) {
-              selectAsset(asset);
-            }
-          }}
+          onSelect={selectIndex}
           onHighlight={setSelectedIndex}
           onRename={handleRename}
           queryString={trigger.query}
@@ -317,9 +352,10 @@ export const useTextareaAssetMention = ({
     rect,
     activeTab,
     setActiveTab,
+    entities,
     displayedAssets,
     selectedIndex,
-    selectAsset,
+    selectIndex,
     handleRename,
     hasMoreSaved,
     loadMoreSaved

@@ -93,6 +93,20 @@ live in the asset library (a metadata marker, no migration), appear under
 **Entities** in the app menu, and reach prompts through the `ApplyEntities`
 node or the `ui_entity_apply` tool.
 
+<img src="{{ '/assets/screenshots/storyboard-board.png' | relative_url }}" alt="Storyboard board with an Entities field and per-shot entity chips">
+
+On a storyboard, the **Entities** field pins a cast to the board: styles and
+locations season every shot's still and clip prompt, while characters and
+props activate on the shots that mention them by name. Each shot card shows
+which entities its prompt will use as chips — click one to include or exclude
+it for that shot. The **Direct** run also hands the cast to the screenplay
+model so shots reference entities by their exact names.
+
+Entities are also one `@` away wherever prompts are written: the mention
+picker in the chat composer and the workflow editor's Prompt node lists them
+first, and a picked entity carries its descriptor and reference image into
+the generation.
+
 ## Cost governance
 
 The estimate panel in the workflow editor prices a graph before it runs,

@@ -84,14 +84,14 @@ export default function CostDashboardSection() {
     <section
       id="costs"
       aria-labelledby="costs-title"
-      className="relative py-24 overflow-hidden"
+      className="relative py-24 overflow-clip-safe"
     >
       {/* Background glow, emerald to echo the "money saved" read */}
       <div className="absolute top-1/2 left-0 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-900/15 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
         {/* Header */}
-        <div className="mx-auto mb-14 max-w-3xl text-center">
+        <div className="scroll-fade mx-auto mb-14 max-w-3xl text-center">
           <h2 className="text-base font-medium leading-7 text-blue-400">
             Cost transparency
           </h2>
@@ -114,7 +114,7 @@ export default function CostDashboardSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.3, ease: "easeOut" }}
-          className="relative mx-auto max-w-5xl"
+          className="scroll-fade relative mx-auto max-w-5xl"
         >
           <div className="relative overflow-hidden rounded-xl border border-white/[0.06] bg-[#0b0d12] shadow-strong">
             {/* Window chrome */}
