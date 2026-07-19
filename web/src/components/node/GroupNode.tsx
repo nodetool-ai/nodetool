@@ -40,6 +40,7 @@ import ColorPicker from "../inputs/ColorPicker";
 import NodeResizer from "./NodeResizer";
 import NodeResizeHandle from "./NodeResizeHandle";
 import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
+import type { NodeStoreState } from "../../stores/NodeStore";
 import { useKeyPressed } from "../../stores/KeyPressedStore";
 import RunGroupButton from "./RunGroupButton";
 import BypassGroupButton from "./BypassGroupButton";
@@ -373,9 +374,19 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     });
   }, [props.id, setBypass, store]);
 
-  const nodeHovered = useNodes((state) =>
-    state.hoveredNodes.includes(props.id)
-  );
+  const nodeHoveredSelector = useMemo(() => {
+    let lastHoveredNodes: string[] | null = null;
+    let lastResult = false;
+    return (state: NodeStoreState) => {
+      if (state.hoveredNodes === lastHoveredNodes) {
+        return lastResult;
+      }
+      lastHoveredNodes = state.hoveredNodes;
+      lastResult = state.hoveredNodes.includes(props.id);
+      return lastResult;
+    };
+  }, [props.id]);
+  const nodeHovered = useNodes(nodeHoveredSelector);
 
   const [headline, setHeadline] = useState(
     (props.data.properties.headline as string | undefined) || "Group"

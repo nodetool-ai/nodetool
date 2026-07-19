@@ -239,29 +239,33 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
   // Keep the thread list populated for the inline threads panel.
   useThreadsQuery();
 
-  const messages = useGlobalChatStore((state) =>
-    state.currentThreadId
-      ? state.messageCache[state.currentThreadId] ?? EMPTY_MESSAGES
-      : EMPTY_MESSAGES
+  const {
+    messages,
+    rawStatus,
+    current,
+    total,
+    statusMessage,
+    runningToolCallId,
+    runningToolMessage,
+    currentPlanningUpdate,
+    currentTaskUpdate,
+    currentLogUpdate
+  } = useGlobalChatStore(
+    useShallow((state) => ({
+      messages: state.currentThreadId
+        ? state.messageCache[state.currentThreadId] ?? EMPTY_MESSAGES
+        : EMPTY_MESSAGES,
+      rawStatus: state.status,
+      current: state.progress.current,
+      total: state.progress.total,
+      statusMessage: state.statusMessage,
+      runningToolCallId: state.currentRunningToolCallId,
+      runningToolMessage: state.currentToolMessage,
+      currentPlanningUpdate: state.currentPlanningUpdate,
+      currentTaskUpdate: state.currentTaskUpdate,
+      currentLogUpdate: state.currentLogUpdate
+    }))
   );
-  const rawStatus = useGlobalChatStore((state) => state.status);
-  const { current, total } = useGlobalChatStore(
-    useShallow((state) => state.progress)
-  );
-  const statusMessage = useGlobalChatStore((state) => state.statusMessage);
-  const runningToolCallId = useGlobalChatStore(
-    (state) => state.currentRunningToolCallId
-  );
-  const runningToolMessage = useGlobalChatStore(
-    (state) => state.currentToolMessage
-  );
-  const currentPlanningUpdate = useGlobalChatStore(
-    (state) => state.currentPlanningUpdate
-  );
-  const currentTaskUpdate = useGlobalChatStore(
-    (state) => state.currentTaskUpdate
-  );
-  const currentLogUpdate = useGlobalChatStore((state) => state.currentLogUpdate);
 
   const {
     currentThreadId,
