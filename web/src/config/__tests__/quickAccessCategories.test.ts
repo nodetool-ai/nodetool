@@ -31,13 +31,15 @@ const idsIn = (category: NodeCategoryId, all: NodeMetadata[]): string[] =>
   );
 
 describe("quickAccessCategories", () => {
-  it("ships nine top-level views in order", () => {
+  it("ships eleven top-level views in order", () => {
     const ids = LEFT_PANEL_TOP_LEVEL.map((c) => c.id);
     expect(ids).toEqual([
       "nodes",
       "workflows",
       "sketches",
       "timelines",
+      "storyboards",
+      "scripts",
       "settings",
       "history",
       "favorites",

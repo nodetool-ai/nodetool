@@ -20,6 +20,8 @@ import StarIcon from "@mui/icons-material/Star";
 import ImageIcon from "@mui/icons-material/Image";
 import MovieIcon from "@mui/icons-material/Movie";
 import BrushOutlinedIcon from "@mui/icons-material/BrushOutlined";
+import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
+import RecordVoiceOverOutlinedIcon from "@mui/icons-material/RecordVoiceOverOutlined";
 import AudiotrackIcon from "@mui/icons-material/Audiotrack";
 import ViewInArIcon from "@mui/icons-material/ViewInAr";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
@@ -84,6 +86,8 @@ export const LEFT_PANEL_TOP_LEVEL: readonly LeftPanelTopLevelCategory[] = [
   { id: "workflows", label: "Workflows", icon: <GridViewIcon /> },
   { id: "sketches", label: "Sketches", icon: <BrushOutlinedIcon /> },
   { id: "timelines", label: "Timelines", icon: <MovieIcon /> },
+  { id: "storyboards", label: "Storyboards", icon: <DashboardOutlinedIcon /> },
+  { id: "scripts", label: "Scripts", icon: <RecordVoiceOverOutlinedIcon /> },
   { id: "settings", label: "Settings", icon: <SettingsIcon /> },
   { id: "history", label: "History", icon: <HistoryIcon /> },
   { id: "favorites", label: "Favorites", icon: <StarIcon /> },

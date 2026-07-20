@@ -21,6 +21,10 @@ import WorkflowForm from "../workflows/WorkflowForm";
 import CreateWorkflowButton from "../workflows/CreateWorkflowButton";
 import TimelineListPanel, { CreateTimelineButton } from "../timeline/TimelineListPanel";
 import SketchListPanel, { CreateSketchButton } from "../sketch/SketchListPanel";
+import StoryboardListPanel, {
+  CreateStoryboardButton
+} from "../storyboard/StoryboardListPanel";
+import ScriptListPanel, { CreateScriptButton } from "../script/ScriptListPanel";
 import HistoryTilesPanel from "../node_menu/HistoryTilesPanel";
 import FavoritesTiles from "../node_menu/FavoritesTiles";
 import QuickAccessSidebar from "../node_menu/QuickAccessSidebar";
@@ -454,6 +458,39 @@ const PanelContent = memo(function PanelContent({
           <TimelineListPanel />
         </FlexColumn>
       )}
+      {activeView === "storyboards" && (
+        <FlexColumn
+          className="storyboard-list-container"
+          fullWidth
+          fullHeight
+          sx={{
+            overflow: "hidden"
+          }}
+        >
+          {!isMobile && (
+            <PanelHeadline
+              title="Storyboards"
+              actions={<CreateStoryboardButton />}
+            />
+          )}
+          <StoryboardListPanel />
+        </FlexColumn>
+      )}
+      {activeView === "scripts" && (
+        <FlexColumn
+          className="script-list-container"
+          fullWidth
+          fullHeight
+          sx={{
+            overflow: "hidden"
+          }}
+        >
+          {!isMobile && (
+            <PanelHeadline title="Scripts" actions={<CreateScriptButton />} />
+          )}
+          <ScriptListPanel />
+        </FlexColumn>
+      )}
       {activeView === "settings" && currentWorkflow && (
         <FlexColumn
           className="workflow-settings-container"
@@ -823,7 +860,9 @@ const PanelLeft: React.FC = () => {
                 (displayActiveView === "nodes" ||
                   displayActiveView === "workflows" ||
                   displayActiveView === "sketches" ||
-                  displayActiveView === "timelines")
+                  displayActiveView === "timelines" ||
+                  displayActiveView === "storyboards" ||
+                  displayActiveView === "scripts")
               ) {
                 e.stopPropagation();
                 setVisibility(false);
