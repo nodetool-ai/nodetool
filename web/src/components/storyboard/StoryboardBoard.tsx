@@ -8,7 +8,7 @@
  * can wire it to a real Director run.
  */
 
-import React, { memo, useCallback, useState } from "react";
+import React, { memo, useCallback, useMemo, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -232,23 +232,29 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
     onDirect?.(shotCount);
   }, [onDirect, shotCount]);
 
-  const hasRenderedShot = shots.some(
-    (s) => s.status === "rendered" && !!s.clip?.asset_id
+  const hasRenderedShot = useMemo(
+    () => shots.some((s) => s.status === "rendered" && !!s.clip?.asset_id),
+    [shots]
   );
 
-  // Shots still waiting for their first still (or whose last attempt failed).
-  const pendingStills = shots.filter(
-    (s) =>
-      !s.keyframe && (s.status === "planned" || s.status === "failed")
+  const pendingStills = useMemo(
+    () =>
+      shots.filter(
+        (s) => !s.keyframe && (s.status === "planned" || s.status === "failed")
+      ),
+    [shots]
   );
 
-  // Shots with a still selected but no clip yet (and no job in flight).
-  const pendingClips = shots.filter(
-    (s) =>
-      !!s.keyframe &&
-      !s.clip &&
-      s.status !== "keyframe_generating" &&
-      s.status !== "clip_generating"
+  const pendingClips = useMemo(
+    () =>
+      shots.filter(
+        (s) =>
+          !!s.keyframe &&
+          !s.clip &&
+          s.status !== "keyframe_generating" &&
+          s.status !== "clip_generating"
+      ),
+    [shots]
   );
 
   const { generateKeyframe, generateClip } = useGenerateShot();

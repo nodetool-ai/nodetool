@@ -10,7 +10,7 @@
  * has a still.
  */
 
-import React, { memo, useCallback } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -159,12 +159,16 @@ const ShotCardInner: React.FC<ShotCardProps> = ({ boardId, shot, readOnly }) => 
   const { generateKeyframe, generateClip, generateRevisedClip } =
     useGenerateShot();
 
-  // The board's cast, and which of it this shot's prompt will actually use.
-  const boardEntities = (allEntities ?? []).filter((e) =>
-    boardEntityIds.includes(e.id)
-  );
-  const appliedEntities = entitiesForShot(shot, boardEntities);
-  const appliedIds = appliedEntities.map((e) => e.id);
+  const { boardEntities, appliedEntities, appliedIds } = useMemo(() => {
+    const idSet = new Set(boardEntityIds);
+    const board = (allEntities ?? []).filter((e) => idSet.has(e.id));
+    const applied = entitiesForShot(shot, board);
+    return {
+      boardEntities: board,
+      appliedEntities: applied,
+      appliedIds: applied.map((e) => e.id)
+    };
+  }, [allEntities, boardEntityIds, shot]);
 
   const meta = STATUS_META[shot.status];
   const isGenerating =

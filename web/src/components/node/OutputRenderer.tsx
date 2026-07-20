@@ -81,6 +81,30 @@ const TRUNCATION_STYLE: React.CSSProperties = {
   fontSize: "0.85em"
 };
 
+const LIST_ITEM_SX = {
+  borderRadius: BORDER_RADIUS.sm,
+  bgcolor: "background.paper",
+  boxShadow: 1,
+  mb: 1,
+  px: 2
+} as const;
+const AUDIO_CHUNK_ITEM_SX = {
+  alignItems: "flex-start",
+  borderRadius: BORDER_RADIUS.sm,
+  bgcolor: "background.paper",
+  boxShadow: 1,
+  mb: 1,
+  px: 2,
+  display: "block"
+} as const;
+const LIST_WRAPPER_SX = { p: 1 } as const;
+const MONOSPACE_SX = {
+  fontFamily: "monospace",
+  fontSize: "var(--fontSizeNormal)"
+} as const;
+const PRE_WRAP_SX = { whiteSpace: "pre-wrap", color: "text.primary" } as const;
+const PRE_WRAP_PRIMARY_SX = { whiteSpace: "pre-wrap" } as const;
+
 import { isBitmapImage } from "@nodetool-ai/protocol";
 
 // Encodes the raw-RGBA in-flight format to a PNG data URL. Shared with the
@@ -825,24 +849,18 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                 className="nodrag"
                 style={SCROLL_CONTAINER_STYLE}
               >
-                <List sx={{ p: 1 }}>
+                <List sx={LIST_WRAPPER_SX}>
                   {(arr as string[]).map((item) => (
                     <ListItem
                       key={withOccurrenceSuffix(
                         stableKeyForOutputValue(item),
                         seen
                       )}
-                      sx={{
-                        borderRadius: BORDER_RADIUS.sm,
-                        bgcolor: "background.paper",
-                        boxShadow: 1,
-                        mb: 1,
-                        px: 2
-                      }}
+                      sx={LIST_ITEM_SX}
                     >
                       <ListItemText
                         primaryTypographyProps={{
-                          sx: { whiteSpace: "pre-wrap" }
+                          sx: PRE_WRAP_PRIMARY_SX
                         }}
                         primary={item}
                       />
@@ -865,14 +883,9 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                   ref={scrollRef}
                   onMouseDown={handleMouseDown}
                   className="nodrag"
-                  style={{
-                    height: "100%",
-                    overflow: "auto",
-                    cursor: "grab",
-                    userSelect: "none"
-                  }}
+                  style={SCROLL_CONTAINER_STYLE}
                 >
-                  <List sx={{ p: 1 }}>
+                  <List sx={LIST_WRAPPER_SX}>
                     {(arr as { timestamp: [number, number]; text: string }[]).map((chunk) => {
                       const key = withOccurrenceSuffix(
                         `audio-chunk:${chunk.timestamp[0]}:${chunk.timestamp[1]}:${hashStringBounded(chunk.text)}`,
@@ -881,27 +894,16 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                       return (
                         <ListItem
                           key={key}
-                          sx={{
-                            alignItems: "flex-start",
-                            borderRadius: BORDER_RADIUS.sm,
-                            bgcolor: "background.paper",
-                            boxShadow: 1,
-                            mb: 1,
-                            px: 2,
-                            display: "block"
-                          }}
+                          sx={AUDIO_CHUNK_ITEM_SX}
                         >
                           <ListItemText
                             primary={`${formatAudioChunkTimestamp(chunk.timestamp[0])} → ${formatAudioChunkTimestamp(chunk.timestamp[1])}`}
                             secondary={chunk.text}
                             primaryTypographyProps={{
-                              sx: {
-                                fontFamily: "monospace",
-                                fontSize: "var(--fontSizeNormal)"
-                              }
+                              sx: MONOSPACE_SX
                             }}
                             secondaryTypographyProps={{
-                              sx: { whiteSpace: "pre-wrap", color: "text.primary" }
+                              sx: PRE_WRAP_SX
                             }}
                           />
                         </ListItem>
