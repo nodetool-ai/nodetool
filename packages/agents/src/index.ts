@@ -376,6 +376,8 @@ export { GRAPH_PLANNER_EVAL_CASES } from "./evals/graph-planner-cases.js";
 export { evaluateGraphDsl } from "./graph-dsl.js";
 export type { GraphDslResult, EvaluateGraphDslOptions } from "./graph-dsl.js";
 export { GraphBuilder, AGENT_NODE_TYPE } from "./graph-builder.js";
+export { normalizeModelProperties } from "./normalize-model-properties.js";
+export type { ModelPropertyRegistry } from "./normalize-model-properties.js";
 export { GraphPlanner } from "./graph-planner.js";
 export type { GraphPlannerOptions } from "./graph-planner.js";
 export { AgentWorkflowRunner } from "./agent-workflow-runner.js";

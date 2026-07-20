@@ -17,6 +17,7 @@ import type { GraphData } from "@nodetool-ai/protocol";
 import { Tool } from "./base-tool.js";
 import { GraphBuilder } from "../graph-builder.js";
 import { evaluateGraphDsl } from "../graph-dsl.js";
+import { normalizeModelProperties } from "../normalize-model-properties.js";
 import {
   metadataAwareRegistry,
   supportsDeepValidation
@@ -105,7 +106,7 @@ export class SubmitGraphTool extends Tool {
       for (const e of builder.addNode(
         node.id,
         node.type,
-        node.properties,
+        normalizeModelProperties(node.type, node.properties, this.registry),
         node.name
       )) {
         errors.push(e);

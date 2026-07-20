@@ -10,6 +10,7 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { Tool } from "./base-tool.js";
 import { type GraphBuilder } from "../graph-builder.js";
+import { normalizeModelProperties } from "../normalize-model-properties.js";
 import { createLogger } from "@nodetool-ai/config";
 
 const log = createLogger("nodetool.agents.add-node-tool");
@@ -100,7 +101,12 @@ export class AddNodeTool extends Tool {
       }
     }
 
-    const errors = this.builder.addNode(id, type, properties, name);
+    const errors = this.builder.addNode(
+      id,
+      type,
+      normalizeModelProperties(type, properties, this.registry),
+      name
+    );
     if (errors.length > 0) {
       // Add an actionable hint to the duplicate-id error so the planner does
       // not bang the same id back into add_node. Wiring data into an existing
