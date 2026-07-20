@@ -31,7 +31,7 @@ const FINISH_GRAPH_INPUT_SCHEMA = {
  * accepts — also count as known, mirroring the add-time check. Everything else
  * passes through.
  */
-function agentStepAwareRegistry(
+export function agentStepAwareRegistry(
   registry: GraphValidationRegistry
 ): GraphValidationRegistry {
   return {
@@ -51,7 +51,7 @@ function agentStepAwareRegistry(
 }
 
 /** True when the registry implements the full validation surface (stubs and mocks often don't). */
-function supportsDeepValidation(
+export function supportsDeepValidation(
   registry: unknown
 ): registry is GraphValidationRegistry {
   const r = registry as Partial<GraphValidationRegistry> | null | undefined;

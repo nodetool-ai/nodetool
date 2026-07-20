@@ -83,15 +83,13 @@ describe("GraphPlanner — provider-driven tool loop", () => {
   it("builds a graph when the provider runs its own tool loop (agent SDK)", async () => {
     const provider = createSdkLoopProvider([
       {
-        id: "tc_add",
-        name: "add_node",
+        id: "tc_submit",
+        name: "submit_graph",
         args: {
-          id: "step1",
-          type: AGENT_STEP_NODE_TYPE,
-          properties: { instructions: "Summarize the input" }
+          code: `node("${AGENT_STEP_NODE_TYPE}", { instructions: "Summarize the input" }, "step1");
+return graph();`
         }
-      },
-      { id: "tc_finish", name: "finish_graph", args: { title: "G" } }
+      }
     ]);
 
     const planner = new GraphPlanner({
@@ -106,6 +104,7 @@ describe("GraphPlanner — provider-driven tool loop", () => {
 
     expect(graph).not.toBeNull();
     expect(graph!.nodes).toHaveLength(1);
+    expect(graph!.nodes[0].id).toBe("step1");
     expect(graph!.nodes[0].type).toBe(AGENT_STEP_NODE_TYPE);
   });
 });
