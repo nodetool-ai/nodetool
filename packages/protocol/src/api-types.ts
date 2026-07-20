@@ -959,6 +959,7 @@ export const PROVIDER_IDS = {
   OLLAMA: "ollama",
   LMSTUDIO: "lmstudio",
   LLAMA_CPP: "llama_cpp",
+  NODE_LLAMA_CPP: "node_llama_cpp",
   VLLM: "vllm",
   HUGGINGFACE: "huggingface",
   TRANSFORMERS_JS: "transformers_js",

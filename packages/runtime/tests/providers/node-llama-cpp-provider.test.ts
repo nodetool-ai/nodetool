@@ -1,0 +1,113 @@
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { mkdtemp, writeFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { NodeLlamaCppProvider } from "../../src/providers/node-llama-cpp-provider.js";
+import { parseEmulatedToolCalls } from "../../src/providers/llama-tool-emulation.js";
+import type { ProviderTool } from "../../src/providers/types.js";
+
+describe("NodeLlamaCppProvider", () => {
+  let modelsDir: string;
+
+  beforeEach(async () => {
+    modelsDir = await mkdtemp(join(tmpdir(), "nlc-models-"));
+  });
+
+  afterEach(async () => {
+    await rm(modelsDir, { recursive: true, force: true });
+  });
+
+  it("requires no secrets and reports its provider id", () => {
+    expect(NodeLlamaCppProvider.requiredSecrets()).toEqual([]);
+    const provider = new NodeLlamaCppProvider();
+    expect(provider.provider).toBe("node_llama_cpp");
+  });
+
+  it("does not claim native tool support (emulated path)", async () => {
+    const provider = new NodeLlamaCppProvider();
+    await expect(provider.hasToolSupport("any")).resolves.toBe(false);
+  });
+
+  it("lists GGUF files from the models directory, ignoring other files", async () => {
+    await writeFile(join(modelsDir, "model-a.gguf"), "x");
+    await writeFile(join(modelsDir, "model-b.GGUF"), "x");
+    await writeFile(join(modelsDir, "readme.txt"), "x");
+    await writeFile(join(modelsDir, "notes.md"), "x");
+
+    const provider = new NodeLlamaCppProvider({
+      NODE_LLAMA_CPP_MODELS_DIR: modelsDir
+    });
+    const models = await provider.getAvailableLanguageModels();
+
+    expect(models.map((m) => m.id)).toEqual(["model-a.gguf", "model-b.GGUF"]);
+    expect(models.every((m) => m.provider === "node_llama_cpp")).toBe(true);
+    expect(models[0]).toMatchObject({
+      id: "model-a.gguf",
+      name: "model-a.gguf"
+    });
+  });
+
+  it("also exposes GGUF files as embedding models", async () => {
+    await writeFile(join(modelsDir, "embed.gguf"), "x");
+    const provider = new NodeLlamaCppProvider({
+      NODE_LLAMA_CPP_MODELS_DIR: modelsDir
+    });
+    const models = await provider.getAvailableEmbeddingModels();
+    expect(models.map((m) => m.id)).toEqual(["embed.gguf"]);
+  });
+
+  it("returns an empty model list when the directory is missing", async () => {
+    const provider = new NodeLlamaCppProvider({
+      NODE_LLAMA_CPP_MODELS_DIR: join(modelsDir, "does-not-exist")
+    });
+    await expect(provider.getAvailableLanguageModels()).resolves.toEqual([]);
+  });
+
+  it("throws an actionable error when node-llama-cpp is not installed", async () => {
+    const provider = new NodeLlamaCppProvider({
+      NODE_LLAMA_CPP_MODELS_DIR: modelsDir
+    });
+    await expect(
+      provider.generateMessage({
+        messages: [{ role: "user", content: "hi" }],
+        model: "model.gguf"
+      })
+    ).rejects.toThrow(/node-llama-cpp/);
+  });
+
+  it("flags context-size errors as context-length errors", () => {
+    const provider = new NodeLlamaCppProvider();
+    expect(
+      provider.isContextLengthError(new Error("requested context size exceeds"))
+    ).toBe(true);
+    expect(provider.isContextLengthError(new Error("network down"))).toBe(
+      false
+    );
+  });
+});
+
+describe("parseEmulatedToolCalls", () => {
+  const tools: ProviderTool[] = [{ name: "get_weather" }];
+
+  it("parses a function-style call with keyword args", () => {
+    const { toolCalls, cleanedContent } = parseEmulatedToolCalls(
+      'get_weather(city="Berlin", days=3)',
+      tools
+    );
+    expect(toolCalls).toHaveLength(1);
+    expect(toolCalls[0]).toMatchObject({
+      name: "get_weather",
+      args: { city: "Berlin", days: 3 }
+    });
+    expect(cleanedContent).toBe("");
+  });
+
+  it("ignores calls to tools that were not offered", () => {
+    const { toolCalls, cleanedContent } = parseEmulatedToolCalls(
+      "some_other_tool(x=1)",
+      tools
+    );
+    expect(toolCalls).toHaveLength(0);
+    expect(cleanedContent).toContain("some_other_tool");
+  });
+});
