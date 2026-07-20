@@ -180,7 +180,7 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
         status={(() => {
           const status = piStatus ?? runtime.status;
           if (status === "idle") return "connected";
-          if (status === "stopping") return "loading";
+          if (status === "stopping") return "connected";
           return status;
         })()}
         messages={messages}

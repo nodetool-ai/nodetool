@@ -188,7 +188,7 @@ const PersistentComposer: React.FC = () => {
 
   // Narrow "stopping" out of status since ChatInputSection doesn't accept it.
   const inputStatus: InputStatus =
-    status === "stopping" ? "loading" : (status as InputStatus);
+    status === "stopping" ? "connected" : (status as InputStatus);
 
   return (
     <PositionedComposer
