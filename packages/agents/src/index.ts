@@ -264,6 +264,7 @@ export {
 } from "./tools/plan-builder-tools.js";
 
 // Graph-native planner tools
+export { SubmitGraphTool } from "./tools/submit-graph-tool.js";
 export { AddNodeTool } from "./tools/add-node-tool.js";
 export { AddEdgeTool } from "./tools/add-edge-tool.js";
 export { RemoveNodeTool } from "./tools/remove-node-tool.js";
@@ -355,7 +356,25 @@ export {
 } from "./script-runner.js";
 export type { ScriptRunnerOptions } from "./script-runner.js";
 
+// GraphPlanner evaluation harness
+export {
+  runGraphPlannerEval,
+  formatEvalReport,
+  checkExpectations
+} from "./evals/graph-planner-eval.js";
+export type {
+  GraphPlannerEvalCase,
+  GraphPlannerEvalExpectations,
+  GraphPlannerCaseResult,
+  GraphPlannerEvalReport,
+  RunGraphPlannerEvalOptions,
+  EvalCheck
+} from "./evals/graph-planner-eval.js";
+export { GRAPH_PLANNER_EVAL_CASES } from "./evals/graph-planner-cases.js";
+
 // Graph-native planning & execution
+export { evaluateGraphDsl } from "./graph-dsl.js";
+export type { GraphDslResult, EvaluateGraphDslOptions } from "./graph-dsl.js";
 export { GraphBuilder, AGENT_STEP_NODE_TYPE } from "./graph-builder.js";
 export { GraphPlanner } from "./graph-planner.js";
 export type { GraphPlannerOptions } from "./graph-planner.js";

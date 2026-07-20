@@ -1,9 +1,12 @@
 /**
- * GraphPlanner -- builds a workflow graph directly via LLM tool calling.
+ * GraphPlanner -- builds a workflow graph from one LLM-authored DSL program.
  *
- * Instead of producing a TaskPlan with prose steps, this planner gives the LLM
- * tools to search for nodes, inspect their metadata, and build a DAG node-by-node.
- * The result is a GraphData that goes straight to WorkflowRunner.
+ * The LLM discovers nodes with a few read-only tools (search_nodes,
+ * get_node_info, list_nodes, find_model), then one-shots the ENTIRE workflow
+ * as a graph DSL program submitted through `submit_graph`. Validation errors
+ * round-trip as tool results so the model fixes the program over feedback
+ * rounds instead of mutating the graph one add_node/add_edge call at a time.
+ * The accepted program's graph goes straight to WorkflowRunner.
  */
 
 import type {
@@ -25,12 +28,7 @@ import type {
 } from "@nodetool-ai/protocol";
 
 import { Tool } from "./tools/base-tool.js";
-import { GraphBuilder } from "./graph-builder.js";
-import { AddNodeTool } from "./tools/add-node-tool.js";
-import { AddEdgeTool } from "./tools/add-edge-tool.js";
-import { RemoveNodeTool } from "./tools/remove-node-tool.js";
-import { RemoveEdgeTool } from "./tools/remove-edge-tool.js";
-import { FinishGraphTool } from "./tools/finish-graph-tool.js";
+import { SubmitGraphTool } from "./tools/submit-graph-tool.js";
 import { LocalSearchNodesTool } from "./tools/local-search-nodes-tool.js";
 import { LocalGetNodeInfoTool } from "./tools/local-get-node-info-tool.js";
 import { LocalListNodesTool } from "./tools/local-list-nodes-tool.js";
@@ -43,7 +41,12 @@ import {
 const log = createLogger("nodetool.agents.graph-planner");
 
 const MAX_RETRIES = 3;
-const MAX_TOOL_CALLS_PER_TURN = 50;
+/**
+ * Per-attempt tool-call budget: discovery lookups plus a handful of
+ * submit_graph feedback rounds. Far below the old per-node budget because the
+ * graph arrives as one program, not one call per node/edge.
+ */
+const MAX_TOOL_CALLS_PER_TURN = 20;
 
 const GRAPH_CREATION_PROMPT_TEMPLATE = `Build a workflow graph to achieve this objective.
 
@@ -135,7 +138,7 @@ export class GraphPlanner {
   }
 
   /**
-   * Build a workflow graph from an objective using LLM tool calling.
+   * Build a workflow graph from an objective via one-shot DSL authoring.
    * Returns null on repeated failure.
    */
   async *plan(
@@ -195,11 +198,6 @@ export class GraphPlanner {
       executionToolsCount: this.tools.length
     });
 
-    // One builder for the whole plan: retries continue from the graph built so
-    // far (the retry message carries a snapshot of it) instead of silently
-    // starting over while telling the model to "fix the issues".
-    const builder = new GraphBuilder();
-
     for (let attempt = 0; attempt < this.maxRetries; attempt++) {
       log.info("GraphPlanner attempt", {
         objective: objective.slice(0, 60),
@@ -214,10 +212,10 @@ export class GraphPlanner {
         content:
           attempt > 0
             ? `Retry attempt ${attempt + 1}/${this.maxRetries}...`
-            : "Building workflow graph..."
+            : "Writing workflow graph program..."
       } satisfies PlanningUpdate;
 
-      const result = yield* this.runToolLoop(messages, builder);
+      const result = yield* this.runDslLoop(messages);
 
       if (result.graph) {
         log.info("Graph built", {
@@ -236,7 +234,7 @@ export class GraphPlanner {
       }
 
       const errorMsg =
-        result.error ?? `Graph was not finalized on attempt ${attempt + 1}`;
+        result.error ?? `Graph was not accepted on attempt ${attempt + 1}`;
 
       log.warn("Graph building retry", {
         attempt: attempt + 1,
@@ -251,16 +249,12 @@ export class GraphPlanner {
       } satisfies PlanningUpdate;
 
       // The provider loop copies the message array, so the model has no
-      // memory of its previous attempt — include the preserved builder state
-      // so "fix and finish" is actionable rather than a restart from nothing.
+      // memory of its previous attempt — carry the last submitted program and
+      // its errors forward so "fix and resubmit" is actionable rather than a
+      // restart from nothing.
       messages.push({
         role: "user",
-        content: `Error: ${errorMsg}
-
-The graph you built so far is preserved:
-${builder.describe()}
-
-Fix the issues (use remove_node / remove_edge to correct mistakes) and call finish_graph again.`
+        content: this.buildRetryMessage(errorMsg, result)
       });
     }
 
@@ -282,32 +276,56 @@ Fix the issues (use remove_node / remove_edge to correct mistakes) and call fini
     return null;
   }
 
+  private buildRetryMessage(
+    errorMsg: string,
+    result: { lastCode?: string; lastErrors?: string[] }
+  ): string {
+    const parts = [`Error: ${errorMsg}`];
+    if (result.lastCode) {
+      parts.push(
+        `Your last submitted program:\n\`\`\`js\n${result.lastCode}\n\`\`\``
+      );
+    }
+    if (result.lastErrors && result.lastErrors.length > 0) {
+      parts.push(
+        `Validation errors:\n${result.lastErrors.map((e) => `- ${e}`).join("\n")}`
+      );
+    }
+    parts.push(
+      "Fix the issues and call submit_graph with the FULL corrected program."
+    );
+    return parts.join("\n\n");
+  }
+
   /**
-   * Run the multi-turn tool-calling loop.
-   * The LLM can call search/inspect/add tools multiple times before finish_graph.
+   * Run one planning attempt: discovery tool calls plus submit_graph feedback
+   * rounds, until a submission is accepted or the budget is spent.
    */
-  private async *runToolLoop(
-    messages: Message[],
-    builder: GraphBuilder
-  ): AsyncGenerator<ProcessingMessage, { graph?: GraphData; error?: string }> {
-    const addNodeTool = new AddNodeTool(builder, this.registry);
-    const addEdgeTool = new AddEdgeTool(builder, this.registry);
-    const removeNodeTool = new RemoveNodeTool(builder);
-    const removeEdgeTool = new RemoveEdgeTool(builder);
-    const finishGraphTool = new FinishGraphTool(builder, this.registry);
-    const searchNodesTool = new LocalSearchNodesTool(this.registry);
-    const getNodeInfoTool = new LocalGetNodeInfoTool(this.registry);
-    const listNodesTool = new LocalListNodesTool(this.registry);
+  private async *runDslLoop(
+    messages: Message[]
+  ): AsyncGenerator<
+    ProcessingMessage,
+    { graph?: GraphData; error?: string; lastCode?: string; lastErrors?: string[] }
+  > {
+    // `submit_graph` is only *conditionally* terminal: an accepted graph ends
+    // the loop; a failed submission returns its errors as the tool result and
+    // does NOT abort, so the model fixes the program within the budget. The
+    // static `terminal` flag can't express that, so the AbortController stops
+    // the loop on acceptance. It also short-circuits when the per-turn
+    // tool-call budget is spent.
+    const abort = new AbortController();
+    const unlinkAbort = linkAbort(abort, this.signal);
+    let exhausted = false;
+
+    const submitGraphTool = new SubmitGraphTool(this.registry, {
+      signal: abort.signal
+    });
 
     const allTools: Tool[] = [
-      searchNodesTool,
-      getNodeInfoTool,
-      listNodesTool,
-      addNodeTool,
-      addEdgeTool,
-      removeNodeTool,
-      removeEdgeTool,
-      finishGraphTool
+      new LocalSearchNodesTool(this.registry),
+      new LocalGetNodeInfoTool(this.registry),
+      new LocalListNodesTool(this.registry),
+      submitGraphTool
     ];
 
     if (this.hasFindModel && this.providers) {
@@ -317,20 +335,8 @@ Fix the issues (use remove_node / remove_edge to correct mistakes) and call fini
     let totalToolCalls = 0;
 
     // The provider drives the tool loop, so backends that run their own agent
-    // loop (e.g. the Claude Agent SDK) work. Each graph tool carries its own
-    // `execute` closure that mutates the shared builder.
-    //
-    // `finish_graph` is only *conditionally* terminal: on a valid graph it
-    // finalizes and aborts the loop; on a validation failure it returns the
-    // errors as the tool result and does NOT abort, so the model iterates and
-    // fixes the graph within the tool-call budget. The static `terminal` flag
-    // can't express that, so the AbortController stops the loop on a successful
-    // finish. It also short-circuits when the per-turn tool-call budget is
-    // spent (an early-stop that is not a terminal tool).
-    const abort = new AbortController();
-    const unlinkAbort = linkAbort(abort, this.signal);
-    let exhausted = false;
-
+    // loop (e.g. the Claude Agent SDK) work. Each tool carries its own
+    // `execute` closure.
     const makeExecute =
       (tool: Tool) =>
       async (args: Record<string, unknown>): Promise<string> => {
@@ -338,7 +344,10 @@ Fix the issues (use remove_node / remove_edge to correct mistakes) and call fini
         log.info("GraphPlanner tool call", {
           totalToolCalls,
           name: tool.name,
-          args
+          args:
+            tool.name === submitGraphTool.name
+              ? { codeChars: String((args?.code as string) ?? "").length }
+              : args
         });
 
         const toolStartedAt = Date.now();
@@ -354,19 +363,17 @@ Fix the issues (use remove_node / remove_edge to correct mistakes) and call fini
           name: tool.name,
           durationMs: Date.now() - toolStartedAt,
           resultLength: resultStr.length,
-          resultPreview: resultStr.slice(0, 240),
-          nodesBuilt: builder.nodeCount,
-          edgesBuilt: builder.edgeCount
+          resultPreview: resultStr.slice(0, 240)
         });
 
-        if (tool.name === "finish_graph" && finishGraphTool.graph) {
-          log.info("GraphPlanner finish_graph succeeded", {
-            nodes: finishGraphTool.graph.nodes.length,
-            edges: finishGraphTool.graph.edges.length
+        if (tool.name === submitGraphTool.name && submitGraphTool.graph) {
+          log.info("GraphPlanner submit_graph accepted", {
+            nodes: submitGraphTool.graph.nodes.length,
+            edges: submitGraphTool.graph.edges.length
           });
-          // Valid graph captured — end the loop promptly. A failed finish_graph
-          // returns its errors as the tool result (no abort) so the model can
-          // fix and call finish_graph again within the budget.
+          // Accepted graph captured — end the loop promptly. A failed
+          // submission returns its errors as the tool result (no abort) so
+          // the model can fix the program and resubmit within the budget.
           abort.abort();
         } else if (totalToolCalls >= MAX_TOOL_CALLS_PER_TURN) {
           exhausted = true;
@@ -428,29 +435,39 @@ Fix the issues (use remove_node / remove_edge to correct mistakes) and call fini
       unlinkAbort();
     }
 
-    if (finishGraphTool.graph) {
-      return { graph: finishGraphTool.graph };
+    if (submitGraphTool.graph) {
+      return { graph: submitGraphTool.graph };
     }
+
+    const carry = {
+      lastCode: submitGraphTool.lastCode ?? undefined,
+      lastErrors:
+        submitGraphTool.lastErrors.length > 0
+          ? submitGraphTool.lastErrors
+          : undefined
+    };
 
     if (exhausted) {
       log.warn("GraphPlanner hit MAX_TOOL_CALLS_PER_TURN", {
         totalToolCalls,
-        max: MAX_TOOL_CALLS_PER_TURN,
-        nodesBuilt: builder.nodeCount,
-        edgesBuilt: builder.edgeCount
+        max: MAX_TOOL_CALLS_PER_TURN
       });
       return {
-        error: `Exceeded maximum tool calls (${MAX_TOOL_CALLS_PER_TURN})`
+        error: `Exceeded maximum tool calls (${MAX_TOOL_CALLS_PER_TURN})`,
+        ...carry
       };
     }
 
-    log.warn("GraphPlanner stopped without finish_graph", {
-      nodesBuilt: builder.nodeCount,
-      edgesBuilt: builder.edgeCount
+    log.warn("GraphPlanner stopped without an accepted submit_graph", {
+      totalToolCalls,
+      submitted: submitGraphTool.lastCode != null
     });
     return {
       error:
-        "LLM stopped without calling finish_graph. Please build the graph and call finish_graph."
+        submitGraphTool.lastCode != null
+          ? "The last submitted program did not pass validation."
+          : "LLM stopped without calling submit_graph. Write the graph program and submit it via submit_graph.",
+      ...carry
     };
   }
 
@@ -467,16 +484,8 @@ Fix the issues (use remove_node / remove_edge to correct mistakes) and call fini
         return `Listing nodes in ${String(args.namespace ?? "all")}`;
       case "find_model":
         return `Finding model for ${String(args.task ?? args.capability ?? "task")}`;
-      case "add_node":
-        return `Adding node ${String(args.node_type ?? "")}${args.id ? ` (${String(args.id)})` : ""}`;
-      case "add_edge":
-        return `Connecting ${String(args.source ?? "")} → ${String(args.target ?? "")}`;
-      case "remove_node":
-        return `Removing node ${String(args.id ?? "")}`;
-      case "remove_edge":
-        return `Disconnecting ${String(args.source ?? "")} → ${String(args.target ?? "")}`;
-      case "finish_graph":
-        return "Finalizing graph";
+      case "submit_graph":
+        return "Submitting workflow graph";
       default:
         return `Calling ${name}`;
     }

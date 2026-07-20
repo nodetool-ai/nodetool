@@ -222,7 +222,7 @@ Core business logic for workflows, nodes, agents, and persistence.
 **`agents`** — Multi-step LLM agent system with layered execution:
 - `Agent` — Entry point. Takes an objective (plus skills, tools, and optional `outputSchema`); orchestrates planning, execution, and final synthesis. With a pre-built `task` it skips planning and runs a single task. With `useGraphPlanner` it builds and runs a workflow DAG via `GraphPlanner` + `AgentWorkflowRunner`.
 - `TaskPlanner` — LLM-driven decomposition of an objective into a `TaskPlan` DAG of tasks and steps.
-- `GraphPlanner` + `GraphBuilder` — LLM iteratively builds a typed workflow graph using `search_nodes` / `add_node` / `add_edge` tools; produces `GraphData` ready for the kernel.
+- `GraphPlanner` + `GraphBuilder` — LLM discovers nodes with `search_nodes` / `get_node_info` / `find_model`, then submits the whole workflow as one sandboxed graph DSL program (`submit_graph`); validation errors round-trip until the graph is accepted. Produces `GraphData` ready for the kernel.
 - `ParallelTaskExecutor` → `TaskExecutor` → `StepExecutor` — Runs `TaskPlan` tasks concurrently, each task's steps sequentially (or in parallel when independent).
 - `CompilerAgent` — Final synthesis pass after `ParallelTaskExecutor` finishes; reads accumulated `context.memory` and produces the deliverable (schema-conformant JSON when `outputSchema` is set, otherwise prose).
 - `AgentWorkflowRunner` — Hands a `GraphData` graph to `WorkflowRunner` (kernel) with a custom resolver that maps `nodetool.agents.AgentStep` nodes to `AgentStepExecutor`.
@@ -375,8 +375,9 @@ Agent.execute(context)
   │                                                        │
   ├─── useGraphPlanner ───────────────────────────────────┤
   │    GraphPlanner                                        │
-  │      ├── LLM iteratively calls: search_nodes,         │
-  │      │   get_node_info, add_node, add_edge, finish_graph│
+  │      ├── LLM discovers nodes (search_nodes,           │
+  │      │   get_node_info, find_model), then one-shots   │
+  │      │   the whole graph as a DSL program (submit_graph)│
   │      └── GraphBuilder validates DAG, emits GraphData  │
   │    AgentWorkflowRunner                                 │
   │      └── WorkflowRunner (kernel) with custom resolver:│
@@ -713,7 +714,7 @@ REST endpoints follow standard conventions:
 4. Agent loads skills from filesystem (auto-matched to objective) and recalls long-term memory
 5. Path selection:
    pre-built task → TaskExecutor → StepExecutor: LLM ↔ tools until finish_step
-   useGraphPlanner → GraphPlanner: LLM builds node graph iteratively
+   useGraphPlanner → GraphPlanner: LLM one-shots the node graph as a DSL program
                     AgentWorkflowRunner → WorkflowRunner (kernel)
                       AgentStep nodes → AgentStepExecutor → StepExecutor
                       Other nodes    → NodeRegistry (deterministic)

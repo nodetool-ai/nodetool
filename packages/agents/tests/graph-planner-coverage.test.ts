@@ -2,14 +2,15 @@
  * Coverage tests for GraphPlanner (`src/graph-planner.ts`).
  *
  * Drives the planner with a scripted provider whose `generateLoop` replays a
- * per-attempt list of tool calls (executing each graph tool's `execute`
- * closure, exactly like a real provider), so we can exercise:
- *   - successful build, chunk streaming, and every formatToolCallMessage branch
+ * per-attempt list of tool calls (executing each tool's `execute` closure,
+ * exactly like a real provider), so we can exercise:
+ *   - one-shot DSL submission, chunk streaming, and tool-call messages
  *   - the find_model registration path (providers supplied)
- *   - retry after a failed attempt, then success
+ *   - submit_graph feedback rounds within one attempt (invalid → fixed)
+ *   - retry after a failed attempt (with the last program in the retry prompt)
  *   - all-attempts-fail -> null
- *   - the per-turn tool-call budget (MAX_TOOL_CALLS_PER_TURN) exhaustion
- *   - "stopped without finish_graph"
+ *   - the per-turn tool-call budget exhaustion
+ *   - "stopped without submit_graph"
  *   - custom systemPrompt / outputSchema / execution-tools formatting
  */
 import { describe, it, expect } from "vitest";
@@ -33,6 +34,9 @@ const stubRegistry = {
   listMetadata: () => []
 } as unknown as NodeRegistry;
 
+const VALID_PROGRAM = `const step = node("${AGENT_STEP_NODE_TYPE}", { instructions: "do it" }, "step1");
+return graph();`;
+
 interface LoopArgs {
   messages: Array<{ role: string; content: string }>;
   tools?: Array<{
@@ -44,6 +48,7 @@ interface LoopArgs {
 
 interface ProviderCapture {
   lastArgs?: LoopArgs;
+  toolResults?: string[];
 }
 
 /**
@@ -80,7 +85,8 @@ function createScriptedProvider(
         yield tc as unknown as ProviderStreamItem;
         const tool = toolMap.get(tc.name);
         if (tool?.execute) {
-          await tool.execute(tc.args as Record<string, unknown>);
+          const result = await tool.execute(tc.args as Record<string, unknown>);
+          opts.capture?.toolResults?.push(String(result));
         }
         if (args.signal?.aborted) break;
       }
@@ -144,7 +150,7 @@ class BareTool extends Tool {
 }
 
 describe("GraphPlanner — coverage", () => {
-  it("builds a graph, streams chunks, and formats every tool-call message", async () => {
+  it("builds a graph from one submission, streams chunks, and formats tool-call messages", async () => {
     const script: ToolCall[] = [
       { id: "t1", name: "search_nodes", args: { query: "text" } },
       {
@@ -157,64 +163,13 @@ describe("GraphPlanner — coverage", () => {
       { id: "t5", name: "unknown_tool", args: {} },
       {
         id: "t6",
-        name: "add_node",
+        name: "submit_graph",
         args: {
-          id: "n1",
-          type: AGENT_STEP_NODE_TYPE,
-          node_type: AGENT_STEP_NODE_TYPE,
-          properties: { instructions: "a" }
+          code: `const a = node("${AGENT_STEP_NODE_TYPE}", { instructions: "a" }, "n1");
+node("${AGENT_STEP_NODE_TYPE}", { instructions: "c", input: a.output() }, "n3");
+return graph();`
         }
-      },
-      {
-        id: "t7",
-        name: "add_node",
-        args: {
-          id: "n2",
-          type: AGENT_STEP_NODE_TYPE,
-          properties: { instructions: "b" }
-        }
-      },
-      {
-        id: "t8",
-        name: "add_edge",
-        args: {
-          source: "n1",
-          source_handle: "output",
-          target: "n2",
-          target_handle: "input"
-        }
-      },
-      {
-        id: "t9",
-        name: "remove_edge",
-        args: {
-          source: "n1",
-          source_handle: "output",
-          target: "n2",
-          target_handle: "input"
-        }
-      },
-      { id: "t10", name: "remove_node", args: { id: "n2" } },
-      {
-        id: "t11",
-        name: "add_node",
-        args: {
-          id: "n3",
-          type: AGENT_STEP_NODE_TYPE,
-          properties: { instructions: "c" }
-        }
-      },
-      {
-        id: "t12",
-        name: "add_edge",
-        args: {
-          source: "n1",
-          source_handle: "output",
-          target: "n3",
-          target_handle: "input"
-        }
-      },
-      { id: "t13", name: "finish_graph", args: { title: "G" } }
+      }
     ];
 
     const provider = createScriptedProvider([script], {
@@ -234,6 +189,12 @@ describe("GraphPlanner — coverage", () => {
     expect(value).not.toBeNull();
     expect(value!.nodes).toHaveLength(2);
     expect(value!.edges).toHaveLength(1);
+    expect(value!.edges[0]).toEqual({
+      source: "n1",
+      sourceHandle: "output",
+      target: "n3",
+      targetHandle: "input"
+    });
 
     const tm = toolMessages(messages);
     expect(tm).toContain('Searching nodes for "text"');
@@ -241,11 +202,7 @@ describe("GraphPlanner — coverage", () => {
     expect(tm).toContain("Listing nodes in nodetool.text");
     expect(tm).toContain("Finding model for text_to_image");
     expect(tm).toContain("Calling unknown_tool");
-    expect(tm).toContain(`Adding node ${AGENT_STEP_NODE_TYPE} (n1)`);
-    expect(tm).toContain("Connecting n1 → n2");
-    expect(tm).toContain("Disconnecting n1 → n2");
-    expect(tm).toContain("Removing node n2");
-    expect(tm).toContain("Finalizing graph");
+    expect(tm).toContain("Submitting workflow graph");
 
     // The streamed non-final chunk is forwarded.
     const chunkContents = messages
@@ -254,24 +211,18 @@ describe("GraphPlanner — coverage", () => {
     expect(chunkContents).toContain("thinking...");
 
     // Success planning update.
-    expect(planningContents(messages).some((c) => /Graph built: 2 nodes/.test(c))).toBe(
-      true
-    );
+    expect(
+      planningContents(messages).some((c) => /Graph built: 2 nodes/.test(c))
+    ).toBe(true);
   });
 
   it("prefers the LLM-authored _message over the formatted fallback", async () => {
     const script: ToolCall[] = [
       {
         id: "t1",
-        name: "add_node",
-        args: {
-          id: "n1",
-          type: AGENT_STEP_NODE_TYPE,
-          properties: { instructions: "a" },
-          _message: "Custom status line"
-        }
-      },
-      { id: "t2", name: "finish_graph", args: {} }
+        name: "submit_graph",
+        args: { code: VALID_PROGRAM, _message: "Custom status line" }
+      }
     ];
     const planner = new GraphPlanner({
       provider: createScriptedProvider([script]),
@@ -285,26 +236,100 @@ describe("GraphPlanner — coverage", () => {
     expect(toolMessages(messages)).toContain("Custom status line");
   });
 
-  it("retries after a failed attempt, then succeeds", async () => {
-    // Attempt 0: finish_graph on an empty builder -> validation_failed, graph
-    // stays null. Attempt 1: add a node then finish -> success.
-    const attempt0: ToolCall[] = [
-      { id: "f0", name: "finish_graph", args: {} }
-    ];
-    const attempt1: ToolCall[] = [
-      {
-        id: "a1",
-        name: "add_node",
-        args: {
-          id: "n1",
-          type: AGENT_STEP_NODE_TYPE,
-          properties: { instructions: "x" }
-        }
-      },
-      { id: "f1", name: "finish_graph", args: {} }
+  it("round-trips validation errors within one attempt (feedback rounds)", async () => {
+    const capture: ProviderCapture = { toolResults: [] };
+    // First submission: empty graph -> validation_failed as the tool result.
+    // Second submission in the SAME attempt: fixed program -> accepted.
+    const script: ToolCall[] = [
+      { id: "s1", name: "submit_graph", args: { code: "return graph();" } },
+      { id: "s2", name: "submit_graph", args: { code: VALID_PROGRAM } }
     ];
     const planner = new GraphPlanner({
-      provider: createScriptedProvider([attempt0, attempt1]),
+      provider: createScriptedProvider([script], { capture }),
+      model: "opus",
+      registry: stubRegistry,
+      maxRetries: 1
+    });
+    const { value } = await collect(
+      planner.plan("obj", createMockContext() as ProcessingContext)
+    );
+    expect(value).not.toBeNull();
+    expect(value!.nodes).toHaveLength(1);
+
+    // The failed round returned its errors to the model as the tool result.
+    expect(capture.toolResults![0]).toContain("validation_failed");
+    expect(capture.toolResults![0]).toContain("at least one node");
+    expect(capture.toolResults![1]).toContain("graph_accepted");
+  });
+
+  it("returns code errors for a broken program as the tool result", async () => {
+    const capture: ProviderCapture = { toolResults: [] };
+    const script: ToolCall[] = [
+      { id: "s1", name: "submit_graph", args: { code: "const x = ;" } },
+      { id: "s2", name: "submit_graph", args: { code: VALID_PROGRAM } }
+    ];
+    const planner = new GraphPlanner({
+      provider: createScriptedProvider([script], { capture }),
+      model: "opus",
+      registry: stubRegistry,
+      maxRetries: 1
+    });
+    const { value } = await collect(
+      planner.plan("obj", createMockContext() as ProcessingContext)
+    );
+    expect(value).not.toBeNull();
+    expect(capture.toolResults![0]).toContain("code_error");
+  });
+
+  it("rejects unknown node types and AgentStep without instructions", async () => {
+    const capture: ProviderCapture = { toolResults: [] };
+    const script: ToolCall[] = [
+      {
+        id: "s1",
+        name: "submit_graph",
+        args: {
+          code: `node("nodetool.made.Up", {});
+node("${AGENT_STEP_NODE_TYPE}", {});
+return graph();`
+        }
+      }
+    ];
+    const planner = new GraphPlanner({
+      provider: createScriptedProvider([script]),
+      model: "opus",
+      registry: stubRegistry,
+      maxRetries: 1
+    });
+    const { value } = await collect(
+      planner.plan("obj", createMockContext() as ProcessingContext)
+    );
+    expect(value).toBeNull();
+
+    const planner2 = new GraphPlanner({
+      provider: createScriptedProvider([script], { capture }),
+      model: "opus",
+      registry: stubRegistry,
+      maxRetries: 1
+    });
+    await collect(planner2.plan("obj", createMockContext() as ProcessingContext));
+    expect(capture.toolResults![0]).toContain("Unknown node type: 'nodetool.made.Up'");
+    expect(capture.toolResults![0]).toContain(
+      'requires an \\"instructions\\" property'
+    );
+  });
+
+  it("retries after a failed attempt and carries the last program into the retry prompt", async () => {
+    const capture: ProviderCapture = {};
+    // Attempt 0: one invalid submission, then the model stops.
+    // Attempt 1: fixed submission -> success.
+    const attempt0: ToolCall[] = [
+      { id: "s0", name: "submit_graph", args: { code: "return graph();" } }
+    ];
+    const attempt1: ToolCall[] = [
+      { id: "s1", name: "submit_graph", args: { code: VALID_PROGRAM } }
+    ];
+    const planner = new GraphPlanner({
+      provider: createScriptedProvider([attempt0, attempt1], { capture }),
       model: "opus",
       registry: stubRegistry
     });
@@ -316,57 +341,20 @@ describe("GraphPlanner — coverage", () => {
     expect(
       planningContents(messages).some((c) => c.includes("Retry attempt 2/3"))
     ).toBe(true);
-  });
 
-  it("preserves the built graph across retry attempts and snapshots it in the retry message", async () => {
-    const capture: ProviderCapture = {};
-    // Attempt 0: adds a node but never finishes. Attempt 1: only finish_graph —
-    // this can only succeed if the builder survived the retry.
-    const attempt0: ToolCall[] = [
-      {
-        id: "a0",
-        name: "add_node",
-        args: {
-          id: "kept",
-          type: AGENT_STEP_NODE_TYPE,
-          properties: { instructions: "x" }
-        }
-      }
-    ];
-    const attempt1: ToolCall[] = [{ id: "f1", name: "finish_graph", args: {} }];
-    const planner = new GraphPlanner({
-      provider: createScriptedProvider([attempt0, attempt1], { capture }),
-      model: "opus",
-      registry: stubRegistry
-    });
-    const { value } = await collect(
-      planner.plan("obj", createMockContext() as ProcessingContext)
-    );
-    expect(value).not.toBeNull();
-    expect(value!.nodes).toHaveLength(1);
-    expect(value!.nodes[0].id).toBe("kept");
-
-    // The retry turn told the model what it already built.
+    // The retry turn showed the model its previous program and the errors.
     const msgs = capture.lastArgs!.messages;
     const retryMsg = msgs[msgs.length - 1];
     expect(retryMsg.role).toBe("user");
-    expect(retryMsg.content).toContain("preserved");
-    expect(retryMsg.content).toContain("node kept");
+    expect(retryMsg.content).toContain("return graph();");
+    expect(retryMsg.content).toContain("at least one node");
+    expect(retryMsg.content).toContain("FULL corrected program");
   });
 
   it("renders caller inputs into the planning prompt", async () => {
     const capture: ProviderCapture = {};
     const script: ToolCall[] = [
-      {
-        id: "a1",
-        name: "add_node",
-        args: {
-          id: "n1",
-          type: AGENT_STEP_NODE_TYPE,
-          properties: { instructions: "x" }
-        }
-      },
-      { id: "f1", name: "finish_graph", args: {} }
+      { id: "s1", name: "submit_graph", args: { code: VALID_PROGRAM } }
     ];
     const planner = new GraphPlanner({
       provider: createScriptedProvider([script], { capture }),
@@ -382,7 +370,7 @@ describe("GraphPlanner — coverage", () => {
     expect(userPrompt).toContain("nodetool.input.");
   });
 
-  it("returns null after all attempts fail (no finish_graph)", async () => {
+  it("returns null after all attempts fail (no submit_graph)", async () => {
     // Every attempt yields no tool calls at all.
     const planner = new GraphPlanner({
       provider: createScriptedProvider([[], []]),
@@ -410,18 +398,10 @@ describe("GraphPlanner — coverage", () => {
     ).toBe(true);
   });
 
-  it("reports the stopped-without-finish error", async () => {
+  it("reports the stopped-without-submit error", async () => {
     const attempt: ToolCall[] = [
-      {
-        id: "a1",
-        name: "add_node",
-        args: {
-          id: "n1",
-          type: AGENT_STEP_NODE_TYPE,
-          properties: { instructions: "x" }
-        }
-      }
-      // no finish_graph
+      { id: "t1", name: "search_nodes", args: { query: "text" } }
+      // no submit_graph
     ];
     const planner = new GraphPlanner({
       provider: createScriptedProvider([attempt]),
@@ -435,21 +415,17 @@ describe("GraphPlanner — coverage", () => {
     expect(value).toBeNull();
     expect(
       planningContents(messages).some((c) =>
-        c.includes("LLM stopped without calling finish_graph")
+        c.includes("LLM stopped without calling submit_graph")
       )
     ).toBe(true);
   });
 
   it("reports exhaustion when the per-turn tool-call budget is spent", async () => {
-    // 50 add_node calls with no finish -> hits MAX_TOOL_CALLS_PER_TURN.
-    const attempt: ToolCall[] = Array.from({ length: 50 }, (_, i) => ({
-      id: `a${i}`,
-      name: "add_node",
-      args: {
-        id: `n${i}`,
-        type: AGENT_STEP_NODE_TYPE,
-        properties: { instructions: `s${i}` }
-      }
+    // 20 discovery calls with no submission -> hits the budget.
+    const attempt: ToolCall[] = Array.from({ length: 20 }, (_, i) => ({
+      id: `t${i}`,
+      name: "search_nodes",
+      args: { query: `q${i}` }
     }));
     const planner = new GraphPlanner({
       provider: createScriptedProvider([attempt]),
@@ -463,7 +439,7 @@ describe("GraphPlanner — coverage", () => {
     expect(value).toBeNull();
     expect(
       planningContents(messages).some((c) =>
-        c.includes("Exceeded maximum tool calls (50)")
+        c.includes("Exceeded maximum tool calls (20)")
       )
     ).toBe(true);
   });
@@ -471,23 +447,17 @@ describe("GraphPlanner — coverage", () => {
   it("uses a custom systemPrompt and renders outputSchema + execution tools", async () => {
     const capture: ProviderCapture = {};
     const script: ToolCall[] = [
-      {
-        id: "a1",
-        name: "add_node",
-        args: {
-          id: "n1",
-          type: AGENT_STEP_NODE_TYPE,
-          properties: { instructions: "x" }
-        }
-      },
-      { id: "f1", name: "finish_graph", args: {} }
+      { id: "s1", name: "submit_graph", args: { code: VALID_PROGRAM } }
     ];
     const planner = new GraphPlanner({
       provider: createScriptedProvider([script], { capture }),
       model: "opus",
       registry: stubRegistry,
       systemPrompt: "CUSTOM SYSTEM PROMPT",
-      outputSchema: { type: "object", properties: { summary: { type: "string" } } },
+      outputSchema: {
+        type: "object",
+        properties: { summary: { type: "string" } }
+      },
       tools: [new SchemaTool(), new BareTool()]
     });
 
@@ -514,16 +484,7 @@ describe("GraphPlanner — coverage", () => {
   it('renders "None specified" when no outputSchema is given', async () => {
     const capture: ProviderCapture = {};
     const script: ToolCall[] = [
-      {
-        id: "a1",
-        name: "add_node",
-        args: {
-          id: "n1",
-          type: AGENT_STEP_NODE_TYPE,
-          properties: { instructions: "x" }
-        }
-      },
-      { id: "f1", name: "finish_graph", args: {} }
+      { id: "s1", name: "submit_graph", args: { code: VALID_PROGRAM } }
     ];
     const planner = new GraphPlanner({
       provider: createScriptedProvider([script], { capture }),

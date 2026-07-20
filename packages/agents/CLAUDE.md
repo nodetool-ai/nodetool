@@ -307,6 +307,56 @@ and the guest `agent()` re-throws.
 Tests: `tests/script-runner.test.ts`, `tests/script-planner.test.ts`,
 `tests/agent-script-mode.test.ts`.
 
+## Graph Mode (one-shot DSL planning)
+
+`GraphPlanner` builds a workflow graph by having the LLM write ONE graph DSL
+program instead of a tool call per node/edge. Discovery tools (`search_nodes`,
+`get_node_info`, `list_nodes`, `find_model`) stay; construction goes through a
+single `submit_graph(code)` tool. The program is plain JavaScript with the
+same wiring semantics as `@nodetool-ai/dsl` — `node(type, properties)` creates
+a node, passing `ref.output(slot?)` as a property value becomes an edge, and
+the program ends with `return graph();`:
+
+```js
+const prompt = node("nodetool.input.StringInput", { name: "prompt" });
+const image = node("nodetool.image.TextToImage", {
+  prompt: prompt.output(),
+  model: { provider: "fal_ai", id: "fal-ai/flux/schnell" }
+});
+node("nodetool.output.ImageOutput", { name: "image", value: image.output() });
+return graph();
+```
+
+The program runs in the QuickJS sandbox (`evaluateGraphDsl` in
+`src/graph-dsl.ts` — no host access), is loaded into a `GraphBuilder`, and
+validated structurally plus with node-sdk's `validateGraph`. Failures return
+as the `submit_graph` tool result, so the model fixes the program and
+resubmits over feedback rounds; an accepted submission ends the loop. The
+outer retry (`maxRetries`, default 3) carries the last program and its errors
+into a fresh attempt when the model stops without an accepted graph.
+
+Tests: `tests/graph-dsl.test.ts`, `tests/graph-planner-coverage.test.ts`,
+`tests/graph-planner-loop.test.ts`.
+
+### Eval suite
+
+`src/evals/` carries a provider-agnostic evaluation harness for the planner:
+`GRAPH_PLANNER_EVAL_CASES` (objectives + structural expectations — input
+wiring, node-family patterns, branch handles, no provider-locked nodes) and
+`runGraphPlannerEval` (metrics per case: accepted, score, submit rounds,
+tool calls, attempts, duration, cost; aggregate: success rate, one-shot rate,
+averages). Run it against any registered provider:
+
+```bash
+npm run dev:nodetool -- eval graph-planner --list
+npm run dev:nodetool -- eval graph-planner -p anthropic -m claude-sonnet-4-6
+npm run dev:nodetool -- eval graph-planner -p ollama -m qwen-3.5:4b --cases summarize
+npm run dev:nodetool -- eval graph-planner -p openai -m gpt-5.4-mini --json --out report.json
+npm run dev:nodetool -- eval graph-planner -p anthropic -m ... --min-success 0.8  # CI gate
+```
+
+Harness tests (scripted provider, no network): `tests/graph-planner-eval.test.ts`.
+
 ## Observing LLM Steps and Planning
 
 ### Execution Tree (CLI)
