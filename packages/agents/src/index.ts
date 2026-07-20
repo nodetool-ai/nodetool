@@ -375,10 +375,8 @@ export { GRAPH_PLANNER_EVAL_CASES } from "./evals/graph-planner-cases.js";
 // Graph-native planning & execution
 export { evaluateGraphDsl } from "./graph-dsl.js";
 export type { GraphDslResult, EvaluateGraphDslOptions } from "./graph-dsl.js";
-export { GraphBuilder, AGENT_STEP_NODE_TYPE } from "./graph-builder.js";
+export { GraphBuilder, AGENT_NODE_TYPE } from "./graph-builder.js";
 export { GraphPlanner } from "./graph-planner.js";
 export type { GraphPlannerOptions } from "./graph-planner.js";
-export { AgentStepExecutor } from "./agent-step-executor.js";
-export type { AgentStepExecutorOptions } from "./agent-step-executor.js";
 export { AgentWorkflowRunner } from "./agent-workflow-runner.js";
 export type { AgentWorkflowRunnerOptions } from "./agent-workflow-runner.js";

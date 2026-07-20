@@ -15,10 +15,10 @@ import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { validateGraph } from "@nodetool-ai/node-sdk";
 import type { GraphData } from "@nodetool-ai/protocol";
 import { Tool } from "./base-tool.js";
-import { GraphBuilder, AGENT_STEP_NODE_TYPE } from "../graph-builder.js";
+import { GraphBuilder } from "../graph-builder.js";
 import { evaluateGraphDsl } from "../graph-dsl.js";
 import {
-  agentStepAwareRegistry,
+  metadataAwareRegistry,
   supportsDeepValidation
 } from "./finish-graph-tool.js";
 
@@ -93,9 +93,7 @@ export class SubmitGraphTool extends Tool {
     const builder = new GraphBuilder();
 
     for (const node of evaluated.graph.nodes) {
-      const isAgentStep = node.type === AGENT_STEP_NODE_TYPE;
       if (
-        !isAgentStep &&
         !this.registry.has(node.type) &&
         !this.registry.getMetadata(node.type)
       ) {
@@ -103,15 +101,6 @@ export class SubmitGraphTool extends Tool {
           `Unknown node type: '${node.type}' (node '${node.id}'). Use search_nodes to find available types.`
         );
         continue;
-      }
-      if (isAgentStep) {
-        const instructions = node.properties?.["instructions"];
-        if (!instructions || typeof instructions !== "string") {
-          errors.push(
-            `AgentStep node '${node.id}' requires an "instructions" property (non-empty string).`
-          );
-          continue;
-        }
       }
       for (const e of builder.addNode(
         node.id,
@@ -141,7 +130,7 @@ export class SubmitGraphTool extends Tool {
     if (errors.length === 0 && supportsDeepValidation(this.registry)) {
       const report = validateGraph(
         builder.snapshot(),
-        agentStepAwareRegistry(this.registry)
+        metadataAwareRegistry(this.registry)
       );
       for (const issue of report.issues) {
         if (issue.severity === "error") errors.push(issue.message);

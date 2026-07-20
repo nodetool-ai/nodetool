@@ -6,7 +6,7 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { NodeRegistry, NodeMetadata } from "@nodetool-ai/node-sdk";
 import { TypeMetadata } from "@nodetool-ai/protocol";
 import { Tool } from "./base-tool.js";
-import { AGENT_STEP_NODE_TYPE, type GraphBuilder } from "../graph-builder.js";
+import { type GraphBuilder } from "../graph-builder.js";
 
 /** Render a node's TypeMetadata into the string form TypeMetadata.fromString parses. */
 function typeMetaToString(
@@ -104,7 +104,7 @@ export class AddEdgeTool extends Tool {
       h.startsWith("__") && h.endsWith("__");
 
     const sourceNode = this.builder.getNode(source);
-    if (sourceNode && sourceNode.type !== AGENT_STEP_NODE_TYPE) {
+    if (sourceNode) {
       const meta = this.registry.getMetadata(sourceNode.type);
       if (meta) {
         const output = meta.outputs.find(
@@ -129,7 +129,7 @@ export class AddEdgeTool extends Tool {
     }
 
     const targetNode = this.builder.getNode(target);
-    if (targetNode && targetNode.type !== AGENT_STEP_NODE_TYPE) {
+    if (targetNode) {
       const meta = this.registry.getMetadata(targetNode.type);
       if (meta) {
         const input = meta.properties.find(
@@ -154,7 +154,7 @@ export class AddEdgeTool extends Tool {
     // Type compatibility: catch e.g. a string output wired into a boolean
     // condition during planning, instead of only at runtime where the agent
     // can no longer self-correct. Skips unknown/any types and dynamic
-    // (AgentStep) endpoints, so it never blocks on missing metadata.
+    // endpoints, so it never blocks on missing metadata.
     if (
       validationErrors.length === 0 &&
       !edgeTypesCompatible(sourceType, targetType)

@@ -13,7 +13,7 @@ import type { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { GraphData } from "@nodetool-ai/protocol";
 import { GraphPlanner } from "../graph-planner.js";
-import { AGENT_STEP_NODE_TYPE } from "../graph-builder.js";
+import { AGENT_NODE_TYPE } from "../graph-builder.js";
 import { PROVIDER_NAMESPACES } from "../prompts/graph-planner-prompt.js";
 import { GRAPH_PLANNER_EVAL_CASES } from "./graph-planner-cases.js";
 
@@ -26,7 +26,7 @@ export interface GraphPlannerEvalExpectations {
   forbiddenNodeTypePatterns?: string[];
   /** Edge sourceHandles that must each be used by at least one edge. */
   requiredSourceHandles?: string[];
-  /** Minimum number of AgentStep nodes. */
+  /** Minimum number of Agent (LLM step) nodes. */
   minAgentSteps?: number;
   /** Minimum number of `nodetool.output.*` nodes. */
   minOutputNodes?: number;
@@ -168,7 +168,7 @@ export function checkExpectations(
   }
 
   if (expect.minAgentSteps !== undefined) {
-    const count = types.filter((t) => t === AGENT_STEP_NODE_TYPE).length;
+    const count = types.filter((t) => t === AGENT_NODE_TYPE).length;
     checks.push({
       name: `agentSteps>=${expect.minAgentSteps}`,
       pass: count >= expect.minAgentSteps,

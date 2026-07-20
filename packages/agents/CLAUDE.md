@@ -35,7 +35,6 @@ memoryKeys.shared("note");         // "shared:note"  — cross-agent scratch
 | `StepExecutor` | Last step of a task (finish-task) | `task:<task.id>` | `task_result` |
 | `TaskExecutor` | Startup / process-mode aggregation | `input:<key>` / `step:<step.id>` | `input` / `step_result` |
 | `ParallelTaskExecutor` | After a task completes (idempotent) | `task:<task.id>` | `task_result` |
-| `AgentStepExecutor` | Workflow edge inputs | `input:<nodeId>.<key>` | `input` |
 | `memory_write` tool | Agent / sub-agent publish | `shared:<key>` | `shared` |
 
 `memory_write` is restricted to the `shared:` namespace so agents can't spoof step / task / input results. Internal executors write directly through `context.memory.set` for their owned namespaces.

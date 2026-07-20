@@ -15,7 +15,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { GraphPlanner } from "../src/graph-planner.js";
-import { AGENT_STEP_NODE_TYPE } from "../src/graph-builder.js";
+import { AGENT_NODE_TYPE } from "../src/graph-builder.js";
 import { Tool } from "../src/tools/base-tool.js";
 import type {
   BaseProvider,
@@ -27,14 +27,14 @@ import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { GraphData, ProcessingMessage } from "@nodetool-ai/protocol";
 import { createMockContext } from "./_helpers/mock-context.js";
 
-// AgentStep nodes skip registry validation, so a stub registry is enough.
+// The planner only needs `has`/`getMetadata`, so a stub registry is enough.
 const stubRegistry = {
-  has: () => false,
+  has: (type: string) => type === AGENT_NODE_TYPE,
   getMetadata: () => undefined,
   listMetadata: () => []
 } as unknown as NodeRegistry;
 
-const VALID_PROGRAM = `const step = node("${AGENT_STEP_NODE_TYPE}", { instructions: "do it" }, "step1");
+const VALID_PROGRAM = `const step = node("${AGENT_NODE_TYPE}", { prompt: "do it" }, "step1");
 return graph();`;
 
 interface LoopArgs {
@@ -165,8 +165,8 @@ describe("GraphPlanner — coverage", () => {
         id: "t6",
         name: "submit_graph",
         args: {
-          code: `const a = node("${AGENT_STEP_NODE_TYPE}", { instructions: "a" }, "n1");
-node("${AGENT_STEP_NODE_TYPE}", { instructions: "c", input: a.output() }, "n3");
+          code: `const a = node("${AGENT_NODE_TYPE}", { prompt: "a" }, "n1");
+node("${AGENT_NODE_TYPE}", { prompt: a.output() }, "n3");
 return graph();`
         }
       }
@@ -193,7 +193,7 @@ return graph();`
       source: "n1",
       sourceHandle: "output",
       target: "n3",
-      targetHandle: "input"
+      targetHandle: "prompt"
     });
 
     const tm = toolMessages(messages);
@@ -281,7 +281,7 @@ return graph();`
     expect(capture.toolResults![0]).toContain("code_error");
   });
 
-  it("rejects unknown node types and AgentStep without instructions", async () => {
+  it("rejects unknown node types", async () => {
     const capture: ProviderCapture = { toolResults: [] };
     const script: ToolCall[] = [
       {
@@ -289,7 +289,6 @@ return graph();`
         name: "submit_graph",
         args: {
           code: `node("nodetool.made.Up", {});
-node("${AGENT_STEP_NODE_TYPE}", {});
 return graph();`
         }
       }
@@ -313,9 +312,31 @@ return graph();`
     });
     await collect(planner2.plan("obj", createMockContext() as ProcessingContext));
     expect(capture.toolResults![0]).toContain("Unknown node type: 'nodetool.made.Up'");
-    expect(capture.toolResults![0]).toContain(
-      'requires an \\"instructions\\" property'
+  });
+
+  it("rejects an Agent node with no prompt property and no prompt edge", async () => {
+    const capture: ProviderCapture = { toolResults: [] };
+    const script: ToolCall[] = [
+      {
+        id: "s1",
+        name: "submit_graph",
+        args: {
+          code: `node("${AGENT_NODE_TYPE}", {});
+return graph();`
+        }
+      }
+    ];
+    const planner = new GraphPlanner({
+      provider: createScriptedProvider([script], { capture }),
+      model: "opus",
+      registry: stubRegistry,
+      maxRetries: 1
+    });
+    const { value } = await collect(
+      planner.plan("obj", createMockContext() as ProcessingContext)
     );
+    expect(value).toBeNull();
+    expect(capture.toolResults![0]).toContain('needs a \\"prompt\\"');
   });
 
   it("retries after a failed attempt and carries the last program into the retry prompt", async () => {

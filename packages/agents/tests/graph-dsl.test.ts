@@ -9,11 +9,10 @@ describe("evaluateGraphDsl", () => {
   it("builds nodes and derives edges from output handles", async () => {
     const { graph, error } = await evaluateGraphDsl(`
       const input = node("nodetool.input.StringInput", { name: "prompt" });
-      const step = node("nodetool.agents.AgentStep", {
-        instructions: "Summarize",
-        input: input.output()
+      const step = node("nodetool.agents.Agent", {
+        prompt: input.output()
       });
-      node("nodetool.output.StringOutput", { name: "result", value: step.output() });
+      node("nodetool.output.StringOutput", { name: "result", value: step.output("text") });
       return graph();
     `);
 
@@ -24,19 +23,19 @@ describe("evaluateGraphDsl", () => {
       {
         source: "string_input",
         sourceHandle: "output",
-        target: "agent_step",
-        targetHandle: "input"
+        target: "agent",
+        targetHandle: "prompt"
       },
       {
-        source: "agent_step",
-        sourceHandle: "output",
+        source: "agent",
+        sourceHandle: "text",
         target: "string_output",
         targetHandle: "value"
       }
     ]);
     // Handle values are stripped from properties; plain values stay.
-    const step = graph!.nodes.find((n) => n.id === "agent_step")!;
-    expect(step.properties).toEqual({ instructions: "Summarize" });
+    const step = graph!.nodes.find((n) => n.id === "agent")!;
+    expect(step.properties).toEqual({});
   });
 
   it("derives unique snake_case ids and honors explicit ids", async () => {
@@ -96,7 +95,7 @@ describe("evaluateGraphDsl", () => {
 
   it("rejects a program that does not return graph()", async () => {
     const { graph, error } = await evaluateGraphDsl(`
-      node("nodetool.agents.AgentStep", { instructions: "x" });
+      node("nodetool.agents.Agent", { prompt: "x" });
       return "done";
     `);
     expect(graph).toBeUndefined();

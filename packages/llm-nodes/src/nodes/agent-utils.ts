@@ -24,6 +24,16 @@ export type ToolLike = {
     context: ProcessingContext,
     params: Record<string, unknown>
   ) => Promise<unknown>;
+  /**
+   * Preferred entry point when present (agent-system tools have one): strips
+   * reserved fields like `_message` and coerces params against the tool's
+   * schema before dispatching to `process`.
+   */
+  execute?: (
+    context: ProcessingContext,
+    params: Record<string, unknown>,
+    options?: { toolCallId?: string }
+  ) => Promise<unknown>;
   toProviderTool?: () => {
     name: string;
     description?: string;
@@ -502,7 +512,17 @@ export async function* classifyProviderStream(
   }
 }
 
-export function normalizeTools(value: unknown): ToolLike[] {
+/**
+ * Resolve selected tool names to executable tools.
+ *
+ * A tool the caller injected into the context wins over builtin hydration:
+ * only the caller can wire MCP, workspace, skill, and security-gated tools,
+ * and a builtin stub of the same name would be the weaker of the two.
+ */
+export function normalizeTools(
+  value: unknown,
+  context?: ProcessingContext
+): ToolLike[] {
   if (!Array.isArray(value)) return [];
   return value
     .filter(
@@ -511,7 +531,11 @@ export function normalizeTools(value: unknown): ToolLike[] {
         typeof tool === "object" &&
         typeof (tool as { name?: unknown }).name === "string"
     )
-    .map((tool) => hydrateBuiltinAgentTool(tool) as ToolLike);
+    .map(
+      (tool) =>
+        (context?.getInjectedTool?.(tool.name) as ToolLike | null) ??
+        (hydrateBuiltinAgentTool(tool) as ToolLike)
+    );
 }
 
 export function uniqueToolName(baseName: string, existingNames: string[]): string {

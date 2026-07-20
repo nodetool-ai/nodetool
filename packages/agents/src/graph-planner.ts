@@ -112,7 +112,7 @@ export class GraphPlanner {
 
     if (!this.hasFindModel) {
       log.warn(
-        "GraphPlanner constructed without configured providers — `find_model` tool will not be registered. The agent will fall back to AgentStep for AI work."
+        "GraphPlanner constructed without configured providers — `find_model` tool will not be registered. The agent will fall back to a model-less Agent node for AI work."
       );
     }
   }

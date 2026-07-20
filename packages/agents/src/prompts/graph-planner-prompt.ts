@@ -29,7 +29,7 @@ export interface GenericAINode {
   summary: string;
   /**
    * Whether this node accepts a `model` property of the form `{provider, id}`.
-   * `false` for AgentStep, which inherits the workflow's configured model.
+   * `false` for the Agent step, which inherits the run's configured model.
    */
   acceptsModel: boolean;
 }
@@ -98,11 +98,11 @@ export const GENERIC_AI_NODES: readonly GenericAINode[] = [
     acceptsModel: true
   },
   {
-    type: "nodetool.agents.AgentStep",
+    type: "nodetool.agents.Agent",
     capability: "generate_message",
     task: "LLM step (reasoning / generation)",
     summary:
-      "LLM step: pass instructions in, get text out. Inherits the workflow's configured model — do NOT set a model property.",
+      "LLM step: pass a prompt in, get text out on the `text` handle. Inherits the run's configured model — do NOT set a model property.",
     acceptsModel: false
   }
 ];
@@ -182,7 +182,7 @@ export interface BuildPromptOptions {
   /**
    * Whether `find_model` is available. When false (no providers configured),
    * the prompt drops the "use find_model" instruction and steers the agent
-   * toward AgentStep for any AI work.
+   * toward the model-less Agent step for any AI work.
    */
   hasFindModel?: boolean;
   /**
@@ -209,7 +209,7 @@ function renderProviderList(): string {
 /**
  * Build the GraphPlanner system prompt. Pass `hasFindModel: false` when
  * there are no configured providers — the prompt then omits the model
- * lookup step and tells the agent to fall back to AgentStep.
+ * lookup step and tells the agent to fall back to a model-less Agent step.
  */
 export function buildGraphPlannerSystemPrompt(
   options: BuildPromptOptions = {}
@@ -248,8 +248,9 @@ Provider-specific nodes are hidden from search results by default; only set
 ${renderGenericNodeTable(genericNodes)}
 
 These nodes accept a \`model\` property (a \`{provider, id}\` object) — except
-AgentStep, which uses the workflow's configured model. Do NOT guess model IDs;
-${hasFindModel ? "use `find_model` to pick a real model+provider." : "AgentStep is the safe choice when no providers are configured."}
+\`nodetool.agents.Agent\`, which inherits the run's configured model when you
+omit \`model\`. Do NOT guess model IDs;
+${hasFindModel ? "use `find_model` to pick a real model+provider." : "an Agent node with no `model` is the safe choice when no providers are configured."}
 
 ## Core baseline namespaces (deterministic, non-AI work)
 
@@ -295,7 +296,7 @@ arrays, template strings — use it instead of copy-pasting near-identical nodes
    property names and handles. Generic AI nodes from the table above don't
    need inspection. Batch independent lookups; skip discovery entirely when
    the graph only uses generic AI nodes and input/output nodes.
-${hasFindModel ? "2. **PICK MODEL** — for each generic AI node (except AgentStep), call `find_model` once with the node's capability and use the first ranked result.\n" : "2. **(no model lookup — providers not configured; prefer AgentStep for AI work)**\n"}3. **WRITE & SUBMIT** — write the COMPLETE program in one shot and call
+${hasFindModel ? "2. **PICK MODEL** — for each generic AI node (except `nodetool.agents.Agent`), call `find_model` once with the node's capability and use the first ranked result.\n" : "2. **(no model lookup — providers not configured; prefer a model-less Agent node for AI work)**\n"}3. **WRITE & SUBMIT** — write the COMPLETE program in one shot and call
    \`submit_graph\` with it. Do not build incrementally; the whole workflow
    goes in a single submission.
 4. **FIX** — if \`submit_graph\` returns errors, correct the program and
@@ -328,9 +329,17 @@ node auto-saves its result as an asset. Example: \`nodetool.image.TextToImage\`
 (prompt: "a dog") → \`lib.image.filter.Posterize\` (3 colors).
 
 ## Multi-Step LLM Reasoning
-\`AgentStep (instructions) → AgentStep (instructions) → Output\`. Chain
-\`nodetool.agents.AgentStep\` nodes for multi-stage reasoning. Each step
-inherits the workflow's configured model — do NOT set a \`model\` property.
+\`Agent (prompt) → Agent (prompt) → Output\`. Chain
+\`nodetool.agents.Agent\` nodes for multi-stage reasoning. Each step inherits
+the run's configured model — do NOT set a \`model\` property.
+
+\`\`\`js
+const draft = node("nodetool.agents.Agent", { prompt: "Outline the topic" });
+const polish = node("nodetool.agents.Agent", {
+  prompt: draft.output("text")
+});
+node("nodetool.output.StringOutput", { name: "result", value: polish.output("text") });
+\`\`\`
 
 ## Branch / Conditional
 \`Input → comparison → If → (both branches) → Output\`. Produce a **boolean**
@@ -343,9 +352,9 @@ handled. Do not fake the else-branch with \`TryCatch\`; \`If\` already gives you
 both paths.
 
 ## Multi-Modal Chain
-\`Audio → Speech-to-Text → AgentStep → Text-to-Image → Output\`, or any
+\`Audio → Speech-to-Text → Agent → Text-to-Image → Output\`, or any
 permutation. Connect generic AI nodes of different modalities, optionally
-through an AgentStep for transformation logic.
+through an Agent step for transformation logic.
 
 # Required Properties (set in node() properties)
 
@@ -356,7 +365,7 @@ through an AgentStep for transformation logic.
 | \`nodetool.audio.TextToSpeech\` | \`model\`, \`text\` |
 | \`nodetool.text.AutomaticSpeechRecognition\` | \`model\`, \`audio\` |
 | \`nodetool.text.Embedding\` | \`model\`, \`text\` |
-| \`nodetool.agents.AgentStep\` | \`instructions\`. Does NOT take a \`model\` property. |
+| \`nodetool.agents.Agent\` | \`prompt\`. Omit \`model\` — it inherits the run's. |
 | \`nodetool.constant.String\` / \`Integer\` / \`Float\` / \`Boolean\` | \`value\` |
 | Other nodes | Whatever \`get_node_info\` lists as required. |
 
@@ -391,19 +400,21 @@ ${tools}
 - Provider-specific nodes are FORBIDDEN unless the user named the provider.
 - Maximize parallelism: nodes without data dependencies run concurrently —
   do not serialize independent branches.
-- Use \`nodetool.agents.AgentStep\` for any LLM reasoning step in the
-  workflow. Required: \`instructions\` (string). Optional: \`tools\` (string
-  array), \`output_schema\` (JSON schema string). Input handle: \`input\`.
-  Output handle: \`output\`.
-- Do NOT use \`nodetool.agents.Agent\` (the standalone agent node) — use
-  \`AgentStep\` instead.
+- Use \`nodetool.agents.Agent\` for any LLM reasoning step in the workflow.
+  Required: \`prompt\` (string). Optional: \`system\` (string), \`tools\`
+  (string array). Input handle: \`prompt\`.
+- An Agent's text comes out on the \`text\` handle, so always read it as
+  \`ref.output("text")\` — a bare \`ref.output()\` means \`output\`, which
+  an Agent node does not have.
+- Omit the \`model\` property on these — the run's configured model is
+  stamped in at execution time. Setting one pins the node to that model.
 
 # Persistence
 
 - For images/audio/video, the generic AI nodes auto-save outputs as assets;
   no separate save node needed.
-- For text artifacts an AgentStep produces (reports, summaries, JSON),
+- For text artifacts an Agent step produces (reports, summaries, JSON),
   either use the \`lib.os.WriteTextFile\` deterministic node OR
-  have the AgentStep call \`save_asset\` from its tool list so the artifact
+  have the Agent call \`save_asset\` from its tool list so the artifact
   shows up in the chat asset browser.`;
 }

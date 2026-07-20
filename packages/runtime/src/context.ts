@@ -346,6 +346,30 @@ export interface AssetInfoEntry {
   metadata: Record<string, unknown> | null;
 }
 
+/**
+ * An executable tool the run's owner injects into the context for agent nodes
+ * to pick up by name. Structurally satisfied by the agent system's `Tool` base
+ * class, which lives in a package `runtime` cannot depend on.
+ */
+export interface InjectedTool {
+  name: string;
+  description?: string;
+  inputSchema?: Record<string, unknown>;
+  process: (
+    context: ProcessingContext,
+    params: Record<string, unknown>
+  ) => Promise<unknown>;
+  /**
+   * Preferred entry point when present: strips reserved fields and coerces
+   * params against the tool's schema before dispatching to `process`.
+   */
+  execute?: (
+    context: ProcessingContext,
+    params: Record<string, unknown>,
+    options?: { toolCallId?: string }
+  ) => Promise<unknown>;
+}
+
 export interface ProcessingContextModelInterfaces {
   getJob?: (args: { userId: string; jobId: string }) => Promise<unknown | null>;
   createAsset?: (args: AssetCreateParamsLike) => Promise<unknown>;
@@ -1103,6 +1127,14 @@ export class ProcessingContext {
         properties: Record<string, unknown>
       ) => Promise<Record<string, unknown>>)
     | null = null;
+  /**
+   * Executable tools supplied by the caller that owns this run (set by the
+   * agent workflow runner). Agent nodes merge these into their own tool list
+   * by name, so a node that selects `read_file` gets the caller's live,
+   * fully-wired tool instead of a builtin stub. Tools the caller does not
+   * provide fall back to builtin hydration.
+   */
+  private _injectedTools: InjectedTool[] = [];
   /** Provider charge (USD) reported by the current node execution (e.g. FAL/KIE generation). */
   private _providerCost: ProviderCost | null = null;
   /** Optional executor resolver for sub-workflow execution. */
@@ -1213,6 +1245,7 @@ export class ProcessingContext {
     next._providerResolver = this._providerResolver;
     next._modelInterfaces = this._modelInterfaces;
     next._sendControlEvent = this._sendControlEvent;
+    next._injectedTools = this._injectedTools;
     next._providers = new Map(this._providers);
     next._totalCost = this._totalCost;
     next._operationCosts = this._operationCosts.map((c) => ({ ...c }));
@@ -1271,6 +1304,21 @@ export class ProcessingContext {
   ): Promise<Record<string, unknown> | null> {
     if (!this._sendControlEvent) return null;
     return this._sendControlEvent(targetNodeId, properties);
+  }
+
+  /**
+   * Supply the live tool set for this run. Agent nodes match their selected
+   * tool names against these and prefer them over builtin hydration, so tools
+   * that only the caller can wire (MCP, workspace, skills, security-gated
+   * wrappers) reach nodes the caller did not author.
+   */
+  setInjectedTools(tools: InjectedTool[]): void {
+    this._injectedTools = tools;
+  }
+
+  /** Injected tool matching `name`, or null when the caller supplied none. */
+  getInjectedTool(name: string): InjectedTool | null {
+    return this._injectedTools.find((tool) => tool.name === name) ?? null;
   }
 
   // -----------------------------------------------------------------------

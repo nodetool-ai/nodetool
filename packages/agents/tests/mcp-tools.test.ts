@@ -174,7 +174,7 @@ describe("CreateWorkflowTool", () => {
           },
           {
             id: "summarizer_node",
-            node_type: "nodetool.agents.AgentStep",
+            node_type: "nodetool.agents.Agent",
             properties: { instructions: "Summarize the news" }
           }
         ],
@@ -198,7 +198,7 @@ describe("CreateWorkflowTool", () => {
       },
       {
         id: "summarizer_node",
-        type: "nodetool.agents.AgentStep",
+        type: "nodetool.agents.Agent",
         properties: { instructions: "Summarize the news" }
       }
     ]);

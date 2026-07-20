@@ -225,8 +225,7 @@ Core business logic for workflows, nodes, agents, and persistence.
 - `GraphPlanner` + `GraphBuilder` — LLM discovers nodes with `search_nodes` / `get_node_info` / `find_model`, then submits the whole workflow as one sandboxed graph DSL program (`submit_graph`); validation errors round-trip until the graph is accepted. Produces `GraphData` ready for the kernel.
 - `ParallelTaskExecutor` → `TaskExecutor` → `StepExecutor` — Runs `TaskPlan` tasks concurrently, each task's steps sequentially (or in parallel when independent).
 - `CompilerAgent` — Final synthesis pass after `ParallelTaskExecutor` finishes; reads accumulated `context.memory` and produces the deliverable (schema-conformant JSON when `outputSchema` is set, otherwise prose).
-- `AgentWorkflowRunner` — Hands a `GraphData` graph to `WorkflowRunner` (kernel) with a custom resolver that maps `nodetool.agents.AgentStep` nodes to `AgentStepExecutor`.
-- `AgentStepExecutor` — Implements the `NodeExecutor` interface; wraps `StepExecutor` so LLM-driven steps run inside the kernel's actor model.
+- `AgentWorkflowRunner` — Hands a `GraphData` graph to `WorkflowRunner` (kernel). Planner-authored `nodetool.agents.Agent` nodes carry no model; the runner stamps the run's configured provider+model onto them and injects its live tool set into the `ProcessingContext`.
 - Tool system with 100+ tools across categories: search (Google, DataForSEO), code execution, file I/O, browser automation (Playwright), email, image generation, PDF processing, vector search, workflow management, and MCP (Model Context Protocol) integration.
 
 **`models`** — Database persistence layer using Drizzle ORM over SQLite. Defines tables for: `workflows` (DAG definitions), `jobs` (execution records), `messages` / `threads` (chat history), `assets` (file metadata), `secrets` (encrypted credentials), `workspaces`, `workflowVersions`, `oauthCredentials`, `predictions` (usage/cost tracking), `runNodeState`, `runEvents`, and `runLeases` (distributed job leasing).
@@ -307,7 +306,6 @@ NodeActor (packages/kernel) — runs per node
   ├── Pulls messages from NodeInbox (per-handle FIFO queue)
   ├── Resolves NodeExecutor via resolveExecutor():
   │     TypeScript NodeRegistry → PythonNodeExecutor (fallback)
-  │     (AgentWorkflowRunner overrides: AgentStep → AgentStepExecutor)
   ├── Execution mode (chosen by node metadata):
   │     • Buffered:          process(inputs) → outputs (one shot)
   │     • Streaming output:  genProcess(inputs) → yields partial outputs
@@ -318,7 +316,7 @@ NodeActor (packages/kernel) — runs per node
 NodeExecutor.process() / .genProcess() / .run()
   ├── TypeScript nodes: BaseNode.process(context, values)
   ├── Python nodes:     PythonNodeExecutor → Python bridge (msgpack over stdio)
-  ├── Agent nodes:      AgentStepExecutor → StepExecutor (LLM + tools)
+  ├── Agent nodes:      AgentNode → provider loop (LLM + tools)
   ├── Emits ProcessingMessages via context (node_update, chunk, etc.)
   │
   ▼
@@ -358,7 +356,7 @@ The agent system has a single entry point — `Agent` — which dispatches to on
 
 **Path 1: Pre-built `task`** — Caller supplies a `Task` directly; `Agent` skips planning and runs it through `TaskExecutor` → `StepExecutor`.
 
-**Path 2: `useGraphPlanner: true`** — `GraphPlanner` builds a workflow graph (DAG of typed nodes) which `AgentWorkflowRunner` hands to the kernel's `WorkflowRunner`. Nodes of type `nodetool.agents.AgentStep` are executed by `AgentStepExecutor` (which wraps a `StepExecutor`); all other nodes resolve through the normal `NodeRegistry`. This is the **hybrid** path: LLM-driven reasoning nodes run alongside deterministic nodes in the same kernel.
+**Path 2: `useGraphPlanner: true`** — `GraphPlanner` builds a workflow graph (DAG of typed nodes) which `AgentWorkflowRunner` hands to the kernel's `WorkflowRunner`. Every node — including the `nodetool.agents.Agent` reasoning steps — resolves through the normal `NodeRegistry`; the runner supplies those steps' model and tools. This is the **hybrid** path: LLM-driven reasoning nodes run alongside deterministic nodes in the same kernel.
 
 **Path 3: Default (plan)** — `TaskPlanner` decomposes the objective into a `TaskPlan` DAG; `ParallelTaskExecutor` runs independent tasks concurrently via `TaskExecutor` → `StepExecutor`; `CompilerAgent` synthesizes the final deliverable from accumulated `context.memory`.
 
@@ -381,7 +379,7 @@ Agent.execute(context)
   │      └── GraphBuilder validates DAG, emits GraphData  │
   │    AgentWorkflowRunner                                 │
   │      └── WorkflowRunner (kernel) with custom resolver:│
-  │            AgentStep nodes → AgentStepExecutor         │
+  │            Agent nodes: model+tools from runner        │
   │                               └── StepExecutor (LLM)  │
   │            Other nodes → NodeRegistry (deterministic)  │
   │                                                        │
@@ -430,7 +428,7 @@ Node types are registered in `NodeRegistry`. At runtime the kernel resolves each
 
 1. **TypeScript `NodeRegistry`** — registered `BaseNode` subclasses run in-process
 2. **`PythonNodeExecutor`** — fallback for nodes declared in Python; communicates via the `PythonStdioBridge` (msgpack over stdin/stdout)
-3. **`AgentStepExecutor`** — used by `AgentWorkflowRunner` for nodes of type `nodetool.agents.AgentStep`; runs a `StepExecutor` LLM loop and feeds its result back into the kernel graph
+3. **`AgentNode`** — the `nodetool.agents.Agent` node; runs a provider tool-calling loop and feeds its result back into the kernel graph
 
 The executor type used also controls which `NodeActor` execution mode fires (buffered / streaming output / streaming I/O / controlled).
 
@@ -716,7 +714,7 @@ REST endpoints follow standard conventions:
    pre-built task → TaskExecutor → StepExecutor: LLM ↔ tools until finish_step
    useGraphPlanner → GraphPlanner: LLM one-shots the node graph as a DSL program
                     AgentWorkflowRunner → WorkflowRunner (kernel)
-                      AgentStep nodes → AgentStepExecutor → StepExecutor
+                      Agent nodes → AgentNode → provider loop
                       Other nodes    → NodeRegistry (deterministic)
    default (plan) → TaskPlanner → TaskPlan DAG
                     ParallelTaskExecutor: concurrent tasks, each via StepExecutor

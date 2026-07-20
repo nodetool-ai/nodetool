@@ -85,7 +85,7 @@ export const GRAPH_PLANNER_EVAL_CASES: readonly GraphPlannerEvalCase[] = [
     expect: {
       requiredInputNames: ["first", "second"],
       requiredNodeTypePatterns: ["^nodetool\\.text\\."],
-      forbiddenNodeTypePatterns: ["^nodetool\\.agents\\.AgentStep$"],
+      forbiddenNodeTypePatterns: ["^nodetool\\.agents\\."],
       requireOutputNode: true
     }
   },

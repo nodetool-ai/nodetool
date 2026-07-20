@@ -27,6 +27,7 @@ const runnerInstances: Array<{
   jobId: string;
   opts: RunnerCtorOpts;
   runArgs: unknown[];
+  cancelCount?: number;
 }> = [];
 
 let runBehavior: (
@@ -49,21 +50,16 @@ vi.mock("@nodetool-ai/kernel", () => ({
       inst.runArgs = [params, graph];
       return runBehavior(this.opts.executionContext, params, graph);
     }
+    cancel(): void {
+      const inst = runnerInstances[runnerInstances.length - 1];
+      inst.cancelCount = (inst.cancelCount ?? 0) + 1;
+    }
   }
 }));
 
 const hydrateSpy = vi.fn((g: unknown) => ({ ...(g as object), __hydrated: true }));
 vi.mock("@nodetool-ai/node-sdk", () => ({
   hydrateGraphNodeFlags: hydrateSpy
-}));
-
-const agentStepCtors: Array<{ node: unknown; opts: unknown }> = [];
-vi.mock("../src/agent-step-executor.js", () => ({
-  AgentStepExecutor: class {
-    constructor(node: unknown, opts: unknown) {
-      agentStepCtors.push({ node, opts });
-    }
-  }
 }));
 
 // Import AFTER mocks are registered.
@@ -96,7 +92,6 @@ const msg = (type: string, extra: Record<string, unknown> = {}): ProcessingMessa
 
 beforeEach(() => {
   runnerInstances.length = 0;
-  agentStepCtors.length = 0;
   hydrateSpy.mockClear();
   runBehavior = async () => ({ status: "completed", outputs: {} });
 });
@@ -161,37 +156,166 @@ describe("AgentWorkflowRunner.execute — happy path", () => {
   });
 });
 
-describe("AgentWorkflowRunner.execute — resolveExecutor wiring", () => {
-  it("resolves agent-step nodes via AgentStepExecutor and others via the registry", async () => {
-    const opts = makeOpts({
-      systemPrompt: "be terse",
-      maxStepIterations: 5
-    });
+describe("AgentWorkflowRunner.execute — node resolution", () => {
+  it("resolves every node through the registry", async () => {
+    const opts = makeOpts();
     const runner = new AgentWorkflowRunner(opts);
 
     await drain(runner.execute(emptyGraph));
 
     const resolve = runnerInstances[0].opts.resolveExecutor;
-
-    // Agent-step node → AgentStepExecutor branch.
-    resolve({ id: "s1", type: "nodetool.agents.AgentStep" });
-    expect(agentStepCtors).toHaveLength(1);
-    expect(agentStepCtors[0].node).toMatchObject({ id: "s1" });
-    expect(agentStepCtors[0].opts).toMatchObject({
-      model: "mock-model",
-      systemPrompt: "be terse",
-      maxIterations: 5
-    });
-
-    // Deterministic node → registry.resolve branch.
     const resolved = resolve({ id: "n2", type: "nodetool.text.Concat" });
+
     expect(resolved).toEqual({ resolved: "n2" });
     expect(opts.registry.resolve).toHaveBeenCalledWith({
       id: "n2",
       type: "nodetool.text.Concat"
     });
-    // No extra AgentStepExecutor was constructed for the deterministic node.
-    expect(agentStepCtors).toHaveLength(1);
+  });
+
+  it("injects the run's tools into the context for agent nodes to pick up", async () => {
+    const opts = makeOpts();
+    await drain(new AgentWorkflowRunner(opts).execute(emptyGraph));
+
+    expect(opts.context.setInjectedTools).toHaveBeenCalledWith(opts.tools);
+    expect(opts.context.getInjectedTool("t1")).toEqual({ name: "t1" });
+  });
+});
+
+describe("AgentWorkflowRunner.execute — cancellation", () => {
+  it("cancels the kernel run when the external signal aborts mid-run", async () => {
+    const controller = new AbortController();
+    let release: () => void = () => {};
+    runBehavior = async () => {
+      await new Promise<void>((r) => {
+        release = r;
+      });
+      return { status: "completed", outputs: {} };
+    };
+
+    const gen = new AgentWorkflowRunner(
+      makeOpts({ signal: controller.signal })
+    ).execute(emptyGraph);
+    const drained = drain(gen);
+    await Promise.resolve();
+
+    controller.abort();
+    expect(runnerInstances[0].cancelCount).toBe(1);
+
+    release();
+    await drained;
+  });
+
+  it("cancels immediately when handed an already-aborted signal", async () => {
+    await drain(
+      new AgentWorkflowRunner(
+        makeOpts({ signal: AbortSignal.abort() })
+      ).execute(emptyGraph)
+    );
+
+    expect(runnerInstances[0].cancelCount).toBe(1);
+  });
+
+  it("detaches the abort listener once the run is over", async () => {
+    const controller = new AbortController();
+    await drain(
+      new AgentWorkflowRunner(
+        makeOpts({ signal: controller.signal })
+      ).execute(emptyGraph)
+    );
+
+    controller.abort();
+    // The run already finished; a late abort must not re-enter cancel().
+    expect(runnerInstances[0].cancelCount ?? 0).toBe(0);
+  });
+});
+
+describe("AgentWorkflowRunner.execute — model stamping", () => {
+  const graphWith = (properties: Record<string, unknown>) =>
+    ({
+      nodes: [{ id: "a1", type: "nodetool.agents.Agent", properties }],
+      edges: []
+    }) as any;
+
+  const stampedNodes = () => hydrateSpy.mock.calls[0][0] as any;
+
+  it("stamps the configured provider+model onto a model-less Agent node", async () => {
+    await drain(new AgentWorkflowRunner(makeOpts()).execute(
+      graphWith({ prompt: "hi" })
+    ));
+
+    expect(stampedNodes().nodes[0].properties).toMatchObject({
+      prompt: "hi",
+      model: { type: "language_model", provider: "mock", id: "mock-model" }
+    });
+  });
+
+  it("stamps over the empty-model default", async () => {
+    await drain(new AgentWorkflowRunner(makeOpts()).execute(
+      graphWith({ model: { type: "language_model", provider: "empty", id: "" } })
+    ));
+
+    expect(stampedNodes().nodes[0].properties.model).toMatchObject({
+      provider: "mock",
+      id: "mock-model"
+    });
+  });
+
+  it("leaves a node that already names a model alone", async () => {
+    await drain(new AgentWorkflowRunner(makeOpts()).execute(
+      graphWith({ model: { provider: "openai", id: "gpt-5.4-mini" } })
+    ));
+
+    expect(stampedNodes().nodes[0].properties.model).toEqual({
+      provider: "openai",
+      id: "gpt-5.4-mini"
+    });
+  });
+
+  it("stamps the run's system prompt and turn budget", async () => {
+    await drain(
+      new AgentWorkflowRunner(
+        makeOpts({ systemPrompt: "be terse", maxStepIterations: 5 })
+      ).execute(graphWith({ prompt: "hi" }))
+    );
+
+    expect(stampedNodes().nodes[0].properties).toMatchObject({
+      system: "be terse",
+      max_turns: 5
+    });
+  });
+
+  it("leaves a node's own system prompt and turn budget alone", async () => {
+    await drain(
+      new AgentWorkflowRunner(
+        makeOpts({ systemPrompt: "be terse", maxStepIterations: 5 })
+      ).execute(graphWith({ prompt: "hi", system: "own", max_turns: 3 }))
+    );
+
+    expect(stampedNodes().nodes[0].properties).toMatchObject({
+      system: "own",
+      max_turns: 3
+    });
+  });
+
+  it("omits policy properties the run did not configure", async () => {
+    await drain(
+      new AgentWorkflowRunner(makeOpts()).execute(graphWith({ prompt: "hi" }))
+    );
+
+    const properties = stampedNodes().nodes[0].properties;
+    expect(properties.system).toBeUndefined();
+    expect(properties.max_turns).toBeUndefined();
+  });
+
+  it("does not touch non-Agent nodes", async () => {
+    const graph = {
+      nodes: [{ id: "c1", type: "nodetool.text.Concat", properties: { a: "x" } }],
+      edges: []
+    } as any;
+    await drain(new AgentWorkflowRunner(makeOpts()).execute(graph));
+
+    expect(stampedNodes().nodes[0].properties).toEqual({ a: "x" });
   });
 });
 

@@ -16,7 +16,7 @@ import {
   type NodeMetadata
 } from "@nodetool-ai/node-sdk";
 import { Tool } from "./base-tool.js";
-import { AGENT_STEP_NODE_TYPE, type GraphBuilder } from "../graph-builder.js";
+import { type GraphBuilder } from "../graph-builder.js";
 
 const FINISH_GRAPH_INPUT_SCHEMA = {
   type: "object" as const,
@@ -25,28 +25,20 @@ const FINISH_GRAPH_INPUT_SCHEMA = {
 };
 
 /**
- * Wrap the planner's registry so `validateGraph` treats the virtual AgentStep
- * node type as known-but-opaque: not an "unknown node", no static metadata, no
- * property validation. Metadata-only (Python) node types — which `add_node`
- * accepts — also count as known, mirroring the add-time check. Everything else
- * passes through.
+ * Wrap the planner's registry so `validateGraph` treats metadata-only (Python)
+ * node types as known rather than unknown, mirroring the check `add_node`
+ * applies at add time. Everything else passes through.
  */
-export function agentStepAwareRegistry(
+export function metadataAwareRegistry(
   registry: GraphValidationRegistry
 ): GraphValidationRegistry {
   return {
     has: (nodeType: string) =>
-      nodeType === AGENT_STEP_NODE_TYPE ||
-      registry.has(nodeType) ||
-      registry.getMetadata(nodeType) != null,
+      registry.has(nodeType) || registry.getMetadata(nodeType) != null,
     getMetadata: (nodeType: string): NodeMetadata | undefined =>
-      nodeType === AGENT_STEP_NODE_TYPE
-        ? undefined
-        : registry.getMetadata(nodeType),
+      registry.getMetadata(nodeType),
     validateNode: (descriptor, connectedHandles) =>
-      descriptor.type === AGENT_STEP_NODE_TYPE
-        ? []
-        : registry.validateNode(descriptor, connectedHandles)
+      registry.validateNode(descriptor, connectedHandles)
   };
 }
 
@@ -93,7 +85,7 @@ export class FinishGraphTool extends Tool {
     if (errors.length === 0 && supportsDeepValidation(this.registry)) {
       const report = validateGraph(
         this.builder.snapshot(),
-        agentStepAwareRegistry(this.registry)
+        metadataAwareRegistry(this.registry)
       );
       for (const issue of report.issues) {
         if (issue.severity === "error") errors.push(issue.message);

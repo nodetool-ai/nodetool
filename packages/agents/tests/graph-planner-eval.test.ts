@@ -10,7 +10,7 @@ import {
   checkExpectations,
   type GraphPlannerEvalCase
 } from "../src/index.js";
-import { AGENT_STEP_NODE_TYPE } from "../src/graph-builder.js";
+import { AGENT_NODE_TYPE } from "../src/graph-builder.js";
 import type {
   BaseProvider,
   ProviderStreamItem,
@@ -54,7 +54,7 @@ function createScriptedProvider(attempts: ToolCall[][]): BaseProvider {
 }
 
 const GOOD_PROGRAM = `const t = node("nodetool.input.StringInput", { name: "text" });
-const s = node("${AGENT_STEP_NODE_TYPE}", { instructions: "summarize", input: t.output() });
+const s = node("${AGENT_NODE_TYPE}", { prompt: "summarize", input: t.output() });
 node("nodetool.output.Output", { name: "summary", value: s.output() });
 return graph();`;
 
@@ -168,21 +168,21 @@ describe("checkExpectations", () => {
         },
         {
           id: "b",
-          type: AGENT_STEP_NODE_TYPE,
+          type: AGENT_NODE_TYPE,
           name: "b",
-          properties: { instructions: "x" }
+          properties: { prompt: "x" }
         }
       ],
       edges: []
     };
     const checks = checkExpectations(graph, {
       requiredInputNames: ["text"],
-      forbiddenNodeTypePatterns: ["^nodetool\\.agents\\.AgentStep$"],
+      forbiddenNodeTypePatterns: ["^nodetool\\.agents\\."],
       requiredSourceHandles: ["if_true"]
     });
     const byName = Object.fromEntries(checks.map((c) => [c.name, c.pass]));
     expect(byName["input:text"]).toBe(false);
-    expect(byName["not:^nodetool\\.agents\\.AgentStep$"]).toBe(false);
+    expect(byName["not:^nodetool\\.agents\\."]).toBe(false);
     expect(byName["handle:if_true"]).toBe(false);
     expect(byName["no-provider-nodes"]).toBe(false);
   });

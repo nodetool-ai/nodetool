@@ -380,7 +380,6 @@ export {
   ExtractorNode,
   ClassifierNode,
   AgentNode,
-  AgentStepNode,
   AGENT_NODES
 } from "@nodetool-ai/llm-nodes/nodes/agents";
 export {
