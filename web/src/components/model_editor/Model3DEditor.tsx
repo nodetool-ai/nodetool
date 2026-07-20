@@ -23,6 +23,7 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
 import GridOnIcon from "@mui/icons-material/GridOn";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 
 import {
   FlexColumn,
@@ -36,9 +37,7 @@ import {
   EditorButton,
   CloseButton,
   DownloadButton,
-  TabGroup,
   BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
-import type { TabItem } from "../ui_primitives";
 import SceneOutliner from "./SceneOutliner";
 import PropertiesPanel from "./PropertiesPanel";
 import Model3DChatPanel from "./Model3DChatPanel";
@@ -58,16 +57,22 @@ import {
 } from "./model3DToolBridge";
 
 type GizmoMode = "translate" | "rotate" | "scale";
-type LeftTab = "scene" | "chat";
 
 const PANEL_WIDTH = 240;
-// The left panel hosts both the scene tree and the chat, so it gets more room.
-const LEFT_PANEL_WIDTH = 320;
+// The assistant hosts a chat conversation, so it gets more room than the
+// scene/properties panels.
+const ASSISTANT_PANEL_WIDTH = 320;
 
-const LEFT_TABS: TabItem[] = [
-  { value: "scene", label: "Scene" },
-  { value: "chat", label: "Chat" }
-];
+// Remembers whether the assistant panel was left open across editor sessions.
+const ASSISTANT_OPEN_KEY = "model3d.assistantOpen";
+
+const readAssistantOpen = (): boolean => {
+  try {
+    return localStorage.getItem(ASSISTANT_OPEN_KEY) === "true";
+  } catch {
+    return false;
+  }
+};
 
 const styles = (theme: Theme) =>
   css({
@@ -103,31 +108,22 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.background.paper,
       borderRight: `1px solid ${theme.vars.palette.divider}`
     },
-    ".side-panel.left": {
-      width: `${LEFT_PANEL_WIDTH}px`
-    },
     ".side-panel.right": {
       borderRight: "none",
       borderLeft: `1px solid ${theme.vars.palette.divider}`
+    },
+    ".side-panel.assistant": {
+      width: `${ASSISTANT_PANEL_WIDTH}px`
     },
     ".panel-header": {
       padding: theme.spacing(2, 3),
       borderBottom: `1px solid ${theme.vars.palette.divider}`,
       flexShrink: 0
     },
-    ".panel-tabs": {
-      flexShrink: 0,
-      borderBottom: `1px solid ${theme.vars.palette.divider}`
-    },
-    ".left-panel-body": {
+    ".panel-body": {
       flex: 1,
       minHeight: 0,
-      display: "flex"
-    },
-    ".left-panel-pane": {
-      width: "100%",
-      minWidth: 0,
-      minHeight: 0,
+      display: "flex",
       flexDirection: "column"
     },
     ".canvas-wrap": {
@@ -341,7 +337,19 @@ const Model3DEditor = ({ url, name, onSave, onClose }: Model3DEditorProps) => {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [fitTrigger, setFitTrigger] = useState(0);
-  const [leftTab, setLeftTab] = useState<LeftTab>("scene");
+  const [showAssistant, setShowAssistant] = useState<boolean>(readAssistantOpen);
+
+  const toggleAssistant = useCallback(() => {
+    setShowAssistant((open) => {
+      const next = !open;
+      try {
+        localStorage.setItem(ASSISTANT_OPEN_KEY, String(next));
+      } catch {
+        // Persistence is best-effort; ignore storage failures.
+      }
+      return next;
+    });
+  }, []);
 
   const bump = useCallback(() => setTick((t) => t + 1), []);
 
@@ -747,6 +755,13 @@ const Model3DEditor = ({ url, name, onSave, onClose }: Model3DEditorProps) => {
           size="small"
         />
         <FlexRow style={{ marginLeft: "auto" }} gap={1} align="center">
+          <ToolbarIconButton
+            icon={<AutoAwesomeIcon fontSize="small" />}
+            tooltip={showAssistant ? "Hide assistant" : "Show assistant"}
+            onClick={toggleAssistant}
+            active={showAssistant}
+            size="small"
+          />
           <DownloadButton onClick={handleSave} tooltip="Save to asset" />
           <CloseButton onClick={onClose} tooltip="Close editor" />
         </FlexRow>
@@ -754,34 +769,18 @@ const Model3DEditor = ({ url, name, onSave, onClose }: Model3DEditorProps) => {
 
       <FlexRow className="editor-body" fullWidth>
         <FlexColumn className="side-panel left" fullHeight>
-          <TabGroup
-            className="panel-tabs"
-            size="small"
-            fullWidth
-            tabs={LEFT_TABS}
-            value={leftTab}
-            onChange={(value) => setLeftTab(value as LeftTab)}
-          />
-          <div className="left-panel-body">
-            {/* Both panes stay mounted (toggled via display) so the chat
-                connection and scroll state survive tab switches. */}
-            <div
-              className="left-panel-pane"
-              style={{ display: leftTab === "scene" ? "flex" : "none" }}
-            >
-              <SceneOutliner
-                nodes={treeNodes}
-                selectedUuid={selectedUuid}
-                onSelect={setSelectedUuid}
-                onToggleVisible={handleToggleVisible}
-              />
-            </div>
-            <div
-              className="left-panel-pane"
-              style={{ display: leftTab === "chat" ? "flex" : "none" }}
-            >
-              <Model3DChatPanel />
-            </div>
+          <FlexRow className="panel-header">
+            <Text size="small" weight={600}>
+              Scene
+            </Text>
+          </FlexRow>
+          <div className="panel-body">
+            <SceneOutliner
+              nodes={treeNodes}
+              selectedUuid={selectedUuid}
+              onSelect={setSelectedUuid}
+              onToggleVisible={handleToggleVisible}
+            />
           </div>
         </FlexColumn>
 
@@ -837,6 +836,30 @@ const Model3DEditor = ({ url, name, onSave, onClose }: Model3DEditorProps) => {
             </Text>
           </FlexRow>
           <PropertiesPanel object={selectedObject} tick={tick} onChanged={bump} />
+        </FlexColumn>
+
+        {/* Kept mounted (toggled via display) so the chat connection and
+            scroll state survive hiding the panel. */}
+        <FlexColumn
+          className="side-panel right assistant"
+          fullHeight
+          style={{ display: showAssistant ? "flex" : "none" }}
+        >
+          <FlexRow className="panel-header" justify="space-between" align="center">
+            <FlexRow gap={1} align="center">
+              <AutoAwesomeIcon fontSize="small" />
+              <Text size="small" weight={600}>
+                Assistant
+              </Text>
+            </FlexRow>
+            <CloseButton
+              onClick={() => toggleAssistant()}
+              tooltip="Hide assistant"
+            />
+          </FlexRow>
+          <div className="panel-body">
+            <Model3DChatPanel />
+          </div>
         </FlexColumn>
       </FlexRow>
 
