@@ -24,7 +24,8 @@ import type {
   ProcessingMessage,
   Chunk,
   PlanningUpdate,
-  ToolCallUpdate
+  ToolCallUpdate,
+  ToolResultUpdate
 } from "@nodetool-ai/protocol";
 
 import { Tool } from "./tools/base-tool.js";
@@ -333,13 +334,20 @@ export class GraphPlanner {
     }
 
     let totalToolCalls = 0;
+    // Tool results are produced inside the `execute` closures the provider
+    // drives, off the event stream. Park them here and drain into the stream
+    // so the UI can resolve each running tool-call card.
+    const pendingResults: ToolResultUpdate[] = [];
 
     // The provider drives the tool loop, so backends that run their own agent
     // loop (e.g. the Claude Agent SDK) work. Each tool carries its own
     // `execute` closure.
     const makeExecute =
       (tool: Tool) =>
-      async (args: Record<string, unknown>): Promise<string> => {
+      async (
+        args: Record<string, unknown>,
+        toolCallId?: string
+      ): Promise<string> => {
         totalToolCalls++;
         log.info("GraphPlanner tool call", {
           totalToolCalls,
@@ -365,6 +373,16 @@ export class GraphPlanner {
           resultLength: resultStr.length,
           resultPreview: resultStr.slice(0, 240)
         });
+
+        if (toolCallId) {
+          pendingResults.push({
+            type: "tool_result_update",
+            node_id: "graph_planner",
+            tool_call_id: toolCallId,
+            name: tool.name,
+            result: { result: resultStr }
+          });
+        }
 
         if (tool.name === submitGraphTool.name && submitGraphTool.graph) {
           log.info("GraphPlanner submit_graph accepted", {
@@ -400,6 +418,7 @@ export class GraphPlanner {
 
     try {
       for await (const item of stream) {
+        while (pendingResults.length > 0) yield pendingResults.shift()!;
         if ("id" in item && "name" in item && "args" in item) {
           const tc = item as ToolCall;
           const args = (tc.args as Record<string, unknown>) ?? {};
@@ -434,6 +453,9 @@ export class GraphPlanner {
     } finally {
       unlinkAbort();
     }
+    // The last tool's result lands after the stream ends (the accepted
+    // submit_graph aborts the loop from inside its own execute).
+    while (pendingResults.length > 0) yield pendingResults.shift()!;
 
     if (submitGraphTool.graph) {
       return { graph: submitGraphTool.graph };
