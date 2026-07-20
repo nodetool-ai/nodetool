@@ -210,6 +210,14 @@ export {
 } from "./tools/media-tools.js";
 export { ImageGenerationTool } from "./tools/image-generation-tool.js";
 export {
+  CritiqueImageTool,
+  CompareImagesTool,
+  ScoreImageAdherenceTool,
+  RecordStylePreferenceTool,
+  GetStyleProfileTool,
+  CREATIVE_CRITIQUE_TOOL_NAMES
+} from "./tools/creative-critique-tools.js";
+export {
   persistOutput,
   workspaceDir as workspaceDirFromContext,
   inferImageMime,

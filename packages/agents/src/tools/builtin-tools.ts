@@ -77,6 +77,13 @@ import {
 } from "./edit-search-tools.js";
 import { TodoWriteTool } from "./todo-tools.js";
 import { ViewImageTool, ListImagesTool } from "./view-image-tool.js";
+import {
+  CritiqueImageTool,
+  CompareImagesTool,
+  ScoreImageAdherenceTool,
+  RecordStylePreferenceTool,
+  GetStyleProfileTool
+} from "./creative-critique-tools.js";
 
 export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   // Filesystem (workspace-relative)
@@ -103,6 +110,13 @@ export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   DataForSEOSearchTool,
   DataForSEONewsTool,
   DataForSEOImagesTool,
+
+  // Creative critique (VLM judging + taste memory)
+  CritiqueImageTool,
+  CompareImagesTool,
+  ScoreImageAdherenceTool,
+  RecordStylePreferenceTool,
+  GetStyleProfileTool,
 
   // Generation
   ImageGenerationTool,
