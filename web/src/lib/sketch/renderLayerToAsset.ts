@@ -116,6 +116,70 @@ export async function renderLayerToAsset(
   };
 }
 
+export interface RenderLayersMergedParams {
+  doc: SketchDocument;
+  /** Layer ids to composite together, in any order. */
+  layerIds: string[];
+  /** Optional override for the uploaded asset's file base name. */
+  name?: string;
+}
+
+/**
+ * Composite a subset of layers into a single PNG and upload it as a temporary
+ * asset. The named layers are drawn bottom-to-top in their original document
+ * order, honoring each layer's opacity and blend mode; their group nesting is
+ * flattened away (parents ignored) so the result is exactly those layers over
+ * transparency. Throws when a layer is missing or none of them have pixels.
+ */
+export async function renderLayersMerged(
+  params: RenderLayersMergedParams
+): Promise<RenderedLayerAsset> {
+  const { doc, layerIds, name } = params;
+  if (layerIds.length === 0) {
+    throw new Error("renderLayersMerged requires at least one layer id.");
+  }
+
+  const idSet = new Set(layerIds);
+  for (const id of layerIds) {
+    if (!doc.layers.some((l) => l.id === id)) {
+      throw new Error(`Layer not found in the document: ${id}`);
+    }
+  }
+
+  // Keep original document order (bottom → top) and render each selected layer
+  // at root level so its own opacity/blend apply without ancestor-group state.
+  const selected = doc.layers
+    .filter((l) => idSet.has(l.id))
+    .map((l) => ({ ...l, parentId: null, visible: true }));
+  if (!selected.some((l) => l.data)) {
+    throw new Error("None of the selected layers have pixel data to render.");
+  }
+
+  const filteredDoc: SketchDocument = {
+    ...doc,
+    maskLayerId: null,
+    layers: selected
+  };
+  const canvas = await flattenDocument(filteredDoc);
+  const blob = await canvasToBlob(canvas);
+
+  const file = new File([blob], `${safeBase(name ?? "layers")}.png`, {
+    type: blob.type || "image/png"
+  });
+  const asset = await useAssetStore
+    .getState()
+    .createAsset(file, undefined, undefined, undefined, "file");
+
+  return {
+    assetId: asset.id,
+    url: getAssetUrl(asset) ?? `asset://${asset.id}.png`,
+    width: doc.canvas.width,
+    height: doc.canvas.height,
+    layerId: null,
+    layerName: null
+  };
+}
+
 /** Best-effort delete of a temporary render asset. Never throws. */
 export async function deleteRenderedAsset(assetId: string): Promise<void> {
   try {

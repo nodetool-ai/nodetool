@@ -274,22 +274,39 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_sketch_render_to_asset",
   description:
-    "Render the canvas to a PNG and save it as a temporary asset, returning its asset id and URL. Omit `target` (or pass null) for the flattened composite of all visible layers; pass a layer id/name to render that single layer. Use this to hand the current artwork (or one layer) to another tool or workflow that needs an asset id rather than raw pixels. The asset is a throwaway upload — delete it when you're done with it.",
+    "Render the canvas to a PNG (or PNGs) and save it as a temporary asset, returning asset ids and URLs. Provide one of: nothing (or `target` null) → the flattened composite of all visible layers as one asset; a single `target` (id/name) → that one layer; or `targets` (a list of ids/names) → each layer as its own asset, unless `merge` is true, in which case the listed layers are composited (bottom-to-top, honoring opacity/blend) into a single asset. Use this to hand the artwork to another tool or workflow that needs an asset id rather than raw pixels. Assets are throwaway uploads — delete them when done. Returns `assets` (an array of {assetId, url, width, height, layerId, layerName}).",
   parameters: z.object({
     target: targetParam
       .nullable()
       .optional()
-      .describe("Layer to render; omit or null for the flattened composite."),
+      .describe(
+        "Single layer to render; omit (with no `targets`) for the flattened composite."
+      ),
+    targets: z
+      .array(targetParam)
+      .optional()
+      .describe("Multiple layers to render (ids/names)."),
+    merge: z
+      .boolean()
+      .optional()
+      .describe(
+        "When `targets` is given: composite them into one asset instead of one asset per layer."
+      ),
     name: z
       .string()
       .optional()
-      .describe("Optional base name for the uploaded asset file.")
+      .describe("Optional base name for the uploaded asset file(s).")
   }),
-  async execute({ target, name }) {
-    const result = await getSketchAgentHandler().renderLayerToAsset(
-      target ?? null,
-      name
-    );
-    return { ok: true, ...result };
+  async execute({ target, targets, merge, name }) {
+    const handler = getSketchAgentHandler();
+    if (targets && targets.length > 0) {
+      const assets = await handler.renderLayersToAssets(targets, {
+        merge,
+        name
+      });
+      return { ok: true, assets };
+    }
+    const result = await handler.renderLayerToAsset(target ?? null, name);
+    return { ok: true, assets: [result] };
   }
 });

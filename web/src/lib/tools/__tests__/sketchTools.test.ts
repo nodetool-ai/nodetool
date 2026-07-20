@@ -58,7 +58,8 @@ const createMockHandler = (): jest.Mocked<SketchAgentHandler> => ({
   resizeCanvas: jest.fn(),
   setSelection: jest.fn(),
   getLayerImage: jest.fn(),
-  renderLayerToAsset: jest.fn()
+  renderLayerToAsset: jest.fn(),
+  renderLayersToAssets: jest.fn()
 });
 
 // The sketch tools never touch the workflow state, so a bare stub satisfies ctx.
@@ -295,11 +296,77 @@ describe("ui_sketch_* tools", () => {
       {},
       "sk-12",
       ctx
-    )) as { ok: boolean; assetId: string; url: string };
+    )) as { ok: boolean; assets: Array<{ assetId: string; url: string }> };
 
     expect(handler.renderLayerToAsset).toHaveBeenCalledWith(null, undefined);
-    expect(result.assetId).toBe("asset-9");
-    expect(result.url).toBe("asset://asset-9.png");
+    expect(result.assets[0].assetId).toBe("asset-9");
+    expect(result.assets[0].url).toBe("asset://asset-9.png");
+  });
+
+  it("renders multiple layers, each to its own asset", async () => {
+    const handler = createMockHandler();
+    handler.renderLayersToAssets.mockResolvedValue([
+      {
+        assetId: "asset-a",
+        url: "asset://asset-a.png",
+        width: 1024,
+        height: 1024,
+        layerId: "layer-1",
+        layerName: "Sky"
+      },
+      {
+        assetId: "asset-b",
+        url: "asset://asset-b.png",
+        width: 1024,
+        height: 1024,
+        layerId: "layer-2",
+        layerName: "Hills"
+      }
+    ]);
+    setSketchAgentHandler(handler);
+
+    const result = (await FrontendToolRegistry.call(
+      "ui_sketch_render_to_asset",
+      { targets: ["Sky", "Hills"] },
+      "sk-multi",
+      ctx
+    )) as { ok: boolean; assets: Array<{ assetId: string }> };
+
+    expect(handler.renderLayersToAssets).toHaveBeenCalledWith(["Sky", "Hills"], {
+      merge: undefined,
+      name: undefined
+    });
+    expect(handler.renderLayerToAsset).not.toHaveBeenCalled();
+    expect(result.assets.map((a) => a.assetId)).toEqual(["asset-a", "asset-b"]);
+  });
+
+  it("merges multiple layers into a single asset", async () => {
+    const handler = createMockHandler();
+    handler.renderLayersToAssets.mockResolvedValue([
+      {
+        assetId: "asset-merged",
+        url: "asset://asset-merged.png",
+        width: 1024,
+        height: 1024,
+        layerId: null,
+        layerName: null
+      }
+    ]);
+    setSketchAgentHandler(handler);
+
+    const result = (await FrontendToolRegistry.call(
+      "ui_sketch_render_to_asset",
+      { targets: ["Sky", "Hills"], merge: true, name: "scene" },
+      "sk-merge",
+      ctx
+    )) as { ok: boolean; assets: Array<{ assetId: string }> };
+
+    expect(handler.renderLayersToAssets).toHaveBeenCalledWith(["Sky", "Hills"], {
+      merge: true,
+      name: "scene"
+    });
+    expect(result.assets).toHaveLength(1);
+    expect(result.assets[0].assetId).toBe("asset-merged");
   });
 
   it("renders a named layer to a temporary asset", async () => {
@@ -314,14 +381,15 @@ describe("ui_sketch_* tools", () => {
     });
     setSketchAgentHandler(handler);
 
-    await FrontendToolRegistry.call(
+    const result = (await FrontendToolRegistry.call(
       "ui_sketch_render_to_asset",
       { target: "Sky", name: "sky-export" },
       "sk-13",
       ctx
-    );
+    )) as { ok: boolean; assets: Array<{ assetId: string }> };
 
     expect(handler.renderLayerToAsset).toHaveBeenCalledWith("Sky", "sky-export");
+    expect(result.assets[0].assetId).toBe("asset-10");
   });
 
   it("resizes the canvas through the handler", async () => {

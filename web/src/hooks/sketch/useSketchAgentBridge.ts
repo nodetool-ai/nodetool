@@ -16,7 +16,10 @@ import { coerceBlendMode } from "@nodetool-ai/gpu";
 
 import { useSketchInstance } from "../../stores/sketch/SketchInstance";
 import { useDirectGenJob } from "./useDirectGenJob";
-import { renderLayerToAsset } from "../../lib/sketch/renderLayerToAsset";
+import {
+  renderLayerToAsset,
+  renderLayersMerged
+} from "../../lib/sketch/renderLayerToAsset";
 import { getRememberedModel } from "../../stores/lastModelStore";
 import type {
   Layer,
@@ -29,6 +32,7 @@ import {
   setSketchAgentHandler,
   type SketchAgentHandler,
   type SketchLayerNode,
+  type SketchRenderedAssetResult,
   type SketchSnapshot,
   type SketchToolName
 } from "../../components/sketch/sketchAgentBridge";
@@ -402,6 +406,29 @@ export const useSketchAgentBridge = (active: boolean): void => {
           flattenToDataUrl: canvasRef.getState().flattenToDataUrl,
           name
         });
+      },
+
+      async renderLayersToAssets(targets, opts) {
+        if (targets.length === 0) {
+          throw new Error("Provide at least one layer to render.");
+        }
+        // Resolve every target up front so a bad id fails before uploading.
+        const layerIds = targets.map((t) => requireLayer(t).id);
+        if (opts?.merge) {
+          const merged = await renderLayersMerged({
+            doc: doc(),
+            layerIds,
+            name: opts?.name
+          });
+          return [merged];
+        }
+        const results: SketchRenderedAssetResult[] = [];
+        for (const layerId of layerIds) {
+          results.push(
+            await renderLayerToAsset({ doc: doc(), layerId, name: opts?.name })
+          );
+        }
+        return results;
       }
     };
   }, [instance, startDirectGen]);

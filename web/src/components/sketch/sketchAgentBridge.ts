@@ -185,6 +185,16 @@ export interface SketchAgentHandler {
     target: string | null,
     name?: string
   ) => Promise<SketchRenderedAssetResult>;
+  /**
+   * Render several layers to temporary assets. With `merge` false (default)
+   * each layer becomes its own asset; with `merge` true the named layers are
+   * composited (bottom-to-top, honoring opacity/blend) into a single asset.
+   * Returns one result per asset produced.
+   */
+  renderLayersToAssets: (
+    targets: string[],
+    opts?: { merge?: boolean; name?: string }
+  ) => Promise<SketchRenderedAssetResult[]>;
 }
 
 let handler: SketchAgentHandler | null = null;
