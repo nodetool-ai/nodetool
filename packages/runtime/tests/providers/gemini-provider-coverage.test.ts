@@ -324,6 +324,11 @@ describe("GeminiProvider – formatTools deduplication", () => {
               minimum: 0,
               exclusiveMinimum: 0,
               exclusiveMaximum: 100
+            },
+            labels: {
+              type: "object",
+              propertyNames: { pattern: "^[a-z]+$" },
+              additionalProperties: { type: "string" }
             }
           }
         }
@@ -334,6 +339,8 @@ describe("GeminiProvider – formatTools deduplication", () => {
     expect(params.additionalProperties).toBeUndefined();
     expect(params.properties.count.exclusiveMinimum).toBeUndefined();
     expect(params.properties.count.exclusiveMaximum).toBeUndefined();
+    expect(params.properties.labels.propertyNames).toBeUndefined();
+    expect(params.properties.labels.additionalProperties).toBeUndefined();
     // Supported constraints survive.
     expect(params.properties.count.minimum).toBe(0);
     expect(params.properties.count.type).toBe("integer");
