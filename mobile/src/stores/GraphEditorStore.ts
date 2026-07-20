@@ -487,7 +487,7 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
           access: "private",
         });
         set({ isDirty: false });
-        return normalizeWorkflow(result as Record<string, unknown>);
+        return normalizeWorkflow(result);
       } else {
         const result = await apiService.createWorkflow({
           name: workflowName,
@@ -495,7 +495,7 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
           graph: graphInput,
           access: "private",
         });
-        const workflow = normalizeWorkflow(result as Record<string, unknown>);
+        const workflow = normalizeWorkflow(result);
         set({ workflowId: workflow.id, isDirty: false });
         return workflow;
       }

@@ -138,21 +138,35 @@ export interface WorkflowGraphInput {
 // `description`, `graph`, and `*_schema` fields), so callers pass that wire shape
 // here. Accept it structurally and coerce `description` to the non-null string the
 // app's `Workflow` type guarantees.
-export function normalizeWorkflow(workflow: Record<string, unknown>): AppWorkflow {
+interface TRPCWorkflowResponse {
+  id: string;
+  name: string;
+  description?: string | null;
+  [key: string]: unknown;
+}
+
+export function normalizeWorkflow(workflow: TRPCWorkflowResponse): AppWorkflow {
   return {
     ...workflow,
-    description: (workflow.description as string | null | undefined) ?? '',
+    description: workflow.description ?? '',
   } as AppWorkflow;
 }
 
+interface TRPCModelResponse {
+  id: string;
+  name: string;
+  type?: string | null;
+  [key: string]: unknown;
+}
+
 export function normalizeModels<T extends { id: string; name: string }>(
-  models: ReadonlyArray<Record<string, unknown>>,
+  models: ReadonlyArray<TRPCModelResponse>,
   provider: string
 ): T[] {
   return models.map((model) => ({
     ...model,
     provider,
-    type: (model.type as string | null | undefined) ?? null,
+    type: model.type ?? null,
   })) as unknown as T[];
 }
 
@@ -242,7 +256,7 @@ class ApiService {
     return {
       ...result,
       workflows: result.workflows.map((workflow) =>
-        normalizeWorkflow(workflow as unknown as Record<string, unknown>)
+        normalizeWorkflow(workflow)
       ),
     };
   }
