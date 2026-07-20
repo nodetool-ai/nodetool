@@ -32,6 +32,8 @@ import type {
 
 /** Default fill for authored text clips, stored as canvas-ready color data. */
 export const DEFAULT_TEXT_CLIP_COLOR = "#FFFFFF";
+export const DEFAULT_TEXT_CLIP_DURATION_MS = 3000;
+export const DEFAULT_TEXT_CLIP_FONT_SIZE_PX = 96;
 
 /** Default authored-shape colors, stored as canvas-ready color data. */
 export const DEFAULT_SHAPE_FILL_COLOR = "#FFFFFF";

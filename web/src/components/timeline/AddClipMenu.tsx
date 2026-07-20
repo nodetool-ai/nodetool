@@ -31,8 +31,7 @@ import {
   TabGroup,
   TabPanel,
   TextInput,
-  ToolbarIconButton,
-  EditorButton
+  ToolbarIconButton
 } from "../ui_primitives";
 import { trpc } from "../../trpc/client";
 import { trpcClient } from "../../trpc/client";
@@ -44,11 +43,7 @@ import ImageModelSelect from "../properties/ImageModelSelect";
 import VideoModelSelect from "../properties/VideoModelSelect";
 import TTSModelSelect from "../properties/TTSModelSelect";
 import type { ImageModelValue, TTSModelValue } from "../../stores/ApiTypes";
-import {
-  DEFAULT_TEXT_CLIP_COLOR,
-  makeClip,
-  type TimelineTrack
-} from "@nodetool-ai/timeline";
+import type { TimelineTrack } from "@nodetool-ai/timeline";
 
 interface VideoModelChange {
   type: "video_model";
@@ -540,26 +535,6 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
       [handlePromptSubmit]
     );
 
-    const handleAddText = useCallback(() => {
-      const clip = makeClip({
-        trackId,
-        startMs,
-        durationMs: 3000,
-        name: "Text",
-        mediaType: "text",
-        sourceType: "imported",
-        status: "generated",
-        textStyle: {
-          text: "Text",
-          fontSizePx: 96,
-          color: DEFAULT_TEXT_CLIP_COLOR
-        }
-      });
-      addClip(clip);
-      selectClip(clip.id);
-      onClose();
-    }, [addClip, onClose, selectClip, startMs, trackId]);
-
     // ── Templates list ─────────────────────────────────────────────────────
 
     const templateWorkflows = templatesQuery.data?.workflows ?? [];
@@ -584,10 +559,6 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
                 </Text>
                 {isAdding && <LoadingSpinner size="small" />}
               </FlexRow>
-
-              {trackType === "overlay" && (
-                <EditorButton onClick={handleAddText}>Add text</EditorButton>
-              )}
 
               {/* ── Prompt-first quick-add ────────────────────────────────── */}
               {directGenKind !== null && (

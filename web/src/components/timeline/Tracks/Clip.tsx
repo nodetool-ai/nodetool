@@ -57,6 +57,7 @@ import {
   SPACING,
   getSpacingPx,
   MagicGenerationFill,
+  Toast,
   Z_INDEX
 } from "../../ui_primitives";
 import type { StatusType } from "../../ui_primitives";
@@ -68,6 +69,7 @@ import { samplePeaksWindow } from "./audioPeaks";
 import { isCompatibleWithTrack } from "../dnd/assetToClipAdapter";
 import { clipSurfaceTint, clipBorderTint } from "./trackVisuals";
 import { ClipContextMenu } from "./ClipContextMenu";
+import { ReplaceOutputDialog } from "./ReplaceOutputDialog";
 import { deriveClipAnimationMarkers } from "./clipAnimationMarkers";
 import { openPersistedFold } from "../Inspector/usePersistedFold";
 
@@ -760,6 +762,11 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
   // Stable handler props for the memoized ClipBody — inline arrows here would
   // create a fresh function each render and defeat the React.memo on ClipBody.
   const handleCloseContextMenu = useCallback(() => setContextMenuPos(null), []);
+  // Raised by context-menu actions; they must outlive the menu's unmount.
+  const [replaceAssetId, setReplaceAssetId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const handleCloseReplace = useCallback(() => setReplaceAssetId(null), []);
+  const handleClearError = useCallback(() => setActionError(null), []);
   const handleUnlink = useCallback(
     () => unlinkClip(clipId),
     [unlinkClip, clipId]
@@ -920,6 +927,7 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
   const statusInfo = CLIP_STATUS_MAP[derivedStatus];
 
   return (
+    <>
     <ClipBody
       clip={clip}
       leftPx={leftPx}
@@ -938,11 +946,35 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       handleTrimEndPointerMove={handleTrimEndPointerMove}
       handleTrimPointerEnd={handleTrimPointerEnd}
       cutMode={activeTool === "cut"}
-      contextMenuPos={contextMenuPos}
-      onCloseContextMenu={handleCloseContextMenu}
-      onUnlink={handleUnlink}
-      onDelete={handleDelete}
     />
+    {contextMenuPos && (
+      <ClipContextMenu
+        clipId={clipId}
+        position={contextMenuPos}
+        isLinked={Boolean(clip.linkId)}
+        onUnlink={handleUnlink}
+        onDelete={handleDelete}
+        onClose={handleCloseContextMenu}
+        onRequestReplace={setReplaceAssetId}
+        onError={setActionError}
+      />
+    )}
+    {replaceAssetId !== null && (
+      <ReplaceOutputDialog
+        clipId={clipId}
+        initialAssetId={replaceAssetId}
+        onClose={handleCloseReplace}
+      />
+    )}
+    <Toast
+      open={actionError !== null}
+      message={actionError ?? ""}
+      severity="error"
+      onClose={handleClearError}
+      vertical="top"
+      horizontal="center"
+    />
+    </>
   );
 });
 
@@ -964,10 +996,6 @@ interface ClipBodyProps {
   handleTrimEndPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void;
   handleTrimPointerEnd: () => void;
   cutMode: boolean;
-  contextMenuPos: { x: number; y: number } | null;
-  onCloseContextMenu: () => void;
-  onUnlink: () => void;
-  onDelete: () => void;
 }
 
 const ClipBody: React.FC<ClipBodyProps> = memo(
@@ -988,11 +1016,7 @@ const ClipBody: React.FC<ClipBodyProps> = memo(
     handleTrimEndPointerDown,
     handleTrimEndPointerMove,
     handleTrimPointerEnd,
-    cutMode,
-    contextMenuPos,
-    onCloseContextMenu,
-    onUnlink,
-    onDelete
+    cutMode
   }) => {
     const theme = useTheme();
     const clipId = clip.id;
@@ -1274,15 +1298,6 @@ const ClipBody: React.FC<ClipBodyProps> = memo(
             </div>
           )}
 
-        {contextMenuPos && (
-          <ClipContextMenu
-            position={contextMenuPos}
-            isLinked={Boolean(clip.linkId)}
-            onUnlink={onUnlink}
-            onDelete={onDelete}
-            onClose={onCloseContextMenu}
-          />
-        )}
       </div>
     );
   }

@@ -2,7 +2,6 @@
 import React, { memo, useCallback, useMemo, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme, type Theme } from "@mui/material/styles";
-import ContentCutOutlinedIcon from "@mui/icons-material/ContentCutOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import PermMediaOutlinedIcon from "@mui/icons-material/PermMediaOutlined";
 import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
@@ -22,10 +21,7 @@ import {
   SPACING,
   getSpacingPx,
   Z_INDEX,
-  TextInput,
-  NodeSelect,
-  NodeMenuItem,
-  type SelectChangeEvent
+  TextInput
 } from "../../ui_primitives";
 import { trackTypeAccent } from "../Tracks/trackVisuals";
 import {
@@ -35,6 +31,7 @@ import {
   InspectorPillInput,
   InspectorRow,
   InspectorSectionTitle,
+  InspectorSelect,
   InspectorStaticValue,
   InspectorToggleRow
 } from "./InspectorPrimitives";
@@ -43,7 +40,6 @@ import {
   parseSeconds,
   parseTimecode
 } from "./InspectorPrimitives.helpers";
-import { ClipActions } from "./ClipActions";
 import { ClipAdjustments } from "./ClipAdjustments";
 import { ClipAnimations } from "./ClipAnimations";
 import { GeneratedClipPanel } from "./GeneratedClipPanel";
@@ -94,6 +90,12 @@ const stickyTopStyles = (theme: Theme) =>
     borderBottom: `1px solid ${theme.vars.palette.divider}`
   });
 
+const TEXT_ALIGNMENTS = [
+  { value: "left", label: "Left" },
+  { value: "center", label: "Center" },
+  { value: "right", label: "Right" }
+] as const;
+
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
 
@@ -121,14 +123,7 @@ export const TimelineInspector: React.FC = memo(() => {
   );
   const fps = useTimelineStore((s) => s.fps);
   const deleteSelected = useTimelineStore((s) => s.deleteSelected);
-  const splitClipAtTime = useTimelineStore((s) => s.splitClipAtTime);
   const patchClip = useTimelineStore((s) => s.patchClip);
-  // The playhead is read imperatively only when splitting (a click). Subscribing
-  // reactively would re-render this large panel on every seek/scrub for no
-  // visible benefit.
-  const playbackApi = useTimelinePlaybackStoreApi();
-  const setSelection = useTimelineUIStore((s) => s.setSelection);
-  const [toast, setToast] = useState<string | null>(null);
 
   const onPatchNumber = useCallback(
     (field: string, raw: string, min?: number, max?: number) => {
@@ -141,24 +136,6 @@ export const TimelineInspector: React.FC = memo(() => {
     },
     [clipId, patchClip]
   );
-
-  // ── Header action handlers ──────────────────────────────────────────────
-
-  const handleSplitAtPlayhead = useCallback(() => {
-    if (!clip) return;
-    const at = playbackApi.getState().getTimeMs();
-    if (at > clip.startMs && at < clip.startMs + clip.durationMs) {
-      splitClipAtTime(clip.id, at);
-    } else {
-      setToast("Move the playhead inside the clip to split it.");
-    }
-  }, [clip, playbackApi, splitClipAtTime]);
-
-  const handleDelete = useCallback(() => {
-    if (!clipId) return;
-    deleteSelected(new Set([clipId]));
-    setSelection([]);
-  }, [clipId, deleteSelected, setSelection]);
 
   // ── Identity metadata ───────────────────────────────────────────────────
 
@@ -249,31 +226,97 @@ export const TimelineInspector: React.FC = memo(() => {
       css={containerStyles}
       sx={inspectorPanelSx}
     >
-      <div css={stickyTopStyles(theme)}>
-        <InspectorHeader
-          eyebrow="Clip"
-          actions={[
-            {
-              icon: <ContentCutOutlinedIcon />,
-              label: "Split at playhead",
-              onClick: handleSplitAtPlayhead
-            },
-            {
-              icon: <DeleteOutlineOutlinedIcon />,
-              label: "Delete clip",
-              onClick: handleDelete,
-              variant: "danger"
-            }
-          ]}
-        />
-        <ClipActions clipId={clip.id} />
-      </div>
-
       <ClipIdentityCard
         name={clip.name}
         metadata={identityMeta}
         accentColor={accentColor}
       />
+
+      {textStyle && (
+        <>
+          <CollapsibleSection
+            title={
+              <InspectorSectionTitle
+                title="Text"
+                icon={<PermMediaOutlinedIcon />}
+              />
+            }
+            open={textOpen}
+            onToggle={setTextOpen}
+            unmountOnExit
+          >
+            <FlexColumn css={sectionContentStyles(theme)}>
+              <TextInput
+                value={textStyle.text}
+                multiline
+                minRows={3}
+                fullWidth
+                onChange={(event) =>
+                  patchClip(clip.id, {
+                    textStyle: { ...textStyle, text: event.target.value }
+                  })
+                }
+                inputProps={{ "aria-label": "Text content" }}
+              />
+              <InspectorRow label="Font size">
+                <InspectorPillInput
+                  value={String(textStyle.fontSizePx)}
+                  unit="px"
+                  onCommit={(raw) => {
+                    const fontSizePx = Number(raw);
+                    if (!Number.isFinite(fontSizePx) || fontSizePx < 1) return;
+                    patchClip(clip.id, {
+                      textStyle: { ...textStyle, fontSizePx }
+                    });
+                  }}
+                  ariaLabel="Text font size"
+                />
+              </InspectorRow>
+              <InspectorRow label="Weight">
+                <InspectorPillInput
+                  value={String(textStyle.fontWeight ?? 400)}
+                  onCommit={(raw) => {
+                    const fontWeight = Number(raw);
+                    if (!Number.isFinite(fontWeight) || fontWeight < 1) return;
+                    patchClip(clip.id, {
+                      textStyle: { ...textStyle, fontWeight }
+                    });
+                  }}
+                  ariaLabel="Text font weight"
+                />
+              </InspectorRow>
+              <InspectorRow label="Color">
+                <TextInput
+                  type="color"
+                  value={textStyle.color}
+                  onChange={(event) =>
+                    patchClip(clip.id, {
+                      textStyle: { ...textStyle, color: event.target.value }
+                    })
+                  }
+                  inputProps={{ "aria-label": "Text color" }}
+                />
+              </InspectorRow>
+              <InspectorRow label="Align">
+                <InspectorSelect
+                  label="Text alignment"
+                  value={textStyle.align ?? "center"}
+                  options={TEXT_ALIGNMENTS}
+                  onChange={(value) =>
+                    patchClip(clip.id, {
+                      textStyle: {
+                        ...textStyle,
+                        align: value as "left" | "center" | "right"
+                      }
+                    })
+                  }
+                />
+              </InspectorRow>
+            </FlexColumn>
+          </CollapsibleSection>
+          <InspectorDivider />
+        </>
+      )}
 
       <CollapsibleSection
         title={
@@ -355,102 +398,6 @@ export const TimelineInspector: React.FC = memo(() => {
       <ClipAdjustments clip={clip} />
 
       <ClipAnimations clip={clip} />
-
-      {textStyle && (
-        <>
-          <InspectorDivider />
-          <CollapsibleSection
-            title={
-              <InspectorSectionTitle
-                title="Text"
-                icon={<PermMediaOutlinedIcon />}
-              />
-            }
-            open={textOpen}
-            onToggle={setTextOpen}
-            unmountOnExit
-          >
-            <FlexColumn css={sectionContentStyles(theme)}>
-              <TextInput
-                value={textStyle.text}
-                multiline
-                minRows={3}
-                fullWidth
-                onChange={(event) =>
-                  patchClip(clip.id, {
-                    textStyle: { ...textStyle, text: event.target.value }
-                  })
-                }
-                inputProps={{ "aria-label": "Text content" }}
-              />
-              <InspectorRow label="Font size">
-                <InspectorPillInput
-                  value={String(textStyle.fontSizePx)}
-                  unit="px"
-                  onCommit={(raw) => {
-                    const fontSizePx = Number(raw);
-                    if (!Number.isFinite(fontSizePx) || fontSizePx < 1) return;
-                    patchClip(clip.id, {
-                      textStyle: { ...textStyle, fontSizePx }
-                    });
-                  }}
-                  ariaLabel="Text font size"
-                />
-              </InspectorRow>
-              <InspectorRow label="Weight">
-                <InspectorPillInput
-                  value={String(textStyle.fontWeight ?? 400)}
-                  onCommit={(raw) => {
-                    const fontWeight = Number(raw);
-                    if (!Number.isFinite(fontWeight) || fontWeight < 1) return;
-                    patchClip(clip.id, {
-                      textStyle: { ...textStyle, fontWeight }
-                    });
-                  }}
-                  ariaLabel="Text font weight"
-                />
-              </InspectorRow>
-              <InspectorRow label="Color">
-                <TextInput
-                  type="color"
-                  value={textStyle.color}
-                  onChange={(event) =>
-                    patchClip(clip.id, {
-                      textStyle: { ...textStyle, color: event.target.value }
-                    })
-                  }
-                  inputProps={{ "aria-label": "Text color" }}
-                />
-              </InspectorRow>
-              <InspectorRow label="Align">
-                <NodeSelect
-                  value={textStyle.align ?? "center"}
-                  onChange={(event: SelectChangeEvent<unknown>) =>
-                    patchClip(clip.id, {
-                      textStyle: {
-                        ...textStyle,
-                        align: event.target.value as "left" | "center" | "right"
-                      }
-                    })
-                  }
-                  inputProps={{ "aria-label": "Text alignment" }}
-                >
-                  <NodeMenuItem value="left">Left</NodeMenuItem>
-                  <NodeMenuItem value="center">Center</NodeMenuItem>
-                  <NodeMenuItem value="right">Right</NodeMenuItem>
-                </NodeSelect>
-              </InspectorRow>
-            </FlexColumn>
-          </CollapsibleSection>
-        </>
-      )}
-
-      <Toast
-        open={toast !== null}
-        message={toast ?? ""}
-        onClose={() => setToast(null)}
-        severity="info"
-      />
     </Panel>
   );
 });

@@ -20,8 +20,15 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 import AddIcon from "@mui/icons-material/Add";
+import TitleIcon from "@mui/icons-material/Title";
 
-import type { TimelineTrack } from "@nodetool-ai/timeline";
+import {
+  makeClip,
+  DEFAULT_TEXT_CLIP_COLOR,
+  DEFAULT_TEXT_CLIP_DURATION_MS,
+  DEFAULT_TEXT_CLIP_FONT_SIZE_PX,
+  type TimelineTrack
+} from "@nodetool-ai/timeline";
 import {
   useTimelineStore,
   useTimelineStoreApi
@@ -118,6 +125,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
   const seek = useTimelinePlaybackStore((s) => s.seek);
   const setSelection = useTimelineUIStore((s) => s.setSelection);
   const addImportedClip = useTimelineStore((s) => s.addImportedClip);
+  const addClip = useTimelineStore((s) => s.addClip);
   const importVideoWithAudio = useVideoAudioImport();
 
   const heightPx = track.heightPx ?? DEFAULT_TRACK_HEIGHT_PX;
@@ -444,6 +452,27 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
     setContextMenuPos(null);
   }, [contextMenuPos]);
 
+  const handleAddText = useCallback(() => {
+    if (!contextMenuPos) return;
+    const clip = makeClip({
+      trackId: track.id,
+      startMs: contextMenuPos.startMs,
+      durationMs: DEFAULT_TEXT_CLIP_DURATION_MS,
+      name: "Text",
+      mediaType: "text",
+      sourceType: "imported",
+      status: "generated",
+      textStyle: {
+        text: "Text",
+        fontSizePx: DEFAULT_TEXT_CLIP_FONT_SIZE_PX,
+        color: DEFAULT_TEXT_CLIP_COLOR
+      }
+    });
+    addClip(clip);
+    setSelection([clip.id]);
+    setContextMenuPos(null);
+  }, [addClip, contextMenuPos, setSelection, track.id]);
+
   const handleAddClipClose = useCallback(() => {
     setAddClipState(null);
     setAddClipAnchorEl(null);
@@ -495,6 +524,17 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
         onClose={() => setContextMenuPos(null)}
         compact
       >
+        {/* Text is the one clip you can author outright — no workflow, no
+            generation — so it sits at the top level rather than behind the
+            generated-clip picker. */}
+        {(track.type === "overlay" || track.type === "video") && (
+          <MenuItemPrimitive
+            label="Add text"
+            icon={<TitleIcon fontSize="small" />}
+            onClick={handleAddText}
+            compact
+          />
+        )}
         <MenuItemPrimitive
           label="Add generated clip here…"
           icon={<AddIcon fontSize="small" />}

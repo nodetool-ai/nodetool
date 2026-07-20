@@ -19,17 +19,15 @@ import {
   DeleteButton,
   FlexColumn,
   FlexRow,
-  NodeMenuItem,
-  NodeSelect,
   SPACING,
-  Text,
-  type SelectChangeEvent
+  Text
 } from "../../ui_primitives";
 import {
   InspectorDivider,
   InspectorPillInput,
   InspectorRow,
   InspectorSectionTitle,
+  InspectorSelect,
   InspectorSliderRow,
   InspectorToggleRow
 } from "./InspectorPrimitives";
@@ -53,6 +51,15 @@ const ROLE_LABELS: Record<AnimationRole, string> = {
   emphasis: "Emphasis",
   loop: "Loop"
 };
+
+const EASING_OPTIONS = EASINGS.map((easing) => ({
+  value: easing,
+  label: easing
+}));
+const ROLE_OPTIONS = ROLES.map((role) => ({
+  value: role,
+  label: ROLE_LABELS[role]
+}));
 
 function presetsForRole(role: AnimationRole): readonly AnimationPreset[] {
   return ANIMATION_PRESETS.filter((preset) => preset.roles.includes(role));
@@ -97,22 +104,15 @@ const AnimationParamControl: React.FC<AnimationParamControlProps> = ({
   if (spec.options) {
     return (
       <InspectorRow label={spec.name}>
-        <NodeSelect
+        <InspectorSelect
+          label={`${animation.role} ${spec.name}`}
           value={String(value)}
-          onChange={(event: SelectChangeEvent<unknown>) =>
-            onChange(String(event.target.value))
-          }
-          inputProps={{
-            "aria-label": `${animation.role} ${spec.name}`
-          }}
-          fullWidth
-        >
-          {spec.options.map((option) => (
-            <NodeMenuItem key={option} value={option}>
-              {option}
-            </NodeMenuItem>
-          ))}
-        </NodeSelect>
+          options={spec.options.map((option) => ({
+            value: option,
+            label: option
+          }))}
+          onChange={onChange}
+        />
       </InspectorRow>
     );
   }
@@ -165,9 +165,9 @@ const ClipAnimationEditor: React.FC<ClipAnimationEditorProps> = ({
     (candidate) => candidate.id === animation.preset
   );
   const handlePresetChange = useCallback(
-    (event: SelectChangeEvent<unknown>) => {
+    (value: string) => {
       const next = presetsForRole(animation.role).find(
-        (candidate) => candidate.id === event.target.value
+        (candidate) => candidate.id === value
       );
       if (!next) return;
       onPatch({
@@ -212,20 +212,15 @@ const ClipAnimationEditor: React.FC<ClipAnimationEditorProps> = ({
       />
 
       <InspectorRow label="Preset">
-        <NodeSelect
+        <InspectorSelect
+          label={`${animation.role} animation preset`}
           value={animation.preset}
+          options={rolePresets.map((candidate) => ({
+            value: candidate.id,
+            label: candidate.id
+          }))}
           onChange={handlePresetChange}
-          inputProps={{
-            "aria-label": `${animation.role} animation preset`
-          }}
-          fullWidth
-        >
-          {rolePresets.map((candidate) => (
-            <NodeMenuItem key={candidate.id} value={candidate.id}>
-              {candidate.id}
-            </NodeMenuItem>
-          ))}
-        </NodeSelect>
+        />
       </InspectorRow>
 
       {!preset?.fullClip && (
@@ -262,22 +257,12 @@ const ClipAnimationEditor: React.FC<ClipAnimationEditorProps> = ({
       )}
 
       <InspectorRow label="Easing">
-        <NodeSelect
+        <InspectorSelect
+          label={`${animation.role} animation easing`}
           value={animation.easing ?? preset?.defaultEasing ?? "linear"}
-          onChange={(event: SelectChangeEvent<unknown>) =>
-            onPatch({ easing: event.target.value as EasingId })
-          }
-          inputProps={{
-            "aria-label": `${animation.role} animation easing`
-          }}
-          fullWidth
-        >
-          {EASINGS.map((easing) => (
-            <NodeMenuItem key={easing} value={easing}>
-              {easing}
-            </NodeMenuItem>
-          ))}
-        </NodeSelect>
+          options={EASING_OPTIONS}
+          onChange={(value) => onPatch({ easing: value as EasingId })}
+        />
       </InspectorRow>
 
       {staggerAvailable && !preset?.fullClip && (
@@ -367,8 +352,8 @@ export const ClipAnimations: React.FC<ClipAnimationsProps> = ({ clip }) => {
     [animations, clip.id, setClipAnimations]
   );
 
-  const handleRoleChange = useCallback((event: SelectChangeEvent<unknown>) => {
-    const role = event.target.value as AnimationRole;
+  const handleRoleChange = useCallback((value: string) => {
+    const role = value as AnimationRole;
     setNewRole(role);
     setNewPreset(presetsForRole(role)[0].id);
   }, []);
@@ -398,32 +383,25 @@ export const ClipAnimations: React.FC<ClipAnimationsProps> = ({ clip }) => {
       >
         <FlexColumn gap={SPACING.md} sx={{ py: SPACING.xs }}>
           <FlexRow gap={SPACING.md} align="center">
-            <NodeSelect
+            <InspectorSelect
+              label="New animation role"
               value={newRole}
+              options={ROLE_OPTIONS}
               onChange={handleRoleChange}
-              inputProps={{ "aria-label": "New animation role" }}
-              fullWidth
-            >
-              {ROLES.map((role) => (
-                <NodeMenuItem key={role} value={role}>
-                  {ROLE_LABELS[role]}
-                </NodeMenuItem>
-              ))}
-            </NodeSelect>
-            <NodeSelect
+              grow
+            />
+            <InspectorSelect
+              label="New animation preset"
               value={newPreset}
-              onChange={(event: SelectChangeEvent<unknown>) =>
-                setNewPreset(event.target.value as AnimationPreset["id"])
+              options={rolePresets.map((preset) => ({
+                value: preset.id,
+                label: preset.id
+              }))}
+              onChange={(value) =>
+                setNewPreset(value as AnimationPreset["id"])
               }
-              inputProps={{ "aria-label": "New animation preset" }}
-              fullWidth
-            >
-              {rolePresets.map((preset) => (
-                <NodeMenuItem key={preset.id} value={preset.id}>
-                  {preset.id}
-                </NodeMenuItem>
-              ))}
-            </NodeSelect>
+              grow
+            />
             <Button
               size="small"
               variant="outlined"

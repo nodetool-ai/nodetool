@@ -39,11 +39,7 @@ import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import {
   CollapsibleSection,
   FlexColumn,
-  FONT_SIZE_SANS,
-  NodeSelect,
-  NodeMenuItem,
-  Text,
-  type SelectChangeEvent
+  Text
 } from "../../ui_primitives";
 import { usePersistedFold } from "./usePersistedFold";
 import {
@@ -51,6 +47,7 @@ import {
   InspectorPillInput,
   InspectorRow,
   InspectorSectionTitle,
+  InspectorSelect,
   InspectorSliderRow
 } from "./InspectorPrimitives";
 import { parseSeconds } from "./InspectorPrimitives.helpers";
@@ -105,16 +102,11 @@ const sectionContentStyles = (theme: Theme) =>
     padding: theme.spacing(0.5, 0, 2)
   });
 
-// Shrinks the MUI select to the inspector's compact control height so it
-// sits flush with the pill inputs.
-const compactSelectSx = {
-  minWidth: 96,
-  "& .MuiSelect-select": {
-    minHeight: 0,
-    py: 0.25,
-    fontSize: FONT_SIZE_SANS.caption
-  }
-} as const;
+const TRANSITION_MODES = [
+  { value: "auto", label: "Auto" },
+  { value: "crossfade", label: "Crossfade" },
+  { value: "none", label: "None" }
+] as const;
 
 // ── Component ──────────────────────────────────────────────────────────────
 
@@ -167,8 +159,7 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
       [clip.id, patchClip]
     );
     const handleBlendModeChange = useCallback(
-      (e: SelectChangeEvent<unknown>) =>
-        patchClip(clip.id, { blendMode: e.target.value as BlendMode }),
+      (value: string) => patchClip(clip.id, { blendMode: value as BlendMode }),
       [clip.id, patchClip]
     );
     const handleVolumeChange = useCallback(
@@ -406,8 +397,8 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
       [patchClip]
     );
     const handleTransitionModeChange = useCallback(
-      (e: SelectChangeEvent<unknown>) =>
-        setTransitionMode(e.target.value as "auto" | "crossfade" | "none"),
+      (value: string) =>
+        setTransitionMode(value as "auto" | "crossfade" | "none"),
       [setTransitionMode]
     );
     const handleTransitionDurationCommit = useCallback(
@@ -468,17 +459,12 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
             )}
             {isOverlay && !isAudio && (
               <InspectorRow label="Blend">
-                <NodeSelect
+                <InspectorSelect
+                  label="Blend mode"
                   value={clip.blendMode ?? "normal"}
+                  options={BLEND_MODES}
                   onChange={handleBlendModeChange}
-                  sx={compactSelectSx}
-                >
-                  {BLEND_MODES.map((mode) => (
-                    <NodeMenuItem key={mode.value} value={mode.value}>
-                      {mode.label}
-                    </NodeMenuItem>
-                  ))}
-                </NodeSelect>
+                />
               </InspectorRow>
             )}
             {isAudio && (
@@ -785,15 +771,12 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
             >
               <FlexColumn css={sectionContentStyles(theme)}>
                 <InspectorRow label="Type">
-                  <NodeSelect
+                  <InspectorSelect
+                    label="Transition type"
                     value={transitionMode}
+                    options={TRANSITION_MODES}
                     onChange={handleTransitionModeChange}
-                    sx={compactSelectSx}
-                  >
-                    <NodeMenuItem value="auto">Auto</NodeMenuItem>
-                    <NodeMenuItem value="crossfade">Crossfade</NodeMenuItem>
-                    <NodeMenuItem value="none">None</NodeMenuItem>
-                  </NodeSelect>
+                  />
                 </InspectorRow>
                 {transitionMode === "crossfade" && (
                   <InspectorRow label="Duration">
