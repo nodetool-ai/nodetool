@@ -491,6 +491,12 @@ export interface PlanWorkflowGraphToolOptions {
    * so the UI can nest them under this tool's call card.
    */
   forwardMessage?: (msg: ProcessingMessage) => Promise<void> | void;
+  /**
+   * Resolves the abort signal for the *current* chat turn. Read lazily on each
+   * call: the tool outlives a single turn, and each turn installs a fresh
+   * controller, so a captured signal would go stale after the first Stop.
+   */
+  signal?: () => AbortSignal | undefined;
 }
 
 export class PlanWorkflowGraphTool extends Tool {
@@ -540,18 +546,31 @@ export class PlanWorkflowGraphTool extends Tool {
         ? (params[TOOL_CALL_ID_FIELD] as string)
         : null;
 
+    const signal = this.opts.signal?.();
+    if (signal?.aborted) {
+      return { error: "Graph planning was cancelled." };
+    }
+
     const planner = new GraphPlanner({
       provider: this.opts.provider,
       model: this.opts.model,
       registry: this.opts.registry,
       tools: [],
       inputs: (params["inputs"] as Record<string, unknown>) ?? {},
-      providers: this.opts.providers
+      providers: this.opts.providers,
+      signal
     });
 
     const gen = planner.plan(objective, context);
     let next = await gen.next();
     while (!next.done) {
+      // The planner's own abort stops its LLM loop, but a tool call already
+      // in flight still resolves — stop driving the generator so a Stop ends
+      // the turn promptly instead of after the current round.
+      if (signal?.aborted) {
+        await gen.return(null);
+        return { error: "Graph planning was cancelled." };
+      }
       if (this.opts.forwardMessage) {
         const tagged = {
           ...(next.value as unknown as Record<string, unknown>),
@@ -565,6 +584,10 @@ export class PlanWorkflowGraphTool extends Tool {
         }
       }
       next = await gen.next();
+    }
+
+    if (signal?.aborted) {
+      return { error: "Graph planning was cancelled." };
     }
 
     const graph = next.value;
