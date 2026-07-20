@@ -62,7 +62,7 @@ const META_SECTION_GROUPS: ReadonlyArray<{
   {
     key: "local-model-servers",
     label: "Local Model Servers",
-    groups: ["vLLM", "Ollama", "LlamaCpp", "LMStudio", "TransformersJs"]
+    groups: ["vLLM", "Ollama", "LlamaCpp", "NodeLlamaCpp", "LMStudio", "TransformersJs"]
   },
   {
     key: "provider-options",

@@ -169,16 +169,6 @@ const getUVPath = (): string => {
 };
 
 /**
- * Retrieves the path to the llama-server executable from the conda environment.
- */
-const getLlamaServerPath = (): string => {
-  const condaPath: string = getCondaEnvPath();
-  return process.platform === "win32"
-    ? path.join(condaPath, "Library", "bin", "llama-server.exe")
-    : path.join(condaPath, "bin", "llama-server");
-};
-
-/**
  * Retrieves the environment variables for the process
  * @returns {ProcessEnv} Environment variables
  */
@@ -399,7 +389,6 @@ export {
   getNodePath,
   getPythonPath,
   getUVPath,
-  getLlamaServerPath,
   getProcessEnv,
   resolveNpmInvocation,
   getSystemDataPath,

@@ -1,7 +1,6 @@
 import {
   normalizeUpdateChannel,
   getUpdateChannel,
-  getModelServiceStartupDefaults,
 } from "../settings";
 
 describe("normalizeUpdateChannel", () => {
@@ -69,25 +68,3 @@ describe("getUpdateChannel", () => {
   });
 });
 
-describe("getModelServiceStartupDefaults", () => {
-  it('returns startLlamaCppOnStartup true for "llama_cpp"', () => {
-    expect(getModelServiceStartupDefaults("llama_cpp")).toEqual({
-      startLlamaCppOnStartup: true,
-    });
-  });
-
-  it("returns startLlamaCppOnStartup false for other backends", () => {
-    expect(getModelServiceStartupDefaults("ollama")).toEqual({
-      startLlamaCppOnStartup: false,
-    });
-    expect(getModelServiceStartupDefaults("")).toEqual({
-      startLlamaCppOnStartup: false,
-    });
-    expect(getModelServiceStartupDefaults(undefined)).toEqual({
-      startLlamaCppOnStartup: false,
-    });
-    expect(getModelServiceStartupDefaults(null)).toEqual({
-      startLlamaCppOnStartup: false,
-    });
-  });
-});

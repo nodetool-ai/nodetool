@@ -30,8 +30,6 @@ declare global {
       restartServer: () => Promise<void>;
       onServerLog: (callback: (message: string) => void) => () => void;
 
-      restartLlamaServer: () => Promise<void>;
-
       getLogs: () => Promise<string[]>;
       clearLogs: () => Promise<void>;
 
@@ -49,7 +47,6 @@ declare global {
         getState: () => Promise<ServerState>;
         start: () => Promise<void>;
         restart: () => Promise<void>;
-        restartLlama: () => Promise<void>;
         onStarted: (callback: () => void) => () => void;
         onLog: (callback: (message: string) => void) => () => void;
         onError: (callback: (data: { message: string }) => void) => () => void;
@@ -169,7 +166,6 @@ declare global {
           packages: PythonPackages,
           modelBackend?: ModelBackend,
           installLlamaCpp?: boolean,
-          startLlamaCppOnStartup?: boolean,
         ) => Promise<void>;
         onLocationPrompt: (
           callback: (data: InstallLocationData) => void,
@@ -234,10 +230,6 @@ declare global {
         getSystemInfo: () => Promise<SystemInfo>;
         getAutoUpdates: () => Promise<boolean>;
         setAutoUpdates: (enabled: boolean) => Promise<void>;
-        getModelServicesStartup: () => Promise<ModelServicesStartupSettings>;
-        setModelServicesStartup: (
-          update: ModelServicesStartupSettingsUpdate,
-        ) => Promise<ModelServicesStartupSettings>;
         openSettings: () => Promise<void>;
       };
 
@@ -300,8 +292,6 @@ export interface SystemInfo {
   // Feature availability
   cudaAvailable: boolean;
   cudaVersion: string | null;
-  llamaServerInstalled: boolean;
-  llamaServerVersion: string | null;
 }
 
 export interface JSONSchema {
@@ -522,7 +512,6 @@ export enum IpcChannels {
   SELECT_CUSTOM_LOCATION = "select-custom-location",
   START_SERVER = "start-server",
   RESTART_SERVER = "restart-server",
-  RESTART_LLAMA_SERVER = "restart-llama-server",
   RUN_APP = "run-app",
   BOOT_MESSAGE = "boot-message",
   SERVER_STARTED = "server-started",
@@ -595,8 +584,6 @@ export enum IpcChannels {
   SETTINGS_SET_AUTO_UPDATES = "settings-set-auto-updates",
   SETTINGS_GET_UPDATE_CHANNEL = "settings-get-update-channel",
   SETTINGS_SET_UPDATE_CHANNEL = "settings-set-update-channel",
-  SETTINGS_GET_MODEL_SERVICES_STARTUP = "settings-get-model-services-startup",
-  SETTINGS_SET_MODEL_SERVICES_STARTUP = "settings-set-model-services-startup",
   SHOW_SETTINGS = "show-settings",
   // Vault channels (switchable, isolated data stores)
   VAULT_LIST = "vault-list",
@@ -647,7 +634,6 @@ export interface InstallToLocationData {
   packages: PythonPackages;
   modelBackend?: ModelBackend;
   installLlamaCpp?: boolean;
-  startLlamaCppOnStartup?: boolean;
 }
 
 export interface FileExplorerPathRequest {
@@ -700,7 +686,6 @@ export interface IpcRequest {
   [IpcChannels.SELECT_CUSTOM_LOCATION]: void;
   [IpcChannels.START_SERVER]: void;
   [IpcChannels.RESTART_SERVER]: void;
-  [IpcChannels.RESTART_LLAMA_SERVER]: void;
   [IpcChannels.RUN_APP]: string;
   [IpcChannels.INSTALL_UPDATE]: void;
   [IpcChannels.WINDOW_CLOSE]: void;
@@ -779,8 +764,6 @@ export interface IpcRequest {
   [IpcChannels.SETTINGS_SET_AUTO_UPDATES]: boolean;
   [IpcChannels.SETTINGS_GET_UPDATE_CHANNEL]: void;
   [IpcChannels.SETTINGS_SET_UPDATE_CHANNEL]: UpdateChannel;
-  [IpcChannels.SETTINGS_GET_MODEL_SERVICES_STARTUP]: void;
-  [IpcChannels.SETTINGS_SET_MODEL_SERVICES_STARTUP]: ModelServicesStartupSettingsUpdate;
   [IpcChannels.SHOW_SETTINGS]: void;
   // Vaults
   [IpcChannels.VAULT_LIST]: void;
@@ -811,14 +794,6 @@ export interface IpcRequest {
 export type WindowCloseAction = "ask" | "quit" | "background";
 export type UpdateChannel = "latest" | "nightly";
 
-export interface ModelServicesStartupSettings {
-  startLlamaCppOnStartup: boolean;
-}
-
-export interface ModelServicesStartupSettingsUpdate {
-  startLlamaCppOnStartup?: boolean;
-}
-
 export interface IpcResponse {
   [IpcChannels.GET_SERVER_STATE]: ServerState;
   [IpcChannels.OPEN_LOG_FILE]: void;
@@ -829,7 +804,6 @@ export interface IpcResponse {
   [IpcChannels.SELECT_CUSTOM_LOCATION]: string | null;
   [IpcChannels.START_SERVER]: void;
   [IpcChannels.RESTART_SERVER]: void;
-  [IpcChannels.RESTART_LLAMA_SERVER]: void;
   [IpcChannels.RUN_APP]: void;
   [IpcChannels.INSTALL_UPDATE]: void;
   [IpcChannels.WINDOW_CLOSE]: void;
@@ -890,8 +864,6 @@ export interface IpcResponse {
   [IpcChannels.SETTINGS_SET_AUTO_UPDATES]: void;
   [IpcChannels.SETTINGS_GET_UPDATE_CHANNEL]: UpdateChannel;
   [IpcChannels.SETTINGS_SET_UPDATE_CHANNEL]: UpdateChannel;
-  [IpcChannels.SETTINGS_GET_MODEL_SERVICES_STARTUP]: ModelServicesStartupSettings;
-  [IpcChannels.SETTINGS_SET_MODEL_SERVICES_STARTUP]: ModelServicesStartupSettings;
   [IpcChannels.SHOW_SETTINGS]: void;
   // Vaults
   [IpcChannels.VAULT_LIST]: VaultListResult;

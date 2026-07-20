@@ -351,8 +351,7 @@ Installation Paths
 
 Features & Versions
   Python: ${info.pythonVersion || "Not available"}
-  CUDA: ${info.cudaAvailable ? (info.cudaVersion || "Available") : "Not available"}
-  Llama Server: ${info.llamaServerInstalled ? (info.llamaServerVersion || "Installed") : "Not installed"}`;
+  CUDA: ${info.cudaAvailable ? (info.cudaVersion || "Available") : "Not available"}`;
 
     const dialogOptions = {
       type: "info" as const,

@@ -207,10 +207,6 @@ const api = {
   restartServer: () => ipcRenderer.invoke(IpcChannels.RESTART_SERVER),
   onServerLog: createEventSubscription(IpcChannels.SERVER_LOG),
 
-  /** Restart llama server (legacy name) */
-  restartLlamaServer: () =>
-    ipcRenderer.invoke(IpcChannels.RESTART_LLAMA_SERVER),
-
   /** Log viewer (legacy names) */
   getLogs: () => ipcRenderer.invoke(IpcChannels.GET_LOGS),
   clearLogs: () => ipcRenderer.invoke(IpcChannels.CLEAR_LOGS),
@@ -250,9 +246,6 @@ const api = {
 
     /** Restart the backend server */
     restart: () => ipcRenderer.invoke(IpcChannels.RESTART_SERVER),
-
-    /** Restart the llama server (for model updates) */
-    restartLlama: () => ipcRenderer.invoke(IpcChannels.RESTART_LLAMA_SERVER),
 
     /** Subscribe to server started event */
     onStarted: createEventSubscription(IpcChannels.SERVER_STARTED),
@@ -553,14 +546,12 @@ const api = {
       packages: PythonPackages,
       modelBackend?: "ollama" | "llama_cpp" | "none",
       installLlamaCpp?: boolean,
-      startLlamaCppOnStartup?: boolean,
     ) =>
       ipcRenderer.invoke(IpcChannels.INSTALL_TO_LOCATION, {
         location: validatePath(location),
         packages,
         modelBackend,
         installLlamaCpp,
-        startLlamaCppOnStartup,
       }),
 
     /** Subscribe to install location prompt */
@@ -710,16 +701,6 @@ const api = {
     /** Set the selected desktop update channel */
     setUpdateChannel: (channel: "latest" | "nightly") =>
       ipcRenderer.invoke(IpcChannels.SETTINGS_SET_UPDATE_CHANNEL, channel),
-
-    /** Get startup settings for managed local model services */
-    getModelServicesStartup: () =>
-      ipcRenderer.invoke(IpcChannels.SETTINGS_GET_MODEL_SERVICES_STARTUP),
-
-    /** Update startup settings for managed local model services */
-    setModelServicesStartup: (update: {
-      startLlamaCppOnStartup?: boolean;
-    }) =>
-      ipcRenderer.invoke(IpcChannels.SETTINGS_SET_MODEL_SERVICES_STARTUP, update),
 
     /** Open the settings window */
     openSettings: () => ipcRenderer.invoke(IpcChannels.SHOW_SETTINGS),
