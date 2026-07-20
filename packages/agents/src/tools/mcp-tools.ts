@@ -48,32 +48,67 @@ function getHeaders(context: ProcessingContext): Record<string, string> {
   return headers;
 }
 
+/**
+ * Normalize an agent-authored graph into the *stored* workflow shape.
+ *
+ * Two representations exist. The kernel (and `GraphPlanner`/`GraphBuilder`)
+ * puts a node's property bag under `properties`; the persisted/editor shape
+ * puts it flat under `data`, with layout under `ui_properties`. Saving kernel
+ * shape runs fine — `normalizeGraph` in the websocket runner maps `data` →
+ * `properties` on the way to the kernel and leaves an existing `properties`
+ * alone — but the editor reads `node.data`, so such a workflow opens with
+ * every node blank and stacked at the origin.
+ *
+ * This is the boundary where that conversion has to happen: `create_workflow`
+ * is the only tool that persists a graph.
+ */
 function normalizeWorkflowGraph(graph: unknown): unknown {
   if (!graph || typeof graph !== "object" || Array.isArray(graph)) return graph;
   const record = graph as Record<string, unknown>;
   const rawNodes = record["nodes"];
   const rawEdges = record["edges"];
 
-  const normalizeNode = (value: unknown, fallbackId?: string): unknown => {
+  const normalizeNode = (
+    value: unknown,
+    index: number,
+    fallbackId?: string
+  ): unknown => {
     if (!value || typeof value !== "object" || Array.isArray(value)) {
       return value;
     }
     const node = value as Record<string, unknown>;
-    const { node_type, parameters, ...rest } = node;
-    const properties = node["properties"] ?? parameters;
+    // `properties` and `parameters` are dropped from the spread so the stored
+    // node carries the bag once, under `data`.
+    const { node_type, parameters, properties, ...rest } = node;
+    const data = properties ?? parameters ?? node["data"];
+    const uiProperties = node["ui_properties"];
     return {
       ...rest,
       id: node["id"] ?? fallbackId,
       type: node["type"] ?? node_type,
-      ...(properties === undefined ? {} : { properties })
+      ...(data === undefined ? {} : { data }),
+      // The planner emits no layout. Lay the nodes out on a grid so the
+      // workflow is readable when opened instead of one pile at the origin.
+      ui_properties:
+        uiProperties && typeof uiProperties === "object"
+          ? uiProperties
+          : {
+              position: {
+                x: (index % 4) * 280,
+                y: Math.floor(index / 4) * 200
+              },
+              zIndex: 0,
+              width: 280,
+              selectable: true
+            }
     };
   };
 
   const nodes = Array.isArray(rawNodes)
-    ? rawNodes.map((node) => normalizeNode(node))
+    ? rawNodes.map((node, index) => normalizeNode(node, index))
     : rawNodes && typeof rawNodes === "object"
-      ? Object.entries(rawNodes as Record<string, unknown>).map(([id, node]) =>
-          normalizeNode(node, id)
+      ? Object.entries(rawNodes as Record<string, unknown>).map(
+          ([id, node], index) => normalizeNode(node, index, id)
         )
       : rawNodes;
 
@@ -491,6 +526,12 @@ export interface PlanWorkflowGraphToolOptions {
    * so the UI can nest them under this tool's call card.
    */
   forwardMessage?: (msg: ProcessingMessage) => Promise<void> | void;
+  /**
+   * Resolves the abort signal for the *current* chat turn. Read lazily on each
+   * call: the tool outlives a single turn, and each turn installs a fresh
+   * controller, so a captured signal would go stale after the first Stop.
+   */
+  signal?: () => AbortSignal | undefined;
 }
 
 export class PlanWorkflowGraphTool extends Tool {
@@ -540,18 +581,31 @@ export class PlanWorkflowGraphTool extends Tool {
         ? (params[TOOL_CALL_ID_FIELD] as string)
         : null;
 
+    const signal = this.opts.signal?.();
+    if (signal?.aborted) {
+      return { error: "Graph planning was cancelled." };
+    }
+
     const planner = new GraphPlanner({
       provider: this.opts.provider,
       model: this.opts.model,
       registry: this.opts.registry,
       tools: [],
       inputs: (params["inputs"] as Record<string, unknown>) ?? {},
-      providers: this.opts.providers
+      providers: this.opts.providers,
+      signal
     });
 
     const gen = planner.plan(objective, context);
     let next = await gen.next();
     while (!next.done) {
+      // The planner's own abort stops its LLM loop, but a tool call already
+      // in flight still resolves — stop driving the generator so a Stop ends
+      // the turn promptly instead of after the current round.
+      if (signal?.aborted) {
+        await gen.return(null);
+        return { error: "Graph planning was cancelled." };
+      }
       if (this.opts.forwardMessage) {
         const tagged = {
           ...(next.value as unknown as Record<string, unknown>),
@@ -565,6 +619,10 @@ export class PlanWorkflowGraphTool extends Tool {
         }
       }
       next = await gen.next();
+    }
+
+    if (signal?.aborted) {
+      return { error: "Graph planning was cancelled." };
     }
 
     const graph = next.value;

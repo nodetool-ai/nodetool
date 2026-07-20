@@ -403,7 +403,6 @@ export const createStyles = (theme: Theme) => ({
 
     ".tool-call-card": {
       width: "100%",
-      border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: BORDER_RADIUS.md,
       background: theme.vars.palette.action.hover,
       overflow: "hidden",

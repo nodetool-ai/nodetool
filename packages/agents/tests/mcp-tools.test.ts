@@ -137,17 +137,31 @@ describe("CreateWorkflowTool", () => {
     });
 
     const body = JSON.parse(lastFetchOpts().body as string);
+    // Stored shape: the property bag lives flat under `data`, not
+    // `properties` — the editor reads `node.data`.
     expect(body.graph).toEqual({
       nodes: [
         {
           id: "search",
           type: "openai.text.WebSearch",
-          properties: { query: "current technology news" }
+          data: { query: "current technology news" },
+          ui_properties: {
+            position: { x: 0, y: 0 },
+            zIndex: 0,
+            width: 280,
+            selectable: true
+          }
         },
         {
           id: "summarize",
           type: "mistral.text.ChatComplete",
-          properties: { model: "mistral-large-latest" }
+          data: { model: "mistral-large-latest" },
+          ui_properties: {
+            position: { x: 280, y: 0 },
+            zIndex: 0,
+            width: 280,
+            selectable: true
+          }
         }
       ],
       edges: [
@@ -194,14 +208,73 @@ describe("CreateWorkflowTool", () => {
       {
         id: "search_node",
         type: "xai.text.WebSearch",
-        properties: { query: "latest news", search_mode: "on" }
+        data: { query: "latest news", search_mode: "on" },
+        ui_properties: {
+          position: { x: 0, y: 0 },
+          zIndex: 0,
+          width: 280,
+          selectable: true
+        }
       },
       {
         id: "summarizer_node",
         type: "nodetool.agents.Agent",
-        properties: { instructions: "Summarize the news" }
+        data: { instructions: "Summarize the news" },
+        ui_properties: {
+          position: { x: 280, y: 0 },
+          zIndex: 0,
+          width: 280,
+          selectable: true
+        }
       }
     ]);
+  });
+
+  it("keeps a graph that already uses the stored `data` shape", async () => {
+    await tool.process(ctx, {
+      name: "Already stored shape",
+      graph: {
+        nodes: [
+          {
+            id: "n1",
+            type: "nodetool.input.StringInput",
+            data: { name: "prompt" },
+            ui_properties: { position: { x: 42, y: 99 }, zIndex: 0 }
+          }
+        ],
+        edges: []
+      }
+    });
+
+    const body = JSON.parse(lastFetchOpts().body as string);
+    expect(body.graph.nodes).toEqual([
+      {
+        id: "n1",
+        type: "nodetool.input.StringInput",
+        data: { name: "prompt" },
+        ui_properties: { position: { x: 42, y: 99 }, zIndex: 0 }
+      }
+    ]);
+  });
+
+  it("never stores a node carrying both `properties` and `data`", async () => {
+    await tool.process(ctx, {
+      name: "Planner output",
+      graph: {
+        nodes: [
+          {
+            id: "n1",
+            type: "nodetool.input.StringInput",
+            properties: { name: "prompt" }
+          }
+        ],
+        edges: []
+      }
+    });
+
+    const node = JSON.parse(lastFetchOpts().body as string).graph.nodes[0];
+    expect(node.properties).toBeUndefined();
+    expect(node.data).toEqual({ name: "prompt" });
   });
 
   it("userMessage includes name", () => {

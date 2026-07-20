@@ -3737,6 +3737,7 @@ export class UnifiedWebSocketRunner {
           model,
           registry: this.nodeRegistry,
           providers: chatProviders,
+          signal: () => this.chatAbort?.signal,
           forwardMessage: async (msg) => {
             const enriched: Record<string, unknown> = {
               ...(msg as unknown as Record<string, unknown>)
@@ -3744,6 +3745,11 @@ export class UnifiedWebSocketRunner {
             if (enriched.thread_id == null) enriched.thread_id = threadId;
             if (enriched.workflow_id == null) enriched.workflow_id = workflowId;
             await this.sendMessage(enriched);
+            // The planner's discovery/submit tool calls arrive as transient
+            // tool_call_update events. Emit a persistent card so the chat UI
+            // shows what the planner is doing, nested under the parent
+            // plan_workflow_graph card.
+            await this.emitSyntheticToolCallCard(enriched);
           }
         })
       );
