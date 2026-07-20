@@ -48,6 +48,102 @@ function getHeaders(context: ProcessingContext): Record<string, string> {
   return headers;
 }
 
+// Column/row spacing for the auto-layout. 280 is NodeTool's default node
+// width, so a 320 column gap leaves ~40px between stages.
+const LAYOUT_COL_GAP = 320;
+const LAYOUT_ROW_GAP = 220;
+
+/**
+ * Assign a grid position to every node from the graph's dataflow: columns are
+ * topological depth (longest path from a root), rows are order within a
+ * column. A left-to-right layered layout — the same shape NodeTool graphs are
+ * authored in — without a full layout engine (no `elkjs` in the backend).
+ */
+function computeAutoLayout(
+  nodeIds: string[],
+  edges: Array<Record<string, unknown>>
+): Map<string, { x: number; y: number }> {
+  const ids = new Set(nodeIds);
+  const outgoing = new Map<string, string[]>();
+  const indegree = new Map<string, number>();
+  for (const id of nodeIds) {
+    outgoing.set(id, []);
+    indegree.set(id, 0);
+  }
+  for (const edge of edges) {
+    const source = edge["source"] == null ? "" : String(edge["source"]);
+    const target = edge["target"] == null ? "" : String(edge["target"]);
+    if (source === target || !ids.has(source) || !ids.has(target)) continue;
+    outgoing.get(source)!.push(target);
+    indegree.set(target, (indegree.get(target) ?? 0) + 1);
+  }
+
+  // Longest-path layering via Kahn's topological order: each node lands one
+  // column past its deepest upstream. Roots (no incoming edge) sit in column 0.
+  const column = new Map<string, number>();
+  const remaining = new Map(indegree);
+  const queue: string[] = [];
+  for (const id of nodeIds) {
+    column.set(id, 0);
+    if ((indegree.get(id) ?? 0) === 0) queue.push(id);
+  }
+  const ordered: string[] = [];
+  for (let head = 0; head < queue.length; head++) {
+    const id = queue[head];
+    ordered.push(id);
+    for (const target of outgoing.get(id) ?? []) {
+      column.set(target, Math.max(column.get(target)!, column.get(id)! + 1));
+      remaining.set(target, remaining.get(target)! - 1);
+      if (remaining.get(target) === 0) queue.push(target);
+    }
+  }
+  // A cycle leaves nodes that never reach indegree 0; keep them in column 0 and
+  // append in original order so they still get a slot.
+  const placed = new Set(ordered);
+  for (const id of nodeIds) if (!placed.has(id)) ordered.push(id);
+
+  const rowByColumn = new Map<number, number>();
+  const positions = new Map<string, { x: number; y: number }>();
+  for (const id of ordered) {
+    const col = column.get(id) ?? 0;
+    const row = rowByColumn.get(col) ?? 0;
+    rowByColumn.set(col, row + 1);
+    positions.set(id, { x: col * LAYOUT_COL_GAP, y: row * LAYOUT_ROW_GAP });
+  }
+  return positions;
+}
+
+/**
+ * Set `ui_properties.position` on every node from {@link computeAutoLayout},
+ * overriding any caller-supplied coordinates (create_workflow always
+ * auto-lays-out) while preserving other `ui_properties` fields (title, color).
+ */
+function withAutoLayout(nodes: unknown, edges: unknown): unknown {
+  if (!Array.isArray(nodes)) return nodes;
+  const isRecord = (v: unknown): v is Record<string, unknown> =>
+    !!v && typeof v === "object" && !Array.isArray(v);
+  const edgeList = Array.isArray(edges) ? edges.filter(isRecord) : [];
+  const ids = nodes
+    .filter(isRecord)
+    .map((node) => String(node["id"] ?? ""));
+  const positions = computeAutoLayout(ids, edgeList);
+  return nodes.map((node) => {
+    if (!isRecord(node)) return node;
+    const id = String(node["id"] ?? "");
+    const ui = isRecord(node["ui_properties"]) ? node["ui_properties"] : {};
+    return {
+      ...node,
+      ui_properties: {
+        zIndex: 0,
+        width: 280,
+        selectable: true,
+        ...ui,
+        position: positions.get(id) ?? { x: 0, y: 0 }
+      }
+    };
+  });
+}
+
 /**
  * Normalize an agent-authored graph into the *stored* workflow shape.
  *
@@ -57,10 +153,12 @@ function getHeaders(context: ProcessingContext): Record<string, string> {
  * shape runs fine — `normalizeGraph` in the websocket runner maps `data` →
  * `properties` on the way to the kernel and leaves an existing `properties`
  * alone — but the editor reads `node.data`, so such a workflow opens with
- * every node blank and stacked at the origin.
+ * every node blank. The planner emits no layout at all, so the nodes would
+ * also pile at the origin.
  *
- * This is the boundary where that conversion has to happen: `create_workflow`
- * is the only tool that persists a graph.
+ * This is the boundary where both conversions happen — `create_workflow` is
+ * the only tool that persists a graph, so it maps `properties` → `data` and
+ * always auto-lays-out the result.
  */
 function normalizeWorkflowGraph(graph: unknown): unknown {
   if (!graph || typeof graph !== "object" || Array.isArray(graph)) return graph;
@@ -68,47 +166,29 @@ function normalizeWorkflowGraph(graph: unknown): unknown {
   const rawNodes = record["nodes"];
   const rawEdges = record["edges"];
 
-  const normalizeNode = (
-    value: unknown,
-    index: number,
-    fallbackId?: string
-  ): unknown => {
+  const normalizeNode = (value: unknown, fallbackId?: string): unknown => {
     if (!value || typeof value !== "object" || Array.isArray(value)) {
       return value;
     }
     const node = value as Record<string, unknown>;
     // `properties` and `parameters` are dropped from the spread so the stored
-    // node carries the bag once, under `data`.
+    // node carries the bag once, under `data`. `ui_properties` stays in `rest`
+    // and is filled in by `withAutoLayout` below.
     const { node_type, parameters, properties, ...rest } = node;
     const data = properties ?? parameters ?? node["data"];
-    const uiProperties = node["ui_properties"];
     return {
       ...rest,
       id: node["id"] ?? fallbackId,
       type: node["type"] ?? node_type,
-      ...(data === undefined ? {} : { data }),
-      // The planner emits no layout. Lay the nodes out on a grid so the
-      // workflow is readable when opened instead of one pile at the origin.
-      ui_properties:
-        uiProperties && typeof uiProperties === "object"
-          ? uiProperties
-          : {
-              position: {
-                x: (index % 4) * 280,
-                y: Math.floor(index / 4) * 200
-              },
-              zIndex: 0,
-              width: 280,
-              selectable: true
-            }
+      ...(data === undefined ? {} : { data })
     };
   };
 
   const nodes = Array.isArray(rawNodes)
-    ? rawNodes.map((node, index) => normalizeNode(node, index))
+    ? rawNodes.map((node) => normalizeNode(node))
     : rawNodes && typeof rawNodes === "object"
-      ? Object.entries(rawNodes as Record<string, unknown>).map(
-          ([id, node], index) => normalizeNode(node, index, id)
+      ? Object.entries(rawNodes as Record<string, unknown>).map(([id, node]) =>
+          normalizeNode(node, id)
         )
       : rawNodes;
 
@@ -128,7 +208,7 @@ function normalizeWorkflowGraph(graph: unknown): unknown {
       })
     : rawEdges;
 
-  return { ...record, nodes, edges };
+  return { ...record, nodes: withAutoLayout(nodes, edges), edges };
 }
 
 async function apiGet(

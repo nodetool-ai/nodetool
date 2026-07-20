@@ -156,8 +156,9 @@ describe("CreateWorkflowTool", () => {
           id: "summarize",
           type: "mistral.text.ChatComplete",
           data: { model: "mistral-large-latest" },
+          // Downstream of `search`, so column 1 of the dataflow layout.
           ui_properties: {
-            position: { x: 280, y: 0 },
+            position: { x: 320, y: 0 },
             zIndex: 0,
             width: 280,
             selectable: true
@@ -221,7 +222,7 @@ describe("CreateWorkflowTool", () => {
         type: "nodetool.agents.Agent",
         data: { instructions: "Summarize the news" },
         ui_properties: {
-          position: { x: 280, y: 0 },
+          position: { x: 320, y: 0 },
           zIndex: 0,
           width: 280,
           selectable: true
@@ -230,7 +231,7 @@ describe("CreateWorkflowTool", () => {
     ]);
   });
 
-  it("keeps a graph that already uses the stored `data` shape", async () => {
+  it("always auto-lays-out, overriding caller positions but keeping other ui_properties", async () => {
     await tool.process(ctx, {
       name: "Already stored shape",
       graph: {
@@ -239,7 +240,11 @@ describe("CreateWorkflowTool", () => {
             id: "n1",
             type: "nodetool.input.StringInput",
             data: { name: "prompt" },
-            ui_properties: { position: { x: 42, y: 99 }, zIndex: 0 }
+            ui_properties: {
+              position: { x: 42, y: 99 },
+              zIndex: 0,
+              title: "Prompt"
+            }
           }
         ],
         edges: []
@@ -252,9 +257,48 @@ describe("CreateWorkflowTool", () => {
         id: "n1",
         type: "nodetool.input.StringInput",
         data: { name: "prompt" },
-        ui_properties: { position: { x: 42, y: 99 }, zIndex: 0 }
+        ui_properties: {
+          // Caller's position is discarded; other fields (title) survive.
+          position: { x: 0, y: 0 },
+          zIndex: 0,
+          width: 280,
+          selectable: true,
+          title: "Prompt"
+        }
       }
     ]);
+  });
+
+  it("lays out a chain left-to-right and stacks parallel roots", async () => {
+    await tool.process(ctx, {
+      name: "Diamond",
+      graph: {
+        nodes: [
+          { id: "a", type: "t", properties: {} },
+          { id: "b", type: "t", properties: {} },
+          { id: "c", type: "t", properties: {} }
+        ],
+        // a -> c and b -> c: a,b are roots (column 0), c is column 1.
+        edges: [
+          { source: "a", target: "c", targetHandle: "x" },
+          { source: "b", target: "c", targetHandle: "y" }
+        ]
+      }
+    });
+
+    const positions = Object.fromEntries(
+      JSON.parse(lastFetchOpts().body as string).graph.nodes.map(
+        (n: { id: string; ui_properties: { position: unknown } }) => [
+          n.id,
+          n.ui_properties.position
+        ]
+      )
+    );
+    expect(positions).toEqual({
+      a: { x: 0, y: 0 },
+      b: { x: 0, y: 220 },
+      c: { x: 320, y: 0 }
+    });
   });
 
   it("never stores a node carrying both `properties` and `data`", async () => {
