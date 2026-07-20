@@ -418,7 +418,7 @@ const getHeaderColors = (
 const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   const theme = useTheme();
   const isDarkMode = useIsDarkMode();
-  const { id, type, data, selected, parentId, dragging } = props;
+  const { id, type, data, selected, parentId, dragging, height: nodeHeight } = props;
   const { workflow_id, title } = data;
   // Subscribe directly to focusedNodeId with equality check to avoid re-renders
   const isFocused = useNodeFocusStore(
@@ -692,6 +692,14 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     [theme]
   );
 
+  // Cap the body's minHeight at the node's measured height so the body never
+  // overflows the ReactFlow node wrapper (can happen when handle count increases
+  // after a resize, pushing minHeight above the stored height).
+  const bodyMinHeight =
+    nodeHeight !== undefined
+      ? Math.min(styleProps.minHeight, nodeHeight)
+      : styleProps.minHeight;
+
   // Memoize the container sx prop to prevent object recreation on every render
   const containerSx = useMemo(
     () =>
@@ -705,7 +713,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         baseColor,
         parentColor,
         theme,
-        minHeight: styleProps.minHeight,
+        minHeight: bodyMinHeight,
         collapsed: Boolean(data.collapsed)
       }),
     [
@@ -718,7 +726,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       baseColor,
       parentColor,
       theme,
-      styleProps.minHeight,
+      bodyMinHeight,
       data.collapsed
     ]
   );
