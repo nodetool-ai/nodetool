@@ -128,7 +128,9 @@ describe("OpenAIProvider – resolveImageSize", () => {
     ];
     for (const [aw, ah] of ratios) {
       const [w, h] =
-        aw >= ah ? [Math.round((1024 * aw) / ah), 1024] : [1024, Math.round((1024 * ah) / aw)];
+        aw >= ah
+          ? [Math.round((1024 * aw) / ah), 1024]
+          : [1024, Math.round((1024 * ah) / aw)];
       const size = provider.resolveImageSize(w, h, "gpt-image-2");
       expect(size).not.toBeNull();
       const [ow, oh] = size!.split("x").map(Number);
@@ -151,12 +153,12 @@ describe("OpenAIProvider – resolveVideoSize", () => {
   it("uses preset for known aspect+resolution", () => {
     expect(OpenAIProvider.resolveVideoSize("9:16", "720p")).toBe("720x1280");
     expect(OpenAIProvider.resolveVideoSize("16:9", "1080p")).toBe("1920x1080");
-    expect(
-      OpenAIProvider.resolveVideoSize("16:9", "1080p", "sora-2")
-    ).toBe("1280x720");
-    expect(
-      OpenAIProvider.resolveVideoSize("16:9", "1080p", "sora-2-pro")
-    ).toBe("1920x1080");
+    expect(OpenAIProvider.resolveVideoSize("16:9", "1080p", "sora-2")).toBe(
+      "1280x720"
+    );
+    expect(OpenAIProvider.resolveVideoSize("16:9", "1080p", "sora-2-pro")).toBe(
+      "1920x1080"
+    );
   });
 
   it("handles default 16:9 when aspectRatio is null", () => {
@@ -868,7 +870,10 @@ describe("OpenAIProvider – textToSpeech", () => {
       }
     );
     const samples: number[] = [];
-    for await (const chunk of provider.textToSpeech({ text: "hi", model: "tts-1" })) {
+    for await (const chunk of provider.textToSpeech({
+      text: "hi",
+      model: "tts-1"
+    })) {
       samples.push(...chunk.samples);
     }
     expect(samples).toEqual([513, 1027]);
@@ -1326,11 +1331,48 @@ describe("OpenAIProvider – textToVideo", () => {
     });
 
     expect(result).toBeInstanceOf(Uint8Array);
-    expect(videosCreate).toHaveBeenCalledWith({
-      model: "sora",
+    // Second arg is the SDK request-options bag carrying the abort signal.
+    expect(videosCreate).toHaveBeenCalledWith(
+      {
+        model: "sora",
+        prompt: "A cat",
+        seconds: "8",
+        size: "1280x720"
+      },
+      { signal: undefined }
+    );
+  });
+
+  it("forwards the caller's abort signal to the SDK", async () => {
+    // Regression: media Stop only discarded results after the paid request
+    // completed, because no signal reached the provider at all.
+    const videosCreate = vi
+      .fn()
+      .mockResolvedValue({ id: "v1", status: "completed" });
+    const mockClient = {
+      videos: {
+        create: videosCreate,
+        retrieve: vi.fn(),
+        downloadContent: vi.fn().mockResolvedValue({
+          arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer
+        })
+      }
+    };
+    const provider = new OpenAIProvider(
+      { OPENAI_API_KEY: "k" },
+      { client: mockClient as any }
+    );
+
+    const controller = new AbortController();
+    await provider.textToVideo({
       prompt: "A cat",
-      seconds: "8",
-      size: "1280x720"
+      model: { id: "sora", name: "sora", provider: "openai" },
+      durationSeconds: 8,
+      signal: controller.signal
+    });
+
+    expect(videosCreate).toHaveBeenCalledWith(expect.anything(), {
+      signal: controller.signal
     });
   });
 
@@ -1489,7 +1531,8 @@ describe("OpenAIProvider – imageToVideo", () => {
         model: "sora",
         seconds: "12",
         size: "1280x720"
-      })
+      }),
+      { signal: undefined }
     );
   });
 

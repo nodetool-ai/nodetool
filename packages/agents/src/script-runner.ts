@@ -82,6 +82,8 @@ export interface ScriptRunnerOptions {
   maxAgentCalls?: number;
   /** Wall-clock limit for the whole script run. Default 60 min. */
   scriptTimeoutMs?: number;
+  /** External cancellation, forwarded to every sub-agent step executor. */
+  signal?: AbortSignal;
 }
 
 /** Simple counting semaphore; released slots go to waiters FIFO. */
@@ -238,6 +240,7 @@ export class ScriptRunner {
   private readonly systemPrompt?: string;
   private readonly inputs: Record<string, unknown>;
   private readonly maxStepIterations?: number;
+  private readonly signal?: AbortSignal;
   private readonly maxAgentCalls: number;
   private readonly scriptTimeoutMs: number;
   private readonly semaphore: Semaphore;
@@ -252,6 +255,7 @@ export class ScriptRunner {
     this.systemPrompt = opts.systemPrompt;
     this.inputs = opts.inputs ?? {};
     this.maxStepIterations = opts.maxStepIterations;
+    this.signal = opts.signal;
     this.maxAgentCalls = opts.maxAgentCalls ?? DEFAULT_MAX_AGENT_CALLS;
     this.scriptTimeoutMs = opts.scriptTimeoutMs ?? DEFAULT_SCRIPT_TIMEOUT_MS;
     this.semaphore = new Semaphore(
@@ -265,9 +269,7 @@ export class ScriptRunner {
    * value. Throws when the script itself fails (syntax error, uncaught guest
    * exception, timeout).
    */
-  async *execute(
-    script: string
-  ): AsyncGenerator<ProcessingMessage, unknown> {
+  async *execute(script: string): AsyncGenerator<ProcessingMessage, unknown> {
     log.info("Script run started", {
       bytes: script.length,
       maxAgentCalls: this.maxAgentCalls
@@ -279,6 +281,7 @@ export class ScriptRunner {
       code: `${SCRIPT_PRELUDE}\n${script}`,
       context: this.context,
       timeoutMs: this.scriptTimeoutMs,
+      signal: this.signal,
       globals: {
         __runAgent: (prompt: string, optsJson: string) =>
           this.runAgentBridge(prompt, optsJson),
@@ -397,7 +400,8 @@ export class ScriptRunner {
       model: this.model,
       tools,
       systemPrompt: this.systemPrompt,
-      maxIterations: this.maxStepIterations
+      maxIterations: this.maxStepIterations,
+      signal: this.signal
     });
 
     let result: unknown = null;

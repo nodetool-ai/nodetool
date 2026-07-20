@@ -234,8 +234,7 @@ export interface MessagePageCitation extends MessageDocumentCitationBase {
   endPageNumber: number;
 }
 
-export interface MessageContentBlockCitation
-  extends MessageDocumentCitationBase {
+export interface MessageContentBlockCitation extends MessageDocumentCitationBase {
   type: "content_block_location";
   startBlockIndex: number;
   endBlockIndex: number;
@@ -337,6 +336,12 @@ export interface TextToImageParams {
   seed?: number | null;
   scheduler?: string | null;
   safetyCheck?: boolean | null;
+  /**
+   * Cancellation for the upstream request. Providers that can abort their
+   * transport honor it; the rest ignore it (the caller still discards the
+   * result). Optional so provider implementations opt in individually.
+   */
+  signal?: AbortSignal;
 }
 
 export interface ImageToImageParams {
@@ -358,6 +363,12 @@ export interface ImageToImageParams {
   strength?: number | null;
   seed?: number | null;
   scheduler?: string | null;
+  /**
+   * Cancellation for the upstream request. Providers that can abort their
+   * transport honor it; the rest ignore it (the caller still discards the
+   * result). Optional so provider implementations opt in individually.
+   */
+  signal?: AbortSignal;
 }
 
 /**
@@ -443,6 +454,12 @@ export interface TextToVideoParams {
   seed?: number | null;
   /** Per-call timeout. Providers translate this into a max polling window. */
   timeoutSeconds?: number | null;
+  /**
+   * Cancellation for the upstream request. Providers that can abort their
+   * transport honor it; the rest ignore it (the caller still discards the
+   * result). Optional so provider implementations opt in individually.
+   */
+  signal?: AbortSignal;
 }
 
 export interface ImageToVideoParams {
@@ -465,6 +482,12 @@ export interface ImageToVideoParams {
   seed?: number | null;
   /** Per-call timeout. Providers translate this into a max polling window. */
   timeoutSeconds?: number | null;
+  /**
+   * Cancellation for the upstream request. Providers that can abort their
+   * transport honor it; the rest ignore it (the caller still discards the
+   * result). Optional so provider implementations opt in individually.
+   */
+  signal?: AbortSignal;
 }
 
 /**

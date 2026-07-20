@@ -27,6 +27,8 @@ export interface AgentStepExecutorOptions {
   tools: Tool[];
   systemPrompt?: string;
   maxIterations?: number;
+  /** External cancellation, forwarded to the underlying step executor. */
+  signal?: AbortSignal;
 }
 
 /**
@@ -66,9 +68,7 @@ function formatUpstreamContext(inputs: Record<string, unknown>): string {
       typeof value === "string" ? value : JSON.stringify(value, null, 2);
     return `## Input "${key}":\n${serialized}`;
   });
-  return (
-    "# Upstream Results\n\n" + sections.join("\n\n") + "\n\n---\n\n"
-  );
+  return "# Upstream Results\n\n" + sections.join("\n\n") + "\n\n---\n\n";
 }
 
 export class AgentStepExecutor implements NodeExecutor {
@@ -127,7 +127,8 @@ export class AgentStepExecutor implements NodeExecutor {
       model: this.opts.model,
       tools,
       systemPrompt: this.opts.systemPrompt,
-      maxIterations: this.opts.maxIterations
+      maxIterations: this.opts.maxIterations,
+      signal: this.opts.signal
     });
 
     let result: unknown = null;

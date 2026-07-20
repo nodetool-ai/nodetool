@@ -54,6 +54,8 @@ export interface TaskExecutorOptions {
    * upstream context. Forwarded to {@link StepExecutor.upstreamMemoryKeys}.
    */
   upstreamMemoryKeys?: string[];
+  /** External cancellation, forwarded to every step executor. */
+  signal?: AbortSignal;
 }
 
 export class TaskExecutor {
@@ -70,6 +72,7 @@ export class TaskExecutor {
   private finalStepId: string | undefined;
   private parallelExecution: boolean;
   private upstreamMemoryKeys: string[];
+  private signal?: AbortSignal;
   private _finishStepId: string | undefined;
 
   constructor(opts: TaskExecutorOptions) {
@@ -87,6 +90,7 @@ export class TaskExecutor {
     this.finalStepId = opts.finalStepId;
     this.parallelExecution = opts.parallelExecution ?? false;
     this.upstreamMemoryKeys = opts.upstreamMemoryKeys ?? [];
+    this.signal = opts.signal;
   }
 
   /**
@@ -163,7 +167,8 @@ export class TaskExecutor {
           maxIterations: this.maxStepIterations,
           maxTokens: this.maxTokens,
           useFinishTask: this.isFinishStep(step),
-          upstreamMemoryKeys: this.upstreamMemoryKeys
+          upstreamMemoryKeys: this.upstreamMemoryKeys,
+          signal: this.signal
         });
         return executor.execute();
       });
@@ -312,7 +317,8 @@ export class TaskExecutor {
         maxIterations: this.maxStepIterations,
         maxTokens: this.maxTokens,
         useFinishTask: false,
-        upstreamMemoryKeys: this.upstreamMemoryKeys
+        upstreamMemoryKeys: this.upstreamMemoryKeys,
+        signal: this.signal
       });
       return executor.execute();
     });

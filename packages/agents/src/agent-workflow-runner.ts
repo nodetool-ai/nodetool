@@ -35,6 +35,8 @@ export interface AgentWorkflowRunnerOptions {
   systemPrompt?: string;
   maxStepIterations?: number;
   inputs?: Record<string, unknown>;
+  /** External cancellation, forwarded to every agent step executor. */
+  signal?: AbortSignal;
 }
 
 export class AgentWorkflowRunner {
@@ -59,7 +61,8 @@ export class AgentWorkflowRunner {
             model,
             tools,
             systemPrompt: this.opts.systemPrompt,
-            maxIterations: this.opts.maxStepIterations
+            maxIterations: this.opts.maxStepIterations,
+            signal: this.opts.signal
           });
         }
         return registry.resolve(node);

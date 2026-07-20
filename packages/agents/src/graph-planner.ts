@@ -13,6 +13,7 @@ import type {
   ToolCall
 } from "@nodetool-ai/runtime";
 import { withAgentSpanGen } from "@nodetool-ai/runtime";
+import { linkAbort } from "./utils/link-abort.js";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { createLogger } from "@nodetool-ai/config";
 import type {
@@ -73,6 +74,8 @@ export interface GraphPlannerOptions {
    * `{provider, model_id}` for generic AI nodes.
    */
   providers?: Record<string, BaseProvider>;
+  /** External cancellation. Aborts the planning provider loop mid-flight. */
+  signal?: AbortSignal;
 }
 
 export class GraphPlanner {
@@ -85,6 +88,7 @@ export class GraphPlanner {
   private readonly inputs: Record<string, unknown>;
   private readonly maxRetries: number;
   private readonly threadId?: string;
+  private readonly signal?: AbortSignal;
   private readonly providers?: Record<string, BaseProvider>;
   private readonly hasFindModel: boolean;
 
@@ -94,13 +98,14 @@ export class GraphPlanner {
     this.registry = opts.registry;
     this.tools = opts.tools ?? [];
     this.providers = opts.providers;
-    this.hasFindModel = !!opts.providers && Object.keys(opts.providers).length > 0;
-    this.systemPrompt =
-      opts.systemPrompt ?? this.buildDefaultSystemPrompt();
+    this.hasFindModel =
+      !!opts.providers && Object.keys(opts.providers).length > 0;
+    this.systemPrompt = opts.systemPrompt ?? this.buildDefaultSystemPrompt();
     this.outputSchema = opts.outputSchema;
     this.inputs = opts.inputs ?? {};
     this.maxRetries = opts.maxRetries ?? MAX_RETRIES;
     this.threadId = opts.threadId;
+    this.signal = opts.signal;
 
     if (!this.hasFindModel) {
       log.warn(
@@ -284,10 +289,7 @@ Fix the issues (use remove_node / remove_edge to correct mistakes) and call fini
   private async *runToolLoop(
     messages: Message[],
     builder: GraphBuilder
-  ): AsyncGenerator<
-    ProcessingMessage,
-    { graph?: GraphData; error?: string }
-  > {
+  ): AsyncGenerator<ProcessingMessage, { graph?: GraphData; error?: string }> {
     const addNodeTool = new AddNodeTool(builder, this.registry);
     const addEdgeTool = new AddEdgeTool(builder, this.registry);
     const removeNodeTool = new RemoveNodeTool(builder);
@@ -326,6 +328,7 @@ Fix the issues (use remove_node / remove_edge to correct mistakes) and call fini
     // finish. It also short-circuits when the per-turn tool-call budget is
     // spent (an early-stop that is not a terminal tool).
     const abort = new AbortController();
+    const unlinkAbort = linkAbort(abort, this.signal);
     let exhausted = false;
 
     const makeExecute =
@@ -388,37 +391,41 @@ Fix the issues (use remove_node / remove_edge to correct mistakes) and call fini
       signal: abort.signal
     });
 
-    for await (const item of stream) {
-      if ("id" in item && "name" in item && "args" in item) {
-        const tc = item as ToolCall;
-        const args = (tc.args as Record<string, unknown>) ?? {};
-        yield {
-          type: "tool_call_update",
-          tool_call_id: tc.id,
-          name: tc.name,
-          args,
-          message:
-            Tool.extractMessage(args) ??
-            this.formatToolCallMessage(tc.name, args),
-          node_id: "graph_planner"
-        } satisfies ToolCallUpdate;
-        continue;
-      }
-      if ("type" in item && (item as { type?: string }).type === "chunk") {
-        const chunk = item as { content?: string; done?: boolean };
-        if (
-          typeof chunk.content === "string" &&
-          chunk.content.length > 0 &&
-          !chunk.done
-        ) {
+    try {
+      for await (const item of stream) {
+        if ("id" in item && "name" in item && "args" in item) {
+          const tc = item as ToolCall;
+          const args = (tc.args as Record<string, unknown>) ?? {};
           yield {
-            type: "chunk",
-            content: chunk.content,
-            done: false
-          } satisfies Chunk;
+            type: "tool_call_update",
+            tool_call_id: tc.id,
+            name: tc.name,
+            args,
+            message:
+              Tool.extractMessage(args) ??
+              this.formatToolCallMessage(tc.name, args),
+            node_id: "graph_planner"
+          } satisfies ToolCallUpdate;
+          continue;
         }
-        continue;
+        if ("type" in item && (item as { type?: string }).type === "chunk") {
+          const chunk = item as { content?: string; done?: boolean };
+          if (
+            typeof chunk.content === "string" &&
+            chunk.content.length > 0 &&
+            !chunk.done
+          ) {
+            yield {
+              type: "chunk",
+              content: chunk.content,
+              done: false
+            } satisfies Chunk;
+          }
+          continue;
+        }
       }
+    } finally {
+      unlinkAbort();
     }
 
     if (finishGraphTool.graph) {
@@ -482,7 +489,8 @@ Fix the issues (use remove_node / remove_edge to correct mistakes) and call fini
    */
   private formatInputsInfo(): string {
     const entries = Object.entries(this.inputs);
-    if (entries.length === 0) return "None — the workflow takes no runtime parameters.";
+    if (entries.length === 0)
+      return "None — the workflow takes no runtime parameters.";
     const lines = entries.map(([key, value]) => {
       let preview: string;
       try {
@@ -508,9 +516,7 @@ Fix the issues (use remove_node / remove_edge to correct mistakes) and call fini
       let schemaInfo = "";
       const schema = tool.inputSchema;
       if (schema && typeof schema === "object" && "properties" in schema) {
-        const props = Object.keys(
-          schema.properties as Record<string, unknown>
-        );
+        const props = Object.keys(schema.properties as Record<string, unknown>);
         const required = Array.isArray(schema.required)
           ? (schema.required as string[])
           : [];
@@ -527,5 +533,3 @@ Fix the issues (use remove_node / remove_edge to correct mistakes) and call fini
     return lines.join("\n");
   }
 }
-
-

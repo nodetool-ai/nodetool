@@ -17,17 +17,15 @@
  * packages into the user-code surface.
  */
 
-import {
-  addSerializer,
-  expose,
-  loadQuickJs
-} from "@sebastianwessel/quickjs";
+import { addSerializer, expose, loadQuickJs } from "@sebastianwessel/quickjs";
 // The variant package uses a `default` export. With `esModuleInterop` this
 // typechecks as a namespace, so reach through `.default` explicitly.
 import * as quickJsVariantModule from "@jitl/quickjs-ng-wasmfile-release-sync";
-const quickJsVariant = (quickJsVariantModule as unknown as {
-  default: Parameters<typeof loadQuickJs>[0];
-}).default;
+const quickJsVariant = (
+  quickJsVariantModule as unknown as {
+    default: Parameters<typeof loadQuickJs>[0];
+  }
+).default;
 import { Scope } from "quickjs-emscripten-core";
 import { importNodeBuiltin } from "@nodetool-ai/config";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
@@ -124,6 +122,29 @@ function neverReject<Args extends unknown[], R>(
   };
 }
 
+/**
+ * Compose with {@link neverReject}: once `signal` fires, every subsequent host
+ * bridge call fails fast instead of doing work. The guest prelude rewraps the
+ * marker into a real `throw`, so an awaiting script unwinds on its next bridge
+ * call rather than running to completion after the user cancelled.
+ */
+function guardAbort<Args extends unknown[], R>(
+  fn: (...args: Args) => Promise<R | Record<string, unknown>>,
+  signal?: AbortSignal
+): (...args: Args) => Promise<R | Record<string, unknown>> {
+  if (!signal) return fn;
+  return async (...args: Args) => {
+    if (signal.aborted) {
+      return {
+        [SANDBOX_ERROR_MARKER]: true,
+        name: "ExecutionCancelled",
+        message: "Execution cancelled"
+      };
+    }
+    return fn(...args);
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -142,17 +163,17 @@ export function truncate(text: string, max: number): string {
  * guest as a normal error.
  */
 async function loadFsPromises(): Promise<typeof import("node:fs/promises")> {
-  const fs = await importNodeBuiltin<typeof import("node:fs/promises")>(
-    "node:fs/promises"
-  );
+  const fs =
+    await importNodeBuiltin<typeof import("node:fs/promises")>(
+      "node:fs/promises"
+    );
   if (!fs) throw new Error("workspace file access requires a Node.js runtime");
   return fs;
 }
 
 async function loadNodePath(): Promise<typeof import("node:path")> {
-  const nodePath = await importNodeBuiltin<typeof import("node:path")>(
-    "node:path"
-  );
+  const nodePath =
+    await importNodeBuiltin<typeof import("node:path")>("node:path");
   if (!nodePath) {
     throw new Error("workspace file access requires a Node.js runtime");
   }
@@ -203,7 +224,10 @@ async function assertWorkspaceContained(
 /** True if a literal IPv4/IPv6 host is loopback, link-local, or private. */
 function isBlockedIpLiteral(host: string): boolean {
   // Strip IPv6 brackets/zone id.
-  const h = host.replace(/^\[|\]$/g, "").split("%")[0].toLowerCase();
+  const h = host
+    .replace(/^\[|\]$/g, "")
+    .split("%")[0]
+    .toLowerCase();
   // IPv4 (incl. IPv4-mapped IPv6 like ::ffff:127.0.0.1)
   const v4 = h.match(/(?:^|:)((?:\d{1,3}\.){3}\d{1,3})$/);
   if (v4) {
@@ -254,7 +278,10 @@ function assertFetchUrlAllowed(url: string): void {
  * response cannot buffer unbounded host memory.
  */
 async function readBodyCapped(
-  response: { body: ReadableStream<Uint8Array> | null; arrayBuffer: () => Promise<ArrayBuffer> },
+  response: {
+    body: ReadableStream<Uint8Array> | null;
+    arrayBuffer: () => Promise<ArrayBuffer>;
+  },
   controller: AbortController,
   maxBytes: number
 ): Promise<Uint8Array> {
@@ -306,16 +333,27 @@ function formatArg(arg: unknown): string {
 function isTypedArray(value: unknown): boolean {
   if (!value || typeof value !== "object") return false;
   const name = (value as object).constructor?.name;
-  return name === "Uint8Array" || name === "Buffer" ||
-    name === "Int8Array" || name === "Uint8ClampedArray" ||
-    name === "Int16Array" || name === "Uint16Array" ||
-    name === "Int32Array" || name === "Uint32Array" ||
-    name === "Float32Array" || name === "Float64Array" ||
-    name === "ArrayBuffer";
+  return (
+    name === "Uint8Array" ||
+    name === "Buffer" ||
+    name === "Int8Array" ||
+    name === "Uint8ClampedArray" ||
+    name === "Int16Array" ||
+    name === "Uint16Array" ||
+    name === "Int32Array" ||
+    name === "Uint32Array" ||
+    name === "Float32Array" ||
+    name === "Float64Array" ||
+    name === "ArrayBuffer"
+  );
 }
 
 function toNativeUint8Array(value: unknown): Uint8Array {
-  const v = value as { length?: number; byteLength?: number; [i: number]: number };
+  const v = value as {
+    length?: number;
+    byteLength?: number;
+    [i: number]: number;
+  };
   const len = v.length ?? v.byteLength ?? 0;
   const arr = new Uint8Array(len);
   for (let i = 0; i < len; i++) arr[i] = v[i] ?? 0;
@@ -348,12 +386,15 @@ export function serializeResult(result: unknown): unknown {
       hasBinary = result.some(isTypedArray);
     } else {
       for (const v of Object.values(result as Record<string, unknown>)) {
-        if (isTypedArray(v)) { hasBinary = true; break; }
+        if (isTypedArray(v)) {
+          hasBinary = true;
+          break;
+        }
       }
     }
     if (hasBinary) {
       if (Array.isArray(result)) {
-        return result.map(v => isTypedArray(v) ? toNativeUint8Array(v) : v);
+        return result.map((v) => (isTypedArray(v) ? toNativeUint8Array(v) : v));
       }
       const obj = result as Record<string, unknown>;
       const out: Record<string, unknown> = {};
@@ -416,8 +457,13 @@ export interface SandboxResult {
  *
  * @param context  Optional ProcessingContext — when provided, enables
  *                 `workspace.*` and `getSecret()` APIs.
+ * @param signal   Optional external cancellation. Aborts in-flight host
+ *                 operations and makes `sleep` return immediately.
  */
-export function buildSandbox(context?: ProcessingContext): SandboxResult {
+export function buildSandbox(
+  context?: ProcessingContext,
+  signal?: AbortSignal
+): SandboxResult {
   const logs: string[] = [];
   let fetchCount = 0;
 
@@ -456,6 +502,11 @@ export function buildSandbox(context?: ProcessingContext): SandboxResult {
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 15_000);
+    // Cancelling the run kills an in-flight request rather than waiting out
+    // the 15s cap.
+    const onExternalAbort = (): void => controller.abort();
+    if (signal?.aborted) controller.abort();
+    else signal?.addEventListener("abort", onExternalAbort, { once: true });
 
     try {
       const fetchOptions: RequestInit = {
@@ -500,7 +551,11 @@ export function buildSandbox(context?: ProcessingContext): SandboxResult {
       };
 
       let parsedJson: unknown;
-      try { parsedJson = JSON.parse(getText()); } catch { parsedJson = undefined; }
+      try {
+        parsedJson = JSON.parse(getText());
+      } catch {
+        parsedJson = undefined;
+      }
 
       return {
         ok,
@@ -510,14 +565,16 @@ export function buildSandbox(context?: ProcessingContext): SandboxResult {
         body: getText(),
         json: parsedJson,
         text: async () => getText(),
-        arrayBuffer: async () => rawBytes.buffer.slice(
-          rawBytes.byteOffset,
-          rawBytes.byteOffset + rawBytes.byteLength
-        ),
+        arrayBuffer: async () =>
+          rawBytes.buffer.slice(
+            rawBytes.byteOffset,
+            rawBytes.byteOffset + rawBytes.byteLength
+          ),
         bytes: async () => rawBytes
       };
     } finally {
       clearTimeout(timer);
+      signal?.removeEventListener("abort", onExternalAbort);
     }
   };
 
@@ -537,7 +594,13 @@ export function buildSandbox(context?: ProcessingContext): SandboxResult {
           const fullPath = context.resolveWorkspacePath(path);
           const fs = await loadFsPromises();
           const nodePath = await loadNodePath();
-          await assertWorkspaceContained(context, fs, nodePath, fullPath, false);
+          await assertWorkspaceContained(
+            context,
+            fs,
+            nodePath,
+            fullPath,
+            false
+          );
           return fs.readFile(fullPath, "utf-8");
         },
         write: async (path: string, content: string): Promise<void> => {
@@ -552,7 +615,13 @@ export function buildSandbox(context?: ProcessingContext): SandboxResult {
           const fullPath = context.resolveWorkspacePath(path);
           const fs = await loadFsPromises();
           const nodePath = await loadNodePath();
-          await assertWorkspaceContained(context, fs, nodePath, fullPath, false);
+          await assertWorkspaceContained(
+            context,
+            fs,
+            nodePath,
+            fullPath,
+            false
+          );
           return fs.readdir(fullPath);
         }
       }
@@ -570,7 +639,21 @@ export function buildSandbox(context?: ProcessingContext): SandboxResult {
 
   const sleep = (ms: number): Promise<void> => {
     const capped = Math.min(ms, 5000);
-    return new Promise((resolve) => setTimeout(resolve, capped));
+    // Resolve immediately on cancellation: a sleeping script is the common
+    // case for "still running after Stop", and waiting out the nap before the
+    // next bridge call can reject it wastes up to 5s per sleep.
+    return new Promise((resolve) => {
+      if (signal?.aborted) return resolve();
+      const timer = setTimeout(() => {
+        signal?.removeEventListener("abort", onAbort);
+        resolve();
+      }, capped);
+      function onAbort(): void {
+        clearTimeout(timer);
+        resolve();
+      }
+      signal?.addEventListener("abort", onAbort, { once: true });
+    });
   };
 
   const assetToSandbox = context
@@ -670,6 +753,15 @@ export interface RunSandboxOptions {
   timeoutMs?: number;
   /** Extra variables to inject into the sandbox (e.g. dynamic inputs). */
   globals?: Record<string, unknown>;
+  /**
+   * External cancellation. On abort, in-flight host operations are aborted,
+   * `sleep` returns immediately, and every subsequent bridge call fails fast so
+   * the guest unwinds. The QuickJS library exposes no interrupt input of its
+   * own, so a purely CPU-bound guest loop still runs to its execution timeout —
+   * but `runInSandbox` returns as soon as the signal fires rather than waiting
+   * for it.
+   */
+  signal?: AbortSignal;
 }
 
 export interface RunSandboxResult {
@@ -742,13 +834,23 @@ const EXPOSED_BRIDGE_NAMES = [
 export async function runInSandbox(
   options: RunSandboxOptions
 ): Promise<RunSandboxResult> {
-  const { code, context, timeoutMs = DEFAULT_TIMEOUT_MS, globals } = options;
+  const {
+    code,
+    context,
+    timeoutMs = DEFAULT_TIMEOUT_MS,
+    globals,
+    signal
+  } = options;
 
   if (!code.trim()) {
     return { success: false, error: "No code provided", logs: [] };
   }
 
-  const { sandbox, getLogs } = buildSandbox(context);
+  if (signal?.aborted) {
+    return { success: false, error: "Execution cancelled", logs: [] };
+  }
+
+  const { sandbox, getLogs } = buildSandbox(context, signal);
 
   // User-supplied globals (dynamic inputs from CodeNode etc.) layer on top of
   // the core surface, but must not clobber the bridge functions themselves.
@@ -769,46 +871,70 @@ export async function runInSandbox(
   try {
     const { runSandboxed } = await getEngine();
 
-    const evalResponse = await runSandboxed(async ({ ctx, evalCode }) => {
-      const bridges: Record<string, unknown> = {};
-      for (const name of EXPOSED_BRIDGE_NAMES) {
-        bridges[name] = sandbox[name];
-      }
-      // Wrap every async bridge in a never-reject adapter (see
-      // SANDBOX_ERROR_MARKER above). The guest prelude rewraps them back into
-      // throwing functions before user code runs.
-      bridges.fetch = neverReject(bridges.fetch as never);
-      bridges.sleep = neverReject(bridges.sleep as never);
-      bridges.getSecret = neverReject(bridges.getSecret as never);
-      bridges.assetToSandbox = neverReject(bridges.assetToSandbox as never);
-      bridges.sandboxToAsset = neverReject(bridges.sandboxToAsset as never);
-      const ws = bridges.workspace as {
-        read: (p: string) => Promise<string>;
-        write: (p: string, c: string) => Promise<void>;
-        list: (p: string) => Promise<string[]>;
-      };
-      bridges.workspace = {
-        read: neverReject(ws.read),
-        write: neverReject(ws.write),
-        list: neverReject(ws.list)
-      };
-      Object.assign(bridges, userGlobals);
+    const sandboxRun = runSandboxed(
+      async ({ ctx, evalCode }) => {
+        // A CPU-bound guest never yields to the host event loop, so an abort
+        // listener can't fire and Promise.race can't help. QuickJS polls this
+        // interrupt handler from inside the interpreter, which is the only
+        // mechanism that can stop a spinning loop. Compose cancellation with
+        // the library's own wall-clock deadline (it installed one before
+        // calling us; replacing it means re-implementing the deadline here).
+        const deadline = Date.now() + timeoutMs;
+        ctx.runtime.setInterruptHandler(
+          () => signal?.aborted === true || Date.now() > deadline
+        );
 
-      // `expose` manages its own internal Scope; the second arg is unused.
-      const disposable = new Scope();
-      try {
-        expose(ctx, disposable, bridges);
-      } finally {
-        disposable.dispose();
-      }
+        const bridges: Record<string, unknown> = {};
+        for (const name of EXPOSED_BRIDGE_NAMES) {
+          bridges[name] = sandbox[name];
+        }
+        // Wrap every async bridge in a never-reject adapter (see
+        // SANDBOX_ERROR_MARKER above). The guest prelude rewraps them back into
+        // throwing functions before user code runs.
+        // guardAbort short-circuits each bridge once the run is cancelled;
+        // neverReject keeps the QuickJS handle-leak convention intact.
+        const wrap = <A extends unknown[], R>(fn: (...a: A) => Promise<R>) =>
+          guardAbort(neverReject(fn), signal);
+        bridges.fetch = wrap(bridges.fetch as never);
+        bridges.sleep = wrap(bridges.sleep as never);
+        bridges.getSecret = wrap(bridges.getSecret as never);
+        bridges.assetToSandbox = wrap(bridges.assetToSandbox as never);
+        bridges.sandboxToAsset = wrap(bridges.sandboxToAsset as never);
+        const ws = bridges.workspace as {
+          read: (p: string) => Promise<string>;
+          write: (p: string, c: string) => Promise<void>;
+          list: (p: string) => Promise<string[]>;
+        };
+        bridges.workspace = {
+          read: wrap(ws.read),
+          write: wrap(ws.write),
+          list: wrap(ws.list)
+        };
+        // Caller-injected globals (ScriptRunner's __runAgent/__log/…) are host
+        // functions too — guard the async ones or a cancelled script keeps
+        // driving real work through them after runInSandbox has returned.
+        for (const [name, value] of Object.entries(userGlobals)) {
+          bridges[name] =
+            typeof value === "function"
+              ? wrap(value as (...a: unknown[]) => Promise<unknown>)
+              : value;
+        }
 
-      // Block dynamic code generation and re-wrap the never-reject bridges as
-      // throwing guest-side functions. Direct eval in QuickJS can't be neutered
-      // by overwriting `globalThis.eval` (QuickJS still resolves the builtin),
-      // but a plain `delete` removes the binding entirely so any reference
-      // throws ReferenceError — same for `Function`.
-      await evalCode(
-        `const __marker = "${SANDBOX_ERROR_MARKER}";
+        // `expose` manages its own internal Scope; the second arg is unused.
+        const disposable = new Scope();
+        try {
+          expose(ctx, disposable, bridges);
+        } finally {
+          disposable.dispose();
+        }
+
+        // Block dynamic code generation and re-wrap the never-reject bridges as
+        // throwing guest-side functions. Direct eval in QuickJS can't be neutered
+        // by overwriting `globalThis.eval` (QuickJS still resolves the builtin),
+        // but a plain `delete` removes the binding entirely so any reference
+        // throws ReferenceError — same for `Function`.
+        await evalCode(
+          `const __marker = "${SANDBOX_ERROR_MARKER}";
 const __wrap = (fn) => async (...args) => {
   const r = await fn(...args);
   if (r && r[__marker]) {
@@ -832,48 +958,72 @@ globalThis.workspace = {
 delete globalThis.eval;
 delete globalThis.Function;
 export default true;`,
-        "sandbox-init"
-      );
+          "sandbox-init"
+        );
 
-      const userResult = await evalCode(wrapCode(code), "user-code");
+        const userResult = await evalCode(wrapCode(code), "user-code");
 
-      // Sync mutable globals back to the host. node:vm shared the host heap,
-      // so `state.counter++` in user code mutated the caller's object directly.
-      // With QuickJS the guest heap is isolated, so after user code runs we
-      // extract the current values of the object-typed user globals and
-      // replace the contents of the host-side objects in place. CodeNode
-      // relies on this to make its `state` object persist across invocations.
-      if (userResult.ok && syncTargetNames.length > 0) {
-        const extractor = `export default {${syncTargetNames
-          .map(
-            (n) =>
-              `${n}: (typeof ${n} !== 'undefined' && ${n} !== null) ? ${n} : null`
-          )
-          .join(", ")}};`;
-        const syncResp = await evalCode(extractor, "sandbox-sync");
-        if (syncResp.ok && syncResp.data && typeof syncResp.data === "object") {
-          const extracted = syncResp.data as Record<string, unknown>;
-          for (const name of syncTargetNames) {
-            const hostValue = userGlobals[name] as unknown;
-            const guestValue = extracted[name];
-            if (
-              hostValue !== null &&
-              typeof hostValue === "object" &&
-              guestValue !== null &&
-              typeof guestValue === "object"
-            ) {
-              replaceInPlace(hostValue, guestValue);
+        // Sync mutable globals back to the host. node:vm shared the host heap,
+        // so `state.counter++` in user code mutated the caller's object directly.
+        // With QuickJS the guest heap is isolated, so after user code runs we
+        // extract the current values of the object-typed user globals and
+        // replace the contents of the host-side objects in place. CodeNode
+        // relies on this to make its `state` object persist across invocations.
+        if (userResult.ok && syncTargetNames.length > 0) {
+          const extractor = `export default {${syncTargetNames
+            .map(
+              (n) =>
+                `${n}: (typeof ${n} !== 'undefined' && ${n} !== null) ? ${n} : null`
+            )
+            .join(", ")}};`;
+          const syncResp = await evalCode(extractor, "sandbox-sync");
+          if (
+            syncResp.ok &&
+            syncResp.data &&
+            typeof syncResp.data === "object"
+          ) {
+            const extracted = syncResp.data as Record<string, unknown>;
+            for (const name of syncTargetNames) {
+              const hostValue = userGlobals[name] as unknown;
+              const guestValue = extracted[name];
+              if (
+                hostValue !== null &&
+                typeof hostValue === "object" &&
+                guestValue !== null &&
+                typeof guestValue === "object"
+              ) {
+                replaceInPlace(hostValue, guestValue);
+              }
             }
           }
         }
-      }
 
-      return userResult;
-    }, {
-      executionTimeout: timeoutMs,
-      memoryLimit: GUEST_MEMORY_LIMIT,
-      maxStackSize: GUEST_STACK_LIMIT
+        return userResult;
+      },
+      {
+        executionTimeout: timeoutMs,
+        memoryLimit: GUEST_MEMORY_LIMIT,
+        maxStackSize: GUEST_STACK_LIMIT
+      }
+    );
+
+    // Return as soon as cancellation lands. The bridges above make a guest that
+    // awaits anything unwind almost immediately; this race additionally covers
+    // a CPU-bound guest, which QuickJS gives us no way to interrupt early — the
+    // orphaned run still winds down on its own execution timeout.
+    const cancellation = new Promise<null>((resolve) => {
+      if (!signal) return;
+      signal.addEventListener("abort", () => resolve(null), { once: true });
     });
+    const raced = await Promise.race([sandboxRun, cancellation]);
+    if (raced === null) {
+      return {
+        success: false,
+        error: "Execution cancelled",
+        logs: getLogs()
+      };
+    }
+    const evalResponse = raced;
 
     const logs = getLogs();
 
@@ -884,7 +1034,9 @@ export default true;`,
       const name = evalResponse.error.name;
       const message = evalResponse.error.message;
       const combined =
-        name && name !== "Error" && !message.toLowerCase().includes(name.toLowerCase())
+        name &&
+        name !== "Error" &&
+        !message.toLowerCase().includes(name.toLowerCase())
           ? `${name}: ${message}`
           : message || name;
       return {

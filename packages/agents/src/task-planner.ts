@@ -15,6 +15,7 @@ import type {
   ToolCall
 } from "@nodetool-ai/runtime";
 import { withAgentSpanGen } from "@nodetool-ai/runtime";
+import { linkAbort } from "./utils/link-abort.js";
 import { createLogger } from "@nodetool-ai/config";
 import {
   TaskUpdateEvent,
@@ -175,6 +176,8 @@ export interface TaskPlannerOptions {
    * (no caching). A `planMultiTask` argument overrides this.
    */
   planCache?: PlanCache;
+  /** External cancellation. Aborts the planning provider loop mid-flight. */
+  signal?: AbortSignal;
 }
 
 export class TaskPlanner {
@@ -188,6 +191,7 @@ export class TaskPlanner {
   private maxRetries: number;
   private threadId?: string;
   private planCache?: PlanCache;
+  private signal?: AbortSignal;
 
   constructor(opts: TaskPlannerOptions) {
     this.provider = opts.provider;
@@ -200,6 +204,7 @@ export class TaskPlanner {
     this.maxRetries = opts.maxRetries ?? MAX_RETRIES;
     this.threadId = opts.threadId;
     this.planCache = opts.planCache;
+    this.signal = opts.signal;
   }
 
   /** Build the stable plan-cache key for the given objective. */
@@ -244,8 +249,10 @@ export class TaskPlanner {
   ): AsyncGenerator<ProcessingMessage, Task | null> {
     const toolsInfo = this.formatToolsInfo();
 
-    const userPrompt = TASK_CREATION_PROMPT_TEMPLATE
-      .replace("{{objective}}", objective)
+    const userPrompt = TASK_CREATION_PROMPT_TEMPLATE.replace(
+      "{{objective}}",
+      objective
+    )
       .replace("{{toolsInfo}}", toolsInfo)
       .replace(
         "{{outputSchema}}",
@@ -389,8 +396,10 @@ export class TaskPlanner {
 
     const toolsInfo = this.formatToolsInfo();
 
-    const userPrompt = PLAN_CREATION_PROMPT_TEMPLATE
-      .replace("{{objective}}", objective)
+    const userPrompt = PLAN_CREATION_PROMPT_TEMPLATE.replace(
+      "{{objective}}",
+      objective
+    )
       .replace("{{toolsInfo}}", toolsInfo)
       .replace(
         "{{outputSchema}}",
@@ -437,6 +446,8 @@ export class TaskPlanner {
     // finish. It also short-circuits when a single task fails validation too
     // many times (an early-stop that is not a terminal tool).
     const abort = new AbortController();
+    // External cancellation (user pressed Stop) fires the same controller.
+    const unlinkAbort = linkAbort(abort, this.signal);
     const uiEvents: ProcessingMessage[] = [];
     let finished = false;
     let abortedReason: string | null = null;
@@ -569,42 +580,46 @@ export class TaskPlanner {
       signal: abort.signal
     });
 
-    for await (const item of stream) {
-      // A tool call is announced before it runs — surface it for live display.
-      if ("id" in item && "name" in item && "args" in item) {
-        const tc = item as ToolCall;
-        const tool = toolsByName.get(tc.name);
-        if (tool) {
-          const args = (tc.args ?? {}) as Record<string, unknown>;
-          yield {
-            type: "tool_call_update",
-            node_id: "",
-            name: tc.name,
-            args,
-            message: Tool.resolveMessage(tool, args)
-          } satisfies ToolCallUpdate;
+    try {
+      for await (const item of stream) {
+        // A tool call is announced before it runs — surface it for live display.
+        if ("id" in item && "name" in item && "args" in item) {
+          const tc = item as ToolCall;
+          const tool = toolsByName.get(tc.name);
+          if (tool) {
+            const args = (tc.args ?? {}) as Record<string, unknown>;
+            yield {
+              type: "tool_call_update",
+              node_id: "",
+              name: tc.name,
+              args,
+              message: Tool.resolveMessage(tool, args)
+            } satisfies ToolCallUpdate;
+          }
+          yield* drainUi();
+          continue;
         }
-        yield* drainUi();
-        continue;
-      }
-      if ("type" in item && (item as { type?: string }).type === "chunk") {
-        const chunk = item as { content?: string; done?: boolean };
-        if (
-          typeof chunk.content === "string" &&
-          chunk.content.length > 0 &&
-          !chunk.done
-        ) {
-          yield {
-            type: "chunk",
-            content: chunk.content,
-            done: false
-          } satisfies Chunk;
+        if ("type" in item && (item as { type?: string }).type === "chunk") {
+          const chunk = item as { content?: string; done?: boolean };
+          if (
+            typeof chunk.content === "string" &&
+            chunk.content.length > 0 &&
+            !chunk.done
+          ) {
+            yield {
+              type: "chunk",
+              content: chunk.content,
+              done: false
+            } satisfies Chunk;
+          }
+          yield* drainUi();
+          continue;
         }
+        // Assistant/tool message events: a tool result just landed — flush its UI.
         yield* drainUi();
-        continue;
       }
-      // Assistant/tool message events: a tool result just landed — flush its UI.
-      yield* drainUi();
+    } finally {
+      unlinkAbort();
     }
 
     yield* drainUi();
@@ -755,9 +770,7 @@ export class TaskPlanner {
       let schemaInfo = "";
       const schema = tool.inputSchema;
       if (schema && typeof schema === "object" && "properties" in schema) {
-        const props = Object.keys(
-          schema.properties as Record<string, unknown>
-        );
+        const props = Object.keys(schema.properties as Record<string, unknown>);
         const required = Array.isArray(schema.required)
           ? (schema.required as string[])
           : [];

@@ -188,7 +188,10 @@ export async function runAgentLoop(
     tools: providerTools,
     maxTokens,
     threadId: options.threadId,
-    maxIterations
+    maxIterations,
+    // Run-level cancellation: without it a cancelled workflow leaves this
+    // loop (and its tool calls) running.
+    signal: context.signal
   });
   for await (const event of classifyProviderStream(stream)) {
     if (event.kind === "tool_call") {

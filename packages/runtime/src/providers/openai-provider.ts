@@ -310,7 +310,9 @@ export class OpenAIProvider extends BaseProvider {
    * pass their own provider id) stay on Chat Completions.
    */
   protected usesResponsesApi(model: string): boolean {
-    return this.provider === PROVIDER_IDS.OPENAI && isOpenAIResponsesModel(model);
+    return (
+      this.provider === PROVIDER_IDS.OPENAI && isOpenAIResponsesModel(model)
+    );
   }
 
   override get supportsNativeWebSearch(): boolean {
@@ -722,8 +724,7 @@ export class OpenAIProvider extends BaseProvider {
 
     const estimated = Math.ceil(numFrames / 24);
     return SORA_VIDEO_DURATIONS.reduce(
-      (duration, candidate) =>
-        candidate <= estimated ? candidate : duration,
+      (duration, candidate) => (candidate <= estimated ? candidate : duration),
       SORA_VIDEO_DURATIONS[0]
     );
   }
@@ -1022,8 +1023,7 @@ export class OpenAIProvider extends BaseProvider {
       stream_options: { include_usage: true }
     };
 
-    const hasTools =
-      tools.length > 0 && (await this.hasToolSupport(model));
+    const hasTools = tools.length > 0 && (await this.hasToolSupport(model));
 
     if (temperature != null) request.temperature = temperature;
     if (topP != null) request.top_p = topP;
@@ -1164,8 +1164,7 @@ export class OpenAIProvider extends BaseProvider {
       max_completion_tokens: maxTokens
     };
 
-    const hasTools =
-      tools.length > 0 && (await this.hasToolSupport(model));
+    const hasTools = tools.length > 0 && (await this.hasToolSupport(model));
 
     if (temperature != null) request.temperature = temperature;
     if (topP != null) request.top_p = topP;
@@ -1209,7 +1208,9 @@ export class OpenAIProvider extends BaseProvider {
     const toolCalls = Array.isArray(responseMessage.tool_calls)
       ? responseMessage.tool_calls
           .filter(
-            (tc): tc is OpenAI.Chat.Completions.ChatCompletionMessageFunctionToolCall =>
+            (
+              tc
+            ): tc is OpenAI.Chat.Completions.ChatCompletionMessageFunctionToolCall =>
               tc.type === "function"
           )
           .map((tc) =>
@@ -1433,7 +1434,7 @@ export class OpenAIProvider extends BaseProvider {
         : undefined;
       request.tool_choice = hostedToolChoice
         ? { type: hostedToolChoice }
-        : responseToolChoice(args.toolChoice) ?? "auto";
+        : (responseToolChoice(args.toolChoice) ?? "auto");
     }
 
     return request;
@@ -1459,9 +1460,7 @@ export class OpenAIProvider extends BaseProvider {
     });
   }
 
-  private createResponsesTurnState(
-    responseId: string | null
-  ): StreamTurnState {
+  private createResponsesTurnState(responseId: string | null): StreamTurnState {
     return {
       assistantText: "",
       images: [],
@@ -1689,7 +1688,8 @@ export class OpenAIProvider extends BaseProvider {
     if (params.quality) request.quality = params.quality;
 
     const response = (await this.getClient().images.generate(
-      request as unknown as OpenAI.Images.ImageGenerateParams
+      request as unknown as OpenAI.Images.ImageGenerateParams,
+      { signal: params.signal }
     )) as OpenAI.Images.ImagesResponse;
 
     const item = response.data?.[0];
@@ -1803,7 +1803,8 @@ export class OpenAIProvider extends BaseProvider {
     if (params.quality) request.quality = params.quality;
 
     const response = (await this.getClient().images.edit(
-      request as unknown as OpenAI.Images.ImageEditParams
+      request as unknown as OpenAI.Images.ImageEditParams,
+      { signal: params.signal }
     )) as OpenAI.Images.ImagesResponse;
 
     const item = response.data?.[0];
@@ -2041,7 +2042,8 @@ export class OpenAIProvider extends BaseProvider {
     };
 
     const video = await this.getClient().videos.create(
-      request as unknown as OpenAI.Videos.VideoCreateParams
+      request as unknown as OpenAI.Videos.VideoCreateParams,
+      { signal: params.signal }
     );
     if (!video?.id) {
       throw new Error(
@@ -2071,7 +2073,12 @@ export class OpenAIProvider extends BaseProvider {
       if (Date.now() - start >= timeoutMs) {
         throw new Error("Video generation timed out");
       }
-      latest = await this.getClient().videos.retrieve(video.id);
+      if (params.signal?.aborted) {
+        throw new Error("Video generation cancelled");
+      }
+      latest = await this.getClient().videos.retrieve(video.id, {
+        signal: params.signal
+      });
     }
 
     if (latest.status !== "completed") {
@@ -2120,15 +2127,18 @@ export class OpenAIProvider extends BaseProvider {
               .toBuffer()
           );
 
-    const video = await this.getClient().videos.create({
-      model: params.model.id as OpenAI.Videos.VideoModel,
-      prompt: params.prompt ?? "",
-      input_reference: await toFile(Buffer.from(resized), "input_image.png", {
-        type: "image/png"
-      }),
-      size: size as OpenAI.Videos.VideoSize,
-      seconds: String(seconds) as OpenAI.Videos.VideoSeconds
-    });
+    const video = await this.getClient().videos.create(
+      {
+        model: params.model.id as OpenAI.Videos.VideoModel,
+        prompt: params.prompt ?? "",
+        input_reference: await toFile(Buffer.from(resized), "input_image.png", {
+          type: "image/png"
+        }),
+        size: size as OpenAI.Videos.VideoSize,
+        seconds: String(seconds) as OpenAI.Videos.VideoSeconds
+      },
+      { signal: params.signal }
+    );
 
     if (!video?.id) {
       throw new Error(
@@ -2158,7 +2168,12 @@ export class OpenAIProvider extends BaseProvider {
       if (Date.now() - start >= timeoutMs) {
         throw new Error("Image-to-video generation timed out");
       }
-      latest = await this.getClient().videos.retrieve(video.id);
+      if (params.signal?.aborted) {
+        throw new Error("Image-to-video generation cancelled");
+      }
+      latest = await this.getClient().videos.retrieve(video.id, {
+        signal: params.signal
+      });
     }
 
     if (latest.status !== "completed") {

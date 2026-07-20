@@ -1184,7 +1184,10 @@ export class AgentNode extends BaseNode {
         maxTokens,
         maxIterations: maxTurns,
         sequentialTools: true,
-        threadId: threadId || undefined
+        threadId: threadId || undefined,
+        // Loop mode is the default: without this a cancelled workflow leaves
+        // the provider loop (and any tool calls it makes) running.
+        signal: context?.signal
       });
       for await (const event of classifyProviderStream(stream)) {
         if (event.kind === "tool_call") {
@@ -1427,7 +1430,11 @@ export class AgentNode extends BaseNode {
         done: false
       }) as Chunk;
 
-    for await (const msg of agent.execute(context)) {
+    // Thread the run's cancellation signal in: cancelling the workflow aborts
+    // WorkflowRunner, but without this the agent's provider work carries on.
+    for await (const msg of agent.execute(context, {
+      signal: context?.signal
+    })) {
       const pmsg = msg as ProcessingMessage;
       if (pmsg.type === "chunk") {
         const chunk = pmsg as Chunk;

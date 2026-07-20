@@ -389,9 +389,7 @@ const ASSET_TYPE_MIME: Record<string, string> = {
   video: "video/mp4"
 };
 
-function isAssetLikeValue(
-  value: unknown
-): value is Record<string, unknown> {
+function isAssetLikeValue(value: unknown): value is Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const v = value as Record<string, unknown>;
   return (
@@ -1448,6 +1446,14 @@ export class UnifiedWebSocketRunner {
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private statsTimer: NodeJS.Timeout | null = null;
   private chatRequestSeq = 0;
+  /**
+   * Aborts the in-flight chat/inference turn. The seq counter above only filters
+   * stale output at yield boundaries — it cannot interrupt a provider that is
+   * blocked awaiting a response, nor tell one that owns a subprocess (the Claude
+   * Agent provider) to stop working. This signal does, and is threaded into
+   * every provider call the turn makes.
+   */
+  private chatAbort: AbortController | null = null;
   private clientToolsManifest: Record<string, Record<string, unknown>> = {};
   private toolBridge = new ToolBridge();
   /** Round-trips permission approvals for gated tool calls. */
@@ -1461,6 +1467,41 @@ export class UnifiedWebSocketRunner {
 
   private logError(context: string, error: unknown): void {
     log.error(context, formatSanitizedError(error));
+  }
+
+  /**
+   * Open a chat/inference turn: cancel whatever was running and hand back the
+   * seq + signal the new turn runs under. A superseding message cancels the
+   * previous turn exactly as an explicit Stop does.
+   */
+  private beginChatTurn(): {
+    seq: number;
+    signal: AbortSignal;
+    controller: AbortController;
+  } {
+    this.cancelChatTurn();
+    this.chatRequestSeq += 1;
+    this.chatAbort = new AbortController();
+    return {
+      seq: this.chatRequestSeq,
+      signal: this.chatAbort.signal,
+      controller: this.chatAbort
+    };
+  }
+
+  /** Abort the in-flight turn, if any. Idempotent. */
+  private cancelChatTurn(): void {
+    this.chatAbort?.abort();
+    this.chatAbort = null;
+  }
+
+  /**
+   * Retire a turn that finished on its own. Clears the controller only when it
+   * is still the current one — a superseding turn has already installed its
+   * own, and clearing that would make a later Stop a no-op.
+   */
+  private endChatTurn(controller: AbortController | null): void {
+    if (controller && this.chatAbort === controller) this.chatAbort = null;
   }
 
   private sendDetached(message: Record<string, unknown>): void {
@@ -1588,6 +1629,10 @@ export class UnifiedWebSocketRunner {
     this.toolBridge.cancelAll();
     this.approvalBridge.cancelAll();
 
+    // Dropping the reference does not stop the work — abort the turn or a
+    // dropped socket leaves an inference request (or a Claude SDK subprocess)
+    // running with nobody left to receive its output.
+    this.cancelChatTurn();
     this.currentTask = null;
     for (const [jobId, job] of this.activeJobs) {
       if (job.runner) {
@@ -3392,7 +3437,8 @@ export class UnifiedWebSocketRunner {
    */
   async handleChatMessage(
     data: Record<string, unknown>,
-    requestSeq?: number
+    requestSeq?: number,
+    signal?: AbortSignal
   ): Promise<void> {
     const messageWorkflowId =
       typeof data.workflow_id === "string" ? data.workflow_id : null;
@@ -3435,7 +3481,7 @@ export class UnifiedWebSocketRunner {
     const workflowTarget =
       typeof data.workflow_target === "string" ? data.workflow_target : null;
     if (workflowTarget === "workflow") {
-      await this.handleWorkflowMessage(data, requestSeq);
+      await this.handleWorkflowMessage(data, requestSeq, signal);
       return;
     }
 
@@ -3456,7 +3502,8 @@ export class UnifiedWebSocketRunner {
       await this.handleMediaGenerationMessage(
         data,
         mediaGeneration,
-        requestSeq
+        requestSeq,
+        signal
       );
       return;
     }
@@ -3981,7 +4028,8 @@ export class UnifiedWebSocketRunner {
         providerSession: capturedSession,
         loadFullHistory: loadFullHistory ?? undefined,
         executeTool: useTools ? executeTool : undefined,
-        maxIterations: MAX_TOOL_ROUNDS
+        maxIterations: MAX_TOOL_ROUNDS,
+        signal
       })) {
         if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)
           return;
@@ -4508,7 +4556,8 @@ export class UnifiedWebSocketRunner {
   private async handleMediaGenerationMessage(
     data: Record<string, unknown>,
     mediaGeneration: Record<string, unknown>,
-    requestSeq?: number
+    requestSeq?: number,
+    signal?: AbortSignal
   ): Promise<void> {
     const threadId = typeof data.thread_id === "string" ? data.thread_id : "";
     const workflowId =
@@ -4522,6 +4571,16 @@ export class UnifiedWebSocketRunner {
       mediaGeneration.model ?? data.model ?? this.defaultModel
     );
     const prompt = this.extractTextContent(data.content);
+
+    /**
+     * Whether this turn has been cancelled. The media provider APIs take no
+     * AbortSignal, so an in-flight generation runs to completion regardless —
+     * but its result must not be stored as an asset or delivered to a user who
+     * pressed Stop. Checked after every provider call, before any write.
+     */
+    const cancelled = (): boolean =>
+      signal?.aborted === true ||
+      (requestSeq !== undefined && requestSeq !== this.chatRequestSeq);
 
     log.info("Media generation", {
       threadId,
@@ -4611,7 +4670,8 @@ export class UnifiedWebSocketRunner {
           model: imageModel,
           prompt,
           width,
-          height
+          height,
+          signal
         };
 
         // Surface a progress chunk so the UI can show the request flight
@@ -4627,8 +4687,11 @@ export class UnifiedWebSocketRunner {
         if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)
           return;
         const imageBytesList = await provider.textToImages(params, variations);
+        if (cancelled()) return;
         const imageContents: Array<Record<string, unknown>> = [];
         for (const bytes of imageBytesList) {
+          // Per-variation: a cancel partway through must not keep persisting.
+          if (cancelled()) return;
           const assetId = await storeMediaAsset(bytes, "image/png", "png");
           imageContents.push({
             type: "image_url",
@@ -4653,6 +4716,8 @@ export class UnifiedWebSocketRunner {
           model: modelId,
           media_generation: mediaGeneration
         };
+        // Re-check: cancellation may have landed while the asset was persisting.
+        if (cancelled()) return;
         await this.saveMessageToDb(assistantMsgData);
         await this.sendMessage(assistantMsgData);
         return;
@@ -4703,7 +4768,8 @@ export class UnifiedWebSocketRunner {
             aspectRatio,
             resolution,
             durationSeconds: duration,
-            numInferenceSteps: null
+            numInferenceSteps: null,
+            signal
           };
           bytes = await provider.imageToVideo([sourceBytes], i2vParams);
         } else {
@@ -4712,10 +4778,12 @@ export class UnifiedWebSocketRunner {
             prompt,
             aspectRatio,
             resolution,
-            durationSeconds: duration
+            durationSeconds: duration,
+            signal
           };
           bytes = await provider.textToVideo(params);
         }
+        if (cancelled()) return;
         const assetId = await storeMediaAsset(bytes, "video/mp4", "mp4");
 
         await this.sendMessage({
@@ -4745,6 +4813,8 @@ export class UnifiedWebSocketRunner {
           model: modelId,
           media_generation: mediaGeneration
         };
+        // Re-check: cancellation may have landed while the asset was persisting.
+        if (cancelled()) return;
         await this.saveMessageToDb(assistantMsgData);
         await this.sendMessage(assistantMsgData);
         return;
@@ -4822,6 +4892,7 @@ export class UnifiedWebSocketRunner {
               }
             );
           }
+          if (cancelled()) return;
           assetId = await storeMediaAsset(encoded.data, encoded.mimeType, ext);
           audioMimeType = encoded.mimeType;
         } else {
@@ -4836,8 +4907,7 @@ export class UnifiedWebSocketRunner {
             speed,
             audioFormat: requestedFormat ?? undefined
           })) {
-            if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)
-              return;
+            if (cancelled()) return;
             if (chunk?.samples) {
               if (chunk.sampleRate) chunkSampleRate = chunk.sampleRate;
               const view = new Uint8Array(
@@ -4859,6 +4929,7 @@ export class UnifiedWebSocketRunner {
 
           if (requestedFormat === "pcm") {
             // Return raw PCM Int16 bytes (no container).
+            if (cancelled()) return;
             assetId = await storeMediaAsset(merged, "audio/pcm", "pcm");
             audioMimeType = "audio/pcm";
           } else {
@@ -4902,6 +4973,7 @@ export class UnifiedWebSocketRunner {
             wav.set(new Uint8Array(wavHeader), 0);
             wav.set(merged, 44);
 
+            if (cancelled()) return;
             assetId = await storeMediaAsset(wav, "audio/wav", "wav");
             audioMimeType = "audio/wav";
           }
@@ -4933,6 +5005,8 @@ export class UnifiedWebSocketRunner {
           model: modelId,
           media_generation: mediaGeneration
         };
+        // Re-check: cancellation may have landed while the asset was persisting.
+        if (cancelled()) return;
         await this.saveMessageToDb(assistantMsgData);
         await this.sendMessage(assistantMsgData);
         return;
@@ -5003,7 +5077,8 @@ export class UnifiedWebSocketRunner {
             targetWidth: targetWidth ?? null,
             targetHeight: targetHeight ?? null,
             strength: strength ?? null,
-            numInferenceSteps: numInferenceSteps ?? null
+            numInferenceSteps: numInferenceSteps ?? null,
+            signal
           };
           if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)
             return;
@@ -5012,8 +5087,11 @@ export class UnifiedWebSocketRunner {
             params,
             variations
           );
+          if (cancelled()) return;
           const imageContents: Array<Record<string, unknown>> = [];
           for (const bytes of imageBytesList) {
+            // Per-variation: a cancel partway through must not keep persisting.
+            if (cancelled()) return;
             const assetId = await storeMediaAsset(bytes, "image/png", "png");
             imageContents.push({
               type: "image_url",
@@ -5040,6 +5118,8 @@ export class UnifiedWebSocketRunner {
             model: modelId,
             media_generation: mediaGeneration
           };
+          // Re-check: cancellation may have landed while the asset was persisting.
+          if (cancelled()) return;
           await this.saveMessageToDb(assistantMsgData);
           await this.sendMessage(assistantMsgData);
           return;
@@ -5073,9 +5153,11 @@ export class UnifiedWebSocketRunner {
           aspectRatio,
           resolution,
           durationSeconds: duration,
-          numInferenceSteps
+          numInferenceSteps,
+          signal
         };
         const bytes = await provider.imageToVideo([sourceBytes], params);
+        if (cancelled()) return;
         const assetId = await storeMediaAsset(bytes, "video/mp4", "mp4");
         await this.sendMessage({
           type: "chunk",
@@ -5103,6 +5185,8 @@ export class UnifiedWebSocketRunner {
           model: modelId,
           media_generation: mediaGeneration
         };
+        // Re-check: cancellation may have landed while the asset was persisting.
+        if (cancelled()) return;
         await this.saveMessageToDb(assistantMsgData);
         await this.sendMessage(assistantMsgData);
         return;
@@ -5241,7 +5325,8 @@ export class UnifiedWebSocketRunner {
 
   private async handleWorkflowMessage(
     data: Record<string, unknown>,
-    requestSeq?: number
+    requestSeq?: number,
+    signal?: AbortSignal
   ): Promise<void> {
     const threadId = typeof data.thread_id === "string" ? data.thread_id : "";
     const workflowId =
@@ -5254,6 +5339,11 @@ export class UnifiedWebSocketRunner {
     const jobId = randomUUID();
 
     log.info("Workflow message", { threadId, workflowId, jobId });
+
+    // Assigned once the run's abort listener is registered; released in the
+    // finally so a completed workflow's listener can't cancel() a runner that
+    // already finished when a later Stop/disconnect fires the same signal.
+    let releaseAbortListener: (() => void) | null = null;
 
     try {
       if (!workflowId) {
@@ -5445,6 +5535,23 @@ export class UnifiedWebSocketRunner {
       const superseded = (): boolean =>
         requestSeq !== undefined && requestSeq !== this.chatRequestSeq;
 
+      // Cancel the moment Stop fires rather than waiting for the streaming loop
+      // below to come back around — the run may be parked inside a long node.
+      const onAbort = (): void => {
+        try {
+          active.runner.cancel();
+        } catch {
+          // best-effort cancel
+        }
+      };
+      if (signal?.aborted) {
+        onAbort();
+      } else if (signal) {
+        signal.addEventListener("abort", onAbort, { once: true });
+        releaseAbortListener = () =>
+          signal.removeEventListener("abort", onAbort);
+      }
+
       while (!active.finished || active.context.hasMessages()) {
         if (superseded()) {
           try {
@@ -5608,6 +5715,7 @@ export class UnifiedWebSocketRunner {
         thread_id: threadId
       });
     } finally {
+      releaseAbortListener?.();
       // Always release the concurrency slot and drain the queue, even if
       // streaming/persist/sendMessage threw above. Otherwise a mid-stream
       // socket-write failure would orphan the ActiveJob and permanently shrink
@@ -5655,7 +5763,8 @@ export class UnifiedWebSocketRunner {
 
   async handleInference(
     data: Record<string, unknown>,
-    requestSeq: number
+    requestSeq: number,
+    signal?: AbortSignal
   ): Promise<void> {
     const providerId =
       typeof data.provider === "string" ? data.provider : this.defaultProvider;
@@ -5720,7 +5829,8 @@ export class UnifiedWebSocketRunner {
     for await (const item of provider.generateMessagesTraced({
       messages,
       model,
-      tools: tools.length > 0 ? tools : undefined
+      tools: tools.length > 0 ? tools : undefined,
+      signal
     })) {
       if (requestSeq !== this.chatRequestSeq) break; // cancelled
       if ("type" in item && item.type === "chunk") {
@@ -6294,9 +6404,10 @@ export class UnifiedWebSocketRunner {
         if (typeof threadId !== "string" || threadId.length === 0) {
           return { error: "thread_id is required for chat_message command" };
         }
-        this.chatRequestSeq += 1;
-        const seq = this.chatRequestSeq;
-        this.currentTask = this.handleChatMessage(data, seq);
+        const { seq, signal, controller } = this.beginChatTurn();
+        this.currentTask = this.handleChatMessage(data, seq, signal).finally(
+          () => this.endChatTurn(controller)
+        );
         void this.currentTask.catch(async (err) => {
           this.logError("chat_message processing failed", err);
           await this.sendMessage({
@@ -6310,9 +6421,10 @@ export class UnifiedWebSocketRunner {
         };
       }
       case "inference": {
-        this.chatRequestSeq += 1;
-        const seq = this.chatRequestSeq;
-        this.currentTask = this.handleInference(data, seq);
+        const { seq, signal, controller } = this.beginChatTurn();
+        this.currentTask = this.handleInference(data, seq, signal).finally(() =>
+          this.endChatTurn(controller)
+        );
         void this.currentTask.catch(async (err) => {
           this.logError("inference processing failed", err);
           await this.sendMessage({
@@ -6327,6 +6439,10 @@ export class UnifiedWebSocketRunner {
           typeof data.thread_id === "string" ? data.thread_id : undefined;
         // Always increment seq to cancel any in-progress chat or inference
         this.chatRequestSeq += 1;
+        // …and abort it for real. The seq bump alone only discards output at
+        // yield boundaries; the signal interrupts blocked awaits and stops
+        // providers that own a subprocess.
+        this.cancelChatTurn();
         this.currentTask = null;
         if (jobId) {
           const active = this.activeJobs.get(jobId);

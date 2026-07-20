@@ -17,11 +17,9 @@ import type {
   ToolCall
 } from "@nodetool-ai/runtime";
 import { createLogger } from "@nodetool-ai/config";
-import type {
-  PlanningUpdate,
-  ProcessingMessage
-} from "@nodetool-ai/protocol";
+import type { PlanningUpdate, ProcessingMessage } from "@nodetool-ai/protocol";
 import { Tool } from "./tools/base-tool.js";
+import { linkAbort } from "./utils/link-abort.js";
 
 const log = createLogger("nodetool.agents.script-planner");
 
@@ -106,9 +104,7 @@ export function validateScript(script: string): string[] {
     // Compile only: the returned async function is never invoked.
     new Function(`"use strict"; return async () => {\n${script}\n};`);
   } catch (e) {
-    errors.push(
-      `Syntax error: ${e instanceof Error ? e.message : String(e)}`
-    );
+    errors.push(`Syntax error: ${e instanceof Error ? e.message : String(e)}`);
   }
   return errors;
 }
@@ -155,6 +151,8 @@ export interface ScriptPlannerOptions {
   outputSchema?: Record<string, unknown>;
   inputs?: Record<string, unknown>;
   threadId?: string;
+  /** External cancellation. Aborts the planning provider loop mid-flight. */
+  signal?: AbortSignal;
 }
 
 export class ScriptPlanner {
@@ -165,6 +163,7 @@ export class ScriptPlanner {
   private readonly outputSchema?: Record<string, unknown>;
   private readonly inputs: Record<string, unknown>;
   private readonly threadId?: string;
+  private readonly signal?: AbortSignal;
 
   constructor(opts: ScriptPlannerOptions) {
     this.provider = opts.provider;
@@ -174,6 +173,7 @@ export class ScriptPlanner {
     this.outputSchema = opts.outputSchema;
     this.inputs = opts.inputs ?? {};
     this.threadId = opts.threadId;
+    this.signal = opts.signal;
   }
 
   /**
@@ -223,6 +223,7 @@ export class ScriptPlanner {
 
     const submitTool = new SubmitScriptTool();
     const abort = new AbortController();
+    const unlinkAbort = linkAbort(abort, this.signal);
     const pending: ProcessingMessage[] = [];
 
     const submitExecute = async (
@@ -286,6 +287,8 @@ export class ScriptPlanner {
       log.debug("Planner stream ended via abort", {
         error: e instanceof Error ? e.message : String(e)
       });
+    } finally {
+      unlinkAbort();
     }
     while (pending.length > 0) yield pending.shift() as ProcessingMessage;
 

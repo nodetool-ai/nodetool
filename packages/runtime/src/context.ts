@@ -10,14 +10,18 @@
  *   - Asset handling with pluggable storage adapters.
  */
 
-import type { AssetRef, ProcessingMessage, ProviderCost } from "@nodetool-ai/protocol";
-import { packageAssetHttpPath, parsePackageAssetUri } from "@nodetool-ai/protocol";
+import type {
+  AssetRef,
+  ProcessingMessage,
+  ProviderCost
+} from "@nodetool-ai/protocol";
+import {
+  packageAssetHttpPath,
+  parsePackageAssetUri
+} from "@nodetool-ai/protocol";
 import { AgentMemory } from "./agent-memory.js";
 import { VariableChannel } from "./variable-channel.js";
-import {
-  loadMediaRefBytes,
-  type MediaRefValue
-} from "./media-ref-bytes.js";
+import { loadMediaRefBytes, type MediaRefValue } from "./media-ref-bytes.js";
 import { encodeRawImageRef } from "./image-codec.js";
 import {
   expandAssetReferences,
@@ -29,15 +33,14 @@ import { importNodeBuiltin } from "@nodetool-ai/config";
 // lazily so this module loads in browser / Edge runtimes. The
 // `FileStorageAdapter`, `resolveWorkspacePath`, and `randomUUID`
 // fallback all degrade gracefully when these are unavailable.
-const nodeCrypto = await importNodeBuiltin<typeof import("node:crypto")>(
-  "node:crypto"
-);
-const nodeFsP = await importNodeBuiltin<typeof import("node:fs/promises")>(
-  "node:fs/promises"
-);
-const nodePath = await importNodeBuiltin<typeof import("node:path")>(
-  "node:path"
-);
+const nodeCrypto =
+  await importNodeBuiltin<typeof import("node:crypto")>("node:crypto");
+const nodeFsP =
+  await importNodeBuiltin<typeof import("node:fs/promises")>(
+    "node:fs/promises"
+  );
+const nodePath =
+  await importNodeBuiltin<typeof import("node:path")>("node:path");
 const nodeUrl = await importNodeBuiltin<typeof import("node:url")>("node:url");
 
 const randomUUID = nodeCrypto?.randomUUID
@@ -58,7 +61,10 @@ const randomUUID = nodeCrypto?.randomUUID
 const safeProcessEnv = (): Record<string, string | undefined> =>
   typeof process !== "undefined" && process.env ? process.env : {};
 
-function waitForRetry(delayMs: number, signal?: AbortSignal | null): Promise<void> {
+function waitForRetry(
+  delayMs: number,
+  signal?: AbortSignal | null
+): Promise<void> {
   return new Promise((resolveWait, rejectWait) => {
     if (signal?.aborted) {
       rejectWait(signal.reason ?? new Error("HTTP request aborted"));
@@ -88,7 +94,8 @@ const mkdir = (...a: Parameters<typeof import("node:fs/promises").mkdir>) =>
   nodeFsP ? nodeFsP.mkdir(...a) : notOnNode("node:fs/promises.mkdir");
 const readFile = (
   ...a: Parameters<typeof import("node:fs/promises").readFile>
-) => (nodeFsP ? nodeFsP.readFile(...a) : notOnNode("node:fs/promises.readFile"));
+) =>
+  nodeFsP ? nodeFsP.readFile(...a) : notOnNode("node:fs/promises.readFile");
 const writeFile = (
   ...a: Parameters<typeof import("node:fs/promises").writeFile>
 ) =>
@@ -401,10 +408,7 @@ export interface ProcessingContextModelInterfaces {
     sequence: unknown;
   }) => Promise<unknown | null>;
   /** Load a persisted script by id; null when missing or not owned. */
-  getScript?: (args: {
-    userId: string;
-    id: string;
-  }) => Promise<unknown | null>;
+  getScript?: (args: { userId: string; id: string }) => Promise<unknown | null>;
   /** Create a persisted script from a name + document. */
   createScript?: (args: {
     userId: string;
@@ -539,7 +543,10 @@ function joinStorageKey(prefix: string | undefined, key: string): string {
  * In-memory storage adapter useful for tests and single-process ephemeral runs.
  */
 export class InMemoryStorageAdapter implements StorageAdapter {
-  private _store = new Map<string, { data: Uint8Array; contentType?: string; modifiedAt: number }>();
+  private _store = new Map<
+    string,
+    { data: Uint8Array; contentType?: string; modifiedAt: number }
+  >();
 
   async store(
     key: string,
@@ -589,7 +596,12 @@ export class InMemoryStorageAdapter implements StorageAdapter {
     const entries: StorageEntry[] = [];
     const commonPrefixes = new Set<string>();
     for (const [key, entry] of this._store.entries()) {
-      if (matchPrefix && !key.startsWith(matchPrefix) && key !== normalizedPrefix) continue;
+      if (
+        matchPrefix &&
+        !key.startsWith(matchPrefix) &&
+        key !== normalizedPrefix
+      )
+        continue;
       if (matchPrefix === "" || key.startsWith(matchPrefix)) {
         const rest = matchPrefix ? key.slice(matchPrefix.length) : key;
         if (delimiter === "/") {
@@ -767,9 +779,15 @@ export class FileStorageAdapter implements StorageAdapter {
     const commonPrefixes = new Set<string>();
 
     if (delimiter === "/") {
-      let children: Array<{ name: string; isDirectory: () => boolean; isFile: () => boolean }>;
+      let children: Array<{
+        name: string;
+        isDirectory: () => boolean;
+        isFile: () => boolean;
+      }>;
       try {
-        children = (await rd(baseAbs, { withFileTypes: true })) as unknown as typeof children;
+        children = (await rd(baseAbs, {
+          withFileTypes: true
+        })) as unknown as typeof children;
       } catch {
         return { entries: [], commonPrefixes: [] };
       }
@@ -1004,6 +1022,17 @@ export class ProcessingContext {
   readonly environment: Record<string, string>;
   /** Bearer token for authenticated calls back to the owning NodeTool API. */
   readonly authToken: string | null;
+  /**
+   * Run-level cancellation. Set by the kernel to the signal
+   * `WorkflowRunner.cancel()` aborts, so long-running node work (agent loops,
+   * provider calls) can be interrupted rather than merely having its result
+   * discarded. Nodes reached through the streaming `run()` path can also read
+   * the same signal via `inputs.signal`.
+   *
+   * Defaults to a never-aborted signal so contexts built outside a kernel run
+   * (tools, tests, CLI) need not supply one.
+   */
+  signal: AbortSignal = new AbortController().signal;
 
   /** Message queue: all emitted processing messages. */
   private _messages: ProcessingMessage[] = [];
@@ -1340,9 +1369,8 @@ export class ProcessingContext {
    * resolvable through this context (DB/keychain/env).
    */
   async isProviderConfigured(providerId: string): Promise<boolean> {
-    const { isProviderConfigured: check } = await import(
-      "./providers/index.js"
-    );
+    const { isProviderConfigured: check } =
+      await import("./providers/index.js");
     return check(providerId, (key) => this.getSecret(key));
   }
 
@@ -1499,7 +1527,6 @@ export class ProcessingContext {
     }
     return defaultValue as T;
   }
-
 
   // -----------------------------------------------------------------------
   // Node result cache helpers
@@ -2011,9 +2038,7 @@ export class ProcessingContext {
    * is not a folder. Backed by the optional `listFolderAssets` model interface;
    * returns `null` when that interface is not configured.
    */
-  async listFolderAssets(
-    folderId: string
-  ): Promise<FolderAssetEntry[] | null> {
+  async listFolderAssets(folderId: string): Promise<FolderAssetEntry[] | null> {
     const fn = this._modelInterfaces?.listFolderAssets;
     if (!fn) {
       return null;
@@ -2098,8 +2123,9 @@ export class ProcessingContext {
     if (!trimmed) {
       return [];
     }
-    const raw =
-      trimmed.startsWith("asset://") ? trimmed.slice("asset://".length) : trimmed;
+    const raw = trimmed.startsWith("asset://")
+      ? trimmed.slice("asset://".length)
+      : trimmed;
     // Preserve sub-paths: `asset://user-1/image.png` -> primary `user-1/image.png`,
     // so storage keys with hierarchical layouts still resolve.
     const primary = raw.split(/[?#]/)[0];
@@ -2243,7 +2269,9 @@ export class ProcessingContext {
       // scan on production S3 backends.
       const bareId = idCandidates[idCandidates.length - 1];
       if (bareId) {
-        const tryListing = async (prefix: string): Promise<Uint8Array | null> => {
+        const tryListing = async (
+          prefix: string
+        ): Promise<Uint8Array | null> => {
           try {
             const listing = await this.storage!.list(prefix);
             const match = listing.entries.find((entry) => {
@@ -2530,7 +2558,8 @@ export class ProcessingContext {
         const bytes = await this.retrieveMediaBytes(part.image.uri);
         if (bytes) {
           const ext = part.image.uri.split(".").pop()?.toLowerCase() ?? "png";
-          const mimeType = IMAGE_MIME[ext] ?? part.image.mimeType ?? "image/png";
+          const mimeType =
+            IMAGE_MIME[ext] ?? part.image.mimeType ?? "image/png";
           const b64 = Buffer.from(bytes).toString("base64");
           return [
             {
@@ -2549,7 +2578,8 @@ export class ProcessingContext {
         const bytes = await this.retrieveMediaBytes(part.audio.uri);
         if (bytes) {
           const ext = part.audio.uri.split(".").pop()?.toLowerCase() ?? "mp3";
-          const mimeType = AUDIO_MIME[ext] ?? part.audio.mimeType ?? "audio/mpeg";
+          const mimeType =
+            AUDIO_MIME[ext] ?? part.audio.mimeType ?? "audio/mpeg";
           const b64 = Buffer.from(bytes).toString("base64");
           return [
             {
@@ -2951,9 +2981,7 @@ export class ProcessingContext {
     return result;
   }
 
-  private static toClientBytes(
-    value: unknown
-  ): Record<string, unknown> | null {
+  private static toClientBytes(value: unknown): Record<string, unknown> | null {
     if (value instanceof Uint8Array) {
       return { type: "bytes", length: value.length };
     }
@@ -3044,7 +3072,10 @@ export class ProcessingContext {
 
     // Raw in-flight RGBA → encode to PNG up front so every downstream mode
     // treats it as an ordinary image (correct mime, extension, and bytes).
-    const asset = (await encodeRawImageRef(rawAsset)) as Record<string, unknown>;
+    const asset = (await encodeRawImageRef(rawAsset)) as Record<
+      string,
+      unknown
+    >;
 
     const bytes = await this.getAssetBytes(asset);
     if (!bytes) return asset;
