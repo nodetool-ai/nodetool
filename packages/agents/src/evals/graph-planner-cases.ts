@@ -18,6 +18,7 @@ export const GRAPH_PLANNER_EVAL_CASES: readonly GraphPlannerEvalCase[] = [
       "Take the input text and produce a one-paragraph summary of it with an LLM step. Output the summary.",
     inputs: { text: "NodeTool is a visual AI workflow platform..." },
     expect: {
+      requireConnected: true,
       requiredInputNames: ["text"],
       minAgentSteps: 1,
       requireOutputNode: true,
@@ -32,6 +33,7 @@ export const GRAPH_PLANNER_EVAL_CASES: readonly GraphPlannerEvalCase[] = [
       "Take the input text, summarize it in one paragraph with an LLM step, then translate that summary to German with a second LLM step. Output both the summary and the translation.",
     inputs: { text: "NodeTool is a visual AI workflow platform..." },
     expect: {
+      requireConnected: true,
       requiredInputNames: ["text"],
       minAgentSteps: 2,
       minOutputNodes: 2,
@@ -46,6 +48,7 @@ export const GRAPH_PLANNER_EVAL_CASES: readonly GraphPlannerEvalCase[] = [
       "Write a haiku about the input topic in English, German, and French — one LLM step per language, running in parallel. Output all three haikus.",
     inputs: { topic: "autumn rain" },
     expect: {
+      requireConnected: true,
       requiredInputNames: ["topic"],
       minAgentSteps: 3,
       minOutputNodes: 3,
@@ -58,6 +61,7 @@ export const GRAPH_PLANNER_EVAL_CASES: readonly GraphPlannerEvalCase[] = [
     objective:
       "Generate one short limerick for each of these five animals: cat, dog, fox, owl, bear — one LLM step per animal. Output every limerick.",
     expect: {
+      requireConnected: true,
       minAgentSteps: 5,
       minOutputNodes: 5,
       maxNodes: 16
@@ -73,7 +77,8 @@ export const GRAPH_PLANNER_EVAL_CASES: readonly GraphPlannerEvalCase[] = [
       requiredInputNames: ["language", "text"],
       requiredNodeTypePatterns: ["^nodetool\\.control\\.If$"],
       requiredSourceHandles: ["if_true", "if_false"],
-      minAgentSteps: 2
+      minAgentSteps: 2,
+      requireConnected: true
     }
   },
   {
@@ -86,6 +91,7 @@ export const GRAPH_PLANNER_EVAL_CASES: readonly GraphPlannerEvalCase[] = [
       requiredInputNames: ["first", "second"],
       requiredNodeTypePatterns: ["^nodetool\\.text\\."],
       forbiddenNodeTypePatterns: ["^nodetool\\.agents\\."],
+      requireConnected: true,
       requireOutputNode: true
     }
   },
@@ -98,6 +104,7 @@ export const GRAPH_PLANNER_EVAL_CASES: readonly GraphPlannerEvalCase[] = [
     expect: {
       requiredInputNames: ["city", "days"],
       minAgentSteps: 1,
+      requireConnected: true,
       requireOutputNode: true
     }
   },
@@ -115,6 +122,7 @@ export const GRAPH_PLANNER_EVAL_CASES: readonly GraphPlannerEvalCase[] = [
         "^nodetool\\.image\\.TextToImage$",
         "^lib\\.image\\."
       ],
+      requireConnected: true,
       requireOutputNode: true
     }
   }

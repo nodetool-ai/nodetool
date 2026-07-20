@@ -265,6 +265,11 @@ predefined:
   \`.output(slot?)\` (slot defaults to \`"output"\`). Pass a ref's output as a
   property value to wire an edge into that input. Optional third argument sets
   an explicit snake_case id (ids are auto-derived from the type otherwise).
+  A ref is an edge, NOT a value: it is not readable in the program and must
+  never appear inside a string. \`{ prompt: x.output() }\` wires an edge;
+  \`{ prompt: \`Do this: \${x.output()}\` }\` is an error. To combine fixed
+  wording with wired data, put the wording in another property (an Agent
+  node's \`system\`) or build the text with a node.
 - \`graph()\` — collect every created node and all wired edges. The program
   MUST end with \`return graph();\`.
 
@@ -286,7 +291,8 @@ return graph();
 
 Multi-output nodes use named slots: \`ifNode.output("if_true")\`,
 \`ifNode.output("if_false")\`. Plain JS is available for repetition — loops,
-arrays, template strings — use it instead of copy-pasting near-identical nodes.
+arrays, and template strings over your own literals — use it instead of
+copy-pasting near-identical nodes. Never interpolate a \`.output()\` ref.
 
 # Execution Sequence (follow in order)
 
@@ -313,6 +319,7 @@ from scratch.
 | \`code_error\` (syntax / runtime) | Fix the JavaScript. The program must be plain JS ending in \`return graph();\`. |
 | \`Unknown node type: 'X'\` | Re-run \`search_nodes\` with a broader query or different namespace, then resubmit. |
 | \`Duplicate node id: 'X'\` | Two nodes got the same explicit id — rename one. |
+| \`Cannot use X.output() inside a string\` | You interpolated a handle into text. Pass it as the property value and move the fixed wording into another property. |
 | Wrong handle name | Re-run \`get_node_info\` for exact input/output handle names. |
 | Missing required property | Set it in the node's properties or wire an edge into that input. |
 | Cycle errors | The dataflow must be a DAG — remove the back edge. |
@@ -333,9 +340,17 @@ node auto-saves its result as an asset. Example: \`nodetool.image.TextToImage\`
 \`nodetool.agents.Agent\` nodes for multi-stage reasoning. Each step inherits
 the run's configured model — do NOT set a \`model\` property.
 
+Put the step's **fixed instructions** in \`system\` and wire the **data** into
+\`prompt\`. That split is what lets an upstream value reach the step at all.
+
 \`\`\`js
-const draft = node("nodetool.agents.Agent", { prompt: "Outline the topic" });
+const topic = node("nodetool.input.StringInput", { name: "topic" });
+const draft = node("nodetool.agents.Agent", {
+  system: "Outline the topic the user gives you.",
+  prompt: topic.output()
+});
 const polish = node("nodetool.agents.Agent", {
+  system: "Rewrite the draft you are given so it flows well.",
   prompt: draft.output("text")
 });
 node("nodetool.output.Output", { name: "result", value: polish.output("text") });

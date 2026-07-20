@@ -28,6 +28,14 @@ export interface GraphPlannerEvalExpectations {
   requiredSourceHandles?: string[];
   /** Minimum number of Agent (LLM step) nodes. */
   minAgentSteps?: number;
+  /** Minimum number of edges. */
+  minEdges?: number;
+  /**
+   * Every non-input node must have an incoming edge, and every non-output
+   * node an outgoing one. Catches graphs whose nodes were created but never
+   * wired — they run, validate clean, and do nothing.
+   */
+  requireConnected?: boolean;
   /** Minimum number of `nodetool.output.*` nodes. */
   minOutputNodes?: number;
   /** At least one `nodetool.output.*` node. */
@@ -173,6 +181,34 @@ export function checkExpectations(
       name: `agentSteps>=${expect.minAgentSteps}`,
       pass: count >= expect.minAgentSteps,
       detail: `found ${count}`
+    });
+  }
+
+  if (expect.minEdges !== undefined) {
+    checks.push({
+      name: `edges>=${expect.minEdges}`,
+      pass: graph.edges.length >= expect.minEdges,
+      detail: `found ${graph.edges.length}`
+    });
+  }
+
+  if (expect.requireConnected) {
+    const hasIn = new Set(graph.edges.map((e) => e.target));
+    const hasOut = new Set(graph.edges.map((e) => e.source));
+    const orphans = graph.nodes
+      .filter((n) => {
+        const isInput = n.type.startsWith("nodetool.input.");
+        const isOutput = n.type.startsWith("nodetool.output.");
+        if (!isInput && !hasIn.has(n.id)) return true;
+        if (!isOutput && !hasOut.has(n.id)) return true;
+        return false;
+      })
+      .map((n) => n.id);
+    checks.push({
+      name: "connected",
+      pass: orphans.length === 0,
+      detail:
+        orphans.length === 0 ? undefined : `unwired: ${orphans.join(", ")}`
     });
   }
 

@@ -47,7 +47,27 @@ function node(type, properties, id) {
       if (slot !== undefined && (typeof slot !== "string" || slot.length === 0)) {
         throw new Error("output(slot): slot must be a non-empty string");
       }
-      return { __handle: true, source: nodeId, sourceHandle: slot || "output" };
+      var handle = {
+        __handle: true,
+        source: nodeId,
+        sourceHandle: slot || "output"
+      };
+      // Interpolating a handle into a string silently yields "[object
+      // Object]": no edge is created and the node gets that literal text.
+      // Refuse the conversion so the mistake comes back as a submit_graph
+      // error instead of a broken graph that validates clean.
+      handle[Symbol.toPrimitive] = function () {
+        throw new Error(
+          "Cannot use " +
+            nodeId +
+            ".output() inside a string. A handle wires an edge; it is not text. " +
+            "Pass it as the property value itself — { prompt: " +
+            nodeId +
+            ".output() } — and put any fixed instructions in a separate " +
+            "property (an Agent node's system property)."
+        );
+      };
+      return handle;
     }
   };
 }
