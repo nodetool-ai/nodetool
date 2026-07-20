@@ -7,7 +7,7 @@
  * override on each card).
  */
 
-import React, { memo, useCallback, useRef, useState } from "react";
+import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import AddIcon from "@mui/icons-material/Add";
 import type { Entity } from "@nodetool-ai/protocol";
 
@@ -69,13 +69,17 @@ const StoryboardEntitiesFieldInner: React.FC<StoryboardEntitiesFieldProps> = ({
   const [pickerOpen, setPickerOpen] = useState(false);
   const addButtonRef = useRef<HTMLButtonElement | null>(null);
 
-  const byId = new Map((allEntities ?? []).map((e) => [e.id, e]));
-  const selected = entityIds
-    .map((id) => byId.get(id))
-    .filter((e): e is Entity => !!e);
-  const available = (allEntities ?? []).filter(
-    (e) => !entityIds.includes(e.id)
-  );
+  const { selected, available } = useMemo(() => {
+    const entities = allEntities ?? [];
+    const idSet = new Set(entityIds);
+    const byId = new Map(entities.map((e) => [e.id, e]));
+    return {
+      selected: entityIds
+        .map((id) => byId.get(id))
+        .filter((e): e is Entity => !!e),
+      available: entities.filter((e) => !idSet.has(e.id))
+    };
+  }, [allEntities, entityIds]);
 
   const handleRemove = useCallback(
     (id: string) =>
