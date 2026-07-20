@@ -270,3 +270,26 @@ FrontendToolRegistry.register({
     return { ok: true, ...result };
   }
 });
+
+FrontendToolRegistry.register({
+  name: "ui_sketch_render_to_asset",
+  description:
+    "Render the canvas to a PNG and save it as a temporary asset, returning its asset id and URL. Omit `target` (or pass null) for the flattened composite of all visible layers; pass a layer id/name to render that single layer. Use this to hand the current artwork (or one layer) to another tool or workflow that needs an asset id rather than raw pixels. The asset is a throwaway upload — delete it when you're done with it.",
+  parameters: z.object({
+    target: targetParam
+      .nullable()
+      .optional()
+      .describe("Layer to render; omit or null for the flattened composite."),
+    name: z
+      .string()
+      .optional()
+      .describe("Optional base name for the uploaded asset file.")
+  }),
+  async execute({ target, name }) {
+    const result = await getSketchAgentHandler().renderLayerToAsset(
+      target ?? null,
+      name
+    );
+    return { ok: true, ...result };
+  }
+});

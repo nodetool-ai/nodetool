@@ -16,6 +16,7 @@ import { coerceBlendMode } from "@nodetool-ai/gpu";
 
 import { useSketchInstance } from "../../stores/sketch/SketchInstance";
 import { useDirectGenJob } from "./useDirectGenJob";
+import { renderLayerToAsset } from "../../lib/sketch/renderLayerToAsset";
 import { getRememberedModel } from "../../stores/lastModelStore";
 import type {
   Layer,
@@ -391,6 +392,16 @@ export const useSketchAgentBridge = (active: boolean): void => {
           height: d.canvas.height,
           dataUrl
         };
+      },
+
+      async renderLayerToAsset(target, name) {
+        const layerId = target === null ? null : requireLayer(target).id;
+        return renderLayerToAsset({
+          doc: doc(),
+          layerId,
+          flattenToDataUrl: canvasRef.getState().flattenToDataUrl,
+          name
+        });
       }
     };
   }, [instance, startDirectGen]);

@@ -57,7 +57,8 @@ const createMockHandler = (): jest.Mocked<SketchAgentHandler> => ({
   setActiveTool: jest.fn(),
   resizeCanvas: jest.fn(),
   setSelection: jest.fn(),
-  getLayerImage: jest.fn()
+  getLayerImage: jest.fn(),
+  renderLayerToAsset: jest.fn()
 });
 
 // The sketch tools never touch the workflow state, so a bare stub satisfies ctx.
@@ -86,7 +87,8 @@ describe("ui_sketch_* tools", () => {
         "ui_sketch_set_tool",
         "ui_sketch_resize_canvas",
         "ui_sketch_selection",
-        "ui_sketch_get_layer_image"
+        "ui_sketch_get_layer_image",
+        "ui_sketch_render_to_asset"
       ])
     );
   });
@@ -274,6 +276,52 @@ describe("ui_sketch_* tools", () => {
 
     expect(handler.getLayerImage).toHaveBeenCalledWith(null);
     expect(result.dataUrl).toBe("data:image/png;base64,abc");
+  });
+
+  it("renders the composite to a temporary asset", async () => {
+    const handler = createMockHandler();
+    handler.renderLayerToAsset.mockResolvedValue({
+      assetId: "asset-9",
+      url: "asset://asset-9.png",
+      width: 1024,
+      height: 1024,
+      layerId: null,
+      layerName: null
+    });
+    setSketchAgentHandler(handler);
+
+    const result = (await FrontendToolRegistry.call(
+      "ui_sketch_render_to_asset",
+      {},
+      "sk-12",
+      ctx
+    )) as { ok: boolean; assetId: string; url: string };
+
+    expect(handler.renderLayerToAsset).toHaveBeenCalledWith(null, undefined);
+    expect(result.assetId).toBe("asset-9");
+    expect(result.url).toBe("asset://asset-9.png");
+  });
+
+  it("renders a named layer to a temporary asset", async () => {
+    const handler = createMockHandler();
+    handler.renderLayerToAsset.mockResolvedValue({
+      assetId: "asset-10",
+      url: "asset://asset-10.png",
+      width: 1024,
+      height: 1024,
+      layerId: "layer-1",
+      layerName: "Sky"
+    });
+    setSketchAgentHandler(handler);
+
+    await FrontendToolRegistry.call(
+      "ui_sketch_render_to_asset",
+      { target: "Sky", name: "sky-export" },
+      "sk-13",
+      ctx
+    );
+
+    expect(handler.renderLayerToAsset).toHaveBeenCalledWith("Sky", "sky-export");
   });
 
   it("resizes the canvas through the handler", async () => {

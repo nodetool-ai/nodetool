@@ -137,6 +137,18 @@ export interface SketchLayerImageResult {
   dataUrl: string;
 }
 
+export interface SketchRenderedAssetResult {
+  /** Uploaded (temporary) asset id. */
+  assetId: string;
+  /** Best-effort resolvable URL (falls back to asset://). */
+  url: string;
+  width: number;
+  height: number;
+  /** null for the composite; otherwise the rendered layer id. */
+  layerId: string | null;
+  layerName: string | null;
+}
+
 /**
  * Operations the live {@link SketchEditor} exposes to the agent tooling layer.
  * Layers are addressed by id, by (case-insensitive) name, or the literal
@@ -164,6 +176,15 @@ export interface SketchAgentHandler {
   setSelection: (op: SketchSelectionOp) => { hasSelection: boolean };
   /** Read pixels: the flattened composite (target null) or a single layer. */
   getLayerImage: (target: string | null) => Promise<SketchLayerImageResult>;
+  /**
+   * Render the composite (target null) or a single layer to a PNG and upload it
+   * as a temporary asset, returning its id + URL so it can be fed to other
+   * tools/workflows.
+   */
+  renderLayerToAsset: (
+    target: string | null,
+    name?: string
+  ) => Promise<SketchRenderedAssetResult>;
 }
 
 let handler: SketchAgentHandler | null = null;
