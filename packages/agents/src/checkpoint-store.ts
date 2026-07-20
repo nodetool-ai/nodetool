@@ -28,9 +28,8 @@ const log = createLogger("nodetool.agents.checkpoint-store");
 // Stable hashing
 // ---------------------------------------------------------------------------
 
-const _nodeCrypto = await importNodeBuiltin<typeof import("node:crypto")>(
-  "node:crypto"
-);
+const _nodeCrypto =
+  await importNodeBuiltin<typeof import("node:crypto")>("node:crypto");
 
 /**
  * Stable JSON stringify: object keys are sorted recursively so two
@@ -194,9 +193,10 @@ export class FilePlanCache implements PlanCache {
   private async ensureLoaded(): Promise<Map<string, TaskPlan>> {
     if (this.cache) return this.cache;
     this.cache = new Map();
-    const fs = await importNodeBuiltin<typeof import("node:fs/promises")>(
-      "node:fs/promises"
-    );
+    const fs =
+      await importNodeBuiltin<typeof import("node:fs/promises")>(
+        "node:fs/promises"
+      );
     if (!fs) return this.cache;
     for (const [k, v] of await readDiskEntries<TaskPlan>(fs, this.filePath)) {
       this.cache.set(k, v);
@@ -213,9 +213,10 @@ export class FilePlanCache implements PlanCache {
   }
 
   private async persistOnce(): Promise<void> {
-    const fs = await importNodeBuiltin<typeof import("node:fs/promises")>(
-      "node:fs/promises"
-    );
+    const fs =
+      await importNodeBuiltin<typeof import("node:fs/promises")>(
+        "node:fs/promises"
+      );
     if (!fs || !this.cache) return;
     try {
       const disk = await readDiskEntries<TaskPlan>(fs, this.filePath);
@@ -325,14 +326,12 @@ export class FileCheckpointStore implements CheckpointStore {
   private async ensureLoaded(): Promise<Map<string, Checkpoint>> {
     if (this.store) return this.store;
     this.store = new Map();
-    const fs = await importNodeBuiltin<typeof import("node:fs/promises")>(
-      "node:fs/promises"
-    );
+    const fs =
+      await importNodeBuiltin<typeof import("node:fs/promises")>(
+        "node:fs/promises"
+      );
     if (!fs) return this.store;
-    for (const [k, v] of await readDiskEntries<Checkpoint>(
-      fs,
-      this.filePath
-    )) {
+    for (const [k, v] of await readDiskEntries<Checkpoint>(fs, this.filePath)) {
       this.store.set(k, v);
     }
     return this.store;
@@ -347,9 +346,10 @@ export class FileCheckpointStore implements CheckpointStore {
   }
 
   private async persistOnce(): Promise<void> {
-    const fs = await importNodeBuiltin<typeof import("node:fs/promises")>(
-      "node:fs/promises"
-    );
+    const fs =
+      await importNodeBuiltin<typeof import("node:fs/promises")>(
+        "node:fs/promises"
+      );
     if (!fs || !this.store) return;
     try {
       const disk = await readDiskEntries<Checkpoint>(fs, this.filePath);

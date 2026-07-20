@@ -60,6 +60,32 @@ describe("MessageView tool-call grouping", () => {
     expect(screen.getByText("0/4 completed")).toBeInTheDocument();
   });
 
+  it("rerenders only the active message when a thought is toggled", async () => {
+    const user = userEvent.setup();
+    let expanded = false;
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <MessageView
+          message={
+            {
+              id: "thought-message",
+              role: "assistant",
+              content: "<think>Private reasoning</think>Final answer"
+            } as Message
+          }
+          isThoughtExpanded={() => expanded}
+          onToggleThought={() => {
+            expanded = !expanded;
+          }}
+        />
+      </ThemeProvider>
+    );
+
+    expect(screen.queryByText("Private reasoning")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /show thought/i }));
+    expect(screen.getByText("Private reasoning")).toBeInTheDocument();
+  });
+
   it("collapses the chain when the section header is toggled", async () => {
     const user = userEvent.setup();
     renderView({

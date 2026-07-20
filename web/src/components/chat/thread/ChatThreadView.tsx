@@ -2,6 +2,7 @@
 import React, {
   useRef,
   useEffect,
+  useLayoutEffect,
   useCallback,
   useState,
   useMemo,
@@ -10,7 +11,14 @@ import React, {
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { BORDER_RADIUS, FONT_SIZE_SANS, SPACING, getSpacingPx, Z_INDEX } from "../../ui_primitives";
+import {
+  BORDER_RADIUS,
+  FONT_SIZE_SANS,
+  SPACING,
+  SPACING_PX,
+  getSpacingPx,
+  Z_INDEX
+} from "../../ui_primitives";
 import {
   Message,
   PlanningUpdate,
@@ -34,15 +42,15 @@ import { useElapsedTime } from "../../../hooks/useElapsedTime";
 interface ChatThreadViewProps {
   messages: Message[];
   status:
-  | "disconnected"
-  | "connecting"
-  | "connected"
-  | "loading"
-  | "error"
-  | "streaming"
-  | "reconnecting"
-  | "disconnecting"
-  | "failed";
+    | "disconnected"
+    | "connecting"
+    | "connected"
+    | "loading"
+    | "error"
+    | "streaming"
+    | "reconnecting"
+    | "disconnecting"
+    | "failed";
   progress: number;
   total: number;
   progressMessage: string | null;
@@ -58,14 +66,21 @@ interface ChatThreadViewProps {
 
 const SCROLL_THRESHOLD = 50;
 const ESTIMATED_MESSAGE_HEIGHT = 200;
-const STREAM_FLOOR_PX_PER_SEC = 40;
-const STREAM_CATCHUP_PER_SEC = 4;
-const STREAM_MAX_PX_PER_SEC = 800;
-const STREAM_RUNWAY_CSS = "8vh";
-const STREAM_FADE_PX = 160;
-// Fixed-viewport fade band positioned just above the runway, so new tokens
-// emerging at the streaming frontier pass through the fade as they glide up.
-const STREAM_FADE_MASK = `linear-gradient(to bottom, black 0, black calc(100% - ${STREAM_RUNWAY_CSS} - ${STREAM_FADE_PX}px), transparent calc(100% - ${STREAM_RUNWAY_CSS}), transparent 100%)`;
+const CHAT_ANCHOR_OFFSET = SPACING_PX.xl;
+const SCROLL_POSITION_EPSILON = 1;
+
+type ChatScrollMode = "following-end" | "anchoring-new-turn" | "free-scrolling";
+
+interface ActiveChatAnchor {
+  messageId: string;
+  messageIndex: number;
+}
+
+interface ToolResultSummary {
+  name?: string | null;
+  content: Message["content"];
+  createdAt?: string | null;
+}
 
 function formatElapsed(seconds: number): string {
   if (seconds < 1) return "0s";
@@ -83,6 +98,52 @@ function scrollElementToBottom(el: HTMLElement | null): void {
   } else {
     el.scrollTop = el.scrollHeight;
   }
+}
+
+function getElementBottomInScrollContent(
+  scrollHost: HTMLElement,
+  element: HTMLElement
+): number {
+  const hostRect = scrollHost.getBoundingClientRect();
+  const elementRect = element.getBoundingClientRect();
+  return scrollHost.scrollTop + elementRect.bottom - hostRect.top;
+}
+
+function executionGroupsAreEqual(
+  previous: ReadonlyMap<string, Message[]>,
+  next: ReadonlyMap<string, Message[]>
+): boolean {
+  if (previous.size !== next.size) return false;
+  for (const [key, nextMessages] of next) {
+    const previousMessages = previous.get(key);
+    if (!previousMessages || previousMessages.length !== nextMessages.length) {
+      return false;
+    }
+    if (
+      nextMessages.some((message, index) => message !== previousMessages[index])
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function toolResultsAreEqual(
+  previous: Readonly<Record<string, ToolResultSummary>>,
+  next: Readonly<Record<string, ToolResultSummary>>
+): boolean {
+  const previousKeys = Object.keys(previous);
+  const nextKeys = Object.keys(next);
+  if (previousKeys.length !== nextKeys.length) return false;
+  return nextKeys.every((key) => {
+    const previousResult = previous[key];
+    const nextResult = next[key];
+    return (
+      previousResult?.name === nextResult?.name &&
+      previousResult?.content === nextResult?.content &&
+      previousResult?.createdAt === nextResult?.createdAt
+    );
+  });
 }
 
 const STATUS_ROW_STYLE: React.CSSProperties = {
@@ -153,7 +214,11 @@ const StatusFooter = memo<StatusFooterProps>(
       <>
         {isBusy && !hasAgentExecutionMessages && pendingMediaMessage && (
           <div className="chat-message-list-item">
-            <MediaOutputGroup message={pendingMediaMessage} mediaContents={[]} isPending />
+            <MediaOutputGroup
+              message={pendingMediaMessage}
+              mediaContents={[]}
+              isPending
+            />
           </div>
         )}
         {isBusy && !hasAgentExecutionMessages && !pendingMediaMessage && (
@@ -290,8 +355,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     () =>
       Object.entries(pendingPlanApprovals).filter(
         ([, approval]) =>
-          approval.thread_id === null ||
-          approval.thread_id === currentThreadId
+          approval.thread_id === null || approval.thread_id === currentThreadId
       ),
     [pendingPlanApprovals, currentThreadId]
   );
@@ -305,58 +369,86 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     for (let i = messages.length - 1; i >= 0; i--) {
       const msg = messages[i];
       if (msg.role !== "user") continue;
-      const gen = (msg as Message & { media_generation?: MediaGenerationRequest | null })
-        .media_generation;
+      const gen = (
+        msg as Message & { media_generation?: MediaGenerationRequest | null }
+      ).media_generation;
       return gen && gen.mode !== "chat" ? msg : null;
     }
     return null;
   }, [isBusy, messages]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const realContentRef = useRef<HTMLDivElement>(null);
   const [scrollHost, setScrollHost] = useState<HTMLDivElement | null>(null);
   const expandedThoughtsRef = useRef<Record<string, boolean>>({});
   const [showScrollToBottomButton, setShowScrollToBottomButton] =
     useState(false);
-  const userHasScrolledUpRef = useRef(false);
+  const [activeAnchor, setActiveAnchor] = useState<ActiveChatAnchor | null>(
+    null
+  );
+  const [anchorTailHeight, setAnchorTailHeight] = useState(0);
+  const scrollModeRef = useRef<ChatScrollMode>("following-end");
+  const positionedAnchorIdRef = useRef<string | null>(null);
+  const anchorSawBusyRef = useRef(false);
   const previousMessageCountRef = useRef(messages.length);
-  const lastScrollTopRef = useRef(0);
-  const lastScrollHeightRef = useRef(0);
   const scrollRafRef = useRef<number | null>(null);
+  const layoutRafRef = useRef<number | null>(null);
+  const executionMessagesByIdRef = useRef(new Map<string, Message[]>());
+  const toolResultsByCallIdRef = useRef<Record<string, ToolResultSummary>>({});
+  const viewportAnchorRef = useRef<{
+    element: HTMLElement;
+    top: number;
+  } | null>(null);
 
   const componentStyles = useMemo(() => createStyles(theme), [theme]);
 
   const handleScrollRef = useCallback((node: HTMLDivElement | null) => {
     scrollRef.current = node;
+    if (node) {
+      node.dataset.scrollMode = scrollModeRef.current;
+    }
     setScrollHost(node);
   }, []);
 
+  const setScrollMode = useCallback((mode: ChatScrollMode) => {
+    scrollModeRef.current = mode;
+    if (scrollRef.current) {
+      scrollRef.current.dataset.scrollMode = mode;
+    }
+  }, []);
+
   const executionMessagesById = useMemo(() => {
-    const map = new Map<string, Message[]>();
+    const next = new Map<string, Message[]>();
     for (const msg of messages) {
       if (msg.role !== "agent_execution") continue;
       const key = msg.agent_execution_id || "__ungrouped__";
-      const list = map.get(key) || [];
+      const list = next.get(key) || [];
       list.push(msg);
-      map.set(key, list);
+      next.set(key, list);
     }
-    return map;
+    if (executionGroupsAreEqual(executionMessagesByIdRef.current, next)) {
+      return executionMessagesByIdRef.current;
+    }
+    executionMessagesByIdRef.current = next;
+    return next;
   }, [messages]);
 
   const toolResultsByCallId = useMemo(() => {
-    const map: Record<
-      string,
-      { name?: string | null; content: Message["content"]; createdAt?: string | null }
-    > = {};
+    const next: Record<string, ToolResultSummary> = {};
     for (const m of messages) {
       if (m.role === "tool" && m.tool_call_id) {
-        map[String(m.tool_call_id)] = {
+        next[String(m.tool_call_id)] = {
           name: m.name ?? undefined,
           content: m.content,
           createdAt: m.created_at ?? null
         };
       }
     }
-    return map;
+    if (toolResultsAreEqual(toolResultsByCallIdRef.current, next)) {
+      return toolResultsByCallIdRef.current;
+    }
+    toolResultsByCallIdRef.current = next;
+    return next;
   }, [messages]);
 
   const hasAgentExecutionMessages = useMemo(
@@ -420,10 +512,8 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     initialRect: { width: 0, height: 800 }
   });
 
-  // The RAF loop drives scroll during streaming. Suppress the virtualizer's
-  // own per-resize scroll adjustment for the last (growing) item — otherwise
-  // every measured token bump adds an instantaneous scrollTop delta on top
-  // of our smooth catch-up, which reads as visible jitter.
+  // Keep the virtualizer from shifting the viewport when the trailing message
+  // grows. The layout effect below owns bottom-pinning while streaming.
   virtualizer.shouldAdjustScrollPositionOnItemSizeChange = (
     item,
     _delta,
@@ -433,31 +523,82 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     return item.start < (instance.scrollOffset ?? 0);
   };
 
+  const totalSize = virtualizer.getTotalSize();
+
+  const getRealContentBottom = useCallback((): number | null => {
+    const el = scrollRef.current;
+    const realContent = realContentRef.current;
+    if (!el || !realContent) return null;
+    return getElementBottomInScrollContent(el, realContent);
+  }, []);
+
+  const captureViewportAnchor = useCallback(() => {
+    const el = scrollRef.current;
+    const realContent = realContentRef.current;
+    if (!el || !realContent) {
+      viewportAnchorRef.current = null;
+      return;
+    }
+
+    const hostTop = el.getBoundingClientRect().top;
+    const rows = realContent.querySelectorAll<HTMLElement>("[data-index]");
+    const anchor = Array.from(rows).find(
+      (row) => row.getBoundingClientRect().bottom > hostTop + CHAT_ANCHOR_OFFSET
+    );
+    viewportAnchorRef.current = anchor
+      ? { element: anchor, top: anchor.getBoundingClientRect().top }
+      : null;
+  }, []);
+
+  const applyScrollPolicy = useCallback(() => {
+    const el = scrollRef.current;
+    const realContentBottom = getRealContentBottom();
+    if (!el || realContentBottom == null) return;
+
+    if (scrollModeRef.current === "free-scrolling") {
+      const viewportAnchor = viewportAnchorRef.current;
+      if (viewportAnchor?.element.isConnected) {
+        const nextTop = viewportAnchor.element.getBoundingClientRect().top;
+        const delta = nextTop - viewportAnchor.top;
+        if (Math.abs(delta) > SCROLL_POSITION_EPSILON) {
+          el.scrollTop += delta;
+        }
+      }
+      captureViewportAnchor();
+      return;
+    }
+
+    if (scrollModeRef.current === "anchoring-new-turn") {
+      const visibleBottom = el.scrollTop + el.clientHeight - CHAT_ANCHOR_OFFSET;
+      const overflow = realContentBottom - visibleBottom;
+      if (overflow > SCROLL_POSITION_EPSILON) {
+        el.scrollTop += overflow;
+      }
+      return;
+    }
+
+    const target = Math.max(0, realContentBottom - el.clientHeight);
+    if (Math.abs(target - el.scrollTop) > SCROLL_POSITION_EPSILON) {
+      el.scrollTop = target;
+    }
+  }, [captureViewportAnchor, getRealContentBottom]);
+
   const updateScrollState = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
-    const prev = lastScrollTopRef.current;
-    const curr = el.scrollTop;
-    const prevHeight = lastScrollHeightRef.current;
-    const currHeight = el.scrollHeight;
-    lastScrollTopRef.current = curr;
-    lastScrollHeightRef.current = currHeight;
-
-    // Only a decrease in scrollTop indicates the user scrolled up.
-    // A growing distance-to-bottom from content expansion or programmatic
-    // catch-up must not flip this flag. Nor may a browser-forced downward
-    // clamp when rendered content shrinks (e.g. a thought collapses
-    // mid-stream) — a genuine scroll-up decreases scrollTop while the
-    // scrollHeight is unchanged or larger.
-    if (curr < prev - 1 && currHeight >= prevHeight) {
-      userHasScrolledUpRef.current = true;
-    }
-
+    const realContentBottom = getRealContentBottom();
+    if (realContentBottom == null) return;
     const nearBottom =
-      el.scrollHeight - curr - el.clientHeight < SCROLL_THRESHOLD;
-    if (nearBottom) userHasScrolledUpRef.current = false;
-    setShowScrollToBottomButton(!nearBottom);
-  }, []);
+      realContentBottom - el.scrollTop - el.clientHeight < SCROLL_THRESHOLD;
+
+    if (scrollModeRef.current === "free-scrolling" && nearBottom) {
+      setScrollMode("following-end");
+    }
+    setShowScrollToBottomButton(
+      scrollModeRef.current === "free-scrolling" && !nearBottom
+    );
+    captureViewportAnchor();
+  }, [captureViewportAnchor, getRealContentBottom, setScrollMode]);
 
   useEffect(() => {
     const el = scrollHost;
@@ -471,31 +612,57 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
         updateScrollState();
       });
     };
+    const onManualNavigation = () => {
+      if (scrollModeRef.current === "free-scrolling") return;
+      setScrollMode("free-scrolling");
+      positionedAnchorIdRef.current = null;
+      anchorSawBusyRef.current = false;
+      setActiveAnchor(null);
+      setAnchorTailHeight(0);
+      captureViewportAnchor();
+    };
     el.addEventListener("scroll", onScroll, { passive: true });
+    el.addEventListener("wheel", onManualNavigation, { passive: true });
+    el.addEventListener("touchmove", onManualNavigation, { passive: true });
+    el.addEventListener("pointerdown", onManualNavigation, { passive: true });
     return () => {
       el.removeEventListener("scroll", onScroll);
+      el.removeEventListener("wheel", onManualNavigation);
+      el.removeEventListener("touchmove", onManualNavigation);
+      el.removeEventListener("pointerdown", onManualNavigation);
       if (scrollRafRef.current != null) {
         cancelAnimationFrame(scrollRafRef.current);
         scrollRafRef.current = null;
       }
     };
-  }, [scrollHost, updateScrollState]);
+  }, [captureViewportAnchor, scrollHost, setScrollMode, updateScrollState]);
 
   const scrollToBottom = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
-    scrollElementToBottom(el);
-    lastScrollTopRef.current = el.scrollTop;
-    userHasScrolledUpRef.current = false;
+    setScrollMode("following-end");
+    positionedAnchorIdRef.current = null;
+    anchorSawBusyRef.current = false;
+    setActiveAnchor(null);
+    setAnchorTailHeight(0);
+    const realContentBottom = getRealContentBottom();
+    if (realContentBottom != null) {
+      el.scrollTop = Math.max(0, realContentBottom - el.clientHeight);
+    }
     setShowScrollToBottomButton(false);
-  }, []);
+  }, [getRealContentBottom, setScrollMode]);
 
   // Reset follow state whenever the visible thread changes, so a previously
   // "scrolled up" thread doesn't carry that state onto the next one.
   useEffect(() => {
-    userHasScrolledUpRef.current = false;
+    setScrollMode("following-end");
+    positionedAnchorIdRef.current = null;
+    anchorSawBusyRef.current = false;
+    setActiveAnchor(null);
+    setAnchorTailHeight(0);
+    viewportAnchorRef.current = null;
     setShowScrollToBottomButton(false);
-  }, [currentThreadId]);
+  }, [currentThreadId, setScrollMode]);
 
   // Land on the latest message when a thread first becomes visible — on mount,
   // thread switch, or once its messages finish loading. Without this the
@@ -508,14 +675,13 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     if (landedThreadRef.current === currentThreadId) return;
     landedThreadRef.current = currentThreadId;
     previousMessageCountRef.current = messages.length;
-    userHasScrolledUpRef.current = false;
+    setScrollMode("following-end");
 
     const land = () => {
       virtualizer.scrollToIndex(filteredMessages.length - 1, { align: "end" });
       const el = scrollRef.current;
       if (el) {
         scrollElementToBottom(el);
-        lastScrollTopRef.current = el.scrollTop;
       }
       setShowScrollToBottomButton(false);
     };
@@ -535,6 +701,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     currentThreadId,
     filteredMessages.length,
     messages.length,
+    setScrollMode,
     virtualizer
   ]);
 
@@ -547,79 +714,155 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
 
     const last = messages[messages.length - 1];
     if (last?.role === "user" && lastUserMessageIndex >= 0) {
-      virtualizer.scrollToIndex(lastUserMessageIndex, { align: "start" });
       const el = scrollRef.current;
-      if (el) lastScrollTopRef.current = el.scrollTop;
-      userHasScrolledUpRef.current = false;
+      const messageId = last.id ?? `msg-${lastUserMessageIndex}`;
+      setScrollMode("anchoring-new-turn");
+      positionedAnchorIdRef.current = null;
+      anchorSawBusyRef.current = false;
+      setActiveAnchor({ messageId, messageIndex: lastUserMessageIndex });
+      setAnchorTailHeight(el?.clientHeight ?? 0);
       setShowScrollToBottomButton(false);
       return;
     }
 
-    // During streaming, the RAF loop below drives the scroll at a constant
-    // speed — do NOT jump to bottom here or we'll race with it.
-    if (status !== "streaming" && !userHasScrolledUpRef.current) {
-      const el = scrollRef.current;
-      if (el) {
-        scrollElementToBottom(el);
-        lastScrollTopRef.current = el.scrollTop;
-      }
+    if (
+      scrollModeRef.current === "anchoring-new-turn" &&
+      status !== "loading" &&
+      status !== "streaming"
+    ) {
+      anchorSawBusyRef.current = true;
+    } else if (scrollModeRef.current === "following-end") {
+      applyScrollPolicy();
     }
-  }, [messages, lastUserMessageIndex, virtualizer, status]);
+  }, [
+    applyScrollPolicy,
+    lastUserMessageIndex,
+    messages,
+    setScrollMode,
+    status
+  ]);
 
-  // Follow streaming output at a constant speed with proportional catch-up.
-  // The runway spacer below keeps the frontier in the lower viewport so new
-  // tokens appear to rise into view rather than pin to the bottom edge.
+  // Position a newly sent prompt once the reserved tail makes it scrollable.
+  // The active turn then grows into that tail without moving the prompt until
+  // the real response content reaches the usable viewport bottom.
   useEffect(() => {
-    if (status !== "streaming") return;
-    const el = scrollRef.current;
-    if (!el) return;
+    if (!activeAnchor || !scrollHost) return;
+    if (positionedAnchorIdRef.current === activeAnchor.messageId) return;
+    positionedAnchorIdRef.current = activeAnchor.messageId;
 
-    let rafId: number | null = null;
-    let lastTime: number | null = null;
-    let cancelled = false;
-
-    const tick = (time: number) => {
-      if (cancelled) return;
-      const dt = lastTime == null ? 16 : Math.min(50, time - lastTime);
-      lastTime = time;
-
-      if (!userHasScrolledUpRef.current) {
-        const target = el.scrollHeight - el.clientHeight;
-        const gap = target - el.scrollTop;
-        if (gap > 0.5) {
-          const velocity = Math.min(
-            STREAM_MAX_PX_PER_SEC,
-            Math.max(STREAM_FLOOR_PX_PER_SEC, gap * STREAM_CATCHUP_PER_SEC)
-          );
-          const delta = Math.min(gap, velocity * (dt / 1000));
-          el.scrollTop = el.scrollTop + delta;
-        }
-      }
-
-      rafId = requestAnimationFrame(tick);
-    };
-
-    rafId = requestAnimationFrame(tick);
+    let secondFrame = 0;
+    const firstFrame = requestAnimationFrame(() => {
+      virtualizer.scrollToIndex(activeAnchor.messageIndex, { align: "start" });
+      secondFrame = requestAnimationFrame(() => {
+        const el = scrollRef.current;
+        const row = realContentRef.current?.querySelector<HTMLElement>(
+          `[data-index="${activeAnchor.messageIndex}"]`
+        );
+        if (!el || !row) return;
+        const hostTop = el.getBoundingClientRect().top;
+        const rowTop = row.getBoundingClientRect().top;
+        el.scrollTop = Math.max(
+          0,
+          el.scrollTop + rowTop - hostTop - CHAT_ANCHOR_OFFSET
+        );
+      });
+    });
 
     return () => {
-      cancelled = true;
-      if (rafId != null) cancelAnimationFrame(rafId);
+      cancelAnimationFrame(firstFrame);
+      cancelAnimationFrame(secondFrame);
     };
-  }, [status]);
+  }, [activeAnchor, scrollHost, virtualizer]);
+
+  // Apply the active policy before paint when the virtualizer reports a real
+  // size change. Token updates that do not change layout perform no scroll.
+  useLayoutEffect(() => {
+    applyScrollPolicy();
+  }, [applyScrollPolicy, status, totalSize]);
+
+  // Images, approvals, status rows, and responsive reflow can change height
+  // without changing the virtualizer's total. Coalesce those measurements to
+  // one policy application per animation frame.
+  useEffect(() => {
+    const el = scrollHost;
+    const realContent = realContentRef.current;
+    if (!el || !realContent || typeof ResizeObserver === "undefined") return;
+
+    const schedulePolicy = () => {
+      if (layoutRafRef.current != null) return;
+      layoutRafRef.current = requestAnimationFrame(() => {
+        layoutRafRef.current = null;
+        applyScrollPolicy();
+      });
+    };
+    const observer = new ResizeObserver(schedulePolicy);
+    observer.observe(el);
+    observer.observe(realContent);
+    return () => {
+      observer.disconnect();
+      if (layoutRafRef.current != null) {
+        cancelAnimationFrame(layoutRafRef.current);
+        layoutRafRef.current = null;
+      }
+    };
+  }, [applyScrollPolicy, scrollHost]);
+
+  // Once the turn settles, remove its reserved tail and return to normal end
+  // following. Free-scrolling mode is never overridden by a status change.
+  useEffect(() => {
+    if (status === "loading" || status === "streaming") {
+      if (scrollModeRef.current === "anchoring-new-turn") {
+        anchorSawBusyRef.current = true;
+      }
+      return;
+    }
+    if (scrollModeRef.current !== "anchoring-new-turn") return;
+    if (!anchorSawBusyRef.current) return;
+    setScrollMode("following-end");
+    positionedAnchorIdRef.current = null;
+    anchorSawBusyRef.current = false;
+    setActiveAnchor(null);
+    setAnchorTailHeight(0);
+    const frame = requestAnimationFrame(applyScrollPolicy);
+    return () => cancelAnimationFrame(frame);
+  }, [applyScrollPolicy, setScrollMode, status]);
 
   const isThoughtExpanded = useCallback(
     (key: string) => expandedThoughtsRef.current[key] ?? false,
     []
   );
-  const handleToggleThought = useCallback((key: string) => {
-    expandedThoughtsRef.current = {
-      ...expandedThoughtsRef.current,
-      [key]: !expandedThoughtsRef.current[key]
-    };
-  }, []);
+  const handleToggleThought = useCallback(
+    (key: string, anchorElement?: HTMLElement) => {
+      const anchorBottomBeforeToggle =
+        anchorElement?.getBoundingClientRect().bottom ?? null;
+      expandedThoughtsRef.current = {
+        ...expandedThoughtsRef.current,
+        [key]: !expandedThoughtsRef.current[key]
+      };
+
+      if (anchorBottomBeforeToggle == null || !anchorElement) return;
+      requestAnimationFrame(() => {
+        if (
+          scrollModeRef.current !== "free-scrolling" ||
+          !anchorElement.isConnected
+        ) {
+          return;
+        }
+        const el = scrollRef.current;
+        if (!el) return;
+        const delta =
+          anchorElement.getBoundingClientRect().bottom -
+          anchorBottomBeforeToggle;
+        if (Math.abs(delta) > SCROLL_POSITION_EPSILON) {
+          el.scrollTop += delta;
+          captureViewportAnchor();
+        }
+      });
+    },
+    [captureViewportAnchor]
+  );
 
   const virtualItems = virtualizer.getVirtualItems();
-  const totalSize = virtualizer.getTotalSize();
 
   return (
     <div
@@ -630,129 +873,119 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
         ref={handleScrollRef}
         css={componentStyles.messageWrapper}
         className="scrollable-message-wrapper"
-        style={
-          status === "streaming"
-            ? {
-                WebkitMaskImage: STREAM_FADE_MASK,
-                maskImage: STREAM_FADE_MASK
-              }
-            : undefined
-        }
       >
         <div
           css={componentStyles.chatMessagesList}
           className="chat-messages-list"
         >
-          <div
-            className="chat-messages-virtual"
-            style={{
-              position: "relative",
-              width: "100%",
-              height: `${totalSize}px`
-            }}
-          >
-            {virtualItems.map((virtualRow) => {
-              const msg = filteredMessages[virtualRow.index];
-              const messageKey = msg.id || `msg-${virtualRow.index}`;
-              return (
+          <div ref={realContentRef} className="chat-messages-real-content">
+            <div
+              className="chat-messages-virtual"
+              style={{
+                position: "relative",
+                width: "100%",
+                height: `${totalSize}px`
+              }}
+            >
+              {virtualItems.map((virtualRow) => {
+                const msg = filteredMessages[virtualRow.index];
+                const messageKey = msg.id || `msg-${virtualRow.index}`;
+                return (
+                  <div
+                    key={virtualRow.key}
+                    data-index={virtualRow.index}
+                    ref={virtualizer.measureElement}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      transform: `translateY(${virtualRow.start}px)`
+                    }}
+                  >
+                    <MessageView
+                      key={messageKey}
+                      message={msg}
+                      isThoughtExpanded={isThoughtExpanded}
+                      onToggleThought={handleToggleThought}
+                      onInsertCode={onInsertCode}
+                      toolResultsByCallId={toolResultsByCallId}
+                      componentStyles={componentStyles}
+                      executionMessagesById={executionMessagesById}
+                      showMeta={showMessageMeta}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+
+            {threadApprovals.length > 0 && (
+              <div className="chat-message-list-item">
                 <div
-                  key={virtualRow.key}
-                  data-index={virtualRow.index}
-                  ref={virtualizer.measureElement}
                   style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    transform: `translateY(${virtualRow.start}px)`
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: getSpacingPx(SPACING.md)
                   }}
                 >
-                  <MessageView
-                    key={messageKey}
-                    message={msg}
-                    isThoughtExpanded={isThoughtExpanded}
-                    onToggleThought={handleToggleThought}
-                    onInsertCode={onInsertCode}
-                    toolResultsByCallId={toolResultsByCallId}
-                    componentStyles={componentStyles}
-                    executionMessagesById={executionMessagesById}
-                    showMeta={showMessageMeta}
-                  />
+                  {threadApprovals.map(([approvalId, approval]) => (
+                    <ToolApprovalCard
+                      key={approvalId}
+                      approvalId={approvalId}
+                      toolName={approval.tool_name}
+                      category={approval.category}
+                      message={approval.message}
+                      args={approval.args}
+                      onResolve={resolveApproval}
+                    />
+                  ))}
                 </div>
-              );
-            })}
+              </div>
+            )}
+
+            {threadPlanApprovals.length > 0 && (
+              <div className="chat-message-list-item">
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: getSpacingPx(SPACING.md)
+                  }}
+                >
+                  {threadPlanApprovals.map(([approvalId, approval]) => (
+                    <PlanApprovalCard
+                      key={approvalId}
+                      approvalId={approvalId}
+                      approval={approval}
+                      onResolve={resolvePlanApproval}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <StatusFooter
+              status={status}
+              progress={progress}
+              total={total}
+              progressMessage={progressMessage}
+              runningToolCallId={runningToolCallId}
+              currentPlanningUpdate={currentPlanningUpdate}
+              currentTaskUpdate={currentTaskUpdate}
+              currentLogUpdate={currentLogUpdate}
+              hasAgentExecutionMessages={hasAgentExecutionMessages}
+              pendingMediaMessage={pendingMediaMessage}
+              theme={theme}
+            />
           </div>
 
-          {status === "streaming" && (
+          {activeAnchor && anchorTailHeight > 0 && (
             <div
               aria-hidden="true"
-              className="streaming-runway"
-              style={{
-                height: STREAM_RUNWAY_CSS,
-                pointerEvents: "none",
-                flexShrink: 0
-              }}
+              className="chat-anchor-tail"
+              style={{ height: anchorTailHeight, pointerEvents: "none" }}
             />
           )}
-
-          {threadApprovals.length > 0 && (
-            <div className="chat-message-list-item">
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: getSpacingPx(SPACING.md)
-                }}
-              >
-                {threadApprovals.map(([approvalId, approval]) => (
-                  <ToolApprovalCard
-                    key={approvalId}
-                    approvalId={approvalId}
-                    toolName={approval.tool_name}
-                    category={approval.category}
-                    message={approval.message}
-                    args={approval.args}
-                    onResolve={resolveApproval}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {threadPlanApprovals.length > 0 && (
-            <div className="chat-message-list-item">
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: getSpacingPx(SPACING.md)
-                }}
-              >
-                {threadPlanApprovals.map(([approvalId, approval]) => (
-                  <PlanApprovalCard
-                    key={approvalId}
-                    approvalId={approvalId}
-                    approval={approval}
-                    onResolve={resolvePlanApproval}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          <StatusFooter
-            status={status}
-            progress={progress}
-            total={total}
-            progressMessage={progressMessage}
-            runningToolCallId={runningToolCallId}
-            currentPlanningUpdate={currentPlanningUpdate}
-            currentTaskUpdate={currentTaskUpdate}
-            currentLogUpdate={currentLogUpdate}
-            hasAgentExecutionMessages={hasAgentExecutionMessages}
-            pendingMediaMessage={pendingMediaMessage}
-            theme={theme}
-          />
         </div>
       </div>
 

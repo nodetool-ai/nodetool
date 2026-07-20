@@ -152,11 +152,15 @@ export class GraphBuilder {
       (n) => `- node ${n.id} (${n.type})`
     );
     const edgeLines = this._edges.map(
-      (e) => `- edge ${e.source}.${e.sourceHandle} → ${e.target}.${e.targetHandle}`
+      (e) =>
+        `- edge ${e.source}.${e.sourceHandle} → ${e.target}.${e.targetHandle}`
     );
-    return ["Nodes:", ...nodeLines, "Edges:", ...(edgeLines.length > 0 ? edgeLines : ["- (none)"])].join(
-      "\n"
-    );
+    return [
+      "Nodes:",
+      ...nodeLines,
+      "Edges:",
+      ...(edgeLines.length > 0 ? edgeLines : ["- (none)"])
+    ].join("\n");
   }
 
   /**

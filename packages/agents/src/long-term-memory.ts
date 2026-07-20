@@ -183,7 +183,9 @@ function staticScore(item: LongTermMemoryItem, nowMs: number): number {
     recencyFactor(created, nowMs),
     recencyFactor(accessed, nowMs)
   );
-  return SCORE_WEIGHT_RECENCY * recency + SCORE_WEIGHT_IMPORTANCE * item.importance;
+  return (
+    SCORE_WEIGHT_RECENCY * recency + SCORE_WEIGHT_IMPORTANCE * item.importance
+  );
 }
 
 /**
@@ -238,7 +240,9 @@ function coerceKind(value: unknown): MemoryKind {
   return (VALID_KINDS.has(s) ? s : "fact") as MemoryKind;
 }
 
-function metadataFromItem(item: Omit<LongTermMemoryItem, "score">): RecordMetadata {
+function metadataFromItem(
+  item: Omit<LongTermMemoryItem, "score">
+): RecordMetadata {
   return {
     kind: item.kind,
     importance: item.importance,
@@ -270,9 +274,7 @@ function itemFromRecord(
         ? (m["last_accessed_at_ms"] as number)
         : 0,
     accessCount:
-      typeof m["access_count"] === "number"
-        ? (m["access_count"] as number)
-        : 0
+      typeof m["access_count"] === "number" ? (m["access_count"] as number) : 0
   };
 }
 
@@ -418,8 +420,7 @@ export class LongTermMemory {
     }
     this.userId = opts.userId;
     this.namespace = sanitizeNamespace(opts.namespace ?? "default");
-    this.collectionName =
-      `${COLLECTION_PREFIX}_${sanitizeNamespace(this.userId)}_${this.namespace}`;
+    this.collectionName = `${COLLECTION_PREFIX}_${sanitizeNamespace(this.userId)}_${this.namespace}`;
 
     this.vectorProvider = opts.vectorProvider ?? getDefaultVectorProvider();
 
@@ -454,7 +455,8 @@ export class LongTermMemory {
     if (maxItems === undefined) {
       const envMax = process.env["NODETOOL_MEMORY_MAX_ITEMS"];
       const parsed = envMax ? Number.parseInt(envMax, 10) : NaN;
-      maxItems = Number.isFinite(parsed) && parsed >= 0 ? parsed : DEFAULT_MAX_ITEMS;
+      maxItems =
+        Number.isFinite(parsed) && parsed >= 0 ? parsed : DEFAULT_MAX_ITEMS;
     }
     this.maxItems = Math.max(0, maxItems);
   }
@@ -484,9 +486,7 @@ export class LongTermMemory {
       // doesn't, so fall back to the raw model when neither is available.
       const efName =
         (this.embeddingFunction as { name?: string } | null)?.name ?? null;
-      const metadata = efName
-        ? { embedding_model: efName }
-        : undefined;
+      const metadata = efName ? { embedding_model: efName } : undefined;
       this.collectionPromise = this.vectorProvider
         .getOrCreateCollection({
           name: this.collectionName,
@@ -596,14 +596,16 @@ export class LongTermMemory {
       const response = await this.extractionProvider.generateMessageTraced({
         messages: [
           { role: "system", content: EXTRACTION_SYSTEM_PROMPT } as Message,
-          { role: "user", content: extractionUserPrompt(conversation) } as Message
+          {
+            role: "user",
+            content: extractionUserPrompt(conversation)
+          } as Message
         ],
         model: this.extractionModel,
         tools: [],
         maxTokens: 800
       });
-      const raw =
-        typeof response.content === "string" ? response.content : "";
+      const raw = typeof response.content === "string" ? response.content : "";
       extracted = parseExtractionPayload(raw);
     } catch (err) {
       log.warn("LTM extraction failed", {
@@ -734,7 +736,10 @@ export class LongTermMemory {
     try {
       const response = await this.synthesisProvider!.generateMessageTraced({
         messages: [
-          { role: "system", content: MEMORY_SYNTHESIS_SYSTEM_PROMPT } as Message,
+          {
+            role: "system",
+            content: MEMORY_SYNTHESIS_SYSTEM_PROMPT
+          } as Message,
           {
             role: "user",
             content: buildMemorySynthesisUserPrompt(query, items)
@@ -775,7 +780,9 @@ export class LongTermMemory {
     if (!this.isReady()) return [];
     const collection = await this.getCollection();
     const records = await collection.get({ limit: opts.limit ?? 1000 });
-    const items = records.map((r) => itemFromRecord(r.id, r.document, r.metadata));
+    const items = records.map((r) =>
+      itemFromRecord(r.id, r.document, r.metadata)
+    );
     items.sort((a, b) => b.createdAt - a.createdAt);
     return items;
   }

@@ -9,7 +9,7 @@ import { BORDER_RADIUS, FONT_SIZE_MONO } from "../../../ui_primitives";
 interface ThoughtSectionProps {
   thoughtContent: string;
   isExpanded: boolean;
-  onToggle: () => void;
+  onToggle: (event?: React.MouseEvent) => void;
   textBefore?: string;
   textAfter?: string;
 }
