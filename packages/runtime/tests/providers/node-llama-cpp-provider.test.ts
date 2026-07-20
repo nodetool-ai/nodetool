@@ -1,7 +1,22 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
+// Force the optional native binding to look "not installed" regardless of the
+// environment: it IS present in CI (a real dependency of electron/cli) but not
+// in a bare package install. Keep the real node-builtin importer so the GGUF
+// directory scan still works.
+vi.mock("@nodetool-ai/config", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@nodetool-ai/config")>();
+  return {
+    ...actual,
+    importOptionalModule: async (name: string) => {
+      throw new Error(`Cannot find module '${name}'`);
+    }
+  };
+});
+
 import { NodeLlamaCppProvider } from "../../src/providers/node-llama-cpp-provider.js";
 import { parseEmulatedToolCalls } from "../../src/providers/llama-tool-emulation.js";
 import type { ProviderTool } from "../../src/providers/types.js";
