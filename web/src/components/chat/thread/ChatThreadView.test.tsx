@@ -252,6 +252,92 @@ describe("ChatThreadView", () => {
     rafSpy.mockRestore();
   });
 
+  it("keeps the new turn anchored at the top after the response settles", () => {
+    const rafSpy = jest
+      .spyOn(window, "requestAnimationFrame")
+      .mockImplementation((callback) => {
+        callback(0);
+        return 1;
+      });
+    const { container, rerender } = renderWithTheme(
+      <ChatThreadView {...defaultProps} />
+    );
+    const scrollHost = container.querySelector(
+      ".scrollable-message-wrapper"
+    ) as HTMLDivElement;
+    const realContent = container.querySelector(
+      ".chat-messages-real-content"
+    ) as HTMLDivElement;
+    Object.defineProperty(scrollHost, "clientHeight", {
+      configurable: true,
+      value: 600
+    });
+    scrollHost.getBoundingClientRect = () => ({ top: 0 }) as DOMRect;
+    realContent.getBoundingClientRect = () => ({ bottom: 500 }) as DOMRect;
+
+    const nextMessages: Message[] = [
+      ...mockMessages,
+      {
+        type: "message",
+        id: "3",
+        role: "user",
+        content: "A follow-up",
+        created_at: new Date().toISOString()
+      }
+    ];
+    // New user turn arrives while the request is in flight → anchoring mode.
+    rerender(
+      <ThemeProvider theme={mockTheme}>
+        <ChatThreadView
+          {...defaultProps}
+          messages={nextMessages}
+          status="loading"
+        />
+      </ThemeProvider>
+    );
+    expect(scrollHost).toHaveAttribute(
+      "data-scroll-mode",
+      "anchoring-new-turn"
+    );
+
+    // The prompt has landed near the top of the viewport.
+    scrollHost.scrollTop = 400;
+
+    // Response settles: stay anchored, do NOT snap the view to the bottom.
+    rerender(
+      <ThemeProvider theme={mockTheme}>
+        <ChatThreadView
+          {...defaultProps}
+          messages={[
+            ...nextMessages,
+            {
+              type: "message",
+              id: "4",
+              role: "assistant",
+              content: "Answer",
+              created_at: new Date().toISOString()
+            }
+          ]}
+          status="connected"
+        />
+      </ThemeProvider>
+    );
+
+    // Regression: previously this switched to "following-end" and bottom-aligned
+    // the content, pulling the prompt off the top. It must stay anchored.
+    expect(scrollHost).toHaveAttribute(
+      "data-scroll-mode",
+      "anchoring-new-turn"
+    );
+    expect(scrollHost.scrollTop).toBe(400);
+    // Tail trimmed to just what holds the anchor: scrollTop(400) +
+    // clientHeight(600) - realContentBottom(scrollTop 400 + rect.bottom 500) = 100.
+    expect(container.querySelector(".chat-anchor-tail")).toHaveStyle({
+      height: "100px"
+    });
+    rafSpy.mockRestore();
+  });
+
   it("lands on the latest message when a thread is first shown", () => {
     const rafSpy = jest
       .spyOn(window, "requestAnimationFrame")

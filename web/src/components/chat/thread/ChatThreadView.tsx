@@ -807,8 +807,14 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     };
   }, [applyScrollPolicy, scrollHost]);
 
-  // Once the turn settles, remove its reserved tail and return to normal end
-  // following. Free-scrolling mode is never overridden by a status change.
+  // Once the turn settles, keep the just-sent prompt anchored where it landed
+  // instead of snapping the view to the conversation bottom (which for a short
+  // response would pull earlier messages down and push the prompt off the top).
+  // Trim the reserved tail to the minimum that holds the current scroll offset
+  // so no large empty gap lingers below the response. A long response that
+  // already followed to the bottom keeps ~zero tail and stays put. The anchor is
+  // released only when the user scrolls (→ free-scrolling) or sends the next
+  // turn. Free-scrolling mode is never overridden by a status change.
   useEffect(() => {
     if (status === "loading" || status === "streaming") {
       if (scrollModeRef.current === "anchoring-new-turn") {
@@ -818,14 +824,19 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     }
     if (scrollModeRef.current !== "anchoring-new-turn") return;
     if (!anchorSawBusyRef.current) return;
-    setScrollMode("following-end");
-    positionedAnchorIdRef.current = null;
     anchorSawBusyRef.current = false;
-    setActiveAnchor(null);
-    setAnchorTailHeight(0);
-    const frame = requestAnimationFrame(applyScrollPolicy);
-    return () => cancelAnimationFrame(frame);
-  }, [applyScrollPolicy, setScrollMode, status]);
+    const el = scrollRef.current;
+    const realContentBottom = getRealContentBottom();
+    if (!el || realContentBottom == null) {
+      setAnchorTailHeight(0);
+      return;
+    }
+    const requiredTail = Math.max(
+      0,
+      el.scrollTop + el.clientHeight - realContentBottom
+    );
+    setAnchorTailHeight(requiredTail);
+  }, [getRealContentBottom, status]);
 
   const isThoughtExpanded = useCallback(
     (key: string) => expandedThoughtsRef.current[key] ?? false,
