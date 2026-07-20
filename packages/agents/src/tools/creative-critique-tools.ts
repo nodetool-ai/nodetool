@@ -27,6 +27,7 @@
  * exactly like they do everywhere else.
  */
 
+import { randomInt } from "node:crypto";
 import type { Message, MessageContent } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
@@ -366,8 +367,10 @@ export class CompareImagesTool extends Tool {
         if (forward.winner === reversed.winner) {
           return { winner: forward.winner, reason: forward.reason };
         }
-        const tiebreakFirst = Math.random() < 0.5;
-        const tiebreak = tiebreakFirst ? await call(a, b) : await call(b, a);
+        // crypto randomInt over Math.random: not security-sensitive (it only
+        // picks the tiebreak presentation order), but it keeps CodeQL's
+        // insecure-randomness rule quiet without an exception.
+        const tiebreak = randomInt(2) === 0 ? await call(a, b) : await call(b, a);
         return {
           winner: tiebreak.winner,
           reason: `(order-sensitive verdict, tiebreak) ${tiebreak.reason}`
