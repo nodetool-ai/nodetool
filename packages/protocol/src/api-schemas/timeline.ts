@@ -240,81 +240,150 @@ export const clipBindingKind = z.enum([
 ]);
 export type ClipBindingKind = z.infer<typeof clipBindingKind>;
 
-export const timelineClip = z
-  .object({
-    id: z.string(),
-    trackId: z.string(),
-    name: z.string(),
-    startMs: z.number(),
-    durationMs: z.number(),
-    inPointMs: z.number().optional(),
-    outPointMs: z.number().optional(),
-    mediaType: z.enum(["image", "video", "audio", "overlay"]),
-    sourceType: z.enum(["imported", "generated"]),
-    bindingKind: clipBindingKind.optional(),
-    workflowId: z.string().optional(),
-    selectedOutputNodeId: z.string().optional(),
-    paramOverrides: z.record(z.string(), z.unknown()).optional(),
-    prompt: z.string().optional(),
-    negativePrompt: z.string().optional(),
-    provider: z.string().optional(),
-    model: z.string().optional(),
-    /** TTS voice id for `text-to-audio` direct-gen clips. */
-    voice: z.string().optional(),
-    sourceClipId: z.string().nullable().optional(),
-    /** Shared id linking a video clip to its auto-extracted audio clip so they
-     * move/trim together. Without this field Zod strips it on every PATCH, so
-     * autosave/reload silently breaks the link. */
-    linkId: z.string().optional(),
-    width: z.number().optional(),
-    height: z.number().optional(),
-    strength: z.number().optional(),
-    numInferenceSteps: z.number().optional(),
-    seed: z.number().optional(),
-    dependencyHash: z.string().optional(),
-    lastGeneratedHash: z.string().optional(),
-    currentAssetId: z.string().optional(),
-    thumbnailAssetId: z.string().optional(),
-    waveformAssetId: z.string().optional(),
-    /** Storyboard provenance (assemble bridge). Without these fields Zod
-     * strips them on every PATCH, breaking shot→clip revision round-trips. */
-    storyboardBoardId: z.string().optional(),
-    storyboardShotId: z.string().optional(),
-    status: z.enum([
-      "draft",
-      "queued",
-      "generating",
-      "generated",
-      "stale",
-      "failed",
-      "locked",
-      "missing"
-    ]),
-    locked: z.boolean(),
-    muted: z.boolean().optional(),
-    hidden: z.boolean().optional(),
-    versions: z.array(clipVersion),
-    opacity: z.number().optional(),
-    blendMode: blendModeEnum.optional(),
-    speedMultiplier: z.number().optional(),
-    speedBaked: z.boolean().optional(),
-    volumeDb: z.number().optional(),
-    fadeInMs: z.number().optional(),
-    fadeOutMs: z.number().optional(),
-    transform: clipTransform.optional(),
-    borderRadius: z.number().optional(),
-    effects: z.array(clipEffect).optional(),
-    transitionIn: clipTransition.optional(),
-    /** Word-level caption data; present only on caption clips. Without this
-     * field Zod strips it on every PATCH, so autosave erases captions. */
-    caption: clipCaption.optional(),
-    /** Speaker label for transcript clips. Without this field Zod strips it on
-     * every PATCH, so autosave erases the speaker. */
-    speaker: z.string().optional(),
-    /** Paragraph grouping id for transcript clips. Without this field Zod strips
-     * it on every PATCH, so autosave silently breaks paragraph grouping. */
-    paragraphId: z.string().optional()
-  });
+// ── Motion-design animations ─────────────────────────────────────────────────
+
+/**
+ * One motion-design animation attached to a clip. `preset` and `easing` are
+ * plain strings on the wire by design (forward compat): a document saved by a
+ * newer client may carry ids this build doesn't know — they parse fine and are
+ * skipped at compile time. Validation of preset/role is the engine's job, not
+ * the schema's. Without this field on the clip schema Zod would strip
+ * `animations` on every PATCH, silently losing motion on save.
+ */
+export const clipAnimation = z.object({
+  id: z.string(),
+  role: z.enum(["in", "out", "emphasis", "loop"]),
+  preset: z.string(),
+  durationMs: z.number(),
+  delayMs: z.number().optional(),
+  easing: z.string().optional(),
+  enabled: z.boolean().optional(),
+  params: z
+    .record(z.string(), z.union([z.number(), z.string(), z.boolean()]))
+    .optional(),
+  /** Per-word stagger on a text clip's animation. `unit` is a plain string on
+   * the wire (only "word" is implemented; unknown units compile un-staggered)
+   * for the same forward compat as `preset`. Without this field Zod strips it
+   * on every PATCH, silently flattening staggered titles into block motion. */
+  stagger: z
+    .object({
+      unit: z.string(),
+      offsetMs: z.number(),
+      from: z.enum(["start", "end", "center"]).optional()
+    })
+    .optional()
+});
+export type ClipAnimation = z.infer<typeof clipAnimation>;
+
+export const clipTextStyle = z.object({
+  text: z.string(),
+  fontFamily: z.string().optional(),
+  fontSizePx: z.number(),
+  fontWeight: z.number().optional(),
+  color: z.string(),
+  align: z.enum(["left", "center", "right"]).optional(),
+  maxWidthFrac: z.number().optional()
+});
+export type ClipTextStyle = z.infer<typeof clipTextStyle>;
+
+export const clipShapeStyle = z.object({
+  kind: z.enum(["rect", "ellipse", "line"]),
+  fill: z.string().optional(),
+  stroke: z.string().optional(),
+  strokeWidthPx: z.number().optional(),
+  x: z.number().optional(),
+  y: z.number().optional(),
+  width: z.number().optional(),
+  height: z.number().optional(),
+  x2: z.number().optional(),
+  y2: z.number().optional()
+});
+export type ClipShapeStyle = z.infer<typeof clipShapeStyle>;
+
+export const timelineClip = z.object({
+  id: z.string(),
+  trackId: z.string(),
+  name: z.string(),
+  startMs: z.number(),
+  durationMs: z.number(),
+  inPointMs: z.number().optional(),
+  outPointMs: z.number().optional(),
+  mediaType: z.enum(["image", "video", "audio", "overlay", "text", "shape"]),
+  sourceType: z.enum(["imported", "generated"]),
+  bindingKind: clipBindingKind.optional(),
+  workflowId: z.string().optional(),
+  selectedOutputNodeId: z.string().optional(),
+  paramOverrides: z.record(z.string(), z.unknown()).optional(),
+  prompt: z.string().optional(),
+  negativePrompt: z.string().optional(),
+  provider: z.string().optional(),
+  model: z.string().optional(),
+  /** TTS voice id for `text-to-audio` direct-gen clips. */
+  voice: z.string().optional(),
+  sourceClipId: z.string().nullable().optional(),
+  /** Shared id linking a video clip to its auto-extracted audio clip so they
+   * move/trim together. Without this field Zod strips it on every PATCH, so
+   * autosave/reload silently breaks the link. */
+  linkId: z.string().optional(),
+  width: z.number().optional(),
+  height: z.number().optional(),
+  strength: z.number().optional(),
+  numInferenceSteps: z.number().optional(),
+  seed: z.number().optional(),
+  dependencyHash: z.string().optional(),
+  lastGeneratedHash: z.string().optional(),
+  currentAssetId: z.string().optional(),
+  thumbnailAssetId: z.string().optional(),
+  waveformAssetId: z.string().optional(),
+  /** Storyboard provenance (assemble bridge). Without these fields Zod
+   * strips them on every PATCH, breaking shot→clip revision round-trips. */
+  storyboardBoardId: z.string().optional(),
+  storyboardShotId: z.string().optional(),
+  /** Script provenance (script→timeline assemble bridge). Without these
+   * fields Zod strips them on every PATCH, breaking line→clip re-voice
+   * round-trips. */
+  scriptId: z.string().optional(),
+  scriptLineId: z.string().optional(),
+  status: z.enum([
+    "draft",
+    "queued",
+    "generating",
+    "generated",
+    "stale",
+    "failed",
+    "locked",
+    "missing"
+  ]),
+  locked: z.boolean(),
+  muted: z.boolean().optional(),
+  hidden: z.boolean().optional(),
+  versions: z.array(clipVersion),
+  opacity: z.number().optional(),
+  blendMode: blendModeEnum.optional(),
+  speedMultiplier: z.number().optional(),
+  speedBaked: z.boolean().optional(),
+  volumeDb: z.number().optional(),
+  fadeInMs: z.number().optional(),
+  fadeOutMs: z.number().optional(),
+  transform: clipTransform.optional(),
+  borderRadius: z.number().optional(),
+  effects: z.array(clipEffect).optional(),
+  transitionIn: clipTransition.optional(),
+  textStyle: clipTextStyle.optional(),
+  shapeStyle: clipShapeStyle.optional(),
+  /** Word-level caption data; present only on caption clips. Without this
+   * field Zod strips it on every PATCH, so autosave erases captions. */
+  caption: clipCaption.optional(),
+  /** Speaker label for transcript clips. Without this field Zod strips it on
+   * every PATCH, so autosave erases the speaker. */
+  speaker: z.string().optional(),
+  /** Paragraph grouping id for transcript clips. Without this field Zod strips
+   * it on every PATCH, so autosave silently breaks paragraph grouping. */
+  paragraphId: z.string().optional(),
+  /** Motion-design animations. Without this field Zod strips it on every
+   * PATCH, so autosave erases animations. */
+  animations: z.array(clipAnimation).optional()
+});
 export type TimelineClip = z.infer<typeof timelineClip>;
 
 export const timelineDocument = z.object({
@@ -359,6 +428,12 @@ export type TimelineSequenceListItem = z.infer<typeof timelineSequenceListItem>;
 // ── create (POST /api/timeline) ──────────────────────────────────────────────
 
 export const createTimelineInput = z.object({
+  /**
+   * Client-supplied id. The caller mints it so the sequence is addressable
+   * (agent tools, tab refs) before the create round-trip returns, and so a
+   * retried create is idempotent rather than duplicating the sequence.
+   */
+  id: z.string().optional(),
   name: z.string().min(1),
   projectId: z.string().min(1),
   fps: z.number().int().min(1).optional().default(30),
@@ -392,7 +467,10 @@ export const appendClipVersionInput = z.object({
   paramOverridesSnapshot: z.record(z.string(), z.unknown()).optional(),
   costCredits: z.number().optional(),
   durationMs: z.number().optional(),
-  status: z.enum(["success", "failed", "cancelled"]).optional().default("success")
+  status: z
+    .enum(["success", "failed", "cancelled"])
+    .optional()
+    .default("success")
 });
 export type AppendClipVersionInput = z.infer<typeof appendClipVersionInput>;
 

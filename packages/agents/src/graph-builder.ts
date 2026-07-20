@@ -8,8 +8,8 @@
 
 import type { NodeDescriptor, Edge, GraphData } from "@nodetool-ai/protocol";
 
-/** The virtual node type used for LLM-driven agent steps. */
-export const AGENT_STEP_NODE_TYPE = "nodetool.agents.AgentStep";
+/** The node type used for LLM-driven steps in planned graphs. */
+export const AGENT_NODE_TYPE = "nodetool.agents.Agent";
 
 export class GraphBuilder {
   private readonly _nodes = new Map<string, NodeDescriptor>();
@@ -152,11 +152,15 @@ export class GraphBuilder {
       (n) => `- node ${n.id} (${n.type})`
     );
     const edgeLines = this._edges.map(
-      (e) => `- edge ${e.source}.${e.sourceHandle} → ${e.target}.${e.targetHandle}`
+      (e) =>
+        `- edge ${e.source}.${e.sourceHandle} → ${e.target}.${e.targetHandle}`
     );
-    return ["Nodes:", ...nodeLines, "Edges:", ...(edgeLines.length > 0 ? edgeLines : ["- (none)"])].join(
-      "\n"
-    );
+    return [
+      "Nodes:",
+      ...nodeLines,
+      "Edges:",
+      ...(edgeLines.length > 0 ? edgeLines : ["- (none)"])
+    ].join("\n");
   }
 
   /**
@@ -265,6 +269,23 @@ export class GraphBuilder {
       if (!this._nodes.has(edge.target)) {
         errors.push(
           `Edge references non-existent target node '${edge.target}'.`
+        );
+      }
+    }
+
+    // An Agent node needs a prompt from somewhere: either a literal property
+    // or an incoming edge on the `prompt` handle. `prompt` defaults to "" and
+    // isn't schema-required, so validateGraph won't catch an empty one.
+    for (const node of this._nodes.values()) {
+      if (node.type !== AGENT_NODE_TYPE) continue;
+      const literal = node.properties?.["prompt"];
+      const hasLiteral = typeof literal === "string" && literal.length > 0;
+      const hasEdge = this._edges.some(
+        (e) => e.target === node.id && e.targetHandle === "prompt"
+      );
+      if (!hasLiteral && !hasEdge) {
+        errors.push(
+          `Agent node '${node.id}' needs a "prompt": set it as a property or wire an edge into its \`prompt\` handle.`
         );
       }
     }

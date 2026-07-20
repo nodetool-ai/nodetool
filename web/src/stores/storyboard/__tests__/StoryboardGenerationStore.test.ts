@@ -146,7 +146,7 @@ describe("cancelled jobs", () => {
     expect(shot?.keyframe?.uri).toBe("asset://still");
   });
 
-  it("settles a cancelled clip job back to approved", () => {
+  it("settles a cancelled clip job back to keyframe_ready", () => {
     const store = useStoryboardStore.getState();
     store.ensureBoard(BOARD);
     store.upsertShot(BOARD, {
@@ -154,7 +154,7 @@ describe("cancelled jobs", () => {
       id: "s-clip-cxl",
       index: 0,
       action: "test shot",
-      status: "approved",
+      status: "clip_generating",
       keyframe: { type: "image", uri: "asset://still" }
     } as never);
     const gen = useStoryboardGenerationStore.getState();
@@ -166,7 +166,7 @@ describe("cancelled jobs", () => {
       .getState()
       .getBoard(BOARD)
       ?.shots.find((s) => s.id === "s-clip-cxl");
-    expect(shot?.status).toBe("approved");
+    expect(shot?.status).toBe("keyframe_ready");
   });
 });
 

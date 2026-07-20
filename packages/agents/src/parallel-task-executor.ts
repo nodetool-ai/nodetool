@@ -67,6 +67,8 @@ export interface ParallelTaskExecutorOptions {
    * lines up with the plan cache key.
    */
   planTools?: string[];
+  /** External cancellation, forwarded to every task and step executor. */
+  signal?: AbortSignal;
 }
 
 export class ParallelTaskExecutor {
@@ -83,6 +85,7 @@ export class ParallelTaskExecutor {
   private readonly checkpointStore?: CheckpointStore;
   private readonly runId?: string;
   private readonly planTools?: string[];
+  private readonly signal?: AbortSignal;
   /**
    * IDs of tasks that ran but did not genuinely succeed (budget exhausted,
    * unsatisfiable dependency, or an error result). Tracked separately from
@@ -107,6 +110,7 @@ export class ParallelTaskExecutor {
     this.checkpointStore = opts.checkpointStore;
     this.runId = opts.runId;
     this.planTools = opts.planTools;
+    this.signal = opts.signal;
   }
 
   /**
@@ -313,7 +317,8 @@ export class ParallelTaskExecutor {
       maxStepIterations: this.maxStepIterations,
       maxTokens: this.maxTokens,
       parallelExecution: true, // Enable parallel step execution within each task
-      upstreamMemoryKeys
+      upstreamMemoryKeys,
+      signal: this.signal
     });
 
     let taskResult: unknown = null;
@@ -472,9 +477,7 @@ export class ParallelTaskExecutor {
    */
   private getExecutableTasks(): Task[] {
     const completedIds = new Set(
-      this.taskPlan.tasks
-        .filter((t) => t.completed)
-        .map((t) => t.id)
+      this.taskPlan.tasks.filter((t) => t.completed).map((t) => t.id)
     );
     // Input keys also count as satisfied dependencies
     for (const key of Object.keys(this.inputs)) {

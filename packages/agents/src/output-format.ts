@@ -16,7 +16,9 @@ export const OUTPUT_FORMAT_DIRECTIVES: Record<
   html: "Final result: HTML fragment."
 };
 
-export function outputFormatDirective(format: AgentOutputFormat): string | null {
+export function outputFormatDirective(
+  format: AgentOutputFormat
+): string | null {
   if (format === "structured") return null;
   return OUTPUT_FORMAT_DIRECTIVES[format];
 }

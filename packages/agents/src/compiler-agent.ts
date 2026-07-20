@@ -123,6 +123,8 @@ export interface CompilerAgentOptions {
   /** Cap on output tokens per compile turn. Forwarded to `generateLoop`. */
   maxTokens?: number;
   threadId?: string;
+  /** External cancellation. Aborts the compile turn mid-flight. */
+  signal?: AbortSignal;
 }
 
 export class CompilerAgent {
@@ -137,6 +139,7 @@ export class CompilerAgent {
   private readonly maxRounds: number;
   private readonly maxTokens?: number;
   private readonly threadId?: string;
+  private readonly signal?: AbortSignal;
 
   constructor(opts: CompilerAgentOptions) {
     this.objective = opts.objective;
@@ -149,6 +152,7 @@ export class CompilerAgent {
     this.maxRounds = opts.maxRounds ?? MAX_COMPILE_ROUNDS;
     this.maxTokens = opts.maxTokens;
     this.threadId = opts.threadId;
+    this.signal = opts.signal;
 
     const base = this.outputSchema
       ? COMPILER_SYSTEM_PROMPT_STRUCTURED
@@ -340,7 +344,8 @@ export class CompilerAgent {
       threadId: this.threadId,
       maxIterations: this.maxRounds,
       maxTokens: this.maxTokens,
-      sequentialTools: true
+      sequentialTools: true,
+      signal: this.signal
     });
 
     for await (const item of stream as AsyncGenerator<ProviderStreamItem>) {

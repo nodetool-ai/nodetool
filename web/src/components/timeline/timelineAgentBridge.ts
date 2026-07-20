@@ -4,11 +4,11 @@
  * Bridge between the agent tooling layer (the `ui_timeline_*` frontend tools)
  * and the live timeline editor, mirroring `model3DToolBridge` for the 3D editor.
  *
- * The open {@link TimelineEditor} registers a {@link TimelineAgentHandler} on
- * mount (and clears it on unmount). The handler closes over the editor's
- * per-instance stores (document, UI, playback) plus the direct-generation job
- * runner, so the tools always operate on the focused sequence — or fail cleanly
- * when no timeline editor is open.
+ * Each open {@link TimelineEditor} registers a {@link TimelineAgentHandler}
+ * under its sequence id on mount (and clears it on unmount). The handler closes
+ * over that editor's per-instance stores (document, UI, playback) plus the
+ * direct-generation job runner. Tools name the sequence they target, so every
+ * open sequence is addressable regardless of which one has focus.
  *
  * Everything crossing the bridge is a plain serializable value: the agent reads
  * {@link TimelineSnapshot} / {@link TimelineClipNode} objects and never touches
@@ -36,7 +36,7 @@ export interface TimelineClipNode {
   trackId: string;
   /** Name of the clip's track, or null when the track is gone. */
   trackName: string | null;
-  mediaType: "image" | "video" | "audio" | "overlay";
+  mediaType: "image" | "video" | "audio" | "overlay" | "text" | "shape";
   sourceType: "imported" | "generated";
   bindingKind?: string;
   /** Absolute start on the sequence timeline (ms). */
@@ -66,6 +66,45 @@ export interface TimelineClipNode {
   hidden: boolean;
   muted: boolean;
   locked: boolean;
+  /** Motion-design animations attached to the clip, when any. */
+  animations?: TimelineAnimationNode[];
+  textStyle?: TimelineTextStyle;
+  shapeStyle?: TimelineShapeStyle;
+}
+
+export interface TimelineTextStyle {
+  text: string;
+  fontFamily?: string;
+  fontSizePx: number;
+  fontWeight?: number;
+  color: string;
+  align?: "left" | "center" | "right";
+  maxWidthFrac?: number;
+}
+
+export interface TimelineShapeStyle {
+  kind: "rect" | "ellipse" | "line";
+  fill?: string;
+  stroke?: string;
+  strokeWidthPx?: number;
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  x2?: number;
+  y2?: number;
+}
+
+/** Serializable view of one motion-design animation on a clip. */
+export interface TimelineAnimationNode {
+  id: string;
+  role: "in" | "out" | "emphasis" | "loop";
+  preset: string;
+  durationMs: number;
+  delayMs?: number;
+  easing?: string;
+  enabled?: boolean;
+  params?: Record<string, number | string | boolean>;
 }
 
 /** Full snapshot of the open sequence the agent reads to plan edits. */
@@ -118,6 +157,21 @@ export interface TimelineGenerateResult {
   note?: string;
 }
 
+export interface TimelineAddTextClipOptions {
+  text: string;
+  trackId?: string;
+  startMs?: number;
+  durationMs?: number;
+  style?: Omit<TimelineTextStyle, "text">;
+}
+
+export interface TimelineAddShapeClipOptions {
+  shape: TimelineShapeStyle;
+  trackId?: string;
+  startMs?: number;
+  durationMs?: number;
+}
+
 /** Render/audio params the agent can patch on any clip. */
 export interface TimelineClipParamsPatch {
   name?: string;
@@ -131,6 +185,8 @@ export interface TimelineClipParamsPatch {
   hidden?: boolean;
   muted?: boolean;
   locked?: boolean;
+  textStyle?: TimelineTextStyle;
+  shapeStyle?: TimelineShapeStyle;
 }
 
 /** Generation-binding fields the agent can change on a generated clip. */
@@ -192,6 +248,32 @@ export interface TimelineClipFramesResult {
   frames: TimelineClipFrameNode[];
 }
 
+/** One animation the agent asks to apply. Ids and defaults are filled in by
+ *  the handler from the preset catalog. */
+export interface ClipAnimationInput {
+  role: "in" | "out" | "emphasis" | "loop";
+  preset: string;
+  durationMs?: number;
+  delayMs?: number;
+  easing?: string;
+  enabled?: boolean;
+  params?: Record<string, number | string | boolean>;
+  /**
+   * Per-word stagger — text clips only. Each word runs the animation for
+   * `durationMs`, delayed `offsetMs` from the previous word (`from` picks
+   * which word leads; default "start"). The handler throws when the target
+   * clip is not a text clip.
+   */
+  stagger?: {
+    unit: "word";
+    offsetMs: number;
+    from?: "start" | "end" | "center";
+  };
+}
+
+/** How {@link TimelineAgentHandler.setClipAnimations} applies its inputs. */
+export type ClipAnimationMode = "add" | "replace";
+
 /**
  * Operations the live {@link TimelineEditor} exposes to the agent tooling
  * layer. Clips and tracks are addressed by id or by (case-insensitive) name;
@@ -207,6 +289,8 @@ export interface TimelineAgentHandler {
   generateClip: (
     opts: TimelineGenerateOptions
   ) => Promise<TimelineGenerateResult>;
+  addTextClip: (opts: TimelineAddTextClipOptions) => TimelineClipNode;
+  addShapeClip: (opts: TimelineAddShapeClipOptions) => TimelineClipNode;
   /** Split a clip at the given time (defaults to the playhead). */
   splitClip: (target: string, atMs?: number) => TimelineClipNode[];
   trimClip: (target: string, patch: TimelineTrimPatch) => TimelineClipNode;
@@ -221,6 +305,21 @@ export interface TimelineAgentHandler {
     target: string,
     patch: TimelineClipBindingPatch
   ) => Promise<TimelineClipNode>;
+  /**
+   * Apply motion-design animations to a clip. `replace` (default) swaps the
+   * clip's animations; `add` appends. Throws with the valid options when a
+   * preset is unknown or a role is not allowed for the preset.
+   */
+  setClipAnimations: (
+    target: string,
+    animations: ClipAnimationInput[],
+    mode: ClipAnimationMode
+  ) => TimelineClipNode;
+  /** Remove a clip's animations, optionally only those of one role. */
+  clearClipAnimations: (
+    target: string,
+    role?: ClipAnimationInput["role"]
+  ) => TimelineClipNode;
   getClipFrames: (
     target: string,
     opts: TimelineClipFramesOptions
@@ -230,29 +329,43 @@ export interface TimelineAgentHandler {
   seek: (timeMs: number) => number;
 }
 
-let handler: TimelineAgentHandler | null = null;
+const handlers = new Map<string, TimelineAgentHandler>();
 
 /**
- * Register (or clear, with null) the handler for the currently-focused editor.
- * The editor calls this when it becomes active and clears it on unmount / blur
- * so the ui_timeline_* tools always operate on the live sequence — or fail
- * cleanly when no editor is open.
+ * Register (or clear, with null) the handler for one open sequence. Every
+ * mounted {@link TimelineEditor} registers under its own sequence id, so the
+ * ui_timeline_* tools address any open sequence explicitly — focus does not
+ * enter into it.
  */
 export function setTimelineAgentHandler(
+  sequenceId: string,
   next: TimelineAgentHandler | null
 ): void {
-  handler = next;
+  if (next) handlers.set(sequenceId, next);
+  else handlers.delete(sequenceId);
 }
 
-export function hasTimelineAgentHandler(): boolean {
-  return handler !== null;
+export function hasTimelineAgentHandler(sequenceId: string): boolean {
+  return handlers.has(sequenceId);
 }
 
-export function getTimelineAgentHandler(): TimelineAgentHandler {
+export function getTimelineAgentHandler(
+  sequenceId: string
+): TimelineAgentHandler {
+  const handler = handlers.get(sequenceId);
   if (!handler) {
+    const open = listOpenTimelineSequenceIds();
     throw new Error(
-      "No timeline editor is open. Open a sequence in the timeline editor to use timeline tools."
+      `No timeline sequence "${sequenceId}" is open. ` +
+        (open.length > 0
+          ? `Open sequences: ${open.join(", ")}.`
+          : "No timeline sequences are currently open.")
     );
   }
   return handler;
+}
+
+/** Ids of every sequence currently open in a timeline editor. */
+export function listOpenTimelineSequenceIds(): string[] {
+  return [...handlers.keys()];
 }

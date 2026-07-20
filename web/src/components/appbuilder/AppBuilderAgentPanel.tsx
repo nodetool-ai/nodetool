@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useEffect, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
+import type { BuildUiContextOptions } from "../../lib/chat/uiContext";
 
 import ChatView from "../chat/containers/ChatView";
 import ChatPanelHeader from "../chat/containers/ChatPanelHeader";
@@ -132,6 +133,13 @@ const AppBuilderAgentPanel: React.FC<AppBuilderAgentPanelProps> = ({
     await newWorkflowThread(workflowId);
   }, [newWorkflowThread, workflowId]);
 
+  // The App Builder is a route, not a workspace tab, so it names its own
+  // focused document — the workflow whose `app_doc` the ui_app_* tools edit.
+  const appBuilderUiContext = useMemo<BuildUiContextOptions>(
+    () => ({ focused: { type: "app", id: workflowId } }),
+    [workflowId]
+  );
+
   const messages = getCurrentMessagesSync();
   const viewStatus: ChatViewStatus =
     status === "stopping" ? "connected" : (status as ChatViewStatus);
@@ -180,6 +188,7 @@ const AppBuilderAgentPanel: React.FC<AppBuilderAgentPanelProps> = ({
           workflowId={workflowId}
           workflowAssistant
           systemPrompt={APP_BUILDER_SYSTEM_PROMPT}
+          uiContext={appBuilderUiContext}
           composerVariant="media"
           hideModePicker
           composerPlaceholder="Ask the agent to build your app or edit the workflow…"

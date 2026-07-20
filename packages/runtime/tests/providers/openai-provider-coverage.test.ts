@@ -83,13 +83,64 @@ describe("OpenAIProvider – resolveImageSize", () => {
     ).toBe("2160x3840");
   });
 
-  it("uses the API default for invalid GPT Image 2 dimensions", () => {
+  it("returns null for non-positive GPT Image 2 dimensions", () => {
     expect(provider.resolveImageSize(-1024, -1024, "gpt-image-2")).toBeNull();
-    expect(provider.resolveImageSize(2049, 1152, "gpt-image-2")).toBeNull();
-    expect(provider.resolveImageSize(3856, 1152, "gpt-image-2")).toBeNull();
-    expect(provider.resolveImageSize(2400, 784, "gpt-image-2")).toBeNull();
-    expect(provider.resolveImageSize(800, 800, "gpt-image-2")).toBeNull();
-    expect(provider.resolveImageSize(3840, 2176, "gpt-image-2")).toBeNull();
+  });
+
+  it("snaps off-grid GPT Image 2 dimensions to the 16px grid", () => {
+    expect(provider.resolveImageSize(2049, 1152, "gpt-image-2")).toBe(
+      "2048x1152"
+    );
+    // 16:9 at 1K — the size the TextToImage node actually requests.
+    expect(provider.resolveImageSize(1820, 1024, "gpt-image-2")).toBe(
+      "1824x1024"
+    );
+  });
+
+  it("scales GPT Image 2 dimensions back inside the API limits", () => {
+    // Long edge over 3840 (and over 3:1, so the short edge grows too).
+    expect(provider.resolveImageSize(3856, 1152, "gpt-image-2")).toBe(
+      "3648x1216"
+    );
+    // Area over 8.3MP.
+    expect(provider.resolveImageSize(3840, 2176, "gpt-image-2")).toBe(
+      "3824x2160"
+    );
+    // Area under 0.64MP.
+    expect(provider.resolveImageSize(800, 800, "gpt-image-2")).toBe("816x816");
+  });
+
+  it("clamps GPT Image 2 aspect ratios beyond 3:1", () => {
+    // 6:1 clamps to 3:1, keeping the requested pixel budget.
+    expect(provider.resolveImageSize(2400, 400, "gpt-image-2")).toBe(
+      "1696x576"
+    );
+  });
+
+  it("keeps every TextToImage aspect ratio non-square for GPT Image 2", () => {
+    const ratios: Array<[number, number]> = [
+      [16, 9],
+      [4, 3],
+      [21, 9],
+      [9, 16],
+      [3, 4],
+      [4, 5]
+    ];
+    for (const [aw, ah] of ratios) {
+      const [w, h] =
+        aw >= ah
+          ? [Math.round((1024 * aw) / ah), 1024]
+          : [1024, Math.round((1024 * ah) / aw)];
+      const size = provider.resolveImageSize(w, h, "gpt-image-2");
+      expect(size).not.toBeNull();
+      const [ow, oh] = size!.split("x").map(Number);
+      expect(ow % 16).toBe(0);
+      expect(oh % 16).toBe(0);
+      expect(ow * oh).toBeGreaterThanOrEqual(655_360);
+      expect(ow * oh).toBeLessThanOrEqual(8_294_400);
+      // Ratio preserved within 1%.
+      expect(Math.abs(ow / oh / (w / h) - 1)).toBeLessThan(0.01);
+    }
   });
 });
 
@@ -102,12 +153,12 @@ describe("OpenAIProvider – resolveVideoSize", () => {
   it("uses preset for known aspect+resolution", () => {
     expect(OpenAIProvider.resolveVideoSize("9:16", "720p")).toBe("720x1280");
     expect(OpenAIProvider.resolveVideoSize("16:9", "1080p")).toBe("1920x1080");
-    expect(
-      OpenAIProvider.resolveVideoSize("16:9", "1080p", "sora-2")
-    ).toBe("1280x720");
-    expect(
-      OpenAIProvider.resolveVideoSize("16:9", "1080p", "sora-2-pro")
-    ).toBe("1920x1080");
+    expect(OpenAIProvider.resolveVideoSize("16:9", "1080p", "sora-2")).toBe(
+      "1280x720"
+    );
+    expect(OpenAIProvider.resolveVideoSize("16:9", "1080p", "sora-2-pro")).toBe(
+      "1920x1080"
+    );
   });
 
   it("handles default 16:9 when aspectRatio is null", () => {
@@ -819,7 +870,10 @@ describe("OpenAIProvider – textToSpeech", () => {
       }
     );
     const samples: number[] = [];
-    for await (const chunk of provider.textToSpeech({ text: "hi", model: "tts-1" })) {
+    for await (const chunk of provider.textToSpeech({
+      text: "hi",
+      model: "tts-1"
+    })) {
       samples.push(...chunk.samples);
     }
     expect(samples).toEqual([513, 1027]);
@@ -1277,11 +1331,48 @@ describe("OpenAIProvider – textToVideo", () => {
     });
 
     expect(result).toBeInstanceOf(Uint8Array);
-    expect(videosCreate).toHaveBeenCalledWith({
-      model: "sora",
+    // Second arg is the SDK request-options bag carrying the abort signal.
+    expect(videosCreate).toHaveBeenCalledWith(
+      {
+        model: "sora",
+        prompt: "A cat",
+        seconds: "8",
+        size: "1280x720"
+      },
+      { signal: undefined }
+    );
+  });
+
+  it("forwards the caller's abort signal to the SDK", async () => {
+    // Regression: media Stop only discarded results after the paid request
+    // completed, because no signal reached the provider at all.
+    const videosCreate = vi
+      .fn()
+      .mockResolvedValue({ id: "v1", status: "completed" });
+    const mockClient = {
+      videos: {
+        create: videosCreate,
+        retrieve: vi.fn(),
+        downloadContent: vi.fn().mockResolvedValue({
+          arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer
+        })
+      }
+    };
+    const provider = new OpenAIProvider(
+      { OPENAI_API_KEY: "k" },
+      { client: mockClient as any }
+    );
+
+    const controller = new AbortController();
+    await provider.textToVideo({
       prompt: "A cat",
-      seconds: "8",
-      size: "1280x720"
+      model: { id: "sora", name: "sora", provider: "openai" },
+      durationSeconds: 8,
+      signal: controller.signal
+    });
+
+    expect(videosCreate).toHaveBeenCalledWith(expect.anything(), {
+      signal: controller.signal
     });
   });
 
@@ -1440,7 +1531,8 @@ describe("OpenAIProvider – imageToVideo", () => {
         model: "sora",
         seconds: "12",
         size: "1280x720"
-      })
+      }),
+      { signal: undefined }
     );
   });
 

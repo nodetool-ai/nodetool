@@ -48,6 +48,118 @@ function getHeaders(context: ProcessingContext): Record<string, string> {
   return headers;
 }
 
+// Column/row spacing for the auto-layout. 280 is NodeTool's default node
+// width, so a 320 column gap leaves ~40px between stages.
+const LAYOUT_COL_GAP = 320;
+const LAYOUT_ROW_GAP = 220;
+
+/**
+ * Assign a grid position to every node from the graph's dataflow: columns are
+ * topological depth (longest path from a root), rows are order within a
+ * column. A left-to-right layered layout — the same shape NodeTool graphs are
+ * authored in — without a full layout engine (no `elkjs` in the backend).
+ */
+function computeAutoLayout(
+  nodeIds: string[],
+  edges: Array<Record<string, unknown>>
+): Map<string, { x: number; y: number }> {
+  const ids = new Set(nodeIds);
+  const outgoing = new Map<string, string[]>();
+  const indegree = new Map<string, number>();
+  for (const id of nodeIds) {
+    outgoing.set(id, []);
+    indegree.set(id, 0);
+  }
+  for (const edge of edges) {
+    const source = edge["source"] == null ? "" : String(edge["source"]);
+    const target = edge["target"] == null ? "" : String(edge["target"]);
+    if (source === target || !ids.has(source) || !ids.has(target)) continue;
+    outgoing.get(source)!.push(target);
+    indegree.set(target, (indegree.get(target) ?? 0) + 1);
+  }
+
+  // Longest-path layering via Kahn's topological order: each node lands one
+  // column past its deepest upstream. Roots (no incoming edge) sit in column 0.
+  const column = new Map<string, number>();
+  const remaining = new Map(indegree);
+  const queue: string[] = [];
+  for (const id of nodeIds) {
+    column.set(id, 0);
+    if ((indegree.get(id) ?? 0) === 0) queue.push(id);
+  }
+  const ordered: string[] = [];
+  for (let head = 0; head < queue.length; head++) {
+    const id = queue[head];
+    ordered.push(id);
+    for (const target of outgoing.get(id) ?? []) {
+      column.set(target, Math.max(column.get(target)!, column.get(id)! + 1));
+      remaining.set(target, remaining.get(target)! - 1);
+      if (remaining.get(target) === 0) queue.push(target);
+    }
+  }
+  // A cycle leaves nodes that never reach indegree 0; keep them in column 0 and
+  // append in original order so they still get a slot.
+  const placed = new Set(ordered);
+  for (const id of nodeIds) if (!placed.has(id)) ordered.push(id);
+
+  const rowByColumn = new Map<number, number>();
+  const positions = new Map<string, { x: number; y: number }>();
+  for (const id of ordered) {
+    const col = column.get(id) ?? 0;
+    const row = rowByColumn.get(col) ?? 0;
+    rowByColumn.set(col, row + 1);
+    positions.set(id, { x: col * LAYOUT_COL_GAP, y: row * LAYOUT_ROW_GAP });
+  }
+  return positions;
+}
+
+/**
+ * Set `ui_properties.position` on every node from {@link computeAutoLayout},
+ * overriding any caller-supplied coordinates (create_workflow always
+ * auto-lays-out) while preserving other `ui_properties` fields (title, color).
+ */
+function withAutoLayout(nodes: unknown, edges: unknown): unknown {
+  if (!Array.isArray(nodes)) return nodes;
+  const isRecord = (v: unknown): v is Record<string, unknown> =>
+    !!v && typeof v === "object" && !Array.isArray(v);
+  const edgeList = Array.isArray(edges) ? edges.filter(isRecord) : [];
+  const ids = nodes
+    .filter(isRecord)
+    .map((node) => String(node["id"] ?? ""));
+  const positions = computeAutoLayout(ids, edgeList);
+  return nodes.map((node) => {
+    if (!isRecord(node)) return node;
+    const id = String(node["id"] ?? "");
+    const ui = isRecord(node["ui_properties"]) ? node["ui_properties"] : {};
+    return {
+      ...node,
+      ui_properties: {
+        zIndex: 0,
+        width: 280,
+        selectable: true,
+        ...ui,
+        position: positions.get(id) ?? { x: 0, y: 0 }
+      }
+    };
+  });
+}
+
+/**
+ * Normalize an agent-authored graph into the *stored* workflow shape.
+ *
+ * Two representations exist. The kernel (and `GraphPlanner`/`GraphBuilder`)
+ * puts a node's property bag under `properties`; the persisted/editor shape
+ * puts it flat under `data`, with layout under `ui_properties`. Saving kernel
+ * shape runs fine — `normalizeGraph` in the websocket runner maps `data` →
+ * `properties` on the way to the kernel and leaves an existing `properties`
+ * alone — but the editor reads `node.data`, so such a workflow opens with
+ * every node blank. The planner emits no layout at all, so the nodes would
+ * also pile at the origin.
+ *
+ * This is the boundary where both conversions happen — `create_workflow` is
+ * the only tool that persists a graph, so it maps `properties` → `data` and
+ * always auto-lays-out the result.
+ */
 function normalizeWorkflowGraph(graph: unknown): unknown {
   if (!graph || typeof graph !== "object" || Array.isArray(graph)) return graph;
   const record = graph as Record<string, unknown>;
@@ -59,13 +171,16 @@ function normalizeWorkflowGraph(graph: unknown): unknown {
       return value;
     }
     const node = value as Record<string, unknown>;
-    const { node_type, parameters, ...rest } = node;
-    const properties = node["properties"] ?? parameters;
+    // `properties` and `parameters` are dropped from the spread so the stored
+    // node carries the bag once, under `data`. `ui_properties` stays in `rest`
+    // and is filled in by `withAutoLayout` below.
+    const { node_type, parameters, properties, ...rest } = node;
+    const data = properties ?? parameters ?? node["data"];
     return {
       ...rest,
       id: node["id"] ?? fallbackId,
       type: node["type"] ?? node_type,
-      ...(properties === undefined ? {} : { properties })
+      ...(data === undefined ? {} : { data })
     };
   };
 
@@ -93,7 +208,7 @@ function normalizeWorkflowGraph(graph: unknown): unknown {
       })
     : rawEdges;
 
-  return { ...record, nodes, edges };
+  return { ...record, nodes: withAutoLayout(nodes, edges), edges };
 }
 
 async function apiGet(
@@ -491,6 +606,12 @@ export interface PlanWorkflowGraphToolOptions {
    * so the UI can nest them under this tool's call card.
    */
   forwardMessage?: (msg: ProcessingMessage) => Promise<void> | void;
+  /**
+   * Resolves the abort signal for the *current* chat turn. Read lazily on each
+   * call: the tool outlives a single turn, and each turn installs a fresh
+   * controller, so a captured signal would go stale after the first Stop.
+   */
+  signal?: () => AbortSignal | undefined;
 }
 
 export class PlanWorkflowGraphTool extends Tool {
@@ -540,18 +661,31 @@ export class PlanWorkflowGraphTool extends Tool {
         ? (params[TOOL_CALL_ID_FIELD] as string)
         : null;
 
+    const signal = this.opts.signal?.();
+    if (signal?.aborted) {
+      return { error: "Graph planning was cancelled." };
+    }
+
     const planner = new GraphPlanner({
       provider: this.opts.provider,
       model: this.opts.model,
       registry: this.opts.registry,
       tools: [],
       inputs: (params["inputs"] as Record<string, unknown>) ?? {},
-      providers: this.opts.providers
+      providers: this.opts.providers,
+      signal
     });
 
     const gen = planner.plan(objective, context);
     let next = await gen.next();
     while (!next.done) {
+      // The planner's own abort stops its LLM loop, but a tool call already
+      // in flight still resolves — stop driving the generator so a Stop ends
+      // the turn promptly instead of after the current round.
+      if (signal?.aborted) {
+        await gen.return(null);
+        return { error: "Graph planning was cancelled." };
+      }
       if (this.opts.forwardMessage) {
         const tagged = {
           ...(next.value as unknown as Record<string, unknown>),
@@ -565,6 +699,10 @@ export class PlanWorkflowGraphTool extends Tool {
         }
       }
       next = await gen.next();
+    }
+
+    if (signal?.aborted) {
+      return { error: "Graph planning was cancelled." };
     }
 
     const graph = next.value;

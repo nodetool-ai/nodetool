@@ -12,7 +12,6 @@ import {
   ExtractorNode,
   ClassifierNode,
   AgentNode,
-  AgentStepNode,
   AGENT_NODES
 } from "../src/nodes/agents.js";
 import {
@@ -85,51 +84,16 @@ describe("text agents persist generations", () => {
 
 describe("AGENT_NODES export", () => {
   it("contains all 7 agent node classes", () => {
-    expect(AGENT_NODES).toHaveLength(7);
+    expect(AGENT_NODES).toHaveLength(6);
     expect(AGENT_NODES).toContain(SummarizerNode);
     expect(AGENT_NODES).toContain(EnhancePromptNode);
     expect(AGENT_NODES).toContain(CreateThreadNode);
     expect(AGENT_NODES).toContain(ExtractorNode);
     expect(AGENT_NODES).toContain(ClassifierNode);
     expect(AGENT_NODES).toContain(AgentNode);
-    expect(AGENT_NODES).toContain(AgentStepNode);
   });
 });
 
-describe("AgentStepNode", () => {
-  it("registers as nodetool.agents.AgentStep with virtual-step metadata", () => {
-    const meta = getNodeMetadata(AgentStepNode);
-    expect(meta.node_type).toBe("nodetool.agents.AgentStep");
-    expect(meta.namespace).toBe("nodetool.agents");
-    const propNames = meta.properties.map((p) => p.name).sort();
-    expect(propNames).toEqual(
-      ["input", "instructions", "output_schema", "tools"].sort()
-    );
-    const instructions = meta.properties.find(
-      (p) => p.name === "instructions"
-    );
-    expect(instructions?.required).toBe(true);
-    const outputs = meta.outputs.map((o) => o.name);
-    expect(outputs).toContain("output");
-  });
-
-  it("does NOT declare a model property — workflow's configured model is used", () => {
-    const meta = getNodeMetadata(AgentStepNode);
-    expect(meta.properties.find((p) => p.name === "model")).toBeUndefined();
-  });
-
-  it("is hidden from the palette but stays registered for agent runners", () => {
-    const meta = getNodeMetadata(AgentStepNode);
-    expect(meta.hidden).toBe(true);
-    expect(AGENT_NODES).toContain(AgentStepNode);
-  });
-
-  it("process() refuses to run via the standard kernel path", async () => {
-    await expect(new AgentStepNode().process()).rejects.toThrow(
-      /agent runner|configured provider/i
-    );
-  });
-});
 
 // ---- SummarizerNode ----
 describe("SummarizerNode", () => {
@@ -2088,3 +2052,96 @@ describe("SVGGeneratorNode", () => {
   });
 });
 
+
+describe("AgentNode – injected tools", () => {
+  // The agent workflow runner puts its live tools on the context; a node that
+  // selects one by name must get that instance rather than a builtin stub.
+  const makeContext = (tools: unknown[], onLoop: (args: any) => void) => ({
+    getProvider: async () => ({
+      provider: "test",
+      async *generateLoop(args: any) {
+        onLoop(args);
+        const tool = (args.tools ?? [])[0];
+        const call = { id: "tc_1", name: tool.name, args: { q: "hi" } };
+        yield call;
+        const content = await tool.execute(call.args, call.id);
+        yield {
+          type: "message",
+          message: { role: "tool", toolCallId: call.id, content }
+        };
+        yield { type: "message", message: { role: "assistant", content: "ok" } };
+      }
+    }),
+    getInjectedTool: (name: string) =>
+      (tools as Array<{ name: string }>).find((t) => t.name === name) ?? null
+  });
+
+  it("forwards the provider's tool-call id to the injected tool", async () => {
+    const calls: Array<{
+      params: Record<string, unknown>;
+      options?: { toolCallId?: string };
+    }> = [];
+    const injected = {
+      name: "run_subtask",
+      description: "runs a subtask",
+      inputSchema: { type: "object", properties: {} },
+      execute: async (
+        _ctx: unknown,
+        params: Record<string, unknown>,
+        options?: { toolCallId?: string }
+      ) => {
+        calls.push({ params, options });
+        return { status: "ok" };
+      }
+    };
+
+    const n = new (AgentNode as any)();
+    n.assign({
+      model: { provider: "test", id: "m1" },
+      prompt: "go",
+      tools: [{ name: "run_subtask" }]
+    });
+
+    let seenTools: any[] = [];
+    await n.process(
+      makeContext([injected], (args) => {
+        seenTools = args.tools ?? [];
+      }) as any
+    );
+
+    expect(seenTools.map((t) => t.name)).toEqual(["run_subtask"]);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].params).toEqual({ q: "hi" });
+    expect(calls[0].options).toEqual({ toolCallId: "tc_1" });
+  });
+
+  it("prefers the injected tool over builtin hydration", async () => {
+    let injectedRan = false;
+    const injected = {
+      name: "google_search",
+      description: "the run's wired search tool",
+      inputSchema: { type: "object", properties: {} },
+      execute: async () => {
+        injectedRan = true;
+        return { status: "ok" };
+      }
+    };
+
+    const n = new (AgentNode as any)();
+    n.assign({
+      model: { provider: "test", id: "m1" },
+      prompt: "go",
+      tools: [{ name: "google_search" }]
+    });
+
+    let seenTools: any[] = [];
+    await n.process(
+      makeContext([injected], (args) => {
+        seenTools = args.tools ?? [];
+      }) as any
+    );
+
+    expect(seenTools[0].description).toBe("the run's wired search tool");
+    expect(injectedRan).toBe(true);
+  });
+});

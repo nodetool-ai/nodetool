@@ -44,6 +44,7 @@ import type {
   TimelineMarker,
   TrackEffect,
   ClipBindingKind,
+  ClipAnimation,
   TranscriptLine
 } from "@nodetool-ai/timeline";
 import type { Asset } from "../ApiTypes";
@@ -244,6 +245,10 @@ export interface TimelineStoreState {
 
   /** Update an arbitrary subset of fields on a clip. */
   patchClip: (clipId: string, patch: Partial<TimelineClip>) => void;
+
+  /** Replace a clip's motion-design animations. One patch per call so undo
+   *  granularity stays per-edit. */
+  setClipAnimations: (clipId: string, animations: ClipAnimation[]) => void;
 
   /** Restore a clip to a previously generated version (purely local; autosave persists on next save cycle). */
   restoreVersion: (clipId: string, versionId: string) => void;
@@ -1109,6 +1114,9 @@ export const createTimelineStore = (
             };
           }),
 
+        // Trims change only duration/in-out points. Animations need no rewrite:
+        // `compileClipAnimations` clamps windows to the clip's current duration
+        // and drops windows that fall off the end at sample time.
         trimClipStart: (clipId, deltaMs) =>
           set((state) => {
             const clip = state.clips.find((c) => c.id === clipId);
@@ -1338,6 +1346,12 @@ export const createTimelineStore = (
             };
           }),
 
+        // patchClip replaces the `animations` array wholesale (spread, no
+        // array merge) and flows through the temporal middleware, so this is
+        // just a typed, discoverable entry point for animation edits.
+        setClipAnimations: (clipId, animations) =>
+          get().patchClip(clipId, { animations }),
+
         restoreVersion: (clipId, versionId) =>
           set((state) => {
             const clip = state.clips.find((c) => c.id === clipId);
@@ -1392,6 +1406,12 @@ export const createTimelineStore = (
               lastGeneratedHash: undefined,
               // A lone duplicate is not linked to the source group.
               linkId: undefined,
+              // Copy animations with fresh ids so the two clips edit
+              // independently (trim/split re-derive windows per clip).
+              animations: currentSrc.animations?.map((a) => ({
+                ...a,
+                id: createTimeOrderedUuid()
+              })),
               versions: []
             });
             newClipId = newClip.id;
@@ -1518,8 +1538,12 @@ export const createTimelineStore = (
             mediaTypeOverride: opts?.mediaTypeOverride
           });
 
+          // The wire schema types animation `easing`/`preset` as plain strings
+          // (forward compat); the store's TimelineClip narrows `easing` to
+          // EasingId. The compiler tolerates unknown ids at sample time, so the
+          // wire→store cast is safe here.
           set((state) => ({
-            clips: [...state.clips, newClip]
+            clips: [...state.clips, newClip as TimelineClip]
           }));
 
           return newClip.id;

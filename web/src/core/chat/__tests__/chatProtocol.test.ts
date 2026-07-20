@@ -17,6 +17,88 @@ jest.mock("../../../lib/websocket/GlobalWebSocketManager", () => ({
 }));
 
 describe("chatProtocol", () => {
+  describe("agent turn status", () => {
+    const makeState = (threadRuntimeStatus: string) => ({
+      status: "streaming",
+      currentThreadId: "thread-1",
+      threads: {
+        "thread-1": {
+          id: "thread-1",
+          title: "T",
+          updated_at: new Date().toISOString()
+        }
+      },
+      threadRuntime: {
+        "thread-1": {
+          status: threadRuntimeStatus,
+          statusMessage: null,
+          progress: { current: 0, total: 0 },
+          error: null,
+          planningUpdate: null,
+          taskUpdate: null,
+          logUpdate: null,
+          runningToolCallId: null,
+          toolMessage: null,
+          sendMessageTimeoutId: null
+        }
+      },
+      messageCache: { "thread-1": [{ role: "user", type: "message", content: "go" }] },
+      selectedModel: { provider: "", id: "" },
+      summarizeThread: jest.fn(),
+      updateThreadTitle: jest.fn()
+    });
+
+    // An assistant message carrying tool_calls is mid-loop by definition: the
+    // model asked for tools, so the turn continues. Resetting to idle here is
+    // what flips the composer back to Run while tools are still running.
+    it("stays busy on an assistant message that requests tool calls", async () => {
+      let capturedState: any = makeState("streaming");
+      const set = jest.fn((updater) => {
+        capturedState = {
+          ...capturedState,
+          ...(typeof updater === "function" ? updater(capturedState) : updater)
+        };
+      });
+
+      await handleChatWebSocketMessage(
+        {
+          type: "message",
+          role: "assistant",
+          thread_id: "thread-1",
+          content: null,
+          tool_calls: [{ id: "c1", name: "ui_sketch_get_state", args: {} }]
+        } as any,
+        set,
+        () => capturedState
+      );
+
+      expect(capturedState.threadRuntime["thread-1"].status).not.toBe("idle");
+    });
+
+    it("goes idle on a final assistant message with no tool calls", async () => {
+      let capturedState: any = makeState("streaming");
+      const set = jest.fn((updater) => {
+        capturedState = {
+          ...capturedState,
+          ...(typeof updater === "function" ? updater(capturedState) : updater)
+        };
+      });
+
+      await handleChatWebSocketMessage(
+        {
+          type: "message",
+          role: "assistant",
+          thread_id: "thread-1",
+          content: "All done."
+        } as any,
+        set,
+        () => capturedState
+      );
+
+      expect(capturedState.threadRuntime["thread-1"].status).toBe("idle");
+    });
+  });
+
   describe("title generation", () => {
     it("generates title from first user message when first assistant chunk completes", async () => {
       let capturedState: any = {

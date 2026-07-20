@@ -56,9 +56,11 @@ The builder embeds the same agent chat the other editors use (`AppBuilderAgentPa
 **both** tool sets at once because frontend tools are a global registry:
 
 - `ui_app_*` (this folder's `puck/puckAgentBridge.ts` + `lib/tools/builtin/puck.ts`)
-  read and edit the open Puck document — add/update/remove/select widgets, set the
-  title. The open editor registers a handler (`PuckAgentBinder`, via `usePuck`
-  dispatch) that the tools drive.
+  read and edit an open Puck document — add/update/remove/select widgets, set the
+  title. Each open editor registers a handler (`PuckAgentBinder`, via `usePuck`
+  dispatch) under its workflow id, and every tool takes a required `workflow_id`
+  naming which app to act on. The app document lives on `workflow.app_doc`, so the
+  workflow id *is* the app's identity.
 - `ui_*` (existing workflow tools) edit the graph. `FrontendToolRuntimeSync`
   (shared with the editor's right panel) is mounted here and the page sets the
   current workflow, so adding Input/Output/SetVariable nodes works — which is what

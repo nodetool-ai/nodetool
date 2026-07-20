@@ -4,6 +4,7 @@
 import { FrontendToolRegistry } from "../frontendTools";
 import type { FrontendToolState } from "../frontendTools";
 import {
+  listOpenStoryboardIds,
   setStoryboardAgentHandler,
   type StoryboardAgentHandler,
   type StoryboardShotNode,
@@ -41,7 +42,6 @@ const createMockHandler = (): jest.Mocked<StoryboardAgentHandler> => ({
   addShot: jest.fn(),
   updateShot: jest.fn(),
   generateKeyframe: jest.fn(),
-  approveShot: jest.fn(),
   generateClip: jest.fn(),
   reviseShot: jest.fn(),
   selectShot: jest.fn(),
@@ -51,8 +51,12 @@ const createMockHandler = (): jest.Mocked<StoryboardAgentHandler> => ({
 // The storyboard tools never touch the workflow state, so a bare stub satisfies ctx.
 const ctx = { getState: () => ({}) as FrontendToolState };
 
+const BOARD_ID = "board-1";
+
 afterEach(() => {
-  setStoryboardAgentHandler(null);
+  for (const id of listOpenStoryboardIds()) {
+    setStoryboardAgentHandler(id, null);
+  }
 });
 
 describe("ui_storyboard_* tools", () => {
@@ -65,7 +69,6 @@ describe("ui_storyboard_* tools", () => {
         "ui_storyboard_add_shot",
         "ui_storyboard_update_shot",
         "ui_storyboard_generate_keyframe",
-        "ui_storyboard_approve_shot",
         "ui_storyboard_generate_clip",
         "ui_storyboard_revise_shot",
         "ui_storyboard_assemble_timeline",
@@ -86,23 +89,32 @@ describe("ui_storyboard_* tools", () => {
     };
     expect(schema.type).toBe("object");
     expect(schema.properties).toHaveProperty("action");
+    expect(schema.properties).toHaveProperty("storyboard_id");
     expect(schema.required).toContain("action");
+    expect(schema.required).toContain("storyboard_id");
   });
 
-  it("rejects with a descriptive error when no storyboard is open", async () => {
+  it("rejects with a descriptive error when the storyboard is not open", async () => {
     await expect(
-      FrontendToolRegistry.call("ui_storyboard_get_state", {}, "tc-1", ctx)
-    ).rejects.toThrow("No storyboard is open.");
+      FrontendToolRegistry.call(
+        "ui_storyboard_get_state",
+        { storyboard_id: "missing" },
+        "tc-1",
+        ctx
+      )
+    ).rejects.toThrow(
+      'No storyboard "missing" is open. No storyboards are currently open.'
+    );
   });
 
   it("returns the storyboard snapshot through the handler", async () => {
     const handler = createMockHandler();
     handler.getSnapshot.mockReturnValue(snapshot());
-    setStoryboardAgentHandler(handler);
+    setStoryboardAgentHandler(BOARD_ID, handler);
 
     const result = (await FrontendToolRegistry.call(
       "ui_storyboard_get_state",
-      {},
+      { storyboard_id: BOARD_ID },
       "tc-2",
       ctx
     )) as { ok: boolean } & StoryboardSnapshot;
@@ -116,11 +128,15 @@ describe("ui_storyboard_* tools", () => {
   it("adds a shot via the handler", async () => {
     const handler = createMockHandler();
     handler.addShot.mockReturnValue(shotNode({ action: "wide desert" }));
-    setStoryboardAgentHandler(handler);
+    setStoryboardAgentHandler(BOARD_ID, handler);
 
     const result = (await FrontendToolRegistry.call(
       "ui_storyboard_add_shot",
-      { action: "wide desert", camera: { framing: "wide" } },
+      {
+        storyboard_id: BOARD_ID,
+        action: "wide desert",
+        camera: { framing: "wide" }
+      },
       "tc-3",
       ctx
     )) as { ok: boolean; shot: StoryboardShotNode };
@@ -140,11 +156,11 @@ describe("ui_storyboard_* tools", () => {
     handler.generateKeyframe.mockResolvedValue(
       shotNode({ status: "keyframe_generating" })
     );
-    setStoryboardAgentHandler(handler);
+    setStoryboardAgentHandler(BOARD_ID, handler);
 
     const result = (await FrontendToolRegistry.call(
       "ui_storyboard_generate_keyframe",
-      { target: "selected" },
+      { storyboard_id: BOARD_ID, target: "selected" },
       "tc-4",
       ctx
     )) as { ok: boolean; shot: StoryboardShotNode };
@@ -158,11 +174,15 @@ describe("ui_storyboard_* tools", () => {
     handler.reviseShot.mockResolvedValue(
       shotNode({ status: "clip_generating", hasClip: true })
     );
-    setStoryboardAgentHandler(handler);
+    setStoryboardAgentHandler(BOARD_ID, handler);
 
     const result = (await FrontendToolRegistry.call(
       "ui_storyboard_revise_shot",
-      { target: "0", instruction: "make it darker, add rain" },
+      {
+        storyboard_id: BOARD_ID,
+        target: "0",
+        instruction: "make it darker, add rain"
+      },
       "tc-revise",
       ctx
     )) as { ok: boolean; shot: StoryboardShotNode };
@@ -182,11 +202,11 @@ describe("ui_storyboard_* tools", () => {
       clipCount: 3,
       skippedShotIds: ["shot-9"]
     });
-    setStoryboardAgentHandler(handler);
+    setStoryboardAgentHandler(BOARD_ID, handler);
 
     const result = (await FrontendToolRegistry.call(
       "ui_storyboard_assemble_timeline",
-      {},
+      { storyboard_id: BOARD_ID },
       "tc-assemble",
       ctx
     )) as {
@@ -204,11 +224,11 @@ describe("ui_storyboard_* tools", () => {
   });
 
   it("rejects an invalid shot status during validation", async () => {
-    setStoryboardAgentHandler(createMockHandler());
+    setStoryboardAgentHandler(BOARD_ID, createMockHandler());
     await expect(
       FrontendToolRegistry.call(
         "ui_storyboard_update_shot",
-        { target: "0", status: "not-a-status" },
+        { storyboard_id: BOARD_ID, target: "0", status: "not-a-status" },
         "tc-5",
         ctx
       )
@@ -218,11 +238,11 @@ describe("ui_storyboard_* tools", () => {
   it("selects a shot (and clears with null) through the handler", async () => {
     const handler = createMockHandler();
     handler.selectShot.mockReturnValue(null);
-    setStoryboardAgentHandler(handler);
+    setStoryboardAgentHandler(BOARD_ID, handler);
 
     await FrontendToolRegistry.call(
       "ui_storyboard_select_shot",
-      { target: null },
+      { storyboard_id: BOARD_ID, target: null },
       "tc-6",
       ctx
     );

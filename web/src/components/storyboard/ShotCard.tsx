@@ -2,13 +2,15 @@
 /**
  * ShotCard
  *
- * One shot in the storyboard grid: its slug + index, action text, camera line,
- * the keyframe still (or a placeholder), the rendered clip when present, a
- * status indicator, an optional cost chip, and the plan → still → approve →
- * clip action buttons.
+ * One shot in the storyboard, laid out as a full-width row: the keyframe
+ * still or rendered clip on the left, and the shot's text, camera line,
+ * cast, takes browser, and actions in the wide column beside it. There is
+ * no approval step: the selected still (see {@link ShotTakesGallery}) is
+ * what the clip render uses, so a shot is ready for video as soon as it
+ * has a still.
  */
 
-import React, { memo, useCallback } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -48,7 +50,8 @@ const STATUS_META: Record<ShotStatus, { status: StatusType; label: string; pulse
   planned: { status: "default", label: "Planned" },
   keyframe_generating: { status: "pending", label: "Generating still…", pulse: true },
   keyframe_ready: { status: "info", label: "Still ready" },
-  approved: { status: "success", label: "Approved" },
+  // Legacy status from the removed approval step; same meaning as a ready still.
+  approved: { status: "info", label: "Still ready" },
   clip_generating: { status: "pending", label: "Rendering…", pulse: true },
   rendered: { status: "success", label: "Rendered" },
   failed: { status: "error", label: "Failed" }
@@ -56,9 +59,13 @@ const STATUS_META: Record<ShotStatus, { status: StatusType; label: string; pulse
 
 const styles = (theme: Theme) =>
   css({
-    display: "flex",
-    flexDirection: "column",
-    gap: getSpacingPx(SPACING.sm),
+    display: "grid",
+    gridTemplateColumns: "minmax(220px, 300px) minmax(0, 1fr)",
+    gap: getSpacingPx(SPACING.md),
+    alignItems: "start",
+    "@media (max-width: 720px)": {
+      gridTemplateColumns: "minmax(0, 1fr)"
+    },
     ".preview": {
       position: "relative",
       width: "100%",
@@ -79,6 +86,12 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.disabled,
       textAlign: "center",
       padding: getSpacingPx(SPACING.md)
+    },
+    ".details": {
+      minWidth: 0,
+      display: "flex",
+      flexDirection: "column",
+      gap: getSpacingPx(SPACING.sm)
     },
     ".camera": {
       color: theme.vars.palette.text.secondary
@@ -138,7 +151,6 @@ const EMPTY_IDS: string[] = [];
 
 const ShotCardInner: React.FC<ShotCardProps> = ({ boardId, shot, readOnly }) => {
   const theme = useTheme();
-  const approveShot = useStoryboardStore((state) => state.approveShot);
   const toggleShotEntity = useStoryboardStore((state) => state.toggleShotEntity);
   const boardEntityIds = useStoryboardStore(
     (state) => state.boards[boardId]?.entityIds ?? EMPTY_IDS
@@ -147,12 +159,16 @@ const ShotCardInner: React.FC<ShotCardProps> = ({ boardId, shot, readOnly }) => 
   const { generateKeyframe, generateClip, generateRevisedClip } =
     useGenerateShot();
 
-  // The board's cast, and which of it this shot's prompt will actually use.
-  const boardEntities = (allEntities ?? []).filter((e) =>
-    boardEntityIds.includes(e.id)
-  );
-  const appliedEntities = entitiesForShot(shot, boardEntities);
-  const appliedIds = appliedEntities.map((e) => e.id);
+  const { boardEntities, appliedEntities, appliedIds } = useMemo(() => {
+    const idSet = new Set(boardEntityIds);
+    const board = (allEntities ?? []).filter((e) => idSet.has(e.id));
+    const applied = entitiesForShot(shot, board);
+    return {
+      boardEntities: board,
+      appliedEntities: applied,
+      appliedIds: applied.map((e) => e.id)
+    };
+  }, [allEntities, boardEntityIds, shot]);
 
   const meta = STATUS_META[shot.status];
   const isGenerating =
@@ -163,10 +179,6 @@ const ShotCardInner: React.FC<ShotCardProps> = ({ boardId, shot, readOnly }) => 
   const handleGenerateStill = useCallback(() => {
     void generateKeyframe(boardId, shot);
   }, [generateKeyframe, boardId, shot]);
-
-  const handleApprove = useCallback(() => {
-    approveShot(boardId, shot.id);
-  }, [approveShot, boardId, shot.id]);
 
   const handleGenerateClip = useCallback(() => {
     void generateClip(boardId, shot);
@@ -188,17 +200,6 @@ const ShotCardInner: React.FC<ShotCardProps> = ({ boardId, shot, readOnly }) => 
       css={styles(theme)}
       className={`shot-card${isGenerating ? " generating" : ""}`}
     >
-      <FlexRow align="center" justify="space-between" gap={1}>
-        <Text size="small" weight={600} truncate>
-          {`${shot.index + 1}. ${shot.slug ?? "Untitled shot"}`}
-        </Text>
-        <StatusIndicator
-          status={meta.status}
-          label={meta.label}
-          pulse={meta.pulse}
-        />
-      </FlexRow>
-
       <div className="preview">
         {clipUri ? (
           <VideoPlayer src={clipUri} />
@@ -222,91 +223,98 @@ const ShotCardInner: React.FC<ShotCardProps> = ({ boardId, shot, readOnly }) => 
         )}
       </div>
 
-      <Text size="small" lineClamp={3}>
-        {shot.action}
-      </Text>
-
-      {camera.length > 0 && (
-        <Caption className="camera" noWrap>
-          {camera}
-        </Caption>
-      )}
-
-      {boardEntities.length > 0 && (
-        <FlexRow gap={0.5} wrap>
-          {boardEntities.map((entity) => {
-            const applied = appliedIds.includes(entity.id);
-            return (
+      <FlexColumn className="details">
+        <FlexRow align="center" justify="space-between" gap={1} wrap>
+          <Text size="small" weight={600} truncate>
+            {`${shot.index + 1}. ${shot.slug ?? "Untitled shot"}`}
+          </Text>
+          <FlexRow align="center" gap={1}>
+            {typeof shot.cost_estimate === "number" && (
               <Chip
-                key={entity.id}
                 compact
-                label={entity.name || "Untitled"}
-                color={applied ? ENTITY_KIND_COLOR[entity.kind] : "default"}
-                variant={applied ? "filled" : "outlined"}
-                sx={applied ? undefined : { opacity: 0.55 }}
-                title={
-                  applied
-                    ? `${entity.descriptor || entity.name} — click to exclude from this shot`
-                    : `Click to include ${entity.name} in this shot`
-                }
-                onClick={
-                  readOnly
-                    ? undefined
-                    : () =>
-                        toggleShotEntity(boardId, shot.id, entity.id, appliedIds)
-                }
+                color="info"
+                label={`~$${shot.cost_estimate.toFixed(2)}`}
               />
-            );
-          })}
+            )}
+            <StatusIndicator
+              status={meta.status}
+              label={meta.label}
+              pulse={meta.pulse}
+            />
+          </FlexRow>
         </FlexRow>
-      )}
 
-      <ShotTakesGallery boardId={boardId} shot={shot} readOnly={readOnly} />
+        <Text size="small" lineClamp={3}>
+          {shot.action}
+        </Text>
 
-      {typeof shot.cost_estimate === "number" && (
-        <FlexRow>
-          <Chip compact color="info" label={`~$${shot.cost_estimate.toFixed(2)}`} />
-        </FlexRow>
-      )}
+        {camera.length > 0 && (
+          <Caption className="camera" noWrap>
+            {camera}
+          </Caption>
+        )}
 
-      {!readOnly && (
-        <FlexColumn gap={0.5}>
-          <FlexRow gap={0.5}>
+        {boardEntities.length > 0 && (
+          <FlexRow gap={0.5} wrap>
+            {boardEntities.map((entity) => {
+              const applied = appliedIds.includes(entity.id);
+              return (
+                <Chip
+                  key={entity.id}
+                  compact
+                  label={entity.name || "Untitled"}
+                  color={applied ? ENTITY_KIND_COLOR[entity.kind] : "default"}
+                  variant={applied ? "filled" : "outlined"}
+                  sx={{
+                    borderRadius: BORDER_RADIUS.sm,
+                    ...(applied ? undefined : { opacity: 0.55 })
+                  }}
+                  title={
+                    applied
+                      ? `${entity.descriptor || entity.name} — click to exclude from this shot`
+                      : `Click to include ${entity.name} in this shot`
+                  }
+                  onClick={
+                    readOnly
+                      ? undefined
+                      : () =>
+                          toggleShotEntity(boardId, shot.id, entity.id, appliedIds)
+                  }
+                />
+              );
+            })}
+          </FlexRow>
+        )}
+
+        <ShotTakesGallery boardId={boardId} shot={shot} readOnly={readOnly} />
+
+        {!readOnly && (
+          <FlexRow gap={0.5} wrap>
             <EditorButton
               onClick={handleGenerateStill}
               disabled={isGenerating}
             >
-              {shot.keyframe ? "Regenerate" : "Generate still"}
+              {shot.keyframe ? "New still" : "Generate still"}
             </EditorButton>
             <EditorButton
-              onClick={handleApprove}
-              disabled={shot.status !== "keyframe_ready"}
+              onClick={handleGenerateClip}
+              disabled={isGenerating || !shot.keyframe}
+              title={
+                shot.keyframe
+                  ? "Animate the selected still into a clip"
+                  : "Generate a still first"
+              }
             >
-              Approve
+              {shot.clip ? "New clip" : "Generate clip"}
             </EditorButton>
+            {shot.clip && (
+              <EditorButton onClick={handleRevise} disabled={isGenerating}>
+                Revise clip
+              </EditorButton>
+            )}
           </FlexRow>
-          <EditorButton
-            onClick={handleGenerateClip}
-            disabled={
-              isGenerating ||
-              !shot.keyframe ||
-              (shot.status !== "approved" && shot.status !== "rendered")
-            }
-            fullWidth
-          >
-            {shot.clip ? "New take" : "Generate clip"}
-          </EditorButton>
-          {shot.clip && (
-            <EditorButton
-              onClick={handleRevise}
-              disabled={isGenerating}
-              fullWidth
-            >
-              Revise clip
-            </EditorButton>
-          )}
-        </FlexColumn>
-      )}
+        )}
+      </FlexColumn>
     </Card>
   );
 };

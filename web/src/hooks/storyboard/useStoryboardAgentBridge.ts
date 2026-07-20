@@ -1,10 +1,10 @@
 /**
  * useStoryboardAgentBridge
  *
- * Registers a {@link StoryboardAgentHandler} for the surrounding Storyboard
- * surface while it is active, so the `ui_storyboard_*` agent tools operate on
- * this board. Mirrors {@link useTimelineAgentBridge}: only the active surface
- * registers, and the handler is cleared on unmount unless already replaced.
+ * Registers a {@link StoryboardAgentHandler} under the surrounding Storyboard
+ * surface's board id, so the `ui_storyboard_*` agent tools can address this
+ * board by id whether or not it is the focused surface. The handler is cleared
+ * on unmount unless it has already been replaced.
  */
 
 import { useEffect, useMemo } from "react";
@@ -36,10 +36,7 @@ const toShotNode = (shot: Shot): StoryboardShotNode => ({
   costEstimate: shot.cost_estimate ?? null
 });
 
-export const useStoryboardAgentBridge = (
-  boardId: string,
-  active: boolean
-): void => {
+export const useStoryboardAgentBridge = (boardId: string): void => {
   const { generateKeyframe, generateClip, generateRevisedClip } =
     useGenerateShot();
   const { assemble } = useAssembleTimeline();
@@ -50,7 +47,7 @@ export const useStoryboardAgentBridge = (
     const requireBoard = () => {
       const board = store().getBoard(boardId);
       if (!board) {
-        throw new Error("No storyboard is open.");
+        throw new Error(`No storyboard "${boardId}" is open.`);
       }
       return board;
     };
@@ -128,9 +125,7 @@ export const useStoryboardAgentBridge = (
         store().upsertShot(boardId, shot);
         if (input.index !== undefined) {
           const current = store().getBoard(boardId)?.shots ?? [];
-          const others = current
-            .filter((s) => s.id !== id)
-            .map((s) => s.id);
+          const others = current.filter((s) => s.id !== id).map((s) => s.id);
           const clamped = Math.max(0, Math.min(input.index, others.length));
           others.splice(clamped, 0, id);
           store().reorderShots(boardId, others);
@@ -152,12 +147,6 @@ export const useStoryboardAgentBridge = (
       async generateKeyframe(target) {
         const shot = requireShot(target);
         await generateKeyframe(boardId, shot);
-        return toShotNode(reRead(shot.id));
-      },
-
-      approveShot(target) {
-        const shot = requireShot(target);
-        store().approveShot(boardId, shot.id);
         return toShotNode(reRead(shot.id));
       },
 
@@ -190,15 +179,15 @@ export const useStoryboardAgentBridge = (
   }, [boardId, generateKeyframe, generateClip, generateRevisedClip, assemble]);
 
   useEffect(() => {
-    if (!active) return;
-    setStoryboardAgentHandler(handler);
+    if (!boardId) return;
+    setStoryboardAgentHandler(boardId, handler);
     return () => {
       if (
-        hasStoryboardAgentHandler() &&
-        getStoryboardAgentHandler() === handler
+        hasStoryboardAgentHandler(boardId) &&
+        getStoryboardAgentHandler(boardId) === handler
       ) {
-        setStoryboardAgentHandler(null);
+        setStoryboardAgentHandler(boardId, null);
       }
     };
-  }, [active, handler]);
+  }, [boardId, handler]);
 };

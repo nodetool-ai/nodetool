@@ -3,13 +3,14 @@
  *
  * The LLM calls this to add either:
  * - A deterministic workflow node (type from NodeRegistry)
- * - An agent step node (type: "nodetool.agents.AgentStep")
+ * - An LLM step node (type: "nodetool.agents.Agent", model omitted)
  */
 
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { Tool } from "./base-tool.js";
-import { AGENT_STEP_NODE_TYPE, type GraphBuilder } from "../graph-builder.js";
+import { type GraphBuilder } from "../graph-builder.js";
+import { normalizeModelProperties } from "../normalize-model-properties.js";
 import { createLogger } from "@nodetool-ai/config";
 
 const log = createLogger("nodetool.agents.add-node-tool");
@@ -24,7 +25,7 @@ const ADD_NODE_INPUT_SCHEMA = {
     type: {
       type: "string" as const,
       description:
-        'Fully-qualified node type from registry, or "nodetool.agents.AgentStep" for LLM-driven steps'
+        'Fully-qualified node type from registry, e.g. "nodetool.agents.Agent" for LLM-driven steps'
     },
     node_properties: {
       type: "object" as const,
@@ -47,7 +48,7 @@ export class AddNodeTool extends Tool {
   readonly description =
     "Add a node to the workflow graph. Set node configuration either via node_properties object " +
     "or as direct parameters (e.g. value: \"Hello World\" for a String constant). " +
-    'Use a registry node type for deterministic work, or "nodetool.agents.AgentStep" for LLM reasoning.';
+    'Use a registry node type for deterministic work, or "nodetool.agents.Agent" for LLM reasoning.';
   readonly jsonSchema: Record<string, unknown> = ADD_NODE_INPUT_SCHEMA;
 
   constructor(
@@ -87,8 +88,7 @@ export class AddNodeTool extends Tool {
     }
 
     // Validate node type
-    const isAgentStep = type === AGENT_STEP_NODE_TYPE;
-    if (!isAgentStep && !this.registry.has(type)) {
+    if (!this.registry.has(type)) {
       // Check loaded metadata for Python-only nodes
       const meta = this.registry.getMetadata(type);
       if (!meta) {
@@ -101,20 +101,12 @@ export class AddNodeTool extends Tool {
       }
     }
 
-    // Validate agent step properties
-    if (isAgentStep) {
-      const instructions = properties["instructions"];
-      if (!instructions || typeof instructions !== "string") {
-        return {
-          status: "error",
-          errors: [
-            'AgentStep nodes require an "instructions" property (non-empty string).'
-          ]
-        };
-      }
-    }
-
-    const errors = this.builder.addNode(id, type, properties, name);
+    const errors = this.builder.addNode(
+      id,
+      type,
+      normalizeModelProperties(type, properties, this.registry),
+      name
+    );
     if (errors.length > 0) {
       // Add an actionable hint to the duplicate-id error so the planner does
       // not bang the same id back into add_node. Wiring data into an existing

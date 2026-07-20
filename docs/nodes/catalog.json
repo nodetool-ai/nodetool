@@ -11553,50 +11553,6 @@
       "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/agents/agent.md"
     },
     {
-      "type": "nodetool.agents.AgentStep",
-      "title": "Agent Step",
-      "namespace": "nodetool.agents",
-      "description": "LLM step that inherits the workflow's configured model.\n    agents, llm, step, reasoning\n\n    Use this node inside agent-mode workflows when you need an LLM to\n    reason, transform text, or call tools. The step receives upstream\n    edges as context, runs the workflow's configured LLM, and emits the\n    final text on its `output` handle.\n\n    Properties:\n    - instructions (required): the prompt for this step\n    - tools (optional): list of tool names this step may call\n    - output_schema (optional): JSON schema (as a string) constraining the output\n\n    Unlike Agent / Summarizer, this node does NOT take a model property —\n    the workflow's configured model is used.",
-      "inputs": [
-        {
-          "name": "instructions",
-          "type": "str",
-          "description": "Instructions for the LLM step (acts as the user prompt).",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "tools",
-          "type": "list[str]",
-          "description": "Optional list of tool names the step is allowed to call. Empty = no tools.",
-          "required": false,
-          "default": []
-        },
-        {
-          "name": "output_schema",
-          "type": "str",
-          "description": "Optional JSON schema (as a string) constraining the step output. Empty = freeform text.",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "input",
-          "type": "any",
-          "description": "Upstream data forwarded to the step as context. Connect any node here.",
-          "required": false,
-          "default": null
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "str"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/agents/agentstep",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/agents/agentstep.md"
-    },
-    {
       "type": "nodetool.agents.BrowserAgent",
       "title": "Browser Agent",
       "namespace": "nodetool.agents",

@@ -7,7 +7,6 @@ import {
   ToolCall
 } from "../../../stores/ApiTypes";
 
-
 import ChatMarkdown from "./ChatMarkdown";
 import { useEditorInsertion } from "../../../contexts/EditorInsertionContext";
 import { ThoughtSection } from "./thought/ThoughtSection";
@@ -17,7 +16,11 @@ import {
   getMessageClass,
   stripContextContent
 } from "../utils/messageUtils";
-import { parseHarmonyContent, hasHarmonyTokens, getDisplayContent } from "../utils/harmonyUtils";
+import {
+  parseHarmonyContent,
+  hasHarmonyTokens,
+  getDisplayContent
+} from "../utils/harmonyUtils";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import {
   CopyButton,
@@ -33,7 +36,6 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import PersonOutlineRoundedIcon from "@mui/icons-material/PersonOutlineRounded";
 import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
 import { getToolVisual } from "./toolCallIcon";
-
 
 import AgentExecutionView from "./AgentExecutionView";
 import MediaOutputGroup from "./MediaOutputGroup";
@@ -98,23 +100,26 @@ const ToolCallCard: React.FC<{
   durationMs?: number | null;
 }> = React.memo(({ tc, result, durationMs }) => {
   const [open, setOpen] = useState(false);
-  const runningToolCallId = useGlobalChatStore((s) => s.currentRunningToolCallId);
+  const runningToolCallId = useGlobalChatStore(
+    (s) => s.currentRunningToolCallId
+  );
   const runningToolMessage = useGlobalChatStore((s) => s.currentToolMessage);
   const isSubtask = tc.name === RUN_SUBTASK_TOOL_NAME;
 
   // For run_subtask we lift `description` / `prompt` (Claude-Code Task naming)
   // out of args into headline + expanded body. Tolerate the older
   // `title`/`instructions` keys for messages already in the DB.
-  const rawArgs = (tc.args as Record<string, unknown> | null | undefined) ?? null;
+  const rawArgs =
+    (tc.args as Record<string, unknown> | null | undefined) ?? null;
   const pickString = (key: string) =>
     typeof rawArgs?.[key] === "string"
       ? (rawArgs[key] as string).trim() || null
       : null;
   const subtaskTitle = isSubtask
-    ? pickString("description") ?? pickString("title")
+    ? (pickString("description") ?? pickString("title"))
     : null;
   const subtaskInstructions = isSubtask
-    ? pickString("prompt") ?? pickString("instructions")
+    ? (pickString("prompt") ?? pickString("instructions"))
     : null;
   const displayArgs = useMemo(() => {
     const base = visibleArgs(rawArgs);
@@ -132,10 +137,13 @@ const ToolCallCard: React.FC<{
   const hasResult =
     resultContent != null &&
     !(typeof resultContent === "string" && resultContent.trim().length === 0);
-  const hasDetails = !!hasArgs || (isSubtask && !!subtaskInstructions) || hasResult;
+  const hasDetails =
+    !!hasArgs || (isSubtask && !!subtaskInstructions) || hasResult;
   const isRunning = runningToolCallId && tc.id && runningToolCallId === tc.id;
   const durationLabel =
-    !isRunning && typeof durationMs === "number" ? formatDuration(durationMs) : null;
+    !isRunning && typeof durationMs === "number"
+      ? formatDuration(durationMs)
+      : null;
 
   const handleToggleOpen = useCallback(() => {
     setOpen((v) => !v);
@@ -201,7 +209,12 @@ const ToolCallCard: React.FC<{
             {headline}
           </Text>
           {showSeparateMessage && (
-            <Text component="span" size="small" className="tool-message" truncate>
+            <Text
+              component="span"
+              size="small"
+              className="tool-message"
+              truncate
+            >
               {liveMessage}
             </Text>
           )}
@@ -273,7 +286,9 @@ const ToolCallGroup: React.FC<{
   messageCreatedAt?: string | null;
 }> = React.memo(({ toolCalls, toolResultsByCallId, messageCreatedAt }) => {
   const [open, setOpen] = useState(true);
-  const runningToolCallId = useGlobalChatStore((s) => s.currentRunningToolCallId);
+  const runningToolCallId = useGlobalChatStore(
+    (s) => s.currentRunningToolCallId
+  );
   const handleToggleOpen = useCallback(() => setOpen((v) => !v), []);
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === "Enter" || e.key === " ") {
@@ -395,7 +410,7 @@ ToolCallGroup.displayName = "ToolCallGroup";
 interface MessageViewProps {
   message: Message;
   isThoughtExpanded: (key: string) => boolean;
-  onToggleThought: (key: string) => void;
+  onToggleThought: (key: string, anchorElement?: HTMLElement) => void;
   onInsertCode?: (text: string, language?: string) => void;
   toolResultsByCallId?: Record<
     string,
@@ -412,135 +427,151 @@ interface MessageViewProps {
 
 export const MessageView: React.FC<
   MessageViewProps & { componentStyles?: Record<string, unknown> }
-> = React.memo(({
-  message,
-  isThoughtExpanded,
-  onToggleThought,
-  onInsertCode,
-  toolResultsByCallId,
-  executionMessagesById,
-  showMeta = false
-}) => {
-  const insertIntoEditor = useEditorInsertion();
+> = React.memo(
+  ({
+    message,
+    isThoughtExpanded,
+    onToggleThought,
+    onInsertCode,
+    toolResultsByCallId,
+    executionMessagesById,
+    showMeta = false
+  }) => {
+    const insertIntoEditor = useEditorInsertion();
 
-  const copyText = useMemo(() => {
-    if (typeof message.content === "string") {
-      return message.content;
-    }
-    if (Array.isArray(message.content)) {
-      return message.content
-        .filter(
-          (c): c is MessageTextContent =>
-            !!c && typeof c === "object" && c.type === "text"
-        )
-        .map((c) => c.text)
-        .join("\n");
-    }
-    return "";
-  }, [message.content]);
+    const copyText = useMemo(() => {
+      if (typeof message.content === "string") {
+        return message.content;
+      }
+      if (Array.isArray(message.content)) {
+        return message.content
+          .filter(
+            (c): c is MessageTextContent =>
+              !!c && typeof c === "object" && c.type === "text"
+          )
+          .map((c) => c.text)
+          .join("\n");
+      }
+      return "";
+    }, [message.content]);
 
-  const toggleCallbackRef = useRef(onToggleThought);
-  toggleCallbackRef.current = onToggleThought;
-  const toggleHandlerCache = useRef(new Map<string, () => void>());
-  const createToggleHandler = useCallback((key: string) => {
-    let handler = toggleHandlerCache.current.get(key);
-    if (!handler) {
-      handler = () => toggleCallbackRef.current(key);
-      toggleHandlerCache.current.set(key, handler);
-    }
-    return handler;
-  }, []);
+    const toggleCallbackRef = useRef(onToggleThought);
+    toggleCallbackRef.current = onToggleThought;
+    const [, setThoughtRenderVersion] = useState(0);
+    const toggleHandlerCache = useRef(
+      new Map<string, (event?: React.MouseEvent) => void>()
+    );
+    const createToggleHandler = useCallback((key: string) => {
+      let handler = toggleHandlerCache.current.get(key);
+      if (!handler) {
+        handler = (event?: React.MouseEvent) => {
+          const anchorElement =
+            event?.currentTarget.closest<HTMLElement>("[data-index]");
+          toggleCallbackRef.current(key, anchorElement ?? undefined);
+          setThoughtRenderVersion((version) => version + 1);
+        };
+        toggleHandlerCache.current.set(key, handler);
+      }
+      return handler;
+    }, []);
 
-  // Memoized so its reference is stable across renders. It is passed to every
-  // React.memo'd MessageContentRenderer; a fresh closure each render would
-  // defeat that memo and force all media children (e.g. <video>) to re-render.
-  // Deps are exactly the non-stable values it closes over — createToggleHandler
-  // is already stable via useCallback.
-  const renderTextContent = useCallback(
-    (content: string, index: string | number) => {
-      if (hasHarmonyTokens(content)) {
-        const { messages, rawText } = parseHarmonyContent(content);
+    // Memoized so its reference is stable across renders. It is passed to every
+    // React.memo'd MessageContentRenderer; a fresh closure each render would
+    // defeat that memo and force all media children (e.g. <video>) to re-render.
+    // Deps are exactly the non-stable values it closes over — createToggleHandler
+    // is already stable via useCallback.
+    const renderTextContent = useCallback(
+      (content: string, index: string | number) => {
+        if (hasHarmonyTokens(content)) {
+          const { messages, rawText } = parseHarmonyContent(content);
 
-        if (messages.length > 0) {
-          return (
-            <>
-              {messages.map((message, i) => {
-                const displayContent = getDisplayContent(message);
-                const parsedContent = stripContextContent(displayContent);
-                const parsedThought = parseThoughtContent(parsedContent);
+          if (messages.length > 0) {
+            return (
+              <>
+                {messages.map((message, i) => {
+                  const displayContent = getDisplayContent(message);
+                  const parsedContent = stripContextContent(displayContent);
+                  const parsedThought = parseThoughtContent(parsedContent);
 
-                if (parsedThought) {
-                  const key = `thought-${index}-${i}`;
-                  const isExpanded = isThoughtExpanded(key);
+                  if (parsedThought) {
+                    const key = `thought-${index}-${i}`;
+                    const isExpanded = isThoughtExpanded(key);
 
+                    return (
+                      <ThoughtSection
+                        key={key}
+                        thoughtContent={parsedThought.thoughtContent}
+                        isExpanded={isExpanded}
+                        onToggle={createToggleHandler(key)}
+                        textBefore={parsedThought.textBeforeThought}
+                        textAfter={parsedThought.textAfterThought}
+                      />
+                    );
+                  }
+
+                  const handler =
+                    onInsertCode ||
+                    (insertIntoEditor
+                      ? (t: string) => insertIntoEditor(t)
+                      : undefined);
                   return (
-                    <ThoughtSection
-                      key={key}
-                      thoughtContent={parsedThought.thoughtContent}
-                      isExpanded={isExpanded}
-                      onToggle={createToggleHandler(key)}
-                      textBefore={parsedThought.textBeforeThought}
-                      textAfter={parsedThought.textAfterThought}
+                    <ChatMarkdown
+                      key={`markdown-${index}-${i}`}
+                      content={parsedContent}
+                      onInsertCode={handler}
                     />
                   );
-                }
-
-                const handler =
-                  onInsertCode ||
-                  (insertIntoEditor ? (t: string) => insertIntoEditor(t) : undefined);
-                return (
+                })}
+                {rawText && (
                   <ChatMarkdown
-                    key={`markdown-${index}-${i}`}
-                    content={parsedContent}
-                    onInsertCode={handler}
+                    content={stripContextContent(rawText)}
+                    onInsertCode={
+                      onInsertCode ||
+                      (insertIntoEditor
+                        ? (t: string) => insertIntoEditor(t)
+                        : undefined)
+                    }
                   />
-                );
-              })}
-              {rawText && (
-                <ChatMarkdown
-                  content={stripContextContent(rawText)}
-                  onInsertCode={onInsertCode || (insertIntoEditor ? (t: string) => insertIntoEditor(t) : undefined)}
-                />
-              )}
-            </>
+                )}
+              </>
+            );
+          }
+        }
+
+        const parsedContent = stripContextContent(content);
+        const parsedThought = parseThoughtContent(parsedContent);
+
+        if (parsedThought) {
+          const key = `thought-${index}`;
+          const isExpanded = isThoughtExpanded(key);
+
+          return (
+            <ThoughtSection
+              thoughtContent={parsedThought.thoughtContent}
+              isExpanded={isExpanded}
+              onToggle={createToggleHandler(key)}
+              textBefore={parsedThought.textBeforeThought}
+              textAfter={parsedThought.textAfterThought}
+            />
           );
         }
+
+        const handler =
+          onInsertCode ||
+          (insertIntoEditor ? (t: string) => insertIntoEditor(t) : undefined);
+        return <ChatMarkdown content={parsedContent} onInsertCode={handler} />;
+      },
+      [isThoughtExpanded, createToggleHandler, onInsertCode, insertIntoEditor]
+    );
+
+    if (message.role === "agent_execution") {
+      const key = message.agent_execution_id || "__ungrouped__";
+      const executionMessages = executionMessagesById?.get(key) ?? [];
+      if (executionMessages.length > 0) {
+        return <AgentExecutionView messages={executionMessages} />;
       }
-
-      const parsedContent = stripContextContent(content);
-      const parsedThought = parseThoughtContent(parsedContent);
-
-      if (parsedThought) {
-        const key = `thought-${index}`;
-        const isExpanded = isThoughtExpanded(key);
-
-        return (
-          <ThoughtSection
-            thoughtContent={parsedThought.thoughtContent}
-            isExpanded={isExpanded}
-            onToggle={createToggleHandler(key)}
-            textBefore={parsedThought.textBeforeThought}
-            textAfter={parsedThought.textAfterThought}
-          />
-        );
-      }
-
-      const handler =
-        onInsertCode ||
-        (insertIntoEditor ? (t: string) => insertIntoEditor(t) : undefined);
-      return <ChatMarkdown content={parsedContent} onInsertCode={handler} />;
-    },
-    [isThoughtExpanded, createToggleHandler, onInsertCode, insertIntoEditor]
-  );
-
-  if (message.role === "agent_execution") {
-    const key = message.agent_execution_id || "__ungrouped__";
-    const executionMessages = executionMessagesById?.get(key) ?? [];
-    if (executionMessages.length > 0) {
-      return <AgentExecutionView messages={executionMessages} />;
+      return null;
     }
-    return null;
-  }
 
     const baseClass = getMessageClass(message.role);
     const hasToolCalls =
@@ -548,7 +579,8 @@ export const MessageView: React.FC<
       Array.isArray(message.tool_calls) &&
       message.tool_calls.length > 0;
     const hasNonEmptyContent =
-      (typeof message.content === "string" && message.content.trim().length > 0) ||
+      (typeof message.content === "string" &&
+        message.content.trim().length > 0) ||
       (Array.isArray(message.content) &&
         message.content.some((block) => {
           if (!block || typeof block !== "object") {
@@ -556,8 +588,10 @@ export const MessageView: React.FC<
           }
           const contentBlock = block as MessageContent;
           if (contentBlock.type === "text") {
-            return typeof (contentBlock as MessageTextContent).text === "string" &&
-              (contentBlock as MessageTextContent).text.trim().length > 0;
+            return (
+              typeof (contentBlock as MessageTextContent).text === "string" &&
+              (contentBlock as MessageTextContent).text.trim().length > 0
+            );
           }
           return true;
         }));
@@ -566,7 +600,9 @@ export const MessageView: React.FC<
       showMeta && (message.role === "assistant" || message.role === "user");
     const messageClass = [
       baseClass,
-      (message as Message & { error_type?: string }).error_type ? "error-message" : null,
+      (message as Message & { error_type?: string }).error_type
+        ? "error-message"
+        : null,
       hasToolCalls ? "has-tool-calls" : null,
       hasToolCalls && !hasNonEmptyContent ? "tool-calls-only" : null,
       showRoleMeta ? "chat-message--meta" : null
@@ -582,91 +618,95 @@ export const MessageView: React.FC<
     return (
       <div className={messageClass}>
         <div className="message-body">
-        {showRoleMeta && (
-          <div className="message-header">
-            {message.role === "user" ? (
-              <PersonOutlineRoundedIcon className="message-role-icon" />
-            ) : (
-              <HubOutlinedIcon className="message-role-icon" />
-            )}
-            {formattedTime && (
-              <span className="message-time">{formattedTime}</span>
-            )}
-            {message.role === "assistant" && message.model && (
-              <span className="message-model">{message.model}</span>
-            )}
-          </div>
-        )}
-        <div className="message-content">
-          {message.role === "assistant" &&
-            Array.isArray(message.tool_calls) &&
-            !message.agent_execution_id && ( // Don't render tool cards for agent tasks here (they are in AgentExecutionView)
-              <ToolCallGroup
-                toolCalls={message.tool_calls as ToolCall[]}
-                toolResultsByCallId={toolResultsByCallId}
-                messageCreatedAt={message.created_at}
-              />
-            )}
-          {(message.role === "assistant" || message.role === "user") && (
-            <>
-              {typeof message.content === "string" &&
-                renderTextContent(
-                  message.content,
-                  message.id || 0
-                )}
-              {Array.isArray(content) &&
-                (isMediaOnlyContent(content) &&
-                (((message as Message & {
-                  media_generation?: MediaGenerationRequest | null;
-                }).media_generation?.mode ?? "chat") !== "chat" ||
-                  content.length > 1) ? (
-                  <MediaOutputGroup
-                    message={
-                      message as Message & {
-                        media_generation?: MediaGenerationRequest | null;
-                      }
-                    }
-                    mediaContents={content as MessageContent[]}
-                  />
-                ) : (
-                  content.map((c: MessageContent, i: number) => {
-                    // Guard against null / non-object blocks so the renderer's
-                    // switch on `c.type` can't crash on a malformed block.
-                    if (!c || typeof c !== "object") {
-                      return null;
-                    }
-                    return (
-                      <MessageContentRenderer
-                        key={`${message.id}-content-${c.type}-${i}`}
-                        content={c}
-                        renderTextContent={renderTextContent}
-                        index={i}
-                      />
-                    );
-                  })
-                ))}
-            </>
+          {showRoleMeta && (
+            <div className="message-header">
+              {message.role === "user" ? (
+                <PersonOutlineRoundedIcon className="message-role-icon" />
+              ) : (
+                <HubOutlinedIcon className="message-role-icon" />
+              )}
+              {formattedTime && (
+                <span className="message-time">{formattedTime}</span>
+              )}
+              {message.role === "assistant" && message.model && (
+                <span className="message-model">{message.model}</span>
+              )}
+            </div>
           )}
-        </div>
-        {(message as Message & { error_type?: string }).error_type && <ErrorIcon className="error-icon" />}
-        {!Array.isArray(message.tool_calls) && (
-          <div className="message-actions">
-            {!showRoleMeta && formattedTime && (
-              <span className="message-timestamp">{formattedTime}</span>
+          <div className="message-content">
+            {message.role === "assistant" &&
+              Array.isArray(message.tool_calls) &&
+              !message.agent_execution_id && ( // Don't render tool cards for agent tasks here (they are in AgentExecutionView)
+                <ToolCallGroup
+                  toolCalls={message.tool_calls as ToolCall[]}
+                  toolResultsByCallId={toolResultsByCallId}
+                  messageCreatedAt={message.created_at}
+                />
+              )}
+            {(message.role === "assistant" || message.role === "user") && (
+              <>
+                {typeof message.content === "string" &&
+                  renderTextContent(message.content, message.id || 0)}
+                {Array.isArray(content) &&
+                  (isMediaOnlyContent(content) &&
+                  (((
+                    message as Message & {
+                      media_generation?: MediaGenerationRequest | null;
+                    }
+                  ).media_generation?.mode ?? "chat") !== "chat" ||
+                    content.length > 1) ? (
+                    <MediaOutputGroup
+                      message={
+                        message as Message & {
+                          media_generation?: MediaGenerationRequest | null;
+                        }
+                      }
+                      mediaContents={content as MessageContent[]}
+                    />
+                  ) : (
+                    content.map((c: MessageContent, i: number) => {
+                      // Guard against null / non-object blocks so the renderer's
+                      // switch on `c.type` can't crash on a malformed block.
+                      if (!c || typeof c !== "object") {
+                        return null;
+                      }
+                      return (
+                        <MessageContentRenderer
+                          key={`${message.id}-content-${c.type}-${i}`}
+                          content={c}
+                          renderTextContent={renderTextContent}
+                          index={i}
+                        />
+                      );
+                    })
+                  ))}
+              </>
             )}
-            {!showRoleMeta && message.role === "assistant" && message.model && (
-              <span className="message-model">{message.model}</span>
-            )}
-            <CopyButton
-              value={copyText}
-              buttonSize="small"
-              tooltip="Copy to clipboard"
-            />
           </div>
-        )}
+          {(message as Message & { error_type?: string }).error_type && (
+            <ErrorIcon className="error-icon" />
+          )}
+          {!Array.isArray(message.tool_calls) && (
+            <div className="message-actions">
+              {!showRoleMeta && formattedTime && (
+                <span className="message-timestamp">{formattedTime}</span>
+              )}
+              {!showRoleMeta &&
+                message.role === "assistant" &&
+                message.model && (
+                  <span className="message-model">{message.model}</span>
+                )}
+              <CopyButton
+                value={copyText}
+                buttonSize="small"
+                tooltip="Copy to clipboard"
+              />
+            </div>
+          )}
         </div>
       </div>
     );
-});
+  }
+);
 
 MessageView.displayName = "MessageView";

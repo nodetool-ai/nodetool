@@ -13,6 +13,7 @@ export {
   type CacheAdapter,
   type FolderAssetEntry,
   type ProcessingContextModelInterfaces,
+  type InjectedTool,
   type S3Client,
   type StorageAdapter
 } from "./context.js";

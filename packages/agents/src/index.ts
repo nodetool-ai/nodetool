@@ -41,11 +41,7 @@ export {
   ListDirectoryTool
 } from "./tools/filesystem-tools.js";
 export { DownloadFileTool, HttpRequestTool } from "./tools/http-tools.js";
-export {
-  EditFileTool,
-  GlobTool,
-  GrepTool
-} from "./tools/edit-search-tools.js";
+export { EditFileTool, GlobTool, GrepTool } from "./tools/edit-search-tools.js";
 export { RunCodeTool } from "./tools/code-tools.js";
 export {
   TodoWriteTool,
@@ -210,6 +206,14 @@ export {
 } from "./tools/media-tools.js";
 export { ImageGenerationTool } from "./tools/image-generation-tool.js";
 export {
+  CritiqueImageTool,
+  CompareImagesTool,
+  ScoreImageAdherenceTool,
+  RecordStylePreferenceTool,
+  GetStyleProfileTool,
+  CREATIVE_CRITIQUE_TOOL_NAMES
+} from "./tools/creative-critique-tools.js";
+export {
   persistOutput,
   workspaceDir as workspaceDirFromContext,
   inferImageMime,
@@ -260,20 +264,15 @@ export {
 } from "./tools/plan-builder-tools.js";
 
 // Graph-native planner tools
+export { SubmitGraphTool } from "./tools/submit-graph-tool.js";
 export { AddNodeTool } from "./tools/add-node-tool.js";
 export { AddEdgeTool } from "./tools/add-edge-tool.js";
 export { RemoveNodeTool } from "./tools/remove-node-tool.js";
 export { RemoveEdgeTool } from "./tools/remove-edge-tool.js";
 export { FinishGraphTool } from "./tools/finish-graph-tool.js";
-export {
-  LocalSearchNodesTool
-} from "./tools/local-search-nodes-tool.js";
-export {
-  LocalGetNodeInfoTool
-} from "./tools/local-get-node-info-tool.js";
-export {
-  LocalListNodesTool
-} from "./tools/local-list-nodes-tool.js";
+export { LocalSearchNodesTool } from "./tools/local-search-nodes-tool.js";
+export { LocalGetNodeInfoTool } from "./tools/local-get-node-info-tool.js";
+export { LocalListNodesTool } from "./tools/local-list-nodes-tool.js";
 
 // Shared JS sandbox engine
 export { buildSandbox, runInSandbox, serializeResult } from "./js-sandbox.js";
@@ -307,9 +306,7 @@ export type {
   CreateDefaultLongTermMemoryOptions,
   MemoryKind as LongTermMemoryKind
 } from "./long-term-memory.js";
-export {
-  formatSynthesizedMemoryForPrompt
-} from "./prompts/memory-synthesis-prompt.js";
+export { formatSynthesizedMemoryForPrompt } from "./prompts/memory-synthesis-prompt.js";
 export type {
   SynthesizedFact,
   FactUtility
@@ -359,12 +356,29 @@ export {
 } from "./script-runner.js";
 export type { ScriptRunnerOptions } from "./script-runner.js";
 
+// GraphPlanner evaluation harness
+export {
+  runGraphPlannerEval,
+  formatEvalReport,
+  checkExpectations
+} from "./evals/graph-planner-eval.js";
+export type {
+  GraphPlannerEvalCase,
+  GraphPlannerEvalExpectations,
+  GraphPlannerCaseResult,
+  GraphPlannerEvalReport,
+  RunGraphPlannerEvalOptions,
+  EvalCheck
+} from "./evals/graph-planner-eval.js";
+export { GRAPH_PLANNER_EVAL_CASES } from "./evals/graph-planner-cases.js";
+
 // Graph-native planning & execution
-export { GraphBuilder, AGENT_STEP_NODE_TYPE } from "./graph-builder.js";
+export { evaluateGraphDsl } from "./graph-dsl.js";
+export type { GraphDslResult, EvaluateGraphDslOptions } from "./graph-dsl.js";
+export { GraphBuilder, AGENT_NODE_TYPE } from "./graph-builder.js";
+export { normalizeModelProperties } from "./normalize-model-properties.js";
+export type { ModelPropertyRegistry } from "./normalize-model-properties.js";
 export { GraphPlanner } from "./graph-planner.js";
 export type { GraphPlannerOptions } from "./graph-planner.js";
-export { AgentStepExecutor } from "./agent-step-executor.js";
-export type { AgentStepExecutorOptions } from "./agent-step-executor.js";
 export { AgentWorkflowRunner } from "./agent-workflow-runner.js";
 export type { AgentWorkflowRunnerOptions } from "./agent-workflow-runner.js";
-

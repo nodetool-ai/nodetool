@@ -160,9 +160,7 @@ function coerceBlock(value: unknown): boolean {
 }
 
 function tagBody(text: string, tag: string): string | null {
-  const match = text.match(
-    new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, "i")
-  );
+  const match = text.match(new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, "i"));
   return match ? match[1].trim() : null;
 }
 
@@ -328,10 +326,10 @@ export class SecurityMonitor {
 
     const verdict = parseVerdict(extractText(reply.content));
     if (!verdict) {
-      log.warn(
-        "Security monitor verdict unparseable; allowing by default",
-        { tool: action.name, category: action.category }
-      );
+      log.warn("Security monitor verdict unparseable; allowing by default", {
+        tool: action.name,
+        category: action.category
+      });
       return { ...ALLOW_VERDICT };
     }
 

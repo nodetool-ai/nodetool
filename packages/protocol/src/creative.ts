@@ -7,8 +7,8 @@
  *   - Entities ("ingredients"): reusable {@link Entity} objects (character,
  *     location, style, prop) that carry reference images / voice / LoRA and are
  *     injected into generation across shots for consistency.
- *   - Cost governance: {@link WorkflowCostEstimate} and {@link Budget} for
- *     plan-before-spend gating.
+ *   - Cost governance: {@link WorkflowCostEstimate} for the plan-before-spend
+ *     view.
  *
  * These are transport/storage shapes only — no runtime behavior. Nodes emit
  * screenplays and shots as `dict` / `list[dict]` values; the interfaces give
@@ -77,14 +77,16 @@ export function isEntity(value: unknown): value is Entity {
 // ---------------------------------------------------------------------------
 
 /**
- * Lifecycle of a single shot as it moves through plan → cheap still → approval
- * → expensive render. Drives the storyboard card state and cost gating.
+ * Lifecycle of a single shot as it moves through plan → cheap still →
+ * expensive render. Drives the storyboard card state and cost gating: the
+ * user picks the still they like (`keyframe`), and the clip render animates
+ * that selection.
  */
 export type ShotStatus =
   | "planned" // exists in the direction, nothing generated yet
   | "keyframe_generating"
-  | "keyframe_ready" // still rendered — cheap, awaiting approval
-  | "approved" // user approved the still; cleared for video spend
+  | "keyframe_ready" // still rendered — cheap; pick one, then spend on video
+  | "approved" // legacy (pre-selection approval step); treated as keyframe_ready
   | "clip_generating"
   | "rendered" // final clip generated
   | "failed";
@@ -211,22 +213,3 @@ export interface WorkflowCostEstimate {
   /** Nodes whose price could not be determined (surfaced, never hidden). */
   unknown_count: number;
 }
-
-/** A spend ceiling the agent must respect while planning generation. */
-export interface Budget {
-  currency: string;
-  /** Hard cap; the agent may not plan generation whose estimate exceeds this. */
-  cap: number;
-  /** Running spend this session/production. */
-  spent: number;
-}
-
-export function budgetRemaining(budget: Budget): number {
-  return Math.max(0, budget.cap - budget.spent);
-}
-
-/**
- * Draft mode routes generation to cheap/low-res models first so a plan can be
- * seen before final spend. `off` uses the models as configured.
- */
-export type DraftMode = "off" | "draft" | "final";

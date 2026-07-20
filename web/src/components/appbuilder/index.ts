@@ -6,6 +6,7 @@ export {
   setPuckAgentHandler,
   getPuckAgentHandler,
   hasPuckAgentHandler,
+  listOpenPuckWorkflowIds,
   type PuckAgentHandler
 } from "./puck/puckAgentBridge";
 export { appConfig } from "./puck/config";

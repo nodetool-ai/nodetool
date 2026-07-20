@@ -860,4 +860,32 @@ describe("ClaudeAgentProvider", () => {
     await run;
     expect(calls[0].options?.abortController?.signal.aborted).toBe(true);
   });
+
+  it("cancels the query when the consumer stops iterating", async () => {
+    // The chat runner cancels by breaking out of the `for await`, with no
+    // signal. Without an abort in the generator's `finally` the SDK subprocess
+    // kept running its whole agentic loop after the user pressed Stop.
+    const calls: QueryCall[] = [];
+    const fn: ClaudeQueryFn = (params) => {
+      calls.push({ prompt: params.prompt, options: params.options });
+      const ac = params.options?.abortController;
+      return (async function* () {
+        yield sysInit("sess-break");
+        while (!ac?.signal.aborted) {
+          yield assistantTextMsg("still working");
+          await new Promise((r) => setTimeout(r, 5));
+        }
+      })();
+    };
+    const provider = new ClaudeAgentProvider({}, { queryFn: fn });
+
+    for await (const _item of provider.generateMessages({
+      messages: [userMsg("hi")],
+      model: "haiku"
+    })) {
+      break;
+    }
+
+    expect(calls[0].options?.abortController?.signal.aborted).toBe(true);
+  });
 });

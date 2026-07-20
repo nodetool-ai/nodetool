@@ -95,7 +95,7 @@ describe("ShotTakesGallery", () => {
     expect(screen.queryByTestId("output-renderer")).not.toBeInTheDocument();
   });
 
-  it("selects a still version through the store", async () => {
+  it("selects a still by clicking its thumbnail and marks it pressed", async () => {
     const shot = makeShot({
       keyframe: image(2),
       keyframe_versions: [image(1), image(2)]
@@ -103,8 +103,11 @@ describe("ShotTakesGallery", () => {
     seedShot(shot);
     renderGallery(shot);
 
-    const chips = screen.getAllByText("1");
-    await userEvent.click(chips[0]);
+    expect(screen.getByRole("button", { name: "Use still 2" })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Use still 1" }));
 
     const updated = useStoryboardStore
       .getState()
@@ -120,8 +123,7 @@ describe("ShotTakesGallery", () => {
     seedShot(shot);
     renderGallery(shot);
 
-    const chips = screen.getAllByText("1");
-    await userEvent.click(chips[0]);
+    await userEvent.click(screen.getByText("Take 1"));
 
     const updated = useStoryboardStore
       .getState()
@@ -142,7 +144,7 @@ describe("ShotTakesGallery", () => {
     seedShot(shot);
     renderGallery(shot, true);
 
-    await userEvent.click(screen.getAllByText("1")[0]);
+    await userEvent.click(screen.getByRole("button", { name: "Use still 1" }));
 
     const updated = useStoryboardStore
       .getState()

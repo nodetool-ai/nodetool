@@ -12,6 +12,7 @@ import { trpcClient } from "../../trpc/client";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { buildTimelineDocument } from "../../components/storyboard/assembleTimeline";
+import { newDocumentId } from "../../lib/newDocumentId";
 
 export interface AssembleResult {
   sequenceId: string;
@@ -49,6 +50,7 @@ export const useAssembleTimeline = (): UseAssembleTimelineResult => {
       try {
         const name = board.title.trim() || "Storyboard cut";
         const sequence = await trpcClient.timeline.create.mutate({
+          id: newDocumentId(),
           name,
           projectId: "default"
         });

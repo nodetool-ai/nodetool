@@ -14,6 +14,8 @@ export type LeftPanelView =
   | "workflows"
   | "sketches"
   | "timelines"
+  | "storyboards"
+  | "scripts"
   | "settings"
   | "history"
   | "favorites"
@@ -69,6 +71,8 @@ const VALID_VIEWS: LeftPanelView[] = [
   "workflows",
   "sketches",
   "timelines",
+  "storyboards",
+  "scripts",
   "settings",
   "history",
   "favorites",

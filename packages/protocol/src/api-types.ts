@@ -249,6 +249,18 @@ export interface TimelineRef {
   data?: unknown;
 }
 
+/**
+ * Reference to a persisted script (text-owns-audio document), editable in the
+ * script editor and passable between workflow nodes.
+ */
+export interface ScriptRef {
+  type: "script";
+  /** Id of the persisted script. */
+  id?: string | null;
+  /** Optional inline script document payload. */
+  data?: unknown;
+}
+
 export interface WorkflowRef {
   type: "workflow_ref";
   id: string;
@@ -662,6 +674,51 @@ export interface Message {
    * headers (model, variation count, resolution) alongside the output assets.
    */
   media_generation?: MediaGenerationRequest | null;
+  /**
+   * What the user is looking at when they send the message. The server renders
+   * this into the system prompt so the agent knows which documents are open and
+   * which one has focus, and can pass their ids to the `ui_*` tools — every one
+   * of which requires an explicit document id rather than acting on whatever
+   * editor happens to be mounted.
+   */
+  ui_context?: UiContext | null;
+}
+
+/** A document open in the workspace, addressable by the `ui_*` tools. */
+export interface UiDocumentRef {
+  type: UiSurfaceType;
+  /**
+   * The document's id: `image_documents.id` for sketch, `timeline_sequences.id`
+   * for timeline, `storyboards.id`, `scripts.id`, and the workflow id for both
+   * `workflow` and `app` (the app document lives on `workflows.app_doc`).
+   */
+  id: string;
+  title?: string | null;
+}
+
+export type UiSurfaceType =
+  | "workflow"
+  | "sketch"
+  | "timeline"
+  | "storyboard"
+  | "script"
+  | "app"
+  | "chat";
+
+export interface UiContext {
+  /** The surface the user is currently looking at. */
+  focused?: UiDocumentRef | null;
+  /** Every document open in the workspace, including the focused one. */
+  open?: UiDocumentRef[] | null;
+  /** What is selected inside the focused document, when anything is. */
+  selection?: {
+    node_ids?: string[] | null;
+    clip_ids?: string[] | null;
+    layer_ids?: string[] | null;
+    shot_ids?: string[] | null;
+    line_ids?: string[] | null;
+    component_ids?: string[] | null;
+  } | null;
 }
 
 export interface MessageCreateRequest {

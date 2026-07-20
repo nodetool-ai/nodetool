@@ -478,7 +478,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
       // Loads public workflows available from the API.
       loadPublic: async (_cursor?: string) => {
         const data = await trpcClient.workflows.public.list.query({ limit: 100 });
-        return data as unknown as WorkflowList;
+        return data as WorkflowList;
       },
 
       // Loads template workflows.
@@ -582,7 +582,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         });
         get().queryClient?.invalidateQueries({ queryKey: ["workflow-tools"] });
 
-        return data as unknown as Workflow;
+        return data as Workflow;
       },
 
       /**

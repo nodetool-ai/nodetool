@@ -899,9 +899,9 @@ export class AgentNode extends BaseNode {
    * handled here.
    */
   protected async buildTools(
-    _context?: ProcessingContext
+    context?: ProcessingContext
   ): Promise<ToolLike[]> {
-    return normalizeTools(this.tools ?? []);
+    return normalizeTools(this.tools ?? [], context);
   }
 
   async *genProcess(
@@ -1047,9 +1047,13 @@ export class AgentNode extends BaseNode {
               ...pt,
               terminal: isStructured,
               execute: async (
-                args: Record<string, unknown>
+                args: Record<string, unknown>,
+                toolCallId?: string
               ): Promise<string | MessageContent[]> => {
-                if (typeof tool.process !== "function") {
+                if (
+                  typeof tool.execute !== "function" &&
+                  typeof tool.process !== "function"
+                ) {
                   log.warn(
                     "AgentNode tool call had no matching executable tool",
                     {
@@ -1073,7 +1077,13 @@ export class AgentNode extends BaseNode {
                   toolName: tool.name
                 });
                 try {
-                  result = await tool.process(context, args);
+                  // Forward the LLM's tool-call id: tools that spawn nested
+                  // work (run_subtask, nested workflows) stamp it on their
+                  // events as parent_tool_call_id.
+                  result =
+                    typeof tool.execute === "function"
+                      ? await tool.execute(context, args, { toolCallId })
+                      : await tool.process!(context, args);
                 } catch (err) {
                   const message =
                     err instanceof Error ? err.message : String(err);
@@ -1184,7 +1194,10 @@ export class AgentNode extends BaseNode {
         maxTokens,
         maxIterations: maxTurns,
         sequentialTools: true,
-        threadId: threadId || undefined
+        threadId: threadId || undefined,
+        // Loop mode is the default: without this a cancelled workflow leaves
+        // the provider loop (and any tool calls it makes) running.
+        signal: context?.signal
       });
       for await (const event of classifyProviderStream(stream)) {
         if (event.kind === "tool_call") {
@@ -1427,7 +1440,11 @@ export class AgentNode extends BaseNode {
         done: false
       }) as Chunk;
 
-    for await (const msg of agent.execute(context)) {
+    // Thread the run's cancellation signal in: cancelling the workflow aborts
+    // WorkflowRunner, but without this the agent's provider work carries on.
+    for await (const msg of agent.execute(context, {
+      signal: context?.signal
+    })) {
       const pmsg = msg as ProcessingMessage;
       if (pmsg.type === "chunk") {
         const chunk = pmsg as Chunk;
@@ -1537,88 +1554,11 @@ export class AgentNode extends BaseNode {
   }
 }
 
-/**
- * Virtual LLM step that inherits the workflow's configured model.
- *
- * Designed for graph-mode agent workflows: GraphPlanner adds these nodes,
- * AgentWorkflowRunner intercepts them by `nodeType` and routes execution
- * through `AgentStepExecutor` (which has access to the workflow's configured
- * provider+model). The class registers metadata so the registry,
- * search_nodes, and get_node_info expose it like any other node — but its
- * `process()` will refuse to run via the standard kernel path because the
- * configured provider/model is supplied by the agent runner, not by a
- * `model` property on the node.
- */
-export class AgentStepNode extends BaseNode {
-  static readonly nodeType: string = "nodetool.agents.AgentStep";
-  static readonly title: string = "Agent Step";
-  static readonly description: string =
-    "LLM step that inherits the workflow's configured model.\n    agents, llm, step, reasoning\n\n    Use this node inside agent-mode workflows when you need an LLM to\n    reason, transform text, or call tools. The step receives upstream\n    edges as context, runs the workflow's configured LLM, and emits the\n    final text on its `output` handle.\n\n    Properties:\n    - instructions (required): the prompt for this step\n    - tools (optional): list of tool names this step may call\n    - output_schema (optional): JSON schema (as a string) constraining the output\n\n    Unlike Agent / Summarizer, this node does NOT take a model property —\n    the workflow's configured model is used.";
-  static readonly metadataOutputTypes = {
-    output: "str"
-  };
-  // Hidden from the node palette/search: GraphPlanner and AgentWorkflowRunner
-  // insert this node; adding it by hand throws in process(). It stays
-  // registered so the registry, search_nodes, and get_node_info still resolve
-  // it for those agent runners.
-  static readonly hidden = true;
-  static readonly inlineFields = ["instructions"];
-  static readonly inputFields = ["input"];
-
-  @prop({
-    type: "str",
-    default: "",
-    title: "Instructions",
-    description: "Instructions for the LLM step (acts as the user prompt).",
-    required: true
-  })
-  declare instructions: string;
-
-  @prop({
-    type: "list[str]",
-    default: [],
-    title: "Tools",
-    description:
-      "Optional list of tool names the step is allowed to call. Empty = no tools."
-  })
-  declare tools: string[];
-
-  @prop({
-    type: "str",
-    default: "",
-    title: "Output Schema",
-    description:
-      "Optional JSON schema (as a string) constraining the step output. Empty = freeform text."
-  })
-  declare output_schema: string;
-
-  @prop({
-    type: "any",
-    default: null,
-    title: "Input",
-    description:
-      "Upstream data forwarded to the step as context. Connect any node here."
-  })
-  declare input: unknown;
-
-  async process(): Promise<Record<string, unknown>> {
-    throw new Error(
-      "AgentStep is not a standalone node — do not add it to a graph by hand. " +
-        "It is inserted by GraphPlanner and executed by AgentWorkflowRunner, " +
-        "which supplies the workflow's configured provider/model; it has no " +
-        "`model` property of its own, so the standard workflow runner cannot " +
-        "run it. For a standalone LLM step you place yourself, use " +
-        "`nodetool.agents.Agent` (it has its own model property) instead."
-    );
-  }
-}
-
 export const AGENT_NODES = tagAsServer([
   SummarizerNode,
   EnhancePromptNode,
   CreateThreadNode,
   ExtractorNode,
   ClassifierNode,
-  AgentNode,
-  AgentStepNode
+  AgentNode
 ]);

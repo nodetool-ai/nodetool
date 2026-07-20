@@ -29,7 +29,6 @@ import {
 } from "./ApiTypes";
 import useResultsStore from "./ResultsStore";
 import useWorkflowRunsStore from "./WorkflowRunsStore";
-import { syncBudgetSpentFromProviderCosts } from "../hooks/useLiveRunCost";
 import type { WebSocketMessage } from "../lib/websocket/GlobalWebSocketManager";
 import {
   sendPlanApprovalResponse,
@@ -397,7 +396,6 @@ const captureChatRunSpend = (
     useResultsStore
       .getState()
       .setProviderCost(workflowId, jobId, update.node_id, update.provider_cost);
-    syncBudgetSpentFromProviderCosts();
   }
 };
 

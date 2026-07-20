@@ -2410,10 +2410,10 @@ function compositorLayerState(raw: unknown): CompositorLayerState {
 /**
  * Compositor — stacks multiple image layers with per-layer opacity and
  * blend mode. Dynamic image inputs are named `image_0`, `image_1`, ...;
- * the lowest-index input is the base (canvas), subsequent layers are
- * composited on top in index order at (0, 0). Per-layer state lives in
- * the `layers` list, indexed positionally against the sorted image
- * inputs. Hidden / zero-opacity layers are skipped.
+ * the lowest-index input is the top (frontmost) layer, subsequent layers
+ * are composited behind it. Per-layer state lives in the `layers` list,
+ * indexed positionally against the sorted image inputs. Hidden /
+ * zero-opacity layers are skipped.
  *
  * Compositing runs on the GPU through the shared WebGPULayerCompositor (the
  * same engine the sketch editor and timeline preview use), via Node.js Dawn —
@@ -2540,7 +2540,7 @@ export class CompositorNode extends BaseNode {
       };
     }
 
-    // Canvas size: explicit props win; otherwise the first layer's size.
+    // Canvas size: explicit props win; otherwise the top (first) layer's size.
     const canvasWidth =
       Number(this.canvas_width) > 0
         ? Math.floor(Number(this.canvas_width))
@@ -2549,6 +2549,9 @@ export class CompositorNode extends BaseNode {
       Number(this.canvas_height) > 0
         ? Math.floor(Number(this.canvas_height))
         : decoded[0].height;
+
+    // Reverse so that image_0 (top input handle) is composited last (on top).
+    decoded.reverse();
 
     // Composite on the GPU through the shared headless layer compositor (the
     // same engine the sketch editor and timeline preview use). Node uses the

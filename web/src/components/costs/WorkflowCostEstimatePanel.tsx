@@ -1,237 +1,214 @@
+/** @jsxImportSource @emotion/react */
 /**
  * WorkflowCostEstimatePanel
  *
- * The full plan-before-spend view for a workflow: a per-node estimate table for
- * the nodes that use an AI model (provider / model / quantity / cost, with
- * unknown-price nodes flagged), the currency total, a budget-cap input, a
- * draft-mode toggle, and a warning banner when the estimate would break the
- * budget.
+ * The plan-before-spend view for a workflow: a per-node estimate table for the
+ * nodes that use an AI model (provider / model / quantity / cost, with
+ * unknown-price nodes flagged) and the currency total. Styled to sit directly
+ * under the Inspector in the right panel, so it mirrors the Inspector's
+ * spacing, section headings, and row/divider treatment.
  */
 
-import React, { memo, useCallback, useMemo } from "react";
+import { css } from "@emotion/react";
+import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
-import { useShallow } from "zustand/react/shallow";
-import type { DraftMode } from "@nodetool-ai/protocol";
-import { withinBudget } from "@nodetool-ai/node-sdk/cost-estimate";
-import {
-  Panel,
-  Card,
-  Text,
-  Label,
-  Caption,
-  Chip,
-  TextInput,
-  ToggleGroup,
-  ToggleOption,
-  AlertBanner,
-  Divider,
-  FlexRow,
-  FlexColumn,
-  EmptyState,
-  SPACING
-} from "../ui_primitives";
+import type { Theme } from "@mui/material/styles";
+import { BORDER_RADIUS, Box, Caption } from "../ui_primitives";
 import { useWorkflowCostEstimate } from "../../hooks/useWorkflowCostEstimate";
-import { useBudgetStore, selectBudget } from "../../stores/BudgetStore";
 import { formatMoney } from "./costsData";
 
 export interface WorkflowCostEstimatePanelProps {
   workflowId: string;
 }
 
-const DRAFT_MODES: DraftMode[] = ["off", "draft", "final"];
+const styles = (theme: Theme) =>
+  css({
+    display: "flex",
+    flexDirection: "column",
+    gap: theme.spacing(3),
+    padding: theme.spacing(4),
+
+    ".cost-head": {
+      display: "flex",
+      flexDirection: "column",
+      gap: theme.spacing(0.5)
+    },
+    ".cost-title": {
+      fontFamily: theme.fontFamily1,
+      fontSize: "var(--fontSizeSmaller)",
+      fontWeight: 600,
+      letterSpacing: "0.08em",
+      textTransform: "uppercase",
+      color: theme.vars.palette.text.secondary
+    },
+    ".cost-subtitle": {
+      fontSize: theme.fontSizeSmall,
+      color: theme.vars.palette.text.disabled
+    },
+
+    ".cost-table": {
+      display: "flex",
+      flexDirection: "column"
+    },
+    ".cost-row": {
+      display: "grid",
+      gridTemplateColumns: "1.6fr 1.6fr auto auto",
+      gap: theme.spacing(1),
+      alignItems: "center",
+      padding: `${theme.spacing(1)} 0`,
+      borderBottom: `1px solid ${theme.vars.palette.divider}`,
+      "&:last-child": { borderBottom: "none" }
+    },
+    ".cost-row.is-head": {
+      borderBottom: `1px solid ${theme.vars.palette.divider}`
+    },
+    ".cost-col-head": {
+      fontFamily: theme.fontFamily1,
+      fontSize: "var(--fontSizeSmaller)",
+      fontWeight: 600,
+      letterSpacing: "0.04em",
+      textTransform: "uppercase",
+      color: theme.vars.palette.text.secondary
+    },
+    ".cost-cell-node": {
+      fontFamily: theme.fontFamily1,
+      fontSize: theme.fontSizeSmall,
+      color: theme.vars.palette.text.primary,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+      minWidth: 0
+    },
+    ".cost-cell-model": {
+      fontFamily: theme.fontFamily2,
+      fontSize: "var(--fontSizeSmaller)",
+      letterSpacing: "0.02em",
+      color: theme.vars.palette.text.secondary,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+      minWidth: 0
+    },
+    ".cost-cell-num": {
+      fontFamily: theme.fontFamily2,
+      fontSize: "var(--fontSizeSmaller)",
+      textAlign: "right",
+      fontVariantNumeric: "tabular-nums",
+      color: theme.vars.palette.text.primary
+    },
+    ".cost-unknown": {
+      justifySelf: "start",
+      fontFamily: theme.fontFamily2,
+      fontSize: "var(--fontSizeSmaller)",
+      letterSpacing: "0.02em",
+      color: theme.vars.palette.warning.main,
+      padding: `1px ${theme.spacing(1)}`,
+      borderRadius: BORDER_RADIUS.sm,
+      border: `1px solid ${theme.vars.palette.warning.main}`,
+      whiteSpace: "nowrap"
+    },
+
+    ".cost-total": {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "baseline",
+      gap: theme.spacing(2),
+      paddingTop: theme.spacing(1),
+      borderTop: `1px solid ${theme.vars.palette.divider}`
+    },
+    ".cost-total-key": {
+      fontFamily: theme.fontFamily1,
+      fontSize: theme.fontSizeSmall,
+      fontWeight: 600,
+      color: theme.vars.palette.text.primary
+    },
+    ".cost-total-value": {
+      fontFamily: theme.fontFamily2,
+      fontSize: theme.fontSizeNormal,
+      fontWeight: 700,
+      color: theme.vars.palette.text.primary,
+      fontVariantNumeric: "tabular-nums"
+    },
+    ".cost-note": {
+      fontSize: "var(--fontSizeSmaller)",
+      color: theme.vars.palette.warning.main
+    }
+  });
 
 const WorkflowCostEstimatePanelInternal: React.FC<
   WorkflowCostEstimatePanelProps
 > = ({ workflowId }) => {
   const theme = useTheme();
   const estimate = useWorkflowCostEstimate(workflowId);
-  const budget = useBudgetStore(useShallow(selectBudget));
-  const draftMode = useBudgetStore((s) => s.draftMode);
-  const setCap = useBudgetStore((s) => s.setCap);
-  const setDraftMode = useBudgetStore((s) => s.setDraftMode);
-
-  const over = useMemo(
-    () => (estimate ? !withinBudget(estimate, budget) : false),
-    [estimate, budget]
-  );
-
-  const handleCapChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const next = Number(e.target.value);
-      setCap(Number.isFinite(next) ? next : 0);
-    },
-    [setCap]
-  );
-
-  const handleDraftModeChange = useCallback(
-    (_e: React.MouseEvent<HTMLElement>, value: DraftMode | null) => {
-      if (value) {
-        setDraftMode(value);
-      }
-    },
-    [setDraftMode]
-  );
 
   return (
-    <Panel
-      title="Cost estimate"
-      subtitle="Plan generation before you spend"
-      padding="normal"
-    >
-      <FlexColumn gap={SPACING.md}>
-        {over && (
-          <AlertBanner severity="warning" title="Over budget">
-            The estimated cost{" "}
-            {estimate ? formatMoney(estimate.total) : formatMoney(0)} plus
-            spent {formatMoney(budget.spent)} exceeds the{" "}
-            {formatMoney(budget.cap)} cap.
-          </AlertBanner>
-        )}
+    <Box css={styles(theme)} className="cost-estimate">
+      <div className="cost-head">
+        <div className="cost-title">Cost estimate</div>
+        <span className="cost-subtitle">Estimated cost of a single run</span>
+      </div>
 
-        <FlexRow gap={SPACING.lg} align="flex-end" wrap>
-          <FlexColumn gap={SPACING.xs} sx={{ minWidth: 140 }}>
-            <Label>Budget cap ({budget.currency})</Label>
-            <TextInput
-              type="number"
-              value={String(budget.cap)}
-              onChange={handleCapChange}
-              size="small"
-              compact
-              inputProps={{ min: 0, step: 0.5 }}
-            />
-          </FlexColumn>
-
-          <FlexColumn gap={SPACING.xs}>
-            <Label>Draft mode</Label>
-            <ToggleGroup
-              value={draftMode}
-              exclusive
-              onChange={handleDraftModeChange}
-              size="small"
-              segmented
-            >
-              {DRAFT_MODES.map((mode) => (
-                <ToggleOption key={mode} value={mode}>
-                  {mode}
-                </ToggleOption>
-              ))}
-            </ToggleGroup>
-            <Caption sx={{ maxWidth: 320, opacity: 0.7 }}>
-              Affects the estimate only: Draft assumes one preview per node;
-              Off / Final use each node&apos;s configured output count.
-            </Caption>
-          </FlexColumn>
-        </FlexRow>
-
-        <Divider />
-
-        {!estimate ? (
-          <EmptyState
-            variant="no-data"
-            title="No graph loaded"
-            description="Open a workflow to see its cost estimate."
-            size="small"
-          />
-        ) : estimate.items.length === 0 ? (
-          <EmptyState
-            variant="empty"
-            title="No AI-model nodes"
-            description="Add a node that uses an AI model to estimate a run's cost."
-            size="small"
-          />
-        ) : (
-          <FlexColumn gap={0}>
-            <FlexRow
-              gap={SPACING.sm}
-              sx={{ py: 0.5, opacity: 0.7 }}
-            >
-              <Caption sx={{ flex: 2 }}>Node</Caption>
-              <Caption sx={{ flex: 2 }}>Provider / model</Caption>
-              <Caption sx={{ flex: 1, textAlign: "right" }}>Qty</Caption>
-              <Caption sx={{ flex: 1, textAlign: "right" }}>Cost</Caption>
-            </FlexRow>
-            <Divider />
+      {!estimate ? (
+        <Caption size="smaller" color="muted">
+          Open a workflow to see its cost estimate.
+        </Caption>
+      ) : estimate.items.length === 0 ? (
+        <Caption size="smaller" color="muted">
+          Add a node that uses an AI model to estimate a run&apos;s cost.
+        </Caption>
+      ) : (
+        <>
+          <div className="cost-table">
+            <div className="cost-row is-head">
+              <span className="cost-col-head">Node</span>
+              <span className="cost-col-head">Provider / model</span>
+              <span className="cost-col-head" style={{ textAlign: "right" }}>
+                Qty
+              </span>
+              <span className="cost-col-head" style={{ textAlign: "right" }}>
+                Cost
+              </span>
+            </div>
             {estimate.items.map((item) => (
-              <FlexRow
-                key={item.node_id}
-                gap={SPACING.sm}
-                align="center"
-                sx={{ py: 0.5 }}
-              >
-                <Text
-                  sx={{
-                    flex: 2,
-                    fontSize: "var(--fontSizeSmall)",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap"
-                  }}
-                >
+              <div className="cost-row" key={item.node_id}>
+                <span className="cost-cell-node" title={item.node_type}>
                   {item.node_type}
-                </Text>
-                <FlexRow sx={{ flex: 2, minWidth: 0 }} align="center" gap={0.5}>
-                  {item.confidence === "unknown" ? (
-                    <Chip label="unknown price" color="warning" compact />
-                  ) : (
-                    <Text
-                      sx={{
-                        fontSize: "var(--fontSizeSmall)",
-                        color: theme.vars.palette.text.secondary,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap"
-                      }}
-                    >
-                      {item.provider}
-                      {item.model ? ` · ${item.model}` : ""}
-                    </Text>
-                  )}
-                </FlexRow>
-                <Text
-                  sx={{
-                    flex: 1,
-                    textAlign: "right",
-                    fontSize: "var(--fontSizeSmall)"
-                  }}
-                >
-                  {item.quantity}
-                </Text>
-                <Text
-                  sx={{
-                    flex: 1,
-                    textAlign: "right",
-                    fontSize: "var(--fontSizeSmall)",
-                    fontWeight: 600
-                  }}
-                >
+                </span>
+                {item.confidence === "unknown" ? (
+                  <span className="cost-unknown">unknown price</span>
+                ) : (
+                  <span className="cost-cell-model">
+                    {item.provider}
+                    {item.model ? ` · ${item.model}` : ""}
+                  </span>
+                )}
+                <span className="cost-cell-num">{item.quantity}</span>
+                <span className="cost-cell-num">
                   {item.confidence === "unknown"
                     ? "—"
                     : formatMoney(item.estimated_cost)}
-                </Text>
-              </FlexRow>
+                </span>
+              </div>
             ))}
-            <Divider />
-            <Card variant="outlined" padding="compact" sx={{ mt: SPACING.sm }}>
-              <FlexRow justify="space-between" align="center">
-                <Text sx={{ fontWeight: 600 }}>
-                  Total ({estimate.currency})
-                </Text>
-                <Text sx={{ fontWeight: 700 }}>
-                  {formatMoney(estimate.total)}
-                </Text>
-              </FlexRow>
-              {estimate.unknown_count > 0 && (
-                <Caption sx={{ color: theme.vars.palette.warning.main }}>
-                  {estimate.unknown_count} node
-                  {estimate.unknown_count === 1 ? "" : "s"} without a known
-                  price are excluded from the total.
-                </Caption>
-              )}
-            </Card>
-          </FlexColumn>
-        )}
-      </FlexColumn>
-    </Panel>
+          </div>
+
+          <div className="cost-total">
+            <span className="cost-total-key">Total ({estimate.currency})</span>
+            <span className="cost-total-value">
+              {formatMoney(estimate.total)}
+            </span>
+          </div>
+          {estimate.unknown_count > 0 && (
+            <span className="cost-note">
+              {estimate.unknown_count} node
+              {estimate.unknown_count === 1 ? "" : "s"} without a known price
+              {estimate.unknown_count === 1 ? " is" : " are"} excluded from the
+              total.
+            </span>
+          )}
+        </>
+      )}
+    </Box>
   );
 };
 

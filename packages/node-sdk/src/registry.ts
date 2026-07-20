@@ -206,6 +206,7 @@ export class NodeRegistry {
           nodeId: descriptor.id,
           nodeType: descriptor.type,
           property: "*",
+          code: "unsupported_platform",
           message: `Node ${descriptor.type} is not supported on platform '${target}' (supports: ${supported})`
         }
       ];

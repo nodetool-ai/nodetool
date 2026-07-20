@@ -137,17 +137,32 @@ describe("CreateWorkflowTool", () => {
     });
 
     const body = JSON.parse(lastFetchOpts().body as string);
+    // Stored shape: the property bag lives flat under `data`, not
+    // `properties` — the editor reads `node.data`.
     expect(body.graph).toEqual({
       nodes: [
         {
           id: "search",
           type: "openai.text.WebSearch",
-          properties: { query: "current technology news" }
+          data: { query: "current technology news" },
+          ui_properties: {
+            position: { x: 0, y: 0 },
+            zIndex: 0,
+            width: 280,
+            selectable: true
+          }
         },
         {
           id: "summarize",
           type: "mistral.text.ChatComplete",
-          properties: { model: "mistral-large-latest" }
+          data: { model: "mistral-large-latest" },
+          // Downstream of `search`, so column 1 of the dataflow layout.
+          ui_properties: {
+            position: { x: 320, y: 0 },
+            zIndex: 0,
+            width: 280,
+            selectable: true
+          }
         }
       ],
       edges: [
@@ -174,7 +189,7 @@ describe("CreateWorkflowTool", () => {
           },
           {
             id: "summarizer_node",
-            node_type: "nodetool.agents.AgentStep",
+            node_type: "nodetool.agents.Agent",
             properties: { instructions: "Summarize the news" }
           }
         ],
@@ -194,14 +209,116 @@ describe("CreateWorkflowTool", () => {
       {
         id: "search_node",
         type: "xai.text.WebSearch",
-        properties: { query: "latest news", search_mode: "on" }
+        data: { query: "latest news", search_mode: "on" },
+        ui_properties: {
+          position: { x: 0, y: 0 },
+          zIndex: 0,
+          width: 280,
+          selectable: true
+        }
       },
       {
         id: "summarizer_node",
-        type: "nodetool.agents.AgentStep",
-        properties: { instructions: "Summarize the news" }
+        type: "nodetool.agents.Agent",
+        data: { instructions: "Summarize the news" },
+        ui_properties: {
+          position: { x: 320, y: 0 },
+          zIndex: 0,
+          width: 280,
+          selectable: true
+        }
       }
     ]);
+  });
+
+  it("always auto-lays-out, overriding caller positions but keeping other ui_properties", async () => {
+    await tool.process(ctx, {
+      name: "Already stored shape",
+      graph: {
+        nodes: [
+          {
+            id: "n1",
+            type: "nodetool.input.StringInput",
+            data: { name: "prompt" },
+            ui_properties: {
+              position: { x: 42, y: 99 },
+              zIndex: 0,
+              title: "Prompt"
+            }
+          }
+        ],
+        edges: []
+      }
+    });
+
+    const body = JSON.parse(lastFetchOpts().body as string);
+    expect(body.graph.nodes).toEqual([
+      {
+        id: "n1",
+        type: "nodetool.input.StringInput",
+        data: { name: "prompt" },
+        ui_properties: {
+          // Caller's position is discarded; other fields (title) survive.
+          position: { x: 0, y: 0 },
+          zIndex: 0,
+          width: 280,
+          selectable: true,
+          title: "Prompt"
+        }
+      }
+    ]);
+  });
+
+  it("lays out a chain left-to-right and stacks parallel roots", async () => {
+    await tool.process(ctx, {
+      name: "Diamond",
+      graph: {
+        nodes: [
+          { id: "a", type: "t", properties: {} },
+          { id: "b", type: "t", properties: {} },
+          { id: "c", type: "t", properties: {} }
+        ],
+        // a -> c and b -> c: a,b are roots (column 0), c is column 1.
+        edges: [
+          { source: "a", target: "c", targetHandle: "x" },
+          { source: "b", target: "c", targetHandle: "y" }
+        ]
+      }
+    });
+
+    const positions = Object.fromEntries(
+      JSON.parse(lastFetchOpts().body as string).graph.nodes.map(
+        (n: { id: string; ui_properties: { position: unknown } }) => [
+          n.id,
+          n.ui_properties.position
+        ]
+      )
+    );
+    expect(positions).toEqual({
+      a: { x: 0, y: 0 },
+      b: { x: 0, y: 220 },
+      c: { x: 320, y: 0 }
+    });
+  });
+
+  it("never stores a node carrying both `properties` and `data`", async () => {
+    await tool.process(ctx, {
+      name: "Planner output",
+      graph: {
+        nodes: [
+          {
+            id: "n1",
+            type: "nodetool.input.StringInput",
+            properties: { name: "prompt" }
+          }
+        ],
+        edges: []
+      }
+    });
+
+    const node = JSON.parse(lastFetchOpts().body as string).graph.nodes[0];
+    expect(node.properties).toBeUndefined();
+    expect(node.data).toEqual({ name: "prompt" });
   });
 
   it("userMessage includes name", () => {

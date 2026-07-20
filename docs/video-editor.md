@@ -1,10 +1,10 @@
 ---
 layout: page
 title: "Video Editor"
-description: "A generation-aware timeline editor for sequencing, compositing, and AI-generating video, audio, and image clips inside NodeTool."
+description: "A generation-aware timeline editor for sequencing, compositing, animating, and AI-generating media inside NodeTool."
 ---
 
-Cut a sequence on a multi-track timeline, bind any workflow to a clip, and generate the footage in place. NodeTool's Video Editor is a non-linear editor where clips can be imported media *or* live workflow outputs that regenerate when you change their parameters.
+Cut a sequence on a multi-track timeline, bind any workflow to a clip, and generate the footage in place. NodeTool's Video Editor is a non-linear editor where clips can be imported media _or_ live workflow outputs that regenerate when you change their parameters.
 
 > **Quick Access:** Open a timeline at `/timeline/:sequenceId`, or add a timeline tab from the workspace. Create a new sequence from the timeline list panel or the Asset Explorer.
 
@@ -17,8 +17,10 @@ Cut a sequence on a multi-track timeline, bind any workflow to a clip, and gener
 The Video Editor (timeline editor) is a non-linear, multi-track surface for assembling video, audio, and image clips. What sets it apart from a conventional NLE is that clips can be **bound to NodeTool workflows** — a clip can be the output of a text-to-image, image-to-video, or text-to-speech pipeline, and it stays editable: change a parameter and regenerate just that clip.
 
 **Features:**
+
 - Multi-track timeline — stack video, audio, and overlay tracks
 - Imported clips (drag media from the Asset Explorer) and AI-generated clips side by side
+- Authored text and shape clips with preset-based motion
 - Clip editing — move, trim, split, duplicate, delete, with snap-to-playhead and snap-to-clip alignment
 - Real-time preview compositing with a GPU compositor (WebGPU, Canvas2D fallback) and WebAudio mixing
 - Frame-accurate transport — play/pause, stop, frame-step, skip to clip boundaries, timecode readout
@@ -52,12 +54,12 @@ Each timeline (whether a standalone page or a workspace tab) runs in its own iso
 
 ## Anatomy of the Editor
 
-| Region | What it does |
-|--------|--------------|
-| **Top bar** | Sequence name, Save, Export, and an activity indicator for running generations |
-| **Preview** | The composited video with transport controls, timecode, and FPS readout |
-| **Tracks** | The multi-track timeline — a canvas-rendered ruler, the playhead, and the clips |
-| **Inspector** | Per-clip controls — properties for imported clips, the node stack for generated clips |
+| Region        | What it does                                                                         |
+| ------------- | ------------------------------------------------------------------------------------ |
+| **Top bar**   | Sequence name, Save, Export, and an activity indicator for running generations       |
+| **Preview**   | The composited video with transport controls, timecode, and FPS readout              |
+| **Tracks**    | The multi-track timeline — a canvas-rendered ruler, the playhead, and the clips      |
+| **Inspector** | Per-clip controls for transforms, motion, authored content, and generated clip nodes |
 
 ---
 
@@ -66,6 +68,7 @@ Each timeline (whether a standalone page or a workspace tab) runs in its own iso
 The timeline holds multiple tracks. Video and overlay tracks composite top-down; audio tracks mix together.
 
 **Clip operations:**
+
 - **Add** — drag media from the Asset Explorer onto a track, or add a generated clip from the add menu.
 - **Select** — click a clip; `Shift`/`Ctrl`-click to multi-select.
 - **Move / trim** — drag the body to move, drag the edges to trim the in/out points.
@@ -96,14 +99,16 @@ Video and audio are kept in sync by driving playback against the audio clock.
 A clip doesn't have to be a file — it can be the output of a workflow.
 
 **Generation modes:**
+
 - **Text-to-Image** — generate a still from a prompt.
 - **Image-to-Video** — animate an image.
 - **Text-to-Speech / Text-to-Audio** — synthesize an audio clip.
-- **Workflow** — bind *any* NodeTool workflow to the clip.
+- **Workflow** — bind _any_ NodeTool workflow to the clip.
 
 When you bind a workflow, NodeTool clones it into a clip-private variant and exposes the workflow's `Input*` nodes as editable parameters in the Inspector — so you can tweak the prompt, seed, or any input and regenerate without leaving the timeline.
 
 **Staleness & versions:**
+
 - Each clip tracks a content hash of the bound workflow plus its parameter overrides. Edit the workflow (or its inputs) and the clip is flagged **stale**.
 - A clip moves through states: **draft → queued → generating → generated**, plus **stale**, **failed**, **locked**, and **missing**.
 - Successful generations are kept as **versions** — restore, favourite, or delete previous results per clip.
@@ -119,6 +124,9 @@ The Inspector swaps based on what's selected:
 
 - **Imported clip** — asset info, in/out points, transform, opacity, speed, and volume controls, plus a **Replace Media** action.
 - **Generated clip** — a vertical **node stack** of the bound workflow's nodes, each with its parameters (reusing NodeTool's property fields) and a per-node status indicator. A clip-actions menu covers Generate, Regenerate, Generate Stale, Duplicate as Variation, Open in Node Editor, Lock, and Revert, alongside the version list.
+- **Text or shape clip** — content and appearance controls for text, fill, stroke, geometry, and corner radius.
+
+Every visual clip includes an **Animate** section. Add an entrance, exit, emphasis, or loop preset, then adjust its timing, easing, and preset parameters.
 
 ---
 
@@ -129,6 +137,20 @@ Clips and tracks carry an effects chain that runs in the same compositor as the 
 - **Video** — color correction, blur, sharpen, vignette, chroma key.
 - **Audio** — gain, 3-band EQ, filter (lowpass/highpass/bandpass), compressor.
 - **Clip transforms** — opacity, blend mode (normal, screen, multiply, add, overlay), speed, and fade-in/out.
+
+---
+
+## Animations
+
+Motion presets add animation without a keyframe editor. Select a visual clip, open **Animate** in the Inspector, choose a role and preset, then adjust duration or period, delay, easing, and preset parameters.
+
+- **In / Out** — fade, slide, pop, spin, wipe, blur, and colorFade at a clip boundary. Wipe reveals the clip behind a directional mask with an adjustable feathered edge; blur racks from soft to sharp; colorFade blooms grayscale into full color.
+- **Emphasis / Loop** — pulse, flash, shake, bounce, float, breathe, spin, or Ken Burns motion while the clip is active.
+- **Word stagger** — on text clips, any animation can run once per word, each word offset in time from the previous (offset and on/off in the inspector; `stagger` on `ui_timeline_animate_clip` for the agent). Words pop, slide, or fade in sequence — motion typography without keyframes. See [plans/motion-typography.md](plans/motion-typography.md).
+- **Track markers** — shaded edge wedges show entrance and exit windows; a loop icon marks emphasis or repeating motion. Select a marker to open its controls.
+- **Agent authoring** — timeline tools can list presets, apply or clear motion, and inspect fixed-time frames before export.
+
+Preview and export sample the same animation resolver, so transforms and opacity match at each frame.
 
 ---
 
@@ -144,16 +166,16 @@ Clips and tracks carry an effects chain that runs in the same compositor as the 
 
 ## Keyboard Shortcuts
 
-| Shortcut | Action |
-|----------|--------|
-| `Space` | Play / pause |
-| `S` | Split clip at playhead |
-| `Delete` / `Backspace` | Delete selected clip(s) |
-| `Ctrl/⌘ + C` / `X` / `V` | Copy / cut / paste clips |
-| `Ctrl/⌘ + D` | Duplicate selected clip(s) |
-| `Ctrl/⌘ + Z` | Undo |
-| `Ctrl/⌘ + Shift + Z` | Redo |
-| `Ctrl/⌘ + scroll` | Zoom timeline (anchored at cursor) |
+| Shortcut                 | Action                             |
+| ------------------------ | ---------------------------------- |
+| `Space`                  | Play / pause                       |
+| `S`                      | Split clip at playhead             |
+| `Delete` / `Backspace`   | Delete selected clip(s)            |
+| `Ctrl/⌘ + C` / `X` / `V` | Copy / cut / paste clips           |
+| `Ctrl/⌘ + D`             | Duplicate selected clip(s)         |
+| `Ctrl/⌘ + Z`             | Undo                               |
+| `Ctrl/⌘ + Shift + Z`     | Redo                               |
+| `Ctrl/⌘ + scroll`        | Zoom timeline (anchored at cursor) |
 
 ---
 
@@ -199,4 +221,4 @@ Clips and tracks carry an effects chain that runs in the same compositor as the 
 
 ---
 
-*Last updated: June 2026*
+_Last updated: July 2026_

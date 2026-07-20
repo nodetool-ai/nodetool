@@ -294,6 +294,9 @@ describe("ChatView", () => {
           model: "gpt-4",
           content: [{ type: "text", text: "Test message" }],
           system_prompt: undefined,
+          // No workspace tabs are open in this test, so there is nothing for
+          // the agent to address and buildUiContext returns null.
+          ui_context: null,
           graph: undefined,
           workflow_id: undefined,
           workflow_target: undefined,

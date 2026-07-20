@@ -2469,3 +2469,43 @@ describe("ProcessingContext – memory helpers", () => {
     expect(ctx.getMemoryStats()).toEqual({ total: 0, byPrefix: {} });
   });
 });
+
+describe("ProcessingContext – injected tools", () => {
+  const tool = (name: string) => ({
+    name,
+    process: async () => ({ ok: name })
+  });
+
+  it("returns null before the caller supplies any tools", () => {
+    const ctx = new ProcessingContext({ jobId: "j1" });
+    expect(ctx.getInjectedTool("read_file")).toBeNull();
+  });
+
+  it("looks up a supplied tool by name and misses on unknown names", () => {
+    const ctx = new ProcessingContext({ jobId: "j1" });
+    const readFile = tool("read_file");
+    ctx.setInjectedTools([readFile, tool("write_file")]);
+
+    expect(ctx.getInjectedTool("read_file")).toBe(readFile);
+    expect(ctx.getInjectedTool("nope")).toBeNull();
+  });
+
+  it("replaces the whole set on a second call", () => {
+    const ctx = new ProcessingContext({ jobId: "j1" });
+    ctx.setInjectedTools([tool("a")]);
+    ctx.setInjectedTools([tool("b")]);
+
+    expect(ctx.getInjectedTool("a")).toBeNull();
+    expect(ctx.getInjectedTool("b")).not.toBeNull();
+  });
+
+  // The kernel copies the context per node, so a node executing in a copy
+  // must still see the tools the run's owner injected.
+  it("carries injected tools into a copied context", () => {
+    const ctx = new ProcessingContext({ jobId: "j1" });
+    const readFile = tool("read_file");
+    ctx.setInjectedTools([readFile]);
+
+    expect(ctx.copy().getInjectedTool("read_file")).toBe(readFile);
+  });
+});

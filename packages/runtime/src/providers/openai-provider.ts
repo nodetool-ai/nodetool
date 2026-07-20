@@ -310,7 +310,9 @@ export class OpenAIProvider extends BaseProvider {
    * pass their own provider id) stay on Chat Completions.
    */
   protected usesResponsesApi(model: string): boolean {
-    return this.provider === PROVIDER_IDS.OPENAI && isOpenAIResponsesModel(model);
+    return (
+      this.provider === PROVIDER_IDS.OPENAI && isOpenAIResponsesModel(model)
+    );
   }
 
   override get supportsNativeWebSearch(): boolean {
@@ -510,6 +512,63 @@ export class OpenAIProvider extends BaseProvider {
     ];
   }
 
+  /**
+   * gpt-image-2 accepts arbitrary sizes within limits: both edges a multiple of
+   * 16, long edge <= 3840, aspect ratio <= 3:1, and total area between 0.64MP
+   * and 8.3MP. Requested sizes rarely land on that grid (16:9 at 1K is
+   * 1820x1024), so snap to the nearest valid size preserving the aspect ratio
+   * rather than dropping `size` and letting the API default to a square.
+   */
+  static snapToGptImage2Size(width: number, height: number): string | null {
+    const MIN_AREA = 655_360;
+    const MAX_AREA = 8_294_400;
+    const MAX_EDGE = 3840;
+    const MAX_RATIO = 3;
+
+    if (!(width > 0) || !(height > 0)) return null;
+
+    const landscape = width >= height;
+    const ratio = Math.min(
+      MAX_RATIO,
+      landscape ? width / height : height / width
+    );
+
+    // Derive edges from the clamped ratio at the requested area, then pull the
+    // area into range.
+    const area = Math.min(MAX_AREA, Math.max(MIN_AREA, width * height));
+    let long = Math.sqrt(area * ratio);
+    let short = long / ratio;
+    if (long > MAX_EDGE) {
+      short *= MAX_EDGE / long;
+      long = MAX_EDGE;
+    }
+
+    const snap = (v: number): number =>
+      Math.min(MAX_EDGE, Math.max(16, Math.round(v / 16) * 16));
+    let longPx = snap(long);
+    let shortPx = snap(short);
+
+    // Snapping can nudge the area out of range; step it back in.
+    while (longPx * shortPx < MIN_AREA && longPx + 16 <= MAX_EDGE) {
+      longPx += 16;
+      shortPx = snap(longPx / ratio);
+    }
+    while (longPx * shortPx > MAX_AREA && longPx - 16 >= 16) {
+      longPx -= 16;
+      shortPx = snap(longPx / ratio);
+    }
+    // Rounding the short edge down can tip the ratio back over the limit, so
+    // round up here.
+    if (longPx / shortPx > MAX_RATIO) {
+      shortPx = Math.min(longPx, Math.ceil(longPx / MAX_RATIO / 16) * 16);
+    }
+
+    const areaPx = longPx * shortPx;
+    if (areaPx < MIN_AREA || areaPx > MAX_AREA) return null;
+
+    return landscape ? `${longPx}x${shortPx}` : `${shortPx}x${longPx}`;
+  }
+
   resolveImageSize(
     width?: number | null,
     height?: number | null,
@@ -520,21 +579,7 @@ export class OpenAIProvider extends BaseProvider {
     }
 
     if (model === "gpt-image-2" || model?.startsWith("gpt-image-2-") === true) {
-      const area = width * height;
-      const longEdge = Math.max(width, height);
-      const shortEdge = Math.min(width, height);
-      const isValid =
-        Number.isInteger(width) &&
-        Number.isInteger(height) &&
-        width > 0 &&
-        height > 0 &&
-        longEdge <= 3840 &&
-        width % 16 === 0 &&
-        height % 16 === 0 &&
-        longEdge / shortEdge <= 3 &&
-        area >= 655_360 &&
-        area <= 8_294_400;
-      return isValid ? `${width}x${height}` : null;
+      return OpenAIProvider.snapToGptImage2Size(width, height);
     }
 
     const supported: Array<[number, number]> = [
@@ -679,8 +724,7 @@ export class OpenAIProvider extends BaseProvider {
 
     const estimated = Math.ceil(numFrames / 24);
     return SORA_VIDEO_DURATIONS.reduce(
-      (duration, candidate) =>
-        candidate <= estimated ? candidate : duration,
+      (duration, candidate) => (candidate <= estimated ? candidate : duration),
       SORA_VIDEO_DURATIONS[0]
     );
   }
@@ -979,8 +1023,7 @@ export class OpenAIProvider extends BaseProvider {
       stream_options: { include_usage: true }
     };
 
-    const hasTools =
-      tools.length > 0 && (await this.hasToolSupport(model));
+    const hasTools = tools.length > 0 && (await this.hasToolSupport(model));
 
     if (temperature != null) request.temperature = temperature;
     if (topP != null) request.top_p = topP;
@@ -1121,8 +1164,7 @@ export class OpenAIProvider extends BaseProvider {
       max_completion_tokens: maxTokens
     };
 
-    const hasTools =
-      tools.length > 0 && (await this.hasToolSupport(model));
+    const hasTools = tools.length > 0 && (await this.hasToolSupport(model));
 
     if (temperature != null) request.temperature = temperature;
     if (topP != null) request.top_p = topP;
@@ -1166,7 +1208,9 @@ export class OpenAIProvider extends BaseProvider {
     const toolCalls = Array.isArray(responseMessage.tool_calls)
       ? responseMessage.tool_calls
           .filter(
-            (tc): tc is OpenAI.Chat.Completions.ChatCompletionMessageFunctionToolCall =>
+            (
+              tc
+            ): tc is OpenAI.Chat.Completions.ChatCompletionMessageFunctionToolCall =>
               tc.type === "function"
           )
           .map((tc) =>
@@ -1390,7 +1434,7 @@ export class OpenAIProvider extends BaseProvider {
         : undefined;
       request.tool_choice = hostedToolChoice
         ? { type: hostedToolChoice }
-        : responseToolChoice(args.toolChoice) ?? "auto";
+        : (responseToolChoice(args.toolChoice) ?? "auto");
     }
 
     return request;
@@ -1416,9 +1460,7 @@ export class OpenAIProvider extends BaseProvider {
     });
   }
 
-  private createResponsesTurnState(
-    responseId: string | null
-  ): StreamTurnState {
+  private createResponsesTurnState(responseId: string | null): StreamTurnState {
     return {
       assistantText: "",
       images: [],
@@ -1646,7 +1688,8 @@ export class OpenAIProvider extends BaseProvider {
     if (params.quality) request.quality = params.quality;
 
     const response = (await this.getClient().images.generate(
-      request as unknown as OpenAI.Images.ImageGenerateParams
+      request as unknown as OpenAI.Images.ImageGenerateParams,
+      { signal: params.signal }
     )) as OpenAI.Images.ImagesResponse;
 
     const item = response.data?.[0];
@@ -1760,7 +1803,8 @@ export class OpenAIProvider extends BaseProvider {
     if (params.quality) request.quality = params.quality;
 
     const response = (await this.getClient().images.edit(
-      request as unknown as OpenAI.Images.ImageEditParams
+      request as unknown as OpenAI.Images.ImageEditParams,
+      { signal: params.signal }
     )) as OpenAI.Images.ImagesResponse;
 
     const item = response.data?.[0];
@@ -1998,7 +2042,8 @@ export class OpenAIProvider extends BaseProvider {
     };
 
     const video = await this.getClient().videos.create(
-      request as unknown as OpenAI.Videos.VideoCreateParams
+      request as unknown as OpenAI.Videos.VideoCreateParams,
+      { signal: params.signal }
     );
     if (!video?.id) {
       throw new Error(
@@ -2028,7 +2073,12 @@ export class OpenAIProvider extends BaseProvider {
       if (Date.now() - start >= timeoutMs) {
         throw new Error("Video generation timed out");
       }
-      latest = await this.getClient().videos.retrieve(video.id);
+      if (params.signal?.aborted) {
+        throw new Error("Video generation cancelled");
+      }
+      latest = await this.getClient().videos.retrieve(video.id, {
+        signal: params.signal
+      });
     }
 
     if (latest.status !== "completed") {
@@ -2077,15 +2127,18 @@ export class OpenAIProvider extends BaseProvider {
               .toBuffer()
           );
 
-    const video = await this.getClient().videos.create({
-      model: params.model.id as OpenAI.Videos.VideoModel,
-      prompt: params.prompt ?? "",
-      input_reference: await toFile(Buffer.from(resized), "input_image.png", {
-        type: "image/png"
-      }),
-      size: size as OpenAI.Videos.VideoSize,
-      seconds: String(seconds) as OpenAI.Videos.VideoSeconds
-    });
+    const video = await this.getClient().videos.create(
+      {
+        model: params.model.id as OpenAI.Videos.VideoModel,
+        prompt: params.prompt ?? "",
+        input_reference: await toFile(Buffer.from(resized), "input_image.png", {
+          type: "image/png"
+        }),
+        size: size as OpenAI.Videos.VideoSize,
+        seconds: String(seconds) as OpenAI.Videos.VideoSeconds
+      },
+      { signal: params.signal }
+    );
 
     if (!video?.id) {
       throw new Error(
@@ -2115,7 +2168,12 @@ export class OpenAIProvider extends BaseProvider {
       if (Date.now() - start >= timeoutMs) {
         throw new Error("Image-to-video generation timed out");
       }
-      latest = await this.getClient().videos.retrieve(video.id);
+      if (params.signal?.aborted) {
+        throw new Error("Image-to-video generation cancelled");
+      }
+      latest = await this.getClient().videos.retrieve(video.id, {
+        signal: params.signal
+      });
     }
 
     if (latest.status !== "completed") {

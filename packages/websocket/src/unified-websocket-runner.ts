@@ -39,6 +39,7 @@ import {
   ModelChangeEvent,
   ModelObserver,
   Prediction,
+  Script,
   Thread,
   TimelineSequence,
   Workflow,
@@ -80,7 +81,10 @@ import type {
   UnifiedCommandType,
   WebSocketCommandEnvelope,
   WebSocketMode,
-  RpcErrorPayload
+  RpcErrorPayload,
+  UiContext,
+  UiDocumentRef,
+  UiSurfaceType
 } from "@nodetool-ai/protocol";
 import { Tool } from "@nodetool-ai/agents";
 import {
@@ -388,9 +392,7 @@ const ASSET_TYPE_MIME: Record<string, string> = {
   video: "video/mp4"
 };
 
-function isAssetLikeValue(
-  value: unknown
-): value is Record<string, unknown> {
+function isAssetLikeValue(value: unknown): value is Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const v = value as Record<string, unknown>;
   return (
@@ -1035,6 +1037,43 @@ function createRuntimeContext(opts: {
         }
       );
       return updated ? updated.toTimelineSequence() : null;
+    },
+    getScript: async ({ userId, id }) => {
+      const script = await Script.findById(id);
+      if (!script || script.user_id !== userId) return null;
+      return script.toResponse();
+    },
+    createScript: async ({ userId, name, projectId, document }) => {
+      const script = new Script({
+        user_id: userId,
+        name: name ?? "Untitled script",
+        project_id: projectId ?? "default",
+        document: JSON.stringify(document)
+      });
+      await script.save();
+      return script.toResponse();
+    },
+    updateScript: async ({
+      userId,
+      id,
+      document,
+      timelineId,
+      baseUpdatedAt
+    }) => {
+      const existing = await Script.findById(id);
+      if (!existing || existing.user_id !== userId) return null;
+      const fields: Partial<{
+        document: string;
+        timeline_id: string | null;
+      }> = {};
+      if (document !== undefined) fields.document = JSON.stringify(document);
+      if (timelineId !== undefined) fields.timeline_id = timelineId;
+      const updated = await Script.updateFieldsIfUnchanged(
+        id,
+        baseUpdatedAt ?? existing.updated_at,
+        fields
+      );
+      return updated ? updated.toResponse() : null;
     }
   });
 
@@ -1179,13 +1218,78 @@ const RESIDENT_TOOL_NAMES: ReadonlySet<string> = new Set([
  */
 function buildChatAgentSystemPrompt(
   mode: PermissionMode,
-  extraSystemPrompt?: string | null
+  extraSystemPrompt?: string | null,
+  uiContext?: UiContext | null
 ): string {
   const extra =
     typeof extraSystemPrompt === "string" && extraSystemPrompt.trim()
       ? `\n\n${extraSystemPrompt.trim()}\n`
       : "";
-  return CHAT_AGENT_SYSTEM_PROMPT + PERMISSION_MODE_PROMPTS[mode] + extra;
+  return (
+    CHAT_AGENT_SYSTEM_PROMPT +
+    PERMISSION_MODE_PROMPTS[mode] +
+    formatUiContext(uiContext) +
+    extra
+  );
+}
+
+const UI_SURFACE_LABELS: Record<UiSurfaceType, string> = {
+  workflow: "workflow",
+  sketch: "image document",
+  timeline: "timeline sequence",
+  storyboard: "storyboard",
+  script: "script",
+  app: "app builder (workflow)",
+  chat: "chat"
+};
+
+/**
+ * Render the user's open documents into the system prompt. The `ui_*` tools all
+ * take a required document id, so this block is how the agent learns which ids
+ * are valid — without it the tools are unusable even though they're discoverable
+ * through ToolSearch.
+ */
+function formatUiContext(uiContext?: UiContext | null): string {
+  if (!uiContext) return "";
+  const focused = uiContext.focused;
+  const open = uiContext.open ?? [];
+  if (!focused && open.length === 0) return "";
+
+  const describe = (ref: UiDocumentRef): string => {
+    const label = UI_SURFACE_LABELS[ref.type] ?? ref.type;
+    const title = ref.title?.trim();
+    return title
+      ? `${label} "${title}" (id: ${ref.id})`
+      : `${label} (id: ${ref.id})`;
+  };
+
+  const lines: string[] = ["\n\n## What the user is looking at\n"];
+  if (focused) {
+    lines.push(`The user is currently in the ${describe(focused)}.`);
+  }
+  const others = open.filter(
+    (ref) => !focused || ref.id !== focused.id || ref.type !== focused.type
+  );
+  if (others.length > 0) {
+    lines.push(
+      `Also open: ${others.map(describe).join("; ")}.`
+    );
+  }
+
+  const selection = uiContext.selection;
+  const selected = selection
+    ? Object.entries(selection)
+        .filter(([, ids]) => Array.isArray(ids) && ids.length > 0)
+        .map(([key, ids]) => `${key.replace(/_ids$/, "")}: ${(ids as string[]).join(", ")}`)
+    : [];
+  if (selected.length > 0) {
+    lines.push(`Selected in the focused document — ${selected.join("; ")}.`);
+  }
+
+  lines.push(
+    "Every `ui_*` tool requires the id of the document it should act on; pass one of the ids above. These tools act on documents the user has open, so prefer the focused document unless the user points at another one."
+  );
+  return lines.join("\n");
 }
 
 export interface WebSocketReceiveFrame {
@@ -1410,6 +1514,14 @@ export class UnifiedWebSocketRunner {
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private statsTimer: NodeJS.Timeout | null = null;
   private chatRequestSeq = 0;
+  /**
+   * Aborts the in-flight chat/inference turn. The seq counter above only filters
+   * stale output at yield boundaries — it cannot interrupt a provider that is
+   * blocked awaiting a response, nor tell one that owns a subprocess (the Claude
+   * Agent provider) to stop working. This signal does, and is threaded into
+   * every provider call the turn makes.
+   */
+  private chatAbort: AbortController | null = null;
   private clientToolsManifest: Record<string, Record<string, unknown>> = {};
   private toolBridge = new ToolBridge();
   /** Round-trips permission approvals for gated tool calls. */
@@ -1423,6 +1535,41 @@ export class UnifiedWebSocketRunner {
 
   private logError(context: string, error: unknown): void {
     log.error(context, formatSanitizedError(error));
+  }
+
+  /**
+   * Open a chat/inference turn: cancel whatever was running and hand back the
+   * seq + signal the new turn runs under. A superseding message cancels the
+   * previous turn exactly as an explicit Stop does.
+   */
+  private beginChatTurn(): {
+    seq: number;
+    signal: AbortSignal;
+    controller: AbortController;
+  } {
+    this.cancelChatTurn();
+    this.chatRequestSeq += 1;
+    this.chatAbort = new AbortController();
+    return {
+      seq: this.chatRequestSeq,
+      signal: this.chatAbort.signal,
+      controller: this.chatAbort
+    };
+  }
+
+  /** Abort the in-flight turn, if any. Idempotent. */
+  private cancelChatTurn(): void {
+    this.chatAbort?.abort();
+    this.chatAbort = null;
+  }
+
+  /**
+   * Retire a turn that finished on its own. Clears the controller only when it
+   * is still the current one — a superseding turn has already installed its
+   * own, and clearing that would make a later Stop a no-op.
+   */
+  private endChatTurn(controller: AbortController | null): void {
+    if (controller && this.chatAbort === controller) this.chatAbort = null;
   }
 
   private sendDetached(message: Record<string, unknown>): void {
@@ -1550,6 +1697,10 @@ export class UnifiedWebSocketRunner {
     this.toolBridge.cancelAll();
     this.approvalBridge.cancelAll();
 
+    // Dropping the reference does not stop the work — abort the turn or a
+    // dropped socket leaves an inference request (or a Claude SDK subprocess)
+    // running with nobody left to receive its output.
+    this.cancelChatTurn();
     this.currentTask = null;
     for (const [jobId, job] of this.activeJobs) {
       if (job.runner) {
@@ -3354,7 +3505,8 @@ export class UnifiedWebSocketRunner {
    */
   async handleChatMessage(
     data: Record<string, unknown>,
-    requestSeq?: number
+    requestSeq?: number,
+    signal?: AbortSignal
   ): Promise<void> {
     const messageWorkflowId =
       typeof data.workflow_id === "string" ? data.workflow_id : null;
@@ -3397,7 +3549,7 @@ export class UnifiedWebSocketRunner {
     const workflowTarget =
       typeof data.workflow_target === "string" ? data.workflow_target : null;
     if (workflowTarget === "workflow") {
-      await this.handleWorkflowMessage(data, requestSeq);
+      await this.handleWorkflowMessage(data, requestSeq, signal);
       return;
     }
 
@@ -3418,7 +3570,8 @@ export class UnifiedWebSocketRunner {
       await this.handleMediaGenerationMessage(
         data,
         mediaGeneration,
-        requestSeq
+        requestSeq,
+        signal
       );
       return;
     }
@@ -3438,6 +3591,14 @@ export class UnifiedWebSocketRunner {
     // App Builder's build-an-app-UI guidance), layered after the base prompt.
     const extraSystemPrompt =
       typeof data.system_prompt === "string" ? data.system_prompt : null;
+
+    // Which documents the user has open, and which one has focus. The `ui_*`
+    // tools all require an explicit document id, so this is what makes them
+    // usable — see `formatUiContext`.
+    const uiContext =
+      data.ui_context && typeof data.ui_context === "object"
+        ? (data.ui_context as UiContext)
+        : null;
 
     // Long-term memory mines the whole conversation, so it needs the full
     // history; the resume fast path below is skipped when it is enabled.
@@ -3459,7 +3620,8 @@ export class UnifiedWebSocketRunner {
     const buildSystemContent = (): string => {
       const base = buildChatAgentSystemPrompt(
         permissionMode,
-        extraSystemPrompt
+        extraSystemPrompt,
+        uiContext
       );
       return toolSearchReminder ? `${base}\n\n${toolSearchReminder}` : base;
     };
@@ -3575,6 +3737,7 @@ export class UnifiedWebSocketRunner {
           model,
           registry: this.nodeRegistry,
           providers: chatProviders,
+          signal: () => this.chatAbort?.signal,
           forwardMessage: async (msg) => {
             const enriched: Record<string, unknown> = {
               ...(msg as unknown as Record<string, unknown>)
@@ -3582,6 +3745,11 @@ export class UnifiedWebSocketRunner {
             if (enriched.thread_id == null) enriched.thread_id = threadId;
             if (enriched.workflow_id == null) enriched.workflow_id = workflowId;
             await this.sendMessage(enriched);
+            // The planner's discovery/submit tool calls arrive as transient
+            // tool_call_update events. Emit a persistent card so the chat UI
+            // shows what the planner is doing, nested under the parent
+            // plan_workflow_graph card.
+            await this.emitSyntheticToolCallCard(enriched);
           }
         })
       );
@@ -3679,31 +3847,31 @@ export class UnifiedWebSocketRunner {
     const serverSchemas: ProviderTool[] = serverTools.map((t) =>
       t.toProviderTool()
     );
-    // Client tools (ui_*) only exist when a workflow is active.
-    const clientToolNames = workflowId
-      ? Object.keys(this.clientToolsManifest)
-      : [];
+    // Every client tool the connected UI registered is exposed. They used to be
+    // gated on an active workflow, which made the editor tools unreachable from
+    // plain chat; they are deferred behind ToolSearch anyway, and each one now
+    // takes an explicit document id, so the gate cost reach without buying
+    // safety. Which ids are valid comes from `ui_context` in the system prompt.
+    const clientToolNames = Object.keys(this.clientToolsManifest);
     const clientSchemas: ProviderTool[] = [];
-    if (workflowId) {
-      for (const [name, manifest] of Object.entries(this.clientToolsManifest)) {
-        // The frontend manifest carries the JSON schema under `parameters`
-        // (FrontendToolRegistry.getManifest); accept `inputSchema` too for any
-        // client that uses the provider-tool field name.
-        const schema =
-          typeof manifest.parameters === "object"
-            ? (manifest.parameters as Record<string, unknown>)
-            : typeof manifest.inputSchema === "object"
-              ? (manifest.inputSchema as Record<string, unknown>)
-              : undefined;
-        clientSchemas.push({
-          name,
-          description:
-            typeof manifest.description === "string"
-              ? manifest.description
-              : undefined,
-          inputSchema: schema
-        });
-      }
+    for (const [name, manifest] of Object.entries(this.clientToolsManifest)) {
+      // The frontend manifest carries the JSON schema under `parameters`
+      // (FrontendToolRegistry.getManifest); accept `inputSchema` too for any
+      // client that uses the provider-tool field name.
+      const schema =
+        typeof manifest.parameters === "object"
+          ? (manifest.parameters as Record<string, unknown>)
+          : typeof manifest.inputSchema === "object"
+            ? (manifest.inputSchema as Record<string, unknown>)
+            : undefined;
+      clientSchemas.push({
+        name,
+        description:
+          typeof manifest.description === "string"
+            ? manifest.description
+            : undefined,
+        inputSchema: schema
+      });
     }
     const allSchemas: ProviderTool[] = [...serverSchemas, ...clientSchemas];
 
@@ -3943,7 +4111,8 @@ export class UnifiedWebSocketRunner {
         providerSession: capturedSession,
         loadFullHistory: loadFullHistory ?? undefined,
         executeTool: useTools ? executeTool : undefined,
-        maxIterations: MAX_TOOL_ROUNDS
+        maxIterations: MAX_TOOL_ROUNDS,
+        signal
       })) {
         if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)
           return;
@@ -4470,7 +4639,8 @@ export class UnifiedWebSocketRunner {
   private async handleMediaGenerationMessage(
     data: Record<string, unknown>,
     mediaGeneration: Record<string, unknown>,
-    requestSeq?: number
+    requestSeq?: number,
+    signal?: AbortSignal
   ): Promise<void> {
     const threadId = typeof data.thread_id === "string" ? data.thread_id : "";
     const workflowId =
@@ -4484,6 +4654,16 @@ export class UnifiedWebSocketRunner {
       mediaGeneration.model ?? data.model ?? this.defaultModel
     );
     const prompt = this.extractTextContent(data.content);
+
+    /**
+     * Whether this turn has been cancelled. The media provider APIs take no
+     * AbortSignal, so an in-flight generation runs to completion regardless —
+     * but its result must not be stored as an asset or delivered to a user who
+     * pressed Stop. Checked after every provider call, before any write.
+     */
+    const cancelled = (): boolean =>
+      signal?.aborted === true ||
+      (requestSeq !== undefined && requestSeq !== this.chatRequestSeq);
 
     log.info("Media generation", {
       threadId,
@@ -4573,7 +4753,8 @@ export class UnifiedWebSocketRunner {
           model: imageModel,
           prompt,
           width,
-          height
+          height,
+          signal
         };
 
         // Surface a progress chunk so the UI can show the request flight
@@ -4589,8 +4770,11 @@ export class UnifiedWebSocketRunner {
         if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)
           return;
         const imageBytesList = await provider.textToImages(params, variations);
+        if (cancelled()) return;
         const imageContents: Array<Record<string, unknown>> = [];
         for (const bytes of imageBytesList) {
+          // Per-variation: a cancel partway through must not keep persisting.
+          if (cancelled()) return;
           const assetId = await storeMediaAsset(bytes, "image/png", "png");
           imageContents.push({
             type: "image_url",
@@ -4615,6 +4799,8 @@ export class UnifiedWebSocketRunner {
           model: modelId,
           media_generation: mediaGeneration
         };
+        // Re-check: cancellation may have landed while the asset was persisting.
+        if (cancelled()) return;
         await this.saveMessageToDb(assistantMsgData);
         await this.sendMessage(assistantMsgData);
         return;
@@ -4665,7 +4851,8 @@ export class UnifiedWebSocketRunner {
             aspectRatio,
             resolution,
             durationSeconds: duration,
-            numInferenceSteps: null
+            numInferenceSteps: null,
+            signal
           };
           bytes = await provider.imageToVideo([sourceBytes], i2vParams);
         } else {
@@ -4674,10 +4861,12 @@ export class UnifiedWebSocketRunner {
             prompt,
             aspectRatio,
             resolution,
-            durationSeconds: duration
+            durationSeconds: duration,
+            signal
           };
           bytes = await provider.textToVideo(params);
         }
+        if (cancelled()) return;
         const assetId = await storeMediaAsset(bytes, "video/mp4", "mp4");
 
         await this.sendMessage({
@@ -4707,6 +4896,8 @@ export class UnifiedWebSocketRunner {
           model: modelId,
           media_generation: mediaGeneration
         };
+        // Re-check: cancellation may have landed while the asset was persisting.
+        if (cancelled()) return;
         await this.saveMessageToDb(assistantMsgData);
         await this.sendMessage(assistantMsgData);
         return;
@@ -4784,6 +4975,7 @@ export class UnifiedWebSocketRunner {
               }
             );
           }
+          if (cancelled()) return;
           assetId = await storeMediaAsset(encoded.data, encoded.mimeType, ext);
           audioMimeType = encoded.mimeType;
         } else {
@@ -4798,8 +4990,7 @@ export class UnifiedWebSocketRunner {
             speed,
             audioFormat: requestedFormat ?? undefined
           })) {
-            if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)
-              return;
+            if (cancelled()) return;
             if (chunk?.samples) {
               if (chunk.sampleRate) chunkSampleRate = chunk.sampleRate;
               const view = new Uint8Array(
@@ -4821,6 +5012,7 @@ export class UnifiedWebSocketRunner {
 
           if (requestedFormat === "pcm") {
             // Return raw PCM Int16 bytes (no container).
+            if (cancelled()) return;
             assetId = await storeMediaAsset(merged, "audio/pcm", "pcm");
             audioMimeType = "audio/pcm";
           } else {
@@ -4864,6 +5056,7 @@ export class UnifiedWebSocketRunner {
             wav.set(new Uint8Array(wavHeader), 0);
             wav.set(merged, 44);
 
+            if (cancelled()) return;
             assetId = await storeMediaAsset(wav, "audio/wav", "wav");
             audioMimeType = "audio/wav";
           }
@@ -4895,6 +5088,8 @@ export class UnifiedWebSocketRunner {
           model: modelId,
           media_generation: mediaGeneration
         };
+        // Re-check: cancellation may have landed while the asset was persisting.
+        if (cancelled()) return;
         await this.saveMessageToDb(assistantMsgData);
         await this.sendMessage(assistantMsgData);
         return;
@@ -4965,7 +5160,8 @@ export class UnifiedWebSocketRunner {
             targetWidth: targetWidth ?? null,
             targetHeight: targetHeight ?? null,
             strength: strength ?? null,
-            numInferenceSteps: numInferenceSteps ?? null
+            numInferenceSteps: numInferenceSteps ?? null,
+            signal
           };
           if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)
             return;
@@ -4974,8 +5170,11 @@ export class UnifiedWebSocketRunner {
             params,
             variations
           );
+          if (cancelled()) return;
           const imageContents: Array<Record<string, unknown>> = [];
           for (const bytes of imageBytesList) {
+            // Per-variation: a cancel partway through must not keep persisting.
+            if (cancelled()) return;
             const assetId = await storeMediaAsset(bytes, "image/png", "png");
             imageContents.push({
               type: "image_url",
@@ -5002,6 +5201,8 @@ export class UnifiedWebSocketRunner {
             model: modelId,
             media_generation: mediaGeneration
           };
+          // Re-check: cancellation may have landed while the asset was persisting.
+          if (cancelled()) return;
           await this.saveMessageToDb(assistantMsgData);
           await this.sendMessage(assistantMsgData);
           return;
@@ -5035,9 +5236,11 @@ export class UnifiedWebSocketRunner {
           aspectRatio,
           resolution,
           durationSeconds: duration,
-          numInferenceSteps
+          numInferenceSteps,
+          signal
         };
         const bytes = await provider.imageToVideo([sourceBytes], params);
+        if (cancelled()) return;
         const assetId = await storeMediaAsset(bytes, "video/mp4", "mp4");
         await this.sendMessage({
           type: "chunk",
@@ -5065,6 +5268,8 @@ export class UnifiedWebSocketRunner {
           model: modelId,
           media_generation: mediaGeneration
         };
+        // Re-check: cancellation may have landed while the asset was persisting.
+        if (cancelled()) return;
         await this.saveMessageToDb(assistantMsgData);
         await this.sendMessage(assistantMsgData);
         return;
@@ -5203,7 +5408,8 @@ export class UnifiedWebSocketRunner {
 
   private async handleWorkflowMessage(
     data: Record<string, unknown>,
-    requestSeq?: number
+    requestSeq?: number,
+    signal?: AbortSignal
   ): Promise<void> {
     const threadId = typeof data.thread_id === "string" ? data.thread_id : "";
     const workflowId =
@@ -5216,6 +5422,11 @@ export class UnifiedWebSocketRunner {
     const jobId = randomUUID();
 
     log.info("Workflow message", { threadId, workflowId, jobId });
+
+    // Assigned once the run's abort listener is registered; released in the
+    // finally so a completed workflow's listener can't cancel() a runner that
+    // already finished when a later Stop/disconnect fires the same signal.
+    let releaseAbortListener: (() => void) | null = null;
 
     try {
       if (!workflowId) {
@@ -5407,6 +5618,23 @@ export class UnifiedWebSocketRunner {
       const superseded = (): boolean =>
         requestSeq !== undefined && requestSeq !== this.chatRequestSeq;
 
+      // Cancel the moment Stop fires rather than waiting for the streaming loop
+      // below to come back around — the run may be parked inside a long node.
+      const onAbort = (): void => {
+        try {
+          active.runner.cancel();
+        } catch {
+          // best-effort cancel
+        }
+      };
+      if (signal?.aborted) {
+        onAbort();
+      } else if (signal) {
+        signal.addEventListener("abort", onAbort, { once: true });
+        releaseAbortListener = () =>
+          signal.removeEventListener("abort", onAbort);
+      }
+
       while (!active.finished || active.context.hasMessages()) {
         if (superseded()) {
           try {
@@ -5570,6 +5798,7 @@ export class UnifiedWebSocketRunner {
         thread_id: threadId
       });
     } finally {
+      releaseAbortListener?.();
       // Always release the concurrency slot and drain the queue, even if
       // streaming/persist/sendMessage threw above. Otherwise a mid-stream
       // socket-write failure would orphan the ActiveJob and permanently shrink
@@ -5617,7 +5846,8 @@ export class UnifiedWebSocketRunner {
 
   async handleInference(
     data: Record<string, unknown>,
-    requestSeq: number
+    requestSeq: number,
+    signal?: AbortSignal
   ): Promise<void> {
     const providerId =
       typeof data.provider === "string" ? data.provider : this.defaultProvider;
@@ -5682,7 +5912,8 @@ export class UnifiedWebSocketRunner {
     for await (const item of provider.generateMessagesTraced({
       messages,
       model,
-      tools: tools.length > 0 ? tools : undefined
+      tools: tools.length > 0 ? tools : undefined,
+      signal
     })) {
       if (requestSeq !== this.chatRequestSeq) break; // cancelled
       if ("type" in item && item.type === "chunk") {
@@ -6256,9 +6487,10 @@ export class UnifiedWebSocketRunner {
         if (typeof threadId !== "string" || threadId.length === 0) {
           return { error: "thread_id is required for chat_message command" };
         }
-        this.chatRequestSeq += 1;
-        const seq = this.chatRequestSeq;
-        this.currentTask = this.handleChatMessage(data, seq);
+        const { seq, signal, controller } = this.beginChatTurn();
+        this.currentTask = this.handleChatMessage(data, seq, signal).finally(
+          () => this.endChatTurn(controller)
+        );
         void this.currentTask.catch(async (err) => {
           this.logError("chat_message processing failed", err);
           await this.sendMessage({
@@ -6272,9 +6504,10 @@ export class UnifiedWebSocketRunner {
         };
       }
       case "inference": {
-        this.chatRequestSeq += 1;
-        const seq = this.chatRequestSeq;
-        this.currentTask = this.handleInference(data, seq);
+        const { seq, signal, controller } = this.beginChatTurn();
+        this.currentTask = this.handleInference(data, seq, signal).finally(() =>
+          this.endChatTurn(controller)
+        );
         void this.currentTask.catch(async (err) => {
           this.logError("inference processing failed", err);
           await this.sendMessage({
@@ -6289,6 +6522,10 @@ export class UnifiedWebSocketRunner {
           typeof data.thread_id === "string" ? data.thread_id : undefined;
         // Always increment seq to cancel any in-progress chat or inference
         this.chatRequestSeq += 1;
+        // …and abort it for real. The seq bump alone only discards output at
+        // yield boundaries; the signal interrupts blocked awaits and stops
+        // providers that own a subprocess.
+        this.cancelChatTurn();
         this.currentTask = null;
         if (jobId) {
           const active = this.activeJobs.get(jobId);

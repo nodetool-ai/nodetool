@@ -17,6 +17,11 @@ export interface UiSlice {
   panelsHidden: boolean;
   togglePanelsHidden: () => void;
 
+  /** Whether the AI assistant chat panel is open (right side of the editor). */
+  assistantPanelOpen: boolean;
+  toggleAssistantPanel: () => void;
+  setAssistantPanelOpen: (open: boolean) => void;
+
   /** Cleared whenever a single layer is chosen exclusively (normal click). */
   selectedLayerIds: string[];
   /**
@@ -64,6 +69,11 @@ export const createUiSlice: StateCreator<SketchStore, [], [], UiSlice> = (
   panelsHidden: false,
   togglePanelsHidden: () =>
     set((state) => ({ panelsHidden: !state.panelsHidden })),
+
+  assistantPanelOpen: false,
+  toggleAssistantPanel: () =>
+    set((state) => ({ assistantPanelOpen: !state.assistantPanelOpen })),
+  setAssistantPanelOpen: (open: boolean) => set({ assistantPanelOpen: open }),
 
   selectedLayerIds: [] as string[],
   layerShiftRangeAnchorId: null as string | null,

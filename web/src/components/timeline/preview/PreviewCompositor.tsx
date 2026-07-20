@@ -14,7 +14,12 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useShallow } from "zustand/react/shallow";
 
-import type { TimelineClip, TrackEffect } from "@nodetool-ai/timeline";
+import type {
+  ClipShapeStyle,
+  ClipTextStyle,
+  TimelineClip,
+  TrackEffect
+} from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
@@ -40,14 +45,20 @@ import {
   clipSourceTimeSec,
   computeActiveLayers,
   computeActiveLayersWithHorizon,
+  createAnimationCompileCache,
   effectiveAssetId,
+  hasActiveAnimation,
   isClipActive,
+  resolveAnimatedLayerProps,
+  resolveTextStaggerContext,
   trackZ,
   PREVIEW_OVERLAY_Z,
   MAX_VIDEO_LAYERS
 } from "./sceneModel";
-import type { ResolvedCaption } from "./sceneModel";
+import type { ActiveLayer, ResolvedCaption } from "./sceneModel";
 import { CaptionRasterizer } from "./captionRender";
+import { TextRasterizer } from "./textRender";
+import { ShapeRasterizer } from "./shapeRender";
 
 interface PlaceholderLayer {
   clipId: string;
@@ -176,6 +187,22 @@ interface ActiveCaptionLayer {
   caption: ResolvedCaption;
 }
 
+interface ActiveTextLayer {
+  clipId: string;
+  trackIndex: number;
+  blendMode: CompositorBlendMode;
+  opacity: number;
+  transform?: TimelineClip["transform"];
+  borderRadius?: number;
+  effects?: TimelineClip["effects"];
+  trackEffects?: TrackEffect[];
+  textStyle: ClipTextStyle;
+}
+
+interface ActiveShapeLayer extends Omit<ActiveTextLayer, "textStyle"> {
+  shapeStyle: ClipShapeStyle;
+}
+
 function isClipUpcoming(clip: TimelineClip, currentTimeMs: number): boolean {
   return (
     clip.startMs > currentTimeMs &&
@@ -278,7 +305,11 @@ export const PreviewCompositor: React.FC = memo(() => {
   const frameRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const compositorRef = useRef<TimelineCompositor | null>(null);
-  const captionRasterizerRef = useRef<CaptionRasterizer>(new CaptionRasterizer());
+  const captionRasterizerRef = useRef<CaptionRasterizer>(
+    new CaptionRasterizer()
+  );
+  const textRasterizerRef = useRef<TextRasterizer>(new TextRasterizer());
+  const shapeRasterizerRef = useRef<ShapeRasterizer>(new ShapeRasterizer());
   const [gpuReady, setGpuReady] = useState(false);
   const [gpuFailed, setGpuFailed] = useState(false);
 
@@ -350,11 +381,15 @@ export const PreviewCompositor: React.FC = memo(() => {
       });
 
     const rasterizer = captionRasterizerRef.current;
+    const textRasterizer = textRasterizerRef.current;
+    const shapeRasterizer = shapeRasterizerRef.current;
     return () => {
       cancelled = true;
       compositorRef.current?.dispose();
       compositorRef.current = null;
       rasterizer.dispose();
+      textRasterizer.dispose();
+      shapeRasterizer.dispose();
       setGpuReady(false);
     };
   }, []);
@@ -415,10 +450,25 @@ export const PreviewCompositor: React.FC = memo(() => {
     setSceneTimeMs(reactiveTimeMs);
   }, [reactiveTimeMs, isPlaying]);
 
-  const clipById = useMemo(
-    () => new Map(clips.map((c) => [c.id, c])),
-    [clips]
-  );
+  const clipById = useMemo(() => new Map(clips.map((c) => [c.id, c])), [clips]);
+
+  // Memoized preset→curve compilation for motion-design animations, so the
+  // rAF loop only samples (never compiles). Invalidated internally when a
+  // clip's animations / duration / canvas size change.
+  const animCacheRef = useRef(createAnimationCompileCache());
+  // Latest sequence resolution, read by the rAF loop (whose closure only
+  // rebinds on [gpuReady, isPlaying]) to resolve animation offsets in px.
+  const canvasSizeRef = useRef({
+    width: sequenceWidth,
+    height: sequenceHeight
+  });
+  canvasSizeRef.current = { width: sequenceWidth, height: sequenceHeight };
+  // Active layers from the last scene computation, valid until the next
+  // clip/word boundary — used per tick to test for in-flight animation.
+  const lastLayersRef = useRef<ActiveLayer[]>([]);
+  // Latest React scene time, read by the paused one-shot render path.
+  const currentTimeMsRef = useRef(currentTimeMs);
+  currentTimeMsRef.current = currentTimeMs;
 
   // Signature of the visible scene at a given time: the ordered active layer
   // ids plus, for captions, which word is currently spoken (so a highlight
@@ -427,7 +477,9 @@ export const PreviewCompositor: React.FC = memo(() => {
   // returns the change horizon so the loop can skip recomputing this while
   // the query time stays inside the current clip/word boundaries.
   const sceneSignature = useCallback(
-    (timeMs: number): { signature: string; nextChangeMs: number } => {
+    (
+      timeMs: number
+    ): { signature: string; nextChangeMs: number; layers: ActiveLayer[] } => {
       const { layers, nextChangeMs } = computeActiveLayersWithHorizon(
         tracks,
         clips,
@@ -442,7 +494,7 @@ export const PreviewCompositor: React.FC = memo(() => {
         }
         sig += "|";
       }
-      return { signature: sig, nextChangeMs };
+      return { signature: sig, nextChangeMs, layers };
     },
     [tracks, clips]
   );
@@ -451,11 +503,15 @@ export const PreviewCompositor: React.FC = memo(() => {
     activeVideoSlots,
     activeImageLayers,
     activeCaptionLayers,
+    activeTextLayers,
+    activeShapeLayers,
     placeholderLayers
   } = useMemo(() => {
     const videoSlots: ActiveVideoSlot[] = [];
     const imageLayers: ActiveImageLayer[] = [];
     const captionLayers: ActiveCaptionLayer[] = [];
+    const textLayers: ActiveTextLayer[] = [];
+    const shapeLayers: ActiveShapeLayer[] = [];
     const placeholders: PlaceholderLayer[] = [];
 
     // Same scene description the offline renderer consumes — so the preview
@@ -473,6 +529,36 @@ export const PreviewCompositor: React.FC = memo(() => {
           opacity: layer.opacity,
           transform: layer.transform,
           caption: layer.caption
+        });
+        continue;
+      }
+
+      if (layer.kind === "text" && layer.textStyle) {
+        textLayers.push({
+          clipId: layer.clipId,
+          trackIndex: layer.trackIndex,
+          blendMode: layer.blendMode,
+          opacity: layer.opacity,
+          transform: layer.transform,
+          borderRadius: layer.borderRadius,
+          effects: layer.effects,
+          trackEffects: layer.trackEffects,
+          textStyle: layer.textStyle
+        });
+        continue;
+      }
+
+      if (layer.kind === "shape" && layer.shapeStyle) {
+        shapeLayers.push({
+          clipId: layer.clipId,
+          trackIndex: layer.trackIndex,
+          blendMode: layer.blendMode,
+          opacity: layer.opacity,
+          transform: layer.transform,
+          borderRadius: layer.borderRadius,
+          effects: layer.effects,
+          trackEffects: layer.trackEffects,
+          shapeStyle: layer.shapeStyle
         });
         continue;
       }
@@ -520,6 +606,8 @@ export const PreviewCompositor: React.FC = memo(() => {
       activeVideoSlots: videoSlots,
       activeImageLayers: imageLayers,
       activeCaptionLayers: captionLayers,
+      activeTextLayers: textLayers,
+      activeShapeLayers: shapeLayers,
       placeholderLayers: placeholders
     };
   }, [tracks, clips, currentTimeMs, resolveUrl, urlCacheVersion]);
@@ -764,81 +852,186 @@ export const PreviewCompositor: React.FC = memo(() => {
     []
   );
 
-  // Build the GPU layer list from active slots and image layers.
-  const buildLayers = useCallback((): CompositeLayer[] => {
-    const out: CompositeLayer[] = [];
-    const pool = videoRefs.current;
+  // Build the GPU layer list from active slots and image layers, resolving
+  // each layer's motion-design animation at `atMs` (the frame being drawn).
+  const buildLayers = useCallback(
+    (atMs: number): CompositeLayer[] => {
+      const out: CompositeLayer[] = [];
+      const pool = videoRefs.current;
+      const canvas = { width: sequenceWidth, height: sequenceHeight };
+      const cache = animCacheRef.current;
 
-    activeVideoSlots.forEach((slot) => {
-      const slotIndex = clipSlotMap.current.get(slot.clipId);
-      if (slotIndex === undefined) return;
-      const el = pool[slotIndex];
-      // Keep the layer in the list even if the video momentarily drops below
-      // HAVE_CURRENT_DATA (e.g. during a scrub seek). The compositor reuses
-      // the previously uploaded texture so we don't flash to black.
-      if (!el || el.videoWidth === 0) return;
-      out.push({
-        id: `v:${slot.clipId}`,
-        source: el,
-        opacity: slot.opacity,
-        blendMode: slot.blendMode,
-        zIndex: trackZ(slot.trackIndex),
-        transform: slot.transform,
-        borderRadius: slot.borderRadius,
-        effects: slot.effects,
-        trackEffects: slot.trackEffects
+      activeVideoSlots.forEach((slot) => {
+        const slotIndex = clipSlotMap.current.get(slot.clipId);
+        if (slotIndex === undefined) return;
+        const el = pool[slotIndex];
+        // Keep the layer in the list even if the video momentarily drops below
+        // HAVE_CURRENT_DATA (e.g. during a scrub seek). The compositor reuses
+        // the previously uploaded texture so we don't flash to black.
+        if (!el || el.videoWidth === 0) return;
+        const clip = clipById.get(slot.clipId);
+        const anim = clip
+          ? resolveAnimatedLayerProps(
+              { clip, transform: slot.transform, opacity: slot.opacity },
+              atMs,
+              canvas,
+              cache
+            )
+          : { transform: slot.transform, opacity: slot.opacity, mask: undefined };
+        out.push({
+          id: `v:${slot.clipId}`,
+          source: el,
+          opacity: anim.opacity,
+          blendMode: slot.blendMode,
+          zIndex: trackZ(slot.trackIndex),
+          transform: anim.transform,
+          mask: anim.mask,
+          borderRadius: slot.borderRadius,
+          effects: anim.effects ?? slot.effects,
+          trackEffects: slot.trackEffects
+        });
       });
-    });
 
-    for (const layer of activeImageLayers) {
-      if (!layer.assetUrl) continue;
-      const img = ensureImageElement(layer.assetUrl);
-      if (!img) continue;
-      out.push({
-        id: `i:${layer.clipId}`,
-        source: img,
-        opacity: layer.opacity,
-        blendMode: layer.blendMode,
-        zIndex: trackZ(layer.trackIndex),
-        transform: layer.transform,
-        borderRadius: layer.borderRadius,
-        effects: layer.effects,
-        trackEffects: layer.trackEffects
-      });
-    }
+      for (const layer of activeImageLayers) {
+        if (!layer.assetUrl) continue;
+        const img = ensureImageElement(layer.assetUrl);
+        if (!img) continue;
+        const clip = clipById.get(layer.clipId);
+        const anim = clip
+          ? resolveAnimatedLayerProps(
+              { clip, transform: layer.transform, opacity: layer.opacity },
+              atMs,
+              canvas,
+              cache
+            )
+          : { transform: layer.transform, opacity: layer.opacity, mask: undefined };
+        out.push({
+          id: `i:${layer.clipId}`,
+          source: img,
+          opacity: anim.opacity,
+          blendMode: layer.blendMode,
+          zIndex: trackZ(layer.trackIndex),
+          transform: anim.transform,
+          mask: anim.mask,
+          borderRadius: layer.borderRadius,
+          effects: anim.effects ?? layer.effects,
+          trackEffects: layer.trackEffects
+        });
+      }
 
-    for (const layer of activeCaptionLayers) {
-      const bitmap = captionRasterizerRef.current.rasterize(
-        layer.caption,
-        sequenceWidth,
-        sequenceHeight
-      );
-      if (!bitmap) continue;
-      out.push({
-        id: `c:${layer.clipId}`,
-        source: bitmap,
-        opacity: layer.opacity,
-        blendMode: layer.blendMode,
-        zIndex: trackZ(layer.trackIndex),
-        transform: layer.transform
-      });
-    }
+      for (const layer of activeCaptionLayers) {
+        const bitmap = captionRasterizerRef.current.rasterize(
+          layer.caption,
+          sequenceWidth,
+          sequenceHeight
+        );
+        if (!bitmap) continue;
+        const clip = clipById.get(layer.clipId);
+        const anim = clip
+          ? resolveAnimatedLayerProps(
+              { clip, transform: layer.transform, opacity: layer.opacity },
+              atMs,
+              canvas,
+              cache
+            )
+          : { transform: layer.transform, opacity: layer.opacity, mask: undefined };
+        out.push({
+          id: `c:${layer.clipId}`,
+          source: bitmap,
+          opacity: anim.opacity,
+          blendMode: layer.blendMode,
+          zIndex: trackZ(layer.trackIndex),
+          transform: anim.transform,
+          mask: anim.mask
+        });
+      }
 
-    return out;
-  }, [
-    activeVideoSlots,
-    activeImageLayers,
-    activeCaptionLayers,
-    ensureImageElement,
-    sequenceWidth,
-    sequenceHeight
-  ]);
+      for (const layer of activeTextLayers) {
+        const clip = clipById.get(layer.clipId);
+        // Staggered per-word motion is drawn into the raster itself; block
+        // animations still resolve at the layer below.
+        const stagger = clip
+          ? resolveTextStaggerContext(clip, atMs, canvas, cache)
+          : null;
+        const bitmap = textRasterizerRef.current.rasterize(
+          layer.textStyle,
+          sequenceWidth,
+          sequenceHeight,
+          stagger
+        );
+        if (!bitmap) continue;
+        const anim = clip
+          ? resolveAnimatedLayerProps(
+              { clip, transform: layer.transform, opacity: layer.opacity },
+              atMs,
+              canvas,
+              cache
+            )
+          : { transform: layer.transform, opacity: layer.opacity, mask: undefined };
+        out.push({
+          id: `t:${layer.clipId}`,
+          source: bitmap,
+          opacity: anim.opacity,
+          blendMode: layer.blendMode,
+          zIndex: trackZ(layer.trackIndex),
+          transform: anim.transform,
+          mask: anim.mask,
+          borderRadius: layer.borderRadius,
+          effects: anim.effects ?? layer.effects,
+          trackEffects: layer.trackEffects
+        });
+      }
+
+      for (const layer of activeShapeLayers) {
+        const bitmap = shapeRasterizerRef.current.rasterize(
+          layer.shapeStyle,
+          sequenceWidth,
+          sequenceHeight
+        );
+        if (!bitmap) continue;
+        const clip = clipById.get(layer.clipId);
+        const anim = clip
+          ? resolveAnimatedLayerProps(
+              { clip, transform: layer.transform, opacity: layer.opacity },
+              atMs,
+              canvas,
+              cache
+            )
+          : { transform: layer.transform, opacity: layer.opacity, mask: undefined };
+        out.push({
+          id: `s:${layer.clipId}`,
+          source: bitmap,
+          opacity: anim.opacity,
+          blendMode: layer.blendMode,
+          zIndex: trackZ(layer.trackIndex),
+          transform: anim.transform,
+          mask: anim.mask,
+          borderRadius: layer.borderRadius,
+          effects: anim.effects ?? layer.effects,
+          trackEffects: layer.trackEffects
+        });
+      }
+
+      return out;
+    },
+    [
+      activeVideoSlots,
+      activeImageLayers,
+      activeCaptionLayers,
+      activeTextLayers,
+      activeShapeLayers,
+      clipById,
+      ensureImageElement,
+      sequenceWidth,
+      sequenceHeight
+    ]
+  );
 
   const renderFrame = useCallback(() => {
     if (!gpuReady) return;
     const compositor = compositorRef.current;
     if (!compositor) return;
-    compositor.setLayers(buildLayersRef.current());
+    compositor.setLayers(buildLayersRef.current(currentTimeMsRef.current));
     compositor.render();
   }, [gpuReady]);
 
@@ -925,6 +1118,7 @@ export const PreviewCompositor: React.FC = memo(() => {
     let lastSignature = seed.signature;
     lastLiveMsRef.current = seedMs;
     lastNextChangeMsRef.current = seed.nextChangeMs;
+    lastLayersRef.current = seed.layers;
     lastComputeTracksRef.current = latestTracksRef.current;
     lastComputeClipsRef.current = latestClipsRef.current;
     // Force a composite on the very first frame after play starts so any
@@ -949,6 +1143,7 @@ export const PreviewCompositor: React.FC = memo(() => {
         setChanged = result.signature !== lastSignature;
         lastSignature = result.signature;
         lastNextChangeMsRef.current = result.nextChangeMs;
+        lastLayersRef.current = result.layers;
         lastComputeTracksRef.current = latestTracksRef.current;
         lastComputeClipsRef.current = latestClipsRef.current;
         if (setChanged) {
@@ -960,7 +1155,8 @@ export const PreviewCompositor: React.FC = memo(() => {
       // A frame needs re-compositing when the active set just changed, or when
       // any active video is decoding new pixels (i.e. actually playing). Pure
       // image/caption scenes are static between boundary changes, so skip the
-      // redundant clear+blit.
+      // redundant clear+blit — UNLESS a motion-design animation is in flight,
+      // which changes transform/opacity every tick even with a cached layer set.
       let dirty = setChanged || forceRender;
       forceRender = false;
       if (!dirty) {
@@ -973,9 +1169,20 @@ export const PreviewCompositor: React.FC = memo(() => {
           }
         }
       }
+      if (
+        !dirty &&
+        hasActiveAnimation(
+          lastLayersRef.current,
+          liveMs,
+          canvasSizeRef.current,
+          animCacheRef.current
+        )
+      ) {
+        dirty = true;
+      }
 
       if (dirty) {
-        compositor.setLayers(buildLayersRef.current());
+        compositor.setLayers(buildLayersRef.current(liveMs));
         compositor.render();
       }
       raf = requestAnimationFrame(tick);
@@ -987,6 +1194,9 @@ export const PreviewCompositor: React.FC = memo(() => {
   const hasAnything =
     activeVideoSlots.length > 0 ||
     activeImageLayers.length > 0 ||
+    activeCaptionLayers.length > 0 ||
+    activeTextLayers.length > 0 ||
+    activeShapeLayers.length > 0 ||
     placeholderLayers.length > 0;
 
   const generatingClips = useMemo(
@@ -1011,7 +1221,11 @@ export const PreviewCompositor: React.FC = memo(() => {
   );
 
   return (
-    <div ref={containerRef} css={compositorStyles} data-testid="preview-compositor">
+    <div
+      ref={containerRef}
+      css={compositorStyles}
+      data-testid="preview-compositor"
+    >
       <div ref={frameRef} css={frameStyles}>
         <canvas ref={canvasRef} css={canvasStyles} aria-hidden />
 
@@ -1101,7 +1315,10 @@ export const PreviewCompositor: React.FC = memo(() => {
         )}
 
         {!hasAnything && !gpuFailed && (
-          <div css={placeholderLayerStyles(theme)} style={{ zIndex: Z_INDEX.raised }}>
+          <div
+            css={placeholderLayerStyles(theme)}
+            style={{ zIndex: Z_INDEX.raised }}
+          >
             <span style={{ fontSize: 32, opacity: 0.15 }}>▶</span>
             <span style={{ fontSize: theme.fontSizeSmall, opacity: 0.25 }}>
               No media at {Math.round(currentTimeMs / 1000)}s

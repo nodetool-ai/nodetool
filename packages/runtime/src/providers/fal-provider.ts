@@ -58,6 +58,8 @@ type FalClient = {
       input: Record<string, unknown>;
       logs?: boolean;
       onQueueUpdate?: (update: FalQueueUpdate) => void;
+      /** Aborts the queued request — see @fal-ai/client RunOptions. */
+      abortSignal?: AbortSignal;
     }
   ): Promise<{ data?: Record<string, unknown> }>;
   storage: {
@@ -349,7 +351,9 @@ class FalArgsBuilder {
  * Returns undefined for ratios fal doesn't have a native enum for; the caller
  * will then drop the field rather than risk a 422.
  */
-function aspectRatioToSizeEnum(aspectRatio?: string | null): string | undefined {
+function aspectRatioToSizeEnum(
+  aspectRatio?: string | null
+): string | undefined {
   if (!aspectRatio) return undefined;
   switch (aspectRatio) {
     case "1:1":
@@ -414,7 +418,7 @@ export class FalProvider extends BaseProvider {
   private makeQueueUpdateHandler(): (update: FalQueueUpdate) => void {
     let tick = 0;
     return (update) => {
-if (update.status === "IN_PROGRESS") {
+      if (update.status === "IN_PROGRESS") {
         tick++;
         const logs = update.logs ?? [];
         // Emit one message per log line; if no logs, emit a heartbeat tick
@@ -688,7 +692,8 @@ if (update.status === "IN_PROGRESS") {
     const result = await client.subscribe(modelId, {
       input: args,
       logs: true,
-      onQueueUpdate: this.makeQueueUpdateHandler()
+      onQueueUpdate: this.makeQueueUpdateHandler(),
+      abortSignal: params.signal
     });
     const data = (result.data ?? result) as Record<string, unknown>;
     return downloadBytes(extractImageUrl(data));
@@ -706,7 +711,8 @@ if (update.status === "IN_PROGRESS") {
     const result = await client.subscribe(modelId, {
       input: args,
       logs: true,
-      onQueueUpdate: this.makeQueueUpdateHandler()
+      onQueueUpdate: this.makeQueueUpdateHandler(),
+      abortSignal: params.signal
     });
     const data = (result.data ?? result) as Record<string, unknown>;
     return downloadBytes(extractImageUrl(data));
@@ -765,7 +771,8 @@ if (update.status === "IN_PROGRESS") {
     const result = await client.subscribe(modelId, {
       input: args,
       logs: true,
-      onQueueUpdate: this.makeQueueUpdateHandler()
+      onQueueUpdate: this.makeQueueUpdateHandler(),
+      abortSignal: params.signal
     });
     const data = (result.data ?? result) as Record<string, unknown>;
     return downloadBytes(extractVideoUrl(data));
@@ -790,7 +797,8 @@ if (update.status === "IN_PROGRESS") {
     const result = await client.subscribe(modelId, {
       input: args,
       logs: true,
-      onQueueUpdate: this.makeQueueUpdateHandler()
+      onQueueUpdate: this.makeQueueUpdateHandler(),
+      abortSignal: params.signal
     });
     const data = (result.data ?? result) as Record<string, unknown>;
     const urls = extractImageUrls(data);
@@ -815,7 +823,8 @@ if (update.status === "IN_PROGRESS") {
     const result = await client.subscribe(modelId, {
       input: args,
       logs: true,
-      onQueueUpdate: this.makeQueueUpdateHandler()
+      onQueueUpdate: this.makeQueueUpdateHandler(),
+      abortSignal: params.signal
     });
     const data = (result.data ?? result) as Record<string, unknown>;
     const urls = extractImageUrls(data);
@@ -834,7 +843,8 @@ if (update.status === "IN_PROGRESS") {
     const result = await client.subscribe(modelId, {
       input: args,
       logs: true,
-      onQueueUpdate: this.makeQueueUpdateHandler()
+      onQueueUpdate: this.makeQueueUpdateHandler(),
+      abortSignal: params.signal
     });
     const data = (result.data ?? result) as Record<string, unknown>;
     return downloadBytes(extractVideoUrl(data));
@@ -843,10 +853,9 @@ if (update.status === "IN_PROGRESS") {
   /** Upload raw bytes to FAL storage and return the hosted URL. */
   private async upload(bytes: Uint8Array, mimeType: string): Promise<string> {
     const client = await this.getClient();
-    const blob = new Blob(
-      [new Uint8Array(bytes) as Uint8Array<ArrayBuffer>],
-      { type: mimeType }
-    );
+    const blob = new Blob([new Uint8Array(bytes) as Uint8Array<ArrayBuffer>], {
+      type: mimeType
+    });
     return client.storage.upload(blob);
   }
 

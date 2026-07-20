@@ -22,7 +22,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
-import { NodeSlider, Tooltip, MOTION, BORDER_RADIUS, FONT_SIZE_SANS, FONT_SIZE_MONO, FONT_WEIGHT, SPACING, getSpacingPx, reducedMotion, Switch } from "../../ui_primitives";
+import { NodeSlider, Tooltip, MOTION, BORDER_RADIUS, FONT_SIZE_SANS, FONT_SIZE_MONO, FONT_WEIGHT, SPACING, getSpacingPx, reducedMotion, SelectField, Switch, type SelectOption } from "../../ui_primitives";
 import { useTimelineHistoryBatch } from "../../../stores/timeline/useTimelineHistoryBatch";
 
 // ── Header ─────────────────────────────────────────────────────────────────
@@ -567,6 +567,75 @@ export const InspectorPillInput = memo(
     }
   )
 );
+
+// ── Select ─────────────────────────────────────────────────────────────────
+
+const inspectorSelectStyles = (theme: Theme) =>
+  css({
+    minWidth: 92,
+    "& .MuiInputBase-root": {
+      minHeight: 20
+    },
+    "& .MuiSelect-select": {
+      minHeight: 20,
+      height: 20,
+      padding: `0 ${getSpacingPx(SPACING.lg)} 0 ${getSpacingPx(SPACING.sm)}`,
+      fontFamily:
+        "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
+      fontSize: FONT_SIZE_MONO.caption,
+      fontWeight: FONT_WEIGHT.medium,
+      backgroundColor: theme.vars.palette.background.default
+    },
+    "& .MuiOutlinedInput-notchedOutline": {
+      borderColor: theme.vars.palette.c_overlay,
+      borderRadius: BORDER_RADIUS.sm
+    },
+    "&:hover .MuiOutlinedInput-notchedOutline": {
+      borderColor: theme.vars.palette.divider
+    },
+    "& .MuiSelect-icon": {
+      fontSize: 14,
+      right: 2
+    }
+  });
+
+export interface InspectorSelectProps {
+  /** Accessible name — the visible label lives on the enclosing row. */
+  label: string;
+  value: string;
+  options: readonly SelectOption[];
+  onChange: (value: string) => void;
+  disabled?: boolean;
+  /** Fill the available width instead of sizing to the pill minimum. */
+  grow?: boolean;
+}
+
+/**
+ * Pill-register select for inspector rows, matching `InspectorPillInput`'s
+ * 20px height and mono caption. Wraps the shared `SelectField` primitive —
+ * `NodeSelect` is for the node canvas only.
+ */
+export const InspectorSelect: React.FC<InspectorSelectProps> = memo(
+  ({ label, value, options, onChange, disabled, grow }) => {
+    const theme = useTheme();
+    return (
+      <SelectField
+        label={label}
+        hideLabel
+        size="small"
+        value={value}
+        options={options}
+        onChange={onChange}
+        disabled={disabled}
+        css={[
+          inspectorSelectStyles(theme),
+          grow && css({ flex: "1 1 auto", minWidth: 0 })
+        ]}
+      />
+    );
+  }
+);
+InspectorSelect.displayName = "InspectorSelect";
 
 // ── Toggle row ─────────────────────────────────────────────────────────────
 

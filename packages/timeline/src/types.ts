@@ -20,6 +20,11 @@ export type ClipStatus =
 import type { BlendMode } from "@nodetool-ai/gpu";
 export type { BlendMode };
 
+// Motion-design animations attached to a clip (pure engine in ./animation).
+// Re-exported from the package root via ./animation/index.js, so only imported
+// here (not re-exported) to avoid a duplicate star-export.
+import type { ClipAnimation } from "./animation/types.js";
+
 export interface TimelineSequence {
   id: string;
   projectId: string;
@@ -80,6 +85,35 @@ export interface CaptionWord {
  */
 export interface ClipCaption {
   words: CaptionWord[];
+}
+
+/**
+ * Authored text drawn by a timeline text clip. Font size is in sequence
+ * pixels, keeping preview and export independent of the editor's CSS scale.
+ */
+export interface ClipTextStyle {
+  text: string;
+  fontFamily?: string;
+  fontSizePx: number;
+  fontWeight?: number;
+  color: string;
+  align?: "left" | "center" | "right";
+  maxWidthFrac?: number;
+}
+
+/** Authored vector-like geometry drawn by a rasterized shape clip. */
+export interface ClipShapeStyle {
+  kind: "rect" | "ellipse" | "line";
+  fill?: string;
+  stroke?: string;
+  strokeWidthPx?: number;
+  /** Normalized canvas coordinates for the shape's bounds or line endpoints. */
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  x2?: number;
+  y2?: number;
 }
 
 /**
@@ -297,7 +331,7 @@ export interface TimelineClip {
   durationMs: number;
   inPointMs?: number;
   outPointMs?: number;
-  mediaType: "image" | "video" | "audio" | "overlay";
+  mediaType: "image" | "video" | "audio" | "overlay" | "text" | "shape";
   sourceType: "imported" | "generated";
   /** Defaults to "workflow" when absent on legacy persisted data. */
   bindingKind?: ClipBindingKind;
@@ -355,6 +389,14 @@ export interface TimelineClip {
    */
   storyboardBoardId?: string;
   storyboardShotId?: string;
+  /**
+   * Script provenance: the script/line this voiceover clip was assembled from.
+   * Lets a re-voiced line round-trip its new take into the assembled sequence
+   * (the take asset replaces this clip's currentAssetId, duration, caption).
+   * Both fields must also exist on the protocol zod schema or PATCH strips them.
+   */
+  scriptId?: string;
+  scriptLineId?: string;
   status: ClipStatus;
   locked: boolean;
   muted?: boolean;
@@ -381,6 +423,10 @@ export interface TimelineClip {
    * editor projects its document from these words.
    */
   caption?: ClipCaption;
+  /** Authored content for a rasterized text clip. */
+  textStyle?: ClipTextStyle;
+  /** Authored geometry for a rasterized shape clip. */
+  shapeStyle?: ClipShapeStyle;
   /** 2D placement on the preview canvas. Default: identity (centered, contain-fit). */
   transform?: ClipTransform;
   /** Rounded-corner radius in source pixels. 0 = sharp corners. */
@@ -393,6 +439,13 @@ export interface TimelineClip {
    * `durationMs` for the transition to be visible.
    */
   transitionIn?: ClipTransition;
+  /**
+   * Motion-design animations evaluated at render time (see
+   * `animation/`). Evaluation is order-independent (the fold is commutative —
+   * see `animation/sample.ts`); array order is presentation order in the UI
+   * only. Must also exist on the protocol zod schema or PATCH would strip it.
+   */
+  animations?: ClipAnimation[];
 }
 
 /**

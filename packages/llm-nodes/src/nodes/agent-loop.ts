@@ -30,6 +30,7 @@ export class ToolLikeAdapter extends AgentTool {
     context: ProcessingContext,
     params: Record<string, unknown>
   ) => Promise<unknown>;
+  private readonly _execute: ToolLike["execute"];
 
   constructor(toolLike: ToolLike) {
     super();
@@ -39,9 +40,26 @@ export class ToolLikeAdapter extends AgentTool {
       type: "object",
       properties: {}
     };
+    this._execute = toolLike.execute;
     this._process =
       toolLike.process ??
       (async () => ({ error: "Tool has no process implementation" }));
+  }
+
+  /**
+   * Delegate to the wrapped tool's own `execute` when it has one: that is
+   * where param stripping/coercion and `toolCallId` forwarding live, and
+   * double-wrapping through `process` would skip both.
+   */
+  async execute(
+    context: ProcessingContext,
+    params: Record<string, unknown> | null | undefined,
+    options: { toolCallId?: string } = {}
+  ): Promise<unknown> {
+    if (this._execute) {
+      return this._execute(context, params ?? {}, options);
+    }
+    return super.execute(context, params, options);
   }
 
   async process(
@@ -188,7 +206,10 @@ export async function runAgentLoop(
     tools: providerTools,
     maxTokens,
     threadId: options.threadId,
-    maxIterations
+    maxIterations,
+    // Run-level cancellation: without it a cancelled workflow leaves this
+    // loop (and its tool calls) running.
+    signal: context.signal
   });
   for await (const event of classifyProviderStream(stream)) {
     if (event.kind === "tool_call") {

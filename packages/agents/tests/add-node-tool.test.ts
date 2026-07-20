@@ -1,12 +1,15 @@
 import { describe, it, expect } from "vitest";
-import { GraphBuilder, AGENT_STEP_NODE_TYPE } from "../src/graph-builder.js";
+import { GraphBuilder, AGENT_NODE_TYPE } from "../src/graph-builder.js";
 import { AddNodeTool } from "../src/tools/add-node-tool.js";
 import { AddEdgeTool } from "../src/tools/add-edge-tool.js";
 import { FinishGraphTool } from "../src/tools/finish-graph-tool.js";
 import { RemoveNodeTool } from "../src/tools/remove-node-tool.js";
 import { RemoveEdgeTool } from "../src/tools/remove-edge-tool.js";
 
-function mockRegistry(knownTypes: string[] = []) {
+// The Agent node is a normal registry node now, so every planner registry
+// stub must know it.
+function mockRegistry(extraTypes: string[] = []) {
+  const knownTypes = [AGENT_NODE_TYPE, ...extraTypes];
   const metadataMap = new Map<string, { node_type: string; properties: Array<{ name: string }>; outputs: Array<{ name: string }> }>();
   for (const t of knownTypes) {
     metadataMap.set(t, {
@@ -50,9 +53,9 @@ describe("AddNodeTool", () => {
 
     const result = (await tool.process(mockContext(), {
       id: "step1",
-      type: AGENT_STEP_NODE_TYPE,
+      type: AGENT_NODE_TYPE,
       properties: {
-        instructions: "Summarize the input text"
+        prompt: "Summarize the input text"
       }
     })) as Record<string, unknown>;
 
@@ -74,19 +77,20 @@ describe("AddNodeTool", () => {
     expect((result.errors as string[])[0]).toContain("Unknown node type");
   });
 
-  it("rejects agent step without instructions", async () => {
+  // add_node runs before any edge exists, so the prompt requirement is
+  // enforced at validate() time, not add time — a prompt commonly arrives
+  // over an edge rather than as a literal.
+  it("accepts an Agent node without a prompt property", async () => {
     const builder = new GraphBuilder();
-    const registry = mockRegistry();
-    const tool = new AddNodeTool(builder, registry);
+    const tool = new AddNodeTool(builder, mockRegistry());
 
     const result = (await tool.process(mockContext(), {
       id: "step",
-      type: AGENT_STEP_NODE_TYPE,
+      type: AGENT_NODE_TYPE,
       properties: {}
     })) as Record<string, unknown>;
 
-    expect(result.status).toBe("error");
-    expect((result.errors as string[])[0]).toContain("instructions");
+    expect(result.status).toBe("node_added");
   });
 
   it("rejects duplicate ids", async () => {
@@ -142,25 +146,31 @@ describe("AddEdgeTool", () => {
     expect((result.errors as string[])[0]).toContain("nonexistent_output");
   });
 
-  it("allows any handle name for agent step nodes", async () => {
+  // Agent nodes are ordinary registry nodes, so their handles are validated
+  // like any other node's — they used to be exempt as a virtual type.
+  it("validates handles on agent nodes", async () => {
     const builder = new GraphBuilder();
     const registry = mockRegistry();
-    builder.addNode("step1", AGENT_STEP_NODE_TYPE, {
-      instructions: "Do something"
-    });
-    builder.addNode("step2", AGENT_STEP_NODE_TYPE, {
-      instructions: "Do something else"
-    });
+    builder.addNode("step1", AGENT_NODE_TYPE, { prompt: "Do something" });
+    builder.addNode("step2", AGENT_NODE_TYPE, { prompt: "Do something else" });
 
     const tool = new AddEdgeTool(builder, registry);
-    const result = (await tool.process(mockContext(), {
+    const bad = (await tool.process(mockContext(), {
       source: "step1",
-      source_handle: "result",
+      source_handle: "made_up",
       target: "step2",
-      target_handle: "context"
+      target_handle: "input"
     })) as Record<string, unknown>;
+    expect(bad.status).toBe("error");
+    expect((bad.errors as string[])[0]).toContain("made_up");
 
-    expect(result.status).toBe("edge_added");
+    const ok = (await tool.process(mockContext(), {
+      source: "step1",
+      source_handle: "output",
+      target: "step2",
+      target_handle: "input"
+    })) as Record<string, unknown>;
+    expect(ok.status).toBe("edge_added");
   });
 });
 
@@ -315,14 +325,14 @@ describe("FinishGraphTool", () => {
     expect(tool.graph).not.toBeNull();
   });
 
-  it("treats AgentStep as known during deep validation", async () => {
+  it("treats metadata-only (Python) node types as known during deep validation", async () => {
     const registry = {
       has: () => false,
-      getMetadata: () => undefined,
+      getMetadata: () => ({ properties: [], outputs: [] }) as any,
       validateNode: () => []
     };
     const builder = new GraphBuilder();
-    builder.addNode("step", AGENT_STEP_NODE_TYPE, { instructions: "x" });
+    builder.addNode("py", "nodetool.python.SomeNode", {});
 
     const tool = new FinishGraphTool(builder, registry);
     const result = (await tool.process(mockContext(), {})) as Record<

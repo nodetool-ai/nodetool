@@ -1,5 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const WEB_PORT = Number(process.env.SCREENSHOT_WEB_PORT ?? 3000);
+
 /**
  * Playwright configuration for E2E visual regression tests.
  *
@@ -70,7 +72,7 @@ export default defineConfig({
   globalSetup: "./tests/globalSetup.ts",
 
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: `http://localhost:${WEB_PORT}`,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     ignoreHTTPSErrors: true
@@ -154,8 +156,8 @@ export default defineConfig({
    * `npm run dev` + `npm run test:visual` don't fight over port 3000.
    */
   webServer: {
-    command: "npm start",
-    url: "http://localhost:3000",
+    command: `npm run dev -- --port ${WEB_PORT}`,
+    url: `http://localhost:${WEB_PORT}`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000
   }

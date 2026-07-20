@@ -7,7 +7,7 @@
  *   - `generateKeyframe(boardId, shot)` runs a minimal `TextToImage → Output`
  *     graph (prompt = shot action + board style) to produce the cheap still.
  *   - `generateClip(boardId, shot)` runs `ImageToVideo → Output`, seeded by the
- *     shot's approved keyframe, to render the final clip.
+ *     shot's selected keyframe, to render the final clip.
  *
  * Both build a real nodes+edges graph, run it through the per-shot
  * {@link getWorkflowRunnerStore}, register the job on

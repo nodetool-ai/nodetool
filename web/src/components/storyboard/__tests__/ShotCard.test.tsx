@@ -61,40 +61,36 @@ describe("ShotCard", () => {
     expect(
       screen.getByRole("button", { name: "Generate still" })
     ).toBeEnabled();
-    expect(screen.getByRole("button", { name: "Approve" })).toBeDisabled();
     expect(
       screen.getByRole("button", { name: "Generate clip" })
     ).toBeDisabled();
   });
 
-  it("enables Approve once the keyframe is ready", () => {
+  it("enables Generate clip as soon as a still is ready", () => {
     const shot = makeShot({
       status: "keyframe_ready",
       keyframe: { type: "image", uri: "http://example.com/still.png" }
     });
     renderCard(shot);
-    // With a keyframe present, the still button offers a regenerate.
-    expect(screen.getByRole("button", { name: "Regenerate" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "Approve" })).toBeEnabled();
-    expect(
-      screen.getByRole("button", { name: "Generate clip" })
-    ).toBeDisabled();
+    // With a keyframe present, the still button offers another take.
+    expect(screen.getByRole("button", { name: "New still" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Generate clip" })).toBeEnabled();
   });
 
-  it("enables Generate clip once the shot is approved", () => {
+  it("treats the legacy approved status as a ready still", () => {
     const shot = makeShot({
       status: "approved",
       keyframe: { type: "image", uri: "http://example.com/still.png" }
     });
     renderCard(shot);
+    expect(screen.getByText("Still ready")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Generate clip" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "Approve" })).toBeDisabled();
   });
 
   it("shows Revise clip only once a clip exists and prompts for an instruction", async () => {
     generateRevisedClipMock.mockClear();
     // No clip yet: the revise affordance is absent.
-    const { unmount } = renderCard(makeShot({ status: "approved" }));
+    const { unmount } = renderCard(makeShot({ status: "keyframe_ready" }));
     expect(
       screen.queryByRole("button", { name: "Revise clip" })
     ).not.toBeInTheDocument();
@@ -126,7 +122,7 @@ describe("ShotCard", () => {
     for (const status of statuses) {
       const { unmount } = renderCard(makeShot({ status }));
       expect(
-        screen.getByRole("button", { name: /Generate still|Regenerate/ })
+        screen.getByRole("button", { name: /Generate still|New still/ })
       ).toBeDisabled();
       unmount();
     }

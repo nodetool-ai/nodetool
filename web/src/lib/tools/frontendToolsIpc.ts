@@ -12,23 +12,7 @@
 
 import { FrontendToolRegistry } from "./frontendTools";
 import { getFrontendToolRuntimeState } from "./frontendToolRuntimeState";
-import "./builtin/graph";
-import "./builtin/addNode";
-import "./builtin/updateNodeData";
-import "./builtin/connectNodes";
-import "./builtin/setNodeTitle";
-import "./builtin/moveNode";
-import "./builtin/getGraph";
-import "./builtin/searchNodes";
-import "./builtin/searchModels";
-import "./builtin/deleteNode";
-import "./builtin/deleteEdge";
-import "./builtin/uiActions";
-import "./builtin/model3d";
-import "./builtin/timeline";
-import "./builtin/storyboard";
-import "./builtin/puck";
-import "./builtin/entities";
+import "./builtin";
 import { getAgentSocketClient } from "../agent/AgentSocketClient";
 import type {
   ToolCallRequestEvent,

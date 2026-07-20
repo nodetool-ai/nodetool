@@ -57,6 +57,10 @@ interface ErrorUtilsLike {
   setGlobalHandler?: (handler: GlobalErrorHandler) => void;
 }
 
+declare const global: typeof globalThis & {
+  ErrorUtils?: ErrorUtilsLike;
+};
+
 let installed = false;
 
 /**
@@ -69,7 +73,7 @@ export function initErrorReporting(): void {
   }
   installed = true;
 
-  const errorUtils = (global as unknown as { ErrorUtils?: ErrorUtilsLike }).ErrorUtils;
+  const errorUtils = global.ErrorUtils;
   if (errorUtils?.setGlobalHandler) {
     const previous = errorUtils.getGlobalHandler?.();
     errorUtils.setGlobalHandler((error, isFatal) => {

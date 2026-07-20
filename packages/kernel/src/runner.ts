@@ -201,9 +201,7 @@ function clientFacingOutputName(node: NodeDescriptor, handle: string): string {
   const t = node.type ?? "";
   const props = node.properties as Record<string, unknown> | undefined;
   const workflowKey =
-    props &&
-    typeof props.name === "string" &&
-    props.name.trim().length > 0
+    props && typeof props.name === "string" && props.name.trim().length > 0
       ? props.name.trim()
       : undefined;
 
@@ -508,6 +506,15 @@ export class WorkflowRunner {
     if (this._cancelRequested) {
       this._cancelled = true;
       this._abortController.abort();
+    }
+
+    // Publish this run's cancellation signal on the shared context so nodes
+    // reached through process()/genProcess() — which receive no NodeInputs —
+    // can abort long-running work (agent loops, provider calls) on cancel().
+    // _resetRunState mints a fresh controller per run, so this must be
+    // re-published each time rather than wired once at construction.
+    if (this._options.executionContext) {
+      this._options.executionContext.signal = this._abortController.signal;
     }
 
     try {
@@ -1333,8 +1340,7 @@ export class WorkflowRunner {
       if (routingHints.lineageDoneSlots?.has(edge.sourceHandle)) {
         const targetInboxDrop = this._inboxes.get(edge.target);
         if (!targetInboxDrop) continue;
-        const lineage =
-          routingHints.perSlotLineage?.[edge.sourceHandle] ?? {};
+        const lineage = routingHints.perSlotLineage?.[edge.sourceHandle] ?? {};
         const edgeId =
           edge.id ??
           syntheticEdgeId(

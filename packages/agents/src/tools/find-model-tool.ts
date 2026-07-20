@@ -246,7 +246,7 @@ export class FindModelTool extends Tool {
         capability,
         total: 0,
         results: [],
-        note: "No providers configured. Use nodetool.agents.AgentStep for AI work."
+        note: "No providers configured. Use nodetool.agents.Agent without a model property for AI work."
       };
     }
 

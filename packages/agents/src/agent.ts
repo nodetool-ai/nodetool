@@ -349,6 +349,12 @@ export class Agent {
   readonly systemPrompt: string;
   results: unknown = null;
   task: Task | null = null;
+  /**
+   * External cancellation for this run, set by {@link execute}. Threaded into
+   * every planner and executor so a Stop reaches the provider call underneath
+   * instead of only being noticed at the next yield.
+   */
+  private signal?: AbortSignal;
 
   private readonly description: string;
   private readonly planningModel: string;
@@ -614,8 +620,10 @@ export class Agent {
   }
 
   async *execute(
-    context: ProcessingContext
+    context: ProcessingContext,
+    opts?: { signal?: AbortSignal }
   ): AsyncGenerator<ProcessingMessage> {
+    this.signal = opts?.signal ?? this.signal;
     yield* withAgentSpanGen(
       "execute",
       {
@@ -653,8 +661,9 @@ export class Agent {
       try {
         let block: string;
         if (this.synthesizeRecall && this.longTermMemory.synthesisEnabled) {
-          const { items, facts } =
-            await this.longTermMemory.recallSynthesized(this.objective);
+          const { items, facts } = await this.longTermMemory.recallSynthesized(
+            this.objective
+          );
           block = formatMemoryForPrompt(items, facts);
         } else {
           const recalled = await this.longTermMemory.recall(this.objective);
@@ -720,7 +729,8 @@ export class Agent {
       systemPrompt: mergedSystemPrompt,
       outputSchema: this.outputSchema,
       inputs: this.inputs,
-      planCache: this.planCache
+      planCache: this.planCache,
+      signal: this.signal
     });
 
     const planGen = planner.planMultiTask(effectiveObjective, context);
@@ -807,7 +817,8 @@ export class Agent {
       maxTokens: this.maxTokens,
       checkpointStore: this.checkpointStore,
       runId: this.runId,
-      planTools: this.tools.map((t) => t.name)
+      planTools: this.tools.map((t) => t.name),
+      signal: this.signal
     });
 
     for await (const item of executor.execute()) {
@@ -826,7 +837,8 @@ export class Agent {
       context,
       taskPlan,
       systemPrompt: mergedSystemPrompt,
-      maxTokens: this.maxTokens
+      maxTokens: this.maxTokens,
+      signal: this.signal
     });
 
     let compiled: unknown = null;
@@ -976,7 +988,8 @@ export class Agent {
         tools: this.tools,
         systemPrompt,
         outputSchema: this.outputSchema,
-        inputs: this.inputs
+        inputs: this.inputs,
+        signal: this.signal
       });
       const planGen = planner.plan(objective, context);
       let planResult = await planGen.next();
@@ -1001,7 +1014,8 @@ export class Agent {
       inputs: this.inputs,
       maxStepIterations: this.maxStepIterations,
       maxConcurrentAgents: this.maxConcurrentAgents,
-      maxAgentCalls: this.maxAgentCalls
+      maxAgentCalls: this.maxAgentCalls,
+      signal: this.signal
     });
 
     const runGen = runner.execute(script);
@@ -1042,7 +1056,8 @@ export class Agent {
       systemPrompt,
       outputSchema: this.outputSchema,
       inputs: this.inputs,
-      providers: this.providers
+      providers: this.providers,
+      signal: this.signal
     });
 
     const planGen = planner.plan(this.objective, context);
@@ -1079,7 +1094,8 @@ export class Agent {
       context,
       systemPrompt,
       maxStepIterations: this.maxStepIterations,
-      inputs: this.inputs
+      inputs: this.inputs,
+      signal: this.signal
     });
 
     for await (const item of runner.execute(graphData)) {
@@ -1131,7 +1147,8 @@ export class Agent {
       maxSteps: this.maxSteps,
       maxStepIterations: this.maxStepIterations,
       maxTokens: this.maxTokens,
-      parallelExecution: true
+      parallelExecution: true,
+      signal: this.signal
     });
 
     for await (const item of executor.executeTasks()) {

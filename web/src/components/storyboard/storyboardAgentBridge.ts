@@ -4,9 +4,9 @@
  * Bridge between the agent tooling layer (the `ui_storyboard_*` frontend tools)
  * and the live Storyboard surface, mirroring {@link timelineAgentBridge}.
  *
- * The open StoryboardSurface registers a {@link StoryboardAgentHandler} while it
- * is the active surface and clears it on unmount, so the tools always operate on
- * the focused board — or fail cleanly when no board is open.
+ * Every open StoryboardSurface registers a {@link StoryboardAgentHandler} under
+ * its board id and clears it on unmount, so the tools address a board explicitly
+ * by id — an open board stays addressable whether or not it has focus.
  *
  * Everything crossing the bridge is a plain serializable value: the agent reads
  * {@link StoryboardSnapshot} / {@link StoryboardShotNode} objects and never
@@ -14,7 +14,11 @@
  * index, or the literal `"selected"`.
  */
 
-import type { CameraDirection, Screenplay, ShotStatus } from "@nodetool-ai/protocol";
+import type {
+  CameraDirection,
+  Screenplay,
+  ShotStatus
+} from "@nodetool-ai/protocol";
 
 /** Serializable view of a single shot the agent reads and edits. */
 export interface StoryboardShotNode {
@@ -77,7 +81,6 @@ export interface StoryboardAgentHandler {
     patch: StoryboardUpdateShotPatch
   ) => StoryboardShotNode;
   generateKeyframe: (target: string) => Promise<StoryboardShotNode>;
-  approveShot: (target: string) => StoryboardShotNode;
   generateClip: (target: string) => Promise<StoryboardShotNode>;
   /**
    * Regenerate an existing shot's clip via video-to-video, seeded by its current
@@ -101,26 +104,45 @@ export interface StoryboardAgentHandler {
   }>;
 }
 
-let handler: StoryboardAgentHandler | null = null;
+const handlers = new Map<string, StoryboardAgentHandler>();
 
 /**
- * Register (or clear, with null) the handler for the currently-focused board.
- * The surface calls this when it becomes active and clears it on unmount so the
- * ui_storyboard_* tools always operate on the live board — or fail cleanly.
+ * Register (or clear, with null) the handler for one board id. Each open
+ * StoryboardSurface calls this on mount and clears it on unmount, so the
+ * ui_storyboard_* tools can address any open board by id.
  */
 export function setStoryboardAgentHandler(
+  boardId: string,
   next: StoryboardAgentHandler | null
 ): void {
-  handler = next;
+  if (next) {
+    handlers.set(boardId, next);
+  } else {
+    handlers.delete(boardId);
+  }
 }
 
-export function hasStoryboardAgentHandler(): boolean {
-  return handler !== null;
+export function hasStoryboardAgentHandler(boardId: string): boolean {
+  return handlers.has(boardId);
 }
 
-export function getStoryboardAgentHandler(): StoryboardAgentHandler {
+/** Ids of every storyboard currently open, in registration order. */
+export function listOpenStoryboardIds(): string[] {
+  return [...handlers.keys()];
+}
+
+export function getStoryboardAgentHandler(
+  boardId: string
+): StoryboardAgentHandler {
+  const handler = handlers.get(boardId);
   if (!handler) {
-    throw new Error("No storyboard is open.");
+    const open = listOpenStoryboardIds();
+    throw new Error(
+      `No storyboard "${boardId}" is open. ` +
+        (open.length > 0
+          ? `Open storyboards: ${open.join(", ")}.`
+          : "No storyboards are currently open.")
+    );
   }
   return handler;
 }

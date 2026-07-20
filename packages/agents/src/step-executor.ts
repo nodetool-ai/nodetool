@@ -20,6 +20,7 @@ import type {
   ProviderStreamItem
 } from "@nodetool-ai/runtime";
 import { memoryKeys, withAgentSpanGen } from "@nodetool-ai/runtime";
+import { linkAbort } from "./utils/link-abort.js";
 import { createLogger } from "@nodetool-ai/config";
 import {
   TaskUpdateEvent,
@@ -331,6 +332,8 @@ export interface StepExecutorOptions {
    * `step:<id>` keys — callers should not duplicate them here.
    */
   upstreamMemoryKeys?: string[];
+  /** External cancellation. Aborts the provider loop mid-flight. */
+  signal?: AbortSignal;
 }
 
 export class StepExecutor {
@@ -345,6 +348,7 @@ export class StepExecutor {
   private maxIterations: number;
   private maxTokens?: number;
   private useFinishTask: boolean;
+  private signal?: AbortSignal;
   private result: unknown = null;
   private finishStepTool: FinishStepTool | null = null;
   private resultSchema: Record<string, unknown> | null = null;
@@ -371,6 +375,7 @@ export class StepExecutor {
     this.useFinishTask = opts.useFinishTask ?? false;
     this.threadId = opts.threadId;
     this.upstreamMemoryKeys = opts.upstreamMemoryKeys ?? [];
+    this.signal = opts.signal;
 
     this.resultSchema = this.loadResultSchema();
 
@@ -873,6 +878,8 @@ export class StepExecutor {
     // `terminal` flag can't express that, so the AbortController stops the loop
     // on a valid completion instead.
     const abort = new AbortController();
+    // External cancellation (user pressed Stop) fires the same controller.
+    const unlinkAbort = linkAbort(abort, this.signal);
     const uiEvents: ProcessingMessage[] = [];
     let lastAssistant: Message | null = null;
     // Captures a real exception thrown by the provider loop (401, rate limit,
@@ -1069,6 +1076,8 @@ export class StepExecutor {
         stepId: this.step.id,
         error: generationError.message
       });
+    } finally {
+      unlinkAbort();
     }
 
     yield* drainUi();

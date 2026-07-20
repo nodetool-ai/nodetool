@@ -11,11 +11,21 @@
  */
 
 import type {
+  AnimationSampleMask,
+  ClipAnimation,
   ClipEffect,
   ClipTransform,
+  CompiledAnimation,
   TimelineClip,
   TimelineTrack,
   TrackEffect
+} from "@nodetool-ai/timeline";
+import {
+  compileClipAnimations,
+  countStaggerUnits,
+  hasActiveAnimationWindow,
+  hasStaggeredAnimation,
+  sampleAnimations
 } from "@nodetool-ai/timeline";
 import type { CompositorBlendMode } from "./gpu/types";
 
@@ -39,7 +49,7 @@ export const trackZ = (uiIndex: number): number => LAYER_Z_BASE - uiIndex;
 export const PREVIEW_OVERLAY_Z = {
   magicWash: 9998,
   badge: 9999,
-  gizmo: 10000,
+  gizmo: 10000
 } as const;
 
 /**
@@ -138,9 +148,7 @@ export function effectiveAssetId(clip: TimelineClip): string | undefined {
   }
 }
 
-function resolveBlendMode(
-  b: TimelineClip["blendMode"]
-): CompositorBlendMode {
+function resolveBlendMode(b: TimelineClip["blendMode"]): CompositorBlendMode {
   return b ?? "normal";
 }
 
@@ -198,7 +206,7 @@ export function resolveCaptionAtTime(
 
 /** A visual layer active at a point in time, in bottom-to-top composite order. */
 export interface ActiveLayer {
-  kind: "video" | "image" | "caption";
+  kind: "video" | "image" | "text" | "shape" | "caption";
   clip: TimelineClip;
   clipId: string;
   trackIndex: number;
@@ -213,6 +221,10 @@ export interface ActiveLayer {
   trackEffects?: TrackEffect[];
   /** Present only when `kind === "caption"`: the words to draw this frame. */
   caption?: ResolvedCaption;
+  /** Present only when `kind === "text"`: authored text to rasterize. */
+  textStyle?: TimelineClip["textStyle"];
+  /** Present only when `kind === "shape"`: authored geometry to rasterize. */
+  shapeStyle?: TimelineClip["shapeStyle"];
 }
 
 export interface ComputeActiveLayersOptions {
@@ -347,6 +359,44 @@ export function computeActiveLayersWithHorizon(
       if (!isVisual) continue;
       if (clip.mediaType === "audio") continue;
 
+      if (clip.mediaType === "text") {
+        if (!clip.textStyle) continue;
+        mediaLayers.push({
+          kind: "text",
+          clip,
+          clipId: clip.id,
+          trackIndex: track.index,
+          blendMode: resolveBlendMode(clip.blendMode),
+          opacity,
+          assetId: undefined,
+          transform: clip.transform,
+          borderRadius: clip.borderRadius,
+          effects: clip.effects,
+          trackEffects: track.effects,
+          textStyle: clip.textStyle
+        });
+        continue;
+      }
+
+      if (clip.mediaType === "shape") {
+        if (!clip.shapeStyle) continue;
+        mediaLayers.push({
+          kind: "shape",
+          clip,
+          clipId: clip.id,
+          trackIndex: track.index,
+          blendMode: resolveBlendMode(clip.blendMode),
+          opacity,
+          assetId: undefined,
+          transform: clip.transform,
+          borderRadius: clip.borderRadius,
+          effects: clip.effects,
+          trackEffects: track.effects,
+          shapeStyle: clip.shapeStyle
+        });
+        continue;
+      }
+
       const assetId = effectiveAssetId(clip);
       // A caption-only clip (no drawable asset) contributes just its caption.
       if (caption && assetId === undefined) continue;
@@ -394,4 +444,233 @@ export function computeActiveLayers(
 ): ActiveLayer[] {
   return computeActiveLayersWithHorizon(tracks, clips, currentTimeMs, options)
     .layers;
+}
+
+// ── Motion-design animation resolution ───────────────────────────────────────
+
+/**
+ * The animated transform/opacity a layer should render with at a point in time.
+ * Composed from the layer's static `transform`/`opacity` and its animation
+ * sample. Identical fields to the layer when it has no active animation.
+ */
+export interface AnimatedLayerProps {
+  transform?: ClipTransform;
+  opacity: number;
+  /** Wipe mask to apply in the compositor. Absent means unmasked. */
+  mask?: AnimationSampleMask;
+  /**
+   * Effects to feed the compositor's per-layer effect pre-pass: the clip's
+   * static `effects` with any animated blur/brightness/saturation composed in.
+   * Equal to the clip's own `effects` when no effect animation is active.
+   */
+  effects?: ClipEffect[];
+}
+
+interface CompileCacheEntry {
+  /** The `animations` array reference this entry was compiled from. */
+  animationsRef: ClipAnimation[];
+  /** Recompile when the clip is trimmed (window math depends on duration). */
+  durationMs: number;
+  canvasW: number;
+  canvasH: number;
+  /** Word count of a text clip (stagger span math depends on it). 0 otherwise. */
+  staggerCount: number;
+  compiled: CompiledAnimation[];
+}
+
+/**
+ * Per-clip memoized compilation so the rAF loop never compiles. Invalidated
+ * when the clip's `animations` array reference, its duration, or the canvas
+ * size changes. Keyed by clip id.
+ */
+export type AnimationCompileCache = Map<string, CompileCacheEntry>;
+
+export function createAnimationCompileCache(): AnimationCompileCache {
+  return new Map();
+}
+
+/** Stagger unit count for a clip: text clips split into words, others 0. */
+function clipStaggerCount(clip: TimelineClip): number {
+  return clip.mediaType === "text" && clip.textStyle
+    ? countStaggerUnits(clip.textStyle.text)
+    : 0;
+}
+
+function compiledFor(
+  clip: TimelineClip,
+  canvas: { width: number; height: number },
+  cache?: AnimationCompileCache
+): CompiledAnimation[] {
+  const animations = clip.animations;
+  if (!animations || animations.length === 0) return [];
+  const staggerCount = clipStaggerCount(clip);
+  if (cache) {
+    const hit = cache.get(clip.id);
+    if (
+      hit &&
+      hit.animationsRef === animations &&
+      hit.durationMs === clip.durationMs &&
+      hit.canvasW === canvas.width &&
+      hit.canvasH === canvas.height &&
+      hit.staggerCount === staggerCount
+    ) {
+      return hit.compiled;
+    }
+    const compiled = compileClipAnimations(animations, clip.durationMs, canvas, {
+      staggerCount
+    });
+    cache.set(clip.id, {
+      animationsRef: animations,
+      durationMs: clip.durationMs,
+      canvasW: canvas.width,
+      canvasH: canvas.height,
+      staggerCount,
+      compiled
+    });
+    return compiled;
+  }
+  return compileClipAnimations(animations, clip.durationMs, canvas, {
+    staggerCount
+  });
+}
+
+const IDENTITY_TRANSFORM: ClipTransform = {
+  position: { x: 0, y: 0 },
+  scale: { x: 1, y: 1 },
+  rotation: 0,
+  anchor: { x: 0.5, y: 0.5 }
+};
+
+/**
+ * Compose a layer's static transform/opacity with its animation sample at
+ * `currentTimeMs`. Returns the layer's existing values (no allocation) when the
+ * clip has no enabled animations or the sample is identity at this time.
+ *
+ * `sample.opacity` multiplies the already-resolved layer opacity (base ×
+ * crossfade), so animations compose with `transitionIn` rather than fight it.
+ */
+export function resolveAnimatedLayerProps(
+  layer: { clip: TimelineClip; transform?: ClipTransform; opacity: number },
+  currentTimeMs: number,
+  canvas: { width: number; height: number },
+  cache?: AnimationCompileCache
+): AnimatedLayerProps {
+  const clip = layer.clip;
+  const compiled = compiledFor(clip, canvas, cache);
+  if (compiled.length === 0) {
+    return { transform: layer.transform, opacity: layer.opacity, effects: clip.effects };
+  }
+
+  const s = sampleAnimations(compiled, currentTimeMs - clip.startMs);
+  if (
+    s.offsetX === 0 &&
+    s.offsetY === 0 &&
+    s.scale === 1 &&
+    s.rotation === 0 &&
+    s.opacity === 1 &&
+    s.blur === 0 &&
+    s.brightness === 0 &&
+    s.saturation === 1 &&
+    s.mask === undefined
+  ) {
+    return { transform: layer.transform, opacity: layer.opacity, effects: clip.effects };
+  }
+
+  const base = layer.transform ?? IDENTITY_TRANSFORM;
+  const transform: ClipTransform = {
+    position: {
+      x: base.position.x + s.offsetX,
+      y: base.position.y + s.offsetY
+    },
+    scale: { x: base.scale.x * s.scale, y: base.scale.y * s.scale },
+    rotation: base.rotation + s.rotation,
+    anchor: base.anchor
+  };
+  // `s.mask` is freshly allocated per sampleAnimations call here (no scratch
+  // is passed), so handing it out is safe.
+  return {
+    transform,
+    opacity: layer.opacity * s.opacity,
+    mask: s.mask,
+    effects: composeAnimatedEffects(clip.effects, s.blur, s.brightness, s.saturation)
+  };
+}
+
+/**
+ * Fold the sampled effect values into the clip's static effects for the
+ * compositor pre-pass. The animated blur/brightness ADD to the aggregated blur
+ * radius / grade brightness (both additive terms in the pipeline) and the
+ * animated saturation MULTIPLIES the aggregated saturation — so a synthesized
+ * blur effect and a synthesized color effect appended to the static list land
+ * exactly on those aggregation rules (see `effectsProcessor` / `canvas2d`
+ * `computeFilterForEffects`). Returns the static array unchanged when the
+ * sampled values are identity (no allocation on the steady path).
+ */
+function composeAnimatedEffects(
+  staticEffects: ClipEffect[] | undefined,
+  blur: number,
+  brightness: number,
+  saturation: number
+): ClipEffect[] | undefined {
+  const hasColor = brightness !== 0 || saturation !== 1;
+  const hasBlur = blur > 0;
+  if (!hasColor && !hasBlur) return staticEffects;
+  const out: ClipEffect[] = staticEffects ? [...staticEffects] : [];
+  if (hasColor) {
+    out.push({ id: "anim-color", type: "color", enabled: true, brightness, saturation });
+  }
+  if (hasBlur) {
+    out.push({ id: "anim-blur", type: "blur", enabled: true, radius: blur });
+  }
+  return out;
+}
+
+/**
+ * Per-frame input the text rasterizer needs to draw a staggered text clip:
+ * the clip's compiled animations (at least one staggered) and the clip-local
+ * time. `null`/absent means the block raster path applies (cache by style).
+ */
+export interface TextStaggerContext {
+  compiled: CompiledAnimation[];
+  localMs: number;
+}
+
+/**
+ * Resolve the stagger context for a text layer at `currentTimeMs`, or `null`
+ * when the clip has no staggered animation. Shared by the live preview, the
+ * export renderer, and the agent frame harness so per-word motion is drawn
+ * from one code path (preview == export).
+ */
+export function resolveTextStaggerContext(
+  clip: TimelineClip,
+  currentTimeMs: number,
+  canvas: { width: number; height: number },
+  cache?: AnimationCompileCache
+): TextStaggerContext | null {
+  if (clip.mediaType !== "text") return null;
+  const compiled = compiledFor(clip, canvas, cache);
+  if (compiled.length === 0 || !hasStaggeredAnimation(compiled)) return null;
+  return { compiled, localMs: currentTimeMs - clip.startMs };
+}
+
+/**
+ * True when any active layer has an animation whose window covers
+ * `currentTimeMs`. The live preview uses this to keep redrawing every rAF tick
+ * while motion is in flight, even though the cached layer *set* is unchanged.
+ */
+export function hasActiveAnimation(
+  layers: ActiveLayer[],
+  currentTimeMs: number,
+  canvas: { width: number; height: number },
+  cache?: AnimationCompileCache
+): boolean {
+  for (const layer of layers) {
+    const clip = layer.clip;
+    if (!clip.animations || clip.animations.length === 0) continue;
+    const compiled = compiledFor(clip, canvas, cache);
+    if (hasActiveAnimationWindow(compiled, currentTimeMs - clip.startMs)) {
+      return true;
+    }
+  }
+  return false;
 }

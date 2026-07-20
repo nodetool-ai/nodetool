@@ -7,6 +7,7 @@ import MovieOutlinedIcon from "@mui/icons-material/MovieOutlined";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
 import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
+import RecordVoiceOverOutlinedIcon from "@mui/icons-material/RecordVoiceOverOutlined";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 
 import {
@@ -22,6 +23,7 @@ import { trpcClient } from "../../trpc/client";
 import { useAssetSearch } from "../../serverState/useAssetSearch";
 import { useCreateTimeline } from "../../hooks/useTimelineSequence";
 import { useCreateStoryboard } from "../../hooks/storyboard/useStoryboards";
+import { useCreateScript } from "../../hooks/script/useScripts";
 import { useAssetStore } from "../../stores/AssetStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
@@ -148,6 +150,7 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
   const createAsset = useAssetStore((state) => state.createAsset);
   const createTimeline = useCreateTimeline();
   const createStoryboard = useCreateStoryboard();
+  const createScript = useCreateScript();
   const { searchAssets } = useAssetSearch();
 
   const close = useCallback(() => {
@@ -241,6 +244,24 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
       console.error("Failed to create storyboard", error);
     }
   }, [createStoryboard, openTab, close]);
+
+  const handleNewScript = useCallback(async () => {
+    try {
+      const created = await createScript.mutateAsync({
+        name: "Untitled script",
+        projectId: "default"
+      });
+      openTab({
+        type: "script",
+        ref: created.id,
+        mode: "edit",
+        title: created.name
+      });
+      close();
+    } catch (error) {
+      console.error("Failed to create script", error);
+    }
+  }, [createScript, openTab, close]);
 
   const handleNewChat = useCallback(async () => {
     try {
@@ -398,6 +419,11 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
               label="New storyboard"
               icon={<DashboardOutlinedIcon fontSize="small" />}
               onClick={() => void handleNewStoryboard()}
+            />
+            <MenuItemPrimitive
+              label="New script"
+              icon={<RecordVoiceOverOutlinedIcon fontSize="small" />}
+              onClick={() => void handleNewScript()}
             />
             <MenuItemPrimitive
               label="New 3D model"

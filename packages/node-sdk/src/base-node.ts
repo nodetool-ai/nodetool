@@ -94,8 +94,7 @@ export type NodeClass = {
    * Hide from node-discovery UIs (palette, search) while keeping the node
    * registered and runnable. Unlike `deprecated` (which down-ranks and badges
    * a still-discoverable node), a hidden node is filtered out of the palette
-   * entirely. Used for internal nodes the user never adds by hand — e.g.
-   * `AgentStepNode`, which GraphPlanner/AgentWorkflowRunner insert. Set via a
+   * entirely. Used for internal nodes the user never adds by hand. Set via a
    * `static readonly hidden = true` on the node class.
    */
   hidden?: boolean;

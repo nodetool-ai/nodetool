@@ -83,6 +83,8 @@ const ConnectedModePromptBarInner: React.FC<ConnectedModePromptBarProps> = ({
   const theme = useTheme();
 
   const panelsHidden = useSketchStore((s) => s.panelsHidden);
+  const assistantPanelOpen = useSketchStore((s) => s.assistantPanelOpen);
+  const toggleAssistantPanel = useSketchStore((s) => s.toggleAssistantPanel);
   const docW = useSketchStore((s) => s.document.canvas.width);
   const docH = useSketchStore((s) => s.document.canvas.height);
 
@@ -355,6 +357,20 @@ const ConnectedModePromptBarInner: React.FC<ConnectedModePromptBarProps> = ({
           sx={{ flexShrink: 0, height: 34 }}
         >
           Generate
+        </EditorButton>
+
+        {/* Assistant toggle — opens the right-side AI chat panel that drives
+            the editor through the ui_sketch_* agent tools. */}
+        <EditorButton
+          variant={assistantPanelOpen ? "contained" : "outlined"}
+          size="small"
+          onClick={toggleAssistantPanel}
+          startIcon={<AutoAwesomeIcon fontSize="small" />}
+          aria-pressed={assistantPanelOpen}
+          data-testid="sketch-assistant-toggle"
+          sx={{ flexShrink: 0, height: 34 }}
+        >
+          Assistant
         </EditorButton>
 
         {trailingActions}

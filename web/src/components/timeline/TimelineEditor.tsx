@@ -336,18 +336,18 @@ interface TimelineEditorProps {
   active?: boolean;
 }
 
-const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
-  sequenceId: sequenceIdProp,
-  active = true
-}) => {
+const TimelineEditorBody: React.FC<
+  Omit<TimelineEditorProps, "active">
+> = memo(({ sequenceId: sequenceIdProp }) => {
   const { sequenceId: sequenceIdParam } = useParams<{ sequenceId: string }>();
   const sequenceId = sequenceIdProp ?? sequenceIdParam;
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const theme = useTheme();
 
-  // Register the ui_timeline_* agent tools against this instance while focused.
-  useTimelineAgentBridge(active);
+  // Register the ui_timeline_* agent tools against this instance, addressable
+  // by sequence id whether or not this editor is the focused surface.
+  useTimelineAgentBridge(sequenceId ?? null);
 
   // Data fetching ─────────────────────────────────────────────────────────
   const { data: sequence, isLoading, isError, refetch } =
@@ -683,7 +683,7 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
   ...bodyProps
 }) => (
   <TimelineProvider active={active}>
-    <TimelineEditorBody active={active} {...bodyProps} />
+    <TimelineEditorBody {...bodyProps} />
   </TimelineProvider>
 );
 

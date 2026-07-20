@@ -62,15 +62,13 @@ interface StandaloneSketchEditorProps {
   headerActions?: React.ReactNode;
   /**
    * Whether this editor is the focused/visible surface. Drives which instance
-   * receives imperative tool/keyboard/save actions. Defaults to `true` for the
+   * the singleton sketch hooks resolve to. Defaults to `true` for the
    * standalone page; the workspace tab passes its active flag.
    */
   active?: boolean;
 }
 
-const StandaloneSketchEditorBody: React.FC<
-  Omit<StandaloneSketchEditorProps, "active">
-> = memo(
+const StandaloneSketchEditorBody: React.FC<StandaloneSketchEditorProps> = memo(
   function StandaloneSketchEditorBody({ documentId, headerActions }) {
     const theme = useTheme();
     const styles = useMemo(() => containerStyles(theme), [theme]);

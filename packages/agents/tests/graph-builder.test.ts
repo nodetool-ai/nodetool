@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { GraphBuilder, AGENT_STEP_NODE_TYPE } from "../src/graph-builder.js";
+import { GraphBuilder, AGENT_NODE_TYPE } from "../src/graph-builder.js";
 
 describe("GraphBuilder", () => {
   it("adds nodes and builds a valid graph", () => {
@@ -86,13 +86,13 @@ describe("GraphBuilder", () => {
 
   it("stores properties on nodes", () => {
     const builder = new GraphBuilder();
-    builder.addNode("step1", AGENT_STEP_NODE_TYPE, {
-      instructions: "Do something",
+    builder.addNode("step1", AGENT_NODE_TYPE, {
+      prompt: "Do something",
       tools: ["browser"]
     });
     const graph = builder.build();
     expect(graph.nodes[0].properties).toEqual({
-      instructions: "Do something",
+      prompt: "Do something",
       tools: ["browser"]
     });
   });

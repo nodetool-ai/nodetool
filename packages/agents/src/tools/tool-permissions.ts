@@ -109,6 +109,7 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   finish_task: "read",
   finish_step: "read",
   finish_graph: "read",
+  submit_graph: "read",
   add_node: "read",
   add_edge: "read",
   // run_subtask spawns a child loop whose own tools are gated; the call

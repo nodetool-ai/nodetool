@@ -210,7 +210,9 @@ describe("buildSandbox", () => {
   it("provides workspace stubs without context", async () => {
     const { sandbox } = buildSandbox();
     const ws = sandbox.workspace as { read: (p: string) => Promise<string> };
-    await expect(ws.read("test")).rejects.toThrow("not available without a context");
+    await expect(ws.read("test")).rejects.toThrow(
+      "not available without a context"
+    );
   });
 
   it("getSecret without context returns undefined", async () => {
@@ -248,16 +250,17 @@ describe("buildSandbox", () => {
       "http://[::1]/",
       "file:///etc/passwd"
     ]) {
-      await expect(fetchFn(url)).rejects.toThrow(/blocked|unsupported|invalid/i);
+      await expect(fetchFn(url)).rejects.toThrow(
+        /blocked|unsupported|invalid/i
+      );
     }
   });
 });
 
 describe("buildSandbox workspace symlink containment", () => {
   it("blocks reads/writes through a symlink that escapes the workspace", async () => {
-    const { mkdtemp, rm, writeFile, symlink } = await import(
-      "node:fs/promises"
-    );
+    const { mkdtemp, rm, writeFile, symlink } =
+      await import("node:fs/promises");
     const { tmpdir } = await import("node:os");
     const { join, isAbsolute } = await import("node:path");
     const ws = await mkdtemp(join(tmpdir(), "sbx-ws-"));
@@ -266,8 +269,7 @@ describe("buildSandbox workspace symlink containment", () => {
       await writeFile(join(outside, "secret.txt"), "SECRET\n");
       await symlink(join(outside, "secret.txt"), join(ws, "link.txt"));
       const context = {
-        resolveWorkspacePath: (p: string) =>
-          isAbsolute(p) ? p : join(ws, p)
+        resolveWorkspacePath: (p: string) => (isAbsolute(p) ? p : join(ws, p))
       } as never;
       const { sandbox } = buildSandbox(context);
       const workspace = sandbox.workspace as {
@@ -554,11 +556,12 @@ describe("runInSandbox fetch bridge", () => {
   });
 
   it("returns a Response-like object with parsed JSON", async () => {
-    (globalThis as { fetch: unknown }).fetch = vi.fn(async () =>
-      new Response(JSON.stringify({ hello: "world" }), {
-        status: 200,
-        headers: { "content-type": "application/json" }
-      })
+    (globalThis as { fetch: unknown }).fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ hello: "world" }), {
+          status: 200,
+          headers: { "content-type": "application/json" }
+        })
     );
     const result = await runInSandbox({
       code: `
@@ -669,5 +672,157 @@ describe("runInSandbox context bridge", () => {
       type: "asset",
       asset_id: "a-from-sandbox"
     });
+  });
+});
+
+describe("runInSandbox cancellation", () => {
+  it("returns immediately when the signal is already aborted", async () => {
+    const result = await runInSandbox({
+      code: "return 1 + 1;",
+      signal: AbortSignal.abort()
+    });
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Execution cancelled");
+  });
+
+  it("unwinds a sleeping script mid-flight instead of waiting it out", async () => {
+    // Regression: script cancellation reached only sub-agent calls, so a script
+    // parked in sleep()/fetch() ran until the (60 min) execution timeout.
+    const controller = new AbortController();
+    const started = Date.now();
+    setTimeout(() => controller.abort(), 50);
+
+    const result = await runInSandbox({
+      // Without abort-aware sleep this loops for ~25s (5 x 5s cap).
+      code: "for (let i = 0; i < 5; i++) { await sleep(5000); }\nreturn 'finished';",
+      timeoutMs: 60_000,
+      signal: controller.signal
+    });
+
+    const elapsed = Date.now() - started;
+    expect(result.success).toBe(false);
+    // Must beat the 5s sleep cap: abort has to interrupt the *in-flight* nap,
+    // not merely fail the next bridge call after it finishes naturally.
+    expect(elapsed).toBeLessThan(2000);
+  });
+
+  it("stops the orphaned guest from doing more host work after cancel", async () => {
+    // runInSandbox returns promptly via the cancellation race, but the guest
+    // keeps running until QuickJS winds it down. These bridge-level guards are
+    // what stop it burning host work (fetches, sub-agent calls) in the interim.
+    const controller = new AbortController();
+    let hostCalls = 0;
+
+    const result = await runInSandbox({
+      code: `
+        for (let i = 0; i < 40; i++) {
+          await tick();
+          await sleep(50);
+        }
+        return "finished";
+      `,
+      timeoutMs: 60_000,
+      signal: controller.signal,
+      globals: {
+        tick: async () => {
+          hostCalls++;
+          if (hostCalls === 3) controller.abort();
+          return hostCalls;
+        }
+      }
+    });
+
+    expect(result.success).toBe(false);
+    // Give the orphaned guest a moment to prove it has actually stopped.
+    const callsAtCancel = hostCalls;
+    await new Promise((r) => setTimeout(r, 300));
+    expect(hostCalls).toBeLessThanOrEqual(callsAtCancel + 1);
+    expect(hostCalls).toBeLessThan(40);
+  });
+});
+
+describe("runInSandbox cancellation of CPU-bound guests", () => {
+  it("interrupts a CPU-bound loop once cancellation has landed", async () => {
+    // Regression: Promise.race cannot stop a CPU-bound guest — it never yields,
+    // so the run only ended at executionTimeout (one hour under ScriptRunner).
+    // QuickJS polls this interrupt handler from inside the interpreter, which
+    // is the only thing that can break a spinning loop.
+    //
+    // The guest yields once (`await tick()`) before spinning. That is the shape
+    // real orchestration scripts have — they await sub-agents constantly — and
+    // it is what lets the abort flag get set in the first place. See the test
+    // below for the case this cannot cover.
+    const controller = new AbortController();
+    const started = Date.now();
+
+    const result = await runInSandbox({
+      code: "await tick();\nwhile (true) {}\nreturn 'never';",
+      timeoutMs: 20_000,
+      signal: controller.signal,
+      globals: {
+        tick: async () => {
+          controller.abort();
+          return 1;
+        }
+      }
+    });
+
+    const elapsed = Date.now() - started;
+    expect(result.success).toBe(false);
+    expect(elapsed).toBeLessThan(3000);
+  });
+
+  it("documents the limit: a guest that never yields cannot be cancelled in-process", async () => {
+    // A guest that spins from its first instruction blocks the host event loop,
+    // so the Stop message cannot even be read and the abort flag can never be
+    // set — the interrupt handler polls a flag that stays false. Cancelling
+    // this case requires running QuickJS in a terminable worker.
+    // This test pins the known behavior so a future worker migration has a
+    // failing assertion to flip.
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(), 25);
+    const started = Date.now();
+
+    const result = await runInSandbox({
+      code: "while (true) {}\nreturn 'never';",
+      timeoutMs: 1_000,
+      signal: controller.signal
+    });
+
+    expect(result.success).toBe(false);
+    // Runs to its execution timeout despite the 25ms abort.
+    expect(Date.now() - started).toBeGreaterThanOrEqual(900);
+  });
+
+  it("guards caller-injected async globals after cancel", async () => {
+    // ScriptRunner injects __runAgent/__log as globals. These are host
+    // functions and were added after the bridge guards, so a cancelled script
+    // kept driving real work through them.
+    const controller = new AbortController();
+    let hostCalls = 0;
+
+    const result = await runInSandbox({
+      code: `
+        for (let i = 0; i < 12; i++) {
+          await customBridge();
+        }
+        return "finished";
+      `,
+      timeoutMs: 30_000,
+      signal: controller.signal,
+      globals: {
+        customBridge: async () => {
+          hostCalls++;
+          if (hostCalls === 2) controller.abort();
+          return hostCalls;
+        }
+      }
+    });
+
+    expect(result.success).toBe(false);
+    const callsAtCancel = hostCalls;
+    await new Promise((r) => setTimeout(r, 300));
+    expect(hostCalls).toBeLessThanOrEqual(callsAtCancel + 1);
+    expect(hostCalls).toBeLessThan(12);
   });
 });

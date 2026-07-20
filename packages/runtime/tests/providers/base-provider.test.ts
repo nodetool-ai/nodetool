@@ -366,6 +366,74 @@ describe("toolResultToText", () => {
   });
 });
 
+describe("BaseProvider.generateLoop – turn boundary", () => {
+  /**
+   * Mirrors what every real provider does: tool calls are yielded first, then a
+   * terminal `done: true` chunk closing THAT completion. Anthropic, OpenAI,
+   * Gemini, Ollama and the rest all emit this per round, not per turn.
+   */
+  class TwoRoundProvider extends BaseProvider {
+    private called = false;
+    constructor() {
+      super("test");
+    }
+    async *generateMessages(): AsyncGenerator<ProviderStreamItem> {
+      if (!this.called) {
+        this.called = true;
+        yield { type: "chunk", content: "thinking", done: false };
+        yield { id: "call_1", name: "noop", args: {} } as ToolCall;
+        yield { type: "chunk", content: "", done: true };
+        return;
+      }
+      yield { type: "chunk", content: "answer", done: true };
+    }
+  }
+
+  it("emits done:true only once, at the end of the whole turn", async () => {
+    const provider = new TwoRoundProvider();
+    const chunks: { content?: unknown; done?: boolean }[] = [];
+    for await (const item of provider.generateLoop({
+      messages: [{ role: "user", content: "go" }],
+      model: "m",
+      executeTool: async () => "ok"
+    })) {
+      if (
+        typeof item === "object" &&
+        item !== null &&
+        (item as { type?: string }).type === "chunk"
+      ) {
+        chunks.push(item as { content?: unknown; done?: boolean });
+      }
+    }
+
+    // The mid-loop done chunk is what makes the composer flip Stop → Run while
+    // tools are still running; only the final completion may close the turn.
+    const doneChunks = chunks.filter((c) => c.done === true);
+    expect(doneChunks).toHaveLength(1);
+    expect(doneChunks[0]?.content).toBe("answer");
+  });
+
+  it("still forwards non-terminal content chunks from every round", async () => {
+    const provider = new TwoRoundProvider();
+    const text: string[] = [];
+    for await (const item of provider.generateLoop({
+      messages: [{ role: "user", content: "go" }],
+      model: "m",
+      executeTool: async () => "ok"
+    })) {
+      if (
+        typeof item === "object" &&
+        item !== null &&
+        (item as { type?: string }).type === "chunk"
+      ) {
+        const c = (item as { content?: unknown }).content;
+        if (typeof c === "string" && c) text.push(c);
+      }
+    }
+    expect(text).toEqual(["thinking", "answer"]);
+  });
+});
+
 describe("BaseProvider.generateLoop – image tool results", () => {
   // Yields one tool call on the first turn, then finishes — the "real provider"
   // path that emits ToolCall items (vs. the inline onToolCall callback).

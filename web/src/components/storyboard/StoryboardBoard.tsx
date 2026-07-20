@@ -8,7 +8,7 @@
  * can wire it to a real Director run.
  */
 
-import React, { memo, useCallback, useState } from "react";
+import React, { memo, useCallback, useMemo, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -96,9 +96,9 @@ const styles = (theme: Theme) =>
     // Children must keep their natural height so the container scrolls;
     // otherwise the header panel gets flex-shrunk under the grid.
     "> *": { flexShrink: 0 },
-    ".grid": {
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+    ".shot-list": {
+      display: "flex",
+      flexDirection: "column",
       gap: getSpacingPx(SPACING.md)
     },
     // ── Directing: ghost cards materializing while the screenplay is written ──
@@ -127,11 +127,20 @@ const styles = (theme: Theme) =>
       border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: BORDER_RADIUS.md,
       padding: getSpacingPx(SPACING.md),
+      display: "grid",
+      gridTemplateColumns: "minmax(220px, 300px) minmax(0, 1fr)",
+      gap: getSpacingPx(SPACING.md),
+      alignItems: "start",
+      opacity: 0,
+      animation: `storyboard-ghost-in ${MOTION.slow} both`,
+      "@media (max-width: 720px)": {
+        gridTemplateColumns: "minmax(0, 1fr)"
+      }
+    },
+    ".ghost-lines": {
       display: "flex",
       flexDirection: "column",
-      gap: getSpacingPx(SPACING.sm),
-      opacity: 0,
-      animation: `storyboard-ghost-in ${MOTION.slow} both`
+      gap: getSpacingPx(SPACING.sm)
     },
     ".ghost-frame": {
       aspectRatio: "16 / 9",
@@ -223,19 +232,29 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
     onDirect?.(shotCount);
   }, [onDirect, shotCount]);
 
-  const hasRenderedShot = shots.some(
-    (s) => s.status === "rendered" && !!s.clip?.asset_id
+  const hasRenderedShot = useMemo(
+    () => shots.some((s) => s.status === "rendered" && !!s.clip?.asset_id),
+    [shots]
   );
 
-  // Shots still waiting for their first still (or whose last attempt failed).
-  const pendingStills = shots.filter(
-    (s) =>
-      !s.keyframe && (s.status === "planned" || s.status === "failed")
+  const pendingStills = useMemo(
+    () =>
+      shots.filter(
+        (s) => !s.keyframe && (s.status === "planned" || s.status === "failed")
+      ),
+    [shots]
   );
 
-  // Approved shots with a still, cleared for video spend but not yet rendered.
-  const pendingClips = shots.filter(
-    (s) => s.status === "approved" && !!s.keyframe
+  const pendingClips = useMemo(
+    () =>
+      shots.filter(
+        (s) =>
+          !!s.keyframe &&
+          !s.clip &&
+          s.status !== "keyframe_generating" &&
+          s.status !== "clip_generating"
+      ),
+    [shots]
   );
 
   const { generateKeyframe, generateClip } = useGenerateShot();
@@ -383,7 +402,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
           <Text size="small" className="directing-line">
             ✦ The director is writing your screenplay…
           </Text>
-          <div className="grid">
+          <div className="shot-list">
             {Array.from({ length: shotCount }).map((_, i) => (
               <div
                 key={i}
@@ -393,8 +412,11 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                 <div className="ghost-frame">
                   <span className="spark">✦</span>
                 </div>
-                <div className="ghost-line" style={{ width: "80%" }} />
-                <div className="ghost-line" style={{ width: "55%" }} />
+                <div className="ghost-lines">
+                  <div className="ghost-line" style={{ width: "40%" }} />
+                  <div className="ghost-line" style={{ width: "85%" }} />
+                  <div className="ghost-line" style={{ width: "60%" }} />
+                </div>
               </div>
             ))}
           </div>
@@ -414,7 +436,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
           <Text size="small" color="secondary">
             {`${shots.length} shot${shots.length === 1 ? "" : "s"}`}
           </Text>
-          <div className="grid">
+          <div className="shot-list">
             {shots.map((shot) => (
               <ShotCard
                 key={shot.id}
