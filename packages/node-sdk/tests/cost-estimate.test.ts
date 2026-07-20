@@ -1,10 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   estimateWorkflowCost,
-  withinBudget,
   type NodeMetadataLike
 } from "../src/cost-estimate.js";
-import type { Budget } from "@nodetool-ai/protocol";
 
 const FAL_TYPE = "fal.image.FluxSchnell";
 const KIE_TYPE = "kie.video.Veo";
@@ -102,22 +100,5 @@ describe("estimateWorkflowCost", () => {
     });
     expect(estimate.items[0].quantity).toBe(1);
     expect(estimate.total).toBeCloseTo(0.02, 10);
-  });
-});
-
-describe("withinBudget", () => {
-  const estimate = estimateWorkflowCost({
-    nodes: [{ id: "k1", type: KIE_TYPE }],
-    getMetadata
-  });
-
-  it("is true when estimate + spent stays within the cap", () => {
-    const budget: Budget = { currency: "USD", cap: 10, spent: 5 };
-    expect(withinBudget(estimate, budget)).toBe(true);
-  });
-
-  it("is false when estimate + spent exceeds the cap", () => {
-    const budget: Budget = { currency: "USD", cap: 6, spent: 5 };
-    expect(withinBudget(estimate, budget)).toBe(false);
   });
 });

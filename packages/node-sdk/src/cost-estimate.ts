@@ -14,7 +14,6 @@
 import type {
   NodeCostEstimate,
   WorkflowCostEstimate,
-  Budget,
   CostConfidence
 } from "@nodetool-ai/protocol";
 import type { UnitPricing } from "./pricing-bundle.js";
@@ -144,12 +143,4 @@ export function estimateWorkflowCost(input: CostEstimateInput): WorkflowCostEsti
   }
 
   return { currency, total, items, unknown_count: unknownCount };
-}
-
-/** True when adding this estimate to already-spent budget stays within the cap. */
-export function withinBudget(
-  estimate: WorkflowCostEstimate,
-  budget: Budget
-): boolean {
-  return estimate.total + budget.spent <= budget.cap;
 }

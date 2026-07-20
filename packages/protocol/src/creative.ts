@@ -7,8 +7,8 @@
  *   - Entities ("ingredients"): reusable {@link Entity} objects (character,
  *     location, style, prop) that carry reference images / voice / LoRA and are
  *     injected into generation across shots for consistency.
- *   - Cost governance: {@link WorkflowCostEstimate} and {@link Budget} for
- *     plan-before-spend gating.
+ *   - Cost governance: {@link WorkflowCostEstimate} for the plan-before-spend
+ *     view.
  *
  * These are transport/storage shapes only — no runtime behavior. Nodes emit
  * screenplays and shots as `dict` / `list[dict]` values; the interfaces give
@@ -213,22 +213,3 @@ export interface WorkflowCostEstimate {
   /** Nodes whose price could not be determined (surfaced, never hidden). */
   unknown_count: number;
 }
-
-/** A spend ceiling the agent must respect while planning generation. */
-export interface Budget {
-  currency: string;
-  /** Hard cap; the agent may not plan generation whose estimate exceeds this. */
-  cap: number;
-  /** Running spend this session/production. */
-  spent: number;
-}
-
-export function budgetRemaining(budget: Budget): number {
-  return Math.max(0, budget.cap - budget.spent);
-}
-
-/**
- * Draft mode routes generation to cheap/low-res models first so a plan can be
- * seen before final spend. `off` uses the models as configured.
- */
-export type DraftMode = "off" | "draft" | "final";

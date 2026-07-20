@@ -68,13 +68,10 @@ jest.mock("../../stores/MetadataStore", () => ({
 }));
 
 import { useWorkflowCostEstimate } from "../useWorkflowCostEstimate";
-import { useBudgetStore } from "../../stores/BudgetStore";
 
 describe("useWorkflowCostEstimate", () => {
   beforeEach(() => {
     mockNodes = baseNodes;
-    // "off" so derived fan-out quantities are applied (the default is "draft").
-    useBudgetStore.setState({ draftMode: "off" });
   });
 
   it("estimates cost from AI-model nodes + metadata", () => {
@@ -108,17 +105,5 @@ describe("useWorkflowCostEstimate", () => {
     expect(item?.quantity).toBe(3);
     expect(item?.estimated_cost).toBeCloseTo(0.15, 5);
     expect(result.current!.total).toBeCloseTo(0.15, 5);
-  });
-
-  it("draft mode forces every quantity to 1, ignoring fan-out", () => {
-    mockNodes = [{ id: "n1", type: "fal.Image", data: { num_images: 3 } }];
-    useBudgetStore.setState({ draftMode: "draft" });
-
-    const { result } = renderHook(() => useWorkflowCostEstimate("wf1"));
-
-    const item = result.current!.items.find((i) => i.node_id === "n1");
-    expect(item?.quantity).toBe(1);
-    expect(item?.estimated_cost).toBeCloseTo(0.05, 5);
-    expect(result.current!.total).toBeCloseTo(0.05, 5);
   });
 });

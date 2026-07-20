@@ -11,7 +11,6 @@ import useResultsStore from "../ResultsStore";
 import useStatusStore from "../StatusStore";
 import useLogsStore from "../LogStore";
 import useErrorStore from "../ErrorStore";
-import useBudgetStore from "../BudgetStore";
 import { handleUpdate } from "../workflowUpdates";
 
 const mockAddNotification = jest.fn();
@@ -48,7 +47,6 @@ beforeEach(() => {
   useStatusStore.setState({ statuses: {} });
   useLogsStore.setState({ logs: [], logsByNode: {} });
   useErrorStore.setState({ errors: {} });
-  useBudgetStore.setState({ spent: 0, cap: 5, currency: "USD" });
   mockRunnerStore.setState.mockClear();
   mockAddNotification.mockClear();
   mockDequeueNextPendingRun.mockClear();
@@ -151,32 +149,6 @@ describe("handleUpdate", () => {
       amount: 12,
       unit: "credits"
     });
-  });
-
-  const usdCost = (nodeId: string, amount: number) =>
-    ({
-      type: "node_update",
-      node_id: nodeId,
-      node_name: nodeId,
-      node_type: "test.Node",
-      status: "completed",
-      provider_cost: { provider: "openai", amount, unit: "usd", currency: "USD" },
-      job_id: "job-1"
-    }) as unknown as NodeUpdate;
-
-  it("drives budget.spent from recorded provider costs", () => {
-    handleUpdate(mockWorkflow, usdCost("n1", 0.5), mockRunnerStore as never, () => undefined);
-    expect(useBudgetStore.getState().spent).toBeCloseTo(0.5);
-
-    handleUpdate(mockWorkflow, usdCost("n2", 0.25), mockRunnerStore as never, () => undefined);
-    expect(useBudgetStore.getState().spent).toBeCloseTo(0.75);
-  });
-
-  it("recomputes spent from source, so a re-emitted cost is not double counted", () => {
-    handleUpdate(mockWorkflow, usdCost("n1", 0.5), mockRunnerStore as never, () => undefined);
-    // Same node emits its provider_cost again (e.g. a reconciled charge).
-    handleUpdate(mockWorkflow, usdCost("n1", 0.5), mockRunnerStore as never, () => undefined);
-    expect(useBudgetStore.getState().spent).toBeCloseTo(0.5);
   });
 
   it("stores output result on output_update", () => {
