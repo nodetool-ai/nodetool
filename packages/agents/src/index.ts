@@ -356,6 +356,22 @@ export {
 } from "./script-runner.js";
 export type { ScriptRunnerOptions } from "./script-runner.js";
 
+// GraphPlanner evaluation harness
+export {
+  runGraphPlannerEval,
+  formatEvalReport,
+  checkExpectations
+} from "./evals/graph-planner-eval.js";
+export type {
+  GraphPlannerEvalCase,
+  GraphPlannerEvalExpectations,
+  GraphPlannerCaseResult,
+  GraphPlannerEvalReport,
+  RunGraphPlannerEvalOptions,
+  EvalCheck
+} from "./evals/graph-planner-eval.js";
+export { GRAPH_PLANNER_EVAL_CASES } from "./evals/graph-planner-cases.js";
+
 // Graph-native planning & execution
 export { evaluateGraphDsl } from "./graph-dsl.js";
 export type { GraphDslResult, EvaluateGraphDslOptions } from "./graph-dsl.js";

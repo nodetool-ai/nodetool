@@ -338,6 +338,25 @@ into a fresh attempt when the model stops without an accepted graph.
 Tests: `tests/graph-dsl.test.ts`, `tests/graph-planner-coverage.test.ts`,
 `tests/graph-planner-loop.test.ts`.
 
+### Eval suite
+
+`src/evals/` carries a provider-agnostic evaluation harness for the planner:
+`GRAPH_PLANNER_EVAL_CASES` (objectives + structural expectations — input
+wiring, node-family patterns, branch handles, no provider-locked nodes) and
+`runGraphPlannerEval` (metrics per case: accepted, score, submit rounds,
+tool calls, attempts, duration, cost; aggregate: success rate, one-shot rate,
+averages). Run it against any registered provider:
+
+```bash
+npm run dev:nodetool -- eval graph-planner --list
+npm run dev:nodetool -- eval graph-planner -p anthropic -m claude-sonnet-4-6
+npm run dev:nodetool -- eval graph-planner -p ollama -m qwen-3.5:4b --cases summarize
+npm run dev:nodetool -- eval graph-planner -p openai -m gpt-5.4-mini --json --out report.json
+npm run dev:nodetool -- eval graph-planner -p anthropic -m ... --min-success 0.8  # CI gate
+```
+
+Harness tests (scripted provider, no network): `tests/graph-planner-eval.test.ts`.
+
 ## Observing LLM Steps and Planning
 
 ### Execution Tree (CLI)

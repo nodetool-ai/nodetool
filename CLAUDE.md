@@ -381,6 +381,22 @@ npm run dev:nodetool -- generate fal-ai --list-models              # discover mo
 npm run dev:nodetool -- generate fal-ai flux-schnell "..." --json  # machine-readable
 ```
 
+### nodetool eval (Agent Evaluation Suites)
+
+Runs the GraphPlanner evaluation suite against any registered provider and
+reports metrics: success rate, expectation score, one-shot rate (graphs
+accepted on the first `submit_graph`), submit rounds, tool calls, duration,
+and cost. Cases and expectations live in
+`packages/agents/src/evals/`.
+
+```bash
+npm run dev:nodetool -- eval graph-planner --list                     # show cases
+npm run dev:nodetool -- eval graph-planner -p anthropic -m claude-sonnet-4-6
+npm run dev:nodetool -- eval graph-planner -p ollama -m qwen-3.5:4b --cases summarize,branch-both-paths
+npm run dev:nodetool -- eval graph-planner -p openai -m gpt-5.4-mini --json --out report.json
+npm run dev:nodetool -- eval graph-planner -p anthropic -m ... --min-success 0.8   # non-zero exit below threshold
+```
+
 ### nodetool affected (Changed-File → Workspace Mapping)
 
 Maps changed files (or the git working tree) to the minimal set of workspaces to
