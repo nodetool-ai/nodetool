@@ -4,9 +4,9 @@
  * Bridge between the agent tooling layer (the `ui_script_*` frontend tools) and
  * the live Script surface, mirroring {@link storyboardAgentBridge}.
  *
- * The open ScriptSurface registers a {@link ScriptAgentHandler} while it is the
- * active surface and clears it on unmount, so the tools always operate on the
- * focused script — or fail cleanly when no script is open.
+ * Every open ScriptSurface registers a {@link ScriptAgentHandler} under its
+ * script id and clears it on unmount, so the tools address a script explicitly
+ * by id — an open script stays addressable whether or not it has focus.
  *
  * Everything crossing the bridge is a plain serializable value: the agent reads
  * {@link ScriptSnapshot} / {@link ScriptLineNode} objects and never touches
@@ -84,10 +84,7 @@ export interface ScriptAgentHandler {
   ) => ScriptSpeakerNode;
   addLine: (input: ScriptAddLineInput) => ScriptLineNode;
   setLineText: (target: string, text: string) => ScriptLineNode;
-  setLineSpeaker: (
-    target: string,
-    speakerId: string | null
-  ) => ScriptLineNode;
+  setLineSpeaker: (target: string, speakerId: string | null) => ScriptLineNode;
   voiceLine: (target: string) => Promise<ScriptLineNode>;
   voiceAll: () => Promise<{ voiced: number }>;
   /**
@@ -111,24 +108,43 @@ export interface ScriptAgentHandler {
   }) => { text: string; format: SubtitleFormat; cueCount: number };
 }
 
-let handler: ScriptAgentHandler | null = null;
+const handlers = new Map<string, ScriptAgentHandler>();
 
 /**
- * Register (or clear, with null) the handler for the currently-focused script.
- * The surface calls this when it becomes active and clears it on unmount so the
- * ui_script_* tools always operate on the live script — or fail cleanly.
+ * Register (or clear, with null) the handler for one script id. Each open
+ * ScriptSurface calls this on mount and clears it on unmount, so the
+ * ui_script_* tools can address any open script by id.
  */
-export function setScriptAgentHandler(next: ScriptAgentHandler | null): void {
-  handler = next;
+export function setScriptAgentHandler(
+  scriptId: string,
+  next: ScriptAgentHandler | null
+): void {
+  if (next) {
+    handlers.set(scriptId, next);
+  } else {
+    handlers.delete(scriptId);
+  }
 }
 
-export function hasScriptAgentHandler(): boolean {
-  return handler !== null;
+export function hasScriptAgentHandler(scriptId: string): boolean {
+  return handlers.has(scriptId);
 }
 
-export function getScriptAgentHandler(): ScriptAgentHandler {
+/** Ids of every script currently open, in registration order. */
+export function listOpenScriptIds(): string[] {
+  return [...handlers.keys()];
+}
+
+export function getScriptAgentHandler(scriptId: string): ScriptAgentHandler {
+  const handler = handlers.get(scriptId);
   if (!handler) {
-    throw new Error("No script is open.");
+    const open = listOpenScriptIds();
+    throw new Error(
+      `No script "${scriptId}" is open. ` +
+        (open.length > 0
+          ? `Open scripts: ${open.join(", ")}.`
+          : "No scripts are currently open.")
+    );
   }
   return handler;
 }

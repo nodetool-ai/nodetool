@@ -1,10 +1,11 @@
 /**
  * useScriptAgentBridge
  *
- * Registers a {@link ScriptAgentHandler} for the surrounding Script surface
- * while it is active, so the `ui_script_*` agent tools operate on this script.
- * Mirrors {@link useStoryboardAgentBridge}: only the active surface registers,
- * and the handler is cleared on unmount unless already replaced.
+ * Registers a {@link ScriptAgentHandler} under the surrounding Script surface's
+ * script id, so the `ui_script_*` agent tools can address this script by id
+ * whether or not it is the focused surface. Mirrors
+ * {@link useStoryboardAgentBridge}; the handler is cleared on unmount unless it
+ * has already been replaced.
  */
 
 import { useEffect, useMemo } from "react";
@@ -53,10 +54,7 @@ const toSpeakerNode = (speaker: ScriptSpeaker): ScriptSpeakerNode => ({
   voice: speaker.voice ?? null
 });
 
-export const useScriptAgentBridge = (
-  scriptId: string,
-  active: boolean
-): void => {
+export const useScriptAgentBridge = (scriptId: string): void => {
   const { assemble } = useAssembleScriptTimeline();
 
   const handler = useMemo<ScriptAgentHandler>(() => {
@@ -65,7 +63,7 @@ export const useScriptAgentBridge = (
     const requireScript = (): ScriptDraft => {
       const script = store().getScript(scriptId);
       if (!script) {
-        throw new Error("No script is open.");
+        throw new Error(`No script "${scriptId}" is open.`);
       }
       return script;
     };
@@ -243,14 +241,17 @@ export const useScriptAgentBridge = (
   }, [scriptId, assemble]);
 
   useEffect(() => {
-    if (!active) return;
-    setScriptAgentHandler(handler);
+    if (!scriptId) return;
+    setScriptAgentHandler(scriptId, handler);
     return () => {
-      if (hasScriptAgentHandler() && getScriptAgentHandler() === handler) {
-        setScriptAgentHandler(null);
+      if (
+        hasScriptAgentHandler(scriptId) &&
+        getScriptAgentHandler(scriptId) === handler
+      ) {
+        setScriptAgentHandler(scriptId, null);
       }
     };
-  }, [active, handler]);
+  }, [scriptId, handler]);
 };
 
 export default useScriptAgentBridge;

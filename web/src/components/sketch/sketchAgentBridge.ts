@@ -5,11 +5,11 @@
  * the live image / sketch editor, mirroring `timelineAgentBridge` for the video
  * editor.
  *
- * The open {@link SketchEditor} registers a {@link SketchAgentHandler} while it
- * is the active surface (and clears it on blur / unmount). The handler closes
- * over the editor's per-instance stores (document, session bindings, canvas
- * refs) plus the direct-generation job runner, so the tools always operate on
- * the focused document — or fail cleanly when no editor is open.
+ * Every open {@link SketchEditor} registers a {@link SketchAgentHandler} under
+ * its document id (and clears it on unmount). The handler closes over that
+ * editor's per-instance stores (document, session bindings, canvas refs) plus
+ * the direct-generation job runner, so a tool call addresses one document
+ * explicitly — or fails cleanly, naming the ids that are open.
  *
  * Everything crossing the bridge is a plain serializable value: the agent reads
  * {@link SketchSnapshot} / {@link SketchLayerNode} objects and never touches
@@ -197,27 +197,40 @@ export interface SketchAgentHandler {
   ) => Promise<SketchRenderedAssetResult[]>;
 }
 
-let handler: SketchAgentHandler | null = null;
+const handlers = new Map<string, SketchAgentHandler>();
 
 /**
- * Register (or clear, with null) the handler for the currently-focused editor.
- * The editor calls this when it becomes active and clears it on unmount / blur
- * so the ui_sketch_* tools always operate on the live document — or fail
- * cleanly when no editor is open.
+ * Register (or clear, with null) the handler for one image document. Every open
+ * editor registers under its own document id, so the ui_sketch_* tools address
+ * any open document explicitly instead of guessing at a focused one.
  */
-export function setSketchAgentHandler(next: SketchAgentHandler | null): void {
-  handler = next;
+export function setSketchAgentHandler(
+  documentId: string,
+  next: SketchAgentHandler | null
+): void {
+  if (next) handlers.set(documentId, next);
+  else handlers.delete(documentId);
 }
 
-export function hasSketchAgentHandler(): boolean {
-  return handler !== null;
+export function hasSketchAgentHandler(documentId: string): boolean {
+  return handlers.has(documentId);
 }
 
-export function getSketchAgentHandler(): SketchAgentHandler {
+export function getSketchAgentHandler(documentId: string): SketchAgentHandler {
+  const handler = handlers.get(documentId);
   if (!handler) {
+    const open = listOpenSketchDocumentIds();
     throw new Error(
-      "No image editor is open. Open an image document in the editor to use image-editor tools."
+      `No image document "${documentId}" is open. ` +
+        (open.length > 0
+          ? `Open documents: ${open.join(", ")}.`
+          : "No image documents are currently open.")
     );
   }
   return handler;
+}
+
+/** Ids of every image document currently open in an editor. */
+export function listOpenSketchDocumentIds(): string[] {
+  return [...handlers.keys()];
 }

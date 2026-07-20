@@ -1,7 +1,8 @@
 import {
   setScriptAgentHandler,
   hasScriptAgentHandler,
-  getScriptAgentHandler
+  getScriptAgentHandler,
+  listOpenScriptIds
 } from "../scriptAgentBridge";
 import type { ScriptAgentHandler } from "../scriptAgentBridge";
 
@@ -20,43 +21,70 @@ const makeMockHandler = (): ScriptAgentHandler => ({
 
 describe("scriptAgentBridge", () => {
   afterEach(() => {
-    setScriptAgentHandler(null);
+    for (const id of listOpenScriptIds()) {
+      setScriptAgentHandler(id, null);
+    }
   });
 
   describe("hasScriptAgentHandler", () => {
-    it("returns false when no handler is registered", () => {
-      expect(hasScriptAgentHandler()).toBe(false);
+    it("returns false when no handler is registered for the id", () => {
+      expect(hasScriptAgentHandler("script-1")).toBe(false);
     });
 
     it("returns true after a handler is registered", () => {
-      setScriptAgentHandler(makeMockHandler());
-      expect(hasScriptAgentHandler()).toBe(true);
+      setScriptAgentHandler("script-1", makeMockHandler());
+      expect(hasScriptAgentHandler("script-1")).toBe(true);
     });
 
-    it("returns false after handler is cleared", () => {
-      setScriptAgentHandler(makeMockHandler());
-      setScriptAgentHandler(null);
-      expect(hasScriptAgentHandler()).toBe(false);
+    it("returns false for a different id", () => {
+      setScriptAgentHandler("script-1", makeMockHandler());
+      expect(hasScriptAgentHandler("script-2")).toBe(false);
+    });
+
+    it("returns false after the handler is cleared", () => {
+      setScriptAgentHandler("script-1", makeMockHandler());
+      setScriptAgentHandler("script-1", null);
+      expect(hasScriptAgentHandler("script-1")).toBe(false);
     });
   });
 
   describe("getScriptAgentHandler", () => {
-    it("throws when no handler is registered", () => {
-      expect(() => getScriptAgentHandler()).toThrow("No script is open.");
+    it("throws and says nothing is open when the registry is empty", () => {
+      expect(() => getScriptAgentHandler("abc")).toThrow(
+        'No script "abc" is open. No scripts are currently open.'
+      );
     });
 
-    it("returns the registered handler", () => {
+    it("throws and lists the open ids when the id is unknown", () => {
+      setScriptAgentHandler("def", makeMockHandler());
+      setScriptAgentHandler("ghi", makeMockHandler());
+      expect(() => getScriptAgentHandler("abc")).toThrow(
+        'No script "abc" is open. Open scripts: def, ghi.'
+      );
+    });
+
+    it("returns the handler registered under the id", () => {
       const handler = makeMockHandler();
-      setScriptAgentHandler(handler);
-      expect(getScriptAgentHandler()).toBe(handler);
+      setScriptAgentHandler("script-1", handler);
+      expect(getScriptAgentHandler("script-1")).toBe(handler);
     });
 
-    it("returns the most recently registered handler", () => {
+    it("keeps unfocused scripts addressable alongside each other", () => {
       const first = makeMockHandler();
       const second = makeMockHandler();
-      setScriptAgentHandler(first);
-      setScriptAgentHandler(second);
-      expect(getScriptAgentHandler()).toBe(second);
+      setScriptAgentHandler("script-1", first);
+      setScriptAgentHandler("script-2", second);
+      expect(getScriptAgentHandler("script-1")).toBe(first);
+      expect(getScriptAgentHandler("script-2")).toBe(second);
+      expect(listOpenScriptIds()).toEqual(["script-1", "script-2"]);
+    });
+
+    it("replaces the handler when the same id re-registers", () => {
+      const first = makeMockHandler();
+      const second = makeMockHandler();
+      setScriptAgentHandler("script-1", first);
+      setScriptAgentHandler("script-1", second);
+      expect(getScriptAgentHandler("script-1")).toBe(second);
     });
   });
 });

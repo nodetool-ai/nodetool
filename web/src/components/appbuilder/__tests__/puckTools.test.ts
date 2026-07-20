@@ -3,11 +3,15 @@ import { FrontendToolRegistry } from "../../../lib/tools/frontendTools";
 import "../../../lib/tools/builtin/puck";
 import {
   setPuckAgentHandler,
+  listOpenPuckWorkflowIds,
   PuckAgentHandler
 } from "../puck/puckAgentBridge";
 
+const WORKFLOW_ID = "wf-1";
+
 const stubHandler = (over: Partial<PuckAgentHandler>): PuckAgentHandler => ({
   getSnapshot: () => ({
+    workflowId: WORKFLOW_ID,
     rootProps: {},
     selectedId: null,
     componentTypes: [],
@@ -30,7 +34,9 @@ const stubHandler = (over: Partial<PuckAgentHandler>): PuckAgentHandler => ({
 
 const ctx = { getState: () => ({}) as unknown as FrontendToolState };
 
-afterEach(() => setPuckAgentHandler(null));
+afterEach(() => {
+  for (const id of listOpenPuckWorkflowIds()) setPuckAgentHandler(id, null);
+});
 
 describe("ui_app_* tools", () => {
   it("registers the app tools globally", () => {
@@ -56,11 +62,11 @@ describe("ui_app_* tools", () => {
       parentId: null,
       slot: null
     }));
-    setPuckAgentHandler(stubHandler({ addComponent }));
+    setPuckAgentHandler(WORKFLOW_ID, stubHandler({ addComponent }));
 
     const result = (await FrontendToolRegistry.call(
       "ui_app_add_component",
-      { type: "Button", props: { label: "Go" } },
+      { workflow_id: WORKFLOW_ID, type: "Button", props: { label: "Go" } },
       "call-1",
       ctx
     )) as { ok: boolean };
@@ -71,10 +77,31 @@ describe("ui_app_* tools", () => {
     expect(result.ok).toBe(true);
   });
 
-  it("throws a helpful error when no app builder is open", async () => {
-    setPuckAgentHandler(null);
+  it("throws a helpful error when no app builder is open for the workflow", async () => {
     await expect(
-      FrontendToolRegistry.call("ui_app_get_snapshot", {}, "call-2", ctx)
-    ).rejects.toThrow(/No app builder is open/);
+      FrontendToolRegistry.call(
+        "ui_app_get_snapshot",
+        { workflow_id: WORKFLOW_ID },
+        "call-2",
+        ctx
+      )
+    ).rejects.toThrow(/No app builder is open for workflow "wf-1"/);
+  });
+
+  it("routes each tool to the handler for the requested workflow", async () => {
+    const removeA = jest.fn(() => true);
+    const removeB = jest.fn(() => true);
+    setPuckAgentHandler("wf-a", stubHandler({ removeComponent: removeA }));
+    setPuckAgentHandler("wf-b", stubHandler({ removeComponent: removeB }));
+
+    await FrontendToolRegistry.call(
+      "ui_app_remove_component",
+      { workflow_id: "wf-b", id: "widget-1" },
+      "call-3",
+      ctx
+    );
+
+    expect(removeB).toHaveBeenCalledWith("widget-1");
+    expect(removeA).not.toHaveBeenCalled();
   });
 });

@@ -2,13 +2,13 @@
  * useTimelineAgentBridge
  *
  * Registers a {@link TimelineAgentHandler} for the surrounding timeline editor
- * instance while it is the active surface, so the `ui_timeline_*` agent tools
- * operate on this sequence. Mirrors the handler the 3D editor registers on the
+ * instance under its sequence id, so the `ui_timeline_*` agent tools can target
+ * this sequence by name. Mirrors the handler the 3D editor registers on the
  * `model3DToolBridge`, but built against the timeline's per-instance stores
  * (document, UI, playback) plus the direct-generation job runner.
  *
- * Only the active editor registers, so with several timeline tabs open the
- * tools always target the focused one. The handler is cleared on blur/unmount.
+ * Registration is not focus-gated: with several timeline tabs open, every one
+ * stays addressable by id. The handler is cleared on unmount.
  */
 
 import { useEffect, useMemo } from "react";
@@ -174,7 +174,7 @@ function toTrackNode(
   };
 }
 
-export const useTimelineAgentBridge = (active: boolean): void => {
+export const useTimelineAgentBridge = (sequenceId: string | null): void => {
   const doc = useTimelineStoreApi();
   const ui = useTimelineUIStoreApi();
   const playback = useTimelinePlaybackStoreApi();
@@ -681,14 +681,17 @@ export const useTimelineAgentBridge = (active: boolean): void => {
   }, [doc, ui, playback, startDirectGen]);
 
   useEffect(() => {
-    if (!active) return;
-    setTimelineAgentHandler(handler);
+    if (!sequenceId) return;
+    setTimelineAgentHandler(sequenceId, handler);
     return () => {
-      // Only clear if we're still the registered handler — a newly-focused
-      // editor may have already replaced us.
-      if (hasTimelineAgentHandler() && getTimelineAgentHandler() === handler) {
-        setTimelineAgentHandler(null);
+      // Only clear if we're still the handler registered for this id — a
+      // remount may have already replaced us.
+      if (
+        hasTimelineAgentHandler(sequenceId) &&
+        getTimelineAgentHandler(sequenceId) === handler
+      ) {
+        setTimelineAgentHandler(sequenceId, null);
       }
     };
-  }, [active, handler]);
+  }, [sequenceId, handler]);
 };

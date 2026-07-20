@@ -166,7 +166,7 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
       headerActions: () => (
         <>
           {/* Lets the agent's ui_app_* tools drive this editor. Renders nothing. */}
-          <PuckAgentBinder config={appConfig} />
+          <PuckAgentBinder config={appConfig} workflowId={workflow.id} />
           <PreviewWidthToggle value={previewWidth} onChange={setPreviewWidth} />
           <GenerateFromWorkflowButton workflow={workflow} />
           {onToggleAgent && (

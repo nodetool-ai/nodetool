@@ -184,12 +184,6 @@ export interface SketchEditorProps {
   /** Document-level actions rendered at the trailing edge of the top mode bar
    * (e.g. Save/Done when embedded in an asset tab). */
   headerActions?: React.ReactNode;
-  /**
-   * Whether this editor is the focused/visible surface. Drives whether this
-   * instance registers the agent bridge so the `ui_sketch_*` tools target the
-   * focused document. Defaults to `true`.
-   */
-  active?: boolean;
 }
 
 const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
@@ -202,8 +196,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
       onExportImage,
       onExportMask,
       suspendKeyboardShortcuts,
-      headerActions,
-      active = true
+      headerActions
     },
     ref
   ) {
@@ -216,9 +209,12 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
     const panelsHidden = useSketchStore((s) => s.panelsHidden);
     const assistantPanelOpen = useSketchStore((s) => s.assistantPanelOpen);
 
-    // Register the agent bridge for this instance while it is the focused
-    // surface so the `ui_sketch_*` tools drive this document.
-    useSketchAgentBridge(active);
+    // Register the agent bridge under this document's id so the `ui_sketch_*`
+    // tools can address it whether or not this surface is focused. The session
+    // store is the authority: a never-saved document has no id yet, and gains
+    // one the moment it is persisted.
+    const sessionDocumentId = useSketchSessionStore((s) => s.documentId);
+    useSketchAgentBridge(sessionDocumentId);
 
     // ─── Session layer (all transient editor-session state) ─────────────
     const session = useEditorSession({
@@ -279,7 +275,6 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
     // Reconcile bindings on document load: stale-mark layers whose source
     // workflow changed, merge paramOverrides against current Input* nodes,
     // and auto-resolve a missing selectedOutputNodeId.
-    const sessionDocumentId = useSketchSessionStore((s) => s.documentId);
     useSketchWorkflowFreshnessCheck(sessionDocumentId);
 
     return (

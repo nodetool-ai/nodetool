@@ -5,6 +5,7 @@ import { FrontendToolRegistry } from "../frontendTools";
 import type { FrontendToolState } from "../frontendTools";
 import {
   setTimelineAgentHandler,
+  listOpenTimelineSequenceIds,
   type TimelineAgentHandler,
   type TimelineClipFrameNode,
   type TimelineClipNode,
@@ -84,8 +85,13 @@ const createMockHandler = (): jest.Mocked<TimelineAgentHandler> => ({
 // The timeline tools never touch the workflow state, so a bare stub satisfies ctx.
 const ctx = { getState: () => ({}) as FrontendToolState };
 
+/** Sequence id every test registers its handler under. */
+const SEQ_ID = "seq-1";
+
 afterEach(() => {
-  setTimelineAgentHandler(null);
+  for (const id of listOpenTimelineSequenceIds()) {
+    setTimelineAgentHandler(id, null);
+  }
 });
 
 describe("ui_timeline_* tools", () => {
@@ -131,22 +137,29 @@ describe("ui_timeline_* tools", () => {
     expect(schema.type).toBe("object");
     expect(schema.properties).toHaveProperty("target");
     expect(schema.required).toContain("target");
+    expect(schema.properties).toHaveProperty("timeline_id");
+    expect(schema.required).toContain("timeline_id");
   });
 
-  it("rejects with a descriptive error when no editor is open", async () => {
+  it("rejects with a descriptive error when the sequence is not open", async () => {
     await expect(
-      FrontendToolRegistry.call("ui_timeline_get_state", {}, "tc-1", ctx)
-    ).rejects.toThrow("No timeline editor is open");
+      FrontendToolRegistry.call(
+        "ui_timeline_get_state",
+        { timeline_id: SEQ_ID },
+        "tc-1",
+        ctx
+      )
+    ).rejects.toThrow('No timeline sequence "seq-1" is open');
   });
 
   it("returns the timeline snapshot through the handler", async () => {
     const handler = createMockHandler();
     handler.getSnapshot.mockReturnValue(snapshot());
-    setTimelineAgentHandler(handler);
+    setTimelineAgentHandler(SEQ_ID, handler);
 
     const result = (await FrontendToolRegistry.call(
       "ui_timeline_get_state",
-      {},
+      { timeline_id: SEQ_ID },
       "tc-2",
       ctx
     )) as { ok: boolean } & TimelineSnapshot;
@@ -163,11 +176,12 @@ describe("ui_timeline_* tools", () => {
       clip: clipNode({ name: "city at night" }),
       generationStarted: true
     });
-    setTimelineAgentHandler(handler);
+    setTimelineAgentHandler(SEQ_ID, handler);
 
     const result = (await FrontendToolRegistry.call(
       "ui_timeline_generate_clip",
       {
+        timeline_id: SEQ_ID,
         kind: "text-to-video",
         prompt: "city at night",
         provider: "fal",
@@ -202,11 +216,15 @@ describe("ui_timeline_* tools", () => {
         }
       })
     );
-    setTimelineAgentHandler(handler);
+    setTimelineAgentHandler(SEQ_ID, handler);
 
     await FrontendToolRegistry.call(
       "ui_timeline_add_text_clip",
-      { text: "Launch", style: { fontSizePx: 72, color: "#fff" } },
+      {
+        timeline_id: SEQ_ID,
+        text: "Launch",
+        style: { fontSizePx: 72, color: "#fff" }
+      },
       "tc-text",
       ctx
     );
@@ -218,12 +236,12 @@ describe("ui_timeline_* tools", () => {
   });
 
   it("rejects blank authored text", async () => {
-    setTimelineAgentHandler(createMockHandler());
+    setTimelineAgentHandler(SEQ_ID, createMockHandler());
 
     await expect(
       FrontendToolRegistry.call(
         "ui_timeline_add_text_clip",
-        { text: "   " },
+        { timeline_id: SEQ_ID, text: "   " },
         "tc-blank-text",
         ctx
       )
@@ -238,11 +256,11 @@ describe("ui_timeline_* tools", () => {
         shapeStyle: { kind: "rect", fill: "#fff" }
       })
     );
-    setTimelineAgentHandler(handler);
+    setTimelineAgentHandler(SEQ_ID, handler);
 
     await FrontendToolRegistry.call(
       "ui_timeline_add_shape_clip",
-      { shape: { kind: "rect" } },
+      { timeline_id: SEQ_ID, shape: { kind: "rect" } },
       "tc-shape",
       ctx
     );
@@ -253,11 +271,11 @@ describe("ui_timeline_* tools", () => {
   });
 
   it("rejects an unknown generation kind during validation", async () => {
-    setTimelineAgentHandler(createMockHandler());
+    setTimelineAgentHandler(SEQ_ID, createMockHandler());
     await expect(
       FrontendToolRegistry.call(
         "ui_timeline_generate_clip",
-        { kind: "text-to-hologram", prompt: "x" },
+        { timeline_id: SEQ_ID, kind: "text-to-hologram", prompt: "x" },
         "tc-4",
         ctx
       )
@@ -270,11 +288,11 @@ describe("ui_timeline_* tools", () => {
       clipNode({ id: "left", durationMs: 1000, endMs: 1000 }),
       clipNode({ id: "right", startMs: 1000, durationMs: 3000, endMs: 4000 })
     ]);
-    setTimelineAgentHandler(handler);
+    setTimelineAgentHandler(SEQ_ID, handler);
 
     const result = (await FrontendToolRegistry.call(
       "ui_timeline_split_clip",
-      { target: "Clip 1", atMs: 1000 },
+      { timeline_id: SEQ_ID, target: "Clip 1", atMs: 1000 },
       "tc-5",
       ctx
     )) as { ok: boolean; clips: TimelineClipNode[] };
@@ -286,11 +304,11 @@ describe("ui_timeline_* tools", () => {
   it("forwards clip param patches to the handler", async () => {
     const handler = createMockHandler();
     handler.setClipParams.mockReturnValue(clipNode({ opacity: 0.5 }));
-    setTimelineAgentHandler(handler);
+    setTimelineAgentHandler(SEQ_ID, handler);
 
     await FrontendToolRegistry.call(
       "ui_timeline_set_clip_params",
-      { target: "selected", opacity: 0.5, fadeOutMs: 500 },
+      { timeline_id: SEQ_ID, target: "selected", opacity: 0.5, fadeOutMs: 500 },
       "tc-6",
       ctx
     );
@@ -306,11 +324,12 @@ describe("ui_timeline_* tools", () => {
     handler.setClipParams.mockReturnValue(
       clipNode({ mediaType: "shape", shapeStyle: { kind: "ellipse" } })
     );
-    setTimelineAgentHandler(handler);
+    setTimelineAgentHandler(SEQ_ID, handler);
 
     await FrontendToolRegistry.call(
       "ui_timeline_set_clip_params",
       {
+        timeline_id: SEQ_ID,
         target: "selected",
         shapeStyle: { kind: "ellipse", fill: "#123456" }
       },
@@ -338,11 +357,11 @@ describe("ui_timeline_* tools", () => {
       clip: clipNode({ hasRender: true }),
       frames: [frame]
     });
-    setTimelineAgentHandler(handler);
+    setTimelineAgentHandler(SEQ_ID, handler);
 
     const result = (await FrontendToolRegistry.call(
       "ui_timeline_get_clip_frames",
-      { target: "Clip 1", timesMs: [1000], width: 512 },
+      { timeline_id: SEQ_ID, target: "Clip 1", timesMs: [1000], width: 512 },
       "tc-frames",
       ctx
     )) as { ok: boolean; frames: TimelineClipFrameNode[] };
@@ -361,11 +380,16 @@ describe("ui_timeline_* tools", () => {
     handler.moveClip.mockReturnValue(
       clipNode({ startMs: 2000, endMs: 6000, trackId: "track-2" })
     );
-    setTimelineAgentHandler(handler);
+    setTimelineAgentHandler(SEQ_ID, handler);
 
     await FrontendToolRegistry.call(
       "ui_timeline_move_clip",
-      { target: "clip-1", startMs: 2000, trackId: "track-2" },
+      {
+        timeline_id: SEQ_ID,
+        target: "clip-1",
+        startMs: 2000,
+        trackId: "track-2"
+      },
       "tc-7",
       ctx
     );
@@ -379,11 +403,11 @@ describe("ui_timeline_* tools", () => {
   it("seeks the playhead through the handler", async () => {
     const handler = createMockHandler();
     handler.seek.mockReturnValue(1500);
-    setTimelineAgentHandler(handler);
+    setTimelineAgentHandler(SEQ_ID, handler);
 
     const result = (await FrontendToolRegistry.call(
       "ui_timeline_seek",
-      { timeMs: 1500 },
+      { timeline_id: SEQ_ID, timeMs: 1500 },
       "tc-8",
       ctx
     )) as { ok: boolean; playheadMs: number };
@@ -395,11 +419,12 @@ describe("ui_timeline_* tools", () => {
   it("animates a clip, defaulting mode to replace", async () => {
     const handler = createMockHandler();
     handler.setClipAnimations.mockReturnValue(clipNode());
-    setTimelineAgentHandler(handler);
+    setTimelineAgentHandler(SEQ_ID, handler);
 
     await FrontendToolRegistry.call(
       "ui_timeline_animate_clip",
       {
+        timeline_id: SEQ_ID,
         target: "selected",
         animations: [{ role: "in", preset: "pop", durationMs: 400 }]
       },
@@ -417,11 +442,12 @@ describe("ui_timeline_* tools", () => {
   it("passes mode add through to the handler", async () => {
     const handler = createMockHandler();
     handler.setClipAnimations.mockReturnValue(clipNode());
-    setTimelineAgentHandler(handler);
+    setTimelineAgentHandler(SEQ_ID, handler);
 
     await FrontendToolRegistry.call(
       "ui_timeline_animate_clip",
       {
+        timeline_id: SEQ_ID,
         target: "clip-1",
         mode: "add",
         animations: [{ role: "loop", preset: "float" }]
@@ -438,11 +464,15 @@ describe("ui_timeline_* tools", () => {
   });
 
   it("rejects an animation with an unknown role during validation", async () => {
-    setTimelineAgentHandler(createMockHandler());
+    setTimelineAgentHandler(SEQ_ID, createMockHandler());
     await expect(
       FrontendToolRegistry.call(
         "ui_timeline_animate_clip",
-        { target: "clip-1", animations: [{ role: "wiggle", preset: "pop" }] },
+        {
+          timeline_id: SEQ_ID,
+          target: "clip-1",
+          animations: [{ role: "wiggle", preset: "pop" }]
+        },
         "tc-anim-bad",
         ctx
       )
@@ -452,11 +482,11 @@ describe("ui_timeline_* tools", () => {
   it("clears animations, forwarding an optional role filter", async () => {
     const handler = createMockHandler();
     handler.clearClipAnimations.mockReturnValue(clipNode());
-    setTimelineAgentHandler(handler);
+    setTimelineAgentHandler(SEQ_ID, handler);
 
     await FrontendToolRegistry.call(
       "ui_timeline_clear_animations",
-      { target: "clip-1", role: "out" },
+      { timeline_id: SEQ_ID, target: "clip-1", role: "out" },
       "tc-clear",
       ctx
     );

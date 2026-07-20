@@ -21,6 +21,10 @@ import ChatInputSection, { type ChatComposerVariant } from "./ChatInputSection";
 import ComposerSlot from "../composer/ComposerSlot";
 import { TodoSidebar } from "../sidebar/TodoSidebar";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
+import {
+  buildUiContext,
+  type BuildUiContextOptions
+} from "../../../lib/chat/uiContext";
 import type {
   ChatOutgoingMessage,
   MediaGenerationRequest
@@ -111,6 +115,13 @@ type ChatViewProps = {
   workflowAssistant?: boolean;
   /** Context-specific system-prompt addendum appended to the base chat prompt. */
   systemPrompt?: string;
+  /**
+   * Overrides for the `ui_context` sent with each message. Surfaces that aren't
+   * workspace tabs (the App Builder) name their focused document here; surfaces
+   * with a selection worth telling the agent about pass it too. When omitted the
+   * context is derived from the open workspace tabs.
+   */
+  uiContext?: BuildUiContextOptions;
   currentPlanningUpdate?: PlanningUpdate | null;
   currentTaskUpdate?: TaskUpdate | null;
   currentLogUpdate?: LogUpdate | null;
@@ -186,6 +197,7 @@ const ChatView = ({
   memoryEnabled,
   onMemoryToggle,
   systemPrompt,
+  uiContext,
   currentPlanningUpdate,
   currentTaskUpdate,
   currentLogUpdate,
@@ -229,6 +241,7 @@ const ChatView = ({
               : model?.id,
           content: content,
           system_prompt: systemPrompt,
+          ui_context: buildUiContext(uiContext),
           graph: graph,
           workflow_id: workflowId ?? undefined,
           workflow_target: graph ? "workflow" : undefined,
@@ -242,7 +255,7 @@ const ChatView = ({
         console.error("Error sending message:", error);
       }
     },
-    [sendMessage, model, systemPrompt, graph, workflowId]
+    [sendMessage, model, systemPrompt, uiContext, graph, workflowId]
   );
 
   const todos = useGlobalChatStore((state) => {

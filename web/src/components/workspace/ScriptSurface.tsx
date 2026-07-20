@@ -18,6 +18,8 @@ import ScriptAgentPanel from "../script/ScriptAgentPanel";
 interface ScriptSurfaceProps {
   refId: string;
   mode: WorkspaceTabMode;
+  /** Whether this tab is the focused one. Not used by the agent bridge, which
+   * registers every open script by id. */
   active: boolean;
 }
 
@@ -26,12 +28,12 @@ type DockTab = "cast" | "assistant";
 /**
  * Workspace surface for a script tab. `refId` is the script id. Ensures the
  * script exists in the singleton store, mounts the server-sync/autosave hook,
- * registers the agent bridge (so the active script drives the ui_script_*
- * tools), keeps the tab label in sync with the title, and lays out the document
+ * registers the agent bridge (registering this script under its id for the
+ * ui_script_* tools), keeps the tab label in sync with the title, and lays out the document
  * pane beside a right dock that toggles between the cast panel and the
  * assistant (ElevenLabs-Studio style).
  */
-const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
+const ScriptSurface = ({ refId, mode }: ScriptSurfaceProps) => {
   const theme = useTheme();
   const ensureScript = useScriptStore((state) => state.ensureScript);
   const setTabTitle = useWorkspaceTabsStore((state) => state.setTitle);
@@ -44,7 +46,7 @@ const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
   }, [ensureScript, refId]);
 
   useScriptServerSync(refId);
-  useScriptAgentBridge(refId, active);
+  useScriptAgentBridge(refId);
 
   useEffect(() => {
     setTabTitle(refId, "script", title || "Untitled script");
@@ -82,7 +84,10 @@ const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
               borderBottom: `1px solid ${theme.vars.palette.divider}`
             }}
           />
-          <FlexColumn fullWidth sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+          <FlexColumn
+            fullWidth
+            sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}
+          >
             {dockTab === "cast" ? (
               <ScriptCastPanel
                 scriptId={refId}

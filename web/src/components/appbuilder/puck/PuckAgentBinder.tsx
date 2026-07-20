@@ -7,6 +7,8 @@ import { useEffect, useMemo, useRef } from "react";
 import { usePuck, type Config, type Data } from "@puckeditor/core";
 
 import {
+  getPuckAgentHandler,
+  hasPuckAgentHandler,
   setPuckAgentHandler,
   PuckAgentHandler
 } from "./puckAgentBridge";
@@ -22,9 +24,14 @@ import {
 
 interface PuckAgentBinderProps {
   config: Config;
+  /** Workflow whose `app_doc` this editor is editing — the app's identity. */
+  workflowId: string;
 }
 
-const PuckAgentBinder: React.FC<PuckAgentBinderProps> = ({ config }) => {
+const PuckAgentBinder: React.FC<PuckAgentBinderProps> = ({
+  config,
+  workflowId
+}) => {
   const puck = usePuck();
   const slotFields = useMemo(() => getSlotFields(config), [config]);
 
@@ -45,6 +52,7 @@ const PuckAgentBinder: React.FC<PuckAgentBinderProps> = ({ config }) => {
 
     const handler: PuckAgentHandler = {
       getSnapshot: () => ({
+        workflowId,
         rootProps: (working.current.root.props ?? {}) as Record<string, unknown>,
         selectedId:
           (puckRef.current.selectedItem?.props.id as string | undefined) ?? null,
@@ -116,9 +124,18 @@ const PuckAgentBinder: React.FC<PuckAgentBinderProps> = ({ config }) => {
       }
     };
 
-    setPuckAgentHandler(handler);
-    return () => setPuckAgentHandler(null);
-  }, [config, slotFields]);
+    setPuckAgentHandler(workflowId, handler);
+    return () => {
+      // Only clear our own registration — a second editor for the same workflow
+      // may have taken the slot over in the meantime.
+      if (
+        hasPuckAgentHandler(workflowId) &&
+        getPuckAgentHandler(workflowId) === handler
+      ) {
+        setPuckAgentHandler(workflowId, null);
+      }
+    };
+  }, [config, slotFields, workflowId]);
 
   return null;
 };

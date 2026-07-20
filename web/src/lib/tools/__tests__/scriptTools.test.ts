@@ -4,6 +4,7 @@
 import { FrontendToolRegistry } from "../frontendTools";
 import type { FrontendToolState } from "../frontendTools";
 import {
+  listOpenScriptIds,
   setScriptAgentHandler,
   type ScriptAgentHandler,
   type ScriptLineNode,
@@ -59,8 +60,12 @@ const createMockHandler = (): jest.Mocked<ScriptAgentHandler> => ({
 // The script tools never touch the workflow state, so a bare stub satisfies ctx.
 const ctx = { getState: () => ({}) as FrontendToolState };
 
+const SCRIPT_ID = "script-1";
+
 afterEach(() => {
-  setScriptAgentHandler(null);
+  for (const id of listOpenScriptIds()) {
+    setScriptAgentHandler(id, null);
+  }
 });
 
 describe("ui_script_* tools", () => {
@@ -94,23 +99,32 @@ describe("ui_script_* tools", () => {
     };
     expect(schema.type).toBe("object");
     expect(schema.properties).toHaveProperty("text");
+    expect(schema.properties).toHaveProperty("script_id");
     expect(schema.required).toContain("text");
+    expect(schema.required).toContain("script_id");
   });
 
-  it("rejects with a descriptive error when no script is open", async () => {
+  it("rejects with a descriptive error when the script is not open", async () => {
     await expect(
-      FrontendToolRegistry.call("ui_script_get_state", {}, "tc-1", ctx)
-    ).rejects.toThrow("No script is open.");
+      FrontendToolRegistry.call(
+        "ui_script_get_state",
+        { script_id: "missing" },
+        "tc-1",
+        ctx
+      )
+    ).rejects.toThrow(
+      'No script "missing" is open. No scripts are currently open.'
+    );
   });
 
   it("returns the script snapshot through the handler", async () => {
     const handler = createMockHandler();
     handler.getSnapshot.mockReturnValue(snapshot());
-    setScriptAgentHandler(handler);
+    setScriptAgentHandler(SCRIPT_ID, handler);
 
     const result = (await FrontendToolRegistry.call(
       "ui_script_get_state",
-      {},
+      { script_id: SCRIPT_ID },
       "tc-2",
       ctx
     )) as { ok: boolean } & ScriptSnapshot;
@@ -124,11 +138,11 @@ describe("ui_script_* tools", () => {
   it("adds a line via the handler", async () => {
     const handler = createMockHandler();
     handler.addLine.mockReturnValue(lineNode({ text: "A new line." }));
-    setScriptAgentHandler(handler);
+    setScriptAgentHandler(SCRIPT_ID, handler);
 
     const result = (await FrontendToolRegistry.call(
       "ui_script_add_line",
-      { text: "A new line.", speakerId: "spk-1" },
+      { script_id: SCRIPT_ID, text: "A new line.", speakerId: "spk-1" },
       "tc-3",
       ctx
     )) as { ok: boolean; line: ScriptLineNode };
@@ -148,11 +162,12 @@ describe("ui_script_* tools", () => {
         voice: { provider: "elevenlabs", model: "eleven_v3", voice: "rachel" }
       })
     );
-    setScriptAgentHandler(handler);
+    setScriptAgentHandler(SCRIPT_ID, handler);
 
     const result = (await FrontendToolRegistry.call(
       "ui_script_add_speaker",
       {
+        script_id: SCRIPT_ID,
         name: "Host",
         voice: { provider: "elevenlabs", model: "eleven_v3", voice: "rachel" }
       },
@@ -173,11 +188,11 @@ describe("ui_script_* tools", () => {
     handler.voiceLine.mockResolvedValue(
       lineNode({ status: "voiced", takeCount: 1, currentTakeDurationMs: 1200 })
     );
-    setScriptAgentHandler(handler);
+    setScriptAgentHandler(SCRIPT_ID, handler);
 
     const result = (await FrontendToolRegistry.call(
       "ui_script_voice_line",
-      { target: "0" },
+      { script_id: SCRIPT_ID, target: "0" },
       "tc-4",
       ctx
     )) as { ok: boolean; line: ScriptLineNode };
@@ -189,11 +204,11 @@ describe("ui_script_* tools", () => {
   it("voices all lines through the handler", async () => {
     const handler = createMockHandler();
     handler.voiceAll.mockResolvedValue({ voiced: 4 });
-    setScriptAgentHandler(handler);
+    setScriptAgentHandler(SCRIPT_ID, handler);
 
     const result = (await FrontendToolRegistry.call(
       "ui_script_voice_all",
-      {},
+      { script_id: SCRIPT_ID },
       "tc-all",
       ctx
     )) as { ok: boolean; voiced: number };
@@ -210,11 +225,11 @@ describe("ui_script_* tools", () => {
       skippedLineIds: ["line-9"],
       reassembled: false
     });
-    setScriptAgentHandler(handler);
+    setScriptAgentHandler(SCRIPT_ID, handler);
 
     const result = (await FrontendToolRegistry.call(
       "ui_script_send_to_timeline",
-      {},
+      { script_id: SCRIPT_ID },
       "tc-send",
       ctx
     )) as {
@@ -239,11 +254,11 @@ describe("ui_script_* tools", () => {
       format: "vtt",
       cueCount: 1
     });
-    setScriptAgentHandler(handler);
+    setScriptAgentHandler(SCRIPT_ID, handler);
 
     const result = (await FrontendToolRegistry.call(
       "ui_script_export_subtitles",
-      { format: "vtt", granularity: "word" },
+      { script_id: SCRIPT_ID, format: "vtt", granularity: "word" },
       "tc-subs",
       ctx
     )) as { ok: boolean; text: string; format: string; cueCount: number };
@@ -260,11 +275,11 @@ describe("ui_script_* tools", () => {
   it("clears a line's speaker with null through the handler", async () => {
     const handler = createMockHandler();
     handler.setLineSpeaker.mockReturnValue(lineNode({ speakerId: null }));
-    setScriptAgentHandler(handler);
+    setScriptAgentHandler(SCRIPT_ID, handler);
 
     await FrontendToolRegistry.call(
       "ui_script_set_speaker",
-      { target: "0", speakerId: null },
+      { script_id: SCRIPT_ID, target: "0", speakerId: null },
       "tc-6",
       ctx
     );

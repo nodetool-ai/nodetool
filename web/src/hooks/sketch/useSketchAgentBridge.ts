@@ -2,13 +2,14 @@
  * useSketchAgentBridge
  *
  * Registers a {@link SketchAgentHandler} for the surrounding image / sketch
- * editor instance while it is the active surface, so the `ui_sketch_*` agent
- * tools operate on this document. Mirrors {@link useTimelineAgentBridge} but
- * built against the sketch editor's per-instance stores (editor, session
- * bindings, canvas refs) plus the direct-generation job runner.
+ * editor instance under its document id, so the `ui_sketch_*` agent tools can
+ * address this document. Mirrors {@link useTimelineAgentBridge} but built
+ * against the sketch editor's per-instance stores (editor, session bindings,
+ * canvas refs) plus the direct-generation job runner.
  *
- * Only the active editor registers, so with several sketch tabs open the tools
- * always target the focused one. The handler is cleared on blur / unmount.
+ * Registration is not gated on focus: with several sketch tabs open every one
+ * of them stays addressable by id. The handler is cleared on unmount, or when
+ * the document id changes.
  */
 
 import { useEffect, useMemo } from "react";
@@ -81,7 +82,7 @@ function toLayerNode(
   };
 }
 
-export const useSketchAgentBridge = (active: boolean): void => {
+export const useSketchAgentBridge = (documentId: string | null): void => {
   const instance = useSketchInstance();
   const { start: startDirectGen } = useDirectGenJob();
 
@@ -434,14 +435,17 @@ export const useSketchAgentBridge = (active: boolean): void => {
   }, [instance, startDirectGen]);
 
   useEffect(() => {
-    if (!active) return;
-    setSketchAgentHandler(handler);
+    if (!documentId) return;
+    setSketchAgentHandler(documentId, handler);
     return () => {
-      // Only clear if we're still the registered handler — a newly-focused
-      // editor may have already replaced us.
-      if (hasSketchAgentHandler() && getSketchAgentHandler() === handler) {
-        setSketchAgentHandler(null);
+      // Only clear if we're still the handler registered for this id — a
+      // remounted editor for the same document may have already replaced us.
+      if (
+        hasSketchAgentHandler(documentId) &&
+        getSketchAgentHandler(documentId) === handler
+      ) {
+        setSketchAgentHandler(documentId, null);
       }
     };
-  }, [active, handler]);
+  }, [documentId, handler]);
 };

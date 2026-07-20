@@ -81,7 +81,10 @@ import type {
   UnifiedCommandType,
   WebSocketCommandEnvelope,
   WebSocketMode,
-  RpcErrorPayload
+  RpcErrorPayload,
+  UiContext,
+  UiDocumentRef,
+  UiSurfaceType
 } from "@nodetool-ai/protocol";
 import { Tool } from "@nodetool-ai/agents";
 import {
@@ -1215,13 +1218,78 @@ const RESIDENT_TOOL_NAMES: ReadonlySet<string> = new Set([
  */
 function buildChatAgentSystemPrompt(
   mode: PermissionMode,
-  extraSystemPrompt?: string | null
+  extraSystemPrompt?: string | null,
+  uiContext?: UiContext | null
 ): string {
   const extra =
     typeof extraSystemPrompt === "string" && extraSystemPrompt.trim()
       ? `\n\n${extraSystemPrompt.trim()}\n`
       : "";
-  return CHAT_AGENT_SYSTEM_PROMPT + PERMISSION_MODE_PROMPTS[mode] + extra;
+  return (
+    CHAT_AGENT_SYSTEM_PROMPT +
+    PERMISSION_MODE_PROMPTS[mode] +
+    formatUiContext(uiContext) +
+    extra
+  );
+}
+
+const UI_SURFACE_LABELS: Record<UiSurfaceType, string> = {
+  workflow: "workflow",
+  sketch: "image document",
+  timeline: "timeline sequence",
+  storyboard: "storyboard",
+  script: "script",
+  app: "app builder (workflow)",
+  chat: "chat"
+};
+
+/**
+ * Render the user's open documents into the system prompt. The `ui_*` tools all
+ * take a required document id, so this block is how the agent learns which ids
+ * are valid — without it the tools are unusable even though they're discoverable
+ * through ToolSearch.
+ */
+function formatUiContext(uiContext?: UiContext | null): string {
+  if (!uiContext) return "";
+  const focused = uiContext.focused;
+  const open = uiContext.open ?? [];
+  if (!focused && open.length === 0) return "";
+
+  const describe = (ref: UiDocumentRef): string => {
+    const label = UI_SURFACE_LABELS[ref.type] ?? ref.type;
+    const title = ref.title?.trim();
+    return title
+      ? `${label} "${title}" (id: ${ref.id})`
+      : `${label} (id: ${ref.id})`;
+  };
+
+  const lines: string[] = ["\n\n## What the user is looking at\n"];
+  if (focused) {
+    lines.push(`The user is currently in the ${describe(focused)}.`);
+  }
+  const others = open.filter(
+    (ref) => !focused || ref.id !== focused.id || ref.type !== focused.type
+  );
+  if (others.length > 0) {
+    lines.push(
+      `Also open: ${others.map(describe).join("; ")}.`
+    );
+  }
+
+  const selection = uiContext.selection;
+  const selected = selection
+    ? Object.entries(selection)
+        .filter(([, ids]) => Array.isArray(ids) && ids.length > 0)
+        .map(([key, ids]) => `${key.replace(/_ids$/, "")}: ${(ids as string[]).join(", ")}`)
+    : [];
+  if (selected.length > 0) {
+    lines.push(`Selected in the focused document — ${selected.join("; ")}.`);
+  }
+
+  lines.push(
+    "Every `ui_*` tool requires the id of the document it should act on; pass one of the ids above. These tools act on documents the user has open, so prefer the focused document unless the user points at another one."
+  );
+  return lines.join("\n");
 }
 
 export interface WebSocketReceiveFrame {
@@ -3524,6 +3592,14 @@ export class UnifiedWebSocketRunner {
     const extraSystemPrompt =
       typeof data.system_prompt === "string" ? data.system_prompt : null;
 
+    // Which documents the user has open, and which one has focus. The `ui_*`
+    // tools all require an explicit document id, so this is what makes them
+    // usable — see `formatUiContext`.
+    const uiContext =
+      data.ui_context && typeof data.ui_context === "object"
+        ? (data.ui_context as UiContext)
+        : null;
+
     // Long-term memory mines the whole conversation, so it needs the full
     // history; the resume fast path below is skipped when it is enabled.
     const memoryEnabled =
@@ -3544,7 +3620,8 @@ export class UnifiedWebSocketRunner {
     const buildSystemContent = (): string => {
       const base = buildChatAgentSystemPrompt(
         permissionMode,
-        extraSystemPrompt
+        extraSystemPrompt,
+        uiContext
       );
       return toolSearchReminder ? `${base}\n\n${toolSearchReminder}` : base;
     };
@@ -3764,31 +3841,31 @@ export class UnifiedWebSocketRunner {
     const serverSchemas: ProviderTool[] = serverTools.map((t) =>
       t.toProviderTool()
     );
-    // Client tools (ui_*) only exist when a workflow is active.
-    const clientToolNames = workflowId
-      ? Object.keys(this.clientToolsManifest)
-      : [];
+    // Every client tool the connected UI registered is exposed. They used to be
+    // gated on an active workflow, which made the editor tools unreachable from
+    // plain chat; they are deferred behind ToolSearch anyway, and each one now
+    // takes an explicit document id, so the gate cost reach without buying
+    // safety. Which ids are valid comes from `ui_context` in the system prompt.
+    const clientToolNames = Object.keys(this.clientToolsManifest);
     const clientSchemas: ProviderTool[] = [];
-    if (workflowId) {
-      for (const [name, manifest] of Object.entries(this.clientToolsManifest)) {
-        // The frontend manifest carries the JSON schema under `parameters`
-        // (FrontendToolRegistry.getManifest); accept `inputSchema` too for any
-        // client that uses the provider-tool field name.
-        const schema =
-          typeof manifest.parameters === "object"
-            ? (manifest.parameters as Record<string, unknown>)
-            : typeof manifest.inputSchema === "object"
-              ? (manifest.inputSchema as Record<string, unknown>)
-              : undefined;
-        clientSchemas.push({
-          name,
-          description:
-            typeof manifest.description === "string"
-              ? manifest.description
-              : undefined,
-          inputSchema: schema
-        });
-      }
+    for (const [name, manifest] of Object.entries(this.clientToolsManifest)) {
+      // The frontend manifest carries the JSON schema under `parameters`
+      // (FrontendToolRegistry.getManifest); accept `inputSchema` too for any
+      // client that uses the provider-tool field name.
+      const schema =
+        typeof manifest.parameters === "object"
+          ? (manifest.parameters as Record<string, unknown>)
+          : typeof manifest.inputSchema === "object"
+            ? (manifest.inputSchema as Record<string, unknown>)
+            : undefined;
+      clientSchemas.push({
+        name,
+        description:
+          typeof manifest.description === "string"
+            ? manifest.description
+            : undefined,
+        inputSchema: schema
+      });
     }
     const allSchemas: ProviderTool[] = [...serverSchemas, ...clientSchemas];
 

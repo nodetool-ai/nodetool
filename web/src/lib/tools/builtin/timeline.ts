@@ -9,17 +9,26 @@ const animationRole = z.enum(["in", "out", "emphasis", "loop"]);
  * Frontend tools that let the agent drive the live timeline / video editor —
  * cutting, arranging, generating, and tweaking clips like a real editor.
  *
- * They delegate to the handler the open {@link TimelineEditor} registers on the
- * {@link timelineAgentBridge}. When no editor is open, `getTimelineAgentHandler`
- * throws a descriptive error which the tool layer surfaces back to the agent.
+ * They delegate to the handler each open {@link TimelineEditor} registers under
+ * its sequence id on the {@link timelineAgentBridge}. When no editor is open for
+ * the requested id, `getTimelineAgentHandler` throws a descriptive error listing
+ * the ids that are open, which the tool layer surfaces back to the agent.
  *
  * Conventions:
+ *   - Every tool names its target sequence via `timeline_id` — there is no
+ *     implicit "current" timeline.
  *   - Times are in **milliseconds** on the sequence timeline.
  *   - Clips and tracks are addressed by id or by (case-insensitive) name; the
  *     literal `"selected"` resolves to the single selected clip.
  *   - Call `ui_timeline_get_state` first to discover the ids the other tools
  *     need.
  */
+
+const timelineIdParam = z
+  .string()
+  .describe(
+    "Id of the target timeline sequence. The ids of the sequences currently open are listed in the ui_context block of the system prompt."
+  );
 
 const targetParam = z
   .string()
@@ -30,10 +39,10 @@ const targetParam = z
 FrontendToolRegistry.register({
   name: "ui_timeline_get_state",
   description:
-    "Read the open timeline editor: sequence resolution + fps + duration, the playhead position, the current selection, every track, and every clip with its timing, media type, generation binding (prompt/provider/model/status) and render params. Call this first to discover what's on the timeline and to get the ids/names other timeline tools need.",
-  parameters: z.object({}),
-  async execute() {
-    const snapshot = getTimelineAgentHandler().getSnapshot();
+    "Read the specified timeline sequence: resolution + fps + duration, the playhead position, the current selection, every track, and every clip with its timing, media type, generation binding (prompt/provider/model/status) and render params. Call this first to discover what's on the timeline and to get the ids/names other timeline tools need.",
+  parameters: z.object({ timeline_id: timelineIdParam }),
+  async execute({ timeline_id }) {
+    const snapshot = getTimelineAgentHandler(timeline_id).getSnapshot();
     return { ok: true, ...snapshot };
   }
 });
@@ -41,13 +50,14 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_timeline_add_track",
   description:
-    "Add a new track to the timeline. `type` is one of video, audio, overlay, subtitle. Optionally provide a name.",
+    "Add a new track to the specified timeline sequence. `type` is one of video, audio, overlay, subtitle. Optionally provide a name.",
   parameters: z.object({
+    timeline_id: timelineIdParam,
     type: z.enum(["video", "audio", "overlay", "subtitle"]),
     name: z.string().optional()
   }),
-  async execute({ type, name }) {
-    const track = getTimelineAgentHandler().addTrack(type, name);
+  async execute({ timeline_id, type, name }) {
+    const track = getTimelineAgentHandler(timeline_id).addTrack(type, name);
     return { ok: true, track };
   }
 });
@@ -55,8 +65,9 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_timeline_add_text_clip",
   description:
-    "Add authored text to the timeline. It goes on an overlay track, creating one when needed, lasts 3000ms by default, and accepts the same motion presets as media clips.",
+    "Add authored text to the specified timeline sequence. It goes on an overlay track, creating one when needed, lasts 3000ms by default, and accepts the same motion presets as media clips.",
   parameters: z.object({
+    timeline_id: timelineIdParam,
     text: z.string().trim().min(1),
     trackId: z.string().optional(),
     startMs: z.number().optional(),
@@ -72,8 +83,8 @@ FrontendToolRegistry.register({
       })
       .optional()
   }),
-  async execute(args) {
-    const clip = getTimelineAgentHandler().addTextClip(args);
+  async execute({ timeline_id, ...args }) {
+    const clip = getTimelineAgentHandler(timeline_id).addTextClip(args);
     return { ok: true, clip };
   }
 });
@@ -81,8 +92,9 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_timeline_add_shape_clip",
   description:
-    "Add a rectangle, ellipse, or line on an overlay track. Omitted colors use a visible white fill for rectangles/ellipses or a visible white stroke for lines. Shapes are rasterized for preview/export and can use the standard motion presets.",
+    "Add a rectangle, ellipse, or line on an overlay track of the specified timeline sequence. Omitted colors use a visible white fill for rectangles/ellipses or a visible white stroke for lines. Shapes are rasterized for preview/export and can use the standard motion presets.",
   parameters: z.object({
+    timeline_id: timelineIdParam,
     shape: z.object({
       kind: z.enum(["rect", "ellipse", "line"]),
       fill: z.string().optional(),
@@ -99,8 +111,8 @@ FrontendToolRegistry.register({
     startMs: z.number().optional(),
     durationMs: z.number().optional()
   }),
-  async execute(args) {
-    const clip = getTimelineAgentHandler().addShapeClip(args);
+  async execute({ timeline_id, ...args }) {
+    const clip = getTimelineAgentHandler(timeline_id).addShapeClip(args);
     return { ok: true, clip };
   }
 });
@@ -108,8 +120,9 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_timeline_generate_clip",
   description:
-    'Generate a new media clip from a text prompt and place it on the timeline. `kind` is text-to-video, text-to-image, or text-to-audio (TTS). Provide `provider` and `model` (discover valid ones with the model-search tool); when omitted the last-used model for that media kind is reused. `voice` is required for text-to-audio. Without a track the clip lands on a sensible track for its media kind; without `startMs` it is appended after the track\'s existing content. Generation starts immediately unless `autoGenerate` is false. For text-to-video, `aspectRatio` (e.g. "16:9") and `resolution` (e.g. "720p") and `durationMs` are honoured by video models.',
+    'Generate a new media clip from a text prompt and place it on the specified timeline sequence. `kind` is text-to-video, text-to-image, or text-to-audio (TTS). Provide `provider` and `model` (discover valid ones with the model-search tool); when omitted the last-used model for that media kind is reused. `voice` is required for text-to-audio. Without a track the clip lands on a sensible track for its media kind; without `startMs` it is appended after the track\'s existing content. Generation starts immediately unless `autoGenerate` is false. For text-to-video, `aspectRatio` (e.g. "16:9") and `resolution` (e.g. "720p") and `durationMs` are honoured by video models.',
   parameters: z.object({
+    timeline_id: timelineIdParam,
     kind: z.enum(["text-to-video", "text-to-image", "text-to-audio"]),
     prompt: z.string(),
     trackId: z.string().optional(),
@@ -124,8 +137,9 @@ FrontendToolRegistry.register({
     resolution: z.string().optional(),
     autoGenerate: z.boolean().optional()
   }),
-  async execute(args) {
-    const result = await getTimelineAgentHandler().generateClip(args);
+  async execute({ timeline_id, ...args }) {
+    const result =
+      await getTimelineAgentHandler(timeline_id).generateClip(args);
     return { ok: true, ...result };
   }
 });
@@ -135,11 +149,12 @@ FrontendToolRegistry.register({
   description:
     "Cut a clip in two at the given time (the razor tool). `atMs` is an absolute time on the timeline and must fall inside the clip; omit it to split at the current playhead. Returns the two resulting halves.",
   parameters: z.object({
+    timeline_id: timelineIdParam,
     target: targetParam,
     atMs: z.number().optional()
   }),
-  async execute({ target, atMs }) {
-    const clips = getTimelineAgentHandler().splitClip(target, atMs);
+  async execute({ timeline_id, target, atMs }) {
+    const clips = getTimelineAgentHandler(timeline_id).splitClip(target, atMs);
     return { ok: true, clips };
   }
 });
@@ -149,13 +164,14 @@ FrontendToolRegistry.register({
   description:
     "Trim a clip's length or its source in/out points. `durationMs` sets the on-timeline length; `inPointMs`/`outPointMs` set the trimmed source window (ms into the source media). Omit a field to leave it unchanged.",
   parameters: z.object({
+    timeline_id: timelineIdParam,
     target: targetParam,
     durationMs: z.number().optional(),
     inPointMs: z.number().optional(),
     outPointMs: z.number().optional()
   }),
-  async execute({ target, durationMs, inPointMs, outPointMs }) {
-    const clip = getTimelineAgentHandler().trimClip(target, {
+  async execute({ timeline_id, target, durationMs, inPointMs, outPointMs }) {
+    const clip = getTimelineAgentHandler(timeline_id).trimClip(target, {
       durationMs,
       inPointMs,
       outPointMs
@@ -169,12 +185,13 @@ FrontendToolRegistry.register({
   description:
     "Move a clip to a new absolute start time and/or onto a different track. `startMs` is the new start on the timeline (ms, clamped to >= 0); `trackId` reassigns the track. Omit a field to leave it unchanged.",
   parameters: z.object({
+    timeline_id: timelineIdParam,
     target: targetParam,
     startMs: z.number().optional(),
     trackId: z.string().optional()
   }),
-  async execute({ target, startMs, trackId }) {
-    const clip = getTimelineAgentHandler().moveClip(target, {
+  async execute({ timeline_id, target, startMs, trackId }) {
+    const clip = getTimelineAgentHandler(timeline_id).moveClip(target, {
       startMs,
       trackId
     });
@@ -184,10 +201,13 @@ FrontendToolRegistry.register({
 
 FrontendToolRegistry.register({
   name: "ui_timeline_delete_clip",
-  description: "Remove a clip from the timeline.",
-  parameters: z.object({ target: targetParam }),
-  async execute({ target }) {
-    const clip = getTimelineAgentHandler().deleteClip(target);
+  description: "Remove a clip from the specified timeline sequence.",
+  parameters: z.object({
+    timeline_id: timelineIdParam,
+    target: targetParam
+  }),
+  async execute({ timeline_id, target }) {
+    const clip = getTimelineAgentHandler(timeline_id).deleteClip(target);
     return { ok: true, deleted: clip };
   }
 });
@@ -197,11 +217,15 @@ FrontendToolRegistry.register({
   description:
     "Duplicate a clip. The copy is placed immediately after the source (add `gapMs` for a gap) and keeps its generation binding so you can tweak the copy for a variation.",
   parameters: z.object({
+    timeline_id: timelineIdParam,
     target: targetParam,
     gapMs: z.number().optional()
   }),
-  async execute({ target, gapMs }) {
-    const clip = await getTimelineAgentHandler().duplicateClip(target, gapMs);
+  async execute({ timeline_id, target, gapMs }) {
+    const clip = await getTimelineAgentHandler(timeline_id).duplicateClip(
+      target,
+      gapMs
+    );
     return { ok: true, clip };
   }
 });
@@ -211,6 +235,7 @@ FrontendToolRegistry.register({
   description:
     "Change a clip's render/audio params: `name`, `opacity` (0..1), `speedMultiplier` (0.1..8), `volumeDb`, `fadeInMs`, `fadeOutMs`, `blendMode`, `borderRadius`, `hidden`, `muted`, `locked`, a text clip's `textStyle`, or a shape clip's `shapeStyle`. Omit a field to leave it unchanged.",
   parameters: z.object({
+    timeline_id: timelineIdParam,
     target: targetParam,
     name: z.string().optional(),
     opacity: z.number().optional(),
@@ -249,8 +274,11 @@ FrontendToolRegistry.register({
       })
       .optional()
   }),
-  async execute({ target, ...patch }) {
-    const clip = getTimelineAgentHandler().setClipParams(target, patch);
+  async execute({ timeline_id, target, ...patch }) {
+    const clip = getTimelineAgentHandler(timeline_id).setClipParams(
+      target,
+      patch
+    );
     return { ok: true, clip };
   }
 });
@@ -260,6 +288,7 @@ FrontendToolRegistry.register({
   description:
     "Edit a generated clip's generation binding — its `prompt`, `negativePrompt`, `provider`/`model`, TTS `voice`, dimensions, `aspectRatio`/`resolution`, `strength`, or `numInferenceSteps`. Set `regenerate` true to immediately re-run generation with the new settings. Only applies to generated clips.",
   parameters: z.object({
+    timeline_id: timelineIdParam,
     target: targetParam,
     prompt: z.string().optional(),
     negativePrompt: z.string().optional(),
@@ -274,8 +303,11 @@ FrontendToolRegistry.register({
     numInferenceSteps: z.number().optional(),
     regenerate: z.boolean().optional()
   }),
-  async execute({ target, ...patch }) {
-    const clip = await getTimelineAgentHandler().setClipBinding(target, patch);
+  async execute({ timeline_id, target, ...patch }) {
+    const clip = await getTimelineAgentHandler(timeline_id).setClipBinding(
+      target,
+      patch
+    );
     return { ok: true, clip };
   }
 });
@@ -285,6 +317,7 @@ FrontendToolRegistry.register({
   description:
     'Attach motion-design animations to a clip — no keyframing, just named presets. Roles: `in` (entrance: fade, slide, pop, spin, wipe, blur, colorFade), `out` (exit: fade, slide, pop, spin, wipe, blur, colorFade), `emphasis` (mid-clip: pulse, flash, shake, bounce), `loop` (continuous: kenBurns, float, breathe, rotate). Each animation: `role`, `preset`, optional `durationMs` (defaults per preset), `delayMs`, `easing`, and preset `params`. On text clips, add `stagger` for per-word motion typography: each word runs the animation for `durationMs`, offset `stagger.offsetMs` from the previous word (`from`: start|end|center picks the leading word) — e.g. a pop-in title whose words land one after another. `mode` "replace" (default) swaps the clip\'s animations; "add" appends. Call ui_timeline_list_animation_presets for the full param list. Recommended loop: ui_timeline_get_state -> animate -> ui_timeline_get_clip_frames at the window boundaries -> adjust.',
   parameters: z.object({
+    timeline_id: timelineIdParam,
     target: targetParam,
     mode: z.enum(["add", "replace"]).optional(),
     animations: z
@@ -293,7 +326,9 @@ FrontendToolRegistry.register({
           role: animationRole,
           preset: z
             .string()
-            .describe("Preset id, e.g. fade, slide, wipe, pop, kenBurns, float."),
+            .describe(
+              "Preset id, e.g. fade, slide, wipe, pop, kenBurns, float."
+            ),
           durationMs: z.number().positive().optional(),
           delayMs: z.number().nonnegative().optional(),
           easing: z.string().optional(),
@@ -317,8 +352,8 @@ FrontendToolRegistry.register({
       )
       .min(1)
   }),
-  async execute({ target, mode, animations }) {
-    const clip = getTimelineAgentHandler().setClipAnimations(
+  async execute({ timeline_id, target, mode, animations }) {
+    const clip = getTimelineAgentHandler(timeline_id).setClipAnimations(
       target,
       animations,
       mode ?? "replace"
@@ -332,11 +367,15 @@ FrontendToolRegistry.register({
   description:
     "Remove motion-design animations from a clip. Pass `role` to clear only that role (in/out/emphasis/loop); omit it to clear all.",
   parameters: z.object({
+    timeline_id: timelineIdParam,
     target: targetParam,
     role: animationRole.optional()
   }),
-  async execute({ target, role }) {
-    const clip = getTimelineAgentHandler().clearClipAnimations(target, role);
+  async execute({ timeline_id, target, role }) {
+    const clip = getTimelineAgentHandler(timeline_id).clearClipAnimations(
+      target,
+      role
+    );
     return { ok: true, clip };
   }
 });
@@ -364,6 +403,7 @@ FrontendToolRegistry.register({
   description:
     "Inspect visual frames from a rendered video clip. Provide `target` and optional absolute timeline `timesMs`; otherwise the tool samples evenly across the clip. Returns JPEG data URLs plus timeline/source timestamps so you can see the clip content before splitting, trimming, or editing it.",
   parameters: z.object({
+    timeline_id: timelineIdParam,
     target: targetParam,
     timesMs: z
       .array(z.number())
@@ -387,12 +427,15 @@ FrontendToolRegistry.register({
       .optional()
       .describe("Output JPEG width in pixels. Default 512, max 1024.")
   }),
-  async execute({ target, timesMs, count, width }) {
-    const result = await getTimelineAgentHandler().getClipFrames(target, {
-      timesMs,
-      count,
-      width
-    });
+  async execute({ timeline_id, target, timesMs, count, width }) {
+    const result = await getTimelineAgentHandler(timeline_id).getClipFrames(
+      target,
+      {
+        timesMs,
+        count,
+        width
+      }
+    );
     return { ok: true, ...result };
   }
 });
@@ -400,12 +443,15 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_timeline_select_clip",
   description:
-    "Select a clip in the timeline (driving the inspector). Pass null/empty to clear the selection.",
+    "Select a clip in the specified timeline sequence (driving the inspector). Pass null/empty to clear the selection.",
   parameters: z.object({
+    timeline_id: timelineIdParam,
     target: targetParam.nullable().optional()
   }),
-  async execute({ target }) {
-    const clip = getTimelineAgentHandler().selectClip(target ?? null);
+  async execute({ timeline_id, target }) {
+    const clip = getTimelineAgentHandler(timeline_id).selectClip(
+      target ?? null
+    );
     return { ok: true, selected: clip };
   }
 });
@@ -413,10 +459,13 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_timeline_seek",
   description:
-    "Move the playhead to an absolute time (ms) on the timeline. Useful before splitting at the playhead.",
-  parameters: z.object({ timeMs: z.number() }),
-  async execute({ timeMs }) {
-    const playheadMs = getTimelineAgentHandler().seek(timeMs);
+    "Move the playhead to an absolute time (ms) in the specified timeline sequence. Useful before splitting at the playhead.",
+  parameters: z.object({
+    timeline_id: timelineIdParam,
+    timeMs: z.number()
+  }),
+  async execute({ timeline_id, timeMs }) {
+    const playheadMs = getTimelineAgentHandler(timeline_id).seek(timeMs);
     return { ok: true, playheadMs };
   }
 });

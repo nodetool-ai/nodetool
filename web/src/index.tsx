@@ -147,23 +147,11 @@ import {
   WorkflowAppRedirect
 } from "./components/workspace/RouteRedirects";
 
-// Defer frontend tool registrations until after initial render
+// Defer frontend tool registrations until after initial render. The module list
+// lives in builtin/index.ts so this path and the agent WebSocket bridge
+// register exactly the same tools.
 const registerFrontendTools = () => {
-  Promise.all([
-    import("./lib/tools/builtin/addNode"),
-    import("./lib/tools/builtin/connectNodes"),
-    import("./lib/tools/builtin/updateNodeData"),
-    import("./lib/tools/builtin/moveNode"),
-    import("./lib/tools/builtin/setNodeTitle"),
-    import("./lib/tools/builtin/graph"),
-    import("./lib/tools/builtin/getGraph"),
-    import("./lib/tools/builtin/searchNodes"),
-    import("./lib/tools/builtin/searchModels"),
-    import("./lib/tools/builtin/deleteNode"),
-    import("./lib/tools/builtin/deleteEdge"),
-    import("./lib/tools/builtin/model3d"),
-    import("./lib/tools/builtin/timeline")
-  ]).catch((error) => {
+  import("./lib/tools/builtin").catch((error) => {
     console.error("Failed to register frontend tools:", error);
   });
 };

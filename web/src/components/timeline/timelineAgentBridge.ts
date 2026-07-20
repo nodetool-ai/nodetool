@@ -4,11 +4,11 @@
  * Bridge between the agent tooling layer (the `ui_timeline_*` frontend tools)
  * and the live timeline editor, mirroring `model3DToolBridge` for the 3D editor.
  *
- * The open {@link TimelineEditor} registers a {@link TimelineAgentHandler} on
- * mount (and clears it on unmount). The handler closes over the editor's
- * per-instance stores (document, UI, playback) plus the direct-generation job
- * runner, so the tools always operate on the focused sequence — or fail cleanly
- * when no timeline editor is open.
+ * Each open {@link TimelineEditor} registers a {@link TimelineAgentHandler}
+ * under its sequence id on mount (and clears it on unmount). The handler closes
+ * over that editor's per-instance stores (document, UI, playback) plus the
+ * direct-generation job runner. Tools name the sequence they target, so every
+ * open sequence is addressable regardless of which one has focus.
  *
  * Everything crossing the bridge is a plain serializable value: the agent reads
  * {@link TimelineSnapshot} / {@link TimelineClipNode} objects and never touches
@@ -329,29 +329,43 @@ export interface TimelineAgentHandler {
   seek: (timeMs: number) => number;
 }
 
-let handler: TimelineAgentHandler | null = null;
+const handlers = new Map<string, TimelineAgentHandler>();
 
 /**
- * Register (or clear, with null) the handler for the currently-focused editor.
- * The editor calls this when it becomes active and clears it on unmount / blur
- * so the ui_timeline_* tools always operate on the live sequence — or fail
- * cleanly when no editor is open.
+ * Register (or clear, with null) the handler for one open sequence. Every
+ * mounted {@link TimelineEditor} registers under its own sequence id, so the
+ * ui_timeline_* tools address any open sequence explicitly — focus does not
+ * enter into it.
  */
 export function setTimelineAgentHandler(
+  sequenceId: string,
   next: TimelineAgentHandler | null
 ): void {
-  handler = next;
+  if (next) handlers.set(sequenceId, next);
+  else handlers.delete(sequenceId);
 }
 
-export function hasTimelineAgentHandler(): boolean {
-  return handler !== null;
+export function hasTimelineAgentHandler(sequenceId: string): boolean {
+  return handlers.has(sequenceId);
 }
 
-export function getTimelineAgentHandler(): TimelineAgentHandler {
+export function getTimelineAgentHandler(
+  sequenceId: string
+): TimelineAgentHandler {
+  const handler = handlers.get(sequenceId);
   if (!handler) {
+    const open = listOpenTimelineSequenceIds();
     throw new Error(
-      "No timeline editor is open. Open a sequence in the timeline editor to use timeline tools."
+      `No timeline sequence "${sequenceId}" is open. ` +
+        (open.length > 0
+          ? `Open sequences: ${open.join(", ")}.`
+          : "No timeline sequences are currently open.")
     );
   }
   return handler;
+}
+
+/** Ids of every sequence currently open in a timeline editor. */
+export function listOpenTimelineSequenceIds(): string[] {
+  return [...handlers.keys()];
 }

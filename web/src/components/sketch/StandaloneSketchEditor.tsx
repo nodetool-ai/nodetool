@@ -62,14 +62,14 @@ interface StandaloneSketchEditorProps {
   headerActions?: React.ReactNode;
   /**
    * Whether this editor is the focused/visible surface. Drives which instance
-   * receives imperative tool/keyboard/save actions. Defaults to `true` for the
+   * the singleton sketch hooks resolve to. Defaults to `true` for the
    * standalone page; the workspace tab passes its active flag.
    */
   active?: boolean;
 }
 
 const StandaloneSketchEditorBody: React.FC<StandaloneSketchEditorProps> = memo(
-  function StandaloneSketchEditorBody({ documentId, headerActions, active }) {
+  function StandaloneSketchEditorBody({ documentId, headerActions }) {
     const theme = useTheme();
     const styles = useMemo(() => containerStyles(theme), [theme]);
     const editorRef = useRef<SketchEditorHandle | null>(null);
@@ -211,7 +211,6 @@ const StandaloneSketchEditorBody: React.FC<StandaloneSketchEditorProps> = memo(
         <SketchEditor
           ref={editorRef}
           documentId={documentId}
-          active={active}
           initialDocument={seed.document}
           initialEditorState={initialEditorState ?? undefined}
           headerActions={
@@ -249,7 +248,7 @@ const StandaloneSketchEditor: React.FC<StandaloneSketchEditorProps> = ({
   ...bodyProps
 }) => (
   <SketchProvider active={active}>
-    <StandaloneSketchEditorBody active={active} {...bodyProps} />
+    <StandaloneSketchEditorBody {...bodyProps} />
   </SketchProvider>
 );
 

@@ -11,6 +11,8 @@ import {
 } from "../../../components/sketch/sketchAgentBridge";
 import "../builtin/sketch";
 
+const DOC = "doc-1";
+
 const layerNode = (
   overrides: Partial<SketchLayerNode> = {}
 ): SketchLayerNode => ({
@@ -66,7 +68,7 @@ const createMockHandler = (): jest.Mocked<SketchAgentHandler> => ({
 const ctx = { getState: () => ({}) as FrontendToolState };
 
 afterEach(() => {
-  setSketchAgentHandler(null);
+  setSketchAgentHandler(DOC, null);
 });
 
 describe("ui_sketch_* tools", () => {
@@ -94,7 +96,7 @@ describe("ui_sketch_* tools", () => {
     );
   });
 
-  it("exposes set_layer_props schema with target required", () => {
+  it("exposes set_layer_props schema with target and sketch_id required", () => {
     const tool = FrontendToolRegistry.getManifest().find(
       (t) => t.name === "ui_sketch_set_layer_props"
     );
@@ -107,22 +109,41 @@ describe("ui_sketch_* tools", () => {
     expect(schema.type).toBe("object");
     expect(schema.properties).toHaveProperty("target");
     expect(schema.required).toContain("target");
+    expect(schema.properties).toHaveProperty("sketch_id");
+    expect(schema.required).toContain("sketch_id");
   });
 
-  it("rejects with a descriptive error when no editor is open", async () => {
+  it("rejects with a descriptive error when the document is not open", async () => {
     await expect(
-      FrontendToolRegistry.call("ui_sketch_get_state", {}, "sk-1", ctx)
-    ).rejects.toThrow("No image editor is open");
+      FrontendToolRegistry.call(
+        "ui_sketch_get_state",
+        { sketch_id: "missing-doc" },
+        "sk-1",
+        ctx
+      )
+    ).rejects.toThrow('No image document "missing-doc" is open');
+  });
+
+  it("lists the open document ids when the requested one is absent", async () => {
+    setSketchAgentHandler(DOC, createMockHandler());
+    await expect(
+      FrontendToolRegistry.call(
+        "ui_sketch_get_state",
+        { sketch_id: "other" },
+        "sk-1b",
+        ctx
+      )
+    ).rejects.toThrow("Open documents: doc-1.");
   });
 
   it("returns the document snapshot through the handler", async () => {
     const handler = createMockHandler();
     handler.getSnapshot.mockReturnValue(snapshot());
-    setSketchAgentHandler(handler);
+    setSketchAgentHandler(DOC, handler);
 
     const result = (await FrontendToolRegistry.call(
       "ui_sketch_get_state",
-      {},
+      { sketch_id: DOC },
       "sk-2",
       ctx
     )) as { ok: boolean } & SketchSnapshot;
@@ -136,11 +157,11 @@ describe("ui_sketch_* tools", () => {
   it("adds a layer with a fill color", async () => {
     const handler = createMockHandler();
     handler.addLayer.mockReturnValue(layerNode({ name: "Sky" }));
-    setSketchAgentHandler(handler);
+    setSketchAgentHandler(DOC, handler);
 
     const result = (await FrontendToolRegistry.call(
       "ui_sketch_add_layer",
-      { name: "Sky", fillColor: "#001133" },
+      { sketch_id: DOC, name: "Sky", fillColor: "#001133" },
       "sk-3",
       ctx
     )) as { ok: boolean; layer: SketchLayerNode };
@@ -159,11 +180,12 @@ describe("ui_sketch_* tools", () => {
       layer: layerNode({ name: "Text-to-Image", hasBinding: true }),
       generationStarted: true
     });
-    setSketchAgentHandler(handler);
+    setSketchAgentHandler(DOC, handler);
 
     const result = (await FrontendToolRegistry.call(
       "ui_sketch_generate",
       {
+        sketch_id: DOC,
         kind: "text-to-image",
         prompt: "a mountain landscape",
         provider: "fal",
@@ -185,11 +207,11 @@ describe("ui_sketch_* tools", () => {
   });
 
   it("rejects an unknown generation kind during validation", async () => {
-    setSketchAgentHandler(createMockHandler());
+    setSketchAgentHandler(DOC, createMockHandler());
     await expect(
       FrontendToolRegistry.call(
         "ui_sketch_generate",
-        { kind: "text-to-hologram", prompt: "x" },
+        { sketch_id: DOC, kind: "text-to-hologram", prompt: "x" },
         "sk-5",
         ctx
       )
@@ -199,11 +221,11 @@ describe("ui_sketch_* tools", () => {
   it("forwards layer prop patches to the handler", async () => {
     const handler = createMockHandler();
     handler.setLayerProps.mockReturnValue(layerNode({ opacity: 0.5 }));
-    setSketchAgentHandler(handler);
+    setSketchAgentHandler(DOC, handler);
 
     await FrontendToolRegistry.call(
       "ui_sketch_set_layer_props",
-      { target: "active", opacity: 0.5, blendMode: "multiply" },
+      { sketch_id: DOC, target: "active", opacity: 0.5, blendMode: "multiply" },
       "sk-6",
       ctx
     );
@@ -215,11 +237,11 @@ describe("ui_sketch_* tools", () => {
   });
 
   it("rejects an out-of-range opacity during validation", async () => {
-    setSketchAgentHandler(createMockHandler());
+    setSketchAgentHandler(DOC, createMockHandler());
     await expect(
       FrontendToolRegistry.call(
         "ui_sketch_set_layer_props",
-        { target: "active", opacity: 5 },
+        { sketch_id: DOC, target: "active", opacity: 5 },
         "sk-7",
         ctx
       )
@@ -230,11 +252,11 @@ describe("ui_sketch_* tools", () => {
     const handler = createMockHandler();
     handler.setForegroundColor.mockReturnValue("#ff0000");
     handler.setBackgroundColor.mockReturnValue("#0000ff");
-    setSketchAgentHandler(handler);
+    setSketchAgentHandler(DOC, handler);
 
     const result = (await FrontendToolRegistry.call(
       "ui_sketch_set_color",
-      { foreground: "#ff0000", background: "#0000ff" },
+      { sketch_id: DOC, foreground: "#ff0000", background: "#0000ff" },
       "sk-8",
       ctx
     )) as { ok: boolean; foreground: string; background: string };
@@ -246,11 +268,11 @@ describe("ui_sketch_* tools", () => {
   });
 
   it("rejects an unknown tool during validation", async () => {
-    setSketchAgentHandler(createMockHandler());
+    setSketchAgentHandler(DOC, createMockHandler());
     await expect(
       FrontendToolRegistry.call(
         "ui_sketch_set_tool",
-        { tool: "teleport" },
+        { sketch_id: DOC, tool: "teleport" },
         "sk-9",
         ctx
       )
@@ -266,17 +288,54 @@ describe("ui_sketch_* tools", () => {
       height: 1024,
       dataUrl: "data:image/png;base64,abc"
     });
-    setSketchAgentHandler(handler);
+    setSketchAgentHandler(DOC, handler);
 
     const result = (await FrontendToolRegistry.call(
       "ui_sketch_get_layer_image",
-      {},
+      { sketch_id: DOC },
       "sk-10",
       ctx
-    )) as { ok: boolean; dataUrl: string };
+    )) as {
+      ok: boolean;
+      width: number;
+      height: number;
+      dataUrl?: string;
+      image_content: { uri: string; mimeType: string };
+    };
 
     expect(handler.getLayerImage).toHaveBeenCalledWith(null);
-    expect(result.dataUrl).toBe("data:image/png;base64,abc");
+    // Pixels ride image_content, which the server swaps for a temp-asset
+    // handle. A raw dataUrl here would land base64 in the model's context.
+    expect(result.dataUrl).toBeUndefined();
+    expect(result.image_content).toEqual({
+      uri: "data:image/png;base64,abc",
+      mimeType: "image/png"
+    });
+    expect(result.width).toBe(1024);
+    expect(result.height).toBe(1024);
+  });
+
+  it("reads a single layer and labels it in the note", async () => {
+    const handler = createMockHandler();
+    handler.getLayerImage.mockResolvedValue({
+      layerId: "layer-2",
+      layerName: "Sky",
+      width: 512,
+      height: 512,
+      dataUrl: "data:image/png;base64,xyz"
+    });
+    setSketchAgentHandler(DOC, handler);
+
+    const result = (await FrontendToolRegistry.call(
+      "ui_sketch_get_layer_image",
+      { sketch_id: DOC, target: "Sky" },
+      "sk-10b",
+      ctx
+    )) as { note: string; layerId: string; dataUrl?: string };
+
+    expect(handler.getLayerImage).toHaveBeenCalledWith("Sky");
+    expect(result.dataUrl).toBeUndefined();
+    expect(result.note).toContain("Sky");
   });
 
   it("renders the composite to a temporary asset", async () => {
@@ -289,11 +348,11 @@ describe("ui_sketch_* tools", () => {
       layerId: null,
       layerName: null
     });
-    setSketchAgentHandler(handler);
+    setSketchAgentHandler(DOC, handler);
 
     const result = (await FrontendToolRegistry.call(
       "ui_sketch_render_to_asset",
-      {},
+      { sketch_id: DOC },
       "sk-12",
       ctx
     )) as { ok: boolean; assets: Array<{ assetId: string; url: string }> };
@@ -323,11 +382,11 @@ describe("ui_sketch_* tools", () => {
         layerName: "Hills"
       }
     ]);
-    setSketchAgentHandler(handler);
+    setSketchAgentHandler(DOC, handler);
 
     const result = (await FrontendToolRegistry.call(
       "ui_sketch_render_to_asset",
-      { targets: ["Sky", "Hills"] },
+      { sketch_id: DOC, targets: ["Sky", "Hills"] },
       "sk-multi",
       ctx
     )) as { ok: boolean; assets: Array<{ assetId: string }> };
@@ -352,11 +411,11 @@ describe("ui_sketch_* tools", () => {
         layerName: null
       }
     ]);
-    setSketchAgentHandler(handler);
+    setSketchAgentHandler(DOC, handler);
 
     const result = (await FrontendToolRegistry.call(
       "ui_sketch_render_to_asset",
-      { targets: ["Sky", "Hills"], merge: true, name: "scene" },
+      { sketch_id: DOC, targets: ["Sky", "Hills"], merge: true, name: "scene" },
       "sk-merge",
       ctx
     )) as { ok: boolean; assets: Array<{ assetId: string }> };
@@ -379,11 +438,11 @@ describe("ui_sketch_* tools", () => {
       layerId: "layer-1",
       layerName: "Sky"
     });
-    setSketchAgentHandler(handler);
+    setSketchAgentHandler(DOC, handler);
 
     const result = (await FrontendToolRegistry.call(
       "ui_sketch_render_to_asset",
-      { target: "Sky", name: "sky-export" },
+      { sketch_id: DOC, target: "Sky", name: "sky-export" },
       "sk-13",
       ctx
     )) as { ok: boolean; assets: Array<{ assetId: string }> };
@@ -395,11 +454,11 @@ describe("ui_sketch_* tools", () => {
   it("resizes the canvas through the handler", async () => {
     const handler = createMockHandler();
     handler.resizeCanvas.mockReturnValue({ width: 512, height: 768 });
-    setSketchAgentHandler(handler);
+    setSketchAgentHandler(DOC, handler);
 
     const result = (await FrontendToolRegistry.call(
       "ui_sketch_resize_canvas",
-      { width: 512, height: 768 },
+      { sketch_id: DOC, width: 512, height: 768 },
       "sk-11",
       ctx
     )) as { ok: boolean; width: number; height: number };

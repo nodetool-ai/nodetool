@@ -20,16 +20,18 @@ import StoryboardAgentPanel from "../storyboard/StoryboardAgentPanel";
 interface StoryboardSurfaceProps {
   refId: string;
   mode: WorkspaceTabMode;
+  /** Whether this tab is the focused one. Not used by the agent bridge, which
+   * registers every open board by id. */
   active: boolean;
 }
 
 /**
  * Workspace surface for a storyboard tab. `refId` is the board id. Ensures the
- * board exists in the singleton store, mounts the agent bridge (so the active
- * board drives the ui_storyboard_* tools) and the generation subscriptions, and
- * renders the board read-only in view mode.
+ * board exists in the singleton store, mounts the agent bridge (registering this
+ * board under its id for the ui_storyboard_* tools) and the generation
+ * subscriptions, and renders the board read-only in view mode.
  */
-const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
+const StoryboardSurface = ({ refId, mode }: StoryboardSurfaceProps) => {
   const theme = useTheme();
   const ensureBoard = useStoryboardStore((state) => state.ensureBoard);
   const boardTitle = useStoryboardStore(
@@ -48,7 +50,7 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
     setTabTitle(refId, "storyboard", boardTitle || "Untitled storyboard");
   }, [setTabTitle, refId, boardTitle]);
 
-  useStoryboardAgentBridge(refId, active);
+  useStoryboardAgentBridge(refId);
   useStoryboardGenerationSubscriptions();
 
   const { direct, directing, error } = useDirectScreenplay();
@@ -57,11 +59,7 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
     [direct, refId]
   );
 
-  const {
-    assemble,
-    assembling,
-    error: assembleError
-  } = useAssembleTimeline();
+  const { assemble, assembling, error: assembleError } = useAssembleTimeline();
   const handleAssemble = useCallback(() => {
     void assemble(refId).catch(() => {
       // Surfaced via assembleError; swallow to keep the click handler quiet.
