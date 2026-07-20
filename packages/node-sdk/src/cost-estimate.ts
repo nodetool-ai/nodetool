@@ -7,6 +7,11 @@
  * price are still reported (cost 0, confidence "unknown") and counted, never
  * hidden — the plan-before-spend view must surface uncertainty.
  *
+ * Generic nodes (e.g. `nodetool.image.TextToImage`) carry no fixed node-type
+ * price — the model is chosen at runtime through a provider-model property such
+ * as `model`. For those, the estimator reads the selected model id from node
+ * data and prices it through the caller-supplied `getModelPrice` lookup.
+ *
  * No I/O: callers supply a `getMetadata` lookup so this stays hermetic and
  * usable from web, agents, and the CLI alike.
  */
@@ -33,16 +38,58 @@ export interface KieUnitPricingLike extends UnitPricing {
   source?: "live" | "bundle";
 }
 
+/** A single node property as exposed by `NodeMetadata` — only the shape read here. */
+export interface NodePropertyLike {
+  name?: string;
+  type?: { type?: string } | null;
+}
+
 /** Minimal slice of `NodeMetadata` this estimator reads. */
 export interface NodeMetadataLike {
   fal_unit_pricing?: FalUnitPricingLike | null;
   kie_unit_pricing?: KieUnitPricingLike | null;
+  /** Properties, used to find a provider-model selection on generic nodes. */
+  properties?: Array<NodePropertyLike | null> | null;
 }
+
+/** Price for a dynamically-selected model, as returned by `getModelPrice`. */
+export interface ModelUnitPricingLike extends UnitPricing {
+  source?: "live" | "bundle";
+}
+
+/** A model chosen on a node via a provider-model property (e.g. `model`). */
+export interface SelectedModel {
+  id: string;
+  provider: string | null;
+}
+
+/**
+ * Property `type.type` values whose value is a provider-backed model selection
+ * carrying a provider + model id. Kept in sync with the web `PROVIDER_MODEL_TYPES`
+ * list. Local model types (`llama_model`, `hf.*`) are excluded — they aren't
+ * priced through a provider catalog.
+ */
+const PROVIDER_MODEL_TYPES = new Set([
+  "language_model",
+  "image_model",
+  "embedding_model",
+  "tts_model",
+  "asr_model",
+  "video_model"
+]);
 
 export interface CostEstimateInput {
   nodes: Array<{ id: string; type: string; data?: Record<string, unknown> }>;
   /** Look up metadata (which may carry fal_unit_pricing / kie_unit_pricing) for a node type. */
   getMetadata: (nodeType: string) => NodeMetadataLike | undefined;
+  /**
+   * Optional lookup of unit pricing for a model selected on a generic node's
+   * provider-model property. Returns `null`/`undefined` when the model is
+   * unknown. Without it, generic nodes stay "unknown".
+   */
+  getModelPrice?: (
+    model: SelectedModel
+  ) => ModelUnitPricingLike | null | undefined;
   /** Optional per-node expected run count (fan-out). Defaults to 1. */
   quantities?: Record<string, number>;
   currency?: string;
@@ -68,8 +115,51 @@ interface ResolvedPrice {
   confidence: CostConfidence;
 }
 
-/** Resolve a node's unit price from metadata: FAL first, then kie, else none. */
-function resolvePrice(metadata: NodeMetadataLike | undefined): ResolvedPrice | null {
+/**
+ * The model selected on a generic node, read from the value of its first
+ * provider-model property (e.g. `model` on TextToImage). Returns null when the
+ * node exposes no such property or nothing is selected.
+ */
+function selectedModel(
+  metadata: NodeMetadataLike | undefined,
+  data: Record<string, unknown> | undefined
+): SelectedModel | null {
+  if (!data) return null;
+  const properties = metadata?.properties;
+  if (!properties) return null;
+
+  for (const property of properties) {
+    const propType = property?.type?.type;
+    const name = property?.name;
+    if (!name || !propType || !PROVIDER_MODEL_TYPES.has(propType)) {
+      continue;
+    }
+    const value = data[name];
+    if (value && typeof value === "object") {
+      const id = (value as { id?: unknown }).id;
+      if (typeof id === "string" && id.trim() !== "") {
+        const provider = (value as { provider?: unknown }).provider;
+        return {
+          id,
+          provider: typeof provider === "string" ? provider : null
+        };
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Resolve a node's unit price. Node-type metadata pricing wins (FAL, then kie);
+ * for generic nodes that carry none, fall back to the model chosen on a
+ * provider-model property, priced through `getModelPrice`.
+ */
+function resolvePrice(
+  metadata: NodeMetadataLike | undefined,
+  data: Record<string, unknown> | undefined,
+  getModelPrice: CostEstimateInput["getModelPrice"]
+): ResolvedPrice | null {
   const fal = metadata?.fal_unit_pricing;
   if (fal && Number.isFinite(fal.unit_price)) {
     return {
@@ -98,6 +188,22 @@ function resolvePrice(metadata: NodeMetadataLike | undefined): ResolvedPrice | n
     }
   }
 
+  if (getModelPrice) {
+    const model = selectedModel(metadata, data);
+    if (model) {
+      const price = getModelPrice(model);
+      if (price && Number.isFinite(price.unit_price)) {
+        return {
+          provider: model.provider ?? "model",
+          model: model.id,
+          unitPrice: price.unit_price,
+          billingUnit: price.billing_unit,
+          confidence: confidenceFromSource(price.source)
+        };
+      }
+    }
+  }
+
   return null;
 }
 
@@ -111,7 +217,11 @@ export function estimateWorkflowCost(input: CostEstimateInput): WorkflowCostEsti
 
   for (const node of input.nodes) {
     const quantity = positiveQuantity(quantities[node.id]);
-    const price = resolvePrice(input.getMetadata(node.type));
+    const price = resolvePrice(
+      input.getMetadata(node.type),
+      node.data,
+      input.getModelPrice
+    );
 
     if (!price) {
       items.push({
