@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { useCallback, useEffect } from "react";
+import { useTheme } from "@mui/material/styles";
 import {
   useWorkspaceTabsStore,
   type WorkspaceTabMode
@@ -10,9 +11,11 @@ import { useStoryboardAgentBridge } from "../../hooks/storyboard/useStoryboardAg
 import { useDirectScreenplay } from "../../hooks/storyboard/useDirectScreenplay";
 import { useStoryboardServerSync } from "../../hooks/storyboard/useStoryboardServerSync";
 import { useAssembleTimeline } from "../../hooks/storyboard/useAssembleTimeline";
+import { FlexColumn } from "../ui_primitives";
 import StoryboardBoard from "../storyboard/StoryboardBoard";
 import StoryboardSidebar from "../storyboard/StoryboardSidebar";
 import StoryboardQueueOverlay from "../storyboard/StoryboardQueueOverlay";
+import StoryboardAgentPanel from "../storyboard/StoryboardAgentPanel";
 
 interface StoryboardSurfaceProps {
   refId: string;
@@ -27,6 +30,7 @@ interface StoryboardSurfaceProps {
  * renders the board read-only in view mode.
  */
 const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
+  const theme = useTheme();
   const ensureBoard = useStoryboardStore((state) => state.ensureBoard);
   const boardTitle = useStoryboardStore(
     (state) => state.boards[refId]?.title ?? ""
@@ -87,6 +91,19 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
           assembleError={assembleError}
         />
       </div>
+      {mode !== "view" && (
+        <FlexColumn
+          fullHeight
+          sx={{
+            width: 320,
+            flexShrink: 0,
+            minHeight: 0,
+            borderLeft: `1px solid ${theme.vars.palette.divider}`
+          }}
+        >
+          <StoryboardAgentPanel boardId={refId} />
+        </FlexColumn>
+      )}
     </div>
   );
 };
