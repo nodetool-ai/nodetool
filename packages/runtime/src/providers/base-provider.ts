@@ -863,6 +863,9 @@ export abstract class BaseProvider {
       let assistantText = "";
       let finalizedAssistant: Message | undefined;
       const pending: ToolCall[] = [];
+      // The round's `done: true` chunk, withheld until we know if it ends the
+      // turn. Discarded when tools are pending — the next round supplies its own.
+      let terminalChunk: ProviderStreamItem | undefined;
 
       for await (const item of this.generateMessagesTraced({
         ...turnArgs,
@@ -886,14 +889,31 @@ export abstract class BaseProvider {
           yield item;
           continue;
         }
-        const chunk = item as { content?: unknown; thinking?: boolean };
+        const chunk = item as {
+          content?: unknown;
+          thinking?: boolean;
+          done?: boolean;
+        };
         if (typeof chunk.content === "string" && !chunk.thinking) {
           assistantText += chunk.content;
+        }
+        // `done: true` closes the provider's *completion*, which is not the same
+        // as the end of the turn — every provider emits one per tool-calling
+        // round. Forwarding them made consumers (the chat composer's Stop
+        // button) treat each round as the end of the turn. Hold the terminal
+        // chunk until we know whether tools are pending; release it below only
+        // when this round really is the last one.
+        if (chunk.done === true) {
+          terminalChunk = item;
+          continue;
         }
         yield item;
       }
 
       if (pending.length === 0) {
+        if (terminalChunk !== undefined) {
+          yield terminalChunk;
+        }
         if (finalizedAssistant) {
           messages.push(finalizedAssistant);
           return;
