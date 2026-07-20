@@ -280,7 +280,7 @@ const poster = node("lib.image.filter.Posterize", {
   image: image.output(),
   colors: 3
 });
-node("nodetool.output.ImageOutput", { name: "image", value: poster.output() });
+node("nodetool.output.Output", { name: "image", value: poster.output() });
 return graph();
 \`\`\`
 
@@ -338,7 +338,7 @@ const draft = node("nodetool.agents.Agent", { prompt: "Outline the topic" });
 const polish = node("nodetool.agents.Agent", {
   prompt: draft.output("text")
 });
-node("nodetool.output.StringOutput", { name: "result", value: polish.output("text") });
+node("nodetool.output.Output", { name: "result", value: polish.output("text") });
 \`\`\`
 
 ## Branch / Conditional
@@ -367,7 +367,12 @@ through an Agent step for transformation logic.
 | \`nodetool.text.Embedding\` | \`model\`, \`text\` |
 | \`nodetool.agents.Agent\` | \`prompt\`. Omit \`model\` — it inherits the run's. |
 | \`nodetool.constant.String\` / \`Integer\` / \`Float\` / \`Boolean\` | \`value\` |
+| \`nodetool.output.Output\` | \`name\`, \`value\` |
 | Other nodes | Whatever \`get_node_info\` lists as required. |
+
+\`nodetool.output.Output\` is the ONLY output node — there is no
+\`StringOutput\`, \`ImageOutput\`, or any other per-type variant. It takes any
+value; the \`name\` is what the result is keyed by.
 
 Set required properties when creating the node. Leave the rest at defaults —
 they get overridden by edges or are fine as-is.
