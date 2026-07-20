@@ -120,6 +120,7 @@ interface ScriptStoreState {
 
   // Lines
   addLine: (scriptId: string, sectionId?: string) => string;
+  insertLine: (scriptId: string, sectionId: string, index: number) => string;
   patchLine: (
     scriptId: string,
     lineId: string,
@@ -130,6 +131,18 @@ interface ScriptStoreState {
     scriptId: string,
     sectionId: string,
     orderedLineIds: string[]
+  ) => void;
+  /**
+   * Move `lineId` (from any section) so it lands directly before
+   * `beforeLineId` in `targetSectionId`; a null `beforeLineId` appends to the
+   * end. Positioning by neighbour id rather than a numeric index keeps the drop
+   * stable regardless of the shift caused by removing the line first.
+   */
+  moveLine: (
+    scriptId: string,
+    lineId: string,
+    targetSectionId: string,
+    beforeLineId: string | null
   ) => void;
 
   // Takes
@@ -359,6 +372,24 @@ export const useScriptStore = create<ScriptStoreState>((set, get) => ({
     return lineId;
   },
 
+  insertLine: (scriptId, sectionId, index) => {
+    const lineId = uid("line");
+    const newLine: ScriptLine = { id: lineId, text: "", takes: [] };
+    set((state) =>
+      withScript(state, scriptId, (s) => ({
+        ...s,
+        sections: s.sections.map((section) => {
+          if (section.id !== sectionId) return section;
+          const lines = [...section.lines];
+          const at = Math.max(0, Math.min(index, lines.length));
+          lines.splice(at, 0, newLine);
+          return { ...section, lines };
+        })
+      }))
+    );
+    return lineId;
+  },
+
   patchLine: (scriptId, lineId, patch) =>
     set((state) =>
       withScript(state, scriptId, (s) =>
@@ -401,6 +432,41 @@ export const useScriptStore = create<ScriptStoreState>((set, get) => ({
           return { ...section, lines };
         })
       }))
+    ),
+
+  moveLine: (scriptId, lineId, targetSectionId, beforeLineId) =>
+    set((state) =>
+      withScript(state, scriptId, (s) => {
+        if (lineId === beforeLineId) return s;
+        let moved: ScriptLine | undefined;
+        const stripped = s.sections.map((section) => {
+          const idx = section.lines.findIndex((l) => l.id === lineId);
+          if (idx < 0) return section;
+          moved = section.lines[idx];
+          return {
+            ...section,
+            lines: section.lines.filter((l) => l.id !== lineId)
+          };
+        });
+        if (!moved) return s;
+        const line = moved;
+        let inserted = false;
+        const sections = stripped.map((section) => {
+          if (section.id !== targetSectionId) return section;
+          const lines = [...section.lines];
+          const at =
+            beforeLineId == null
+              ? lines.length
+              : (() => {
+                  const i = lines.findIndex((l) => l.id === beforeLineId);
+                  return i < 0 ? lines.length : i;
+                })();
+          lines.splice(at, 0, line);
+          inserted = true;
+          return { ...section, lines };
+        });
+        return inserted ? { ...s, sections } : s;
+      })
     ),
 
   appendTake: (scriptId, lineId, take) =>
