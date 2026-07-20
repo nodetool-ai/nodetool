@@ -243,7 +243,24 @@ export const sketchRouter = router({
         layerBindings: []
       };
 
+      // A client-minted id makes create idempotent: a retry (or a second
+      // surface racing to create the same document) returns the existing row
+      // instead of duplicating it.
+      if (input.id) {
+        const existing = await ImageDocument.findById(input.id);
+        if (existing) {
+          if (existing.user_id !== ctx.userId) {
+            throwApiError(ApiErrorCode.NOT_FOUND, "Image document not found");
+          }
+          return existing.toResponse();
+        }
+      }
+
       const doc = new ImageDocument({
+        // Spread rather than `id: input.id` so no `id` key exists when the
+        // client didn't supply one — the model only defaults an id it doesn't
+        // already own as a property.
+        ...(input.id ? { id: input.id } : {}),
         user_id: ctx.userId,
         project_id: input.projectId,
         name: input.name,

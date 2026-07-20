@@ -15,6 +15,7 @@ import { useScriptStore } from "../../stores/script/ScriptStore";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { buildScriptTimelineDocument } from "../../components/script/assembleScriptTimeline";
 import type { TimelineClip, TimelineTrack } from "@nodetool-ai/timeline";
+import { newDocumentId } from "../../lib/newDocumentId";
 
 export interface AssembleScriptResult {
   sequenceId: string;
@@ -101,6 +102,7 @@ export const useAssembleScriptTimeline =
           }
 
           const sequence = await trpcClient.timeline.create.mutate({
+            id: newDocumentId(),
             name,
             projectId: "default"
           });

@@ -208,7 +208,24 @@ export const timelineRouter = router({
     .input(createTimelineInput)
     .output(timelineSequenceResponse)
     .mutation(async ({ ctx, input }) => {
+      // A client-minted id makes create idempotent: a retry (or a second
+      // surface racing to create the same sequence) returns the existing row
+      // instead of duplicating it.
+      if (input.id) {
+        const existing = await TimelineSequence.findById(input.id);
+        if (existing) {
+          if (existing.user_id !== ctx.userId) {
+            throwApiError(ApiErrorCode.NOT_FOUND, "Timeline sequence not found");
+          }
+          return existing.toTimelineSequence();
+        }
+      }
+
       const seq = new TimelineSequence({
+        // Spread rather than `id: input.id` so no `id` key exists when the
+        // client didn't supply one — the model only defaults an id it doesn't
+        // already own as a property.
+        ...(input.id ? { id: input.id } : {}),
         user_id: ctx.userId,
         project_id: input.projectId,
         name: input.name,

@@ -218,6 +218,37 @@ describe("sketch router", () => {
       expect(out.document.sketch.history).toEqual([]);
       expect(out.document.sketch.historyIndex).toBe(-1);
     });
+
+    it("honors a client-supplied id", async () => {
+      ID.findById.mockResolvedValue(null);
+      const caller = createCaller(makeCtx());
+      const out = await caller.sketch.create({
+        id: "client-minted-id",
+        name: "New",
+        projectId: "p-1"
+      });
+      expect(out.id).toBe("client-minted-id");
+    });
+
+    it("is idempotent — a repeated create returns the existing document", async () => {
+      ID.findById.mockResolvedValue(makeDoc({ id: "dupe", name: "Original" }));
+      const caller = createCaller(makeCtx());
+      const out = await caller.sketch.create({
+        id: "dupe",
+        name: "Should be ignored",
+        projectId: "p-1"
+      });
+      expect(out.id).toBe("dupe");
+      expect(out.name).toBe("Original");
+    });
+
+    it("hides another user's document behind a 404 rather than overwriting it", async () => {
+      ID.findById.mockResolvedValue(makeDoc({ id: "theirs", user_id: "someone-else" }));
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.sketch.create({ id: "theirs", name: "Mine", projectId: "p-1" })
+      ).rejects.toThrow();
+    });
   });
 
   describe("update", () => {

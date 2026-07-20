@@ -202,6 +202,37 @@ describe("timeline router", () => {
       expect(out.width).toBe(1920);
       expect(out.height).toBe(1080);
     });
+
+    it("honors a client-supplied id", async () => {
+      TS.findById.mockResolvedValue(null);
+      const caller = createCaller(makeCtx());
+      const out = await caller.timeline.create({
+        id: "client-minted-id",
+        name: "New",
+        projectId: "p-1"
+      });
+      expect(out.id).toBe("client-minted-id");
+    });
+
+    it("is idempotent — a repeated create returns the existing sequence", async () => {
+      TS.findById.mockResolvedValue(makeSeq({ id: "dupe", name: "Original" }));
+      const caller = createCaller(makeCtx());
+      const out = await caller.timeline.create({
+        id: "dupe",
+        name: "Should be ignored",
+        projectId: "p-1"
+      });
+      expect(out.id).toBe("dupe");
+      expect(out.name).toBe("Original");
+    });
+
+    it("hides another user's sequence behind a 404 rather than overwriting it", async () => {
+      TS.findById.mockResolvedValue(makeSeq({ id: "theirs", user_id: "other" }));
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.timeline.create({ id: "theirs", name: "Mine", projectId: "p-1" })
+      ).rejects.toThrow();
+    });
   });
 
   describe("update", () => {

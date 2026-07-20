@@ -428,6 +428,12 @@ export type TimelineSequenceListItem = z.infer<typeof timelineSequenceListItem>;
 // ── create (POST /api/timeline) ──────────────────────────────────────────────
 
 export const createTimelineInput = z.object({
+  /**
+   * Client-supplied id. The caller mints it so the sequence is addressable
+   * (agent tools, tab refs) before the create round-trip returns, and so a
+   * retried create is idempotent rather than duplicating the sequence.
+   */
+  id: z.string().optional(),
   name: z.string().min(1),
   projectId: z.string().min(1),
   fps: z.number().int().min(1).optional().default(30),

@@ -3,6 +3,7 @@ import { BASE_URL } from "../../stores/BASE_URL";
 import type { Asset } from "../../stores/ApiTypes";
 import type { AssetUpdate } from "../../stores/AssetStore";
 import { buildSeededImageDocument } from "./buildSeededImageDocument";
+import { newDocumentId } from "../../lib/newDocumentId";
 
 /** Sketch documents are scoped to a project; assets aren't, so use the default. */
 const SKETCH_PROJECT_ID = "default";
@@ -71,6 +72,7 @@ export async function ensureSketchDocumentForAsset(
   const { width, height } = await loadImageSize(assetImageUrl(asset));
 
   const created = await trpcClient.sketch.create.mutate({
+    id: newDocumentId(),
     name: asset.name || "Untitled",
     projectId: SKETCH_PROJECT_ID,
     width,

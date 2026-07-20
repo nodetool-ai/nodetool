@@ -73,7 +73,10 @@ describe("useEditVideoAsset", () => {
       await result.current(videoAsset({ id: "v2", name: "render.mp4" }));
     });
 
+    // The id is minted client-side at creation, so assert its shape (a
+    // dash-stripped uuid, matching the server's own format) rather than a value.
     expect(createMutate).toHaveBeenCalledWith({
+      id: expect.stringMatching(/^[0-9a-f]{32}$/),
       name: "render.mp4",
       projectId: "default"
     });

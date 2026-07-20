@@ -42,6 +42,7 @@ import {
   SPACING,
   getSpacingPx
 } from "../ui_primitives";
+import { newDocumentId } from "../../lib/newDocumentId";
 
 const styles = (theme: Theme) =>
   css({
@@ -310,6 +311,7 @@ export const CreateTimelineButton = memo(function CreateTimelineButton() {
   const handleCreate = useCallback(async () => {
     try {
       const timeline = await createTimeline.mutateAsync({
+        id: newDocumentId(),
         name: "Untitled video",
         projectId: "default"
       });
@@ -463,6 +465,7 @@ const TimelineListPanel = () => {
       try {
         const source = await utils.timeline.get.fetch({ id: item.id });
         const copy = await createTimeline.mutateAsync({
+          id: newDocumentId(),
           name: `${source.name} (copy)`.substring(0, 200),
           projectId: source.projectId,
           fps: source.fps,

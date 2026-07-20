@@ -41,6 +41,7 @@ import {
   SPACING,
   getSpacingPx
 } from "../ui_primitives";
+import { newDocumentId } from "../../lib/newDocumentId";
 
 const styles = (theme: Theme) =>
   css({
@@ -314,6 +315,7 @@ export const CreateSketchButton = memo(function CreateSketchButton() {
   const handleCreate = useCallback(async () => {
     try {
       const sketch = await createSketch.mutateAsync({
+        id: newDocumentId(),
         name: "Untitled sketch",
         projectId: "default"
       });
@@ -463,6 +465,7 @@ const SketchListPanel = () => {
       try {
         const source = await utils.sketch.get.fetch({ id: item.id });
         const copy = await createSketch.mutateAsync({
+          id: newDocumentId(),
           name: `${source.name} (copy)`.substring(0, 200),
           projectId: source.projectId,
           width: source.width,
