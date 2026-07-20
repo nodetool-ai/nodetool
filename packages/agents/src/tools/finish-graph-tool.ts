@@ -25,9 +25,17 @@ const FINISH_GRAPH_INPUT_SCHEMA = {
 };
 
 /**
- * Wrap the planner's registry so `validateGraph` treats metadata-only (Python)
- * node types as known rather than unknown, mirroring the check `add_node`
- * applies at add time. Everything else passes through.
+ * Wrap the planner's registry for `validateGraph`.
+ *
+ * Two planner-specific relaxations:
+ *
+ * - Metadata-only (Python) node types count as known rather than unknown,
+ *   mirroring the check `add_node` applies at add time.
+ * - Unselected models are not errors. The planner is told to omit `model` so
+ *   the run's configured provider+model gets stamped in at execution time; an
+ *   empty model is the intended output, not a defect. Left in, this check
+ *   would reject the shape the planner is asked to produce and push it into
+ *   pinning a model it has no basis to choose.
  */
 export function metadataAwareRegistry(
   registry: GraphValidationRegistry
@@ -38,7 +46,9 @@ export function metadataAwareRegistry(
     getMetadata: (nodeType: string): NodeMetadata | undefined =>
       registry.getMetadata(nodeType),
     validateNode: (descriptor, connectedHandles) =>
-      registry.validateNode(descriptor, connectedHandles)
+      registry
+        .validateNode(descriptor, connectedHandles)
+        .filter((issue) => issue.code !== "unset_model")
   };
 }
 

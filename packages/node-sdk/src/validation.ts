@@ -27,6 +27,16 @@
 import type { DeclaredPropertyMetadata } from "./decorators.js";
 
 /** A single validation issue tied to a node property. */
+/**
+ * What kind of property check failed. Lets callers filter by cause instead of
+ * matching on message prose — the graph planner suppresses `unset_model`,
+ * since it is asked to omit models and have them supplied at run time.
+ */
+export type NodePropertyValidationCode =
+  | "required"
+  | "unset_model"
+  | "unsupported_platform";
+
 export interface NodePropertyValidationIssue {
   /** Node id, when known. */
   nodeId?: string;
@@ -36,6 +46,8 @@ export interface NodePropertyValidationIssue {
   property: string;
   /** Human-readable message describing the failure. */
   message: string;
+  /** Machine-readable cause. */
+  code: NodePropertyValidationCode;
 }
 
 export interface ValidateNodePropertiesOptions {
@@ -163,6 +175,7 @@ export function validateNodeProperties(
           nodeId: options.nodeId,
           nodeType: options.nodeType,
           property: name,
+          code: "required",
           message: isAsset
             ? `Property "${name}" requires a ${typeStr} (asset, uri, or inline data)`
             : `Required property "${name}" is not set`
@@ -176,6 +189,7 @@ export function validateNodeProperties(
         nodeId: options.nodeId,
         nodeType: options.nodeType,
         property: name,
+        code: "unset_model",
         message: `Property "${name}" requires a ${typeStr} to be selected (provider and model id)`
       });
     }
