@@ -3,13 +3,12 @@
  *
  * A compact pill showing the live provider spend for a workflow's active run.
  * Clicking opens a Popover with the pre-run cost estimate (total, how many
- * nodes have no known price, and the biggest contributors) plus the budget
- * remaining. Mirrors the chip + popover shape of the per-node pricing footers.
+ * nodes have no known price, and the biggest contributors). Mirrors the chip +
+ * popover shape of the per-node pricing footers.
  */
 
 import React, { memo, useCallback, useMemo, useState } from "react";
 import { useTheme } from "@mui/material/styles";
-import { useShallow } from "zustand/react/shallow";
 import {
   Popover,
   Divider,
@@ -17,16 +16,12 @@ import {
   Caption,
   FlexColumn,
   FlexRow,
-  StatusIndicator,
-  TextLink,
   BORDER_RADIUS,
   Z_INDEX
 } from "../ui_primitives";
 import { EditorButton } from "../editor_ui";
-import { budgetRemaining } from "@nodetool-ai/protocol";
 import { useLiveRunCost } from "../../hooks/useLiveRunCost";
 import { useWorkflowCostEstimate } from "../../hooks/useWorkflowCostEstimate";
-import { useBudgetStore, selectBudget } from "../../stores/BudgetStore";
 import { formatMoney } from "./costsData";
 
 export interface CostTickerProps {
@@ -42,11 +37,6 @@ const CostTickerInternal: React.FC<CostTickerProps> = ({ workflowId }) => {
 
   const live = useLiveRunCost(workflowId);
   const estimate = useWorkflowCostEstimate(workflowId);
-  const budget = useBudgetStore(useShallow(selectBudget));
-  const resetSpent = useBudgetStore((s) => s.reset);
-
-  const remaining = useMemo(() => budgetRemaining(budget), [budget]);
-  const overBudget = remaining <= 0 || (estimate ? estimate.total > remaining : false);
 
   const topContributors = useMemo(() => {
     if (!estimate) {
@@ -66,17 +56,7 @@ const CostTickerInternal: React.FC<CostTickerProps> = ({ workflowId }) => {
 
   const handleClose = useCallback(() => setAnchorEl(null), []);
 
-  const handleResetSpent = useCallback(
-    (e: React.MouseEvent<HTMLElement>) => {
-      e.stopPropagation();
-      resetSpent();
-    },
-    [resetSpent]
-  );
-
-  const tier = overBudget
-    ? theme.vars.palette.warning
-    : theme.vars.palette.success;
+  const tier = theme.vars.palette.success;
 
   return (
     <>
@@ -213,53 +193,6 @@ const CostTickerInternal: React.FC<CostTickerProps> = ({ workflowId }) => {
               No graph loaded
             </Text>
           )}
-        </FlexColumn>
-
-        <Divider />
-
-        <FlexColumn gap={0.5} sx={{ px: 2, py: 1 }}>
-          <Caption
-            sx={{
-              fontWeight: 600,
-              color: theme.vars.palette.text.secondary,
-              textTransform: "uppercase",
-              letterSpacing: "0.05em"
-            }}
-          >
-            Budget
-          </Caption>
-          <FlexRow align="center" gap={1}>
-            <StatusIndicator
-              status={overBudget ? "warning" : "success"}
-              label={`${formatMoney(remaining)} remaining`}
-              size="small"
-            />
-          </FlexRow>
-          <FlexRow align="center" justify="space-between" gap={1}>
-            <Text
-              sx={{
-                fontSize: "var(--fontSizeSmaller)",
-                color: theme.vars.palette.text.secondary
-              }}
-            >
-              Cap {formatMoney(budget.cap)} · spent {formatMoney(budget.spent)}
-            </Text>
-            {budget.spent > 0 && (
-              <TextLink
-                asButton
-                underline="hover"
-                onClick={handleResetSpent}
-                sx={{
-                  fontSize: "var(--fontSizeSmaller)",
-                  color: theme.vars.palette.text.secondary,
-                  flexShrink: 0,
-                  "&:hover": { color: theme.vars.palette.text.primary }
-                }}
-              >
-                Reset spent
-              </TextLink>
-            )}
-          </FlexRow>
         </FlexColumn>
       </Popover>
     </>

@@ -80,9 +80,11 @@ Shipped, the timeline handoff: "Assemble timeline" (`useAssembleTimeline` + `bui
 - Draft mode: route to cheap/low-res models first, final render on approval.
 - Live cost ticker in Global Chat (the data already flows through OTel; it stops short of the chat UI).
 
-Shipped: `estimateWorkflowCost`/`withinBudget` in `packages/node-sdk/src/cost-estimate.ts` (aggregates fal/kie unit pricing across a graph, surfaces unpriced nodes as "unknown"); `WorkflowCostEstimatePanel` in the right panel and a `CostTicker` in Global Chat; a persisted `BudgetStore` (cap, currency, draft mode) with over-budget warnings; `useWorkflowCostEstimate`/`useLiveRunCost` hooks.
+Shipped: `estimateWorkflowCost` in `packages/node-sdk/src/cost-estimate.ts` (aggregates fal/kie unit pricing across a graph, multiplied by each node's configured fan-out, surfaces unpriced nodes as "unknown"); `WorkflowCostEstimatePanel` in the right panel and a `CostTicker` in Global Chat; `useWorkflowCostEstimate`/`useLiveRunCost` hooks.
 
-Known limits, still open: the estimate counts each node once (fan-out is not multiplied in); the draft-mode toggle stores intent but does not yet route to cheaper models; `spent` is not yet fed from run completions, so budget remaining compares against zero; the ticker reads costs from editor-runner jobs, not chat-initiated ones; and the budget is a UI warning, not an agent-side constraint.
+Deferred (removed, out of scope for now): the budget cap and draft-mode toggle, along with the `BudgetStore` and over-budget warnings — revisit when the agent can act on a cap rather than just warn.
+
+Known limits, still open: the ticker reads costs from editor-runner jobs, not chat-initiated ones.
 
 ## P1 — close the loop
 
