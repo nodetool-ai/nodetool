@@ -4,8 +4,9 @@
  * Reads the open workflow's nodes (from its NodeStore) and the node-type
  * metadata (which carries `fal_unit_pricing` / `kie_unit_pricing`), keeps only
  * the nodes that use an AI model, then runs the pure {@link estimateWorkflowCost}
- * estimator. Re-computes when the graph or metadata changes. Returns `null`
- * when the graph isn't available yet.
+ * estimator. Generic nodes (e.g. TextToImage) are priced from their selected
+ * `model` field via the FAL/kie pricing catalogs. Re-computes when the graph or
+ * metadata changes. Returns `null` when the graph isn't available yet.
  */
 
 import { useCallback, useMemo, useSyncExternalStore } from "react";
@@ -19,6 +20,7 @@ import {
   nodeExpectedQuantity,
   nodeMetadataUsesAiModel
 } from "../utils/aiModelNodes";
+import { getModelUnitPrice } from "../utils/modelUnitPricing";
 
 const EMPTY_NODES: Node<NodeData>[] = [];
 
@@ -63,6 +65,7 @@ export function useWorkflowCostEstimate(
         data: node.data as Record<string, unknown> | undefined
       })),
       getMetadata: (nodeType) => getMetadata(nodeType),
+      getModelPrice: getModelUnitPrice,
       quantities,
       currency: "USD"
     });

@@ -54,10 +54,25 @@ const mockMetadata: Record<string, unknown> = {
   "nodetool.llm.Agent": {
     properties: [{ name: "model", type: { type: "language_model" } }]
   },
+  "nodetool.image.TextToImage": {
+    properties: [{ name: "model", type: { type: "image_model" } }]
+  },
   "nodetool.text.Concat": {
     properties: [{ name: "a", type: { type: "str" } }]
   }
 };
+
+jest.mock("../../utils/modelUnitPricing", () => ({
+  getModelUnitPrice: (model: { id: string }) =>
+    model.id === "fal-ai/flux/schnell"
+      ? {
+          unit_price: 0.003,
+          billing_unit: "images",
+          currency: "USD",
+          source: "bundle"
+        }
+      : null
+}));
 
 jest.mock("../../stores/MetadataStore", () => ({
   __esModule: true,
@@ -93,6 +108,33 @@ describe("useWorkflowCostEstimate", () => {
       (i) => i.node_type === "nodetool.llm.Agent"
     );
     expect(unknown?.confidence).toBe("unknown");
+  });
+
+  it("prices a generic node from its selected model field", () => {
+    mockNodes = [
+      {
+        id: "t2i",
+        type: "nodetool.image.TextToImage",
+        data: {
+          model: {
+            type: "image_model",
+            provider: "huggingface_fal_ai",
+            id: "fal-ai/flux/schnell"
+          },
+          num_images: 2
+        }
+      }
+    ];
+
+    const { result } = renderHook(() => useWorkflowCostEstimate("wf1"));
+
+    const item = result.current!.items.find((i) => i.node_id === "t2i");
+    expect(item?.model).toBe("fal-ai/flux/schnell");
+    expect(item?.provider).toBe("huggingface_fal_ai");
+    expect(item?.quantity).toBe(2);
+    expect(item?.estimated_cost).toBeCloseTo(0.006, 5);
+    expect(item?.confidence).toBe("estimate");
+    expect(result.current!.unknown_count).toBe(0);
   });
 
   it("multiplies a node's cost by its fan-out output count", () => {

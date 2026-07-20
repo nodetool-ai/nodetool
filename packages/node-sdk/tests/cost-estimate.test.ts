@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   estimateWorkflowCost,
+  type CostEstimateInput,
   type NodeMetadataLike
 } from "../src/cost-estimate.js";
 
 const FAL_TYPE = "fal.image.FluxSchnell";
 const KIE_TYPE = "kie.video.Veo";
 const LLM_TYPE = "nodetool.agents.Agent";
+const GENERIC_TYPE = "nodetool.image.TextToImage";
 
 const metadataByType: Record<string, NodeMetadataLike> = {
   [FAL_TYPE]: {
@@ -27,11 +29,28 @@ const metadataByType: Record<string, NodeMetadataLike> = {
       usd_price: 2.5,
       source: "live"
     }
+  },
+  // A generic node has no fixed node-type price — it exposes a provider-model
+  // property whose value carries the selected model.
+  [GENERIC_TYPE]: {
+    properties: [{ name: "model", type: { type: "image_model" } }]
   }
 };
 
 const getMetadata = (type: string): NodeMetadataLike | undefined =>
   metadataByType[type];
+
+const modelPrices: Record<string, { unit_price: number; billing_unit: string }> =
+  {
+    "fal-ai/flux/dev": { unit_price: 0.025, billing_unit: "images" }
+  };
+
+const getModelPrice: CostEstimateInput["getModelPrice"] = (model) => {
+  const price = modelPrices[model.id];
+  return price
+    ? { ...price, currency: "USD", source: "bundle" as const }
+    : null;
+};
 
 describe("estimateWorkflowCost", () => {
   it("prices a fal node as unit_price * quantity with fan-out", () => {
@@ -90,6 +109,68 @@ describe("estimateWorkflowCost", () => {
     expect(unknown?.provider).toBeNull();
     expect(unknown?.model).toBeNull();
     expect(unknown?.quantity).toBe(1);
+  });
+
+  it("prices a generic node from its selected model field", () => {
+    const estimate = estimateWorkflowCost({
+      nodes: [
+        {
+          id: "g1",
+          type: GENERIC_TYPE,
+          data: {
+            model: {
+              type: "image_model",
+              provider: "fal_ai",
+              id: "fal-ai/flux/dev"
+            }
+          }
+        }
+      ],
+      getMetadata,
+      getModelPrice,
+      quantities: { g1: 2 }
+    });
+
+    const item = estimate.items[0];
+    expect(item.provider).toBe("fal_ai");
+    expect(item.model).toBe("fal-ai/flux/dev");
+    expect(item.unit_price).toBe(0.025);
+    expect(item.quantity).toBe(2);
+    expect(item.confidence).toBe("estimate");
+    expect(item.estimated_cost).toBeCloseTo(0.05, 10);
+    expect(estimate.unknown_count).toBe(0);
+    expect(estimate.total).toBeCloseTo(0.05, 10);
+  });
+
+  it("reports a generic node as unknown when its model has no price", () => {
+    const estimate = estimateWorkflowCost({
+      nodes: [
+        {
+          id: "g1",
+          type: GENERIC_TYPE,
+          data: {
+            model: { type: "image_model", id: "fal-ai/unpriced" }
+          }
+        }
+      ],
+      getMetadata,
+      getModelPrice
+    });
+
+    expect(estimate.unknown_count).toBe(1);
+    expect(estimate.total).toBe(0);
+    expect(estimate.items[0].confidence).toBe("unknown");
+  });
+
+  it("reports a generic node as unknown when no model is selected", () => {
+    const estimate = estimateWorkflowCost({
+      nodes: [{ id: "g1", type: GENERIC_TYPE, data: {} }],
+      getMetadata,
+      getModelPrice
+    });
+
+    expect(estimate.unknown_count).toBe(1);
+    expect(estimate.items[0].confidence).toBe("unknown");
   });
 
   it("defaults quantity to 1 for non-positive or missing entries", () => {
