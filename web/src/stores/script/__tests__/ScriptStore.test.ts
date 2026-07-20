@@ -64,6 +64,82 @@ describe("addLine", () => {
   });
 });
 
+describe("insertLine", () => {
+  const seed = (n: number): string => {
+    const store = useScriptStore.getState();
+    store.ensureScript(SCRIPT);
+    for (let i = 0; i < n; i++) store.addLine(SCRIPT);
+    return useScriptStore.getState().scripts[SCRIPT].sections[0].id;
+  };
+
+  it("inserts at the given index", () => {
+    const sectionId = seed(2);
+    const store = useScriptStore.getState();
+    const [a, b] = store.scripts[SCRIPT].sections[0].lines.map((l) => l.id);
+    const mid = store.insertLine(SCRIPT, sectionId, 1);
+    const ids = useScriptStore
+      .getState()
+      .scripts[SCRIPT].sections[0].lines.map((l) => l.id);
+    expect(ids).toEqual([a, mid, b]);
+  });
+
+  it("clamps an out-of-range index to the end", () => {
+    const sectionId = seed(1);
+    const store = useScriptStore.getState();
+    const first = store.scripts[SCRIPT].sections[0].lines[0].id;
+    const last = store.insertLine(SCRIPT, sectionId, 99);
+    const ids = useScriptStore
+      .getState()
+      .scripts[SCRIPT].sections[0].lines.map((l) => l.id);
+    expect(ids).toEqual([first, last]);
+  });
+});
+
+describe("moveLine", () => {
+  const seed = (n: number): { sectionId: string; ids: string[] } => {
+    const store = useScriptStore.getState();
+    store.ensureScript(SCRIPT);
+    for (let i = 0; i < n; i++) store.addLine(SCRIPT);
+    const section = useScriptStore.getState().scripts[SCRIPT].sections[0];
+    return { sectionId: section.id, ids: section.lines.map((l) => l.id) };
+  };
+  const currentIds = (sectionIdx = 0): string[] =>
+    useScriptStore
+      .getState()
+      .scripts[SCRIPT].sections[sectionIdx].lines.map((l) => l.id);
+
+  it("moves a line before another within a section", () => {
+    const { sectionId, ids } = seed(3); // [a, b, c]
+    useScriptStore.getState().moveLine(SCRIPT, ids[2], sectionId, ids[0]);
+    expect(currentIds()).toEqual([ids[2], ids[0], ids[1]]);
+  });
+
+  it("appends to the end when beforeLineId is null", () => {
+    const { sectionId, ids } = seed(3); // [a, b, c]
+    useScriptStore.getState().moveLine(SCRIPT, ids[0], sectionId, null);
+    expect(currentIds()).toEqual([ids[1], ids[2], ids[0]]);
+  });
+
+  it("is a no-op when dropped on itself", () => {
+    const { sectionId, ids } = seed(3);
+    useScriptStore.getState().moveLine(SCRIPT, ids[1], sectionId, ids[1]);
+    expect(currentIds()).toEqual(ids);
+  });
+
+  it("moves a line across sections", () => {
+    const { sectionId: secA, ids } = seed(2); // section A: [a, b]
+    const store = useScriptStore.getState();
+    const secB = store.addSection(SCRIPT);
+    store.addLine(SCRIPT, secB); // section B: [c]
+    const cId = useScriptStore.getState().scripts[SCRIPT].sections[1].lines[0]
+      .id;
+    store.moveLine(SCRIPT, ids[0], secB, cId);
+    expect(currentIds(0)).toEqual([ids[1]]);
+    expect(currentIds(1)).toEqual([ids[0], cId]);
+    void secA;
+  });
+});
+
 describe("takes", () => {
   it("appendTake accumulates and sets current", () => {
     const store = useScriptStore.getState();

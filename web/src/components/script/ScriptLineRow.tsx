@@ -1,11 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import { useCallback, useState } from "react";
-import type { ChangeEvent, MouseEvent } from "react";
+import type { ChangeEvent, DragEvent, MouseEvent } from "react";
 import GraphicEqIcon from "@mui/icons-material/GraphicEq";
 import HistoryIcon from "@mui/icons-material/History";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import TheaterComedyIcon from "@mui/icons-material/TheaterComedy";
+import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import {
   FlexColumn,
   FlexRow,
@@ -40,10 +41,26 @@ interface ScriptLineRowProps {
   cast: ScriptSpeaker[];
   highlighted: boolean;
   readOnly: boolean;
+  /** True while this row is the one being dragged (dimmed as it lifts out). */
+  isDragging?: boolean;
+  onDragStart?: (e: DragEvent<HTMLElement>) => void;
+  onDragEnd?: (e: DragEvent<HTMLElement>) => void;
+  onDragOver?: (e: DragEvent<HTMLElement>) => void;
+  onDrop?: (e: DragEvent<HTMLElement>) => void;
 }
 
 /** Width of the screenplay speaker gutter. */
 export const GUTTER = 104;
+
+/** Width of the hover-revealed drag handle rail left of the gutter. */
+export const DRAG_RAIL = 20;
+
+/**
+ * Left offset (px) of the line's text column: drag rail + gutter and the two
+ * 16px flex gaps around them. Add-line buttons and insert affordances align to
+ * this so they sit under the dialogue, not the speaker names.
+ */
+export const TEXT_INSET = DRAG_RAIL + 16 + GUTTER + 16;
 
 /**
  * Borderless field styling: the script reads as a document, so the input
@@ -69,7 +86,12 @@ const ScriptLineRow = ({
   line,
   cast,
   highlighted,
-  readOnly
+  readOnly,
+  isDragging = false,
+  onDragStart,
+  onDragEnd,
+  onDragOver,
+  onDrop
 }: ScriptLineRowProps) => {
   const patchLine = useScriptStore((s) => s.patchLine);
   const removeLine = useScriptStore((s) => s.removeLine);
@@ -140,16 +162,32 @@ const ScriptLineRow = ({
     });
   }, [hasDirection, patchLine, scriptId, line.id]);
 
+  const draggable = !readOnly && !!onDragStart;
+
+  const handleDragStart = useCallback(
+    (e: DragEvent<HTMLElement>) => {
+      // Some browsers only initiate a drag once dataTransfer carries a payload.
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", line.id);
+      onDragStart?.(e);
+    },
+    [onDragStart, line.id]
+  );
+
   return (
     <FlexRow
       align="flex-start"
       gap={SPACING.md}
       fullWidth
+      onDragOver={onDragOver}
+      onDrop={onDrop}
       sx={{
+        position: "relative",
         padding: SPACING.sm,
         paddingLeft: SPACING.none,
         borderRadius: BORDER_RADIUS.sm,
         backgroundColor: highlighted ? "action.selected" : "transparent",
+        opacity: isDragging ? 0.4 : 1,
         transition: MOTION.background,
         "&:hover": {
           backgroundColor: highlighted ? "action.selected" : "action.hover"
@@ -160,9 +198,42 @@ const ScriptLineRow = ({
         },
         "&:hover .script-line-actions, &:focus-within .script-line-actions": {
           opacity: 1
-        }
+        },
+        "& .script-line-drag": {
+          opacity: 0,
+          transition: MOTION.opacity
+        },
+        "&:hover .script-line-drag": { opacity: 1 }
       }}
     >
+      {draggable ? (
+        <Tooltip title="Drag to reorder">
+          <Box
+            className="script-line-drag"
+            draggable
+            onDragStart={handleDragStart}
+            onDragEnd={onDragEnd}
+            aria-label="Drag to reorder line"
+            sx={{
+              flexShrink: 0,
+              width: DRAG_RAIL,
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "flex-start",
+              marginTop: SPACING.sm,
+              color: "text.disabled",
+              cursor: "grab",
+              "&:active": { cursor: "grabbing" },
+              "&:hover": { color: "text.secondary" }
+            }}
+          >
+            <DragIndicatorIcon fontSize="small" />
+          </Box>
+        </Tooltip>
+      ) : (
+        <Box sx={{ flexShrink: 0, width: DRAG_RAIL }} />
+      )}
+
       <Tooltip title={cast.length ? "Change speaker" : "Add a speaker first"}>
         <Box
           component="button"

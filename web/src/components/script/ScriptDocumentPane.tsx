@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { useCallback, useState } from "react";
+import type { DragEvent } from "react";
 import AddIcon from "@mui/icons-material/Add";
 import GraphicEqIcon from "@mui/icons-material/GraphicEq";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
@@ -17,6 +18,7 @@ import {
   EmptyState,
   LoadingSpinner,
   SPACING,
+  BORDER_RADIUS,
   TYPOGRAPHY,
   MOTION,
   Z_INDEX
@@ -30,28 +32,141 @@ import { voiceAll } from "../../stores/script/scriptVoicing";
 import { exportScriptSubtitles } from "../../stores/script/scriptSubtitles";
 import { useScriptPlaythrough } from "../../hooks/script/useScriptPlaythrough";
 import { useAssembleScriptTimeline } from "../../hooks/script/useAssembleScriptTimeline";
-import ScriptLineRow, { GUTTER } from "./ScriptLineRow";
+import ScriptLineRow, { TEXT_INSET } from "./ScriptLineRow";
 
 interface ScriptDocumentPaneProps {
   scriptId: string;
   readOnly: boolean;
 }
 
+/** A pending drop position: land the dragged line before `beforeLineId` (or at
+ * the end of `sectionId` when null). */
+interface DropTarget {
+  sectionId: string;
+  beforeLineId: string | null;
+}
+
+interface LineDnd {
+  draggingLineId: string | null;
+  dropTarget: DropTarget | null;
+  onLineDragStart: (lineId: string) => void;
+  onLineDragEnd: () => void;
+  setDropTarget: (target: DropTarget | null) => void;
+  onLineDrop: () => void;
+}
+
+/**
+ * A hover-revealed gap between lines: a hairline with a centered "+" that
+ * inserts a new line at this position. Also acts as a drop target so a line can
+ * be dropped precisely between two others.
+ */
+const InsertLineGap = ({
+  onInsert,
+  onDragOver,
+  onDrop,
+  active
+}: {
+  onInsert: () => void;
+  onDragOver: (e: DragEvent<HTMLElement>) => void;
+  onDrop: (e: DragEvent<HTMLElement>) => void;
+  active: boolean;
+}) => (
+  <Box
+    onDragOver={onDragOver}
+    onDrop={onDrop}
+    sx={{
+      marginLeft: `${TEXT_INSET}px`,
+      height: 12,
+      display: "flex",
+      alignItems: "center",
+      cursor: "pointer",
+      "& .insert-line-rule": {
+        opacity: active ? 1 : 0,
+        transition: MOTION.opacity
+      },
+      "&:hover .insert-line-rule": { opacity: 1 }
+    }}
+  >
+    <Box
+      component="button"
+      type="button"
+      onClick={onInsert}
+      aria-label="Insert line here"
+      className="insert-line-rule"
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: SPACING.xs,
+        width: "100%",
+        padding: SPACING.none,
+        border: "none",
+        background: "none",
+        cursor: "pointer",
+        color: "primary.main"
+      }}
+    >
+      <AddIcon sx={{ fontSize: 14 }} />
+      <Box
+        sx={{
+          flex: 1,
+          height: 2,
+          borderRadius: BORDER_RADIUS.sm,
+          backgroundColor: "primary.main"
+        }}
+      />
+    </Box>
+  </Box>
+);
+
 const SectionBlock = ({
   scriptId,
   section,
   currentLineId,
-  readOnly
+  readOnly,
+  dnd
 }: {
   scriptId: string;
   section: ScriptSection;
   currentLineId: string | null;
   readOnly: boolean;
+  dnd: LineDnd;
 }) => {
   const cast = useScript(scriptId).cast;
   const setSectionTitle = useScriptStore((s) => s.setSectionTitle);
   const addLine = useScriptStore((s) => s.addLine);
+  const insertLine = useScriptStore((s) => s.insertLine);
   const removeSection = useScriptStore((s) => s.removeSection);
+
+  const isTarget = (beforeLineId: string | null): boolean =>
+    dnd.dropTarget?.sectionId === section.id &&
+    dnd.dropTarget.beforeLineId === beforeLineId;
+
+  // Snap a drag hovering a row to the nearest gap (before this line, or before
+  // the next one), so the active gap's rule marks where the drop will land.
+  const onRowDragOver =
+    (lineId: string, nextLineId: string | null) =>
+    (e: DragEvent<HTMLElement>) => {
+      if (!dnd.draggingLineId) return;
+      e.preventDefault();
+      const rect = e.currentTarget.getBoundingClientRect();
+      const after = e.clientY - rect.top > rect.height / 2;
+      dnd.setDropTarget({
+        sectionId: section.id,
+        beforeLineId: after ? nextLineId : lineId
+      });
+    };
+
+  const onGapDragOver =
+    (beforeLineId: string | null) => (e: DragEvent<HTMLElement>) => {
+      if (!dnd.draggingLineId) return;
+      e.preventDefault();
+      dnd.setDropTarget({ sectionId: section.id, beforeLineId });
+    };
+
+  const onGapDrop = (e: DragEvent<HTMLElement>) => {
+    e.preventDefault();
+    dnd.onLineDrop();
+  };
 
   return (
     <FlexColumn
@@ -106,18 +221,45 @@ const SectionBlock = ({
           </Box>
         )}
       </FlexRow>
-      {section.lines.map((line) => (
-        <ScriptLineRow
-          key={line.id}
-          scriptId={scriptId}
-          line={line}
-          cast={cast}
-          highlighted={line.id === currentLineId}
-          readOnly={readOnly}
-        />
-      ))}
+      {section.lines.map((line, index) => {
+        const nextLineId = section.lines[index + 1]?.id ?? null;
+        return (
+          <div key={line.id}>
+            {!readOnly && (
+              <InsertLineGap
+                onInsert={() => insertLine(scriptId, section.id, index)}
+                onDragOver={onGapDragOver(line.id)}
+                onDrop={onGapDrop}
+                active={isTarget(line.id)}
+              />
+            )}
+            <ScriptLineRow
+              scriptId={scriptId}
+              line={line}
+              cast={cast}
+              highlighted={line.id === currentLineId}
+              readOnly={readOnly}
+              isDragging={dnd.draggingLineId === line.id}
+              onDragStart={
+                readOnly ? undefined : () => dnd.onLineDragStart(line.id)
+              }
+              onDragEnd={readOnly ? undefined : dnd.onLineDragEnd}
+              onDragOver={onRowDragOver(line.id, nextLineId)}
+              onDrop={onGapDrop}
+            />
+          </div>
+        );
+      })}
       {!readOnly && (
-        <FlexRow sx={{ marginLeft: `${GUTTER + 8}px` }}>
+        <InsertLineGap
+          onInsert={() => insertLine(scriptId, section.id, section.lines.length)}
+          onDragOver={onGapDragOver(null)}
+          onDrop={onGapDrop}
+          active={isTarget(null)}
+        />
+      )}
+      {!readOnly && (
+        <FlexRow sx={{ marginLeft: `${TEXT_INSET}px` }}>
           <EditorButton
             size="small"
             variant="text"
@@ -139,10 +281,38 @@ const ScriptDocumentPane = ({
   const { sections, timelineId } = useScript(scriptId);
   const addLine = useScriptStore((s) => s.addLine);
   const addSection = useScriptStore((s) => s.addSection);
+  const moveLine = useScriptStore((s) => s.moveLine);
   const { playing, currentLineId, play, stop } =
     useScriptPlaythrough(scriptId);
   const [voicingAll, setVoicingAll] = useState(false);
   const { assemble, assembling } = useAssembleScriptTimeline();
+
+  const [draggingLineId, setDraggingLineId] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<DropTarget | null>(null);
+
+  // `dnd` is rebuilt every render, so these handlers see the current drag state
+  // directly — no memoization needed and no stale closures.
+  const dnd: LineDnd = {
+    draggingLineId,
+    dropTarget,
+    onLineDragStart: setDraggingLineId,
+    onLineDragEnd: () => {
+      setDraggingLineId(null);
+      setDropTarget(null);
+    },
+    setDropTarget,
+    onLineDrop: () => {
+      if (draggingLineId && dropTarget)
+        moveLine(
+          scriptId,
+          draggingLineId,
+          dropTarget.sectionId,
+          dropTarget.beforeLineId
+        );
+      setDraggingLineId(null);
+      setDropTarget(null);
+    }
+  };
 
   const onVoiceAll = useCallback(async () => {
     setVoicingAll(true);
@@ -298,10 +468,11 @@ const ScriptDocumentPane = ({
             section={section}
             currentLineId={currentLineId}
             readOnly={readOnly}
+            dnd={dnd}
           />
         ))}
         {!readOnly && !isEmpty && (
-          <FlexRow gap={SPACING.sm} sx={{ marginLeft: `${GUTTER + 8}px` }}>
+          <FlexRow gap={SPACING.sm} sx={{ marginLeft: `${TEXT_INSET}px` }}>
             <EditorButton
               size="small"
               variant="text"
