@@ -59,6 +59,7 @@ export const SKETCH_SIZE = {
   layerItemHeight: "39.2px",
   layerThumbnail: "39.2px",
   panelWidth: "260px",
+  assistantPanelWidth: "340px",
   iconButtonPad: "3px",
   borderRadius: BORDER_RADIUS.sm
 } as const;

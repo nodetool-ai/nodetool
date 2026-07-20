@@ -68,10 +68,8 @@ interface StandaloneSketchEditorProps {
   active?: boolean;
 }
 
-const StandaloneSketchEditorBody: React.FC<
-  Omit<StandaloneSketchEditorProps, "active">
-> = memo(
-  function StandaloneSketchEditorBody({ documentId, headerActions }) {
+const StandaloneSketchEditorBody: React.FC<StandaloneSketchEditorProps> = memo(
+  function StandaloneSketchEditorBody({ documentId, headerActions, active }) {
     const theme = useTheme();
     const styles = useMemo(() => containerStyles(theme), [theme]);
     const editorRef = useRef<SketchEditorHandle | null>(null);
@@ -213,6 +211,7 @@ const StandaloneSketchEditorBody: React.FC<
         <SketchEditor
           ref={editorRef}
           documentId={documentId}
+          active={active}
           initialDocument={seed.document}
           initialEditorState={initialEditorState ?? undefined}
           headerActions={
@@ -250,7 +249,7 @@ const StandaloneSketchEditor: React.FC<StandaloneSketchEditorProps> = ({
   ...bodyProps
 }) => (
   <SketchProvider active={active}>
-    <StandaloneSketchEditorBody {...bodyProps} />
+    <StandaloneSketchEditorBody active={active} {...bodyProps} />
   </SketchProvider>
 );
 
