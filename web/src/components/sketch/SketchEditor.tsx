@@ -69,6 +69,8 @@ import {
   SketchCanvasPane
 } from "./editor-shell";
 import { ConnectedGeneratedLayerSection } from "./Inspector";
+import SketchAgentPanel from "./SketchAgentPanel";
+import { useSketchAgentBridge } from "../../hooks/sketch/useSketchAgentBridge";
 import { useSketchCanvasRefStore } from "../../stores/sketch/SketchCanvasRefStore";
 import { useSketchSessionStore } from "../../stores/sketch/SketchSessionStore";
 import { useSketchWorkflowFreshnessCheck } from "../../hooks/sketch/useSketchWorkflowFreshnessCheck";
@@ -182,6 +184,12 @@ export interface SketchEditorProps {
   /** Document-level actions rendered at the trailing edge of the top mode bar
    * (e.g. Save/Done when embedded in an asset tab). */
   headerActions?: React.ReactNode;
+  /**
+   * Whether this editor is the focused/visible surface. Drives whether this
+   * instance registers the agent bridge so the `ui_sketch_*` tools target the
+   * focused document. Defaults to `true`.
+   */
+  active?: boolean;
 }
 
 const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
@@ -194,7 +202,8 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
       onExportImage,
       onExportMask,
       suspendKeyboardShortcuts,
-      headerActions
+      headerActions,
+      active = true
     },
     ref
   ) {
@@ -205,6 +214,11 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
     // every child so the column's reserved width also collapses, letting
     // the canvas grow into the freed space.
     const panelsHidden = useSketchStore((s) => s.panelsHidden);
+    const assistantPanelOpen = useSketchStore((s) => s.assistantPanelOpen);
+
+    // Register the agent bridge for this instance while it is the focused
+    // surface so the `ui_sketch_*` tools drive this document.
+    useSketchAgentBridge(active);
 
     // ─── Session layer (all transient editor-session state) ─────────────
     const session = useEditorSession({
@@ -246,6 +260,10 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
         getMaskDataUrl: () => canvasRef.current?.getMaskDataUrl() ?? null,
         setLayerData: (layerId, data) =>
           canvasRef.current?.setLayerData(layerId, data),
+        getLayerData: (layerId) =>
+          canvasRef.current?.getLayerData(layerId) ?? null,
+        fillLayerWithColor: (layerId, color) =>
+          canvasRef.current?.fillLayerWithColor(layerId, color),
         clearActiveLayer: () => session.canvasActions.handleClearLayer()
       });
       return () => {
@@ -529,6 +547,28 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
               </CollapsibleSection>
 
               <ConnectedGeneratedLayerSection />
+            </FlexColumn>
+          )}
+
+          {/* AI assistant chat column — a toggleable right-most panel that
+          drives the editor through the ui_sketch_* agent tools. Gated on the
+          same panelsHidden chrome toggle so Tab collapses it too. */}
+          {!panelsHidden && assistantPanelOpen && (
+            <FlexColumn
+              className="sketch-editor__assistant-panel"
+              sx={{
+                width: SKETCH_SIZE.assistantPanelWidth,
+                minWidth: SKETCH_SIZE.assistantPanelWidth,
+                maxWidth: SKETCH_SIZE.assistantPanelWidth,
+                minHeight: 0,
+                flexShrink: 0,
+                backgroundColor: theme.vars.palette.background.paper,
+                borderLeft: `1px solid ${theme.vars.palette.divider}`,
+                overflow: "hidden"
+              }}
+              gap={0}
+            >
+              <SketchAgentPanel />
             </FlexColumn>
           )}
         </FlexRow>

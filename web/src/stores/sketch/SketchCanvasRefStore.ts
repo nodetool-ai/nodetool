@@ -9,6 +9,10 @@ export interface SketchCanvasRefState {
   getMaskDataUrl: (() => string | null) | null;
   /** Writes pixel data (PNG data URL) into the given raster layer. */
   setLayerData: ((layerId: string, data: string | null) => void) | null;
+  /** Reads a layer's pixels as a serialized raster payload / PNG data URL. */
+  getLayerData: ((layerId: string) => string | null) | null;
+  /** Fills the given raster layer with a solid color (respecting alpha lock). */
+  fillLayerWithColor: ((layerId: string, color: string) => void) | null;
   /**
    * Clears the active layer — within the active selection if one exists,
    * otherwise the whole layer. Pushes its own history entry.
@@ -19,6 +23,8 @@ export interface SketchCanvasRefState {
     flattenToDataUrl: () => string;
     getMaskDataUrl: () => string | null;
     setLayerData: (layerId: string, data: string | null) => void;
+    getLayerData?: (layerId: string) => string | null;
+    fillLayerWithColor?: (layerId: string, color: string) => void;
     clearActiveLayer: () => void;
   }) => void;
   clearGetters: () => void;
@@ -34,6 +40,8 @@ export const createSketchCanvasRefStore = (): SketchCanvasRefStoreApi =>
     flattenToDataUrl: null,
     getMaskDataUrl: null,
     setLayerData: null,
+    getLayerData: null,
+    fillLayerWithColor: null,
     clearActiveLayer: null,
 
     setGetters: (getters) =>
@@ -41,6 +49,8 @@ export const createSketchCanvasRefStore = (): SketchCanvasRefStoreApi =>
         flattenToDataUrl: getters.flattenToDataUrl,
         getMaskDataUrl: getters.getMaskDataUrl,
         setLayerData: getters.setLayerData,
+        getLayerData: getters.getLayerData ?? null,
+        fillLayerWithColor: getters.fillLayerWithColor ?? null,
         clearActiveLayer: getters.clearActiveLayer
       }),
 
@@ -49,6 +59,8 @@ export const createSketchCanvasRefStore = (): SketchCanvasRefStoreApi =>
         flattenToDataUrl: null,
         getMaskDataUrl: null,
         setLayerData: null,
+        getLayerData: null,
+        fillLayerWithColor: null,
         clearActiveLayer: null
       })
   }));

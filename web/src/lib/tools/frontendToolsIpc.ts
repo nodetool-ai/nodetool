@@ -27,6 +27,7 @@ import "./builtin/uiActions";
 import "./builtin/model3d";
 import "./builtin/timeline";
 import "./builtin/storyboard";
+import "./builtin/sketch";
 import "./builtin/script";
 import "./builtin/puck";
 import "./builtin/entities";
