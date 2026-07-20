@@ -17,7 +17,6 @@ import {
   runApp,
   initializeBackendServer,
   stopServer,
-  restartLlamaServer,
 } from "./server";
 import { assertSafeReadablePath } from "./utils";
 import { logMessage } from "./logger";
@@ -30,8 +29,6 @@ import {
 import {
   readSettingsAsync,
   updateSetting,
-  getModelServiceStartupSettings,
-  updateModelServiceStartupSettings,
   getUpdateChannel,
   normalizeUpdateChannel,
   setUpdateChannel,
@@ -715,12 +712,6 @@ export function initializeIpcHandlers(): void {
     await setupWorkflowShortcuts();
   });
 
-  // Restart llama-server handler (used after downloading new models)
-  createIpcMainHandler(IpcChannels.RESTART_LLAMA_SERVER, async () => {
-    logMessage("Restarting llama-server to pick up new models");
-    await restartLlamaServer();
-  });
-
   // App control handlers
   createIpcMainHandler(IpcChannels.RUN_APP, async (_event, workflowId) => {
     logMessage(`Running app with workflow ID: ${workflowId}`);
@@ -1323,26 +1314,6 @@ export function initializeIpcHandlers(): void {
       }
       logMessage(`Setting update channel to: ${nextChannel}`);
       return setUpdateChannel(nextChannel);
-    },
-  );
-
-  createIpcMainHandler(
-    IpcChannels.SETTINGS_GET_MODEL_SERVICES_STARTUP,
-    async () => {
-      const settings = await readSettingsAsync();
-      return getModelServiceStartupSettings(settings);
-    },
-  );
-
-  createIpcMainHandler(
-    IpcChannels.SETTINGS_SET_MODEL_SERVICES_STARTUP,
-    async (_event, update) => {
-      logMessage(
-        `Updating model services startup settings: ${JSON.stringify(update)}`
-      );
-      const next = updateModelServiceStartupSettings(update);
-      emitServerStateChanged();
-      return next;
     },
   );
 

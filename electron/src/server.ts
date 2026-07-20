@@ -1,12 +1,10 @@
 import { dialog, shell, app } from "electron";
 import { logMessage } from "./logger";
 import {
-  getLlamaServerPath,
   getOptionalNodeModulesPath,
   getPythonPath,
   getProcessEnv,
   PID_FILE_PATH,
-  PID_DIRECTORY,
   webPath,
 } from "./config";
 
@@ -38,7 +36,6 @@ import { emitServerStateChanged } from "./tray";
 import { LOG_FILE } from "./logger";
 import { createWorkflowWindow } from "./workflowWindow";
 import { Watchdog } from "./watchdog";
-import { getModelServiceStartupSettings, readSettingsAsync } from "./settings";
 import { probeHttpOk, waitForHttpOk } from "./httpProbe";
 import {
   ensureActiveVaultDirs,
@@ -47,8 +44,6 @@ import {
 } from "./vaults";
 
 let backendWatchdog: Watchdog | null = null;
-let llamaWatchdog: Watchdog | null = null;
-const LLAMA_PID_FILE_PATH = path.join(PID_DIRECTORY, "llama-server.pid");
 
 /**
  * Set when the backend subprocess emits a `KeychainAccessError` marker on its
@@ -165,108 +160,6 @@ async function findAvailablePort(
 }
 
 /**
- * Checks if a llama-server is already running on a specific port
- */
-export async function isLlamaServerResponsive(
-  port: number,
-  timeoutMs = 2000
-): Promise<boolean> {
-  return probeHttpOk(`http://127.0.0.1:${port}/health`, { timeoutMs });
-}
-
-/**
- * Starts the llama-server using Watchdog
- */
-async function startLlamaServer(): Promise<void> {
-  const defaultPort = 8080;
-
-  // Check if an external llama-server is already running
-  if (await isLlamaServerResponsive(defaultPort)) {
-    serverState.llamaPort = defaultPort;
-    serverState.llamaExternalManaged = true;
-    logMessage(`Detected running llama-server instance on port ${defaultPort}`);
-    return;
-  }
-
-  const basePort = serverState.llamaPort ?? defaultPort;
-  const selectedPort = await findAvailablePort(basePort);
-  serverState.llamaPort = selectedPort;
-  serverState.llamaExternalManaged = false;
-
-  const llamaExecutablePath = getLlamaServerPath();
-  logMessage(`Llama-server executable path: ${llamaExecutablePath}`);
-
-  // Check if the executable exists
-  try {
-    await fs.access(llamaExecutablePath);
-  } catch {
-    logMessage(
-      `llama-server executable not found at ${llamaExecutablePath}. Skipping llama-server startup.`,
-      "warn"
-    );
-    return;
-  }
-
-  const args = [
-    "--host", "127.0.0.1",
-    "--port", String(selectedPort),
-  ];
-
-  llamaWatchdog = new Watchdog({
-    name: "llama-server",
-    command: llamaExecutablePath,
-    args,
-    env: {
-      ...process.env,
-    },
-    pidFilePath: LLAMA_PID_FILE_PATH,
-    healthUrl: `http://127.0.0.1:${selectedPort}/health`,
-    onOutput: (line) => emitServerLog(line),
-    logOutput: false,
-  });
-
-  try {
-    await llamaWatchdog.start();
-    logMessage(`llama-server started on port ${selectedPort}`);
-  } catch (error) {
-    logMessage(
-      `Failed to start llama-server watchdog: ${errorMessage(error)}`,
-      "error"
-    );
-    llamaWatchdog = null;
-    // Don't throw - llama-server is optional
-  }
-}
-
-/**
- * Restarts the llama-server (used after downloading new models)
- */
-async function restartLlamaServer(): Promise<void> {
-  logMessage("Restarting llama-server to pick up new models...");
-
-  // Stop existing server if running
-  if (llamaWatchdog) {
-    try {
-      await llamaWatchdog.stopGracefully();
-      logMessage("Stopped existing llama-server");
-    } catch (error) {
-      logMessage(
-        `Error stopping llama-server: ${errorMessage(error)}`,
-        "warn"
-      );
-    }
-    llamaWatchdog = null;
-  }
-
-  // Small delay to ensure port is released
-  await new Promise((resolve) => setTimeout(resolve, 500));
-
-  // Start fresh
-  await startLlamaServer();
-  logMessage("llama-server restarted successfully");
-}
-
-/**
  * Attempts to kill any existing server process using the stored PID
  */
 async function killExistingServer(): Promise<void> {
@@ -341,50 +234,9 @@ async function startServer(): Promise<void> {
     throw new Error(message);
   }
 
-  // Determine managed local model services startup policy
-  let startupSettings = {
-    startLlamaCppOnStartup: false,
-  };
-  try {
-    const settings = await readSettingsAsync();
-    const modelSettings = getModelServiceStartupSettings(settings);
-    startupSettings = { startLlamaCppOnStartup: modelSettings.startLlamaCppOnStartup };
-  } catch (error) {
-    logMessage(
-      `Failed to read settings for model service startup, defaulting to llama_cpp=false: ${error}`,
-      "warn"
-    );
-  }
-
-  logMessage(
-    `Model service startup settings: llama_cpp=${startupSettings.startLlamaCppOnStartup}`
-  );
-
-  // Start model services and find backend port in parallel.
-  const modelServicePromises: Promise<void>[] = [];
-
-  if (startupSettings.startLlamaCppOnStartup) {
-    logMessage("Starting llama-server...");
-    modelServicePromises.push(
-      startLlamaServer()
-        .then(() => logMessage("llama-server started successfully"))
-        .catch((error) => {
-          logMessage(
-            `Failed to start llama-server: ${errorMessage(error)}. Continuing without llama-server.`,
-            "warn"
-          );
-        })
-    );
-  } else {
-    logMessage("Skipping llama-server startup (disabled in settings)");
-  }
-
   const basePort = 7777;
   logMessage(`Finding available port starting from ${basePort}...`);
-  const [selectedPort] = await Promise.all([
-    findAvailablePort(basePort),
-    ...modelServicePromises,
-  ]);
+  const selectedPort = await findAvailablePort(basePort);
   serverState.serverPort = selectedPort;
   serverState.initialURL = `http://127.0.0.1:${selectedPort}`;
   logMessage(`Selected port: ${selectedPort}`);
@@ -437,7 +289,6 @@ async function startServer(): Promise<void> {
     HOST: "127.0.0.1",
     STATIC_FOLDER: webPath,
     NODETOOL_PYTHON: pythonPath,
-    LLAMA_CPP_URL: serverState.llamaPort ? `http://127.0.0.1:${serverState.llamaPort}` : "",
     NODE_ENV: isDevMode() ? "development" : "production",
     NODE_OPTIONS: nodeOptionsParts.filter(Boolean).join(" "),
     NODE_PATH: backendNodePath,
@@ -584,14 +435,6 @@ async function isServerRunning(): Promise<boolean> {
   }
 
   return probeHttpOk(`http://127.0.0.1:${port}/health`, { timeoutMs: 1000 });
-}
-
-/**
- * Checks if the llama-server process is currently running
- * @returns true if llama-server is running, false otherwise
- */
-function isLlamaServerRunning(): boolean {
-  return llamaWatchdog !== null;
 }
 
 /**
@@ -785,11 +628,6 @@ async function stopServer(): Promise<void> {
       await backendWatchdog.stopGracefully();
       backendWatchdog = null;
     }
-    if (llamaWatchdog) {
-      logMessage("Stopping llama-server (watchdog)");
-      await llamaWatchdog.stopGracefully();
-      llamaWatchdog = null;
-    }
   } catch (error) {
     logMessage(`Error during shutdown: ${errorMessage(error)}`, "error");
   }
@@ -798,40 +636,6 @@ async function stopServer(): Promise<void> {
   serverState.status = "idle";
   emitServerStateChanged();
   logMessage("Graceful shutdown complete");
-}
-
-/**
- * Starts the llama-server watchdog if it is not currently running.
- */
-async function startLlamaCppService(): Promise<void> {
-  if (llamaWatchdog) {
-    logMessage("llama-server is already running", "info");
-    return;
-  }
-  await startLlamaServer();
-  emitServerStateChanged();
-}
-
-/**
- * Stops the llama-server watchdog if it is managed by this app.
- */
-async function stopLlamaCppService(): Promise<void> {
-  if (!llamaWatchdog) {
-    if (serverState.llamaExternalManaged) {
-      logMessage(
-        "llama-server appears externally managed; tray stop is only available for app-managed llama-server",
-        "warn"
-      );
-    } else {
-      logMessage("llama-server is not running", "info");
-    }
-    return;
-  }
-
-  await llamaWatchdog.stopGracefully();
-  llamaWatchdog = null;
-  serverState.llamaExternalManaged = false;
-  emitServerStateChanged();
 }
 
 /**
@@ -869,9 +673,5 @@ export {
   serverState,
   initializeBackendServer,
   stopServer,
-  restartLlamaServer,
   isServerRunning,
-  isLlamaServerRunning,
-  startLlamaCppService,
-  stopLlamaCppService,
 };

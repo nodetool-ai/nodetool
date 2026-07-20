@@ -29,8 +29,6 @@ interface SystemInfoData {
   cudaVersion: string | null;
   ollamaInstalled: boolean;
   ollamaVersion: string | null;
-  llamaServerInstalled: boolean;
-  llamaServerVersion: string | null;
 }
 
 const InfoRow: React.FC<{
@@ -234,7 +232,6 @@ Features & Versions
 Python: ${systemInfo.pythonVersion || "Not available"}
 CUDA: ${systemInfo.cudaAvailable ? systemInfo.cudaVersion || "Available" : "Not available"}
 Ollama: ${systemInfo.ollamaInstalled ? systemInfo.ollamaVersion || "Installed" : "Not installed"}
-Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion || "Installed" : "Not installed"}
 `;
 
     try {
@@ -373,11 +370,6 @@ Llama Server: ${systemInfo.llamaServerInstalled ? systemInfo.llamaServerVersion 
               label="Ollama"
               available={systemInfo.ollamaInstalled}
               version={systemInfo.ollamaVersion}
-            />
-            <FeatureStatus
-              label="Llama Server"
-              available={systemInfo.llamaServerInstalled}
-              version={systemInfo.llamaServerVersion}
             />
           </div>
         </>

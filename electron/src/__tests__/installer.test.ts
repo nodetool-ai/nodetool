@@ -29,9 +29,6 @@ jest.mock("../ipc", () => ({
 
 jest.mock("../settings", () => ({
   updateSettings: jest.fn(),
-  getModelServiceStartupDefaults: jest.fn().mockReturnValue({
-    startLlamaCppOnStartup: false,
-  }),
 }));
 
 jest.mock("../python", () => ({
@@ -66,7 +63,6 @@ describe("installer promptForInstallLocation", () => {
     await handler({} as any, {
       location: "/chosen",
       modelBackend: "ollama",
-      startLlamaCppOnStartup: false,
     });
     const result = await promise;
     expect(updateSettings).toHaveBeenCalledWith(

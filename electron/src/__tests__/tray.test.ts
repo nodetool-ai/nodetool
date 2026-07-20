@@ -19,7 +19,7 @@ jest.mock("../logger", () => ({
 
 jest.mock("../state", () => ({
   getMainWindow: jest.fn().mockReturnValue(null),
-  serverState: { serverPort: 7777, llamaPort: undefined, status: "running" },
+  serverState: { serverPort: 7777, status: "running" },
 }));
 
 jest.mock("../window", () => ({
@@ -35,13 +35,7 @@ jest.mock("../server", () => ({
   isServerRunning: jest.fn().mockResolvedValue(true),
   getServerState: jest.fn().mockReturnValue({
     serverPort: 7777,
-    llamaPort: undefined,
-    llamaExternalManaged: false,
   }),
-  isLlamaServerRunning: jest.fn().mockReturnValue(false),
-  startLlamaCppService: jest.fn(),
-  stopLlamaCppService: jest.fn(),
-  isLlamaServerResponsive: jest.fn().mockResolvedValue(false),
 }));
 
 jest.mock("../api", () => ({
@@ -52,24 +46,11 @@ jest.mock("../settings", () => ({
   readSettings: jest.fn().mockReturnValue({ windowCloseAction: "ask" }),
   readSettingsAsync: jest.fn().mockResolvedValue({ windowCloseAction: "ask" }),
   updateSetting: jest.fn(),
-  getModelServiceStartupSettings: jest
-    .fn()
-    .mockReturnValue({ startLlamaCppOnStartup: false }),
-  updateModelServiceStartupSettings: jest.fn(),
 }));
 
 jest.mock("../workflowWindow", () => ({
   createMiniAppWindow: jest.fn(),
   createChatWindow: jest.fn(),
-}));
-
-jest.mock("../config", () => ({
-  getLlamaServerPath: jest.fn().mockReturnValue("/mock/conda/bin/llama-server"),
-  getCondaEnvPath: jest.fn().mockReturnValue("/mock/conda"),
-}));
-
-jest.mock("../installer", () => ({
-  ensureLlamaCppInstalled: jest.fn(),
 }));
 
 jest.mock("child_process", () => ({

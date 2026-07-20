@@ -28,6 +28,7 @@ try {
   moduleDir = dirname(require.resolve("better-sqlite3/package.json"));
 } catch {
   console.log("better-sqlite3 not installed; skipping native rebuild.");
+  reportNodeLlamaCpp();
   process.exit(0);
 }
 
@@ -81,6 +82,7 @@ for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       continue;
     }
     console.error("Could not resolve node-gyp to rebuild better-sqlite3.");
+    reportNodeLlamaCpp();
     process.exit(1);
   }
 
@@ -96,6 +98,7 @@ for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
   lastStatus = result.status ?? 1;
 
   if (lastStatus === 0) {
+    reportNodeLlamaCpp();
     process.exit(0);
   }
 
@@ -112,4 +115,21 @@ for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
   break;
 }
 
+reportNodeLlamaCpp();
 process.exit(lastStatus);
+
+// node-llama-cpp is N-API and ships prebuilt binaries for the supported
+// platforms, so it does not need a node-gyp rebuild like better-sqlite3 does.
+// This is a documented no-op hook: it logs what's happening and skips
+// cleanly (never crashing the postinstall) whether or not the package is
+// installed, since it's an optional dependency.
+function reportNodeLlamaCpp() {
+  try {
+    require.resolve("node-llama-cpp/package.json");
+    console.log(
+      "node-llama-cpp ships prebuilt N-API binaries; no rebuild required."
+    );
+  } catch {
+    console.log("node-llama-cpp not installed; skipping.");
+  }
+}

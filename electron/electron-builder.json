@@ -20,6 +20,11 @@
         "!node_modules/sqlite-vec/**",
         "!node_modules/bufferutil/**"
     ],
+    "asarUnpack": [
+        "**/node-llama-cpp/**/*.node",
+        "**/@node-llama-cpp/**/*.node",
+        "**/node-llama-cpp/llama/**"
+    ],
     "extraResources": [
         {
             "from": "../web/dist",
