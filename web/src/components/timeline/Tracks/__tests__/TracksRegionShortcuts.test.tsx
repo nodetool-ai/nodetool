@@ -92,6 +92,48 @@ describe("TracksRegion keyboard shortcuts", () => {
     expect(useTimelineUIStore.getState().msPerPx).toBeGreaterThan(zoomedIn);
   });
 
+  it("? opens the keyboard-shortcut reference", () => {
+    const { queryByText, getByText } = setup();
+    expect(queryByText("Keyboard shortcuts")).toBeNull();
+    act(() => {
+      fireEvent.keyDown(window, { key: "?" });
+    });
+    expect(getByText("Keyboard shortcuts")).toBeTruthy();
+  });
+
+  it("? opens the reference even on AltGr layouts (Ctrl+Alt produce ?)", () => {
+    const { getByText } = setup();
+    act(() => {
+      fireEvent.keyDown(window, { key: "?", ctrlKey: true, altKey: true });
+    });
+    expect(getByText("Keyboard shortcuts")).toBeTruthy();
+  });
+
+  it("? ignores auto-repeat so a held key doesn't flip the dialog", () => {
+    const { getByText } = setup();
+    act(() => {
+      fireEvent.keyDown(window, { key: "?" });
+    });
+    expect(getByText("Keyboard shortcuts")).toBeTruthy();
+    // A held key streams repeat events; none should toggle the dialog closed.
+    act(() => {
+      fireEvent.keyDown(window, { key: "?", repeat: true });
+      fireEvent.keyDown(window, { key: "?", repeat: true });
+    });
+    expect(getByText("Keyboard shortcuts")).toBeTruthy();
+  });
+
+  it("does not open the shortcut reference while typing in an input", () => {
+    const { container, queryByText } = setup();
+    const input = document.createElement("input");
+    container.appendChild(input);
+    input.focus();
+    act(() => {
+      fireEvent.keyDown(input, { key: "?" });
+    });
+    expect(queryByText("Keyboard shortcuts")).toBeNull();
+  });
+
   it("does not fire shortcuts while typing in an input", () => {
     const { container } = setup();
     const input = document.createElement("input");
