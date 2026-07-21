@@ -133,6 +133,8 @@ export interface SketchCanvasRef {
   commitPendingCrop: () => void;
   /** Get the raw layer canvas element for offset/bounds lookups (authoritative over layer.contentBounds). */
   getLayerCanvas: (layerId: string) => HTMLCanvasElement | null;
+  /** Current CSS size of the scrolling viewport that clips the artboard, or null before mount. */
+  getViewportSize: () => { width: number; height: number } | null;
 }
 
 // ─── Props ───────────────────────────────────────────────────────────────────
@@ -385,6 +387,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       ref,
       doc,
       runtime: compositing.runtime,
+      containerRef,
       displayCanvasRef: compositing.displayCanvasRef,
       overlayCanvasRef: compositing.overlayCanvasRef,
       redraw: compositing.redraw,

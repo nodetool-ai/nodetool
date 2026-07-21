@@ -24,7 +24,7 @@ export interface UseEditorKeyboardShortcutsParams {
   handleRedo: () => void;
   handleZoomIn: () => void;
   handleZoomOut: () => void;
-  handleZoomReset: () => void;
+  handleZoomFit: () => void;
   handleExportPng: () => void;
   handleClearLayer: () => void;
   handleFillLayerWithColor: (color: string) => void;
@@ -64,6 +64,8 @@ export interface UseEditorKeyboardShortcutsParams {
   handleTransformRedo: () => void;
   handleLayerViaCopy: () => void;
   handleLayerViaCut: () => void;
+  /** Move the active layer one step up ("up") or down ("down") in the stack. */
+  handleMoveActiveLayer: (direction: "up" | "down") => void;
   handleFreeTransform: () => void;
   handleRepeatLastTransform: () => void;
   handleRepeatLastTransformOnCopy: () => void;

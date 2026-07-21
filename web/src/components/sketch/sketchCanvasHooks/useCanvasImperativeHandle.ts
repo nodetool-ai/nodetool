@@ -23,6 +23,8 @@ export interface UseCanvasImperativeHandleParams {
   doc: SketchDocument;
   /** The rendering runtime that owns layer storage and compositing. */
   runtime: SketchRuntime;
+  /** Scrolling viewport that clips the artboard (used for fit-to-screen). */
+  containerRef: React.RefObject<HTMLDivElement | null>;
   displayCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   overlayCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   redraw: () => void;
@@ -37,6 +39,7 @@ export function useCanvasImperativeHandle({
   ref,
   doc,
   runtime,
+  containerRef,
   displayCanvasRef,
   overlayCanvasRef,
   redraw,
@@ -222,6 +225,16 @@ export function useCanvasImperativeHandle({
       commitPendingCrop,
       getLayerCanvas: (layerId: string): HTMLCanvasElement | null => {
         return runtime.getLayerCanvas(layerId) ?? null;
+      },
+      getViewportSize: (): { width: number; height: number } | null => {
+        const container = containerRef.current;
+        if (!container) {
+          return null;
+        }
+        return {
+          width: container.clientWidth,
+          height: container.clientHeight
+        };
       }
     }),
     [
@@ -229,6 +242,7 @@ export function useCanvasImperativeHandle({
       runtime,
       redraw,
       drainPendingStrokeCommit,
+      containerRef,
       displayCanvasRef,
       overlayCanvasRef,
       zoom,

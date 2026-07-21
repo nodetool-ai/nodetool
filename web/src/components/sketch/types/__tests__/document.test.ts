@@ -10,6 +10,7 @@ import {
   getLayerDepth,
   getDescendantIds,
   findMergeDownTargetIndex,
+  findLayerMoveTargetIndex,
   isLayerCompositeVisible,
   layerAllowsTransformWhilePixelLocked,
 } from "../document";
@@ -321,6 +322,75 @@ describe("findMergeDownTargetIndex", () => {
 
   it("returns -1 for empty array", () => {
     expect(findMergeDownTargetIndex([], "any")).toBe(-1);
+  });
+});
+
+// ─── findLayerMoveTargetIndex ────────────────────────────────────────────────
+
+describe("findLayerMoveTargetIndex", () => {
+  it("moves up toward the top of the stack (higher index)", () => {
+    const layers: Layer[] = [
+      makeLayer({ id: "a" }),
+      makeLayer({ id: "b" }),
+      makeLayer({ id: "c" }),
+    ];
+    expect(findLayerMoveTargetIndex(layers, "b", "up")).toBe(2);
+  });
+
+  it("moves down toward the bottom of the stack (lower index)", () => {
+    const layers: Layer[] = [
+      makeLayer({ id: "a" }),
+      makeLayer({ id: "b" }),
+      makeLayer({ id: "c" }),
+    ];
+    expect(findLayerMoveTargetIndex(layers, "b", "down")).toBe(0);
+  });
+
+  it("returns -1 when already at the top and moving up", () => {
+    const layers: Layer[] = [makeLayer({ id: "a" }), makeLayer({ id: "b" })];
+    expect(findLayerMoveTargetIndex(layers, "b", "up")).toBe(-1);
+  });
+
+  it("returns -1 when already at the bottom and moving down", () => {
+    const layers: Layer[] = [makeLayer({ id: "a" }), makeLayer({ id: "b" })];
+    expect(findLayerMoveTargetIndex(layers, "a", "down")).toBe(-1);
+  });
+
+  it("returns -1 when the active layer is a group", () => {
+    const layers: Layer[] = [
+      makeLayer({ id: "a" }),
+      makeLayer({ id: "g", type: "group" }),
+    ];
+    expect(findLayerMoveTargetIndex(layers, "g", "down")).toBe(-1);
+  });
+
+  it("returns -1 when the neighbor is a group (keeps the group block intact)", () => {
+    const layers: Layer[] = [
+      makeLayer({ id: "g", type: "group" }),
+      makeLayer({ id: "a" }),
+    ];
+    expect(findLayerMoveTargetIndex(layers, "a", "down")).toBe(-1);
+  });
+
+  it("returns -1 when the neighbor has a different parent", () => {
+    const layers: Layer[] = [
+      makeLayer({ id: "a", parentId: "group1" }),
+      makeLayer({ id: "b", parentId: "group2" }),
+    ];
+    expect(findLayerMoveTargetIndex(layers, "b", "down")).toBe(-1);
+  });
+
+  it("moves within the same parent group", () => {
+    const layers: Layer[] = [
+      makeLayer({ id: "a", parentId: "g" }),
+      makeLayer({ id: "b", parentId: "g" }),
+    ];
+    expect(findLayerMoveTargetIndex(layers, "a", "up")).toBe(1);
+  });
+
+  it("returns -1 when the active layer is not found", () => {
+    const layers: Layer[] = [makeLayer({ id: "a" })];
+    expect(findLayerMoveTargetIndex(layers, "missing", "up")).toBe(-1);
   });
 });
 

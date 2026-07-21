@@ -225,7 +225,7 @@ export function useCanvasActions({
     handleCanvasResizeDrag: geometryActions.handleCanvasResizeDrag,
     handleZoomIn: geometryActions.handleZoomIn,
     handleZoomOut: geometryActions.handleZoomOut,
-    handleZoomReset: geometryActions.handleZoomReset,
+    handleZoomFit: geometryActions.handleZoomFit,
     handleCropComplete: geometryActions.handleCropComplete,
     handleCropCommit,
     handleCropCancelPreview,
