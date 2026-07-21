@@ -9,9 +9,10 @@
  * then hands them to the suite. Adding a suite means pushing an `EvalSuite`
  * entry — not another hand-wired command block.
  *
- * The GraphPlanner suite lives in `@nodetool-ai/agents`
- * (`GRAPH_PLANNER_EVAL_CASES`). Heavy deps are imported lazily so command
- * registration stays light.
+ * The suites live in `@nodetool-ai/agents`: GraphPlanner
+ * (`GRAPH_PLANNER_EVAL_CASES`, one-shot DSL) and the frontend tool-loop
+ * (`TOOL_LOOP_EVAL_CASES`, multi-turn `ui_*` tool calling). Heavy deps are
+ * imported lazily so command registration stays light.
  */
 import type { Command } from "commander";
 import type { BaseProvider } from "@nodetool-ai/runtime";
@@ -25,6 +26,7 @@ interface EvalCliOptions {
   json?: boolean;
   out?: string;
   maxRetries?: string;
+  maxIterations?: string;
   minSuccess?: string;
   /** commander negated flag: `--no-find-model` sets this to false. */
   findModel?: boolean;
@@ -51,6 +53,8 @@ interface EvalRunDeps {
   /** Case ids to run; undefined runs the whole suite. */
   caseIds?: string[];
   maxRetries?: number;
+  /** Turn cap per case, for loop-style suites (tool-loop). */
+  maxIterations?: number;
   /** Progress callback (one line per event, for CLI display). */
   onEvent: (line: string) => void;
 }
@@ -133,8 +137,60 @@ const graphPlannerSuite: EvalSuite = {
   }
 };
 
+/** Frontend tool-loop suite (`ui_*` tools, `@nodetool-ai/agents`). */
+const toolLoopSuite: EvalSuite = {
+  id: "tool-loop",
+  description:
+    "Run the frontend tool-loop eval suite (ui_* tools) against a provider/model and report metrics",
+  async listCases() {
+    const { TOOL_LOOP_EVAL_CASES } = await import("@nodetool-ai/agents");
+    return TOOL_LOOP_EVAL_CASES.map((c) => ({
+      id: c.id,
+      description: c.description,
+      needsModelProviders: c.needsModelProviders
+    }));
+  },
+  async run(deps) {
+    const { TOOL_LOOP_EVAL_CASES, runToolLoopEval, formatToolLoopReport } =
+      await import("@nodetool-ai/agents");
+
+    let cases = TOOL_LOOP_EVAL_CASES;
+    if (deps.caseIds) {
+      const wanted = new Set(deps.caseIds);
+      cases = TOOL_LOOP_EVAL_CASES.filter((c) => wanted.has(c.id));
+      const missing = [...wanted].filter(
+        (id) => !cases.some((c) => c.id === id)
+      );
+      if (missing.length > 0) {
+        throw new Error(`Unknown case ids: ${missing.join(", ")} (see --list)`);
+      }
+    }
+
+    console.log(
+      `Running ${cases.length} tool-loop case(s) with ${deps.providerId}/${deps.model}`
+    );
+
+    const report = await runToolLoopEval({
+      provider: deps.provider,
+      model: deps.model,
+      cases,
+      maxIterations: deps.maxIterations,
+      onEvent: deps.onEvent
+    });
+
+    return {
+      report,
+      formatted: formatToolLoopReport(report),
+      successRate: report.summary.successRate
+    };
+  }
+};
+
 /** All evaluation suites exposed under `nodetool eval <suite>`. */
-export const EVAL_SUITES: readonly EvalSuite[] = [graphPlannerSuite];
+export const EVAL_SUITES: readonly EvalSuite[] = [
+  graphPlannerSuite,
+  toolLoopSuite
+];
 
 /**
  * Shared runner for every suite: handles `--list`, builds the provider/
@@ -185,6 +241,9 @@ async function runSuite(suite: EvalSuite, opts: EvalCliOptions): Promise<void> {
       providers,
       caseIds,
       maxRetries: opts.maxRetries ? Number(opts.maxRetries) : undefined,
+      maxIterations: opts.maxIterations
+        ? Number(opts.maxIterations)
+        : undefined,
       onEvent: (line) => {
         if (!opts.json) console.log(line);
       }
@@ -243,6 +302,10 @@ export function registerEvalCommand(program: Command): void {
       .option("--json", "Print the full report as JSON")
       .option("--out <path>", "Write the JSON report to a file")
       .option("--max-retries <n>", "Planner attempts per case (default 3)")
+      .option(
+        "--max-iterations <n>",
+        "Turn cap per case for loop-style suites (tool-loop; default 12)"
+      )
       .option(
         "--min-success <rate>",
         "Exit non-zero when the success rate is below this threshold (0..1)"
