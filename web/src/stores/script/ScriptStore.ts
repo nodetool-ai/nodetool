@@ -295,8 +295,9 @@ export const useScriptStore = create<ScriptStoreState>((set, get) => ({
         !(id in state.scripts) &&
         !(id in state.serverRevisions) &&
         !(id in state.saveStatus)
-      )
+      ) {
         return state;
+      }
       const scripts = { ...state.scripts };
       delete scripts[id];
       const serverRevisions = { ...state.serverRevisions };

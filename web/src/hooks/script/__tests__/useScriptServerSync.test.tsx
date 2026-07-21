@@ -161,6 +161,36 @@ describe("useScriptServerSync", () => {
     );
   });
 
+  it("flags error (not stuck 'saving') when the CAS-conflict reload fails", async () => {
+    updateMutate.mockRejectedValueOnce(
+      new Error("Script was modified since last read")
+    );
+    // Mount load succeeds; the conflict-triggered reload then fails.
+    getQuery.mockReset();
+    getQuery
+      .mockResolvedValueOnce({
+        id: "script-1",
+        name: "Saved script",
+        document: { cast: [], sections: [] },
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "rev-1"
+      })
+      .mockRejectedValueOnce(new Error("network down"));
+
+    renderHook(() => useScriptServerSync("script-1"));
+
+    await waitFor(() =>
+      expect(useScriptStore.getState().serverRevisions["script-1"]).toBe("rev-1")
+    );
+    act(() => useScriptStore.getState().setTitle("script-1", "Unsaved title"));
+
+    await waitFor(
+      () =>
+        expect(useScriptStore.getState().saveStatus["script-1"]).toBe("error"),
+      { timeout: 3000 }
+    );
+  });
+
   it("reloads and flags a conflict when the server copy moved on", async () => {
     updateMutate.mockRejectedValueOnce(
       new Error("Script was modified since last read")

@@ -89,6 +89,10 @@ export const useScriptServerSync = (scriptId: string): void => {
       } catch (error) {
         if (!isNotFound(error)) {
           console.error("Failed to load script", error);
+          // A failed load (e.g. a CAS-conflict reload that couldn't fetch) must
+          // not leave the status stuck on the "saving" it was set to — surface
+          // the failure.
+          store.getState().setSaveStatus(scriptId, "error");
           return;
         }
         // Unknown to the server: upsert-create carrying any local content.
@@ -106,6 +110,7 @@ export const useScriptServerSync = (scriptId: string): void => {
           void utilsRef.current.scripts.list.invalidate();
         } catch (createError) {
           console.error("Failed to create script", createError);
+          store.getState().setSaveStatus(scriptId, "error");
         }
       }
     };
