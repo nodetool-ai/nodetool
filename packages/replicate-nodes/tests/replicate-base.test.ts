@@ -141,8 +141,12 @@ describe("isRefSet", () => {
     expect(isRefSet({ data: "abc" })).toBe(true));
   it("returns true for { uri: 'https://...' }", () =>
     expect(isRefSet({ uri: "https://example.com/img.png" })).toBe(true));
-  it("returns false for asset_id-only refs because they cannot be uploaded", () =>
-    expect(isRefSet({ asset_id: "123" })).toBe(false));
+  it("returns true for asset_id-only refs (resolved via the context)", () =>
+    expect(isRefSet({ asset_id: "123" })).toBe(true));
+  it("returns false for a null asset_id", () =>
+    expect(isRefSet({ uri: "", data: null, asset_id: null })).toBe(false));
+  it("returns false for an empty-string asset_id", () =>
+    expect(isRefSet({ asset_id: "" })).toBe(false));
 });
 
 /* ================================================================== */
@@ -203,6 +207,28 @@ describe("assetToUrl", () => {
     expect(ctx.resolveAssetBytes).toHaveBeenCalledWith("asset://asset-123");
     expect(result).toBe("https://replicate.delivery/uploaded/asset-123.png");
     expect(result).not.toBe("asset://asset-123");
+  });
+
+  it("resolves an asset_id-only ref (empty uri) via context.resolveAssetBytes", async () => {
+    mockFilesCreate.mockResolvedValueOnce({
+      urls: { get: "https://replicate.delivery/uploaded/asset-456.png" }
+    });
+
+    const ctx = {
+      storage: { retrieve: vi.fn().mockResolvedValue(null) },
+      resolveAssetBytes: vi
+        .fn()
+        .mockResolvedValue({ bytes: Uint8Array.from([137, 80, 78, 71]) })
+    };
+
+    const result = await assetToUrl(
+      { type: "image", uri: "", asset_id: "asset-456" },
+      "api-key",
+      ctx
+    );
+
+    expect(ctx.resolveAssetBytes).toHaveBeenCalledWith("asset://asset-456");
+    expect(result).toBe("https://replicate.delivery/uploaded/asset-456.png");
   });
 });
 

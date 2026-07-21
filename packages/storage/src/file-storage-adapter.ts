@@ -13,6 +13,20 @@ import { isWithinRoot, normalizeStorageKey } from "./storage-keys.js";
 import { assertUploadWithinLimit } from "./storage-limits.js";
 
 /**
+ * Percent-decode a storage key extracted from an `/api/storage/<key>` URL so it
+ * matches the on-disk key. The HTTP route (`storage-api.ts`) decodes the same
+ * way; keeping them in sync means `retrieve("…/my%20file.png")` resolves to
+ * `my file.png`. Malformed escapes (`decodeURIComponent` throws) are left as-is.
+ */
+function decodeKey(key: string): string {
+  try {
+    return decodeURIComponent(key);
+  } catch {
+    return key;
+  }
+}
+
+/**
  * File-system storage adapter rooted to a single base directory.
  *
  * URI scheme: `file:///abs/path`. Also accepts `/api/storage/<key>` paths
@@ -54,13 +68,16 @@ export class FileStorageAdapter implements StorageAdapter {
       return rel || null;
     }
     if (uri.startsWith("/api/storage/") || uri.startsWith("api/storage/")) {
-      return uri.replace(/^\/?api\/storage\//, "");
+      // Strip any ?query / #fragment before decoding — the HTTP route keys off
+      // the decoded path only (storage-api.ts decodeURIComponent).
+      const withoutSuffix = uri.replace(/[?#].*$/, "");
+      return decodeKey(withoutSuffix.replace(/^\/?api\/storage\//, ""));
     }
     if (/^https?:\/\//.test(uri)) {
       try {
         const parsed = new URL(uri);
         if (parsed.pathname.startsWith("/api/storage/")) {
-          return parsed.pathname.replace(/^\/api\/storage\//, "");
+          return decodeKey(parsed.pathname.replace(/^\/api\/storage\//, ""));
         }
       } catch {
         return null;

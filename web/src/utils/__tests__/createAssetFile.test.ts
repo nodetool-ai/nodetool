@@ -237,4 +237,32 @@ describe("createAssetFile", () => {
     expect(result.filename).toBe("fal-video.mp4");
     expect(result.file.size).toBe(3);
   });
+
+  it("uses the server content_type for MIME/extension when the ref lacks an inline mime_type", async () => {
+    // Server reports a WEBP asset with no name, and the ref carries no inline
+    // mime_type — so both the File MIME and the generated extension must come
+    // from the server's content_type.
+    assetGetQuery.mockResolvedValueOnce({
+      id: "asset-2",
+      content_type: "image/webp",
+      get_url: "/api/storage/asset-2.webp"
+    });
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      arrayBuffer: async () => new Uint8Array([82, 73, 70, 70]).buffer
+    });
+
+    const [result] = await createAssetFile(
+      {
+        type: "image",
+        uri: "asset://asset-2.webp",
+        asset_id: "asset-2"
+      },
+      "node"
+    );
+
+    // Without the fix this would fall back to image/png and a .png extension.
+    expect(result.type).toBe("image/webp");
+    expect(result.filename).toBe("preview_node.webp");
+  });
 });

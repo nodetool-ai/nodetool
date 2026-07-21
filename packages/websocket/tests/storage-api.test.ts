@@ -107,6 +107,40 @@ describe("MIME type detection", () => {
     expect(res.status).toBe(200);
     expect(res.headers.get("Content-Type")).toBe("application/octet-stream");
   });
+
+  it.each([
+    ["clip.webm", "video/webm"],
+    ["sound.ogg", "audio/ogg"],
+    ["model.glb", "model/gltf-binary"],
+    ["pic.bmp", "image/bmp"],
+    ["track.flac", "audio/flac"],
+    ["voice.aac", "audio/aac"]
+  ])(
+    "serves %s inline with the right Content-Type (%s)",
+    async (name, expected) => {
+      const handler = makeHandler();
+      await fs.writeFile(path.join(tmpDir, name), "data");
+      const res = await handler(makeRequest(`/api/storage/${name}`, "HEAD"));
+      expect(res.status).toBe(200);
+      expect(res.headers.get("Content-Type")).toBe(expected);
+    }
+  );
+
+  it("serves user HTML as text/plain, not text/html (no XSS)", async () => {
+    const handler = makeHandler();
+    await fs.writeFile(path.join(tmpDir, "page.html"), "<script>alert(1)</script>");
+    const res = await handler(makeRequest("/api/storage/page.html", "HEAD"));
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toBe("text/plain");
+  });
+
+  it("does not serve SVG as image/svg+xml (leaves it octet-stream)", async () => {
+    const handler = makeHandler();
+    await fs.writeFile(path.join(tmpDir, "vec.svg"), "<svg/>");
+    const res = await handler(makeRequest("/api/storage/vec.svg", "HEAD"));
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Type")).toBe("application/octet-stream");
+  });
 });
 
 // ---------------------------------------------------------------------------

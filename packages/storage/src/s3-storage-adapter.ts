@@ -51,6 +51,21 @@ export class S3StorageAdapter implements StorageAdapter {
     return this.client;
   }
 
+  /**
+   * Strip the adapter's bucket-side prefix from a raw S3 key, returning the key
+   * relative to the adapter's logical root. A literal string strip — not a
+   * RegExp — so a prefix containing regex metacharacters (`.`, `+`, `[`, …)
+   * strips correctly instead of being interpreted as a pattern.
+   */
+  private stripPrefix(rawKey: string): string {
+    if (!this.prefix) return rawKey;
+    if (rawKey.startsWith(`${this.prefix}/`)) {
+      return rawKey.slice(this.prefix.length + 1);
+    }
+    if (rawKey === this.prefix) return "";
+    return rawKey;
+  }
+
   private parseUri(uri: string): { bucket: string; key: string } | null {
     if (!uri.startsWith("s3://")) return null;
     const withoutScheme = uri.slice("s3://".length);
@@ -151,9 +166,7 @@ export class S3StorageAdapter implements StorageAdapter {
         if (!obj.key) continue;
         // Strip the bucket-side prefix so callers see keys relative to the
         // adapter's logical root.
-        const key = this.prefix
-          ? obj.key.replace(new RegExp(`^${this.prefix}/?`), "")
-          : obj.key;
+        const key = this.stripPrefix(obj.key);
         entries.push({
           key,
           uri: `s3://${this.bucket}/${obj.key}`,
@@ -163,10 +176,7 @@ export class S3StorageAdapter implements StorageAdapter {
       }
       for (const cp of response.commonPrefixes) {
         if (!cp) continue;
-        const stripped = this.prefix
-          ? cp.replace(new RegExp(`^${this.prefix}/?`), "")
-          : cp;
-        commonPrefixes.push(stripped);
+        commonPrefixes.push(this.stripPrefix(cp));
       }
       if (!response.isTruncated || !response.nextContinuationToken) break;
       continuationToken = response.nextContinuationToken;
@@ -210,11 +220,8 @@ export class S3StorageAdapter implements StorageAdapter {
         bucket: parsed.bucket,
         key: parsed.key
       });
-      const stripped = this.prefix
-        ? parsed.key.replace(new RegExp(`^${this.prefix}/?`), "")
-        : parsed.key;
       return {
-        key: stripped,
+        key: this.stripPrefix(parsed.key),
         size: response.contentLength,
         modifiedAt: response.lastModified?.getTime() ?? 0,
         ...(response.contentType ? { contentType: response.contentType } : {})

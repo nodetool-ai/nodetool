@@ -877,6 +877,51 @@ describe("ProcessingContext.resolveAssetBytes", () => {
     expect(Uint8Array.from(bytes ?? [])).toEqual(new Uint8Array([4, 5, 6]));
   });
 
+  it("resolves a bare `/api/storage/<key>` path against the storage adapter", async () => {
+    // Regression: parseAssetIdCandidates treated the whole `/api/storage/...`
+    // path as the id, probing a bogus key and building a double-prefixed url.
+    const storage = new InMemoryStorageAdapter();
+    await storage.store("abc.png", new Uint8Array([7, 8, 9]), "image/png");
+    const ctx = new ProcessingContext({ jobId: "j1", storage });
+
+    const { bytes } = await ctx.resolveAssetBytes("/api/storage/abc.png");
+    expect(Uint8Array.from(bytes ?? [])).toEqual(new Uint8Array([7, 8, 9]));
+  });
+
+  it("strips the extension from the last segment only (dotted sub-path id)", async () => {
+    // Regression: `folder.v2/img` produced a bogus `folder` candidate that could
+    // resolve wrong bytes. Store a decoy at `folder.png` to prove it isn't hit.
+    const storage = new InMemoryStorageAdapter();
+    await storage.store("folder.v2/img.webp", new Uint8Array([1, 2, 3]), "image/webp");
+    await storage.store("folder.png", new Uint8Array([9, 9]), "image/png");
+    const ctx = new ProcessingContext({ jobId: "j1", storage });
+
+    // Extension mismatch (.png vs stored .webp) forces the prefix listing.
+    const { bytes } = await ctx.resolveAssetBytes("asset://folder.v2/img.png");
+    expect(Uint8Array.from(bytes ?? [])).toEqual(new Uint8Array([1, 2, 3]));
+  });
+
+  it("matches a hierarchical (sub-path) id in the listing fallback", async () => {
+    const storage = new InMemoryStorageAdapter();
+    await storage.store("user-1/image.webp", new Uint8Array([4, 5, 6]), "image/webp");
+    const ctx = new ProcessingContext({ jobId: "j1", storage });
+
+    const { bytes } = await ctx.resolveAssetBytes("asset://user-1/image.png");
+    expect(Uint8Array.from(bytes ?? [])).toEqual(new Uint8Array([4, 5, 6]));
+  });
+
+  it("resolves a legit `_thumb` id instead of filtering it out", async () => {
+    // Regression: the blanket `_thumb` substring filter dropped a genuine id
+    // like `banner_thumb`.
+    const storage = new InMemoryStorageAdapter();
+    await storage.store("banner_thumb.png", new Uint8Array([1, 1]), "image/png");
+    const ctx = new ProcessingContext({ jobId: "j1", storage });
+
+    // Extension mismatch (.jpg vs stored .png) forces the prefix listing.
+    const { bytes } = await ctx.resolveAssetBytes("asset://banner_thumb.jpg");
+    expect(Uint8Array.from(bytes ?? [])).toEqual(new Uint8Array([1, 1]));
+  });
+
   it("falls back to the /api/storage route when no adapter is configured", async () => {
     const ctx = new ProcessingContext({
       jobId: "j1",

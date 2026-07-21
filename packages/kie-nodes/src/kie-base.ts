@@ -261,7 +261,10 @@ export async function uploadVideoInput(
 function isRefSet(ref: unknown): boolean {
   if (!ref || typeof ref !== "object") return false;
   const r = ref as Record<string, unknown>;
-  return !!(r.data || r.uri);
+  // A library-picked or freshly-generated ref carries only `asset_id` (with an
+  // empty `uri`); `resolveUploadBytes` → `loadMediaRefBytes` resolves it via the
+  // context, so treat a non-empty `asset_id` as a source. `null`/`""` stay unset.
+  return !!(r.data || r.uri || r.asset_id);
 }
 
 export { isRefSet };

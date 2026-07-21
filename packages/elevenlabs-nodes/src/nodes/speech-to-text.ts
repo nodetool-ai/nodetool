@@ -1,5 +1,7 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
+import { loadMediaRefBytes } from "@nodetool-ai/runtime";
+import type { MediaRefValue } from "@nodetool-ai/runtime";
 import { getElevenLabsApiKey } from "../elevenlabs-base.js";
 
 export class SpeechToTextNode extends BaseNode {
@@ -103,7 +105,7 @@ export class SpeechToTextNode extends BaseNode {
     const apiKey = getElevenLabsApiKey(this._secrets);
 
     const audio = this.audio as Record<string, unknown> | undefined;
-    if (!audio?.uri && !audio?.data) {
+    if (!audio || typeof audio !== "object") {
       throw new Error("Audio input is required");
     }
 
@@ -117,35 +119,15 @@ export class SpeechToTextNode extends BaseNode {
     const diarize = Boolean(this.diarize ?? false);
     const fileFormat = String(this.file_format ?? "other");
 
-    // Get audio bytes from inline data, an asset/package ref resolved via the
-    // processing context, or a direct HTTP(S) fetch as a fallback.
-    let audioBytes: Buffer;
-    if (audio.data && typeof audio.data === "string") {
-      const match = (audio.data as string).match(/^data:[^;]+;base64,(.+)$/);
-      if (match) {
-        audioBytes = Buffer.from(match[1], "base64");
-      } else {
-        throw new Error("Invalid audio data URI");
-      }
-    } else if (audio.uri && typeof audio.uri === "string") {
-      const uri = audio.uri;
-      if (/^https?:\/\//i.test(uri)) {
-        const resp = await fetch(uri);
-        if (!resp.ok)
-          throw new Error(`Failed to fetch audio: ${resp.statusText}`);
-        audioBytes = Buffer.from(await resp.arrayBuffer());
-      } else {
-        // asset://, package://, or any storage/relative URI — must be resolved
-        // through the processing context, not fetched directly.
-        const resolved = await context?.resolveAssetBytes?.(uri);
-        if (!resolved?.bytes) {
-          throw new Error(`Failed to resolve audio reference: ${uri}`);
-        }
-        audioBytes = Buffer.from(resolved.bytes);
-      }
-    } else {
-      throw new Error("Audio must have a data URI or uri field");
+    // Resolve audio bytes through the canonical resolver, which handles inline
+    // `data` (raw base64 or `data:` URI), `asset://<id>` / `asset_id`, package
+    // and storage URIs, local files, and local http(s) — routing each through
+    // the appropriate guarded path rather than fetching arbitrary URLs.
+    const resolved = await loadMediaRefBytes(audio as MediaRefValue, context);
+    if (!resolved) {
+      throw new Error("Failed to resolve audio input for transcription");
     }
+    const audioBytes = Buffer.from(resolved);
 
     const formData = new FormData();
     formData.append("model_id", modelId);
