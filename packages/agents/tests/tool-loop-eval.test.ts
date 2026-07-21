@@ -12,7 +12,8 @@ import {
   checkToolLoopExpectations,
   createToolLoopBridge,
   type ToolLoopEvalCase,
-  type ToolLoopObservation
+  type ToolLoopObservation,
+  type ToolLoopFinalState
 } from "../src/index.js";
 import type {
   BaseProvider,
@@ -157,7 +158,7 @@ const GOOD_CASE: ToolLoopEvalCase = {
   id: "good",
   description: "builds a full chain",
   objective: "Take input text, summarize, output it.",
-  initialState: { nodeMetadata: CATALOG },
+  createBridge: () => createToolLoopBridge({ nodeMetadata: CATALOG }),
   expect: {
     requiredTools: ["ui_add_node", "ui_connect_nodes"],
     forbiddenTools: ["ui_delete_node"],
@@ -183,7 +184,7 @@ const NEEDS_MODELS_CASE: ToolLoopEvalCase = {
   description: "skipped without providers",
   objective: "Pick a model.",
   needsModelProviders: true,
-  initialState: { nodeMetadata: CATALOG },
+  createBridge: () => createToolLoopBridge({ nodeMetadata: CATALOG }),
   expect: {}
 };
 
@@ -373,7 +374,7 @@ function observation(
     nodes?: number;
     edges?: number;
   } = {}
-): ToolLoopObservation {
+): ToolLoopObservation<ToolLoopFinalState> {
   const errorSet = new Set(opts.errors ?? []);
   return {
     toolCalls: names.map((name) => ({

@@ -379,6 +379,7 @@ export {
   checkToolLoopExpectations
 } from "./evals/tool-loop-eval.js";
 export type {
+  HeadlessSurfaceBridge,
   ToolLoopEvalCase,
   ToolLoopEvalExpectations,
   ToolLoopStatePredicate,

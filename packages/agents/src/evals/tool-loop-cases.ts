@@ -14,7 +14,12 @@ import type {
   ToolLoopEvalCase,
   ToolLoopStatePredicate
 } from "./tool-loop-eval.js";
-import type { ToolLoopFinalState } from "./tool-loop-bridge.js";
+import {
+  createToolLoopBridge,
+  type ToolLoopFinalState,
+  type HeadlessNode,
+  type HeadlessEdge
+} from "./tool-loop-bridge.js";
 
 /** Minimal Property with the fields the headless tools read. */
 function prop(
@@ -120,7 +125,7 @@ function countByPrefix(state: ToolLoopFinalState, prefix: string): number {
 }
 
 /** Every non-input node has an incoming edge; every non-output an outgoing one. */
-const connectedPredicate: ToolLoopStatePredicate = {
+const connectedPredicate: ToolLoopStatePredicate<ToolLoopFinalState> = {
   name: "connected",
   detail: "some node is unwired",
   test: (state) => {
@@ -136,13 +141,40 @@ const connectedPredicate: ToolLoopStatePredicate = {
   }
 };
 
-export const TOOL_LOOP_EVAL_CASES: readonly ToolLoopEvalCase[] = [
+/** Pre-seeded input→agent graph for the `extend-existing` case. */
+const EXTEND_SEED_NODES: HeadlessNode[] = [
+  {
+    id: "in1",
+    type: "nodetool.input.StringInput",
+    position: { x: 100, y: 100 },
+    data: { properties: { name: "text", value: "" } }
+  },
+  {
+    id: "agent1",
+    type: "nodetool.agents.Agent",
+    position: { x: 360, y: 100 },
+    data: { properties: { prompt: "summarize", input: "" } }
+  }
+];
+
+const EXTEND_SEED_EDGES: HeadlessEdge[] = [
+  {
+    id: "edge_1",
+    source: "in1",
+    target: "agent1",
+    sourceHandle: "output",
+    targetHandle: "input"
+  }
+];
+
+export const TOOL_LOOP_EVAL_CASES: readonly ToolLoopEvalCase<ToolLoopFinalState>[] =
+  [
   {
     id: "summarize",
     description: "Wire a StringInput → Agent → StringOutput chain via tools",
     objective:
       "Build a workflow that takes a string input named 'text', summarizes it with an LLM agent step, and exposes the summary as a string output named 'summary'. Search for node types, add the nodes, and connect them.",
-    initialState: { nodeMetadata: CATALOG },
+    createBridge: () => createToolLoopBridge({ nodeMetadata: CATALOG }),
     expect: {
       requiredTools: ["ui_add_node", "ui_connect_nodes"],
       forbiddenTools: ["ui_delete_node"],
@@ -180,32 +212,14 @@ export const TOOL_LOOP_EVAL_CASES: readonly ToolLoopEvalCase[] = [
     description: "Add an output to a pre-seeded input→agent graph",
     objective:
       "The workflow already has a StringInput ('text', id=in1) feeding an Agent (id=agent1). Add a StringOutput node named 'result' and connect the agent's output to it so the result is surfaced.",
-    initialState: {
-      nodeMetadata: CATALOG,
-      nodes: [
-        {
-          id: "in1",
-          type: "nodetool.input.StringInput",
-          position: { x: 100, y: 100 },
-          data: { properties: { name: "text", value: "" } }
-        },
-        {
-          id: "agent1",
-          type: "nodetool.agents.Agent",
-          position: { x: 360, y: 100 },
-          data: { properties: { prompt: "summarize", input: "" } }
-        }
-      ],
-      edges: [
-        {
-          id: "edge_1",
-          source: "in1",
-          target: "agent1",
-          sourceHandle: "output",
-          targetHandle: "input"
-        }
-      ]
-    },
+    userPrompt:
+      "Objective: The workflow already has a StringInput ('text', id=in1) feeding an Agent (id=agent1). Add a StringOutput node named 'result' and connect the agent's output to it so the result is surfaced.\n\nThe workflow already contains 2 node(s); build on top of them.",
+    createBridge: () =>
+      createToolLoopBridge({
+        nodeMetadata: CATALOG,
+        nodes: EXTEND_SEED_NODES,
+        edges: EXTEND_SEED_EDGES
+      }),
     expect: {
       requiredTools: ["ui_add_node", "ui_connect_nodes"],
       ordering: [["ui_add_node", "ui_connect_nodes"]],

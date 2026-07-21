@@ -22,12 +22,20 @@
 import type { BaseProvider, Message } from "@nodetool-ai/runtime";
 import { zodToJsonSchema } from "@nodetool-ai/runtime";
 import type { EvalCheck } from "./graph-planner-eval.js";
-import {
-  createToolLoopBridge,
-  type ToolLoopInitialState,
-  type ToolLoopFinalState
-} from "./tool-loop-bridge.js";
+import type { HeadlessTool, ToolLoopFinalState } from "./tool-loop-bridge.js";
 import { TOOL_LOOP_EVAL_CASES } from "./tool-loop-cases.js";
+
+/**
+ * The minimal contract every headless surface bridge (graph editor, script,
+ * sketch, timeline, storyboard, 3D) exposes to the runner: a set of executable
+ * {@link HeadlessTool tools} carrying the real frontend tool contract, plus a
+ * `finalState` snapshot the case's structural predicates run against. `TFinal`
+ * is surface-specific (graph → `{nodes, edges}`, timeline → clips/tracks, …).
+ */
+export interface HeadlessSurfaceBridge<TFinal = unknown> {
+  tools: HeadlessTool[];
+  finalState: () => TFinal;
+}
 
 /** One tool call the model made, with its result and whether it errored. */
 export interface ToolCallRecord {
@@ -37,15 +45,15 @@ export interface ToolCallRecord {
   isError: boolean;
 }
 
-/** A named boolean assertion over the final graph state. */
-export interface ToolLoopStatePredicate {
+/** A named boolean assertion over a surface's final state. */
+export interface ToolLoopStatePredicate<TFinal = unknown> {
   name: string;
-  test: (state: ToolLoopFinalState) => boolean;
+  test: (state: TFinal) => boolean;
   /** Optional detail shown when the predicate fails. */
   detail?: string;
 }
 
-export interface ToolLoopEvalExpectations {
+export interface ToolLoopEvalExpectations<TFinal = unknown> {
   /** Tool names that must each be called at least once. */
   requiredTools?: string[];
   /** Tool names that must never be called. */
@@ -55,8 +63,8 @@ export interface ToolLoopEvalExpectations {
    * call of `b`. Both tools must be called for the check to pass.
    */
   ordering?: Array<[string, string]>;
-  /** Predicates on the final graph state (all must hold). */
-  finalState?: ToolLoopStatePredicate[];
+  /** Predicates on the final surface state (all must hold). */
+  finalState?: ToolLoopStatePredicate<TFinal>[];
   /** Minimum total tool calls across the run. */
   minToolCalls?: number;
   /** Maximum total tool calls across the run (efficiency ceiling). */
@@ -65,24 +73,35 @@ export interface ToolLoopEvalExpectations {
   noErrorResults?: boolean;
 }
 
-export interface ToolLoopEvalCase {
+export interface ToolLoopEvalCase<TFinal = ToolLoopFinalState> {
   id: string;
   description: string;
   objective: string;
-  /** Node catalog + starting graph the tools operate on. */
-  initialState: ToolLoopInitialState;
+  /**
+   * Build the headless surface bridge (tools + final-state snapshot) this case
+   * drives. Called once per run, so each case starts from a fresh in-memory
+   * state.
+   */
+  createBridge: () => HeadlessSurfaceBridge<TFinal>;
+  /**
+   * Surface-specific system prompt. Falls back to the runner's `systemPrompt`
+   * option, then the graph-editor default.
+   */
+  systemPrompt?: string;
+  /** Override the user message (defaults to `Objective: <objective>`). */
+  userPrompt?: string;
   /**
    * Case needs configured model providers to be solvable — skipped when the
    * harness runs without any (mirrors the graph-planner suite).
    */
   needsModelProviders?: boolean;
-  expect: ToolLoopEvalExpectations;
+  expect: ToolLoopEvalExpectations<TFinal>;
 }
 
 /** Everything the pure checker needs — no provider, no I/O. */
-export interface ToolLoopObservation {
+export interface ToolLoopObservation<TFinal = unknown> {
   toolCalls: ToolCallRecord[];
-  finalState: ToolLoopFinalState;
+  finalState: TFinal;
 }
 
 export interface ToolLoopCaseResult {
@@ -121,16 +140,16 @@ export interface ToolLoopEvalReport {
   };
 }
 
-export interface RunToolLoopEvalOptions {
+export interface RunToolLoopEvalOptions<TFinal = ToolLoopFinalState> {
   provider: BaseProvider;
   model: string;
   /** Configured providers; enables model-dependent cases (else they skip). */
   providers?: Record<string, BaseProvider>;
-  /** Cases to run; defaults to the built-in suite. */
-  cases?: readonly ToolLoopEvalCase[];
+  /** Cases to run; defaults to the built-in graph-editor suite. */
+  cases?: readonly ToolLoopEvalCase<TFinal>[];
   /** Turn cap — max tool-calling rounds before the loop stops. Defaults to 12. */
   maxIterations?: number;
-  /** Override the system prompt handed to the model. */
+  /** Override the system prompt handed to the model (per-case wins over this). */
   systemPrompt?: string;
   signal?: AbortSignal;
   /** Progress callback (one line per event, for CLI display). */
@@ -153,12 +172,11 @@ function totalToolCalls(byName: Record<string, number>): number {
   return Object.values(byName).reduce((a, b) => a + b, 0);
 }
 
-function buildUserPrompt(evalCase: ToolLoopEvalCase): string {
-  const existing =
-    (evalCase.initialState.nodes?.length ?? 0) > 0
-      ? `\n\nThe workflow already contains ${evalCase.initialState.nodes!.length} node(s); build on top of them.`
-      : "";
-  return `Objective: ${evalCase.objective}${existing}`;
+function buildUserPrompt(evalCase: {
+  userPrompt?: string;
+  objective: string;
+}): string {
+  return evalCase.userPrompt ?? `Objective: ${evalCase.objective}`;
 }
 
 /**
@@ -166,9 +184,9 @@ function buildUserPrompt(evalCase: ToolLoopEvalCase): string {
  * fully unit-testable: it takes an {@link ToolLoopObservation} and never calls
  * a provider.
  */
-export function checkToolLoopExpectations(
-  observation: ToolLoopObservation,
-  expect: ToolLoopEvalExpectations
+export function checkToolLoopExpectations<TFinal>(
+  observation: ToolLoopObservation<TFinal>,
+  expect: ToolLoopEvalExpectations<TFinal>
 ): EvalCheck[] {
   const checks: EvalCheck[] = [];
   const sequence = observation.toolCalls.map((c) => c.name);
@@ -250,11 +268,11 @@ export function checkToolLoopExpectations(
   return checks;
 }
 
-async function runCase(
-  evalCase: ToolLoopEvalCase,
-  opts: RunToolLoopEvalOptions
+async function runCase<TFinal>(
+  evalCase: ToolLoopEvalCase<TFinal>,
+  opts: RunToolLoopEvalOptions<TFinal>
 ): Promise<ToolLoopCaseResult> {
-  const bridge = createToolLoopBridge(evalCase.initialState);
+  const bridge = evalCase.createBridge();
   const toolCalls: Record<string, number> = {};
   const records: ToolCallRecord[] = [];
   const costBefore = opts.provider.getTotalCost();
@@ -284,7 +302,11 @@ async function runCase(
   }));
 
   const messages: Message[] = [
-    { role: "system", content: opts.systemPrompt ?? DEFAULT_SYSTEM_PROMPT },
+    {
+      role: "system",
+      content:
+        opts.systemPrompt ?? evalCase.systemPrompt ?? DEFAULT_SYSTEM_PROMPT
+    },
     { role: "user", content: buildUserPrompt(evalCase) }
   ];
 
@@ -313,7 +335,7 @@ async function runCase(
   const costUsd = opts.provider.getTotalCost() - costBefore;
   const accepted = error === undefined;
 
-  const observation: ToolLoopObservation = {
+  const observation: ToolLoopObservation<TFinal> = {
     toolCalls: records,
     finalState: bridge.finalState()
   };
@@ -343,10 +365,11 @@ async function runCase(
   };
 }
 
-export async function runToolLoopEval(
-  opts: RunToolLoopEvalOptions
+export async function runToolLoopEval<TFinal = ToolLoopFinalState>(
+  opts: RunToolLoopEvalOptions<TFinal>
 ): Promise<ToolLoopEvalReport> {
-  const cases = opts.cases ?? TOOL_LOOP_EVAL_CASES;
+  const cases = (opts.cases ??
+    TOOL_LOOP_EVAL_CASES) as readonly ToolLoopEvalCase<TFinal>[];
   const hasModelProviders =
     !!opts.providers && Object.keys(opts.providers).length > 0;
   const results: ToolLoopCaseResult[] = [];
