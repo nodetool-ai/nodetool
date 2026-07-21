@@ -125,8 +125,14 @@ export const useScriptServerSync = (scriptId: string): void => {
           }
         }
       } catch (error) {
-        if (disposed) return;
         console.error("Script autosave failed", error);
+        // Tab unmounted mid-flush: no live hook remains to retry or reload, but
+        // don't leave the singleton status stuck on "saving" — mark it failed so
+        // reopening the script shows the truth. The next mount reconciles.
+        if (disposed) {
+          store.getState().setSaveStatus(scriptId, "error");
+          return;
+        }
         if (/modified since last read/i.test((error as Error).message ?? "")) {
           store.getState().setSaveStatus(scriptId, "reloaded");
           await load();

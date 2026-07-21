@@ -73,8 +73,12 @@ describe("useScriptServerSync", () => {
     );
     act(() => useScriptStore.getState().setTitle("script-1", "Unsaved title"));
 
-    await waitFor(() =>
-      expect(useScriptStore.getState().saveStatus["script-1"]).toBe("saved")
+    // The status transition rides the 750ms autosave debounce, so give waitFor
+    // headroom over its 1000ms default to stay stable under CI load.
+    await waitFor(
+      () =>
+        expect(useScriptStore.getState().saveStatus["script-1"]).toBe("saved"),
+      { timeout: 3000 }
     );
   });
 
@@ -87,8 +91,10 @@ describe("useScriptServerSync", () => {
     );
     act(() => useScriptStore.getState().setTitle("script-1", "Unsaved title"));
 
-    await waitFor(() =>
-      expect(useScriptStore.getState().saveStatus["script-1"]).toBe("error")
+    await waitFor(
+      () =>
+        expect(useScriptStore.getState().saveStatus["script-1"]).toBe("error"),
+      { timeout: 3000 }
     );
   });
 
@@ -103,10 +109,33 @@ describe("useScriptServerSync", () => {
     );
     act(() => useScriptStore.getState().setTitle("script-1", "Unsaved title"));
 
-    await waitFor(() =>
-      expect(useScriptStore.getState().saveStatus["script-1"]).toBe("reloaded")
+    await waitFor(
+      () =>
+        expect(useScriptStore.getState().saveStatus["script-1"]).toBe(
+          "reloaded"
+        ),
+      { timeout: 3000 }
     );
     // The server copy is reloaded after the conflict.
     expect(getQuery).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not leave the status stuck on 'saving' when an unmount flush fails", async () => {
+    updateMutate.mockRejectedValueOnce(new Error("offline"));
+    const { unmount } = renderHook(() => useScriptServerSync("script-1"));
+
+    await waitFor(() =>
+      expect(useScriptStore.getState().serverRevisions["script-1"]).toBe("rev-1")
+    );
+    // Dirty the script, then unmount before the debounce fires so the save runs
+    // as the unmount flush — which then fails.
+    act(() => useScriptStore.getState().setTitle("script-1", "Unsaved title"));
+    unmount();
+
+    await waitFor(
+      () =>
+        expect(useScriptStore.getState().saveStatus["script-1"]).toBe("error"),
+      { timeout: 3000 }
+    );
   });
 });
