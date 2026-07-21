@@ -26,7 +26,12 @@
  *   + / =  and  - / _ → zoom in / out (keyboard; playhead stays pinned)
  *   Shift+Z          → zoom to fit all content in the viewport
  *   Ctrl+Z / Ctrl+Y  → undo / redo
+ *   ?                → toggle the keyboard-shortcut reference sheet
  * Shortcuts are skipped when focus is in a text input or contenteditable.
+ *
+ * The user-facing reference for these bindings lives in
+ * ../TimelineShortcutsDialog.tsx — keep the two in sync when a shortcut
+ * changes.
  *
  * Zoom: Ctrl/Cmd+wheel (or a trackpad pinch) on the lane area changes msPerPx,
  *   anchored at the cursor.
