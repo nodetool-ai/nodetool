@@ -304,8 +304,10 @@ async function runCase<TFinal>(
   const messages: Message[] = [
     {
       role: "system",
+      // Per-case (surface-specific) prompt wins over the runner-wide override,
+      // which in turn wins over the graph-editor default.
       content:
-        opts.systemPrompt ?? evalCase.systemPrompt ?? DEFAULT_SYSTEM_PROMPT
+        evalCase.systemPrompt ?? opts.systemPrompt ?? DEFAULT_SYSTEM_PROMPT
     },
     { role: "user", content: buildUserPrompt(evalCase) }
   ];

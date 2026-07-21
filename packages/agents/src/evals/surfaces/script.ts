@@ -154,6 +154,17 @@ const voiceParam = z
  * contract (minus `script_id`) but run headlessly against a single implicit
  * script document.
  */
+/** Highest numeric suffix among ids shaped `<prefix><n>` (0 when none). */
+function maxIdSuffix(ids: string[], prefix: string): number {
+  let max = 0;
+  for (const id of ids) {
+    if (!id.startsWith(prefix)) continue;
+    const n = Number(id.slice(prefix.length));
+    if (Number.isInteger(n) && n > max) max = n;
+  }
+  return max;
+}
+
 export function createScriptToolBridge(
   initial: ScriptBridgeInitialState = {}
 ): HeadlessSurfaceBridge<ScriptBridgeFinalState> {
@@ -171,8 +182,10 @@ export function createScriptToolBridge(
     name: s.name,
     voice: s.voice ?? null
   }));
-  // Keep the sequence counter ahead of any explicit ids supplied above.
-  speakerSeq = Math.max(speakerSeq, cast.length);
+  // Keep the counter ahead of any explicit ids supplied above — track the
+  // highest `spk_<n>` suffix, not just the count, so auto ids can't collide
+  // with an explicit id like `spk_10` on a single-member cast.
+  speakerSeq = Math.max(speakerSeq, maxIdSuffix(cast.map((s) => s.id), "spk_"));
 
   const lines: InternalLine[] = (initial.lines ?? []).map((l) => ({
     id: l.id ?? `line_${++lineSeq}`,
@@ -184,7 +197,7 @@ export function createScriptToolBridge(
     takeCount: 0,
     currentTake: null
   }));
-  lineSeq = Math.max(lineSeq, lines.length);
+  lineSeq = Math.max(lineSeq, maxIdSuffix(lines.map((l) => l.id), "line_"));
 
   const findSpeaker = (id: string): InternalSpeaker | undefined =>
     cast.find((s) => s.id === id);

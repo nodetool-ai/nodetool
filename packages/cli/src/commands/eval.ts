@@ -155,8 +155,18 @@ function makeToolLoopSuite(
   description: string,
   casesExport: string
 ): EvalSuite {
-  const pickCases = (mod: Record<string, unknown>): readonly ToolLoopCaseLike[] =>
-    mod[casesExport] as readonly ToolLoopCaseLike[];
+  const pickCases = (
+    mod: Record<string, unknown>
+  ): readonly ToolLoopCaseLike[] => {
+    const picked = mod[casesExport];
+    if (!Array.isArray(picked)) {
+      throw new Error(
+        `Eval suite "${id}" expected an array export "${casesExport}" from ` +
+          `@nodetool-ai/agents, but got ${picked === undefined ? "undefined" : typeof picked}.`
+      );
+    }
+    return picked as readonly ToolLoopCaseLike[];
+  };
 
   return {
     id,

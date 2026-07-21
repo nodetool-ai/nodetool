@@ -115,6 +115,7 @@ export interface SketchBridgeFinalState {
     prompt?: string;
     provider?: string;
     model?: string;
+    fillColor?: string;
   }[];
 }
 
@@ -135,6 +136,8 @@ interface Layer {
   provider?: string;
   model?: string;
   bindingStatus?: string;
+  /** Solid fill applied at creation (headless stand-in for painted pixels). */
+  fillColor?: string;
 }
 
 function tool(
@@ -260,7 +263,7 @@ export function createSketchToolBridge(
           .optional()
           .describe("Hex color to fill the new layer with, e.g. #ff0000.")
       }),
-      async ({ name: layerName, type }) => {
+      async ({ name: layerName, type, fillColor }) => {
         const id = nextLayerId();
         const idx = activeLayerId ? indexOf(activeLayerId) + 1 : layers.length;
         const layer = makeLayer(
@@ -268,6 +271,9 @@ export function createSketchToolBridge(
           (layerName as string | undefined) ?? `Layer ${layerSeq}`,
           (type as "raster" | "mask" | undefined) ?? "raster"
         );
+        if (typeof fillColor === "string" && fillColor) {
+          layer.fillColor = fillColor;
+        }
         layers.splice(idx, 0, layer);
         activeLayerId = id;
         return { ok: true, layer: serialize(layer) };
@@ -549,7 +555,8 @@ export function createSketchToolBridge(
         hasBinding: l.hasBinding,
         ...(l.prompt !== undefined ? { prompt: l.prompt } : {}),
         ...(l.provider !== undefined ? { provider: l.provider } : {}),
-        ...(l.model !== undefined ? { model: l.model } : {})
+        ...(l.model !== undefined ? { model: l.model } : {}),
+        ...(l.fillColor !== undefined ? { fillColor: l.fillColor } : {})
       }))
     })
   };
