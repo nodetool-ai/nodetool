@@ -26,7 +26,7 @@ const ScriptSaveIndicator = ({ scriptId }: ScriptSaveIndicatorProps) => {
   if (status === "saving") {
     return (
       <FlexRow align="center" gap={SPACING.xs} aria-live="polite">
-        <LoadingSpinner size={14} />
+        <LoadingSpinner inline size={14} />
         <Text size="smaller" sx={{ color: "text.secondary" }}>
           Saving…
         </Text>
