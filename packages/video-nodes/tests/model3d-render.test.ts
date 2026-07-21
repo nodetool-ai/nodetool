@@ -77,7 +77,11 @@ function findChrome(): string | null {
     "/opt/pw-browsers/chromium",
     "/usr/bin/chromium",
     "/usr/bin/chromium-browser",
-    "/usr/bin/google-chrome"
+    "/usr/bin/google-chrome",
+    // macOS: without these the headless render silently skips on every dev
+    // machine, so a break here only ever surfaces on CI.
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "/Applications/Chromium.app/Contents/MacOS/Chromium"
   ];
   return candidates.find((p) => existsSync(p)) ?? null;
 }
