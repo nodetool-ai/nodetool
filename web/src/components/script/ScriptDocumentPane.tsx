@@ -2,6 +2,7 @@
 import { useCallback, useMemo, useState } from "react";
 import type { DragEvent } from "react";
 import AddIcon from "@mui/icons-material/Add";
+import CloseIcon from "@mui/icons-material/Close";
 import GraphicEqIcon from "@mui/icons-material/GraphicEq";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
@@ -16,6 +17,7 @@ import {
   EditorButton,
   ToolbarIconButton,
   EmptyState,
+  AlertBanner,
   LoadingSpinner,
   SPACING,
   BORDER_RADIUS,
@@ -33,6 +35,7 @@ import { exportScriptSubtitles } from "../../stores/script/scriptSubtitles";
 import { useScriptPlaythrough } from "../../hooks/script/useScriptPlaythrough";
 import { useAssembleScriptTimeline } from "../../hooks/script/useAssembleScriptTimeline";
 import ScriptLineRow, { TEXT_INSET, type LineKeyNav } from "./ScriptLineRow";
+import ScriptSaveIndicator from "./ScriptSaveIndicator";
 
 interface ScriptDocumentPaneProps {
   scriptId: string;
@@ -218,7 +221,7 @@ const SectionBlock = ({
             <ToolbarIconButton
               tooltip="Remove section"
               onClick={() => removeSection(scriptId, section.id)}
-              icon={<Text size="smaller">✕</Text>}
+              icon={<CloseIcon fontSize="small" />}
             />
           </Box>
         )}
@@ -291,7 +294,8 @@ const ScriptDocumentPane = ({
   const { playing, currentLineId, play, stop } =
     useScriptPlaythrough(scriptId);
   const [voicingAll, setVoicingAll] = useState(false);
-  const { assemble, assembling } = useAssembleScriptTimeline();
+  const { assemble, assembling, error: assembleError } =
+    useAssembleScriptTimeline();
 
   const [draggingLineId, setDraggingLineId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<DropTarget | null>(null);
@@ -502,6 +506,7 @@ const ScriptDocumentPane = ({
             {wordCount === 1 ? "word" : "words"}
           </Text>
         )}
+        {!readOnly && <ScriptSaveIndicator scriptId={scriptId} />}
         {!readOnly && (
           <EditorButton
             size="small"
@@ -539,6 +544,16 @@ const ScriptDocumentPane = ({
           </EditorButton>
         )}
       </FlexRow>
+
+      {!readOnly && assembleError && (
+        <AlertBanner
+          severity="error"
+          compact
+          sx={{ marginX: SPACING.md }}
+        >
+          {assembleError}
+        </AlertBanner>
+      )}
 
       <FlexColumn
         gap={SPACING.xxl}

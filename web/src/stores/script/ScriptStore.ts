@@ -81,14 +81,34 @@ export interface ScriptDraft {
   updatedAt: number;
 }
 
+/**
+ * Autosave lifecycle for one script, surfaced in the editor toolbar so the
+ * silent server sync becomes visible:
+ * - `saved`    — the store matches the server copy (also the idle state).
+ * - `unsaved`  — edits landed and are waiting out the autosave debounce.
+ * - `saving`   — a save is in flight.
+ * - `error`    — the last save failed and will be retried.
+ * - `reloaded` — a concurrent edit won a CAS conflict; the server copy replaced
+ *   the local one.
+ */
+export type ScriptSaveStatus =
+  | "saved"
+  | "unsaved"
+  | "saving"
+  | "error"
+  | "reloaded";
+
 interface ScriptStoreState {
   scripts: Record<string, ScriptDraft>;
   /** Server `updated_at` token per script — the CAS base for the next save. */
   serverRevisions: Record<string, string>;
+  /** Autosave status per script, driven by useScriptServerSync. */
+  saveStatus: Record<string, ScriptSaveStatus>;
   /** Line ids currently generating a take — transient, not persisted. */
   voicingLineIds: Record<string, true>;
 
   setServerRevision: (scriptId: string, revision: string | null) => void;
+  setSaveStatus: (scriptId: string, status: ScriptSaveStatus) => void;
   ensureScript: (id: string) => void;
   loadScript: (
     id: string,
@@ -234,6 +254,7 @@ const mapLine = (
 export const useScriptStore = create<ScriptStoreState>((set, get) => ({
   scripts: {},
   serverRevisions: {},
+  saveStatus: {},
   voicingLineIds: {},
 
   setServerRevision: (scriptId, revision) =>
@@ -243,6 +264,13 @@ export const useScriptStore = create<ScriptStoreState>((set, get) => ({
       else serverRevisions[scriptId] = revision;
       return { serverRevisions };
     }),
+
+  setSaveStatus: (scriptId, status) =>
+    set((state) =>
+      state.saveStatus[scriptId] === status
+        ? state
+        : { saveStatus: { ...state.saveStatus, [scriptId]: status } }
+    ),
 
   ensureScript: (id) =>
     set((state) =>
@@ -261,10 +289,22 @@ export const useScriptStore = create<ScriptStoreState>((set, get) => ({
 
   removeScript: (id) =>
     set((state) => {
-      if (!state.scripts[id]) return state;
+      // Clear all three maps if any still holds the id — a script entry can be
+      // gone while its revision/status linger (e.g. after a failed create).
+      if (
+        !(id in state.scripts) &&
+        !(id in state.serverRevisions) &&
+        !(id in state.saveStatus)
+      ) {
+        return state;
+      }
       const scripts = { ...state.scripts };
       delete scripts[id];
-      return { scripts };
+      const serverRevisions = { ...state.serverRevisions };
+      delete serverRevisions[id];
+      const saveStatus = { ...state.saveStatus };
+      delete saveStatus[id];
+      return { scripts, serverRevisions, saveStatus };
     }),
 
   getScript: (id) => get().scripts[id],
@@ -596,6 +636,13 @@ export const useScript = (
 /** Reactive transient voicing flag for a line. */
 export const useLineVoicing = (lineId: string): boolean =>
   useScriptStore((state) => !!state.voicingLineIds[lineId]);
+
+/**
+ * Reactive autosave status for a script. Defaults to `saved` (idle) before the
+ * first save cycle so the indicator starts calm rather than alarming.
+ */
+export const useScriptSaveStatus = (scriptId: string): ScriptSaveStatus =>
+  useScriptStore((state) => state.saveStatus[scriptId] ?? "saved");
 
 /**
  * Line status derived from its current take vs. the current text/voice.
