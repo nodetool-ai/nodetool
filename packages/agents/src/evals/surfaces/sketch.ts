@@ -165,7 +165,7 @@ function tool(
 export function createSketchToolBridge(
   initial: SketchBridgeInitialState = {}
 ): HeadlessSurfaceBridge<SketchBridgeFinalState> {
-  let name = initial.name ?? "Untitled";
+  const name = initial.name ?? "Untitled";
   let width = initial.width ?? 1024;
   let height = initial.height ?? 1024;
   let foregroundColor = "#000000";

@@ -157,7 +157,7 @@ const voiceParam = z
 export function createScriptToolBridge(
   initial: ScriptBridgeInitialState = {}
 ): HeadlessSurfaceBridge<ScriptBridgeFinalState> {
-  let title = initial.title ?? "Untitled Script";
+  const title = initial.title ?? "Untitled Script";
   let hasTimeline = false;
   let timelineId: string | null = null;
 

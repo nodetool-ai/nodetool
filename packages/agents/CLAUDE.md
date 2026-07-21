@@ -356,6 +356,55 @@ npm run dev:nodetool -- eval graph-planner -p anthropic -m ... --min-success 0.8
 
 Harness tests (scripted provider, no network): `tests/graph-planner-eval.test.ts`.
 
+### Tool-loop eval suites (frontend `ui_*` surfaces)
+
+Where the graph-planner eval measures one-shot DSL authoring, the tool-loop
+harness measures the incremental, multi-turn tool-calling flow the browser UI
+and the agent WebSocket bridge actually expose. A real provider is handed the
+frontend tool contract (names/descriptions/Zod schemas mirrored from
+`web/src/lib/tools/builtin/*`) and drives it against a **headless bridge** —
+a node-side fake that holds the same state shape and applies the same
+mutations, with no browser. `runToolLoopEval` (`src/evals/tool-loop-eval.ts`)
+is generic over the surface: a case supplies a `createBridge` factory
+(`HeadlessSurfaceBridge<TFinal>` — `{ tools, finalState }`) plus structural
+expectations, and the runner reports the same metrics as graph-planner
+(accepted, score, tool calls, duration, cost). Scoring is structural
+(`checkToolLoopExpectations`: required/forbidden tools, ordering, final-state
+predicates, tool-call budgets, no-error-results) — never an exact transcript,
+so many valid tool orderings pass.
+
+Six suites are registered, one per surface:
+
+| Suite | Tools | Bridge (`src/evals/`) |
+|---|---|---|
+| `tool-loop` | `ui_*` graph editor | `tool-loop-bridge.ts` |
+| `script-tools` | `ui_script_*` | `surfaces/script.ts` |
+| `sketch-tools` | `ui_sketch_*` | `surfaces/sketch.ts` |
+| `timeline-tools` | `ui_timeline_*` | `surfaces/timeline.ts` |
+| `storyboard-tools` | `ui_storyboard_*` | `surfaces/storyboard.ts` |
+| `model3d-tools` | `ui_3d_*` | `surfaces/model3d.ts` |
+
+Bridges reuse the pure packages where the real logic already lives —
+`@nodetool-ai/timeline` (`splitClip`, `ANIMATION_PRESETS`, subtitle assembly,
+clip/track factories), `@nodetool-ai/image-editor` — rather than reimplement.
+Browser-only tools (image/asset capture, WebGL viewport render) are scoped out:
+`ui_sketch_get_layer_image`, `ui_sketch_render_to_asset`,
+`ui_timeline_get_clip_frames`, `ui_3d_capture_view`. Storyboard cannot import
+`@nodetool-ai/llm-nodes` (it depends on `@nodetool-ai/agents`), so its
+generate/render jobs are faked by flipping shot status.
+
+```bash
+npm run dev:nodetool -- eval timeline-tools --list
+npm run dev:nodetool -- eval script-tools -p anthropic -m claude-sonnet-4-6
+npm run dev:nodetool -- eval sketch-tools -p ollama -m qwen-3.5:4b --cases compose-layers
+npm run dev:nodetool -- eval model3d-tools -p openai -m gpt-5.4-mini --min-success 0.8  # CI gate
+```
+
+Harness tests (scripted provider, no network): `tests/tool-loop-eval.test.ts`
+plus one per surface (`tests/{script,sketch,timeline,storyboard,model3d}-tool-loop.test.ts`).
+A live check against a local Ollama model runs when a daemon is reachable:
+`tests/tool-loop-eval.ollama.test.ts`.
+
 ## Observing LLM Steps and Planning
 
 ### Execution Tree (CLI)
