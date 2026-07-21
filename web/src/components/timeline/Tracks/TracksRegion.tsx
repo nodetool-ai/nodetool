@@ -16,11 +16,15 @@
  * Also registers window-level keyboard shortcuts for clip operations:
  *   Delete/Backspace → deleteSelected
  *   ← / →            → nudge selected clips one frame (Shift: 1 s)
+ *   Ctrl+A           → select every clip
+ *   Escape           → clear selection and return to the select tool
  *   Ctrl+C / X / V   → copy / cut / paste clips (paste lands at the playhead)
  *   Ctrl+D           → duplicateSelected (places duplicate right after source)
  *   Ctrl+Shift+D     → duplicateSelected with extra 1 s gap after source
  *   S                → splitSelectedAtPlayhead
  *   V / C            → select / cut tool
+ *   + / =  and  - / _ → zoom in / out (keyboard; playhead stays pinned)
+ *   Shift+Z          → zoom to fit all content in the viewport
  *   Ctrl+Z / Ctrl+Y  → undo / redo
  * Shortcuts are skipped when focus is in a text input or contenteditable.
  *
@@ -88,6 +92,11 @@ const DEFAULT_TRACK_HEIGHT_PX = 64;
 const ZOOM_SENSITIVITY = 0.001;
 /** Extra gap (ms) inserted after the source clip when using Ctrl+Shift+D. */
 const DUPLICATE_OFFSET_MS = 1000;
+/** Per-keypress zoom step (msPerPx smaller = zoomed in). */
+const ZOOM_IN_FACTOR = 0.8;
+const ZOOM_OUT_FACTOR = 1.25;
+/** Padding kept on each side when Shift+Z fits content to the viewport (px). */
+const ZOOM_FIT_PADDING_PX = 64;
 
 const containerStyles = (theme: Theme) =>
   css({
@@ -552,6 +561,25 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           return;
         }
 
+        // Ctrl/Cmd+A → select every clip
+        if (isCtrl && (e.key === "a" || e.key === "A")) {
+          e.preventDefault();
+          setSelection(docStore.getState().clips.map((c) => c.id));
+          return;
+        }
+
+        // Escape → clear selection and drop back to the select tool. No
+        // preventDefault so Escape still closes any open menu/dialog.
+        if (e.key === "Escape") {
+          if (selectedClipIds.size > 0) {
+            setSelection([]);
+          }
+          if (uiStoreApi.getState().activeTool !== "select") {
+            setActiveTool("select");
+          }
+          return;
+        }
+
         // ←/→ → nudge selected clips by one frame (Shift: 1 s)
         if (
           (e.key === "ArrowLeft" || e.key === "ArrowRight") &&
@@ -640,6 +668,42 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         ) {
           e.preventDefault();
           setActiveTool(e.key === "v" ? "select" : "cut");
+          return;
+        }
+
+        // +/= → zoom in, -/_ → zoom out. setZoom triggers the scale-change
+        // layout effect above, which keeps the playhead pinned to the same
+        // viewport x as the lanes rescale.
+        if (!isCtrl && !e.altKey && (e.key === "+" || e.key === "=")) {
+          e.preventDefault();
+          const cur = uiStoreApi.getState().msPerPx;
+          uiStoreApi.getState().setZoom(cur * ZOOM_IN_FACTOR);
+          return;
+        }
+        if (!isCtrl && !e.altKey && (e.key === "-" || e.key === "_")) {
+          e.preventDefault();
+          const cur = uiStoreApi.getState().msPerPx;
+          uiStoreApi.getState().setZoom(cur * ZOOM_OUT_FACTOR);
+          return;
+        }
+
+        // Shift+Z → zoom so the whole content fits the visible lane width.
+        if (!isCtrl && e.shiftKey && (e.key === "z" || e.key === "Z")) {
+          e.preventDefault();
+          const el = scrollableRef.current;
+          if (el) {
+            let end = docStore.getState().durationMs || 0;
+            for (const c of docStore.getState().clips) {
+              end = Math.max(end, c.startMs + c.durationMs);
+            }
+            const viewport = el.clientWidth - ZOOM_FIT_PADDING_PX;
+            if (end > 0 && viewport > 0) {
+              // Pin the content start to the left edge as the lanes rescale,
+              // reusing the cursor-zoom anchor path (see the layout effect).
+              zoomAnchorRef.current = { timeMs: 0, cursorPx: 0 };
+              uiStoreApi.getState().setZoom(end / viewport);
+            }
+          }
           return;
         }
 
