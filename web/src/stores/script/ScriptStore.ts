@@ -18,6 +18,15 @@
 
 import { create } from "zustand";
 import { useShallow } from "zustand/react/shallow";
+import {
+  pushHistory,
+  undoHistory,
+  redoHistory,
+  clearHistory,
+  canUndo,
+  canRedo,
+  type HistoryMap
+} from "../documentHistory";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -106,6 +115,13 @@ interface ScriptStoreState {
   saveStatus: Record<string, ScriptSaveStatus>;
   /** Line ids currently generating a take — transient, not persisted. */
   voicingLineIds: Record<string, true>;
+  /** Per-script undo/redo checkpoints of the {@link ScriptDraft} document. */
+  history: HistoryMap<ScriptDraft>;
+
+  /** Restore the previous document checkpoint for a script. */
+  undo: (scriptId: string) => void;
+  /** Reapply the next document checkpoint for a script. */
+  redo: (scriptId: string) => void;
 
   setServerRevision: (scriptId: string, revision: string | null) => void;
   setSaveStatus: (scriptId: string, status: ScriptSaveStatus) => void;
@@ -206,25 +222,42 @@ export const emptyScript = (id: string): ScriptDraft => ({
 });
 
 /**
+ * How a mutation records undo history: `false` skips the checkpoint (for
+ * non-authoring links like the timeline handoff); an object records one,
+ * optionally folding rapid same-field edits under `coalesceKey`.
+ */
+type Track = false | { coalesceKey?: string };
+
+/**
  * Apply `mutate` to the script with `scriptId`. Returns the SAME state when the
  * script is absent or `mutate` returns `null`, so no-op edits don't churn
- * subscribers. Stamps `updatedAt` on every real mutation.
+ * subscribers. Stamps `updatedAt` and records an undo checkpoint (unless
+ * `track` is false) on every real mutation.
  */
 const withScript = (
   state: ScriptStoreState,
   scriptId: string,
-  mutate: (script: ScriptDraft) => ScriptDraft | null
+  mutate: (script: ScriptDraft) => ScriptDraft | null,
+  track: Track = {}
 ): Partial<ScriptStoreState> | ScriptStoreState => {
   const script = state.scripts[scriptId];
   if (!script) return state;
   const next = mutate(script);
   if (!next || next === script) return state;
-  return {
-    scripts: {
-      ...state.scripts,
-      [scriptId]: { ...next, updatedAt: Date.now() }
-    }
+  const now = Date.now();
+  const patch: Partial<ScriptStoreState> = {
+    scripts: { ...state.scripts, [scriptId]: { ...next, updatedAt: now } }
   };
+  if (track !== false) {
+    patch.history = pushHistory(
+      state.history,
+      scriptId,
+      script,
+      track.coalesceKey ?? null,
+      now
+    );
+  }
+  return patch;
 };
 
 /** Map every line in the script, returning the same script on a no-op. */
@@ -256,6 +289,37 @@ export const useScriptStore = create<ScriptStoreState>((set, get) => ({
   serverRevisions: {},
   saveStatus: {},
   voicingLineIds: {},
+  history: {},
+
+  undo: (scriptId) =>
+    set((state) => {
+      const current = state.scripts[scriptId];
+      if (!current) return state;
+      const result = undoHistory(state.history, scriptId, current);
+      if (!result) return state;
+      return {
+        scripts: {
+          ...state.scripts,
+          [scriptId]: { ...result.restored, updatedAt: Date.now() }
+        },
+        history: result.history
+      };
+    }),
+
+  redo: (scriptId) =>
+    set((state) => {
+      const current = state.scripts[scriptId];
+      if (!current) return state;
+      const result = redoHistory(state.history, scriptId, current);
+      if (!result) return state;
+      return {
+        scripts: {
+          ...state.scripts,
+          [scriptId]: { ...result.restored, updatedAt: Date.now() }
+        },
+        history: result.history
+      };
+    }),
 
   setServerRevision: (scriptId, revision) =>
     set((state) => {
@@ -304,22 +368,34 @@ export const useScriptStore = create<ScriptStoreState>((set, get) => ({
       delete serverRevisions[id];
       const saveStatus = { ...state.saveStatus };
       delete saveStatus[id];
-      return { scripts, serverRevisions, saveStatus };
+      return {
+        scripts,
+        serverRevisions,
+        saveStatus,
+        history: clearHistory(state.history, id)
+      };
     }),
 
   getScript: (id) => get().scripts[id],
 
   setTitle: (scriptId, title) =>
     set((state) =>
-      withScript(state, scriptId, (s) =>
-        s.title === title ? s : { ...s, title }
+      withScript(
+        state,
+        scriptId,
+        (s) => (s.title === title ? s : { ...s, title }),
+        { coalesceKey: "title" }
       )
     ),
 
   setTimelineLink: (scriptId, timelineId) =>
     set((state) =>
-      withScript(state, scriptId, (s) =>
-        s.timelineId === timelineId ? s : { ...s, timelineId }
+      withScript(
+        state,
+        scriptId,
+        (s) => (s.timelineId === timelineId ? s : { ...s, timelineId }),
+        // A timeline handoff isn't an authoring edit — keep it out of undo.
+        false
       )
     ),
 
@@ -375,12 +451,17 @@ export const useScriptStore = create<ScriptStoreState>((set, get) => ({
 
   setSectionTitle: (scriptId, sectionId, title) =>
     set((state) =>
-      withScript(state, scriptId, (s) => ({
-        ...s,
-        sections: s.sections.map((section) =>
-          section.id === sectionId ? { ...section, title } : section
-        )
-      }))
+      withScript(
+        state,
+        scriptId,
+        (s) => ({
+          ...s,
+          sections: s.sections.map((section) =>
+            section.id === sectionId ? { ...section, title } : section
+          )
+        }),
+        { coalesceKey: `section:${sectionId}` }
+      )
     ),
 
   removeSection: (scriptId, sectionId) =>
@@ -471,15 +552,26 @@ export const useScriptStore = create<ScriptStoreState>((set, get) => ({
   },
 
   patchLine: (scriptId, lineId, patch) =>
-    set((state) =>
-      withScript(state, scriptId, (s) =>
-        mapLine(s, lineId, (line) => {
-          const keys = Object.keys(patch) as Array<keyof typeof patch>;
-          const unchanged = keys.every((k) => Object.is(line[k], patch[k]));
-          return unchanged ? line : { ...line, ...patch };
-        })
-      )
-    ),
+    set((state) => {
+      const keys = Object.keys(patch).sort();
+      return withScript(
+        state,
+        scriptId,
+        (s) =>
+          mapLine(s, lineId, (line) => {
+            const unchanged = keys.every((k) =>
+              Object.is(
+                line[k as keyof typeof patch],
+                patch[k as keyof typeof patch]
+              )
+            );
+            return unchanged ? line : { ...line, ...patch };
+          }),
+        // Fold a run of edits to the same field of the same line (typing) into
+        // one undo step.
+        { coalesceKey: `line:${lineId}:${keys.join(",")}` }
+      );
+    }),
 
   removeLine: (scriptId, lineId) =>
     set((state) =>
@@ -636,6 +728,14 @@ export const useScript = (
 /** Reactive transient voicing flag for a line. */
 export const useLineVoicing = (lineId: string): boolean =>
   useScriptStore((state) => !!state.voicingLineIds[lineId]);
+
+/** Reactive "an undo step is available" flag for a script. */
+export const useScriptCanUndo = (scriptId: string): boolean =>
+  useScriptStore((state) => canUndo(state.history, scriptId));
+
+/** Reactive "a redo step is available" flag for a script. */
+export const useScriptCanRedo = (scriptId: string): boolean =>
+  useScriptStore((state) => canRedo(state.history, scriptId));
 
 /**
  * Reactive autosave status for a script. Defaults to `saved` (idle) before the

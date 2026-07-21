@@ -26,8 +26,12 @@ jest.mock("../../../stores/storyboard/StoryboardStore", () => ({
       setAspectRatio: jest.fn(),
       setDirectorModel: jest.fn(),
       setImageModel: jest.fn(),
-      setVideoModel: jest.fn()
-    })
+      setVideoModel: jest.fn(),
+      undo: jest.fn(),
+      redo: jest.fn()
+    }),
+  useStoryboardCanUndo: () => false,
+  useStoryboardCanRedo: () => false
 }));
 
 jest.mock("../../../hooks/storyboard/useGenerateShot", () => ({

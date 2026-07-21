@@ -23,6 +23,7 @@ import {
   TextInput,
   SelectField,
   EditorButton,
+  UndoRedoButtons,
   EmptyState,
   Dialog,
   Divider,
@@ -34,7 +35,12 @@ import {
   BORDER_RADIUS,
   MOTION
 } from "../ui_primitives";
-import { useBoard, useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
+import {
+  useBoard,
+  useStoryboardStore,
+  useStoryboardCanUndo,
+  useStoryboardCanRedo
+} from "../../stores/storyboard/StoryboardStore";
 import { useGenerateShot } from "../../hooks/storyboard/useGenerateShot";
 import {
   useImageModelsByProvider,
@@ -217,6 +223,10 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   const setDirectorModel = useStoryboardStore((state) => state.setDirectorModel);
   const setImageModel = useStoryboardStore((state) => state.setImageModel);
   const setVideoModel = useStoryboardStore((state) => state.setVideoModel);
+  const undo = useStoryboardStore((state) => state.undo);
+  const redo = useStoryboardStore((state) => state.redo);
+  const canUndo = useStoryboardCanUndo(boardId);
+  const canRedo = useStoryboardCanRedo(boardId);
 
   const [shotCount, setShotCount] = useState<number>(6);
   const [confirmRedirect, setConfirmRedirect] = useState(false);
@@ -384,6 +394,14 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                     : "Direct writes the screenplay and seeds your shots.")}
               </Text>
               <FlexRow gap={2} align="center">
+                <UndoRedoButtons
+                  canUndo={canUndo}
+                  canRedo={canRedo}
+                  onUndo={() => undo(boardId)}
+                  onRedo={() => redo(boardId)}
+                  undoTooltip="Undo (⌘Z)"
+                  redoTooltip="Redo (⌘⇧Z)"
+                />
                 <EditorButton
                   variant="outlined"
                   onClick={handleGenerateAllStills}

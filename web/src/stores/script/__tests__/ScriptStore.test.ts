@@ -278,3 +278,70 @@ describe("effectiveVoice", () => {
     expect(eff?.voice).toBe("echo");
   });
 });
+
+describe("undo/redo", () => {
+  const sectionCount = (): number =>
+    useScriptStore.getState().scripts[SCRIPT]?.sections.length ?? 0;
+  const lineText = (lineId: string): string | undefined =>
+    useScriptStore
+      .getState()
+      .scripts[SCRIPT]?.sections.flatMap((s) => s.lines)
+      .find((l) => l.id === lineId)?.text;
+
+  it("undoes and redoes a line addition", () => {
+    const store = useScriptStore.getState();
+    store.ensureScript(SCRIPT);
+    expect(sectionCount()).toBe(0);
+    store.addLine(SCRIPT);
+    expect(sectionCount()).toBe(1);
+
+    store.undo(SCRIPT);
+    expect(sectionCount()).toBe(0);
+
+    store.redo(SCRIPT);
+    expect(sectionCount()).toBe(1);
+  });
+
+  it("folds rapid text edits to one line into a single undo step", () => {
+    const store = useScriptStore.getState();
+    store.ensureScript(SCRIPT);
+    const lineId = store.addLine(SCRIPT);
+    store.patchLine(SCRIPT, lineId, { text: "h" });
+    store.patchLine(SCRIPT, lineId, { text: "he" });
+    store.patchLine(SCRIPT, lineId, { text: "hel" });
+    expect(lineText(lineId)).toBe("hel");
+
+    // One undo reverts the whole typing run, not one keystroke.
+    store.undo(SCRIPT);
+    expect(lineText(lineId)).toBe("");
+    // A second undo steps back past the line's creation.
+    store.undo(SCRIPT);
+    expect(sectionCount()).toBe(0);
+  });
+
+  it("a fresh edit clears the redo stack", () => {
+    const store = useScriptStore.getState();
+    store.ensureScript(SCRIPT);
+    store.addLine(SCRIPT);
+    store.undo(SCRIPT);
+    expect(useScriptStore.getState().history[SCRIPT]?.future.length).toBe(1);
+    store.addLine(SCRIPT);
+    expect(useScriptStore.getState().history[SCRIPT]?.future.length ?? 0).toBe(0);
+  });
+
+  it("undo is a no-op with an empty history", () => {
+    const store = useScriptStore.getState();
+    store.ensureScript(SCRIPT);
+    expect(() => store.undo(SCRIPT)).not.toThrow();
+    expect(sectionCount()).toBe(0);
+  });
+
+  it("removeScript drops the script's history", () => {
+    const store = useScriptStore.getState();
+    store.ensureScript(SCRIPT);
+    store.addLine(SCRIPT);
+    expect(useScriptStore.getState().history[SCRIPT]?.past.length).toBe(1);
+    store.removeScript(SCRIPT);
+    expect(useScriptStore.getState().history[SCRIPT]).toBeUndefined();
+  });
+});
