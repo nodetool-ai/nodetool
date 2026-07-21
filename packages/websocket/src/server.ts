@@ -96,6 +96,7 @@ import falPricingRoute from "./routes/fal-pricing.js";
 import falPricingEstimateRoute from "./routes/fal-pricing-estimate.js";
 import kieCreditsRoute from "./routes/kie-credits.js";
 import kiePricingRoute from "./routes/kie-pricing.js";
+import kieWebhookRoute from "./routes/kie-webhook.js";
 import {
   agentSocketRoute,
   getAgentRuntime,
@@ -787,6 +788,7 @@ app.addHook("onRequest", async (req, reply) => {
     pathname.startsWith("/api/assets/packages/") ||
     pathname === "/api/nodes/metadata" ||
     pathname === "/api/node/metadata" ||
+    pathname.startsWith("/api/kie/webhook") ||
     isPublicWorkflowMetadataRequest(pathname, req.method)
   ) {
     return;
@@ -1104,6 +1106,7 @@ await app.register(falPricingRoute);
 await app.register(falPricingEstimateRoute);
 await app.register(kieCreditsRoute);
 await app.register(kiePricingRoute);
+await app.register(kieWebhookRoute);
 // MCP endpoints are only available in local/dev mode — not in production.
 // The configuration endpoints moved to the tRPC `mcpConfig` router; the
 // `/mcp` proxy below is a bare MCP over-HTTP transport and stays on REST.
