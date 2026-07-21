@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { DragEvent } from "react";
 import AddIcon from "@mui/icons-material/Add";
 import GraphicEqIcon from "@mui/icons-material/GraphicEq";
@@ -32,7 +32,7 @@ import { voiceAll } from "../../stores/script/scriptVoicing";
 import { exportScriptSubtitles } from "../../stores/script/scriptSubtitles";
 import { useScriptPlaythrough } from "../../hooks/script/useScriptPlaythrough";
 import { useAssembleScriptTimeline } from "../../hooks/script/useAssembleScriptTimeline";
-import ScriptLineRow, { TEXT_INSET } from "./ScriptLineRow";
+import ScriptLineRow, { TEXT_INSET, type LineKeyNav } from "./ScriptLineRow";
 
 interface ScriptDocumentPaneProps {
   scriptId: string;
@@ -123,13 +123,15 @@ const SectionBlock = ({
   section,
   currentLineId,
   readOnly,
-  dnd
+  dnd,
+  onKeyNav
 }: {
   scriptId: string;
   section: ScriptSection;
   currentLineId: string | null;
   readOnly: boolean;
   dnd: LineDnd;
+  onKeyNav: (lineId: string, nav: LineKeyNav) => void;
 }) => {
   const cast = useScript(scriptId).cast;
   const setSectionTitle = useScriptStore((s) => s.setSectionTitle);
@@ -239,6 +241,7 @@ const SectionBlock = ({
               cast={cast}
               highlighted={line.id === currentLineId}
               readOnly={readOnly}
+              onKeyNav={onKeyNav}
               isDragging={dnd.draggingLineId === line.id}
               onDragStart={
                 readOnly ? undefined : () => dnd.onLineDragStart(line.id)
@@ -282,6 +285,9 @@ const ScriptDocumentPane = ({
   const addLine = useScriptStore((s) => s.addLine);
   const addSection = useScriptStore((s) => s.addSection);
   const moveLine = useScriptStore((s) => s.moveLine);
+  const insertLine = useScriptStore((s) => s.insertLine);
+  const patchLine = useScriptStore((s) => s.patchLine);
+  const removeLine = useScriptStore((s) => s.removeLine);
   const { playing, currentLineId, play, stop } =
     useScriptPlaythrough(scriptId);
   const [voicingAll, setVoicingAll] = useState(false);
@@ -313,6 +319,75 @@ const ScriptDocumentPane = ({
       setDropTarget(null);
     }
   };
+
+  // Flat, document-order line id list — drives arrow-key focus moves and
+  // delete-and-focus-previous.
+  const flatLineIds = useMemo(
+    () => sections.flatMap((s) => s.lines.map((l) => l.id)),
+    [sections]
+  );
+
+  // Focus a line's text field once React has committed the mutation, placing
+  // the caret at the start or end.
+  const focusLine = useCallback((lineId: string, caret: "start" | "end") => {
+    requestAnimationFrame(() => {
+      const el = document.querySelector<HTMLTextAreaElement>(
+        `[data-script-line="${lineId}"]`
+      );
+      if (!el) return;
+      el.focus();
+      const pos = caret === "start" ? 0 : el.value.length;
+      el.setSelectionRange(pos, pos);
+    });
+  }, []);
+
+  const onLineKeyNav = useCallback(
+    (lineId: string, nav: LineKeyNav) => {
+      const located = (() => {
+        for (const section of sections) {
+          const index = section.lines.findIndex((l) => l.id === lineId);
+          if (index >= 0) return { section, index };
+        }
+        return null;
+      })();
+      if (!located) return;
+      const { section, index } = located;
+      const line = section.lines[index];
+
+      if (nav.type === "split") {
+        patchLine(scriptId, lineId, { text: nav.before });
+        const newId = insertLine(scriptId, section.id, index + 1);
+        // Continue the same speaker so a run of dialogue doesn't need
+        // re-tagging after every Enter.
+        patchLine(scriptId, newId, {
+          text: nav.after,
+          speakerId: line.speakerId ?? null
+        });
+        focusLine(newId, "start");
+        return;
+      }
+      if (nav.type === "delete-empty") {
+        const pos = flatLineIds.indexOf(lineId);
+        const prevId = pos > 0 ? flatLineIds[pos - 1] : null;
+        removeLine(scriptId, lineId);
+        if (prevId) focusLine(prevId, "end");
+        return;
+      }
+      // Arrow move: hop to the sibling in document order.
+      const pos = flatLineIds.indexOf(lineId);
+      const targetId = flatLineIds[pos + nav.dir];
+      if (targetId) focusLine(targetId, nav.dir < 0 ? "end" : "start");
+    },
+    [
+      sections,
+      flatLineIds,
+      scriptId,
+      patchLine,
+      insertLine,
+      removeLine,
+      focusLine
+    ]
+  );
 
   const onVoiceAll = useCallback(async () => {
     setVoicingAll(true);
@@ -349,6 +424,17 @@ const ScriptDocumentPane = ({
   }, [scriptId]);
 
   const isEmpty = sections.every((s) => s.lines.length === 0);
+  const { lineCount, wordCount } = useMemo(() => {
+    let lines = 0;
+    let words = 0;
+    for (const section of sections)
+      for (const line of section.lines) {
+        lines += 1;
+        const trimmed = line.text.trim();
+        if (trimmed) words += trimmed.split(/\s+/).length;
+      }
+    return { lineCount: lines, wordCount: words };
+  }, [sections]);
   const hasVoicedLine = sections.some((section) =>
     section.lines.some((line) =>
       line.takes.some((t) => t.id === line.currentTakeId)
@@ -410,6 +496,12 @@ const ScriptDocumentPane = ({
           </EditorButton>
         )}
         <Box sx={{ flex: 1 }} />
+        {!isEmpty && (
+          <Text size="smaller" sx={{ color: "text.secondary" }}>
+            {lineCount} {lineCount === 1 ? "line" : "lines"} · {wordCount}{" "}
+            {wordCount === 1 ? "word" : "words"}
+          </Text>
+        )}
         {!readOnly && (
           <EditorButton
             size="small"
@@ -469,6 +561,7 @@ const ScriptDocumentPane = ({
             currentLineId={currentLineId}
             readOnly={readOnly}
             dnd={dnd}
+            onKeyNav={onLineKeyNav}
           />
         ))}
         {!readOnly && !isEmpty && (

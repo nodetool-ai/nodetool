@@ -95,6 +95,38 @@ describe("insertLine", () => {
   });
 });
 
+describe("duplicateLine", () => {
+  it("clones content into a fresh, unvoiced line right after the original", () => {
+    const store = useScriptStore.getState();
+    store.ensureScript(SCRIPT);
+    store.addLine(SCRIPT);
+    const lineId = firstLineId();
+    store.patchLine(SCRIPT, lineId, {
+      text: "hello",
+      speakerId: "spk1",
+      direction: "cheerful"
+    });
+    store.appendTake(SCRIPT, lineId, take({ id: "t1" }));
+
+    const newId = store.duplicateLine(SCRIPT, lineId);
+    const lines = useScriptStore.getState().scripts[SCRIPT].sections[0].lines;
+    expect(lines.map((l) => l.id)).toEqual([lineId, newId]);
+    const clone = lines[1];
+    expect(clone.text).toBe("hello");
+    expect(clone.speakerId).toBe("spk1");
+    expect(clone.direction).toBe("cheerful");
+    // Takes are dropped — a duplicate starts as a draft.
+    expect(clone.takes).toEqual([]);
+    expect(clone.currentTakeId).toBeNull();
+  });
+
+  it("returns null for an unknown line", () => {
+    const store = useScriptStore.getState();
+    store.ensureScript(SCRIPT);
+    expect(store.duplicateLine(SCRIPT, "missing")).toBeNull();
+  });
+});
+
 describe("moveLine", () => {
   const seed = (n: number): { sectionId: string; ids: string[] } => {
     const store = useScriptStore.getState();
