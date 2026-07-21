@@ -18,6 +18,7 @@ import { MessageInput } from "./MessageInput";
 import { ActionButtons } from "./ActionButtons";
 import { useFileHandling } from "../hooks/useFileHandling";
 import { useDragAndDrop } from "../hooks/useDragAndDrop";
+import { usePromptHistory } from "../hooks/usePromptHistory";
 import { useMessageQueue } from "../../../hooks/useMessageQueue";
 import { createStyles } from "./ChatComposer.styles";
 
@@ -60,11 +61,19 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
     textareaRef
   });
 
+  const {
+    record: recordHistory,
+    handleKeyDown: handleHistoryKeyDown,
+    resetNavigation: resetHistoryNavigation
+  } = usePromptHistory({ value: prompt, setValue: setPrompt, textareaRef });
+
   const handleOnChange = useCallback(
     (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+      // A manual edit leaves history navigation so the next ArrowUp starts over.
+      resetHistoryNavigation();
       setPrompt(event.target.value);
     },
-    []
+    [resetHistoryNavigation]
   );
 
   const handleSend = useCallback(() => {
@@ -84,13 +93,18 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
     // Only clear the input when the message was actually sent or queued;
     // a dropped message (one already queued) keeps its text and attachments.
     if (sendMessage(fullContent, prompt)) {
+      recordHistory(prompt);
       setPrompt("");
       clearFiles();
     }
-  }, [prompt, droppedFiles, getFileContents, sendMessage, clearFiles]);
+  }, [prompt, droppedFiles, getFileContents, sendMessage, clearFiles, recordHistory]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      // Let history navigation (ArrowUp/ArrowDown) claim the key first.
+      if (handleHistoryKeyDown(e)) {
+        return;
+      }
       if (e.key === "Enter") {
         // Ignore the Enter that confirms an IME composition candidate — it
         // fires keydown with isComposing/keyCode 229 and must not send.
@@ -109,7 +123,7 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
         }
       }
     },
-    [handleSend]
+    [handleSend, handleHistoryKeyDown]
   );
 
   const isDisabled = disabled || isLoading || isStreaming;
