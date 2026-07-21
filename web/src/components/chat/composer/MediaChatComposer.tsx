@@ -73,6 +73,7 @@ import type {
 import type { Entity } from "@nodetool-ai/protocol";
 import type { MediaGenerationRequest } from "../types/media.types";
 import { assetToUri } from "../../node_types/editing/promptComposer/promptTokens";
+import { resolveAssetUri } from "../../node/output";
 import { useTextareaAssetMention } from "./useTextareaAssetMention";
 import { FilePreview } from "./FilePreview";
 import { useFileHandling } from "../hooks/useFileHandling";
@@ -263,7 +264,11 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       addDroppedFiles([
         {
           id: "",
-          dataUri: refUri,
+          // The preview needs a displayable URL (data:/http(s):/`/`-prefixed);
+          // a raw `asset://…` ref renders as a generic file icon. Resolve it to
+          // the storage URL for the thumbnail while keeping the `asset://` ref
+          // in `assetUri` for the model.
+          dataUri: resolveAssetUri(refUri),
           type: ext ? `image/${ext === "jpg" ? "jpeg" : ext}` : "image/png",
           name: entity.name || entity.id,
           assetUri: ext
