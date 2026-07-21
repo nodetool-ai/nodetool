@@ -1,0 +1,72 @@
+name: Publish AUR package
+
+# Publishes the `nodetool-bin` package to the Arch User Repository (AUR) from
+# the Linux AppImage attached to each stable GitHub Release. Runs automatically
+# when a release is published, and can be dispatched manually to (re)publish a
+# specific version.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish (without leading v), e.g. 0.7.0"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  publish-aur:
+    name: Publish nodetool-bin to AUR
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Resolve version
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            version="${{ github.event.inputs.version }}"
+          else
+            version="${{ github.event.release.tag_name }}"
+          fi
+          version="${version#v}"
+          # Only publish plain stable releases (X.Y.Z). Skip nightlies and
+          # pre-releases (e.g. rc, beta) — the AUR package tracks stable.
+          if [[ ! "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Version '${version}' is not a stable X.Y.Z release; skipping AUR publish."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "Publishing nodetool-bin ${version} to AUR."
+          echo "publish=true" >> "$GITHUB_OUTPUT"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Render PKGBUILD
+        if: steps.meta.outputs.publish == 'true'
+        shell: bash
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir -p aur-pkg
+          sed "s|@PKGVER@|${VERSION}|g" packaging/aur/PKGBUILD > aur-pkg/PKGBUILD
+          echo "----- rendered PKGBUILD -----"
+          cat aur-pkg/PKGBUILD
+
+      - name: Publish to AUR
+        if: steps.meta.outputs.publish == 'true'
+        uses: KSXGitHub/github-actions-deploy-aur@v4.2.0
+        with:
+          pkgname: nodetool-bin
+          pkgbuild: aur-pkg/PKGBUILD
+          commit_username: ${{ secrets.AUR_USERNAME }}
+          commit_email: ${{ secrets.AUR_EMAIL }}
+          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+          commit_message: "Update to ${{ steps.meta.outputs.version }}"
+          updpkgsums: true
+          ssh_keyscan_types: rsa,ecdsa,ed25519
