@@ -101,6 +101,14 @@ describe("TracksRegion keyboard shortcuts", () => {
     expect(getByText("Keyboard shortcuts")).toBeTruthy();
   });
 
+  it("? opens the reference even on AltGr layouts (Ctrl+Alt produce ?)", () => {
+    const { getByText } = setup();
+    act(() => {
+      fireEvent.keyDown(window, { key: "?", ctrlKey: true, altKey: true });
+    });
+    expect(getByText("Keyboard shortcuts")).toBeTruthy();
+  });
+
   it("does not open the shortcut reference while typing in an input", () => {
     const { container, queryByText } = setup();
     const input = document.createElement("input");

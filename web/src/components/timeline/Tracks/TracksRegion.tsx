@@ -551,8 +551,11 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
 
         const isCtrl = e.ctrlKey || e.metaKey;
 
-        // ? → toggle the keyboard-shortcut reference sheet.
-        if (!isCtrl && !e.altKey && e.key === "?") {
+        // ? → toggle the keyboard-shortcut reference sheet. Match the resolved
+        // character, not the modifier state: some layouts produce "?" via AltGr
+        // (reported as ctrlKey+altKey), so gating on modifiers would hide the
+        // shortcut there. Editable targets are already excluded above.
+        if (e.key === "?") {
           e.preventDefault();
           setShortcutsOpen((open) => !open);
           return;
