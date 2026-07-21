@@ -194,6 +194,8 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
   });
 
   const allModels = useMemo(() => {
+    // Onboarding renders its own curated guidance; it needs no model list here.
+    if (source === "onboarding") return [];
     if (source === "recommended") return recommendedCatalog;
     if (source === "hub") return hubModels;
     return rawModels?.filter(isManageableModel);

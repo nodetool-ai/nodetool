@@ -10,8 +10,10 @@ export type ModelScope = "local" | "worker";
  * - "recommended": the curated recommended-models catalog aggregated from node
  *   metadata, browsable for download
  * - "hub": live search results from the HuggingFace Hub, browsable for download
+ * - "onboarding": the guided "Get Started" experience — hardware-aware model,
+ *   engine, and node-pack recommendations
  */
-export type ModelSource = "installed" | "recommended" | "hub";
+export type ModelSource = "onboarding" | "installed" | "recommended" | "hub";
 
 interface ModelManagerState {
   isOpen: boolean;
@@ -22,6 +24,12 @@ interface ModelManagerState {
   sortDirection: ModelSortDirection;
   scope: ModelScope;
   source: ModelSource;
+  /**
+   * Manual GPU-memory budget (GB) for the onboarding recommendations, used when
+   * hardware detection can't read VRAM (the default server sampler often can't).
+   * `null` means "use whatever was detected".
+   */
+  vramOverrideGb: number | null;
   setIsOpen: (isOpen: boolean) => void;
   setModelSearchTerm: (term: string) => void;
   setSelectedModelType: (type: string) => void;
@@ -31,6 +39,7 @@ interface ModelManagerState {
   toggleSortDirection: () => void;
   setScope: (scope: ModelScope) => void;
   setSource: (source: ModelSource) => void;
+  setVramOverrideGb: (gb: number | null) => void;
 }
 
 export const useModelManagerStore = create<ModelManagerState>((set) => ({
@@ -42,6 +51,7 @@ export const useModelManagerStore = create<ModelManagerState>((set) => ({
   sortDirection: "asc",
   scope: "local",
   source: "installed",
+  vramOverrideGb: null,
   setIsOpen: (isOpen) => set({ isOpen }),
   setModelSearchTerm: (term) => set({ modelSearchTerm: term }),
   setSelectedModelType: (type) => set({ selectedModelType: type }),
@@ -53,5 +63,6 @@ export const useModelManagerStore = create<ModelManagerState>((set) => ({
       sortDirection: state.sortDirection === "asc" ? "desc" : "asc"
     })),
   setScope: (scope) => set({ scope }),
-  setSource: (source) => set({ source })
+  setSource: (source) => set({ source }),
+  setVramOverrideGb: (gb) => set({ vramOverrideGb: gb })
 }));

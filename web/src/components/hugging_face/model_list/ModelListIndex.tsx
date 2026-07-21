@@ -20,6 +20,7 @@ import { useModelManagerStore } from "../../../stores/ModelManagerStore";
 import ModelListItem from "./ModelListItem";
 import ModelsRightSidebar from "./ModelsRightSidebar";
 import LocalModelsHero from "./LocalModelsHero";
+import ModelOnboarding from "../onboarding/ModelOnboarding";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import type { UnifiedModel } from "../../../stores/ApiTypes";
 import { useModelCompatibility } from "./useModelCompatibility";
@@ -430,6 +431,12 @@ const ModelListIndex: React.FC = () => {
         />
       </Box>
       <Box className="main">
+        {source === "onboarding" ? (
+          <Box className="content">
+            <ModelOnboarding onDownload={handleStartDownload} />
+          </Box>
+        ) : (
+          <>
         <Box className="sidebar">
           <ModelTypeSidebar />
         </Box>
@@ -657,6 +664,8 @@ const ModelListIndex: React.FC = () => {
         <Box className="right-sidebar">
           <ModelsRightSidebar />
         </Box>
+          </>
+        )}
       </Box>
     </Box>
   );
