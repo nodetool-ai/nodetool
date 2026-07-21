@@ -14,6 +14,8 @@ export interface ThreadListProps {
   onSelectThread: (id: string) => void;
   onDeleteThread: (id: string) => void;
   getThreadPreview: (id: string) => string;
+  /** True when the list is showing the result of an active search filter. */
+  isFiltered?: boolean;
 }
 
 export interface ThreadItemProps {
