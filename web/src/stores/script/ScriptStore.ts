@@ -121,6 +121,13 @@ interface ScriptStoreState {
   // Lines
   addLine: (scriptId: string, sectionId?: string) => string;
   insertLine: (scriptId: string, sectionId: string, index: number) => string;
+  /**
+   * Copy `lineId` (text, speaker, direction, pause, voice override) into a
+   * fresh, unvoiced line placed directly after it in the same section. Takes
+   * are intentionally dropped — a duplicate starts as a draft. Returns the new
+   * line id, or null when the line is not found.
+   */
+  duplicateLine: (scriptId: string, lineId: string) => string | null;
   patchLine: (
     scriptId: string,
     lineId: string,
@@ -388,6 +395,39 @@ export const useScriptStore = create<ScriptStoreState>((set, get) => ({
       }))
     );
     return lineId;
+  },
+
+  duplicateLine: (scriptId, lineId) => {
+    const newId = uid("line");
+    let created = false;
+    set((state) =>
+      withScript(state, scriptId, (s) => {
+        let done = false;
+        const sections = s.sections.map((section) => {
+          if (done) return section;
+          const idx = section.lines.findIndex((l) => l.id === lineId);
+          if (idx < 0) return section;
+          const src = section.lines[idx];
+          const clone: ScriptLine = {
+            id: newId,
+            text: src.text,
+            speakerId: src.speakerId ?? null,
+            direction: src.direction,
+            pauseAfterMs: src.pauseAfterMs,
+            voiceOverride: src.voiceOverride,
+            takes: [],
+            currentTakeId: null
+          };
+          const lines = [...section.lines];
+          lines.splice(idx + 1, 0, clone);
+          done = true;
+          created = true;
+          return { ...section, lines };
+        });
+        return done ? { ...s, sections } : s;
+      })
+    );
+    return created ? newId : null;
   },
 
   patchLine: (scriptId, lineId, patch) =>
