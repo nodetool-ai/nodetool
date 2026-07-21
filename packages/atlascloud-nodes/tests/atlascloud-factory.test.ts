@@ -118,6 +118,20 @@ describe("resolveAssetForAtlas", () => {
     expect(out).toBe("data:video/mp4;base64,BAUG");
   });
 
+  // Thumb / cache-busted refs carry a query segment; the bare storage key must
+  // still be handed to resolveAssetBytes, not `clip.mp4?thumb=1`.
+  it("strips a query segment from an /api/storage path", async () => {
+    const resolveAssetBytes = vi
+      .fn()
+      .mockResolvedValue({ bytes: Uint8Array.from([4, 5, 6]) });
+    await resolveAssetForAtlas(
+      { type: "image", uri: "/api/storage/pic.png?thumb=1" },
+      { resolveAssetBytes } as unknown as never,
+      "image"
+    );
+    expect(resolveAssetBytes).toHaveBeenCalledWith("pic.png");
+  });
+
   it("resolves a memory:// ref via resolveAssetBytes", async () => {
     const resolveAssetBytes = vi
       .fn()

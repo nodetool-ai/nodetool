@@ -324,8 +324,11 @@ export async function resolveAssetForAtlas(
     ) {
       return u;
     }
+    // Strip any `?query`/`#hash` (thumb URLs carry e.g. `?thumb=1`) so the bare
+    // storage key is handed over. resolveAssetBytes strips these too, but doing
+    // it here keeps the passed key exact and the intent explicit.
     const apiStorage = /^\/?api\/storage\/(.+)$/.exec(u);
-    return apiStorage ? apiStorage[1] : null;
+    return apiStorage ? apiStorage[1].split(/[?#]/)[0] || null : null;
   };
   if (context?.resolveAssetBytes) {
     const candidate =
