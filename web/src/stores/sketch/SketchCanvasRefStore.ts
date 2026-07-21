@@ -18,6 +18,8 @@ export interface SketchCanvasRefState {
    * otherwise the whole layer. Pushes its own history entry.
    */
   clearActiveLayer: (() => void) | null;
+  /** Fit the whole artboard into the viewport and re-center it (Ctrl+0). */
+  fitViewToScreen: (() => void) | null;
 
   setGetters: (getters: {
     flattenToDataUrl: () => string;
@@ -26,6 +28,7 @@ export interface SketchCanvasRefState {
     getLayerData?: (layerId: string) => string | null;
     fillLayerWithColor?: (layerId: string, color: string) => void;
     clearActiveLayer: () => void;
+    fitViewToScreen?: () => void;
   }) => void;
   clearGetters: () => void;
 }
@@ -43,6 +46,7 @@ export const createSketchCanvasRefStore = (): SketchCanvasRefStoreApi =>
     getLayerData: null,
     fillLayerWithColor: null,
     clearActiveLayer: null,
+    fitViewToScreen: null,
 
     setGetters: (getters) =>
       set({
@@ -51,7 +55,8 @@ export const createSketchCanvasRefStore = (): SketchCanvasRefStoreApi =>
         setLayerData: getters.setLayerData,
         getLayerData: getters.getLayerData ?? null,
         fillLayerWithColor: getters.fillLayerWithColor ?? null,
-        clearActiveLayer: getters.clearActiveLayer
+        clearActiveLayer: getters.clearActiveLayer,
+        fitViewToScreen: getters.fitViewToScreen ?? null
       }),
 
     clearGetters: () =>
@@ -61,7 +66,8 @@ export const createSketchCanvasRefStore = (): SketchCanvasRefStoreApi =>
         setLayerData: null,
         getLayerData: null,
         fillLayerWithColor: null,
-        clearActiveLayer: null
+        clearActiveLayer: null,
+        fitViewToScreen: null
       })
   }));
 

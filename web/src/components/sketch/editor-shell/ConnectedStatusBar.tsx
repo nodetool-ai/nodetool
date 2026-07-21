@@ -15,9 +15,10 @@
 import React, { memo, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 
-import { ColorSwatch, FlexRow } from "../../ui_primitives";
+import { ColorSwatch, FlexRow, Tooltip } from "../../ui_primitives";
 import { useSketchStore } from "../state/useSketchStore";
 import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
+import { useSketchCanvasRefStore } from "../../../stores/sketch/SketchCanvasRefStore";
 import { getSelectionBounds } from "../selection";
 import { colorToHex6 } from "../types";
 import { SKETCH_FONT } from "../sketchStyles";
@@ -34,6 +35,7 @@ const ConnectedStatusBarInner: React.FC = () => {
   const cursorDocPos = useSketchStore((s) => s.cursorDocPos);
   const selection = useSketchStore((s) => s.selection);
   const hasActiveSelection = useSketchStore((s) => s.hasActiveSelection);
+  const fitViewToScreen = useSketchCanvasRefStore((s) => s.fitViewToScreen);
 
   const selBounds = useMemo(
     () =>
@@ -68,9 +70,29 @@ const ConnectedStatusBarInner: React.FC = () => {
         whiteSpace: "nowrap"
       }}
     >
-      <span>
-        {docW} × {docH} · sRGB · 8-bit · {Math.round(zoom * 100)}%
-      </span>
+      <FlexRow align="center" gap={0.5}>
+        <span>
+          {docW} × {docH} · sRGB · 8-bit ·
+        </span>
+        <Tooltip title="Fit to screen (Ctrl+0)">
+          <button
+            type="button"
+            className="sketch-status-bar__zoom"
+            onClick={fitViewToScreen ?? undefined}
+            disabled={!fitViewToScreen}
+            style={{
+              font: "inherit",
+              color: "inherit",
+              background: "none",
+              border: "none",
+              padding: 0,
+              cursor: fitViewToScreen ? "pointer" : "default"
+            }}
+          >
+            {Math.round(zoom * 100)}%
+          </button>
+        </Tooltip>
+      </FlexRow>
 
       <FlexRow align="center" gap={0.5}>
         <ColorSwatch color={fgHex} size={12} />

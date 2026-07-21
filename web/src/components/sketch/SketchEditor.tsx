@@ -260,7 +260,8 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
           canvasRef.current?.getLayerData(layerId) ?? null,
         fillLayerWithColor: (layerId, color) =>
           canvasRef.current?.fillLayerWithColor(layerId, color),
-        clearActiveLayer: () => session.canvasActions.handleClearLayer()
+        clearActiveLayer: () => session.canvasActions.handleClearLayer(),
+        fitViewToScreen: () => session.canvasActions.handleZoomFit()
       });
       return () => {
         clearCanvasGetters();

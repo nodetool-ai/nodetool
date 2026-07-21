@@ -9,7 +9,7 @@ export const SKETCH_ACTION_IDS = [
   // Selection
   "select-all", "deselect", "reselect", "invert-selection",
   // Canvas
-  "export-png", "zoom-reset", "zoom-100", "zoom-in", "zoom-out", "toggle-panels",
+  "export-png", "zoom-fit", "zoom-100", "zoom-in", "zoom-out", "toggle-panels",
   // Color
   "swap-colors", "reset-colors",
   // Paint
@@ -18,6 +18,7 @@ export const SKETCH_ACTION_IDS = [
   "tool-opacity-preset",
   // Layers
   "layer-via-copy", "layer-via-cut",
+  "layer-move-up", "layer-move-down",
   "blend-mode-prev", "blend-mode-next",
   "canvas-preset-prev", "canvas-preset-next",
   // Tools
@@ -76,7 +77,7 @@ export const ACTION_REGISTRY: readonly ActionMeta[] = [
   { id: "reselect", label: "Reselect", displayGroup: "Selection" },
   { id: "invert-selection", label: "Invert Selection", displayGroup: "Selection" },
   { id: "export-png", label: "Export Image", displayGroup: "Canvas" },
-  { id: "zoom-reset", label: "Reset Zoom", displayGroup: "Canvas" },
+  { id: "zoom-fit", label: "Fit to Screen", displayGroup: "Canvas" },
   { id: "zoom-100", label: "Zoom to 100%", displayGroup: "Canvas" },
   { id: "zoom-in", label: "Zoom In", displayGroup: "Canvas" },
   { id: "zoom-out", label: "Zoom Out", displayGroup: "Canvas" },
@@ -90,6 +91,8 @@ export const ACTION_REGISTRY: readonly ActionMeta[] = [
   { id: "tool-opacity-preset", label: "Set Opacity (0–9)", displayGroup: "Paint" },
   { id: "layer-via-copy", label: "Layer via Copy", displayGroup: "Layers" },
   { id: "layer-via-cut", label: "Layer via Cut", displayGroup: "Layers" },
+  { id: "layer-move-up", label: "Move Layer Up", displayGroup: "Layers" },
+  { id: "layer-move-down", label: "Move Layer Down", displayGroup: "Layers" },
   { id: "blend-mode-prev", label: "Previous Blend Mode", displayGroup: "Layers" },
   { id: "blend-mode-next", label: "Next Blend Mode", displayGroup: "Layers" },
   { id: "canvas-preset-prev", label: "Previous Canvas Preset", displayGroup: "Layers" },

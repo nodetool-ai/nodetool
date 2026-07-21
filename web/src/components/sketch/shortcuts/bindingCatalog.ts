@@ -45,7 +45,7 @@ export const BINDING_CATALOG: readonly BindingEntry[] = [
   { key: "i", modifiers: { ctrl: true, shift: true }, actionId: "invert-selection", scope: "global" },
 
   // ── Global: Canvas ────────────────────────────────────────────────────────
-  { key: "0", modifiers: { ctrl: true }, actionId: "zoom-reset", scope: "global" },
+  { key: "0", modifiers: { ctrl: true }, actionId: "zoom-fit", scope: "global" },
   { key: "1", modifiers: { ctrl: true }, actionId: "zoom-100", scope: "global" },
   { key: "+", modifiers: {}, actionId: "zoom-in", scope: "global" },
   { key: "=", modifiers: {}, actionId: "zoom-in", scope: "global" },
@@ -59,6 +59,9 @@ export const BINDING_CATALOG: readonly BindingEntry[] = [
   // ── Global: Layers ────────────────────────────────────────────────────────
   { key: "j", modifiers: { ctrl: true }, actionId: "layer-via-copy", scope: "global" },
   { key: "j", modifiers: { ctrl: true, shift: true }, actionId: "layer-via-cut", scope: "global" },
+  // Photoshop-style stack order: Ctrl+] brings the active layer forward, Ctrl+[ sends it back.
+  { key: "]", modifiers: { ctrl: true }, actionId: "layer-move-up", scope: "global" },
+  { key: "[", modifiers: { ctrl: true }, actionId: "layer-move-down", scope: "global" },
 
   // ── Global: Paint settings ────────────────────────────────────────────────
   { key: "[", modifiers: {}, actionId: "tool-size-decrease", scope: "global" },
