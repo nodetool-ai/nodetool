@@ -8,7 +8,6 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import MovieIcon from "@mui/icons-material/Movie";
 import SubtitlesIcon from "@mui/icons-material/Subtitles";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import {
   FlexColumn,
   FlexRow,
@@ -18,6 +17,7 @@ import {
   EditorButton,
   ToolbarIconButton,
   EmptyState,
+  AlertBanner,
   LoadingSpinner,
   SPACING,
   BORDER_RADIUS,
@@ -546,22 +546,13 @@ const ScriptDocumentPane = ({
       </FlexRow>
 
       {!readOnly && assembleError && (
-        <FlexRow
-          align="center"
-          gap={SPACING.xs}
-          role="alert"
-          sx={{
-            marginX: SPACING.md,
-            paddingX: SPACING.sm,
-            paddingY: SPACING.xs,
-            borderRadius: BORDER_RADIUS.sm,
-            backgroundColor: "error.dark",
-            color: "error.contrastText"
-          }}
+        <AlertBanner
+          severity="error"
+          compact
+          sx={{ marginX: SPACING.md }}
         >
-          <ErrorOutlineIcon sx={{ fontSize: 16 }} />
-          <Text size="smaller">{assembleError}</Text>
-        </FlexRow>
+          {assembleError}
+        </AlertBanner>
       )}
 
       <FlexColumn
