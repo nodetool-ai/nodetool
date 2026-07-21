@@ -73,13 +73,20 @@ describe("useScriptServerSync", () => {
     );
     act(() => useScriptStore.getState().setTitle("script-1", "Unsaved title"));
 
-    // The status transition rides the 750ms autosave debounce, so give waitFor
-    // headroom over its 1000ms default to stay stable under CI load.
+    // The mount load already sets "saved", so assert the autosave actually ran:
+    // the update mutation fires and advances the CAS revision to the server's
+    // new token. The debounce rides the 750ms timer, so give waitFor headroom
+    // over its 1000ms default to stay stable under CI load.
     await waitFor(
-      () =>
-        expect(useScriptStore.getState().saveStatus["script-1"]).toBe("saved"),
+      () => {
+        expect(updateMutate).toHaveBeenCalledTimes(1);
+        expect(useScriptStore.getState().serverRevisions["script-1"]).toBe(
+          "rev-2"
+        );
+      },
       { timeout: 3000 }
     );
+    expect(useScriptStore.getState().saveStatus["script-1"]).toBe("saved");
   });
 
   it("flags an error status when an autosave fails", async () => {
