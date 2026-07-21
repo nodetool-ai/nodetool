@@ -79,6 +79,10 @@ const LIST_ASSET_RE = /^list\[(image|video|audio)\]$/;
 
 type AssetRef = {
   uri?: string;
+  // Native NodeTool refs carry the asset's id here; the `uri` is often an
+  // internal storage path (`/api/storage/<key>`, `memory://…`) or empty, so
+  // `asset_id` is the reliable handle for resolving the bytes.
+  asset_id?: string | null;
   data?: string | Uint8Array;
   // Native NodeTool refs use snake_case `mime_type`; the refs that
   // `mapPromptAssetsToInputs` injects for @-mentioned assets (InjectedAssetRef)
@@ -286,22 +290,47 @@ export async function resolveAssetForAtlas(
     return bytesToDataUri(r.data, guessMime(r, defaultMimeFor(fieldType)));
   }
 
-  // Reference URIs (asset://<id>, package://<pkg>/<path>) that storage adapters
-  // return null for — resolve them via the canonical, SSRF-safe context helper.
+  // Internal references the canonical resolver understands but a raw
+  // storage.retrieve / guarded fetch can't uniformly turn into bytes:
+  //   - asset://<id>, package://<pkg>/<path> reference schemes
+  //   - the self-hosted `/api/storage/<key>` path and `memory://…` keys, which
+  //     only some storage adapters recognize
+  //   - a ref that carries only an `asset_id` (its `uri` is empty or an
+  //     internal path) — the common shape for library-picked and generated
+  //     media wired into a downstream node
+  // resolveAssetBytes is SSRF-safe for these — it performs no unguarded
+  // outbound fetch (only trusted schemes and the configured storage/API). We
+  // deliberately do NOT route arbitrary http(s) URIs through it; those stay on
+  // the isSafeHttpUrl-guarded fetch path below.
+  //
   // Read uri fresh from ref: the looksLikePublicUrl predicate above narrowed
   // r.uri away, so a typeof check re-establishes the string type here.
   const uri = (ref as AssetRef).uri;
-  if (
-    typeof uri === "string" &&
-    (uri.startsWith("asset://") || uri.startsWith("package://")) &&
-    context?.resolveAssetBytes
-  ) {
-    const { bytes } = await context.resolveAssetBytes(uri);
-    if (bytes && bytes.byteLength > 0) {
-      return bytesToDataUri(
-        new Uint8Array(bytes),
-        guessMime(r, defaultMimeFor(fieldType))
-      );
+  const assetId =
+    typeof r.asset_id === "string" && r.asset_id.trim() !== ""
+      ? r.asset_id.trim()
+      : null;
+  const isInternalRef = (u: string): boolean =>
+    u.startsWith("asset://") ||
+    u.startsWith("package://") ||
+    u.startsWith("memory://") ||
+    u.startsWith("/api/storage/") ||
+    u.startsWith("api/storage/");
+  if (context?.resolveAssetBytes) {
+    const candidate =
+      typeof uri === "string" && isInternalRef(uri)
+        ? uri
+        : assetId
+          ? `asset://${assetId}`
+          : null;
+    if (candidate) {
+      const { bytes } = await context.resolveAssetBytes(candidate);
+      if (bytes && bytes.byteLength > 0) {
+        return bytesToDataUri(
+          new Uint8Array(bytes),
+          guessMime(r, defaultMimeFor(fieldType))
+        );
+      }
     }
   }
 
