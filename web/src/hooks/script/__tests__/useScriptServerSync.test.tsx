@@ -102,6 +102,49 @@ describe("useScriptServerSync", () => {
     expect(updateMutate).not.toHaveBeenCalled();
   });
 
+  it("does not flash 'saved' when edits land during an in-flight save", async () => {
+    // Hold the first update in flight so we can edit again mid-save.
+    let resolveFirst: (value: { updatedAt: string }) => void = () => {};
+    updateMutate.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveFirst = resolve as (value: { updatedAt: string }) => void;
+        })
+    );
+    renderHook(() => useScriptServerSync("script-1"));
+
+    await waitFor(() =>
+      expect(useScriptStore.getState().serverRevisions["script-1"]).toBe("rev-1")
+    );
+    act(() => useScriptStore.getState().setTitle("script-1", "First"));
+
+    // First save is now in flight.
+    await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(1), {
+      timeout: 3000
+    });
+    expect(useScriptStore.getState().saveStatus["script-1"]).toBe("saving");
+
+    // Edit again before the in-flight save resolves.
+    act(() => useScriptStore.getState().setTitle("script-1", "Second"));
+    expect(useScriptStore.getState().saveStatus["script-1"]).toBe("unsaved");
+
+    // Resolve the first save — status must NOT become "saved" while "Second"
+    // is still unsaved.
+    await act(async () => {
+      resolveFirst({ updatedAt: "rev-2" });
+      await Promise.resolve();
+    });
+    expect(useScriptStore.getState().saveStatus["script-1"]).not.toBe("saved");
+
+    // The follow-up save eventually persists "Second".
+    await waitFor(
+      () =>
+        expect(useScriptStore.getState().saveStatus["script-1"]).toBe("saved"),
+      { timeout: 3000 }
+    );
+    expect(updateMutate).toHaveBeenCalledTimes(2);
+  });
+
   it("flags an error status when an autosave fails", async () => {
     updateMutate.mockRejectedValueOnce(new Error("network down"));
     renderHook(() => useScriptServerSync("script-1"));

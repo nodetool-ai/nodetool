@@ -134,15 +134,20 @@ export const useScriptServerSync = (scriptId: string): void => {
         store.getState().setServerRevision(scriptId, updated.updatedAt);
         syncedRef.current = script;
         saved = true;
-        store.getState().setSaveStatus(scriptId, "saved");
         void utilsRef.current.scripts.list.invalidate();
-        // Edits landed while the save was in flight — go again.
+        // Only claim "saved" when the saved snapshot still matches the store.
+        // Edits that landed mid-flight leave newer work queued, so keep the
+        // "unsaved" state (the subscriber already set it) and go again rather
+        // than flashing a false "Saved".
         if (store.getState().scripts[scriptId] !== syncedRef.current) {
+          store.getState().setSaveStatus(scriptId, "unsaved");
           if (disposed || flushAfterSaveRef.current) {
             flushAfterSaveRef.current = true;
           } else {
             schedule();
           }
+        } else {
+          store.getState().setSaveStatus(scriptId, "saved");
         }
       } catch (error) {
         console.error("Script autosave failed", error);
