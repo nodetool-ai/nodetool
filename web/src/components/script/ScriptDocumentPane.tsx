@@ -16,6 +16,7 @@ import {
   TextInput,
   EditorButton,
   ToolbarIconButton,
+  UndoRedoButtons,
   EmptyState,
   AlertBanner,
   LoadingSpinner,
@@ -28,6 +29,8 @@ import {
 import {
   useScript,
   useScriptStore,
+  useScriptCanUndo,
+  useScriptCanRedo,
   type ScriptSection
 } from "../../stores/script/ScriptStore";
 import { voiceAll } from "../../stores/script/scriptVoicing";
@@ -291,6 +294,10 @@ const ScriptDocumentPane = ({
   const insertLine = useScriptStore((s) => s.insertLine);
   const patchLine = useScriptStore((s) => s.patchLine);
   const removeLine = useScriptStore((s) => s.removeLine);
+  const undo = useScriptStore((s) => s.undo);
+  const redo = useScriptStore((s) => s.redo);
+  const canUndo = useScriptCanUndo(scriptId);
+  const canRedo = useScriptCanRedo(scriptId);
   const { playing, currentLineId, play, stop } =
     useScriptPlaythrough(scriptId);
   const [voicingAll, setVoicingAll] = useState(false);
@@ -464,6 +471,16 @@ const ScriptDocumentPane = ({
           zIndex: Z_INDEX.sticky
         }}
       >
+        {!readOnly && (
+          <UndoRedoButtons
+            canUndo={canUndo}
+            canRedo={canRedo}
+            onUndo={() => undo(scriptId)}
+            onRedo={() => redo(scriptId)}
+            undoTooltip="Undo (⌘Z)"
+            redoTooltip="Redo (⌘⇧Z)"
+          />
+        )}
         {!readOnly &&
           (voicingAll ? (
             <FlexRow align="center" gap={SPACING.xs}>

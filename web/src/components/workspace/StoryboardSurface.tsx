@@ -11,6 +11,7 @@ import { useStoryboardAgentBridge } from "../../hooks/storyboard/useStoryboardAg
 import { useDirectScreenplay } from "../../hooks/storyboard/useDirectScreenplay";
 import { useStoryboardServerSync } from "../../hooks/storyboard/useStoryboardServerSync";
 import { useAssembleTimeline } from "../../hooks/storyboard/useAssembleTimeline";
+import { useDocumentUndoShortcuts } from "../../hooks/useDocumentUndoShortcuts";
 import { FlexColumn } from "../ui_primitives";
 import StoryboardBoard from "../storyboard/StoryboardBoard";
 import StoryboardSidebar from "../storyboard/StoryboardSidebar";
@@ -31,9 +32,11 @@ interface StoryboardSurfaceProps {
  * board under its id for the ui_storyboard_* tools) and the generation
  * subscriptions, and renders the board read-only in view mode.
  */
-const StoryboardSurface = ({ refId, mode }: StoryboardSurfaceProps) => {
+const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
   const theme = useTheme();
   const ensureBoard = useStoryboardStore((state) => state.ensureBoard);
+  const undo = useStoryboardStore((state) => state.undo);
+  const redo = useStoryboardStore((state) => state.redo);
   const boardTitle = useStoryboardStore(
     (state) => state.boards[refId]?.title ?? ""
   );
@@ -44,6 +47,13 @@ const StoryboardSurface = ({ refId, mode }: StoryboardSurfaceProps) => {
   }, [ensureBoard, refId]);
 
   useStoryboardServerSync(refId);
+
+  useDocumentUndoShortcuts({
+    active,
+    enabled: mode !== "view",
+    onUndo: useCallback(() => undo(refId), [undo, refId]),
+    onRedo: useCallback(() => redo(refId), [redo, refId])
+  });
 
   // Keep the tab label in sync with the board's title field.
   useEffect(() => {

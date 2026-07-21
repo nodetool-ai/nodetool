@@ -161,3 +161,82 @@ describe("setShotClip / selectClipVersion", () => {
     expect(shot?.clip_versions).toEqual([video(1), video(2)]);
   });
 });
+
+describe("undo/redo", () => {
+  const board = () => useStoryboardStore.getState().boards[BOARD];
+  const seedShots = (): void => {
+    const store = useStoryboardStore.getState();
+    store.ensureBoard(BOARD);
+    for (let i = 0; i < 3; i++) {
+      store.upsertShot(BOARD, {
+        type: "shot",
+        id: `s${i}`,
+        index: i,
+        action: `shot ${i}`,
+        status: "planned"
+      });
+    }
+  };
+
+  it("undoes and redoes a shot removal", () => {
+    seedShots();
+    const store = useStoryboardStore.getState();
+    store.removeShot(BOARD, "s1");
+    expect(board()?.shots.map((s) => s.id)).toEqual(["s0", "s2"]);
+
+    store.undo(BOARD);
+    expect(board()?.shots.map((s) => s.id)).toEqual(["s0", "s1", "s2"]);
+
+    store.redo(BOARD);
+    expect(board()?.shots.map((s) => s.id)).toEqual(["s0", "s2"]);
+  });
+
+  it("keeps selection and shot status live across undo", () => {
+    seedShots();
+    const store = useStoryboardStore.getState();
+    // A tracked content edit, then transient changes that must survive undo.
+    store.updateShot(BOARD, "s0", { action: "revised" });
+    store.selectShot(BOARD, "s2");
+    store.setShotStatus(BOARD, "s0", "keyframe_ready");
+
+    store.undo(BOARD);
+    const b = board();
+    // Content reverts…
+    expect(b?.shots.find((s) => s.id === "s0")?.action).toBe("shot 0");
+    // …but selection and generation status stay where they are now.
+    expect(b?.activeShotId).toBe("s2");
+    expect(b?.shots.find((s) => s.id === "s0")?.status).toBe("keyframe_ready");
+  });
+
+  it("does not record selection or status as undo steps", () => {
+    seedShots();
+    const store = useStoryboardStore.getState();
+    const before =
+      useStoryboardStore.getState().history[BOARD]?.past.length ?? 0;
+    store.selectShot(BOARD, "s1");
+    store.setShotStatus(BOARD, "s1", "keyframe_generating");
+    const after =
+      useStoryboardStore.getState().history[BOARD]?.past.length ?? 0;
+    expect(after).toBe(before);
+  });
+
+  it("folds rapid edits to one shot field into a single undo step", () => {
+    seedShots();
+    const store = useStoryboardStore.getState();
+    store.updateShot(BOARD, "s0", { action: "a" });
+    store.updateShot(BOARD, "s0", { action: "ab" });
+    store.updateShot(BOARD, "s0", { action: "abc" });
+
+    store.undo(BOARD);
+    expect(board()?.shots.find((s) => s.id === "s0")?.action).toBe("shot 0");
+  });
+
+  it("removeBoard drops the board's history", () => {
+    seedShots();
+    expect(
+      useStoryboardStore.getState().history[BOARD]?.past.length
+    ).toBeGreaterThan(0);
+    useStoryboardStore.getState().removeBoard(BOARD);
+    expect(useStoryboardStore.getState().history[BOARD]).toBeUndefined();
+  });
+});

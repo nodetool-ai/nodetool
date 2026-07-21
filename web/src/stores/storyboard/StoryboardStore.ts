@@ -25,6 +25,15 @@ import type {
   ShotStatus,
   VideoRef
 } from "@nodetool-ai/protocol";
+import {
+  pushHistory,
+  undoHistory,
+  redoHistory,
+  clearHistory,
+  canUndo,
+  canRedo,
+  type HistoryMap
+} from "../documentHistory";
 import type {
   ImageModelValue,
   LanguageModelValue,
@@ -63,7 +72,14 @@ interface StoryboardStoreState {
   boards: Record<string, StoryboardBoard>;
   /** Server `updated_at` token per board — the CAS base for the next save. */
   serverRevisions: Record<string, string>;
+  /** Per-board undo/redo checkpoints of the {@link StoryboardBoard} document. */
+  history: HistoryMap<StoryboardBoard>;
   setServerRevision: (boardId: string, revision: string | null) => void;
+
+  /** Restore the previous document checkpoint for a board. */
+  undo: (boardId: string) => void;
+  /** Reapply the next document checkpoint for a board. */
+  redo: (boardId: string) => void;
 
   /** Create an empty board for `id` if one does not already exist. */
   ensureBoard: (id: string) => void;
@@ -153,14 +169,23 @@ const emptyBoard = (id: string): StoryboardBoard => ({
 });
 
 /**
+ * How a mutation records undo history: `false` skips the checkpoint (for
+ * selection, generation status, and the timeline handoff); an object records
+ * one, optionally folding rapid same-field edits under `coalesceKey`.
+ */
+type Track = false | { coalesceKey?: string };
+
+/**
  * Apply `mutate` to the board with `boardId`. Returns the SAME state when the
  * board is absent or `mutate` returns `null`, so no-op edits don't churn
- * subscribers.
+ * subscribers. Stamps `updatedAt` and records an undo checkpoint (unless
+ * `track` is false) on every real mutation.
  */
 const withBoard = (
   state: StoryboardStoreState,
   boardId: string,
-  mutate: (board: StoryboardBoard) => StoryboardBoard | null
+  mutate: (board: StoryboardBoard) => StoryboardBoard | null,
+  track: Track = {}
 ): Partial<StoryboardStoreState> | StoryboardStoreState => {
   const board = state.boards[boardId];
   if (!board) {
@@ -170,10 +195,34 @@ const withBoard = (
   if (!next || next === board) {
     return state;
   }
-  return {
-    boards: { ...state.boards, [boardId]: { ...next, updatedAt: Date.now() } }
+  const now = Date.now();
+  const patch: Partial<StoryboardStoreState> = {
+    boards: { ...state.boards, [boardId]: { ...next, updatedAt: now } }
   };
+  if (track !== false) {
+    patch.history = pushHistory(state.history, boardId, board, track.coalesceKey ?? null, now);
+  }
+  return patch;
 };
+
+/**
+ * Restore a checkpoint while keeping the live selection and per-shot generation
+ * status, so undo/redo never resurrects a stale spinner or jumps the active
+ * shot. Content (screenplay, shot media, order, prompts) comes from the
+ * checkpoint; `activeShotId` and each surviving shot's `status` stay live.
+ */
+const withLiveTransient = (
+  restored: StoryboardBoard,
+  current: StoryboardBoard
+): StoryboardBoard => ({
+  ...restored,
+  activeShotId: current.activeShotId,
+  updatedAt: Date.now(),
+  shots: restored.shots.map((s) => {
+    const live = current.shots.find((c) => c.id === s.id);
+    return live && live.status !== s.status ? { ...s, status: live.status } : s;
+  })
+});
 
 /** Same generated asset: matched by asset_id when present, else by uri. */
 export const sameMediaRef = (
@@ -208,6 +257,37 @@ const patchShot = (
 export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
   boards: {},
   serverRevisions: {},
+  history: {},
+
+  undo: (boardId) =>
+    set((state) => {
+      const current = state.boards[boardId];
+      if (!current) return state;
+      const result = undoHistory(state.history, boardId, current);
+      if (!result) return state;
+      return {
+        boards: {
+          ...state.boards,
+          [boardId]: withLiveTransient(result.restored, current)
+        },
+        history: result.history
+      };
+    }),
+
+  redo: (boardId) =>
+    set((state) => {
+      const current = state.boards[boardId];
+      if (!current) return state;
+      const result = redoHistory(state.history, boardId, current);
+      if (!result) return state;
+      return {
+        boards: {
+          ...state.boards,
+          [boardId]: withLiveTransient(result.restored, current)
+        },
+        history: result.history
+      };
+    }),
 
   setServerRevision: (boardId, revision) =>
     set((state) => {
@@ -256,12 +336,13 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
       }
       const boards = { ...state.boards };
       delete boards[id];
-      return { boards };
+      return { boards, history: clearHistory(state.history, id) };
     }),
 
   setScreenplay: (boardId, screenplay) =>
     set((state) => {
-      const board = state.boards[boardId] ?? emptyBoard(boardId);
+      const prev = state.boards[boardId];
+      const board = prev ?? emptyBoard(boardId);
       const next: StoryboardBoard = {
         ...board,
         screenplay,
@@ -271,20 +352,34 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
         style: screenplay.style_bible ?? board.style,
         updatedAt: Date.now()
       };
-      return { boards: { ...state.boards, [boardId]: next } };
+      const patch: Partial<StoryboardStoreState> = {
+        boards: { ...state.boards, [boardId]: next }
+      };
+      // A (re-)direct that replaces an existing board is undoable; the first
+      // screenplay on an empty board has nothing to step back to.
+      if (prev) {
+        patch.history = pushHistory(state.history, boardId, prev, null, Date.now());
+      }
+      return patch;
     }),
 
   setBrief: (boardId, brief) =>
     set((state) =>
-      withBoard(state, boardId, (b) =>
-        b.brief === brief ? null : { ...b, brief }
+      withBoard(
+        state,
+        boardId,
+        (b) => (b.brief === brief ? null : { ...b, brief }),
+        { coalesceKey: "brief" }
       )
     ),
 
   setStyle: (boardId, style) =>
     set((state) =>
-      withBoard(state, boardId, (b) =>
-        b.style === style ? null : { ...b, style }
+      withBoard(
+        state,
+        boardId,
+        (b) => (b.style === style ? null : { ...b, style }),
+        { coalesceKey: "style" }
       )
     ),
 
@@ -315,8 +410,11 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
 
   setTitle: (boardId, title) =>
     set((state) =>
-      withBoard(state, boardId, (b) =>
-        b.title === title ? null : { ...b, title }
+      withBoard(
+        state,
+        boardId,
+        (b) => (b.title === title ? null : { ...b, title }),
+        { coalesceKey: "title" }
       )
     ),
 
@@ -359,8 +457,12 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
 
   setTimelineLink: (boardId, timelineId) =>
     set((state) =>
-      withBoard(state, boardId, (b) =>
-        b.timelineId === timelineId ? null : { ...b, timelineId }
+      withBoard(
+        state,
+        boardId,
+        (b) => (b.timelineId === timelineId ? null : { ...b, timelineId }),
+        // A timeline handoff isn't an authoring edit — keep it out of undo.
+        false
       )
     ),
 
@@ -378,11 +480,18 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
     ),
 
   updateShot: (boardId, shotId, patch) =>
-    set((state) => withBoard(state, boardId, (b) => patchShot(b, shotId, patch))),
+    set((state) =>
+      withBoard(state, boardId, (b) => patchShot(b, shotId, patch), {
+        // Fold a run of edits to the same field(s) of one shot (typing a
+        // prompt) into a single undo step.
+        coalesceKey: `shot:${shotId}:${Object.keys(patch).sort().join(",")}`
+      })
+    ),
 
   setShotStatus: (boardId, shotId, status) =>
     set((state) =>
-      withBoard(state, boardId, (b) => patchShot(b, shotId, { status }))
+      // Generation lifecycle, not an authoring edit — keep it out of undo.
+      withBoard(state, boardId, (b) => patchShot(b, shotId, { status }), false)
     ),
 
   setShotKeyframe: (boardId, shotId, keyframe) =>
@@ -507,8 +616,12 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
 
   selectShot: (boardId, shotId) =>
     set((state) =>
-      withBoard(state, boardId, (b) =>
-        b.activeShotId === shotId ? null : { ...b, activeShotId: shotId }
+      withBoard(
+        state,
+        boardId,
+        (b) => (b.activeShotId === shotId ? null : { ...b, activeShotId: shotId }),
+        // Selection is transient UI state, not an authoring edit.
+        false
       )
     ),
 
@@ -579,6 +692,14 @@ export const useBoard = (
       };
     })
   );
+
+/** Reactive "an undo step is available" flag for a board. */
+export const useStoryboardCanUndo = (boardId: string): boolean =>
+  useStoryboardStore((state) => canUndo(state.history, boardId));
+
+/** Reactive "a redo step is available" flag for a board. */
+export const useStoryboardCanRedo = (boardId: string): boolean =>
+  useStoryboardStore((state) => canRedo(state.history, boardId));
 
 /** Reactive single shot, or undefined when absent. */
 export const useShot = (
