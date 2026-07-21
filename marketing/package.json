@@ -38,7 +38,7 @@
     "@heroicons/react": "^2.1.1",
     "@tanstack/react-query": "^5.40.1",
     "@xyflow/react": "^12.4.3",
-    "axios": "^1.6.8",
+    "axios": "^1.18.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
     "formik": "^2.4.5",
