@@ -137,59 +137,127 @@ const graphPlannerSuite: EvalSuite = {
   }
 };
 
-/** Frontend tool-loop suite (`ui_*` tools, `@nodetool-ai/agents`). */
-const toolLoopSuite: EvalSuite = {
-  id: "tool-loop",
-  description:
-    "Run the frontend tool-loop eval suite (ui_* tools) against a provider/model and report metrics",
-  async listCases() {
-    const { TOOL_LOOP_EVAL_CASES } = await import("@nodetool-ai/agents");
-    return TOOL_LOOP_EVAL_CASES.map((c) => ({
-      id: c.id,
-      description: c.description,
-      needsModelProviders: c.needsModelProviders
-    }));
-  },
-  async run(deps) {
-    const { TOOL_LOOP_EVAL_CASES, runToolLoopEval, formatToolLoopReport } =
-      await import("@nodetool-ai/agents");
+/** Minimal shape of a tool-loop case, enough for `--list` + id filtering. */
+interface ToolLoopCaseLike {
+  id: string;
+  description: string;
+  needsModelProviders?: boolean;
+}
 
-    let cases = TOOL_LOOP_EVAL_CASES;
-    if (deps.caseIds) {
-      const wanted = new Set(deps.caseIds);
-      cases = TOOL_LOOP_EVAL_CASES.filter((c) => wanted.has(c.id));
-      const missing = [...wanted].filter(
-        (id) => !cases.some((c) => c.id === id)
+/**
+ * Build a tool-loop suite (multi-turn `ui_*` tool calling) from a named export
+ * in `@nodetool-ai/agents`. The graph-editor suite and the five editor-surface
+ * suites (script/sketch/timeline/storyboard/3D) all share the generic runner
+ * and report shape — only the case array differs — so each is data, not code.
+ */
+function makeToolLoopSuite(
+  id: string,
+  description: string,
+  casesExport: string
+): EvalSuite {
+  const pickCases = (
+    mod: Record<string, unknown>
+  ): readonly ToolLoopCaseLike[] => {
+    const picked = mod[casesExport];
+    if (!Array.isArray(picked)) {
+      throw new Error(
+        `Eval suite "${id}" expected an array export "${casesExport}" from ` +
+          `@nodetool-ai/agents, but got ${picked === undefined ? "undefined" : typeof picked}.`
       );
-      if (missing.length > 0) {
-        throw new Error(`Unknown case ids: ${missing.join(", ")} (see --list)`);
-      }
     }
+    return picked as readonly ToolLoopCaseLike[];
+  };
 
-    console.log(
-      `Running ${cases.length} tool-loop case(s) with ${deps.providerId}/${deps.model}`
-    );
+  return {
+    id,
+    description,
+    async listCases() {
+      const mod = (await import("@nodetool-ai/agents")) as unknown as Record<
+        string,
+        unknown
+      >;
+      return pickCases(mod).map((c) => ({
+        id: c.id,
+        description: c.description,
+        needsModelProviders: c.needsModelProviders
+      }));
+    },
+    async run(deps) {
+      const mod = await import("@nodetool-ai/agents");
+      const { runToolLoopEval, formatToolLoopReport } = mod;
+      let cases = pickCases(mod as unknown as Record<string, unknown>);
 
-    const report = await runToolLoopEval({
-      provider: deps.provider,
-      model: deps.model,
-      cases,
-      maxIterations: deps.maxIterations,
-      onEvent: deps.onEvent
-    });
+      if (deps.caseIds) {
+        const wanted = new Set(deps.caseIds);
+        cases = cases.filter((c) => wanted.has(c.id));
+        const missing = [...wanted].filter(
+          (want) => !cases.some((c) => c.id === want)
+        );
+        if (missing.length > 0) {
+          throw new Error(
+            `Unknown case ids: ${missing.join(", ")} (see --list)`
+          );
+        }
+      }
 
-    return {
-      report,
-      formatted: formatToolLoopReport(report),
-      successRate: report.summary.successRate
-    };
-  }
-};
+      console.log(
+        `Running ${cases.length} ${id} case(s) with ${deps.providerId}/${deps.model}`
+      );
+
+      const report = await runToolLoopEval({
+        provider: deps.provider,
+        model: deps.model,
+        // Cases are surface-specific in their final-state type; the runner is
+        // generic and scores each case against its own predicates.
+        cases: cases as unknown as Parameters<
+          typeof runToolLoopEval
+        >[0]["cases"],
+        maxIterations: deps.maxIterations,
+        onEvent: deps.onEvent
+      });
+
+      return {
+        report,
+        formatted: formatToolLoopReport(report),
+        successRate: report.summary.successRate
+      };
+    }
+  };
+}
 
 /** All evaluation suites exposed under `nodetool eval <suite>`. */
 export const EVAL_SUITES: readonly EvalSuite[] = [
   graphPlannerSuite,
-  toolLoopSuite
+  makeToolLoopSuite(
+    "tool-loop",
+    "Run the frontend graph-editor tool-loop eval suite (ui_* graph tools) against a provider/model and report metrics",
+    "TOOL_LOOP_EVAL_CASES"
+  ),
+  makeToolLoopSuite(
+    "script-tools",
+    "Run the Script surface tool-loop eval suite (ui_script_* tools) against a provider/model",
+    "SCRIPT_TOOL_LOOP_CASES"
+  ),
+  makeToolLoopSuite(
+    "sketch-tools",
+    "Run the Sketch/image-editor surface tool-loop eval suite (ui_sketch_* tools) against a provider/model",
+    "SKETCH_TOOL_LOOP_CASES"
+  ),
+  makeToolLoopSuite(
+    "timeline-tools",
+    "Run the Timeline/video-editor surface tool-loop eval suite (ui_timeline_* tools) against a provider/model",
+    "TIMELINE_TOOL_LOOP_CASES"
+  ),
+  makeToolLoopSuite(
+    "storyboard-tools",
+    "Run the Storyboard surface tool-loop eval suite (ui_storyboard_* tools) against a provider/model",
+    "STORYBOARD_TOOL_LOOP_CASES"
+  ),
+  makeToolLoopSuite(
+    "model3d-tools",
+    "Run the 3D model-editor surface tool-loop eval suite (ui_3d_* tools) against a provider/model",
+    "MODEL3D_TOOL_LOOP_CASES"
+  )
 ];
 
 /**

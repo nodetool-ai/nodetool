@@ -379,6 +379,7 @@ export {
   checkToolLoopExpectations
 } from "./evals/tool-loop-eval.js";
 export type {
+  HeadlessSurfaceBridge,
   ToolLoopEvalCase,
   ToolLoopEvalExpectations,
   ToolLoopStatePredicate,
@@ -402,6 +403,48 @@ export type {
   HeadlessEdge
 } from "./evals/tool-loop-bridge.js";
 export { TOOL_LOOP_EVAL_CASES } from "./evals/tool-loop-cases.js";
+
+// Editor-surface tool-loop suites (script, sketch, timeline, storyboard, 3D)
+export {
+  createScriptToolBridge,
+  SCRIPT_TOOL_LOOP_CASES
+} from "./evals/surfaces/script.js";
+export type {
+  ScriptBridgeFinalState,
+  ScriptBridgeInitialState
+} from "./evals/surfaces/script.js";
+export {
+  createSketchToolBridge,
+  SKETCH_TOOL_LOOP_CASES
+} from "./evals/surfaces/sketch.js";
+export type {
+  SketchBridgeFinalState,
+  SketchBridgeInitialState
+} from "./evals/surfaces/sketch.js";
+export {
+  createTimelineToolBridge,
+  TIMELINE_TOOL_LOOP_CASES
+} from "./evals/surfaces/timeline.js";
+export type {
+  TimelineBridgeFinalState,
+  TimelineBridgeInitialState
+} from "./evals/surfaces/timeline.js";
+export {
+  createStoryboardToolBridge,
+  STORYBOARD_TOOL_LOOP_CASES
+} from "./evals/surfaces/storyboard.js";
+export type {
+  StoryboardBridgeFinalState,
+  StoryboardBridgeInitialState
+} from "./evals/surfaces/storyboard.js";
+export {
+  createModel3DToolBridge,
+  MODEL3D_TOOL_LOOP_CASES
+} from "./evals/surfaces/model3d.js";
+export type {
+  Model3DBridgeFinalState,
+  Model3DBridgeInitialState
+} from "./evals/surfaces/model3d.js";
 
 // Graph-native planning & execution
 export { evaluateGraphDsl } from "./graph-dsl.js";
