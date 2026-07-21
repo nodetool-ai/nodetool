@@ -35,6 +35,8 @@ import {
 } from "../../stores/ApiTypes";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
+import { useModelManagerStore } from "../../stores/ModelManagerStore";
+import { useSystemStatsStore } from "../../stores/systemStatsHandler";
 
 const CostsDashboard = React.lazy(() => import("../costs/CostsDashboard"));
 const ModelListIndex = React.lazy(
@@ -55,6 +57,9 @@ const DataframeEditorModal = React.lazy(
 const ImageComparer = React.lazy(() => import("../widgets/ImageComparer"));
 const RecommendedModels = React.lazy(
   () => import("../hugging_face/RecommendedModels")
+);
+const ModelOnboarding = React.lazy(
+  () => import("../hugging_face/onboarding/ModelOnboarding")
 );
 const DeleteModelDialog = React.lazy(
   () => import("../hugging_face/model_list/DeleteModelDialog")
@@ -101,6 +106,12 @@ const PREVIEWS: PreviewEntry[] = [
     label: "Models Manager",
     description: "Model list and download manager",
     viewport: { width: 1920, height: 1080 }
+  },
+  {
+    id: "model-onboarding",
+    label: "Model Onboarding",
+    description: "Hardware-aware 'Get Started' guide for local models",
+    viewport: { width: 1440, height: 1080 }
   },
   {
     id: "assets",
@@ -361,6 +372,42 @@ const PreviewModels: React.FC = () => (
     <ModelListIndex />
   </FullscreenBox>
 );
+
+const PreviewModelOnboarding: React.FC = () => {
+  const theme = useTheme();
+  const setSource = useModelManagerStore((s) => s.setSource);
+  const setStats = useSystemStatsStore((s) => s.setStats);
+  useEffect(() => {
+    // Drive the manager to the "Get Started" tab and seed plausible hardware so
+    // the hardware card and fit badges render without a live backend.
+    setSource("onboarding");
+    setStats({
+      cpu_percent: 12,
+      memory_percent: 38,
+      memory_total_gb: 32,
+      memory_used_gb: 12,
+      vram_total_gb: 16,
+      vram_used_gb: 3,
+      vram_percent: 18
+    });
+  }, [setSource, setStats]);
+  return (
+    <Box
+      data-preview="model-onboarding"
+      sx={{
+        width: "100%",
+        minHeight: "100vh",
+        p: 4,
+        bgcolor: theme.vars.palette.background.default,
+        color: theme.vars.palette.text.primary
+      }}
+    >
+      <Suspense fallback={<LoadingSpinner />}>
+        <ModelOnboarding onDownload={() => undefined} />
+      </Suspense>
+    </Box>
+  );
+};
 
 const PreviewAssets: React.FC = () => (
   <FullscreenBox preview="assets">
@@ -697,6 +744,7 @@ const COMPONENT_MAP: Record<string, React.FC> = {
   dashboard: PreviewDashboard,
   costs: PreviewCosts,
   models: PreviewModels,
+  "model-onboarding": PreviewModelOnboarding,
   assets: PreviewAssets,
   "confirm-dialog": PreviewConfirmDialog,
   "color-picker": PreviewColorPicker,

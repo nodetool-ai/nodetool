@@ -20,6 +20,7 @@ import { useModelManagerStore } from "../../../stores/ModelManagerStore";
 import ModelListItem from "./ModelListItem";
 import ModelsRightSidebar from "./ModelsRightSidebar";
 import LocalModelsHero from "./LocalModelsHero";
+import ModelOnboarding from "../onboarding/ModelOnboarding";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import type { UnifiedModel } from "../../../stores/ApiTypes";
 import { useModelCompatibility } from "./useModelCompatibility";
@@ -137,7 +138,8 @@ const ModelListIndex: React.FC = () => {
     selectedModelType, setSelectedModelType,
     modelSearchTerm, setModelSearchTerm,
     scope, setScope,
-    source, setSource
+    source, setSource,
+    sourceInitialized, setSourceInitialized
   } = useModelManagerStore(
     useShallow((state) => ({
       selectedModelType: state.selectedModelType,
@@ -147,7 +149,9 @@ const ModelListIndex: React.FC = () => {
       scope: state.scope,
       setScope: state.setScope,
       source: state.source,
-      setSource: state.setSource
+      setSource: state.setSource,
+      sourceInitialized: state.sourceInitialized,
+      setSourceInitialized: state.setSourceInitialized
     }))
   );
   const { activeWorker } = useWorkers();
@@ -231,10 +235,18 @@ const ModelListIndex: React.FC = () => {
       // view filters so the new one starts clean instead of inheriting stale
       // type/status selections.
       setSource(nextSource);
+      // An explicit choice settles the source: don't auto-default afterwards.
+      setSourceInitialized(true);
       setModelSearchTerm("");
       setSelectedModelType("All");
     },
-    [source, setSource, setModelSearchTerm, setSelectedModelType]
+    [
+      source,
+      setSource,
+      setSourceInitialized,
+      setModelSearchTerm,
+      setSelectedModelType
+    ]
   );
 
   const flattenedList = useMemo(() => {
@@ -339,6 +351,37 @@ const ModelListIndex: React.FC = () => {
     }
   }, [scope, workerName, setScope]);
 
+  // First-run onboarding: when the local install is confirmed empty, open the
+  // "Get Started" guide instead of a blank Installed list. One-shot per session
+  // (sourceInitialized) so opening the still-empty Installed tab doesn't bounce
+  // back. Only for the plain local view — a worker or a non-default source means
+  // the user is already somewhere deliberate.
+  useEffect(() => {
+    if (
+      !sourceInitialized &&
+      source === "installed" &&
+      scope === "local" &&
+      workerName == null &&
+      !isLoading &&
+      !isFetching &&
+      Array.isArray(allModels) &&
+      allModels.length === 0
+    ) {
+      setSource("onboarding");
+      setSourceInitialized(true);
+    }
+  }, [
+    sourceInitialized,
+    source,
+    scope,
+    workerName,
+    isLoading,
+    isFetching,
+    allModels,
+    setSource,
+    setSourceInitialized
+  ]);
+
   if (isLoading) {
     return (
       <Box
@@ -430,6 +473,12 @@ const ModelListIndex: React.FC = () => {
         />
       </Box>
       <Box className="main">
+        {source === "onboarding" ? (
+          <Box className="content">
+            <ModelOnboarding onDownload={handleStartDownload} />
+          </Box>
+        ) : (
+          <>
         <Box className="sidebar">
           <ModelTypeSidebar />
         </Box>
@@ -657,6 +706,8 @@ const ModelListIndex: React.FC = () => {
         <Box className="right-sidebar">
           <ModelsRightSidebar />
         </Box>
+          </>
+        )}
       </Box>
     </Box>
   );
