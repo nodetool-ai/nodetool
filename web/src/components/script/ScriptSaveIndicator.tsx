@@ -50,11 +50,11 @@ const ScriptSaveIndicator = ({ scriptId }: ScriptSaveIndicatorProps) => {
 
   if (status === "error") {
     return (
-      <Tooltip title="Couldn't reach the server. Your changes are kept locally and will retry automatically.">
+      <Tooltip title="Couldn't sync with the server. Your changes are kept locally.">
         <FlexRow align="center" gap={SPACING.xs} aria-live="polite">
           <SyncProblemIcon color="warning" sx={{ fontSize: 16 }} />
           <Text size="smaller" color="warning">
-            Save failed — retrying
+            Save failed
           </Text>
         </FlexRow>
       </Tooltip>

@@ -52,14 +52,14 @@ describe("ScriptSaveIndicator", () => {
     expect(screen.getByText("Saving…")).toBeInTheDocument();
   });
 
-  it("surfaces a retrying message on save failure", () => {
+  it("surfaces a failure message on save error", () => {
     setStatus("error");
     render(
       <WithTheme>
         <ScriptSaveIndicator scriptId={SCRIPT_ID} />
       </WithTheme>
     );
-    expect(screen.getByText("Save failed — retrying")).toBeInTheDocument();
+    expect(screen.getByText("Save failed")).toBeInTheDocument();
   });
 
   it("warns when a newer server version replaced local edits", () => {
