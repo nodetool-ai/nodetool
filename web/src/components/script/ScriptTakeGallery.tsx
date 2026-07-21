@@ -143,7 +143,7 @@ const ScriptTakeGallery = ({
 }: ScriptTakeGalleryProps) => {
   if (takes.length === 0) {
     return (
-      <Box sx={{ minWidth: 260, padding: SPACING.sm }}>
+      <Box sx={{ minWidth: 260, padding: SPACING.md }}>
         <EmptyState
           title="No takes yet"
           description="Voice this line to create the first take."
@@ -154,7 +154,7 @@ const ScriptTakeGallery = ({
   return (
     <FlexColumn
       gap={SPACING.xs}
-      sx={{ minWidth: 320, padding: SPACING.sm }}
+      sx={{ minWidth: 320, padding: SPACING.md }}
     >
       <Text size="smaller" color="secondary">
         {takes.length} take{takes.length === 1 ? "" : "s"}
