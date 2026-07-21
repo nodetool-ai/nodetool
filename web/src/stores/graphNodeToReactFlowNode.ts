@@ -56,10 +56,18 @@ export function graphNodeToReactFlowNode(
   if (isCompareImagesNode && !ui_properties?.height) {
     defaultHeight = 350;
   }
-  if (!ui_properties?.width && node.type && node.type in BESPOKE_DEFAULT_WIDTHS) {
+  if (
+    ui_properties?.width == null &&
+    node.type &&
+    Object.hasOwn(BESPOKE_DEFAULT_WIDTHS, node.type)
+  ) {
     defaultWidth = BESPOKE_DEFAULT_WIDTHS[node.type];
   }
-  if (!ui_properties?.height && node.type && node.type in BESPOKE_DEFAULT_HEIGHTS) {
+  if (
+    ui_properties?.height == null &&
+    node.type &&
+    Object.hasOwn(BESPOKE_DEFAULT_HEIGHTS, node.type)
+  ) {
     defaultHeight = BESPOKE_DEFAULT_HEIGHTS[node.type];
   }
 
