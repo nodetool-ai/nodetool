@@ -123,6 +123,11 @@ interface StoryboardStoreState {
   removeShot: (boardId: string, shotId: string) => void;
   /** Reorder shots to match `orderedIds`; re-stamps each shot's `index`. */
   reorderShots: (boardId: string, orderedIds: string[]) => void;
+  /**
+   * Move one shot a single position earlier ("up") or later ("down") in the
+   * board order, re-stamping every shot's `index`. No-op at the ends.
+   */
+  moveShot: (boardId: string, shotId: string, direction: "up" | "down") => void;
   selectShot: (boardId: string, shotId: string | null) => void;
 
   getBoard: (id: string) => StoryboardBoard | undefined;
@@ -476,6 +481,27 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
           }
         }
         return { ...b, shots: reordered };
+      })
+    ),
+
+  moveShot: (boardId, shotId, direction) =>
+    set((state) =>
+      withBoard(state, boardId, (b) => {
+        const from = b.shots.findIndex((s) => s.id === shotId);
+        if (from === -1) {
+          return null;
+        }
+        const to = direction === "up" ? from - 1 : from + 1;
+        if (to < 0 || to >= b.shots.length) {
+          return null;
+        }
+        const shots = [...b.shots];
+        const [moved] = shots.splice(from, 1);
+        shots.splice(to, 0, moved);
+        return {
+          ...b,
+          shots: shots.map((s, i) => (s.index === i ? s : { ...s, index: i }))
+        };
       })
     ),
 

@@ -102,6 +102,48 @@ describe("selectKeyframeVersion", () => {
   });
 });
 
+describe("moveShot", () => {
+  const seedThree = (): void => {
+    const store = useStoryboardStore.getState();
+    store.ensureBoard(BOARD);
+    for (let i = 0; i < 3; i++) {
+      store.upsertShot(BOARD, {
+        type: "shot",
+        id: `s${i}`,
+        index: i,
+        action: `shot ${i}`,
+        status: "planned"
+      });
+    }
+  };
+
+  const order = () =>
+    useStoryboardStore.getState().boards[BOARD]?.shots.map((s) => s.id);
+
+  it("moves a shot later and re-stamps index to match order", () => {
+    seedThree();
+    useStoryboardStore.getState().moveShot(BOARD, "s0", "down");
+
+    expect(order()).toEqual(["s1", "s0", "s2"]);
+    const shots = useStoryboardStore.getState().boards[BOARD]?.shots;
+    expect(shots?.map((s) => s.index)).toEqual([0, 1, 2]);
+  });
+
+  it("moves a shot earlier", () => {
+    seedThree();
+    useStoryboardStore.getState().moveShot(BOARD, "s2", "up");
+    expect(order()).toEqual(["s0", "s2", "s1"]);
+  });
+
+  it("is a no-op at the ends", () => {
+    seedThree();
+    const store = useStoryboardStore.getState();
+    store.moveShot(BOARD, "s0", "up");
+    store.moveShot(BOARD, "s2", "down");
+    expect(order()).toEqual(["s0", "s1", "s2"]);
+  });
+});
+
 describe("setShotClip / selectClipVersion", () => {
   it("accumulates takes and switches between them", () => {
     seed();
