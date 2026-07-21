@@ -34,6 +34,7 @@ const RUNTIME_GROUP: Record<string, "language" | "media" | "ai" | "agent"> = {
   "yt-dlp": "media",
   "transformers-js": "ai",
   "tensorflow-js": "ai",
+  "node-llama-cpp": "ai",
   tmux: "agent",
   claude: "agent"
 };
