@@ -79,7 +79,8 @@ import {
 } from "./ScriptLane";
 import { FX_PANEL_HEIGHT_PX } from "./trackHeight";
 import { ToolToggle } from "../ToolToggle";
-import { FlexRow, FONT_SIZE_MONO, FONT_WEIGHT, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../../ui_primitives";
+import { TimelineShortcutsDialog } from "../TimelineShortcutsDialog";
+import { FlexRow, HelpButton, FONT_SIZE_MONO, FONT_WEIGHT, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../../ui_primitives";
 import { useHasScript } from "../../../hooks/timeline/useHasScript";
 import { useVideoAudioImport } from "../../../hooks/timeline/useVideoAudioImport";
 import { deserializeDragData } from "../../../lib/dragdrop";
@@ -255,6 +256,9 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
 
     const scrollableRef = useRef<HTMLDivElement>(null);
     const headerColumnRef = useRef<HTMLDivElement>(null);
+
+    // Keyboard-shortcut reference sheet (opened with `?` or the toolbar button).
+    const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
     // Drop on empty area: auto-create a track of matching type.
     const isAssetDrag = useCallback((e: React.DragEvent): boolean => {
@@ -546,6 +550,14 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         }
 
         const isCtrl = e.ctrlKey || e.metaKey;
+
+        // ? → toggle the keyboard-shortcut reference sheet.
+        if (!isCtrl && !e.altKey && e.key === "?") {
+          e.preventDefault();
+          setShortcutsOpen((open) => !open);
+          return;
+        }
+
         // Read on demand instead of subscribing reactively — subscribing
         // would re-render the region and re-attach this listener on every
         // selection change (e.g. every rubber-band drag tick).
@@ -810,6 +822,11 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           <div style={{ flex: "1 1 auto" }} />
           <ScriptToggleButton />
           <AddTrackButton />
+          <HelpButton
+            onClick={() => setShortcutsOpen(true)}
+            iconVariant="helpOutline"
+            tooltip="Keyboard shortcuts (?)"
+          />
         </FlexRow>
 
         {/* ── Sub-header: TRACKS label + ruler ────────────────────────── */}
@@ -933,6 +950,12 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             trackAreaOffsetPx={0}
           />
         </div>
+
+        {/* ── Keyboard-shortcut reference (`?` / toolbar help button) ──── */}
+        <TimelineShortcutsDialog
+          open={shortcutsOpen}
+          onClose={() => setShortcutsOpen(false)}
+        />
       </div>
     );
   }

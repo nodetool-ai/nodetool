@@ -92,6 +92,26 @@ describe("TracksRegion keyboard shortcuts", () => {
     expect(useTimelineUIStore.getState().msPerPx).toBeGreaterThan(zoomedIn);
   });
 
+  it("? opens the keyboard-shortcut reference", () => {
+    const { queryByText, getByText } = setup();
+    expect(queryByText("Keyboard shortcuts")).toBeNull();
+    act(() => {
+      fireEvent.keyDown(window, { key: "?" });
+    });
+    expect(getByText("Keyboard shortcuts")).toBeTruthy();
+  });
+
+  it("does not open the shortcut reference while typing in an input", () => {
+    const { container, queryByText } = setup();
+    const input = document.createElement("input");
+    container.appendChild(input);
+    input.focus();
+    act(() => {
+      fireEvent.keyDown(input, { key: "?" });
+    });
+    expect(queryByText("Keyboard shortcuts")).toBeNull();
+  });
+
   it("does not fire shortcuts while typing in an input", () => {
     const { container } = setup();
     const input = document.createElement("input");
