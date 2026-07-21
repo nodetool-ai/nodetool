@@ -109,6 +109,7 @@ interface CompareImagesNodeProps extends NodeProps {
 
 const CompareImagesNode: React.FC<CompareImagesNodeProps> = (props) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   const hasParent = props.parentId !== undefined;
 
   // The `comparison` snapshot is one of the node's regular outputs and
@@ -176,7 +177,7 @@ const CompareImagesNode: React.FC<CompareImagesNodeProps> = (props) => {
 
   return (
     <Box
-      css={styles(theme)}
+      css={cssStyles}
       className={`compare-images-node nopan node-drag-handle ${
         hasParent ? "hasParent" : ""
       }`}
