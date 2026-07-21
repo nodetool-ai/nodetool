@@ -9,7 +9,7 @@
     "@fontsource/inter": "^5.2.8",
     "@fontsource/jetbrains-mono": "^5.2.8",
     "@lexical/code": "^0.46.0",
-    "@lexical/link": "^0.46.0",
+    "@lexical/link": "^0.48.0",
     "@lexical/list": "^0.46.0",
     "@lexical/markdown": "^0.46.0",
     "@lexical/react": "^0.46.0",
