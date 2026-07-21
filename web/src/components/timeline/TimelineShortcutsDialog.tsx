@@ -36,10 +36,10 @@ interface ShortcutGroup {
 }
 
 /**
- * Mirrors the bindings registered in TracksRegion's window keydown handler.
- * `Ctrl` renders as `⌘` on macOS via ShortcutHint's key formatting when the
- * author uses "Cmd"; here we use "Ctrl" to match the handler's `ctrlKey ||
- * metaKey` check, which accepts either.
+ * Mirrors the bindings registered in TracksRegion's window keydown handler,
+ * which fire on `ctrlKey || metaKey`. We label those keys "Ctrl" — rendered
+ * verbatim by ShortcutHint on every platform — since the sheet is shared
+ * across macOS and Windows/Linux and a single label keeps it compact.
  */
 const SHORTCUT_GROUPS: ShortcutGroup[] = [
   {
