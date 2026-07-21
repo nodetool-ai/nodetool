@@ -78,7 +78,7 @@ const ConnectedStatusBarInner: React.FC = () => {
         <span>
           {docW} × {docH} · sRGB · 8-bit ·
         </span>
-        <Tooltip title={FIT_LABEL}>
+        <Tooltip title={FIT_LABEL} disabled={!fitViewToScreen}>
           <button
             type="button"
             className="sketch-status-bar__zoom"
