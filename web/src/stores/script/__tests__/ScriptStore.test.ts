@@ -64,6 +64,21 @@ describe("addLine", () => {
   });
 });
 
+describe("removeScript", () => {
+  it("clears lingering revision/status metadata even when the draft is gone", () => {
+    const store = useScriptStore.getState();
+    store.setServerRevision(SCRIPT, "rev-1");
+    store.setSaveStatus(SCRIPT, "error");
+    // No script draft present — only metadata (e.g. after a failed create).
+    expect(useScriptStore.getState().scripts[SCRIPT]).toBeUndefined();
+
+    store.removeScript(SCRIPT);
+
+    expect(useScriptStore.getState().serverRevisions[SCRIPT]).toBeUndefined();
+    expect(useScriptStore.getState().saveStatus[SCRIPT]).toBeUndefined();
+  });
+});
+
 describe("insertLine", () => {
   const seed = (n: number): string => {
     const store = useScriptStore.getState();

@@ -289,7 +289,14 @@ export const useScriptStore = create<ScriptStoreState>((set, get) => ({
 
   removeScript: (id) =>
     set((state) => {
-      if (!state.scripts[id]) return state;
+      // Clear all three maps if any still holds the id — a script entry can be
+      // gone while its revision/status linger (e.g. after a failed create).
+      if (
+        !(id in state.scripts) &&
+        !(id in state.serverRevisions) &&
+        !(id in state.saveStatus)
+      )
+        return state;
       const scripts = { ...state.scripts };
       delete scripts[id];
       const serverRevisions = { ...state.serverRevisions };
