@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 export type ModelSortField = "name" | "size" | "downloads" | "likes";
 export type ModelSortDirection = "asc" | "desc";
@@ -50,30 +51,47 @@ interface ModelManagerState {
   setVramOverrideGb: (gb: number | null) => void;
 }
 
-export const useModelManagerStore = create<ModelManagerState>((set) => ({
-  isOpen: false,
-  modelSearchTerm: "",
-  selectedModelType: "All",
-  maxModelSizeGB: 0,
-  sortField: "name",
-  sortDirection: "asc",
-  scope: "local",
-  source: "installed",
-  sourceInitialized: false,
-  vramOverrideGb: null,
-  setIsOpen: (isOpen) => set({ isOpen }),
-  setModelSearchTerm: (term) => set({ modelSearchTerm: term }),
-  setSelectedModelType: (type) => set({ selectedModelType: type }),
-  setMaxModelSizeGB: (gb) => set({ maxModelSizeGB: gb }),
-  setSortField: (field) => set({ sortField: field }),
-  setSortDirection: (direction) => set({ sortDirection: direction }),
-  toggleSortDirection: () =>
-    set((state) => ({
-      sortDirection: state.sortDirection === "asc" ? "desc" : "asc"
-    })),
-  setScope: (scope) => set({ scope }),
-  setSource: (source) => set({ source }),
-  setSourceInitialized: (initialized) =>
-    set({ sourceInitialized: initialized }),
-  setVramOverrideGb: (gb) => set({ vramOverrideGb: gb })
-}));
+export const useModelManagerStore = create<ModelManagerState>()(
+  persist(
+    (set) => ({
+      isOpen: false,
+      modelSearchTerm: "",
+      selectedModelType: "All",
+      maxModelSizeGB: 0,
+      sortField: "name",
+      sortDirection: "asc",
+      scope: "local",
+      source: "installed",
+      sourceInitialized: false,
+      vramOverrideGb: null,
+      setIsOpen: (isOpen) => set({ isOpen }),
+      setModelSearchTerm: (term) => set({ modelSearchTerm: term }),
+      setSelectedModelType: (type) => set({ selectedModelType: type }),
+      setMaxModelSizeGB: (gb) => set({ maxModelSizeGB: gb }),
+      setSortField: (field) => set({ sortField: field }),
+      setSortDirection: (direction) => set({ sortDirection: direction }),
+      toggleSortDirection: () =>
+        set((state) => ({
+          sortDirection: state.sortDirection === "asc" ? "desc" : "asc"
+        })),
+      setScope: (scope) => set({ scope }),
+      setSource: (source) => set({ source }),
+      setSourceInitialized: (initialized) =>
+        set({ sourceInitialized: initialized }),
+      setVramOverrideGb: (gb) => set({ vramOverrideGb: gb })
+    }),
+    {
+      name: "model-manager",
+      version: 1,
+      // Only the sort and size-filter preferences survive reloads. Session
+      // state (open flag, search term, active scope/source, the empty-install
+      // onboarding one-shot, VRAM override) is intentionally left ephemeral so
+      // each visit starts from a clean, predictable view.
+      partialize: (state) => ({
+        sortField: state.sortField,
+        sortDirection: state.sortDirection,
+        maxModelSizeGB: state.maxModelSizeGB
+      })
+    }
+  )
+);
