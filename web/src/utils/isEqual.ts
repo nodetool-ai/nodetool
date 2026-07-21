@@ -28,42 +28,39 @@ function isEqual(a: unknown, b: unknown): boolean {
     return false;
   }
 
-  if (Array.isArray(a)) {
-    const arrB = b as unknown[];
-    if (a.length !== arrB.length) {
+  if (Array.isArray(a) && Array.isArray(b)) {
+    if (a.length !== b.length) {
       return false;
     }
     for (let i = 0; i < a.length; i++) {
-      if (!isEqual(a[i], arrB[i])) {
+      if (!isEqual(a[i], b[i])) {
         return false;
       }
     }
     return true;
   }
 
-  if (a instanceof Map) {
-    const mapB = b as Map<unknown, unknown>;
-    if (a.size !== mapB.size) {
+  if (a instanceof Map && b instanceof Map) {
+    if (a.size !== b.size) {
       return false;
     }
     for (const [key, value] of a) {
-      if (!mapB.has(key)) {
+      if (!b.has(key)) {
         return false;
       }
-      if (!isEqual(value, mapB.get(key))) {
+      if (!isEqual(value, b.get(key))) {
         return false;
       }
     }
     return true;
   }
 
-  if (a instanceof Set) {
-    const setB = b as Set<unknown>;
-    if (a.size !== setB.size) {
+  if (a instanceof Set && b instanceof Set) {
+    if (a.size !== b.size) {
       return false;
     }
     for (const value of a) {
-      if (!setB.has(value)) {
+      if (!b.has(value)) {
         return false;
       }
     }
@@ -84,14 +81,12 @@ function isEqual(a: unknown, b: unknown): boolean {
     return true;
   }
 
-  if (a instanceof RegExp) {
-    const reB = b as RegExp;
-    return a.source === reB.source && a.flags === reB.flags;
+  if (a instanceof RegExp && b instanceof RegExp) {
+    return a.source === b.source && a.flags === b.flags;
   }
 
-  if (a instanceof Date) {
-    // Invalid dates (NaN) compare equal to each other via Object.is.
-    return Object.is(a.getTime(), (b as Date).getTime());
+  if (a instanceof Date && b instanceof Date) {
+    return Object.is(a.getTime(), b.getTime());
   }
 
   if (a.valueOf !== Object.prototype.valueOf) {
