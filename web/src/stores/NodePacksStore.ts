@@ -58,6 +58,9 @@ interface NodePacksStore {
   install: (repoId: string) => Promise<boolean>;
   uninstall: (repoId: string) => Promise<boolean>;
   update: (repoId: string) => Promise<boolean>;
+  /** Update every installed pack that has an available upgrade, restarting the
+   *  backend once at the end rather than after each pack. */
+  updateAll: () => Promise<boolean>;
   subscribeConsole: () => void;
   unsubscribeConsole: () => void;
   clearConsole: () => void;
@@ -173,6 +176,45 @@ const useNodePacksStore = create<NodePacksStore>((set, get) => ({
     const api = packagesApi();
     if (!api?.update) return false;
     return runPackOp(set, get, repoId, () => api.update!(repoId), "update", true);
+  },
+
+  updateAll: async () => {
+    const api = packagesApi();
+    if (!api?.update) return false;
+    const repoIds = get()
+      .installed.filter((p) => p.hasUpdate)
+      .map((p) => p.repo_id);
+    if (repoIds.length === 0) return false;
+
+    set((s) => ({ busyIds: [...new Set([...s.busyIds, ...repoIds])] }));
+    let allOk = true;
+    let lastMessage = "";
+    for (const repoId of repoIds) {
+      try {
+        const res = await api.update!(repoId);
+        if (!res.success) {
+          allOk = false;
+          lastMessage = res.message;
+        }
+      } catch (err: unknown) {
+        allOk = false;
+        lastMessage = createErrorMessage(err, "Failed to update pack").message;
+      }
+    }
+    await get().refresh();
+    set((s) => ({
+      busyIds: s.busyIds.filter((p) => !repoIds.includes(p)),
+      error: allOk ? s.error : lastMessage
+    }));
+    // One restart after the batch so the registry reloads all updated packs.
+    if (allOk) {
+      try {
+        void window.api?.server?.restart?.();
+      } catch {
+        // Best-effort: changes are on disk; the user can restart manually.
+      }
+    }
+    return allOk;
   },
 
   subscribeConsole: () => {
