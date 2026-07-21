@@ -138,4 +138,16 @@ describe("useScriptServerSync", () => {
       { timeout: 3000 }
     );
   });
+
+  it("reconciles a stale error back to saved when the script is reopened", async () => {
+    // Seed a stale error left behind by a prior failed save.
+    act(() => useScriptStore.getState().setSaveStatus("script-1", "error"));
+
+    renderHook(() => useScriptServerSync("script-1"));
+
+    // A clean load on (re)mount clears the stale error.
+    await waitFor(() =>
+      expect(useScriptStore.getState().saveStatus["script-1"]).toBe("saved")
+    );
+  });
 });

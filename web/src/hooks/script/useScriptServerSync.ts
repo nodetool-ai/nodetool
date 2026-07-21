@@ -57,16 +57,26 @@ export const useScriptServerSync = (scriptId: string): void => {
     let disposed = false;
     const store = useScriptStore;
 
-    const applyResponse = (res: ScriptResponse): void => {
+    const applyResponse = (res: ScriptResponse, reconcile: boolean): void => {
       if (disposed) return;
       store.getState().loadScript(scriptId, responseToScript(res));
       store.getState().setServerRevision(scriptId, res.updatedAt);
       syncedRef.current = store.getState().scripts[scriptId] ?? null;
+      // A clean load means store and server agree — clear any stale error left
+      // by a prior failed save. The conflict path passes reconcile=false so its
+      // "reloaded" warning survives the reload it triggers.
+      if (reconcile) store.getState().setSaveStatus(scriptId, "saved");
     };
 
-    const load = async (): Promise<void> => {
+    // `reconcile` marks the script "saved" on a successful load/create. The
+    // mount load reconciles (clearing a stale error from a previous session);
+    // the CAS-conflict reload passes false so its "reloaded" status persists.
+    const load = async (reconcile = true): Promise<void> => {
       try {
-        applyResponse(await trpcClient.scripts.get.query({ id: scriptId }));
+        applyResponse(
+          await trpcClient.scripts.get.query({ id: scriptId }),
+          reconcile
+        );
       } catch (error) {
         if (!isNotFound(error)) {
           console.error("Failed to load script", error);
@@ -83,6 +93,7 @@ export const useScriptServerSync = (scriptId: string): void => {
           if (disposed) return;
           store.getState().setServerRevision(scriptId, created.updatedAt);
           syncedRef.current = store.getState().scripts[scriptId] ?? null;
+          if (reconcile) store.getState().setSaveStatus(scriptId, "saved");
           void utilsRef.current.scripts.list.invalidate();
         } catch (createError) {
           console.error("Failed to create script", createError);
@@ -135,7 +146,8 @@ export const useScriptServerSync = (scriptId: string): void => {
         }
         if (/modified since last read/i.test((error as Error).message ?? "")) {
           store.getState().setSaveStatus(scriptId, "reloaded");
-          await load();
+          // Keep the "reloaded" warning: don't let the reload reconcile to "saved".
+          await load(false);
         } else {
           store.getState().setSaveStatus(scriptId, "error");
           schedule(RETRY_DELAY_MS);

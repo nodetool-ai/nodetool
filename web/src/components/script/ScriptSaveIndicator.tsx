@@ -62,7 +62,7 @@ const ScriptSaveIndicator = ({ scriptId }: ScriptSaveIndicatorProps) => {
 
   return (
     <Tooltip title="All changes saved">
-      <FlexRow align="center" gap={SPACING.xs}>
+      <FlexRow align="center" gap={SPACING.xs} aria-live="polite">
         <CloudDoneOutlinedIcon
           sx={{ fontSize: 16, color: "text.disabled" }}
         />
