@@ -25,6 +25,13 @@ interface ModelManagerState {
   scope: ModelScope;
   source: ModelSource;
   /**
+   * Whether the source has been settled for this session — either the user
+   * picked a tab or the manager auto-defaulted based on what's installed. Once
+   * true, the empty-install auto-default never fires again, so opening the
+   * (still empty) Installed tab doesn't bounce back to onboarding.
+   */
+  sourceInitialized: boolean;
+  /**
    * Manual GPU-memory budget (GB) for the onboarding recommendations, used when
    * hardware detection can't read VRAM (the default server sampler often can't).
    * `null` means "use whatever was detected".
@@ -39,6 +46,7 @@ interface ModelManagerState {
   toggleSortDirection: () => void;
   setScope: (scope: ModelScope) => void;
   setSource: (source: ModelSource) => void;
+  setSourceInitialized: (initialized: boolean) => void;
   setVramOverrideGb: (gb: number | null) => void;
 }
 
@@ -51,6 +59,7 @@ export const useModelManagerStore = create<ModelManagerState>((set) => ({
   sortDirection: "asc",
   scope: "local",
   source: "installed",
+  sourceInitialized: false,
   vramOverrideGb: null,
   setIsOpen: (isOpen) => set({ isOpen }),
   setModelSearchTerm: (term) => set({ modelSearchTerm: term }),
@@ -64,5 +73,7 @@ export const useModelManagerStore = create<ModelManagerState>((set) => ({
     })),
   setScope: (scope) => set({ scope }),
   setSource: (source) => set({ source }),
+  setSourceInitialized: (initialized) =>
+    set({ sourceInitialized: initialized }),
   setVramOverrideGb: (gb) => set({ vramOverrideGb: gb })
 }));
