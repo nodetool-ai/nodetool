@@ -53,8 +53,14 @@ jest.mock("../StoryboardEntitiesField", () => stub("entities"));
 
 import StoryboardBoard from "../StoryboardBoard";
 
-const makeShot = (id: string): Shot =>
-  ({ type: "shot", id, index: 0, slug: "Shot", action: "" }) as unknown as Shot;
+const makeShot = (id: string): Shot => ({
+  type: "shot",
+  id,
+  index: 0,
+  slug: "Shot",
+  action: "",
+  status: "planned"
+});
 
 const renderBoard = (onDirect: (n: number) => void) =>
   render(
