@@ -77,6 +77,7 @@ import { useTextareaAssetMention } from "./useTextareaAssetMention";
 import { FilePreview } from "./FilePreview";
 import { useFileHandling } from "../hooks/useFileHandling";
 import { useDragAndDrop } from "../hooks/useDragAndDrop";
+import { usePromptHistory } from "../hooks/usePromptHistory";
 import { useMessageQueue } from "../../../hooks/useMessageQueue";
 import { createMediaComposerStyles } from "./MediaChatComposer.styles";
 import useModelPreferencesStore from "../../../stores/ModelPreferencesStore";
@@ -282,6 +283,12 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       onSelectAsset: handleSelectAsset,
       onSelectEntity: handleSelectEntity
     });
+
+  const {
+    record: recordHistory,
+    handleKeyDown: handleHistoryKeyDown,
+    resetNavigation: resetHistoryNavigation
+  } = usePromptHistory({ value: prompt, setValue: setPrompt, textareaRef });
 
   const adjustHeight = useCallback(() => {
     const el = textareaRef.current;
@@ -495,6 +502,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     // Only clear the input when the message was actually sent or queued; a
     // dropped message (one already queued) keeps its text and attachments.
     if (sendMessage(fullContent, prompt)) {
+      recordHistory(prompt);
       setPrompt("");
       clearFiles();
     }
@@ -503,7 +511,8 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     canGenerate,
     getFileContents,
     sendMessage,
-    clearFiles
+    clearFiles,
+    recordHistory
   ]);
 
   const handlePaste = useCallback(
@@ -541,6 +550,10 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       if (handleMentionKeyDown(e)) {
         return;
       }
+      // Then history navigation (ArrowUp/ArrowDown) when the picker is closed.
+      if (handleHistoryKeyDown(e)) {
+        return;
+      }
       if (e.key === "Enter") {
         // Read modifiers from the event, not the global KeyPressedStore, which
         // is stale when the textarea was click-focused with a modifier held.
@@ -553,7 +566,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
         }
       }
     },
-    [handleMentionKeyDown, handleSend]
+    [handleMentionKeyDown, handleHistoryKeyDown, handleSend]
   );
 
   const modeIcon = useMemo(() => {
@@ -855,7 +868,10 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
           className="media-compose-input"
           aria-label="Message prompt"
           value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
+          onChange={(e) => {
+            resetHistoryNavigation();
+            setPrompt(e.target.value);
+          }}
           onInput={adjustHeight}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
