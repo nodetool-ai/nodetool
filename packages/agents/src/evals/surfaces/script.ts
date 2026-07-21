@@ -373,7 +373,13 @@ export function createScriptToolBridge(
         if (speakerId !== null && !findSpeaker(speakerId as string)) {
           throw new Error(`No speaker found for id "${String(speakerId)}".`);
         }
+        const previousSpeakerId = line.speakerId;
         line.speakerId = speakerId as string | null;
+        // Reassigning the speaker changes the line's effective voice, so a
+        // voiced take no longer matches — mark it stale until re-voiced.
+        if (line.status === "voiced" && previousSpeakerId !== line.speakerId) {
+          line.status = "stale";
+        }
         return { ok: true, line: lineNode(line) };
       }
     ),

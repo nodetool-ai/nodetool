@@ -386,7 +386,9 @@ Six suites are registered, one per surface:
 
 Bridges reuse the pure packages where the real logic already lives —
 `@nodetool-ai/timeline` (`splitClip`, `ANIMATION_PRESETS`, subtitle assembly,
-clip/track factories), `@nodetool-ai/image-editor` — rather than reimplement.
+clip/track factories) — rather than reimplement. The sketch surface reimplements
+its layer-stack ops directly (the image-editor package carries only types, no
+reusable layer logic).
 Browser-only tools (image/asset capture, WebGL viewport render) are scoped out:
 `ui_sketch_get_layer_image`, `ui_sketch_render_to_asset`,
 `ui_timeline_get_clip_frames`, `ui_3d_capture_view`. Storyboard cannot import
