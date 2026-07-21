@@ -12,7 +12,11 @@
 
 import { useEffect, useRef } from "react";
 import { trpc, trpcClient } from "../../trpc/client";
-import { useScriptStore, type ScriptDraft } from "../../stores/script/ScriptStore";
+import {
+  useScriptStore,
+  type ScriptDraft,
+  type ScriptSaveStatus
+} from "../../stores/script/ScriptStore";
 
 const AUTOSAVE_DEBOUNCE_MS = 750;
 const RETRY_DELAY_MS = 5_000;
@@ -57,25 +61,30 @@ export const useScriptServerSync = (scriptId: string): void => {
     let disposed = false;
     const store = useScriptStore;
 
-    const applyResponse = (res: ScriptResponse, reconcile: boolean): void => {
+    // `statusAfter` is applied only once the server copy has actually replaced
+    // the local one, so the indicator never claims a state before it's true.
+    const applyResponse = (
+      res: ScriptResponse,
+      statusAfter: ScriptSaveStatus | null
+    ): void => {
       if (disposed) return;
       store.getState().loadScript(scriptId, responseToScript(res));
       store.getState().setServerRevision(scriptId, res.updatedAt);
       syncedRef.current = store.getState().scripts[scriptId] ?? null;
-      // A clean load means store and server agree — clear any stale error left
-      // by a prior failed save. The conflict path passes reconcile=false so its
-      // "reloaded" warning survives the reload it triggers.
-      if (reconcile) store.getState().setSaveStatus(scriptId, "saved");
+      if (statusAfter) store.getState().setSaveStatus(scriptId, statusAfter);
     };
 
-    // `reconcile` marks the script "saved" on a successful load/create. The
-    // mount load reconciles (clearing a stale error from a previous session);
-    // the CAS-conflict reload passes false so its "reloaded" status persists.
-    const load = async (reconcile = true): Promise<void> => {
+    // `statusAfter` is the status to set once the load lands. Mount load →
+    // "saved" (clearing a stale error from a previous session); the CAS-conflict
+    // reload → "reloaded", set post-replacement so a slow reload can't claim it
+    // early. A load that never applies (early error) sets nothing.
+    const load = async (
+      statusAfter: ScriptSaveStatus | null = "saved"
+    ): Promise<void> => {
       try {
         applyResponse(
           await trpcClient.scripts.get.query({ id: scriptId }),
-          reconcile
+          statusAfter
         );
       } catch (error) {
         if (!isNotFound(error)) {
@@ -93,7 +102,7 @@ export const useScriptServerSync = (scriptId: string): void => {
           if (disposed) return;
           store.getState().setServerRevision(scriptId, created.updatedAt);
           syncedRef.current = store.getState().scripts[scriptId] ?? null;
-          if (reconcile) store.getState().setSaveStatus(scriptId, "saved");
+          if (statusAfter) store.getState().setSaveStatus(scriptId, statusAfter);
           void utilsRef.current.scripts.list.invalidate();
         } catch (createError) {
           console.error("Failed to create script", createError);
@@ -145,9 +154,8 @@ export const useScriptServerSync = (scriptId: string): void => {
           return;
         }
         if (/modified since last read/i.test((error as Error).message ?? "")) {
-          store.getState().setSaveStatus(scriptId, "reloaded");
-          // Keep the "reloaded" warning: don't let the reload reconcile to "saved".
-          await load(false);
+          // Set "reloaded" only after the server copy is applied, not before.
+          await load("reloaded");
         } else {
           store.getState().setSaveStatus(scriptId, "error");
           schedule(RETRY_DELAY_MS);
