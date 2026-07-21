@@ -437,12 +437,14 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
             {`${shots.length} shot${shots.length === 1 ? "" : "s"}`}
           </Text>
           <div className="shot-list">
-            {shots.map((shot) => (
+            {shots.map((shot, i) => (
               <ShotCard
                 key={shot.id}
                 boardId={boardId}
                 shot={shot}
                 readOnly={readOnly}
+                isFirst={i === 0}
+                isLast={i === shots.length - 1}
               />
             ))}
           </div>
