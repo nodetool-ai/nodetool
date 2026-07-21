@@ -292,16 +292,16 @@ export async function resolveAssetForAtlas(
 
   // Internal references the canonical resolver understands but a raw
   // storage.retrieve / guarded fetch can't uniformly turn into bytes:
-  //   - asset://<id>, package://<pkg>/<path> reference schemes
-  //   - the self-hosted `/api/storage/<key>` path and `memory://…` keys, which
-  //     only some storage adapters recognize
+  //   - asset://<id>, package://<pkg>/<path>, memory://<key> reference schemes
+  //   - the self-hosted `/api/storage/<key>` path, reduced to its bare <key>
   //   - a ref that carries only an `asset_id` (its `uri` is empty or an
   //     internal path) — the common shape for library-picked and generated
   //     media wired into a downstream node
-  // resolveAssetBytes is SSRF-safe for these — it performs no unguarded
-  // outbound fetch (only trusted schemes and the configured storage/API). We
-  // deliberately do NOT route arbitrary http(s) URIs through it; those stay on
-  // the isSafeHttpUrl-guarded fetch path below.
+  // The SSRF safety lives HERE, in restricting what we hand resolveAssetBytes:
+  // it will happily download an arbitrary http(s) URL if given one, so we only
+  // ever pass it these trusted internal refs (or an asset:// derived from
+  // asset_id). Arbitrary http(s) URIs stay on the isSafeHttpUrl-guarded fetch
+  // path below and are never routed through it.
   //
   // Read uri fresh from ref: the looksLikePublicUrl predicate above narrowed
   // r.uri away, so a typeof check re-establishes the string type here.
@@ -310,19 +310,27 @@ export async function resolveAssetForAtlas(
     typeof r.asset_id === "string" && r.asset_id.trim() !== ""
       ? r.asset_id.trim()
       : null;
-  const isInternalRef = (u: string): boolean =>
-    u.startsWith("asset://") ||
-    u.startsWith("package://") ||
-    u.startsWith("memory://") ||
-    u.startsWith("/api/storage/") ||
-    u.startsWith("api/storage/");
+  // Map an internal-ref URI to the argument resolveAssetBytes expects, or null
+  // when it isn't one. asset:// / package:// / memory:// are passed verbatim
+  // (resolveAssetBytes recognizes each scheme); the `/api/storage/<key>` HTTP
+  // path is reduced to its bare `<key>`, since resolveAssetBytes keys off the
+  // storage key / asset id, not the route — handing it the full path makes it
+  // treat the whole string as an id and build a broken nested URL that 404s.
+  const internalRefCandidate = (u: string): string | null => {
+    if (
+      u.startsWith("asset://") ||
+      u.startsWith("package://") ||
+      u.startsWith("memory://")
+    ) {
+      return u;
+    }
+    const apiStorage = /^\/?api\/storage\/(.+)$/.exec(u);
+    return apiStorage ? apiStorage[1] : null;
+  };
   if (context?.resolveAssetBytes) {
     const candidate =
-      typeof uri === "string" && isInternalRef(uri)
-        ? uri
-        : assetId
-          ? `asset://${assetId}`
-          : null;
+      (typeof uri === "string" ? internalRefCandidate(uri) : null) ??
+      (assetId ? `asset://${assetId}` : null);
     if (candidate) {
       const { bytes } = await context.resolveAssetBytes(candidate);
       if (bytes && bytes.byteLength > 0) {

@@ -102,8 +102,10 @@ describe("resolveAssetForAtlas", () => {
   // The self-hosted file backend hands back a relative /api/storage/<key> path;
   // memory:// keys are the ephemeral equivalent. Neither is a public URL, and
   // storage.retrieve doesn't recognize them across every adapter — route them
-  // through the canonical resolver.
-  it("resolves an internal /api/storage path via resolveAssetBytes", async () => {
+  // through the canonical resolver. The /api/storage/ HTTP-route prefix is
+  // stripped to the bare storage key, since resolveAssetBytes keys off the
+  // storage key / asset id (the full path would build a broken nested URL).
+  it("resolves an internal /api/storage path via its bare storage key", async () => {
     const resolveAssetBytes = vi
       .fn()
       .mockResolvedValue({ bytes: Uint8Array.from([4, 5, 6]) });
@@ -112,7 +114,7 @@ describe("resolveAssetForAtlas", () => {
       { resolveAssetBytes } as unknown as never,
       "video"
     );
-    expect(resolveAssetBytes).toHaveBeenCalledWith("/api/storage/clip.mp4");
+    expect(resolveAssetBytes).toHaveBeenCalledWith("clip.mp4");
     expect(out).toBe("data:video/mp4;base64,BAUG");
   });
 
