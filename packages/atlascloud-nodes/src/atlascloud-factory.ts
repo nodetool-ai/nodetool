@@ -79,6 +79,10 @@ const LIST_ASSET_RE = /^list\[(image|video|audio)\]$/;
 
 type AssetRef = {
   uri?: string;
+  // Native NodeTool refs carry the asset's id here; the `uri` is often an
+  // internal storage path (`/api/storage/<key>`, `memory://…`) or empty, so
+  // `asset_id` is the reliable handle for resolving the bytes.
+  asset_id?: string | null;
   data?: string | Uint8Array;
   // Native NodeTool refs use snake_case `mime_type`; the refs that
   // `mapPromptAssetsToInputs` injects for @-mentioned assets (InjectedAssetRef)
@@ -286,22 +290,58 @@ export async function resolveAssetForAtlas(
     return bytesToDataUri(r.data, guessMime(r, defaultMimeFor(fieldType)));
   }
 
-  // Reference URIs (asset://<id>, package://<pkg>/<path>) that storage adapters
-  // return null for — resolve them via the canonical, SSRF-safe context helper.
+  // Internal references the canonical resolver understands but a raw
+  // storage.retrieve / guarded fetch can't uniformly turn into bytes:
+  //   - asset://<id>, package://<pkg>/<path>, memory://<key> reference schemes
+  //   - the self-hosted `/api/storage/<key>` path, reduced to its bare <key>
+  //   - a ref that carries only an `asset_id` (its `uri` is empty or an
+  //     internal path) — the common shape for library-picked and generated
+  //     media wired into a downstream node
+  // The SSRF safety lives HERE, in restricting what we hand resolveAssetBytes:
+  // it will happily download an arbitrary http(s) URL if given one, so we only
+  // ever pass it these trusted internal refs (or an asset:// derived from
+  // asset_id). Arbitrary http(s) URIs stay on the isSafeHttpUrl-guarded fetch
+  // path below and are never routed through it.
+  //
   // Read uri fresh from ref: the looksLikePublicUrl predicate above narrowed
   // r.uri away, so a typeof check re-establishes the string type here.
   const uri = (ref as AssetRef).uri;
-  if (
-    typeof uri === "string" &&
-    (uri.startsWith("asset://") || uri.startsWith("package://")) &&
-    context?.resolveAssetBytes
-  ) {
-    const { bytes } = await context.resolveAssetBytes(uri);
-    if (bytes && bytes.byteLength > 0) {
-      return bytesToDataUri(
-        new Uint8Array(bytes),
-        guessMime(r, defaultMimeFor(fieldType))
-      );
+  const assetId =
+    typeof r.asset_id === "string" && r.asset_id.trim() !== ""
+      ? r.asset_id.trim()
+      : null;
+  // Map an internal-ref URI to the argument resolveAssetBytes expects, or null
+  // when it isn't one. asset:// / package:// / memory:// are passed verbatim
+  // (resolveAssetBytes recognizes each scheme); the `/api/storage/<key>` HTTP
+  // path is reduced to its bare `<key>`, since resolveAssetBytes keys off the
+  // storage key / asset id, not the route — handing it the full path makes it
+  // treat the whole string as an id and build a broken nested URL that 404s.
+  const internalRefCandidate = (u: string): string | null => {
+    if (
+      u.startsWith("asset://") ||
+      u.startsWith("package://") ||
+      u.startsWith("memory://")
+    ) {
+      return u;
+    }
+    // Strip any `?query`/`#hash` (thumb URLs carry e.g. `?thumb=1`) so the bare
+    // storage key is handed over. resolveAssetBytes strips these too, but doing
+    // it here keeps the passed key exact and the intent explicit.
+    const apiStorage = /^\/?api\/storage\/(.+)$/.exec(u);
+    return apiStorage ? apiStorage[1].split(/[?#]/)[0] || null : null;
+  };
+  if (context?.resolveAssetBytes) {
+    const candidate =
+      (typeof uri === "string" ? internalRefCandidate(uri) : null) ??
+      (assetId ? `asset://${assetId}` : null);
+    if (candidate) {
+      const { bytes } = await context.resolveAssetBytes(candidate);
+      if (bytes && bytes.byteLength > 0) {
+        return bytesToDataUri(
+          new Uint8Array(bytes),
+          guessMime(r, defaultMimeFor(fieldType))
+        );
+      }
     }
   }
 

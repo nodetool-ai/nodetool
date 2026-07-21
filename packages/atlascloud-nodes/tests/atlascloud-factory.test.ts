@@ -82,6 +82,87 @@ describe("resolveAssetForAtlas", () => {
     );
   });
 
+  // A wired media ref often carries only an asset_id — its uri is empty or an
+  // internal storage path the active adapter doesn't recognize. Fall back to
+  // resolving asset://<asset_id> via the canonical helper instead of throwing
+  // "no usable uri or inline data".
+  it("resolves a ref carrying only asset_id via asset://<id>", async () => {
+    const resolveAssetBytes = vi
+      .fn()
+      .mockResolvedValue({ bytes: Uint8Array.from([1, 2, 3]) });
+    const out = await resolveAssetForAtlas(
+      { type: "video", uri: "", asset_id: "vid-42" },
+      { resolveAssetBytes } as unknown as never,
+      "video"
+    );
+    expect(resolveAssetBytes).toHaveBeenCalledWith("asset://vid-42");
+    expect(out).toBe("data:video/mp4;base64,AQID");
+  });
+
+  // The self-hosted file backend hands back a relative /api/storage/<key> path;
+  // memory:// keys are the ephemeral equivalent. Neither is a public URL, and
+  // storage.retrieve doesn't recognize them across every adapter — route them
+  // through the canonical resolver. The /api/storage/ HTTP-route prefix is
+  // stripped to the bare storage key, since resolveAssetBytes keys off the
+  // storage key / asset id (the full path would build a broken nested URL).
+  it("resolves an internal /api/storage path via its bare storage key", async () => {
+    const resolveAssetBytes = vi
+      .fn()
+      .mockResolvedValue({ bytes: Uint8Array.from([4, 5, 6]) });
+    const out = await resolveAssetForAtlas(
+      { type: "video", uri: "/api/storage/clip.mp4", asset_id: "vid-9" },
+      { resolveAssetBytes } as unknown as never,
+      "video"
+    );
+    expect(resolveAssetBytes).toHaveBeenCalledWith("clip.mp4");
+    expect(out).toBe("data:video/mp4;base64,BAUG");
+  });
+
+  // Thumb / cache-busted refs carry a query segment; the bare storage key must
+  // still be handed to resolveAssetBytes, not `clip.mp4?thumb=1`.
+  it("strips a query segment from an /api/storage path", async () => {
+    const resolveAssetBytes = vi
+      .fn()
+      .mockResolvedValue({ bytes: Uint8Array.from([4, 5, 6]) });
+    await resolveAssetForAtlas(
+      { type: "image", uri: "/api/storage/pic.png?thumb=1" },
+      { resolveAssetBytes } as unknown as never,
+      "image"
+    );
+    expect(resolveAssetBytes).toHaveBeenCalledWith("pic.png");
+  });
+
+  it("resolves a memory:// ref via resolveAssetBytes", async () => {
+    const resolveAssetBytes = vi
+      .fn()
+      .mockResolvedValue({ bytes: Uint8Array.from([7, 8]) });
+    const out = await resolveAssetForAtlas(
+      { type: "image", uri: "memory://cache/pic.png" },
+      { resolveAssetBytes } as unknown as never,
+      "image"
+    );
+    expect(resolveAssetBytes).toHaveBeenCalledWith("memory://cache/pic.png");
+    expect(out).toBe("data:image/png;base64,Bwg=");
+  });
+
+  // Arbitrary http(s) URIs must NOT be routed through resolveAssetBytes (it
+  // performs unguarded downloads) — a private/metadata host still has to be
+  // blocked by the isSafeHttpUrl fetch guard, never resolved.
+  it("does not route a private-host http uri through resolveAssetBytes", async () => {
+    const resolveAssetBytes = vi.fn();
+    const fetchSpy = vi.fn();
+    global.fetch = fetchSpy as unknown as typeof fetch;
+    await expect(
+      resolveAssetForAtlas(
+        { type: "video", uri: "http://169.254.169.254/api/storage/x.mp4" },
+        { resolveAssetBytes } as unknown as never,
+        "video"
+      )
+    ).rejects.toThrow("Cannot resolve");
+    expect(resolveAssetBytes).not.toHaveBeenCalled();
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
   // SSRF defense: refs whose URIs point at the runtime's own host, RFC1918
   // private space, or cloud-metadata endpoints are never fetched. With no
   // alternative resolution path, resolveAssetForAtlas throws.
