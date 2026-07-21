@@ -89,6 +89,19 @@ describe("useScriptServerSync", () => {
     expect(useScriptStore.getState().saveStatus["script-1"]).toBe("saved");
   });
 
+  it("flags 'unsaved' immediately on edit, before the debounced save fires", async () => {
+    renderHook(() => useScriptServerSync("script-1"));
+
+    await waitFor(() =>
+      expect(useScriptStore.getState().serverRevisions["script-1"]).toBe("rev-1")
+    );
+    act(() => useScriptStore.getState().setTitle("script-1", "Unsaved title"));
+
+    // Set synchronously by the store subscriber, well before the 750ms save.
+    expect(useScriptStore.getState().saveStatus["script-1"]).toBe("unsaved");
+    expect(updateMutate).not.toHaveBeenCalled();
+  });
+
   it("flags an error status when an autosave fails", async () => {
     updateMutate.mockRejectedValueOnce(new Error("network down"));
     renderHook(() => useScriptServerSync("script-1"));

@@ -85,12 +85,18 @@ export interface ScriptDraft {
  * Autosave lifecycle for one script, surfaced in the editor toolbar so the
  * silent server sync becomes visible:
  * - `saved`    — the store matches the server copy (also the idle state).
+ * - `unsaved`  — edits landed and are waiting out the autosave debounce.
  * - `saving`   — a save is in flight.
  * - `error`    — the last save failed and will be retried.
  * - `reloaded` — a concurrent edit won a CAS conflict; the server copy replaced
  *   the local one.
  */
-export type ScriptSaveStatus = "saved" | "saving" | "error" | "reloaded";
+export type ScriptSaveStatus =
+  | "saved"
+  | "unsaved"
+  | "saving"
+  | "error"
+  | "reloaded";
 
 interface ScriptStoreState {
   scripts: Record<string, ScriptDraft>;

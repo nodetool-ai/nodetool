@@ -1,6 +1,7 @@
 import CloudDoneOutlinedIcon from "@mui/icons-material/CloudDoneOutlined";
 import SyncProblemIcon from "@mui/icons-material/SyncProblem";
 import HistoryIcon from "@mui/icons-material/History";
+import CircleIcon from "@mui/icons-material/Circle";
 import {
   FlexRow,
   Text,
@@ -22,6 +23,19 @@ interface ScriptSaveIndicatorProps {
  */
 const ScriptSaveIndicator = ({ scriptId }: ScriptSaveIndicatorProps) => {
   const status = useScriptSaveStatus(scriptId);
+
+  if (status === "unsaved") {
+    return (
+      <Tooltip title="Unsaved changes — saving shortly">
+        <FlexRow align="center" gap={SPACING.xs}>
+          <CircleIcon sx={{ fontSize: 10, color: "text.disabled" }} />
+          <Text size="smaller" sx={{ color: "text.secondary" }}>
+            Unsaved changes
+          </Text>
+        </FlexRow>
+      </Tooltip>
+    );
+  }
 
   if (status === "saving") {
     return (

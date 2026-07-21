@@ -32,6 +32,16 @@ describe("ScriptSaveIndicator", () => {
     expect(screen.getByText("Saved")).toBeInTheDocument();
   });
 
+  it("shows an Unsaved-changes label during the debounce window", () => {
+    setStatus("unsaved");
+    render(
+      <WithTheme>
+        <ScriptSaveIndicator scriptId={SCRIPT_ID} />
+      </WithTheme>
+    );
+    expect(screen.getByText("Unsaved changes")).toBeInTheDocument();
+  });
+
   it("shows a Saving label while a save is in flight", () => {
     setStatus("saving");
     render(

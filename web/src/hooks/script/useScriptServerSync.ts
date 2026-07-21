@@ -180,6 +180,10 @@ export const useScriptServerSync = (scriptId: string): void => {
       if (state.scripts[scriptId] === prev.scripts[scriptId]) return;
       if (state.scripts[scriptId] === syncedRef.current) return;
       if (!state.serverRevisions[scriptId]) return;
+      // Edits landed; the debounced save hasn't fired yet. Reflect the pending
+      // state so "saved" never lies during the debounce window. (Setting status
+      // only touches saveStatus, so this subscriber early-returns on it.)
+      store.getState().setSaveStatus(scriptId, "unsaved");
       schedule();
     });
 
