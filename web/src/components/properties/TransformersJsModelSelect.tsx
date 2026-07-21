@@ -67,7 +67,7 @@ const TransformersJsModelSelect: React.FC<TransformersJsModelSelectProps> = ({
       onChange({
         type: modelType,
         repo_id: repoId,
-        path: model.path || undefined
+        path: model.path || null
       });
       addRecent({
         provider: "transformers_js",
