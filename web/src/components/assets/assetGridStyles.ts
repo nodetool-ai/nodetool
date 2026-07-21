@@ -56,6 +56,8 @@ export const assetGridStyles = (theme: Theme) => {
       userSelect: "none"
     },
     ".selected-asset-info": {
+      display: "flex",
+      alignItems: "center",
       fontSize: `${theme.vars.fontSizeSmall} !important`,
       color: theme.vars.palette.grey[400],
       minHeight: "25px",
