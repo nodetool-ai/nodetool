@@ -1,371 +1,89 @@
-import type { Chunk } from "@nodetool-ai/protocol";
-import { BaseProvider } from "./base-provider.js";
 import {
-  OpenAICompatClient,
-  type ChatCompletionsRequest
-} from "./openai-compat/index.js";
-import type {
-  LanguageModel,
-  Message,
-  MessageTextContent,
-  ProviderStreamItem,
-  ProviderTool,
-  ToolCall
-} from "./types.js";
-import { parseEmulatedToolCalls } from "./llama-tool-emulation.js";
+  OpenAICompatProvider,
+  type OpenAICompatProviderOptions
+} from "./openai-compat-provider.js";
+import { trimTrailingSlashes } from "./openai-compat/index.js";
+import type { LanguageModel } from "./types.js";
 
-interface LlamaProviderOptions {
-  compatClient?: OpenAICompatClient;
-  clientFactory?: (baseUrl: string) => OpenAICompatClient;
-  fetchFn?: typeof fetch;
+interface LlamaProviderOptions extends OpenAICompatProviderOptions {
+  baseURL?: string;
 }
 
-interface MutableToolCall {
-  id: string;
-  name: string;
-  arguments: string;
-}
-
-function asTextContent(content: Message["content"]): string {
-  if (typeof content === "string") return content;
-  if (content == null) return "";
-  if (!Array.isArray(content)) return "";
-  return content
-    .filter((c): c is MessageTextContent => c.type === "text")
-    .map((c) => c.text)
-    .join("\n");
-}
-
-function contentToString(content: Message["content"]): string {
-  if (typeof content === "string") return content;
-  if (Array.isArray(content)) return asTextContent(content);
-  if (content == null) return "";
-  try {
-    return JSON.stringify(content);
-  } catch {
-    return String(content);
-  }
-}
-
-export class LlamaProvider extends BaseProvider {
-  static requiredSecrets(): string[] {
+/**
+ * HTTP client for a remote `llama-server` (llama.cpp's OpenAI-compatible
+ * server). It speaks the same dialect as vLLM and LM Studio, so it rides the
+ * shared {@link OpenAICompatProvider} chat path rather than hand-rolling one:
+ * that supplies native tool calling, sampling parameters, usage tracking and a
+ * terminal chunk on every finish reason.
+ *
+ * For running GGUF models in-process instead, see `NodeLlamaCppProvider`.
+ */
+export class LlamaProvider extends OpenAICompatProvider {
+  static override requiredSecrets(): string[] {
     return ["LLAMA_CPP_URL"];
   }
 
   readonly baseUrl: string;
-  private _client: OpenAICompatClient | null;
-  private _clientFactory: (baseUrl: string) => OpenAICompatClient;
-  private _fetch: typeof fetch;
+  private readonly _llamaFetch: typeof fetch;
 
   constructor(
     secrets: { LLAMA_CPP_URL?: string },
     options: LlamaProviderOptions = {}
   ) {
-    super("llama_cpp");
-
-    const raw = secrets.LLAMA_CPP_URL ?? process.env.LLAMA_CPP_URL;
-    if (!raw || !raw.trim()) {
+    const raw =
+      options.baseURL ?? secrets.LLAMA_CPP_URL ?? process.env.LLAMA_CPP_URL;
+    if (!raw || !String(raw).trim()) {
       throw new Error("LLAMA_CPP_URL is required");
     }
-    let end = raw.length;
-    while (end > 0 && raw[end - 1] === "/") end -= 1;
-    const normalized = raw.slice(0, end);
-
+    const baseURL = trimTrailingSlashes(String(raw));
     const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
-    this.baseUrl = normalized;
-    this._client = options.compatClient ?? null;
-    this._clientFactory =
-      options.clientFactory ??
-      ((url) =>
-        new OpenAICompatClient({
-          apiKey: "sk-no-key-required",
-          baseURL: `${url}/v1`,
-          fetchFn
-        }));
-    this._fetch = fetchFn;
+
+    super(
+      {
+        providerId: "llama_cpp",
+        apiKey: "sk-no-key-required",
+        baseURL: `${baseURL}/v1`
+      },
+      { ...options, fetchFn }
+    );
+
+    this.baseUrl = baseURL;
+    this._llamaFetch = fetchFn;
   }
 
-  getContainerEnv(): Record<string, string> {
-    // Python provider intentionally does not inject env for container execution.
+  override getContainerEnv(): Record<string, string> {
     return {};
   }
 
-  private getClient(): OpenAICompatClient {
-    if (!this._client) {
-      this._client = this._clientFactory(this.baseUrl);
-    }
-    return this._client;
+  /**
+   * llama-server constrains generation with a grammar built from the tool
+   * schemas, so tool calling is native for any model it serves — no
+   * prompt-level emulation.
+   */
+  override async hasToolSupport(_model: string): Promise<boolean> {
+    return true;
   }
 
-  async hasToolSupport(_model: string): Promise<boolean> {
-    // Python provider returns False and relies on tool emulation.
-    return false;
-  }
-
-  async getAvailableLanguageModels(): Promise<LanguageModel[]> {
-    const response = await this._fetch(`${this.baseUrl}/v1/models`);
-    if (!response.ok) return [];
-    const payload = (await response.json()) as {
-      data?: Array<{ id?: string }>;
-      models?: Array<{ id?: string }>;
-    };
-    const rows = payload.data ?? payload.models ?? [];
-    return rows
-      .map((m) => m.id)
-      .filter((id): id is string => typeof id === "string" && id.length > 0)
-      .map((id) => ({ id, name: id, provider: "llama_cpp" }));
-  }
-
-  private async normalizeMessagesForLlama(
-    messages: Message[]
-  ): Promise<Message[]> {
-    const systemParts: string[] = [];
-    const normalized: Message[] = [];
-
-    for (const msg of messages) {
-      if (msg.role === "system") {
-        systemParts.push(asTextContent(msg.content));
-        continue;
-      }
-      if (msg.role === "tool") {
-        const content =
-          typeof msg.content === "string"
-            ? msg.content
-            : JSON.stringify(msg.content ?? null);
-        normalized.push({
-          role: "user",
-          content: `Tool result:\n${content}`
-        });
-        continue;
-      }
-      normalized.push(msg);
-    }
-
-    const out: Message[] = [];
-    if (systemParts.length > 0) {
-      out.push({
-        role: "system",
-        content: systemParts.filter(Boolean).join("\n")
-      });
-    }
-
-    // Ensure post-system strict alternation (user/assistant/user/assistant...).
-    const seq = normalized;
-    const startExpected: Array<"user" | "assistant"> = ["user"];
-    let expected = startExpected[0];
-    for (const msg of seq) {
-      const mappedRole: "user" | "assistant" =
-        msg.role === "assistant" ? "assistant" : "user";
-      while (mappedRole !== expected) {
-        out.push({ role: expected, content: "" });
-        expected = expected === "user" ? "assistant" : "user";
-      }
-      out.push({ ...msg, role: mappedRole });
-      expected = expected === "user" ? "assistant" : "user";
-    }
-
-    return out;
-  }
-
-  async convertMessage(message: Message): Promise<Record<string, unknown>> {
-    if (message.role === "assistant") {
-      const toolCalls = (message.toolCalls ?? []).map((tc) => ({
-        type: "function",
-        id: tc.id,
-        function: {
-          name: tc.name,
-          arguments: JSON.stringify(tc.args)
-        }
-      }));
-      return {
-        role: "assistant",
-        content: asTextContent(message.content),
-        ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {})
+  override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
+    try {
+      const response = await this._llamaFetch(`${this.baseUrl}/v1/models`);
+      if (!response.ok) return [];
+      // llama-server answers with `data`; some builds and proxies use `models`.
+      const payload = (await response.json()) as {
+        data?: Array<{ id?: string }>;
+        models?: Array<{ id?: string }>;
       };
-    }
-
-    if (message.role === "system") {
-      return { role: "system", content: asTextContent(message.content) };
-    }
-
-    if (message.role === "tool") {
-      return {
-        role: "user",
-        content: `Tool result:\n${contentToString(message.content)}`
-      };
-    }
-
-    return { role: "user", content: asTextContent(message.content) };
-  }
-
-  formatTools(tools: ProviderTool[]): Array<Record<string, unknown>> {
-    return tools.map((tool) => ({
-      type: "function",
-      function: {
-        name: tool.name,
-        description: tool.description ?? "",
-        parameters: tool.inputSchema ?? { type: "object", properties: {} }
-      }
-    }));
-  }
-
-  async *generateMessages(args: {
-    messages: Message[];
-    model: string;
-    tools?: ProviderTool[];
-    maxTokens?: number;
-    temperature?: number;
-    topP?: number;
-    presencePenalty?: number;
-    frequencyPenalty?: number;
-    audio?: Record<string, unknown>;
-    signal?: AbortSignal;
-  }): AsyncGenerator<ProviderStreamItem> {
-    const {
-      model,
-      tools = [],
-      maxTokens = 1024
-    } = args;
-
-    const normalized = await this.normalizeMessagesForLlama(args.messages);
-    const openaiMessages = await Promise.all(
-      normalized.map((m) => this.convertMessage(m))
-    );
-
-    const request: ChatCompletionsRequest = {
-      model,
-      messages: openaiMessages,
-      max_tokens: maxTokens,
-      stream: true
-    };
-    if (tools.length > 0 && (await this.hasToolSupport(model))) {
-      request.tools = this.formatTools(tools);
-    }
-
-    this.recordRequestPayload(request);
-    const stream = this.getClient().chatCompletionsStream(request, {
-      signal: args.signal
-    });
-
-    const deltaToolCalls = new Map<number, MutableToolCall>();
-    let accumulatedText = "";
-
-    for await (const chunk of stream) {
-      const choice = chunk.choices?.[0];
-      if (!choice) continue;
-      const delta = choice.delta;
-
-      if (Array.isArray(delta?.tool_calls)) {
-        for (const tc of delta.tool_calls) {
-          const index = Number(tc.index ?? 0);
-          const cur = deltaToolCalls.get(index) ?? {
-            id: String(tc.id ?? ""),
-            name: "",
-            arguments: ""
-          };
-          if (tc.id) cur.id = String(tc.id);
-          if (tc.function?.name) cur.name = String(tc.function.name);
-          if (tc.function?.arguments)
-            cur.arguments += String(tc.function.arguments);
-          deltaToolCalls.set(index, cur);
-        }
-      }
-
-      const content = String(delta?.content ?? "");
-      if (content.length > 0) {
-        accumulatedText += content;
-      }
-
-      if (content.length > 0 || choice.finish_reason === "stop") {
-        const out: Chunk = {
-          type: "chunk",
-          content,
-          done: choice.finish_reason === "stop"
-        };
-        yield out;
-      }
-
-      if (choice.finish_reason === "tool_calls") {
-        for (const call of deltaToolCalls.values()) {
-          yield this.buildToolCall(call.id, call.name, call.arguments);
-        }
-        deltaToolCalls.clear();
-      }
-
-      if (
-        choice.finish_reason === "stop" &&
-        tools.length > 0 &&
-        !(await this.hasToolSupport(model))
-      ) {
-        const parsed = parseEmulatedToolCalls(accumulatedText, tools);
-        for (const tc of parsed.toolCalls) {
-          yield tc;
-        }
-      }
+      const rows = payload.data ?? payload.models ?? [];
+      return rows
+        .map((m) => m.id)
+        .filter((id): id is string => typeof id === "string" && id.length > 0)
+        .map((id) => ({ id, name: id, provider: "llama_cpp" }));
+    } catch {
+      return [];
     }
   }
 
-  async generateMessage(args: {
-    messages: Message[];
-    model: string;
-    tools?: ProviderTool[];
-    maxTokens?: number;
-    temperature?: number;
-    topP?: number;
-    presencePenalty?: number;
-    frequencyPenalty?: number;
-    signal?: AbortSignal;
-  }): Promise<Message> {
-    const {
-      model,
-      tools = [],
-      maxTokens = 1024
-    } = args;
-
-    const normalized = await this.normalizeMessagesForLlama(args.messages);
-    const openaiMessages = await Promise.all(
-      normalized.map((m) => this.convertMessage(m))
-    );
-
-    const request: ChatCompletionsRequest = {
-      model,
-      messages: openaiMessages,
-      max_tokens: maxTokens,
-      stream: false
-    };
-    if (tools.length > 0 && (await this.hasToolSupport(model))) {
-      request.tools = this.formatTools(tools);
-    }
-
-    this.recordRequestPayload(request);
-    const completion = await this.getClient().chatCompletions(request, {
-      signal: args.signal
-    });
-    const message = completion.choices?.[0]?.message;
-    const content = String(message?.content ?? "");
-
-    let toolCalls: ToolCall[] = [];
-    const nativeToolCalls = message?.tool_calls ?? [];
-    if (nativeToolCalls.length > 0) {
-      toolCalls = nativeToolCalls.map((tc) =>
-        this.buildToolCall(
-          String(tc.id ?? ""),
-          String(tc.function?.name ?? ""),
-          tc.function?.arguments ?? undefined
-        )
-      );
-    } else if (tools.length > 0 && !(await this.hasToolSupport(model))) {
-      toolCalls = parseEmulatedToolCalls(content, tools).toolCalls;
-    }
-
-    return {
-      role: "assistant",
-      content,
-      toolCalls
-    };
-  }
-
-  isContextLengthError(error: unknown): boolean {
+  override isContextLengthError(error: unknown): boolean {
     const msg = String(error).toLowerCase();
     return (
       msg.includes("context length") ||

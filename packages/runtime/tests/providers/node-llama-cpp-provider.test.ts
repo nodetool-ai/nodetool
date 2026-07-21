@@ -18,8 +18,6 @@ vi.mock("@nodetool-ai/config", async (importOriginal) => {
 });
 
 import { NodeLlamaCppProvider } from "../../src/providers/node-llama-cpp-provider.js";
-import { parseEmulatedToolCalls } from "../../src/providers/llama-tool-emulation.js";
-import type { ProviderTool } from "../../src/providers/types.js";
 
 describe("NodeLlamaCppProvider", () => {
   let modelsDir: string;
@@ -38,9 +36,9 @@ describe("NodeLlamaCppProvider", () => {
     expect(provider.provider).toBe("node_llama_cpp");
   });
 
-  it("does not claim native tool support (emulated path)", async () => {
+  it("claims native tool support (grammar-constrained functions)", async () => {
     const provider = new NodeLlamaCppProvider();
-    await expect(provider.hasToolSupport("any")).resolves.toBe(false);
+    await expect(provider.hasToolSupport("any")).resolves.toBe(true);
   });
 
   it("lists GGUF files from the models directory, ignoring other files", async () => {
@@ -98,31 +96,5 @@ describe("NodeLlamaCppProvider", () => {
     expect(provider.isContextLengthError(new Error("network down"))).toBe(
       false
     );
-  });
-});
-
-describe("parseEmulatedToolCalls", () => {
-  const tools: ProviderTool[] = [{ name: "get_weather" }];
-
-  it("parses a function-style call with keyword args", () => {
-    const { toolCalls, cleanedContent } = parseEmulatedToolCalls(
-      'get_weather(city="Berlin", days=3)',
-      tools
-    );
-    expect(toolCalls).toHaveLength(1);
-    expect(toolCalls[0]).toMatchObject({
-      name: "get_weather",
-      args: { city: "Berlin", days: 3 }
-    });
-    expect(cleanedContent).toBe("");
-  });
-
-  it("ignores calls to tools that were not offered", () => {
-    const { toolCalls, cleanedContent } = parseEmulatedToolCalls(
-      "some_other_tool(x=1)",
-      tools
-    );
-    expect(toolCalls).toHaveLength(0);
-    expect(cleanedContent).toContain("some_other_tool");
   });
 });

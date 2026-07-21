@@ -18,7 +18,8 @@ describe("LlamaProvider", () => {
     );
     expect(provider.baseUrl).toBe("http://127.0.0.1:8080");
     expect(provider.getContainerEnv()).toEqual({});
-    expect(await provider.hasToolSupport("any")).toBe(false);
+    // llama-server does grammar-constrained tool calling natively.
+    expect(await provider.hasToolSupport("any")).toBe(true);
   });
 
   it("lists available language models from /v1/models", async () => {
@@ -34,7 +35,7 @@ describe("LlamaProvider", () => {
 
     const provider = new LlamaProvider(
       { LLAMA_CPP_URL: "http://127.0.0.1:8080" },
-      { fetchFn: fetchFn as any }
+      { fetchFn: fetchFn as unknown as typeof fetch }
     );
 
     await expect(provider.getAvailableLanguageModels()).resolves.toEqual([
@@ -54,7 +55,11 @@ describe("LlamaProvider", () => {
     );
 
     const user: Message = { role: "user", content: "hello" };
-    const tool: Message = { role: "tool", content: { ok: true } };
+    const tool: Message = {
+      role: "tool",
+      content: "42",
+      toolCallId: "tc1"
+    };
     const assistant: Message = {
       role: "assistant",
       content: "doing work",
@@ -65,9 +70,9 @@ describe("LlamaProvider", () => {
       role: "user",
       content: "hello"
     });
-    await expect(provider.convertMessage(tool)).resolves.toEqual({
-      role: "user",
-      content: 'Tool result:\n{"ok":true}'
+    await expect(provider.convertMessage(tool)).resolves.toMatchObject({
+      role: "tool",
+      tool_call_id: "tc1"
     });
     await expect(provider.convertMessage(assistant)).resolves.toEqual({
       role: "assistant",
@@ -82,14 +87,22 @@ describe("LlamaProvider", () => {
     });
   });
 
-  it("generates non-streaming response and parses emulated tool calls", async () => {
+  it("generates a non-streaming response with native tool calls", async () => {
     const fetchMock = mockChatFetch(
       chatJsonResponse({
         choices: [
           {
             message: {
-              content: "calculator(expression='5 + 3')",
-              tool_calls: []
+              content: "",
+              tool_calls: [
+                {
+                  id: "call_abc",
+                  function: {
+                    name: "calculator",
+                    arguments: '{"expression":"5 + 3"}'
+                  }
+                }
+              ]
             }
           }
         ]
@@ -107,60 +120,39 @@ describe("LlamaProvider", () => {
       tools: [{ name: "calculator" }]
     });
 
-    expect(result).toEqual({
-      role: "assistant",
-      content: "calculator(expression='5 + 3')",
-      toolCalls: [
-        { id: "tool_1", name: "calculator", args: { expression: "5 + 3" } }
-      ]
-    });
+    expect(result.toolCalls).toEqual([
+      { id: "call_abc", name: "calculator", args: { expression: "5 + 3" } }
+    ]);
   });
 
-  it("keeps args after a quoted value ending in an escaped backslash (#11)", async () => {
-    // Regression: an escaped backslash before the closing quote (a Windows
-    // path) was misread as escaping the quote, so the quote never closed and
-    // every following argument was swallowed into the string.
-    const fetchMock = mockChatFetch(
-      chatJsonResponse({
-        choices: [
-          {
-            message: {
-              content: 'save(path="C:\\\\", overwrite=true)',
-              tool_calls: []
-            }
-          }
-        ]
-      })
-    );
-    const provider = new LlamaProvider(
-      { LLAMA_CPP_URL: "http://127.0.0.1:8080" },
-      { fetchFn: fetchMock as unknown as typeof fetch }
-    );
-    const result = await provider.generateMessage({
-      model: "gemma3:4b",
-      messages: [{ role: "user", content: "save" }],
-      tools: [{ name: "save" }]
-    });
-    const args = result.toolCalls?.[0]?.args as Record<string, unknown>;
-    // The `overwrite` argument survives instead of being absorbed into `path`.
-    expect(args.overwrite).toBe(true);
-    expect(String(args.path).startsWith("C:")).toBe(true);
-  });
-
-  it("streams chunks and parses emulated tool call on stop", async () => {
+  it("streams text chunks and native tool calls", async () => {
     const fetchMock = mockChatFetch(
       chatSSEResponse([
         {
           choices: [
+            { delta: { content: "on it" }, finish_reason: null }
+          ]
+        },
+        {
+          choices: [
             {
-              delta: { content: "calculator(expression='9+1')" },
+              delta: {
+                tool_calls: [
+                  {
+                    index: 0,
+                    id: "call_abc",
+                    function: {
+                      name: "calculator",
+                      arguments: '{"expression":"9+1"}'
+                    }
+                  }
+                ]
+              },
               finish_reason: null
             }
           ]
         },
-        {
-          choices: [{ delta: { content: "" }, finish_reason: "stop" }]
-        }
+        { choices: [{ delta: {}, finish_reason: "tool_calls" }] }
       ])
     );
     const provider = new LlamaProvider(
@@ -177,11 +169,17 @@ describe("LlamaProvider", () => {
       out.push(item);
     }
 
-    expect(out).toEqual([
-      { type: "chunk", content: "calculator(expression='9+1')", done: false },
-      { type: "chunk", content: "", done: true },
-      { id: "tool_1", name: "calculator", args: { expression: "9+1" } }
-    ]);
+    expect(out).toContainEqual({
+      type: "chunk",
+      content: "on it",
+      done: false
+    });
+    expect(out).toContainEqual({
+      id: "call_abc",
+      name: "calculator",
+      args: { expression: "9+1" }
+    });
+    expect(out).toContainEqual({ type: "chunk", content: "", done: true });
   });
 
   it("does not start chat requests when the caller has aborted", async () => {
