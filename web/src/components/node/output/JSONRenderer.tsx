@@ -104,6 +104,7 @@ export const JSONRenderer: React.FC<JSONRendererProps> = ({
   showActions = true
 }) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => jsonStyles(theme), [theme]);
 
   const { formattedJson, rawJson } = useMemo(() => {
     let jsonString: string;
@@ -223,7 +224,7 @@ export const JSONRenderer: React.FC<JSONRendererProps> = ({
   }
 
   return (
-    <div className="output json-output nodrag" css={jsonStyles(theme)}>
+    <div className="output json-output nodrag" css={cssStyles}>
       {showActions && <Actions copyValue={rawJson} />}
       <div
         className="json-content"

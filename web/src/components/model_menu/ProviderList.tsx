@@ -28,7 +28,7 @@ import {
   TOOLTIP_ENTER_NEXT_DELAY
 } from "../../config/constants";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
-import { useNavigate } from "react-router-dom";
+import { openProviderOnboarding } from "../../stores/ProviderOnboardingStore";
 
 import {
   isHuggingFaceProvider,
@@ -607,11 +607,15 @@ const ProviderList: React.FC<ProviderListProps> = ({
     handleMenuClose();
   }, [menuProvider, isProviderEnabled, setProviderEnabled, handleMenuClose]);
 
-  const navigate = useNavigate();
-  const handleOpenSettings = useCallback(() => {
-    navigate("/settings?tab=1");
-    handleMenuClose();
-  }, [navigate, handleMenuClose]);
+  const handleAddKey = useCallback(
+    (secretKey: string | null) => {
+      handleMenuClose();
+      openProviderOnboarding(
+        secretKey ? { highlightSecretKey: secretKey } : undefined
+      );
+    },
+    [handleMenuClose]
+  );
 
   return (
     <List
@@ -927,7 +931,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                             }}
                           />
                         </Tooltip>
-                        <Tooltip className="model-menu__provider-add-key-tooltip" title="Open Settings to add API key">
+                        <Tooltip className="model-menu__provider-add-key-tooltip" title="Connect this provider">
                           <EditorButton
                             className="model-menu__provider-add-key-button"
                             density="compact"
@@ -938,7 +942,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                               fontSize: (theme: Theme) => theme.vars.fontSizeSmaller,
                               color: "warning.main"
                             }}
-                            onClick={handleOpenSettings}
+                            onClick={() => handleAddKey(env)}
                           >
                             Add key
                           </EditorButton>

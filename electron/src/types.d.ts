@@ -1021,6 +1021,7 @@ export type RuntimePackageId =
   | "yt-dlp"
   | "transformers-js"
   | "tensorflow-js"
+  | "node-llama-cpp"
   | "tmux"
   | "claude"
   | "claude-agent-sdk";

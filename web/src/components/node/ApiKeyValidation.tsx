@@ -1,7 +1,8 @@
 import React, { useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import { Text, EditorButton } from "../ui_primitives";
 import { useApiKeyValidation } from "../../hooks/useApiKeyValidation";
+import { getRequiredSecretKeyForNamespace } from "../../utils/nodeProvider";
+import { openProviderOnboarding } from "../../stores/ProviderOnboardingStore";
 
 interface ApiKeyValidationProps {
   nodeNamespace: string;
@@ -9,12 +10,15 @@ interface ApiKeyValidationProps {
 
 const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
   ({ nodeNamespace }) => {
-    const navigate = useNavigate();
     const missingAPIKey = useApiKeyValidation(nodeNamespace);
 
-    const handleOpenSettings = useCallback(() => {
-      navigate("/settings?tab=1");
-    }, [navigate]);
+    const handleConnectProvider = useCallback(() => {
+      openProviderOnboarding({
+        highlightSecretKey:
+          getRequiredSecretKeyForNamespace(nodeNamespace) ?? undefined,
+        reason: "This node needs a provider key. Connect it to run the node."
+      });
+    }, [nodeNamespace]);
 
     const content = useMemo(() => {
       if (!missingAPIKey || typeof missingAPIKey !== "string") {return null;}
@@ -39,7 +43,7 @@ const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
             variant="contained"
             color="primary"
             size="small"
-            onClick={handleOpenSettings}
+            onClick={handleConnectProvider}
             sx={{
               margin: "0 1em",
               padding: ".2em 0 0",
@@ -51,11 +55,11 @@ const ApiKeyValidation: React.FC<ApiKeyValidationProps> = React.memo(
               borderRadius: ".1em"
             }}
           >
-            Add key in Settings
+            Connect provider
           </EditorButton>
         </>
       );
-    }, [missingAPIKey, handleOpenSettings]);
+    }, [missingAPIKey, handleConnectProvider]);
 
     return content;
   }

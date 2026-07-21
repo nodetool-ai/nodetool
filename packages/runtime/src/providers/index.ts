@@ -80,6 +80,13 @@ export { PythonProvider };
 export { ReplicateProvider };
 export { FalProvider };
 export { KieProvider };
+export {
+  registerWebhookWait,
+  resolveWebhook,
+  rejectWebhook,
+  hasPendingWebhook,
+  pendingCount as kieWebhookPendingCount
+} from "./kie-webhook-registry.js";
 export { ElevenLabsProvider };
 export { TopazProvider };
 export { ReveProvider };

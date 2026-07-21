@@ -184,6 +184,69 @@ async function getDefaultModelsDir(): Promise<string> {
   return path.join(home, ".cache", "llama.cpp");
 }
 
+/** Default HuggingFace hub cache. Mirrors `@nodetool-ai/huggingface`'s
+ * `getDefaultHfCacheDir`; that package sits above runtime in the dependency
+ * order, so the resolution is duplicated rather than imported — same reason as
+ * {@link getDefaultModelsDir}. */
+async function getHfHubCacheDir(): Promise<string | null> {
+  const os = await importNodeBuiltin<typeof import("node:os")>("node:os");
+  const path = await importNodeBuiltin<typeof import("node:path")>("node:path");
+  if (!os || !path) return null;
+  const expand = (p: string) =>
+    p.startsWith("~") ? path.join(os.homedir(), p.slice(1)) : p;
+
+  const envCache = process.env.HF_HUB_CACHE;
+  if (envCache) return expand(envCache);
+  const hfHome = process.env.HF_HOME;
+  if (hfHome) return path.join(expand(hfHome), "hub");
+  return path.join(os.homedir(), ".cache", "huggingface", "hub");
+}
+
+/** A GGUF file discovered on disk. `id` is what gets loaded (a bare filename
+ * inside the models directory, or an absolute path elsewhere); `name` is what
+ * the model picker shows. */
+interface LocalGgufModel {
+  id: string;
+  name: string;
+}
+
+/** A directory entry that is a GGUF file. Symlinks count: the HuggingFace hub
+ * cache stores every snapshot file as a link into `blobs/`, so requiring a
+ * plain file hid those models entirely. */
+function isGgufEntry(entry: import("node:fs").Dirent): boolean {
+  return (
+    (entry.isFile() || entry.isSymbolicLink()) &&
+    entry.name.toLowerCase().endsWith(".gguf")
+  );
+}
+
+/** Absolute paths of every GGUF under `dir`. Sharded repos nest them a level
+ * or two deep, so recurse — bounded, since hub snapshots are shallow. */
+async function walkGgufFiles(
+  fsp: typeof import("node:fs/promises"),
+  path: typeof import("node:path"),
+  dir: string,
+  depth = 3
+): Promise<string[]> {
+  if (depth < 0) return [];
+  let entries: import("node:fs").Dirent[];
+  try {
+    entries = await fsp.readdir(dir, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+  const out: string[] = [];
+  for (const entry of entries) {
+    const full = path.join(dir, entry.name);
+    if (isGgufEntry(entry)) {
+      out.push(full);
+    } else if (entry.isDirectory()) {
+      out.push(...(await walkGgufFiles(fsp, path, full, depth - 1)));
+    }
+  }
+  return out;
+}
+
 function asText(content: Message["content"]): string {
   if (typeof content === "string") return content;
   if (!content) return "";
@@ -566,24 +629,39 @@ export class NodeLlamaCppProvider extends BaseProvider {
   }
 
   async getAvailableLanguageModels(): Promise<LanguageModel[]> {
-    const files = await this.scanGgufFiles();
-    return files.map((id) => ({ id, name: id, provider: "node_llama_cpp" }));
+    const models = await this.scanGgufFiles();
+    return models.map((m) => ({ ...m, provider: "node_llama_cpp" }));
   }
 
   async getAvailableEmbeddingModels(): Promise<EmbeddingModel[]> {
-    const files = await this.scanGgufFiles();
-    return files.map((id) => ({ id, name: id, provider: "node_llama_cpp" }));
+    const models = await this.scanGgufFiles();
+    return models.map((m) => ({ ...m, provider: "node_llama_cpp" }));
   }
 
-  /** List GGUF filenames (relative to the models directory) available locally. */
-  private async scanGgufFiles(): Promise<string[]> {
+  /**
+   * List the GGUF models available locally, from both places they land:
+   * the flat llama.cpp cache (or `NODE_LLAMA_CPP_MODELS_DIR`), and the
+   * HuggingFace hub cache that the app's model downloader writes to. Without
+   * the latter, a GGUF pulled from a HuggingFace repo was never selectable.
+   */
+  private async scanGgufFiles(): Promise<LocalGgufModel[]> {
+    const models = [
+      ...(await this.scanModelsDir()),
+      ...(await this.scanHfHubCache())
+    ];
+    // A models directory pointed at the hub cache would surface both views.
+    const seen = new Set<string>();
+    return models
+      .filter((m) => (seen.has(m.id) ? false : (seen.add(m.id), true)))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  /** GGUFs sitting directly in the configured/default models directory. */
+  private async scanModelsDir(): Promise<LocalGgufModel[]> {
     const fsp = await importNodeBuiltin<typeof import("node:fs/promises")>(
       "node:fs/promises"
     );
-    const path = await importNodeBuiltin<typeof import("node:path")>(
-      "node:path"
-    );
-    if (!fsp || !path) return [];
+    if (!fsp) return [];
     const dir = await this.resolveModelsDir();
     let entries: import("node:fs").Dirent[];
     try {
@@ -592,11 +670,48 @@ export class NodeLlamaCppProvider extends BaseProvider {
       return [];
     }
     return entries
-      .filter(
-        (e) => e.isFile() && e.name.toLowerCase().endsWith(".gguf")
-      )
-      .map((e) => e.name)
-      .sort();
+      .filter((e) => isGgufEntry(e))
+      .map((e) => ({ id: e.name, name: e.name }));
+  }
+
+  /**
+   * GGUFs inside the HuggingFace hub cache, which stores them as
+   * `models--<org>--<repo>/snapshots/<sha>/<file>.gguf`. Those entries are
+   * symlinks into `blobs/`, so the walk must accept symlinks. Ids are absolute
+   * paths — {@link getOrLoadModel} loads those directly.
+   */
+  private async scanHfHubCache(): Promise<LocalGgufModel[]> {
+    const fsp = await importNodeBuiltin<typeof import("node:fs/promises")>(
+      "node:fs/promises"
+    );
+    const path = await importNodeBuiltin<typeof import("node:path")>(
+      "node:path"
+    );
+    if (!fsp || !path) return [];
+    const hubDir = await getHfHubCacheDir();
+    if (!hubDir) return [];
+
+    let repos: import("node:fs").Dirent[];
+    try {
+      repos = await fsp.readdir(hubDir, { withFileTypes: true });
+    } catch {
+      return [];
+    }
+
+    const out: LocalGgufModel[] = [];
+    for (const repo of repos) {
+      if (!repo.isDirectory() || !repo.name.startsWith("models--")) continue;
+      // `models--org--repo` → `org/repo`; a repo with no org has one segment.
+      const label = repo.name.slice("models--".length).split("--").join("/");
+      const snapshots = path.join(hubDir, repo.name, "snapshots");
+      for (const file of await walkGgufFiles(fsp, path, snapshots)) {
+        out.push({
+          id: file,
+          name: `${path.basename(file)} (${label})`
+        });
+      }
+    }
+    return out;
   }
 
   isContextLengthError(error: unknown): boolean {

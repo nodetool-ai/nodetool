@@ -41,6 +41,7 @@ import {
   selectMaskImageInput,
   type ModelInputField
 } from "./manifest-models.js";
+import { registerWebhookWait } from "./kie-webhook-registry.js";
 import { sniffAudioMime } from "./audio-mime.js";
 import { OpenAIProvider } from "./openai-provider.js";
 import { AnthropicProvider } from "./anthropic-provider.js";
@@ -59,9 +60,19 @@ const log = createLogger("nodetool.runtime.providers.kie");
 const KIE_API_BASE = "https://api.kie.ai";
 const KIE_UPLOAD_URL =
   "https://kieai.redpandaai.co/api/file-stream-upload";
-// The Suno API always requires a callBackUrl. We poll for results instead of
-// receiving callbacks, so a placeholder satisfies the requirement.
+// The Suno API always requires a callBackUrl. When KIE_WEBHOOK_URL is set we
+// use it; otherwise a placeholder satisfies the requirement (we poll instead).
 const KIE_SUNO_CALLBACK = "https://nodetool.ai/kie-callback";
+
+/**
+ * When set, KIE tasks are submitted with a real callBackUrl and the provider
+ * waits for the webhook instead of polling. Set to the public base URL of this
+ * server (e.g. `https://myserver.example.com`).
+ */
+function getWebhookBaseUrl(): string | undefined {
+  const url = process.env.KIE_WEBHOOK_URL;
+  return url && url.trim() ? url.replace(/\/+$/, "") : undefined;
+}
 
 type KieChatApi = "openai" | "anthropic" | "responses";
 
@@ -358,6 +369,25 @@ async function submitTask(
   return taskId;
 }
 
+/**
+ * Submit a task with an optional webhook callback URL. When webhook mode is
+ * enabled, the callBackUrl is injected into the input so KIE calls us back
+ * when the task completes. The generic `/api/kie/webhook` endpoint extracts
+ * the taskId from the callback body.
+ */
+async function submitTaskWithWebhook(
+  apiKey: string,
+  model: string,
+  input: Record<string, unknown>,
+  signal?: AbortSignal
+): Promise<string> {
+  const webhookBase = getWebhookBaseUrl();
+  const finalInput = webhookBase
+    ? { ...input, callBackUrl: `${webhookBase}/api/kie/webhook` }
+    : input;
+  return submitTask(apiKey, model, finalInput, signal);
+}
+
 async function pollUntilDone(
   apiKey: string,
   taskId: string,
@@ -405,6 +435,26 @@ async function pollUntilDone(
   );
 }
 
+/**
+ * Wait for a KIE task to complete: use webhook if KIE_WEBHOOK_URL is set,
+ * otherwise fall back to polling.
+ */
+async function waitForCompletion(
+  apiKey: string,
+  taskId: string,
+  pollInterval: number,
+  maxAttempts: number,
+  signal?: AbortSignal
+): Promise<void> {
+  if (getWebhookBaseUrl()) {
+    const timeoutMs = pollInterval * maxAttempts;
+    log.info("Waiting for KIE webhook callback", { taskId, timeoutMs });
+    await registerWebhookWait(taskId, timeoutMs, signal);
+    return;
+  }
+  await pollUntilDone(apiKey, taskId, pollInterval, maxAttempts, signal);
+}
+
 async function downloadResultBytes(
   apiKey: string,
   taskId: string,
@@ -437,7 +487,10 @@ async function submitSuno(
   input: Record<string, unknown>,
   signal?: AbortSignal
 ): Promise<string> {
-  const body = { ...input, callBackUrl: KIE_SUNO_CALLBACK };
+  const callBackUrl = getWebhookBaseUrl()
+    ? `${getWebhookBaseUrl()}/api/kie/webhook`
+    : KIE_SUNO_CALLBACK;
+  const body = { ...input, callBackUrl };
   const res = await fetch(`${KIE_API_BASE}${endpoint}`, {
     method: "POST",
     headers: headers(apiKey),
@@ -759,6 +812,17 @@ export class KieProvider extends BaseProvider {
         meta.maxAttempts,
         params.timeoutSeconds
       );
+      if (getWebhookBaseUrl()) {
+        const timeoutMs = pollInterval * maxAttempts;
+        log.info("Waiting for KIE Suno webhook callback", { taskId, timeoutMs });
+        await registerWebhookWait(taskId, timeoutMs, signal);
+        // After webhook fires, fetch the record to download audio
+        const url = `${KIE_API_BASE}/api/v1/generate/record-info?taskId=${taskId}`;
+        const res = await fetch(url, { headers: headers(apiKey), signal });
+        const record = await parseKieJson(res, "record-info");
+        const bytes = await this.downloadSunoAudio(record, signal);
+        return { data: bytes, mimeType: sniffAudioMime(bytes) };
+      }
       const record = await pollSuno(
         apiKey,
         taskId,
@@ -780,8 +844,8 @@ export class KieProvider extends BaseProvider {
       modelId,
       params.timeoutSeconds
     );
-    const taskId = await submitTask(apiKey, modelId, input, signal);
-    await pollUntilDone(apiKey, taskId, pollInterval, maxAttempts, signal);
+    const taskId = await submitTaskWithWebhook(apiKey, modelId, input, signal);
+    await waitForCompletion(apiKey, taskId, pollInterval, maxAttempts, signal);
     const bytes = await downloadResultBytes(apiKey, taskId, signal);
     return { data: bytes, mimeType: sniffAudioMime(bytes) };
   }
@@ -875,8 +939,8 @@ export class KieProvider extends BaseProvider {
     log.debug("Kie textToSpeech", { model: args.model });
     const apiKey = this.requireApiKey();
     const { pollInterval, maxAttempts } = this.pollConfig(args.model);
-    const taskId = await submitTask(apiKey, args.model, input);
-    await pollUntilDone(apiKey, taskId, pollInterval, maxAttempts);
+    const taskId = await submitTaskWithWebhook(apiKey, args.model, input);
+    await waitForCompletion(apiKey, taskId, pollInterval, maxAttempts);
     const bytes = await downloadResultBytes(apiKey, taskId);
     return { data: bytes, mimeType: sniffAudioMime(bytes) };
   }
@@ -897,8 +961,8 @@ export class KieProvider extends BaseProvider {
       modelId,
       params.timeoutSeconds
     );
-    const taskId = await submitTask(apiKey, modelId, input, signal);
-    await pollUntilDone(apiKey, taskId, pollInterval, maxAttempts, signal);
+    const taskId = await submitTaskWithWebhook(apiKey, modelId, input, signal);
+    await waitForCompletion(apiKey, taskId, pollInterval, maxAttempts, signal);
     return downloadResultBytes(apiKey, taskId, signal);
   }
 
@@ -953,8 +1017,8 @@ export class KieProvider extends BaseProvider {
     log.debug("Kie textToImage", { model: modelId });
     const apiKey = this.requireApiKey();
     const { pollInterval, maxAttempts } = this.pollConfig(modelId);
-    const taskId = await submitTask(apiKey, modelId, input);
-    await pollUntilDone(apiKey, taskId, pollInterval, maxAttempts);
+    const taskId = await submitTaskWithWebhook(apiKey, modelId, input);
+    await waitForCompletion(apiKey, taskId, pollInterval, maxAttempts);
     return downloadResultBytes(apiKey, taskId);
   }
 
@@ -1042,8 +1106,8 @@ export class KieProvider extends BaseProvider {
     log.debug("Kie imageToImage", { model: modelId, images: imageUrls.length });
 
     const { pollInterval, maxAttempts } = this.pollConfig(modelId);
-    const taskId = await submitTask(apiKey, modelId, input);
-    await pollUntilDone(apiKey, taskId, pollInterval, maxAttempts);
+    const taskId = await submitTaskWithWebhook(apiKey, modelId, input);
+    await waitForCompletion(apiKey, taskId, pollInterval, maxAttempts);
     return downloadResultBytes(apiKey, taskId);
   }
 
@@ -1085,8 +1149,8 @@ export class KieProvider extends BaseProvider {
     log.debug("Kie inpaint", { model: modelId, images: imageUrls.length });
 
     const { pollInterval, maxAttempts } = this.pollConfig(modelId);
-    const taskId = await submitTask(apiKey, modelId, input);
-    await pollUntilDone(apiKey, taskId, pollInterval, maxAttempts);
+    const taskId = await submitTaskWithWebhook(apiKey, modelId, input);
+    await waitForCompletion(apiKey, taskId, pollInterval, maxAttempts);
     return downloadResultBytes(apiKey, taskId);
   }
 
@@ -1118,8 +1182,8 @@ export class KieProvider extends BaseProvider {
       modelId,
       params.timeoutSeconds
     );
-    const taskId = await submitTask(apiKey, modelId, input, signal);
-    await pollUntilDone(apiKey, taskId, pollInterval, maxAttempts, signal);
+    const taskId = await submitTaskWithWebhook(apiKey, modelId, input, signal);
+    await waitForCompletion(apiKey, taskId, pollInterval, maxAttempts, signal);
     return downloadResultBytes(apiKey, taskId, signal);
   }
 

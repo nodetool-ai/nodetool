@@ -72,6 +72,10 @@ import {
   openSystemDirectory,
 } from "./fileExplorer";
 
+function isRuntimePackageId(id: string): id is RuntimePackageId {
+  return RUNTIME_PACKAGE_IDS.includes(id as RuntimePackageId);
+}
+
 const MIME_TYPE_MAP: Record<string, string> = {
   png: "image/png",
   jpg: "image/jpeg",
@@ -914,12 +918,12 @@ export function initializeIpcHandlers(): void {
   createIpcMainHandler(
     IpcChannels.RUNTIME_PACKAGE_INSTALL,
     async (_event, data: { packageId: string; installLocation?: string }) => {
-      if (!RUNTIME_PACKAGE_IDS.includes(data.packageId as RuntimePackageId)) {
+      if (!isRuntimePackageId(data.packageId)) {
         return { success: false, message: `Unknown package ID: ${data.packageId}` };
       }
       logMessage(`Installing runtime package: ${data.packageId}`);
       return await installRuntimePackage(
-        data.packageId as RuntimePackageId,
+        data.packageId,
         data.installLocation,
       );
     },
@@ -928,12 +932,12 @@ export function initializeIpcHandlers(): void {
   createIpcMainHandler(
     IpcChannels.RUNTIME_PACKAGE_UNINSTALL,
     async (_event, data: { packageId: string }) => {
-      if (!RUNTIME_PACKAGE_IDS.includes(data.packageId as RuntimePackageId)) {
+      if (!isRuntimePackageId(data.packageId)) {
         return { success: false, message: `Unknown package ID: ${data.packageId}` };
       }
       logMessage(`Uninstalling runtime package: ${data.packageId}`);
       const { uninstallRuntimePackage } = await import("./packageManager");
-      return await uninstallRuntimePackage(data.packageId as RuntimePackageId);
+      return await uninstallRuntimePackage(data.packageId);
     },
   );
 

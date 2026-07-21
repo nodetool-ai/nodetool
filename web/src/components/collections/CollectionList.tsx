@@ -11,10 +11,12 @@ import {
   CreateFab,
   Dialog,
   EditorButton,
+  EmptyState,
   FlexColumn,
   FlexRow,
   ListGroup,
   ListItemRow,
+  LoadingSpinner,
   Surface,
   Text,
   BORDER_RADIUS
@@ -132,13 +134,20 @@ const CollectionList = () => {
           </FlexRow>
 
           {collections?.collections.length ? <CollectionHeader /> : null}
-          {error && (
-            <Text color="error" sx={{ mt: 2 }}>
-              Error loading collections
-            </Text>
-          )}
           {isLoading ? (
-            <Text sx={{ mt: 2 }}>Loading collections…</Text>
+            <FlexColumn gap={2} justify="center" align="center" sx={{ mt: 4 }}>
+              <LoadingSpinner size="large" text="Loading collections" />
+            </FlexColumn>
+          ) : error ? (
+            <FlexColumn gap={2} justify="center" align="center" sx={{ mt: 4, px: 2 }}>
+              <EmptyState
+                variant="error"
+                title="Couldn't load collections"
+                description="Try again later."
+                actionText="Retry"
+                onAction={() => fetchCollections()}
+              />
+            </FlexColumn>
           ) : !collections?.collections.length ? (
             <EmptyCollectionState />
           ) : (

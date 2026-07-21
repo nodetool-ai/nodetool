@@ -16,6 +16,16 @@ export interface TorchruntimeDetectionResult {
   error?: string;
 }
 
+const TORCH_PLATFORMS: readonly TorchPlatform[] = [
+  "cu118", "cu124", "cu128", "cu129",
+  "rocm5.2", "rocm5.7", "rocm6.2", "rocm6.4",
+  "mps", "cpu"
+];
+
+function isTorchPlatform(value: string): value is TorchPlatform {
+  return (TORCH_PLATFORMS as readonly string[]).includes(value);
+}
+
 const PYTORCH_INDEX_BASE = "https://download.pytorch.org/whl";
 
 function getPyTorchIndexUrl(platform: TorchPlatform): string | null {
@@ -188,20 +198,14 @@ except Exception as e:
         const rawPlatform: string = String(result.platform);
         logMessage(`Detected torch platform: ${rawPlatform} (GPUs: ${result.gpu_count})`);
 
-        const validPlatforms: TorchPlatform[] = [
-          "cu118", "cu124", "cu128", "cu129",
-          "rocm5.2", "rocm5.7", "rocm6.2", "rocm6.4",
-          "mps", "cpu"
-        ];
-
-        if (!validPlatforms.includes(rawPlatform as TorchPlatform)) {
+        if (!isTorchPlatform(rawPlatform)) {
           const error = `Unknown platform '${rawPlatform}' detected by torchruntime`;
           logMessage(error, "warn");
           reject(new Error(error));
           return;
         }
 
-        resolve(rawPlatform as TorchPlatform);
+        resolve(rawPlatform);
       } catch (parseError) {
         logMessage(`Failed to parse torchruntime output: ${parseError}`, "error");
         reject(new Error(`Failed to parse detection result: ${stdout}`));

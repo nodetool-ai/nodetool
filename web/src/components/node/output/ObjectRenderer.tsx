@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -47,6 +47,7 @@ const ObjectRenderer: React.FC<ObjectRendererProps> = ({
   renderValue
 }) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => objectStyles(theme), [theme]);
   const entries = Object.entries(value);
 
   if (entries.length === 0) {
@@ -60,7 +61,7 @@ const ObjectRenderer: React.FC<ObjectRendererProps> = ({
   }
 
   return (
-    <Box css={objectStyles(theme)} className="object-renderer nodrag">
+    <Box css={cssStyles} className="object-renderer nodrag">
       {entries.map(([key, val]) => (
         <Box key={key} className="object-entry">
           <Text className="object-key" component="span">

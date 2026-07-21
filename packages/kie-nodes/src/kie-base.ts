@@ -3,11 +3,16 @@
  * Uses native fetch (Node 18+).
  */
 
-import { loadMediaRefBytes } from "@nodetool-ai/runtime";
+import { loadMediaRefBytes, registerWebhookWait } from "@nodetool-ai/runtime";
 import type { MediaRefValue, ProcessingContext } from "@nodetool-ai/runtime";
 
 const KIE_API_BASE = "https://api.kie.ai";
 const KIE_UPLOAD_URL = "https://kieai.redpandaai.co/api/file-stream-upload";
+
+function getWebhookBaseUrl(): string | undefined {
+  const url = process.env.KIE_WEBHOOK_URL;
+  return url && url.trim() ? url.replace(/\/+$/, "") : undefined;
+}
 
 function headers(apiKey: string): Record<string, string> {
   return {
@@ -89,6 +94,17 @@ async function pollStatus(
     await new Promise((r) => setTimeout(r, pollInterval));
   }
   throw pollTimeoutError(taskId, maxAttempts, pollInterval);
+}
+
+async function fetchRecordInfo(
+  apiKey: string,
+  taskId: string
+): Promise<Record<string, unknown>> {
+  const url = `${KIE_API_BASE}/api/v1/jobs/recordInfo?taskId=${taskId}`;
+  const res = await fetch(url, { headers: headers(apiKey) });
+  const data = (await res.json()) as Record<string, unknown>;
+  if (data.code !== undefined) checkStatus(data);
+  return data;
 }
 
 async function downloadResult(
@@ -473,9 +489,28 @@ export async function kieExecuteTask(
   pollEndpoint?: string,
   resultObjectKey?: string
 ): Promise<KieExecuteResult> {
+  const webhookBase = getWebhookBaseUrl();
+
   if (submitEndpoint) {
     // Custom submit/poll endpoints (Veo, Runway, etc.)
-    const taskId = await submitCustom(apiKey, submitEndpoint, { model, ...input });
+    const customInput = webhookBase
+      ? { model, ...input, callBackUrl: `${webhookBase}/api/kie/webhook` }
+      : { model, ...input };
+    const taskId = await submitCustom(apiKey, submitEndpoint, customInput);
+
+    if (webhookBase) {
+      const timeoutMs = pollInterval * maxAttempts;
+      await registerWebhookWait(taskId, timeoutMs);
+      // Fetch the final status after webhook fires
+      const url = `${KIE_API_BASE}${pollEndpoint ?? submitEndpoint}?taskId=${taskId}`;
+      const res = await fetch(url, { headers: headers(apiKey) });
+      const statusData = (await res.json()) as Record<string, unknown>;
+      const creditsConsumed = parseCreditsConsumed(statusData);
+      const resultBytes = await downloadCustomResult(statusData);
+      const b64 = resultBytes.toString("base64");
+      return { data: b64, items: [b64], taskId, creditsConsumed };
+    }
+
     const statusData = await pollCustom(
       apiKey,
       taskId,
@@ -488,8 +523,21 @@ export async function kieExecuteTask(
     const b64 = resultBytes.toString("base64");
     return { data: b64, items: [b64], taskId, creditsConsumed };
   }
-  const taskId = await submitTask(apiKey, model, input);
-  const statusData = await pollStatus(apiKey, taskId, pollInterval, maxAttempts);
+
+  const finalInput = webhookBase
+    ? { ...input, callBackUrl: `${webhookBase}/api/kie/webhook` }
+    : input;
+  const taskId = await submitTask(apiKey, model, finalInput);
+
+  let statusData: Record<string, unknown>;
+  if (webhookBase) {
+    const timeoutMs = pollInterval * maxAttempts;
+    await registerWebhookWait(taskId, timeoutMs);
+    statusData = await fetchRecordInfo(apiKey, taskId);
+  } else {
+    statusData = await pollStatus(apiKey, taskId, pollInterval, maxAttempts);
+  }
+
   const creditsConsumed = parseCreditsConsumed(statusData);
   if (resultObjectKey) {
     const text = await downloadTextResult(apiKey, taskId, resultObjectKey);
@@ -506,11 +554,15 @@ export async function kieSubmitSuno(
   input: Record<string, unknown>,
   endpoint = "/api/v1/generate"
 ): Promise<string> {
-  // callBackUrl is always required by the Suno API. Since we poll for results
-  // we don't actually use it, so inject a placeholder if not already set.
+  // callBackUrl is always required by the Suno API. When KIE_WEBHOOK_URL is
+  // set we use it; otherwise inject a placeholder (we poll instead).
+  const webhookBase = getWebhookBaseUrl();
+  const callBackUrl = webhookBase
+    ? `${webhookBase}/api/kie/webhook`
+    : "https://nodetool.ai/kie-callback";
   const body = input.callBackUrl
     ? input
-    : { ...input, callBackUrl: "https://nodetool.ai/kie-callback" };
+    : { ...input, callBackUrl };
   const res = await fetch(`${KIE_API_BASE}${endpoint}`, {
     method: "POST",
     headers: headers(apiKey),
@@ -560,9 +612,20 @@ export async function kieExecuteSunoTask(
   endpoint?: string
 ): Promise<KieExecuteResult> {
   const taskId = await kieSubmitSuno(apiKey, input, endpoint);
-  const pollResult = await kiePollSuno(apiKey, taskId, pollInterval, maxAttempts);
+  const webhookBase = getWebhookBaseUrl();
+
+  let pollResult: Record<string, unknown>;
+  if (webhookBase) {
+    const timeoutMs = pollInterval * maxAttempts;
+    await registerWebhookWait(taskId, timeoutMs);
+    const url = `${KIE_API_BASE}/api/v1/generate/record-info?taskId=${taskId}`;
+    const res = await fetch(url, { headers: headers(apiKey) });
+    pollResult = (await res.json()) as Record<string, unknown>;
+  } else {
+    pollResult = await kiePollSuno(apiKey, taskId, pollInterval, maxAttempts);
+  }
+
   const creditsConsumed = parseCreditsConsumed(pollResult);
-  // Polling response: data.response.sunoData[].audioUrl
   const sunoData = (
     (pollResult.data as Record<string, unknown>)?.response as Record<string, unknown>
   )?.sunoData as Array<Record<string, unknown>>;

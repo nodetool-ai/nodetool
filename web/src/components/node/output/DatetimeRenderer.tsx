@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import Actions from "./Actions";
 import { outputStyles } from "./styles";
@@ -29,9 +29,10 @@ const DatetimeRendererInternal: React.FC<{
   value: Datetime;
 }> = ({ value }) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => outputStyles(theme), [theme]);
   const formattedDate = formatDatetime(value);
   return (
-    <div className="output value" css={outputStyles(theme)}>
+    <div className="output value" css={cssStyles}>
       <Actions copyValue={formattedDate} />
       <p style={{ padding: "1em", color: "inherit" }}>{formattedDate}</p>
     </div>

@@ -645,18 +645,11 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
   }, [executeAndClose, reactFlowWrapper]);
 
   useEffect(() => {
-    const focusInput = () => {
-      const inputElement = document.querySelector("input[cmdk-input]");
-      if (inputElement instanceof HTMLInputElement) {
-        inputElement.focus();
-      }
-    };
-
     if (open) {
       if (focusInputTimeoutRef.current) {
         clearTimeout(focusInputTimeoutRef.current);
       }
-      focusInputTimeoutRef.current = setTimeout(focusInput, 0);
+      focusInputTimeoutRef.current = setTimeout(() => input.current?.focus(), 0);
     }
 
     return () => {
@@ -688,7 +681,11 @@ const CommandMenu: React.FC<CommandMenuProps> = ({
       css={styles()}
     >
       <Command label="Command Menu" className="command-menu">
-        <CommandInput ref={input} />
+        <CommandInput
+          ref={input}
+          placeholder="Type a command or search…"
+          aria-label="Command menu search"
+        />
         <Command.List>
           <Command.Empty>No results found.</Command.Empty>
           <WorkflowCommands />
