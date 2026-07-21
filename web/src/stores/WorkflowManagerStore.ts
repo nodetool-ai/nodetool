@@ -35,7 +35,7 @@ import { useSubgraphTabsStore } from "./SubgraphTabsStore";
 import { useCurrentWorkspaceStore } from "./CurrentWorkspaceStore";
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>
-  typeof v === "object" && v !== null;
+  typeof v === "object" && v !== null && !Array.isArray(v);
 
 const isWorkflowNotFoundError = (err: unknown): boolean => {
   if (!isRecord(err)) return false;
