@@ -20,8 +20,12 @@ import { useSketchStore } from "../state/useSketchStore";
 import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
 import { useSketchCanvasRefStore } from "../../../stores/sketch/SketchCanvasRefStore";
 import { getSelectionBounds } from "../selection";
+import { displayCombo } from "../shortcuts";
 import { colorToHex6 } from "../types";
 import { SKETCH_FONT } from "../sketchStyles";
+
+/** OS-aware combo for the fit-to-screen action ("⌘0" on Mac, "Ctrl+0" elsewhere). */
+const FIT_LABEL = `Fit to screen (${displayCombo("zoom-fit")})`;
 
 const ConnectedStatusBarInner: React.FC = () => {
   const theme = useTheme();
@@ -74,10 +78,11 @@ const ConnectedStatusBarInner: React.FC = () => {
         <span>
           {docW} × {docH} · sRGB · 8-bit ·
         </span>
-        <Tooltip title="Fit to screen (Ctrl+0)">
+        <Tooltip title={FIT_LABEL}>
           <button
             type="button"
             className="sketch-status-bar__zoom"
+            aria-label={FIT_LABEL}
             onClick={fitViewToScreen ?? undefined}
             disabled={!fitViewToScreen}
             style={{
