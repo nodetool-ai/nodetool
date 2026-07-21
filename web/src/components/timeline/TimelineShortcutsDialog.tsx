@@ -71,7 +71,7 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
   {
     title: "Move",
     shortcuts: [
-      { keys: ["←"], action: "Nudge left one frame", alt: ["→"] },
+      { keys: ["←"], action: "Nudge one frame", alt: ["→"] },
       { keys: ["Shift", "←"], action: "Nudge one second", alt: ["Shift", "→"] }
     ]
   },
