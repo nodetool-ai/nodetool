@@ -80,18 +80,15 @@ const EngineCard: React.FC<{ engine: OnboardingEngine }> = ({ engine }) => {
 
 const NodePackRow: React.FC<{ pack: OnboardingNodePack }> = ({ pack }) => {
   const theme = useTheme();
-  const { available, installedNames, busyIds, install } = useNodePacksStore(
-    useShallow((state) => ({
-      available: state.available,
-      installedNames: state.installed.map((p) => p.repo_id),
-      busyIds: state.busyIds,
-      install: state.install
-    }))
+  // Select primitives only — deriving a new array inside the selector would
+  // change the snapshot on every render and loop useSyncExternalStore.
+  const available = useNodePacksStore((state) => state.available);
+  const install = useNodePacksStore((state) => state.install);
+  const isInstalled = useNodePacksStore((state) =>
+    state.installed.some((p) => p.repo_id === pack.repoId)
   );
+  const isBusy = useNodePacksStore((state) => state.busyIds.includes(pack.repoId));
   const openPackageManager = useOpenPackageManager();
-
-  const isInstalled = installedNames.includes(pack.repoId);
-  const isBusy = busyIds.includes(pack.repoId);
 
   const handleInstall = useCallback(() => {
     if (available) {
