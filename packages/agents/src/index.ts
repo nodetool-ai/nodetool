@@ -372,6 +372,37 @@ export type {
 } from "./evals/graph-planner-eval.js";
 export { GRAPH_PLANNER_EVAL_CASES } from "./evals/graph-planner-cases.js";
 
+// Tool-loop evaluation harness (frontend ui_* tool surface)
+export {
+  runToolLoopEval,
+  formatToolLoopReport,
+  checkToolLoopExpectations
+} from "./evals/tool-loop-eval.js";
+export type {
+  ToolLoopEvalCase,
+  ToolLoopEvalExpectations,
+  ToolLoopStatePredicate,
+  ToolLoopObservation,
+  ToolCallRecord,
+  ToolLoopCaseResult,
+  ToolLoopEvalReport,
+  RunToolLoopEvalOptions
+} from "./evals/tool-loop-eval.js";
+export {
+  createToolLoopBridge,
+  DEFAULT_TOOL_NAMES
+} from "./evals/tool-loop-bridge.js";
+export type {
+  ToolLoopInitialState,
+  ToolLoopFinalState,
+  ToolLoopState,
+  HeadlessTool,
+  HeadlessBridge,
+  HeadlessNode,
+  HeadlessEdge
+} from "./evals/tool-loop-bridge.js";
+export { TOOL_LOOP_EVAL_CASES } from "./evals/tool-loop-cases.js";
+
 // Graph-native planning & execution
 export { evaluateGraphDsl } from "./graph-dsl.js";
 export type { GraphDslResult, EvaluateGraphDslOptions } from "./graph-dsl.js";

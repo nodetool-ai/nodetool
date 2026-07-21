@@ -151,4 +151,110 @@ export function registerEvalCommand(program: Command): void {
         process.exitCode = 1;
       }
     });
+
+  evalCmd
+    .command("tool-loop")
+    .description(
+      "Run the frontend tool-loop eval suite (ui_* tools) against a provider/model and report metrics"
+    )
+    .option(
+      "-p, --provider <id>",
+      "Provider id (ollama, anthropic, openai, ...)"
+    )
+    .option("-m, --model <id>", "Model id for the provider")
+    .option(
+      "--cases <ids>",
+      "Comma-separated case ids to run (default: all; see --list)"
+    )
+    .option("--list", "List available cases and exit")
+    .option("--json", "Print the full report as JSON")
+    .option("--out <path>", "Write the JSON report to a file")
+    .option("--max-iterations <n>", "Turn cap per case (default 12)")
+    .option(
+      "--min-success <rate>",
+      "Exit non-zero when the success rate is below this threshold (0..1)"
+    )
+    .action(async (opts: EvalCliOptions & { maxIterations?: string }) => {
+      const {
+        TOOL_LOOP_EVAL_CASES,
+        runToolLoopEval,
+        formatToolLoopReport
+      } = await import("@nodetool-ai/agents");
+
+      if (opts.list) {
+        for (const c of TOOL_LOOP_EVAL_CASES) {
+          console.log(
+            `${c.id.padEnd(24)} ${c.description}` +
+              (c.needsModelProviders ? " (needs model providers)" : "")
+          );
+        }
+        return;
+      }
+
+      if (!opts.provider || !opts.model) {
+        console.error("--provider and --model are required (or use --list)");
+        process.exitCode = 1;
+        return;
+      }
+
+      let cases = TOOL_LOOP_EVAL_CASES;
+      if (opts.cases) {
+        const wanted = new Set(opts.cases.split(",").map((s) => s.trim()));
+        cases = TOOL_LOOP_EVAL_CASES.filter((c) => wanted.has(c.id));
+        const missing = [...wanted].filter(
+          (id) => !cases.some((c) => c.id === id)
+        );
+        if (missing.length > 0) {
+          console.error(`Unknown case ids: ${missing.join(", ")} (see --list)`);
+          process.exitCode = 1;
+          return;
+        }
+      }
+
+      try {
+        const { createProviderStrict } = await import("../providers.js");
+        const provider = await createProviderStrict(opts.provider);
+
+        console.log(
+          `Running ${cases.length} tool-loop case(s) with ${opts.provider}/${opts.model}`
+        );
+
+        const report = await runToolLoopEval({
+          provider,
+          model: opts.model,
+          cases,
+          maxIterations: opts.maxIterations
+            ? Number(opts.maxIterations)
+            : undefined,
+          onEvent: (line) => {
+            if (!opts.json) console.log(line);
+          }
+        });
+
+        if (opts.out) {
+          const { writeFile } = await import("node:fs/promises");
+          await writeFile(opts.out, JSON.stringify(report, null, 2), "utf-8");
+          console.log(`Report written to ${opts.out}`);
+        }
+
+        if (opts.json) {
+          console.log(JSON.stringify(report, null, 2));
+        } else {
+          console.log("\n" + formatToolLoopReport(report));
+        }
+
+        if (opts.minSuccess !== undefined) {
+          const threshold = Number(opts.minSuccess);
+          if (report.summary.successRate < threshold) {
+            console.error(
+              `Success rate ${report.summary.successRate.toFixed(2)} below threshold ${threshold}`
+            );
+            process.exitCode = 1;
+          }
+        }
+      } catch (err) {
+        console.error(err instanceof Error ? err.message : String(err));
+        process.exitCode = 1;
+      }
+    });
 }
