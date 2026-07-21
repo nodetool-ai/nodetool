@@ -155,6 +155,7 @@ const ColumnsManager: React.FC<ColumnsManagerProps> = ({
   onChange
 }: ColumnsManagerProps) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   const [localColumns, setLocalColumns] = useState(columns);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -234,7 +235,7 @@ const ColumnsManager: React.FC<ColumnsManagerProps> = ({
   );
 
   return (
-    <div css={styles(theme)}>
+    <div css={cssStyles}>
       <div className="labels">
         <Label className="label-name">Name</Label>
         <Label className="label-datatype">Data Type</Label>

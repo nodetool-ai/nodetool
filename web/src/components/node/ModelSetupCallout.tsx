@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css, keyframes } from "@emotion/react";
-import { memo, useCallback } from "react";
+import { memo, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -71,6 +71,7 @@ interface ModelSetupCalloutProps {
  */
 const ModelSetupCallout: React.FC<ModelSetupCalloutProps> = ({ onDismiss }) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   const navigate = useNavigate();
   const { providers, isLoading, error } = useProviders();
 
@@ -82,7 +83,7 @@ const ModelSetupCallout: React.FC<ModelSetupCalloutProps> = ({ onDismiss }) => {
   }, [onDismiss, navigate]);
 
   return (
-    <div css={styles(theme)} className="nodrag nowheel">
+    <div css={cssStyles} className="nodrag nowheel">
       <ToolbarIconButton
         className="callout-close"
         size="small"
