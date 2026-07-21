@@ -20,7 +20,12 @@ const updateMutate = trpcClient.scripts.update.mutate as jest.Mock;
 
 beforeEach(() => {
   jest.clearAllMocks();
-  useScriptStore.setState({ scripts: {}, serverRevisions: {}, voicingLineIds: {} });
+  useScriptStore.setState({
+    scripts: {},
+    serverRevisions: {},
+    saveStatus: {},
+    voicingLineIds: {}
+  });
   (trpc.useUtils as jest.Mock).mockReturnValue({
     scripts: { list: { invalidate: jest.fn() } }
   });
@@ -58,5 +63,50 @@ describe("useScriptServerSync", () => {
         name: "Unsaved title"
       })
     );
+  });
+
+  it("marks the script saved after an autosave lands", async () => {
+    renderHook(() => useScriptServerSync("script-1"));
+
+    await waitFor(() =>
+      expect(useScriptStore.getState().serverRevisions["script-1"]).toBe("rev-1")
+    );
+    act(() => useScriptStore.getState().setTitle("script-1", "Unsaved title"));
+
+    await waitFor(() =>
+      expect(useScriptStore.getState().saveStatus["script-1"]).toBe("saved")
+    );
+  });
+
+  it("flags an error status when an autosave fails", async () => {
+    updateMutate.mockRejectedValueOnce(new Error("network down"));
+    renderHook(() => useScriptServerSync("script-1"));
+
+    await waitFor(() =>
+      expect(useScriptStore.getState().serverRevisions["script-1"]).toBe("rev-1")
+    );
+    act(() => useScriptStore.getState().setTitle("script-1", "Unsaved title"));
+
+    await waitFor(() =>
+      expect(useScriptStore.getState().saveStatus["script-1"]).toBe("error")
+    );
+  });
+
+  it("reloads and flags a conflict when the server copy moved on", async () => {
+    updateMutate.mockRejectedValueOnce(
+      new Error("Script was modified since last read")
+    );
+    renderHook(() => useScriptServerSync("script-1"));
+
+    await waitFor(() =>
+      expect(useScriptStore.getState().serverRevisions["script-1"]).toBe("rev-1")
+    );
+    act(() => useScriptStore.getState().setTitle("script-1", "Unsaved title"));
+
+    await waitFor(() =>
+      expect(useScriptStore.getState().saveStatus["script-1"]).toBe("reloaded")
+    );
+    // The server copy is reloaded after the conflict.
+    expect(getQuery).toHaveBeenCalledTimes(2);
   });
 });

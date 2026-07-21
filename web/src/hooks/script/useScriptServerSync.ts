@@ -102,6 +102,7 @@ export const useScriptServerSync = (scriptId: string): void => {
 
       inFlightRef.current = true;
       let saved = false;
+      store.getState().setSaveStatus(scriptId, "saving");
       try {
         const updated = await trpcClient.scripts.update.mutate({
           id: scriptId,
@@ -113,6 +114,7 @@ export const useScriptServerSync = (scriptId: string): void => {
         store.getState().setServerRevision(scriptId, updated.updatedAt);
         syncedRef.current = script;
         saved = true;
+        store.getState().setSaveStatus(scriptId, "saved");
         void utilsRef.current.scripts.list.invalidate();
         // Edits landed while the save was in flight — go again.
         if (store.getState().scripts[scriptId] !== syncedRef.current) {
@@ -126,8 +128,10 @@ export const useScriptServerSync = (scriptId: string): void => {
         if (disposed) return;
         console.error("Script autosave failed", error);
         if (/modified since last read/i.test((error as Error).message ?? "")) {
+          store.getState().setSaveStatus(scriptId, "reloaded");
           await load();
         } else {
+          store.getState().setSaveStatus(scriptId, "error");
           schedule(RETRY_DELAY_MS);
         }
       } finally {

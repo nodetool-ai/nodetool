@@ -4,9 +4,11 @@ import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import {
   FlexColumn,
   FlexRow,
+  Box,
   Text,
   Divider,
   ToolbarIconButton,
@@ -110,7 +112,7 @@ const TakeRow = ({
       <ToolbarIconButton
         tooltip="Play take"
         onClick={() => void play()}
-        icon={<span aria-hidden>▶</span>}
+        icon={<PlayArrowIcon fontSize="small" />}
       />
       <ToolbarIconButton
         tooltip={take.favorite ? "Unfavorite" : "Favorite"}
@@ -141,16 +143,19 @@ const ScriptTakeGallery = ({
 }: ScriptTakeGalleryProps) => {
   if (takes.length === 0) {
     return (
-      <div style={{ minWidth: 260, padding: 8 }}>
+      <Box sx={{ minWidth: 260, padding: SPACING.sm }}>
         <EmptyState
           title="No takes yet"
           description="Voice this line to create the first take."
         />
-      </div>
+      </Box>
     );
   }
   return (
-    <FlexColumn gap={SPACING.xs} style={{ minWidth: 320, padding: 8 }}>
+    <FlexColumn
+      gap={SPACING.xs}
+      sx={{ minWidth: 320, padding: SPACING.sm }}
+    >
       <Text size="smaller" color="secondary">
         {takes.length} take{takes.length === 1 ? "" : "s"}
       </Text>

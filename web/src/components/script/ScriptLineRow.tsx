@@ -381,7 +381,7 @@ const ScriptLineRow = ({
               sx={{
                 width: 6,
                 height: 6,
-                borderRadius: "50%",
+                borderRadius: BORDER_RADIUS.circle,
                 backgroundColor:
                   status === "voiced" ? "success.main" : "action.disabled"
               }}
