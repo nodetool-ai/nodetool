@@ -382,6 +382,31 @@ describe("graphNodeToReactFlowNode", () => {
     });
   });
 
+  describe("bespoke default dimensions", () => {
+    it("applies the bespoke default width for ExtractFrame nodes without a saved width", () => {
+      const workflow = createMockWorkflow();
+      const graphNode = createMockGraphNode({
+        type: "nodetool.video.ExtractFrame",
+      });
+
+      const result = graphNodeToReactFlowNode(workflow, graphNode);
+
+      expect(result.style?.width).toBe(320);
+    });
+
+    it("preserves a saved width for ExtractFrame nodes", () => {
+      const workflow = createMockWorkflow();
+      const graphNode = createMockGraphNode({
+        type: "nodetool.video.ExtractFrame",
+        ui_properties: { width: 500 },
+      });
+
+      const result = graphNodeToReactFlowNode(workflow, graphNode);
+
+      expect(result.style?.width).toBe(500);
+    });
+  });
+
   describe("expandParent property", () => {
     it("sets expandParent to false for Loop nodes", () => {
       const workflow = createMockWorkflow();
