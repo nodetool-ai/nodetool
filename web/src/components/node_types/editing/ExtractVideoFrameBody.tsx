@@ -157,10 +157,17 @@ const styles = (theme: Theme) =>
     ".transport": {
       flex: "0 0 auto",
       display: "flex",
+      flexWrap: "wrap",
       alignItems: "center",
-      gap: theme.spacing(0.5)
+      justifyContent: "center",
+      gap: theme.spacing(0.5),
+      minWidth: 0
     },
     ".time-display": {
+      flex: "0 1 auto",
+      minWidth: 0,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmaller,
       fontVariantNumeric: "tabular-nums",
@@ -168,10 +175,17 @@ const styles = (theme: Theme) =>
       whiteSpace: "nowrap"
     },
     ".transport-buttons": {
+      flex: "1 1 auto",
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(0.25),
-      margin: "0 auto"
+      justifyContent: "center",
+      gap: theme.spacing(0.25)
+    },
+    ".transport-actions": {
+      flex: "0 0 auto",
+      display: "flex",
+      alignItems: "center",
+      gap: theme.spacing(0.25)
     },
     ".footer": {
       flex: "0 0 auto",
@@ -534,20 +548,22 @@ const ExtractVideoFrameBodyInner: React.FC<ExtractVideoFrameBodyProps> = ({
             onClick={() => stepFrame(1)}
           />
         </div>
-        <ToolbarIconButton
-          icon={muted ? <VolumeOffIcon /> : <VolumeUpIcon />}
-          tooltip={muted ? "Unmute" : "Mute"}
-          ariaLabel={muted ? "Unmute" : "Mute"}
-          disabled={!videoSrc}
-          onClick={handleToggleMute}
-        />
-        <ToolbarIconButton
-          icon={<DownloadIcon />}
-          tooltip="Download frame"
-          ariaLabel="Download frame"
-          disabled={!videoSrc}
-          onClick={handleDownloadFrame}
-        />
+        <div className="transport-actions">
+          <ToolbarIconButton
+            icon={muted ? <VolumeOffIcon /> : <VolumeUpIcon />}
+            tooltip={muted ? "Unmute" : "Mute"}
+            ariaLabel={muted ? "Unmute" : "Mute"}
+            disabled={!videoSrc}
+            onClick={handleToggleMute}
+          />
+          <ToolbarIconButton
+            icon={<DownloadIcon />}
+            tooltip="Download frame"
+            ariaLabel="Download frame"
+            disabled={!videoSrc}
+            onClick={handleDownloadFrame}
+          />
+        </div>
       </div>
 
       <div className="footer">
