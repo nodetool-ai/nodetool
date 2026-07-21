@@ -1,6 +1,14 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useEffect, useMemo, useRef, memo } from "react";
-import { Text, Tooltip, Divider, Box, Z_INDEX } from "../ui_primitives";
+import CloseIcon from "@mui/icons-material/Close";
+import {
+  Text,
+  Tooltip,
+  Divider,
+  Box,
+  Z_INDEX,
+  ToolbarIconButton
+} from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 
 import AudioPlayer from "../audio/AudioPlayer";
@@ -19,6 +27,7 @@ import AssetFoldersPanel from "./panels/AssetFoldersPanel";
 import AssetFilesPanel from "./panels/AssetFilesPanel";
 import assetGridStyles from "./assetGridStyles";
 import useClickOutsideDeselect from "./hooks/useClickOutsideDeselect";
+import { useAssetGridShortcuts } from "../../hooks/assets/useAssetGridShortcuts";
 
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
@@ -62,11 +71,12 @@ const styles = assetGridStyles;
 const FOLDERS_PANEL_HEIGHT = 200;
 const FOLDERS_PANEL_WIDTH = 200;
 
-/** Displays count and total size of selected assets */
+/** Displays count and total size of selected assets, with a clear button */
 const SelectedItemsInfo: React.FC<{
   selectedAssetIds: string[];
   assets: Asset[];
-}> = memo(({ selectedAssetIds, assets }) => {
+  onClear: () => void;
+}> = memo(({ selectedAssetIds, assets, onClear }) => {
   const totalSize = useMemo(() => {
     if (selectedAssetIds.length === 0) return 0;
     const selectedSet = new Set(selectedAssetIds);
@@ -94,6 +104,16 @@ const SelectedItemsInfo: React.FC<{
             </Tooltip>
           )}
         </Text>
+        <ToolbarIconButton
+          className="clear-selection"
+          icon={<CloseIcon />}
+          tooltip="Clear selection"
+          shortcut={["Esc"]}
+          tooltipPlacement="top"
+          onClick={onClear}
+          size="small"
+          sx={{ ml: 0.5, "& .MuiSvgIcon-root": { fontSize: 14 } }}
+        />
       </div>
     </div>
   );
@@ -231,6 +251,15 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     }
   }, [F2KeyPressed, selectedAssetIds, setRenameDialogOpen]);
 
+  // File-manager shortcuts (select-all, delete, deselect, open) on the
+  // fullscreen page, where there's no workflow canvas to collide with. The
+  // list mirrors what the grid displays so Cmd+A selects the visible assets.
+  const shortcutAssets = useMemo(
+    () => sortedAssets ?? folderFilesFiltered ?? [],
+    [sortedAssets, folderFilesFiltered]
+  );
+  useAssetGridShortcuts(shortcutAssets, Boolean(isFullscreenAssets));
+
   const uploadFiles = useCallback(
     (files: File[]) => {
       files.forEach((file: File) => {
@@ -354,6 +383,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
         <SelectedItemsInfo
           selectedAssetIds={selectedAssetIds}
           assets={sortedAssets || folderFilesFiltered || []}
+          onClear={() => setSelectedAssetIds([])}
         />
       )}
       {/* Drag-and-drop enabled region; upload button now in toolbar */}
