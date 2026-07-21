@@ -37,6 +37,7 @@ import useMetadataStore from "../../stores/MetadataStore";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { useModelManagerStore } from "../../stores/ModelManagerStore";
 import { useSystemStatsStore } from "../../stores/systemStatsHandler";
+import { useProviderOnboardingStore } from "../../stores/ProviderOnboardingStore";
 
 const CostsDashboard = React.lazy(() => import("../costs/CostsDashboard"));
 const ModelListIndex = React.lazy(
@@ -73,6 +74,9 @@ const WorkflowFormModal = React.lazy(
 );
 const WorkflowDeleteDialog = React.lazy(
   () => import("../workflows/WorkflowDeleteDialog")
+);
+const ProviderOnboardingDialog = React.lazy(
+  () => import("../provider_onboarding/ProviderOnboardingDialog")
 );
 
 interface PreviewEntry {
@@ -173,6 +177,13 @@ const PREVIEWS: PreviewEntry[] = [
     id: "workflow-delete",
     label: "Workflow Delete Confirmation",
     description: "Safe-delete prompt for workflows"
+  },
+  {
+    id: "provider-onboarding",
+    label: "Provider Onboarding",
+    description:
+      "Blocked-provider onboarding: OAuth sign-in, API keys, and cost guidance",
+    viewport: { width: 900, height: 1200 }
   }
 ];
 
@@ -610,6 +621,23 @@ const PreviewWorkflowDelete: React.FC = () => (
   </Box>
 );
 
+const PreviewProviderOnboarding: React.FC = () => {
+  const show = useProviderOnboardingStore((s) => s.show);
+  useEffect(() => {
+    show({ capability: "generate_message" });
+  }, [show]);
+  return (
+    <Box
+      data-preview="provider-onboarding"
+      sx={{ width: "100%", height: "100vh" }}
+    >
+      <Suspense fallback={null}>
+        <ProviderOnboardingDialog />
+      </Suspense>
+    </Box>
+  );
+};
+
 const FORM_CONTROL_OPTIONS = [
   { value: "widescreen", label: "16:9 — Widescreen" },
   { value: "square", label: "1:1 — Square" }
@@ -757,6 +785,7 @@ const COMPONENT_MAP: Record<string, React.FC> = {
   "node-readme": PreviewNodeReadme,
   "workflow-form": PreviewWorkflowForm,
   "workflow-delete": PreviewWorkflowDelete,
+  "provider-onboarding": PreviewProviderOnboarding,
   "form-controls": PreviewFormControls
 };
 
