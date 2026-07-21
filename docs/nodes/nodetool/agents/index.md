@@ -3,12 +3,11 @@ layout: page
 title: "nodetool.agents Nodes"
 ---
 
-This namespace contains 28 node(s).
+This namespace contains 27 node(s).
 
 ## Nodes
 
 - **[Agent](agent.md)**
-- **[Agent Step](agentstep.md)**
 - **[Browser Agent](browseragent.md)**
 - **[Classifier](classifier.md)**
 - **[Claude Code Agent](claudecodeagent.md)**
