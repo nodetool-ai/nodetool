@@ -405,6 +405,25 @@ plus one per surface (`tests/{script,sketch,timeline,storyboard,model3d}-tool-lo
 A live check against a local Ollama model runs when a daemon is reachable:
 `tests/tool-loop-eval.ollama.test.ts`.
 
+**Running against the `claude_agent_sdk` provider.** Two gotchas, both from the
+SDK's own agent loop (not the harness):
+
+- **Turn cap throws.** The SDK raises `error_max_turns` when it reaches its turn
+  limit, so a run that would merely *stop* under a stateless provider (Anthropic,
+  Ollama) instead errors and the case scores `accepted=false`. Its turn
+  accounting also counts each tool round, so the default `--max-iterations 12`
+  is easily exhausted by an over-searching model. Pass a higher cap
+  (`--max-iterations 40`) when driving these suites with `claude_agent_sdk`.
+- **`uid=0` refusal.** The tool path runs the CLI under `bypassPermissions`, which
+  it refuses as root; set `IS_SANDBOX=1` (or run non-root). See
+  [docs/AGENTS.md § Claude Agent SDK](../../docs/AGENTS.md) for the full
+  nested-session recipe.
+
+```bash
+IS_SANDBOX=1 npm run dev:nodetool -- eval timeline-tools \
+  -p claude_agent_sdk -m sonnet --max-iterations 40 --no-find-model
+```
+
 ## Observing LLM Steps and Planning
 
 ### Execution Tree (CLI)
