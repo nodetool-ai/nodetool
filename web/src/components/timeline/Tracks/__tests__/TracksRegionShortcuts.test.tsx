@@ -109,6 +109,20 @@ describe("TracksRegion keyboard shortcuts", () => {
     expect(getByText("Keyboard shortcuts")).toBeTruthy();
   });
 
+  it("? ignores auto-repeat so a held key doesn't flip the dialog", () => {
+    const { getByText } = setup();
+    act(() => {
+      fireEvent.keyDown(window, { key: "?" });
+    });
+    expect(getByText("Keyboard shortcuts")).toBeTruthy();
+    // A held key streams repeat events; none should toggle the dialog closed.
+    act(() => {
+      fireEvent.keyDown(window, { key: "?", repeat: true });
+      fireEvent.keyDown(window, { key: "?", repeat: true });
+    });
+    expect(getByText("Keyboard shortcuts")).toBeTruthy();
+  });
+
   it("does not open the shortcut reference while typing in an input", () => {
     const { container, queryByText } = setup();
     const input = document.createElement("input");

@@ -183,7 +183,9 @@ export const TimelineShortcutsDialog: React.FC<TimelineShortcutsDialogProps> =
         >
           <Caption sx={{ opacity: 0.7 }}>Press</Caption>
           <ShortcutHint shortcut={["?"]} />
-          <Caption sx={{ opacity: 0.7 }}>any time to toggle this panel</Caption>
+          <Caption sx={{ opacity: 0.7 }}>
+            any time to toggle this panel · Ctrl also responds to ⌘ on macOS
+          </Caption>
         </FlexRow>
       </Dialog>
     );

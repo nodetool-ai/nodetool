@@ -562,7 +562,9 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         // shortcut there. Editable targets are already excluded above.
         if (e.key === "?") {
           e.preventDefault();
-          setShortcutsOpen((open) => !open);
+          // Ignore auto-repeat so holding the key doesn't flip the dialog
+          // open/closed every repeat tick and land on an unpredictable state.
+          if (!e.repeat) setShortcutsOpen((open) => !open);
           return;
         }
 
