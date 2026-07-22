@@ -27,9 +27,9 @@ function decodeKey(key: string): string {
 }
 
 /**
- * Return `uri` up to (excluding) the first `?` or `#`. A linear index scan, not
- * a `/[?#].*$/` regex — that backtracks polynomially on adversarial input and
- * CodeQL flags it as a ReDoS risk.
+ * Return `uri` up to (excluding) the first `?` or `#`. A linear index scan
+ * rather than a `/[?#].*$/` regex, which CodeQL flags as a potential ReDoS
+ * pattern on uncontrolled input.
  */
 function stripUriSuffix(uri: string): string {
   const q = uri.indexOf("?");
@@ -85,8 +85,8 @@ export class FileStorageAdapter implements StorageAdapter {
     if (uri.startsWith("/api/storage/") || uri.startsWith("api/storage/")) {
       // Strip any ?query / #fragment before decoding — the HTTP route keys off
       // the decoded path only (storage-api.ts decodeURIComponent). Cut at the
-      // first `?`/`#` with a linear scan rather than a backtracking regex
-      // (CodeQL flags `/[?#].*$/` as polynomial on uncontrolled input).
+      // first `?`/`#` with a linear scan rather than a `/[?#].*$/` regex, which
+      // CodeQL flags as a potential ReDoS pattern on uncontrolled input.
       const withoutSuffix = stripUriSuffix(uri);
       return decodeKey(withoutSuffix.replace(/^\/?api\/storage\//, ""));
     }
