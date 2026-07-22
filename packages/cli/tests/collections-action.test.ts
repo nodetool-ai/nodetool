@@ -103,6 +103,39 @@ beforeEach(() => {
   readFile.mockReset();
 });
 
+describe("collections list", () => {
+  it("skips a collection that raced a delete but keeps healthy ones", async () => {
+    listCollections.mockResolvedValueOnce([
+      { name: "good", metadata: { embedding_model: "m" } },
+      { name: "gone", metadata: {} }
+    ]);
+    getCollection.mockReset().mockImplementation(async ({ name }) => {
+      if (name === "gone") {
+        throw new CollectionNotFoundError("gone");
+      }
+      return { name, metadata: {}, count: async () => 3, query, upsert };
+    });
+    const program = await buildProgram();
+    const { stdout } = await captureOutput(() =>
+      program.parseAsync(["node", "cli", "collections", "list", "--json"])
+    );
+    const rows = JSON.parse(stdout.trim()) as Array<{ name: string }>;
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.name).toBe("good");
+  });
+
+  it("surfaces a non-not-found error instead of hiding it (exit 1)", async () => {
+    listCollections.mockResolvedValueOnce([{ name: "bad", metadata: {} }]);
+    getCollection.mockReset().mockRejectedValueOnce(new Error("provider boom"));
+    const program = await buildProgram();
+    const { exitCode, stderr } = await captureOutput(() =>
+      program.parseAsync(["node", "cli", "collections", "list"])
+    );
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("provider boom");
+  });
+});
+
 describe("collections create", () => {
   it("creates with embedding metadata", async () => {
     createCollection.mockResolvedValueOnce({ name: "docs", metadata: {} });

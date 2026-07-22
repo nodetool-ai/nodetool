@@ -19,9 +19,19 @@ export function printTable(
     return;
   }
   const cols = columns ?? Object.keys(rows[0]!);
-  const widths = cols.map((c) =>
-    Math.max(c.length, ...rows.map((r) => String(r[c] ?? "").length))
-  );
+  // Compute widths in a loop rather than Math.max(...spread): a large table
+  // would spread thousands of args into one call, risking a max-arguments
+  // RangeError and extra allocations.
+  const widths = cols.map((c) => {
+    let width = c.length;
+    for (const r of rows) {
+      const len = String(r[c] ?? "").length;
+      if (len > width) {
+        width = len;
+      }
+    }
+    return width;
+  });
   const sep = widths.map((w) => "─".repeat(w + 2)).join("┼");
   const header = cols.map((c, i) => ` ${c.padEnd(widths[i]!)} `).join("│");
   console.log(header);

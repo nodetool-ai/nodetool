@@ -73,8 +73,13 @@ export function registerCollectionCommands(program: Command): void {
               workflow:
                 (await workflowName(metadata["workflow"])) ?? ""
             });
-          } catch {
-            // Skip a collection that races a delete between list and get.
+          } catch (err) {
+            // A collection can race a delete between listCollections() and
+            // getCollection(); skip only that. Surface anything else (corrupt
+            // collection, provider failure) instead of hiding it.
+            if (!(err instanceof CollectionNotFoundError)) {
+              throw err;
+            }
           }
         }
         if (opts.json) {
