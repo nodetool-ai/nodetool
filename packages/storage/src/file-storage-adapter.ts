@@ -35,9 +35,13 @@ function stripUriSuffix(uri: string): string {
   const q = uri.indexOf("?");
   const h = uri.indexOf("#");
   let cut = -1;
-  if (q < 0) cut = h;
-  else if (h < 0) cut = q;
-  else cut = Math.min(q, h);
+  if (q < 0) {
+    cut = h;
+  } else if (h < 0) {
+    cut = q;
+  } else {
+    cut = Math.min(q, h);
+  }
   return cut < 0 ? uri : uri.slice(0, cut);
 }
 
