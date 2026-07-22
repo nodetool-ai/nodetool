@@ -117,11 +117,17 @@ export async function confirm(
   message: string,
   opts?: { force?: boolean; default?: boolean }
 ): Promise<boolean> {
-  if (opts?.force) return true;
-  if (!process.stdin.isTTY) return false;
+  if (opts?.force) {
+    return true;
+  }
+  if (!process.stdin.isTTY) {
+    return false;
+  }
   const defaultYes = opts?.default ?? false;
   const hint = defaultYes ? "[Y/n]" : "[y/N]";
   const answer = await promptLine(`${message} ${hint}`);
-  if (!answer) return defaultYes;
+  if (!answer) {
+    return defaultYes;
+  }
   return /^y(es)?$/i.test(answer);
 }

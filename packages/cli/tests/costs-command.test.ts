@@ -60,17 +60,6 @@ async function buildProgram(): Promise<Command> {
   return program;
 }
 
-const emptyAggregate = {
-  user_id: "1",
-  provider: null,
-  model: null,
-  total_cost: 0,
-  total_input_tokens: 0,
-  total_output_tokens: 0,
-  total_tokens: 0,
-  call_count: 0
-};
-
 beforeEach(() => {
   aggregateByUser.mockReset();
   aggregateByProvider.mockReset();
@@ -79,13 +68,7 @@ beforeEach(() => {
 });
 
 describe("costs summary", () => {
-  it("aggregates overall/provider/model and emits JSON", async () => {
-    aggregateByUser.mockResolvedValueOnce({
-      ...emptyAggregate,
-      total_cost: 1.5,
-      total_tokens: 300,
-      call_count: 2
-    });
+  it("derives overall by summing provider aggregates, no aggregateByUser scan", async () => {
     aggregateByProvider.mockResolvedValueOnce([
       {
         provider: "openai",
@@ -94,6 +77,14 @@ describe("costs summary", () => {
         total_output_tokens: 100,
         total_tokens: 300,
         call_count: 2
+      },
+      {
+        provider: "anthropic",
+        total_cost: 0.5,
+        total_input_tokens: 50,
+        total_output_tokens: 25,
+        total_tokens: 75,
+        call_count: 1
       }
     ]);
     aggregateByModel.mockResolvedValueOnce([]);
@@ -102,9 +93,12 @@ describe("costs summary", () => {
       program.parseAsync(["node", "cli", "costs", "summary", "--json"])
     );
     const parsed = JSON.parse(stdout.trim());
-    expect(parsed.overall.total_cost).toBe(1.5);
+    // 1.5 + 0.5 summed from the two provider rows.
+    expect(parsed.overall.total_cost).toBe(2);
+    expect(parsed.overall.call_count).toBe(3);
     expect(parsed.by_provider[0].provider).toBe("openai");
     expect(parsed).toHaveProperty("by_model");
+    expect(aggregateByUser).not.toHaveBeenCalled();
   });
 });
 

@@ -33,11 +33,28 @@ export function registerCostsCommands(program: Command): void {
     .action(async (opts: { json?: boolean }) => {
       try {
         await setupLocalDb();
-        const [overall, byProvider, byModel] = await Promise.all([
-          Prediction.aggregateByUser(LOCAL_USER_ID),
+        const [byProvider, byModel] = await Promise.all([
           Prediction.aggregateByProvider(LOCAL_USER_ID),
           Prediction.aggregateByModel(LOCAL_USER_ID)
         ]);
+        // Derive the overall totals by summing the provider aggregates rather
+        // than issuing a third full-table scan (aggregateByUser).
+        const overall = byProvider.reduce(
+          (acc, p) => ({
+            total_cost: acc.total_cost + p.total_cost,
+            total_input_tokens: acc.total_input_tokens + p.total_input_tokens,
+            total_output_tokens: acc.total_output_tokens + p.total_output_tokens,
+            total_tokens: acc.total_tokens + p.total_tokens,
+            call_count: acc.call_count + p.call_count
+          }),
+          {
+            total_cost: 0,
+            total_input_tokens: 0,
+            total_output_tokens: 0,
+            total_tokens: 0,
+            call_count: 0
+          }
+        );
         if (opts.json) {
           asJson({ overall, by_provider: byProvider, by_model: byModel });
           return;

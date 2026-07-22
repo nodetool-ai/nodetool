@@ -30,7 +30,9 @@ function fail(e: unknown): never {
 
 /** Resolve a workflow's name from an id, forgivingly (null on any failure). */
 async function workflowName(id: unknown): Promise<string | null> {
-  if (typeof id !== "string" || !id) return null;
+  if (typeof id !== "string" || !id) {
+    return null;
+  }
   try {
     const wf = (await Workflow.get(id)) as { name?: string } | null;
     return wf?.name ?? null;
@@ -125,10 +127,12 @@ export function registerCollectionCommands(program: Command): void {
         try {
           await setupLocalDb();
           const metadata: Record<string, string> = {};
-          if (opts.embeddingModel)
+          if (opts.embeddingModel) {
             metadata["embedding_model"] = opts.embeddingModel;
-          if (opts.embeddingProvider)
+          }
+          if (opts.embeddingProvider) {
             metadata["embedding_provider"] = opts.embeddingProvider;
+          }
           const collection = await getDefaultVectorProvider().createCollection({
             name,
             metadata
@@ -156,8 +160,11 @@ export function registerCollectionCommands(program: Command): void {
           { force: opts.yes }
         );
         if (!ok) {
-          if (opts.json) asJson({ deleted: false, aborted: true });
-          else console.error("Aborted.");
+          if (opts.json) {
+            asJson({ deleted: false, aborted: true });
+          } else {
+            console.error("Aborted.");
+          }
           process.exit(1);
         }
         await setupLocalDb();
@@ -266,7 +273,9 @@ export function registerCollectionCommands(program: Command): void {
         } else {
           printTable(results);
         }
-        if (results.some((r) => r.error)) process.exit(1);
+        if (results.some((r) => r.error)) {
+          process.exit(1);
+        }
       } catch (e) {
         fail(e);
       }
