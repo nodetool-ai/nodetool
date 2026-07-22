@@ -212,7 +212,7 @@ function SettingsPage() {
   );
 
   const [activeSection, setActiveSection] = useState("editor");
-  const [, setSecretsUpdated] = useState({});
+  const [, setSecretsUpdated] = useState(0);
   const settingsContentRef = useRef<HTMLDivElement | null>(null);
   const [closeBehavior, setCloseBehavior] = useState<
     "ask" | "quit" | "background"
@@ -325,7 +325,7 @@ function SettingsPage() {
 
   // Subscribe to secrets store changes to update sidebar when secrets are modified
   useEffect(() => {
-    const unsubscribe = useSecretsStore.subscribe(() => setSecretsUpdated({}));
+    const unsubscribe = useSecretsStore.subscribe(() => setSecretsUpdated((n) => n + 1));
     return unsubscribe;
   }, []);
 
