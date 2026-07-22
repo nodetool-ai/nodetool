@@ -3,7 +3,8 @@ import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
 
-// Mock @nodetool-ai/models — router orchestrates Thread + Message static methods.
+// Mock @nodetool-ai/models — router orchestrates Thread + Message + ThreadMemory
+// static methods.
 vi.mock("@nodetool-ai/models", async (orig) => {
   const actual = await orig<typeof import("@nodetool-ai/models")>();
   return {
@@ -16,11 +17,15 @@ vi.mock("@nodetool-ai/models", async (orig) => {
     Message: {
       ...actual.Message,
       paginate: vi.fn()
+    },
+    ThreadMemory: {
+      ...actual.ThreadMemory,
+      deleteByThread: vi.fn().mockResolvedValue(0)
     }
   };
 });
 
-import { Thread, Message } from "@nodetool-ai/models";
+import { Thread, Message, ThreadMemory } from "@nodetool-ai/models";
 
 const createCaller = createCallerFactory(appRouter);
 
@@ -225,6 +230,8 @@ describe("threads router", () => {
       const result = await caller.threads.delete({ id: "t1" });
       expect(msg1.delete).toHaveBeenCalled();
       expect(msg2.delete).toHaveBeenCalled();
+      // Thread deletion cascades to its durable memories.
+      expect(ThreadMemory.deleteByThread).toHaveBeenCalledWith("user-1", "t1");
       expect(t.delete).toHaveBeenCalled();
       expect(result).toEqual({ ok: true });
     });
