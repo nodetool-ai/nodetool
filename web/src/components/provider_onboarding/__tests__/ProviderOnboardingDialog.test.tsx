@@ -45,9 +45,12 @@ beforeEach(() => {
   mockUseProviderOnboardingStore.mockImplementation(
     (selector: (s: unknown) => unknown) => selector(storeState)
   );
-  mockUseSecrets.mockReturnValue({ secrets: [] } as ReturnType<
-    typeof useSecrets
-  >);
+  mockUseSecrets.mockReturnValue({
+    secrets: [],
+    isLoading: false,
+    isSuccess: true,
+    isApiKeySet: () => false
+  } as unknown as ReturnType<typeof useSecrets>);
   mockUseOAuthConnection.mockReturnValue({
     label: "",
     isConnected: false,
