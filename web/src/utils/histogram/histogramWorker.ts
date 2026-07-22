@@ -6,6 +6,8 @@
 
 import { computeHistogramFromRgba } from "./computeHistogram";
 
+declare const self: DedicatedWorkerGlobalScope;
+
 interface HistogramRequest {
   id: number;
   rgbaBuffer: ArrayBuffer;
@@ -32,7 +34,7 @@ self.addEventListener("message", (event: MessageEvent<HistogramRequest>) => {
     luminance: hist.luminance.buffer as ArrayBuffer,
     pixelCount: hist.pixelCount
   };
-  (self as unknown as DedicatedWorkerGlobalScope).postMessage(response, [
+  self.postMessage(response, [
     response.r,
     response.g,
     response.b,
