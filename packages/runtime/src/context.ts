@@ -2577,10 +2577,15 @@ export class ProcessingContext {
    * as opaque storage URIs (memory/file/s3) via the storage adapter.
    */
   private async retrieveMediaBytes(uri: string): Promise<Uint8Array | null> {
-    // `/api/storage/<key>` is the browser-facing route, not a storage-adapter
-    // uri — the InMemory/S3 adapters only accept `memory://`/`s3://`, so route
-    // it through resolveAssetBytes (which parses the key) like `asset://`.
-    if (uri.startsWith("asset://") || uri.startsWith("/api/storage/")) {
+    // `/api/storage/<key>` (and its slash-less `api/storage/<key>` form) is the
+    // browser-facing route, not a storage-adapter uri — the InMemory/S3 adapters
+    // only accept `memory://`/`s3://`, so route it through resolveAssetBytes
+    // (which parses the key) like `asset://`.
+    if (
+      uri.startsWith("asset://") ||
+      uri.startsWith("/api/storage/") ||
+      uri.startsWith("api/storage/")
+    ) {
       const { bytes } = await this.resolveAssetBytes(uri);
       return bytes;
     }
@@ -3140,7 +3145,9 @@ export class ProcessingContext {
     }
     if (
       typeof uri === "string" &&
-      (uri.startsWith("asset://") || uri.startsWith("/api/storage/"))
+      (uri.startsWith("asset://") ||
+        uri.startsWith("/api/storage/") ||
+        uri.startsWith("api/storage/"))
     ) {
       const { bytes } = await this.resolveAssetBytes(uri);
       if (bytes) return bytes;

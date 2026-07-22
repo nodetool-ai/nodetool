@@ -27,6 +27,21 @@ function decodeKey(key: string): string {
 }
 
 /**
+ * Return `uri` up to (excluding) the first `?` or `#`. A linear index scan, not
+ * a `/[?#].*$/` regex — that backtracks polynomially on adversarial input and
+ * CodeQL flags it as a ReDoS risk.
+ */
+function stripUriSuffix(uri: string): string {
+  const q = uri.indexOf("?");
+  const h = uri.indexOf("#");
+  let cut = -1;
+  if (q < 0) cut = h;
+  else if (h < 0) cut = q;
+  else cut = Math.min(q, h);
+  return cut < 0 ? uri : uri.slice(0, cut);
+}
+
+/**
  * File-system storage adapter rooted to a single base directory.
  *
  * URI scheme: `file:///abs/path`. Also accepts `/api/storage/<key>` paths
@@ -69,8 +84,10 @@ export class FileStorageAdapter implements StorageAdapter {
     }
     if (uri.startsWith("/api/storage/") || uri.startsWith("api/storage/")) {
       // Strip any ?query / #fragment before decoding — the HTTP route keys off
-      // the decoded path only (storage-api.ts decodeURIComponent).
-      const withoutSuffix = uri.replace(/[?#].*$/, "");
+      // the decoded path only (storage-api.ts decodeURIComponent). Cut at the
+      // first `?`/`#` with a linear scan rather than a backtracking regex
+      // (CodeQL flags `/[?#].*$/` as polynomial on uncontrolled input).
+      const withoutSuffix = stripUriSuffix(uri);
       return decodeKey(withoutSuffix.replace(/^\/?api\/storage\//, ""));
     }
     if (/^https?:\/\//.test(uri)) {
