@@ -262,6 +262,11 @@ export const EVAL_SUITES: readonly EvalSuite[] = [
     "app-tools",
     "Run the App Builder surface tool-loop eval suite (ui_app_* tools) against a provider/model",
     "APP_TOOL_LOOP_CASES"
+  ),
+  makeToolLoopSuite(
+    "thread-memory-tools",
+    "Run the thread-memory tool-loop eval suite (thread_memory_*/asset tools, real DB) against a provider/model",
+    "THREAD_MEMORY_TOOL_LOOP_CASES"
   )
 ];
 

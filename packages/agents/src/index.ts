@@ -470,6 +470,11 @@ export type {
   AppComponentSummary,
   SeedComponent
 } from "./evals/surfaces/app.js";
+export {
+  createThreadMemoryToolBridge,
+  THREAD_MEMORY_TOOL_LOOP_CASES
+} from "./evals/surfaces/thread-memory.js";
+export type { ThreadMemoryBridgeFinalState } from "./evals/surfaces/thread-memory.js";
 
 // Graph-native planning & execution
 export { evaluateGraphDsl } from "./graph-dsl.js";
