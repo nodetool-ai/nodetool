@@ -373,7 +373,7 @@ expectations, and the runner reports the same metrics as graph-planner
 predicates, tool-call budgets, no-error-results) — never an exact transcript,
 so many valid tool orderings pass.
 
-Seven suites are registered, one per surface:
+Eight suites are registered:
 
 | Suite | Tools | Bridge (`src/evals/`) |
 |---|---|---|
@@ -384,6 +384,14 @@ Seven suites are registered, one per surface:
 | `storyboard-tools` | `ui_storyboard_*` | `surfaces/storyboard.ts` |
 | `model3d-tools` | `ui_3d_*` | `surfaces/model3d.ts` |
 | `app-tools` | `ui_app_*` App Builder | `surfaces/app.ts` |
+| `thread-memory-tools` | `thread_memory_*` / `asset_*` | `surfaces/thread-memory.ts` |
+
+`thread-memory-tools` is the odd one out: instead of reimplementing a browser
+surface, its bridge executes the **real backend tools** (`thread_memory_save`/
+`list`, `asset_search`) plus a stub `generate_image` against an in-memory DB
+(`initTestDb`), so it exercises the actual persistence + resource validation a
+chat turn does. It scores the creative loop: generate media → remember it with
+an asset reference → recall it.
 
 Bridges reuse the pure packages where the real logic already lives —
 `@nodetool-ai/timeline` (`splitClip`, `ANIMATION_PRESETS`, subtitle assembly,
@@ -421,7 +429,11 @@ SDK's own agent loop (not the harness):
   is easily exhausted by an over-searching model. Pass a higher cap
   (`--max-iterations 40`) when driving these suites with `claude_agent_sdk`.
 - **`uid=0` refusal.** The tool path runs the CLI under `bypassPermissions`, which
-  it refuses as root; set `IS_SANDBOX=1` (or run non-root). See
+  it refuses as root; set `IS_SANDBOX=1` (or run non-root). It must be **exactly
+  `1`** — the SDK's sandbox check is value-sensitive, so an ambient
+  `IS_SANDBOX=yes` (as in Claude Code on the web) does **not** satisfy it and the
+  child exits with code 1 and zero tool calls, which looks like an auth/spawn
+  failure but isn't. Override it explicitly: `IS_SANDBOX=1 npm run …`. See
   [docs/AGENTS.md § Claude Agent SDK](../../docs/AGENTS.md) for the full
   nested-session recipe.
 
