@@ -189,11 +189,21 @@ export async function readErrorBoundary(page: Page): Promise<string | null> {
     (await page.getByRole("button", { name: /reload page/i }).count()) > 0;
   if (!hasReloadButton) return null;
 
+  // The error message + stack render only once the "Show details" toggle is
+  // expanded (`showDetails` state in ErrorBoundary.tsx), so open it before
+  // reading — otherwise `.error-summary` isn't in the DOM and the failure text
+  // would be empty.
+  const detailsToggle = page.getByRole("button", { name: /show details/i });
+  if ((await detailsToggle.count()) > 0) {
+    await detailsToggle
+      .first()
+      .click()
+      .catch(() => {});
+  }
   const summary = page.locator(".error-summary").first();
-  const detail =
-    (await summary.count()) > 0
-      ? (await summary.innerText().catch(() => "")).trim()
-      : "";
+  const detail = (await summary.count()) > 0
+    ? (await summary.innerText().catch(() => "")).trim()
+    : "";
   return `Something went wrong${detail ? ` — ${detail.slice(0, 300)}` : ""}`;
 }
 
