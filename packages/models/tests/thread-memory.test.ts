@@ -20,22 +20,28 @@ describe("ThreadMemory", () => {
     expect(memory.id).toBeTruthy();
     expect(memory.kind).toBe("note");
     expect(memory.title).toBe("");
-    expect(memory.asset_ids).toBeNull();
+    expect(memory.resources).toBeNull();
     expect(memory.created_at).toBeTruthy();
   });
 
-  it("persists referenced asset ids", async () => {
+  it("persists typed resource references", async () => {
     const memory = await ThreadMemory.create<ThreadMemory>({
       user_id: "u1",
       thread_id: "t1",
-      kind: "asset",
-      content: "Generated cover art.",
-      asset_ids: ["a1", "a2"]
+      kind: "resource",
+      content: "Generated cover art and the workflow that made it.",
+      resources: [
+        { type: "asset", id: "a1", uri: "asset://a1.png" },
+        { type: "workflow", id: "wf1", label: "Cover generator" }
+      ]
     });
     const reloaded = await ThreadMemory.find("u1", memory.id);
     expect(reloaded).not.toBeNull();
-    expect(reloaded!.asset_ids).toEqual(["a1", "a2"]);
-    expect(reloaded!.kind).toBe("asset");
+    expect(reloaded!.resources).toEqual([
+      { type: "asset", id: "a1", uri: "asset://a1.png" },
+      { type: "workflow", id: "wf1", label: "Cover generator" }
+    ]);
+    expect(reloaded!.kind).toBe("resource");
   });
 
   it("find is scoped to the user", async () => {

@@ -1,5 +1,6 @@
 import { pgTable, text, index } from "drizzle-orm/pg-core";
 import { jsonText } from "./helpers.js";
+import type { ThreadMemoryResource } from "../thread-memory.js";
 
 export const threadMemories = pgTable(
   "nodetool_thread_memories",
@@ -14,8 +15,9 @@ export const threadMemories = pgTable(
     kind: text("kind").notNull().default("note"),
     title: text("title").notNull().default(""),
     content: text("content").notNull().default(""),
-    // Asset ids this memory references (generated images/videos to reuse).
-    asset_ids: jsonText<string[]>()("asset_ids"),
+    // Typed references to resources this memory is about (generated assets,
+    // workflows, collections, URLs, …) so they can be reused later.
+    resources: jsonText<ThreadMemoryResource[]>()("resources"),
     metadata: jsonText<Record<string, unknown>>()("metadata"),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()

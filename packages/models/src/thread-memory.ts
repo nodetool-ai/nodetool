@@ -4,8 +4,10 @@
  * Unlike the vector-backed {@link LongTermMemory} (fuzzy, cross-session,
  * embedding-gated), a ThreadMemory is a plain relational row scoped to a
  * single chat thread. It persists deterministically, is editable, and can
- * reference assets (generated images/videos) by id so an agent can record
- * and reuse the media it produces over the life of a creative project.
+ * reference resources of any kind — the assets (images/videos), workflows,
+ * collections, documents, or external URLs an agent works with — by a typed
+ * `{ type, id }` handle, so a creative project can record and reuse them over
+ * the life of the conversation.
  */
 
 import { eq, and, desc } from "drizzle-orm";
@@ -18,7 +20,26 @@ export type ThreadMemoryKind =
   | "fact"
   | "preference"
   | "decision"
-  | "asset";
+  | "resource";
+
+/**
+ * A typed reference to any resource a memory is about. `type` is an open
+ * string — the known kinds are asset | workflow | collection | node | job |
+ * timeline | script | storyboard | image_document | thread | url — but any
+ * value is accepted so new resource kinds work without a schema change.
+ */
+export interface ThreadMemoryResource {
+  /** Resource kind (asset, workflow, collection, url, …). */
+  type: string;
+  /** Identifier: asset id, workflow id, collection name, a URL, etc. */
+  id: string;
+  /** Canonical uri when the resource has one (asset://…, https://…). */
+  uri?: string;
+  /** Optional human-readable label. */
+  label?: string;
+  /** Optional extra metadata. */
+  metadata?: Record<string, unknown>;
+}
 
 export class ThreadMemory extends DBModel {
   static override table = threadMemories;
@@ -29,7 +50,7 @@ export class ThreadMemory extends DBModel {
   declare kind: string;
   declare title: string;
   declare content: string;
-  declare asset_ids: string[] | null;
+  declare resources: ThreadMemoryResource[] | null;
   declare metadata: Record<string, unknown> | null;
   declare created_at: string;
   declare updated_at: string;
@@ -41,7 +62,7 @@ export class ThreadMemory extends DBModel {
     this.kind ??= "note";
     this.title ??= "";
     this.content ??= "";
-    this.asset_ids ??= null;
+    this.resources ??= null;
     this.metadata ??= null;
     this.created_at ??= now;
     this.updated_at ??= now;

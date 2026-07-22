@@ -44,7 +44,8 @@ import {
   ThreadMemory,
   TimelineSequence,
   Workflow,
-  type DBModel
+  type DBModel,
+  type ThreadMemoryResource
 } from "@nodetool-ai/models";
 import type {
   ProviderTool,
@@ -1191,13 +1192,17 @@ References to documents, images, videos, or audio files have the shape:
 - \`type\`: document | image | video | audio
 - \`uri\`: \`file:///path/to/file\` or \`http(s)://...\`
 
-# Memory and assets (creative projects)
+# Memory and resources (creative projects)
 This conversation has durable, per-thread memory. Any memories you saved are
 shown at the top of each turn inside a \`<thread-memory>\` block. Use the memory
 and asset tools to carry a creative project forward across turns:
 - \`thread_memory_save\` — record project facts, the user's approved style/
-  decisions, and the assets you generate. When you create an image or video,
-  save a memory with its \`asset_ids\` so you can reuse that exact media later.
+  decisions, and the resources you produce or rely on. Pass \`resources\` as
+  typed \`{ type, id }\` refs — an asset you generated
+  (\`{ "type": "asset", "id": "<asset id>" }\`), a workflow you built
+  (\`{ "type": "workflow", "id": "<workflow id>" }\`), a collection, or a URL —
+  so you can reuse the exact thing later. Asset refs come back with a live
+  \`asset://\` uri.
 - \`thread_memory_list\` / \`thread_memory_update\` / \`thread_memory_delete\` —
   review, revise, or prune what you remembered.
 - \`asset_search\` / \`asset_list\` — find media already generated or uploaded
@@ -3331,28 +3336,32 @@ export class UnifiedWebSocketRunner {
       if (memories.length === 0) return "";
       const rendered = [];
       for (const memory of memories) {
-        const assetRefs: Array<{
-          asset_id: string;
-          uri: string;
-          content_type: string;
-        }> = [];
-        const ids = Array.isArray(memory.asset_ids) ? memory.asset_ids : [];
-        for (const id of ids) {
-          if (typeof id !== "string" || !id) continue;
-          const asset = await Asset.find(userId, id);
-          if (!asset) continue;
-          const ext = asset.fileExtension;
-          assetRefs.push({
-            asset_id: asset.id,
-            uri: ext ? `asset://${asset.id}.${ext}` : `asset://${asset.id}`,
-            content_type: asset.content_type
-          });
+        const resources: ThreadMemoryResource[] = [];
+        const refs = Array.isArray(memory.resources) ? memory.resources : [];
+        for (const ref of refs) {
+          if (!ref || typeof ref !== "object") continue;
+          // Re-resolve asset refs to a live uri and drop any the user no longer
+          // owns; pass every other resource kind through unchanged.
+          if (ref.type === "asset") {
+            const asset = await Asset.find(userId, ref.id);
+            if (!asset) continue;
+            const ext = asset.fileExtension;
+            resources.push({
+              type: "asset",
+              id: asset.id,
+              uri: ext ? `asset://${asset.id}.${ext}` : `asset://${asset.id}`,
+              label: ref.label || asset.name,
+              metadata: { content_type: asset.content_type }
+            });
+          } else {
+            resources.push(ref);
+          }
         }
         rendered.push({
           kind: memory.kind,
           title: memory.title,
           content: memory.content,
-          assetRefs
+          resources
         });
       }
       return formatThreadMemoriesForPrompt(rendered);

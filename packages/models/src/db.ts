@@ -317,7 +317,7 @@ const TABLE_COLUMNS: Record<string, Record<string, string>> = {
     kind: "text",
     title: "text",
     content: "text",
-    asset_ids: "text",
+    resources: "text",
     metadata: "text",
     created_at: "text",
     updated_at: "text"
@@ -999,7 +999,7 @@ function getCreateSchemaSql(): string {
       "kind" text NOT NULL DEFAULT 'note',
       "title" text NOT NULL DEFAULT '',
       "content" text NOT NULL DEFAULT '',
-      "asset_ids" text,
+      "resources" text,
       "metadata" text,
       "created_at" text NOT NULL,
       "updated_at" text NOT NULL

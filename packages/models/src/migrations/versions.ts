@@ -1916,7 +1916,7 @@ export const migrations: MigrationDef[] = [
           kind TEXT NOT NULL DEFAULT 'note',
           title TEXT NOT NULL DEFAULT '',
           content TEXT NOT NULL DEFAULT '',
-          asset_ids TEXT,
+          resources TEXT,
           metadata TEXT,
           created_at TEXT NOT NULL,
           updated_at TEXT NOT NULL
