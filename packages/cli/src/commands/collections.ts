@@ -156,7 +156,8 @@ export function registerCollectionCommands(program: Command): void {
           { force: opts.yes }
         );
         if (!ok) {
-          console.error("Aborted.");
+          if (opts.json) asJson({ deleted: false, aborted: true });
+          else console.error("Aborted.");
           process.exit(1);
         }
         await setupLocalDb();

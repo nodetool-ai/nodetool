@@ -14,8 +14,11 @@ export const LOCAL_USER_ID = "1";
 let ready: Promise<void> | null = null;
 
 /**
- * Initialize the local SQLite DB and unlock the secret store (needed for any
- * provider that resolves API keys, e.g. embeddings). Idempotent.
+ * Initialize the local SQLite DB and best-effort unlock the secret store
+ * (needed for any provider that resolves API keys, e.g. embeddings). If the
+ * store can't be unlocked it warns to stderr and still resolves — a command
+ * that then needs a secret fails at that later point, so the DB stays usable
+ * for commands that don't. Idempotent.
  */
 export function setupLocalDb(): Promise<void> {
   ready ??= (async () => {
