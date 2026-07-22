@@ -22,7 +22,15 @@ import { createInterface } from "node:readline";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import type { AppRouter } from "@nodetool-ai/websocket/trpc";
 import { workflowToDsl } from "@nodetool-ai/dsl";
-import { initDb, Workflow, Secret, getSecret } from "@nodetool-ai/models";
+import {
+  initDb,
+  Workflow,
+  Job,
+  Asset,
+  Secret,
+  getSecret
+} from "@nodetool-ai/models";
+import { readCachedHfModels, searchCachedHfModels } from "@nodetool-ai/huggingface";
 import { initMasterKey } from "@nodetool-ai/security";
 import { getDefaultDbPath, getDefaultAssetsPath } from "@nodetool-ai/config";
 import { WorkflowRunner } from "@nodetool-ai/kernel";
@@ -60,7 +68,9 @@ import { registerAffectedCommand } from "./commands/affected.js";
 import { registerCollectionCommands } from "./commands/collections.js";
 import { registerCostsCommands } from "./commands/costs.js";
 import {
+  listAllModels,
   listConfiguredProviderInfo,
+  listOllamaModels,
   listProviderModels,
   type ProviderModelKind
 } from "./providers.js";
@@ -71,6 +81,18 @@ const __dirname = dirname(__filename);
 // ---------------------------------------------------------------------------
 // DB setup (for secrets commands)
 // ---------------------------------------------------------------------------
+
+// The local single-user id every direct-DB command runs as, matching the
+// `workflows run` / `secrets` commands and the stdio MCP server.
+const LOCAL_USER_ID = "1";
+
+// Open the local SQLite database for a read-only command. Unlike setupDb() this
+// skips master-key unlocking (no secret decryption needed to list/read rows),
+// so it never emits a keychain warning. Idempotent — initDb() is a no-op once
+// a connection is open.
+function ensureDb(): void {
+  initDb(getDefaultDbPath());
+}
 
 async function setupDb(): Promise<void> {
   initDb(getDefaultDbPath());
@@ -161,6 +183,40 @@ function makeAssetFetcher(
     const res = await fetch(url);
     if (!res.ok) return null;
     return new Uint8Array(await res.arrayBuffer());
+  };
+}
+
+// Resolve asset bytes from the local assets directory, so the export commands
+// work by id without a running server. `asset://<key>` is tried verbatim as a
+// storage key first (that's how import-bundle writes refs), then via the DB
+// record to derive `<id>.<ext>` from the content type. Remote http(s) refs
+// still fetch over the network.
+async function makeLocalAssetFetcher(): Promise<
+  (ref: string) => Promise<Uint8Array | null>
+> {
+  const { getAssetFileName } = await import("@nodetool-ai/websocket");
+  const storage = new FileStorageAdapter(getDefaultAssetsPath());
+  return async (ref: string): Promise<Uint8Array | null> => {
+    if (ref.startsWith("asset://")) {
+      const raw = ref.slice("asset://".length);
+      const direct = await storage.retrieve(`/api/storage/${raw}`);
+      if (direct) return direct;
+      const bareId = raw.replace(/\.[^.]+$/, "");
+      const asset = await Asset.find(LOCAL_USER_ID, bareId);
+      if (!asset) return null;
+      const key = getAssetFileName(asset.id, asset.content_type);
+      return storage.retrieve(`/api/storage/${key}`);
+    }
+    if (ref.includes("/api/storage/")) {
+      const local = await storage.retrieve(ref);
+      if (local) return local;
+    }
+    if (/^https?:\/\//.test(ref)) {
+      const res = await fetch(ref);
+      if (!res.ok) return null;
+      return new Uint8Array(await res.arrayBuffer());
+    }
+    return null;
   };
 }
 
@@ -395,21 +451,27 @@ const workflows = program
 
 workflows
   .command("list")
-  .description("List workflows")
+  .description("List workflows (reads the local database; --api-url for remote)")
   .option(
     "--api-url <url>",
-    "API base URL",
-    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+    "Query a remote server instead of the local database",
+    process.env["NODETOOL_API_URL"]
   )
   .option("--limit <n>", "Max results", "100")
   .option("--json", "Output as JSON")
   .action(async (opts) => {
     try {
-      const client = createApiClient(opts.apiUrl);
-      const data = await client.workflows.list.query({
-        limit: Number.parseInt(opts.limit, 10)
-      });
-      const rows = data.workflows as Record<string, unknown>[];
+      const limit = Number.parseInt(opts.limit, 10);
+      let rows: Record<string, unknown>[];
+      if (opts.apiUrl) {
+        const client = createApiClient(opts.apiUrl);
+        const data = await client.workflows.list.query({ limit });
+        rows = data.workflows as Record<string, unknown>[];
+      } else {
+        ensureDb();
+        const [items] = await Workflow.paginate(LOCAL_USER_ID, { limit });
+        rows = items.map((w) => ({ ...w }));
+      }
       if (opts.json) {
         asJson(rows);
         return;
@@ -429,22 +491,32 @@ workflows
 
 workflows
   .command("get <workflow_id>")
-  .description("Get a workflow by ID")
+  .description("Get a workflow by ID (reads the local database; --api-url for remote)")
   .option(
     "--api-url <url>",
-    "API base URL",
-    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+    "Query a remote server instead of the local database",
+    process.env["NODETOOL_API_URL"]
   )
   .option("--json", "Output as JSON")
   .action(async (workflowId, opts) => {
     try {
-      const client = createApiClient(opts.apiUrl);
-      const data = await client.workflows.get.query({ id: workflowId });
+      let data: Record<string, unknown>;
+      if (opts.apiUrl) {
+        const client = createApiClient(opts.apiUrl);
+        data = (await client.workflows.get.query({
+          id: workflowId
+        })) as unknown as Record<string, unknown>;
+      } else {
+        ensureDb();
+        const wf = await Workflow.find(LOCAL_USER_ID, workflowId);
+        if (!wf) throw new Error(`Workflow not found: ${workflowId}`);
+        data = { ...wf };
+      }
       if (opts.json) {
         asJson(data);
         return;
       }
-      const w = data as unknown as Record<string, unknown>;
+      const w = data;
       printTable([
         {
           id: w["id"],
@@ -619,15 +691,15 @@ workflows
 
 workflows
   .command("export-dsl <workflow_id_or_file>")
-  .description("Export a workflow as TypeScript DSL code")
+  .description("Export a workflow as TypeScript DSL code (local DB by id; --api-url for remote)")
   .option(
     "--api-url <url>",
-    "API base URL",
-    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+    "Fetch the workflow from a remote server instead of the local database",
+    process.env["NODETOOL_API_URL"]
   )
   .option("-o, --output <file>", "Write the exported DSL to a file")
   .action(
-    async (idOrFile: string, opts: { apiUrl: string; output?: string }) => {
+    async (idOrFile: string, opts: { apiUrl?: string; output?: string }) => {
       try {
         let source: string;
 
@@ -648,11 +720,22 @@ workflows
           source = workflowToDsl(graph, {
             workflowName: typeof raw.name === "string" ? raw.name : null
           });
-        } else {
+        } else if (opts.apiUrl) {
           source = await apiGetText(
             opts.apiUrl,
             `/api/workflows/${idOrFile}/dsl-export`
           );
+        } else {
+          ensureDb();
+          const wf = await Workflow.find(LOCAL_USER_ID, idOrFile);
+          if (!wf) throw new Error(`Workflow not found: ${idOrFile}`);
+          const graph = wf.getGraph() as unknown as {
+            nodes: Record<string, unknown>[];
+            edges: Record<string, unknown>[];
+          };
+          source = workflowToDsl(graph, {
+            workflowName: typeof wf.name === "string" ? wf.name : null
+          });
         }
 
         if (opts.output) {
@@ -678,8 +761,8 @@ workflows
   )
   .option(
     "--api-url <url>",
-    "API base URL (used to fetch the workflow and asset bytes by id)",
-    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+    "Fetch the workflow and asset bytes from a remote server instead of the local DB/assets",
+    process.env["NODETOOL_API_URL"]
   )
   .option("--package <name>", "Owning package", "nodetool-base")
   .option(
@@ -699,7 +782,7 @@ workflows
     async (
       idOrFile: string,
       opts: {
-        apiUrl: string;
+        apiUrl?: string;
         package: string;
         assetsDir?: string;
         examplesDir?: string;
@@ -736,7 +819,7 @@ workflows
             ? raw.tags.filter((t): t is string => typeof t === "string")
             : [];
           graph = (raw.graph ?? raw) as typeof graph;
-        } else {
+        } else if (opts.apiUrl) {
           const client = createApiClient(opts.apiUrl);
           const wf = (await client.workflows.get.query({
             id: idOrFile
@@ -747,6 +830,16 @@ workflows
             ? wf.tags.filter((t): t is string => typeof t === "string")
             : [];
           graph = wf.graph as typeof graph;
+        } else {
+          ensureDb();
+          const wf = await Workflow.find(LOCAL_USER_ID, idOrFile);
+          if (!wf) throw new Error(`Workflow not found: ${idOrFile}`);
+          name = typeof wf.name === "string" ? wf.name : "workflow";
+          description = typeof wf.description === "string" ? wf.description : "";
+          tags = Array.isArray(wf.tags)
+            ? wf.tags.filter((t): t is string => typeof t === "string")
+            : [];
+          graph = wf.getGraph() as unknown as typeof graph;
         }
 
         if (!graph?.nodes) {
@@ -763,8 +856,9 @@ workflows
         const assetsRoot = opts.assetsDir ?? join(baseNodesDir, "assets");
         const examplesDir = opts.examplesDir ?? join(baseNodesDir, "examples");
 
-        const apiUrl = opts.apiUrl.replace(/\/+$/, "");
-        const fetchAssetBytes = makeAssetFetcher(apiUrl);
+        const fetchAssetBytes = opts.apiUrl
+          ? makeAssetFetcher(opts.apiUrl.replace(/\/+$/, ""))
+          : await makeLocalAssetFetcher();
 
         const result = await materializeWorkflowConstantAssets(graph, {
           packageName: opts.package,
@@ -821,8 +915,8 @@ workflows
   )
   .option(
     "--api-url <url>",
-    "API base URL (used to fetch the workflow and asset bytes by id)",
-    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+    "Fetch the workflow and asset bytes from a remote server instead of the local DB/assets",
+    process.env["NODETOOL_API_URL"]
   )
   .option("-o, --output <file>", "Output path (default: <name>.nodetool)")
   .option(
@@ -832,7 +926,7 @@ workflows
   .action(
     async (
       idsOrFiles: string[],
-      opts: { apiUrl: string; output?: string; includeRemote?: boolean }
+      opts: { apiUrl?: string; output?: string; includeRemote?: boolean }
     ) => {
       try {
         const { readFileSync } = await import("node:fs");
@@ -859,18 +953,30 @@ workflows
           graph: (raw.graph ?? raw) as BundleWf["graph"]
         });
 
-        const apiUrl = opts.apiUrl.replace(/\/+$/, "");
+        const useServer = Boolean(opts.apiUrl);
+        const apiUrl = opts.apiUrl?.replace(/\/+$/, "") ?? "";
+        if (!useServer) ensureDb();
         const workflowsToPack: BundleWf[] = [];
         for (const idOrFile of idsOrFiles) {
           const isFile =
             idOrFile.endsWith(".json") ||
             idOrFile.includes("/") ||
             idOrFile.includes("\\");
-          const raw = isFile
-            ? (JSON.parse(readFileSync(idOrFile, "utf8")) as Record<string, unknown>)
-            : ((await createApiClient(apiUrl).workflows.get.query({
-                id: idOrFile
-              })) as Record<string, unknown>);
+          let raw: Record<string, unknown>;
+          if (isFile) {
+            raw = JSON.parse(readFileSync(idOrFile, "utf8")) as Record<
+              string,
+              unknown
+            >;
+          } else if (useServer) {
+            raw = (await createApiClient(apiUrl).workflows.get.query({
+              id: idOrFile
+            })) as Record<string, unknown>;
+          } else {
+            const found = await Workflow.find(LOCAL_USER_ID, idOrFile);
+            if (!found) throw new Error(`Workflow not found: ${idOrFile}`);
+            raw = { ...found, graph: found.getGraph() };
+          }
           const wf = toBundleWf(raw);
           if (!wf.graph?.nodes) {
             throw new Error(`Workflow '${idOrFile}' has no graph to export`);
@@ -880,7 +986,9 @@ workflows
 
         const { bytes, manifest, skipped } = await packWorkflowsBundle({
           workflows: workflowsToPack,
-          fetchAssetBytes: makeAssetFetcher(apiUrl),
+          fetchAssetBytes: useServer
+            ? makeAssetFetcher(apiUrl)
+            : await makeLocalAssetFetcher(),
           nodetoolVersion: cliVersion(),
           ...(opts.includeRemote ? { includeRemote: true } : {})
         });
@@ -983,23 +1091,34 @@ const jobs = program.command("jobs").description("Job management");
 
 jobs
   .command("list")
-  .description("List jobs")
+  .description("List jobs (reads the local database; --api-url for remote)")
   .option(
     "--api-url <url>",
-    "API base URL",
-    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+    "Query a remote server instead of the local database",
+    process.env["NODETOOL_API_URL"]
   )
   .option("--workflow-id <id>", "Filter by workflow ID")
   .option("--limit <n>", "Max results", "100")
   .option("--json", "Output as JSON")
   .action(async (opts) => {
     try {
-      const client = createApiClient(opts.apiUrl);
-      const data = await client.jobs.list.query({
-        limit: Number.parseInt(opts.limit, 10),
-        ...(opts.workflowId ? { workflow_id: opts.workflowId } : {})
-      });
-      const rows = data.jobs as Record<string, unknown>[];
+      const limit = Number.parseInt(opts.limit, 10);
+      let rows: Record<string, unknown>[];
+      if (opts.apiUrl) {
+        const client = createApiClient(opts.apiUrl);
+        const data = await client.jobs.list.query({
+          limit,
+          ...(opts.workflowId ? { workflow_id: opts.workflowId } : {})
+        });
+        rows = data.jobs as Record<string, unknown>[];
+      } else {
+        ensureDb();
+        const [items] = await Job.paginate(LOCAL_USER_ID, {
+          limit,
+          ...(opts.workflowId ? { workflowId: opts.workflowId } : {})
+        });
+        rows = items.map((j) => ({ ...j }));
+      }
       if (opts.json) {
         asJson(rows);
         return;
@@ -1021,22 +1140,32 @@ jobs
 
 jobs
   .command("get <job_id>")
-  .description("Get a job by ID")
+  .description("Get a job by ID (reads the local database; --api-url for remote)")
   .option(
     "--api-url <url>",
-    "API base URL",
-    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+    "Query a remote server instead of the local database",
+    process.env["NODETOOL_API_URL"]
   )
   .option("--json", "Output as JSON")
   .action(async (jobId, opts) => {
     try {
-      const client = createApiClient(opts.apiUrl);
-      const data = await client.jobs.get.query({ id: jobId });
+      let data: Record<string, unknown>;
+      if (opts.apiUrl) {
+        const client = createApiClient(opts.apiUrl);
+        data = (await client.jobs.get.query({
+          id: jobId
+        })) as unknown as Record<string, unknown>;
+      } else {
+        ensureDb();
+        const job = await Job.find(LOCAL_USER_ID, jobId);
+        if (!job) throw new Error(`Job not found: ${jobId}`);
+        data = { ...job };
+      }
       if (opts.json) {
         asJson(data);
         return;
       }
-      const j = data as unknown as Record<string, unknown>;
+      const j = data;
       printTable([
         {
           id: j["id"],
@@ -1060,11 +1189,11 @@ const assets = program.command("assets").description("Asset management");
 
 assets
   .command("list")
-  .description("List assets")
+  .description("List assets (reads the local database; --api-url for remote)")
   .option(
     "--api-url <url>",
-    "API base URL",
-    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+    "Query a remote server instead of the local database",
+    process.env["NODETOOL_API_URL"]
   )
   .option("--query <q>", "Search query")
   .option("--content-type <type>", "Filter by content type")
@@ -1072,14 +1201,25 @@ assets
   .option("--json", "Output as JSON")
   .action(async (opts) => {
     try {
-      const client = createApiClient(opts.apiUrl);
-      const data = await client.assets.list.query({
-        page_size: Number.parseInt(opts.limit, 10),
-        ...(opts.contentType ? { content_type: opts.contentType } : {})
-      });
-      // Note: --query isn't forwarded because assets.list has no server-side
-      // search; keep local filtering until the tRPC schema exposes one.
-      let rows = data.assets as Record<string, unknown>[];
+      const limit = Number.parseInt(opts.limit, 10);
+      let rows: Record<string, unknown>[];
+      if (opts.apiUrl) {
+        const client = createApiClient(opts.apiUrl);
+        const data = await client.assets.list.query({
+          page_size: limit,
+          ...(opts.contentType ? { content_type: opts.contentType } : {})
+        });
+        rows = data.assets as Record<string, unknown>[];
+      } else {
+        ensureDb();
+        const [items] = await Asset.paginate(LOCAL_USER_ID, {
+          limit,
+          ...(opts.contentType ? { contentType: opts.contentType } : {})
+        });
+        rows = items.map((a) => ({ ...a }));
+      }
+      // --query has no server-side search; filter by name in memory (matches
+      // the direct path too, which paginates without a search term).
       if (opts.query) {
         const q = String(opts.query).toLowerCase();
         rows = rows.filter((r) =>
@@ -1106,22 +1246,32 @@ assets
 
 assets
   .command("get <asset_id>")
-  .description("Get an asset by ID")
+  .description("Get an asset by ID (reads the local database; --api-url for remote)")
   .option(
     "--api-url <url>",
-    "API base URL",
-    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+    "Query a remote server instead of the local database",
+    process.env["NODETOOL_API_URL"]
   )
   .option("--json", "Output as JSON")
   .action(async (assetId, opts) => {
     try {
-      const client = createApiClient(opts.apiUrl);
-      const data = await client.assets.get.query({ id: assetId });
+      let data: Record<string, unknown>;
+      if (opts.apiUrl) {
+        const client = createApiClient(opts.apiUrl);
+        data = (await client.assets.get.query({
+          id: assetId
+        })) as unknown as Record<string, unknown>;
+      } else {
+        ensureDb();
+        const asset = await Asset.find(LOCAL_USER_ID, assetId);
+        if (!asset) throw new Error(`Asset not found: ${assetId}`);
+        data = { ...asset };
+      }
       if (opts.json) {
         asJson(data);
         return;
       }
-      const a = data as unknown as Record<string, unknown>;
+      const a = data;
       printTable([
         {
           id: a["id"],
@@ -1163,18 +1313,28 @@ function modelRow(m: {
 
 models
   .command("list")
-  .description("List all models (recommended + provider + HF cached)")
+  .description(
+    "List all models (recommended + provider + HF cached); local by default, --api-url for remote"
+  )
   .option(
     "--api-url <url>",
-    "API base URL",
-    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+    "Query a remote server instead of local providers/cache",
+    process.env["NODETOOL_API_URL"]
   )
   .option("--json", "Output as JSON")
   .action(async (opts) => {
     try {
-      const client = createApiClient(opts.apiUrl);
-      const data = await client.models.all.query();
-      const rows = data as unknown as Record<string, unknown>[];
+      let rows: Record<string, unknown>[];
+      if (opts.apiUrl) {
+        const client = createApiClient(opts.apiUrl);
+        rows = (await client.models.all.query()) as unknown as Record<
+          string,
+          unknown
+        >[];
+      } else {
+        await setupDb();
+        rows = (await listAllModels()) as unknown as Record<string, unknown>[];
+      }
       if (opts.json) {
         asJson(rows);
         return;
@@ -1215,23 +1375,34 @@ registerHfCommands(models);
 
 models
   .command("ollama")
-  .description("List Ollama models")
+  .description("List Ollama models (queries the local daemon; --api-url for remote)")
   .option(
     "--api-url <url>",
-    "API base URL",
-    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+    "Query a remote server instead of the local Ollama daemon",
+    process.env["NODETOOL_API_URL"]
   )
   .option("--json", "Output as JSON")
   .action(async (opts) => {
     try {
-      const client = createApiClient(opts.apiUrl);
-      const data = await client.models.ollama.query();
-      const rows = data as unknown as Record<string, unknown>[];
+      let rows: Record<string, unknown>[];
+      if (opts.apiUrl) {
+        const client = createApiClient(opts.apiUrl);
+        rows = (await client.models.ollama.query()) as unknown as Record<
+          string,
+          unknown
+        >[];
+      } else {
+        await setupDb();
+        rows = (await listOllamaModels()) as unknown as Record<
+          string,
+          unknown
+        >[];
+      }
       if (opts.json) {
         asJson(rows);
         return;
       }
-      printTable(rows);
+      printTable(rows.map(modelRow));
     } catch (e) {
       console.error(String(e));
       process.exit(1);
@@ -1240,26 +1411,46 @@ models
 
 models
   .command("huggingface")
-  .description("List HuggingFace cached models")
+  .description("List HuggingFace cached models (scans the local cache; --api-url for remote)")
   .option(
     "--api-url <url>",
-    "API base URL",
-    process.env["NODETOOL_API_URL"] ?? "http://localhost:7777"
+    "Query a remote server instead of the local HuggingFace cache",
+    process.env["NODETOOL_API_URL"]
   )
   .option("--query <q>", "Search query")
   .option("--type <t>", "Filter by HF model type")
   .option("--json", "Output as JSON")
   .action(async (opts) => {
     try {
-      const client = createApiClient(opts.apiUrl);
-      const data =
-        opts.query || opts.type
-          ? await client.models.huggingfaceSearch.query({
-              ...(opts.query ? { query: String(opts.query) } : {}),
-              ...(opts.type ? { type: String(opts.type) } : {})
-            })
-          : await client.models.huggingfaceList.query();
-      const rows = data as unknown as Record<string, unknown>[];
+      let rows: Record<string, unknown>[];
+      if (opts.apiUrl) {
+        const client = createApiClient(opts.apiUrl);
+        rows =
+          opts.query || opts.type
+            ? ((await client.models.huggingfaceSearch.query({
+                ...(opts.query ? { query: String(opts.query) } : {}),
+                ...(opts.type ? { type: String(opts.type) } : {})
+              })) as unknown as Record<string, unknown>[])
+            : ((await client.models.huggingfaceList.query()) as unknown as Record<
+                string,
+                unknown
+              >[]);
+      } else if (opts.query || opts.type) {
+        // Wrap a bare query in wildcards so it matches as a substring, the same
+        // normalization the server's huggingfaceSearch applies.
+        const rawQuery = opts.query ? String(opts.query) : undefined;
+        const query =
+          rawQuery && !rawQuery.includes("*") ? `*${rawQuery}*` : rawQuery;
+        rows = (await searchCachedHfModels(
+          query ? [query] : undefined,
+          opts.type ? [String(opts.type)] : undefined
+        )) as unknown as Record<string, unknown>[];
+      } else {
+        rows = (await readCachedHfModels()) as unknown as Record<
+          string,
+          unknown
+        >[];
+      }
       if (opts.json) {
         asJson(rows);
         return;
