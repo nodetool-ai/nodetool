@@ -40,6 +40,7 @@ import { css } from "@emotion/react";
 import React, { memo, forwardRef, useEffect } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
 import {
   Chip,
   CollapsibleSection,
@@ -53,7 +54,6 @@ import {
   Tooltip,
   Z_INDEX
 } from "../ui_primitives";
-import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
 import TransformContextMenu from "./TransformContextMenu";
 import type { SketchDocument } from "./types";
 import type { SketchPersistenceSnapshot } from "../../stores/sketch/persistence";
@@ -225,12 +225,18 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
 
     // The mobile panels sheet is a mobile-only surface. Clear its flag when the
     // viewport grows to desktop (rotate/resize) so it doesn't silently reopen
-    // the next time the viewport shrinks back to mobile.
+    // the next time the viewport shrinks back to mobile. Also keep the two
+    // mobile bottom sheets mutually exclusive: when the Assistant opens (its
+    // toggle lives in the prompt bar), close the panels sheet so two stacked
+    // SwipeableDrawer modals never fight over focus/scroll.
     useEffect(() => {
-      if (!isMobile && mobilePanelsOpen) {
+      if (!mobilePanelsOpen) {
+        return;
+      }
+      if (!isMobile || assistantPanelOpen) {
         setMobilePanelsOpen(false);
       }
-    }, [isMobile, mobilePanelsOpen, setMobilePanelsOpen]);
+    }, [isMobile, assistantPanelOpen, mobilePanelsOpen, setMobilePanelsOpen]);
 
     // Register the agent bridge under this document's id so the `ui_sketch_*`
     // tools can address it whether or not this surface is focused. The session
@@ -599,7 +605,11 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
                 size="medium"
                 color="primary"
                 aria-label="Open layers and color panel"
-                onClick={() => setMobilePanelsOpen(true)}
+                onClick={() => {
+                  // Last action wins — never stack the two mobile sheets.
+                  setAssistantPanelOpen(false);
+                  setMobilePanelsOpen(true);
+                }}
                 sx={{
                   position: "absolute",
                   bottom: (t) => t.spacing(2),
