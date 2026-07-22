@@ -6,7 +6,7 @@
  * to Message.delete() in batches of 100, mirroring the legacy behavior.
  */
 
-import { Thread, Message } from "@nodetool-ai/models";
+import { Thread, Message, ThreadMemory } from "@nodetool-ai/models";
 import type { Thread as ThreadModel } from "@nodetool-ai/models";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
@@ -143,6 +143,9 @@ export const threadsRouter = router({
         }
         if (msgs.length < 100) break;
       }
+      // Drop the thread's durable memories along with it so per-conversation
+      // memory doesn't outlive the conversation.
+      await ThreadMemory.deleteByThread(ctx.userId, input.id);
       await thread.delete();
       return { ok: true as const };
     }),

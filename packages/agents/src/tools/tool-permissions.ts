@@ -101,6 +101,10 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   memory_write: "read",
   ltm_recall: "read",
   ltm_remember: "read",
+  // Thread-memory reads + asset-library discovery have no side effects.
+  thread_memory_list: "read",
+  asset_search: "read",
+  asset_list: "read",
   create_plan: "read",
   finish_plan: "read",
   create_task: "read",
@@ -131,6 +135,11 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   convert_markdown_to_pdf: "write",
   convert_document: "write",
   save_asset: "write",
+  // Thread-memory mutations touch local DB state (not third-party), so they
+  // are `write` (gated in default/plan mode), not the conservative `external`.
+  thread_memory_save: "write",
+  thread_memory_update: "write",
+  thread_memory_delete: "write",
   create_workflow: "write",
   generate_image: "write",
   edit_image: "write",

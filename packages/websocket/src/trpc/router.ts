@@ -17,6 +17,7 @@ import { settingsRouter } from "./routers/settings.js";
 import { fontsRouter } from "./routers/fonts.js";
 import { storageRouter } from "./routers/storage.js";
 import { threadsRouter } from "./routers/threads.js";
+import { threadMemoriesRouter } from "./routers/thread-memories.js";
 import { sketchRouter } from "./routers/sketch.js";
 import { storyboardsRouter } from "./routers/storyboards.js";
 import { timelineRouter } from "./routers/timeline.js";
@@ -48,6 +49,7 @@ export const appRouter = router({
   storyboards: storyboardsRouter,
   storage: storageRouter,
   threads: threadsRouter,
+  threadMemories: threadMemoriesRouter,
   timeline: timelineRouter,
   users: usersRouter,
   worker: workerRouter,
