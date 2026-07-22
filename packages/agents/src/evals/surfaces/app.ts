@@ -47,14 +47,14 @@ const WIDGET_TYPES: Record<string, WidgetTypeDef> = {
   Output: { label: "Output", fields: { binding: "custom", placeholder: "text" } },
   Progress: { label: "Progress", fields: { label: "text", binding: "custom" } },
   // ── Inputs ──
-  WorkflowInput: { label: "Workflow Input", fields: { binding: "custom", events: "custom" } },
-  TextInput: { label: "Text Input", fields: { binding: "custom", label: "text", placeholder: "text", multiline: "radio", events: "custom" } },
-  NumberInput: { label: "Number Input", fields: { binding: "custom", label: "text", min: "number", max: "number", step: "number", events: "custom" } },
-  Slider: { label: "Slider", fields: { binding: "custom", label: "text", min: "number", max: "number", step: "number", events: "custom" } },
-  Switch: { label: "Switch", fields: { binding: "custom", label: "text", events: "custom" } },
-  Select: { label: "Select", fields: { binding: "custom", label: "text", options: "custom", events: "custom" } },
+  WorkflowInput: { label: "Workflow Input", fields: { binding: "custom", events: "array" } },
+  TextInput: { label: "Text Input", fields: { binding: "custom", label: "text", placeholder: "text", multiline: "radio", events: "array" } },
+  NumberInput: { label: "Number Input", fields: { binding: "custom", label: "text", min: "number", max: "number", step: "number", events: "array" } },
+  Slider: { label: "Slider", fields: { binding: "custom", label: "text", min: "number", max: "number", step: "number", events: "array" } },
+  Switch: { label: "Switch", fields: { binding: "custom", label: "text", events: "array" } },
+  Select: { label: "Select", fields: { binding: "custom", label: "text", options: "array", events: "array" } },
   // ── Actions ──
-  Button: { label: "Button", fields: { label: "text", variant: "select", color: "select", events: "custom" } },
+  Button: { label: "Button", fields: { label: "text", variant: "select", color: "select", events: "array" } },
   // ── Layout ──
   Container: { label: "Panel", fields: { title: "text", content: "slot" } },
   Columns: { label: "Columns", fields: { gap: "number", left: "slot", right: "slot" } },
