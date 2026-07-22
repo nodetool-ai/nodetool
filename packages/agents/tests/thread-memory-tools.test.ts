@@ -17,6 +17,8 @@ import {
   AssetSearchTool,
   AssetListTool
 } from "../src/tools/asset-library-tools.js";
+import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
+import { READ_ONLY_TOOL_NAMES } from "../src/tools/run-search-tool.js";
 
 function ctx(overrides: Partial<{ userId: string; threadId: string | null }> = {}) {
   return {
@@ -169,6 +171,23 @@ describe("formatThreadMemoriesForPrompt", () => {
     expect(block).toContain("asset://a1.png");
     expect(block).not.toContain("</thread-memory> injection");
     expect(block).toContain("&lt;/thread-memory&gt; injection");
+  });
+});
+
+describe("thread-memory tool permission categories", () => {
+  it("classifies reads as read (auto-run) and writes as write (gated)", () => {
+    expect(permissionCategoryFor("thread_memory_list")).toBe("read");
+    expect(permissionCategoryFor("asset_search")).toBe("read");
+    expect(permissionCategoryFor("asset_list")).toBe("read");
+    expect(permissionCategoryFor("thread_memory_save")).toBe("write");
+    expect(permissionCategoryFor("thread_memory_update")).toBe("write");
+    expect(permissionCategoryFor("thread_memory_delete")).toBe("write");
+  });
+
+  it("exposes the read tools to the read-only fan-out search", () => {
+    expect(READ_ONLY_TOOL_NAMES.has("thread_memory_list")).toBe(true);
+    expect(READ_ONLY_TOOL_NAMES.has("asset_search")).toBe(true);
+    expect(READ_ONLY_TOOL_NAMES.has("asset_list")).toBe(true);
   });
 });
 
