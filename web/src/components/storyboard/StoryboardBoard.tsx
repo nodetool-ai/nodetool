@@ -102,7 +102,7 @@ const styles = (theme: Theme) =>
     flexDirection: "column",
     gap: getSpacingPx(SPACING.lg),
     // Reclaim horizontal room for shots on phones.
-    "@media (max-width: 600px)": {
+    [theme.breakpoints.down("sm")]: {
       padding: getSpacingPx(SPACING.md),
       gap: getSpacingPx(SPACING.md)
     },

@@ -12,7 +12,6 @@
 
 import React, { memo, useCallback, useMemo, useState } from "react";
 import { css } from "@emotion/react";
-import { useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import type { Shot, ShotStatus } from "@nodetool-ai/protocol";
@@ -169,9 +168,6 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   isLast
 }) => {
   const theme = useTheme();
-  // Touch devices can't hover, so the row actions (reorder, delete) must stay
-  // visible instead of hiding behind a hover reveal.
-  const coarsePointer = useMediaQuery("(pointer: coarse)");
   const toggleShotEntity = useStoryboardStore((state) => state.toggleShotEntity);
   const moveShot = useStoryboardStore((state) => state.moveShot);
   const removeShot = useStoryboardStore((state) => state.removeShot);
@@ -286,7 +282,9 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
               <HoverActionGroup
                 triggerSelector=".shot-card:hover"
                 gap={0}
-                alwaysVisible={coarsePointer}
+                // Touch devices can't hover; keep the row actions (reorder,
+                // delete) visible there instead of hiding behind the reveal.
+                sx={{ "@media (pointer: coarse)": { opacity: 1 } }}
               >
                 <ToolbarIconButton
                   icon={<ArrowUpwardIcon sx={{ fontSize: 16 }} />}
