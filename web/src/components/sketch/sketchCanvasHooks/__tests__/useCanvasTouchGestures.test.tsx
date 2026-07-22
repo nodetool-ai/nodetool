@@ -185,4 +185,44 @@ describe("useCanvasTouchGestures", () => {
     });
     expect(fresh).toBe(false);
   });
+
+  it("rebaselines geometry when a 3rd finger lifts leaving two down", () => {
+    const { result, onZoomChange } = setup();
+    act(() => {
+      result.current.onPointerDown(touchEvent(1, 100, 150));
+      result.current.onPointerDown(touchEvent(2, 200, 150));
+      result.current.onPointerDown(touchEvent(3, 300, 150));
+    });
+    onZoomChange.mockClear();
+    // Lift the middle finger; the surviving pair (1 @100, 3 @300, dist 200) must
+    // become the new baseline. A move that holds that distance → no zoom jump.
+    act(() => {
+      result.current.onPointerUp(touchEvent(2, 200, 150));
+      result.current.onPointerMove(touchEvent(1, 100, 150));
+      result.current.onPointerMove(touchEvent(3, 300, 150));
+    });
+    // Distance unchanged from the rebaseline → zoom stays at 1 (no jump).
+    for (const call of onZoomChange.mock.calls) {
+      expect(call[0]).toBeCloseTo(1);
+    }
+  });
+
+  it("tears down the gesture on pointercancel", () => {
+    const { result } = setup();
+    act(() => {
+      result.current.onPointerDown(touchEvent(1, 150, 150));
+      result.current.onPointerDown(touchEvent(2, 250, 150));
+    });
+    act(() => {
+      result.current.onPointerCancel(touchEvent(1, 150, 150));
+      result.current.onPointerCancel(touchEvent(2, 250, 150));
+    });
+    // After cancel of all fingers the gesture is gone: a fresh single touch
+    // draws again instead of being consumed by a stuck gesture.
+    let fresh = true;
+    act(() => {
+      fresh = result.current.onPointerDown(touchEvent(3, 100, 100));
+    });
+    expect(fresh).toBe(false);
+  });
 });

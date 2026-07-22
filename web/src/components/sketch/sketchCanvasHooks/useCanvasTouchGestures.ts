@@ -88,6 +88,8 @@ export interface UseCanvasTouchGesturesResult {
   onPointerDown: (e: React.PointerEvent) => boolean;
   onPointerMove: (e: React.PointerEvent) => boolean;
   onPointerUp: (e: React.PointerEvent) => boolean;
+  /** pointercancel — same teardown as onPointerUp so refs never get stuck. */
+  onPointerCancel: (e: React.PointerEvent) => boolean;
 }
 
 export function useCanvasTouchGestures({
@@ -195,18 +197,26 @@ export function useCanvasTouchGestures({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- containerRef is stable
   }, [onPanChange, onZoomChange]);
 
-  const onPointerUp = useCallback((e: React.PointerEvent): boolean => {
+  // Shared teardown for both pointerup and pointercancel: drop the pointer,
+  // rebaseline or clear the pinch geometry, and end the gesture once the last
+  // finger is gone.
+  const endPointer = useCallback((e: React.PointerEvent): boolean => {
     if (e.pointerType !== "touch") {
       return false;
     }
     const wasGesture = gestureActiveRef.current;
     pointersRef.current.delete(e.pointerId);
-    if (pointersRef.current.size < 2) {
+    if (pointersRef.current.size >= 2) {
+      // A finger left but two remain — rebaseline to the surviving pair so the
+      // next move doesn't jump on the midpoint/distance mismatch.
+      const [a, b] = firstTwoPoints();
+      lastSampleRef.current = pinchSample(a, b);
+    } else {
       // Pinch geometry is undefined below two fingers.
       lastSampleRef.current = null;
     }
     if (pointersRef.current.size === 0) {
-      // Gesture only ends once the last finger lifts.
+      // Gesture only ends once the last finger lifts (or is cancelled).
       gestureActiveRef.current = false;
     }
     // Consume every lift that belongs to the gesture sequence so the remaining
@@ -214,5 +224,10 @@ export function useCanvasTouchGestures({
     return wasGesture;
   }, []);
 
-  return { onPointerDown, onPointerMove, onPointerUp };
+  return {
+    onPointerDown,
+    onPointerMove,
+    onPointerUp: endPointer,
+    onPointerCancel: endPointer
+  };
 }
