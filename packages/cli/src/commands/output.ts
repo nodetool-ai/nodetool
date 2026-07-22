@@ -100,7 +100,8 @@ export async function promptHidden(message: string): Promise<string> {
           stdin.pause();
           process.exit(130);
         }
-        if (ch === "" || ch === "\b") {
+        // DEL (\x7f, most terminals) or BS (\b) erases the last character.
+        if (ch === "\x7f" || ch === "\b") {
           value = value.slice(0, -1);
           continue;
         }

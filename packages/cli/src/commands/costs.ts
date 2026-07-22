@@ -99,9 +99,14 @@ export function registerCostsCommands(program: Command): void {
         limit: string;
         json?: boolean;
       }) => {
+        const limit = Number.parseInt(opts.limit, 10);
+        if (!Number.isFinite(limit) || limit <= 0) {
+          console.error(`Invalid --limit value: ${opts.limit}`);
+          process.exit(1);
+        }
         try {
           const data = await apiClient(opts.apiUrl).costs.list.query({
-            limit: Number.parseInt(opts.limit, 10),
+            limit,
             ...(opts.provider ? { provider: opts.provider } : {}),
             ...(opts.model ? { model: opts.model } : {})
           });
