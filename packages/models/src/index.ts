@@ -25,6 +25,7 @@ export {
   jobs,
   messages,
   threads,
+  threadMemories,
   assets,
   secrets,
   workspaces,
@@ -78,6 +79,9 @@ export { Asset } from "./asset.js";
 export { Message } from "./message.js";
 
 export { Thread } from "./thread.js";
+
+export { ThreadMemory } from "./thread-memory.js";
+export type { ThreadMemoryKind } from "./thread-memory.js";
 
 export { Secret } from "./secret.js";
 export {

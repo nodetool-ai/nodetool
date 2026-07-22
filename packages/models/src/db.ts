@@ -310,6 +310,18 @@ const TABLE_COLUMNS: Record<string, Record<string, string>> = {
     created_at: "text",
     updated_at: "text"
   },
+  nodetool_thread_memories: {
+    id: "text",
+    user_id: "text",
+    thread_id: "text",
+    kind: "text",
+    title: "text",
+    content: "text",
+    asset_ids: "text",
+    metadata: "text",
+    created_at: "text",
+    updated_at: "text"
+  },
   nodetool_assets: {
     id: "text",
     user_id: "text",
@@ -979,6 +991,21 @@ function getCreateSchemaSql(): string {
     CREATE INDEX IF NOT EXISTS "idx_script_user" ON "scripts" ("user_id");
     CREATE INDEX IF NOT EXISTS "idx_script_project" ON "scripts" ("project_id");
     CREATE INDEX IF NOT EXISTS "idx_script_updated" ON "scripts" ("updated_at");
+
+    CREATE TABLE IF NOT EXISTS "nodetool_thread_memories" (
+      "id" text PRIMARY KEY NOT NULL,
+      "user_id" text NOT NULL,
+      "thread_id" text NOT NULL,
+      "kind" text NOT NULL DEFAULT 'note',
+      "title" text NOT NULL DEFAULT '',
+      "content" text NOT NULL DEFAULT '',
+      "asset_ids" text,
+      "metadata" text,
+      "created_at" text NOT NULL,
+      "updated_at" text NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS "idx_thread_memory_thread" ON "nodetool_thread_memories" ("thread_id");
+    CREATE INDEX IF NOT EXISTS "idx_thread_memory_user" ON "nodetool_thread_memories" ("user_id");
   `;
 }
 

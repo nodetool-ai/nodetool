@@ -319,6 +319,21 @@ export {
   setLongTermMemory,
   getLongTermMemory
 } from "./tools/ltm-tools.js";
+export {
+  ThreadMemorySaveTool,
+  ThreadMemoryListTool,
+  ThreadMemoryUpdateTool,
+  ThreadMemoryDeleteTool,
+  getThreadMemoryTools,
+  formatThreadMemoriesForPrompt,
+  THREAD_MEMORY_TOOL_NAMES
+} from "./tools/thread-memory-tools.js";
+export {
+  AssetSearchTool,
+  AssetListTool,
+  getAssetLibraryTools,
+  ASSET_LIBRARY_TOOL_NAMES
+} from "./tools/asset-library-tools.js";
 
 // Plan cache + checkpoint store (opt-in planning/execution persistence)
 export {
