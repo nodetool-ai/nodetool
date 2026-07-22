@@ -142,6 +142,29 @@ describe("createAppToolBridge", () => {
     expect(text?.slot).toBe("content");
   });
 
+  it("add with an unknown parent silently no-ops (matches the real tool)", async () => {
+    const bridge = createAppToolBridge();
+    const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
+
+    // The real puckDataOps.addComponent leaves the tree unchanged for an
+    // unknown parent and still returns ok:true, echoing the caller's slot.
+    const added = (await byName["ui_app_add_component"].execute({
+      workflow_id: WF,
+      type: "Text",
+      parent_id: "does-not-exist",
+      slot: "content"
+    })) as {
+      ok: boolean;
+      component: { parentId: string | null; slot: string | null };
+    };
+    expect(added.ok).toBe(true);
+    expect(added.component.parentId).toBe("does-not-exist");
+    expect(added.component.slot).toBe("content");
+    // Nothing was actually inserted, and the phantom node isn't selected.
+    expect(bridge.finalState().components).toHaveLength(0);
+    expect(bridge.finalState().selectedId).toBeNull();
+  });
+
   it("removing a Panel drops its nested children too", async () => {
     const bridge = createAppToolBridge({
       components: [

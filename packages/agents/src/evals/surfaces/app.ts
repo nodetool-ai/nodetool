@@ -331,38 +331,47 @@ export function createAppToolBridge(
           props: { ...((props as Record<string, unknown>) ?? {}), id }
         };
         const parentId = (parent_id as string | null | undefined) ?? null;
+        const wanted = (slot as string | null | undefined) ?? null;
         const at = index as number | undefined;
 
+        // Mirror puckDataOps.addComponent exactly: an unknown parent id or a
+        // parent with no slots silently no-ops (the node is not inserted) — the
+        // real tool never errors on these, it just leaves the tree unchanged.
+        let inserted = false;
         if (!parentId) {
           content = insertInto(content, node, at);
+          inserted = true;
         } else {
-          const parent = flattenComponents(content).find(
-            (c) => c.id === parentId
-          );
-          if (!parent) throw new Error(`No widget with id ${parentId}`);
-          const slots = SLOT_FIELDS[parent.type] ?? [];
-          if (slots.length === 0) {
-            throw new Error(
-              `Widget "${parentId}" (${parent.type}) has no slots to nest into.`
-            );
-          }
-          const wanted = (slot as string | null | undefined) ?? null;
-          const targetSlot =
-            wanted && slots.includes(wanted) ? wanted : slots[0];
           content = mapTree(content, (n) => {
             if (n.props.id !== parentId) return n;
+            const slots = SLOT_FIELDS[n.type] ?? [];
+            const targetSlot =
+              wanted && slots.includes(wanted) ? wanted : slots[0];
+            if (!targetSlot) return n;
             const current = Array.isArray(n.props[targetSlot])
               ? (n.props[targetSlot] as ComponentNode[])
               : [];
+            inserted = true;
             return {
               ...n,
               props: { ...n.props, [targetSlot]: insertInto(current, node, at) }
             };
           });
         }
-        selectedId = id;
-        const summary = flattenComponents(content).find((c) => c.id === id)!;
-        return { ok: true, component: summary };
+        if (inserted) selectedId = id;
+        // Echo parentId/slot as the caller passed them, matching the real tool
+        // (PuckAgentBinder.addComponent returns slot: args.slot ?? null);
+        // ui_app_get_snapshot is the authoritative source for the resolved tree.
+        return {
+          ok: true,
+          component: {
+            id: node.props.id,
+            type: node.type,
+            props: node.props,
+            parentId,
+            slot: wanted
+          }
+        };
       }
     ),
 
