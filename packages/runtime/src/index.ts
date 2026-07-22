@@ -120,6 +120,7 @@ export {
 } from "./python-graph-resolver.js";
 export { loadMediaRefBytes, type MediaRefValue } from "./media-ref-bytes.js";
 export {
+  assetRefToPromptToken,
   classifyAssetToken,
   classifyTextToken,
   expandAssetReferences,
