@@ -19,7 +19,9 @@ on:
       - "web/tests/smoke/**"
       - "web/tests/globalSetup.ts"
       - "web/playwright.smoke.config.ts"
+      - "web/package.json"
       - "packages/**"
+      - ".github/workflows/page-load-smoke.yml"
   workflow_dispatch:
 
 permissions:

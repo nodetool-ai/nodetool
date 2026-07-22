@@ -114,6 +114,11 @@ export function collectPageLoadErrors(page: Page): PageLoadError[] {
   });
 
   page.on("requestfailed", (request) => {
+    // Only a failed document/script/stylesheet load white-screens a page. A
+    // failed xhr/fetch/websocket (e.g. the transient /ws/agent socket) is
+    // data-level and handled elsewhere, so scope this to the same critical
+    // resource types as the `response` listener.
+    if (!CRITICAL_RESOURCE_TYPES.has(request.resourceType())) return;
     const failure = request.failure();
     const text = `${request.method()} ${request.url()} — ${
       failure?.errorText ?? "failed"
