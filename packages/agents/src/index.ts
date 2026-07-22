@@ -476,6 +476,32 @@ export {
 } from "./evals/surfaces/thread-memory.js";
 export type { ThreadMemoryBridgeFinalState } from "./evals/surfaces/thread-memory.js";
 
+// Sub-agent execution evaluation harness (RunSubtaskTool + inherited toolset)
+export {
+  runSubtaskEval,
+  formatSubtaskReport,
+  checkSubtaskExpectations
+} from "./evals/subtask-eval.js";
+export type {
+  SubtaskObservation,
+  SubtaskSpawnRecord,
+  SubtaskCaseResult,
+  SubtaskEvalReport,
+  RunSubtaskEvalOptions
+} from "./evals/subtask-eval.js";
+export {
+  SUBTASK_EVAL_CASES,
+  createInstrumentedTools,
+  createToolRecorder,
+  INSTRUMENTED_TOOL_NAMES
+} from "./evals/subtask-cases.js";
+export type {
+  SubtaskEvalCase,
+  SubtaskEvalExpectations,
+  ToolInvocation,
+  ToolRecorder
+} from "./evals/subtask-cases.js";
+
 // Graph-native planning & execution
 export { evaluateGraphDsl } from "./graph-dsl.js";
 export type { GraphDslResult, EvaluateGraphDslOptions } from "./graph-dsl.js";
