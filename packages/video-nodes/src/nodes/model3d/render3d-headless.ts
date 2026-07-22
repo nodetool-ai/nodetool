@@ -17,6 +17,11 @@ import type { Render3DOptions } from "./render3d-core.js";
 
 const RENDER_TIMEOUT_MS = 120_000;
 
+/** How long to keep trying to attach to the debug port before giving up. */
+const CDP_CONNECT_TIMEOUT_MS = 10_000;
+/** Gap between attach attempts. */
+const CDP_CONNECT_RETRY_MS = 100;
+
 const CHROME_FLAGS = [
   "--headless=new",
   "--no-sandbox",
@@ -104,6 +109,47 @@ async function withTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
 }
 
 /**
+ * Attach to a freshly launched Chrome's debug port, retrying while it refuses.
+ *
+ * `chrome-launcher` resolves as soon as the port accepts a TCP connection, but
+ * `chrome-remote-interface` then issues an HTTP request to `/json/list` that a
+ * still-initializing Chrome refuses outright. A single attempt loses that race
+ * on a loaded machine — it turned up as an `ECONNREFUSED` on CI while several
+ * other Chrome-driving suites were running — so poll until the endpoint is
+ * actually serving.
+ *
+ * Exported for tests.
+ */
+export async function connectCdp(
+  port: number,
+  { timeoutMs = CDP_CONNECT_TIMEOUT_MS, retryMs = CDP_CONNECT_RETRY_MS } = {}
+): Promise<CdpClient> {
+  const CDP = (await import("chrome-remote-interface")).default;
+  const deadline = Date.now() + timeoutMs;
+  let lastError: unknown;
+
+  for (;;) {
+    try {
+      return (await CDP({ port })) as unknown as CdpClient;
+    } catch (err) {
+      lastError = err;
+      // Stop once another wait would take us past the deadline, so the loop
+      // never overruns the budget it was given.
+      if (Date.now() + retryMs >= deadline) break;
+      await new Promise((resolve) => setTimeout(resolve, retryMs));
+    }
+  }
+
+  const detail =
+    lastError instanceof Error ? lastError.message : String(lastError);
+  throw new Error(
+    `RenderToImage: could not attach to headless Chrome on port ${port} ` +
+      `within ${timeoutMs}ms: ${detail}`,
+    { cause: lastError }
+  );
+}
+
+/**
  * Render GLB bytes to PNG bytes in a fresh headless Chromium. One Chrome per
  * call keeps the node stateless; launch cost (~1s) is negligible next to a
  * typical workflow's model-generation steps.
@@ -122,8 +168,7 @@ export async function renderGlbHeadless(
 
   let client: CdpClient | null = null;
   try {
-    const CDP = (await import("chrome-remote-interface")).default;
-    client = (await CDP({ port: chrome.port })) as unknown as CdpClient;
+    client = await connectCdp(chrome.port);
     await client.Runtime.enable();
 
     const injected = await client.Runtime.evaluate({ expression: bundle });

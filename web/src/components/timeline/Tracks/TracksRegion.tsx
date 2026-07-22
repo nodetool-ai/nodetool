@@ -16,13 +16,22 @@
  * Also registers window-level keyboard shortcuts for clip operations:
  *   Delete/Backspace → deleteSelected
  *   ← / →            → nudge selected clips one frame (Shift: 1 s)
+ *   Ctrl+A           → select every clip
+ *   Escape           → clear selection and return to the select tool
  *   Ctrl+C / X / V   → copy / cut / paste clips (paste lands at the playhead)
  *   Ctrl+D           → duplicateSelected (places duplicate right after source)
  *   Ctrl+Shift+D     → duplicateSelected with extra 1 s gap after source
  *   S                → splitSelectedAtPlayhead
  *   V / C            → select / cut tool
+ *   + / =  and  - / _ → zoom in / out (keyboard; playhead stays pinned)
+ *   Shift+Z          → zoom to fit all content in the viewport
  *   Ctrl+Z / Ctrl+Y  → undo / redo
+ *   ?                → toggle the keyboard-shortcut reference sheet
  * Shortcuts are skipped when focus is in a text input or contenteditable.
+ *
+ * The user-facing reference for these bindings lives in
+ * ../TimelineShortcutsDialog.tsx — keep the two in sync when a shortcut
+ * changes.
  *
  * Zoom: Ctrl/Cmd+wheel (or a trackpad pinch) on the lane area changes msPerPx,
  *   anchored at the cursor.
@@ -75,7 +84,8 @@ import {
 } from "./ScriptLane";
 import { FX_PANEL_HEIGHT_PX } from "./trackHeight";
 import { ToolToggle } from "../ToolToggle";
-import { FlexRow, FONT_SIZE_MONO, FONT_WEIGHT, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../../ui_primitives";
+import { TimelineShortcutsDialog } from "../TimelineShortcutsDialog";
+import { FlexRow, HelpButton, FONT_SIZE_MONO, FONT_WEIGHT, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../../ui_primitives";
 import { useHasScript } from "../../../hooks/timeline/useHasScript";
 import { useVideoAudioImport } from "../../../hooks/timeline/useVideoAudioImport";
 import { deserializeDragData } from "../../../lib/dragdrop";
@@ -88,6 +98,11 @@ const DEFAULT_TRACK_HEIGHT_PX = 64;
 const ZOOM_SENSITIVITY = 0.001;
 /** Extra gap (ms) inserted after the source clip when using Ctrl+Shift+D. */
 const DUPLICATE_OFFSET_MS = 1000;
+/** Per-keypress zoom step (msPerPx smaller = zoomed in). */
+const ZOOM_IN_FACTOR = 0.8;
+const ZOOM_OUT_FACTOR = 1.25;
+/** Padding kept on each side when Shift+Z fits content to the viewport (px). */
+const ZOOM_FIT_PADDING_PX = 64;
 
 const containerStyles = (theme: Theme) =>
   css({
@@ -246,6 +261,9 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
 
     const scrollableRef = useRef<HTMLDivElement>(null);
     const headerColumnRef = useRef<HTMLDivElement>(null);
+
+    // Keyboard-shortcut reference sheet (opened with `?` or the toolbar button).
+    const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
     // Drop on empty area: auto-create a track of matching type.
     const isAssetDrag = useCallback((e: React.DragEvent): boolean => {
@@ -537,6 +555,19 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         }
 
         const isCtrl = e.ctrlKey || e.metaKey;
+
+        // ? → toggle the keyboard-shortcut reference sheet. Match the resolved
+        // character, not the modifier state: some layouts produce "?" via AltGr
+        // (reported as ctrlKey+altKey), so gating on modifiers would hide the
+        // shortcut there. Editable targets are already excluded above.
+        if (e.key === "?") {
+          e.preventDefault();
+          // Ignore auto-repeat so holding the key doesn't flip the dialog
+          // open/closed every repeat tick and land on an unpredictable state.
+          if (!e.repeat) setShortcutsOpen((open) => !open);
+          return;
+        }
+
         // Read on demand instead of subscribing reactively — subscribing
         // would re-render the region and re-attach this listener on every
         // selection change (e.g. every rubber-band drag tick).
@@ -549,6 +580,25 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         ) {
           e.preventDefault();
           deleteSelected(selectedClipIds);
+          return;
+        }
+
+        // Ctrl/Cmd+A → select every clip
+        if (isCtrl && (e.key === "a" || e.key === "A")) {
+          e.preventDefault();
+          setSelection(docStore.getState().clips.map((c) => c.id));
+          return;
+        }
+
+        // Escape → clear selection and drop back to the select tool. No
+        // preventDefault so Escape still closes any open menu/dialog.
+        if (e.key === "Escape") {
+          if (selectedClipIds.size > 0) {
+            setSelection([]);
+          }
+          if (uiStoreApi.getState().activeTool !== "select") {
+            setActiveTool("select");
+          }
           return;
         }
 
@@ -640,6 +690,42 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         ) {
           e.preventDefault();
           setActiveTool(e.key === "v" ? "select" : "cut");
+          return;
+        }
+
+        // +/= → zoom in, -/_ → zoom out. setZoom triggers the scale-change
+        // layout effect above, which keeps the playhead pinned to the same
+        // viewport x as the lanes rescale.
+        if (!isCtrl && !e.altKey && (e.key === "+" || e.key === "=")) {
+          e.preventDefault();
+          const cur = uiStoreApi.getState().msPerPx;
+          uiStoreApi.getState().setZoom(cur * ZOOM_IN_FACTOR);
+          return;
+        }
+        if (!isCtrl && !e.altKey && (e.key === "-" || e.key === "_")) {
+          e.preventDefault();
+          const cur = uiStoreApi.getState().msPerPx;
+          uiStoreApi.getState().setZoom(cur * ZOOM_OUT_FACTOR);
+          return;
+        }
+
+        // Shift+Z → zoom so the whole content fits the visible lane width.
+        if (!isCtrl && e.shiftKey && (e.key === "z" || e.key === "Z")) {
+          e.preventDefault();
+          const el = scrollableRef.current;
+          if (el) {
+            let end = docStore.getState().durationMs || 0;
+            for (const c of docStore.getState().clips) {
+              end = Math.max(end, c.startMs + c.durationMs);
+            }
+            const viewport = el.clientWidth - ZOOM_FIT_PADDING_PX;
+            if (end > 0 && viewport > 0) {
+              // Pin the content start to the left edge as the lanes rescale,
+              // reusing the cursor-zoom anchor path (see the layout effect).
+              zoomAnchorRef.current = { timeMs: 0, cursorPx: 0 };
+              uiStoreApi.getState().setZoom(end / viewport);
+            }
+          }
           return;
         }
 
@@ -746,6 +832,11 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           <div style={{ flex: "1 1 auto" }} />
           <ScriptToggleButton />
           <AddTrackButton />
+          <HelpButton
+            onClick={() => setShortcutsOpen(true)}
+            iconVariant="helpOutline"
+            tooltip="Keyboard shortcuts (?)"
+          />
         </FlexRow>
 
         {/* ── Sub-header: TRACKS label + ruler ────────────────────────── */}
@@ -869,6 +960,12 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             trackAreaOffsetPx={0}
           />
         </div>
+
+        {/* ── Keyboard-shortcut reference (`?` / toolbar help button) ──── */}
+        <TimelineShortcutsDialog
+          open={shortcutsOpen}
+          onClose={() => setShortcutsOpen(false)}
+        />
       </div>
     );
   }

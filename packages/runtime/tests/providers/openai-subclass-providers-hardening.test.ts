@@ -93,3 +93,46 @@ for (const c of cases) {
     });
   });
 }
+
+/**
+ * OpenAI's media and embedding catalogs are hardcoded in OpenAIProvider and
+ * tagged `provider: "openai"`. Subclasses inherit the chat dialect, not the
+ * lineup — before the `servesOpenAICatalog()` guard, every one of them
+ * advertised `gpt-image-2`, `whisper-1`, `sora-2` and friends as its own, and
+ * selecting one sent the request to a host with no such endpoint.
+ */
+describe("OpenAI-compatible subclasses do not inherit OpenAI's catalog", () => {
+  const mediaListers = [
+    "getAvailableImageModels",
+    "getAvailableTTSModels",
+    "getAvailableASRModels",
+    "getAvailableVideoModels",
+    "getAvailableEmbeddingModels"
+  ] as const;
+
+  for (const c of cases) {
+    it(`${c.name} reports no OpenAI-branded models`, async () => {
+      const p = c.make({ client: {}, fetchFn: fetchReturning({}) }) as unknown as Record<
+        string,
+        () => Promise<Array<{ id: string; provider: string }>>
+      >;
+      for (const lister of mediaListers) {
+        const models = await p[lister]();
+        expect(
+          models.filter((m) => m.provider === "openai"),
+          `${c.name}.${lister} leaked OpenAI models`
+        ).toEqual([]);
+      }
+    });
+  }
+
+  it("still serves the catalog on the real OpenAI provider", async () => {
+    const { OpenAIProvider } = await import("../../src/providers/openai-provider.js");
+    const openai = new OpenAIProvider({ OPENAI_API_KEY: "k" });
+    expect((await openai.getAvailableImageModels()).length).toBeGreaterThan(0);
+    expect((await openai.getAvailableTTSModels()).length).toBeGreaterThan(0);
+    expect((await openai.getAvailableASRModels()).length).toBeGreaterThan(0);
+    expect((await openai.getAvailableVideoModels()).length).toBeGreaterThan(0);
+    expect((await openai.getAvailableEmbeddingModels()).length).toBeGreaterThan(0);
+  });
+});

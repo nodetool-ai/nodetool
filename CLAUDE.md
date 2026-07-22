@@ -397,6 +397,20 @@ npm run dev:nodetool -- eval graph-planner -p openai -m gpt-5.4-mini --json --ou
 npm run dev:nodetool -- eval graph-planner -p anthropic -m ... --min-success 0.8   # non-zero exit below threshold
 ```
 
+Alongside `graph-planner` (one-shot DSL) there are six **tool-loop** suites that
+drive a real provider through the frontend `ui_*` tool contract against a
+headless bridge — no browser — and score the multi-turn tool-calling flow
+structurally: `tool-loop` (graph editor), `script-tools`, `sketch-tools`,
+`timeline-tools`, `storyboard-tools`, `model3d-tools`. Same flags, metrics, and
+`--min-success` CI gate as `graph-planner`. Details:
+[packages/agents/CLAUDE.md](packages/agents/CLAUDE.md).
+
+```bash
+npm run dev:nodetool -- eval timeline-tools --list
+npm run dev:nodetool -- eval script-tools -p anthropic -m claude-sonnet-4-6
+npm run dev:nodetool -- eval sketch-tools -p ollama -m qwen-3.5:4b --min-success 0.8
+```
+
 ### nodetool affected (Changed-File → Workspace Mapping)
 
 Maps changed files (or the git working tree) to the minimal set of workspaces to

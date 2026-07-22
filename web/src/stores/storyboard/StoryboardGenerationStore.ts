@@ -253,14 +253,6 @@ export const useStoryboardGenerationStore =
     getShotJobState: (shotId) => get().shotJobs[shotId]
   }));
 
-// ── Convenience selectors ────────────────────────────────────────────────────
-
-export const useGeneratingShotIds = (): string[] =>
-  useStoryboardGenerationStore((state) => state.generatingShotIds);
-
-export const useFailedShotIds = (): string[] =>
-  useStoryboardGenerationStore((state) => state.failedShotIds);
-
 // ── WebSocket job machinery ──────────────────────────────────────────────────
 
 const jobSubscriptions = new Map<string, () => void>();

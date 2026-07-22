@@ -6,7 +6,7 @@ import { shallow } from "zustand/shallow";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import isEqual from "../../utils/isEqual";
 import { NodeData } from "../../stores/NodeData";
-import { getCollapseTogglePatches } from "../../stores/collapseNodeLayout";
+import { useToggleCollapse } from "../../hooks/nodes/useToggleCollapse";
 import { useNodes } from "../../contexts/NodeContext";
 import { IconForType } from "../../config/IconForType";
 import ListAltIcon from "@mui/icons-material/ListAlt";
@@ -57,12 +57,11 @@ const NodeHeaderImpl: React.FC<NodeHeaderProps> = ({
   const { openContextMenu } = useContextMenuActions();
   // Combine multiple useNodes subscriptions into a single selector with shallow equality
   // to reduce unnecessary re-renders when other parts of the node state change
-  const { updateNode, updateNodeData, findNode, workflowId: nodeWorkflowId } =
+  const { updateNode, updateNodeData, workflowId: nodeWorkflowId } =
     useNodes(
       (state) => ({
         updateNode: state.updateNode,
         updateNodeData: state.updateNodeData,
-        findNode: state.findNode,
         workflowId: state.workflow?.id
       }),
       shallow
@@ -197,19 +196,10 @@ const NodeHeaderImpl: React.FC<NodeHeaderProps> = ({
     updateNode(id, { selected: true });
   }, [id, updateNode]);
 
+  const toggleCollapse = useToggleCollapse();
   const toggleCollapsed = useCallback(() => {
-    const node = findNode(id);
-    if (!node) {
-      return;
-    }
-    const next = !node.data.collapsed;
-    const { data: dataPatch, node: nodePatch } = getCollapseTogglePatches(
-      node,
-      next
-    );
-    updateNodeData(id, dataPatch);
-    updateNode(id, nodePatch);
-  }, [findNode, id, updateNode, updateNodeData]);
+    toggleCollapse([id]);
+  }, [toggleCollapse, id]);
 
   const handleIconDoubleClick = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {

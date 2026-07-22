@@ -158,6 +158,17 @@ s(
   "Context window size (in tokens) for llama.cpp models. Defaults to 128000."
 );
 s(
+  "NODE_LLAMA_CPP_MODELS_DIR",
+  "NodeLlamaCpp",
+  "Directory containing local GGUF model files for in-process llama.cpp inference. Defaults to the platform llama.cpp cache directory."
+);
+s(
+  "NODE_LLAMA_CPP_GPU_BACKEND",
+  "NodeLlamaCpp",
+  "GPU backend for in-process llama.cpp inference. 'auto' lets node-llama-cpp detect the best backend.",
+  ["auto", "metal", "cuda", "vulkan", "cpu"]
+);
+s(
   "LMSTUDIO_API_URL",
   "LMStudio",
   "Base URL for the LM Studio OpenAI-compatible server (e.g., http://localhost:1234)"

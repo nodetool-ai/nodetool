@@ -51,11 +51,14 @@ export function removeNulls(obj: Record<string, unknown>): void {
   }
 }
 
-/** Check if an asset ref has meaningful content (uri or data). */
+/** Check if an asset ref has meaningful content (uri, data, or asset_id). */
 export function isRefSet(ref: unknown): boolean {
   if (!ref || typeof ref !== "object") return false;
   const r = ref as Record<string, unknown>;
-  return Boolean(r.data || r.uri);
+  // A library-picked or freshly-generated ref carries only `asset_id` (with an
+  // empty `uri`); it still resolves to bytes via the upload context, so treat a
+  // non-empty `asset_id` as a source. `null`/`""` stay unset.
+  return Boolean(r.data || r.uri || r.asset_id);
 }
 
 interface UploadContext {
@@ -79,7 +82,13 @@ export async function assetToUrl(
   apiKey?: string,
   context?: UploadContext
 ): Promise<string | null> {
-  const uri = ref.uri as string | undefined;
+  let uri = ref.uri as string | undefined;
+  // A library-picked or generated ref may carry only `asset_id` (empty `uri`).
+  // Encode it as an `asset://<id>` URI so the trusted context-resolver branch
+  // below uploads it instead of dropping the ref.
+  if (!uri && typeof ref.asset_id === "string" && ref.asset_id) {
+    uri = `asset://${ref.asset_id}`;
+  }
   if (uri) {
     // Replicate-hosted URLs can be used directly
     if (

@@ -23,16 +23,24 @@ import {
   TextInput,
   SelectField,
   EditorButton,
+  UndoRedoButtons,
   EmptyState,
+  Dialog,
   Divider,
   Text,
+  Caption,
   CONTROL,
   SPACING,
   getSpacingPx,
   BORDER_RADIUS,
   MOTION
 } from "../ui_primitives";
-import { useBoard, useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
+import {
+  useBoard,
+  useStoryboardStore,
+  useStoryboardCanUndo,
+  useStoryboardCanRedo
+} from "../../stores/storyboard/StoryboardStore";
 import { useGenerateShot } from "../../hooks/storyboard/useGenerateShot";
 import {
   useImageModelsByProvider,
@@ -215,8 +223,17 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   const setDirectorModel = useStoryboardStore((state) => state.setDirectorModel);
   const setImageModel = useStoryboardStore((state) => state.setImageModel);
   const setVideoModel = useStoryboardStore((state) => state.setVideoModel);
+  const undo = useStoryboardStore((state) => state.undo);
+  const redo = useStoryboardStore((state) => state.redo);
+  const canUndo = useStoryboardCanUndo(boardId);
+  const canRedo = useStoryboardCanRedo(boardId);
+  const onUndo = useCallback(() => undo(boardId), [undo, boardId]);
+  const onRedo = useCallback(() => redo(boardId), [redo, boardId]);
 
   const [shotCount, setShotCount] = useState<number>(6);
+  const [confirmRedirect, setConfirmRedirect] = useState(false);
+
+  const hasShots = shots.length > 0;
 
   // Entity reference images only reach generation through an editing model;
   // warn when entities are attached but the still model can't take them.
@@ -228,9 +245,24 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
     entityIds.length > 0 &&
     !stillModelDetails?.supported_tasks?.includes("image_to_image");
 
-  const handleDirect = useCallback(() => {
+  const runDirect = useCallback(() => {
     onDirect?.(shotCount);
   }, [onDirect, shotCount]);
+
+  // Directing rewrites the whole screenplay, replacing every existing shot
+  // (and its generated stills and clips). Confirm before clobbering work.
+  const handleDirect = useCallback(() => {
+    if (hasShots) {
+      setConfirmRedirect(true);
+      return;
+    }
+    runDirect();
+  }, [hasShots, runDirect]);
+
+  const handleConfirmRedirect = useCallback(() => {
+    setConfirmRedirect(false);
+    runDirect();
+  }, [runDirect]);
 
   const hasRenderedShot = useMemo(
     () => shots.some((s) => s.status === "rendered" && !!s.clip?.asset_id),
@@ -359,9 +391,19 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
               <Text size="small" color={directError || assembleError ? "error" : "secondary"}>
                 {directError ??
                   assembleError ??
-                  "Direct writes the screenplay and seeds your shots."}
+                  (hasShots
+                    ? "Re-directing rewrites the screenplay and replaces every shot."
+                    : "Direct writes the screenplay and seeds your shots.")}
               </Text>
               <FlexRow gap={2} align="center">
+                <UndoRedoButtons
+                  canUndo={canUndo}
+                  canRedo={canRedo}
+                  onUndo={onUndo}
+                  onRedo={onRedo}
+                  undoTooltip="Undo (⌘Z)"
+                  redoTooltip="Redo (⌘⇧Z)"
+                />
                 <EditorButton
                   variant="outlined"
                   onClick={handleGenerateAllStills}
@@ -389,13 +431,32 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                   onClick={handleDirect}
                   disabled={!onDirect || directing}
                 >
-                  {directing ? "Directing…" : "Direct"}
+                  {directing ? "Directing…" : hasShots ? "Re-direct" : "Direct"}
                 </EditorButton>
               </FlexRow>
             </FlexRow>
           </FlexColumn>
         </Panel>
       )}
+
+      <Dialog
+        open={confirmRedirect}
+        onClose={() => setConfirmRedirect(false)}
+        title="Re-direct this storyboard?"
+        onConfirm={handleConfirmRedirect}
+        confirmText="Re-direct"
+        destructive
+      >
+        <FlexColumn gap={1}>
+          <Text size="small">
+            {`Directing writes a new screenplay and replaces all ${shots.length} current shot${shots.length === 1 ? "" : "s"}.`}
+          </Text>
+          <Caption color="secondary">
+            Generated stills and clips stay in your asset library, but the
+            shots on this board are rebuilt from scratch.
+          </Caption>
+        </FlexColumn>
+      </Dialog>
 
       {directing ? (
         <>
@@ -437,12 +498,14 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
             {`${shots.length} shot${shots.length === 1 ? "" : "s"}`}
           </Text>
           <div className="shot-list">
-            {shots.map((shot) => (
+            {shots.map((shot, i) => (
               <ShotCard
                 key={shot.id}
                 boardId={boardId}
                 shot={shot}
                 readOnly={readOnly}
+                isFirst={i === 0}
+                isLast={i === shots.length - 1}
               />
             ))}
           </div>

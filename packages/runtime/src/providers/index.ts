@@ -14,6 +14,7 @@ import { AnthropicProvider } from "./anthropic-provider.js";
 import { ClaudeAgentProvider } from "./claude-agent-provider.js";
 import { GeminiProvider } from "./gemini-provider.js";
 import { LlamaProvider } from "./llama-provider.js";
+import { NodeLlamaCppProvider } from "./node-llama-cpp-provider.js";
 import { OpenAIProvider } from "./openai-provider.js";
 import { CodexProvider } from "./codex-provider.js";
 import { OllamaProvider } from "./ollama-provider.js";
@@ -57,6 +58,7 @@ export { AnthropicProvider };
 export { ClaudeAgentProvider };
 export { GeminiProvider };
 export { LlamaProvider };
+export { NodeLlamaCppProvider };
 export { OpenAIProvider };
 export { CodexProvider };
 export { OllamaProvider };
@@ -78,6 +80,13 @@ export { PythonProvider };
 export { ReplicateProvider };
 export { FalProvider };
 export { KieProvider };
+export {
+  registerWebhookWait,
+  resolveWebhook,
+  rejectWebhook,
+  hasPendingWebhook,
+  pendingCount as kieWebhookPendingCount
+} from "./kie-webhook-registry.js";
 export { ElevenLabsProvider };
 export { TopazProvider };
 export { ReveProvider };
@@ -306,6 +315,18 @@ if (!_cloudProfile) {
   registerBuiltinProvider(PROVIDER_IDS.LLAMA_CPP, LlamaProvider, {
     LLAMA_CPP_URL: ""
   });
+  // In-process llama.cpp via the native node-llama-cpp binding. No secret
+  // required; models are GGUF files under NODE_LLAMA_CPP_MODELS_DIR (defaults
+  // to the shared llama.cpp cache). Optional GPU backend override.
+  registerBuiltinProvider(
+    PROVIDER_IDS.NODE_LLAMA_CPP,
+    NodeLlamaCppProvider,
+    {},
+    {
+      NODE_LLAMA_CPP_MODELS_DIR: "",
+      NODE_LLAMA_CPP_GPU_BACKEND: ""
+    }
+  );
   // vLLM — base URL from Settings / env; optional API key defaults like LM Studio.
   registerBuiltinProvider(
     PROVIDER_IDS.VLLM,

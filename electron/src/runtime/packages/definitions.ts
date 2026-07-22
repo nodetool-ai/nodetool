@@ -194,4 +194,19 @@ export const RUNTIME_PACKAGES: Record<RuntimePackageId, RuntimePackage> = {
       "@tensorflow-models/qna",
     ],
   }),
+
+  "node-llama-cpp": new NpmRuntimePackage({
+    id: "node-llama-cpp",
+    name: "llama.cpp (in-process)",
+    description:
+      "Runs GGUF models inside the NodeTool server — no separate llama.cpp server. Ships Metal on macOS; on Windows and Linux npm pulls the CPU, Vulkan and CUDA builds, which is why the download is large.",
+    category: "library",
+    versionRange: "3.x",
+    npmPackages: ["node-llama-cpp@3.19.1"],
+    packageNames: ["node-llama-cpp"],
+    // The prebuilt binaries dominate: ~50 MB on macOS (Metal only) versus
+    // ~640 MB on Windows / Linux, where npm installs every GPU-backend variant
+    // matching the platform (CPU, Vulkan, CUDA, CUDA-ext).
+    approxSizeMB: process.platform === "darwin" ? 50 : 640,
+  }),
 };

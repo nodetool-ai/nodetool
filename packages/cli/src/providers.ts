@@ -58,7 +58,8 @@ export const KNOWN_PROVIDERS = [
   "aki",
   "ollama",
   "lmstudio",
-  "mlx"
+  "mlx",
+  "node_llama_cpp"
 ] as const;
 export type KnownProvider = (typeof KNOWN_PROVIDERS)[number];
 
@@ -71,7 +72,8 @@ const LOCAL_PROVIDERS: readonly string[] = [
   "lmstudio",
   "ollama",
   "mlx",
-  "claude_agent_sdk"
+  "claude_agent_sdk",
+  "node_llama_cpp"
 ];
 
 /**
@@ -109,7 +111,8 @@ export const DEFAULT_MODELS: Record<string, string> = {
   aki: "llama3_chat",
   ollama: "qwen-3.5:4b",
   lmstudio: "qwen/qwen3.5-9b",
-  mlx: "mlx-community/Qwen3.5-0.8B-OptiQ-4bit"
+  mlx: "mlx-community/Qwen3.5-0.8B-OptiQ-4bit",
+  node_llama_cpp: "qwen2.5-3b-instruct-q4_k_m.gguf"
 };
 
 /** Resolve a secret from the encrypted DB (user "1"); env fallback handled by the registry. */
@@ -260,7 +263,10 @@ function toUnifiedModel(
     provider: model.provider,
     repo_id: null,
     path: null,
-    downloaded: model.provider === "ollama" || model.provider === "llama_cpp",
+    downloaded:
+      model.provider === "ollama" ||
+      model.provider === "llama_cpp" ||
+      model.provider === "node_llama_cpp",
     tags: [model.provider],
     voices: model.voices ?? null,
     supported_tasks: model.supportedTasks ?? null,

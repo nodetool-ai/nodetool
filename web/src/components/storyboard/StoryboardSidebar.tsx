@@ -8,7 +8,7 @@
  * "recent work" view.
  */
 
-import React, { memo, useCallback, useMemo } from "react";
+import React, { memo, useCallback, useMemo, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -20,6 +20,7 @@ import {
   FlexRow,
   Text,
   Caption,
+  Dialog,
   ToolbarIconButton,
   LoadingSpinner,
   SPACING,
@@ -78,6 +79,11 @@ const StoryboardSidebarInner: React.FC<StoryboardSidebarProps> = ({
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const closeTab = useWorkspaceTabsStore((state) => state.closeTab);
 
+  const [pendingDelete, setPendingDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+
   const openBoard = useCallback(
     (id: string, title: string) => {
       openTab({
@@ -102,14 +108,16 @@ const StoryboardSidebarInner: React.FC<StoryboardSidebarProps> = ({
     }
   }, [createStoryboard, openBoard]);
 
-  const deleteBoard = useCallback(
-    (id: string) => {
-      deleteStoryboard.mutate({ id });
-      removeLocalBoard(id);
-      closeTab(tabId("storyboard", id));
-    },
-    [deleteStoryboard, removeLocalBoard, closeTab]
-  );
+  const confirmDelete = useCallback(() => {
+    if (!pendingDelete) {
+      return;
+    }
+    const { id } = pendingDelete;
+    deleteStoryboard.mutate({ id });
+    removeLocalBoard(id);
+    closeTab(tabId("storyboard", id));
+    setPendingDelete(null);
+  }, [pendingDelete, deleteStoryboard, removeLocalBoard, closeTab]);
 
   const formatter = useMemo(
     () =>
@@ -164,7 +172,10 @@ const StoryboardSidebarInner: React.FC<StoryboardSidebarProps> = ({
                 tooltip="Delete storyboard"
                 onClick={(e) => {
                   e.stopPropagation();
-                  deleteBoard(board.id);
+                  setPendingDelete({
+                    id: board.id,
+                    name: board.name || "Untitled storyboard"
+                  });
                 }}
               />
             </FlexRow>
@@ -176,6 +187,19 @@ const StoryboardSidebarInner: React.FC<StoryboardSidebarProps> = ({
           )}
         </FlexColumn>
       )}
+
+      <Dialog
+        open={pendingDelete !== null}
+        onClose={() => setPendingDelete(null)}
+        title="Delete storyboard?"
+        onConfirm={confirmDelete}
+        confirmText="Delete"
+        destructive
+      >
+        <Text size="small">
+          {`Delete “${pendingDelete?.name ?? ""}” and its shots. Generated stills and clips stay in your asset library.`}
+        </Text>
+      </Dialog>
     </div>
   );
 };

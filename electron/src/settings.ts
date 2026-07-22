@@ -3,6 +3,7 @@ import os from "os";
 import fs from "fs";
 import * as yaml from "js-yaml";
 import { logMessage } from "./logger";
+import type { UpdateChannel } from "./types";
 
 /**
  * Settings record type with string keys and unknown values.
@@ -17,12 +18,9 @@ function isSettingsRecord(value: unknown): value is SettingsRecord {
 
 let settingsCache: SettingsRecord | null = null;
 
-const START_LLAMA_CPP_ON_STARTUP_KEY = "START_LLAMA_CPP_ON_STARTUP";
 const UPDATE_CHANNEL_KEY = "updateChannel";
 const UPDATE_CHANNEL_CONFIGURED_BY_USER_KEY = "updateChannelConfiguredByUser";
 const NIGHTLY_VERSION_PATTERN = /-nightly\.\d{8}\.\d+$/;
-
-export type UpdateChannel = "latest" | "nightly";
 
 function isNightlyVersion(version: string): boolean {
   return NIGHTLY_VERSION_PATTERN.test(version);
@@ -49,57 +47,6 @@ export function setUpdateChannel(channel: UpdateChannel): UpdateChannel {
     [UPDATE_CHANNEL_CONFIGURED_BY_USER_KEY]: true,
   });
   return channel;
-}
-
-interface ModelServiceStartupSettings {
-  startLlamaCppOnStartup: boolean;
-}
-
-interface ModelServiceStartupSettingsUpdate {
-  startLlamaCppOnStartup?: boolean;
-}
-
-export function getModelServiceStartupDefaults(
-  backend: unknown
-): ModelServiceStartupSettings {
-  if (backend === "llama_cpp") {
-    return {
-      startLlamaCppOnStartup: true,
-    };
-  }
-  return {
-    startLlamaCppOnStartup: false,
-  };
-}
-
-export function getModelServiceStartupSettings(
-  settings?: SettingsRecord
-): ModelServiceStartupSettings {
-  const source = settings ?? readSettings();
-  const defaults = getModelServiceStartupDefaults(source["MODEL_BACKEND"]);
-  const startLlamaCppOnStartup =
-    typeof source[START_LLAMA_CPP_ON_STARTUP_KEY] === "boolean"
-      ? source[START_LLAMA_CPP_ON_STARTUP_KEY]
-      : defaults.startLlamaCppOnStartup;
-
-  return {
-    startLlamaCppOnStartup,
-  };
-}
-
-export function updateModelServiceStartupSettings(
-  update: ModelServiceStartupSettingsUpdate
-): ModelServiceStartupSettings {
-  const currentSettings = readSettings();
-  const current = getModelServiceStartupSettings(currentSettings);
-  const next = {
-    ...current,
-    ...update,
-  };
-  updateSettings({
-    [START_LLAMA_CPP_ON_STARTUP_KEY]: next.startLlamaCppOnStartup,
-  });
-  return next;
 }
 
 /**

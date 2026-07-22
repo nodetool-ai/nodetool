@@ -1,0 +1,56 @@
+# Maintainer: Nodetool <hello@nodetool.ai>
+# This PKGBUILD is generated from packaging/aur/PKGBUILD by the
+# "Publish AUR package" GitHub workflow, which substitutes @PKGVER@ with the
+# release version and runs updpkgsums to fill in the checksum. Keep the
+# @PKGVER@ placeholder intact so the workflow can render it.
+pkgname=nodetool-bin
+pkgver=@PKGVER@
+pkgrel=1
+pkgdesc="Visual Builder for AI Workflows and Agents"
+arch=('x86_64')
+url="https://nodetool.ai"
+license=('AGPL-3.0-only')
+depends=('gtk3' 'nss' 'alsa-lib' 'hicolor-icon-theme')
+optdepends=('libnotify: desktop notifications')
+provides=('nodetool')
+conflicts=('nodetool')
+options=('!strip')
+_releasetag="v${pkgver}"
+source=("nodetool-${pkgver}.AppImage::https://github.com/nodetool-ai/nodetool/releases/download/${_releasetag}/Nodetool-${pkgver}-x86_64.AppImage")
+sha256sums=('SKIP')
+
+prepare() {
+  chmod +x "nodetool-${pkgver}.AppImage"
+  "./nodetool-${pkgver}.AppImage" --appimage-extract >/dev/null
+}
+
+package() {
+  # Install the extracted AppImage tree under /opt.
+  install -dm755 "${pkgdir}/opt/${pkgname}"
+  cp -a squashfs-root/. "${pkgdir}/opt/${pkgname}/"
+
+  # The Electron sandbox helper must be setuid root.
+  if [[ -f "${pkgdir}/opt/${pkgname}/chrome-sandbox" ]]; then
+    chmod 4755 "${pkgdir}/opt/${pkgname}/chrome-sandbox"
+  fi
+
+  # Launcher: AppRun sets APPDIR and execs the bundled Electron binary.
+  install -dm755 "${pkgdir}/usr/bin"
+  ln -s "/opt/${pkgname}/AppRun" "${pkgdir}/usr/bin/nodetool"
+
+  # Desktop entry: reuse the bundled .desktop, pointing Exec at the launcher.
+  # Leave Icon untouched so it matches the icon names shipped in the AppImage.
+  local desktop
+  desktop="$(find squashfs-root -maxdepth 1 -name '*.desktop' | head -n1)"
+  if [[ -n "${desktop}" ]]; then
+    install -dm755 "${pkgdir}/usr/share/applications"
+    sed 's|^Exec=.*|Exec=nodetool %U|' "${desktop}" \
+      > "${pkgdir}/usr/share/applications/${pkgname}.desktop"
+  fi
+
+  # Hicolor icons for desktop integration.
+  if [[ -d squashfs-root/usr/share/icons ]]; then
+    install -dm755 "${pkgdir}/usr/share/icons"
+    cp -a squashfs-root/usr/share/icons/. "${pkgdir}/usr/share/icons/"
+  fi
+}

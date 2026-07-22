@@ -145,12 +145,24 @@ export async function loadMediaRefBytes(
   }
 
   const uri = value.uri;
-  if (!uri) {
+  if (!uri && !value.asset_id) {
     return null;
   }
 
-  if ((uri.startsWith("asset://") || isPackageAssetUri(uri)) && context) {
+  if (uri && (uri.startsWith("asset://") || isPackageAssetUri(uri)) && context) {
     const { bytes } = await context.resolveAssetBytes(uri);
+    if (bytes) {
+      return bytes;
+    }
+  }
+
+  // No usable uri but an asset_id is present: resolve the asset directly by id.
+  // The early-return above only bails when both uri and asset_id are absent, so
+  // an empty-uri ref like `{ asset_id, uri: "" }` still reaches this path.
+  if (!uri && value.asset_id && context) {
+    const { bytes } = await context.resolveAssetBytes(
+      `asset://${value.asset_id}`
+    );
     if (bytes) {
       return bytes;
     }
@@ -158,7 +170,9 @@ export async function loadMediaRefBytes(
 
   if (context?.storage) {
     const candidates = new Set<string>();
-    candidates.add(uri);
+    if (uri) {
+      candidates.add(uri);
+    }
 
     if (value.asset_id) {
       const refType = (value.type ?? "").toLowerCase();
@@ -174,6 +188,10 @@ export async function loadMediaRefBytes(
         return stored;
       }
     }
+  }
+
+  if (!uri) {
+    return null;
   }
 
   const fromUri = await readUriBytes(uri);

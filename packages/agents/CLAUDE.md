@@ -356,6 +356,76 @@ npm run dev:nodetool -- eval graph-planner -p anthropic -m ... --min-success 0.8
 
 Harness tests (scripted provider, no network): `tests/graph-planner-eval.test.ts`.
 
+### Tool-loop eval suites (frontend `ui_*` surfaces)
+
+Where the graph-planner eval measures one-shot DSL authoring, the tool-loop
+harness measures the incremental, multi-turn tool-calling flow the browser UI
+and the agent WebSocket bridge actually expose. A real provider is handed the
+frontend tool contract (names/descriptions/Zod schemas mirrored from
+`web/src/lib/tools/builtin/*`) and drives it against a **headless bridge** —
+a node-side fake that holds the same state shape and applies the same
+mutations, with no browser. `runToolLoopEval` (`src/evals/tool-loop-eval.ts`)
+is generic over the surface: a case supplies a `createBridge` factory
+(`HeadlessSurfaceBridge<TFinal>` — `{ tools, finalState }`) plus structural
+expectations, and the runner reports the same metrics as graph-planner
+(accepted, score, tool calls, duration, cost). Scoring is structural
+(`checkToolLoopExpectations`: required/forbidden tools, ordering, final-state
+predicates, tool-call budgets, no-error-results) — never an exact transcript,
+so many valid tool orderings pass.
+
+Six suites are registered, one per surface:
+
+| Suite | Tools | Bridge (`src/evals/`) |
+|---|---|---|
+| `tool-loop` | `ui_*` graph editor | `tool-loop-bridge.ts` |
+| `script-tools` | `ui_script_*` | `surfaces/script.ts` |
+| `sketch-tools` | `ui_sketch_*` | `surfaces/sketch.ts` |
+| `timeline-tools` | `ui_timeline_*` | `surfaces/timeline.ts` |
+| `storyboard-tools` | `ui_storyboard_*` | `surfaces/storyboard.ts` |
+| `model3d-tools` | `ui_3d_*` | `surfaces/model3d.ts` |
+
+Bridges reuse the pure packages where the real logic already lives —
+`@nodetool-ai/timeline` (`splitClip`, `ANIMATION_PRESETS`, subtitle assembly,
+clip/track factories) — rather than reimplement. The sketch surface reimplements
+its layer-stack ops directly (the image-editor package carries only types, no
+reusable layer logic).
+Browser-only tools (image/asset capture, WebGL viewport render) are scoped out:
+`ui_sketch_get_layer_image`, `ui_sketch_render_to_asset`,
+`ui_timeline_get_clip_frames`, `ui_3d_capture_view`. Storyboard cannot import
+`@nodetool-ai/llm-nodes` (it depends on `@nodetool-ai/agents`), so its
+generate/render jobs are faked by flipping shot status.
+
+```bash
+npm run dev:nodetool -- eval timeline-tools --list
+npm run dev:nodetool -- eval script-tools -p anthropic -m claude-sonnet-4-6
+npm run dev:nodetool -- eval sketch-tools -p ollama -m qwen-3.5:4b --cases compose-layers
+npm run dev:nodetool -- eval model3d-tools -p openai -m gpt-5.4-mini --min-success 0.8  # CI gate
+```
+
+Harness tests (scripted provider, no network): `tests/tool-loop-eval.test.ts`
+plus one per surface (`tests/{script,sketch,timeline,storyboard,model3d}-tool-loop.test.ts`).
+A live check against a local Ollama model runs when a daemon is reachable:
+`tests/tool-loop-eval.ollama.test.ts`.
+
+**Running against the `claude_agent_sdk` provider.** Two gotchas, both from the
+SDK's own agent loop (not the harness):
+
+- **Turn cap throws.** The SDK raises `error_max_turns` when it reaches its turn
+  limit, so a run that would merely *stop* under a stateless provider (Anthropic,
+  Ollama) instead errors and the case scores `accepted=false`. Its turn
+  accounting also counts each tool round, so the default `--max-iterations 12`
+  is easily exhausted by an over-searching model. Pass a higher cap
+  (`--max-iterations 40`) when driving these suites with `claude_agent_sdk`.
+- **`uid=0` refusal.** The tool path runs the CLI under `bypassPermissions`, which
+  it refuses as root; set `IS_SANDBOX=1` (or run non-root). See
+  [docs/AGENTS.md § Claude Agent SDK](../../docs/AGENTS.md) for the full
+  nested-session recipe.
+
+```bash
+IS_SANDBOX=1 npm run dev:nodetool -- eval timeline-tools \
+  -p claude_agent_sdk -m sonnet --max-iterations 40 --no-find-model
+```
+
 ## Observing LLM Steps and Planning
 
 ### Execution Tree (CLI)

@@ -1,8 +1,14 @@
 /** @jsxImportSource @emotion/react */
 import { useCallback, useState } from "react";
-import type { ChangeEvent, DragEvent, MouseEvent } from "react";
+import type {
+  ChangeEvent,
+  DragEvent,
+  KeyboardEvent,
+  MouseEvent
+} from "react";
 import GraphicEqIcon from "@mui/icons-material/GraphicEq";
 import HistoryIcon from "@mui/icons-material/History";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import TheaterComedyIcon from "@mui/icons-material/TheaterComedy";
@@ -35,6 +41,21 @@ import { useAssetStore } from "../../stores/AssetStore";
 import { getAssetUrl } from "../../utils/assetHelpers";
 import ScriptTakeGallery from "./ScriptTakeGallery";
 
+/**
+ * A keyboard intent bubbled up from a line's text field. The pane owns the
+ * section/ordering, so it turns these into store mutations and cross-line
+ * focus moves:
+ * - `split`  — Enter: keep `before` on this line, carry `after` to a new line
+ *   below (inheriting the speaker) and focus it.
+ * - `delete-empty` — Backspace on an empty, unvoiced line: remove it and focus
+ *   the previous line's end.
+ * - `focus` — Arrow up/down at the text boundary: move focus to the sibling.
+ */
+export type LineKeyNav =
+  | { type: "split"; before: string; after: string }
+  | { type: "delete-empty" }
+  | { type: "focus"; dir: -1 | 1 };
+
 interface ScriptLineRowProps {
   scriptId: string;
   line: ScriptLine;
@@ -43,6 +64,7 @@ interface ScriptLineRowProps {
   readOnly: boolean;
   /** True while this row is the one being dragged (dimmed as it lifts out). */
   isDragging?: boolean;
+  onKeyNav?: (lineId: string, nav: LineKeyNav) => void;
   onDragStart?: (e: DragEvent<HTMLElement>) => void;
   onDragEnd?: (e: DragEvent<HTMLElement>) => void;
   onDragOver?: (e: DragEvent<HTMLElement>) => void;
@@ -88,6 +110,7 @@ const ScriptLineRow = ({
   highlighted,
   readOnly,
   isDragging = false,
+  onKeyNav,
   onDragStart,
   onDragEnd,
   onDragOver,
@@ -95,6 +118,7 @@ const ScriptLineRow = ({
 }: ScriptLineRowProps) => {
   const patchLine = useScriptStore((s) => s.patchLine);
   const removeLine = useScriptStore((s) => s.removeLine);
+  const duplicateLine = useScriptStore((s) => s.duplicateLine);
   const voicing = useLineVoicing(line.id);
   const [galleryAnchor, setGalleryAnchor] = useState<HTMLElement | null>(null);
   const [voiceError, setVoiceError] = useState<string | null>(null);
@@ -108,6 +132,41 @@ const ScriptLineRow = ({
     (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       patchLine(scriptId, line.id, { text: e.target.value }),
     [patchLine, scriptId, line.id]
+  );
+
+  // Text-field keyboard shortcuts (ElevenLabs-Studio feel). The row reads the
+  // caret from the textarea and bubbles an intent; the pane applies it.
+  const onTextKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLDivElement>) => {
+      if (readOnly || !onKeyNav) return;
+      const el = e.target as HTMLTextAreaElement;
+      // Enter splits the line at the caret; Shift+Enter keeps a soft newline.
+      // Skip while an IME composition is open so committing a candidate with
+      // Enter doesn't create a line.
+      if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+        e.preventDefault();
+        const caret = el.selectionStart ?? el.value.length;
+        onKeyNav(line.id, {
+          type: "split",
+          before: el.value.slice(0, caret),
+          after: el.value.slice(caret)
+        });
+        return;
+      }
+      const atStart = el.selectionStart === 0 && el.selectionEnd === 0;
+      const atEnd =
+        el.selectionStart === el.value.length &&
+        el.selectionEnd === el.value.length;
+      if (e.key === "Backspace" && el.value === "" && line.takes.length === 0) {
+        e.preventDefault();
+        onKeyNav(line.id, { type: "delete-empty" });
+      } else if (e.key === "ArrowUp" && atStart) {
+        onKeyNav(line.id, { type: "focus", dir: -1 });
+      } else if (e.key === "ArrowDown" && atEnd) {
+        onKeyNav(line.id, { type: "focus", dir: 1 });
+      }
+    },
+    [readOnly, onKeyNav, line.id, line.takes.length]
   );
 
   const onDirectionChange = useCallback(
@@ -265,6 +324,7 @@ const ScriptLineRow = ({
         <TextInput
           value={line.text}
           onChange={onTextChange}
+          onKeyDown={onTextKeyDown}
           placeholder="Write a line…"
           multiline
           hideLabel
@@ -272,6 +332,7 @@ const ScriptLineRow = ({
           compact
           fullWidth
           disabled={readOnly}
+          inputProps={{ "data-script-line": line.id }}
           sx={{
             ...quietField,
             "& .MuiOutlinedInput-input": { ...TYPOGRAPHY.sans.body }
@@ -320,7 +381,7 @@ const ScriptLineRow = ({
               sx={{
                 width: 6,
                 height: 6,
-                borderRadius: "50%",
+                borderRadius: BORDER_RADIUS.circle,
                 backgroundColor:
                   status === "voiced" ? "success.main" : "action.disabled"
               }}
@@ -376,6 +437,13 @@ const ScriptLineRow = ({
             }
             icon={<HistoryIcon fontSize="small" />}
           />
+          {!readOnly && (
+            <ToolbarIconButton
+              tooltip="Duplicate line"
+              onClick={() => duplicateLine(scriptId, line.id)}
+              icon={<ContentCopyIcon fontSize="small" />}
+            />
+          )}
           {!readOnly && (
             <ToolbarIconButton
               tooltip="Delete line"

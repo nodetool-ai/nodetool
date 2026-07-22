@@ -116,6 +116,8 @@ export const formatGenericProviderName = (provider?: string): string => {
   if (providerAliasNames[providerLower]) {
     return providerAliasNames[providerLower];
   }
+  if (providerLower === "node_llama_cpp" || providerLower === "node-llama-cpp")
+    {return "Llama.cpp (local)";}
   if (providerLower === "llama_cpp" || providerLower === "llama-cpp" || providerLower === "llamacpp")
     {return "Llama.cpp";}
   if (providerLower === "google") {return "Gemini";}

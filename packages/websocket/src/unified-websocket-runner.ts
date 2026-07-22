@@ -318,6 +318,23 @@ function getAssetStoragePath(): string {
   return getDefaultAssetsPath();
 }
 
+/**
+ * Return a public/signed HTTPS URL for a cloud URI if the adapter exposes a
+ * `getPublicUrl(uri)` method (the Supabase adapter does). Duck-typed because
+ * `getPublicUrl` is adapter-specific, not part of the `StorageAdapter`
+ * interface. Returns null when the adapter has no such method or it declines.
+ */
+function getAdapterPublicUrl(adapter: unknown, uri: string): string | null {
+  const fn = (adapter as { getPublicUrl?: (uri: string) => string | null })
+    .getPublicUrl;
+  if (typeof fn !== "function") return null;
+  try {
+    return fn.call(adapter, uri) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** Extract the object key from a cloud storage URI, or return null for file URIs. */
 function extractCloudKey(uri: string): string | null {
   for (const scheme of ["supabase://", "s3://"]) {
@@ -856,10 +873,19 @@ function createRuntimeContext(opts: {
     workspaceStorage: workspaceAdapter,
     authToken: opts.authToken,
     tempUrlResolver: (uri: string) => {
-      // Cloud backends: key becomes /api/storage/<key> — the HTTP handler
-      // will redirect to a signed URL (once signed URL support is wired in).
+      // Cloud backends (s3://, supabase://). The local /api/storage/ route only
+      // reads local disk, so it can't serve a cloud object. When the adapter
+      // exposes a public/signed URL (Supabase does via getPublicUrl), hand that
+      // back so the client fetches directly from the bucket.
       const cloudKey = extractCloudKey(uri);
       if (cloudKey !== null) {
+        const publicUrl = getAdapterPublicUrl(tempAdapter, uri);
+        if (publicUrl) return publicUrl;
+        // No public-URL method (e.g. the S3 adapter has none yet). Falling back
+        // to /api/storage/<key> would 404 on a cloud backend — this is a known
+        // gap. TODO: wire S3 presigned GET URLs here. Returning the local route
+        // keeps behaviour unchanged for the file backend and is no worse than
+        // before for S3.
         return buildAssetUrl(cloudKey);
       }
       // File: convert file:///path/to/storage/uuid.png → /api/storage/uuid.png

@@ -153,8 +153,12 @@ describe("isRefSet", () => {
     expect(isRefSet({ data: "abc" })).toBe(true));
   it("returns true for { uri: 'https://...' }", () =>
     expect(isRefSet({ uri: "https://example.com/img.png" })).toBe(true));
-  it("returns false for asset_id-only refs because they cannot be uploaded", () =>
-    expect(isRefSet({ asset_id: "123" })).toBe(false));
+  it("returns true for asset_id-only refs (resolved via the context)", () =>
+    expect(isRefSet({ asset_id: "123" })).toBe(true));
+  it("returns false for a null asset_id", () =>
+    expect(isRefSet({ uri: "", data: null, asset_id: null })).toBe(false));
+  it("returns false for an empty-string asset_id", () =>
+    expect(isRefSet({ asset_id: "" })).toBe(false));
   it("returns true for object with all three fields", () =>
     expect(
       isRefSet({ data: "abc", uri: "https://x.com", asset_id: "id" })
@@ -351,7 +355,29 @@ describe("assetToFalUrl", () => {
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
-  it("returns null when no uri and no data", async () => {
+  it("resolves an asset_id-only ref via context.resolveAssetBytes and uploads", async () => {
+    const context = {
+      storage: { retrieve: vi.fn(async () => null) },
+      resolveAssetBytes: vi.fn(async () => ({
+        bytes: Uint8Array.from([137, 80, 78, 71])
+      }))
+    };
+    mockStorageUpload.mockResolvedValueOnce(
+      "https://v3.fal.media/files/asset-id-resolved.png"
+    );
+
+    const url = await assetToFalUrl(
+      apiKey,
+      { type: "image", uri: "", asset_id: "asset-456" },
+      context
+    );
+
+    expect(url).toBe("https://v3.fal.media/files/asset-id-resolved.png");
+    expect(context.resolveAssetBytes).toHaveBeenCalledWith("asset://asset-456");
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("returns null when no uri, data, or asset_id", async () => {
     const url = await assetToFalUrl(apiKey, { type: "image" });
     expect(url).toBeNull();
   });
@@ -406,6 +432,37 @@ describe("imageToDataUrl", () => {
     expect(
       await imageToDataUrl({ uri: "http://insecure.example.com/img.png" })
     ).toBeNull();
+  });
+
+  it("resolves an asset_id-only ref to a data URL via context.resolveAssetBytes", async () => {
+    const bytes = Uint8Array.from([137, 80, 78, 71]);
+    const context = {
+      resolveAssetBytes: vi.fn(async () => ({ bytes }))
+    };
+    const url = await imageToDataUrl(
+      { type: "image", uri: "", asset_id: "asset-789" },
+      context
+    );
+    expect(context.resolveAssetBytes).toHaveBeenCalledWith("asset://asset-789");
+    expect(url).toBe(
+      `data:image/png;base64,${Buffer.from(bytes).toString("base64")}`
+    );
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("resolves an asset:// uri to a data URL via context.resolveAssetBytes", async () => {
+    const bytes = Uint8Array.from([1, 2, 3, 4]);
+    const context = {
+      resolveAssetBytes: vi.fn(async () => ({ bytes }))
+    };
+    const url = await imageToDataUrl(
+      { type: "image", uri: "asset://abc" },
+      context
+    );
+    expect(context.resolveAssetBytes).toHaveBeenCalledWith("asset://abc");
+    expect(url).toBe(
+      `data:image/png;base64,${Buffer.from(bytes).toString("base64")}`
+    );
   });
 
   it("infers MIME from URI extension", async () => {

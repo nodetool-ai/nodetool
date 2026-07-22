@@ -1594,7 +1594,7 @@ const TextEditorModal = ({
                       </div>
                     </div>
                     <ChatView
-                      status={status === "stopping" ? "loading" : status}
+                      status={status === "stopping" ? "connected" : status}
                       progress={progress.current}
                       total={progress.total}
                       messages={getCurrentMessagesSync()}

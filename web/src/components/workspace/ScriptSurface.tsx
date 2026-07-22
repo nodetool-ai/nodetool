@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import GroupsIcon from "@mui/icons-material/Groups";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
@@ -10,6 +10,7 @@ import {
 import { useScriptStore, useScript } from "../../stores/script/ScriptStore";
 import { useScriptServerSync } from "../../hooks/script/useScriptServerSync";
 import { useScriptAgentBridge } from "../../hooks/script/useScriptAgentBridge";
+import { useDocumentUndoShortcuts } from "../../hooks/useDocumentUndoShortcuts";
 import { FlexColumn, FlexRow, TabGroup } from "../ui_primitives";
 import ScriptDocumentPane from "../script/ScriptDocumentPane";
 import ScriptCastPanel from "../script/ScriptCastPanel";
@@ -33,9 +34,11 @@ type DockTab = "cast" | "assistant";
  * pane beside a right dock that toggles between the cast panel and the
  * assistant (ElevenLabs-Studio style).
  */
-const ScriptSurface = ({ refId, mode }: ScriptSurfaceProps) => {
+const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
   const theme = useTheme();
   const ensureScript = useScriptStore((state) => state.ensureScript);
+  const undo = useScriptStore((state) => state.undo);
+  const redo = useScriptStore((state) => state.redo);
   const setTabTitle = useWorkspaceTabsStore((state) => state.setTitle);
   const { title, cast } = useScript(refId);
   const readOnly = mode === "view";
@@ -47,6 +50,13 @@ const ScriptSurface = ({ refId, mode }: ScriptSurfaceProps) => {
 
   useScriptServerSync(refId);
   useScriptAgentBridge(refId);
+
+  useDocumentUndoShortcuts({
+    active,
+    enabled: !readOnly,
+    onUndo: useCallback(() => undo(refId), [undo, refId]),
+    onRedo: useCallback(() => redo(refId), [redo, refId])
+  });
 
   useEffect(() => {
     setTabTitle(refId, "script", title || "Untitled script");

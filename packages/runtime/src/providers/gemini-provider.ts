@@ -144,6 +144,7 @@ const GEMINI_UNSUPPORTED_SCHEMA_KEYS = new Set([
   "$ref",
   "definitions",
   "patternProperties",
+  "propertyNames",
   "unevaluatedProperties",
   "dependentSchemas",
   "dependentRequired",

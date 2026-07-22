@@ -9,13 +9,11 @@ import * as os from "os";
 import { app } from "electron";
 import { exec } from "child_process";
 import { promisify } from "util";
-import { promises as fs } from "fs";
 
 import {
   getCondaEnvPath,
   getPythonPath,
   getSystemDataPath,
-  getLlamaServerPath,
   getOptionalNodeModulesPath,
 } from "./config";
 import { logMessage, LOG_FILE } from "./logger";
@@ -51,39 +49,6 @@ async function getPythonVersion(): Promise<string | null> {
   } catch (error) {
     logMessage(`Failed to get Python version: ${error}`, "warn");
     return null;
-  }
-}
-
-/**
- * Get llama-server version if installed
- */
-async function getLlamaServerVersion(): Promise<string | null> {
-  try {
-    const llamaPath = getLlamaServerPath();
-    // Check if file exists first
-    await fs.access(llamaPath);
-    const output = await execCommand(`"${llamaPath}" --version`);
-    if (output) {
-      // Try to extract version from output
-      const versionMatch = output.match(/version[:\s]+(\S+)/i) || output.match(/(\d+\.\d+\.\d+)/);
-      return versionMatch ? versionMatch[1] : output.split("\n")[0];
-    }
-    return null;
-  } catch (error) {
-    return null;
-  }
-}
-
-/**
- * Check if llama-server is installed
- */
-async function checkLlamaServerInstalled(): Promise<boolean> {
-  try {
-    const llamaPath = getLlamaServerPath();
-    await fs.access(llamaPath);
-    return true;
-  } catch (error) {
-    return false;
   }
 }
 
@@ -194,16 +159,9 @@ export async function getSystemInfo(): Promise<SystemInfo> {
   logMessage("Gathering system information...");
 
   // Run independent checks in parallel
-  const [
-    pythonVersion,
-    llamaServerVersion,
-    cudaInfo,
-    llamaServerInstalled,
-  ] = await Promise.all([
+  const [pythonVersion, cudaInfo] = await Promise.all([
     getPythonVersion(),
-    getLlamaServerVersion(),
     getCudaInfo(),
-    checkLlamaServerInstalled(),
   ]);
 
   const systemInfo: SystemInfo = {
@@ -222,8 +180,6 @@ export async function getSystemInfo(): Promise<SystemInfo> {
     pythonVersion,
     cudaAvailable: cudaInfo.available,
     cudaVersion: cudaInfo.version,
-    llamaServerInstalled,
-    llamaServerVersion,
   };
 
   logMessage(`System info gathered: ${JSON.stringify(systemInfo)}`);

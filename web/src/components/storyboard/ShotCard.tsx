@@ -10,11 +10,14 @@
  * has a still.
  */
 
-import React, { memo, useCallback, useMemo } from "react";
+import React, { memo, useCallback, useMemo, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import type { Shot, ShotStatus } from "@nodetool-ai/protocol";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
 import {
   Card,
@@ -26,6 +29,10 @@ import {
   Text,
   Caption,
   VideoPlayer,
+  Dialog,
+  TextInput,
+  ToolbarIconButton,
+  HoverActionGroup,
   SPACING,
   getSpacingPx,
   BORDER_RADIUS,
@@ -44,6 +51,10 @@ interface ShotCardProps {
   boardId: string;
   shot: Shot;
   readOnly?: boolean;
+  /** True when this is the first shot on the board (disables "move up"). */
+  isFirst?: boolean;
+  /** True when this is the last shot on the board (disables "move down"). */
+  isLast?: boolean;
 }
 
 const STATUS_META: Record<ShotStatus, { status: StatusType; label: string; pulse?: boolean }> = {
@@ -149,9 +160,17 @@ const cameraLine = (shot: Shot): string =>
 
 const EMPTY_IDS: string[] = [];
 
-const ShotCardInner: React.FC<ShotCardProps> = ({ boardId, shot, readOnly }) => {
+const ShotCardInner: React.FC<ShotCardProps> = ({
+  boardId,
+  shot,
+  readOnly,
+  isFirst,
+  isLast
+}) => {
   const theme = useTheme();
   const toggleShotEntity = useStoryboardStore((state) => state.toggleShotEntity);
+  const moveShot = useStoryboardStore((state) => state.moveShot);
+  const removeShot = useStoryboardStore((state) => state.removeShot);
   const boardEntityIds = useStoryboardStore(
     (state) => state.boards[boardId]?.entityIds ?? EMPTY_IDS
   );
@@ -170,11 +189,16 @@ const ShotCardInner: React.FC<ShotCardProps> = ({ boardId, shot, readOnly }) => 
     };
   }, [allEntities, boardEntityIds, shot]);
 
+  const [reviseOpen, setReviseOpen] = useState(false);
+  const [reviseText, setReviseText] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
   const meta = STATUS_META[shot.status];
   const isGenerating =
     shot.status === "keyframe_generating" || shot.status === "clip_generating";
   const camera = cameraLine(shot);
   const clipUri = shot.clip?.uri;
+  const shotName = `${shot.index + 1}. ${shot.slug ?? "Untitled shot"}`;
 
   const handleGenerateStill = useCallback(() => {
     void generateKeyframe(boardId, shot);
@@ -184,14 +208,27 @@ const ShotCardInner: React.FC<ShotCardProps> = ({ boardId, shot, readOnly }) => 
     void generateClip(boardId, shot);
   }, [generateClip, boardId, shot]);
 
-  const handleRevise = useCallback(() => {
-    const instruction = window.prompt(
-      "Describe the change to make (e.g. 'make it darker, add rain')"
-    );
-    if (instruction && instruction.trim().length > 0) {
-      void generateRevisedClip(boardId, shot, instruction.trim());
+  const handleReviseConfirm = useCallback(() => {
+    const instruction = reviseText.trim();
+    if (instruction.length > 0) {
+      void generateRevisedClip(boardId, shot, instruction);
     }
-  }, [generateRevisedClip, boardId, shot]);
+    setReviseOpen(false);
+    setReviseText("");
+  }, [reviseText, generateRevisedClip, boardId, shot]);
+
+  const handleMoveUp = useCallback(() => {
+    moveShot(boardId, shot.id, "up");
+  }, [moveShot, boardId, shot.id]);
+
+  const handleMoveDown = useCallback(() => {
+    moveShot(boardId, shot.id, "down");
+  }, [moveShot, boardId, shot.id]);
+
+  const handleDelete = useCallback(() => {
+    removeShot(boardId, shot.id);
+    setConfirmDelete(false);
+  }, [removeShot, boardId, shot.id]);
 
   return (
     <Card
@@ -226,7 +263,7 @@ const ShotCardInner: React.FC<ShotCardProps> = ({ boardId, shot, readOnly }) => 
       <FlexColumn className="details">
         <FlexRow align="center" justify="space-between" gap={1} wrap>
           <Text size="small" weight={600} truncate>
-            {`${shot.index + 1}. ${shot.slug ?? "Untitled shot"}`}
+            {shotName}
           </Text>
           <FlexRow align="center" gap={1}>
             {typeof shot.cost_estimate === "number" && (
@@ -241,6 +278,32 @@ const ShotCardInner: React.FC<ShotCardProps> = ({ boardId, shot, readOnly }) => 
               label={meta.label}
               pulse={meta.pulse}
             />
+            {!readOnly && (
+              <HoverActionGroup triggerSelector=".shot-card:hover" gap={0}>
+                <ToolbarIconButton
+                  icon={<ArrowUpwardIcon sx={{ fontSize: 16 }} />}
+                  tooltip="Move up"
+                  ariaLabel="Move shot up"
+                  onClick={handleMoveUp}
+                  disabled={isFirst}
+                />
+                <ToolbarIconButton
+                  icon={<ArrowDownwardIcon sx={{ fontSize: 16 }} />}
+                  tooltip="Move down"
+                  ariaLabel="Move shot down"
+                  onClick={handleMoveDown}
+                  disabled={isLast}
+                />
+                <ToolbarIconButton
+                  icon={<DeleteOutlineIcon sx={{ fontSize: 16 }} />}
+                  tooltip="Delete shot"
+                  ariaLabel="Delete shot"
+                  variant="error"
+                  onClick={() => setConfirmDelete(true)}
+                  disabled={isGenerating}
+                />
+              </HoverActionGroup>
+            )}
           </FlexRow>
         </FlexRow>
 
@@ -308,13 +371,53 @@ const ShotCardInner: React.FC<ShotCardProps> = ({ boardId, shot, readOnly }) => 
               {shot.clip ? "New clip" : "Generate clip"}
             </EditorButton>
             {shot.clip && (
-              <EditorButton onClick={handleRevise} disabled={isGenerating}>
+              <EditorButton
+                onClick={() => setReviseOpen(true)}
+                disabled={isGenerating}
+              >
                 Revise clip
               </EditorButton>
             )}
           </FlexRow>
         )}
       </FlexColumn>
+
+      <Dialog
+        open={reviseOpen}
+        onClose={() => setReviseOpen(false)}
+        title="Revise clip"
+        onConfirm={handleReviseConfirm}
+        confirmText="Revise"
+        confirmDisabled={reviseText.trim().length === 0}
+      >
+        <FlexColumn gap={1}>
+          <Caption color="secondary">
+            Describe the change to make. The current clip is re-rendered with
+            your note applied.
+          </Caption>
+          <TextInput
+            value={reviseText}
+            placeholder="e.g. make it darker, add rain"
+            onChange={(e) => setReviseText(e.target.value)}
+            multiline
+            rows={3}
+            autoFocus
+          />
+        </FlexColumn>
+      </Dialog>
+
+      <Dialog
+        open={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        title="Delete shot?"
+        onConfirm={handleDelete}
+        confirmText="Delete"
+        destructive
+      >
+        <Text size="small">
+          {`Remove “${shotName}” from the board. Generated stills and clips stay in your asset library.`}
+        </Text>
+      </Dialog>
     </Card>
   );
 };

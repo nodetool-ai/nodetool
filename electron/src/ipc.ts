@@ -17,7 +17,6 @@ import {
   runApp,
   initializeBackendServer,
   stopServer,
-  restartLlamaServer,
 } from "./server";
 import { assertSafeReadablePath } from "./utils";
 import { logMessage } from "./logger";
@@ -30,8 +29,6 @@ import {
 import {
   readSettingsAsync,
   updateSetting,
-  getModelServiceStartupSettings,
-  updateModelServiceStartupSettings,
   getUpdateChannel,
   normalizeUpdateChannel,
   setUpdateChannel,
@@ -74,6 +71,10 @@ import {
   openPathInExplorer,
   openSystemDirectory,
 } from "./fileExplorer";
+
+function isRuntimePackageId(id: string): id is RuntimePackageId {
+  return RUNTIME_PACKAGE_IDS.includes(id as RuntimePackageId);
+}
 
 const MIME_TYPE_MAP: Record<string, string> = {
   png: "image/png",
@@ -715,12 +716,6 @@ export function initializeIpcHandlers(): void {
     await setupWorkflowShortcuts();
   });
 
-  // Restart llama-server handler (used after downloading new models)
-  createIpcMainHandler(IpcChannels.RESTART_LLAMA_SERVER, async () => {
-    logMessage("Restarting llama-server to pick up new models");
-    await restartLlamaServer();
-  });
-
   // App control handlers
   createIpcMainHandler(IpcChannels.RUN_APP, async (_event, workflowId) => {
     logMessage(`Running app with workflow ID: ${workflowId}`);
@@ -923,12 +918,12 @@ export function initializeIpcHandlers(): void {
   createIpcMainHandler(
     IpcChannels.RUNTIME_PACKAGE_INSTALL,
     async (_event, data: { packageId: string; installLocation?: string }) => {
-      if (!RUNTIME_PACKAGE_IDS.includes(data.packageId as RuntimePackageId)) {
+      if (!isRuntimePackageId(data.packageId)) {
         return { success: false, message: `Unknown package ID: ${data.packageId}` };
       }
       logMessage(`Installing runtime package: ${data.packageId}`);
       return await installRuntimePackage(
-        data.packageId as RuntimePackageId,
+        data.packageId,
         data.installLocation,
       );
     },
@@ -937,12 +932,12 @@ export function initializeIpcHandlers(): void {
   createIpcMainHandler(
     IpcChannels.RUNTIME_PACKAGE_UNINSTALL,
     async (_event, data: { packageId: string }) => {
-      if (!RUNTIME_PACKAGE_IDS.includes(data.packageId as RuntimePackageId)) {
+      if (!isRuntimePackageId(data.packageId)) {
         return { success: false, message: `Unknown package ID: ${data.packageId}` };
       }
       logMessage(`Uninstalling runtime package: ${data.packageId}`);
       const { uninstallRuntimePackage } = await import("./packageManager");
-      return await uninstallRuntimePackage(data.packageId as RuntimePackageId);
+      return await uninstallRuntimePackage(data.packageId);
     },
   );
 
@@ -1323,26 +1318,6 @@ export function initializeIpcHandlers(): void {
       }
       logMessage(`Setting update channel to: ${nextChannel}`);
       return setUpdateChannel(nextChannel);
-    },
-  );
-
-  createIpcMainHandler(
-    IpcChannels.SETTINGS_GET_MODEL_SERVICES_STARTUP,
-    async () => {
-      const settings = await readSettingsAsync();
-      return getModelServiceStartupSettings(settings);
-    },
-  );
-
-  createIpcMainHandler(
-    IpcChannels.SETTINGS_SET_MODEL_SERVICES_STARTUP,
-    async (_event, update) => {
-      logMessage(
-        `Updating model services startup settings: ${JSON.stringify(update)}`
-      );
-      const next = updateModelServiceStartupSettings(update);
-      emitServerStateChanged();
-      return next;
     },
   );
 

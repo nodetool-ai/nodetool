@@ -40,8 +40,6 @@ interface SystemInfo {
   cudaVersion: string | null;
   ollamaInstalled: boolean;
   ollamaVersion: string | null;
-  llamaServerInstalled: boolean;
-  llamaServerVersion: string | null;
 }
 
 interface FileExplorerResult {
@@ -231,7 +229,6 @@ declare global {
       onCreateWorkflow: (workflow: Workflow) => Promise<void>;
       onUpdateWorkflow: (workflow: Workflow) => Promise<void>;
       onDeleteWorkflow: (workflow: Workflow) => Promise<void>;
-      restartLlamaServer?: () => Promise<void>;
       mcp?: {
         installBundle: () => Promise<McpBundleInstallResult>;
       };
@@ -310,12 +307,6 @@ declare global {
         setAutoUpdates?: (enabled: boolean) => Promise<void>;
         getUpdateChannel?: () => Promise<"latest" | "nightly">;
         setUpdateChannel?: (channel: "latest" | "nightly") => Promise<"latest" | "nightly">;
-        getModelServicesStartup?: () => Promise<{
-          startLlamaCppOnStartup: boolean;
-        }>;
-        setModelServicesStartup?: (update: {
-          startLlamaCppOnStartup?: boolean;
-        }) => Promise<{ startLlamaCppOnStartup: boolean }>;
       };
 
       // Vaults module - switchable, isolated data stores (each its own SQLite

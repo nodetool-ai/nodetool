@@ -328,6 +328,21 @@ export class OpenAIProvider extends BaseProvider {
     return !(model.startsWith("o1") || model.startsWith("o3"));
   }
 
+  /**
+   * Whether this instance actually serves OpenAI's own model catalog.
+   *
+   * The media and embedding lists below are hardcoded OpenAI models tagged
+   * `provider: "openai"`. Subclasses inherit OpenAI's *chat dialect*, not its
+   * lineup — a Groq or vLLM instance offering `gpt-image-2` or `whisper-1` is
+   * always wrong, and picking one sends the request to a host that has no such
+   * endpoint. Subclasses that do serve media (Together, MiniMax, GMI, xAI, …)
+   * override these methods with their own catalog; everyone else correctly
+   * reports none.
+   */
+  protected servesOpenAICatalog(): boolean {
+    return this.provider === PROVIDER_IDS.OPENAI;
+  }
+
   async getAvailableLanguageModels(): Promise<LanguageModel[]> {
     // The `openai` provider only serves the supported (gpt-5+) models; retire
     // everything older. Subclasses (their own provider id) keep their full list.
@@ -365,6 +380,7 @@ export class OpenAIProvider extends BaseProvider {
   }
 
   async getAvailableTTSModels(): Promise<TTSModel[]> {
+    if (!this.servesOpenAICatalog()) return [];
     const legacyVoices = [
       "alloy",
       "ash",
@@ -413,6 +429,7 @@ export class OpenAIProvider extends BaseProvider {
   }
 
   async getAvailableASRModels(): Promise<ASRModel[]> {
+    if (!this.servesOpenAICatalog()) return [];
     return [
       {
         id: "gpt-4o-transcribe",
@@ -438,6 +455,7 @@ export class OpenAIProvider extends BaseProvider {
   }
 
   async getAvailableVideoModels(): Promise<VideoModel[]> {
+    if (!this.servesOpenAICatalog()) return [];
     return [
       {
         id: "sora-2",
@@ -461,6 +479,7 @@ export class OpenAIProvider extends BaseProvider {
   }
 
   async getAvailableImageModels(): Promise<ImageModel[]> {
+    if (!this.servesOpenAICatalog()) return [];
     return [
       {
         id: "gpt-image-2",
@@ -490,6 +509,7 @@ export class OpenAIProvider extends BaseProvider {
   }
 
   async getAvailableEmbeddingModels(): Promise<EmbeddingModel[]> {
+    if (!this.servesOpenAICatalog()) return [];
     return [
       {
         id: "text-embedding-3-small",

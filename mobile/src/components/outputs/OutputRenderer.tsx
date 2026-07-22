@@ -311,7 +311,7 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
                     {i + 1}.
                   </Text>
                   <Text style={[styles.taskStepText, { color: colors.text }]}>
-                    {typeof s === "string" ? s : (s as TaskStep)?.description || (s as TaskStep)?.title || JSON.stringify(s)}
+                    {typeof s === "string" ? s : s?.description || s?.title || JSON.stringify(s)}
                   </Text>
                 </View>
                 );
@@ -434,7 +434,7 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
                   ]}
                   numberOfLines={1}
                 >
-                  {typeof c === "object" && c !== null ? String((c as DataframeColumn).name) : String(c)}
+                  {typeof c === "object" && c !== null ? String(c.name) : String(c)}
                 </Text>
                 );
               })}
@@ -452,7 +452,7 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
                     : "transparent" },
                 ]}
               >
-                {(Array.isArray(row) ? row : Object.values(row as Record<string, unknown>)).map((cell: unknown, cellIdx: number) => (
+                {(Array.isArray(row) ? row : Object.values(row)).map((cell: unknown, cellIdx: number) => (
                   <Text
                     key={cellIdx}
                     style={[styles.tableCell, { color: colors.text, borderColor: colors.border }]}

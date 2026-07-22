@@ -45,17 +45,23 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
     () => pack.models.map((m) => m.id),
     [pack.models]
   );
-  const activeDownloadIds = useModelDownloadStore(
-    useShallow((state) => {
-      const result: Record<string, true> = {};
+  const activeDownloadSelector = useCallback(
+    (state: ReturnType<typeof useModelDownloadStore.getState>) => {
+      const parts: string[] = [];
       for (const id of packModelIds) {
         const d = state.downloads[id];
         if (d && (d.status === "running" || d.status === "progress")) {
-          result[id] = true;
+          parts.push(id);
         }
       }
-      return result;
-    })
+      return parts.join("\0");
+    },
+    [packModelIds]
+  );
+  const activeDownloadKey = useModelDownloadStore(activeDownloadSelector);
+  const activeDownloadSet = useMemo(
+    () => new Set(activeDownloadKey ? activeDownloadKey.split("\0") : []),
+    [activeDownloadKey]
   );
   const { cacheStatuses, cacheVersion, ensureStatuses } = useHfCacheStatusStore(
     useShallow((state) => ({
@@ -66,8 +72,8 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
   );
 
   const activeDownloads = useMemo(
-    () => pack.models.filter((model) => activeDownloadIds[model.id]),
-    [activeDownloadIds, pack.models]
+    () => pack.models.filter((model) => activeDownloadSet.has(model.id)),
+    [activeDownloadSet, pack.models]
   );
 
   useEffect(() => {

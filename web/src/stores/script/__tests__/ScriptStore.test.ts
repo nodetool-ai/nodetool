@@ -64,6 +64,21 @@ describe("addLine", () => {
   });
 });
 
+describe("removeScript", () => {
+  it("clears lingering revision/status metadata even when the draft is gone", () => {
+    const store = useScriptStore.getState();
+    store.setServerRevision(SCRIPT, "rev-1");
+    store.setSaveStatus(SCRIPT, "error");
+    // No script draft present — only metadata (e.g. after a failed create).
+    expect(useScriptStore.getState().scripts[SCRIPT]).toBeUndefined();
+
+    store.removeScript(SCRIPT);
+
+    expect(useScriptStore.getState().serverRevisions[SCRIPT]).toBeUndefined();
+    expect(useScriptStore.getState().saveStatus[SCRIPT]).toBeUndefined();
+  });
+});
+
 describe("insertLine", () => {
   const seed = (n: number): string => {
     const store = useScriptStore.getState();
@@ -92,6 +107,38 @@ describe("insertLine", () => {
       .getState()
       .scripts[SCRIPT].sections[0].lines.map((l) => l.id);
     expect(ids).toEqual([first, last]);
+  });
+});
+
+describe("duplicateLine", () => {
+  it("clones content into a fresh, unvoiced line right after the original", () => {
+    const store = useScriptStore.getState();
+    store.ensureScript(SCRIPT);
+    store.addLine(SCRIPT);
+    const lineId = firstLineId();
+    store.patchLine(SCRIPT, lineId, {
+      text: "hello",
+      speakerId: "spk1",
+      direction: "cheerful"
+    });
+    store.appendTake(SCRIPT, lineId, take({ id: "t1" }));
+
+    const newId = store.duplicateLine(SCRIPT, lineId);
+    const lines = useScriptStore.getState().scripts[SCRIPT].sections[0].lines;
+    expect(lines.map((l) => l.id)).toEqual([lineId, newId]);
+    const clone = lines[1];
+    expect(clone.text).toBe("hello");
+    expect(clone.speakerId).toBe("spk1");
+    expect(clone.direction).toBe("cheerful");
+    // Takes are dropped — a duplicate starts as a draft.
+    expect(clone.takes).toEqual([]);
+    expect(clone.currentTakeId).toBeNull();
+  });
+
+  it("returns null for an unknown line", () => {
+    const store = useScriptStore.getState();
+    store.ensureScript(SCRIPT);
+    expect(store.duplicateLine(SCRIPT, "missing")).toBeNull();
   });
 });
 
@@ -229,5 +276,72 @@ describe("effectiveVoice", () => {
     const s = useScriptStore.getState().scripts[SCRIPT];
     const eff = effectiveVoice(s.sections[0].lines[0], s.cast);
     expect(eff?.voice).toBe("echo");
+  });
+});
+
+describe("undo/redo", () => {
+  const sectionCount = (): number =>
+    useScriptStore.getState().scripts[SCRIPT]?.sections.length ?? 0;
+  const lineText = (lineId: string): string | undefined =>
+    useScriptStore
+      .getState()
+      .scripts[SCRIPT]?.sections.flatMap((s) => s.lines)
+      .find((l) => l.id === lineId)?.text;
+
+  it("undoes and redoes a line addition", () => {
+    const store = useScriptStore.getState();
+    store.ensureScript(SCRIPT);
+    expect(sectionCount()).toBe(0);
+    store.addLine(SCRIPT);
+    expect(sectionCount()).toBe(1);
+
+    store.undo(SCRIPT);
+    expect(sectionCount()).toBe(0);
+
+    store.redo(SCRIPT);
+    expect(sectionCount()).toBe(1);
+  });
+
+  it("folds rapid text edits to one line into a single undo step", () => {
+    const store = useScriptStore.getState();
+    store.ensureScript(SCRIPT);
+    const lineId = store.addLine(SCRIPT);
+    store.patchLine(SCRIPT, lineId, { text: "h" });
+    store.patchLine(SCRIPT, lineId, { text: "he" });
+    store.patchLine(SCRIPT, lineId, { text: "hel" });
+    expect(lineText(lineId)).toBe("hel");
+
+    // One undo reverts the whole typing run, not one keystroke.
+    store.undo(SCRIPT);
+    expect(lineText(lineId)).toBe("");
+    // A second undo steps back past the line's creation.
+    store.undo(SCRIPT);
+    expect(sectionCount()).toBe(0);
+  });
+
+  it("a fresh edit clears the redo stack", () => {
+    const store = useScriptStore.getState();
+    store.ensureScript(SCRIPT);
+    store.addLine(SCRIPT);
+    store.undo(SCRIPT);
+    expect(useScriptStore.getState().history[SCRIPT]?.future.length).toBe(1);
+    store.addLine(SCRIPT);
+    expect(useScriptStore.getState().history[SCRIPT]?.future.length ?? 0).toBe(0);
+  });
+
+  it("undo is a no-op with an empty history", () => {
+    const store = useScriptStore.getState();
+    store.ensureScript(SCRIPT);
+    expect(() => store.undo(SCRIPT)).not.toThrow();
+    expect(sectionCount()).toBe(0);
+  });
+
+  it("removeScript drops the script's history", () => {
+    const store = useScriptStore.getState();
+    store.ensureScript(SCRIPT);
+    store.addLine(SCRIPT);
+    expect(useScriptStore.getState().history[SCRIPT]?.past.length).toBe(1);
+    store.removeScript(SCRIPT);
+    expect(useScriptStore.getState().history[SCRIPT]).toBeUndefined();
   });
 });

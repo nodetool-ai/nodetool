@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback, useRef } from "react";
+import React, { useCallback, useMemo, useRef } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -53,6 +53,7 @@ const RealtimeAudioOutput: React.FC<Props> = ({
   live = false
 }) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   const workflowState = useWebsocketRunner((s) => s.state);
 
   const {
@@ -80,7 +81,7 @@ const RealtimeAudioOutput: React.FC<Props> = ({
   }, [workflowState, isPlaying, stop]);
 
   return (
-    <div css={styles(theme)}>
+    <div css={cssStyles}>
       <div className="controls">
         <ButtonGroup size="small">
           <EditorButton onClick={isPlaying ? stop : start}>
