@@ -90,9 +90,12 @@ describe("createAppToolBridge", () => {
       workflow_id: WF
     })) as {
       ok: boolean;
+      workflowId: string;
       components: { type: string; parentId: string | null }[];
     };
     expect(snap.ok).toBe(true);
+    // Snapshot carries the workflow id, matching the real getSnapshot shape.
+    expect(snap.workflowId).toBe(WF);
     expect(snap.components.map((c) => c.type)).toEqual(["Heading", "TextInput"]);
     expect(snap.components.every((c) => c.parentId === null)).toBe(true);
 
@@ -198,6 +201,52 @@ describe("createAppToolBridge", () => {
         type: "NotAWidget"
       })
     ).rejects.toThrow(/Unknown widget type/);
+  });
+
+  it("selecting an unknown id clears the selection (mirrors Puck)", async () => {
+    const bridge = createAppToolBridge({
+      components: [{ type: "Button", id: "btn-1" }]
+    });
+    const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
+
+    await byName["ui_app_select_component"].execute({
+      workflow_id: WF,
+      id: "btn-1"
+    });
+    expect(bridge.finalState().selectedId).toBe("btn-1");
+
+    await byName["ui_app_select_component"].execute({
+      workflow_id: WF,
+      id: "does-not-exist"
+    });
+    expect(bridge.finalState().selectedId).toBeNull();
+  });
+
+  it("removing a parent clears a selection nested under it", async () => {
+    const bridge = createAppToolBridge({
+      components: [
+        {
+          type: "Container",
+          id: "panel-1",
+          slots: { content: [{ type: "Text", id: "text-1" }] }
+        }
+      ]
+    });
+    const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
+
+    await byName["ui_app_select_component"].execute({
+      workflow_id: WF,
+      id: "text-1"
+    });
+    expect(bridge.finalState().selectedId).toBe("text-1");
+
+    // Removing the panel drops the nested Text too, so the selection must clear.
+    await byName["ui_app_remove_component"].execute({
+      workflow_id: WF,
+      id: "panel-1"
+    });
+    expect(bridge.finalState().components).toHaveLength(0);
+    expect(bridge.finalState().selectedId).toBeNull();
   });
 
   it("set_title updates the snapshot root props", async () => {

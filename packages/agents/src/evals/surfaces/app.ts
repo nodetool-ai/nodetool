@@ -245,8 +245,9 @@ export function createAppToolBridge(
         "parent), the selected widget, the page title, and the available widget " +
         "types. Call this first to see what's on the page before editing.",
       z.object({ workflow_id: workflowIdParam }),
-      async () => ({
+      async ({ workflow_id }) => ({
         ok: true,
+        workflowId: workflow_id,
         rootProps: title !== null ? { title } : {},
         selectedId,
         componentTypes: Object.keys(WIDGET_TYPES),
@@ -402,7 +403,15 @@ export function createAppToolBridge(
           }
           return n;
         });
-        if (removed && selectedId === id) selectedId = null;
+        // Clear the selection if the selected widget is gone — directly
+        // removed or dropped as a descendant of the removed parent.
+        if (
+          removed &&
+          selectedId &&
+          !flattenComponents(content).some((c) => c.id === selectedId)
+        ) {
+          selectedId = null;
+        }
         return { ok: removed, removed_id: removed ? id : null };
       }
     ),
@@ -422,8 +431,14 @@ export function createAppToolBridge(
           )
       }),
       async ({ workflow_id: _wf, id }) => {
-        selectedId = (id as string | null | undefined) ?? null;
-        return { ok: true };
+        const wanted = (id as string | null | undefined) ?? null;
+        // Mirror the real editor: selecting an unknown id clears the
+        // selection (Puck's selector lookup returns null for it).
+        selectedId =
+          wanted && flattenComponents(content).some((c) => c.id === wanted)
+            ? wanted
+            : null;
+        return { ok: true, selectedId };
       }
     ),
 
@@ -484,9 +499,9 @@ export const APP_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AppBridgeFinalState>
         maxToolCalls: 15,
         finalState: [
           {
-            name: "titleSet",
-            detail: "page title was not set",
-            test: (s) => !!s.title && s.title.length > 0
+            name: "titleIsAskTheAI",
+            detail: "page title was not set to 'Ask the AI'",
+            test: (s) => (s.title ?? "").trim().toLowerCase() === "ask the ai"
           },
           {
             name: "hasHeading",
