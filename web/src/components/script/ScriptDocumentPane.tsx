@@ -1,6 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { useCallback, useMemo, useState } from "react";
 import type { DragEvent } from "react";
+import { useTheme } from "@mui/material/styles";
+import { useMediaQuery } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import GraphicEqIcon from "@mui/icons-material/GraphicEq";
@@ -70,18 +72,20 @@ const InsertLineGap = ({
   onInsert,
   onDragOver,
   onDrop,
-  active
+  active,
+  inset
 }: {
   onInsert: () => void;
   onDragOver: (e: DragEvent<HTMLElement>) => void;
   onDrop: (e: DragEvent<HTMLElement>) => void;
   active: boolean;
+  inset: number;
 }) => (
   <Box
     onDragOver={onDragOver}
     onDrop={onDrop}
     sx={{
-      marginLeft: `${TEXT_INSET}px`,
+      marginLeft: `${inset}px`,
       height: 12,
       display: "flex",
       alignItems: "center",
@@ -129,6 +133,7 @@ const SectionBlock = ({
   section,
   currentLineId,
   readOnly,
+  mobile,
   dnd,
   onKeyNav
 }: {
@@ -136,6 +141,7 @@ const SectionBlock = ({
   section: ScriptSection;
   currentLineId: string | null;
   readOnly: boolean;
+  mobile: boolean;
   dnd: LineDnd;
   onKeyNav: (lineId: string, nav: LineKeyNav) => void;
 }) => {
@@ -144,6 +150,10 @@ const SectionBlock = ({
   const addLine = useScriptStore((s) => s.addLine);
   const insertLine = useScriptStore((s) => s.insertLine);
   const removeSection = useScriptStore((s) => s.removeSection);
+
+  // On mobile the wide speaker gutter collapses, so insert affordances and
+  // add-line buttons align to the left edge instead of under the dialogue.
+  const inset = mobile ? 0 : TEXT_INSET;
 
   const isTarget = (beforeLineId: string | null): boolean =>
     dnd.dropTarget?.sectionId === section.id &&
@@ -239,6 +249,7 @@ const SectionBlock = ({
                 onDragOver={onGapDragOver(line.id)}
                 onDrop={onGapDrop}
                 active={isTarget(line.id)}
+                inset={inset}
               />
             )}
             <ScriptLineRow
@@ -247,6 +258,7 @@ const SectionBlock = ({
               cast={cast}
               highlighted={line.id === currentLineId}
               readOnly={readOnly}
+              mobile={mobile}
               onKeyNav={onKeyNav}
               isDragging={dnd.draggingLineId === line.id}
               onDragStart={
@@ -265,10 +277,11 @@ const SectionBlock = ({
           onDragOver={onGapDragOver(null)}
           onDrop={onGapDrop}
           active={isTarget(null)}
+          inset={inset}
         />
       )}
       {!readOnly && (
-        <FlexRow sx={{ marginLeft: `${TEXT_INSET}px` }}>
+        <FlexRow sx={{ marginLeft: `${inset}px` }}>
           <EditorButton
             size="small"
             variant="text"
@@ -287,6 +300,8 @@ const ScriptDocumentPane = ({
   scriptId,
   readOnly
 }: ScriptDocumentPaneProps) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const { sections, timelineId } = useScript(scriptId);
   const addLine = useScriptStore((s) => s.addLine);
   const addSection = useScriptStore((s) => s.addSection);
@@ -462,9 +477,10 @@ const ScriptDocumentPane = ({
       <FlexRow
         align="center"
         gap={SPACING.sm}
+        wrap={isMobile}
         sx={{
           paddingY: SPACING.sm,
-          paddingX: SPACING.md,
+          paddingX: isMobile ? SPACING.sm : SPACING.md,
           borderBottom: "1px solid",
           borderColor: "divider",
           position: "sticky",
@@ -577,7 +593,10 @@ const ScriptDocumentPane = ({
       <FlexColumn
         gap={SPACING.xxl}
         style={{ maxWidth: 780, width: "100%", margin: "0 auto" }}
-        sx={{ paddingX: SPACING.xl, paddingY: SPACING.xl }}
+        sx={{
+          paddingX: isMobile ? SPACING.sm : SPACING.xl,
+          paddingY: isMobile ? SPACING.md : SPACING.xl
+        }}
       >
         {isEmpty && (
           <EmptyState
@@ -594,12 +613,16 @@ const ScriptDocumentPane = ({
             section={section}
             currentLineId={currentLineId}
             readOnly={readOnly}
+            mobile={isMobile}
             dnd={dnd}
             onKeyNav={onLineKeyNav}
           />
         ))}
         {!readOnly && !isEmpty && (
-          <FlexRow gap={SPACING.sm} sx={{ marginLeft: `${TEXT_INSET}px` }}>
+          <FlexRow
+            gap={SPACING.sm}
+            sx={{ marginLeft: isMobile ? 0 : `${TEXT_INSET}px` }}
+          >
             <EditorButton
               size="small"
               variant="text"
