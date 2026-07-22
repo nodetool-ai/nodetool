@@ -37,7 +37,8 @@ import {
   DisplayFrameCoordinator,
   useCanvasImperativeHandle,
   useTransformPreviewBridge,
-  useCanvasOrchestration
+  useCanvasOrchestration,
+  useCanvasTouchGestures
 } from "./sketchCanvasHooks";
 import { clientToDocumentCanvas } from "./tools/transform/handleGeometry";
 import type { StrokeEndOptions } from "./tools/types";
@@ -463,21 +464,88 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       ]
     );
 
+    // `pointerHandlers` (from useCanvasOrchestration) is a fresh object each
+    // render, but the handlers inside it are useCallback-stable. Destructure
+    // the ones the wrappers below call so the wrappers depend on stable
+    // function identities, not the churning object — keeping SketchCanvas-
+    // Presentation's memoization intact.
+    const {
+      handlePointerDown: drawPointerDown,
+      handlePointerMove: drawPointerMove,
+      handlePointerUp: drawPointerUp,
+      cancelDrawing
+    } = pointerHandlers;
+
+    // Two-finger pan / pinch-zoom. Runs before the drawing handlers and, once a
+    // pinch begins, consumes the touch events so a gesture never paints. The
+    // hook returns a fresh object each render, so destructure the individually
+    // memoized handlers and depend on those (not the wrapper object) to keep
+    // the pointer callbacks stable for the memoized presentation layer.
+    const {
+      onPointerDown: onGesturePointerDown,
+      onPointerMove: onGesturePointerMove,
+      onPointerUp: onGesturePointerUp,
+      onPointerCancel: onGesturePointerCancel
+    } = useCanvasTouchGestures({
+      containerRef,
+      zoom,
+      pan,
+      onZoomChange,
+      onPanChange,
+      cancelDrawing
+    });
+
     const handlePointerMoveWithCoords = useCallback(
       (e: React.PointerEvent) => {
         lastPointerClientRef.current = { x: e.clientX, y: e.clientY };
-        pointerHandlers.handlePointerMove(e);
+        if (onGesturePointerMove(e)) {
+          return;
+        }
+        drawPointerMove(e);
         updateCursorDocPosFromClient(e.clientX, e.clientY);
       },
-      [lastPointerClientRef, pointerHandlers, updateCursorDocPosFromClient]
+      [
+        lastPointerClientRef,
+        drawPointerMove,
+        onGesturePointerMove,
+        updateCursorDocPosFromClient
+      ]
     );
 
     const handlePointerDownWithClient = useCallback(
       (e: React.PointerEvent) => {
         lastPointerClientRef.current = { x: e.clientX, y: e.clientY };
-        pointerHandlers.handlePointerDown(e);
+        if (onGesturePointerDown(e)) {
+          return;
+        }
+        drawPointerDown(e);
       },
-      [lastPointerClientRef, pointerHandlers]
+      [lastPointerClientRef, drawPointerDown, onGesturePointerDown]
+    );
+
+    const handlePointerUpWithGesture = useCallback(
+      (e: React.PointerEvent) => {
+        if (onGesturePointerUp(e)) {
+          return;
+        }
+        drawPointerUp(e);
+      },
+      [drawPointerUp, onGesturePointerUp]
+    );
+
+    // pointercancel (OS interrupts the touch, or pointer capture is lost) must
+    // tear down the gesture refs so a later touch isn't consumed by a stuck
+    // "always active" gesture. When it wasn't a gesture, the input sequence was
+    // aborted — discard the in-progress stroke via cancelDrawing() rather than
+    // committing it like a normal pointerup would.
+    const handlePointerCancelWithGesture = useCallback(
+      (e: React.PointerEvent) => {
+        if (onGesturePointerCancel(e)) {
+          return;
+        }
+        cancelDrawing();
+      },
+      [cancelDrawing, onGesturePointerCancel]
     );
 
     const handleMouseLeaveWithCoords = useCallback(() => {
@@ -517,7 +585,8 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         containerCursor={pointerHandlers.containerCursor}
         onPointerDown={handlePointerDownWithClient}
         onPointerMove={handlePointerMoveWithCoords}
-        onPointerUp={pointerHandlers.handlePointerUp}
+        onPointerUp={handlePointerUpWithGesture}
+        onPointerCancel={handlePointerCancelWithGesture}
         onDoubleClick={pointerHandlers.handleDoubleClick}
         onPointerLeave={pointerHandlers.handlePointerLeave}
         onMouseLeave={handleMouseLeaveWithCoords}

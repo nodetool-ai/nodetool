@@ -14,6 +14,7 @@ export { useExportSyncActions } from "./useExportSyncActions";
 export { useCanvasGeometryActions } from "./useCanvasGeometryActions";
 export { useColorActions } from "./useColorActions";
 export { useColorIntentRouter } from "./useColorIntentRouter";
+export { useSketchIsMobile } from "./useSketchIsMobile";
 export { useSegmentation } from "./useSegmentation";
 export { useEditorLifecycle } from "./useEditorLifecycle";
 export { useToolChromeActions } from "./useToolChromeActions";

@@ -22,6 +22,16 @@ export interface UiSlice {
   toggleAssistantPanel: () => void;
   setAssistantPanelOpen: (open: boolean) => void;
 
+  /**
+   * Whether the mobile panels sheet (color / layers / canvas) is open. On
+   * narrow viewports the right column can't sit beside the canvas, so it moves
+   * into a bottom sheet toggled by this flag. Ignored on desktop, where the
+   * column is docked (and hidden only by the `panelsHidden` chrome toggle).
+   */
+  mobilePanelsOpen: boolean;
+  toggleMobilePanels: () => void;
+  setMobilePanelsOpen: (open: boolean) => void;
+
   /** Cleared whenever a single layer is chosen exclusively (normal click). */
   selectedLayerIds: string[];
   /**
@@ -74,6 +84,11 @@ export const createUiSlice: StateCreator<SketchStore, [], [], UiSlice> = (
   toggleAssistantPanel: () =>
     set((state) => ({ assistantPanelOpen: !state.assistantPanelOpen })),
   setAssistantPanelOpen: (open: boolean) => set({ assistantPanelOpen: open }),
+
+  mobilePanelsOpen: false,
+  toggleMobilePanels: () =>
+    set((state) => ({ mobilePanelsOpen: !state.mobilePanelsOpen })),
+  setMobilePanelsOpen: (open: boolean) => set({ mobilePanelsOpen: open }),
 
   selectedLayerIds: [] as string[],
   layerShiftRangeAnchorId: null as string | null,

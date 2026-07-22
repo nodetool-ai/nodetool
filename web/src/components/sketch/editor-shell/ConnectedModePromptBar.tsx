@@ -239,6 +239,11 @@ const ConnectedModePromptBarInner: React.FC<ConnectedModePromptBarProps> = ({
           // height than the utility tool-options bar below it. Generous
           // vertical room keeps the controls from feeling crammed.
           minHeight: 56,
+          // On narrow screens the prompt + model/size chips + actions can't fit
+          // on one line, so wrap them (prompt takes the first row via flex:1,
+          // controls flow onto the next) instead of overflowing off-screen.
+          flexWrap: "wrap",
+          rowGap: SKETCH_SPACING.md,
           padding: `${SKETCH_SPACING.lg} ${SKETCH_SPACING.xl}`,
           backgroundColor: theme.vars.palette.grey[900],
           borderBottom: `1px solid ${theme.vars.palette.grey[800]}`
