@@ -143,22 +143,21 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
             borderBottom: `1px solid ${theme.vars.palette.divider}`
           }}
         />
-        <div style={{ flex: 1, minHeight: 0, display: "flex" }}>
+        {/* One pane visible at a time; each fills the switcher body and its
+            child owns the layout, so plain block boxes (toggled via display)
+            suffice — no flex wrapper needed. */}
+        <div style={{ flex: 1, minHeight: 0 }}>
           <div
             style={{
-              flex: 1,
-              minWidth: 0,
-              minHeight: 0,
-              display: mobilePane === "boards" ? "flex" : "none"
+              height: "100%",
+              display: mobilePane === "boards" ? "block" : "none"
             }}
           >
             <StoryboardSidebar activeBoardId={refId} />
           </div>
           <div
             style={{
-              flex: 1,
-              minWidth: 0,
-              minHeight: 0,
+              height: "100%",
               display: mobilePane === "board" ? "block" : "none"
             }}
           >
@@ -166,10 +165,8 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
           </div>
           <div
             style={{
-              flex: 1,
-              minWidth: 0,
-              minHeight: 0,
-              display: mobilePane === "assistant" ? "flex" : "none"
+              height: "100%",
+              display: mobilePane === "assistant" ? "block" : "none"
             }}
           >
             <StoryboardAgentPanel boardId={refId} />
