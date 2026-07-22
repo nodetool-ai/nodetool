@@ -23,5 +23,9 @@ export const navigateTo = (to: string): void => {
     void appRouter.navigate(to);
     return;
   }
-  window.location.assign(to);
+  // No router registered (preview harness, or a node-environment test where
+  // `window` is undefined). Fall back to a location change only in the DOM.
+  if (typeof window !== "undefined") {
+    window.location.assign(to);
+  }
 };
