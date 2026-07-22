@@ -559,6 +559,8 @@ function SettingsPage() {
                 onChange={handleTabChange}
                 className="settings-tabs"
                 aria-label="settings tabs"
+                variant={isMobile ? "scrollable" : "standard"}
+                scrollButtons={false}
               >
                 <Tab label="General" id="settings-tab-0" />
                 <Tab label="API Keys" id="settings-tab-1" />

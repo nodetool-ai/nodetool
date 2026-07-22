@@ -1,5 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useState, useCallback, useMemo } from "react";
+import { useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -482,6 +483,7 @@ export const ProviderCard = memo(function ProviderCard({
   onDelete
 }: ProviderCardProps) {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const oauth = useOAuthConnection(meta.oauth ?? null);
   const isConnected = secret.is_configured;
 
@@ -503,7 +505,10 @@ export const ProviderCard = memo(function ProviderCard({
       padding="compact"
       sx={{
         display: "flex",
-        alignItems: "center",
+        // Stack on mobile so the status band + action buttons drop below the
+        // icon/info instead of overflowing the narrow row.
+        flexDirection: isMobile ? "column" : "row",
+        alignItems: isMobile ? "stretch" : "center",
         gap: theme.spacing(3),
         borderRadius: BORDER_RADIUS.lg,
         border: `1px solid ${theme.vars.palette.divider}`,
@@ -515,6 +520,8 @@ export const ProviderCard = memo(function ProviderCard({
         }
       }}
     >
+      {/* Icon + info stay a row even when the card stacks on mobile. */}
+      <FlexRow align="center" gap={3} sx={{ flex: 1, minWidth: 0 }}>
       {/* Icon */}
       <FlexRow
         align="center"
@@ -584,10 +591,18 @@ export const ProviderCard = memo(function ProviderCard({
           </Caption>
         )}
       </FlexColumn>
+      </FlexRow>
 
-      {/* Status + Actions — one vertically centered band */}
-      <FlexRow align="center" gap={3} sx={{ flexShrink: 0 }}>
-        <FlexColumn align="flex-end" gap={1}>
+      {/* Status + Actions — one vertically centered band. On mobile it drops
+          below the icon/info and spreads full width, letting the action
+          buttons wrap instead of overflowing. */}
+      <FlexRow
+        align="center"
+        gap={3}
+        justify={isMobile ? "space-between" : "flex-start"}
+        sx={{ flexShrink: 0, flexWrap: "wrap" }}
+      >
+        <FlexColumn align={isMobile ? "flex-start" : "flex-end"} gap={1}>
           <FlexRow
             align="center"
             gap={1}
@@ -660,7 +675,7 @@ export const ProviderCard = memo(function ProviderCard({
           )}
         </FlexColumn>
 
-        <FlexRow align="center" gap={0.5}>
+        <FlexRow align="center" gap={0.5} sx={{ flexWrap: "wrap" }}>
           <EditorButton
             density="compact"
             variant="text"
