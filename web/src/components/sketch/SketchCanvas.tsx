@@ -464,6 +464,18 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       ]
     );
 
+    // `pointerHandlers` (from useCanvasOrchestration) is a fresh object each
+    // render, but the handlers inside it are useCallback-stable. Destructure
+    // the ones the wrappers below call so the wrappers depend on stable
+    // function identities, not the churning object — keeping SketchCanvas-
+    // Presentation's memoization intact.
+    const {
+      handlePointerDown: drawPointerDown,
+      handlePointerMove: drawPointerMove,
+      handlePointerUp: drawPointerUp,
+      cancelDrawing
+    } = pointerHandlers;
+
     // Two-finger pan / pinch-zoom. Runs before the drawing handlers and, once a
     // pinch begins, consumes the touch events so a gesture never paints. The
     // hook returns a fresh object each render, so destructure the individually
@@ -480,7 +492,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
       pan,
       onZoomChange,
       onPanChange,
-      cancelDrawing: pointerHandlers.cancelDrawing
+      cancelDrawing
     });
 
     const handlePointerMoveWithCoords = useCallback(
@@ -489,12 +501,12 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         if (onGesturePointerMove(e)) {
           return;
         }
-        pointerHandlers.handlePointerMove(e);
+        drawPointerMove(e);
         updateCursorDocPosFromClient(e.clientX, e.clientY);
       },
       [
         lastPointerClientRef,
-        pointerHandlers,
+        drawPointerMove,
         onGesturePointerMove,
         updateCursorDocPosFromClient
       ]
@@ -506,9 +518,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         if (onGesturePointerDown(e)) {
           return;
         }
-        pointerHandlers.handlePointerDown(e);
+        drawPointerDown(e);
       },
-      [lastPointerClientRef, pointerHandlers, onGesturePointerDown]
+      [lastPointerClientRef, drawPointerDown, onGesturePointerDown]
     );
 
     const handlePointerUpWithGesture = useCallback(
@@ -516,9 +528,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         if (onGesturePointerUp(e)) {
           return;
         }
-        pointerHandlers.handlePointerUp(e);
+        drawPointerUp(e);
       },
-      [pointerHandlers, onGesturePointerUp]
+      [drawPointerUp, onGesturePointerUp]
     );
 
     // pointercancel (OS interrupts the touch, or pointer capture is lost) must
@@ -530,9 +542,9 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         if (onGesturePointerCancel(e)) {
           return;
         }
-        pointerHandlers.handlePointerUp(e);
+        drawPointerUp(e);
       },
-      [pointerHandlers, onGesturePointerCancel]
+      [drawPointerUp, onGesturePointerCancel]
     );
 
     const handleMouseLeaveWithCoords = useCallback(() => {
