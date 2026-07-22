@@ -485,8 +485,10 @@ npm run dev:nodetool -- assets get <asset_id>                   # Asset details
 
 ### nodetool collections (RAG Vector Store)
 
-Requires a running server. Manages the vector-store collections that back RAG:
-CRUD, document indexing, and semantic search.
+Manages the vector-store collections that back RAG: CRUD, document indexing,
+and semantic search. Runs in-process against the default vector provider
+(sqlite-vec unless `NODETOOL_VECTOR_PROVIDER` points elsewhere) — no server
+needed.
 
 ```bash
 npm run dev:nodetool -- collections list                        # List collections + counts
@@ -499,8 +501,8 @@ npm run dev:nodetool -- collections delete my_docs --yes        # Delete (skip c
 
 ### nodetool costs
 
-Requires a running server. Aggregates the per-call cost/token records NodeTool
-tracks for every LLM call.
+Aggregates the per-call cost/token records NodeTool tracks for every LLM call,
+read straight from the local DB — no server needed.
 
 ```bash
 npm run dev:nodetool -- costs summary                           # Overall + per-provider/model

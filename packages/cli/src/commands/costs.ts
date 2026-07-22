@@ -1,30 +1,16 @@
 /**
  * `nodetool costs` — inspect LLM/provider spend tracked in the local DB.
  *
- * Reads the tRPC `costs` router on a running server (default
- * http://localhost:7777). Every LLM call NodeTool makes is recorded as a
+ * Reads the local SQLite `predictions` table directly (in-process), so it works
+ * without a running server. Every LLM call NodeTool makes is recorded as a
  * Prediction with token counts and cost; these commands aggregate them.
  */
 
 import type { Command } from "commander";
-import { createTRPCClient, httpBatchLink } from "@trpc/client";
-import type { AppRouter } from "@nodetool-ai/websocket/trpc";
+import { Prediction } from "@nodetool-ai/models";
 
 import { asJson, printTable, printKv } from "./output.js";
-
-const DEFAULT_API_URL =
-  process.env["NODETOOL_API_URL"] ?? "http://localhost:7777";
-
-function apiClient(apiUrl: string) {
-  return createTRPCClient<AppRouter>({
-    links: [
-      httpBatchLink({
-        url: `${apiUrl}/trpc`,
-        methodOverride: "POST"
-      })
-    ]
-  });
-}
+import { setupLocalDb, LOCAL_USER_ID } from "./local-db.js";
 
 function fail(e: unknown): never {
   console.error(String(e instanceof Error ? e.message : e));
@@ -43,24 +29,28 @@ export function registerCostsCommands(program: Command): void {
   costs
     .command("summary")
     .description("Overall spend plus per-provider and per-model breakdowns")
-    .option("--api-url <url>", "API base URL", DEFAULT_API_URL)
     .option("--json", "Output as JSON")
-    .action(async (opts: { apiUrl: string; json?: boolean }) => {
+    .action(async (opts: { json?: boolean }) => {
       try {
-        const data = await apiClient(opts.apiUrl).costs.summary.query();
+        await setupLocalDb();
+        const [overall, byProvider, byModel] = await Promise.all([
+          Prediction.aggregateByUser(LOCAL_USER_ID),
+          Prediction.aggregateByProvider(LOCAL_USER_ID),
+          Prediction.aggregateByModel(LOCAL_USER_ID)
+        ]);
         if (opts.json) {
-          asJson(data);
+          asJson({ overall, by_provider: byProvider, by_model: byModel });
           return;
         }
         console.log("\nOverall");
         printKv({
-          total_cost: usd(data.overall.total_cost),
-          total_tokens: data.overall.total_tokens,
-          calls: data.overall.call_count
+          total_cost: usd(overall.total_cost),
+          total_tokens: overall.total_tokens,
+          calls: overall.call_count
         });
         console.log("\nBy provider");
         printTable(
-          data.by_provider.map((p) => ({
+          byProvider.map((p) => ({
             provider: p.provider,
             cost: usd(p.total_cost),
             tokens: p.total_tokens,
@@ -69,7 +59,7 @@ export function registerCostsCommands(program: Command): void {
         );
         console.log("\nBy model");
         printTable(
-          data.by_model.map((m) => ({
+          byModel.map((m) => ({
             provider: m.provider,
             model: m.model,
             cost: usd(m.total_cost),
@@ -89,11 +79,9 @@ export function registerCostsCommands(program: Command): void {
     .option("--provider <name>", "Filter by provider")
     .option("--model <id>", "Filter by model")
     .option("--limit <n>", "Max results", "50")
-    .option("--api-url <url>", "API base URL", DEFAULT_API_URL)
     .option("--json", "Output as JSON")
     .action(
       async (opts: {
-        apiUrl: string;
         provider?: string;
         model?: string;
         limit: string;
@@ -105,17 +93,18 @@ export function registerCostsCommands(program: Command): void {
           process.exit(1);
         }
         try {
-          const data = await apiClient(opts.apiUrl).costs.list.query({
+          await setupLocalDb();
+          const [calls] = await Prediction.paginate(LOCAL_USER_ID, {
             limit,
             ...(opts.provider ? { provider: opts.provider } : {}),
             ...(opts.model ? { model: opts.model } : {})
           });
           if (opts.json) {
-            asJson(data);
+            asJson(calls);
             return;
           }
           printTable(
-            data.calls.map((c) => ({
+            calls.map((c) => ({
               created_at: c.created_at ?? "",
               provider: c.provider,
               model: c.model,
@@ -133,12 +122,11 @@ export function registerCostsCommands(program: Command): void {
   costs
     .command("by-provider")
     .description("Aggregate spend grouped by provider")
-    .option("--api-url <url>", "API base URL", DEFAULT_API_URL)
     .option("--json", "Output as JSON")
-    .action(async (opts: { apiUrl: string; json?: boolean }) => {
+    .action(async (opts: { json?: boolean }) => {
       try {
-        const data =
-          await apiClient(opts.apiUrl).costs.aggregateByProvider.query();
+        await setupLocalDb();
+        const data = await Prediction.aggregateByProvider(LOCAL_USER_ID);
         if (opts.json) {
           asJson(data);
           return;
@@ -161,31 +149,30 @@ export function registerCostsCommands(program: Command): void {
     .command("by-model")
     .description("Aggregate spend grouped by model")
     .option("--provider <name>", "Filter by provider")
-    .option("--api-url <url>", "API base URL", DEFAULT_API_URL)
     .option("--json", "Output as JSON")
-    .action(
-      async (opts: { apiUrl: string; provider?: string; json?: boolean }) => {
-        try {
-          const data = await apiClient(opts.apiUrl).costs.aggregateByModel.query(
-            opts.provider ? { provider: opts.provider } : {}
-          );
-          if (opts.json) {
-            asJson(data);
-            return;
-          }
-          printTable(
-            data.map((m) => ({
-              provider: m.provider,
-              model: m.model,
-              cost: usd(m.total_cost),
-              input_tokens: m.total_input_tokens,
-              output_tokens: m.total_output_tokens,
-              calls: m.call_count
-            }))
-          );
-        } catch (e) {
-          fail(e);
+    .action(async (opts: { provider?: string; json?: boolean }) => {
+      try {
+        await setupLocalDb();
+        const data = await Prediction.aggregateByModel(
+          LOCAL_USER_ID,
+          opts.provider ? { provider: opts.provider } : {}
+        );
+        if (opts.json) {
+          asJson(data);
+          return;
         }
+        printTable(
+          data.map((m) => ({
+            provider: m.provider,
+            model: m.model,
+            cost: usd(m.total_cost),
+            input_tokens: m.total_input_tokens,
+            output_tokens: m.total_output_tokens,
+            calls: m.call_count
+          }))
+        );
+      } catch (e) {
+        fail(e);
       }
-    );
+    });
 }

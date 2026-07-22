@@ -1,38 +1,42 @@
 /**
  * `nodetool collections` — manage RAG vector-store collections.
  *
- * CRUD + semantic query go through the tRPC `collections` router; document
- * indexing uses the REST multipart endpoint (`POST /api/collections/:name/index`)
- * which tRPC's JSON link can't carry. All commands talk to a running server
- * (default http://localhost:7777), so start one with `nodetool serve` first.
+ * Runs in-process against the default vector provider (sqlite-vec unless
+ * NODETOOL_VECTOR_PROVIDER points elsewhere), so it works without a running
+ * server. Indexing chunks documents with the same splitter the server uses.
  */
 
 import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
 import type { Command } from "commander";
-import { createTRPCClient, httpBatchLink } from "@trpc/client";
-import type { AppRouter } from "@nodetool-ai/websocket/trpc";
+import {
+  getDefaultVectorProvider,
+  splitDocument,
+  CollectionNotFoundError
+} from "@nodetool-ai/vectorstore";
+import { Workflow } from "@nodetool-ai/models";
 
 import { asJson, printTable, printKv, confirm } from "./output.js";
-
-const DEFAULT_API_URL =
-  process.env["NODETOOL_API_URL"] ?? "http://localhost:7777";
-
-function apiClient(apiUrl: string) {
-  return createTRPCClient<AppRouter>({
-    links: [
-      httpBatchLink({
-        url: `${apiUrl}/trpc`,
-        // POST keeps batched input in the body, under reverse-proxy URL limits.
-        methodOverride: "POST"
-      })
-    ]
-  });
-}
+import { setupLocalDb } from "./local-db.js";
 
 function fail(e: unknown): never {
+  if (e instanceof CollectionNotFoundError) {
+    console.error(e.message);
+    process.exit(1);
+  }
   console.error(String(e instanceof Error ? e.message : e));
   process.exit(1);
+}
+
+/** Resolve a workflow's name from an id, forgivingly (null on any failure). */
+async function workflowName(id: unknown): Promise<string | null> {
+  if (typeof id !== "string" || !id) return null;
+  try {
+    const wf = (await Workflow.get(id)) as { name?: string } | null;
+    return wf?.name ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export function registerCollectionCommands(program: Command): void {
@@ -43,23 +47,34 @@ export function registerCollectionCommands(program: Command): void {
   collections
     .command("list")
     .description("List collections with document counts")
-    .option("--api-url <url>", "API base URL", DEFAULT_API_URL)
     .option("--json", "Output as JSON")
-    .action(async (opts: { apiUrl: string; json?: boolean }) => {
+    .action(async (opts: { json?: boolean }) => {
       try {
-        const data = await apiClient(opts.apiUrl).collections.list.query();
+        await setupLocalDb();
+        const provider = getDefaultVectorProvider();
+        const infos = await provider.listCollections();
+        const rows = [];
+        for (const info of infos) {
+          try {
+            const collection = await provider.getCollection({ name: info.name });
+            const count = await collection.count();
+            const metadata = info.metadata ?? {};
+            rows.push({
+              name: info.name,
+              count,
+              embedding_model: metadata["embedding_model"] ?? "",
+              workflow:
+                (await workflowName(metadata["workflow"])) ?? ""
+            });
+          } catch {
+            // Skip a collection that races a delete between list and get.
+          }
+        }
         if (opts.json) {
-          asJson(data);
+          asJson(rows);
           return;
         }
-        printTable(
-          data.collections.map((c) => ({
-            name: c.name,
-            count: c.count,
-            embedding_model: c.metadata["embedding_model"] ?? "",
-            workflow: c.workflow_name ?? ""
-          }))
-        );
+        printTable(rows);
       } catch (e) {
         fail(e);
       }
@@ -68,16 +83,20 @@ export function registerCollectionCommands(program: Command): void {
   collections
     .command("get <name>")
     .description("Show a collection's metadata and document count")
-    .option("--api-url <url>", "API base URL", DEFAULT_API_URL)
     .option("--json", "Output as JSON")
-    .action(async (name: string, opts: { apiUrl: string; json?: boolean }) => {
+    .action(async (name: string, opts: { json?: boolean }) => {
       try {
-        const data = await apiClient(opts.apiUrl).collections.get.query({ name });
+        await setupLocalDb();
+        const collection = await getDefaultVectorProvider().getCollection({
+          name
+        });
+        const count = await collection.count();
+        const metadata = collection.metadata ?? {};
         if (opts.json) {
-          asJson(data);
+          asJson({ name: collection.name, count, metadata });
           return;
         }
-        printKv({ name: data.name, count: data.count, ...data.metadata });
+        printKv({ name: collection.name, count, ...metadata });
       } catch (e) {
         fail(e);
       }
@@ -88,33 +107,32 @@ export function registerCollectionCommands(program: Command): void {
     .description("Create a collection")
     .option("--embedding-model <model>", "Embedding model id")
     .option("--embedding-provider <provider>", "Embedding provider id")
-    .option("--api-url <url>", "API base URL", DEFAULT_API_URL)
     .option("--json", "Output as JSON")
     .action(
       async (
         name: string,
         opts: {
-          apiUrl: string;
           embeddingModel?: string;
           embeddingProvider?: string;
           json?: boolean;
         }
       ) => {
         try {
-          const data = await apiClient(opts.apiUrl).collections.create.mutate({
+          await setupLocalDb();
+          const metadata: Record<string, string> = {};
+          if (opts.embeddingModel)
+            metadata["embedding_model"] = opts.embeddingModel;
+          if (opts.embeddingProvider)
+            metadata["embedding_provider"] = opts.embeddingProvider;
+          const collection = await getDefaultVectorProvider().createCollection({
             name,
-            ...(opts.embeddingModel
-              ? { embedding_model: opts.embeddingModel }
-              : {}),
-            ...(opts.embeddingProvider
-              ? { embedding_provider: opts.embeddingProvider }
-              : {})
+            metadata
           });
           if (opts.json) {
-            asJson(data);
+            asJson({ name: collection.name, metadata: collection.metadata });
             return;
           }
-          console.log(`Created collection '${data.name}'.`);
+          console.log(`Created collection '${collection.name}'.`);
         } catch (e) {
           fail(e);
         }
@@ -125,76 +143,68 @@ export function registerCollectionCommands(program: Command): void {
     .command("delete <name>")
     .description("Delete a collection and all its documents")
     .option("-y, --yes", "Skip the confirmation prompt")
-    .option("--api-url <url>", "API base URL", DEFAULT_API_URL)
     .option("--json", "Output as JSON")
-    .action(
-      async (
-        name: string,
-        opts: { apiUrl: string; yes?: boolean; json?: boolean }
-      ) => {
-        try {
-          const ok = await confirm(
-            `Delete collection '${name}' and all its documents?`,
-            { force: opts.yes }
-          );
-          if (!ok) {
-            console.error("Aborted.");
-            process.exit(1);
-          }
-          const data = await apiClient(opts.apiUrl).collections.delete.mutate({
-            name
-          });
-          if (opts.json) {
-            asJson(data);
-            return;
-          }
-          console.log(data.message);
-        } catch (e) {
-          fail(e);
+    .action(async (name: string, opts: { yes?: boolean; json?: boolean }) => {
+      try {
+        const ok = await confirm(
+          `Delete collection '${name}' and all its documents?`,
+          { force: opts.yes }
+        );
+        if (!ok) {
+          console.error("Aborted.");
+          process.exit(1);
         }
+        await setupLocalDb();
+        await getDefaultVectorProvider().deleteCollection(name);
+        const message = `Collection ${name} deleted successfully`;
+        if (opts.json) {
+          asJson({ message });
+          return;
+        }
+        console.log(message);
+      } catch (e) {
+        fail(e);
       }
-    );
+    });
 
   collections
     .command("query <name> <text...>")
     .description("Semantic search over a collection")
-    .option("-n, --n-results <n>", "Number of results per query", "10")
-    .option("--api-url <url>", "API base URL", DEFAULT_API_URL)
+    .option("-n, --n-results <n>", "Number of results", "10")
     .option("--json", "Output as JSON")
     .action(
       async (
         name: string,
         text: string[],
-        opts: { apiUrl: string; nResults: string; json?: boolean }
+        opts: { nResults: string; json?: boolean }
       ) => {
+        const nResults = Number.parseInt(opts.nResults, 10);
+        if (!Number.isFinite(nResults) || nResults <= 0) {
+          console.error(`Invalid --n-results value: ${opts.nResults}`);
+          process.exit(1);
+        }
         try {
-          const nResults = Number.parseInt(opts.nResults, 10);
-          if (!Number.isFinite(nResults) || nResults <= 0) {
-            console.error(`Invalid --n-results value: ${opts.nResults}`);
-            process.exit(1);
-          }
-          const query = text.join(" ");
-          const data = await apiClient(opts.apiUrl).collections.query.query({
-            name,
-            query_texts: [query],
-            n_results: nResults
+          await setupLocalDb();
+          const collection = await getDefaultVectorProvider().getCollection({
+            name
+          });
+          const matches = await collection.query({
+            text: text.join(" "),
+            topK: nResults
           });
           if (opts.json) {
-            asJson(data);
+            asJson(matches);
             return;
           }
-          const ids = data.ids[0] ?? [];
-          const documents = data.documents[0] ?? [];
-          const distances = data.distances[0] ?? [];
-          if (ids.length === 0) {
+          if (matches.length === 0) {
             console.log("(no matches)");
             return;
           }
           printTable(
-            ids.map((id, i) => ({
-              id,
-              distance: distances[i]?.toFixed(4) ?? "",
-              document: (documents[i] ?? "").replace(/\s+/g, " ").slice(0, 80)
+            matches.map((m) => ({
+              id: m.id,
+              distance: m.distance?.toFixed(4) ?? "",
+              document: (m.document ?? "").replace(/\s+/g, " ").slice(0, 80)
             }))
           );
         } catch (e) {
@@ -206,42 +216,32 @@ export function registerCollectionCommands(program: Command): void {
   collections
     .command("index <name> <file...>")
     .description("Chunk and index one or more text documents into a collection")
-    .option("--api-url <url>", "API base URL", DEFAULT_API_URL)
     .option("--json", "Output as JSON")
-    .action(
-      async (
-        name: string,
-        files: string[],
-        opts: { apiUrl: string; json?: boolean }
-      ) => {
-        const apiUrl = opts.apiUrl.replace(/\/+$/, "");
+    .action(async (name: string, files: string[], opts: { json?: boolean }) => {
+      try {
+        await setupLocalDb();
+        const collection = await getDefaultVectorProvider().getCollection({
+          name
+        });
         const results: { file: string; chunks: number; error: string }[] = [];
         for (const file of files) {
           try {
-            const bytes = await readFile(file);
-            const form = new FormData();
-            form.append(
-              "file",
-              new Blob([bytes]),
-              basename(file)
-            );
-            const res = await fetch(
-              `${apiUrl}/api/collections/${encodeURIComponent(name)}/index`,
-              { method: "POST", body: form }
-            );
-            const body = (await res.json().catch(() => ({}))) as {
-              chunks?: number;
-              detail?: string;
-            };
-            if (!res.ok) {
-              results.push({
-                file,
-                chunks: 0,
-                error: body.detail ?? `HTTP ${res.status}`
-              });
-            } else {
-              results.push({ file, chunks: body.chunks ?? 0, error: "" });
+            const text = await readFile(file, "utf8");
+            const fileName = basename(file);
+            const chunks = splitDocument(text, fileName);
+            if (chunks.length > 0) {
+              await collection.upsert(
+                chunks.map((c, i) => ({
+                  id: `${fileName}#${i}`,
+                  document: c.text,
+                  metadata: {
+                    source: c.source_id,
+                    start_index: String(c.start_index)
+                  }
+                }))
+              );
             }
+            results.push({ file, chunks: chunks.length, error: "" });
           } catch (e) {
             results.push({
               file,
@@ -256,6 +256,8 @@ export function registerCollectionCommands(program: Command): void {
           printTable(results);
         }
         if (results.some((r) => r.error)) process.exit(1);
+      } catch (e) {
+        fail(e);
       }
-    );
+    });
 }
