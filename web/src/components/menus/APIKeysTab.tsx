@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useState, useCallback, useMemo } from "react";
-import { useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -483,7 +482,6 @@ export const ProviderCard = memo(function ProviderCard({
   onDelete
 }: ProviderCardProps) {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const oauth = useOAuthConnection(meta.oauth ?? null);
   const isConnected = secret.is_configured;
 
@@ -505,10 +503,11 @@ export const ProviderCard = memo(function ProviderCard({
       padding="compact"
       sx={{
         display: "flex",
-        // Stack on mobile so the status band + action buttons drop below the
-        // icon/info instead of overflowing the narrow row.
-        flexDirection: isMobile ? "column" : "row",
-        alignItems: isMobile ? "stretch" : "center",
+        // Stack on mobile (<sm) so the status band + action buttons drop below
+        // the icon/info instead of overflowing the narrow row. Pure CSS
+        // breakpoints keep this a layout concern with no per-card matchMedia.
+        flexDirection: { xs: "column", sm: "row" },
+        alignItems: { xs: "stretch", sm: "center" },
         gap: theme.spacing(3),
         borderRadius: BORDER_RADIUS.lg,
         border: `1px solid ${theme.vars.palette.divider}`,
@@ -599,10 +598,16 @@ export const ProviderCard = memo(function ProviderCard({
       <FlexRow
         align="center"
         gap={3}
-        justify={isMobile ? "space-between" : "flex-start"}
-        sx={{ flexShrink: 0, flexWrap: "wrap" }}
+        sx={{
+          flexShrink: 0,
+          flexWrap: "wrap",
+          justifyContent: { xs: "space-between", sm: "flex-start" }
+        }}
       >
-        <FlexColumn align={isMobile ? "flex-start" : "flex-end"} gap={1}>
+        <FlexColumn
+          gap={1}
+          sx={{ alignItems: { xs: "flex-start", sm: "flex-end" } }}
+        >
           <FlexRow
             align="center"
             gap={1}
