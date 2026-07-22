@@ -117,25 +117,30 @@ export function collectPageLoadErrors(page: Page): PageLoadError[] {
     // Only a failed document/script/stylesheet load white-screens a page. A
     // failed xhr/fetch/websocket (e.g. the transient /ws/agent socket) is
     // data-level and handled elsewhere, so scope this to the same critical
-    // resource types as the `response` listener.
+    // resource types as the `response` listener. Once scoped, always record:
+    // the console allowlist is for noisy non-critical logs, and applying it
+    // here could mask a real script/document failure (e.g. net::ERR_ABORTED
+    // on a JS chunk).
     if (!CRITICAL_RESOURCE_TYPES.has(request.resourceType())) return;
     const failure = request.failure();
-    const text = `${request.method()} ${request.url()} — ${
-      failure?.errorText ?? "failed"
-    }`;
-    if (!isIgnoredMessage(text)) {
-      errors.push({ kind: "requestfailed", text });
-    }
+    errors.push({
+      kind: "requestfailed",
+      text: `${request.method()} ${request.url()} — ${
+        failure?.errorText ?? "failed"
+      }`,
+    });
   });
 
   page.on("response", (response) => {
     const status = response.status();
     if (status < 400) return;
     if (!CRITICAL_RESOURCE_TYPES.has(response.request().resourceType())) return;
-    const text = `${status} ${response.request().resourceType()} ${response.url()}`;
-    if (!isIgnoredMessage(text)) {
-      errors.push({ kind: "badresponse", text });
-    }
+    // Scoped to critical resources — a 4xx/5xx here is always actionable, so
+    // don't run it through the console allowlist.
+    errors.push({
+      kind: "badresponse",
+      text: `${status} ${response.request().resourceType()} ${response.url()}`,
+    });
   });
 
   return errors;
