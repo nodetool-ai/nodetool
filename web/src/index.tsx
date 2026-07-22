@@ -56,7 +56,7 @@ import { initAnalytics } from "./lib/analytics";
 import { initSupabaseFromConfig } from "./lib/supabaseClient";
 import { initKeyListeners } from "./stores/KeyPressedStore";
 import useRemoteSettingsStore from "./stores/RemoteSettingStore";
-import { loadMetadata } from "./serverState/useMetadata";
+import { loadMetadata, prefetchMetadata } from "./serverState/useMetadata";
 import { WorkflowManagerProvider } from "./contexts/WorkflowManagerContext";
 import KeyboardProvider from "./components/KeyboardProvider";
 import { MenuProvider } from "./providers/MenuProvider";
@@ -570,8 +570,9 @@ const MenuNavigationBridge = () => {
   return null;
 };
 
-const AppWrapper = () => {
+const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
   const [status, setStatus] = useState<string>("pending");
+  const [configLoaded, setConfigLoaded] = useState(false);
   const authState = useAuth((s) => s.state);
 
   // Allow dev-only test pages to render without backend metadata
@@ -587,6 +588,22 @@ const AppWrapper = () => {
   }, []);
 
   useEffect(() => {
+    let active = true;
+    configReady.then(() => {
+      if (active) setConfigLoaded(true);
+    });
+    return () => {
+      active = false;
+    };
+  }, [configReady]);
+
+  useEffect(() => {
+    // The auth-mode decision below depends on runtime config; wait for it so a
+    // Supabase backend isn't hit with an unauthenticated metadata request.
+    if (!configLoaded) {
+      return;
+    }
+
     // When auth is enforced, wait until the user is logged in before fetching
     // metadata. When logged out, skip metadata so the router can render and
     // redirect to /login.
@@ -605,7 +622,7 @@ const AppWrapper = () => {
         console.error("Failed to load metadata:", error);
         setStatus("error");
       });
-  }, [authState]);
+  }, [authState, configLoaded]);
 
   const shouldRenderRouter =
     isDevTestRoute || status === "success" || status === "logged_out";
@@ -730,22 +747,24 @@ const AppWrapper = () => {
   );
 };
 
-// We need to make the initialization async
-const initialize = async () => {
-  // Learn auth mode and Supabase credentials from the backend before wiring up
-  // the client and auth, so the frontend reflects the server's configuration
-  // without any build-time VITE_* values.
-  const config = await loadRuntimeConfig();
-  initSupabaseFromConfig(config);
+// Start the largest boot payload (node metadata) immediately so its download
+// overlaps the runtime-config round-trip below instead of running after it.
+prefetchMetadata();
 
+// Learn auth mode and Supabase credentials from the backend before wiring up
+// the client and auth, so the frontend reflects the server's configuration
+// without any build-time VITE_* values.
+const configReady = loadRuntimeConfig().then((config) => {
+  initSupabaseFromConfig(config);
   useAuth.getState().initialize();
   initKeyListeners();
-
   // Load Plausible on the production website only (never local/dev/Electron).
   initAnalytics();
+  return config;
+});
+configReady.catch((err) => console.error(err));
 
-  // Render after initialization and prefetching
-  root.render(<AppWrapper />);
-};
-
-initialize().catch((err) => console.error(err));
+// Render the shell right away — the loading spinner appears without waiting on
+// the /api/config round-trip. AppWrapper holds back the router (and any
+// auth-mode metadata decision) until `configReady` resolves.
+root.render(<AppWrapper configReady={configReady} />);

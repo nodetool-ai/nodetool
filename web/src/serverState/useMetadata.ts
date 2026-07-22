@@ -65,10 +65,32 @@ const defaultMetadata: Record<string, NodeMetadata> = {
   }
 };
 
-export const loadMetadata = async (): Promise<"success" | "error"> => {
-  const response = await restFetch(
-    "/api/nodes/metadata?fields=full&limit=10000"
+const METADATA_ENDPOINT = "/api/nodes/metadata?fields=full&limit=10000";
+
+// Node metadata is the largest payload fetched at boot. Left to the render
+// flow it runs strictly after the runtime-config round-trip; firing it here at
+// app start lets its download overlap that round-trip, removing it from the
+// critical path to interactive. The prefetch carries no auth header (auth mode
+// isn't known until config resolves): in Local mode it succeeds and is reused,
+// and when the backend enforces auth it 401s and `loadMetadata` refetches with
+// a token. Cached, and consumed at most once — safe to call repeatedly.
+let prefetchedResponse: Promise<Response | null> | null = null;
+
+export const prefetchMetadata = (): void => {
+  if (prefetchedResponse) return;
+  prefetchedResponse = restFetch(METADATA_ENDPOINT).then(
+    (res) => (res.ok ? res : null),
+    () => null
   );
+};
+
+export const loadMetadata = async (): Promise<"success" | "error"> => {
+  // Take the prefetch at most once; later reloads (package changes, etc.)
+  // fetch fresh so a consumed response body is never read twice.
+  const pending = prefetchedResponse;
+  prefetchedResponse = null;
+  const response =
+    (pending ? await pending : null) ?? (await restFetch(METADATA_ENDPOINT));
   if (!response.ok) {
     console.error(new Error(`Failed to load metadata: ${response.status}`));
     return "error";
