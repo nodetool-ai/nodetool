@@ -53,7 +53,12 @@ export function registerCollectionCommands(program: Command): void {
         await setupLocalDb();
         const provider = getDefaultVectorProvider();
         const infos = await provider.listCollections();
-        const rows = [];
+        const rows: {
+          name: string;
+          count: number;
+          embedding_model: string | number | boolean;
+          workflow: string;
+        }[] = [];
         for (const info of infos) {
           try {
             const collection = await provider.getCollection({ name: info.name });
@@ -230,12 +235,17 @@ export function registerCollectionCommands(program: Command): void {
             const fileName = basename(file);
             const chunks = splitDocument(text, fileName);
             if (chunks.length > 0) {
+              // Derive the record-id prefix from the full path (sanitized) so
+              // two files with the same basename (a/foo.txt, b/foo.txt) don't
+              // collide and overwrite each other's chunks. Re-indexing the same
+              // path stays idempotent.
+              const idPrefix = file.replace(/[^A-Za-z0-9._-]+/g, "_");
               await collection.upsert(
                 chunks.map((c, i) => ({
-                  id: `${fileName}#${i}`,
+                  id: `${idPrefix}#${i}`,
                   document: c.text,
                   metadata: {
-                    source: c.source_id,
+                    source: file,
                     start_index: String(c.start_index)
                   }
                 }))
