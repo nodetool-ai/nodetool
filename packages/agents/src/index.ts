@@ -445,6 +445,16 @@ export type {
   Model3DBridgeFinalState,
   Model3DBridgeInitialState
 } from "./evals/surfaces/model3d.js";
+export {
+  createAppToolBridge,
+  APP_TOOL_LOOP_CASES
+} from "./evals/surfaces/app.js";
+export type {
+  AppBridgeFinalState,
+  AppBridgeInitialState,
+  AppComponentSummary,
+  SeedComponent
+} from "./evals/surfaces/app.js";
 
 // Graph-native planning & execution
 export { evaluateGraphDsl } from "./graph-dsl.js";
