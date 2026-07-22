@@ -33,10 +33,14 @@ interface WidgetTypeDef {
 }
 
 /**
- * The widget catalog, mirroring the Puck config's `components`. Only the
- * type/label/field-kind metadata the `ui_app_*` tools surface matters here —
- * render functions and default props are the browser's concern. Layout widgets
- * (Panel/Columns) carry `slot` fields; nesting a widget targets one of them.
+ * The widget catalog: the full component set from the Puck config
+ * (`web/src/components/appbuilder/puck/config.tsx`), kept 1:1 so a model
+ * discovering types via `ui_app_list_component_types` sees the same catalog the
+ * browser exposes. Only the type/label/field-kind metadata the `ui_app_*` tools
+ * surface matters here — render functions and default props are the browser's
+ * concern. Layout widgets (Panel/Columns) carry `slot` fields; nesting a widget
+ * targets one of them. Keep this in sync when the frontend config's components
+ * change.
  */
 const WIDGET_TYPES: Record<string, WidgetTypeDef> = {
   // ── Display ──
@@ -44,6 +48,9 @@ const WIDGET_TYPES: Record<string, WidgetTypeDef> = {
   Text: { label: "Text", fields: { text: "textarea", binding: "custom" } },
   Markdown: { label: "Markdown", fields: { text: "textarea", binding: "custom" } },
   Image: { label: "Image", fields: { binding: "custom", fit: "select", height: "number", placeholder: "text" } },
+  Audio: { label: "Audio", fields: { binding: "custom", placeholder: "text" } },
+  Video: { label: "Video", fields: { binding: "custom", height: "number", placeholder: "text" } },
+  Json: { label: "JSON", fields: { binding: "custom" } },
   Output: { label: "Output", fields: { binding: "custom", placeholder: "text" } },
   Progress: { label: "Progress", fields: { label: "text", binding: "custom" } },
   // ── Inputs ──
@@ -53,6 +60,11 @@ const WIDGET_TYPES: Record<string, WidgetTypeDef> = {
   Slider: { label: "Slider", fields: { binding: "custom", label: "text", min: "number", max: "number", step: "number", events: "array" } },
   Switch: { label: "Switch", fields: { binding: "custom", label: "text", events: "array" } },
   Select: { label: "Select", fields: { binding: "custom", label: "text", options: "array", events: "array" } },
+  ImageInput: { label: "Image Input", fields: { binding: "custom", label: "text", events: "array" } },
+  AudioInput: { label: "Audio Input", fields: { binding: "custom", label: "text", events: "array" } },
+  VideoInput: { label: "Video Input", fields: { binding: "custom", label: "text", events: "array" } },
+  DocumentInput: { label: "Document Input", fields: { binding: "custom", label: "text", events: "array" } },
+  ColorInput: { label: "Color Input", fields: { binding: "custom", label: "text", events: "array" } },
   // ── Actions ──
   Button: { label: "Button", fields: { label: "text", variant: "select", color: "select", events: "array" } },
   // ── Layout ──
@@ -320,11 +332,9 @@ export function createAppToolBridge(
           .describe("Insertion index within the target list.")
       }),
       async ({ workflow_id: _wf, type, props, parent_id, slot, index }) => {
-        if (!WIDGET_TYPES[type as string]) {
-          throw new Error(
-            `Unknown widget type "${type}". Call ui_app_list_component_types for valid types.`
-          );
-        }
+        // The real tool/handler doesn't validate `type` — Puck inserts whatever
+        // string it's given — so the bridge stays permissive too. An unknown
+        // type just has no slots (SLOT_FIELDS lookup defaults to []).
         const id = nextId(type as string);
         const node: ComponentNode = {
           type: type as string,

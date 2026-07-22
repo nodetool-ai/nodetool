@@ -215,15 +215,18 @@ describe("createAppToolBridge", () => {
     expect(result.error).toMatch(/No widget/);
   });
 
-  it("rejects an unknown widget type on add", async () => {
+  it("adds an unknown widget type permissively (matches the real tool)", async () => {
     const bridge = createAppToolBridge();
     const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
-    await expect(
-      byName["ui_app_add_component"].execute({
-        workflow_id: WF,
-        type: "NotAWidget"
-      })
-    ).rejects.toThrow(/Unknown widget type/);
+    // The real tool/handler doesn't validate type — Puck inserts any string —
+    // so the bridge must not error on an unrecognized type.
+    const added = (await byName["ui_app_add_component"].execute({
+      workflow_id: WF,
+      type: "NotAWidget"
+    })) as { ok: boolean; component: { type: string } };
+    expect(added.ok).toBe(true);
+    expect(added.component.type).toBe("NotAWidget");
+    expect(bridge.finalState().components).toHaveLength(1);
   });
 
   it("selecting an unknown id clears the selection (mirrors Puck)", async () => {
