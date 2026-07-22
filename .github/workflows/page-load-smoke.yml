@@ -1,0 +1,96 @@
+name: Page Load Smoke
+
+on:
+  pull_request:
+    paths:
+      # The web UI it loads, the suite/config itself, and any backend package
+      # (the seeded screenshot backend serves every route's data).
+      - "web/src/**"
+      - "web/tests/smoke/**"
+      - "web/tests/globalSetup.ts"
+      - "web/tests/benchmarks/helpers/**"
+      - "web/playwright.smoke.config.ts"
+      - "web/tsconfig.smoke.json"
+      - "web/tsconfig.e2e.json"
+      - "web/package.json"
+      - "packages/**"
+      - ".github/workflows/page-load-smoke.yml"
+  push:
+    branches: [main]
+    paths:
+      - "web/src/**"
+      - "web/tests/smoke/**"
+      - "web/tests/globalSetup.ts"
+      - "web/tests/benchmarks/helpers/**"
+      - "web/playwright.smoke.config.ts"
+      - "web/tsconfig.smoke.json"
+      - "web/tsconfig.e2e.json"
+      - "web/package.json"
+      - "packages/**"
+      - ".github/workflows/page-load-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Cancel superseded runs for the same branch/PR — the latest push is what matters.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: Load every route without errors
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build workspace packages
+        # The seeded screenshot backend (tests/globalSetup.ts) imports
+        # @nodetool-ai/* via the `development` export condition, which resolves
+        # to each package's compiled dist/. Build them first.
+        run: npm run build:packages
+
+      - name: Type-check smoke suite
+        working-directory: web
+        run: npm run typecheck:smoke
+
+      - name: Install Playwright Chromium browser
+        # mesa-vulkan-drivers ships lavapipe (CPU Vulkan ICD) so headless
+        # Chromium can acquire a WebGPU adapter on GPU-less runners.
+        working-directory: web
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mesa-vulkan-drivers
+          npx playwright install --with-deps chromium
+
+      - name: Run page-load smoke suite
+        working-directory: web
+        env:
+          CI: "true"
+          # Deterministic test-only master key committed in tests/globalSetup.ts.
+          # Never use in production.
+          SECRETS_MASTER_KEY: "U0NSRUVOU0hPVF9URVNUX0tFWV9ET19OT1RfVVNFISE="
+        run: npm run test:smoke
+
+      - name: Upload smoke report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: page-load-smoke-report
+          path: |
+            web/playwright-report/
+            web/test-results/
+          retention-days: 14

@@ -3,6 +3,7 @@ import os from "os";
 import fs from "fs";
 import * as yaml from "js-yaml";
 import { logMessage } from "./logger";
+import type { UpdateChannel } from "./types";
 
 /**
  * Settings record type with string keys and unknown values.
@@ -20,8 +21,6 @@ let settingsCache: SettingsRecord | null = null;
 const UPDATE_CHANNEL_KEY = "updateChannel";
 const UPDATE_CHANNEL_CONFIGURED_BY_USER_KEY = "updateChannelConfiguredByUser";
 const NIGHTLY_VERSION_PATTERN = /-nightly\.\d{8}\.\d+$/;
-
-export type UpdateChannel = "latest" | "nightly";
 
 function isNightlyVersion(version: string): boolean {
   return NIGHTLY_VERSION_PATTERN.test(version);
