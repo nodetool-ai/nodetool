@@ -150,34 +150,51 @@ export function collectPageLoadErrors(page: Page): PageLoadError[] {
  * Wait for the "Loading NodeTool…" overlay (shown until /api/nodes/metadata
  * resolves) to disappear, then a short network-idle + animation settle so
  * late-firing async errors are captured before we assert.
+ *
+ * Throws if the overlay never hides: a route stuck on the boot spinner is a
+ * page-load failure, and swallowing the timeout would let it pass with an
+ * empty error list.
  */
 export async function waitForAppReady(page: Page): Promise<void> {
   const loadingOverlay = page.locator(
     '[role="status"][aria-label="Loading NodeTool"]'
   );
   if ((await loadingOverlay.count()) > 0) {
-    await loadingOverlay
+    const hidden = await loadingOverlay
       .first()
       .waitFor({ state: "hidden", timeout: 30_000 })
-      .catch(() => {});
+      .then(() => true)
+      .catch(() => false);
+    if (!hidden) {
+      throw new Error(
+        `Route stuck on the "Loading NodeTool…" overlay after 30s — the app never finished booting.\nURL: ${page.url()}`
+      );
+    }
   }
   await page.waitForLoadState("networkidle", { timeout: 8_000 }).catch(() => {});
   await waitForAnimation(page, 500);
 }
 
 /**
- * Detect the React Router error boundary. A crashed route renders the fallback
- * instead of the page; surface its text so the failure is actionable.
+ * Detect the app's error-boundary fallback (`src/ErrorBoundary.tsx`). A crashed
+ * route renders it instead of the page. The fallback is Emotion-styled with no
+ * stable class name, so detect via its "Reload page" button — that label is
+ * unique to the boundary, whereas the "Something went wrong" heading is also
+ * an `EmptyState` error-variant title and would false-positive on empty lists.
+ * Surface the error message (behind the collapsed "Show details" toggle, when
+ * present) so the failure is actionable.
  */
 export async function readErrorBoundary(page: Page): Promise<string | null> {
-  const errorEl = page.locator('[class*="errorBoundary"]').first();
-  if ((await errorEl.count()) > 0) {
-    return (await errorEl.innerText().catch(() => "(unreadable)")).slice(0, 400);
-  }
-  if ((await page.getByText("Something went wrong").count()) > 0) {
-    return "Something went wrong";
-  }
-  return null;
+  const hasReloadButton =
+    (await page.getByRole("button", { name: /reload page/i }).count()) > 0;
+  if (!hasReloadButton) return null;
+
+  const summary = page.locator(".error-summary").first();
+  const detail =
+    (await summary.count()) > 0
+      ? (await summary.innerText().catch(() => "")).trim()
+      : "";
+  return `Something went wrong${detail ? ` — ${detail.slice(0, 300)}` : ""}`;
 }
 
 /**
