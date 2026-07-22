@@ -150,6 +150,99 @@ function extForContentType(contentType: string): string | null {
   return null;
 }
 
+/**
+ * Reverse of the ext→mime tables: the extension whose mime matches. Tries the
+ * media tables first (via {@link extForContentType}, which also normalizes
+ * `+suffix` and audio/video aliases), then falls back to a text-document match.
+ * Returns null for an unrecognized mime.
+ */
+function extForMime(mime: string): string | null {
+  const viaMedia = extForContentType(mime);
+  if (viaMedia) return viaMedia;
+  const ct = (mime ?? "").toLowerCase().split(";")[0].trim();
+  for (const [ext, m] of Object.entries(TEXT_EXT_MIME)) {
+    if (m === ct) return ext;
+  }
+  return null;
+}
+
+/** Fallback extension per ref `type` when the mime is missing/unrecognized. */
+const DEFAULT_EXT_BY_KIND: Record<string, string> = {
+  image: "png",
+  audio: "mp3",
+  video: "mp4",
+  document: "txt",
+  text: "txt"
+};
+
+/** Pick an extension for a ref from its mime, else its declared `type`. */
+function extForRef(ref: {
+  type?: unknown;
+  mimeType?: unknown;
+  content_type?: unknown;
+}): string | null {
+  const mime =
+    typeof ref.mimeType === "string"
+      ? ref.mimeType
+      : typeof ref.content_type === "string"
+        ? ref.content_type
+        : "";
+  const byMime = mime ? extForMime(mime) : null;
+  if (byMime) return byMime;
+  const kind = typeof ref.type === "string" ? ref.type.toLowerCase() : "";
+  return Object.hasOwn(DEFAULT_EXT_BY_KIND, kind)
+    ? DEFAULT_EXT_BY_KIND[kind]
+    : null;
+}
+
+/**
+ * Convert a media / document ref — the `{ type, uri, asset_id, mimeType }` shape
+ * image / audio / video / document outputs carry — into the inline
+ * `asset://<id>.<ext>` token the prompt-expansion machinery understands.
+ *
+ * This lets an asset wired into a Prompt node's `{{ variable }}` flow through
+ * the same path as an inline `@`-mention: once rendered, the token is picked up
+ * by {@link expandAssetReferences} (LLM message blocks), `mapPromptAssetsToInputs`
+ * (typed provider inputs), or {@link inlineTextAssetRefs} (text documents),
+ * instead of stringifying to `"[object Object]"`.
+ *
+ * Returns null for values that aren't asset refs (strings, numbers, plain
+ * objects with no `uri`/`asset_id`) so callers fall back to normal stringify.
+ * A ref pointing only at a non-asset uri (http / data / file) yields that uri
+ * verbatim — it won't route as media, but it still beats `"[object Object]"`.
+ */
+export function assetRefToPromptToken(value: unknown): string | null {
+  if (!value || typeof value !== "object") return null;
+  const ref = value as {
+    type?: unknown;
+    uri?: unknown;
+    asset_id?: unknown;
+    mimeType?: unknown;
+    content_type?: unknown;
+  };
+  const uri = typeof ref.uri === "string" ? ref.uri.trim() : "";
+  const assetId = typeof ref.asset_id === "string" ? ref.asset_id.trim() : "";
+
+  if (uri.startsWith("asset://")) {
+    // Drop any query/hash; keep the id (and any existing extension) intact.
+    const id = uri.slice("asset://".length).split(/[?#]/)[0];
+    if (!id) return null;
+    if (id.includes(".")) return `asset://${id}`;
+    const ext = extForRef(ref);
+    return ext ? `asset://${id}.${ext}` : `asset://${id}`;
+  }
+
+  if (assetId) {
+    const ext = extForRef(ref);
+    return ext ? `asset://${assetId}.${ext}` : `asset://${assetId}`;
+  }
+
+  // Asset-less ref that still points somewhere resolvable.
+  if (uri) return uri;
+
+  return null;
+}
+
 export interface PromptAssetRef {
   /** Full `asset://<id>.<ext>` token, trailing sentence punctuation trimmed. */
   uri: string;

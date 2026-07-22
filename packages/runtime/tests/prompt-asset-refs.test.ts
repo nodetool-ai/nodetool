@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  assetRefToPromptToken,
   classifyAssetToken,
   classifyTextToken,
   expandAssetReferences,
@@ -573,5 +574,85 @@ describe("mapPromptAssetsToInputs entity mentions", () => {
       "describe Marta\n\nConsistency references:\n" +
         "- Marta: red-haired detective in a beige trench coat"
     );
+  });
+});
+
+describe("assetRefToPromptToken", () => {
+  it("returns null for non-ref values", () => {
+    expect(assetRefToPromptToken("plain string")).toBeNull();
+    expect(assetRefToPromptToken(42)).toBeNull();
+    expect(assetRefToPromptToken(null)).toBeNull();
+    expect(assetRefToPromptToken(undefined)).toBeNull();
+    expect(assetRefToPromptToken({})).toBeNull();
+    expect(assetRefToPromptToken({ foo: "bar" })).toBeNull();
+  });
+
+  it("keeps an asset:// uri that already carries an extension", () => {
+    expect(
+      assetRefToPromptToken({ type: "image", uri: "asset://abc.png" })
+    ).toBe("asset://abc.png");
+  });
+
+  it("strips a query/hash off an asset:// uri", () => {
+    expect(
+      assetRefToPromptToken({ type: "image", uri: "asset://abc.png?v=2#x" })
+    ).toBe("asset://abc.png");
+  });
+
+  it("appends an extension to a bare asset:// uri from the mime", () => {
+    expect(
+      assetRefToPromptToken({
+        type: "image",
+        uri: "asset://abc",
+        mimeType: "image/jpeg"
+      })
+    ).toBe("asset://abc.jpeg");
+  });
+
+  it("builds a token from asset_id + type default when no uri", () => {
+    expect(assetRefToPromptToken({ type: "image", asset_id: "xyz" })).toBe(
+      "asset://xyz.png"
+    );
+    expect(assetRefToPromptToken({ type: "audio", asset_id: "aud" })).toBe(
+      "asset://aud.mp3"
+    );
+    expect(assetRefToPromptToken({ type: "video", asset_id: "vid" })).toBe(
+      "asset://vid.mp4"
+    );
+  });
+
+  it("prefers the ref mime over the type default", () => {
+    expect(
+      assetRefToPromptToken({
+        type: "image",
+        asset_id: "xyz",
+        mimeType: "image/webp"
+      })
+    ).toBe("asset://xyz.webp");
+  });
+
+  it("resolves a text-document mime to its extension", () => {
+    expect(
+      assetRefToPromptToken({
+        type: "document",
+        asset_id: "doc",
+        content_type: "text/markdown"
+      })
+    ).toBe("asset://doc.md");
+  });
+
+  it("passes a non-asset uri through verbatim", () => {
+    expect(
+      assetRefToPromptToken({ type: "image", uri: "https://x/y.png" })
+    ).toBe("https://x/y.png");
+  });
+
+  it("produces a token that expandAssetReferences then routes as an image", () => {
+    const token = assetRefToPromptToken({ type: "image", asset_id: "xyz" });
+    const parts = expandAssetReferences(`look at ${token}`);
+    expect(parts).toEqual([
+      { type: "text", text: "look at " },
+      { type: "image_url", image: { uri: "asset://xyz.png", mimeType: "image/png" } }
+    ]);
   });
 });
