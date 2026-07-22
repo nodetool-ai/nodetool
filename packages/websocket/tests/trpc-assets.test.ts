@@ -13,8 +13,7 @@ vi.mock("@nodetool-ai/models", async (orig) => {
       find: vi.fn(),
       paginate: vi.fn(),
       searchAssetsGlobal: vi.fn(),
-      getChildren: vi.fn(),
-      create: vi.fn()
+      getChildren: vi.fn()
     }
   };
 });
@@ -234,65 +233,6 @@ describe("assets router", () => {
     });
   });
 
-  // ── create ──────────────────────────────────────────────────────
-  describe("create", () => {
-    it("creates an asset with required fields", async () => {
-      const created = makeAsset({ id: "new", name: "pic.png" });
-      (Asset.create as ReturnType<typeof vi.fn>).mockResolvedValue(created);
-
-      const caller = createCaller(makeCtx());
-      const result = await caller.assets.create({
-        name: "pic.png",
-        content_type: "image/png",
-        parent_id: "folder-1"
-      });
-      expect(Asset.create).toHaveBeenCalledWith({
-        user_id: "user-1",
-        name: "pic.png",
-        content_type: "image/png",
-        parent_id: "folder-1",
-        workflow_id: null,
-        node_id: null,
-        job_id: null,
-        timeline_id: null,
-        metadata: null,
-        sketch_document_id: null,
-        size: null
-      });
-      expect(result.id).toBe("new");
-    });
-
-    it("passes through optional workflow/node/job/metadata/size", async () => {
-      const created = makeAsset({ id: "new" });
-      (Asset.create as ReturnType<typeof vi.fn>).mockResolvedValue(created);
-
-      const caller = createCaller(makeCtx());
-      await caller.assets.create({
-        name: "x.bin",
-        content_type: "application/octet-stream",
-        parent_id: "user-1",
-        workflow_id: "wf-1",
-        node_id: "node-1",
-        job_id: "job-1",
-        metadata: { a: 1 },
-        size: 42
-      });
-      expect(Asset.create).toHaveBeenCalledWith({
-        user_id: "user-1",
-        name: "x.bin",
-        content_type: "application/octet-stream",
-        parent_id: "user-1",
-        workflow_id: "wf-1",
-        node_id: "node-1",
-        job_id: "job-1",
-        timeline_id: null,
-        metadata: { a: 1 },
-        sketch_document_id: null,
-        size: 42
-      });
-    });
-  });
-
   // ── update ──────────────────────────────────────────────────────
   describe("update", () => {
     it("updates basic fields (name, parent_id, metadata)", async () => {
@@ -389,30 +329,6 @@ describe("assets router", () => {
     });
   });
 
-  // ── children ────────────────────────────────────────────────────
-  describe("children", () => {
-    it("returns a slim list of children (id/name/content_type)", async () => {
-      const a1 = makeAsset({ id: "a1", name: "one.png" });
-      const a2 = makeAsset({ id: "a2", name: "two.pdf", content_type: "application/pdf" });
-      (Asset.paginate as ReturnType<typeof vi.fn>).mockResolvedValue([
-        [a1, a2],
-        ""
-      ]);
-
-      const caller = createCaller(makeCtx());
-      const result = await caller.assets.children({ id: "folder" });
-      expect(result.assets).toEqual([
-        { id: "a1", name: "one.png", content_type: "image/png" },
-        { id: "a2", name: "two.pdf", content_type: "application/pdf" }
-      ]);
-      expect(result.next).toBeNull();
-      expect(Asset.paginate).toHaveBeenCalledWith("user-1", {
-        parentId: "folder",
-        limit: 100
-      });
-    });
-  });
-
   // ── recursive ───────────────────────────────────────────────────
   describe("recursive", () => {
     it("returns a flat list of all descendants", async () => {
@@ -485,30 +401,6 @@ describe("assets router", () => {
         workflow_id: "wf-1"
       });
       expect(result.is_global_search).toBe(false);
-    });
-  });
-
-  // ── byFilename ──────────────────────────────────────────────────
-  describe("byFilename", () => {
-    it("returns the asset whose name exactly matches", async () => {
-      const wanted = makeAsset({ id: "match", name: "hello.png" });
-      const other = makeAsset({ id: "other", name: "world.png" });
-      (Asset.paginate as ReturnType<typeof vi.fn>).mockResolvedValue([
-        [other, wanted],
-        ""
-      ]);
-
-      const caller = createCaller(makeCtx());
-      const result = await caller.assets.byFilename({ filename: "hello.png" });
-      expect(result.id).toBe("match");
-    });
-
-    it("throws NOT_FOUND when no asset matches", async () => {
-      (Asset.paginate as ReturnType<typeof vi.fn>).mockResolvedValue([[], ""]);
-      const caller = createCaller(makeCtx());
-      await expect(
-        caller.assets.byFilename({ filename: "ghost.png" })
-      ).rejects.toMatchObject({ code: "NOT_FOUND" });
     });
   });
 });

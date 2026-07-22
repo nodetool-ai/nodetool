@@ -36,8 +36,7 @@ vi.mock("@nodetool-ai/huggingface", async (orig) => {
     readCachedHfModels: vi.fn(),
     searchCachedHfModels: vi.fn(),
     getModelsByHfType: vi.fn(),
-    deleteCachedHfModel: vi.fn(),
-    getHuggingfaceFileInfos: vi.fn()
+    deleteCachedHfModel: vi.fn()
   };
 });
 
@@ -45,8 +44,7 @@ import {
   readCachedHfModels,
   searchCachedHfModels,
   getModelsByHfType,
-  deleteCachedHfModel,
-  getHuggingfaceFileInfos
+  deleteCachedHfModel
 } from "@nodetool-ai/huggingface";
 
 // ── Mock @nodetool-ai/models ──────────────────────────────────────────────────
@@ -58,8 +56,6 @@ vi.mock("@nodetool-ai/models", async (orig) => {
     getSecret: vi.fn()
   };
 });
-
-import { getSecret } from "@nodetool-ai/models";
 
 // ── Mock node:fs/promises & node:fs to avoid real disk I/O ────────────────
 
@@ -81,15 +77,11 @@ vi.mock("@nodetool-ai/transformers-js-nodes", async (orig) => {
   return {
     ...actual,
     scanTransformersJsCache: vi.fn().mockResolvedValue([]),
-    isRepoCached: vi.fn().mockResolvedValue(false),
     getTransformersJsCacheDir: vi.fn().mockReturnValue("/tmp/tjs-cache")
   };
 });
 
-import {
-  scanTransformersJsCache,
-  isRepoCached
-} from "@nodetool-ai/transformers-js-nodes";
+import { scanTransformersJsCache } from "@nodetool-ai/transformers-js-nodes";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -147,14 +139,12 @@ describe("models router", () => {
     (searchCachedHfModels as ReturnType<typeof vi.fn>).mockResolvedValue([]);
     (getModelsByHfType as ReturnType<typeof vi.fn>).mockResolvedValue([]);
     (deleteCachedHfModel as ReturnType<typeof vi.fn>).mockResolvedValue(true);
-    (getHuggingfaceFileInfos as ReturnType<typeof vi.fn>).mockResolvedValue([]);
     // Default: disk access returns ENOENT (nothing cached)
     (access as ReturnType<typeof vi.fn>).mockRejectedValue(
       Object.assign(new Error("ENOENT"), { code: "ENOENT" })
     );
     (readdir as ReturnType<typeof vi.fn>).mockResolvedValue([]);
     (scanTransformersJsCache as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-    (isRepoCached as ReturnType<typeof vi.fn>).mockResolvedValue(false);
   });
 
   afterEach(() => {
@@ -225,33 +215,6 @@ describe("models router", () => {
       for (const model of result) {
         expect(typeof model.id).toBe("string");
         expect(typeof model.name).toBe("string");
-      }
-    });
-  });
-
-  // ── recommendedImage ─────────────────────────────────────────────────────
-
-  describe("recommendedImage", () => {
-    it("returns only image-modality models", async () => {
-      const caller = createCaller(makeCtx());
-      const result = await caller.models.recommendedImage();
-      expect(Array.isArray(result)).toBe(true);
-      // All returned models should have an image-related type
-      for (const model of result) {
-        expect(model.type).toMatch(/image/);
-      }
-    });
-  });
-
-  // ── recommendedLanguage ──────────────────────────────────────────────────
-
-  describe("recommendedLanguage", () => {
-    it("returns models with language-related types", async () => {
-      const caller = createCaller(makeCtx());
-      const result = await caller.models.recommendedLanguage();
-      // language modality includes language_model and embedding_model
-      for (const model of result) {
-        expect(model.type).toMatch(/language|embedding/);
       }
     });
   });
@@ -576,60 +539,6 @@ describe("models router", () => {
     });
   });
 
-  // ── transformersJsList ───────────────────────────────────────────────────
-
-  describe("transformersJsList", () => {
-    it("returns every cached repo with downloaded=true", async () => {
-      (scanTransformersJsCache as ReturnType<typeof vi.fn>).mockResolvedValue([
-        {
-          repo_id: "Xenova/whisper-tiny.en",
-          dir: "/tmp/tjs-cache/Xenova/whisper-tiny.en",
-          size_bytes: 1000
-        },
-        {
-          repo_id: "user/custom-model",
-          dir: "/tmp/tjs-cache/user/custom-model",
-          size_bytes: 2000
-        }
-      ]);
-      const caller = createCaller(makeCtx());
-      const result = await caller.models.transformersJsList();
-      expect(result).toHaveLength(2);
-      expect(result.every((m) => m.downloaded === true)).toBe(true);
-      expect(result.every((m) => m.provider === "transformers_js")).toBe(true);
-      expect(result.find((m) => m.repo_id === "Xenova/whisper-tiny.en")
-        ?.size_on_disk).toBe(1000);
-    });
-
-    it("returns empty array when scan throws", async () => {
-      (scanTransformersJsCache as ReturnType<typeof vi.fn>).mockRejectedValue(
-        new Error("nope")
-      );
-      const caller = createCaller(makeCtx());
-      expect(await caller.models.transformersJsList()).toEqual([]);
-    });
-  });
-
-  // ── transformersJsIsCached ───────────────────────────────────────────────
-
-  describe("transformersJsIsCached", () => {
-    it("returns true when isRepoCached resolves true", async () => {
-      (isRepoCached as ReturnType<typeof vi.fn>).mockResolvedValue(true);
-      const caller = createCaller(makeCtx());
-      expect(
-        await caller.models.transformersJsIsCached({ repo_id: "Xenova/foo" })
-      ).toBe(true);
-    });
-
-    it("returns false on error", async () => {
-      (isRepoCached as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("x"));
-      const caller = createCaller(makeCtx());
-      expect(
-        await caller.models.transformersJsIsCached({ repo_id: "Xenova/foo" })
-      ).toBe(false);
-    });
-  });
-
   // ── huggingfaceDelete ────────────────────────────────────────────────────
 
   describe("huggingfaceDelete", () => {
@@ -761,68 +670,6 @@ describe("models router", () => {
     });
   });
 
-  // ── huggingfaceTryCacheFiles ──────────────────────────────────────────────
-
-  describe("huggingfaceTryCacheFiles", () => {
-    it("returns downloaded:false for non-existent file", async () => {
-      // access() already throws ENOENT by default
-      const caller = createCaller(makeCtx());
-      const result = await caller.models.huggingfaceTryCacheFiles([
-        { repo_id: "some/repo", path: "model.bin" }
-      ]);
-      expect(result).toHaveLength(1);
-      expect(result[0].downloaded).toBe(false);
-    });
-
-    it("returns downloaded:false for empty repo_id or path", async () => {
-      const caller = createCaller(makeCtx());
-      const result = await caller.models.huggingfaceTryCacheFiles([
-        { repo_id: "", path: "" }
-      ]);
-      expect(result[0].downloaded).toBe(false);
-    });
-  });
-
-  // ── huggingfaceTryCacheRepos ──────────────────────────────────────────────
-
-  describe("huggingfaceTryCacheRepos", () => {
-    it("returns downloaded:false when no snapshots exist", async () => {
-      // readdir returns [] and access throws — nothing cached
-      const caller = createCaller(makeCtx());
-      const result = await caller.models.huggingfaceTryCacheRepos([
-        "some/repo"
-      ]);
-      expect(result).toHaveLength(1);
-      expect(result[0].repo_id).toBe("some/repo");
-      expect(result[0].downloaded).toBe(false);
-    });
-  });
-
-  // ── huggingfaceCheckCache ──────────────────────────────────────────────────
-
-  describe("huggingfaceCheckCache", () => {
-    it("returns all_present:true when no allow_pattern and no cache", async () => {
-      // No allow_pattern → missing is empty → all_present is true
-      const caller = createCaller(makeCtx());
-      const result = await caller.models.huggingfaceCheckCache({
-        repo_id: "some/repo"
-      });
-      expect(result.repo_id).toBe("some/repo");
-      expect(result.all_present).toBe(true);
-      expect(result.missing).toEqual([]);
-    });
-
-    it("reports missing patterns when allow_pattern is specified", async () => {
-      const caller = createCaller(makeCtx());
-      const result = await caller.models.huggingfaceCheckCache({
-        repo_id: "some/repo",
-        allow_pattern: "*.bin"
-      });
-      expect(result.all_present).toBe(false);
-      expect(result.missing).toContain("*.bin");
-    });
-  });
-
   // ── huggingfaceCacheStatus ─────────────────────────────────────────────────
 
   describe("huggingfaceCacheStatus", () => {
@@ -867,45 +714,6 @@ describe("models router", () => {
       const result = await caller.models.pullOllamaModel({ model: "llama3" });
       expect(result.status).toBe("unavailable");
       expect(typeof result.message).toBe("string");
-    });
-  });
-
-  // ── huggingfaceFileInfo ──────────────────────────────────────────────────
-
-  describe("huggingfaceFileInfo", () => {
-    it("returns file info from HuggingFace", async () => {
-      (getSecret as ReturnType<typeof vi.fn>).mockResolvedValue("hf-token");
-      (getHuggingfaceFileInfos as ReturnType<typeof vi.fn>).mockResolvedValue([
-        { size: 1234, sha256: "abc" }
-      ]);
-      const caller = createCaller(makeCtx());
-      const result = await caller.models.huggingfaceFileInfo([
-        { repo_id: "openai/whisper-tiny", path: "model.bin" }
-      ]);
-      expect(result).toHaveLength(1);
-      expect(result[0].size).toBe(1234);
-    });
-
-    it("returns empty array on error", async () => {
-      (getSecret as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-      (getHuggingfaceFileInfos as ReturnType<typeof vi.fn>).mockRejectedValue(
-        new Error("API error")
-      );
-      const caller = createCaller(makeCtx());
-      const result = await caller.models.huggingfaceFileInfo([
-        { repo_id: "openai/whisper-tiny", path: "model.bin" }
-      ]);
-      expect(result).toEqual([]);
-    });
-  });
-
-  // ── ollamaModelInfo (stub) ────────────────────────────────────────────────
-
-  describe("ollamaModelInfo", () => {
-    it("returns null (stub)", async () => {
-      const caller = createCaller(makeCtx());
-      const result = await caller.models.ollamaModelInfo();
-      expect(result).toBeNull();
     });
   });
 });

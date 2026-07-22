@@ -56,57 +56,6 @@ describe("nodes router", () => {
     });
   });
 
-  describe("validateUsername (protected)", () => {
-    it("returns valid: true for a proper username", async () => {
-      const caller = createCaller(makeCtx());
-      const result = await caller.nodes.validateUsername({
-        username: "john_doe"
-      });
-      expect(result.valid).toBe(true);
-      expect(result.available).toBe(true);
-    });
-
-    it("returns valid: false for a username with spaces", async () => {
-      const caller = createCaller(makeCtx());
-      const result = await caller.nodes.validateUsername({
-        username: "john doe"
-      });
-      expect(result.valid).toBe(false);
-    });
-
-    it("returns valid: true for a username with hyphens and underscores", async () => {
-      const caller = createCaller(makeCtx());
-      const result = await caller.nodes.validateUsername({
-        username: "john-doe_123"
-      });
-      expect(result.valid).toBe(true);
-    });
-
-    it("throws UNAUTHORIZED for unauthenticated requests", async () => {
-      const caller = createCaller(makeCtx({ userId: null }));
-      await expect(
-        caller.nodes.validateUsername({ username: "test" })
-      ).rejects.toThrow();
-    });
-  });
-
-  describe("dummy (protected)", () => {
-    it("returns the expected dummy asset shape", async () => {
-      const caller = createCaller(makeCtx());
-      const result = await caller.nodes.dummy();
-      expect(result.type).toBe("asset");
-      expect(result.uri).toBe("");
-      expect(result.asset_id).toBeNull();
-      expect(result.data).toBeNull();
-      expect(result.metadata).toBeNull();
-    });
-
-    it("throws UNAUTHORIZED for unauthenticated requests", async () => {
-      const caller = createCaller(makeCtx({ userId: null }));
-      await expect(caller.nodes.dummy()).rejects.toThrow();
-    });
-  });
-
   describe("list (protected)", () => {
     function makeRegistry(nodes: Array<Record<string, unknown>>) {
       return {

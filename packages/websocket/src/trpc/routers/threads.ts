@@ -17,7 +17,6 @@ import {
   listOutput,
   getInput,
   threadResponse,
-  createInput,
   updateInput,
   deleteInput,
   deleteOutput,
@@ -111,19 +110,6 @@ export const threadsRouter = router({
       if (!thread) {
         throwApiError(ApiErrorCode.NOT_FOUND, "Thread not found");
       }
-      return toThreadResponse(thread);
-    }),
-
-  create: protectedProcedure
-    .input(createInput)
-    .output(threadResponse)
-    .mutation(async ({ ctx, input }) => {
-      const title = input.title ?? "New Thread";
-      const thread = (await Thread.create({
-        user_id: ctx.userId,
-        workflow_id: input.workflow_id ?? null,
-        title
-      })) as unknown as ThreadModel;
       return toThreadResponse(thread);
     }),
 

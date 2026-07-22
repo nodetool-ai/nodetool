@@ -15,8 +15,6 @@ import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 import {
   listOutput,
-  getInput,
-  userListItem,
   createInput,
   userCreateResponse,
   removeInput,
@@ -76,21 +74,6 @@ export const usersRouter = router({
       )
     };
   }),
-
-  get: protectedProcedure
-    .input(getInput)
-    .output(userListItem)
-    .query(async ({ ctx, input }) => {
-      requireAdmin(ctx.userId);
-      const user = await manager.getUser(input.username);
-      if (!user) {
-        throwApiError(
-          ApiErrorCode.NOT_FOUND,
-          `User '${input.username}' not found`
-        );
-      }
-      return toUserListItem(input.username, user);
-    }),
 
   create: protectedProcedure
     .input(createInput)

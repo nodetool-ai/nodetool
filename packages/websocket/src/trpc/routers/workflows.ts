@@ -5,13 +5,11 @@
  *   - GET  /api/workflows/:id/dsl-export   (text/plain file download)
  *
  * Everything else is served via tRPC:
- *   - list, names, get, create, update, delete
- *   - run, autosave
- *   - tools, examples (list + search)
+ *   - list, get, create, update, delete
+ *   - autosave
+ *   - examples (list + search)
  *   - public (list + get) — publicProcedure (no auth required)
- *   - app (metadata for workflow app page)
- *   - generateName
- *   - versions (list, create, get, restore, delete)
+ *   - versions (list, create, restore, delete)
  *
  * Auth note:
  *   - `public.*` endpoints use publicProcedure — no auth required, matches
@@ -26,24 +24,13 @@ import {
   Workflow,
   WorkflowVersion,
   WorkflowCollaborator,
-  WorkflowShare,
-  Job
+  WorkflowShare
 } from "@nodetool-ai/models";
 import type {
   Workflow as WorkflowModel,
   WorkflowVersion as WorkflowVersionModel
 } from "@nodetool-ai/models";
-import { PythonNodeExecutor } from "@nodetool-ai/runtime";
-import { WorkflowRunner } from "@nodetool-ai/kernel";
-import {
-  resolveWorkflowWorkspace,
-  buildWorkspaceExecutionContext
-} from "../../lib/workflow-workspace.js";
-import type { GraphData, NodeDescriptor } from "@nodetool-ai/protocol";
-import {
-  hydrateGraphNodeFlags,
-  loadPythonPackageMetadata
-} from "@nodetool-ai/node-sdk";
+import { loadPythonPackageMetadata } from "@nodetool-ai/node-sdk";
 import { createLogger } from "@nodetool-ai/config";
 import {
   loadExampleGraph,
@@ -57,31 +44,21 @@ import { throwApiError } from "../error-formatter.js";
 import {
   listInput,
   listOutput,
-  namesOutput,
   getInput,
   createInput,
   updateInput,
   deleteInput,
   deleteOutput,
-  runInput,
-  runOutput,
   autosaveInput,
   autosaveOutput,
-  toolsInput,
-  toolsOutput,
   examplesInput,
   examplesOutput,
   publicListInput,
   publicListOutput,
   publicGetInput,
-  appInput,
-  appOutput,
-  generateNameInput,
-  generateNameOutput,
   versionsListInput,
   versionsListOutput,
   versionCreateInput,
-  versionGetInput,
   versionResponse,
   versionRestoreInput,
   versionDeleteInput,
@@ -101,8 +78,6 @@ import {
   sharingAcceptOutput,
   shareItem,
   collaboratorItem,
-  myRoleInput,
-  myRoleOutput,
   sharedWithMeInput,
   sharedWithMeOutput,
   type WorkflowResponse,
@@ -446,33 +421,6 @@ function buildExampleWorkflows(
 }
 
 
-// ── deriveWorkflowName ─────────────────────────────────────────────────────
-
-function deriveWorkflowName(workflow: WorkflowModel): string {
-  const graph = workflow.graph as { nodes?: Array<{ type?: unknown }> } | null;
-  const nodes: Array<{ type?: unknown }> = graph?.nodes ?? [];
-  if (nodes.length === 0) {
-    return workflow.name || "Untitled Workflow";
-  }
-  const categories = new Set<string>();
-  for (const n of nodes) {
-    if (typeof n.type === "string") {
-      const parts = n.type.split(".");
-      if (parts.length >= 2 && parts[1]) {
-        categories.add(parts[1]);
-      }
-    }
-  }
-  const segments = Array.from(categories).slice(0, 3);
-  if (segments.length === 0) {
-    return workflow.name || "Untitled Workflow";
-  }
-  const label = segments
-    .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
-    .join(" + ");
-  return `${label} Workflow`;
-}
-
 // ── Router ─────────────────────────────────────────────────────────────────
 
 export const workflowsRouter = router({
@@ -496,16 +444,6 @@ export const workflowsRouter = router({
         // pagination is intentionally disabled for this mode.
         next: input.mediaOutput ? null : cursor || null
       };
-    }),
-
-  // ── names (GET /api/workflows/names) ─────────────────────────────────────
-  names: protectedProcedure
-    .output(namesOutput)
-    .query(async ({ ctx }) => {
-      const [workflows] = await Workflow.paginate(ctx.userId, { limit: 1000 });
-      const names: Record<string, string> = {};
-      for (const wf of workflows) names[wf.id] = wf.name;
-      return names;
     }),
 
   // ── get (GET /api/workflows/:id) ─────────────────────────────────────────
@@ -660,153 +598,6 @@ export const workflowsRouter = router({
       return { ok: true as const };
     }),
 
-  // ── run (POST /api/workflows/:id/run) ────────────────────────────────────
-  run: protectedProcedure
-    .input(runInput)
-    .output(runOutput)
-    .mutation(async ({ ctx, input }) => {
-      const { workflow } = await requireWorkflowRole(
-        input.id,
-        ctx.userId,
-        "viewer"
-      );
-
-      const runMode = workflow.run_mode ?? "workflow";
-      if (runMode !== "workflow") {
-        throwApiError(
-          ApiErrorCode.INVALID_INPUT,
-          `Workflow run mode "${runMode}" is not supported by the standalone backend`
-        );
-      }
-
-      const params = input.params ?? {};
-      const graph = workflow.getGraph();
-
-      const runnableGraph: {
-        nodes: Array<{ id: string; type: string; [key: string]: unknown }>;
-        edges: Array<{
-          id?: string | null;
-          source: string;
-          target: string;
-          sourceHandle: string;
-          targetHandle: string;
-          edge_type?: "data" | "control";
-          [key: string]: unknown;
-        }>;
-      } = {
-        nodes: graph.nodes.map((node) => {
-          const record = node as Record<string, unknown>;
-          return {
-            ...record,
-            id: String(record.id ?? ""),
-            type: String(record.type ?? ""),
-            properties: (record.properties ?? record.data ?? {}) as Record<
-              string,
-              unknown
-            >
-          };
-        }),
-        edges: graph.edges.map((edge) => {
-          const record = edge as Record<string, unknown>;
-          return {
-            ...record,
-            id:
-              typeof record.id === "string" || record.id == null
-                ? (record.id as string | null | undefined)
-                : String(record.id),
-            source: String(record.source ?? ""),
-            target: String(record.target ?? ""),
-            sourceHandle: String(record.sourceHandle ?? ""),
-            targetHandle: String(record.targetHandle ?? ""),
-            edge_type: record.edge_type === "control" ? "control" : "data"
-          };
-        })
-      };
-
-      const registry = ctx.registry;
-      const pythonBridge = ctx.pythonBridge;
-      const getPythonBridgeReady = ctx.getPythonBridgeReady;
-
-      const hasPythonNode = runnableGraph.nodes.some((node) => {
-        const nodeType = typeof node.type === "string" ? node.type : "";
-        return (
-          nodeType !== "" &&
-          Boolean(registry.getMetadata(nodeType)) &&
-          !registry.has(nodeType)
-        );
-      });
-      if (hasPythonNode) {
-        if (!getPythonBridgeReady()) {
-          await pythonBridge.ensureConnected();
-        }
-      }
-
-      const resolveExecutor = (node: NodeDescriptor) => {
-        if (registry.has(node.type)) {
-          return registry.resolve(node as Parameters<typeof registry.resolve>[0]);
-        }
-        if (getPythonBridgeReady() && pythonBridge.hasNodeType(node.type)) {
-          const meta = pythonBridge
-            .getNodeMetadata()
-            .find((n) => n.node_type === node.type);
-          const props = (node.properties ?? {}) as Record<string, unknown>;
-          return new PythonNodeExecutor(
-            pythonBridge,
-            node.type,
-            props,
-            Object.fromEntries(
-              (meta?.outputs ?? []).map((o) => [o.name, o.type.type])
-            ),
-            meta?.required_settings ?? [],
-            node.id
-          );
-        }
-        return registry.resolve(node as Parameters<typeof registry.resolve>[0]);
-      };
-
-      const job = await Job.create({
-        workflow_id: input.id,
-        user_id: ctx.userId,
-        status: "running",
-        params,
-        graph: runnableGraph
-      });
-
-      const workspaceDir = await resolveWorkflowWorkspace(input.id, ctx.userId);
-      const runner = new WorkflowRunner(job.id, {
-        resolveExecutor,
-        executionContext: buildWorkspaceExecutionContext({
-          jobId: job.id,
-          workflowId: input.id,
-          userId: ctx.userId,
-          workspaceDir
-        })
-      });
-      const result = await runner.run(
-        { job_id: job.id, workflow_id: input.id, params },
-        hydrateGraphNodeFlags(runnableGraph as unknown as GraphData, registry)
-      );
-
-      if (result.status === "completed") {
-        job.markCompleted();
-      } else if (result.status === "cancelled") {
-        job.markCancelled();
-      } else {
-        job.markFailed(result.error ?? "Workflow run failed");
-      }
-      await job.save();
-
-      return {
-        job_id: job.id,
-        workflow_id: input.id,
-        status: result.status,
-        outputs: result.outputs ?? null,
-        error: result.error ?? null,
-        message_count: result.messages.length,
-        background: input.background ?? false
-      };
-    }),
-
   // ── autosave (POST/PUT /api/workflows/:id/autosave) ───────────────────────
   autosave: protectedProcedure
     .input(autosaveInput)
@@ -885,24 +676,6 @@ export const workflowsRouter = router({
       };
     }),
 
-  // ── tools (GET /api/workflows/tools) ─────────────────────────────────────
-  tools: protectedProcedure
-    .input(toolsInput)
-    .output(toolsOutput)
-    .query(async ({ ctx, input }) => {
-      const [workflows] = await Workflow.paginateTools(ctx.userId, {
-        limit: input.limit
-      });
-      return {
-        workflows: workflows.map((w) => ({
-          name: w.name,
-          tool_name: w.tool_name ?? null,
-          description: w.description ?? null
-        })),
-        next: null
-      };
-    }),
-
   // ── examples (GET /api/workflows/examples) ────────────────────────────────
   examples: protectedProcedure
     .input(examplesInput)
@@ -950,32 +723,6 @@ export const workflowsRouter = router({
         return toWorkflowResponse(workflow);
       })
   }),
-
-  // ── app (GET /api/workflows/:id/app) ─────────────────────────────────────
-  app: protectedProcedure
-    .input(appInput)
-    .output(appOutput)
-    .query(async ({ ctx, input }) => {
-      const baseUrl = input.baseUrl ?? ctx.apiOptions.baseUrl ?? "http://127.0.0.1:7777";
-      return {
-        workflow_id: input.id,
-        api_url: baseUrl
-      };
-    }),
-
-  // ── generateName (POST /api/workflows/:id/generate-name) ─────────────────
-  generateName: protectedProcedure
-    .input(generateNameInput)
-    .output(generateNameOutput)
-    .mutation(async ({ ctx, input }) => {
-      const workflow = (await Workflow.get(input.id)) as WorkflowModel | null;
-      if (!workflow) throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
-      if (workflow.user_id !== ctx.userId) {
-        throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
-      }
-      const name = deriveWorkflowName(workflow);
-      return { name };
-    }),
 
   // ── terminalOutputs (GET /api/workflows/:id/terminal-outputs) ─────────────
   // Returns the terminal media-output nodes of a workflow for the multi-output
@@ -1035,20 +782,6 @@ export const workflowsRouter = router({
           graph: workflow.graph,
           version: nextVer
         })) as WorkflowVersionModel;
-        return toVersionResponse(version);
-      }),
-
-    // GET /api/workflows/:id/versions/:version
-    get: protectedProcedure
-      .input(versionGetInput)
-      .output(versionResponse)
-      .query(async ({ ctx, input }) => {
-        await requireWorkflowRole(input.id, ctx.userId, "editor");
-        const version = await WorkflowVersion.findByVersion(
-          input.id,
-          input.version
-        );
-        if (!version) throwApiError(ApiErrorCode.NOT_FOUND, "Version not found");
         return toVersionResponse(version);
       }),
 
@@ -1210,18 +943,6 @@ export const workflowsRouter = router({
           });
         }
         return { workflow: toWorkflowResponse(workflow), role: share.role };
-      }),
-
-    // The caller's effective role on a workflow, for read-only UI state.
-    myRole: protectedProcedure
-      .input(myRoleInput)
-      .output(myRoleOutput)
-      .query(async ({ ctx, input }) => {
-        const workflow = (await Workflow.get(
-          input.id
-        )) as WorkflowModel | null;
-        if (!workflow) return { role: null };
-        return { role: await resolveWorkflowRole(workflow, ctx.userId) };
       }),
 
     // Workflows shared with the caller, with their role on each.

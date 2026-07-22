@@ -27,12 +27,10 @@ import {
   searchCachedHfModels,
   getModelsByHfType,
   filterModelsByHfType,
-  deleteCachedHfModel,
-  getHuggingfaceFileInfos
+  deleteCachedHfModel
 } from "@nodetool-ai/huggingface";
 import {
   getTransformersJsCacheDir,
-  isRepoCached,
   recommendedFor,
   scanTransformersJsCache,
   TJS_MODEL_TYPES,
@@ -45,7 +43,6 @@ import { constants as fsConstants } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join, resolve, sep } from "node:path";
 import { z } from "zod";
-import { getSecret } from "@nodetool-ai/models";
 
 // ── Local schemas (mirrored in packages/protocol/src/api-schemas/models.ts) ──
 
@@ -98,25 +95,6 @@ const recommendedInput = z.object({
   check_servers: z.boolean().optional().default(false)
 });
 
-const hfCacheCheckInput = z.object({
-  repo_id: z.string().min(1),
-  allow_pattern: z
-    .union([z.string(), z.array(z.string())])
-    .nullable()
-    .optional(),
-  ignore_pattern: z
-    .union([z.string(), z.array(z.string())])
-    .nullable()
-    .optional()
-});
-
-const hfCacheCheckOutput = z.object({
-  repo_id: z.string(),
-  all_present: z.boolean(),
-  total_files: z.number(),
-  missing: z.array(z.string())
-});
-
 const hfFastCacheStatusItem = z.object({
   key: z.string(),
   repo_id: z.string(),
@@ -138,37 +116,6 @@ const hfFastCacheStatusOutput = z.array(
   z.object({
     key: z.string(),
     downloaded: z.boolean()
-  })
-);
-
-const tryCacheFilesInput = z.array(
-  z.object({
-    repo_id: z.string().optional(),
-    path: z.string().optional()
-  })
-);
-
-const tryCacheFilesOutput = z.array(
-  z.object({
-    repo_id: z.string(),
-    path: z.string(),
-    downloaded: z.boolean()
-  })
-);
-
-const tryCacheReposInput = z.array(z.string());
-
-const tryCacheReposOutput = z.array(
-  z.object({
-    repo_id: z.string(),
-    downloaded: z.boolean()
-  })
-);
-
-const hfFileInfoInput = z.array(
-  z.object({
-    repo_id: z.string(),
-    path: z.string()
   })
 );
 
@@ -429,10 +376,6 @@ async function listRepoCachedFiles(repoId: string): Promise<string[]> {
   }
 
   return [...collected];
-}
-
-async function hasCachedFiles(repoId: string): Promise<boolean> {
-  return (await listRepoCachedFiles(repoId)).length > 0;
 }
 
 async function isLlamaCppModelCached(
@@ -891,36 +834,6 @@ async function getAllModels(userId: string): Promise<UnifiedModel[]> {
   return dedupeModels(all);
 }
 
-async function checkHfCache(body: {
-  repo_id: string;
-  allow_pattern?: string | string[] | null;
-  ignore_pattern?: string | string[] | null;
-}) {
-  const allowPatterns = normalizePatterns(body.allow_pattern);
-  const ignorePatterns = normalizePatterns(body.ignore_pattern);
-  const files = await listRepoCachedFiles(body.repo_id);
-
-  const missing: string[] = [];
-  if (allowPatterns) {
-    for (const pattern of allowPatterns) {
-      const matched = files.some(
-        (path) =>
-          matchesPattern(path, pattern) && !isIgnored(path, ignorePatterns)
-      );
-      if (!matched) {
-        missing.push(pattern);
-      }
-    }
-  }
-
-  return {
-    repo_id: body.repo_id,
-    all_present: missing.length === 0,
-    total_files: files.length,
-    missing
-  };
-}
-
 // ── availableForKind helpers ───────────────────────────────────────
 
 const availableForKindInput = z.object({
@@ -1058,20 +971,11 @@ export const modelsRouter = router({
       return getRecommendedModels(input.check_servers ?? false, ctx.userId);
     }),
 
-  recommendedImage: protectedProcedure
-    .query(() => selectRecommended("image")),
-
   recommendedImageTextToImage: protectedProcedure
     .query(() => selectRecommended("image", "text_to_image")),
 
   recommendedImageImageToImage: protectedProcedure
     .query(() => selectRecommended("image", "image_to_image")),
-
-  recommendedLanguage: protectedProcedure
-    .query(() => selectRecommended("language")),
-
-  recommendedLanguageTextGeneration: protectedProcedure
-    .query(() => selectRecommended("language", "text_generation")),
 
   recommendedLanguageEmbedding: protectedProcedure
     .query(() => selectRecommended("language", "embedding")),
@@ -1081,9 +985,6 @@ export const modelsRouter = router({
 
   recommendedTts: protectedProcedure
     .query(() => selectRecommended("tts")),
-
-  recommendedMusic: protectedProcedure
-    .query(() => selectRecommended("music")),
 
   recommendedVideoTextToVideo: protectedProcedure
     .query(() => selectRecommended("video", "text_to_video")),
@@ -1226,35 +1127,13 @@ export const modelsRouter = router({
     }),
 
   /**
-   * Transformers.js cached models (everything in the configured cache dir).
-   */
-  transformersJsList: protectedProcedure
-    .output(modelsListOutput)
-    .query(async () => {
-      if (isProduction()) return [];
-      try {
-        const cached = await scanTransformersJsCache(getTransformersJsCacheDir());
-        return cached.map((c) =>
-          tjsRefToUnified(
-            { repo_id: c.repo_id },
-            "tjs.cached",
-            true,
-            c.size_bytes
-          )
-        );
-      } catch {
-        return [];
-      }
-    }),
-
-  /**
    * Transformers.js models for a given `tjs.<task>` type.
    *
    * Merges the curated recommended list with anything already present in the
    * Transformers.js cache directory. Recommended entries always appear,
    * marked `downloaded` based on cache presence; off-list cached repos that
    * happen to be recommended under another type are NOT shown here (they only
-   * show up under their own type or via `transformersJsList`).
+   * show up under their own type).
    */
   transformersJsByType: protectedProcedure
     .input(tjsByTypeInput)
@@ -1332,21 +1211,6 @@ export const modelsRouter = router({
           cacheSizes.get(ref.repo_id) ?? null
         )
       );
-    }),
-
-  /**
-   * Check whether a single Transformers.js repo is present in the cache.
-   */
-  transformersJsIsCached: protectedProcedure
-    .input(z.object({ repo_id: z.string().min(1) }))
-    .output(z.boolean())
-    .query(async ({ input }) => {
-      if (isProduction()) return false;
-      try {
-        return await isRepoCached(getTransformersJsCacheDir(), input.repo_id);
-      } catch {
-        return false;
-      }
     }),
 
   ollama: protectedProcedure
@@ -1648,57 +1512,6 @@ export const modelsRouter = router({
     ),
 
   /**
-   * Ollama model info (stub).
-   */
-  ollamaModelInfo: protectedProcedure.output(z.null()).query(() => null),
-
-  /**
-   * Check whether specific files exist in the HuggingFace cache.
-   */
-  huggingfaceTryCacheFiles: protectedProcedure
-    .input(tryCacheFilesInput)
-    .output(tryCacheFilesOutput)
-    .mutation(async ({ input }) => {
-      return Promise.all(
-        input.map(async (entry) => {
-          const repoId = entry.repo_id ?? "";
-          const repoPath = entry.path ?? "";
-          return {
-            repo_id: repoId,
-            path: repoPath,
-            downloaded:
-              repoId.length > 0 && repoPath.length > 0
-                ? await repoFileInCache(repoId, repoPath)
-                : false
-          };
-        })
-      );
-    }),
-
-  /**
-   * Check whether repos have cached files.
-   */
-  huggingfaceTryCacheRepos: protectedProcedure
-    .input(tryCacheReposInput)
-    .output(tryCacheReposOutput)
-    .mutation(async ({ input }) => {
-      return Promise.all(
-        input.map(async (repoId) => ({
-          repo_id: repoId,
-          downloaded: await hasCachedFiles(repoId)
-        }))
-      );
-    }),
-
-  /**
-   * Detailed check whether specific patterns exist in the HuggingFace cache.
-   */
-  huggingfaceCheckCache: protectedProcedure
-    .input(hfCacheCheckInput)
-    .output(hfCacheCheckOutput)
-    .mutation(async ({ input }) => checkHfCache(input)),
-
-  /**
    * Fast batch cache status check for multiple models.
    */
   huggingfaceCacheStatus: protectedProcedure
@@ -1753,25 +1566,5 @@ export const modelsRouter = router({
       status: "unavailable",
       message:
         "Streaming Ollama model pulls are not available in the TS standalone server. Use the Ollama API directly or the Python backend."
-    })),
-
-  /**
-   * Get HuggingFace file info (size, sha256, etc.).
-   */
-  huggingfaceFileInfo: protectedProcedure
-    .input(hfFileInfoInput)
-    .output(z.array(z.record(z.string(), z.unknown())))
-    .mutation(async ({ input, ctx }) => {
-      if (isProduction()) return [];
-      try {
-        const token = (await getSecret("HF_TOKEN", ctx.userId)) ?? undefined;
-        const infos = await getHuggingfaceFileInfos(
-          input.map((i) => ({ repo_id: i.repo_id, path: i.path })),
-          token
-        );
-        return infos as unknown as Record<string, unknown>[];
-      } catch {
-        return [];
-      }
-    })
+    }))
 });

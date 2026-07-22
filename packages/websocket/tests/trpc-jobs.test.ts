@@ -145,41 +145,6 @@ describe("jobs router", () => {
     });
   });
 
-  // ── runningAll ──────────────────────────────────────────────────
-  describe("runningAll", () => {
-    it("returns only running or scheduled jobs", async () => {
-      const jobs = [
-        makeJob({ id: "j1", status: "running" }),
-        makeJob({ id: "j2", status: "completed" }),
-        makeJob({ id: "j3", status: "scheduled" }),
-        makeJob({ id: "j4", status: "failed" })
-      ];
-      (Job.paginate as ReturnType<typeof vi.fn>).mockResolvedValue([jobs, ""]);
-
-      const caller = createCaller(makeCtx());
-      const result = await caller.jobs.runningAll();
-      expect(result).toHaveLength(2);
-      expect(result.map((r) => r.job_id)).toEqual(["j1", "j3"]);
-      expect(result[0]?.is_running).toBe(true);
-      expect(result[0]?.is_completed).toBe(false);
-    });
-
-    it("is called with limit 500 (matches legacy)", async () => {
-      (Job.paginate as ReturnType<typeof vi.fn>).mockResolvedValue([[], ""]);
-
-      const caller = createCaller(makeCtx());
-      await caller.jobs.runningAll();
-      expect(Job.paginate).toHaveBeenCalledWith("user-1", { limit: 500 });
-    });
-
-    it("rejects unauthenticated callers", async () => {
-      const caller = createCaller(makeCtx({ userId: null }));
-      await expect(caller.jobs.runningAll()).rejects.toMatchObject({
-        code: "UNAUTHORIZED"
-      });
-    });
-  });
-
   // ── get ─────────────────────────────────────────────────────────
   describe("get", () => {
     it("returns a job owned by the user", async () => {
@@ -208,38 +173,6 @@ describe("jobs router", () => {
       await expect(caller.jobs.get({ id: "j1" })).rejects.toMatchObject({
         code: "NOT_FOUND"
       });
-    });
-  });
-
-  // ── delete ──────────────────────────────────────────────────────
-  describe("delete", () => {
-    it("deletes an owned job", async () => {
-      const j = makeJob({ id: "j1", user_id: "user-1" });
-      (Job.get as ReturnType<typeof vi.fn>).mockResolvedValue(j);
-
-      const caller = createCaller(makeCtx());
-      const result = await caller.jobs.delete({ id: "j1" });
-      expect(j.delete).toHaveBeenCalled();
-      expect(result).toEqual({ ok: true });
-    });
-
-    it("throws NOT_FOUND when the job does not exist", async () => {
-      (Job.get as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-      const caller = createCaller(makeCtx());
-      await expect(
-        caller.jobs.delete({ id: "missing" })
-      ).rejects.toMatchObject({ code: "NOT_FOUND" });
-    });
-
-    it("throws NOT_FOUND when the user does not own the job", async () => {
-      const j = makeJob({ id: "j1", user_id: "other-user" });
-      (Job.get as ReturnType<typeof vi.fn>).mockResolvedValue(j);
-
-      const caller = createCaller(makeCtx());
-      await expect(caller.jobs.delete({ id: "j1" })).rejects.toMatchObject({
-        code: "NOT_FOUND"
-      });
-      expect(j.delete).not.toHaveBeenCalled();
     });
   });
 

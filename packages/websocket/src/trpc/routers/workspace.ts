@@ -20,8 +20,6 @@ import { throwApiError } from "../error-formatter.js";
 import {
   listInput,
   listOutput,
-  getDefaultOutput,
-  getInput,
   workspaceResponse,
   createInput,
   updateInput,
@@ -104,26 +102,6 @@ export const workspaceRouter = router({
         workspaces: items.map(toWorkspaceResponse),
         next: null
       };
-    }),
-
-  getDefault: protectedProcedure
-    .output(getDefaultOutput)
-    .query(async ({ ctx }) => {
-      requireNonProduction();
-      const ws = await Workspace.getDefault(ctx.userId);
-      return ws ? toWorkspaceResponse(ws) : null;
-    }),
-
-  get: protectedProcedure
-    .input(getInput)
-    .output(workspaceResponse)
-    .query(async ({ ctx, input }) => {
-      requireNonProduction();
-      const ws = await Workspace.find(ctx.userId, input.id);
-      if (!ws) {
-        throwApiError(ApiErrorCode.NOT_FOUND, "Workspace not found");
-      }
-      return toWorkspaceResponse(ws);
     }),
 
   create: protectedProcedure

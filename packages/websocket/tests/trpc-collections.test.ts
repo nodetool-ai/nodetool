@@ -114,38 +114,6 @@ describe("collections router", () => {
     });
   });
 
-  describe("get", () => {
-    it("returns collection details", async () => {
-      const col = makeCollection({
-        name: "my-col",
-        metadata: { embedding_model: "text-embedding-3-small" },
-        count: 42
-      });
-      mockedProvider.mockReturnValue({
-        getCollection: vi.fn().mockResolvedValue(col)
-      });
-
-      const caller = createCaller(makeCtx());
-      const result = await caller.collections.get({ name: "my-col" });
-      expect(result).toEqual({
-        name: "my-col",
-        metadata: { embedding_model: "text-embedding-3-small" },
-        count: 42
-      });
-    });
-
-    it("throws NOT_FOUND when the collection does not exist", async () => {
-      mockedProvider.mockReturnValue({
-        getCollection: vi.fn().mockRejectedValue(new CollectionNotFoundError("missing"))
-      });
-
-      const caller = createCaller(makeCtx());
-      await expect(
-        caller.collections.get({ name: "missing" })
-      ).rejects.toMatchObject({ code: "NOT_FOUND" });
-    });
-  });
-
   describe("create", () => {
     it("creates a collection with embedding metadata", async () => {
       const col = makeCollection({
@@ -278,55 +246,6 @@ describe("collections router", () => {
       const caller = createCaller(makeCtx());
       await expect(
         caller.collections.delete({ name: "missing" })
-      ).rejects.toMatchObject({ code: "NOT_FOUND" });
-    });
-  });
-
-  describe("query", () => {
-    it("performs a query and assembles the wire shape", async () => {
-      const col = makeCollection({
-        name: "col",
-        queryResult: [
-          { id: "doc1", document: "content 1", metadata: { source: "a.txt" }, uri: null, distance: 0.1 },
-          { id: "doc2", document: "content 2", metadata: { source: "b.txt" }, uri: null, distance: 0.2 }
-        ]
-      });
-      mockedProvider.mockReturnValue({
-        getCollection: vi.fn().mockResolvedValue(col)
-      });
-
-      const caller = createCaller(makeCtx());
-      const result = await caller.collections.query({
-        name: "col",
-        query_texts: ["search me"],
-        n_results: 5
-      });
-
-      expect(col.query).toHaveBeenCalledWith({ text: "search me", topK: 5 });
-      expect(result.ids).toEqual([["doc1", "doc2"]]);
-      expect(result.documents).toEqual([["content 1", "content 2"]]);
-      expect(result.distances).toEqual([[0.1, 0.2]]);
-    });
-
-    it("defaults n_results to 10", async () => {
-      const col = makeCollection({ name: "col" });
-      mockedProvider.mockReturnValue({
-        getCollection: vi.fn().mockResolvedValue(col)
-      });
-
-      const caller = createCaller(makeCtx());
-      await caller.collections.query({ name: "col", query_texts: ["hi"] });
-      expect(col.query).toHaveBeenCalledWith({ text: "hi", topK: 10 });
-    });
-
-    it("throws NOT_FOUND when the collection is missing", async () => {
-      mockedProvider.mockReturnValue({
-        getCollection: vi.fn().mockRejectedValue(new CollectionNotFoundError("missing"))
-      });
-
-      const caller = createCaller(makeCtx());
-      await expect(
-        caller.collections.query({ name: "missing", query_texts: ["x"] })
       ).rejects.toMatchObject({ code: "NOT_FOUND" });
     });
   });

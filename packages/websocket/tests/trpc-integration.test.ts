@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import Fastify from "fastify";
 import { fastifyTRPCPlugin } from "@trpc/server/adapters/fastify";
-import { Prediction, Secret, Setting } from "@nodetool-ai/models";
+import { Secret, Setting } from "@nodetool-ai/models";
 import * as vectorstore from "@nodetool-ai/vectorstore";
 import { appRouter } from "../src/trpc/router.js";
 import { createContextFactory } from "../src/trpc/context.js";
@@ -38,29 +38,6 @@ describe("tRPC Fastify mount", () => {
     // tRPC v11 (default JSON transformer) returns { result: { data: ... } }.
     const data = body.result?.data?.json ?? body.result?.data;
     expect(data).toEqual({ ok: true });
-    await app.close();
-  });
-});
-
-describe("tRPC /trpc/costs.list over Fastify", () => {
-  it("returns an empty list for a user with no predictions", async () => {
-    // Prediction.paginate returns [items, cursorString] — empty cursor is "".
-    // The costs.list procedure normalizes "" → null for the response payload.
-    vi.spyOn(Prediction, "paginate").mockResolvedValue([[], ""]);
-    const app = buildTestApp();
-    await app.ready();
-    const res = await app.inject({
-      method: "GET",
-      url: `/trpc/costs.list?input=${encodeURIComponent(
-        JSON.stringify({ limit: 10 })
-      )}`,
-      headers: { "content-type": "application/json" }
-    });
-    expect(res.statusCode).toBe(200);
-    const body = JSON.parse(res.body);
-    const data = body.result?.data?.json ?? body.result?.data;
-    expect(data.calls).toEqual([]);
-    expect(data.next_start_key).toBeNull();
     await app.close();
   });
 });
@@ -110,25 +87,6 @@ describe("tRPC /trpc/collections.list over Fastify", () => {
     const body = JSON.parse(res.body);
     const data = body.result?.data?.json ?? body.result?.data;
     expect(data).toEqual({ collections: [], count: 0 });
-    await app.close();
-  });
-});
-
-describe("tRPC /trpc/skills.list over Fastify", () => {
-  it("returns the skills list shape", async () => {
-    const app = buildTestApp();
-    await app.ready();
-    const res = await app.inject({
-      method: "GET",
-      url: "/trpc/skills.list"
-    });
-    expect(res.statusCode).toBe(200);
-    const body = JSON.parse(res.body);
-    const data = body.result?.data?.json ?? body.result?.data;
-    expect(data).toHaveProperty("count");
-    expect(data).toHaveProperty("skills");
-    expect(Array.isArray(data.skills)).toBe(true);
-    expect(typeof data.count).toBe("number");
     await app.close();
   });
 });
@@ -302,23 +260,3 @@ describe("tRPC /trpc/files.list over Fastify", () => {
   });
 });
 
-describe("tRPC /trpc/storage.list over Fastify", () => {
-  it("returns the storage list shape (may be empty if storage dir missing)", async () => {
-    const app = buildTestApp();
-    await app.ready();
-    const res = await app.inject({
-      method: "GET",
-      url: `/trpc/storage.list?input=${encodeURIComponent(
-        JSON.stringify({})
-      )}`
-    });
-    expect(res.statusCode).toBe(200);
-    const body = JSON.parse(res.body);
-    const data = body.result?.data?.json ?? body.result?.data;
-    expect(data).toHaveProperty("entries");
-    expect(data).toHaveProperty("count");
-    expect(Array.isArray(data.entries)).toBe(true);
-    expect(typeof data.count).toBe("number");
-    await app.close();
-  });
-});

@@ -11,9 +11,7 @@ import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 import {
   listFilesInput,
-  listFilesOutput,
-  fileInfoInput,
-  fileInfoOutput
+  listFilesOutput
 } from "@nodetool-ai/protocol/api-schemas/files.js";
 import { ApiErrorCode } from "@nodetool-ai/protocol/api-schemas/api-error-code.js";
 
@@ -121,34 +119,6 @@ export const filesRouter = router({
         );
       } catch {
         throwApiError(ApiErrorCode.NOT_FOUND, "Directory not found");
-      }
-    }),
-
-  info: protectedProcedure
-    .input(fileInfoInput)
-    .output(fileInfoOutput)
-    .query(async ({ input }) => {
-      if (process.env["NODETOOL_ENV"] === "production") {
-        throwApiError(
-          ApiErrorCode.FORBIDDEN,
-          "File browser is disabled in production"
-        );
-      }
-
-      const rootDir = getRootDir();
-      const resolved = await resolveSandboxed(rootDir, input.path);
-
-      try {
-        const stat = await fs.stat(resolved);
-        return {
-          name: path.basename(resolved),
-          path: resolved,
-          size: stat.size,
-          is_dir: stat.isDirectory(),
-          modified_at: stat.mtime.toISOString()
-        };
-      } catch {
-        throwApiError(ApiErrorCode.NOT_FOUND, "File not found");
       }
     })
 });
