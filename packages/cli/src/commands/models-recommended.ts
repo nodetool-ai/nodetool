@@ -15,7 +15,7 @@ import {
 } from "@nodetool-ai/runtime";
 import type { UnifiedModel } from "@nodetool-ai/protocol";
 
-import { asJson, printTable } from "./deploy-helpers.js";
+import { asJson, printTable } from "./output.js";
 
 // ---------------------------------------------------------------------------
 // Category filters

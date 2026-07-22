@@ -10,7 +10,7 @@ import type { Command } from "commander";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import type { AppRouter } from "@nodetool-ai/websocket/trpc";
 
-import { asJson, printTable, printKv } from "./deploy-helpers.js";
+import { asJson, printTable, printKv } from "./output.js";
 
 const DEFAULT_API_URL =
   process.env["NODETOOL_API_URL"] ?? "http://localhost:7777";

@@ -13,7 +13,7 @@ import type { Command } from "commander";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import type { AppRouter } from "@nodetool-ai/websocket/trpc";
 
-import { asJson, printTable, printKv, confirm } from "./deploy-helpers.js";
+import { asJson, printTable, printKv, confirm } from "./output.js";
 
 const DEFAULT_API_URL =
   process.env["NODETOOL_API_URL"] ?? "http://localhost:7777";
@@ -126,8 +126,12 @@ export function registerCollectionCommands(program: Command): void {
     .description("Delete a collection and all its documents")
     .option("-y, --yes", "Skip the confirmation prompt")
     .option("--api-url <url>", "API base URL", DEFAULT_API_URL)
+    .option("--json", "Output as JSON")
     .action(
-      async (name: string, opts: { apiUrl: string; yes?: boolean }) => {
+      async (
+        name: string,
+        opts: { apiUrl: string; yes?: boolean; json?: boolean }
+      ) => {
         try {
           const ok = await confirm(
             `Delete collection '${name}' and all its documents?`,
@@ -140,6 +144,10 @@ export function registerCollectionCommands(program: Command): void {
           const data = await apiClient(opts.apiUrl).collections.delete.mutate({
             name
           });
+          if (opts.json) {
+            asJson(data);
+            return;
+          }
           console.log(data.message);
         } catch (e) {
           fail(e);

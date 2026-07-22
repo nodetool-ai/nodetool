@@ -14,7 +14,7 @@ import {
   WebsocketPythonBridge,
   type ModelDownloadUpdate
 } from "@nodetool-ai/runtime";
-import { printTable, asJson } from "./deploy-helpers.js";
+import { printTable, asJson } from "./output.js";
 
 // ---------------------------------------------------------------------------
 // Formatting helpers
