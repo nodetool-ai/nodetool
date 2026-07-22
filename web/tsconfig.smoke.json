@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.e2e.json",
+  "compilerOptions": {
+    "moduleResolution": "bundler",
+    "types": ["@playwright/test", "node"]
+  },
+  "include": [
+    "tests/smoke/**/*",
+    "playwright.smoke.config.ts",
+    "tests/benchmarks/helpers/**/*"
+  ]
+}
