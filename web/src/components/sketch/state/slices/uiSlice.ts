@@ -26,7 +26,7 @@ export interface UiSlice {
    * Whether the mobile panels sheet (color / layers / canvas) is open. On
    * narrow viewports the right column can't sit beside the canvas, so it moves
    * into a bottom sheet toggled by this flag. Ignored on desktop, where the
-   * column is always docked.
+   * column is docked (and hidden only by the `panelsHidden` chrome toggle).
    */
   mobilePanelsOpen: boolean;
   toggleMobilePanels: () => void;

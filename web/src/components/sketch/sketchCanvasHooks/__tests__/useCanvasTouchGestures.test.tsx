@@ -159,4 +159,30 @@ describe("useCanvasTouchGestures", () => {
     });
     expect(consumed).toBe(true);
   });
+
+  it("keeps consuming the leftover finger until the last lifts", () => {
+    const { result } = setup();
+    act(() => {
+      result.current.onPointerDown(touchEvent(1, 150, 150));
+      result.current.onPointerDown(touchEvent(2, 250, 150));
+      result.current.onPointerUp(touchEvent(2, 250, 150));
+    });
+    // One finger remains after the pinch — its moves and final lift must still
+    // be consumed so it can't resume a stroke mid-sequence.
+    let move = false;
+    let lift = false;
+    act(() => {
+      move = result.current.onPointerMove(touchEvent(1, 170, 160));
+      lift = result.current.onPointerUp(touchEvent(1, 170, 160));
+    });
+    expect(move).toBe(true);
+    expect(lift).toBe(true);
+
+    // Gesture fully ended: a fresh single touch draws again (not consumed).
+    let fresh = true;
+    act(() => {
+      fresh = result.current.onPointerDown(touchEvent(3, 100, 100));
+    });
+    expect(fresh).toBe(false);
+  });
 });

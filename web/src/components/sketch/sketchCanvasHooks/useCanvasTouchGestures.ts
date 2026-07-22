@@ -105,11 +105,16 @@ export function useCanvasTouchGestures({
   // gesture must accumulate against its own copy rather than the stale props.
   const runningZoomRef = useRef(zoom);
   const runningPanRef = useRef(pan);
+  // Stays true from the moment a two-finger gesture begins until the LAST
+  // finger lifts — not just while ≥2 fingers are down. This is what lets the
+  // handlers keep consuming touch events after a pinch drops to one finger, so
+  // the leftover finger never resumes a stroke mid-sequence.
+  const gestureActiveRef = useRef(false);
 
   // Keep the running values in sync with committed props while no gesture is
   // active, so the next pinch starts from the true viewport state.
   useEffect(() => {
-    if (!lastSampleRef.current) {
+    if (!gestureActiveRef.current) {
       runningZoomRef.current = zoom;
       runningPanRef.current = pan;
     }
@@ -127,13 +132,29 @@ export function useCanvasTouchGestures({
       }
       pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (pointersRef.current.size >= 2) {
-        // Second finger — supersede the single-finger stroke that already
-        // started and begin the pinch/pan gesture.
-        cancelDrawing();
-        runningZoomRef.current = zoom;
-        runningPanRef.current = pan;
+        if (!gestureActiveRef.current) {
+          // First frame of the gesture — supersede the single-finger stroke
+          // that already started and seed the viewport baseline.
+          cancelDrawing();
+          gestureActiveRef.current = true;
+          runningZoomRef.current = zoom;
+          runningPanRef.current = pan;
+        }
+        // Rebaseline geometry to the current finger pair (also when a 3rd
+        // finger changes the set) so the next move doesn't jump.
         const [a, b] = firstTwoPoints();
         lastSampleRef.current = pinchSample(a, b);
+        // Capture every active pointer to the canvas so the pinch/pan stream
+        // keeps arriving even if a finger drifts off the canvas element. The
+        // drawing layer never captured the superseded fingers, so do it here.
+        const el = e.currentTarget as HTMLElement | undefined;
+        for (const id of pointersRef.current.keys()) {
+          try {
+            el?.setPointerCapture?.(id);
+          } catch {
+            // Pointer already released — nothing to capture.
+          }
+        }
         return true;
       }
       return false;
@@ -146,26 +167,30 @@ export function useCanvasTouchGestures({
       return false;
     }
     pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (pointersRef.current.size < 2 || !lastSampleRef.current) {
+    if (!gestureActiveRef.current) {
       return false;
     }
-    const [a, b] = firstTwoPoints();
-    const cur = pinchSample(a, b);
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (rect) {
-      const next = computePinchStep(
-        lastSampleRef.current,
-        cur,
-        runningZoomRef.current,
-        runningPanRef.current,
-        rect
-      );
-      runningZoomRef.current = next.zoom;
-      runningPanRef.current = next.pan;
-      onPanChange(next.pan);
-      onZoomChange(next.zoom);
+    // Only drive zoom/pan while two fingers are down; with one finger the
+    // pinch is undefined, but we still consume the event so it can't draw.
+    if (pointersRef.current.size >= 2 && lastSampleRef.current) {
+      const [a, b] = firstTwoPoints();
+      const cur = pinchSample(a, b);
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (rect) {
+        const next = computePinchStep(
+          lastSampleRef.current,
+          cur,
+          runningZoomRef.current,
+          runningPanRef.current,
+          rect
+        );
+        runningZoomRef.current = next.zoom;
+        runningPanRef.current = next.pan;
+        onPanChange(next.pan);
+        onZoomChange(next.zoom);
+      }
+      lastSampleRef.current = cur;
     }
-    lastSampleRef.current = cur;
     return true;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- containerRef is stable
   }, [onPanChange, onZoomChange]);
@@ -174,13 +199,18 @@ export function useCanvasTouchGestures({
     if (e.pointerType !== "touch") {
       return false;
     }
-    const wasGesture = lastSampleRef.current !== null;
+    const wasGesture = gestureActiveRef.current;
     pointersRef.current.delete(e.pointerId);
     if (pointersRef.current.size < 2) {
+      // Pinch geometry is undefined below two fingers.
       lastSampleRef.current = null;
     }
-    // Consume the lift while a gesture was live so the remaining finger can't
-    // resume drawing from the same touch sequence.
+    if (pointersRef.current.size === 0) {
+      // Gesture only ends once the last finger lifts.
+      gestureActiveRef.current = false;
+    }
+    // Consume every lift that belongs to the gesture sequence so the remaining
+    // finger can't resume drawing from the same touch.
     return wasGesture;
   }, []);
 
