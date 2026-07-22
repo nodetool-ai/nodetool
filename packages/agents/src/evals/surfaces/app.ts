@@ -209,12 +209,23 @@ export function createAppToolBridge(
   let title: string | null = initial.title ?? null;
   let selectedId: string | null = null;
   let idSeq = 0;
+  // Track every id in use so generated ids never collide with an explicitly
+  // seeded one (e.g. seeding "Heading-1" then adding a Heading).
+  const usedIds = new Set<string>();
 
-  const nextId = (type: string): string => `${type}-${++idSeq}`;
+  const nextId = (type: string): string => {
+    let id: string;
+    do {
+      id = `${type}-${++idSeq}`;
+    } while (usedIds.has(id));
+    usedIds.add(id);
+    return id;
+  };
 
   const seed = (nodes: SeedComponent[]): ComponentNode[] =>
     nodes.map((n) => {
       const id = n.id ?? nextId(n.type);
+      usedIds.add(id);
       const props: Record<string, unknown> & { id: string } = {
         ...(n.props ?? {}),
         id
@@ -438,7 +449,8 @@ export function createAppToolBridge(
           wanted && flattenComponents(content).some((c) => c.id === wanted)
             ? wanted
             : null;
-        return { ok: true, selectedId };
+        // Match the real tool contract, which returns only { ok: true }.
+        return { ok: true };
       }
     ),
 

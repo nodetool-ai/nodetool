@@ -249,6 +249,23 @@ describe("createAppToolBridge", () => {
     expect(bridge.finalState().selectedId).toBeNull();
   });
 
+  it("generated ids never collide with an explicitly seeded id", async () => {
+    // Seed a widget whose id matches the generated `${type}-${n}` pattern.
+    const bridge = createAppToolBridge({
+      components: [{ type: "Heading", id: "Heading-1" }]
+    });
+    const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
+
+    await byName["ui_app_add_component"].execute({
+      workflow_id: WF,
+      type: "Heading"
+    });
+    const ids = bridge.finalState().components.map((c) => c.id);
+    expect(ids).toHaveLength(2);
+    expect(new Set(ids).size).toBe(2); // no duplicates
+    expect(ids).toContain("Heading-1");
+  });
+
   it("set_title updates the snapshot root props", async () => {
     const bridge = createAppToolBridge();
     const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
