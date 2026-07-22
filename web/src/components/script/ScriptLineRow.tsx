@@ -240,31 +240,43 @@ const ScriptLineRow = ({
     [onDragStart, line.id]
   );
 
+  const speakerDisabled = readOnly || !cast.length;
   const speakerButton = (
+    // The button is disabled read-only or with no cast, and a disabled element
+    // emits no hover events — so the Tooltip anchors to a wrapper span that
+    // carries the flex sizing, keeping the hint reachable in every state.
     <Tooltip title={cast.length ? "Change speaker" : "Add a speaker first"}>
       <Box
-        component="button"
-        type="button"
-        disabled={readOnly || !cast.length}
-        onClick={readOnly ? undefined : cycleSpeaker}
+        component="span"
         sx={{
           flexShrink: 0,
+          display: "inline-flex",
           width: mobile ? "auto" : GUTTER,
-          marginTop: mobile ? SPACING.none : SPACING.sm,
-          padding: SPACING.none,
-          border: "none",
-          background: "none",
-          textAlign: mobile ? "left" : "right",
-          cursor: readOnly || !cast.length ? "default" : "pointer",
-          ...TYPOGRAPHY.sans.label,
-          letterSpacing: "0.06em",
-          textTransform: "uppercase",
-          color: speaker ? speaker.color ?? "text.primary" : "text.disabled",
-          transition: MOTION.fast,
-          "&:hover:not(:disabled)": { color: "primary.main" }
+          marginTop: mobile ? SPACING.none : SPACING.sm
         }}
       >
-        {speaker?.name ?? "no speaker"}
+        <Box
+          component="button"
+          type="button"
+          disabled={speakerDisabled}
+          onClick={readOnly ? undefined : cycleSpeaker}
+          sx={{
+            width: "100%",
+            padding: SPACING.none,
+            border: "none",
+            background: "none",
+            textAlign: mobile ? "left" : "right",
+            cursor: speakerDisabled ? "default" : "pointer",
+            ...TYPOGRAPHY.sans.label,
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+            color: speaker ? speaker.color ?? "text.primary" : "text.disabled",
+            transition: MOTION.fast,
+            "&:hover:not(:disabled)": { color: "primary.main" }
+          }}
+        >
+          {speaker?.name ?? "no speaker"}
+        </Box>
       </Box>
     </Tooltip>
   );
