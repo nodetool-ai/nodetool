@@ -137,17 +137,13 @@ describe("/api/files/local", () => {
 
 describe("unknown route", () => {
   it("returns 404 for /api/files/list (now tRPC only)", async () => {
-    const res = await handleFileRequest(
-      makeRequest("/api/files/list?path=."),
-      { rootDir: tmpDir }
-    );
+    const res = await handleFileRequest(makeRequest("/api/files/list?path=."));
     expect(res.status).toBe(404);
   });
 
   it("returns 404 for /api/files/info (now tRPC only)", async () => {
     const res = await handleFileRequest(
-      makeRequest("/api/files/info?path=test.txt"),
-      { rootDir: tmpDir }
+      makeRequest("/api/files/info?path=test.txt")
     );
     expect(res.status).toBe(404);
   });

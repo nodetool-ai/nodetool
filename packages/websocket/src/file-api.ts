@@ -18,11 +18,6 @@ import {
   parseRangeHeader
 } from "./storage-api.js";
 
-export interface FileApiOptions {
-  /** Root directory for the file browser sandbox. Defaults to user home. */
-  rootDir?: string;
-}
-
 function errorResponse(status: number, detail: string): Response {
   return new Response(JSON.stringify({ detail }), {
     status,
@@ -198,10 +193,7 @@ async function handleLocalFileStream(
  *
  * JSON ops (list, info) have moved to the tRPC `files` router.
  */
-export async function handleFileRequest(
-  request: Request,
-  _options: FileApiOptions = {}
-): Promise<Response> {
+export async function handleFileRequest(request: Request): Promise<Response> {
   // File browser exposes the local filesystem — disabled in production
   if (process.env["NODETOOL_ENV"] === "production") {
     return errorResponse(403, "File browser is disabled in production");

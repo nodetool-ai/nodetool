@@ -4,7 +4,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { initTestDb, Job } from "@nodetool-ai/models";
 import { handleApiRequest } from "../src/http-api.js";
-import { handleFileRequest, type FileApiOptions } from "../src/file-api.js";
+import { handleFileRequest } from "../src/file-api.js";
 import { createStorageHandler } from "../src/storage-api.js";
 import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
@@ -98,18 +98,10 @@ describe("T-WS-8: Username validation", () => {
 
 describe("T-WS-9: File browser API", () => {
   let tmpDir: string;
-  let fileOpts: FileApiOptions;
 
   beforeEach(async () => {
     tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "ws-file-test-"));
-    fileOpts = { rootDir: tmpDir };
-    // Create test structure
-    await fs.mkdir(path.join(tmpDir, "subdir"));
     await fs.writeFile(path.join(tmpDir, "hello.txt"), "hello world");
-    await fs.writeFile(
-      path.join(tmpDir, "subdir", "nested.txt"),
-      "nested content"
-    );
   });
 
   afterEach(async () => {
@@ -147,16 +139,14 @@ describe("T-WS-9: File browser API", () => {
 
   it("REST /api/files/list now returns 404 (moved to tRPC)", async () => {
     const res = await handleFileRequest(
-      new Request("http://localhost/api/files/list?path=/"),
-      fileOpts
+      new Request("http://localhost/api/files/list?path=/")
     );
     expect(res.status).toBe(404);
   });
 
   it("REST /api/files/info now returns 404 (moved to tRPC)", async () => {
     const res = await handleFileRequest(
-      new Request("http://localhost/api/files/info?path=/hello.txt"),
-      fileOpts
+      new Request("http://localhost/api/files/info?path=/hello.txt")
     );
     expect(res.status).toBe(404);
   });
