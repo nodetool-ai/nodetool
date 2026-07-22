@@ -38,6 +38,11 @@ const MOBILE_TABS = [
   { value: "assistant", label: "Assistant", icon: <AutoAwesomeIcon /> }
 ];
 
+const MOBILE_PANES: readonly MobilePane[] = ["boards", "board", "assistant"];
+
+const isMobilePane = (value: string): value is MobilePane =>
+  (MOBILE_PANES as readonly string[]).includes(value);
+
 /**
  * Workspace surface for a storyboard tab. `refId` is the board id. Ensures the
  * board exists in the singleton store, mounts the agent bridge (registering this
@@ -126,7 +131,11 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
         <TabGroup
           tabs={MOBILE_TABS}
           value={mobilePane}
-          onChange={(value) => setMobilePane(value as MobilePane)}
+          onChange={(value) => {
+            if (isMobilePane(value)) {
+              setMobilePane(value);
+            }
+          }}
           size="small"
           fullWidth
           sx={{
