@@ -19,6 +19,7 @@
   },
   "scripts": {
     "build": "node ../../scripts/build-typescript-workspace.mjs",
+    "pretest": "node scripts/ensure-deps-built.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "tsc --noEmit",
