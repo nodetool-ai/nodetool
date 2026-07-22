@@ -435,7 +435,7 @@ export interface MusicModelValue {
 export interface HuggingFaceModelValue {
   type: string;
   repo_id: string;
-  path?: string;
+  path?: string | null;
 }
 
 export type HuggingFaceModelValueInput = HuggingFaceModelValue & {
