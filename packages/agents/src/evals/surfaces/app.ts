@@ -347,10 +347,10 @@ export function createAppToolBridge(
         // Mirror puckDataOps.addComponent exactly: an unknown parent id or a
         // parent with no slots silently no-ops (the node is not inserted) — the
         // real tool never errors on these, it just leaves the tree unchanged.
-        let inserted = false;
+        // Adding a widget does NOT change the selection either, matching
+        // PuckAgentBinder.addComponent (only ui_app_select_component does).
         if (!parentId) {
           content = insertInto(content, node, at);
-          inserted = true;
         } else {
           content = mapTree(content, (n) => {
             if (n.props.id !== parentId) return n;
@@ -361,14 +361,12 @@ export function createAppToolBridge(
             const current = Array.isArray(n.props[targetSlot])
               ? (n.props[targetSlot] as ComponentNode[])
               : [];
-            inserted = true;
             return {
               ...n,
               props: { ...n.props, [targetSlot]: insertInto(current, node, at) }
             };
           });
         }
-        if (inserted) selectedId = id;
         // Echo parentId/slot as the caller passed them, matching the real tool
         // (PuckAgentBinder.addComponent returns slot: args.slot ?? null);
         // ui_app_get_snapshot is the authoritative source for the resolved tree.
@@ -513,6 +511,11 @@ The app is a tree of widgets bound to a workflow. Use the ui_app_* tools:
 
 Call one tool at a time and use the result before the next call. When the objective is fully satisfied, STOP calling tools and give a one-line summary.`;
 
+// Note on `noErrorResults`: the tool-loop runner only counts a *thrown* tool
+// error as an errored result — a returned `{ ok: false }` (e.g. update/remove
+// on an unknown id) is not flagged. These cases therefore lean on the
+// `finalState` predicates to catch a wrong-but-non-throwing tool call, and use
+// `noErrorResults` only to catch genuine exceptions.
 export const APP_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<AppBridgeFinalState>[] =
   [
     {

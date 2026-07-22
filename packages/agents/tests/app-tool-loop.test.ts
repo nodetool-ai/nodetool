@@ -101,8 +101,9 @@ describe("createAppToolBridge", () => {
 
     const final = bridge.finalState();
     expect(final.components).toHaveLength(2);
-    // Last-added widget is selected.
-    expect(final.selectedId).toBe(final.components[1].id);
+    // Adding does NOT change the selection (matches PuckAgentBinder.addComponent
+    // — selection is only touched by ui_app_select_component).
+    expect(final.selectedId).toBeNull();
   });
 
   it("lists component types including the layout slots", async () => {
